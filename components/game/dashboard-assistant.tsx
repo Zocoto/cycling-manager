@@ -9,6 +9,7 @@ import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
   type DashboardAssistantLine,
+  type DashboardRaceRegistrationAlert,
   type DashboardRaceRosterAlert,
   type DashboardAssistantSnapshot,
   type DashboardJournalItem,
@@ -17,12 +18,14 @@ import {
 export async function DashboardAssistant({
   summaryPromise,
   raceRosterAlerts,
+  raceRegistrationAlerts,
   rewardCount,
   cashBalance,
   hasTeam,
 }: {
   summaryPromise: Promise<DashboardAssistantSnapshot | null>;
   raceRosterAlerts: DashboardRaceRosterAlert[];
+  raceRegistrationAlerts: DashboardRaceRegistrationAlert[];
   rewardCount: number;
   cashBalance: number | null;
   hasTeam: boolean;
@@ -38,6 +41,7 @@ export async function DashboardAssistant({
   const groups = buildDashboardAssistantLines({
     snapshot: summary,
     raceRosterAlerts,
+    raceRegistrationAlerts,
     rewardCount,
     cashBalance,
   });
@@ -215,10 +219,12 @@ function JournalSection({ items }: { items: DashboardJournalItem[] }) {
 }
 
 function JournalRow({ item }: { item: DashboardJournalItem }) {
+  const mailboxHref = `/jeu/messagerie?message=${encodeURIComponent(item.id)}`;
+
   return (
     <div className="flex min-h-11 items-center gap-1 rounded-xl transition hover:bg-white">
       <DirectorMailboxMessageLink
-        href={item.href}
+        href={mailboxHref}
         messageToMarkReadId={item.read ? null : item.id}
         active={false}
         className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]"

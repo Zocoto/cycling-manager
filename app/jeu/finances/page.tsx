@@ -156,7 +156,12 @@ export default async function TeamFinancesPage({
           />
         ) : (
           <>
-            <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <FinanceMetric
+            label="Allocation de départ"
+            value={formatCurrency(overview.openingBalance, overview.currency)}
+            detail="Crédit initial attribué au DS pour lancer sa structure"
+          />
           <FinanceMetric
             label="Solde actuel"
             value={formatCurrency(overview.balance, overview.currency)}

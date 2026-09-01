@@ -62,6 +62,7 @@ import {
 import { getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
 import {
   DASHBOARD_ASSISTANT_ENABLED,
+  getDashboardLowReputationRegistrationAlerts,
   getDashboardRaceRosterAlerts,
 } from "../../lib/game/dashboard-assistant";
 import { getDashboardRaceCalendar } from "../../services/dashboard-race-calendar";
@@ -230,6 +231,7 @@ function toFinanceOverview(
         seasonName: summary.seasonName,
         currentDayNumber: summary.seasonDayNumber,
         currency: summary.currency,
+        openingBalance: 0,
         balance: summary.balance,
         projectedBalance: summary.balance,
         totalIncome: 0,
@@ -566,14 +568,21 @@ export default async function GamePage() {
   }
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
+  const raceRegistrationAlerts =
+    getDashboardLowReputationRegistrationAlerts(
+      raceCalendar,
+      reputationPoints,
+    );
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
   const objectiveTotalCount = dashboardFastSummary?.objectiveTotalCount ?? 0;
+  const objectiveRewardCount = dashboardFastSummary?.objectiveReadyCount ?? 0;
   const trophyRewardCount = dashboardFastSummary?.trophyRewardCount ?? 0;
   const unreadTrophyCount = dashboardFastSummary?.unreadTrophyCount ?? 0;
+  const dailyRewardAvailable =
+    dashboardFastSummary?.dailyRewardAvailable ?? false;
+  const claimableRewardCount = objectiveRewardCount + trophyRewardCount;
   const readyRewardCount =
-    (dashboardFastSummary?.objectiveReadyCount ?? 0) +
-    trophyRewardCount +
-    (dashboardFastSummary?.dailyRewardAvailable ? 1 : 0);
+    claimableRewardCount + (dailyRewardAvailable ? 1 : 0);
 
   return (
     <main className="min-h-screen text-[#082A2A]">
@@ -609,7 +618,8 @@ export default async function GamePage() {
               />
               <ObjectivesShortcut
                 totalCount={objectiveTotalCount}
-                readyCount={readyRewardCount}
+                objectiveRewardCount={objectiveRewardCount}
+                dailyRewardAvailable={dailyRewardAvailable}
                 trophyRewardCount={trophyRewardCount}
                 unreadTrophyCount={unreadTrophyCount}
               />
@@ -630,6 +640,7 @@ export default async function GamePage() {
               <DashboardAssistant
                 summaryPromise={dashboardAssistantPromise}
                 raceRosterAlerts={raceRosterAlerts}
+                raceRegistrationAlerts={raceRegistrationAlerts}
                 rewardCount={readyRewardCount}
                 cashBalance={financeOverview?.balance ?? null}
                 hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
@@ -1369,19 +1380,33 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
 
 function ObjectivesShortcut({
   totalCount,
-  readyCount,
+  objectiveRewardCount,
+  dailyRewardAvailable,
   trophyRewardCount,
   unreadTrophyCount,
 }: {
   totalCount: number;
-  readyCount: number;
+  objectiveRewardCount: number;
+  dailyRewardAvailable: boolean;
   trophyRewardCount: number;
   unreadTrophyCount: number;
 }) {
-  const hasRewards = readyCount > 0;
-  const hasNewTrophies = unreadTrophyCount > 0;
-  const rewardLabel = `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`;
-  const trophyLabel = `${unreadTrophyCount} nouveau${unreadTrophyCount > 1 ? "x" : ""} trophée${unreadTrophyCount > 1 ? "s" : ""}`;
+  const hasRewards = objectiveRewardCount > 0;
+  const trophyNoticeCount = Math.max(
+    trophyRewardCount,
+    unreadTrophyCount,
+  );
+  const hasNewTrophies = trophyNoticeCount > 0;
+  const rewardLabel = `${objectiveRewardCount} récompense${objectiveRewardCount > 1 ? "s" : ""} d’objectif à récupérer`;
+  const dailyRewardLabel = dailyRewardAvailable
+    ? "cadeau quotidien à récupérer"
+    : "";
+  const trophyLabel = `${trophyNoticeCount} nouveau${trophyNoticeCount > 1 ? "x" : ""} trophée${trophyNoticeCount > 1 ? "s" : ""}`;
+  const notices = [
+    hasRewards ? rewardLabel : null,
+    dailyRewardAvailable ? dailyRewardLabel : null,
+    hasNewTrophies ? trophyLabel : null,
+  ].filter((notice): notice is string => Boolean(notice));
 
   return (
     <Link
@@ -1390,15 +1415,13 @@ function ObjectivesShortcut({
           ? "/jeu/objectifs?onglet=trophees"
           : trophyRewardCount > 0
           ? "/jeu/objectifs?onglet=trophees#trophee-alpha-tester"
+          : dailyRewardAvailable && !hasRewards
+            ? "/jeu/objectifs?onglet=quotidiennes"
           : "/jeu/objectifs"
       }
       title={
-        hasRewards && hasNewTrophies
-          ? `${rewardLabel} · ${trophyLabel}`
-          : hasRewards
-            ? rewardLabel
-            : hasNewTrophies
-              ? trophyLabel
+        notices.length > 0
+          ? notices.join(" · ")
           : `Consulter les récompenses et trophées (${totalCount} objectifs suivis)`
       }
       className="group relative flex min-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#A67C00]/55 bg-[#F2C94C] px-3 py-2.5 text-[#183F37] shadow-[0_12px_30px_rgba(122,91,9,0.2)] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] hover:shadow-[0_16px_34px_rgba(122,91,9,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#183F37] sm:min-w-32"
@@ -1417,16 +1440,35 @@ function ObjectivesShortcut({
           <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
           <path d="M8 6H5v2a4 4 0 0 0 4 4M16 6h3v2a4 4 0 0 1-4 4M12 13v4M9 20h6M10 17h4" />
         </svg>
-        {hasRewards || hasNewTrophies ? (
+        {hasRewards || dailyRewardAvailable || hasNewTrophies ? (
           <span className="absolute -right-2 -top-2 flex items-center gap-0.5">
             {hasRewards ? (
               <span className="grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#C72F5E] px-1 text-[9px] font-black leading-none text-white">
-                {readyCount > 9 ? "9+" : readyCount}
+                {objectiveRewardCount > 9 ? "9+" : objectiveRewardCount}
+              </span>
+            ) : null}
+            {dailyRewardAvailable ? (
+              <span
+                aria-label="Cadeau quotidien disponible"
+                className="grid h-5 w-5 place-items-center rounded-md border-2 border-[#F2C94C] bg-[#7B4CC9] text-white"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="h-3 w-3"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2.5 6.5h11v7h-11zM1.5 4h13v2.5h-13zM8 4v9.5M8 4C6.8 4 5 3.4 5 2.2 5 1.4 5.7 1 6.4 1 7.5 1 8 2.3 8 4ZM8 4c1.2 0 3-.6 3-1.8 0-.8-.7-1.2-1.4-1.2C8.5 1 8 2.3 8 4Z" />
+                </svg>
               </span>
             ) : null}
             {hasNewTrophies ? (
               <span className="grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#2F6EC7] px-1 text-[9px] font-black leading-none text-white">
-                {unreadTrophyCount > 9 ? "9+" : unreadTrophyCount}
+                {trophyNoticeCount > 9 ? "9+" : trophyNoticeCount}
               </span>
             ) : null}
           </span>
@@ -1434,13 +1476,15 @@ function ObjectivesShortcut({
       </span>
       <span className="text-xs font-black text-[#183F37]">Récompenses</span>
       <span className="text-[9px] font-extrabold leading-none text-[#594408]">
-        {hasRewards && hasNewTrophies
-          ? "Gains & nouveaux trophées"
+        {notices.length > 1
+          ? "Plusieurs nouveautés"
           : hasRewards
-            ? "À récupérer"
-            : hasNewTrophies
-              ? "Nouveau trophée"
-              : "Objectifs & trophées"}
+            ? "Objectif à récupérer"
+            : dailyRewardAvailable
+              ? "Cadeau quotidien"
+              : hasNewTrophies
+                ? "Nouveau trophée"
+                : "Objectifs & trophées"}
       </span>
     </Link>
   );

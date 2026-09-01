@@ -93,6 +93,7 @@ export type TeamFinanceOverview = {
   seasonName: string;
   currentDayNumber: number;
   currency: string;
+  openingBalance: number;
   balance: number;
   projectedBalance: number;
   totalIncome: number;
@@ -243,6 +244,7 @@ export async function getCurrentTeamFinanceOverview(
     seasonName: season.name,
     currentDayNumber,
     currency: teamSeason.currency,
+    openingBalance,
     balance: toNumber(teamSeason.cash_balance),
     projectedBalance,
     totalIncome,

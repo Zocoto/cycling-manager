@@ -668,7 +668,11 @@ export function CyclistEquipmentVisual({
           }}
         />
 
-        <div className="order-first overflow-hidden rounded-2xl border border-white/10 bg-black/10 p-3 sm:col-span-2 lg:order-none lg:col-span-1">
+        <div className="relative order-first overflow-hidden rounded-2xl border border-white/10 bg-black/10 p-3 sm:col-span-2 lg:order-none lg:col-span-1">
+          <span className="absolute right-2 top-2 z-10 rounded-full border border-white/10 bg-[#071A17]/85 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#BFD1C6] backdrop-blur-sm">
+            {equippedCount}/{ALL_SLOTS.length} équipé
+            {equippedCount > 1 ? "s" : ""}
+          </span>
           <Image
             src="/illustrations/rider-equipment.webp"
             width={1152}
@@ -701,10 +705,6 @@ export function CyclistEquipmentVisual({
           }}
         />
       </div>
-      <span className="absolute right-2 top-2 z-10 rounded-full border border-white/10 bg-[#071A17]/85 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#BFD1C6] backdrop-blur-sm">
-        {equippedCount}/{ALL_SLOTS.length} équipé
-        {equippedCount > 1 ? "s" : ""}
-      </span>
     </div>
   );
 }

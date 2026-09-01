@@ -5,6 +5,10 @@ import type {
 import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
 
+const RACES_WITHOUT_QUICK_PREVIEW = new Set([
+  "criterium-de-la-decouverte",
+]);
+
 export type RaceQuickPreviewStage = {
   id: string;
   dayNumber: number;
@@ -55,8 +59,12 @@ export function getRaceQuickPreviewTargetFromHref(
       return null;
     }
 
+    const slug = decodeURIComponent(match[1]);
+
+    if (RACES_WITHOUT_QUICK_PREVIEW.has(slug)) return null;
+
     return {
-      slug: decodeURIComponent(match[1]),
+      slug,
       stageNumber,
     };
   } catch {

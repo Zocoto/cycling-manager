@@ -30,4 +30,10 @@ describe("race preparation individual missions", () => {
     expect(source).toContain("<StageEquipmentSection");
     expect(source).not.toContain("Un montage adapté à chaque étape");
   });
+
+  it("compte uniquement les étapes dont la préparation n’est pas enregistrée", () => {
+    expect(source).toContain("isRaceStagePreparationPending");
+    expect(source).toContain("Toutes les étapes sont préparées");
+    expect(source).not.toContain("const editableCount = edition.stages.filter");
+  });
 });

@@ -108,7 +108,7 @@ export const TRAINING_DOMAIN_LABELS: Record<TrainingDomain, string> = {
   climber: "Grimpeur",
   puncheur: "Puncheur",
   stage_racer: "Coureur de tour",
-  northern_classics: "Classiques du Nord",
+  northern_classics: "Classiques du Nord · Pavés",
   rouleur: "Rouleur",
   breakaway: "Baroudeur",
   sprinter: "Sprinteur",

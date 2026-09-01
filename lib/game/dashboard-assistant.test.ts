@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
+  getDashboardLowReputationRegistrationAlerts,
   getDashboardRaceRosterAlerts,
   type DashboardAssistantSnapshot,
 } from "@/lib/game/dashboard-assistant";
@@ -278,6 +279,77 @@ describe("dashboard DS assistant", () => {
     expect(getDashboardRaceRosterAlerts(calendar)[0]?.href).toBe(
       "/jeu/courses/elite-beta#inscription",
     );
+  });
+
+  it("signale aux nouveaux DS les inscriptions accessibles sans requête supplémentaire", () => {
+    const closeRace = createRaceEdition({
+      id: "accessible-close",
+      slug: "accessible-close",
+      name: "Course découverte proche",
+      dayNumber: 12,
+      prestigeRank: 4,
+    });
+    closeRace.currentTeamRegistration = null;
+    closeRace.minimumReputation = 10;
+    const farRace = createRaceEdition({
+      id: "accessible-far",
+      slug: "accessible-far",
+      name: "Course découverte lointaine",
+      dayNumber: 18,
+      prestigeRank: 4,
+    });
+    farRace.currentTeamRegistration = null;
+    farRace.minimumReputation = 0;
+    const lockedRace = createRaceEdition({
+      id: "locked",
+      slug: "locked",
+      name: "Course verrouillée",
+      dayNumber: 11,
+      prestigeRank: 1,
+    });
+    lockedRace.currentTeamRegistration = null;
+    lockedRace.minimumReputation = 40;
+    const calendar = createRaceCalendar([farRace, lockedRace, closeRace]);
+
+    const alerts = getDashboardLowReputationRegistrationAlerts(calendar, 12);
+
+    expect(alerts.map((alert) => alert.href)).toEqual([
+      "/jeu/courses/accessible-close#inscription",
+      "/jeu/courses/accessible-far#inscription",
+    ]);
+    expect(getDashboardLowReputationRegistrationAlerts(calendar, 30)).toEqual(
+      [],
+    );
+
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+      },
+      raceRegistrationAlerts: alerts,
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "low-reputation-registrations",
+        metric: "2",
+        detail: expect.stringContaining("augmenter votre réputation"),
+        href: "/jeu/courses/accessible-close#inscription",
+      }),
+    ]);
   });
 
   it("keeps closed registrations in the lightweight dashboard calendar", () => {

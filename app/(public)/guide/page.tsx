@@ -135,7 +135,7 @@ const trainingDomains = [
   "Grimpeur",
   "Puncheur",
   "Courses par étapes",
-  "Classiques du Nord",
+  "Classiques du Nord · Pavés",
   "Rouleur",
   "Baroudeur",
   "Sprinteur",

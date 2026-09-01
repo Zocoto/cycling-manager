@@ -13,7 +13,10 @@ import {
 } from "@/lib/game/race-calendar";
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
-import { isTimeTrialPreparationStage } from "@/lib/game/race-preparation";
+import {
+  isRaceStagePreparationPending,
+  isTimeTrialPreparationStage,
+} from "@/lib/game/race-preparation";
 import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
@@ -147,9 +150,18 @@ export function RacePreparationWorkspace({
   const orderedStages = [...selectedEdition.stages].sort(
     (first, second) => first.stageNumber - second.stageNumber,
   );
-  const nextEditableStageId = orderedStages.find(
-    (stage) => getStageLiveState(stage, now).status === "scheduled",
+  const nextPendingStageId = orderedStages.find((stage) =>
+    isRaceStagePreparationPending({
+      stage,
+      plan: selectedEdition.plan.stages[stage.id],
+      scheduled: getStageLiveState(stage, now).status === "scheduled",
+    }),
   )?.id;
+  const nextEditableStageId =
+    nextPendingStageId ??
+    orderedStages.find(
+      (stage) => getStageLiveState(stage, now).status === "scheduled",
+    )?.id;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -160,8 +172,15 @@ export function RacePreparationWorkspace({
         <div className="mt-3 space-y-2" role="list">
           {orderedEditions.map((edition) => {
             const isSelected = edition.id === selectedEdition.id;
-            const editableCount = edition.stages.filter(
+            const scheduledStages = edition.stages.filter(
               (stage) => getStageLiveState(stage, now).status === "scheduled",
+            );
+            const pendingCount = scheduledStages.filter((stage) =>
+              isRaceStagePreparationPending({
+                stage,
+                plan: edition.plan.stages[stage.id],
+                scheduled: true,
+              }),
             ).length;
             const categoryStyle = RACE_CATEGORY_STYLE[edition.categoryCode];
             const dateRange = formatRaceEditionDates(edition.stages);
@@ -196,9 +215,11 @@ export function RacePreparationWorkspace({
                   </span>
                 </span>
                 <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-[#66877C]">
-                  {editableCount > 0
-                    ? `${editableCount} étape${editableCount > 1 ? "s" : ""} à préparer`
-                    : "Plan verrouillé"}
+                  {pendingCount > 0
+                    ? `${pendingCount} étape${pendingCount > 1 ? "s" : ""} à préparer`
+                    : scheduledStages.length > 0
+                      ? "Toutes les étapes sont préparées"
+                      : "Plan verrouillé"}
                 </span>
               </button>
             );

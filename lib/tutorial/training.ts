@@ -73,7 +73,7 @@ export const trainingTutorialDefinition = {
       targetId: "training-plan-domain",
       title: "Le domaine oriente les gains",
       content:
-        "Le domaine choisit les caractéristiques principalement travaillées : grimpeur, puncheur, rouleur, sprinteur, classiques du Nord, baroudeur ou courses par étapes.\n\nLes autres notes peuvent encore progresser, mais beaucoup plus lentement. Faites correspondre le domaine au profil que vous voulez développer, pas seulement au point fort actuel du coureur.",
+        "Le domaine choisit les caractéristiques principalement travaillées : grimpeur, puncheur, rouleur, sprinteur, classiques du Nord (pavés), baroudeur ou courses par étapes.\n\nLes autres notes peuvent encore progresser, mais beaucoup plus lentement. Faites correspondre le domaine au profil que vous voulez développer, pas seulement au point fort actuel du coureur.",
       placement: "top",
       highlightPadding: 6,
     },

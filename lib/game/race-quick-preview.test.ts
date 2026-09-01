@@ -39,6 +39,19 @@ describe("race quick preview links", () => {
       ),
     ).toBeNull();
   });
+
+  it("désactive l’aperçu du Critérium fictif indisponible dans l’API", () => {
+    expect(
+      getRaceQuickPreviewTargetFromHref(
+        "/jeu/courses/criterium-de-la-decouverte",
+      ),
+    ).toBeNull();
+    expect(
+      getRaceQuickPreviewTargetFromHref(
+        "/jeu/resultats/criterium-de-la-decouverte/1",
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("cobbled sectors summary", () => {

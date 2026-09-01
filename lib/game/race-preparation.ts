@@ -11,3 +11,21 @@ export function isTimeTrialPreparationStage(
 ) {
   return TIME_TRIAL_STAGE_TYPES.has(stage.stageType);
 }
+
+export function isRaceStagePreparationPending({
+  stage,
+  plan,
+  scheduled,
+}: {
+  stage: Pick<RaceCalendarStage, "stageType">;
+  plan:
+    | { updatedAt: string | null; timeTrialUpdatedAt: string | null }
+    | undefined;
+  scheduled: boolean;
+}) {
+  if (!scheduled) return false;
+
+  return isTimeTrialPreparationStage(stage)
+    ? !plan?.timeTrialUpdatedAt
+    : !plan?.updatedAt;
+}

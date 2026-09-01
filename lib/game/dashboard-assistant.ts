@@ -1,4 +1,6 @@
 import {
+  getRegistrationAvailability,
+  isRaceEditionPast,
   isUnderfilledRaceRosterCorrectionOpen,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
@@ -70,8 +72,17 @@ export type DashboardRaceRosterAlert = {
   prestigeRank: number;
 };
 
+export type DashboardRaceRegistrationAlert = {
+  id: string;
+  raceName: string;
+  href: string;
+  dayNumber: number;
+  prestigeRank: number;
+};
+
 const ALERT_PRIORITY = [
   "race-roster-alerts",
+  "low-reputation-registrations",
   "untreated-injuries",
   "junior-manual-training",
   "pending-selections",
@@ -89,11 +100,13 @@ const ALERT_PRIORITY = [
 export function buildDashboardAssistantLines({
   snapshot,
   raceRosterAlerts = [],
+  raceRegistrationAlerts = [],
   rewardCount,
   cashBalance,
 }: {
   snapshot: DashboardAssistantSnapshot;
   raceRosterAlerts?: DashboardRaceRosterAlert[];
+  raceRegistrationAlerts?: DashboardRaceRegistrationAlert[];
   rewardCount: number;
   cashBalance: number | null;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
@@ -281,6 +294,24 @@ export function buildDashboardAssistantLines({
     });
   }
 
+  if (raceRegistrationAlerts.length > 0) {
+    const prioritizedAlert = raceRegistrationAlerts[0]!;
+    const actionableCount = raceRegistrationAlerts.length;
+
+    alerts.push({
+      id: "low-reputation-registrations",
+      tone: "alert",
+      metric: String(actionableCount),
+      title: pluralize(
+        actionableCount,
+        "inscription de course accessible aujourd’hui",
+        "inscriptions de courses accessibles aujourd’hui",
+      ),
+      detail: `Prochaine : ${prioritizedAlert.raceName} (J${prioritizedAlert.dayNumber}) · Inscrivez-vous pour augmenter votre réputation.`,
+      href: prioritizedAlert.href,
+    });
+  }
+
   alerts.sort(
     (left, right) => getAlertPriority(left.id) - getAlertPriority(right.id),
   );
@@ -431,6 +462,68 @@ export function getDashboardRaceRosterAlerts(
           detail: `${pluralize(missingCount, "1 coureur manque", `${missingCount} coureurs manquent`)} avant le départ à J${dayNumber}.`,
           href: getRaceRegistrationHref(edition.slug),
           dayNumber,
+          prestigeRank: edition.prestigeRank,
+        },
+      ];
+    })
+    .sort(
+      (left, right) =>
+        left.dayNumber - right.dayNumber ||
+        left.prestigeRank - right.prestigeRank ||
+        left.raceName.localeCompare(right.raceName, "fr") ||
+        left.id.localeCompare(right.id),
+    );
+}
+
+export function getDashboardLowReputationRegistrationAlerts(
+  calendar: SeasonRaceCalendar | null,
+  reputationPoints: number,
+  now = new Date(),
+): DashboardRaceRegistrationAlert[] {
+  if (!calendar || reputationPoints >= 30) return [];
+
+  return calendar.editions
+    .flatMap((edition): DashboardRaceRegistrationAlert[] => {
+      const firstStage = [...edition.stages]
+        .filter((stage) => stage.status !== "cancelled")
+        .sort(
+          (left, right) =>
+            left.dayNumber - right.dayNumber ||
+            left.stageNumber - right.stageNumber,
+        )[0];
+      const closesAt =
+        edition.categoryCode === "elite"
+          ? edition.wildcardClosesAt
+          : edition.registrationClosesAt;
+
+      if (
+        edition.competitionType !== "standard" ||
+        edition.currentTeamRegistration !== null ||
+        edition.status === "cancelled" ||
+        edition.status === "completed" ||
+        edition.status === "in_progress" ||
+        !firstStage ||
+        isRaceEditionPast({
+          edition,
+          currentDayNumber: calendar.currentDayNumber,
+        }) ||
+        getRegistrationAvailability({
+          policy: edition.registrationPolicy,
+          closesAt,
+          minimumReputation: edition.minimumReputation,
+          reputationPoints,
+          now,
+        }) !== "open"
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          id: `low-reputation-registration:${edition.id}`,
+          raceName: edition.name,
+          href: getRaceRegistrationHref(edition.slug),
+          dayNumber: firstStage.dayNumber,
           prestigeRank: edition.prestigeRank,
         },
       ];
