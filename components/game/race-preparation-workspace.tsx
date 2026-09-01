@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 
 import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
+import { RaceRoleGuide } from "@/components/game/race-role-guide";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import type { RaceCalendarStage, RaceFormat } from "@/lib/game/race-calendar";
 import {
@@ -25,6 +26,8 @@ import {
   type RiderRatings,
 } from "@/lib/game/rider-profile";
 import {
+  isRaceLeaderRole,
+  isRaceSprinterRole,
   RACE_ROLES,
   RACE_ROLE_LABELS,
   type RaceRole,
@@ -337,24 +340,26 @@ function StagePreparationForm({
   const liveState = getStageLiveState(stage, now);
   const isTimeTrial = isTimeTrialPreparationStage(stage);
   const isEditable = liveState.status === "scheduled" && !isTimeTrial;
-  const hasUniqueRoles = (["leader", "sprinter"] as const).every(
-    (role) =>
-      Object.values(roles).filter((value) => value === role).length <= 1,
-  );
+  const hasUniqueRoles =
+    Object.values(roles).filter((role) => role === "leader").length <= 1 &&
+    Object.values(roles).filter(isRaceSprinterRole).length <= 1;
   const assignedMissionIds = Object.values(missions).filter(Boolean);
   const unavailableMissionIds = [
     ...assignedMissionIds,
     ...riders
       .filter((rider) => {
         const role = roles[rider.riderId];
-        return role === "leader" || role === "sprinter";
+        return isRaceLeaderRole(role) || isRaceSprinterRole(role);
       })
       .map((rider) => rider.riderId),
   ];
   const hasUniqueMissions =
     new Set(assignedMissionIds).size === assignedMissionIds.length;
   const missionsUseTeammates = assignedMissionIds.every(
-    (riderId) => roles[riderId] !== "leader" && roles[riderId] !== "sprinter",
+    (riderId) => {
+      const role = roles[riderId];
+      return role ? !isRaceLeaderRole(role) && !isRaceSprinterRole(role) : true;
+    },
   );
   const attacksAreValid = attackOrders.every(
     (order) =>
@@ -454,6 +459,7 @@ function StagePreparationForm({
               title="Rôles en course"
               description="Le rôle de l’inscription reste le défaut ; l’étape peut le remplacer jusqu’à son départ."
             />
+            <RaceRoleGuide tone="light" />
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {riders.map((rider) => {
                 const role = roles[rider.riderId] ?? rider.generalRole;
@@ -485,16 +491,18 @@ function StagePreparationForm({
                       className="mt-3 min-h-10 w-full rounded-xl border border-[#315B3E]/18 bg-white px-2 text-xs font-bold text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF] disabled:text-[#66877C]"
                     >
                       {RACE_ROLES.map((candidateRole) => {
-                        const isUniqueRole =
-                          candidateRole === "leader" ||
-                          candidateRole === "sprinter";
-                        const isTaken =
-                          isUniqueRole &&
-                          riders.some(
-                            (candidate) =>
-                              candidate.riderId !== rider.riderId &&
-                              roles[candidate.riderId] === candidateRole,
+                        const isTaken = riders.some((candidate) => {
+                          if (candidate.riderId === rider.riderId) return false;
+                          const selectedRole = roles[candidate.riderId];
+                          if (!selectedRole) return false;
+                          if (candidateRole === "leader") {
+                            return selectedRole === "leader";
+                          }
+                          return (
+                            isRaceSprinterRole(candidateRole) &&
+                            isRaceSprinterRole(selectedRole)
                           );
+                        });
                         return (
                           <option
                             key={candidateRole}

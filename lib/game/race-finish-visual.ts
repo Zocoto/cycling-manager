@@ -1,6 +1,7 @@
-import type {
-  FinalBattleScenario,
-  RiderSimulationInput,
+import {
+  isRaceSprinterRole,
+  type FinalBattleScenario,
+  type RiderSimulationInput,
 } from "./race-simulation";
 
 export const FINAL_KILOMETER_DURATION_MS = 8_000;
@@ -58,7 +59,7 @@ export function buildSprintVisualTeams(
     team.riderIds.push(rider.id);
     if (rider.role === "leadout") {
       team.leadoutRiderIds.push(rider.id);
-    } else if (rider.role === "sprinter") {
+    } else if (isRaceSprinterRole(rider.role)) {
       team.sprinterRiderIds.push(rider.id);
     }
     teams.set(rider.teamId, team);
@@ -321,8 +322,8 @@ export function buildSprintVisualBattle({
   const finishers = riders.filter(
     (rider) => resultByRiderId.get(rider.id)?.status === "finished"
   );
-  const sprinters = finishers.filter(
-    (rider) => rider.role === "sprinter"
+  const sprinters = finishers.filter((rider) =>
+    isRaceSprinterRole(rider.role),
   );
   const candidatePool = sprinters.length >= 3 ? sprinters : finishers;
   const orderedCandidates = [...candidatePool].sort(
@@ -445,7 +446,7 @@ function getSprintVisualStrength(
     rider.ratings.acceleration * 0.2 +
     rider.ratings.resistance * 0.04 +
     energyAfter * 0.08 +
-    (rider.role === "sprinter" ? 3 : 0)
+    (isRaceSprinterRole(rider.role) ? 3 : 0)
   );
 }
 

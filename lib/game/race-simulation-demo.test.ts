@@ -154,7 +154,7 @@ describe("createCalendarSimulationInput", () => {
     expect(riders.map((rider) => rider.role)).toEqual(["leader", "leader"]);
   });
 
-  it("privilégie une consigne d'étape quand plusieurs sprinteurs subsistent", () => {
+  it("partage l’unique place de sprinteur avec le rôle combiné", () => {
     const riders = [
       {
         ...createRider("sprinteur-general", "team-a"),
@@ -168,7 +168,7 @@ describe("createCalendarSimulationInput", () => {
     ];
     const edition = createEdition({ slug: "tour-anciens-sprinteurs", riders });
     edition.stages[0].riderRoleOverrides = {
-      "sprinteur-etape": "sprinter",
+      "sprinteur-etape": "leader_sprinter",
     };
 
     const input = createCalendarSimulationInput({
@@ -178,7 +178,7 @@ describe("createCalendarSimulationInput", () => {
     });
 
     expect(input.riders.map((rider) => [rider.id, rider.role])).toEqual([
-      ["sprinteur-etape", "sprinter"],
+      ["sprinteur-etape", "leader_sprinter"],
       ["sprinteur-general", "auto"],
     ]);
     expect(riders.map((rider) => rider.role)).toEqual(["sprinter", "auto"]);

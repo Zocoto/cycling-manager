@@ -1780,6 +1780,7 @@ function getVisibleRiderIds({
     incidents.flatMap((incident) => incident.riderIds)
   );
   const rolePriority: Record<RiderSimulationInput["role"], number> = {
+    leader_sprinter: 6,
     leader: 5,
     sprinter: 4,
     free_agent: 3,

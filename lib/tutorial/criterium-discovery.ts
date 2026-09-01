@@ -10,6 +10,7 @@ import {
 import { buildRaceSegments } from "@/lib/game/race-profiles";
 import { createDemoSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
+  isRaceSprinterRole,
   RACE_ROLES,
   type RaceRole,
   type RiderSimulationRatings,
@@ -216,8 +217,9 @@ export function isValidCriteriumDiscoveryRoster(
     return false;
   }
 
-  return ["leader", "sprinter"].every(
-    (role) => roster.filter((entry) => entry.role === role).length <= 1,
+  return (
+    roster.filter((entry) => entry.role === "leader").length <= 1 &&
+    roster.filter((entry) => isRaceSprinterRole(entry.role)).length <= 1
   );
 }
 

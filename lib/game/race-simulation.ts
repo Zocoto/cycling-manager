@@ -81,6 +81,7 @@ export const RACE_ROLES = [
   "auto",
   "leader",
   "sprinter",
+  "leader_sprinter",
   "leadout",
   "free_agent",
   "domestique",
@@ -93,11 +94,20 @@ export const RACE_ROLE_LABELS: Record<RaceRole, string> = {
   auto: "Automatique",
   leader: "Leader",
   sprinter: "Sprinteur",
+  leader_sprinter: "Leader / sprinteur",
   leadout: "Poisson pilote",
   free_agent: "Électron libre",
   domestique: "Équipier",
   mountain_classification: "Classement montagne",
 };
+
+export function isRaceLeaderRole(role: RaceRole) {
+  return role === "leader" || role === "leader_sprinter";
+}
+
+export function isRaceSprinterRole(role: RaceRole) {
+  return role === "sprinter" || role === "leader_sprinter";
+}
 
 export type SimulationStageType =
   "road" | "individual_time_trial" | "team_time_trial" | "prologue";
@@ -1338,11 +1348,13 @@ export function assignAutomaticRaceRoles(
       );
     const hasRole = (role: RaceRole) =>
       teamRiders.some((rider) => rider.role === role);
+    const hasSprinterRole = () =>
+      teamRiders.some((rider) => isRaceSprinterRole(rider.role));
 
-    if (likelySprint && !hasRole("sprinter")) {
+    if (likelySprint && !hasSprinterRole()) {
       setBestAutomaticRole(
         automatic(),
-        "sprinter",
+        "leader_sprinter",
         (rider) =>
           rider.ratings.sprint * 0.62 +
           rider.ratings.acceleration * 0.25 +
@@ -1498,8 +1510,8 @@ function rankObjectiveCandidates(
 function isAvailableObjectiveCandidate(rider: RiderSimulationInput) {
   return (
     rider.generalClassificationProtected !== true &&
-    rider.role !== "leader" &&
-    rider.role !== "sprinter" &&
+    !isRaceLeaderRole(rider.role) &&
+    !isRaceSprinterRole(rider.role) &&
     (rider.raceDuty === undefined ||
       rider.raceDuty === null ||
       rider.raceDuty === "breakaway_candidate")
@@ -3365,8 +3377,8 @@ export function selectStageAttackPlan(
         rider.id !== generalLeaderId &&
         !generalClassificationProtectedRiderIds.has(rider.id) &&
         rider.generalClassificationProtected !== true &&
-        rider.role !== "leader" &&
-        rider.role !== "sprinter" &&
+        !isRaceLeaderRole(rider.role) &&
+        !isRaceSprinterRole(rider.role) &&
         (!strategy.protectedRiderIds.has(rider.id) ||
           rider.raceDuty === "breakaway_candidate") &&
         (teamStrategy?.breakawayPolicy !== "avoid" ||
@@ -3692,7 +3704,7 @@ function isPlannedAttackConditionMet({
     return [...states.values()].some((candidate) => {
       if (
         candidate.rider.teamId === state.rider.teamId ||
-        candidate.rider.role !== "leader" ||
+        !isRaceLeaderRole(candidate.rider.role) ||
         candidate.group !== state.group
       ) {
         return false;
@@ -3768,8 +3780,8 @@ function buildStageStrategyContext(
     riders
       .filter(
         (rider) =>
-          rider.role === "leader" ||
-          rider.role === "sprinter" ||
+          isRaceLeaderRole(rider.role) ||
+          isRaceSprinterRole(rider.role) ||
           rider.generalClassificationProtected === true,
       )
       .map((rider) => rider.id),
@@ -3831,7 +3843,7 @@ function getStageFavoriteRating(
       rider.ratings.flat * 0.13 +
       rider.ratings.resistance * 0.09 +
       rider.form * 0.1 +
-      (rider.role === "sprinter" ? 4 : 0)
+      (isRaceSprinterRole(rider.role) ? 4 : 0)
     );
   }
 
@@ -3841,7 +3853,7 @@ function getStageFavoriteRating(
     rider.ratings.acceleration * 0.08 +
     rider.ratings.resistance * 0.06 +
     rider.form * 0.05 +
-    (rider.role === "leader" ? 2 : 0)
+    (isRaceLeaderRole(rider.role) ? 2 : 0)
   );
 }
 
@@ -4068,7 +4080,9 @@ function getBreakawayThreat({
     gapSeconds,
   );
   const protectedRoleThreat = breakaway.some(
-    (state) => state.rider.role === "leader" || state.rider.role === "sprinter",
+    (state) =>
+      isRaceLeaderRole(state.rider.role) ||
+      isRaceSprinterRole(state.rider.role),
   )
     ? 0.1
     : 0;
@@ -4384,7 +4398,7 @@ function getLeaderProtectionStrength({
   segmentCount: number;
 }) {
   if (
-    (state.rider.role !== "leader" &&
+    (!isRaceLeaderRole(state.rider.role) &&
       state.rider.generalClassificationProtected !== true) ||
     (state.group !== "peloton" && state.group !== "delayed")
   ) {
@@ -4472,7 +4486,7 @@ function isProtectingTeamLeader({
   return [...states.values()].some(
     (teammate) =>
       teammate.rider.teamId === state.rider.teamId &&
-      teammate.rider.role === "leader" &&
+      isRaceLeaderRole(teammate.rider.role) &&
       teammate.group === state.group,
   );
 }
@@ -4614,7 +4628,7 @@ function dropStrugglingRiders({
       segmentCount,
     });
     const leaderProtection =
-      state.rider.role === "leader" ||
+      isRaceLeaderRole(state.rider.role) ||
       state.rider.generalClassificationProtected === true
         ? 1.5 + leaderProtectionStrength * 22
         : 0;
@@ -4719,8 +4733,8 @@ function maybeLaunchCounterAttack({
       const rider = state.rider;
       if (
         strategy.protectedRiderIds.has(rider.id) ||
-        rider.role === "leader" ||
-        rider.role === "sprinter" ||
+        isRaceLeaderRole(rider.role) ||
+        isRaceSprinterRole(rider.role) ||
         state.energy < 28
       ) {
         return false;
@@ -4836,7 +4850,7 @@ function maybeLaunchDecisiveFavoriteAttack({
         state.energy < 22 ||
         state.decisiveAttackBonus > 0 ||
         state.injuryPerformancePenalty >= 8 ||
-        (state.rider.role !== "leader" &&
+        (!isRaceLeaderRole(state.rider.role) &&
           !strategy.protectedRiderIds.has(state.rider.id))
       ) {
         return [];
@@ -5352,7 +5366,7 @@ function getDesignatedProtectionBonus(
   state: RiderState,
   activeStates: RiderState[],
 ) {
-  if (state.rider.role !== "leader") return 0;
+  if (!isRaceLeaderRole(state.rider.role)) return 0;
 
   return activeStates.reduce((bonus, teammate) => {
     if (
@@ -5375,7 +5389,7 @@ function getCrosswindHoldingScore(
   protectedRiderId: string | null,
 ) {
   const isProtectedLeader =
-    state.rider.role === "leader" || state.rider.id === protectedRiderId;
+    isRaceLeaderRole(state.rider.role) || state.rider.id === protectedRiderId;
   const protectorCount = isProtectedLeader
     ? peloton.filter(
         (teammate) =>
@@ -5673,9 +5687,10 @@ function getPrimeScore(
   const roleBonus =
     prime.type === "mountain" && state.rider.role === "mountain_classification"
       ? 16
-      : prime.type === "intermediate_sprint" && state.rider.role === "sprinter"
+      : prime.type === "intermediate_sprint" &&
+          isRaceSprinterRole(state.rider.role)
         ? 10
-        : state.rider.role === "leader"
+        : isRaceLeaderRole(state.rider.role)
           ? -4
           : 0;
   const objectiveBonus =
@@ -5714,7 +5729,7 @@ function getRoadFinishScores(
     .map(([teamId]) => teamId);
   const finalAttackScores: Array<{ state: RiderState; score: number }> = [];
   const sprintContenders = [...peloton]
-    .filter((state) => state.rider.role === "sprinter")
+    .filter((state) => isRaceSprinterRole(state.rider.role))
     .sort(
       (first, second) =>
         getSprintLaunchRating(second) - getSprintLaunchRating(first),
@@ -5761,7 +5776,7 @@ function getRoadFinishScores(
     if (longSummitFinishFactor > 0) {
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 1.5 : 0;
       const roleBonus =
-        rider.role === "leader"
+        isRaceLeaderRole(rider.role)
           ? 3
           : rider.role === "mountain_classification"
             ? 1
@@ -5800,8 +5815,11 @@ function getRoadFinishScores(
       const pistardPositioningBonus = hasSpecialAbility(rider, "pistard")
         ? 2
         : 0;
-      const roleFactor =
-        rider.role === "sprinter" ? 3 : rider.role === "leadout" ? -3 : 0;
+      const roleFactor = isRaceSprinterRole(rider.role)
+        ? 3
+        : rider.role === "leadout"
+          ? -3
+          : 0;
       const lostWheelPenalty =
         !hasSpecialAbility(rider, "pistard") &&
         !borrowedWheel &&
@@ -5821,7 +5839,7 @@ function getRoadFinishScores(
         lostWheelPenalty;
     } else if (profileType === "hilly") {
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 6 : 0;
-      const roleBonus = rider.role === "leader" ? 4 : 0;
+      const roleBonus = isRaceLeaderRole(rider.role) ? 4 : 0;
       const timingBonus = isBreakawaySpecialist(rider)
         ? 0
         : random() * 1.5 + (random() < 0.06 ? 2 + random() * 2 : 0);
@@ -5842,7 +5860,7 @@ function getRoadFinishScores(
       }
     } else if (profileType === "mountain") {
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 2.5 : 0;
-      const roleBonus = rider.role === "leader" ? 3.5 : 0;
+      const roleBonus = isRaceLeaderRole(rider.role) ? 3.5 : 0;
       const initiativeBonus = isBreakawaySpecialist(rider) ? 0 : random() * 1.5;
       score =
         rider.ratings.mountain * 0.68 +
@@ -5861,8 +5879,11 @@ function getRoadFinishScores(
       }
     } else {
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 6 : 0;
-      const roleBonus =
-        rider.role === "leader" ? 5 : rider.role === "free_agent" ? 2 : 0;
+      const roleBonus = isRaceLeaderRole(rider.role)
+        ? 5
+        : rider.role === "free_agent"
+          ? 2
+          : 0;
       score =
         getDecisiveRoadFinishRating(rider, segments) * 0.68 +
         rider.ratings.acceleration * 0.14 +
@@ -6525,7 +6546,9 @@ function getExplicitPelotonChaseDemand({
       strategy.chasePolicy === "protect_lead" &&
       breakawayThreat >= 0.3 &&
       (generalLeaderTeamId === strategy.teamId ||
-        activeTeamStates.some((state) => state.rider.role === "leader"))
+        activeTeamStates.some((state) =>
+          isRaceLeaderRole(state.rider.role),
+        ))
     ) {
       demand = Math.max(demand, 0.82);
     }
@@ -6606,7 +6629,7 @@ function getStrategyChaseModifier({
       (state) => state.rider.id === strategy.dangerPacerRiderId,
     );
     const teamLeaderIsPresent = activeTeamStates.some(
-      (state) => state.rider.role === "leader",
+      (state) => isRaceLeaderRole(state.rider.role),
     );
     const teamRiderIsAhead = [...states.values()].some(
       (state) =>
@@ -7332,12 +7355,15 @@ function validateExplicitRoles(riders: RiderSimulationInput[]) {
   const teams = groupBy(riders, (rider) => rider.teamId);
 
   for (const teamRiders of teams.values()) {
-    for (const uniqueRole of ["leader", "sprinter"] satisfies RaceRole[]) {
-      if (teamRiders.filter((rider) => rider.role === uniqueRole).length > 1) {
-        throw new Error(
-          `Une équipe ne peut désigner qu’un seul ${RACE_ROLE_LABELS[uniqueRole].toLowerCase()}.`,
-        );
-      }
+    if (teamRiders.filter((rider) => rider.role === "leader").length > 1) {
+      throw new Error("Une équipe ne peut désigner qu’un seul leader.");
+    }
+    if (
+      teamRiders.filter((rider) => isRaceSprinterRole(rider.role)).length > 1
+    ) {
+      throw new Error(
+        "Une équipe ne peut désigner qu’un seul sprinteur, simple ou protégé.",
+      );
     }
   }
 }

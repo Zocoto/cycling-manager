@@ -5,8 +5,10 @@ import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RaceRoleGuide } from "@/components/game/race-role-guide";
 import { isRosterSelectionValid } from "@/lib/game/race-calendar";
 import {
+  isRaceSprinterRole,
   RACE_ROLES,
   RACE_ROLE_LABELS,
   type RaceRole,
@@ -58,11 +60,13 @@ export function RaceRosterSelector({
     minimum,
     maximum,
   });
-  const uniqueRolesAreValid = ["leader", "sprinter"].every(
-    (role) =>
-      selectedIds.filter((riderId) => (roles[riderId] ?? "auto") === role)
-        .length <= 1
-  );
+  const uniqueRolesAreValid =
+    selectedIds.filter(
+      (riderId) => (roles[riderId] ?? "auto") === "leader",
+    ).length <= 1 &&
+    selectedIds.filter((riderId) =>
+      isRaceSprinterRole(roles[riderId] ?? "auto"),
+    ).length <= 1;
   const selectionIsValid = rosterSizeIsValid && uniqueRolesAreValid;
 
   function toggleRider(riderId: string) {
@@ -246,14 +250,19 @@ export function RaceRosterSelector({
                         {RACE_ROLES.filter(
                           (role) => isStageRace || role !== "mountain_classification"
                         ).map((role) => {
-                          const isUniqueRole = role === "leader" || role === "sprinter";
-                          const isTakenByAnother =
-                            isUniqueRole &&
-                            selectedIds.some(
-                              (selectedId) =>
-                                selectedId !== rider.riderId &&
-                                (roles[selectedId] ?? "auto") === role
-                            );
+                          const isTakenByAnother = selectedIds.some(
+                            (selectedId) => {
+                              if (selectedId === rider.riderId) return false;
+                              const selectedRole = roles[selectedId] ?? "auto";
+                              if (role === "leader") {
+                                return selectedRole === "leader";
+                              }
+                              return (
+                                isRaceSprinterRole(role) &&
+                                isRaceSprinterRole(selectedRole)
+                              );
+                            },
+                          );
 
                           return (
                             <option key={role} value={`${rider.riderId}:${role}`} disabled={isTakenByAnother}>
@@ -271,11 +280,7 @@ export function RaceRosterSelector({
           })}
         </div>
 
-        <p className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold leading-5 text-[#BFD1C6]">
-          Un seul leader et un seul sprinteur peuvent être désignés. Les rôles laissés
-          sur « Automatique » seront attribués selon les statistiques et le profil de
-          la course.
-        </p>
+        <RaceRoleGuide tone="dark" />
       </div>
 
       {showRoleGuide ? (
@@ -314,12 +319,17 @@ function CriteriumRoleGuide({
     {
       label: "Leader",
       detail:
-        "Est préservé pour les secteurs décisifs et bénéficie des choix tactiques orientés vers le résultat final.",
+        "Est protégé par les équipiers et économise son énergie, sans avantage particulier au sprint.",
     },
     {
       label: "Sprinteur",
       detail:
-        "Pousse son équipe à contrôler les échappées et devient la priorité lors d’une arrivée groupée.",
+        "Pousse son équipe à contrôler et devient prioritaire pour le train et l’arrivée groupée, sans protection énergétique.",
+    },
+    {
+      label: "Leader / sprinteur",
+      detail:
+        "Cumule la protection du leader et tous les avantages du sprinteur ; l’IA le choisit pour le meilleur sprinteur sur le plat.",
     },
     {
       label: "Poisson pilote",

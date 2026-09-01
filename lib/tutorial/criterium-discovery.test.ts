@@ -60,6 +60,27 @@ describe("Critérium de la découverte", () => {
     expect(isValidCriteriumDiscoveryRoster(roster)).toBe(false);
   });
 
+  it("autorise un leader séparé du leader / sprinteur", () => {
+    const roster = Array.from({ length: 5 }, (_, index) => ({
+      riderId: `rider-${index}`,
+      role:
+        index === 0
+          ? ("leader_sprinter" as const)
+          : index === 1
+            ? ("leader" as const)
+            : ("auto" as const),
+    }));
+
+    expect(isValidCriteriumDiscoveryRoster(roster)).toBe(true);
+    expect(
+      isValidCriteriumDiscoveryRoster([
+        ...roster.slice(0, 2),
+        { ...roster[2]!, role: "sprinter" },
+        ...roster.slice(3),
+      ]),
+    ).toBe(false);
+  });
+
   it("offre une première victoire sans modifier les données sportives du joueur", () => {
     const playerRiders = Array.from(
       {

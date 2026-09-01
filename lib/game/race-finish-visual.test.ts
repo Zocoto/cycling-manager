@@ -75,7 +75,7 @@ describe("final race visualization", () => {
       { id: "leader", teamId: "team-a", role: "leader" },
       { id: "domestique-1", teamId: "team-a", role: "domestique" },
       { id: "leadout", teamId: "team-a", role: "leadout" },
-      { id: "sprinter", teamId: "team-a", role: "sprinter" },
+      { id: "sprinter", teamId: "team-a", role: "leader_sprinter" },
       { id: "free", teamId: "team-b", role: "free_agent" },
     ]);
 

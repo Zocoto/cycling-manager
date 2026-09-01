@@ -146,7 +146,9 @@ export function evolveBreakawayCooperation({
           ? 0.08
           : candidate.role === "domestique"
             ? 0.045
-            : candidate.role === "leader" || candidate.role === "sprinter"
+            : candidate.role === "leader" ||
+                candidate.role === "sprinter" ||
+                candidate.role === "leader_sprinter"
               ? -0.07
               : 0;
 

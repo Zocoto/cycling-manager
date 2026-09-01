@@ -331,7 +331,7 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-role-guide",
       title: "Ce que les rôles demandent réellement à l’IA",
       content:
-        "Leader : l’IA préserve ce coureur pour les secteurs décisifs et valorise ses qualités sur le terrain final.\n\nSprinteur : son équipe augmente la poursuite et prépare une arrivée groupée.\n\nPoisson pilote : il travaille et renforce le train de sprint.\n\nÉlectron libre : il reçoit une forte priorité pour prendre l’échappée.\n\nÉquipier : il dépense davantage d’énergie dans la poursuite et le travail collectif.",
+        "Leader : les équipiers le protègent et lui font économiser de l’énergie, sans bonus de sprint.\n\nSprinteur : son équipe prépare l’arrivée groupée, mais il n’est pas protégé comme un leader.\n\nLeader / sprinteur : il cumule ces deux comportements.\n\nPoisson pilote : il travaille et renforce le train de sprint.\n\nÉlectron libre : il reçoit une forte priorité pour prendre l’échappée.\n\nÉquipier : il dépense davantage d’énergie dans la poursuite et le travail collectif.",
       placement: "left",
       highlightPadding: 8,
       skipWhenRequirementSatisfied: "criterium_registered",
@@ -342,7 +342,7 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-role-assignment",
       title: "Attribuez votre stratégie",
       content:
-        "Choisissez les rôles dans les listes affichées sous les coureurs sélectionnés. Un seul leader et un seul sprinteur sont autorisés.\n\nSi vous laissez « Automatique », l’IA analyse le profil et les statistiques : elle choisit d’abord un sprinteur lorsque l’arrivée semble favorable, puis le meilleur leader, un poisson pilote, un électron libre, et transforme les autres coureurs en équipiers.",
+        "Choisissez les rôles dans les listes affichées sous les coureurs sélectionnés. Un seul objectif de sprint est autorisé : Sprinteur ou Leader / sprinteur. Un Leader distinct peut protéger le classement général.\n\nSi vous laissez « Automatique », l’IA analyse le profil et les statistiques : sur le plat, elle protège le meilleur sprinteur avec le rôle combiné, puis choisit séparément un leader, un poisson pilote, un électron libre, et transforme les autres coureurs en équipiers.",
       placement: "left",
       allowTargetInteraction: true,
       highlightPadding: 6,

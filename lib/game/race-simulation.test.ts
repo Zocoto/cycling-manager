@@ -1117,7 +1117,7 @@ describe("simulateRaceStage", () => {
     );
   });
 
-  it("makes domestiques spend energy to protect their leader", () => {
+  it("protège aussi le leader / sprinteur pendant l’étape", () => {
     const baseInput = createDemoSimulationInput("sprint-littoral", 13);
     const leaderRatings = {
       flat: 64,
@@ -1129,10 +1129,12 @@ describe("simulateRaceStage", () => {
     const protectedLeader = {
       ...createSelectionTestRider("protected-leader", leaderRatings),
       teamId: "protected-team",
+      role: "leader_sprinter" as const,
     };
     const isolatedLeader = {
       ...createSelectionTestRider("isolated-leader", leaderRatings),
       teamId: "isolated-team",
+      role: "sprinter" as const,
     };
     const helpers = Array.from({ length: 2 }, (_, index) => ({
       ...createSelectionTestRider(`helper-${index}`, leaderRatings),
@@ -2621,17 +2623,29 @@ function createBalancedMountainFavoritesInput(
 }
 
 describe("assignAutomaticRaceRoles", () => {
-  it("désigne automatiquement un leader et un sprinteur sur un profil plat", () => {
+  it("désigne le meilleur sprinteur comme leader / sprinteur sur le plat", () => {
     const input = createDemoSimulationInput("sprint-littoral", 1);
     const oneTeam = input.riders
       .filter((rider) => rider.teamId === input.riders[0].teamId)
       .map((rider) => ({ ...rider, role: "auto" as const }));
+    const expectedSprinter = [...oneTeam].sort(
+      (first, second) =>
+        second.ratings.sprint * 0.62 +
+        second.ratings.acceleration * 0.25 +
+        second.ratings.flat * 0.13 -
+        (first.ratings.sprint * 0.62 +
+          first.ratings.acceleration * 0.25 +
+          first.ratings.flat * 0.13),
+    )[0];
     const resolved = assignAutomaticRaceRoles(oneTeam, input.segments);
 
     expect(resolved.filter((rider) => rider.role === "leader")).toHaveLength(1);
-    expect(resolved.filter((rider) => rider.role === "sprinter")).toHaveLength(
-      1,
-    );
+    expect(
+      resolved.filter((rider) => rider.role === "leader_sprinter"),
+    ).toHaveLength(1);
+    expect(
+      resolved.find((rider) => rider.role === "leader_sprinter")?.id,
+    ).toBe(expectedSprinter?.id);
   });
 
   it("réserve un rôle sobre au deuxième du général sur une étape plate", () => {
@@ -2685,5 +2699,32 @@ describe("assignAutomaticRaceRoles", () => {
     expect(() => assignAutomaticRaceRoles(riders, input.segments)).toThrow(
       "un seul leader",
     );
+  });
+
+  it("autorise un leader séparé mais refuse deux objectifs de sprint", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 1);
+    const teamRiders = input.riders.slice(0, 3).map((rider) => ({
+      ...rider,
+      teamId: "combined-role-team",
+    }));
+    const validRiders: RiderSimulationInput[] = [
+      { ...teamRiders[0]!, role: "leader_sprinter" },
+      { ...teamRiders[1]!, role: "leader" },
+      { ...teamRiders[2]!, role: "domestique" },
+    ];
+
+    expect(() =>
+      assignAutomaticRaceRoles(validRiders, input.segments),
+    ).not.toThrow();
+    expect(() =>
+      assignAutomaticRaceRoles(
+        [
+          validRiders[0]!,
+          { ...validRiders[1]!, role: "sprinter" },
+          validRiders[2]!,
+        ],
+        input.segments,
+      ),
+    ).toThrow("un seul sprinteur");
   });
 });

@@ -9,9 +9,9 @@ import {
 } from "./race-profiles";
 import { getRaceWeather } from "./race-weather";
 import {
+  isRaceSprinterRole,
   type RiderSimulationInput,
   type RiderSimulationRatings,
-  type RaceRole,
   type SimulationStageType,
   type StageSimulationInput,
 } from "./race-simulation";
@@ -263,21 +263,36 @@ export function sanitizeUniqueCalendarRaceRoles(
   }
 
   for (const teamRiders of ridersByTeam.values()) {
-    for (const uniqueRole of ["leader", "sprinter"] satisfies RaceRole[]) {
-      const candidates = teamRiders.filter(
-        (rider) => rider.role === uniqueRole,
-      );
+    const uniqueRoleGroups = [
+      {
+        role: "leader" as const,
+        candidates: teamRiders.filter((rider) => rider.role === "leader"),
+        hasStageOverride: (rider: RiderSimulationInput) =>
+          stage.riderRoleOverrides?.[rider.id] === "leader",
+      },
+      {
+        role: "sprinter" as const,
+        candidates: teamRiders.filter((rider) =>
+          isRaceSprinterRole(rider.role),
+        ),
+        hasStageOverride: (rider: RiderSimulationInput) => {
+          const override = stage.riderRoleOverrides?.[rider.id];
+          return override ? isRaceSprinterRole(override) : false;
+        },
+      },
+    ];
+
+    for (const group of uniqueRoleGroups) {
+      const { candidates } = group;
       if (candidates.length <= 1) continue;
 
       const retainedRider = [...candidates].sort((first, second) => {
-        const firstHasStageOverride =
-          stage.riderRoleOverrides?.[first.id] === uniqueRole;
-        const secondHasStageOverride =
-          stage.riderRoleOverrides?.[second.id] === uniqueRole;
+        const firstHasStageOverride = group.hasStageOverride(first);
+        const secondHasStageOverride = group.hasStageOverride(second);
         return (
           Number(secondHasStageOverride) - Number(firstHasStageOverride) ||
-          getUniqueRoleSuitability(second, uniqueRole, stage) -
-            getUniqueRoleSuitability(first, uniqueRole, stage) ||
+          getUniqueRoleSuitability(second, group.role, stage) -
+            getUniqueRoleSuitability(first, group.role, stage) ||
           first.id.localeCompare(second.id)
         );
       })[0];

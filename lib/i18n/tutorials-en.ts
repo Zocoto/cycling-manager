@@ -119,12 +119,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "role-guide": {
         title: "What tactical roles ask the AI to do",
         content:
-          "Leader: the AI protects this rider for decisive sectors.\n\nSprinter: the team increases the chase and prepares a bunch finish.\n\nLead-out: works for the sprinter.\n\nFree role: prioritises breakaways.\n\nDomestique: spends more energy chasing and working for the team.",
+          "Leader: teammates protect this rider and save energy, without a sprint bonus.\n\nSprinter: the team prepares a bunch finish, but the rider is not protected like a leader.\n\nLeader / sprinter combines both behaviours.\n\nLead-out strengthens the sprint train.\n\nFree role prioritises breakaways.\n\nDomestique spends more energy chasing and working for the team.",
       },
       "role-assignment": {
         title: "Assign your strategy",
         content:
-          "Choose roles below the selected riders. Only one leader and one sprinter are allowed.\n\nWith Automatic, the AI analyses the profile and attributes: it chooses a sprinter when the finish looks favourable, then the best leader, a lead-out rider, a free role and domestiques.",
+          "Choose roles below the selected riders. Only one sprint objective is allowed: Sprinter or Leader / sprinter. A separate Leader may protect the general classification.\n\nWith Automatic, the AI protects the best sprinter with the combined role on flat stages, then chooses a separate leader, a lead-out rider, a free role and domestiques.",
       },
       registration: {
         title: "Lock in your line-up",
