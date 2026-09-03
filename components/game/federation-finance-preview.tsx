@@ -1,14 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+
+import {
+  donateToFederationAction,
+  executeFederationSolidarityAction,
+  initialFederationFinanceActionState,
+} from "@/app/jeu/federations/finance-actions";
 
 import { calculateFederationFinancePreview } from "@/lib/game/federation-finance-preview";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
+import type { FederationTreasuryState } from "@/services/federation-treasury";
 
 type Props = {
   initialNationRank: number;
   initialDivision: 1 | 2 | 3 | 4;
   baseline: FederationFinanceBaseline;
+  countryCode: string;
+  gameYear: number;
+  treasuryState: FederationTreasuryState | null;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -27,6 +37,9 @@ export function FederationFinancePreview({
   initialNationRank,
   initialDivision,
   baseline,
+  countryCode,
+  gameYear,
+  treasuryState,
 }: Props) {
   const projectedRaceDays = Math.min(
     40,
@@ -60,11 +73,22 @@ export function FederationFinancePreview({
   const [reputationThreshold, setReputationThreshold] = useState(100);
   const [solidarityAmount, setSolidarityAmount] = useState(100_000);
   const [donationAmount, setDonationAmount] = useState(25_000);
+  const [donationState, donationAction, donationPending] = useActionState(
+    donateToFederationAction,
+    initialFederationFinanceActionState,
+  );
+  const [solidarityState, solidarityAction, solidarityPending] = useActionState(
+    executeFederationSolidarityAction,
+    initialFederationFinanceActionState,
+  );
   const eligibleTeams = baseline.teamProfiles.filter(
     (team) => team.reputationPoints <= reputationThreshold,
   );
   const solidarityCommitment = eligibleTeams.length * solidarityAmount;
-  const overBudget = solidarityCommitment > projection.solidarityEnvelope;
+  const availableBalance =
+    treasuryState?.account?.balance ?? projection.solidarityEnvelope;
+  const overBudget = solidarityCommitment > availableBalance;
+  const isActive = gameYear >= 3;
 
   return (
     <div className="space-y-7">
@@ -73,19 +97,19 @@ export function FederationFinancePreview({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
-                Projection officielle Saison 3
+                {isActive ? "Trésorerie fédérale" : "Projection officielle Saison 3"}
               </p>
               <span className="rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FFE790]">
                 {baseline.seasonName} · situation J{baseline.observedThroughDay}
               </span>
             </div>
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              {money.format(projection.totalRevenue)}
+              {money.format(treasuryState?.account?.balance ?? projection.totalRevenue)}
             </h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Budget d’ouverture calculé depuis le classement UCI et l’activité
-              réellement observée en S{baseline.gameYear}. Aucun don ni objectif
-              futur n’est ajouté artificiellement.
+              {isActive
+                ? "Solde disponible après les dons, investissements et versements déjà enregistrés."
+                : `Budget d’ouverture calculé depuis le classement UCI et l’activité réellement observée en S${baseline.gameYear}. Aucun don ni objectif futur n’est ajouté artificiellement.`}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
@@ -156,16 +180,34 @@ export function FederationFinancePreview({
             <div className="grid grid-cols-3 gap-3 text-center">
               <Metric label="Bénéficiaires" value={`${eligibleTeams.length}`} small />
               <Metric label="Engagement" value={compactMoney.format(solidarityCommitment)} small />
-              <Metric label="Enveloppe" value={compactMoney.format(projection.solidarityEnvelope)} small />
+              <Metric label="Solde disponible" value={compactMoney.format(availableBalance)} small />
             </div>
             <p className={`mt-4 text-xs font-black leading-5 ${overBudget ? "text-[#9D3E37]" : "text-[#176951]"}`}>
               {overBudget
                 ? `Validation impossible : il manque ${money.format(solidarityCommitment - projection.solidarityEnvelope)}.`
-                : `${money.format(projection.solidarityEnvelope - solidarityCommitment)} resteraient disponibles.`}
+                : `${money.format(availableBalance - solidarityCommitment)} resteraient disponibles.`}
             </p>
-            <button type="button" disabled className="mt-4 min-h-11 w-full cursor-not-allowed rounded-xl bg-[#9AA9A3] px-4 text-sm font-black text-white">
-              {overBudget ? "Budget insuffisant" : "Validation disponible en S3"}
-            </button>
+            {isActive && treasuryState?.canManageSolidarity ? (
+              <form action={solidarityAction}>
+                <input type="hidden" name="countryCode" value={countryCode} />
+                <input type="hidden" name="reputationThreshold" value={reputationThreshold} />
+                <input type="hidden" name="amountPerTeam" value={solidarityAmount} />
+                <button type="submit" disabled={overBudget || solidarityPending || treasuryState.solidarityExecuted} className="mt-4 min-h-11 w-full rounded-xl bg-[#123F36] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                  {treasuryState.solidarityExecuted
+                    ? "Fonds déjà versé cette saison"
+                    : solidarityPending
+                      ? "Versement…"
+                      : overBudget
+                        ? "Budget insuffisant"
+                        : "Valider et verser le fonds"}
+                </button>
+              </form>
+            ) : (
+              <button type="button" disabled className="mt-4 min-h-11 w-full cursor-not-allowed rounded-xl bg-[#9AA9A3] px-4 text-sm font-black text-white">
+                {isActive ? "Réservé au président" : overBudget ? "Budget insuffisant" : "Validation disponible en S3"}
+              </button>
+            )}
+            <FinanceFeedback state={solidarityState} />
           </div>
         </article>
 
@@ -189,7 +231,18 @@ export function FederationFinancePreview({
             />
           </label>
           <p className="mt-4 rounded-xl bg-[#F2F8F5] px-4 py-4 text-2xl font-black text-[#183F37]">{money.format(donationAmount)}</p>
-          <button type="button" disabled className="mt-5 min-h-11 w-full cursor-not-allowed rounded-xl bg-[#9AA9A3] px-4 text-sm font-black text-white">Donner à partir de la Saison 3</button>
+          {isActive && treasuryState?.canDonate ? (
+            <form action={donationAction}>
+              <input type="hidden" name="countryCode" value={countryCode} />
+              <input type="hidden" name="amount" value={donationAmount} />
+              <button type="submit" disabled={donationPending} className="mt-5 min-h-11 w-full rounded-xl bg-[#123F36] px-4 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
+                {donationPending ? "Versement…" : "Confirmer le don irréversible"}
+              </button>
+            </form>
+          ) : (
+            <button type="button" disabled className="mt-5 min-h-11 w-full cursor-not-allowed rounded-xl bg-[#9AA9A3] px-4 text-sm font-black text-white">Donner à partir de la Saison 3</button>
+          )}
+          <FinanceFeedback state={donationState} />
         </article>
       </section>
 
@@ -199,19 +252,59 @@ export function FederationFinancePreview({
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">Journal financier</p>
             <h3 className="mt-2 text-2xl font-black text-[#183F37]">Historique des gains et dépenses</h3>
           </div>
-          <span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">Ouverture S3</span>
+          <span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">{isActive ? "Journal officiel" : "Ouverture S3"}</span>
         </div>
         <div className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/12">
           <div className="hidden grid-cols-[100px_1fr_150px_130px] gap-4 bg-[#F2F8F5] px-5 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E] sm:grid">
             <span>Jour</span><span>Opération</span><span>Type</span><span className="text-right">Montant</span>
           </div>
-          <p className="px-5 py-9 text-center text-sm font-semibold text-[#60756E]">
-            Aucun mouvement : le premier solde sera créé au passage en S3.
-          </p>
+          {treasuryState?.transactions.length ? (
+            <div className="divide-y divide-[#315B3E]/10">
+              {treasuryState.transactions.map((transaction) => (
+                <div key={transaction.id} className="grid gap-2 px-5 py-4 text-sm sm:grid-cols-[100px_1fr_150px_130px] sm:items-center sm:gap-4">
+                  <span className="text-xs font-black text-[#60756E]">J{transaction.dayNumber}</span>
+                  <span className="font-bold text-[#183F37]">{transaction.description}</span>
+                  <span className="text-xs font-black uppercase text-[#60756E]">{formatCategory(transaction.category)}</span>
+                  <span className={`font-black sm:text-right ${transaction.amount >= 0 ? "text-[#176951]" : "text-[#9D3E37]"}`}>{transaction.amount >= 0 ? "+" : ""}{money.format(transaction.amount)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="px-5 py-9 text-center text-sm font-semibold text-[#60756E]">
+              Aucun mouvement : le premier solde sera créé au passage en S3.
+            </p>
+          )}
         </div>
       </section>
     </div>
   );
+}
+
+function FinanceFeedback({
+  state,
+}: {
+  state: typeof initialFederationFinanceActionState;
+}) {
+  if (!state.message) return null;
+  return (
+    <p role="status" className={`mt-3 rounded-xl px-4 py-3 text-xs font-black ${state.status === "error" ? "bg-[#FBE3DE] text-[#9D3E37]" : "bg-[#DDF3E7] text-[#176951]"}`}>
+      {state.message}
+    </p>
+  );
+}
+
+function formatCategory(category: string) {
+  const labels: Record<string, string> = {
+    opening_grant: "Dotation",
+    race_revenue: "Course",
+    objective_bonus: "Objectif",
+    donation: "Don",
+    solidarity: "Solidarité",
+    infrastructure: "Infrastructure",
+    refund: "Remboursement",
+    hosting: "Organisation",
+  };
+  return labels[category] ?? category;
 }
 
 function Metric({ label, value, small = false }: { label: string; value: string; small?: boolean }) {

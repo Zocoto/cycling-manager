@@ -31,6 +31,7 @@ import type {
 } from "@/services/federation-international-results";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
+import type { FederationTreasuryState } from "@/services/federation-treasury";
 import type { NationRankingEntry } from "@/services/uci-rankings";
 
 type NationalFederationViewProps = {
@@ -51,6 +52,7 @@ type NationalFederationViewProps = {
   internationalResults: FederationInternationalResults | null;
   governanceOverview: FederationGovernanceOverview | null;
   selectionState: FederationSelectionState | null;
+  treasuryState: FederationTreasuryState | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -111,6 +113,7 @@ export function NationalFederationView({
   internationalResults,
   governanceOverview,
   selectionState,
+  treasuryState,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -218,6 +221,9 @@ export function NationalFederationView({
             nationRank={nationRanking?.rank ?? 173}
             division={division.division}
             baseline={financeBaseline}
+            countryCode={country.code}
+            gameYear={snapshot.season.gameYear}
+            treasuryState={treasuryState}
           />
         ) : selectedTab === "governance" ? (
           <GovernancePanel
@@ -616,10 +622,16 @@ function FinancesPanel({
   nationRank,
   division,
   baseline,
+  countryCode,
+  gameYear,
+  treasuryState,
 }: {
   nationRank: number;
   division: 1 | 2 | 3 | 4;
   baseline: FederationFinanceBaseline | null;
+  countryCode: string;
+  gameYear: number;
+  treasuryState: FederationTreasuryState | null;
 }) {
   if (!baseline) {
     return (
@@ -641,6 +653,9 @@ function FinancesPanel({
         initialNationRank={nationRank}
         initialDivision={division}
         baseline={baseline}
+        countryCode={countryCode}
+        gameYear={gameYear}
+        treasuryState={treasuryState}
       />
     </div>
   );

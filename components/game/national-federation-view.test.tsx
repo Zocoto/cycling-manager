@@ -96,6 +96,7 @@ describe("NationalFederationView", () => {
         }}
         governanceOverview={null}
         selectionState={null}
+        treasuryState={null}
       />,
     );
 
@@ -130,6 +131,7 @@ describe("NationalFederationView", () => {
         internationalResults={null}
         governanceOverview={null}
         selectionState={null}
+        treasuryState={null}
       />,
     );
 
@@ -173,6 +175,7 @@ describe("NationalFederationView", () => {
           journal: [],
         }}
         selectionState={null}
+        treasuryState={null}
       />,
     );
 
@@ -211,6 +214,7 @@ describe("NationalFederationView", () => {
         internationalResults={null}
         governanceOverview={null}
         selectionState={null}
+        treasuryState={null}
       />,
     );
 

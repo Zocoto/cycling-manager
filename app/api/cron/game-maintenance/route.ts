@@ -10,6 +10,7 @@ const MAINTENANCE_TASKS = [
   "settle_due_development_races",
   "settle_due_season_rollovers",
   "settle_due_federation_elections",
+  "initialize_due_national_federation_accounts",
   "purge_expired_director_messages",
 ] as const;
 
