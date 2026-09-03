@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+
+import {
+  initialFederationSelectionActionState,
+  publishFederationPreselectionAction,
+  respondFederationPreselectionAction,
+  saveFederationPreselectionAction,
+} from "@/app/jeu/federations/selection-actions";
 
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
+import type { FederationSelectionState } from "@/services/federation-selections";
 
 type SelectionSlot = {
   id: string;
@@ -37,18 +45,40 @@ export function FederationSelectionWorkbench({
   countryCode,
   countryName,
   riders,
+  gameYear,
+  selectionState,
 }: {
   countryCode: string;
   countryName: string;
   riders: FederationSelectionRider[];
+  gameYear: number;
+  selectionState: FederationSelectionState | null;
 }) {
   const [slotId, setSlotId] = useState(SELECTION_SLOTS[0].id);
   const [query, setQuery] = useState("");
   const [team, setTeam] = useState("all");
   const [profile, setProfile] = useState("all");
-  const [selectedBySlot, setSelectedBySlot] = useState<Record<string, string[]>>({});
+  const [selectedBySlot, setSelectedBySlot] = useState<Record<string, string[]>>(
+    () =>
+      Object.fromEntries(
+        Object.entries(selectionState?.selections ?? {}).map(([key, value]) => [
+          key,
+          value.riderIds,
+        ]),
+      ),
+  );
+  const [saveState, saveAction, savePending] = useActionState(
+    saveFederationPreselectionAction,
+    initialFederationSelectionActionState,
+  );
+  const [publishState, publishAction, publishPending] = useActionState(
+    publishFederationPreselectionAction,
+    initialFederationSelectionActionState,
+  );
   const slot = SELECTION_SLOTS.find((candidate) => candidate.id === slotId) ?? SELECTION_SLOTS[0];
   const selected = selectedBySlot[slot.id] ?? [];
+  const storedSelection = selectionState?.selections[slot.id] ?? null;
+  const canManage = gameYear >= 3 && selectionState?.canManage === true;
   const availableTeams = useMemo(
     () => [...new Set(riders.filter((rider) => rider.category === slot.category).map((rider) => rider.teamName))].sort((a, b) => a.localeCompare(b, "fr")),
     [riders, slot.category],
@@ -85,15 +115,22 @@ export function FederationSelectionWorkbench({
 
   return (
     <div className="space-y-6">
+      {selectionState?.pendingConfirmations.length ? (
+        <PendingConfirmationPanel
+          confirmations={selectionState.pendingConfirmations}
+          riders={riders}
+        />
+      ) : null}
+
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">Atelier de présélection S3</p>
-            <h2 className="mt-2 text-3xl font-black text-[#183F37]">Construire les listes dès aujourd’hui</h2>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">{gameYear < 3 ? "Atelier de présélection S3" : "Sélections officielles"}</p>
+            <h2 className="mt-2 text-3xl font-black text-[#183F37]">Construire les listes dès J1</h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-              Le filtre de nationalité est verrouillé sur {countryName}. Les
-              choix restent une simulation locale en S2 ; leur disponibilité
-              sera confirmée par chaque DS via une alerte et un mail en S3.
+              Le filtre de nationalité est verrouillé sur {countryName}. {gameYear < 3
+                ? "Les choix restent une simulation locale en S2 ; leur disponibilité sera confirmée par chaque DS via une alerte et un mail en S3."
+                : "Le président enregistre une liste, puis chaque DS concerné reçoit une alerte, un mail et une notification pour confirmer ses coureurs."}
             </p>
           </div>
           <label>
@@ -158,10 +195,83 @@ export function FederationSelectionWorkbench({
             directe depuis leur DevTeam. Un coureur Nations Cup ne peut être
             retenu que sur un seul profil.
           </p>
-          <button type="button" disabled className="min-h-11 shrink-0 cursor-not-allowed rounded-xl bg-[#9AA9A3] px-5 text-sm font-black text-white">Enregistrer en S3</button>
+          {canManage ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <form action={saveAction}>
+                <input type="hidden" name="countryCode" value={countryCode} />
+                <input type="hidden" name="slotKey" value={slot.id} />
+                <input type="hidden" name="riderIds" value={JSON.stringify(selected)} />
+                <button type="submit" disabled={savePending} className="min-h-11 rounded-xl border border-[#176951]/25 bg-white px-5 text-sm font-black text-[#176951] disabled:cursor-wait disabled:opacity-60">
+                  {savePending ? "Enregistrement…" : "Enregistrer le brouillon"}
+                </button>
+              </form>
+              <form action={publishAction}>
+                <input type="hidden" name="countryCode" value={countryCode} />
+                <input type="hidden" name="slotKey" value={slot.id} />
+                <button type="submit" disabled={publishPending || !storedSelection} className="min-h-11 rounded-xl bg-[#123F36] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                  {publishPending ? "Envoi…" : "Soumettre aux DS"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <button type="button" disabled className="min-h-11 shrink-0 cursor-not-allowed rounded-xl bg-[#9AA9A3] px-5 text-sm font-black text-white">
+              {gameYear < 3 ? "Enregistrer en S3" : "Réservé au président"}
+            </button>
+          )}
         </div>
+        {canManage && (saveState.message || publishState.message) ? (
+          <p role="status" className={`border-t border-[#315B3E]/10 px-5 py-3 text-xs font-black ${saveState.status === "error" || publishState.status === "error" ? "bg-[#FBE3DE] text-[#9D3E37]" : "bg-[#E8F7F1] text-[#176951]"}`}>
+            {publishState.message || saveState.message}
+          </p>
+        ) : null}
       </section>
     </div>
+  );
+}
+
+function PendingConfirmationPanel({
+  confirmations,
+  riders,
+}: {
+  confirmations: FederationSelectionState["pendingConfirmations"];
+  riders: FederationSelectionRider[];
+}) {
+  const riderById = new Map(riders.map((rider) => [rider.id, rider]));
+  const slotById = new Map(SELECTION_SLOTS.map((slot) => [slot.id, slot]));
+
+  return (
+    <section className="rounded-[2rem] border border-[#D5AC18]/35 bg-[#FFF9DE] p-6 shadow-[0_14px_36px_rgba(100,75,0,0.08)] sm:p-8">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#806300]">
+        Confirmation de votre équipe
+      </p>
+      <h2 className="mt-2 text-2xl font-black text-[#4A3A00]">
+        {confirmations.length} disponibilité{confirmations.length > 1 ? "s" : ""} à confirmer
+      </h2>
+      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        {confirmations.map((confirmation) => {
+          const rider = riderById.get(confirmation.riderId);
+          const slot = slotById.get(confirmation.slotKey);
+          return (
+            <article key={confirmation.memberId} className="rounded-2xl border border-[#D5AC18]/25 bg-white p-5">
+              <p className="font-black text-[#183F37]">{rider?.name ?? "Coureur sélectionné"}</p>
+              <p className="mt-1 text-xs font-bold text-[#60756E]">{slot?.label ?? confirmation.slotKey}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <form action={respondFederationPreselectionAction}>
+                  <input type="hidden" name="memberId" value={confirmation.memberId} />
+                  <input type="hidden" name="decision" value="confirm" />
+                  <button type="submit" className="min-h-10 rounded-xl bg-[#176951] px-4 text-xs font-black text-white">Confirmer</button>
+                </form>
+                <form action={respondFederationPreselectionAction}>
+                  <input type="hidden" name="memberId" value={confirmation.memberId} />
+                  <input type="hidden" name="decision" value="decline" />
+                  <button type="submit" className="min-h-10 rounded-xl border border-[#B94848]/25 bg-[#FFF1EF] px-4 text-xs font-black text-[#9A3434]">Refuser</button>
+                </form>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

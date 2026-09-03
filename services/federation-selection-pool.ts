@@ -6,6 +6,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationSelectionRider = {
   id: string;
+  teamId: string | null;
   name: string;
   category: "professional" | "junior";
   teamName: string;
@@ -177,6 +178,7 @@ async function loadFederationSelectionPool({
     return [
       {
         id: rider.id,
+        teamId: teamId ?? null,
         name: `${rider.first_name} ${rider.last_name}`.trim(),
         category: "professional" as const,
         teamName: teamId
@@ -200,6 +202,7 @@ async function loadFederationSelectionPool({
     };
     return {
       id: junior.id,
+      teamId: junior.team_id,
       name: `${junior.first_name} ${junior.last_name}`.trim(),
       category: "junior" as const,
       teamName: teamNameById.get(junior.team_id) ?? "Équipe de développement",

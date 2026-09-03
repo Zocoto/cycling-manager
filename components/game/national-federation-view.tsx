@@ -30,6 +30,7 @@ import type {
   FederationInternationalResults,
 } from "@/services/federation-international-results";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
+import type { FederationSelectionState } from "@/services/federation-selections";
 import type { NationRankingEntry } from "@/services/uci-rankings";
 
 type NationalFederationViewProps = {
@@ -49,6 +50,7 @@ type NationalFederationViewProps = {
   selectionRiders: FederationSelectionRider[];
   internationalResults: FederationInternationalResults | null;
   governanceOverview: FederationGovernanceOverview | null;
+  selectionState: FederationSelectionState | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -108,6 +110,7 @@ export function NationalFederationView({
   selectionRiders,
   internationalResults,
   governanceOverview,
+  selectionState,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -206,6 +209,7 @@ export function NationalFederationView({
             country={country}
             snapshot={snapshot}
             riders={selectionRiders}
+            selectionState={selectionState}
           />
         ) : selectedTab === "infrastructures" ? (
           <InfrastructuresPanel snapshot={snapshot} managementLocked={isPreview} />
@@ -448,10 +452,12 @@ function SelectionsPanel({
   country,
   snapshot,
   riders,
+  selectionState,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
   riders: FederationSelectionRider[];
+  selectionState: FederationSelectionState | null;
 }) {
   const nextGameYear = snapshot.season.gameYear + 1;
   const isQuadriennialSeason = nextGameYear % 4 === 0;
@@ -478,7 +484,7 @@ function SelectionsPanel({
   return (
     <div className="space-y-7">
       <LockedFeatureHeader
-        eyebrow="Préparation Saison 3"
+        eyebrow={snapshot.season.gameYear < 3 ? "Préparation Saison 3" : "Programme international"}
         title="Composer tôt, sécuriser automatiquement"
         description="Dès J1, le président préparera ses listes. Chaque équipe validera uniquement ses propres coureurs et toute place laissée vacante sera complétée automatiquement avant le départ."
       />
@@ -497,7 +503,9 @@ function SelectionsPanel({
               <span className="rounded-xl bg-[#123F36] px-3 py-2 text-sm font-black text-white">
                 J{event.day}
               </span>
-              <StatusPill>Gestion verrouillée</StatusPill>
+              <StatusPill>
+                {snapshot.season.gameYear < 3 ? "Gestion verrouillée" : "Calendrier officiel"}
+              </StatusPill>
             </div>
             <h3 className="mt-5 text-xl font-black text-[#183F37]">
               {event.name}
@@ -516,6 +524,8 @@ function SelectionsPanel({
         countryCode={country.code}
         countryName={country.name}
         riders={riders}
+        gameYear={snapshot.season.gameYear}
+        selectionState={selectionState}
       />
     </div>
   );

@@ -95,6 +95,7 @@ describe("NationalFederationView", () => {
           nationsCup: null,
         }}
         governanceOverview={null}
+        selectionState={null}
       />,
     );
 
@@ -128,6 +129,7 @@ describe("NationalFederationView", () => {
         selectionRiders={[]}
         internationalResults={null}
         governanceOverview={null}
+        selectionState={null}
       />,
     );
 
@@ -170,6 +172,7 @@ describe("NationalFederationView", () => {
           candidates: [],
           journal: [],
         }}
+        selectionState={null}
       />,
     );
 
@@ -207,6 +210,7 @@ describe("NationalFederationView", () => {
         selectionRiders={[]}
         internationalResults={null}
         governanceOverview={null}
+        selectionState={null}
       />,
     );
 

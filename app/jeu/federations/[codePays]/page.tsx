@@ -14,6 +14,7 @@ import { getFederationFinanceBaseline } from "@/services/federation-finances";
 import { getFederationGovernanceOverview } from "@/services/federation-governance";
 import { getFederationInternationalResults } from "@/services/federation-international-results";
 import { getFederationSelectionPool } from "@/services/federation-selection-pool";
+import { getFederationSelectionState } from "@/services/federation-selections";
 import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
 import { getNationalFederationSnapshot } from "@/services/national-federations";
 import { getPublicCountryDirectory } from "@/services/public-directory";
@@ -65,6 +66,7 @@ export default async function FederationPage({
     selectionRiders,
     internationalResults,
     governanceOverview,
+    selectionState,
   ] = await Promise.all([
     selectedTab === "governance"
       ? getNationalFederationJersey(supabase, country.entity_id)
@@ -102,6 +104,14 @@ export default async function FederationPage({
       ? getFederationGovernanceOverview({
           countryId: country.entity_id,
           season: snapshot.season,
+          viewerTeamId: snapshot.viewer.teamId,
+        })
+      : Promise.resolve(null),
+    selectedTab === "selections"
+      ? getFederationSelectionState({
+          countryId: country.entity_id,
+          seasonId: snapshot.season.id,
+          gameYear: snapshot.season.gameYear,
           viewerTeamId: snapshot.viewer.teamId,
         })
       : Promise.resolve(null),
@@ -144,6 +154,7 @@ export default async function FederationPage({
           selectionRiders={selectionRiders}
           internationalResults={internationalResults}
           governanceOverview={governanceOverview}
+          selectionState={selectionState}
         />
       </section>
     </main>
