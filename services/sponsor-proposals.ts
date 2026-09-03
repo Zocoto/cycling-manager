@@ -18,6 +18,7 @@ export interface GenerateSponsorProposalsOptions {
   teamCountryCode?: string;
   leaderCountryCodes?: readonly string[];
   rosterMajorityCountryCode?: string | null;
+  preferredSponsorIds?: readonly string[];
   directorReputation: number;
   unavailableSponsorIds?: readonly string[];
   proposalCount?: number;
@@ -34,6 +35,7 @@ export function generateSponsorProposals({
   teamCountryCode,
   leaderCountryCodes = [],
   rosterMajorityCountryCode = null,
+  preferredSponsorIds = [],
   directorReputation,
   unavailableSponsorIds = [],
   proposalCount = DEFAULT_PROPOSAL_COUNT,
@@ -76,6 +78,7 @@ export function generateSponsorProposals({
   const unavailableSponsorIdSet = new Set(
     unavailableSponsorIds
   );
+  const preferredSponsorIdSet = new Set(preferredSponsorIds);
 
   const eligibleSponsors = SPONSORS.filter(
     (sponsor) =>
@@ -94,6 +97,10 @@ export function generateSponsorProposals({
       (sponsor) => sponsor.countryCode === primaryCountry
     ),
     random
+  );
+  const preferredSponsors = shuffleSponsors(
+    eligibleSponsors.filter((sponsor) => preferredSponsorIdSet.has(sponsor.id)),
+    random,
   );
   const affinitySponsorPools = uniqueAffinityCountries
     .filter((countryCode) => countryCode !== primaryCountry)
@@ -136,6 +143,10 @@ export function generateSponsorProposals({
       if (selectedFromPool >= maximum) return;
     }
   };
+
+  if (preferredSponsors.length > 0) {
+    selectFromPool(preferredSponsors, Math.floor(proposalCount / 2) + 1);
+  }
 
   if (affinitySponsorPools.some((pool) => pool.length > 0)) {
     selectFromPool(nationalSponsors, 1);

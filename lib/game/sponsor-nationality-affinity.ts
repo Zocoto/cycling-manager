@@ -7,6 +7,7 @@ export type TeamSponsorCountryAffinity = {
   teamCountryCode: string;
   leaderCountryCodes: readonly string[];
   rosterMajorityCountryCode: string | null;
+  preferredSponsorIds: readonly string[];
 };
 
 export function normalizeSponsorCountryCode(countryCode: string): string {

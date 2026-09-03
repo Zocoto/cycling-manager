@@ -6,6 +6,29 @@ import {
 } from "./sponsor-proposals";
 
 describe("generateSponsorProposals", () => {
+  it("compose une majorité d'offres bretonnes pour une équipe qui les préfère", () => {
+    const bretonSponsorIds = [
+      "caramels-de-keravel",
+      "maison-lannic",
+      "cidrerie-aulne",
+      "penn-kreiz-crepes",
+      "sardines-du-raz",
+    ];
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "FR",
+      directorReputation: 34,
+      preferredSponsorIds: bretonSponsorIds,
+      random: () => 0.5,
+    });
+
+    expect(proposals).toHaveLength(3);
+    expect(
+      proposals.filter((proposal) =>
+        bretonSponsorIds.includes(proposal.sponsor.id),
+      ),
+    ).toHaveLength(2);
+  });
+
   it("fait du pays de l'équipe le premier critère, indépendamment du pays du DS", () => {
     const argentinaProposals = generateSponsorProposals({
       teamCountryCode: "AR",

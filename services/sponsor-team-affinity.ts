@@ -1,12 +1,17 @@
 import "server-only";
 
 import type { TeamSponsorCountryAffinity } from "@/lib/game/sponsor-nationality-affinity";
+import { resolveRegionalSponsorPreference } from "@/lib/game/sponsor-regional-affinity";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 type TeamRow = {
   home_country_id: string;
+};
+
+type TeamSeasonIdentityRow = {
+  display_name: string;
 };
 
 type RiderContractRow = {
@@ -39,7 +44,7 @@ export async function loadTeamSponsorCountryAffinity({
   teamId: string;
   seasonId: string;
 }): Promise<TeamSponsorCountryAffinity> {
-  const [teamResult, contractsResult] = await Promise.all([
+  const [teamResult, contractsResult, teamIdentitiesResult] = await Promise.all([
     supabase
       .from("teams")
       .select("home_country_id")
@@ -51,6 +56,11 @@ export async function loadTeamSponsorCountryAffinity({
       .eq("team_id", teamId)
       .eq("status", "active")
       .returns<RiderContractRow[]>(),
+    supabase
+      .from("team_seasons")
+      .select("display_name")
+      .eq("team_id", teamId)
+      .returns<TeamSeasonIdentityRow[]>(),
   ]);
 
   if (teamResult.error || !teamResult.data) {
@@ -65,6 +75,18 @@ export async function loadTeamSponsorCountryAffinity({
     );
   }
 
+  if (teamIdentitiesResult.error) {
+    throw new Error(
+      `Impossible de charger l'identité historique de l'équipe : ${teamIdentitiesResult.error.message}`
+    );
+  }
+
+  const preferredSponsorIds = resolveRegionalSponsorPreference(
+    (teamIdentitiesResult.data ?? []).map((teamSeason) =>
+      teamSeason.display_name
+    )
+  );
+
   const riderIds = [
     ...new Set((contractsResult.data ?? []).map((contract) => contract.rider_id)),
   ];
@@ -78,6 +100,7 @@ export async function loadTeamSponsorCountryAffinity({
       }),
       leaderCountryCodes: [],
       rosterMajorityCountryCode: null,
+      preferredSponsorIds,
     };
   }
 
@@ -192,6 +215,7 @@ export async function loadTeamSponsorCountryAffinity({
     teamCountryCode,
     leaderCountryCodes,
     rosterMajorityCountryCode,
+    preferredSponsorIds,
   };
 }
 

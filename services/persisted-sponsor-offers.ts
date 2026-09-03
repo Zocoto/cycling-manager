@@ -19,6 +19,7 @@ import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
 const SPONSOR_OFFER_GENERATION_VERSION = 4;
+const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 5;
 
 export type SponsorOfferStatus =
   | "draft"
@@ -198,12 +199,21 @@ export async function getOrCreateSponsorOffersForAuthUser(
     sportingDirector.id
   );
   const unavailableSponsorIdSet = new Set(unavailableSponsorIds);
+  const countryAffinity = await loadTeamSponsorCountryAffinity({
+    supabase,
+    teamId,
+    seasonId: activeSeason.id,
+  });
+  const generationVersion =
+    countryAffinity.preferredSponsorIds.length > 0
+      ? PREFERRED_SPONSOR_OFFER_GENERATION_VERSION
+      : SPONSOR_OFFER_GENERATION_VERSION;
 
   if (
     existingOfferRows &&
     existingOfferRows.length > 0 &&
     existingOfferRows.every(
-      (offer) => offer.generation_version >= SPONSOR_OFFER_GENERATION_VERSION
+      (offer) => offer.generation_version >= generationVersion
     )
   ) {
     const existingOffers = await hydrateSponsorOffersWithObjectives({
@@ -239,18 +249,13 @@ export async function getOrCreateSponsorOffersForAuthUser(
     }
   }
 
-  const countryAffinity = await loadTeamSponsorCountryAffinity({
-    supabase,
-    teamId,
-    seasonId: activeSeason.id,
-  });
-
   const generatedProposals =
     generateSponsorProposals({
       teamCountryCode: countryAffinity.teamCountryCode,
       leaderCountryCodes: countryAffinity.leaderCountryCodes,
       rosterMajorityCountryCode:
         countryAffinity.rosterMajorityCountryCode,
+      preferredSponsorIds: countryAffinity.preferredSponsorIds,
       directorReputation:
         sportingDirector.reputation_points,
       unavailableSponsorIds,
@@ -339,7 +344,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
         available_from: availableFrom,
         available_until: null,
         status: "open",
-        generation_version: SPONSOR_OFFER_GENERATION_VERSION,
+        generation_version: generationVersion,
       };
     });
 

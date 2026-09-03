@@ -27,6 +27,7 @@ import type { Sponsor } from "@/types/sponsor";
 const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
 const SPONSOR_OFFER_GENERATION_VERSION = 5;
+const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 6;
 
 export type FutureSponsorOfferMode =
   | "renewal"
@@ -229,11 +230,20 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
   const unavailableSponsorCatalogKeySet = new Set(
     unavailableSponsorCatalogKeys
   );
+  const countryAffinity = await loadTeamSponsorCountryAffinity({
+    supabase,
+    teamId: normalizedTeamId,
+    seasonId: activeSeason.id,
+  });
+  const generationVersion =
+    countryAffinity.preferredSponsorIds.length > 0
+      ? PREFERRED_SPONSOR_OFFER_GENERATION_VERSION
+      : SPONSOR_OFFER_GENERATION_VERSION;
 
   if (
     existingOfferRows?.length === DEFAULT_PROPOSAL_COUNT &&
     existingOfferRows.every(
-      (offer) => offer.generation_version >= SPONSOR_OFFER_GENERATION_VERSION
+      (offer) => offer.generation_version >= generationVersion
     )
   ) {
     const existingOffers = await hydrateFutureSponsorOffersWithObjectives({
@@ -281,11 +291,6 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     }
   }
 
-  const countryAffinity = await loadTeamSponsorCountryAffinity({
-    supabase,
-    teamId: normalizedTeamId,
-    seasonId: activeSeason.id,
-  });
   const generatedProposals = createFutureProposals({
     mode,
     directorReputation: sportingDirector.reputation_points,
@@ -370,7 +375,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       available_from: availableFrom,
       available_until: null,
       status: "open",
-      generation_version: SPONSOR_OFFER_GENERATION_VERSION,
+      generation_version: generationVersion,
     };
   });
 
@@ -478,6 +483,7 @@ function createFutureProposals({
       leaderCountryCodes: countryAffinity.leaderCountryCodes,
       rosterMajorityCountryCode:
         countryAffinity.rosterMajorityCountryCode,
+      preferredSponsorIds: countryAffinity.preferredSponsorIds,
       directorReputation,
       unavailableSponsorIds: [...unavailableSponsorIds],
       proposalCount: renewalIsEligible
@@ -510,6 +516,7 @@ function createFutureProposals({
     leaderCountryCodes: countryAffinity.leaderCountryCodes,
     rosterMajorityCountryCode:
       countryAffinity.rosterMajorityCountryCode,
+    preferredSponsorIds: countryAffinity.preferredSponsorIds,
     directorReputation,
     unavailableSponsorIds: [...unavailableSponsorIds],
     proposalCount: DEFAULT_PROPOSAL_COUNT,
