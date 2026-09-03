@@ -22,6 +22,7 @@ describe("race settlement cron resilience", () => {
     expect(route).toContain("settleDueStandardRaceResults");
     expect(route).toContain("preSettlementFailures");
     expect(route).toContain("raceSlug: requestedRaceSlug ?? undefined");
+    expect(route).toContain('skipped: "targeted_race_settlement"');
   });
 
   it("discovers cheaply and loads only editions that can be settled", () => {

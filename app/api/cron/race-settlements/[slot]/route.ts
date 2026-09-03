@@ -36,10 +36,18 @@ export async function GET(request: Request) {
     return Response.json({ error: "Invalid race slug" }, { status: 400 });
   }
   const preSettlementStartedAt = Date.now();
-  const internationalSelections = await runPreSettlementTask(
-    "sélections internationales",
-    () => processDueInternationalChampionshipSelections(now),
-  );
+  // Une reprise manuelle ciblée doit rester strictement cantonnée à la course
+  // demandée. Les maintenances globales continuent de tourner sur les appels
+  // planifiés, dépourvus du paramètre `race`.
+  const internationalSelections = requestedRaceSlug
+    ? ({
+        ok: true,
+        value: { skipped: "targeted_race_settlement" },
+        error: null,
+      } as const)
+    : await runPreSettlementTask("sélections internationales", () =>
+        processDueInternationalChampionshipSelections(now),
+      );
   const preSettlementDurationMs = Date.now() - preSettlementStartedAt;
   const settlementStartedAt = Date.now();
   const settlement = await settleDueStandardRaceResults({
