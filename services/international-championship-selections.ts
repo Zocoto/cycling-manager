@@ -37,6 +37,7 @@ export type InternationalChampionshipSelection = {
   dayNumber: number;
   departureAt: string;
   conflictingRaceNames: string[];
+  conflictingWildcardRaceNames: string[];
   conflictingCampNames: string[];
   canRespond: boolean;
 };
@@ -64,6 +65,11 @@ type InternationalSelectionRow = {
   departure_at: string;
   conflicting_race_names: string[] | null;
   conflicting_camp_names: string[] | null;
+};
+
+type InternationalSelectionWildcardConflictRow = {
+  candidate_id: string;
+  conflicting_wildcard_race_names: string[] | null;
 };
 
 export async function processDueInternationalChampionshipSelections(
@@ -143,16 +149,37 @@ export async function getCurrentDirectorInternationalSelections({
     await processDueInternationalChampionshipSelections(now);
   }
 
-  const { data, error } = await admin.rpc(
-    "get_international_championship_selections_for_auth_user",
-    { p_auth_user_id: authUserId },
-  );
+  const [selectionsResult, wildcardConflictsResult] = await Promise.all([
+    admin.rpc("get_international_championship_selections_for_auth_user", {
+      p_auth_user_id: authUserId,
+    }),
+    admin.rpc("get_international_selection_wildcards_for_auth_user", {
+      p_auth_user_id: authUserId,
+    }),
+  ]);
+
+  const { data, error } = selectionsResult;
 
   if (error) {
     throw new Error(
       `Impossible de charger les sélections internationales : ${error.message}`,
     );
   }
+
+  if (wildcardConflictsResult.error) {
+    throw new Error(
+      `Impossible de charger les demandes de WildCard en conflit : ${wildcardConflictsResult.error.message}`,
+    );
+  }
+
+  const wildcardConflictsByCandidate = new Map(
+    ((wildcardConflictsResult.data as
+      | InternationalSelectionWildcardConflictRow[]
+      | null) ?? []).map((conflict) => [
+      conflict.candidate_id,
+      conflict.conflicting_wildcard_race_names ?? [],
+    ]),
+  );
 
   return ((data as InternationalSelectionRow[] | null) ?? [])
     .map((selection): InternationalChampionshipSelection => ({
@@ -177,6 +204,8 @@ export async function getCurrentDirectorInternationalSelections({
       dayNumber: selection.day_number,
       departureAt: selection.departure_at,
       conflictingRaceNames: selection.conflicting_race_names ?? [],
+      conflictingWildcardRaceNames:
+        wildcardConflictsByCandidate.get(selection.candidate_id) ?? [],
       conflictingCampNames: selection.conflicting_camp_names ?? [],
       canRespond: canRespondToInternationalSelection({
         isSelected: selection.is_selected,

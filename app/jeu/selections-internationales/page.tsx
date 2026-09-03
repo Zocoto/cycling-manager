@@ -45,7 +45,7 @@ const STATUS_CONTENT: Record<
     label: "Participation validée",
     className: "border-[#278B70]/25 bg-[#E8F7F1] text-[#176951]",
     description:
-      "La sélection est définitive et remplace les courses ou stages en conflit.",
+      "La sélection est définitive et remplace les courses, demandes de WildCard ou stages en conflit.",
   },
   automatic: {
     label: "Participation automatique",
@@ -152,9 +152,9 @@ export default async function InternationalSelectionsPage({
 
         {decision === "confirmee" ? (
           <FeedbackBanner tone="success">
-            La participation est validée. Les courses et stages qui se
-            chevauchent ont été annulés pour ce coureur. Tout stage non démarré
-            qui a été annulé a également été remboursé.
+            La participation est validée. Les courses, demandes de WildCard et
+            stages qui se chevauchent ont été mis à jour pour ce coureur. Tout
+            stage non démarré qui a été annulé a également été remboursé.
           </FeedbackBanner>
         ) : null}
 
@@ -201,6 +201,10 @@ function SelectionCard({
   selection: InternationalChampionshipSelection;
 }) {
   const status = STATUS_CONTENT[selection.responseStatus];
+  const hasCalendarConflict =
+    selection.conflictingRaceNames.length > 0 ||
+    selection.conflictingWildcardRaceNames.length > 0 ||
+    selection.conflictingCampNames.length > 0;
 
   return (
     <article
@@ -239,11 +243,11 @@ function SelectionCard({
               Voir le profil et la startlist →
             </Link>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-              {status.description}
+              {selection.responseStatus === "pending" && hasCalendarConflict
+                ? "Sans validation explicite, cette convocation conflictuelle sera abandonnée et vos engagements seront conservés."
+                : status.description}
             </p>
-            {selection.canRespond &&
-            (selection.conflictingRaceNames.length > 0 ||
-              selection.conflictingCampNames.length > 0) ? (
+            {selection.canRespond && hasCalendarConflict ? (
               <div className="mt-4 space-y-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-950">
                 {selection.conflictingRaceNames.length > 0 ? (
                   <p>
@@ -261,6 +265,29 @@ function SelectionCard({
                       </>
                     )}
                   </p>
+                ) : null}
+                {selection.conflictingWildcardRaceNames.length > 0 ? (
+                  <div className="space-y-1">
+                    <p>
+                      {selection.conflictingWildcardRaceNames.length === 1 ? (
+                        <>
+                          Une demande de WildCard est en cours pour la course{" "}
+                          {selection.conflictingWildcardRaceNames[0]}.
+                        </>
+                      ) : (
+                        <>
+                          Des demandes de WildCard sont en cours pour les
+                          courses suivantes :{" "}
+                          {selection.conflictingWildcardRaceNames.join(", ")}.
+                        </>
+                      )}
+                    </p>
+                    <p>
+                      Si vous acceptez la convocation, ce coureur sera retiré
+                      de la composition proposée. Si aucun autre coureur n’y
+                      reste inscrit, la demande de participation sera annulée.
+                    </p>
+                  </div>
                 ) : null}
                 {selection.conflictingCampNames.length > 0 ? (
                   <div className="space-y-1">
@@ -319,6 +346,14 @@ function SelectionCard({
                   type="hidden"
                   name="acknowledgedConflict"
                   value={`course:${raceName}`}
+                />
+              ))}
+              {selection.conflictingWildcardRaceNames.map((raceName) => (
+                <input
+                  key={`wildcard:${raceName}`}
+                  type="hidden"
+                  name="acknowledgedConflict"
+                  value={`wildcard:${raceName}`}
                 />
               ))}
               {selection.conflictingCampNames.map((campName) => (
