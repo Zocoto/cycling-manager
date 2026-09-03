@@ -16,6 +16,7 @@ import {
   getEditionDayRange,
   getGrandTourCalendarAccent,
   getRegistrationAvailability,
+  isInternationalChampionshipEdition,
   isRaceEditionAvailableToCurrentTeam,
   isRaceEditionPast,
   isRaceRegistrationClosed,
@@ -61,7 +62,7 @@ export function SeasonCalendar({
     useState<RaceCategoryCode[]>([]);
   const scopeEditions = useMemo(
     () => {
-      const standardEditions = getVisibleStandardCalendarEditions({
+      const standardEditions = getVisibleCalendarRaceEditions({
         editions: calendar.editions,
         currentDayNumber: calendar.currentDayNumber,
         showPast,
@@ -76,6 +77,7 @@ export function SeasonCalendar({
             });
 
             return (
+              isInternationalChampionshipEdition(edition) ||
               (showPast && isPast) ||
               isRaceEditionAvailableToCurrentTeam({
                 edition,
@@ -96,7 +98,7 @@ export function SeasonCalendar({
   );
   const visibleStandardEditionCount = useMemo(
     () =>
-      getVisibleStandardCalendarEditions({
+      getVisibleCalendarRaceEditions({
         editions: calendar.editions,
         currentDayNumber: calendar.currentDayNumber,
         showPast,
@@ -107,7 +109,8 @@ export function SeasonCalendar({
     () =>
       calendar.editions.filter(
         (edition) =>
-          edition.competitionType === "standard" &&
+          (edition.competitionType === "standard" ||
+            isInternationalChampionshipEdition(edition)) &&
           isRaceEditionPast({
             edition,
             currentDayNumber: calendar.currentDayNumber,
@@ -585,18 +588,25 @@ function RaceCalendarList({
           });
           const startDate = dayByNumber.get(range.startDay)?.calendarDate;
           const isPast = range.endDay < currentDayNumber;
+          const isInternationalChampionship =
+            isInternationalChampionshipEdition(edition);
           const registrationClosed =
-            isRaceRegistrationClosed({
+            !isInternationalChampionship && isRaceRegistrationClosed({
               edition,
               currentDayNumber,
               now: new Date(nowIso),
             });
-          const status = getListRegistrationStatus({
-            registration,
-            availability,
-            isPast,
-            minimumReputation: edition.minimumReputation,
-          });
+          const status = isInternationalChampionship
+            ? {
+                label: `${edition.engagedRiderCount} sélectionné${edition.engagedRiderCount > 1 ? "s" : ""}`,
+                tone: "success" as const,
+              }
+            : getListRegistrationStatus({
+                registration,
+                availability,
+                isPast,
+                minimumReputation: edition.minimumReputation,
+              });
 
           return (
             <article
@@ -607,6 +617,9 @@ function RaceCalendarList({
                   : "not-closed"
               }
               data-grand-tour-accent={grandTourAccent?.key}
+              data-international-championship={
+                isInternationalChampionship ? "true" : undefined
+              }
               title={
                 registrationClosed
                   ? isPast
@@ -625,6 +638,7 @@ function RaceCalendarList({
                   : undefined,
               }}
             >
+              <InternationalChampionshipStripe edition={edition} />
               <div>
                 <p className="text-sm font-black text-[#0B302B]">
                   J{range.startDay}{range.endDay > range.startDay ? `–J${range.endDay}` : ""}
@@ -676,7 +690,9 @@ function RaceCalendarList({
                 href={getCalendarEditionHref(edition, currentDayNumber)}
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
               >
-                {registration?.status === "accepted"
+                {isInternationalChampionship
+                  ? "Voir la startlist"
+                  : registration?.status === "accepted"
                   ? "Voir l’inscription"
                   : registration?.status === "pending"
                     ? "Voir la demande"
@@ -769,6 +785,21 @@ function HistoryIcon() {
   return <span aria-hidden="true" className="text-sm leading-none">↶</span>;
 }
 
+function InternationalChampionshipStripe({
+  edition,
+}: {
+  edition: Pick<RaceCalendarEdition, "competitionType">;
+}) {
+  if (!isInternationalChampionshipEdition(edition)) return null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#0085C7_0_20%,#E31837_20%_40%,#111827_40%_60%,#FFD100_60%_80%,#009B3A_80%_100%)]"
+    />
+  );
+}
+
 export function getVisibleStandardCalendarEditions({
   editions,
   currentDayNumber,
@@ -783,6 +814,23 @@ export function getVisibleStandardCalendarEditions({
       edition.competitionType === "standard" &&
       (showPast ||
         !isRaceEditionPast({ edition, currentDayNumber })),
+  );
+}
+
+export function getVisibleCalendarRaceEditions({
+  editions,
+  currentDayNumber,
+  showPast,
+}: {
+  editions: RaceCalendarEdition[];
+  currentDayNumber: number;
+  showPast: boolean;
+}) {
+  return editions.filter(
+    (edition) =>
+      (edition.competitionType === "standard" ||
+        isInternationalChampionshipEdition(edition)) &&
+      (showPast || !isRaceEditionPast({ edition, currentDayNumber })),
   );
 }
 
@@ -945,8 +993,10 @@ function DesktopCalendarWeek({
                     ? `E${firstStage.stageNumber}`
                     : `E${firstStage.stageNumber}–E${lastStage?.stageNumber}`
                   : null;
+              const isInternationalChampionship =
+                isInternationalChampionshipEdition(segment.edition);
               const registrationClosed =
-                isRaceRegistrationClosed({
+                !isInternationalChampionship && isRaceRegistrationClosed({
                   edition: segment.edition,
                   currentDayNumber,
                   now: new Date(nowIso),
@@ -969,6 +1019,9 @@ function DesktopCalendarWeek({
                       : "not-closed"
                   }
                   data-grand-tour-accent={grandTourAccent?.key}
+                  data-international-championship={
+                    isInternationalChampionship ? "true" : undefined
+                  }
                   title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
                   className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
@@ -996,6 +1049,9 @@ function DesktopCalendarWeek({
                     color: style.foreground,
                   }}
                 >
+                  <InternationalChampionshipStripe
+                    edition={segment.edition}
+                  />
                   <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[8px] tracking-wider">
                     {style.shortLabel}
                   </span>
@@ -1106,7 +1162,9 @@ function DesktopCalendarWeek({
                         {hiddenSegments.map((segment) => {
                           const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
                           const registrationClosed =
-                            isRaceRegistrationClosed({
+                            !isInternationalChampionshipEdition(
+                              segment.edition,
+                            ) && isRaceRegistrationClosed({
                               edition:
                                 segment.edition,
                               currentDayNumber,
@@ -1238,8 +1296,10 @@ function MobileCalendarDay({
           const startsSlot =
             entries[entryIndex - 1]?.stage
               .daySlot !== stage.daySlot;
+          const isInternationalChampionship =
+            isInternationalChampionshipEdition(edition);
           const registrationClosed =
-            isRaceRegistrationClosed({
+            !isInternationalChampionship && isRaceRegistrationClosed({
               edition,
               currentDayNumber,
               now: new Date(nowIso),
@@ -1269,6 +1329,9 @@ function MobileCalendarDay({
                   : "not-closed"
               }
               data-grand-tour-accent={grandTourAccent?.key}
+              data-international-championship={
+                isInternationalChampionship ? "true" : undefined
+              }
               title={
                 registrationClosed
                   ? editionIsPast
@@ -1276,7 +1339,7 @@ function MobileCalendarDay({
                     : `${edition.name} · Inscriptions closes`
                   : edition.name
               }
-              className={`flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
+              className={`relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
               style={{
                 borderColor: grandTourAccent?.color ?? style.border,
                 boxShadow: grandTourAccent
@@ -1292,6 +1355,7 @@ function MobileCalendarDay({
                 color: style.foreground,
               }}
             >
+              <InternationalChampionshipStripe edition={edition} />
               <span className="rounded bg-black/15 px-2 py-1 text-[10px] font-black tracking-wider">
                 {style.shortLabel}
               </span>

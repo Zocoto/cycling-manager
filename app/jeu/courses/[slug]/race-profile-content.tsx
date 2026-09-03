@@ -22,6 +22,7 @@ import {
   RACE_STAGE_TYPE_LABELS,
   getEditionDayRange,
   getRegistrationAvailability,
+  isInternationalChampionshipEdition,
   isUnderfilledRaceRosterCorrectionOpen,
   isBeforeRegistrationDeadline,
   type RaceCalendarEdition,
@@ -108,6 +109,9 @@ export async function RaceProfileContent({
     notFound();
   }
 
+  const isInternationalChampionship =
+    isInternationalChampionshipEdition(edition);
+
   const [teamSponsorIdentity, teamAmateurIdentity] = await Promise.all([
     getActiveTeamSponsorIdentityForAuthUser(user.id).catch((error: unknown) => {
       console.error(
@@ -168,18 +172,22 @@ export async function RaceProfileContent({
           winners: [] as RacePastWinner[],
           error,
         })),
-      getCurrentTeamRaceRosterOptions(supabase, edition.id)
-        .then((riders) => ({ riders, error: null }))
-        .catch((error: unknown) => ({
-          riders: [] as RaceRosterOption[],
-          error,
-        })),
-      getRaceEngagedRiders(supabase, edition.id)
-        .then((riders) => ({ riders, error: null }))
-        .catch((error: unknown) => ({
-          riders: [] as RaceEngagedRider[],
-          error,
-        })),
+      isInternationalChampionship
+        ? Promise.resolve({ riders: [] as RaceRosterOption[], error: null })
+        : getCurrentTeamRaceRosterOptions(supabase, edition.id)
+            .then((riders) => ({ riders, error: null }))
+            .catch((error: unknown) => ({
+              riders: [] as RaceRosterOption[],
+              error,
+            })),
+      isInternationalChampionship
+        ? Promise.resolve({ riders: [] as RaceEngagedRider[], error: null })
+        : getRaceEngagedRiders(supabase, edition.id)
+            .then((riders) => ({ riders, error: null }))
+            .catch((error: unknown) => ({
+              riders: [] as RaceEngagedRider[],
+              error,
+            })),
     ]);
 
   if (contextResult.context) {
@@ -218,7 +226,17 @@ export async function RaceProfileContent({
     rosterError = "Votre effectif n’a pas pu être chargé pour le moment.";
   }
 
-  engagedRiders = engagedRidersResult.riders;
+  engagedRiders = isInternationalChampionship
+    ? edition.engagedRiders.map((rider) => ({
+        teamId: rider.teamId,
+        teamName: rider.teamName,
+        teamShortName: null,
+        teamCountryCode: rider.countryCode ?? edition.countryCode,
+        riderId: rider.id,
+        riderName: rider.name,
+        countryCode: rider.countryCode ?? edition.countryCode,
+      }))
+    : engagedRidersResult.riders;
   if (engagedRidersResult.error) {
     console.error(
       "Impossible de charger les coureurs engagés :",
@@ -269,6 +287,12 @@ export async function RaceProfileContent({
               background: `linear-gradient(135deg, ${style.border}, ${style.background})`,
             }}
           >
+            {isInternationalChampionship ? (
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 z-10 h-1.5 bg-[linear-gradient(90deg,#0085C7_0_20%,#E31837_20%_40%,#111827_40%_60%,#FFD100_60%_80%,#009B3A_80%_100%)]"
+              />
+            ) : null}
             <div
               aria-hidden="true"
               className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[42px] border-white/10"
@@ -624,6 +648,41 @@ function RegistrationPanel({
           Cette inscription n’est plus active et aucune modification de la
           composition ou de la préparation n’est possible.
         </p>
+        {raceExperience ? (
+          <RaceExperienceLink
+            slug={edition.slug}
+            availability={raceExperience}
+          />
+        ) : null}
+      </section>
+    );
+  }
+
+  if (isInternationalChampionshipEdition(edition)) {
+    return (
+      <section className="rounded-2xl border border-[#315B3E]/15 bg-[#0B302B] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
+          Sélections nationales
+        </p>
+        <h2 className="mt-3 text-xl font-black">
+          Inscription gérée par les fédérations
+        </h2>
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
+          Les équipes sont les nations. La startlist ci-contre est actualisée
+          à partir des choix du président et des confirmations données par les
+          DS ; aucune inscription individuelle n’est possible sur cette fiche.
+        </p>
+        <span className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#9BE0BC]">
+          {edition.engagedRiderCount} coureur
+          {edition.engagedRiderCount > 1 ? "s" : ""} confirmé
+          {edition.engagedRiderCount > 1 ? "s" : ""}
+        </span>
+        {hasScheduledStage ? (
+          <p className="mt-4 text-xs font-semibold leading-5 text-[#A9C6BB]">
+            Les favoris se recalculent automatiquement à chaque mise à jour de
+            la sélection officielle.
+          </p>
+        ) : null}
         {raceExperience ? (
           <RaceExperienceLink
             slug={edition.slug}
@@ -1037,6 +1096,8 @@ function EngagedRidersSection({
   riders: RaceEngagedRider[];
   hasError: boolean;
 }) {
+  const isInternationalChampionship =
+    isInternationalChampionshipEdition(edition);
   const teams = new Map<
     string,
     {
@@ -1073,14 +1134,23 @@ function EngagedRidersSection({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
-            Peloton
+            {isInternationalChampionship ? "Sélections nationales" : "Peloton"}
           </p>
           <h2 className="mt-2 text-xl font-black text-[#0B302B]">
-            Coureurs engagés
+            {isInternationalChampionship
+              ? "Startlist officielle"
+              : "Coureurs engagés"}
           </h2>
+          {isInternationalChampionship ? (
+            <p className="mt-2 text-xs font-semibold text-[#688176]">
+              Mise à jour selon les confirmations des DS.
+            </p>
+          ) : null}
         </div>
         <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
-          {edition.competitionType === "standard"
+          {isInternationalChampionship
+            ? `${teams.size} nations · ${riders.length} coureurs`
+            : edition.competitionType === "standard"
             ? `${teams.size} / ${standardTeamLimit} équipes · ${riders.length} coureurs`
             : `${riders.length} / 200 coureurs · ${teams.size} équipes`}
         </span>
@@ -1106,7 +1176,11 @@ function EngagedRidersSection({
                   aria-label={`Drapeau de l’équipe ${team.teamName}`}
                 />
                 <Link
-                  href={`/jeu/equipes/${teamId}`}
+                  href={
+                    isInternationalChampionship
+                      ? `/jeu/nations/${team.teamCountryCode.toLowerCase()}`
+                      : `/jeu/equipes/${teamId}`
+                  }
                   className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
                 >
                   {team.teamName}
@@ -1142,7 +1216,9 @@ function EngagedRidersSection({
         <p className="mt-4 rounded-xl border border-dashed border-[#315B3E]/25 bg-[#F6FAF7] px-5 py-5 text-sm font-semibold leading-6 text-[#688176]">
           {hasError
             ? "La liste des engagés est momentanément indisponible."
-            : "Aucun coureur n’est encore engagé. La liste sera mise à jour immédiatement après chaque inscription."}
+            : isInternationalChampionship
+              ? "Aucun coureur n’est encore confirmé. La startlist apparaîtra au fil des validations des DS."
+              : "Aucun coureur n’est encore engagé. La liste sera mise à jour immédiatement après chaque inscription."}
         </p>
       )}
     </section>

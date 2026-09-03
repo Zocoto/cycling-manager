@@ -71,6 +71,15 @@ export type RaceCompetitionType =
   | "continental_championship"
   | "world_championship";
 
+export function isInternationalChampionshipEdition(
+  edition: Pick<RaceCalendarEdition, "competitionType">,
+): boolean {
+  return (
+    edition.competitionType === "continental_championship" ||
+    edition.competitionType === "world_championship"
+  );
+}
+
 export type RaceProfileType =
   "flat" | "sprint" | "hilly" | "mountain" | "cobbles" | "time_trial" | "mixed";
 

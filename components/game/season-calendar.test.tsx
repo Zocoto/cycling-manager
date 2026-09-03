@@ -11,6 +11,7 @@ import {
 import {
   SeasonCalendar,
   getCalendarEditionHref,
+  getVisibleCalendarRaceEditions,
   getVisibleStandardCalendarEditions,
 } from "./season-calendar";
 
@@ -186,6 +187,61 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("0 0 0 2px #E05252");
   });
 
+  it("affiche les championnats internationaux en consultation avec le liseré arc-en-ciel", () => {
+    const championship = createEdition({
+      id: "championnats-du-monde",
+      name: "Championnats du monde",
+      categoryCode: "world",
+      countryCode: "CA",
+      dayNumber: 26,
+      daySlot: "late",
+      registrationClosesAt: "2026-08-26T12:00:00Z",
+      accepted: false,
+      competitionType: "world_championship",
+    });
+    championship.registrationPolicy = "closed";
+    championship.engagedRiderCount = 37;
+    const calendar: SeasonRaceCalendar = {
+      seasonId: "season-worlds",
+      seasonName: "Saison des Mondiaux",
+      gameYear: 3,
+      startsOn: "2026-08-01",
+      endsOn: "2026-08-28",
+      currentDayNumber: 20,
+      days: Array.from({ length: 28 }, (_, index) => ({
+        id: `day-${index + 1}`,
+        dayNumber: index + 1,
+        calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+          .toISOString()
+          .slice(0, 10),
+        label: null,
+      })),
+      events: [],
+      editions: [championship],
+    };
+
+    expect(
+      getVisibleCalendarRaceEditions({
+        editions: [championship],
+        currentDayNumber: 20,
+        showPast: false,
+      }),
+    ).toEqual([championship]);
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={calendar}
+        reputationPoints={0}
+        nowIso="2026-08-20T08:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain("Championnats du monde");
+    expect(markup).toContain('data-international-championship="true"');
+    expect(markup).toContain("linear-gradient(90deg");
+    expect(markup).toContain("/jeu/courses/championnats-du-monde#inscription");
+  });
+
   it("retire les courses révolues du calendrier", () => {
     const pastEdition = createEdition({
       id: "course-passee",
@@ -316,6 +372,7 @@ function createEdition({
   countryCode = "FR",
   isGrandTour = false,
   raceFormat = "one_day",
+  competitionType = "standard",
 }: {
   id: string;
   name: string;
@@ -327,6 +384,7 @@ function createEdition({
   countryCode?: string;
   isGrandTour?: boolean;
   raceFormat?: RaceCalendarEdition["raceFormat"];
+  competitionType?: RaceCalendarEdition["competitionType"];
 }): RaceCalendarEdition {
   return {
     id,
@@ -348,7 +406,7 @@ function createEdition({
         categoryCode
       ) + 1,
     raceFormat,
-    competitionType: "standard",
+    competitionType,
     isGrandTour,
     registrationClosesAt,
     wildcardClosesAt: registrationClosesAt,

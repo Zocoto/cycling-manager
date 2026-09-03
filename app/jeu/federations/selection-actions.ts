@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationSelectionActionState = {
   status: "idle" | "success" | "error";
@@ -67,6 +68,8 @@ export async function publishFederationPreselectionAction(
   });
   if (result.error) return actionError(result.error.message);
 
+  await syncFederationChampionshipStartlists();
+
   revalidateFederation(countryCode.data);
   return {
     status: "success",
@@ -91,8 +94,25 @@ export async function respondFederationPreselectionAction(formData: FormData) {
     console.error("Échec de réponse à la présélection fédérale :", result.error.message);
     return;
   }
+  await syncFederationChampionshipStartlists();
   revalidatePath("/jeu/federations/be");
   revalidatePath("/jeu");
+}
+
+async function syncFederationChampionshipStartlists() {
+  const admin = createSupabaseAdminClient();
+  const result = await admin.rpc(
+    "sync_due_national_federation_championship_lineups",
+    { p_now: new Date().toISOString(), p_force: true },
+  );
+  if (result.error) {
+    console.error(
+      "Échec de synchronisation de la startlist fédérale :",
+      result.error.message,
+    );
+  }
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/courses/[slug]", "page");
 }
 
 function revalidateFederation(countryCode: string) {

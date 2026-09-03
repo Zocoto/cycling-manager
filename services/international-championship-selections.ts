@@ -86,10 +86,46 @@ export async function processDueInternationalChampionshipSelections(
     finalized_nation_selections: number;
   }> | null) ?? [])[0];
 
+  let synchronizedFederationStartlists = 0;
+  try {
+    synchronizedFederationStartlists =
+      await syncDueNationalFederationChampionshipLineups({
+        now,
+        force:
+          (row?.created_nation_selections ?? 0) > 0 ||
+          (row?.finalized_nation_selections ?? 0) > 0,
+      });
+  } catch (error) {
+    console.error("federation_championship_startlist_sync_failed", error);
+  }
+
   return {
     createdNationSelections: row?.created_nation_selections ?? 0,
     finalizedNationSelections: row?.finalized_nation_selections ?? 0,
+    synchronizedFederationStartlists,
   };
+}
+
+export async function syncDueNationalFederationChampionshipLineups({
+  now = new Date(),
+  force = false,
+}: {
+  now?: Date;
+  force?: boolean;
+} = {}): Promise<number> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.rpc(
+    "sync_due_national_federation_championship_lineups",
+    { p_now: now.toISOString(), p_force: force },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de synchroniser les startlists fédérales : ${error.message}`,
+    );
+  }
+
+  return Number(data ?? 0);
 }
 
 export async function getCurrentDirectorInternationalSelections({
