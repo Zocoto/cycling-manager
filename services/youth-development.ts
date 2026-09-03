@@ -619,8 +619,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
   );
   const contracts = contractsResult.data ?? [];
   const nextSeasonRosterCommitments = Number(rosterCapacityResult.data ?? 0);
-  const canScheduleYouthPromotion =
-    nextSeasonRosterCommitments < MAX_TEAM_ROSTER_SIZE;
+  // A promotion is a provisional choice until the J1 roster arbitration. It
+  // must remain schedulable even when 35 firm contracts are already recorded,
+  // otherwise the DS cannot prepare a later sale or contract adjustment.
+  const canScheduleYouthPromotion = true;
   const staffIds = contracts.map((contract) => contract.staff_member_id);
   const memberResult = staffIds.length
     ? await admin

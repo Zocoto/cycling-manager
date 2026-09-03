@@ -82,6 +82,10 @@ export async function getCurrentDashboardAssistantSummary(
     pendingDirectOfferCount: row.pending_direct_offer_count,
     contractRenewalCount: row.contract_renewal_count,
     youthAlertCount: row.youth_alert_count,
+    nextSeasonRosterProjectedCount:
+      assistantPayload.nextSeasonRosterProjectedCount,
+    nextSeasonRosterOverflowCount:
+      assistantPayload.nextSeasonRosterOverflowCount,
     watchedAuctionClosingCount: row.watched_auction_closing_count,
     staffMarketCount: row.staff_market_count,
     preparationReminderCount: row.preparation_reminder_count,
@@ -97,6 +101,8 @@ function normalizeAssistantPayload(value: unknown): {
   availableScoutCount: number;
   juniorManualTrainingDueCount: number;
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
+  nextSeasonRosterProjectedCount: number;
+  nextSeasonRosterOverflowCount: number;
   journalItems: DashboardJournalItem[];
 } {
   if (Array.isArray(value)) {
@@ -106,6 +112,8 @@ function normalizeAssistantPayload(value: unknown): {
       availableScoutCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
+      nextSeasonRosterProjectedCount: 0,
+      nextSeasonRosterOverflowCount: 0,
       journalItems: normalizeJournalItems(value),
     };
   }
@@ -117,11 +125,18 @@ function normalizeAssistantPayload(value: unknown): {
       availableScoutCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
+      nextSeasonRosterProjectedCount: 0,
+      nextSeasonRosterOverflowCount: 0,
       journalItems: [],
     };
   }
 
   const payload = value as Record<string, unknown>;
+  const rosterProjection =
+    payload.nextSeasonRosterProjection &&
+    typeof payload.nextSeasonRosterProjection === "object"
+      ? (payload.nextSeasonRosterProjection as Record<string, unknown>)
+      : {};
   return {
     riderRecruitmentMatchCount: normalizeCount(
       payload.riderRecruitmentMatchCount,
@@ -138,6 +153,12 @@ function normalizeAssistantPayload(value: unknown): {
       payload.juniorManualTrainingSlot === "manual_pm"
         ? payload.juniorManualTrainingSlot
         : null,
+    nextSeasonRosterProjectedCount: normalizeCount(
+      rosterProjection.projectedCount,
+    ),
+    nextSeasonRosterOverflowCount: normalizeCount(
+      rosterProjection.overflowCount,
+    ),
     journalItems: normalizeJournalItems(payload.items),
   };
 }

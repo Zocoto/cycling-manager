@@ -44,6 +44,8 @@ export type DashboardAssistantSnapshot = {
   pendingDirectOfferCount: number;
   contractRenewalCount: number;
   youthAlertCount: number;
+  nextSeasonRosterProjectedCount: number;
+  nextSeasonRosterOverflowCount: number;
   watchedAuctionClosingCount: number;
   staffMarketCount: number;
   preparationReminderCount: number;
@@ -93,6 +95,7 @@ const ALERT_PRIORITY = [
   "available-scouts",
   "low-form",
   "zero-training",
+  "next-season-roster-overflow",
   "contract-renewals",
   "youth-alerts",
 ] as const;
@@ -225,6 +228,21 @@ export function buildDashboardAssistantLines({
       ),
       detail: "Disponible sur le marché selon vos critères personnalisés.",
       href: "/jeu/staff?onglet=marche",
+    });
+  }
+
+  if (snapshot.nextSeasonRosterOverflowCount > 0) {
+    alerts.push({
+      id: "next-season-roster-overflow",
+      tone: "alert",
+      metric: String(snapshot.nextSeasonRosterOverflowCount),
+      title: pluralize(
+        snapshot.nextSeasonRosterOverflowCount,
+        "place de trop prévue à J1",
+        "places de trop prévues à J1",
+      ),
+      detail: `${snapshot.nextSeasonRosterProjectedCount}/35 coureurs sont engagés ou promus pour la saison suivante. Sans ajustement, les juniors aux moyennes les plus faibles rejoindront les agents libres.`,
+      href: "/jeu/centre-de-formation?onglet=ecole",
     });
   }
 

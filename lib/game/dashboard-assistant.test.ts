@@ -38,6 +38,8 @@ const snapshot: DashboardAssistantSnapshot = {
   pendingDirectOfferCount: 2,
   contractRenewalCount: 3,
   youthAlertCount: 1,
+  nextSeasonRosterProjectedCount: 33,
+  nextSeasonRosterOverflowCount: 0,
   watchedAuctionClosingCount: 2,
   staffMarketCount: 25,
   preparationReminderCount: 1,
@@ -151,6 +153,43 @@ describe("dashboard DS assistant", () => {
     expect(groups.alerts).toEqual([
       expect.objectContaining({ id: "all-clear", tone: "success", href: null }),
     ]);
+  });
+
+  it("warns before J1 when firm arrivals and scheduled promotions exceed 35 riders", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+        nextSeasonRosterProjectedCount: 38,
+        nextSeasonRosterOverflowCount: 3,
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "next-season-roster-overflow",
+        metric: "3",
+        title: "places de trop prévues à J1",
+        detail: expect.stringContaining("38/35"),
+        href: "/jeu/centre-de-formation?onglet=ecole",
+      }),
+    ]);
+    expect(groups.alerts[0]?.detail).toContain(
+      "juniors aux moyennes les plus faibles",
+    );
   });
 
   it("adapts the manual junior reminder to the evening slot", () => {
