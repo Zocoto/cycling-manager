@@ -88,6 +88,8 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/inscriptions");
   revalidatePath("/jeu/finances");
+  revalidatePath("/jeu/selections-internationales");
+  revalidatePath("/jeu/boite-mail");
   redirect("/jeu/entrainement?onglet=reconnaissance&reconnaissance=confirmee");
 }
 
@@ -113,6 +115,8 @@ export async function requestRaceReconnaissanceInterruptionAction(
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/inscriptions");
   revalidatePath("/jeu/preparation-course");
+  revalidatePath("/jeu/selections-internationales");
+  revalidatePath("/jeu/boite-mail");
   redirect(
     `/jeu/entrainement?onglet=reconnaissance&interruption=confirmee&effet=${effectiveDayNumber}`,
   );
@@ -147,6 +151,8 @@ export async function startRiderPerformancePreparationAction(
   revalidateTrainingPaths();
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/inscriptions");
+  revalidatePath("/jeu/selections-internationales");
+  revalidatePath("/jeu/boite-mail");
   redirect("/jeu/entrainement?onglet=preparation&preparation=confirmee");
 }
 

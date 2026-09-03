@@ -9,6 +9,10 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
+  INTERNATIONAL_CHAMPIONSHIPS_HREF,
+  getInternationalChampionshipDirectoryHref,
+} from "@/lib/game/international-championship-navigation";
+import {
   getCurrentDirectorInternationalSelections,
   type InternationalChampionshipSelection,
   type InternationalSelectionResponseStatus,
@@ -132,9 +136,17 @@ export default async function InternationalSelectionsPage({
                 accord par défaut tant que vous ne la refusez pas.
               </p>
             </div>
-            <span className="w-fit rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white backdrop-blur">
-              {pendingCount} décision{pendingCount > 1 ? "s" : ""} à traiter
-            </span>
+            <div className="grid gap-3">
+              <span className="w-fit rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white backdrop-blur">
+                {pendingCount} décision{pendingCount > 1 ? "s" : ""} à traiter
+              </span>
+              <Link
+                href={INTERNATIONAL_CHAMPIONSHIPS_HREF}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-sm font-black text-[#183F37] transition hover:bg-[#FFDB63]"
+              >
+                Profils et startlists →
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -218,6 +230,14 @@ function SelectionCard({
               {selection.championshipName} · J{selection.dayNumber} ·{" "}
               {formatDeparture(selection.departureAt)}
             </p>
+            <Link
+              href={getInternationalChampionshipDirectoryHref(
+                selection.championshipSlug,
+              )}
+              className="mt-2 inline-flex text-xs font-black text-[#176951] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#0B302B]"
+            >
+              Voir le profil et la startlist →
+            </Link>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
               {status.description}
             </p>
@@ -293,6 +313,22 @@ function SelectionCard({
                 value={selection.candidateId}
               />
               <input type="hidden" name="decision" value="confirm" />
+              {selection.conflictingRaceNames.map((raceName) => (
+                <input
+                  key={`race:${raceName}`}
+                  type="hidden"
+                  name="acknowledgedConflict"
+                  value={`course:${raceName}`}
+                />
+              ))}
+              {selection.conflictingCampNames.map((campName) => (
+                <input
+                  key={`camp:${campName}`}
+                  type="hidden"
+                  name="acknowledgedConflict"
+                  value={`activité:${campName}`}
+                />
+              ))}
               <InternationalSelectionSubmitButton
                 variant="confirm"
                 pendingLabel="Validation…"

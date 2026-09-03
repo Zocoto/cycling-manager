@@ -78,6 +78,7 @@ const COURSE_PATH_PREFIXES = [
   "/jeu/resultats",
   "/jeu/courses",
   "/jeu/championnats-nationaux",
+  "/jeu/championnats-internationaux",
   "/jeu/selections-internationales",
 ] as const;
 

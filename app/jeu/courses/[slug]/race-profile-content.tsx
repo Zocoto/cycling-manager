@@ -41,6 +41,10 @@ import {
 import { getStageFormCostRange } from "@/lib/game/form-management";
 import { getRaceWeather, type RaceWeather } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
+import {
+  INTERNATIONAL_SELECTIONS_HREF,
+  getInternationalChampionshipDirectoryHref,
+} from "@/lib/game/international-championship-navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -272,13 +276,29 @@ export async function RaceProfileContent({
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
-        <Link
-          href="/jeu/calendrier"
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour au calendrier
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={
+              isInternationalChampionship
+                ? getInternationalChampionshipDirectoryHref(edition.slug)
+                : "/jeu/calendrier"
+            }
+            className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+          >
+            <span aria-hidden="true">←</span>
+            {isInternationalChampionship
+              ? "Retour aux CC & CM"
+              : "Retour au calendrier"}
+          </Link>
+          {isInternationalChampionship ? (
+            <Link
+              href={INTERNATIONAL_SELECTIONS_HREF}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-xs font-black uppercase tracking-[0.1em] text-[#176951] transition hover:bg-[#EEF8F4]"
+            >
+              Voir mes convocations
+            </Link>
+          ) : null}
+        </div>
 
         <article className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
           <header

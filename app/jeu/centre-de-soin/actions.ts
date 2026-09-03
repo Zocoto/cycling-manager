@@ -355,6 +355,8 @@ function revalidateHealthPaths() {
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/finances");
+  revalidatePath("/jeu/selections-internationales");
+  revalidatePath("/jeu/boite-mail");
   revalidatePath("/jeu");
 }
 

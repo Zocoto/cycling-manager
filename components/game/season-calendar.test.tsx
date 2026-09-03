@@ -239,7 +239,10 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("Championnats du monde");
     expect(markup).toContain('data-international-championship="true"');
     expect(markup).toContain("linear-gradient(90deg");
-    expect(markup).toContain("/jeu/courses/championnats-du-monde#inscription");
+    expect(markup).toContain(
+      "/jeu/championnats-internationaux#championnats-du-monde",
+    );
+    expect(markup).toContain("Voir les CC &amp; CM");
   });
 
   it("retire les courses révolues du calendrier", () => {

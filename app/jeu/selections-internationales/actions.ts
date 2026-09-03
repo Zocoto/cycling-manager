@@ -10,6 +10,7 @@ import { respondToInternationalChampionshipSelection } from "@/services/internat
 const decisionSchema = z.object({
   candidateId: z.string().uuid(),
   decision: z.enum(["confirm", "decline"]),
+  acknowledgedConflicts: z.array(z.string().trim().min(1).max(300)).max(40),
 });
 
 export async function answerInternationalSelectionAction(
@@ -18,6 +19,9 @@ export async function answerInternationalSelectionAction(
   const parsed = decisionSchema.safeParse({
     candidateId: formData.get("candidateId"),
     decision: formData.get("decision"),
+    acknowledgedConflicts: formData
+      .getAll("acknowledgedConflict")
+      .filter((value): value is string => typeof value === "string"),
   });
 
   if (!parsed.success) {
@@ -41,6 +45,7 @@ export async function answerInternationalSelectionAction(
       supabase,
       candidateId: parsed.data.candidateId,
       accept: parsed.data.decision === "confirm",
+      acknowledgedConflicts: parsed.data.acknowledgedConflicts,
     });
   } catch (error) {
     const message =
@@ -56,6 +61,7 @@ export async function answerInternationalSelectionAction(
 
   revalidatePath("/jeu");
   revalidatePath("/jeu/selections-internationales");
+  revalidatePath("/jeu/championnats-internationaux");
   revalidatePath("/jeu/calendrier");
   redirect(
     `/jeu/selections-internationales?decision=${

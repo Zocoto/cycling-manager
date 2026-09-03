@@ -198,16 +198,19 @@ export async function respondToInternationalChampionshipSelection({
   supabase,
   candidateId,
   accept,
+  acknowledgedConflicts,
 }: {
   supabase: SupabaseServerClient;
   candidateId: string;
   accept: boolean;
+  acknowledgedConflicts: string[];
 }) {
   const { error } = await supabase.rpc(
-    "respond_to_international_championship_selection",
+    "respond_to_international_selection_with_conflict_ack",
     {
       p_candidate_id: candidateId,
       p_accept: accept,
+      p_acknowledged_conflicts: acknowledgedConflicts,
     },
   );
 

@@ -4,6 +4,7 @@ import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
+import { getInternationalChampionshipDirectoryHref } from "@/lib/game/international-championship-navigation";
 
 import {
   RACE_CATEGORY_CODES,
@@ -691,7 +692,7 @@ function RaceCalendarList({
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
               >
                 {isInternationalChampionship
-                  ? "Voir la startlist"
+                  ? "Voir les CC & CM"
                   : registration?.status === "accepted"
                   ? "Voir l’inscription"
                   : registration?.status === "pending"
@@ -838,6 +839,10 @@ export function getCalendarEditionHref(
   edition: RaceCalendarEdition,
   currentDayNumber: number,
 ) {
+  if (isInternationalChampionshipEdition(edition)) {
+    return getInternationalChampionshipDirectoryHref(edition.slug);
+  }
+
   return isRaceEditionPast({ edition, currentDayNumber })
     ? `/jeu/resultats/${encodeURIComponent(edition.slug)}`
     : getRaceRegistrationHref(edition.slug);
