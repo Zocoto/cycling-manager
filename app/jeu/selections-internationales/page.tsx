@@ -141,7 +141,8 @@ export default async function InternationalSelectionsPage({
         {decision === "confirmee" ? (
           <FeedbackBanner tone="success">
             La participation est validée. Les courses et stages qui se
-            chevauchent ont été annulés pour ce coureur.
+            chevauchent ont été annulés pour ce coureur. Tout stage non démarré
+            qui a été annulé a également été remboursé.
           </FeedbackBanner>
         ) : null}
 
@@ -221,20 +222,49 @@ function SelectionCard({
               {status.description}
             </p>
             {selection.canRespond &&
-            selection.conflictingRaceNames.length > 0 ? (
-              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-950">
-                {selection.conflictingRaceNames.length === 1 ? (
-                  <>
-                    Si vous acceptez la convocation, votre coureur sera
-                    désinscrit de la course {selection.conflictingRaceNames[0]}.
-                  </>
-                ) : (
-                  <>
-                    Si vous acceptez la convocation, votre coureur sera
-                    désinscrit des courses suivantes :{" "}
-                    {selection.conflictingRaceNames.join(", ")}.
-                  </>
-                )}
+            (selection.conflictingRaceNames.length > 0 ||
+              selection.conflictingCampNames.length > 0) ? (
+              <div className="mt-4 space-y-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-950">
+                {selection.conflictingRaceNames.length > 0 ? (
+                  <p>
+                    {selection.conflictingRaceNames.length === 1 ? (
+                      <>
+                        Si vous acceptez la convocation, votre coureur sera
+                        désinscrit de la course{" "}
+                        {selection.conflictingRaceNames[0]}.
+                      </>
+                    ) : (
+                      <>
+                        Si vous acceptez la convocation, votre coureur sera
+                        désinscrit des courses suivantes :{" "}
+                        {selection.conflictingRaceNames.join(", ")}.
+                      </>
+                    )}
+                  </p>
+                ) : null}
+                {selection.conflictingCampNames.length > 0 ? (
+                  <div className="space-y-1">
+                    <p>
+                      {selection.conflictingCampNames.length === 1 ? (
+                        <>
+                          L’activité programmée suivante sera également annulée
+                          pour votre coureur :{" "}
+                          {selection.conflictingCampNames[0]}.
+                        </>
+                      ) : (
+                        <>
+                          Les activités programmées suivantes seront également
+                          annulées pour votre coureur :{" "}
+                          {selection.conflictingCampNames.join(", ")}.
+                        </>
+                      )}
+                    </p>
+                    <p>
+                      Le coût d’un stage qui n’a pas encore commencé sera
+                      remboursé. Un stage déjà commencé ne le sera pas.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-black text-[#315B3E]">

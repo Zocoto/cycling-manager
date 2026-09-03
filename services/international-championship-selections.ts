@@ -37,6 +37,7 @@ export type InternationalChampionshipSelection = {
   dayNumber: number;
   departureAt: string;
   conflictingRaceNames: string[];
+  conflictingCampNames: string[];
   canRespond: boolean;
 };
 
@@ -62,6 +63,7 @@ type InternationalSelectionRow = {
   day_number: number;
   departure_at: string;
   conflicting_race_names: string[] | null;
+  conflicting_camp_names: string[] | null;
 };
 
 export async function processDueInternationalChampionshipSelections(
@@ -139,6 +141,7 @@ export async function getCurrentDirectorInternationalSelections({
       dayNumber: selection.day_number,
       departureAt: selection.departure_at,
       conflictingRaceNames: selection.conflicting_race_names ?? [],
+      conflictingCampNames: selection.conflicting_camp_names ?? [],
       canRespond: canRespondToInternationalSelection({
         isSelected: selection.is_selected,
         responseStatus: selection.response_status,

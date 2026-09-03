@@ -17,6 +17,13 @@ const finalizationMigration = readFileSync(
   ),
   "utf8",
 ).toLowerCase();
+const campConflictMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260904004000_expose_international_selection_camp_conflicts.sql",
+  ),
+  "utf8",
+).toLowerCase();
 
 describe("protection des tours en cours contre les convocations", () => {
   it("conserve le coureur lorsqu’un tour chevauchant a déjà commencé", () => {
@@ -79,6 +86,56 @@ describe("protection des tours en cours contre les convocations", () => {
     expect(migration).toContain(
       "si vous acceptez la convocation, votre coureur sera désinscrit de la course",
     );
+  });
+
+  it("expose aussi les stages et préparations qui seront annulés", () => {
+    const selectionService = readFileSync(
+      join(process.cwd(), "services/international-championship-selections.ts"),
+      "utf8",
+    );
+    const selectionPage = readFileSync(
+      join(process.cwd(), "app/jeu/selections-internationales/page.tsx"),
+      "utf8",
+    );
+
+    expect(campConflictMigration).toContain("conflicting_camp_names text[]");
+    expect(campConflictMigration).toContain("stage de reconnaissance");
+    expect(campConflictMigration).toContain("stage de forme classique");
+    expect(campConflictMigration).toContain("stage de forme premium");
+    expect(campConflictMigration).toContain(
+      "camp.status in ('planned', 'active')",
+    );
+    expect(campConflictMigration).toContain(
+      "camp.start_day_number <= target_range.end_day_number",
+    );
+    expect(campConflictMigration).toContain(
+      "camp.end_day_number >= target_range.start_day_number",
+    );
+    expect(campConflictMigration).toContain(
+      "perform public.sync_director_international_selection_message",
+    );
+    expect(campConflictMigration).toContain(
+      "or cardinality(\n      public.get_rider_international_selection_conflicting_camp_names",
+    );
+    expect(campConflictMigration).toContain(
+      "v_current_day_number < v_camp.start_day_number",
+    );
+    expect(campConflictMigration).toContain(
+      "v_candidate_response_status = 'confirmed'",
+    );
+    expect(campConflictMigration).toContain(
+      "international-selection-camp-refund:",
+    );
+    expect(campConflictMigration).toContain(
+      "on conflict (team_season_id, source_reference) do nothing",
+    );
+    expect(campConflictMigration).toContain(
+      "set cash_balance = team_season.cash_balance + v_camp.refund_amount",
+    );
+    expect(selectionService).toContain("conflictingCampNames");
+    expect(selectionPage).toContain("selection.conflictingCampNames");
+    expect(selectionPage).toContain("activités programmées suivantes");
+    expect(selectionPage).toContain("qui n’a pas encore commencé sera");
   });
 
   it("restaure 164 coureurs et préserve le retrait médical antérieur", () => {
