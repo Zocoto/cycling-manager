@@ -1289,7 +1289,8 @@ async function persistStageResult({
 
   if (!resultsOnly) {
     const { error: conditionSettlementError } = await admin.rpc(
-      "settle_finished_race_conditions",
+      "settle_finished_stage_conditions",
+      { p_stage_id: stage.id },
     );
     assertQuery(
       conditionSettlementError,
