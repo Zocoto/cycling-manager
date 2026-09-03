@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
+import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
@@ -1185,12 +1186,13 @@ function ContractObjectiveItem({
         <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#8A9A94]">
           Objectif {objective.displayOrder}
         </p>
-        <p
+        <SponsorObjectiveTitle
+          targetDetails={objective.targetDetails}
           className="mt-0.5 text-sm font-black leading-5"
           style={{ color: textColor }}
         >
           {objective.name}
-        </p>
+        </SponsorObjectiveTitle>
 
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
@@ -1436,14 +1438,15 @@ function SponsorObjectiveItem({
       />
 
       <div className="min-w-0">
-        <p
+        <SponsorObjectiveTitle
+          targetDetails={objective.targetDetails}
           className="text-sm font-bold leading-5"
           style={{
             color: textColor,
           }}
         >
           {objective.name}
-        </p>
+        </SponsorObjectiveTitle>
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>

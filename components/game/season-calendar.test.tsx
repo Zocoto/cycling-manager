@@ -8,7 +8,11 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-import { SeasonCalendar } from "./season-calendar";
+import {
+  SeasonCalendar,
+  getCalendarEditionHref,
+  getVisibleStandardCalendarEditions,
+} from "./season-calendar";
 
 const calendarSource = readFileSync(
   new URL("./season-calendar.tsx", import.meta.url),
@@ -239,6 +243,12 @@ describe("SeasonCalendar", () => {
       "Course passée invisible"
     );
     expect(markup).toContain(
+      'data-calendar-history-toggle=""'
+    );
+    expect(markup).toContain(
+      "Voir l’historique (1)"
+    );
+    expect(markup).toContain(
       "Course à venir visible"
     );
     expect(markup).toContain(
@@ -249,6 +259,48 @@ describe("SeasonCalendar", () => {
     );
     expect(markup).not.toContain(
       "data-race-preview-trigger"
+    );
+  });
+
+  it("réintègre les épreuves passées à la demande et les ouvre sur leurs résultats", () => {
+    const pastEdition = createEdition({
+      id: "ancienne-classique",
+      name: "Ancienne classique",
+      categoryCode: "national",
+      dayNumber: 4,
+      daySlot: "early",
+      registrationClosesAt: "2026-07-28T08:00:00Z",
+      accepted: false,
+    });
+    const upcomingEdition = createEdition({
+      id: "prochaine-classique",
+      name: "Prochaine classique",
+      categoryCode: "national",
+      dayNumber: 8,
+      daySlot: "early",
+      registrationClosesAt: "2026-08-01T08:00:00Z",
+      accepted: false,
+    });
+
+    expect(
+      getVisibleStandardCalendarEditions({
+        editions: [pastEdition, upcomingEdition],
+        currentDayNumber: 6,
+        showPast: false,
+      }).map((edition) => edition.id),
+    ).toEqual(["prochaine-classique"]);
+    expect(
+      getVisibleStandardCalendarEditions({
+        editions: [pastEdition, upcomingEdition],
+        currentDayNumber: 6,
+        showPast: true,
+      }).map((edition) => edition.id),
+    ).toEqual(["ancienne-classique", "prochaine-classique"]);
+    expect(getCalendarEditionHref(pastEdition, 6)).toBe(
+      "/jeu/resultats/ancienne-classique",
+    );
+    expect(getCalendarEditionHref(upcomingEdition, 6)).toBe(
+      "/jeu/courses/prochaine-classique#inscription",
     );
   });
 });

@@ -56,50 +56,64 @@ export function SeasonCalendar({
     useState<CalendarScope>("team");
   const [view, setView] =
     useState<CalendarView>("planning");
+  const [showPast, setShowPast] = useState(false);
   const [selectedCategories, setSelectedCategories] =
     useState<RaceCategoryCode[]>([]);
   const scopeEditions = useMemo(
     () => {
-      const standardEditions = calendar.editions.filter(
-        (edition) =>
-          edition.competitionType === "standard" &&
-          !isRaceEditionPast({
-            edition,
-            currentDayNumber:
-              calendar.currentDayNumber,
-          })
-      );
+      const standardEditions = getVisibleStandardCalendarEditions({
+        editions: calendar.editions,
+        currentDayNumber: calendar.currentDayNumber,
+        showPast,
+      });
 
       return scope === "all"
         ? standardEditions
-        : standardEditions.filter((edition) =>
-            isRaceEditionAvailableToCurrentTeam({
+        : standardEditions.filter((edition) => {
+            const isPast = isRaceEditionPast({
               edition,
-              reputationPoints,
-              now: new Date(nowIso),
-            })
-          );
+              currentDayNumber: calendar.currentDayNumber,
+            });
+
+            return (
+              (showPast && isPast) ||
+              isRaceEditionAvailableToCurrentTeam({
+                edition,
+                reputationPoints,
+                now: new Date(nowIso),
+              })
+            );
+          });
     },
     [
       calendar.currentDayNumber,
       calendar.editions,
       nowIso,
       reputationPoints,
+      showPast,
       scope,
     ]
   );
-  const upcomingStandardEditionCount = useMemo(
+  const visibleStandardEditionCount = useMemo(
+    () =>
+      getVisibleStandardCalendarEditions({
+        editions: calendar.editions,
+        currentDayNumber: calendar.currentDayNumber,
+        showPast,
+      }).length,
+    [calendar.currentDayNumber, calendar.editions, showPast]
+  );
+  const pastStandardEditionCount = useMemo(
     () =>
       calendar.editions.filter(
         (edition) =>
           edition.competitionType === "standard" &&
-          !isRaceEditionPast({
+          isRaceEditionPast({
             edition,
-            currentDayNumber:
-              calendar.currentDayNumber,
-          })
+            currentDayNumber: calendar.currentDayNumber,
+          }),
       ).length,
-    [calendar.currentDayNumber, calendar.editions]
+    [calendar.currentDayNumber, calendar.editions],
   );
   const visibleEditions = useMemo(
     () =>
@@ -118,21 +132,21 @@ export function SeasonCalendar({
   );
   const visibleWeeks = useMemo(
     () =>
-      weeks.filter(
-        (week) =>
-          week.endDay >=
-          calendar.currentDayNumber
-      ),
-    [calendar.currentDayNumber, weeks]
+      showPast
+        ? weeks
+        : weeks.filter(
+            (week) => week.endDay >= calendar.currentDayNumber,
+          ),
+    [calendar.currentDayNumber, showPast, weeks]
   );
   const visibleDays = useMemo(
     () =>
-      calendar.days.filter(
-        (day) =>
-          day.dayNumber >=
-          calendar.currentDayNumber
-      ),
-    [calendar.currentDayNumber, calendar.days]
+      showPast
+        ? calendar.days
+        : calendar.days.filter(
+            (day) => day.dayNumber >= calendar.currentDayNumber,
+          ),
+    [calendar.currentDayNumber, calendar.days, showPast]
   );
   const dayByNumber = useMemo(
     () =>
@@ -218,9 +232,28 @@ export function SeasonCalendar({
             Toutes les courses
           </button>
           <span className="inline-flex min-h-10 items-center rounded-full border border-[#315B3E]/15 bg-white px-3 text-xs font-black text-[#315B3E]">
-            {scopeEditions.length} / {upcomingStandardEditionCount}
+            {scopeEditions.length} / {visibleStandardEditionCount}
           </span>
           </div>
+
+          {pastStandardEditionCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowPast((current) => !current)}
+              aria-pressed={showPast}
+              data-calendar-history-toggle=""
+              className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
+                showPast
+                  ? "border-[#A66A2C] bg-[#FFF0D8] text-[#704417]"
+                  : "border-[#315B3E]/25 bg-white text-[#315B3E] hover:border-[#A66A2C]/60 hover:text-[#704417]"
+              }`}
+            >
+              <HistoryIcon />
+              {showPast
+                ? "Masquer l’historique"
+                : `Voir l’historique (${pastStandardEditionCount})`}
+            </button>
+          ) : null}
 
           <span aria-hidden="true" className="mx-1 hidden h-7 w-px bg-[#315B3E]/15 sm:block" />
 
@@ -576,7 +609,9 @@ function RaceCalendarList({
               data-grand-tour-accent={grandTourAccent?.key}
               title={
                 registrationClosed
-                  ? `${edition.name} · Inscriptions closes`
+                  ? isPast
+                    ? `${edition.name} · Voir les résultats`
+                    : `${edition.name} · Inscriptions closes`
                   : edition.name
               }
               className={`relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#F5EEFF] outline outline-2 outline-offset-[-2px] outline-[#8B5CF6]" : ""}`}
@@ -638,7 +673,7 @@ function RaceCalendarList({
               <ListStatusBadge tone={status.tone}>{status.label}</ListStatusBadge>
 
               <Link
-                href={getRaceRegistrationHref(edition.slug)}
+                href={getCalendarEditionHref(edition, currentDayNumber)}
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
               >
                 {registration?.status === "accepted"
@@ -728,6 +763,36 @@ function PlanningIcon() {
 
 function ListIcon() {
   return <span aria-hidden="true" className="text-sm leading-none">☷</span>;
+}
+
+function HistoryIcon() {
+  return <span aria-hidden="true" className="text-sm leading-none">↶</span>;
+}
+
+export function getVisibleStandardCalendarEditions({
+  editions,
+  currentDayNumber,
+  showPast,
+}: {
+  editions: RaceCalendarEdition[];
+  currentDayNumber: number;
+  showPast: boolean;
+}) {
+  return editions.filter(
+    (edition) =>
+      edition.competitionType === "standard" &&
+      (showPast ||
+        !isRaceEditionPast({ edition, currentDayNumber })),
+  );
+}
+
+export function getCalendarEditionHref(
+  edition: RaceCalendarEdition,
+  currentDayNumber: number,
+) {
+  return isRaceEditionPast({ edition, currentDayNumber })
+    ? `/jeu/resultats/${encodeURIComponent(edition.slug)}`
+    : getRaceRegistrationHref(edition.slug);
 }
 
 function DesktopCalendarWeek({
@@ -886,18 +951,25 @@ function DesktopCalendarWeek({
                   currentDayNumber,
                   now: new Date(nowIso),
                 });
+              const editionIsPast = isRaceEditionPast({
+                edition: segment.edition,
+                currentDayNumber,
+              });
 
               return (
                 <Link
                   key={`${segment.edition.id}-${week.weekNumber}-${segment.startHalfDayIndex}`}
-                  href={getRaceRegistrationHref(segment.edition.slug)}
+                  href={getCalendarEditionHref(
+                    segment.edition,
+                    currentDayNumber,
+                  )}
                   data-registration-status={
                     registrationClosed
                       ? "closed"
                       : "not-closed"
                   }
                   data-grand-tour-accent={grandTourAccent?.key}
-                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${registrationClosed ? " · Inscriptions closes" : ""}`}
+                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
                   className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
                   } ${
@@ -1172,6 +1244,10 @@ function MobileCalendarDay({
               currentDayNumber,
               now: new Date(nowIso),
             });
+          const editionIsPast = isRaceEditionPast({
+            edition,
+            currentDayNumber,
+          });
 
           return (
             <div key={stage.id} className="space-y-2">
@@ -1186,7 +1262,7 @@ function MobileCalendarDay({
               </div>
             ) : null}
             <Link
-              href={getRaceRegistrationHref(edition.slug)}
+              href={getCalendarEditionHref(edition, currentDayNumber)}
               data-registration-status={
                 registrationClosed
                   ? "closed"
@@ -1195,7 +1271,9 @@ function MobileCalendarDay({
               data-grand-tour-accent={grandTourAccent?.key}
               title={
                 registrationClosed
-                  ? `${edition.name} · Inscriptions closes`
+                  ? editionIsPast
+                    ? `${edition.name} · Voir les résultats`
+                    : `${edition.name} · Inscriptions closes`
                   : edition.name
               }
               className={`flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}

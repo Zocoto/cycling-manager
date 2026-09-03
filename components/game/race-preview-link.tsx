@@ -18,6 +18,7 @@ import { createPortal } from "react-dom";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
 import {
+  getRaceQuickPreviewRequestHref,
   summarizeCobbles,
   type RaceQuickPreview,
   type RaceQuickPreviewStage,
@@ -86,16 +87,16 @@ export const RacePreviewLink = forwardRef<
   useEffect(() => {
     if (!autoOpen) return;
 
-    getPreview(previewTarget.slug)
+    getPreview(previewTarget)
       .then((loadedPreview) => {
         setPreview(loadedPreview);
         setLoadState("loaded");
       })
       .catch(() => {
-        previewRequests.delete(previewTarget.slug);
+        previewRequests.delete(getPreviewRequestKey(previewTarget));
         setLoadState("error");
       });
-  }, [autoOpen, previewTarget.slug]);
+  }, [autoOpen, previewTarget]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -198,13 +199,13 @@ export const RacePreviewLink = forwardRef<
     if (loadState === "loading" || loadState === "loaded") return;
 
     setLoadState("loading");
-    getPreview(previewTarget.slug)
+    getPreview(previewTarget)
       .then((loadedPreview) => {
         setPreview(loadedPreview);
         setLoadState("loaded");
       })
       .catch(() => {
-        previewRequests.delete(previewTarget.slug);
+        previewRequests.delete(getPreviewRequestKey(previewTarget));
         setLoadState("error");
       });
   }
@@ -516,18 +517,19 @@ function getContextLabel(
   return "Course d’un jour · profil complet";
 }
 
-function getPreview(slug: string) {
-  const cached = previewRequests.get(slug);
+function getPreview(target: RaceQuickPreviewTarget) {
+  const requestKey = getPreviewRequestKey(target);
+  const cached = previewRequests.get(requestKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.request;
   }
 
   if (cached) {
-    previewRequests.delete(slug);
+    previewRequests.delete(requestKey);
   }
 
   const request = fetch(
-    `/api/races/${encodeURIComponent(slug)}/preview`,
+    getRaceQuickPreviewRequestHref(target),
     {
       credentials: "same-origin",
       headers: { Accept: "application/json" },
@@ -541,11 +543,15 @@ function getPreview(slug: string) {
 
     return (await response.json()) as RaceQuickPreview;
   });
-  previewRequests.set(slug, {
+  previewRequests.set(requestKey, {
     expiresAt: Date.now() + 60_000,
     request,
   });
   return request;
+}
+
+function getPreviewRequestKey(target: RaceQuickPreviewTarget) {
+  return `${target.slug}:${target.raceEditionId ?? "active"}`;
 }
 
 function cancelTimer(ref: { current: number | null }) {

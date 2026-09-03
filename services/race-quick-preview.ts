@@ -62,40 +62,55 @@ type StageSegmentRow = {
 
 export async function getRaceQuickPreview(
   raceSlug: string,
+  raceEditionId?: string | null,
 ): Promise<RaceQuickPreview | null> {
   const normalizedSlug = raceSlug.trim().toLowerCase();
+  const normalizedEditionId = raceEditionId?.trim() || null;
 
   if (!normalizedSlug || normalizedSlug.length > 160) return null;
+  if (
+    normalizedEditionId &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      normalizedEditionId,
+    )
+  ) {
+    return null;
+  }
 
   const supabase = createSupabaseAdminClient();
-  const [seasonResult, raceResult] = await Promise.all([
-    supabase
+  const raceResult = await supabase
+    .from("races")
+    .select("id, slug, race_format")
+    .eq("slug", normalizedSlug)
+    .maybeSingle<RaceRow>();
+
+  assertQuerySucceeded(raceResult.error, "la course");
+
+  if (!raceResult.data) return null;
+
+  const race = raceResult.data;
+  let editionQuery = supabase
+    .from("race_editions")
+    .select("id, display_name")
+    .eq("race_id", race.id)
+    .neq("status", "cancelled");
+
+  if (normalizedEditionId) {
+    editionQuery = editionQuery.eq("id", normalizedEditionId);
+  } else {
+    const seasonResult = await supabase
       .from("seasons")
       .select("id")
       .eq("status", "active")
-      .maybeSingle<SeasonRow>(),
-    supabase
-      .from("races")
-      .select("id, slug, race_format")
-      .eq("slug", normalizedSlug)
-      .maybeSingle<RaceRow>(),
-  ]);
+      .maybeSingle<SeasonRow>();
 
-  assertQuerySucceeded(seasonResult.error, "la saison active");
-  assertQuerySucceeded(raceResult.error, "la course");
+    assertQuerySucceeded(seasonResult.error, "la saison active");
+    if (!seasonResult.data) return null;
 
-  if (!seasonResult.data || !raceResult.data) return null;
+    editionQuery = editionQuery.eq("season_id", seasonResult.data.id);
+  }
 
-  const season = seasonResult.data;
-  const race = raceResult.data;
-
-  const editionResult = await supabase
-    .from("race_editions")
-    .select("id, display_name")
-    .eq("season_id", season.id)
-    .eq("race_id", race.id)
-    .neq("status", "cancelled")
-    .maybeSingle<RaceEditionRow>();
+  const editionResult = await editionQuery.maybeSingle<RaceEditionRow>();
 
   assertQuerySucceeded(editionResult.error, "l’édition de la course");
 

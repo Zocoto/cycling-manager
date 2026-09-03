@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getRaceQuickPreview } from "@/services/race-quick-preview";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const supabase = await createSupabaseServerClient();
@@ -20,7 +20,8 @@ export async function GET(
 
   try {
     const { slug } = await params;
-    const preview = await getRaceQuickPreview(slug);
+    const editionId = new URL(request.url).searchParams.get("editionId");
+    const preview = await getRaceQuickPreview(slug, editionId);
 
     if (!preview) {
       return Response.json(

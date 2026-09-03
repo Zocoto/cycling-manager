@@ -1,6 +1,7 @@
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "@/components/game/sponsor-logo";
+import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import {
   SPONSOR_SPORTING_PHILOSOPHY_CONFIG,
   type SponsorSportingPhilosophy,
@@ -411,12 +412,16 @@ function FutureSponsorOfferCard({
                   {index + 1}
                 </span>
 
-                <span>
-                  {objective.name}
+                <div className="min-w-0">
+                  <SponsorObjectiveTitle
+                    targetDetails={objective.targetDetails}
+                  >
+                    {objective.name}
+                  </SponsorObjectiveTitle>
                   <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">
                     {objective.satisfactionPoints} points
                   </span>
-                </span>
+                </div>
               </li>
             ))}
           </ol>

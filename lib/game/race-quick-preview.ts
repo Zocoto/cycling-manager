@@ -30,12 +30,23 @@ export type RaceQuickPreview = {
 export type RaceQuickPreviewTarget = {
   slug: string;
   stageNumber: number | null;
+  raceEditionId?: string | null;
 };
 
 export type CobblesSummary = {
   sectorCount: number;
   distanceKm: number;
 };
+
+export function getRaceQuickPreviewRequestHref(
+  target: RaceQuickPreviewTarget,
+) {
+  const editionQuery = target.raceEditionId
+    ? `?editionId=${encodeURIComponent(target.raceEditionId)}`
+    : "";
+
+  return `/api/races/${encodeURIComponent(target.slug)}/preview${editionQuery}`;
+}
 
 export function getRaceQuickPreviewTargetFromHref(
   href: string,

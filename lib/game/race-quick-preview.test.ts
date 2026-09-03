@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getRaceQuickPreviewRequestHref,
   getRaceQuickPreviewTargetFromHref,
   summarizeCobbles,
 } from "./race-quick-preview";
@@ -51,6 +52,18 @@ describe("race quick preview links", () => {
         "/jeu/resultats/criterium-de-la-decouverte/1",
       ),
     ).toBeNull();
+  });
+
+  it("cible l’édition exacte d’un objectif sponsor", () => {
+    expect(
+      getRaceQuickPreviewRequestHref({
+        slug: "tour-de-bretagne",
+        stageNumber: null,
+        raceEditionId: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).toBe(
+      "/api/races/tour-de-bretagne/preview?editionId=11111111-1111-4111-8111-111111111111",
+    );
   });
 });
 
