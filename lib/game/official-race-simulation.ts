@@ -315,6 +315,26 @@ export function simulationStartsUnavailableRider(
   );
 }
 
+export function officialStageSimulationCoversRoster({
+  resultRiderIds,
+  unavailableRiderIds,
+  rosterRiderIds,
+}: {
+  resultRiderIds: readonly string[];
+  unavailableRiderIds: readonly string[];
+  rosterRiderIds: readonly string[];
+}) {
+  const accountedRiderIds = new Set([
+    ...resultRiderIds,
+    ...unavailableRiderIds,
+  ]);
+  const rosterIds = new Set(rosterRiderIds);
+  return (
+    accountedRiderIds.size === rosterIds.size &&
+    [...accountedRiderIds].every((riderId) => rosterIds.has(riderId))
+  );
+}
+
 export function normalizeOfficialStageResultRanks(
   simulation: StageSimulationResult,
 ): StageSimulationResult {

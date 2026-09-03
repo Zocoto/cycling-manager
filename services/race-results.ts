@@ -35,6 +35,7 @@ import {
 } from "@/lib/game/race-results";
 import {
   isUnavailableForFollowingStage,
+  officialStageSimulationCoversRoster,
   sanitizeOfficialStageSimulationForRaceFormat,
   type LockedOfficialRaceSimulationDirectory,
   type LockedOfficialStageSimulation,
@@ -200,6 +201,7 @@ export async function settleFinishedRaceResults(
     (replayCalendar.editions.length > 0
       ? await ensureLockedOfficialRaceSimulations(replayCalendar, now)
       : {});
+  const allowSimulationRelock = lockedDirectory === undefined;
   const dueEditions = calendar.editions.filter((edition) => {
     const hasPendingStage = edition.stages.some(
       (stage) => getStageLiveState(stage, now).status !== "finished",
@@ -240,6 +242,7 @@ export async function settleFinishedRaceResults(
         lockedSimulations: resultsOnly
           ? createNationalChampionshipResultsOnlySimulations({ edition, now })
           : (officialSimulations[edition.id] ?? []),
+        allowSimulationRelock,
       });
       return {
         ...settlement,
@@ -339,6 +342,7 @@ async function settleEditionRaceResults({
   now,
   resultsOnly,
   lockedSimulations,
+  allowSimulationRelock,
 }: {
   admin: AdminClient;
   calendar: SeasonRaceCalendar;
@@ -346,6 +350,7 @@ async function settleEditionRaceResults({
   now: Date;
   resultsOnly: boolean;
   lockedSimulations: LockedOfficialStageSimulation[];
+  allowSimulationRelock: boolean;
 }) {
   const minimumFieldSize = edition.competitionType === "standard" ? 2 : 1;
   if (edition.engagedRiders.length < minimumFieldSize) {
@@ -385,12 +390,19 @@ async function settleEditionRaceResults({
     (lockedSimulation) => lockedSimulation.stageId === orderedStages[0]?.id,
   );
   if (firstStageSimulation && !resultsOnly) {
-    const simulationRiderIds = new Set(
-      firstStageSimulation.simulation.results.map((result) => result.riderId),
-    );
-    const coversRoster =
-      simulationRiderIds.size === rosterByRiderId.size &&
-      [...simulationRiderIds].every((riderId) => rosterByRiderId.has(riderId));
+    // Un coureur peut appartenir à la startlist verrouillée tout en étant
+    // explicitement non-partant (blessure, indisponibilité déjà connue). Le
+    // moteur l'inscrit alors dans unavailableRiderIds et, légitimement, ne le
+    // place pas dans les résultats. Ne pas en tenir compte faisait considérer
+    // le scénario comme tronqué et relançait inutilement toute la simulation.
+    const coversRoster = officialStageSimulationCoversRoster({
+      resultRiderIds: firstStageSimulation.simulation.results.map(
+        (result) => result.riderId,
+      ),
+      unavailableRiderIds:
+        firstStageSimulation.input.unavailableRiderIds ?? [],
+      rosterRiderIds: [...rosterByRiderId.keys()],
+    });
     if (!coversRoster) {
       const alreadyComplete = await hasCompleteRaceClassification(
         admin,
@@ -398,6 +410,11 @@ async function settleEditionRaceResults({
         rosterByRiderId.size,
       );
       if (!alreadyComplete) {
+        if (!allowSimulationRelock) {
+          throw new Error(
+            `Le scénario officiel fourni pour ${edition.name} ne couvre pas la startlist et ne peut pas être reverrouillé.`,
+          );
+        }
         editionSimulations = await relockEditionOfficialSimulations({
           admin,
           calendar,
