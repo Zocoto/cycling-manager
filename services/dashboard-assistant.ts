@@ -38,12 +38,24 @@ type DashboardAssistantSummaryRow = {
   journal_items: unknown;
 };
 
+type SponsoringAlertRow = {
+  signature_available: boolean;
+  renewal_available: boolean;
+  jersey_change_available: boolean;
+  target_season_name: string | null;
+};
+
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardAssistantSnapshot | null> {
-  const result = await supabase
-    .rpc("get_current_dashboard_assistant_summary")
-    .maybeSingle<DashboardAssistantSummaryRow>();
+  const [result, sponsoringAlertResult] = await Promise.all([
+    supabase
+      .rpc("get_current_dashboard_assistant_summary")
+      .maybeSingle<DashboardAssistantSummaryRow>(),
+    supabase
+      .rpc("get_current_sponsoring_alerts")
+      .maybeSingle<SponsoringAlertRow>(),
+  ]);
 
   if (result.error) {
     throw new Error(
@@ -51,10 +63,17 @@ export async function getCurrentDashboardAssistantSummary(
     );
   }
 
+  if (sponsoringAlertResult.error) {
+    throw new Error(
+      `Impossible de charger les alertes sponsoring : ${sponsoringAlertResult.error.message}`,
+    );
+  }
+
   const row = result.data;
   if (!row) return null;
 
   const assistantPayload = normalizeAssistantPayload(row.journal_items);
+  const sponsoringAlert = sponsoringAlertResult.data;
 
   return {
     gameDate: row.game_date,
@@ -91,6 +110,11 @@ export async function getCurrentDashboardAssistantSummary(
     preparationReminderCount: row.preparation_reminder_count,
     riderRecruitmentMatchCount: assistantPayload.riderRecruitmentMatchCount,
     staffRecruitmentMatchCount: assistantPayload.staffRecruitmentMatchCount,
+    sponsorSignatureAvailable: sponsoringAlert?.signature_available === true,
+    sponsorRenewalAvailable: sponsoringAlert?.renewal_available === true,
+    sponsorJerseyChangeAvailable:
+      sponsoringAlert?.jersey_change_available === true,
+    sponsorTargetSeasonName: sponsoringAlert?.target_season_name ?? null,
     journalItems: assistantPayload.journalItems,
   };
 }

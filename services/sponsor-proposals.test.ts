@@ -6,6 +6,43 @@ import {
 } from "./sponsor-proposals";
 
 describe("generateSponsorProposals", () => {
+  it("fait du pays de l'équipe le premier critère, indépendamment du pays du DS", () => {
+    const argentinaProposals = generateSponsorProposals({
+      teamCountryCode: "AR",
+      directorCountryCode: "FR",
+      directorReputation: 100,
+      random: () => 0.5,
+    });
+    const yemenProposals = generateSponsorProposals({
+      teamCountryCode: "YE",
+      directorCountryCode: "LS",
+      directorReputation: 130,
+      random: () => 0.5,
+    });
+
+    expect(argentinaProposals[0]?.sponsor.id).toBe("fugazza-sprint");
+    expect(yemenProposals[0]?.sponsor.id).toBe(
+      "aden-maritime-exchange",
+    );
+  });
+
+  it("complète l'offre nationale avec les pays des leaders puis de l'effectif majoritaire", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "AR",
+      leaderCountryCodes: ["ES"],
+      rosterMajorityCountryCode: "IT",
+      directorCountryCode: "FR",
+      directorReputation: 100,
+      random: () => 0.5,
+    });
+
+    expect(proposals.map((proposal) => proposal.sponsor.countryCode)).toEqual([
+      "AR",
+      "ES",
+      "IT",
+    ]);
+  });
+
   it("priorise les sponsors nationaux disponibles", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "FR",

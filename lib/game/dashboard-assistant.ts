@@ -51,6 +51,10 @@ export type DashboardAssistantSnapshot = {
   preparationReminderCount: number;
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
+  sponsorSignatureAvailable: boolean;
+  sponsorRenewalAvailable: boolean;
+  sponsorJerseyChangeAvailable: boolean;
+  sponsorTargetSeasonName: string | null;
   journalItems: DashboardJournalItem[];
 };
 
@@ -89,6 +93,9 @@ const ALERT_PRIORITY = [
   "junior-manual-training",
   "pending-selections",
   "pending-direct-offers",
+  "sponsor-signature",
+  "sponsor-renewal",
+  "sponsor-jersey-change",
   "rider-recruitment-matches",
   "staff-recruitment-matches",
   "completed-scouting",
@@ -198,6 +205,40 @@ export function buildDashboardAssistantLines({
       title: pluralize(snapshot.pendingDirectOfferCount, "offre de transfert à traiter", "offres de transfert à traiter"),
       detail: "Une autre équipe attend votre réponse.",
       href: "/jeu/transferts?onglet=offres",
+    });
+  }
+
+  if (snapshot.sponsorSignatureAvailable) {
+    alerts.push({
+      id: "sponsor-signature",
+      tone: "alert",
+      metric: getSponsorSeasonLabel(snapshot.sponsorTargetSeasonName),
+      title: "Signature Sponsoring possible",
+      detail: "Trois offres peuvent être comparées et signées dès maintenant.",
+      href: "/jeu/sponsoring",
+    });
+  }
+
+  if (snapshot.sponsorRenewalAvailable) {
+    alerts.push({
+      id: "sponsor-renewal",
+      tone: "alert",
+      metric: getSponsorSeasonLabel(snapshot.sponsorTargetSeasonName),
+      title: "Renouvellement sponsor disponible",
+      detail: "Votre sponsor actuel et deux alternatives attendent votre décision.",
+      href: "/jeu/sponsoring",
+    });
+  }
+
+  if (snapshot.sponsorJerseyChangeAvailable) {
+    const seasonLabel = getSponsorSeasonLabel(snapshot.sponsorTargetSeasonName);
+    alerts.push({
+      id: "sponsor-jersey-change",
+      tone: "alert",
+      metric: seasonLabel,
+      title: `Changement de maillot ${seasonLabel} possible`,
+      detail: "Choisissez l’un des trois modèles avant le changement de saison.",
+      href: "/jeu/sponsoring",
     });
   }
 
@@ -589,6 +630,11 @@ function getAlertPriority(id: string): number {
     id as (typeof ALERT_PRIORITY)[number],
   );
   return priority === -1 ? ALERT_PRIORITY.length : priority;
+}
+
+function getSponsorSeasonLabel(seasonName: string | null): string {
+  const gameYear = seasonName?.match(/\d+/)?.[0];
+  return gameYear ? `S${gameYear}` : "S+1";
 }
 
 function pluralize(count: number, singular: string, plural: string): string {

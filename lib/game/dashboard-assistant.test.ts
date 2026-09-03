@@ -45,6 +45,10 @@ const snapshot: DashboardAssistantSnapshot = {
   preparationReminderCount: 1,
   riderRecruitmentMatchCount: 2,
   staffRecruitmentMatchCount: 1,
+  sponsorSignatureAvailable: false,
+  sponsorRenewalAvailable: false,
+  sponsorJerseyChangeAvailable: false,
+  sponsorTargetSeasonName: null,
   journalItems: [],
 };
 
@@ -190,6 +194,37 @@ describe("dashboard DS assistant", () => {
     expect(groups.alerts[0]?.detail).toContain(
       "juniors aux moyennes les plus faibles",
     );
+  });
+
+  it("adds the three actionable sponsoring reminders for the next season", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        sponsorSignatureAvailable: true,
+        sponsorRenewalAvailable: true,
+        sponsorJerseyChangeAvailable: true,
+        sponsorTargetSeasonName: "Saison 3",
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(
+      groups.alerts.filter((line) => line.id.startsWith("sponsor-")),
+    ).toEqual([
+      expect.objectContaining({
+        title: "Signature Sponsoring possible",
+        href: "/jeu/sponsoring",
+      }),
+      expect.objectContaining({
+        title: "Renouvellement sponsor disponible",
+        href: "/jeu/sponsoring",
+      }),
+      expect.objectContaining({
+        title: "Changement de maillot S3 possible",
+        href: "/jeu/sponsoring",
+      }),
+    ]);
   });
 
   it("adapts the manual junior reminder to the evening slot", () => {

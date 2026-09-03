@@ -5,7 +5,10 @@ import { useState } from "react";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import type { Sponsor } from "@/types/sponsor";
 
-import { validateSponsorJerseyAction } from "./actions";
+import {
+  selectNextSeasonSponsorJerseyAction,
+  validateSponsorJerseyAction,
+} from "./actions";
 
 type SponsorJersey = Sponsor["jerseys"][number];
 
@@ -97,6 +100,7 @@ type SponsorJerseySelectorProps = {
   sponsor: Sponsor;
   activationMode?: "immediate" | "next-season";
   targetSeasonName?: string;
+  initialJerseyId?: string | null;
 };
 
 export function SponsorJerseySelector({
@@ -104,9 +108,10 @@ export function SponsorJerseySelector({
   sponsor,
   activationMode = "immediate",
   targetSeasonName,
+  initialJerseyId = null,
 }: SponsorJerseySelectorProps) {
   const [selectedJerseyId, setSelectedJerseyId] =
-    useState<string>("");
+    useState<string>(initialJerseyId ?? "");
 
   const selectedJersey =
     sponsor.jerseys.find(
@@ -135,7 +140,7 @@ export function SponsorJerseySelector({
             "Le maillot sera enregistré pour la saison suivante.",
             "Le contrat restera en attente jusqu’au jour 1.",
             "Aucun budget ne sera versé et l’identité actuelle ne changera pas immédiatement.",
-            "Le maillot ne pourra plus être modifié pendant ce contrat.",
+            "Vous pourrez encore modifier ce choix jusqu’au passage à la saison suivante.",
           ]
         : [
             `Valider le maillot « ${selectedJersey.name} » ?`,
@@ -158,7 +163,11 @@ export function SponsorJerseySelector({
 
   return (
     <form
-      action={validateSponsorJerseyAction}
+      action={
+        activationMode === "next-season"
+          ? selectNextSeasonSponsorJerseyAction
+          : validateSponsorJerseyAction
+      }
       onSubmit={confirmJerseySelection}
       className="mt-8"
     >
@@ -282,7 +291,7 @@ export function SponsorJerseySelector({
         >
           {selectedJersey
             ? activationMode === "next-season"
-              ? `Préparer le maillot ${selectedJersey.name}`
+              ? `Enregistrer le maillot ${selectedJersey.name}`
               : `Valider le maillot ${selectedJersey.name}`
             : "Sélectionnez un maillot"}
         </button>

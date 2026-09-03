@@ -209,6 +209,52 @@ export async function validateSponsorJerseyAction(
   redirect("/jeu/sponsoring");
 }
 
+export async function selectNextSeasonSponsorJerseyAction(
+  formData: FormData
+) {
+  const contractId = readRequiredValue(formData, "contractId");
+  const jerseyId = readRequiredValue(formData, "jerseyId");
+  const jerseyStyleValue = readRequiredValue(formData, "jerseyStyle");
+
+  if (!isUuid(contractId)) {
+    redirectWithError("Le contrat sélectionné est invalide.");
+  }
+
+  if (!jerseyId) {
+    redirectWithError("Vous devez sélectionner un maillot.");
+  }
+
+  if (!isSponsorJerseyStyle(jerseyStyleValue)) {
+    redirectWithError("Le style de maillot sélectionné est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc(
+    "select_next_season_sponsor_jersey",
+    {
+      p_contract_id: contractId,
+      p_jersey_id: jerseyId,
+      p_jersey_style: jerseyStyleValue,
+    }
+  );
+
+  if (error) {
+    redirectWithError(error.message);
+  }
+
+  revalidateSponsoringPaths();
+  redirect("/jeu/sponsoring?succes=maillot-saison");
+}
+
 export async function terminateSponsorContractAction(
   formData: FormData
 ) {

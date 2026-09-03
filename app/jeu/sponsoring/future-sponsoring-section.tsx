@@ -144,20 +144,48 @@ function ContinuingContractNotice({
     { kind: "continuing" }
   >;
 }) {
-  return (
-    <aside className="mt-7 rounded-2xl border border-[#278B70]/25 bg-[#D7EEE8]/85 px-6 py-5 text-[#0B4A3B] shadow-[0_14px_34px_rgba(19,60,46,0.06)]">
-      <p className="font-black">
-        Votre contrat actuel couvre déjà {state.targetSeasonName}.
-      </p>
+  const contract = state.contract;
+  const selectedNextJerseyId =
+    contract.pendingJerseySeasonId !== null
+      ? contract.pendingJerseyId
+      : contract.selectedJerseyId;
 
-      <p className="mt-2 leading-7 text-[#48665F]">
-        Aucun renouvellement n’est nécessaire cette saison. Le partenariat
-        en cours reste valable jusqu’à la fin de la saison{" "}
-        {state.contractEndGameYear}. Le prochain versement annuel et la
-        continuité de l’identité commerciale seront traités lors du passage
-        à la nouvelle saison.
-      </p>
-    </aside>
+  return (
+    <div>
+      <aside className="mt-7 rounded-2xl border border-[#278B70]/25 bg-[#D7EEE8]/85 px-6 py-5 text-[#0B4A3B] shadow-[0_14px_34px_rgba(19,60,46,0.06)]">
+        <p className="font-black">
+          Votre contrat actuel couvre déjà {state.targetSeasonName}.
+        </p>
+
+        <p className="mt-2 leading-7 text-[#48665F]">
+          Aucun renouvellement n’est nécessaire. Le partenariat reste valable
+          jusqu’à la fin de la saison {state.contractEndGameYear}. Vous pouvez
+          néanmoins choisir librement l’un des trois maillots du sponsor pour
+          {state.targetSeasonName}.
+        </p>
+
+        {!state.jerseySelectionOpen ? (
+          <p className="mt-3 text-sm font-black">
+            Le choix du prochain maillot ouvrira au jour 21.
+          </p>
+        ) : contract.pendingJerseySeasonId ? (
+          <p className="mt-3 text-sm font-black">
+            Un maillot est déjà programmé pour {state.targetSeasonName}. Vous
+            pouvez encore modifier ce choix avant le changement de saison.
+          </p>
+        ) : null}
+      </aside>
+
+      {state.jerseySelectionOpen ? (
+        <SponsorJerseySelector
+          contractId={contract.id}
+          sponsor={contract.sponsor}
+          activationMode="next-season"
+          targetSeasonName={state.targetSeasonName}
+          initialJerseyId={selectedNextJerseyId}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -196,6 +224,7 @@ function FutureOffersSection({
             key={offer.id}
             offer={offer}
             targetSeasonName={state.season.name}
+            renewalBudgetIsFinal={state.renewalBudgetIsFinal}
           />
         ))}
       </div>
@@ -218,9 +247,11 @@ function FutureOffersSection({
 function FutureSponsorOfferCard({
   offer,
   targetSeasonName,
+  renewalBudgetIsFinal,
 }: {
   offer: PersistedSponsorOffer;
   targetSeasonName: string;
+  renewalBudgetIsFinal: boolean;
 }) {
   const sponsor = offer.sponsor;
 
@@ -306,7 +337,13 @@ function FutureSponsorOfferCard({
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <FutureMetric
-            label="Budget annuel"
+            label={
+              offer.isRenewal
+                ? renewalBudgetIsFinal
+                  ? "Budget annuel définitif"
+                  : "Budget annuel à date"
+                : "Budget annuel"
+            }
             value={formatMoney(offer.proposedBudget)}
             sponsor={sponsor}
           />
@@ -319,6 +356,13 @@ function FutureSponsorOfferCard({
             sponsor={sponsor}
           />
         </div>
+
+        {offer.isRenewal && !renewalBudgetIsFinal ? (
+          <p className="mt-3 text-xs font-bold leading-5 text-[#60756E]">
+            Estimation selon la satisfaction actuelle. Le budget réel de la
+            saison suivante sera recalculé définitivement au jour 28.
+          </p>
+        ) : null}
 
         <section
           className="mt-5 rounded-xl border bg-white/80 p-4"
@@ -456,7 +500,13 @@ function FutureJerseySelection({
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <FutureMetric
-                label="Budget annuel futur"
+                label={
+                  state.isRenewal
+                    ? state.renewalBudgetIsFinal
+                      ? "Budget annuel définitif"
+                      : "Budget annuel à date"
+                    : "Budget annuel futur"
+                }
                 value={formatMoney(
                   contract.budgetPerSeason,
                   contract.currencyCode
@@ -472,6 +522,13 @@ function FutureJerseySelection({
                 sponsor={sponsor}
               />
             </div>
+
+            {state.isRenewal && !state.renewalBudgetIsFinal ? (
+              <p className="mt-3 text-xs font-bold leading-5 text-[#60756E]">
+                Estimation selon la satisfaction actuelle. Le budget réel de
+                la saison suivante sera recalculé définitivement au jour 28.
+              </p>
+            ) : null}
           </div>
         </div>
       </article>
@@ -498,20 +555,21 @@ function FuturePlannedContract({
   );
 
   return (
-    <article
-      className="mt-7 overflow-hidden rounded-2xl border bg-white shadow-[0_20px_50px_rgba(19,60,46,0.1)]"
-      style={{
-        borderColor: `${sponsor.colors.primary}45`,
-        background: `linear-gradient(145deg, ${sponsor.colors.background}, #FFFFFF 38%, #FFFFFF 76%, ${sponsor.colors.secondary}60)`,
-      }}
-    >
-      <div
-        aria-hidden="true"
-        className="h-2 w-full"
+    <div className="mt-7">
+      <article
+        className="overflow-hidden rounded-2xl border bg-white shadow-[0_20px_50px_rgba(19,60,46,0.1)]"
         style={{
-          background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
+          borderColor: `${sponsor.colors.primary}45`,
+          background: `linear-gradient(145deg, ${sponsor.colors.background}, #FFFFFF 38%, #FFFFFF 76%, ${sponsor.colors.secondary}60)`,
         }}
-      />
+      >
+        <div
+          aria-hidden="true"
+          className="h-2 w-full"
+          style={{
+            background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
+          }}
+        />
 
       <div className="grid items-center gap-7 p-6 sm:p-8 lg:grid-cols-[250px_minmax(0,1fr)_190px]">
         <div className="flex min-h-44 items-center justify-center rounded-2xl border border-black/10 bg-white/90 p-5">
@@ -557,7 +615,13 @@ function FuturePlannedContract({
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <FutureMetric
-              label="Budget à J1"
+              label={
+                state.isRenewal
+                  ? state.renewalBudgetIsFinal
+                    ? "Budget annuel définitif"
+                    : "Budget annuel à date"
+                  : "Budget à J1"
+              }
               value={formatMoney(
                 contract.budgetPerSeason,
                 contract.currencyCode
@@ -581,6 +645,13 @@ function FuturePlannedContract({
               sponsor={sponsor}
             />
           </div>
+
+          {state.isRenewal && !state.renewalBudgetIsFinal ? (
+            <p className="mt-3 text-xs font-bold leading-5 text-[#60756E]">
+              Estimation selon la satisfaction actuelle. Le budget réel de
+              la saison suivante sera recalculé définitivement au jour 28.
+            </p>
+          ) : null}
         </div>
 
         {selectedJersey ? (
@@ -592,8 +663,17 @@ function FuturePlannedContract({
             />
           </div>
         ) : null}
-      </div>
-    </article>
+        </div>
+      </article>
+
+      <SponsorJerseySelector
+        contractId={contract.id}
+        sponsor={sponsor}
+        activationMode="next-season"
+        targetSeasonName={state.season.name}
+        initialJerseyId={contract.selectedJerseyId}
+      />
+    </div>
   );
 }
 
@@ -708,7 +788,7 @@ function getFutureSectionIntroduction(
   }
 
   if (state.kind === "continuing") {
-    return "La durée du contrat en cours couvre déjà la prochaine saison. Aucune nouvelle décision commerciale n’est requise.";
+    return "La durée du contrat en cours couvre déjà la prochaine saison. Vous pouvez néanmoins choisir un nouveau maillot parmi les trois modèles du sponsor.";
   }
 
   if (state.kind === "offers") {
@@ -719,7 +799,7 @@ function getFutureSectionIntroduction(
     return "Le sponsor est signé pour la prochaine saison. Il reste à sélectionner le maillot qui sera activé au jour 1.";
   }
 
-  return "La signature et le maillot sont enregistrés. L’activation, le versement du budget et le changement d’identité auront lieu au jour 1.";
+  return "La signature et le maillot sont enregistrés. Le modèle reste modifiable avant son activation, le versement du budget et le changement d’identité au jour 1.";
 }
 
 function getTargetSeasonName(
