@@ -5,6 +5,7 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { FederationFinancePreview } from "@/components/game/federation-finance-preview";
+import { FederationElectionPanel } from "@/components/game/federation-election-panel";
 import { FederationInfrastructureCatalog } from "@/components/game/federation-infrastructure-catalog";
 import { FederationLounge } from "@/components/game/federation-lounge";
 import { FederationSelectionWorkbench } from "@/components/game/federation-selection-workbench";
@@ -23,6 +24,7 @@ import type {
   NationalFederationSnapshot,
 } from "@/services/national-federations";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
+import type { FederationGovernanceOverview } from "@/services/federation-governance";
 import type {
   FederationInternationalPerformance,
   FederationInternationalResults,
@@ -46,6 +48,7 @@ type NationalFederationViewProps = {
   financeBaseline: FederationFinanceBaseline | null;
   selectionRiders: FederationSelectionRider[];
   internationalResults: FederationInternationalResults | null;
+  governanceOverview: FederationGovernanceOverview | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -104,6 +107,7 @@ export function NationalFederationView({
   financeBaseline,
   selectionRiders,
   internationalResults,
+  governanceOverview,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -216,6 +220,7 @@ export function NationalFederationView({
             country={country}
             snapshot={snapshot}
             publishedJersey={publishedJersey}
+            governanceOverview={governanceOverview}
           />
         ) : snapshot.viewer.isAffiliated &&
           snapshot.viewer.teamId &&
@@ -635,37 +640,36 @@ function GovernancePanel({
   country,
   snapshot,
   publishedJersey,
+  governanceOverview,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
   publishedJersey: PublishedNationalJersey | null;
+  governanceOverview: FederationGovernanceOverview | null;
 }) {
   return (
     <div className="space-y-7">
+      {governanceOverview ? (
+        <FederationElectionPanel
+          countryCode={country.code}
+          overview={governanceOverview}
+        />
+      ) : null}
+
       <div className="grid gap-7 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
           <SectionHeading
-            eyebrow="Présidence"
-            title="Mode automatique"
-            description="Aucun candidat n’est nécessaire pour que la fédération fonctionne et engage ses sélections."
+            eyebrow="Continuité"
+            title="Filet de sécurité automatique"
+            description="La fédération continue de fonctionner même si aucun candidat ne se présente ou si aucune voix n’est exprimée."
           />
-          <div className="mt-6 rounded-2xl bg-[#123F36] p-6 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
-              Direction actuelle
-            </p>
-            <p className="mt-2 text-2xl font-black">Administration fédérale</p>
-            <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Les sélections, remplacements et échéances seront traités même
-              sans équipe affiliée ou sans candidat à la présidence.
-            </p>
-          </div>
           <FeatureList
             entries={[
-              "Élection tous les deux saisons à compter de la Saison 3",
-              "Une voix par équipe affiliée sur la liste électorale figée",
-              "Retour automatique au mode assisté après une échéance manquée",
+              "Mandat de deux saisons à compter de la Saison 3",
+              "Une voix par équipe affiliée, liste électorale figée à J21",
+              "Candidatures J21–J24 puis vote secret J25–J28",
+              "Prise de fonction à J1 ou administration automatique",
               "Conservation du dernier maillot national valide",
-              "Aucune candidature hôte ou création coûteuse en mode automatique",
             ]}
           />
         </section>
@@ -677,23 +681,22 @@ function GovernancePanel({
             description="Chaque décision financière ou sportive importante y sera horodatée."
           />
           <ol className="mt-6 space-y-4">
-            <JournalEntry
-              day={`J${snapshot.season.currentDayNumber}`}
-              title="Préfiguration de la fédération ouverte"
-              detail="Consultation autorisée sans aucune modification de la Saison 2."
-            />
-            <JournalEntry
-              day="S3"
-              title="Gestion automatique programmée"
-              detail="La fédération sera opérationnelle même sans président ni équipe affiliée."
-              future
-            />
-            <JournalEntry
-              day="S3"
-              title="Première liste électorale"
-              detail="Les droits seront figés à l’ouverture du scrutin pour empêcher toute double affiliation."
-              future
-            />
+            {governanceOverview?.journal.length ? (
+              governanceOverview.journal.map((entry) => (
+                <JournalEntry
+                  key={entry.id}
+                  day={entry.dayNumber ? `J${entry.dayNumber}` : "—"}
+                  title={entry.title}
+                  detail={entry.detail}
+                />
+              ))
+            ) : (
+              <JournalEntry
+                day={`J${snapshot.season.currentDayNumber}`}
+                title="Préfiguration de la fédération ouverte"
+                detail="Le journal enregistrera automatiquement les candidatures, votes, décisions et opérations fédérales."
+              />
+            )}
           </ol>
         </section>
       </div>

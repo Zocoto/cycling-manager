@@ -94,6 +94,7 @@ describe("NationalFederationView", () => {
           continental: null,
           nationsCup: null,
         }}
+        governanceOverview={null}
       />,
     );
 
@@ -126,6 +127,7 @@ describe("NationalFederationView", () => {
         financeBaseline={null}
         selectionRiders={[]}
         internationalResults={null}
+        governanceOverview={null}
       />,
     );
 
@@ -153,6 +155,21 @@ describe("NationalFederationView", () => {
         financeBaseline={null}
         selectionRiders={[]}
         internationalResults={null}
+        governanceOverview={{
+          phase: "scheduled",
+          termStartGameYear: 3,
+          termEndGameYear: 4,
+          eligibleTeamCount: 0,
+          voteCount: 0,
+          viewerIsEligible: false,
+          viewerCandidateId: null,
+          viewerVotedCandidateId: null,
+          canApply: false,
+          canVote: false,
+          presidentName: null,
+          candidates: [],
+          journal: [],
+        }}
       />,
     );
 
@@ -162,6 +179,9 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Forme");
     expect(markup).toContain("Nouveau maillot blanc");
     expect(markup).toContain("Valider et publier");
+    expect(markup).toContain("Prochaine élection programmée");
+    expect(markup).toContain("J21–J24");
+    expect(markup).toContain("Filet de sécurité automatique");
     expect(markup).toContain("Votre brouillon n’affecte pas le maillot publié");
     expect(markup).toContain("<form");
   });
@@ -186,6 +206,7 @@ describe("NationalFederationView", () => {
         financeBaseline={financeBaseline}
         selectionRiders={[]}
         internationalResults={null}
+        governanceOverview={null}
       />,
     );
 

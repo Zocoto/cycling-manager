@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getFederationChatOverview } from "@/services/federation-chat";
 import { getFederationFinanceBaseline } from "@/services/federation-finances";
+import { getFederationGovernanceOverview } from "@/services/federation-governance";
 import { getFederationInternationalResults } from "@/services/federation-international-results";
 import { getFederationSelectionPool } from "@/services/federation-selection-pool";
 import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
@@ -63,6 +64,7 @@ export default async function FederationPage({
     financeBaseline,
     selectionRiders,
     internationalResults,
+    governanceOverview,
   ] = await Promise.all([
     selectedTab === "governance"
       ? getNationalFederationJersey(supabase, country.entity_id)
@@ -95,6 +97,13 @@ export default async function FederationPage({
       : Promise.resolve([]),
     selectedTab === "overview"
       ? getFederationInternationalResults(country.entity_id)
+      : Promise.resolve(null),
+    selectedTab === "governance"
+      ? getFederationGovernanceOverview({
+          countryId: country.entity_id,
+          season: snapshot.season,
+          viewerTeamId: snapshot.viewer.teamId,
+        })
       : Promise.resolve(null),
   ]);
 
@@ -134,6 +143,7 @@ export default async function FederationPage({
           financeBaseline={financeBaseline}
           selectionRiders={selectionRiders}
           internationalResults={internationalResults}
+          governanceOverview={governanceOverview}
         />
       </section>
     </main>

@@ -9,6 +9,7 @@ const MAINTENANCE_TASKS = [
   "sync_junior_pro_national_fallback",
   "settle_due_development_races",
   "settle_due_season_rollovers",
+  "settle_due_federation_elections",
   "purge_expired_director_messages",
 ] as const;
 
