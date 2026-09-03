@@ -3,6 +3,12 @@ export type FeaturedRiderSponsorAffinity = {
   uciPoints: number;
 };
 
+export type TeamSponsorCountryAffinity = {
+  teamCountryCode: string;
+  leaderCountryCodes: readonly string[];
+  rosterMajorityCountryCode: string | null;
+};
+
 export function normalizeSponsorCountryCode(countryCode: string): string {
   return countryCode.trim().toUpperCase();
 }

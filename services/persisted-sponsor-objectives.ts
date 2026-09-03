@@ -301,26 +301,49 @@ export async function ensureAndLoadSponsorObjectives({
   }
 
   if (rowsToInsert.length > 0) {
-    const { error: upsertError } = await supabase
+    const { data: insertedRows, error: upsertError } = await supabase
       .from("sponsor_objectives")
       .upsert(rowsToInsert, {
         onConflict: "sponsor_offer_id,display_order",
         ignoreDuplicates: true,
-      });
+      })
+      .select(
+        `
+          id,
+          sponsor_offer_id,
+          name,
+          description,
+          objective_type,
+          priority,
+          evaluation_timing,
+          evaluation_day_number,
+          status,
+          display_order,
+          renewal_bonus_percent,
+          is_provisional,
+          satisfaction_points,
+          target_details
+        `
+      )
+      .returns<SponsorObjectiveRow[]>();
 
     if (upsertError) {
       throw new Error(
         `Impossible d’enregistrer les objectifs des offres : ${upsertError.message}`
       );
     }
+
+    existingObjectiveRows.push(...(insertedRows ?? []));
   }
 
-  let completeObjectiveRows =
+  let completeObjectiveRows = mergeObjectiveRows(
+    existingObjectiveRows,
     await loadSponsorObjectiveRows(
       supabase,
       offerIds,
       seasonId
-    );
+    )
+  );
 
   for (
     let attempt = 0;
@@ -340,10 +363,13 @@ export async function ensureAndLoadSponsorObjectives({
     await new Promise((resolve) =>
       setTimeout(resolve, OBJECTIVE_COMPLETION_RETRY_DELAY_MS)
     );
-    const refreshedRows = await loadSponsorObjectiveRows(
-      supabase,
-      offerIds,
-      seasonId
+    const refreshedRows = mergeObjectiveRows(
+      completeObjectiveRows,
+      await loadSponsorObjectiveRows(
+        supabase,
+        offerIds,
+        seasonId
+      )
     );
     completeObjectiveRows.splice(
       0,
@@ -357,10 +383,13 @@ export async function ensureAndLoadSponsorObjectives({
     completeObjectiveRows
   );
 
-  completeObjectiveRows = await loadSponsorObjectiveRows(
-    supabase,
-    offerIds,
-    seasonId
+  completeObjectiveRows = mergeObjectiveRows(
+    completeObjectiveRows,
+    await loadSponsorObjectiveRows(
+      supabase,
+      offerIds,
+      seasonId
+    )
   );
   await syncRaceResultObjectiveLinks(
     supabase,
@@ -527,6 +556,23 @@ function groupRowsByOfferId(
   }
 
   return rowsByOfferId;
+}
+
+function mergeObjectiveRows(
+  ...rowGroups: readonly SponsorObjectiveRow[][]
+): SponsorObjectiveRow[] {
+  const rowsByOfferAndOrder = new Map<string, SponsorObjectiveRow>();
+
+  for (const rows of rowGroups) {
+    for (const row of rows) {
+      rowsByOfferAndOrder.set(
+        `${row.sponsor_offer_id}:${row.display_order}`,
+        row
+      );
+    }
+  }
+
+  return [...rowsByOfferAndOrder.values()];
 }
 
 

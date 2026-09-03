@@ -14,7 +14,10 @@ import {
 import type { Sponsor, SponsorProposal } from "@/types/sponsor";
 
 export interface GenerateSponsorProposalsOptions {
-  directorCountryCode: string;
+  directorCountryCode?: string;
+  teamCountryCode?: string;
+  leaderCountryCodes?: readonly string[];
+  rosterMajorityCountryCode?: string | null;
   directorReputation: number;
   unavailableSponsorIds?: readonly string[];
   proposalCount?: number;
@@ -27,7 +30,10 @@ const BUDGET_STEP = 10_000;
 
 
 export function generateSponsorProposals({
-  directorCountryCode,
+  directorCountryCode = "",
+  teamCountryCode,
+  leaderCountryCodes = [],
+  rosterMajorityCountryCode = null,
   directorReputation,
   unavailableSponsorIds = [],
   proposalCount = DEFAULT_PROPOSAL_COUNT,
@@ -39,9 +45,33 @@ export function generateSponsorProposals({
   }
 
   const directorCountry = normalizeSponsorCountryCode(directorCountryCode);
+  const primaryCountry = normalizeSponsorCountryCode(
+    teamCountryCode ?? directorCountry
+  );
   const featuredRider = normalizeFeaturedRiderSponsorAffinity(
     featuredRiderAffinity
   );
+
+  const normalizedLeaderCountries = [
+    ...new Set(
+      [
+        ...leaderCountryCodes,
+        ...(featuredRider ? [featuredRider.countryCode] : []),
+      ]
+        .map(normalizeSponsorCountryCode)
+        .filter((countryCode) => countryCode && countryCode !== primaryCountry)
+    ),
+  ];
+  const majorityCountry = rosterMajorityCountryCode
+    ? normalizeSponsorCountryCode(rosterMajorityCountryCode)
+    : null;
+  const affinityCountries = [
+    primaryCountry,
+    ...normalizedLeaderCountries,
+    ...(majorityCountry ? [majorityCountry] : []),
+    ...(directorCountry ? [directorCountry] : []),
+  ].filter(Boolean);
+  const uniqueAffinityCountries = [...new Set(affinityCountries)];
 
   const unavailableSponsorIdSet = new Set(
     unavailableSponsorIds
@@ -53,56 +83,41 @@ export function generateSponsorProposals({
       !unavailableSponsorIdSet.has(sponsor.id)
   );
 
-  const directorNeighboringCountries = new Set(
-    getNeighboringCountryCodes(directorCountry)
-  );
-  const featuredRiderCountry = featuredRider?.countryCode ?? null;
-  const featuredRiderNeighboringCountries = new Set(
-    featuredRiderCountry
-      ? getNeighboringCountryCodes(featuredRiderCountry)
-      : []
+  const neighboringCountries = new Set(
+    uniqueAffinityCountries.flatMap((countryCode) =>
+      getNeighboringCountryCodes(countryCode)
+    )
   );
 
   const nationalSponsors = shuffleSponsors(
     eligibleSponsors.filter(
-      (sponsor) => sponsor.countryCode === directorCountry
+      (sponsor) => sponsor.countryCode === primaryCountry
     ),
     random
   );
-  const featuredRiderSponsors = shuffleSponsors(
-    featuredRiderCountry && featuredRiderCountry !== directorCountry
-      ? eligibleSponsors.filter(
-          (sponsor) => sponsor.countryCode === featuredRiderCountry
-        )
-      : [],
-    random
-  );
-  const directorNeighboringSponsors = shuffleSponsors(
+  const affinitySponsorPools = uniqueAffinityCountries
+    .filter((countryCode) => countryCode !== primaryCountry)
+    .map((countryCode) =>
+      shuffleSponsors(
+        eligibleSponsors.filter(
+          (sponsor) => sponsor.countryCode === countryCode
+        ),
+        random
+      )
+    );
+  const neighboringSponsors = shuffleSponsors(
     eligibleSponsors.filter(
       (sponsor) =>
-        directorNeighboringCountries.has(sponsor.countryCode) &&
-        sponsor.countryCode !== featuredRiderCountry
+        neighboringCountries.has(sponsor.countryCode) &&
+        !uniqueAffinityCountries.includes(sponsor.countryCode)
     ),
-    random
-  );
-  const featuredRiderNeighboringSponsors = shuffleSponsors(
-    featuredRiderCountry
-      ? eligibleSponsors.filter(
-          (sponsor) =>
-            featuredRiderNeighboringCountries.has(sponsor.countryCode) &&
-            sponsor.countryCode !== directorCountry &&
-            !directorNeighboringCountries.has(sponsor.countryCode)
-        )
-      : [],
     random
   );
   const fallbackSponsors = shuffleSponsors(
     eligibleSponsors.filter(
       (sponsor) =>
-        sponsor.countryCode !== directorCountry &&
-        sponsor.countryCode !== featuredRiderCountry &&
-        !directorNeighboringCountries.has(sponsor.countryCode) &&
-        !featuredRiderNeighboringCountries.has(sponsor.countryCode)
+        !uniqueAffinityCountries.includes(sponsor.countryCode) &&
+        !neighboringCountries.has(sponsor.countryCode)
     ),
     random
   );
@@ -122,15 +137,18 @@ export function generateSponsorProposals({
     }
   };
 
-  if (featuredRiderSponsors.length > 0) {
+  if (affinitySponsorPools.some((pool) => pool.length > 0)) {
     selectFromPool(nationalSponsors, 1);
-    selectFromPool(featuredRiderSponsors, 1);
   }
 
+  for (const pool of affinitySponsorPools) {
+    selectFromPool(pool, 1);
+  }
   selectFromPool(nationalSponsors);
-  selectFromPool(featuredRiderSponsors);
-  selectFromPool(directorNeighboringSponsors);
-  selectFromPool(featuredRiderNeighboringSponsors);
+  for (const pool of affinitySponsorPools) {
+    selectFromPool(pool);
+  }
+  selectFromPool(neighboringSponsors);
   selectFromPool(fallbackSponsors);
 
   return selectedSponsors.map((sponsor) =>

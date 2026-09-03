@@ -1,6 +1,7 @@
 export const GAMEPLAY_RULES = {
   sponsoringUnlockReputation: 30,
   futureSponsoringOpeningDay: 21,
+  sponsorRenewalBudgetFinalizationDay: 28,
   sponsorEarlyTerminationReputationPenalty: 25,
 } as const;
 

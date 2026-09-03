@@ -6,7 +6,7 @@ import {
   isFutureSponsoringWindowOpen,
   isSponsoringUnlocked,
 } from "@/lib/gameplay-rules";
-import type { FeaturedRiderSponsorAffinity } from "@/lib/game/sponsor-nationality-affinity";
+import type { TeamSponsorCountryAffinity } from "@/lib/game/sponsor-nationality-affinity";
 import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import { calculateSponsorRenewalBudget } from "@/lib/game/sponsor-renewal-budget";
 import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
@@ -19,14 +19,14 @@ import type {
   PersistedSponsorOffer,
   SponsorOfferStatus,
 } from "@/services/persisted-sponsor-offers";
-import { loadFeaturedRiderSponsorAffinity } from "@/services/sponsor-featured-rider";
 import { generateSponsorProposals } from "@/services/sponsor-proposals";
+import { loadTeamSponsorCountryAffinity } from "@/services/sponsor-team-affinity";
 import type { Sponsor } from "@/types/sponsor";
 
 
 const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
-const SPONSOR_OFFER_GENERATION_VERSION = 4;
+const SPONSOR_OFFER_GENERATION_VERSION = 5;
 
 export type FutureSponsorOfferMode =
   | "renewal"
@@ -73,10 +73,6 @@ type SportingDirectorRow = {
   country_id: string | null;
 };
 
-type CountryRow = {
-  iso_alpha2: string;
-};
-
 type SeasonRow = {
   id: string;
   game_year: number;
@@ -112,6 +108,7 @@ type SponsorContractRow = {
   sponsor_id: string;
   start_season_id: string;
   contract_duration_seasons: number;
+  status: "planned" | "active";
 };
 
 type ContractStartSeasonRow = {
@@ -124,6 +121,10 @@ type GeneratedFutureProposal = {
   proposedBudget: number;
   contractDurationSeasons: number;
   isRenewal: boolean;
+};
+
+type ReservedSponsorOfferRow = {
+  sponsor_id: string;
 };
 
 export async function getOrCreateFutureSponsorOffersForAuthUser({
@@ -181,37 +182,6 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     );
   }
 
-  if (!sportingDirector.country_id) {
-    throw new Error(
-      "La nationalité du Directeur Sportif est requise pour générer des offres de sponsoring."
-    );
-  }
-
-  const { data: team, error: teamError } = await supabase
-    .from("teams")
-    .select("home_country_id")
-    .eq("id", normalizedTeamId)
-    .maybeSingle<{ home_country_id: string }>();
-
-  if (teamError || !team) {
-    throw new Error(
-      "Impossible de retrouver le pays d’affiliation de l’équipe."
-    );
-  }
-
-  const { data: directorCountry, error: countryError } =
-    await supabase
-      .from("countries")
-      .select("iso_alpha2")
-      .eq("id", sportingDirector.country_id)
-      .maybeSingle<CountryRow>();
-
-  if (countryError || !directorCountry) {
-    throw new Error(
-      "Impossible de retrouver le pays du Directeur Sportif."
-    );
-  }
-
   const targetSeason = await ensureNextSeason({
     supabase,
     activeSeason,
@@ -249,6 +219,17 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     );
   }
 
+  const unavailableSponsorCatalogKeys =
+    await getUnavailableSponsorCatalogKeysForGameYear({
+      supabase,
+      targetGameYear: targetSeason.gameYear,
+      targetSeasonId: targetSeason.id,
+      sportingDirectorId: sportingDirector.id,
+    });
+  const unavailableSponsorCatalogKeySet = new Set(
+    unavailableSponsorCatalogKeys
+  );
+
   if (
     existingOfferRows?.length === DEFAULT_PROPOSAL_COUNT &&
     existingOfferRows.every(
@@ -265,11 +246,15 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     });
 
     if (
-      existingOffers.every((offer) =>
-        isSponsorEligibleForReputation(
-          offer.sponsor,
-          sportingDirector.reputation_points
-        )
+      existingOffers.every(
+        (offer) =>
+          isSponsorEligibleForReputation(
+            offer.sponsor,
+            sportingDirector.reputation_points
+          ) &&
+          (!unavailableSponsorCatalogKeySet.has(offer.sponsor.id) ||
+            (mode === "renewal" &&
+              offer.sponsor.id === currentSponsorCatalogKey))
       )
     ) {
       return {
@@ -296,26 +281,20 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     }
   }
 
-  const unavailableSponsorCatalogKeys =
-    await getUnavailableSponsorCatalogKeysForGameYear({
-      supabase,
-      targetGameYear: targetSeason.gameYear,
-    });
-  const featuredRiderAffinity = await loadFeaturedRiderSponsorAffinity({
+  const countryAffinity = await loadTeamSponsorCountryAffinity({
     supabase,
     teamId: normalizedTeamId,
     seasonId: activeSeason.id,
   });
   const generatedProposals = createFutureProposals({
     mode,
-    directorCountryCode: directorCountry.iso_alpha2,
     directorReputation: sportingDirector.reputation_points,
     unavailableSponsorCatalogKeys,
     currentSponsorCatalogKey,
     currentSponsorBudget,
     currentSponsorSatisfactionScore,
     excludedSponsorCatalogKey,
-    featuredRiderAffinity,
+    countryAffinity,
   });
 
   if (generatedProposals.length < DEFAULT_PROPOSAL_COUNT) {
@@ -437,24 +416,22 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
 
 function createFutureProposals({
   mode,
-  directorCountryCode,
   directorReputation,
   unavailableSponsorCatalogKeys,
   currentSponsorCatalogKey,
   currentSponsorBudget,
   currentSponsorSatisfactionScore,
   excludedSponsorCatalogKey,
-  featuredRiderAffinity,
+  countryAffinity,
 }: {
   mode: FutureSponsorOfferMode;
-  directorCountryCode: string;
   directorReputation: number;
   unavailableSponsorCatalogKeys: readonly string[];
   currentSponsorCatalogKey: string | null;
   currentSponsorBudget: number | null;
   currentSponsorSatisfactionScore: number | null;
   excludedSponsorCatalogKey: string | null;
-  featuredRiderAffinity: FeaturedRiderSponsorAffinity | null;
+  countryAffinity: TeamSponsorCountryAffinity;
 }): GeneratedFutureProposal[] {
   const unavailableSponsorIds = new Set(
     unavailableSponsorCatalogKeys
@@ -497,13 +474,15 @@ function createFutureProposals({
     );
 
     const alternativeProposals = generateSponsorProposals({
-      directorCountryCode,
+      teamCountryCode: countryAffinity.teamCountryCode,
+      leaderCountryCodes: countryAffinity.leaderCountryCodes,
+      rosterMajorityCountryCode:
+        countryAffinity.rosterMajorityCountryCode,
       directorReputation,
       unavailableSponsorIds: [...unavailableSponsorIds],
       proposalCount: renewalIsEligible
         ? RENEWAL_ALTERNATIVE_COUNT
         : DEFAULT_PROPOSAL_COUNT,
-      featuredRiderAffinity,
     });
 
     return [
@@ -527,11 +506,13 @@ function createFutureProposals({
   }
 
   const replacementProposals = generateSponsorProposals({
-    directorCountryCode,
+    teamCountryCode: countryAffinity.teamCountryCode,
+    leaderCountryCodes: countryAffinity.leaderCountryCodes,
+    rosterMajorityCountryCode:
+      countryAffinity.rosterMajorityCountryCode,
     directorReputation,
     unavailableSponsorIds: [...unavailableSponsorIds],
     proposalCount: DEFAULT_PROPOSAL_COUNT,
-    featuredRiderAffinity,
   });
 
   return replacementProposals.map((proposal) => ({
@@ -769,23 +750,39 @@ async function ensureTeamSeason({
 async function getUnavailableSponsorCatalogKeysForGameYear({
   supabase,
   targetGameYear,
+  targetSeasonId,
+  sportingDirectorId,
 }: {
   supabase: SupabaseAdminClient;
   targetGameYear: number;
+  targetSeasonId: string;
+  sportingDirectorId: string;
 }): Promise<string[]> {
-  const { data: contractRows, error: contractError } =
-    await supabase
+  const [contractsResult, offersResult] = await Promise.all([
+    supabase
       .from("team_sponsor_contracts")
       .select(
         `
           sponsor_id,
           start_season_id,
-          contract_duration_seasons
+          contract_duration_seasons,
+          status
         `
       )
       .eq("role", "principal")
       .in("status", ["planned", "active"])
-      .returns<SponsorContractRow[]>();
+      .returns<SponsorContractRow[]>(),
+    supabase
+      .from("sponsor_offers")
+      .select("sponsor_id")
+      .eq("season_id", targetSeasonId)
+      .neq("sporting_director_id", sportingDirectorId)
+      .in("status", ["draft", "open"])
+      .returns<ReservedSponsorOfferRow[]>(),
+  ]);
+
+  const contractRows = contractsResult.data;
+  const contractError = contractsResult.error;
 
   if (contractError) {
     throw new Error(
@@ -793,8 +790,21 @@ async function getUnavailableSponsorCatalogKeysForGameYear({
     );
   }
 
+  if (offersResult.error) {
+    throw new Error(
+      `Impossible de vérifier les offres sponsor réservées : ${offersResult.error.message}`
+    );
+  }
+
+  const reservedSponsorRegistryIds = (offersResult.data ?? []).map(
+    (offer) => offer.sponsor_id
+  );
+
   if (!contractRows || contractRows.length === 0) {
-    return [];
+    return loadSponsorCatalogKeys({
+      supabase,
+      sponsorRegistryIds: reservedSponsorRegistryIds,
+    });
   }
 
   const startSeasonIds = [
@@ -836,22 +846,40 @@ async function getUnavailableSponsorCatalogKeysForGameYear({
       const endGameYear =
         startGameYear + contract.contract_duration_seasons - 1;
 
-      return (
-        startGameYear <= targetGameYear &&
-        endGameYear >= targetGameYear
+      return contract.status === "active" || (
+        startGameYear <= targetGameYear && endGameYear >= targetGameYear
       );
     })
     .map((contract) => contract.sponsor_id);
+
+  unavailableSponsorRegistryIds.push(...reservedSponsorRegistryIds);
 
   if (unavailableSponsorRegistryIds.length === 0) {
     return [];
   }
 
+  return loadSponsorCatalogKeys({
+    supabase,
+    sponsorRegistryIds: unavailableSponsorRegistryIds,
+  });
+}
+
+async function loadSponsorCatalogKeys({
+  supabase,
+  sponsorRegistryIds,
+}: {
+  supabase: SupabaseAdminClient;
+  sponsorRegistryIds: readonly string[];
+}): Promise<string[]> {
+  const uniqueSponsorRegistryIds = [...new Set(sponsorRegistryIds)];
+
+  if (uniqueSponsorRegistryIds.length === 0) return [];
+
   const { data: sponsorRows, error: sponsorError } =
     await supabase
       .from("sponsors")
       .select("id, catalog_key")
-      .in("id", unavailableSponsorRegistryIds)
+      .in("id", uniqueSponsorRegistryIds)
       .returns<SponsorRegistryRow[]>();
 
   if (sponsorError) {

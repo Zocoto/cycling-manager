@@ -12,13 +12,13 @@ import {
   ensureAndLoadSponsorObjectives,
   type SponsorOfferObjectiveContext,
 } from "@/services/persisted-sponsor-objectives";
-import { loadFeaturedRiderSponsorAffinity } from "@/services/sponsor-featured-rider";
 import { generateSponsorProposals } from "@/services/sponsor-proposals";
+import { loadTeamSponsorCountryAffinity } from "@/services/sponsor-team-affinity";
 import type { Sponsor } from "@/types/sponsor";
 import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
-const SPONSOR_OFFER_GENERATION_VERSION = 3;
+const SPONSOR_OFFER_GENERATION_VERSION = 4;
 
 export type SponsorOfferStatus =
   | "draft"
@@ -51,10 +51,6 @@ type SportingDirectorRow = {
   id: string;
   reputation_points: number;
   country_id: string | null;
-};
-
-type CountryRow = {
-  iso_alpha2: string;
 };
 
 type TeamAssignmentRow = {
@@ -95,6 +91,10 @@ type ContractSeasonRow = {
   game_year: number;
 };
 
+type ReservedSponsorOfferRow = {
+  sponsor_id: string;
+};
+
 export async function getOrCreateSponsorOffersForAuthUser(
   authUserId: string
 ): Promise<PersistedSponsorOffer[]> {
@@ -127,12 +127,6 @@ export async function getOrCreateSponsorOffersForAuthUser(
     return [];
   }
 
-  if (!sportingDirector.country_id) {
-    throw new Error(
-      "La nationalite du Directeur Sportif est requise pour generer des offres de sponsoring."
-    );
-  }
-
   const activeSeasonResult = await
     supabase
       .from("seasons")
@@ -154,16 +148,6 @@ export async function getOrCreateSponsorOffersForAuthUser(
     supabase,
     sportingDirectorId: sportingDirector.id,
   });
-  const { data: directorCountry, error: directorCountryError } = await supabase
-    .from("countries")
-    .select("iso_alpha2")
-    .eq("id", sportingDirector.country_id)
-    .maybeSingle<CountryRow>();
-
-  if (directorCountryError || !directorCountry) {
-    throw new Error("Impossible de retrouver le pays du Directeur Sportif.");
-  }
-
   const hasTerminatedContract =
     await hasTerminatedPrincipalContractForSeason({
       supabase,
@@ -208,6 +192,13 @@ export async function getOrCreateSponsorOffersForAuthUser(
     );
   }
 
+  const unavailableSponsorIds = await getUnavailableSponsorCatalogKeys(
+    supabase,
+    activeSeason,
+    sportingDirector.id
+  );
+  const unavailableSponsorIdSet = new Set(unavailableSponsorIds);
+
   if (
     existingOfferRows &&
     existingOfferRows.length > 0 &&
@@ -223,11 +214,12 @@ export async function getOrCreateSponsorOffersForAuthUser(
     });
 
     if (
-      existingOffers.every((offer) =>
-        isSponsorEligibleForReputation(
-          offer.sponsor,
-          sportingDirector.reputation_points
-        )
+      existingOffers.every(
+        (offer) =>
+          isSponsorEligibleForReputation(
+            offer.sponsor,
+            sportingDirector.reputation_points
+          ) && !unavailableSponsorIdSet.has(offer.sponsor.id)
       )
     ) {
       return existingOffers;
@@ -247,11 +239,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
     }
   }
 
-  const unavailableSponsorIds = await getUnavailableSponsorCatalogKeys(
-    supabase,
-    activeSeason
-  );
-  const featuredRiderAffinity = await loadFeaturedRiderSponsorAffinity({
+  const countryAffinity = await loadTeamSponsorCountryAffinity({
     supabase,
     teamId,
     seasonId: activeSeason.id,
@@ -259,13 +247,14 @@ export async function getOrCreateSponsorOffersForAuthUser(
 
   const generatedProposals =
     generateSponsorProposals({
-      directorCountryCode:
-        directorCountry.iso_alpha2,
+      teamCountryCode: countryAffinity.teamCountryCode,
+      leaderCountryCodes: countryAffinity.leaderCountryCodes,
+      rosterMajorityCountryCode:
+        countryAffinity.rosterMajorityCountryCode,
       directorReputation:
         sportingDirector.reputation_points,
       unavailableSponsorIds,
       proposalCount: DEFAULT_PROPOSAL_COUNT,
-      featuredRiderAffinity,
     });
 
   if (
@@ -542,23 +531,33 @@ async function hydrateSponsorOffersWithObjectives({
 
 async function getUnavailableSponsorCatalogKeys(
   supabase: SupabaseAdminClient,
-  activeSeason: SeasonRow
+  activeSeason: SeasonRow,
+  sportingDirectorId: string
 ): Promise<string[]> {
-  const {
-    data: contractRows,
-    error: contractsError,
-  } = await supabase
-    .from("team_sponsor_contracts")
-    .select(
-      `
-        sponsor_id,
-        start_season_id,
-        contract_duration_seasons
-      `
-    )
-    .eq("role", "principal")
-    .in("status", ["planned", "active"])
-    .returns<SponsorContractRow[]>();
+  const [contractsResult, offersResult] = await Promise.all([
+    supabase
+      .from("team_sponsor_contracts")
+      .select(
+        `
+          sponsor_id,
+          start_season_id,
+          contract_duration_seasons
+        `
+      )
+      .eq("role", "principal")
+      .in("status", ["planned", "active"])
+      .returns<SponsorContractRow[]>(),
+    supabase
+      .from("sponsor_offers")
+      .select("sponsor_id")
+      .eq("season_id", activeSeason.id)
+      .neq("sporting_director_id", sportingDirectorId)
+      .in("status", ["draft", "open"])
+      .returns<ReservedSponsorOfferRow[]>(),
+  ]);
+
+  const contractRows = contractsResult.data;
+  const contractsError = contractsResult.error;
 
   if (contractsError) {
     throw new Error(
@@ -566,8 +565,18 @@ async function getUnavailableSponsorCatalogKeys(
     );
   }
 
+  if (offersResult.error) {
+    throw new Error(
+      `Impossible de vérifier les offres sponsor réservées : ${offersResult.error.message}`
+    );
+  }
+
+  const reservedSponsorRegistryIds = (offersResult.data ?? []).map(
+    (offer) => offer.sponsor_id
+  );
+
   if (!contractRows || contractRows.length === 0) {
-    return [];
+    return loadSponsorCatalogKeys(supabase, reservedSponsorRegistryIds);
   }
 
   const contractSeasonIds = [
@@ -600,7 +609,9 @@ async function getUnavailableSponsorCatalogKeys(
     ])
   );
 
-  const unavailableSponsorRegistryIds =
+  const unavailableSponsorRegistryIds = [
+    ...reservedSponsorRegistryIds,
+    ...(
     contractRows
       .filter((contract) => {
         const startGameYear =
@@ -622,7 +633,9 @@ async function getUnavailableSponsorCatalogKeys(
           endGameYear >= activeSeason.game_year
         );
       })
-      .map((contract) => contract.sponsor_id);
+      .map((contract) => contract.sponsor_id)
+    ),
+  ];
 
   if (
     unavailableSponsorRegistryIds.length === 0
@@ -630,13 +643,24 @@ async function getUnavailableSponsorCatalogKeys(
     return [];
   }
 
+  return loadSponsorCatalogKeys(supabase, unavailableSponsorRegistryIds);
+}
+
+async function loadSponsorCatalogKeys(
+  supabase: SupabaseAdminClient,
+  sponsorRegistryIds: readonly string[]
+): Promise<string[]> {
+  const uniqueSponsorRegistryIds = [...new Set(sponsorRegistryIds)];
+
+  if (uniqueSponsorRegistryIds.length === 0) return [];
+
   const {
     data: unavailableSponsorRows,
     error: unavailableSponsorsError,
   } = await supabase
     .from("sponsors")
     .select("id, catalog_key")
-    .in("id", unavailableSponsorRegistryIds)
+    .in("id", uniqueSponsorRegistryIds)
     .returns<SponsorRegistryRow[]>();
 
   if (unavailableSponsorsError) {

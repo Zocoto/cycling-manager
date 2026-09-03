@@ -63,6 +63,9 @@ export type PersistedSponsorContract = {
   endGameYear: number;
   selectedJerseyId: string | null;
   selectedJerseyStyle: SponsorJerseyStyle | null;
+  pendingJerseyId: string | null;
+  pendingJerseyStyle: SponsorJerseyStyle | null;
+  pendingJerseySeasonId: string | null;
   signedAt: string | null;
   activatedAt: string | null;
   completedAt: string | null;
@@ -93,24 +96,31 @@ export type FutureSponsoringState =
       targetGameYear: number;
       targetSeasonName: string;
       contractEndGameYear: number;
+      contract: PersistedSponsorContract;
+      jerseySelectionOpen: boolean;
     }
   | {
       kind: "offers";
       mode: FutureSponsorOfferMode;
       season: FutureSponsorSeason;
       offers: PersistedSponsorOffer[];
+      renewalBudgetIsFinal: boolean;
     }
   | {
       kind: "jersey-selection";
       mode: FutureSponsorOfferMode;
       season: FutureSponsorSeason;
       contract: PersistedSponsorContract;
+      isRenewal: boolean;
+      renewalBudgetIsFinal: boolean;
     }
   | {
       kind: "planned";
       mode: FutureSponsorOfferMode;
       season: FutureSponsorSeason;
       contract: PersistedSponsorContract;
+      isRenewal: boolean;
+      renewalBudgetIsFinal: boolean;
     };
 
 export type SponsoringState =
@@ -189,6 +199,9 @@ type SponsorContractRow = {
   status: SponsorContractStatus;
   selected_jersey_id: string | null;
   selected_jersey_style: SponsorJerseyStyle | null;
+  pending_jersey_id: string | null;
+  pending_jersey_style: SponsorJerseyStyle | null;
+  pending_jersey_season_id: string | null;
   signed_at: string | null;
   activated_at: string | null;
   completed_at: string | null;
@@ -413,6 +426,11 @@ async function resolveFutureSponsoringState({
         currentContract,
         terminatedContract,
       });
+      const isRenewal =
+        currentContract?.sponsor.id === futureContract.sponsor.id;
+      const renewalBudgetIsFinal =
+        activeSeason.current_day_number >=
+        GAMEPLAY_RULES.sponsorRenewalBudgetFinalizationDay;
 
       if (
         !futureContract.selectedJerseyId ||
@@ -423,6 +441,8 @@ async function resolveFutureSponsoringState({
           mode,
           season: toFutureSeason(targetSeason),
           contract: futureContract,
+          isRenewal,
+          renewalBudgetIsFinal,
         };
       }
 
@@ -431,6 +451,8 @@ async function resolveFutureSponsoringState({
         mode,
         season: toFutureSeason(targetSeason),
         contract: futureContract,
+        isRenewal,
+        renewalBudgetIsFinal,
       };
     }
   }
@@ -444,6 +466,10 @@ async function resolveFutureSponsoringState({
       targetGameYear: nextGameYear,
       targetSeasonName,
       contractEndGameYear: currentContract.endGameYear,
+      contract: currentContract,
+      jerseySelectionOpen: isFutureSponsoringWindowOpen(
+        activeSeason.current_day_number
+      ),
     };
   }
 
@@ -502,6 +528,9 @@ async function resolveFutureSponsoringState({
     mode: offerPackage.mode,
     season: offerPackage.season,
     offers: offerPackage.offers,
+    renewalBudgetIsFinal:
+      activeSeason.current_day_number >=
+      GAMEPLAY_RULES.sponsorRenewalBudgetFinalizationDay,
   };
 }
 
@@ -602,6 +631,9 @@ function contractSelection(): string {
     status,
     selected_jersey_id,
     selected_jersey_style,
+    pending_jersey_id,
+    pending_jersey_style,
+    pending_jersey_season_id,
     signed_at,
     activated_at,
     completed_at,
@@ -796,6 +828,9 @@ async function hydrateSponsorContract({
     selectedJerseyId: contractRow.selected_jersey_id,
     selectedJerseyStyle:
       contractRow.selected_jersey_style,
+    pendingJerseyId: contractRow.pending_jersey_id,
+    pendingJerseyStyle: contractRow.pending_jersey_style,
+    pendingJerseySeasonId: contractRow.pending_jersey_season_id,
     signedAt: contractRow.signed_at,
     activatedAt: contractRow.activated_at,
     completedAt: contractRow.completed_at,
