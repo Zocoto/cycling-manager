@@ -109,6 +109,25 @@ export const NUTRITION_INTERVENTIONS = {
 
 export type NutritionInterventionCode = keyof typeof NUTRITION_INTERVENTIONS;
 
+type NutritionRiderOrderCandidate = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  form: number;
+};
+
+export function orderNutritionRidersByForm<
+  Rider extends NutritionRiderOrderCandidate,
+>(riders: readonly Rider[]) {
+  return [...riders].sort(
+    (left, right) =>
+      left.form - right.form ||
+      left.lastName.localeCompare(right.lastName, "fr") ||
+      left.firstName.localeCompare(right.firstName, "fr") ||
+      left.id.localeCompare(right.id),
+  );
+}
+
 export function getNutritionInterventionOutcome({
   code,
   nutritionistLevel,

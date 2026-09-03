@@ -7,6 +7,7 @@ import {
   getNutritionInterventionOutcome,
   getNutritionistDailyRecoveryBonus,
   getProtocolRecoveryReductionHours,
+  orderNutritionRidersByForm,
   resolveCrashMedicalOutcome,
   resolveRiderFormChange,
 } from "./health-center";
@@ -157,6 +158,28 @@ describe("health center rules", () => {
         }),
       ),
     ).toEqual([0, 1, 0, 1, 1]);
+  });
+
+  it("classe les coureurs de la forme la plus faible à la plus élevée", () => {
+    const riders = [
+      { id: "high", firstName: "Zoé", lastName: "Martin", form: 92 },
+      { id: "low-b", firstName: "Luc", lastName: "Bernard", form: 38 },
+      { id: "medium", firstName: "Inès", lastName: "Moreau", form: 64 },
+      { id: "low-a", firstName: "Alix", lastName: "Bernard", form: 38 },
+    ];
+
+    expect(orderNutritionRidersByForm(riders).map((rider) => rider.id)).toEqual([
+      "low-a",
+      "low-b",
+      "medium",
+      "high",
+    ]);
+    expect(riders.map((rider) => rider.id)).toEqual([
+      "high",
+      "low-b",
+      "medium",
+      "low-a",
+    ]);
   });
 });
 

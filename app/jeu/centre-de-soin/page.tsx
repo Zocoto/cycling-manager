@@ -20,6 +20,7 @@ import {
   NutritionInterventionsEditor,
 } from "@/components/game/nutrition-interventions-editor";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RiderInjuryMarker } from "@/components/game/rider-injury-marker";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
@@ -27,6 +28,7 @@ import {
   getDoctorFormCampBoostPct,
   getNutritionInterventionOutcome,
   getProtocolRecoveryReductionHours,
+  orderNutritionRidersByForm,
   type NutritionInterventionCode,
 } from "@/lib/game/health-center";
 import { getHealthCenterErrorMessage } from "@/lib/game/health-center-errors";
@@ -773,6 +775,13 @@ function NutritionPanel({
       remainingCapacity: Math.max(0, capacity - used),
     };
   });
+  const nutritionRiders = orderNutritionRidersByForm(overview.riders);
+  const interventionByRiderId = new Map(
+    overview.nutritionInterventionsToday.map((intervention) => [
+      intervention.riderId,
+      intervention,
+    ]),
+  );
 
   return (
     <section data-tutorial-id="medical-center-nutrition" className="mt-7">
@@ -883,23 +892,16 @@ function NutritionPanel({
 
 
           <NutritionInterventionsEditor
-            riderIds={overview.riders
-              .filter(
-                (rider) =>
-                  !overview.nutritionInterventionsToday.some(
-                    (intervention) => intervention.riderId === rider.id,
-                  ),
-              )
+            riderIds={nutritionRiders
+              .filter((rider) => !interventionByRiderId.has(rider.id))
               .map((rider) => rider.id)}
             nutritionists={nutritionistOptions}
             balance={overview.balance}
             currency={overview.currency}
           >
             <div className="mt-6 grid gap-4 xl:grid-cols-2">
-              {overview.riders.map((rider) => {
-                const applied = overview.nutritionInterventionsToday.find(
-                  (intervention) => intervention.riderId === rider.id,
-                );
+              {nutritionRiders.map((rider) => {
+                const applied = interventionByRiderId.get(rider.id);
 
                 return (
                   <article
@@ -917,9 +919,14 @@ function NutritionPanel({
                         className="h-14 w-14"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-black text-[#183F37]">
-                          {rider.firstName} {rider.lastName}
-                        </p>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <p className="min-w-0 flex-1 truncate text-base font-black text-[#183F37]">
+                            {rider.firstName} {rider.lastName}
+                          </p>
+                          {rider.injury ? (
+                            <RiderInjuryMarker injuryLabel={rider.injury.label} />
+                          ) : null}
+                        </div>
                         <p className="mt-1 text-xs font-bold text-[#60756E]">
                           Forme actuelle · {rider.form}/100
                         </p>
