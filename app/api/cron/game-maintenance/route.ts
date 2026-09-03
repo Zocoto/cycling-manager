@@ -11,6 +11,7 @@ const MAINTENANCE_TASKS = [
   "settle_due_season_rollovers",
   "settle_due_federation_elections",
   "initialize_due_national_federation_accounts",
+  "settle_due_national_federation_infrastructure_projects",
   "purge_expired_director_messages",
 ] as const;
 

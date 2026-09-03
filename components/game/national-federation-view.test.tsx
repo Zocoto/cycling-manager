@@ -97,6 +97,7 @@ describe("NationalFederationView", () => {
         governanceOverview={null}
         selectionState={null}
         treasuryState={null}
+        infrastructureState={null}
       />,
     );
 
@@ -132,6 +133,7 @@ describe("NationalFederationView", () => {
         governanceOverview={null}
         selectionState={null}
         treasuryState={null}
+        infrastructureState={null}
       />,
     );
 
@@ -176,6 +178,7 @@ describe("NationalFederationView", () => {
         }}
         selectionState={null}
         treasuryState={null}
+        infrastructureState={null}
       />,
     );
 
@@ -215,6 +218,7 @@ describe("NationalFederationView", () => {
         governanceOverview={null}
         selectionState={null}
         treasuryState={null}
+        infrastructureState={null}
       />,
     );
 

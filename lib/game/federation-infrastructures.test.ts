@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +9,14 @@ import {
   MAX_FEDERATION_PROJECT_ARCHITECTS,
   calculateFederationConstructionPreview,
 } from "@/lib/game/federation-infrastructures";
+
+const migration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260903235500_create_federation_infrastructure_projects.sql",
+  ),
+  "utf8",
+);
 
 describe("federation infrastructures", () => {
   it("keeps the complete nine-building, five-level catalogue", () => {
@@ -54,5 +65,23 @@ describe("federation infrastructures", () => {
     expect(fast.durationReductionPercentage).toBe(30);
     expect(balanced.costReductionPercentage).toBe(10);
     expect(balanced.durationReductionPercentage).toBe(15);
+  });
+
+  it("persists S3 projects without permanently locking contributed architects", () => {
+    expect(migration).toContain(
+      "start_national_federation_infrastructure_project",
+    );
+    expect(migration).toContain(
+      "contribute_architect_to_federation_project",
+    );
+    expect(migration).toContain(
+      "settle_due_national_federation_infrastructure_projects",
+    );
+    expect(migration).toContain("if v_season.game_year < 3");
+    expect(migration).toContain("v_architect_count >= 5");
+    expect(migration).toContain("balance = balance + v_refund");
+    expect(migration).not.toContain(
+      "national_federation_architect_one_active_project_idx",
+    );
   });
 });

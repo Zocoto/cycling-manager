@@ -29,6 +29,7 @@ import type {
   FederationInternationalPerformance,
   FederationInternationalResults,
 } from "@/services/federation-international-results";
+import type { FederationInfrastructureState } from "@/services/federation-infrastructures";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
 import type { FederationTreasuryState } from "@/services/federation-treasury";
@@ -53,6 +54,7 @@ type NationalFederationViewProps = {
   governanceOverview: FederationGovernanceOverview | null;
   selectionState: FederationSelectionState | null;
   treasuryState: FederationTreasuryState | null;
+  infrastructureState: FederationInfrastructureState | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -114,6 +116,7 @@ export function NationalFederationView({
   governanceOverview,
   selectionState,
   treasuryState,
+  infrastructureState,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -215,7 +218,12 @@ export function NationalFederationView({
             selectionState={selectionState}
           />
         ) : selectedTab === "infrastructures" ? (
-          <InfrastructuresPanel snapshot={snapshot} managementLocked={isPreview} />
+          <InfrastructuresPanel
+            countryCode={country.code}
+            snapshot={snapshot}
+            managementLocked={isPreview}
+            infrastructureState={infrastructureState}
+          />
         ) : selectedTab === "finances" ? (
           <FinancesPanel
             nationRank={nationRanking?.rank ?? 173}
@@ -538,11 +546,15 @@ function SelectionsPanel({
 }
 
 function InfrastructuresPanel({
+  countryCode,
   snapshot,
   managementLocked,
+  infrastructureState,
 }: {
+  countryCode: string;
   snapshot: NationalFederationSnapshot;
   managementLocked: boolean;
+  infrastructureState: FederationInfrastructureState | null;
 }) {
   return (
     <div className="space-y-7">
@@ -613,7 +625,11 @@ function InfrastructuresPanel({
         </div>
       </section>
 
-      <FederationInfrastructureCatalog managementLocked={managementLocked} />
+      <FederationInfrastructureCatalog
+        countryCode={countryCode}
+        managementLocked={managementLocked}
+        infrastructureState={infrastructureState}
+      />
     </div>
   );
 }
