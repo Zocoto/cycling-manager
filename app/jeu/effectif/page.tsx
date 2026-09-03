@@ -1016,7 +1016,7 @@ function RiderMobileCard({
   const riderAverage = getRiderAverage(rider);
 
   return (
-    <article className="rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-[0_8px_20px_rgba(19,60,46,0.08)] sm:p-5">
+    <article className="rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-[0_8px_20px_rgba(19,60,46,0.08)] [contain-intrinsic-size:auto_22rem] [content-visibility:auto] sm:p-5">
       <div className="flex items-start gap-3">
         <Link
           href={`/jeu/coureurs/${rider.rider_id}`}

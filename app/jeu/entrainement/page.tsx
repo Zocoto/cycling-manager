@@ -355,7 +355,7 @@ export default async function TrainingPage({
                   {overview.riders.map((rider, riderIndex) => (
                     <article
                       key={rider.id}
-                      className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
+                      className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] [contain-intrinsic-size:auto_18rem] [content-visibility:auto] sm:p-6"
                     >
                       <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
                         <div className="flex min-w-0 items-center gap-4">

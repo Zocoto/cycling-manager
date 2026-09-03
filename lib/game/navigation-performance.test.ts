@@ -36,6 +36,13 @@ describe("game navigation performance", () => {
     );
   });
 
+  it("keeps ordinary links on a hook-free fast path", () => {
+    expect(appLinkSource).toContain(
+      "if (!riderId && !raceTarget && !prefetchOnIntent)",
+    );
+    expect(appLinkSource).toContain("<InteractiveAppLink");
+  });
+
   it("waits for deliberate hover intent before loading a heavy preview", () => {
     expect(appLinkSource).toContain("const PREVIEW_INTENT_DELAY_MS = 220");
     expect(appLinkSource).toContain("schedulePreview()");

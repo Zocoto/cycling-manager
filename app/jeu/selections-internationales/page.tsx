@@ -85,6 +85,7 @@ export default async function InternationalSelectionsPage({
     getGameHeaderData(supabase, user.id),
     getCurrentDirectorInternationalSelections({
       authUserId: user.id,
+      processDue: false,
     }),
   ]);
 

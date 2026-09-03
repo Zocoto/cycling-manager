@@ -276,7 +276,7 @@ function EquipmentProductCard({
   onIncrease: () => void;
 }) {
   return (
-    <article className="flex overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
+    <article className="flex overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] [contain-intrinsic-size:auto_32rem] [content-visibility:auto]">
       <div className="flex w-full flex-col">
         <div className="relative aspect-[16/10] overflow-hidden bg-[#071A17]">
           <Image

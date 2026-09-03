@@ -49,30 +49,10 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     children,
     showPendingIndicator = true,
     prefetchOnIntent = false,
-    onBlur,
-    onFocus,
-    onPointerDown,
-    onPointerEnter,
-    onPointerLeave,
     ...props
   },
   ref,
 ) {
-  const [previewIntentOpen, setPreviewIntentOpen] = useState(false);
-  const [intentPrefetchActive, setIntentPrefetchActive] = useState(false);
-  const previewIntentTimerRef = useRef<number | null>(
-    null,
-  );
-  const [RiderPreviewLink, setRiderPreviewLink] =
-    useState<RiderPreviewLinkComponent | null>(null);
-  const [RacePreviewLink, setRacePreviewLink] =
-    useState<RacePreviewLinkComponent | null>(null);
-  const resolvedPrefetch =
-    prefetch !== undefined
-      ? prefetch
-      : prefetchOnIntent && intentPrefetchActive
-        ? null
-        : false;
   const usesAnchor =
     typeof href === "string"
       ? href.includes("#")
@@ -87,6 +67,106 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   const raceTarget = getRaceQuickPreviewTargetFromHref(hrefForIntent);
   const requiresDocumentNavigation =
     typeof href === "string" && isRaceRegistrationHref(href);
+  const linkChildren = (
+    <>
+      {children}
+      {showPendingIndicator ? <LinkPendingIndicator /> : null}
+    </>
+  );
+
+  if (requiresDocumentNavigation) {
+    /*
+     * Registration is a critical action. A native document navigation keeps
+     * it on the canonical course route and outside Next.js' client route tree.
+     * Do not replace this with next/link: intercepted/parallel calendar routes
+     * have caused fatal soft-navigation regressions on desktop and mobile.
+     */
+    return (
+      <a
+        ref={ref}
+        href={href}
+        {...toNativeAnchorProps(props)}
+        data-navigation-mode="document"
+      >
+        {children}
+      </a>
+    );
+  }
+
+  if (!riderId && !raceTarget && !prefetchOnIntent) {
+    return (
+      <NextLink
+        ref={ref}
+        href={href}
+        prefetch={prefetch ?? false}
+        scroll={scroll ?? usesAnchor}
+        {...props}
+      >
+        {linkChildren}
+      </NextLink>
+    );
+  }
+
+  return (
+    <InteractiveAppLink
+      ref={ref}
+      href={href}
+      scroll={scroll}
+      prefetch={prefetch}
+      showPendingIndicator={showPendingIndicator}
+      prefetchOnIntent={prefetchOnIntent}
+      riderId={riderId}
+      raceTarget={raceTarget}
+      usesAnchor={usesAnchor}
+      {...props}
+    >
+      {children}
+    </InteractiveAppLink>
+  );
+});
+
+type InteractiveAppLinkProps = AppLinkProps & {
+  riderId: ReturnType<typeof getRiderIdFromProfileHref>;
+  raceTarget: ReturnType<typeof getRaceQuickPreviewTargetFromHref>;
+  usesAnchor: boolean;
+};
+
+const InteractiveAppLink = forwardRef<
+  HTMLAnchorElement,
+  InteractiveAppLinkProps
+>(function InteractiveAppLink(
+  {
+    href,
+    scroll,
+    prefetch,
+    children,
+    showPendingIndicator = true,
+    prefetchOnIntent = false,
+    riderId,
+    raceTarget,
+    usesAnchor,
+    onBlur,
+    onFocus,
+    onPointerDown,
+    onPointerEnter,
+    onPointerLeave,
+    ...props
+  },
+  ref,
+) {
+  const [previewIntentOpen, setPreviewIntentOpen] = useState(false);
+  const [intentPrefetchActive, setIntentPrefetchActive] = useState(false);
+  const previewIntentTimerRef = useRef<number | null>(null);
+  const [RiderPreviewLink, setRiderPreviewLink] =
+    useState<RiderPreviewLinkComponent | null>(null);
+  const [RacePreviewLink, setRacePreviewLink] =
+    useState<RacePreviewLinkComponent | null>(null);
+  const resolvedPrefetch =
+    prefetch !== undefined
+      ? prefetch
+      : prefetchOnIntent && intentPrefetchActive
+        ? null
+        : false;
   const linkChildren = (
     <>
       {children}
@@ -175,30 +255,6 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     onPointerEnter: handlePointerEnter,
     onPointerLeave: handlePointerLeave,
   };
-
-  if (requiresDocumentNavigation) {
-    /*
-     * Registration is a critical action. A native document navigation keeps
-     * it on the canonical course route and outside Next.js' client route tree.
-     * Do not replace this with next/link: intercepted/parallel calendar routes
-     * have caused fatal soft-navigation regressions on desktop and mobile.
-     */
-    return (
-      <a
-        ref={ref}
-        href={href}
-        {...toNativeAnchorProps(props)}
-        onBlur={onBlur}
-        onFocus={onFocus}
-        onPointerDown={onPointerDown}
-        onPointerEnter={onPointerEnter}
-        onPointerLeave={onPointerLeave}
-        data-navigation-mode="document"
-      >
-        {children}
-      </a>
-    );
-  }
 
   if (riderId && RiderPreviewLink) {
     return (
