@@ -1,5 +1,65 @@
 begin;
 
+-- Un tour déjà verrouillé ou commencé protège le coureur sur toute la journée :
+-- il reste impossible d'enchaîner une étape et un championnat le même jour.
+-- La distinction des créneaux ne s'applique qu'aux courses d'un jour encore
+-- modifiables, dans les contrôles et retraits plus bas.
+create or replace function public.is_rider_protected_by_stage_race_for_international_selection(
+  p_rider_id uuid,
+  p_target_race_edition_id uuid,
+  p_at timestamptz default now()
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.race_editions as target_edition
+    join public.race_rosters as roster
+      on roster.rider_id = p_rider_id
+     and roster.status in ('selected', 'confirmed')
+    join public.race_registrations as registration
+      on registration.id = roster.race_registration_id
+     and registration.status = 'accepted'
+    join public.race_editions as other_edition
+      on other_edition.id = registration.race_edition_id
+     and other_edition.id <> target_edition.id
+     and other_edition.season_id = target_edition.season_id
+    join public.races as other_race
+      on other_race.id = other_edition.race_id
+     and other_race.race_format = 'stage_race'
+    where target_edition.id = p_target_race_edition_id
+      and exists (
+        select 1
+        from public.stages as unfinished_stage
+        where unfinished_stage.race_edition_id = other_edition.id
+          and unfinished_stage.status <> 'completed'
+      )
+      and (
+        other_edition.withdrawal_closes_at is null
+        or other_edition.withdrawal_closes_at <= p_at
+        or exists (
+          select 1
+          from public.stages as started_stage
+          where started_stage.race_edition_id = other_edition.id
+            and started_stage.departure_at is not null
+            and started_stage.departure_at <= p_at
+        )
+      )
+      and exists (
+        select 1
+        from public.stages as target_stage
+        join public.stages as other_stage
+          on other_stage.season_day_id = target_stage.season_day_id
+         and other_stage.race_edition_id = other_edition.id
+        where target_stage.race_edition_id = target_edition.id
+      )
+  );
+$$;
+
 -- Les convocations doivent annoncer toutes les activités qui seront annulées
 -- après validation du DS, comme elles annoncent déjà les courses sacrifiées.
 create or replace function public.get_rider_international_selection_conflicting_camp_names(
@@ -153,6 +213,7 @@ as $$
           from public.stages as target_stage
           join public.stages as other_stage
             on other_stage.season_day_id = target_stage.season_day_id
+           and other_stage.day_slot = target_stage.day_slot
            and other_stage.race_edition_id = other_edition.id
           where target_stage.race_edition_id = target_edition.id
         )
@@ -255,12 +316,12 @@ begin
     )
     and exists (
       select 1
-      from public.stages as other_stage
-      join public.season_days as other_day
-        on other_day.id = other_stage.season_day_id
-      where other_stage.race_edition_id = other_edition.id
-        and other_day.day_number between v_target_start_day and v_target_end_day
-        and other_day.season_id = v_target_season_id
+      from public.stages as target_stage
+      join public.stages as other_stage
+        on other_stage.season_day_id = target_stage.season_day_id
+       and other_stage.day_slot = target_stage.day_slot
+       and other_stage.race_edition_id = other_edition.id
+      where target_stage.race_edition_id = v_selection.race_edition_id
     );
 
   update public.race_registrations as registration
@@ -576,6 +637,7 @@ as $$
         from public.stages as target_stage
         join public.stages as other_stage
           on other_stage.season_day_id = target_stage.season_day_id
+         and other_stage.day_slot = target_stage.day_slot
          and other_stage.race_edition_id = other_edition.id
         where target_stage.race_edition_id = edition.id
       )
@@ -704,6 +766,7 @@ begin
         from public.stages as target_stage
         join public.stages as other_stage
           on other_stage.season_day_id = target_stage.season_day_id
+         and other_stage.day_slot = target_stage.day_slot
          and other_stage.race_edition_id = other_edition.id
         where target_stage.race_edition_id = edition.id
       )

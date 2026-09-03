@@ -45,6 +45,29 @@ describe("protection des tours en cours contre les convocations", () => {
     expect(finalizationMigration).toContain("then\n    return;");
   });
 
+  it("distingue les créneaux de 14 h et 18 h le même jour", () => {
+    expect(campConflictMigration).toContain(
+      "other_stage.day_slot = target_stage.day_slot",
+    );
+    expect(campConflictMigration).not.toContain(
+      "other_day.day_number between v_target_start_day and v_target_end_day",
+    );
+  });
+
+  it("conserve la protection sur toute la journée pour un tour verrouillé", () => {
+    const protectionFunction = campConflictMigration.split(
+      "create or replace function public.is_rider_protected_by_stage_race_for_international_selection(",
+    )[1]?.split("$$;")[0];
+
+    expect(protectionFunction).toContain("other_race.race_format = 'stage_race'");
+    expect(protectionFunction).toContain(
+      "other_stage.season_day_id = target_stage.season_day_id",
+    );
+    expect(protectionFunction).not.toContain(
+      "other_stage.day_slot = target_stage.day_slot",
+    );
+  });
+
   it("écarte le coureur avant que la convocation soit envoyée", () => {
     expect(migration).toContain(
       "create trigger exclude_locked_stage_race_rider_from_international_selection",

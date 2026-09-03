@@ -43,38 +43,58 @@ set statement_timeout = '10s'
 as $$
 declare
   v_season_id uuid;
-  v_target_start_day integer;
-  v_target_end_day integer;
   v_target_competition_type text;
   v_target_continent_code text;
+  v_target_start_day integer;
+  v_target_end_day integer;
+  v_current_day_number integer;
+  v_current_season_day_id uuid;
+  v_camp record;
+  v_refund_transaction_id uuid;
 begin
   select
     edition.season_id,
     race.competition_type,
-    race.championship_continent_code,
-    min(day.day_number),
-    max(day.day_number)
+    race.championship_continent_code
   into
     v_season_id,
     v_target_competition_type,
-    v_target_continent_code,
-    v_target_start_day,
-    v_target_end_day
+    v_target_continent_code
   from public.race_editions as edition
   join public.races as race on race.id = edition.race_id
-  join public.stages as stage on stage.race_edition_id = edition.id
-  join public.season_days as day on day.id = stage.season_day_id
-  where edition.id = p_race_edition_id
-  group by
-    edition.season_id,
-    race.competition_type,
-    race.championship_continent_code;
+  where edition.id = p_race_edition_id;
 
   if v_season_id is null or v_target_competition_type not in (
     'world_championship', 'continental_championship'
   ) then
     return;
   end if;
+
+  if public.is_rider_protected_by_stage_race_for_international_selection(
+    p_rider_id,
+    p_race_edition_id,
+    now()
+  ) then
+    raise exception using
+      errcode = 'P0001',
+      message = 'Le coureur est engagé sur un tour déjà verrouillé ou commencé.';
+  end if;
+
+  select min(day.day_number), max(day.day_number)
+  into v_target_start_day, v_target_end_day
+  from public.stages as stage
+  join public.season_days as day on day.id = stage.season_day_id
+  where stage.race_edition_id = p_race_edition_id;
+
+  select
+    coalesce(season.current_day_number, 1)::integer,
+    season_day.id
+  into v_current_day_number, v_current_season_day_id
+  from public.seasons as season
+  join public.season_days as season_day
+    on season_day.season_id = season.id
+   and season_day.day_number = coalesce(season.current_day_number, 1)
+  where season.id = v_season_id;
 
   update public.race_rosters as roster
   set status = 'withdrawn'
@@ -98,11 +118,12 @@ begin
     )
     and exists (
       select 1
-      from public.stages as other_stage
-      join public.season_days as other_day
-        on other_day.id = other_stage.season_day_id
-      where other_stage.race_edition_id = other_edition.id
-        and other_day.day_number between v_target_start_day and v_target_end_day
+      from public.stages as target_stage
+      join public.stages as other_stage
+        on other_stage.season_day_id = target_stage.season_day_id
+       and other_stage.day_slot = target_stage.day_slot
+       and other_stage.race_edition_id = other_edition.id
+      where target_stage.race_edition_id = p_race_edition_id
     );
 
   update public.race_registrations as registration
@@ -123,13 +144,152 @@ begin
         and active_roster.status in ('selected', 'confirmed')
     );
 
-  update public.rider_form_camps as camp
-  set status = 'cancelled', completed_at = now()
-  where camp.rider_id = p_rider_id
-    and camp.season_id = v_season_id
-    and camp.status in ('planned', 'active')
-    and camp.start_day_number <= v_target_end_day
-    and camp.end_day_number >= v_target_start_day;
+  for v_camp in
+    select
+      camp.*,
+      reconnaissance.reconnaissance_id,
+      reconnaissance.race_name as reconnaissance_race_name,
+      coalesce(reconnaissance.refund_amount, camp.total_price)
+        as refund_amount
+    from public.rider_form_camps as camp
+    left join lateral (
+      select
+        shares.reconnaissance_id,
+        shares.race_name,
+        case
+          when shares.participant_index < shares.participant_count
+            then round(shares.total_price / shares.participant_count, 2)
+          else shares.total_price
+            - round(shares.total_price / shares.participant_count, 2)
+              * (shares.participant_count - 1)
+        end as refund_amount
+      from (
+        select
+          stage_reconnaissance.id as reconnaissance_id,
+          target_edition.display_name as race_name,
+          stage_reconnaissance.total_price,
+          count(all_participants.id)::numeric as participant_count,
+          array_position(
+            array_agg(
+              all_participants.form_camp_id
+              order by all_participants.form_camp_id
+            ),
+            camp.id
+          )::numeric as participant_index
+        from public.stage_reconnaissance_riders as participant
+        join public.stage_reconnaissances as stage_reconnaissance
+          on stage_reconnaissance.id = participant.reconnaissance_id
+        join public.stage_reconnaissance_riders as all_participants
+          on all_participants.reconnaissance_id = stage_reconnaissance.id
+        join public.stages as target_stage
+          on target_stage.id = stage_reconnaissance.target_stage_id
+        join public.race_editions as target_edition
+          on target_edition.id = target_stage.race_edition_id
+        where participant.form_camp_id = camp.id
+        group by
+          stage_reconnaissance.id,
+          stage_reconnaissance.total_price,
+          target_edition.display_name,
+          camp.id
+      ) as shares
+    ) as reconnaissance on true
+    where camp.rider_id = p_rider_id
+      and camp.season_id = v_season_id
+      and camp.status in ('planned', 'active')
+      and camp.start_day_number <= v_target_end_day
+      and camp.end_day_number >= v_target_start_day
+    order by camp.start_day_number, camp.id
+    for update of camp
+  loop
+    if v_camp.status = 'planned'
+      and v_current_day_number < v_camp.start_day_number
+    then
+      if v_camp.camp_type = 'reconnaissance'
+        and v_camp.reconnaissance_id is null
+      then
+        raise exception
+          'La reconnaissance à rembourser est introuvable pour le coureur %.',
+          p_rider_id;
+      end if;
+
+      if v_camp.refund_amount > 0 then
+        v_refund_transaction_id := null;
+
+        insert into public.team_finance_transactions (
+          team_season_id,
+          season_day_id,
+          day_number,
+          amount,
+          category,
+          status,
+          description,
+          source_reference,
+          posted_at
+        ) values (
+          v_camp.team_season_id,
+          v_current_season_day_id,
+          v_current_day_number,
+          v_camp.refund_amount,
+          'training',
+          'posted',
+          case v_camp.camp_type
+            when 'reconnaissance' then
+              'Remboursement convocation fédérale · stage de reconnaissance'
+                || case
+                  when v_camp.reconnaissance_race_name is not null
+                    then ' · ' || v_camp.reconnaissance_race_name
+                  else ''
+                end
+            when 'premium' then
+              'Remboursement convocation fédérale · stage de forme premium'
+            when 'classic' then
+              'Remboursement convocation fédérale · stage de forme classique'
+            when 'indoor_preparation' then
+              'Remboursement convocation fédérale · préparation piste indoor'
+            when 'wind_tunnel_preparation' then
+              'Remboursement convocation fédérale · préparation en soufflerie'
+            else 'Remboursement convocation fédérale · stage'
+          end
+            || ' · J' || v_camp.start_day_number::text
+            || case
+              when v_camp.end_day_number > v_camp.start_day_number
+                then '–J' || v_camp.end_day_number::text
+              else ''
+            end,
+          'federation-selection-camp-refund:' || v_camp.id::text,
+          now()
+        )
+        on conflict (team_season_id, source_reference) do nothing
+        returning id into v_refund_transaction_id;
+
+        if v_refund_transaction_id is not null then
+          update public.team_seasons as team_season
+          set cash_balance = team_season.cash_balance + v_camp.refund_amount
+          where team_season.id = v_camp.team_season_id;
+        end if;
+      end if;
+    end if;
+
+    update public.rider_form_camps as camp
+    set status = 'cancelled', completed_at = now()
+    where camp.id = v_camp.id;
+
+    if v_camp.reconnaissance_id is not null
+      and not exists (
+        select 1
+        from public.stage_reconnaissance_riders as participant
+        join public.rider_form_camps as participant_camp
+          on participant_camp.id = participant.form_camp_id
+        where participant.reconnaissance_id = v_camp.reconnaissance_id
+          and participant_camp.status in ('planned', 'active')
+      )
+    then
+      update public.stage_reconnaissances as stage_reconnaissance
+      set status = 'cancelled', completed_at = now()
+      where stage_reconnaissance.id = v_camp.reconnaissance_id
+        and stage_reconnaissance.status in ('planned', 'active');
+    end if;
+  end loop;
 end;
 $$;
 
