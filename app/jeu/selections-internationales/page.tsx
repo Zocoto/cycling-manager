@@ -89,7 +89,7 @@ export default async function InternationalSelectionsPage({
   ]);
 
   const pendingCount = selections.filter(
-    (selection) => selection.canRespond
+    (selection) => selection.canRespond,
   ).length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
@@ -219,6 +219,23 @@ function SelectionCard({
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
               {status.description}
             </p>
+            {selection.canRespond &&
+            selection.conflictingRaceNames.length > 0 ? (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-950">
+                {selection.conflictingRaceNames.length === 1 ? (
+                  <>
+                    Si vous acceptez la convocation, votre coureur sera
+                    désinscrit de la course {selection.conflictingRaceNames[0]}.
+                  </>
+                ) : (
+                  <>
+                    Si vous acceptez la convocation, votre coureur sera
+                    désinscrit des courses suivantes :{" "}
+                    {selection.conflictingRaceNames.join(", ")}.
+                  </>
+                )}
+              </div>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-black text-[#315B3E]">
               <span className="rounded-full bg-[#EEF5F1] px-3 py-1.5">
                 #{selection.riderRank} {selection.countryName}

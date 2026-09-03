@@ -36,6 +36,7 @@ export type InternationalChampionshipSelection = {
   raceEditionId: string;
   dayNumber: number;
   departureAt: string;
+  conflictingRaceNames: string[];
   canRespond: boolean;
 };
 
@@ -60,31 +61,28 @@ type InternationalSelectionRow = {
   race_edition_id: string;
   day_number: number;
   departure_at: string;
+  conflicting_race_names: string[] | null;
 };
 
 export async function processDueInternationalChampionshipSelections(
-  now = new Date()
+  now = new Date(),
 ) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.rpc(
     "process_due_international_championship_selections",
-    { p_now: now.toISOString() }
+    { p_now: now.toISOString() },
   );
 
   if (error) {
     throw new Error(
-      `Impossible de préparer les sélections internationales : ${error.message}`
+      `Impossible de préparer les sélections internationales : ${error.message}`,
     );
   }
 
-  const row = (
-    (data as
-      | Array<{
-          created_nation_selections: number;
-          finalized_nation_selections: number;
-        }>
-      | null) ?? []
-  )[0];
+  const row = ((data as Array<{
+    created_nation_selections: number;
+    finalized_nation_selections: number;
+  }> | null) ?? [])[0];
 
   return {
     createdNationSelections: row?.created_nation_selections ?? 0,
@@ -109,17 +107,17 @@ export async function getCurrentDirectorInternationalSelections({
 
   const { data, error } = await admin.rpc(
     "get_international_championship_selections_for_auth_user",
-    { p_auth_user_id: authUserId }
+    { p_auth_user_id: authUserId },
   );
 
   if (error) {
     throw new Error(
-      `Impossible de charger les sélections internationales : ${error.message}`
+      `Impossible de charger les sélections internationales : ${error.message}`,
     );
   }
 
-  return (((data as InternationalSelectionRow[] | null) ?? []).map(
-    (selection): InternationalChampionshipSelection => ({
+  return ((data as InternationalSelectionRow[] | null) ?? [])
+    .map((selection): InternationalChampionshipSelection => ({
       candidateId: selection.candidate_id,
       riderId: selection.rider_id,
       riderName: selection.rider_name,
@@ -140,20 +138,20 @@ export async function getCurrentDirectorInternationalSelections({
       raceEditionId: selection.race_edition_id,
       dayNumber: selection.day_number,
       departureAt: selection.departure_at,
+      conflictingRaceNames: selection.conflicting_race_names ?? [],
       canRespond: canRespondToInternationalSelection({
         isSelected: selection.is_selected,
         responseStatus: selection.response_status,
         departureAt: selection.departure_at,
         now,
       }),
-    })
-  ))
+    }))
     .filter(shouldDisplayInternationalSelection)
     .sort(
       (left, right) =>
         Date.parse(left.departureAt) - Date.parse(right.departureAt) ||
         left.riderRank - right.riderRank ||
-        left.riderName.localeCompare(right.riderName, "fr")
+        left.riderName.localeCompare(right.riderName, "fr"),
     );
 }
 
@@ -171,7 +169,7 @@ export async function respondToInternationalChampionshipSelection({
     {
       p_candidate_id: candidateId,
       p_accept: accept,
-    }
+    },
   );
 
   if (error) {
