@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { NationalFederationView } from "@/components/game/national-federation-view";
 import type { NationalFederationSnapshot } from "@/services/national-federations";
+import type { FederationFinanceBaseline } from "@/services/federation-finances";
 
 const snapshot: NationalFederationSnapshot = {
   season: {
@@ -47,6 +48,20 @@ const snapshot: NationalFederationSnapshot = {
   palmares: [],
 };
 
+const financeBaseline: FederationFinanceBaseline = {
+  source: "season-data",
+  seasonName: "Saison 2",
+  gameYear: 2,
+  observedThroughDay: 12,
+  completedRaceDays: 8,
+  completedRaceEditions: 5,
+  acceptedTeamEntries: 45,
+  averageStarters: 54,
+  teamProfiles: [
+    { teamId: "team-fr", teamName: "Équipe formatrice", reputationPoints: 42 },
+  ],
+};
+
 describe("NationalFederationView", () => {
   it("opens a read-only Season 2 overview with real nation data", () => {
     const markup = renderToStaticMarkup(
@@ -65,6 +80,20 @@ describe("NationalFederationView", () => {
         selectedTab="overview"
         publishedJersey={null}
         federationChat={null}
+        financeBaseline={null}
+        selectionRiders={[]}
+        internationalResults={{
+          world: {
+            competitionType: "world_championship",
+            editionName: "Mondial sur route",
+            seasonName: "Saison 2",
+            gameYear: 2,
+            riderName: "Jeanne Peloton",
+            rank: 4,
+          },
+          continental: null,
+          nationsCup: null,
+        }}
       />,
     );
 
@@ -76,6 +105,8 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Impact académies");
     expect(markup).toContain("30 %");
     expect(markup).toContain("Objectifs fédéraux prévisionnels");
+    expect(markup).toContain("Derniers classements de la nation");
+    expect(markup).toContain("Mondial sur route");
     expect(markup).not.toContain("Assistant fédéral");
     expect(markup).toContain("Rang de référence");
     expect(markup).not.toContain("<form");
@@ -92,6 +123,9 @@ describe("NationalFederationView", () => {
         selectedTab="selections"
         publishedJersey={null}
         federationChat={null}
+        financeBaseline={null}
+        selectionRiders={[]}
+        internationalResults={null}
       />,
     );
 
@@ -99,8 +133,9 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Championnats continentaux");
     expect(markup).toContain("Nations Cup");
     expect(markup).toContain("Championnats du monde");
-    expect(markup).toContain("Consultation uniquement");
-    expect(markup).not.toContain("<button");
+    expect(markup).toContain("Nationalité verrouillée");
+    expect(markup).toContain("Enregistrer en S3");
+    expect(markup).toContain("confirmée par chaque DS");
     expect(markup).not.toContain("<form");
   });
 
@@ -115,6 +150,9 @@ describe("NationalFederationView", () => {
         selectedTab="governance"
         publishedJersey={null}
         federationChat={null}
+        financeBaseline={null}
+        selectionRiders={[]}
+        internationalResults={null}
       />,
     );
 
@@ -145,14 +183,19 @@ describe("NationalFederationView", () => {
         selectedTab="finances"
         publishedJersey={null}
         federationChat={null}
+        financeBaseline={financeBaseline}
+        selectionRiders={[]}
+        internationalResults={null}
       />,
     );
 
-    expect(markup).toContain("Simulateur budgétaire S3");
-    expect(markup).toContain("Prévision sans transaction");
-    expect(markup).toContain("Classement UCI précédent");
+    expect(markup).toContain("Projection officielle Saison 3");
+    expect(markup).toContain("situation J12");
+    expect(markup).toContain("Retour réel de la Saison 2");
     expect(markup).toContain("Courses du pays");
-    expect(markup).toContain("Solidarité");
+    expect(markup).toContain("Deux jauges");
+    expect(markup).toContain("Historique des gains et dépenses");
+    expect(markup).not.toContain("Aide exceptionnelle");
     expect(markup).not.toContain("Payer");
     expect(markup).not.toContain("Confirmer le don");
   });

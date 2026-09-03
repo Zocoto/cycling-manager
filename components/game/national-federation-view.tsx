@@ -5,7 +5,9 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { FederationFinancePreview } from "@/components/game/federation-finance-preview";
+import { FederationInfrastructureCatalog } from "@/components/game/federation-infrastructure-catalog";
 import { FederationLounge } from "@/components/game/federation-lounge";
+import { FederationSelectionWorkbench } from "@/components/game/federation-selection-workbench";
 import { NationalJerseyPreviewEditor } from "@/components/game/national-jersey-preview-editor";
 import type { FederationChatOverview } from "@/lib/game/federation-chat";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
@@ -20,6 +22,12 @@ import type {
   FederationChampion,
   NationalFederationSnapshot,
 } from "@/services/national-federations";
+import type { FederationFinanceBaseline } from "@/services/federation-finances";
+import type {
+  FederationInternationalPerformance,
+  FederationInternationalResults,
+} from "@/services/federation-international-results";
+import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { NationRankingEntry } from "@/services/uci-rankings";
 
 type NationalFederationViewProps = {
@@ -35,6 +43,9 @@ type NationalFederationViewProps = {
   selectedTab: NationalFederationTab;
   publishedJersey: PublishedNationalJersey | null;
   federationChat: FederationChatOverview | null;
+  financeBaseline: FederationFinanceBaseline | null;
+  selectionRiders: FederationSelectionRider[];
+  internationalResults: FederationInternationalResults | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -90,6 +101,9 @@ export function NationalFederationView({
   selectedTab,
   publishedJersey,
   federationChat,
+  financeBaseline,
+  selectionRiders,
+  internationalResults,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -181,16 +195,21 @@ export function NationalFederationView({
             memberTeams={memberTeams}
             memberTeamCount={memberTeamCount}
             divisionLabel={division.label}
+            internationalResults={internationalResults}
           />
         ) : selectedTab === "selections" ? (
-          <SelectionsPanel snapshot={snapshot} />
+          <SelectionsPanel
+            country={country}
+            snapshot={snapshot}
+            riders={selectionRiders}
+          />
         ) : selectedTab === "infrastructures" ? (
-          <InfrastructuresPanel snapshot={snapshot} />
+          <InfrastructuresPanel snapshot={snapshot} managementLocked={isPreview} />
         ) : selectedTab === "finances" ? (
           <FinancesPanel
             nationRank={nationRanking?.rank ?? 173}
             division={division.division}
-            memberTeamCount={memberTeamCount}
+            baseline={financeBaseline}
           />
         ) : selectedTab === "governance" ? (
           <GovernancePanel
@@ -259,6 +278,7 @@ function OverviewPanel({
   memberTeams,
   memberTeamCount,
   divisionLabel,
+  internationalResults,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
@@ -266,6 +286,7 @@ function OverviewPanel({
   memberTeams: GlobalSearchResult[];
   memberTeamCount: number;
   divisionLabel: string;
+  internationalResults: FederationInternationalResults | null;
 }) {
   return (
     <div className="space-y-7">
@@ -294,6 +315,33 @@ function OverviewPanel({
           value={`${snapshot.academies.totalImpactPercentage} %`}
           detail={`${snapshot.academies.centers.length} centre${snapshot.academies.centers.length > 1 ? "s" : ""} international${snapshot.academies.centers.length > 1 ? "aux" : ""}`}
         />
+      </section>
+
+      <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
+        <SectionHeading
+          eyebrow="Repères internationaux"
+          title="Derniers classements de la nation"
+          description="La meilleure place nationale est extraite des derniers Championnats du monde et continentaux réellement terminés. La Nations Cup ouvrira son historique à sa première édition S3."
+        />
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <InternationalResultCard
+            label="Championnats du monde"
+            performance={internationalResults?.world ?? null}
+          />
+          <InternationalResultCard
+            label="Championnats continentaux"
+            performance={internationalResults?.continental ?? null}
+          />
+          <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+              Nations Cup
+            </p>
+            <p className="mt-3 text-2xl font-black text-[#183F37]">À venir</p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
+              Première édition et premier classement de groupe en Saison 3.
+            </p>
+          </article>
+        </div>
       </section>
 
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
@@ -391,7 +439,15 @@ function OverviewPanel({
   );
 }
 
-function SelectionsPanel({ snapshot }: { snapshot: NationalFederationSnapshot }) {
+function SelectionsPanel({
+  country,
+  snapshot,
+  riders,
+}: {
+  country: NationalFederationViewProps["country"];
+  snapshot: NationalFederationSnapshot;
+  riders: FederationSelectionRider[];
+}) {
   const nextGameYear = snapshot.season.gameYear + 1;
   const isQuadriennialSeason = nextGameYear % 4 === 0;
   const events = [
@@ -451,61 +507,22 @@ function SelectionsPanel({ snapshot }: { snapshot: NationalFederationSnapshot })
         ))}
       </section>
 
-      <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-        <SectionHeading
-          eyebrow="Circuit de validation"
-          title="Une sélection traçable de J1 au départ"
-          description="L’assistant et la boîte mail conserveront chaque proposition, acceptation et refus."
-        />
-        <ol className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            ["01", "Proposition du président", "Toutes les compositions peuvent être préparées dès J1."],
-            ["02", "Réponse des équipes", "Chaque club accepte ou refuse uniquement ses propres coureurs."],
-            ["03", "Révision", "Le président ajuste sa liste à partir des réponses reçues."],
-            ["04", "Sécurisation automatique", "Blessures, absences et places vacantes déclenchent les remplaçants."],
-          ].map(([number, title, detail]) => (
-            <li key={number} className="rounded-2xl bg-[#F2F8F5] p-5">
-              <span className="text-2xl font-black text-[#42B99A]">{number}</span>
-              <p className="mt-3 font-black text-[#183F37]">{title}</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-                {detail}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <FederationSelectionWorkbench
+        countryCode={country.code}
+        countryName={country.name}
+        riders={riders}
+      />
     </div>
   );
 }
 
 function InfrastructuresPanel({
   snapshot,
+  managementLocked,
 }: {
   snapshot: NationalFederationSnapshot;
+  managementLocked: boolean;
 }) {
-  const buildings = [
-    {
-      name: "Bureau fédéral d’intégration",
-      effect: "Crée un délai commun de naturalisation, sans cumul avec un meilleur Centre d’accueil d’équipe.",
-      icon: "◎",
-    },
-    {
-      name: "Institut fédéral du staff",
-      effect: "Améliore subtilement l’efficacité du personnel de nationalité locale.",
-      icon: "✦",
-    },
-    {
-      name: "Bureau d’organisation",
-      effect: "Augmente la part fédérale issue des courses réellement disputées dans le pays.",
-      icon: "⌁",
-    },
-    {
-      name: "Programme avantage du terrain",
-      effect: "Renforce progressivement le bonus local des coureurs originaires du pays.",
-      icon: "▲",
-    },
-  ];
-
   return (
     <div className="space-y-7">
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
@@ -575,34 +592,7 @@ function InfrastructuresPanel({
         </div>
       </section>
 
-      <section>
-        <SectionHeading
-          eyebrow="Patrimoine fédéral"
-          title="Bâtiments proposés pour la Saison 3"
-          description="Les effets sont présentés pour test, mais aucun chantier ni débit n’est possible pendant la Saison 2."
-        />
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          {buildings.map((building) => (
-            <article
-              key={building.name}
-              className="flex gap-4 rounded-[1.65rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_36px_rgba(19,60,46,0.06)] sm:p-6"
-            >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#123F36] text-xl font-black text-[#F2C94C]">
-                {building.icon}
-              </span>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-black text-[#183F37]">{building.name}</h3>
-                  <StatusPill>Saison 3</StatusPill>
-                </div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-                  {building.effect}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <FederationInfrastructureCatalog managementLocked={managementLocked} />
     </div>
   );
 }
@@ -610,62 +600,33 @@ function InfrastructuresPanel({
 function FinancesPanel({
   nationRank,
   division,
-  memberTeamCount,
+  baseline,
 }: {
   nationRank: number;
   division: 1 | 2 | 3 | 4;
-  memberTeamCount: number;
+  baseline: FederationFinanceBaseline | null;
 }) {
+  if (!baseline) {
+    return (
+      <EmptyState>
+        La projection financière n’a pas pu être préparée pour cette nation.
+      </EmptyState>
+    );
+  }
+
   return (
     <div className="space-y-7">
       <LockedFeatureHeader
         eyebrow="Trésorerie fédérale"
-        title="Projeter le budget avant de l’engager"
-        description="Le simulateur ci-dessous travaille uniquement dans votre navigateur. Le véritable solde sera créé au lancement de la Saison 3 : aucun prélèvement, don ou versement n’est effectué ici."
+        title="Projection officielle du budget Saison 3"
+        description="Le calcul s’appuie désormais sur le classement UCI et les courses réellement disputées en Saison 2. Les dons, aides et dépenses restent verrouillés jusqu’au passage en Saison 3."
       />
 
       <FederationFinancePreview
         initialNationRank={nationRank}
         initialDivision={division}
-        memberTeamCount={memberTeamCount}
+        baseline={baseline}
       />
-
-      <div className="grid gap-7 lg:grid-cols-2">
-        <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-          <SectionHeading
-            eyebrow="Recettes"
-            title="Des revenus lisibles et plafonnés"
-            description="La fédération percevra une faible part après le règlement effectif des courses du pays."
-          />
-          <FeatureList
-            entries={[
-              "Dotation annuelle selon les résultats précédents",
-              "Part des courses selon leur rang et leurs partants réels",
-              "Dons volontaires et irréversibles des équipes",
-              "Revenus et coûts éventuels d’une édition accueillie",
-              "Bonus plafonné pour les objectifs fédéraux",
-            ]}
-          />
-        </section>
-
-        <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-          <SectionHeading
-            eyebrow="Redistribution"
-            title="Deux aides concrètes"
-            description="Aucun transfert discrétionnaire libre ne sera laissé au président."
-          />
-          <div className="mt-5 space-y-3">
-            <AidCard
-              title="Fonds de solidarité"
-              detail="Répartition automatique vers les équipes affiliées les plus modestes."
-            />
-            <AidCard
-              title="Aide exceptionnelle"
-              detail="Soutien rare, plafonné, voté et intégralement inscrit au journal public."
-            />
-          </div>
-        </section>
-      </div>
     </div>
   );
 }
@@ -941,6 +902,43 @@ function HeroMetric({
   );
 }
 
+function InternationalResultCard({
+  label,
+  performance,
+}: {
+  label: string;
+  performance: FederationInternationalPerformance | null;
+}) {
+  return (
+    <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+        {label}
+      </p>
+      {performance ? (
+        <>
+          <p className="mt-3 text-2xl font-black text-[#183F37]">
+            {performance.rank}
+            <sup>{performance.rank === 1 ? "er" : "e"}</sup>
+          </p>
+          <p className="mt-2 font-black text-[#315B3E]">
+            {performance.riderName}
+          </p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+            {performance.editionName} · {performance.seasonName}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mt-3 text-2xl font-black text-[#183F37]">—</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
+            Aucun résultat classé enregistré pour cette nation.
+          </p>
+        </>
+      )}
+    </article>
+  );
+}
+
 function OverviewMetric({
   eyebrow,
   label,
@@ -1109,20 +1107,6 @@ function FeatureList({ entries }: { entries: string[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function AidCard({ title, detail }: { title: string; detail: string }) {
-  return (
-    <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-black text-[#183F37]">{title}</h3>
-        <StatusPill>Saison 3</StatusPill>
-      </div>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-        {detail}
-      </p>
-    </article>
   );
 }
 

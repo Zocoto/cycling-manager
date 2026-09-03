@@ -10,6 +10,9 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getFederationChatOverview } from "@/services/federation-chat";
+import { getFederationFinanceBaseline } from "@/services/federation-finances";
+import { getFederationInternationalResults } from "@/services/federation-international-results";
+import { getFederationSelectionPool } from "@/services/federation-selection-pool";
 import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
 import { getNationalFederationSnapshot } from "@/services/national-federations";
 import { getPublicCountryDirectory } from "@/services/public-directory";
@@ -54,12 +57,44 @@ export default async function FederationPage({
     countryCode: country.country_code,
     viewerTeamId: headerData.teamId,
   });
-  const [publishedJersey, federationChat] = await Promise.all([
+  const [
+    publishedJersey,
+    federationChat,
+    financeBaseline,
+    selectionRiders,
+    internationalResults,
+  ] = await Promise.all([
     selectedTab === "governance"
       ? getNationalFederationJersey(supabase, country.entity_id)
       : Promise.resolve(null),
     selectedTab === "lounge" && snapshot.viewer.isAffiliated
       ? getFederationChatOverview(supabase, country.entity_id)
+      : Promise.resolve(null),
+    selectedTab === "finances"
+      ? getFederationFinanceBaseline({
+          countryId: country.entity_id,
+          season: snapshot.season,
+          teams: directory.members.teams.map((team) => ({
+            id: team.entity_id,
+            name: team.display_name,
+          })),
+        })
+      : Promise.resolve(null),
+    selectedTab === "selections"
+      ? getFederationSelectionPool({
+          countryId: country.entity_id,
+          seasonId: snapshot.season.id,
+          gameYear: snapshot.season.gameYear,
+        }).catch((error) => {
+          console.error(
+            "Impossible de charger le vivier de sélection fédérale :",
+            error,
+          );
+          return [];
+        })
+      : Promise.resolve([]),
+    selectedTab === "overview"
+      ? getFederationInternationalResults(country.entity_id)
       : Promise.resolve(null),
   ]);
 
@@ -96,6 +131,9 @@ export default async function FederationPage({
           selectedTab={selectedTab}
           publishedJersey={publishedJersey}
           federationChat={federationChat}
+          financeBaseline={financeBaseline}
+          selectionRiders={selectionRiders}
+          internationalResults={internationalResults}
         />
       </section>
     </main>
