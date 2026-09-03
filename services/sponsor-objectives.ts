@@ -15,9 +15,13 @@ import {
   resolveSponsorSportingPhilosophy,
   type SponsorSportingPhilosophy,
 } from "@/lib/game/sponsor-philosophy";
+import {
+  adjustSponsorObjectiveAmbitionLevel,
+  type SponsorObjectiveDifficulty,
+} from "@/lib/game/sponsor-negotiation";
 
 const OBJECTIVE_COUNT = 10;
-const SPONSOR_OBJECTIVE_GENERATION_VERSION = 6;
+const SPONSOR_OBJECTIVE_GENERATION_VERSION = 7;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -47,6 +51,7 @@ type GenerateSponsorObjectivesOptions = {
   sponsorContinentCode?: string | null;
   sportingPhilosophy?: SponsorSportingPhilosophy;
   relationshipYear?: number;
+  objectiveDifficulty?: SponsorObjectiveDifficulty;
   random?: () => number;
 };
 
@@ -207,6 +212,7 @@ export function generateProvisionalSponsorObjectives({
   sponsorContinentCode = null,
   sportingPhilosophy: requestedSportingPhilosophy,
   relationshipYear = 1,
+  objectiveDifficulty = "balanced",
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
@@ -227,10 +233,13 @@ export function generateProvisionalSponsorObjectives({
     resolveSponsorSportingPhilosophy(
       sponsorCatalogKey || normalizedCountryCode,
     );
-  const ambitionLevel = resolveSponsorObjectiveAmbitionLevel({
-    sponsorPrestige,
-    proposedBudget,
-  });
+  const ambitionLevel = adjustSponsorObjectiveAmbitionLevel(
+    resolveSponsorObjectiveAmbitionLevel({
+      sponsorPrestige,
+      proposedBudget,
+    }),
+    objectiveDifficulty,
+  );
   const weights = sportingPhilosophy === "national_preference"
     ? NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS
     : SATISFACTION_WEIGHTS[focus];
@@ -382,6 +391,7 @@ export function generateProvisionalSponsorObjectives({
       generationVersion: SPONSOR_OBJECTIVE_GENERATION_VERSION,
       sportingPhilosophy,
       ambitionLevel,
+      objectiveDifficulty,
     },
   }));
 }

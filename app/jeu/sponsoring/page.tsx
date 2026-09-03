@@ -146,6 +146,10 @@ export default async function SponsoringPage({
 
           {actionSuccess === "rupture" ? <ActionSuccessMessage /> : null}
 
+          {actionSuccess === "negociation" ? (
+            <NegotiationSuccessMessage />
+          ) : null}
+
           {actionError ? <ActionErrorMessage message={actionError} /> : null}
 
           {sponsoringError ? (
@@ -1458,6 +1462,21 @@ function ActionSuccessMessage() {
       <p className="mt-2 text-sm leading-6">
         L’identité amateur de votre équipe a été restaurée et la pénalité de
         réputation a été appliquée.
+      </p>
+    </div>
+  );
+}
+
+function NegotiationSuccessMessage() {
+  return (
+    <div
+      role="status"
+      className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950"
+    >
+      <p className="font-black">La négociation a bien été enregistrée.</p>
+      <p className="mt-2 text-sm leading-6">
+        L’apport annuel et les dix objectifs de la saison suivante ont été
+        recalculés selon le niveau de difficulté choisi.
       </p>
     </div>
   );

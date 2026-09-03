@@ -126,6 +126,41 @@ describe("generateProvisionalSponsorObjectives", () => {
     ).toBe(100);
   });
 
+  it("décale exactement d’un niveau l’ambition négociée", () => {
+    const generateAtDifficulty = (
+      objectiveDifficulty: "accessible" | "balanced" | "ambitious",
+    ) => generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 3,
+      proposedBudget: 800_000,
+      objectiveDifficulty,
+      random: createDeterministicRandom([0.2, 0.7, 0.4]),
+    });
+
+    for (const [difficulty, expectedAmbition] of [
+      ["accessible", 2],
+      ["balanced", 3],
+      ["ambitious", 4],
+    ] as const) {
+      const objectives = generateAtDifficulty(difficulty);
+
+      expect(
+        new Set(
+          objectives.map(
+            (objective) => objective.targetDetails.ambitionLevel,
+          ),
+        ),
+      ).toEqual(new Set([expectedAmbition]));
+      expect(
+        new Set(
+          objectives.map(
+            (objective) => objective.targetDetails.objectiveDifficulty,
+          ),
+        ),
+      ).toEqual(new Set([difficulty]));
+    }
+  });
+
   it("laisse le renouvellement dépendre uniquement de la satisfaction globale", () => {
     const objectives = generateProvisionalSponsorObjectives({
       sponsorCountryCode: "ES",

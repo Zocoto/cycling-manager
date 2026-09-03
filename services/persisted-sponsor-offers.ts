@@ -4,6 +4,11 @@ import { SPONSORS } from "@/data/sponsors";
 import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
 import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import {
+  getSponsorNegotiationBudgetCeiling,
+  isSponsorObjectiveDifficulty,
+  type SponsorObjectiveDifficulty,
+} from "@/lib/game/sponsor-negotiation";
+import {
   resolveSponsorSportingPhilosophy,
   type SponsorSportingPhilosophy,
 } from "@/lib/game/sponsor-philosophy";
@@ -32,6 +37,9 @@ export type PersistedSponsorOffer = {
   id: string;
   sponsor: Sponsor;
   sportingPhilosophy: SponsorSportingPhilosophy;
+  objectiveDifficulty: SponsorObjectiveDifficulty;
+  baseBudget: number;
+  negotiationBudgetCeiling: number;
   proposedBudget: number;
   contractDurationSeasons: number;
   status: SponsorOfferStatus;
@@ -76,6 +84,9 @@ type SponsorOfferRow = {
   id: string;
   sponsor_id: string;
   budget_per_season: number | string;
+  base_budget_per_season: number | string;
+  negotiation_budget_ceiling: number | string;
+  objective_difficulty: SponsorObjectiveDifficulty;
   contract_duration_seasons: number;
   status: SponsorOfferStatus;
   generation_version: number;
@@ -171,6 +182,9 @@ export async function getOrCreateSponsorOffersForAuthUser(
         id,
         sponsor_id,
         budget_per_season,
+        base_budget_per_season,
+        negotiation_budget_ceiling,
+        objective_difficulty,
         contract_duration_seasons,
         status,
         generation_version
@@ -338,6 +352,12 @@ export async function getOrCreateSponsorOffersForAuthUser(
           proposal.sponsor.description,
         budget_per_season:
           proposal.proposedBudget,
+        base_budget_per_season: proposal.proposedBudget,
+        negotiation_budget_ceiling: getSponsorNegotiationBudgetCeiling({
+          baseBudget: proposal.proposedBudget,
+          sponsorMaximumBudget: proposal.sponsor.budgetRange.max,
+        }),
+        objective_difficulty: "balanced",
         currency_code: "EUR",
         contract_duration_seasons:
           proposal.contractDurationSeasons,
@@ -359,6 +379,9 @@ export async function getOrCreateSponsorOffersForAuthUser(
         id,
         sponsor_id,
         budget_per_season,
+        base_budget_per_season,
+        negotiation_budget_ceiling,
+        objective_difficulty,
         contract_duration_seasons,
         status,
         generation_version
@@ -502,7 +525,8 @@ async function hydrateSponsorOffersWithObjectives({
     hydratedOffers.map((offer) => ({
       offerId: offer.id,
       sponsor: offer.sponsor,
-      proposedBudget: offer.proposedBudget,
+      proposedBudget: offer.baseBudget,
+      objectiveDifficulty: offer.objectiveDifficulty,
     }));
 
   const objectivesByOfferId =
@@ -751,6 +775,10 @@ async function hydrateSponsorOffers(
     const proposedBudget = Number(
       offerRow.budget_per_season
     );
+    const baseBudget = Number(offerRow.base_budget_per_season);
+    const storedBudgetCeiling = Number(
+      offerRow.negotiation_budget_ceiling,
+    );
 
     if (!Number.isFinite(proposedBudget)) {
       throw new Error(
@@ -758,10 +786,31 @@ async function hydrateSponsorOffers(
       );
     }
 
+    if (!Number.isFinite(baseBudget) || !Number.isFinite(storedBudgetCeiling)) {
+      throw new Error(
+        `Paramètres de négociation invalides pour l’offre ${offerRow.id}.`,
+      );
+    }
+
+    if (!isSponsorObjectiveDifficulty(offerRow.objective_difficulty)) {
+      throw new Error(
+        `Difficulté d’objectifs invalide pour l’offre ${offerRow.id}.`,
+      );
+    }
+
     return {
       id: offerRow.id,
       sponsor,
       sportingPhilosophy: resolveSponsorSportingPhilosophy(sponsor.id),
+      objectiveDifficulty: offerRow.objective_difficulty,
+      baseBudget,
+      negotiationBudgetCeiling: Math.max(
+        storedBudgetCeiling,
+        getSponsorNegotiationBudgetCeiling({
+          baseBudget,
+          sponsorMaximumBudget: sponsor.budgetRange.max,
+        }),
+      ),
       proposedBudget,
       contractDurationSeasons:
         offerRow.contract_duration_seasons,

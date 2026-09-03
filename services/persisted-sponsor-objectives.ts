@@ -7,6 +7,7 @@ import {
   type SponsorObjectiveRaceCandidate,
 } from "@/services/sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
+import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 import type {
   RaceCategoryCode,
   RaceProfileType,
@@ -32,6 +33,7 @@ export type SponsorOfferObjectiveContext = {
   sponsor: Sponsor;
   proposedBudget: number;
   relationshipYear?: number;
+  objectiveDifficulty?: SponsorObjectiveDifficulty;
   neutralizeMissingObjectives?: boolean;
 };
 
@@ -187,6 +189,7 @@ export async function ensureAndLoadSponsorObjectives({
             offer.sponsor.countryCode.trim().toUpperCase(),
           ) ?? null,
         relationshipYear: offer.relationshipYear ?? 1,
+        objectiveDifficulty: offer.objectiveDifficulty ?? "balanced",
         teamReputationPoints,
         raceCandidates,
         random: createSeededRandom(

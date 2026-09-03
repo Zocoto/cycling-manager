@@ -16,6 +16,7 @@ import {
   ConfirmSponsorButton,
   SponsorJerseySelector,
 } from "./sponsoring-controls";
+import { SponsorNegotiationControl } from "./sponsor-negotiation-control";
 
 export function FutureSponsoringSection({
   state,
@@ -224,6 +225,7 @@ function FutureOffersSection({
             key={offer.id}
             offer={offer}
             targetSeasonName={state.season.name}
+            targetGameYear={state.season.gameYear}
             renewalBudgetIsFinal={state.renewalBudgetIsFinal}
           />
         ))}
@@ -247,10 +249,12 @@ function FutureOffersSection({
 function FutureSponsorOfferCard({
   offer,
   targetSeasonName,
+  targetGameYear,
   renewalBudgetIsFinal,
 }: {
   offer: PersistedSponsorOffer;
   targetSeasonName: string;
+  targetGameYear: number;
   renewalBudgetIsFinal: boolean;
 }) {
   const sponsor = offer.sponsor;
@@ -362,6 +366,20 @@ function FutureSponsorOfferCard({
             Estimation selon la satisfaction actuelle. Le budget réel de la
             saison suivante sera recalculé définitivement au jour 28.
           </p>
+        ) : null}
+
+        {targetGameYear >= 3 ? (
+          <SponsorNegotiationControl
+            offerId={offer.id}
+            sponsorName={sponsor.name}
+            targetSeasonName={targetSeasonName}
+            baseBudget={offer.baseBudget}
+            budgetCeiling={offer.negotiationBudgetCeiling}
+            currentDifficulty={offer.objectiveDifficulty}
+            primaryColor={sponsor.colors.primary}
+            textColor={sponsor.colors.text}
+            backgroundColor={sponsor.colors.background}
+          />
         ) : null}
 
         <section

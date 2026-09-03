@@ -1,4 +1,5 @@
 import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
+import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 
 export type SponsorObjectiveAmbitionLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -108,6 +109,7 @@ export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {
   generationVersion?: number;
   sportingPhilosophy?: SponsorSportingPhilosophy;
   ambitionLevel?: SponsorObjectiveAmbitionLevel;
+  objectiveDifficulty?: SponsorObjectiveDifficulty;
 };
 
 export type GeneratedSponsorObjective = {
