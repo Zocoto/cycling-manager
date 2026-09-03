@@ -5,6 +5,7 @@ import {
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
   normalizeOfficialStageResultRanks,
+  officialStageSimulationCoversRoster,
   simulationStartsUnavailableRider,
 } from "./official-race-simulation";
 import type { StageSimulationResult } from "./race-simulation";
@@ -77,6 +78,28 @@ describe("normalizeOfficialStageResultRanks", () => {
         sprintPoints: {},
       }).results.map((result) => result.rank),
     ).toEqual([1, 2, 3, null]);
+  });
+});
+
+describe("officialStageSimulationCoversRoster", () => {
+  it("compte les non-partants explicitement indisponibles dans la startlist verrouillée", () => {
+    expect(
+      officialStageSimulationCoversRoster({
+        resultRiderIds: ["starter-1", "starter-2"],
+        unavailableRiderIds: ["injured-non-starter"],
+        rosterRiderIds: ["starter-1", "starter-2", "injured-non-starter"],
+      }),
+    ).toBe(true);
+  });
+
+  it("détecte toujours une startlist réellement tronquée", () => {
+    expect(
+      officialStageSimulationCoversRoster({
+        resultRiderIds: ["starter-1"],
+        unavailableRiderIds: ["injured-non-starter"],
+        rosterRiderIds: ["starter-1", "starter-2", "injured-non-starter"],
+      }),
+    ).toBe(false);
   });
 });
 
