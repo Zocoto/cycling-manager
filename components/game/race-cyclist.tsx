@@ -15,6 +15,7 @@ import {
 } from "@/lib/game/race-visuals";
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
+import { NationalJerseyDesignPattern } from "./national-jersey-design-artwork";
 
 export function SideRaceCyclist({
   rider,
@@ -111,6 +112,16 @@ export function SideRaceCyclist({
       ) : jerseyVisual.status === "continental-champion" ? (
         <ContinentalChampionPattern
           continentCode={jerseyVisual.continentCode!}
+          clipPathId={jerseyClipId}
+          width={72}
+          height={48}
+        />
+      ) : jerseyVisual.status === "national-team" &&
+        jerseyVisual.nationalDesign ? (
+        <NationalJerseyDesignPattern
+          countryCode={jerseyVisual.countryCode}
+          design={jerseyVisual.nationalDesign}
+          idPrefix={`${jerseyClipId}-design`}
           clipPathId={jerseyClipId}
           width={72}
           height={48}
@@ -273,6 +284,16 @@ export function TopRaceCyclist({
           width={72}
           height={34}
         />
+      ) : jerseyVisual.status === "national-team" &&
+        jerseyVisual.nationalDesign ? (
+        <NationalJerseyDesignPattern
+          countryCode={jerseyVisual.countryCode}
+          design={jerseyVisual.nationalDesign}
+          idPrefix={`${jerseyClipId}-design`}
+          clipPathId={jerseyClipId}
+          width={72}
+          height={34}
+        />
       ) : jerseyVisual.status === "national-champion" ||
         jerseyVisual.status === "national-team" ? (
         <NationalChampionRacePattern
@@ -423,6 +444,7 @@ export function getRaceCyclistJerseyVisual(
       pattern: "national-flag" as const,
       status: "national-team" as const,
       countryCode: rider.teamJersey.countryCode,
+      nationalDesign: rider.teamJersey.nationalDesign ?? null,
     };
   }
 

@@ -63,6 +63,7 @@ import {
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
+import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
 import {
   loadRaceStaffEffects,
   type RaceStaffEffects,
@@ -1164,6 +1165,12 @@ export async function getActiveSeasonRaceCalendar(
           .map((edition) => edition.id)
       : [],
   );
+  const nationalJerseyDesignByCountryId =
+    nationalInternationalEditionIds.size > 0
+      ? await loadNationalFederationJerseyDesigns(
+          riderCountryRows.map((rider) => rider.country_id),
+        )
+      : new Map();
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
     stageEquipmentEffectRows,
@@ -1173,6 +1180,7 @@ export async function getActiveSeasonRaceCalendar(
     worldChampionshipTitlesByRiderId,
     continentalChampionshipTitlesByRiderId,
     nationalInternationalEditionIds,
+    nationalJerseyDesignByCountryId,
     nationalChampionshipTitlesByRiderId,
     performancePreparationRows,
     raceStaffEffects,
@@ -1881,6 +1889,9 @@ function groupCalendarEngagedRiders(
     ActiveContinentalChampionshipTitlesByDiscipline
   >,
   nationalInternationalEditionIds: ReadonlySet<string>,
+  nationalJerseyDesignByCountryId: Awaited<
+    ReturnType<typeof loadNationalFederationJerseyDesigns>
+  >,
   nationalChampionshipTitlesByRiderId: Map<
     string,
     ActiveNationalChampionshipTitlesByDiscipline
@@ -1948,7 +1959,10 @@ function groupCalendarEngagedRiders(
       : null;
     const nationalTeamJersey =
       usesNationalWorldModel && riderCountry
-        ? createNationalTeamRiderJersey(riderCountry.iso_alpha2)
+        ? createNationalTeamRiderJersey(
+            riderCountry.iso_alpha2,
+            nationalJerseyDesignByCountryId.get(riderMetadata!.country_id),
+          )
         : null;
     const teamStaffEffects = usesNationalWorldModel
       ? undefined

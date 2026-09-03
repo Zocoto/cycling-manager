@@ -27,7 +27,10 @@ describe("game header responsive layout", () => {
 
   it("ajoute une navigation de pouce réservée au téléphone", () => {
     expect(headerSource).toContain(
-      "<MobileGameNavigation viewerEmail={simulatorEmail} />",
+      "<MobileGameNavigation",
+    );
+    expect(headerSource).toContain(
+      "federationCountryCode={federationCountryCode}",
     );
     expect(headerSource).toContain('className="hidden sm:contents"');
   });

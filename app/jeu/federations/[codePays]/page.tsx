@@ -9,6 +9,8 @@ import { parseNationalFederationTab } from "@/lib/game/national-federations";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getFederationChatOverview } from "@/services/federation-chat";
+import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
 import { getNationalFederationSnapshot } from "@/services/national-federations";
 import { getPublicCountryDirectory } from "@/services/public-directory";
 import { getNationRankingEntry } from "@/services/uci-rankings";
@@ -46,12 +48,20 @@ export default async function FederationPage({
   if (!directory) notFound();
 
   const country = directory.country;
+  const selectedTab = parseNationalFederationTab(query.onglet);
   const snapshot = await getNationalFederationSnapshot({
     countryId: country.entity_id,
     countryCode: country.country_code,
     viewerTeamId: headerData.teamId,
   });
-  const selectedTab = parseNationalFederationTab(query.onglet);
+  const [publishedJersey, federationChat] = await Promise.all([
+    selectedTab === "governance"
+      ? getNationalFederationJersey(supabase, country.entity_id)
+      : Promise.resolve(null),
+    selectedTab === "lounge" && snapshot.viewer.isAffiliated
+      ? getFederationChatOverview(supabase, country.entity_id)
+      : Promise.resolve(null),
+  ]);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -84,6 +94,8 @@ export default async function FederationPage({
           memberTeams={directory.members.teams}
           memberTeamCount={country.team_count ?? 0}
           selectedTab={selectedTab}
+          publishedJersey={publishedJersey}
+          federationChat={federationChat}
         />
       </section>
     </main>

@@ -110,12 +110,14 @@ export default async function PublicCountryPage({
                 <p className="mt-3 font-semibold uppercase tracking-[0.18em] text-[#F2C94C]">
                   {country.country_code}
                 </p>
-                <Link
-                  href={`/jeu/federations/${country.country_code.toLowerCase()}`}
-                  className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#19352E] shadow-md transition hover:-translate-y-0.5 hover:bg-[#FFE27A] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                >
-                  Découvrir la fédération →
-                </Link>
+                {country.country_code.toUpperCase() === "BE" ? (
+                  <Link
+                    href="/jeu/federations/be"
+                    className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#19352E] shadow-md transition hover:-translate-y-0.5 hover:bg-[#FFE27A] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    Découvrir la fédération →
+                  </Link>
+                ) : null}
               </div>
 
               <div className="space-y-3">

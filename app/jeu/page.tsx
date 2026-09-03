@@ -648,6 +648,41 @@ export default async function GamePage() {
             </Suspense>
           ) : null}
 
+          {teamSponsorIdentity?.sponsor.countryCode.trim().toUpperCase() ===
+          "BE" ? (
+            <Link
+              href="/jeu/federations/be"
+              prefetchOnIntent
+              data-dashboard-federation="be"
+              className="group relative mt-5 flex items-center gap-4 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[linear-gradient(105deg,#071A17_0%,#0B302B_62%,#176951_100%)] px-5 py-4 text-white shadow-[0_16px_42px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:border-[#F2C94C]/65 hover:shadow-[0_20px_48px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:px-7 sm:py-5"
+            >
+              <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
+                <span
+                  role="img"
+                  aria-label="Drapeau de la Belgique"
+                  className="fi fi-be text-4xl"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+                  Espace national · bêta belge
+                </span>
+                <span className="mt-1 block text-lg font-black sm:text-xl">
+                  Fédération
+                </span>
+                <span className="mt-1 hidden text-xs font-semibold text-[#BFD1C6] sm:block">
+                  Ouvrez le salon fédéral et testez la création du futur maillot national.
+                </span>
+              </span>
+              <span
+                aria-hidden="true"
+                className="text-2xl font-black text-[#F2C94C] transition group-hover:translate-x-1"
+              >
+                →
+              </span>
+            </Link>
+          ) : null}
+
           <section
             className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
           >

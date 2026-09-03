@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { createNationalChampionRiderJersey } from "@/lib/rider-jersey";
+import {
+  createNationalChampionRiderJersey,
+  createNationalTeamRiderJersey,
+} from "@/lib/rider-jersey";
 import { NationalChampionJersey } from "./national-champion-jersey";
 import { RiderAvatar } from "./rider-avatar";
 
@@ -39,5 +42,38 @@ describe("rendu du maillot de champion national", () => {
     expect(markup).toContain('x="0" y="64" width="96" height="34"');
     expect(markup).toContain("contain:paint");
     expect(markup).not.toContain("foreignObject");
+  });
+
+  it("reproduit le maillot fédéral publié sur l’avatar de sélection", () => {
+    const markup = renderToStaticMarkup(
+      <RiderAvatar
+        profileKey={null}
+        seed={42}
+        riderId="selection-be"
+        jersey={createNationalTeamRiderJersey("BE", {
+          schemaVersion: 2,
+          baseColor: "#FAFAFA",
+          elements: [
+            {
+              id: "lion-belge",
+              kind: "emblem",
+              shape: "shield",
+              color: "#111111",
+              secondaryColor: "#FDDA24",
+              x: 60,
+              y: 72,
+              width: 46,
+              height: 54,
+              rotation: 0,
+              opacity: 1,
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain('data-national-emblem="belgian-lion"');
+    expect(markup).toContain("lion-belge");
+    expect(markup).not.toContain('data-national-champion-flag="be"');
   });
 });

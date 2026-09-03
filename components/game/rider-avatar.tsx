@@ -12,6 +12,7 @@ import {
 } from "@/lib/rider-jersey";
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
+import { NationalJerseyDesignPattern } from "./national-jersey-design-artwork";
 
 type RiderAvatarProps = {
   profileKey: string | null | undefined;
@@ -115,6 +116,19 @@ export function RiderAvatar({
             clipPathId={shoulderClipId}
             width={96}
             height={96}
+          />
+        ) : resolvedJersey.status === "national-team" &&
+          resolvedJersey.countryCode &&
+          resolvedJersey.nationalDesign ? (
+          <NationalJerseyDesignPattern
+            countryCode={resolvedJersey.countryCode}
+            design={resolvedJersey.nationalDesign}
+            idPrefix={`avatar-national-${svgId}`}
+            clipPathId={shoulderClipId}
+            x={0}
+            y={54}
+            width={96}
+            height={72}
           />
         ) : (resolvedJersey.status === "national-champion" ||
             resolvedJersey.status === "national-team") &&

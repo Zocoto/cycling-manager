@@ -109,6 +109,55 @@ describe("race cyclist visuals", () => {
     expect(markup).not.toContain("foreignObject");
   });
 
+  it("affiche le dessin fédéral publié sur le maillot de la sélection", () => {
+    const nationalRider: RiderSimulationInput = {
+      ...baseRider,
+      teamJersey: {
+        primaryColor: "#FFFFFF",
+        secondaryColor: "#111111",
+        accentColor: "#F2C94C",
+        pattern: "solid",
+        status: "national-team",
+        countryCode: "BE",
+        nationalDesign: {
+          schemaVersion: 2,
+          baseColor: "#FFFFFF",
+          elements: [
+            {
+              id: "belgian-band",
+              kind: "band",
+              shape: "rectangle",
+              color: "#111111",
+              secondaryColor: "#FDDA24",
+              x: 60,
+              y: 72,
+              width: 180,
+              height: 22,
+              rotation: 12,
+              opacity: 1,
+            },
+          ],
+        },
+      },
+    };
+    const visual = getRaceCyclistJerseyVisual(nationalRider);
+    const markup = renderToStaticMarkup(
+      <>
+        <SideRaceCyclist rider={nationalRider} />
+        <TopRaceCyclist rider={nationalRider} />
+      </>,
+    );
+
+    expect(visual).toMatchObject({
+      status: "national-team",
+      countryCode: "BE",
+      nationalDesign: { schemaVersion: 2 },
+    });
+    expect(markup).toContain("belgian-band");
+    expect(markup).toContain("#FDDA24");
+    expect(markup).not.toContain('data-national-champion-flag="be"');
+  });
+
   it("fait passer le maillot jaune devant le titre national", () => {
     const tourLeader: RiderSimulationInput = {
       ...baseRider,

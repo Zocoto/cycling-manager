@@ -85,8 +85,10 @@ type MobilePanel = "races" | "more";
 
 export function MobileGameNavigation({
   viewerEmail,
+  federationCountryCode,
 }: {
   viewerEmail?: string | null;
+  federationCountryCode?: string | null;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -307,6 +309,32 @@ export function MobileGameNavigation({
             aria-label={isEnglish ? "Mobile game navigation" : "Navigation mobile du jeu"}
             className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
           >
+            {federationCountryCode === "BE" ? (
+              <Link
+                href="/jeu/federations/be"
+                prefetchOnIntent
+                showPendingIndicator={false}
+                data-mobile-more-destination="/jeu/federations/be"
+                onClick={() => closePanel()}
+                className="flex min-h-14 items-center gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/10 px-3 text-xs font-black text-[#FFFDF4]"
+              >
+                <span className="grid h-9 w-11 shrink-0 place-items-center rounded-lg border border-white/15 bg-white/10">
+                  <span
+                    role="img"
+                    aria-label="Drapeau de la Belgique"
+                    className="fi fi-be text-xl"
+                  />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[9px] uppercase tracking-[0.14em] text-[#F2C94C]">
+                    Bêta belge
+                  </span>
+                  <span className="mt-0.5 block">Fédération</span>
+                </span>
+                <span aria-hidden="true" className="text-[#F2C94C]">→</span>
+              </Link>
+            ) : null}
+
             {groups.map((group, groupIndex) => (
               <details
                 key={group.label}

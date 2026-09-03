@@ -53,6 +53,8 @@ export function GameHeader({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
+  const federationCountryCode =
+    sponsor?.countryCode.trim().toUpperCase() === "BE" ? "BE" : null;
 
   const maxWidthClassName =
     maxWidth === "wide" ? "max-w-[1500px]" : "max-w-7xl";
@@ -125,7 +127,10 @@ export function GameHeader({
           </span>
         </Link>
 
-        <GameNavigationMenu viewerEmail={simulatorEmail} />
+        <GameNavigationMenu
+          viewerEmail={simulatorEmail}
+          federationCountryCode={federationCountryCode}
+        />
 
         <div
           data-global-header-search="true"
@@ -292,7 +297,10 @@ export function GameHeader({
       </div>
       </header>
       <Suspense fallback={null}>
-        <MobileGameNavigation viewerEmail={simulatorEmail} />
+        <MobileGameNavigation
+          viewerEmail={simulatorEmail}
+          federationCountryCode={federationCountryCode}
+        />
       </Suspense>
     </>
   );

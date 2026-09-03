@@ -5,8 +5,11 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { FederationFinancePreview } from "@/components/game/federation-finance-preview";
+import { FederationLounge } from "@/components/game/federation-lounge";
 import { NationalJerseyPreviewEditor } from "@/components/game/national-jersey-preview-editor";
+import type { FederationChatOverview } from "@/lib/game/federation-chat";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
+import type { PublishedNationalJersey } from "@/lib/game/national-jersey-preview";
 import {
   FEDERATION_MANAGEMENT_START_GAME_YEAR,
   getFederationDivisionPreview,
@@ -30,6 +33,8 @@ type NationalFederationViewProps = {
   memberTeams: GlobalSearchResult[];
   memberTeamCount: number;
   selectedTab: NationalFederationTab;
+  publishedJersey: PublishedNationalJersey | null;
+  federationChat: FederationChatOverview | null;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -83,6 +88,8 @@ export function NationalFederationView({
   memberTeams,
   memberTeamCount,
   selectedTab,
+  publishedJersey,
+  federationChat,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -186,7 +193,22 @@ export function NationalFederationView({
             memberTeamCount={memberTeamCount}
           />
         ) : selectedTab === "governance" ? (
-          <GovernancePanel country={country} snapshot={snapshot} />
+          <GovernancePanel
+            country={country}
+            snapshot={snapshot}
+            publishedJersey={publishedJersey}
+          />
+        ) : snapshot.viewer.isAffiliated &&
+          snapshot.viewer.teamId &&
+          federationChat ? (
+          <FederationLounge
+            countryId={country.id}
+            countryCode={country.code}
+            countryName={country.name}
+            currentTeamId={snapshot.viewer.teamId}
+            initialMessages={federationChat.messages}
+            initialHasMore={federationChat.hasMore}
+          />
         ) : (
           <FederationLoungePanel
             countryName={country.name}
@@ -651,9 +673,11 @@ function FinancesPanel({
 function GovernancePanel({
   country,
   snapshot,
+  publishedJersey,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
+  publishedJersey: PublishedNationalJersey | null;
 }) {
   return (
     <div className="space-y-7">
@@ -716,6 +740,10 @@ function GovernancePanel({
       <NationalJerseyPreviewEditor
         countryCode={country.code}
         countryName={country.name}
+        publishedJersey={publishedJersey}
+        canPublish={
+          snapshot.viewer.isAffiliated && country.code.toUpperCase() === "BE"
+        }
       />
     </div>
   );
@@ -746,7 +774,7 @@ function FederationSeasonThreePreview({
       : `Accrocher l’une des deux places de montée en Division ${division}`;
 
   return (
-    <section className="grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+    <section>
       <div className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
         <SectionHeading
           eyebrow="Feuille de route S3"
@@ -802,47 +830,6 @@ function FederationSeasonThreePreview({
         </p>
       </div>
 
-      <aside className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(155deg,#0B302B_0%,#176951_100%)] p-6 text-white shadow-[0_20px_45px_rgba(19,60,46,0.18)] sm:p-8">
-        <div
-          aria-hidden="true"
-          className="absolute -right-12 -top-12 h-40 w-40 rounded-full border-[28px] border-white/5"
-        />
-        <div className="relative">
-          <div className="flex items-start justify-between gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#F2C94C] text-xl font-black text-[#19352E]">
-              ✦
-            </span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.11em] text-[#D6DFD2]">
-              Lecture seule
-            </span>
-          </div>
-          <p className="mt-6 text-xs font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
-            Assistant fédéral
-          </p>
-          <h2 className="mt-2 text-2xl font-black">Trois dossiers à anticiper</h2>
-          <ul className="mt-5 space-y-3">
-            {[
-              "Budget prévisionnel à équilibrer avant J1",
-              "Sélections internationales disponibles dès J1",
-              "Mode automatique prêt si aucune présidence n’est élue",
-            ].map((entry) => (
-              <li
-                key={entry}
-                className="flex gap-3 rounded-xl border border-white/10 bg-white/8 p-3 text-sm font-semibold leading-5 text-[#E5EEE9]"
-              >
-                <span className="text-[#F2C94C]" aria-hidden="true">
-                  ✓
-                </span>
-                {entry}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-5 text-xs font-bold leading-5 text-[#BFD1C6]">
-            En Saison 3, ces conseils renverront vers l’action concernée. Cette
-            version n’émet ni alerte ni notification.
-          </p>
-        </div>
-      </aside>
     </section>
   );
 }

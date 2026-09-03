@@ -1,5 +1,10 @@
 import { NATIONAL_CHAMPION_COUNTRY_COLORS } from "@/data/national-champion-country-metadata";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
+import {
+  getNationalJerseyPalette,
+  normalizeNationalJerseyDraft,
+  type NationalJerseyDraft,
+} from "@/lib/game/national-jersey-preview";
 import type { JerseyStyle, SponsorColors } from "@/types/sponsor";
 
 export type RiderJerseyPattern =
@@ -37,6 +42,7 @@ export type RiderJerseyAppearance = {
   countryCode?: string;
   continentCode?: ContinentalChampionshipCode;
   championshipType?: "road" | "time_trial";
+  nationalDesign?: NationalJerseyDraft;
 };
 
 export type NationalChampionPalette = {
@@ -184,16 +190,28 @@ export function createNationalChampionRiderJersey({
 
 export function createNationalTeamRiderJersey(
   countryCode: string,
+  nationalDesign?: NationalJerseyDraft | null,
 ): RiderJerseyAppearance {
-  const palette = getNationalChampionPalette(countryCode);
+  const normalizedDesign = nationalDesign
+    ? normalizeNationalJerseyDraft(nationalDesign)
+    : null;
+  const fallbackPalette = getNationalChampionPalette(countryCode);
+  const palette = normalizedDesign
+    ? getNationalJerseyPalette(normalizedDesign)
+    : {
+        primaryColor: fallbackPalette.primary,
+        secondaryColor: fallbackPalette.secondary,
+        accentColor: fallbackPalette.accent,
+      };
 
   return {
-    primaryColor: palette.primary,
-    secondaryColor: palette.secondary,
-    accentColor: palette.accent,
+    primaryColor: palette.primaryColor,
+    secondaryColor: palette.secondaryColor,
+    accentColor: palette.accentColor,
     pattern: "solid",
     status: "national-team",
     countryCode: countryCode.toUpperCase(),
+    ...(normalizedDesign ? { nationalDesign: normalizedDesign } : {}),
   };
 }
 

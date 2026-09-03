@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { SvgCountryFlag } from "@/components/game/svg-country-flag";
 import { ContinentalChampionPattern } from "@/components/game/continental-champion-pattern";
+import { NationalJerseyDesignPattern } from "@/components/game/national-jersey-design-artwork";
 import {
   getTeamKitPattern,
   type TeamKitPattern,
@@ -758,6 +759,18 @@ function RaceJerseyOverlay({
     visual.status === "national-champion" ||
     visual.status === "national-team"
   ) {
+    if (visual.status === "national-team" && visual.nationalDesign) {
+      return (
+        <NationalJerseyDesignPattern
+          countryCode={visual.countryCode}
+          design={visual.nationalDesign}
+          idPrefix={`${clipId}-design`}
+          clipPathId={clipId}
+          width={90}
+          height={mode === "side" ? 56 : 42}
+        />
+      );
+    }
     return (
       <SvgCountryFlag
         countryCode={visual.countryCode!}

@@ -112,8 +112,10 @@ const NAVIGATION_COLUMNS_EN = createNavigationColumns(NAVIGATION_GROUPS_EN);
 
 export function GameNavigationMenu({
   viewerEmail,
+  federationCountryCode,
 }: {
   viewerEmail?: string | null;
+  federationCountryCode?: string | null;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -163,6 +165,34 @@ export function GameNavigationMenu({
           aria-label={isEnglish ? "Main game navigation" : "Navigation principale du jeu"}
           className="grid max-h-[min(70vh,42rem)] gap-5 overflow-y-auto p-4 sm:grid-cols-2 sm:p-5"
         >
+          {federationCountryCode === "BE" ? (
+            <Link
+              href="/jeu/federations/be"
+              prefetchOnIntent
+              showPendingIndicator={false}
+              className="group flex items-center gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/10 px-3 py-3 text-[#FFFDF4] transition hover:border-[#F2C94C]/70 hover:bg-[#F2C94C]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:col-span-2"
+            >
+              <span className="grid h-10 w-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/15 bg-white/10">
+                <span
+                  role="img"
+                  aria-label="Drapeau de la Belgique"
+                  className="fi fi-be text-2xl shadow-sm"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+                  Bêta belge
+                </span>
+                <span className="mt-0.5 block text-sm font-black">
+                  Fédération
+                </span>
+              </span>
+              <span aria-hidden="true" className="text-lg text-[#F2C94C]">
+                →
+              </span>
+            </Link>
+          ) : null}
+
           {navigationColumns.map((column, columnIndex) => (
             <div key={columnIndex} className="space-y-5">
               {column.map((group) => (

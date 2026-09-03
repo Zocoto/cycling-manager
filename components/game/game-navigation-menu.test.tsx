@@ -21,6 +21,20 @@ describe("GameNavigationMenu", () => {
     expect(markup).toContain('href="/jeu/parrainage">Parrainage');
   });
 
+  it("affiche l’entrée fédération uniquement pour la bêta belge", () => {
+    const belgianMarkup = renderToStaticMarkup(
+      <GameNavigationMenu federationCountryCode="BE" />,
+    );
+    const otherMarkup = renderToStaticMarkup(
+      <GameNavigationMenu federationCountryCode="FR" />,
+    );
+
+    expect(belgianMarkup).toContain('href="/jeu/federations/be"');
+    expect(belgianMarkup).toContain("fi-be");
+    expect(belgianMarkup).toContain("Fédération");
+    expect(otherMarkup).not.toContain('href="/jeu/federations/be"');
+  });
+
   it("masque les indicateurs de chargement qui se déforment dans le menu contextuel", () => {
     const markup = renderToStaticMarkup(<GameNavigationMenu />);
 
@@ -50,7 +64,7 @@ describe("GameNavigationMenu", () => {
       "utf8",
     ).replace(/\r\n/g, "\n");
 
-    expect(headerSource).toContain("<GameNavigationMenu viewerEmail={simulatorEmail} />");
+    expect(headerSource).toContain("federationCountryCode={federationCountryCode}");
     expect(headerSource).toContain(
       "canAccessRaceSimulator(simulatorEmail) ? (",
     );

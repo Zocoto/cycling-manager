@@ -1,52 +1,79 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 
-import { SvgCountryFlag } from "@/components/game/svg-country-flag";
+import {
+  initialNationalJerseyPublishState,
+  publishNationalFederationJersey,
+} from "@/app/jeu/federations/actions";
+import {
+  NationalJerseyDesignArtwork,
+  NATIONAL_JERSEY_SHIRT_PATH,
+} from "@/components/game/national-jersey-design-artwork";
 import {
   decodeNationalJerseyDraft,
   DEFAULT_NATIONAL_JERSEY_DRAFT,
   getNationalJerseyDraftStorageKey,
+  NATIONAL_JERSEY_MAX_ELEMENTS,
   normalizeNationalJerseyDraft,
   type NationalJerseyDraft,
-  type NationalJerseyFlagMotif,
-  type NationalJerseyPattern,
+  type NationalJerseyElement,
+  type NationalJerseyElementKind,
+  type NationalJerseyElementShape,
+  type PublishedNationalJersey,
 } from "@/lib/game/national-jersey-preview";
 
 type NationalJerseyPreviewEditorProps = {
   countryCode: string;
   countryName: string;
+  publishedJersey: PublishedNationalJersey | null;
+  canPublish: boolean;
 };
 
-const PATTERNS: Array<{ value: NationalJerseyPattern; label: string }> = [
-  { value: "classic", label: "Classique" },
-  { value: "horizontal-band", label: "Bande horizontale" },
-  { value: "diagonal-sash", label: "Écharpe diagonale" },
-  { value: "cross", label: "Croix nationale" },
-  { value: "halves", label: "Deux moitiés" },
+const SHAPES: Array<{ value: NationalJerseyElementShape; label: string }> = [
+  { value: "rectangle", label: "Rectangle" },
+  { value: "roundel", label: "Rond / ovale" },
+  { value: "shield", label: "Blason" },
+  { value: "diamond", label: "Losange" },
+  { value: "hexagon", label: "Hexagone" },
 ];
 
-const FLAG_MOTIFS: Array<{
-  value: NationalJerseyFlagMotif;
-  label: string;
-}> = [
-  { value: "none", label: "Sans drapeau" },
-  { value: "full-flag", label: "Drapeau complet" },
-  { value: "central-roundel", label: "Motif central rond" },
-  { value: "central-shield", label: "Motif central blason" },
-];
+const ELEMENT_LABELS: Record<NationalJerseyElementKind, string> = {
+  flag: "Drapeau",
+  emblem: "Emblème national",
+  band: "Bande de couleur",
+  shape: "Forme libre",
+};
 
 export function NationalJerseyPreviewEditor({
   countryCode,
   countryName,
+  publishedJersey,
+  canPublish,
 }: NationalJerseyPreviewEditorProps) {
   const [draft, setDraft] = useState<NationalJerseyDraft>(
     DEFAULT_NATIONAL_JERSEY_DRAFT,
   );
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(
+    null,
+  );
   const [storageStatus, setStorageStatus] = useState<
     "idle" | "restored" | "saved" | "unavailable"
   >("idle");
+  const [publishState, publishAction, publishPending] = useActionState(
+    publishNationalFederationJersey,
+    initialNationalJerseyPublishState,
+  );
   const generatedId = useId().replaceAll(":", "");
+  const effectivePublishedJersey = publishState.publishedDesign
+    ? {
+        design: publishState.publishedDesign,
+        version: publishState.version ?? publishedJersey?.version ?? 1,
+        publishedAt: new Date().toISOString(),
+      }
+    : publishedJersey;
+  const selectedElement =
+    draft.elements.find((element) => element.id === selectedElementId) ?? null;
 
   useEffect(() => {
     const restorationTimer = window.setTimeout(() => {
@@ -56,11 +83,11 @@ export function NationalJerseyPreviewEditor({
             getNationalJerseyDraftStorageKey(countryCode),
           ),
         );
+        if (!storedDraft) return;
 
-        if (storedDraft) {
-          setDraft(storedDraft);
-          setStorageStatus("restored");
-        }
+        setDraft(storedDraft);
+        setSelectedElementId(storedDraft.elements.at(-1)?.id ?? null);
+        setStorageStatus("restored");
       } catch {
         setStorageStatus("unavailable");
       }
@@ -70,10 +97,57 @@ export function NationalJerseyPreviewEditor({
   }, [countryCode]);
 
   function updateDraft(patch: Partial<NationalJerseyDraft>) {
-    setDraft((currentDraft) =>
-      normalizeNationalJerseyDraft({ ...currentDraft, ...patch }),
-    );
+    setDraft((current) => normalizeNationalJerseyDraft({ ...current, ...patch }));
     setStorageStatus("idle");
+  }
+
+  function addElement(kind: NationalJerseyElementKind) {
+    if (draft.elements.length >= NATIONAL_JERSEY_MAX_ELEMENTS) return;
+
+    const element = createNationalJerseyElement(kind);
+    updateDraft({ elements: [...draft.elements, element] });
+    setSelectedElementId(element.id);
+  }
+
+  function updateSelectedElement(patch: Partial<NationalJerseyElement>) {
+    if (!selectedElementId) return;
+    updateDraft({
+      elements: draft.elements.map((element) =>
+        element.id === selectedElementId ? { ...element, ...patch } : element,
+      ),
+    });
+  }
+
+  function moveSelectedElement(offset: -1 | 1) {
+    if (!selectedElementId) return;
+    const currentIndex = draft.elements.findIndex(
+      (element) => element.id === selectedElementId,
+    );
+    const targetIndex = currentIndex + offset;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= draft.elements.length) {
+      return;
+    }
+    const nextElements = [...draft.elements];
+    [nextElements[currentIndex], nextElements[targetIndex]] = [
+      nextElements[targetIndex],
+      nextElements[currentIndex],
+    ];
+    updateDraft({ elements: nextElements });
+  }
+
+  function removeSelectedElement() {
+    if (!selectedElementId) return;
+    const currentIndex = draft.elements.findIndex(
+      (element) => element.id === selectedElementId,
+    );
+    const nextElements = draft.elements.filter(
+      (element) => element.id !== selectedElementId,
+    );
+    updateDraft({ elements: nextElements });
+    setSelectedElementId(
+      nextElements[Math.min(Math.max(0, currentIndex - 1), nextElements.length - 1)]
+        ?.id ?? null,
+    );
   }
 
   function saveDraftLocally() {
@@ -90,6 +164,7 @@ export function NationalJerseyPreviewEditor({
 
   function resetDraft() {
     setDraft(DEFAULT_NATIONAL_JERSEY_DRAFT);
+    setSelectedElementId(null);
     try {
       window.localStorage.removeItem(
         getNationalJerseyDraftStorageKey(countryCode),
@@ -98,6 +173,13 @@ export function NationalJerseyPreviewEditor({
     } catch {
       setStorageStatus("unavailable");
     }
+  }
+
+  function reusePublishedJersey() {
+    if (!effectivePublishedJersey) return;
+    setDraft(effectivePublishedJersey.design);
+    setSelectedElementId(effectivePublishedJersey.design.elements.at(-1)?.id ?? null);
+    setStorageStatus("idle");
   }
 
   return (
@@ -115,137 +197,197 @@ export function NationalJerseyPreviewEditor({
               Atelier du maillot national
             </p>
             <span className="rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FFE790]">
-              Brouillon local · Saison 3
+              Bêta belge
             </span>
           </div>
           <h2 className="mt-3 text-3xl font-black">
-            Une identité propre à {countryName}
+            Composez librement l’identité de {countryName}
           </h2>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-            Assemblez les couleurs, la structure et un motif issu du centre du
-            drapeau — feuille, aigle, soleil, croix ou blason selon le pays. Ce
-            brouillon ne devient jamais un maillot officiel en Saison 2.
+            Le brouillon démarre sur un maillot blanc. Drapeau, emblème, formes
+            et bandes peuvent se superposer, pivoter et dépasser du patron :
+            seule leur partie située dans le maillot sera conservée à l’écran.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={saveDraftLocally}
-              className="rounded-xl bg-[#F2C94C] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 hover:bg-[#FFE071]"
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15"
             >
-              Sauvegarder sur cet appareil
+              Garder le brouillon
             </button>
+            {effectivePublishedJersey ? (
+              <button
+                type="button"
+                onClick={reusePublishedJersey}
+                className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15"
+              >
+                Reprendre la version publiée
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={resetDraft}
-              className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15"
             >
-              Réinitialiser
+              Nouveau maillot blanc
             </button>
-            <p aria-live="polite" className="text-xs font-bold text-[#9BE0BC]">
-              {storageStatus === "saved"
-                ? "Brouillon enregistré localement."
-                : storageStatus === "restored"
-                  ? "Brouillon local restauré."
-                  : storageStatus === "unavailable"
-                    ? "Stockage local indisponible : aperçu temporaire."
-                    : "Aucune donnée envoyée au serveur."}
-            </p>
           </div>
+          <p aria-live="polite" className="mt-3 text-xs font-bold text-[#9BE0BC]">
+            {storageStatus === "saved"
+              ? "Brouillon enregistré sur cet appareil."
+              : storageStatus === "restored"
+                ? "Brouillon local restauré."
+                : storageStatus === "unavailable"
+                  ? "Stockage local indisponible : le brouillon reste temporaire."
+                  : effectivePublishedJersey
+                    ? `Version officielle ${effectivePublishedJersey.version} actuellement utilisée.`
+                    : "Le maillot actuel reste inchangé tant que vous ne publiez pas."}
+          </p>
         </div>
       </div>
 
-      <div className="grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div>
-          <EditorGroup title="Construction">
-            <EditorSelect
-              label="Style du maillot"
-              value={draft.pattern}
-              options={PATTERNS}
-              onChange={(value) =>
-                updateDraft({ pattern: value as NationalJerseyPattern })
-              }
-            />
-            <EditorSelect
-              label="Élément du drapeau"
-              value={draft.flagMotif}
-              options={FLAG_MOTIFS}
-              onChange={(value) =>
-                updateDraft({ flagMotif: value as NationalJerseyFlagMotif })
-              }
+      <div className="grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(19rem,0.72fr)_minmax(0,1.28fr)]">
+        <div className="space-y-6">
+          <EditorGroup title="Fond du maillot">
+            <ColorControl
+              label="Couleur de base"
+              value={draft.baseColor}
+              onChange={(baseColor) => updateDraft({ baseColor })}
             />
           </EditorGroup>
 
-          <EditorGroup title="Palette">
-            <div className="grid grid-cols-3 gap-3">
-              <ColorControl
-                label="Fond"
-                value={draft.primaryColor}
-                onChange={(primaryColor) => updateDraft({ primaryColor })}
-              />
-              <ColorControl
-                label="Secondaire"
-                value={draft.secondaryColor}
-                onChange={(secondaryColor) => updateDraft({ secondaryColor })}
-              />
-              <ColorControl
-                label="Accent"
-                value={draft.accentColor}
-                onChange={(accentColor) => updateDraft({ accentColor })}
-              />
+          <EditorGroup title={`Ajouter un élément · ${draft.elements.length}/${NATIONAL_JERSEY_MAX_ELEMENTS}`}>
+            <div className="grid grid-cols-2 gap-2">
+              <AddElementButton label="Drapeau" icon="⚑" onClick={() => addElement("flag")} />
+              <AddElementButton label="Emblème" icon="♜" onClick={() => addElement("emblem")} />
+              <AddElementButton label="Bande" icon="▬" onClick={() => addElement("band")} />
+              <AddElementButton label="Forme" icon="◆" onClick={() => addElement("shape")} />
             </div>
+          </EditorGroup>
+
+          <EditorGroup title="Calques">
+            {draft.elements.length > 0 ? (
+              <ol className="space-y-2">
+                {[...draft.elements].reverse().map((element, reverseIndex) => (
+                  <li key={element.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedElementId(element.id)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-xs font-black transition ${
+                        selectedElementId === element.id
+                          ? "border-[#278B70] bg-[#DDF3E7] text-[#176951]"
+                          : "border-[#315B3E]/12 bg-[#F8FBF9] text-[#4F665E] hover:border-[#278B70]/40"
+                      }`}
+                    >
+                      <span>{ELEMENT_LABELS[element.kind]}</span>
+                      <span className="text-[9px] uppercase tracking-[0.1em] opacity-65">
+                        calque {draft.elements.length - reverseIndex}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F8FBF9] px-4 py-6 text-center text-xs font-bold text-[#789087]">
+                Aucun élément : le maillot est entièrement blanc.
+              </p>
+            )}
           </EditorGroup>
         </div>
 
-        <EditorGroup title="Placement du motif national">
-          {draft.flagMotif === "central-roundel" ||
-          draft.flagMotif === "central-shield" ? (
-            <div className="grid gap-5 sm:grid-cols-2">
-              <EditorRange
-                label="Position horizontale"
-                value={draft.motifX}
-                minimum={25}
-                maximum={95}
-                display={`${Math.round(draft.motifX)} %`}
-                onChange={(motifX) => updateDraft({ motifX })}
-              />
-              <EditorRange
-                label="Position verticale"
-                value={draft.motifY}
-                minimum={30}
-                maximum={110}
-                display={`${Math.round(draft.motifY)} %`}
-                onChange={(motifY) => updateDraft({ motifY })}
-              />
-              <EditorRange
-                label="Taille"
-                value={draft.motifScale}
-                minimum={0.6}
-                maximum={1.8}
-                step={0.05}
-                display={`${Math.round(draft.motifScale * 100)} %`}
-                onChange={(motifScale) => updateDraft({ motifScale })}
-              />
-              <EditorRange
-                label="Rotation"
-                value={draft.motifRotation}
-                minimum={-45}
-                maximum={45}
-                display={`${Math.round(draft.motifRotation)}°`}
-                onChange={(motifRotation) => updateDraft({ motifRotation })}
-              />
+        <div>
+          <EditorGroup title="Placement et apparence">
+            {selectedElement ? (
+              <div className="space-y-5 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-[#183F37]">
+                      {ELEMENT_LABELS[selectedElement.kind]}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-[#789087]">
+                      Les calques supérieurs recouvrent les précédents.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <LayerButton label="Descendre" onClick={() => moveSelectedElement(-1)}>↓</LayerButton>
+                    <LayerButton label="Monter" onClick={() => moveSelectedElement(1)}>↑</LayerButton>
+                    <LayerButton label="Supprimer" danger onClick={removeSelectedElement}>×</LayerButton>
+                  </div>
+                </div>
+
+                {selectedElement.kind !== "band" ? (
+                  <EditorSelect
+                    label="Forme du cadre"
+                    value={selectedElement.shape}
+                    options={SHAPES}
+                    onChange={(shape) =>
+                      updateSelectedElement({ shape: shape as NationalJerseyElementShape })
+                    }
+                  />
+                ) : null}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <ColorControl
+                    label={selectedElement.kind === "shape" || selectedElement.kind === "band" ? "Couleur" : "Contour / motif"}
+                    value={selectedElement.color}
+                    onChange={(color) => updateSelectedElement({ color })}
+                  />
+                  <ColorControl
+                    label="Accent"
+                    value={selectedElement.secondaryColor}
+                    onChange={(secondaryColor) =>
+                      updateSelectedElement({ secondaryColor })
+                    }
+                  />
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <EditorRange label="Horizontal" value={selectedElement.x} minimum={-60} maximum={180} display={`${Math.round(selectedElement.x)}`} onChange={(x) => updateSelectedElement({ x })} />
+                  <EditorRange label="Vertical" value={selectedElement.y} minimum={-60} maximum={190} display={`${Math.round(selectedElement.y)}`} onChange={(y) => updateSelectedElement({ y })} />
+                  <EditorRange label="Largeur" value={selectedElement.width} minimum={4} maximum={220} display={`${Math.round(selectedElement.width)}`} onChange={(width) => updateSelectedElement({ width })} />
+                  <EditorRange label="Hauteur" value={selectedElement.height} minimum={4} maximum={220} display={`${Math.round(selectedElement.height)}`} onChange={(height) => updateSelectedElement({ height })} />
+                  <EditorRange label="Rotation" value={selectedElement.rotation} minimum={-180} maximum={180} display={`${Math.round(selectedElement.rotation)}°`} onChange={(rotation) => updateSelectedElement({ rotation })} />
+                  <EditorRange label="Opacité" value={selectedElement.opacity} minimum={0.15} maximum={1} step={0.05} display={`${Math.round(selectedElement.opacity * 100)} %`} onChange={(opacity) => updateSelectedElement({ opacity })} />
+                </div>
+              </div>
+            ) : (
+              <p className="rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F8FBF9] px-5 py-12 text-center text-sm font-semibold text-[#60756E]">
+                Ajoutez ou sélectionnez un élément pour régler sa position, sa
+                taille, sa rotation et son ordre de superposition.
+              </p>
+            )}
+          </EditorGroup>
+
+          <form action={publishAction} className="mt-6 rounded-2xl bg-[#123F36] p-5 text-white">
+            <input type="hidden" name="countryCode" value={countryCode} />
+            <input type="hidden" name="design" value={JSON.stringify(draft)} />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-black">Publication officielle</p>
+                <p className="mt-1 max-w-xl text-xs font-semibold leading-5 text-[#BFD1C6]">
+                  La publication remplace le maillot de sélection nationale sur
+                  les coureurs. Le maillot précédent est conservé dans l’historique.
+                </p>
+              </div>
+              <button
+                type="submit"
+                disabled={!canPublish || publishPending}
+                className="shrink-0 rounded-xl bg-[#F2C94C] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 hover:bg-[#FFE071] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {publishPending ? "Publication…" : "Valider et publier"}
+              </button>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5 text-sm font-semibold leading-6 text-[#60756E]">
-              Choisissez un motif central rond ou en forme de blason pour le
-              déplacer, le redimensionner et le faire pivoter librement.
-            </div>
-          )}
-          <p className="mt-5 rounded-xl bg-[#FFF9DE] px-4 py-3 text-xs font-bold leading-5 text-[#75631C]">
-            L’éditeur réutilise uniquement les drapeaux déjà optimisés du jeu :
-            aucun téléversement de fichier et aucune requête supplémentaire au
-            serveur.
-          </p>
-        </EditorGroup>
+            <p
+              aria-live="polite"
+              className={`mt-3 text-xs font-bold ${publishState.status === "error" ? "text-[#FFB0B6]" : "text-[#9BE0BC]"}`}
+            >
+              {!canPublish
+                ? "Publication réservée aux équipes affiliées à la fédération belge pendant la bêta."
+                : publishState.message || "Votre brouillon n’affecte pas le maillot publié avant validation."}
+            </p>
+          </form>
+        </div>
       </div>
     </section>
   );
@@ -263,9 +405,6 @@ function JerseyArtwork({
   generatedId: string;
 }) {
   const jerseyClipId = `national-jersey-${generatedId}`;
-  const motifClipId = `national-motif-${generatedId}`;
-  const shirtPath =
-    "M39 9 19 18 5 48l19 10 8-14v78h56V44l8 14 19-10-14-30-20-9c-4 7-10 10-21 10S43 16 39 9Z";
 
   return (
     <div className="rounded-[1.7rem] border border-white/15 bg-[radial-gradient(circle_at_top,#FFFFFF20,transparent_65%)] p-5">
@@ -277,229 +416,101 @@ function JerseyArtwork({
       >
         <defs>
           <clipPath id={jerseyClipId}>
-            <path d={shirtPath} />
-          </clipPath>
-          <clipPath id={motifClipId}>
-            {draft.flagMotif === "central-shield" ? (
-              <path d="M-17-15H17V2C17 14 9 22 0 27-9-5-17-13-17-25Z" />
-            ) : (
-              <circle cx="0" cy="0" r="17" />
-            )}
+            <path d={NATIONAL_JERSEY_SHIRT_PATH} />
           </clipPath>
         </defs>
-
         <g clipPath={`url(#${jerseyClipId})`}>
-          <rect width="120" height="132" fill={draft.primaryColor} />
-          <JerseyPatternArtwork draft={draft} />
-          {draft.flagMotif === "full-flag" ? (
-            <SvgCountryFlag
-              countryCode={countryCode}
-              x="5"
-              y="8"
-              width={110}
-              height={116}
-              preserveAspectRatio="xMidYMid slice"
-            />
-          ) : null}
-          {draft.flagMotif === "central-roundel" ||
-          draft.flagMotif === "central-shield" ? (
-            <g
-              transform={`translate(${draft.motifX} ${draft.motifY}) rotate(${draft.motifRotation}) scale(${draft.motifScale})`}
-            >
-              <path
-                d={
-                  draft.flagMotif === "central-shield"
-                    ? "M-20-18H20V3C20 17 10 26 0 32-10-6-20-15-20-29Z"
-                    : "M0-21a21 21 0 1 0 0 42 21 21 0 0 0 0-42Z"
-                }
-                fill={draft.accentColor}
-                stroke={draft.secondaryColor}
-                strokeWidth="2"
-              />
-              <image
-                aria-hidden="true"
-                href={`/images/flags/4x3/${countryCode.trim().toLowerCase()}.svg`}
-                x="-24"
-                y="-18"
-                width="48"
-                height="36"
-                preserveAspectRatio="xMidYMid slice"
-                clipPath={`url(#${motifClipId})`}
-              />
-            </g>
-          ) : null}
+          <NationalJerseyDesignArtwork
+            countryCode={countryCode}
+            design={draft}
+            idPrefix={`${generatedId}-draft`}
+          />
         </g>
-
-        <path
-          d={shirtPath}
-          fill="none"
-          stroke="#071A17"
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M39 9c4 7 10 10 21 10S77 16 81 9"
-          fill="none"
-          stroke="#071A17"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
+        <path d={NATIONAL_JERSEY_SHIRT_PATH} fill="none" stroke="#071A17" strokeWidth="3" strokeLinejoin="round" />
+        <path d="M39 9c4 7 10 10 21 10S77 16 81 9" fill="none" stroke="#071A17" strokeWidth="4" strokeLinecap="round" />
       </svg>
     </div>
   );
 }
 
-function JerseyPatternArtwork({ draft }: { draft: NationalJerseyDraft }) {
-  if (draft.pattern === "horizontal-band") {
-    return (
-      <>
-        <rect y="69" width="120" height="24" fill={draft.secondaryColor} />
-        <rect y="78" width="120" height="6" fill={draft.accentColor} />
-      </>
-    );
-  }
+function createNationalJerseyElement(
+  kind: NationalJerseyElementKind,
+): NationalJerseyElement {
+  const id = `layer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  const common = {
+    id,
+    kind,
+    shape: "rectangle" as NationalJerseyElementShape,
+    color: "#111111",
+    secondaryColor: "#F2C94C",
+    x: 60,
+    y: 78,
+    width: 58,
+    height: 52,
+    rotation: 0,
+    opacity: 1,
+  };
 
-  if (draft.pattern === "diagonal-sash") {
-    return (
-      <>
-        <path d="M9 22 29 9l83 105-20 18Z" fill={draft.secondaryColor} />
-        <path d="M20 14 26 10l84 106-7 8Z" fill={draft.accentColor} />
-      </>
-    );
-  }
-
-  if (draft.pattern === "cross") {
-    return (
-      <>
-        <rect x="50" width="20" height="132" fill={draft.secondaryColor} />
-        <rect y="52" width="120" height="20" fill={draft.secondaryColor} />
-        <rect x="57" width="6" height="132" fill={draft.accentColor} />
-      </>
-    );
-  }
-
-  if (draft.pattern === "halves") {
-    return (
-      <>
-        <rect x="60" width="60" height="132" fill={draft.secondaryColor} />
-        <rect x="57" width="6" height="132" fill={draft.accentColor} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <path d="M0 0h120v25H0Z" fill={draft.secondaryColor} />
-      <path d="M0 25h120v5H0Z" fill={draft.accentColor} />
-      <path d="M0 116h120v16H0Z" fill={draft.secondaryColor} />
-    </>
-  );
+  if (kind === "band") return { ...common, width: 170, height: 18 };
+  if (kind === "emblem") return { ...common, shape: "shield", width: 48, height: 58 };
+  if (kind === "shape") return { ...common, shape: "roundel", width: 46, height: 46 };
+  return common;
 }
 
-function EditorGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function EditorGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-5 first:mt-0">
-      <h3 className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">
-        {title}
-      </h3>
+    <section>
+      <h3 className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">{title}</h3>
       <div className="mt-3 space-y-4">{children}</div>
     </section>
   );
 }
 
-function EditorSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-}) {
+function AddElementButton({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-12 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] px-3 text-xs font-black text-[#183F37] transition hover:border-[#278B70]/45 hover:bg-[#EEF8F3]">
+      <span className="text-lg text-[#176951]" aria-hidden="true">{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function LayerButton({ label, onClick, danger = false, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) {
+  return (
+    <button type="button" aria-label={label} title={label} onClick={onClick} className={`grid h-9 w-9 place-items-center rounded-lg border text-base font-black transition ${danger ? "border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#B9343F] hover:bg-[#EF5B65]/15" : "border-[#315B3E]/15 bg-white text-[#176951] hover:bg-[#DDF3E7]"}`}>
+      {children}
+    </button>
+  );
+}
+
+function EditorSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
   return (
     <label className="block">
       <span className="text-sm font-black text-[#183F37]">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 py-3 text-sm font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#42B99A]/25"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-[#315B3E]/18 bg-white px-4 py-3 text-sm font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#42B99A]/25">
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
   );
 }
 
-function ColorControl({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function ColorControl({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="block rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] p-3 text-center">
-      <input
-        type="color"
-        value={value}
-        onChange={(event) => onChange(event.target.value.toUpperCase())}
-        className="mx-auto h-11 w-full cursor-pointer rounded-lg border-0 bg-transparent p-0"
-      />
-      <span className="mt-2 block text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">
-        {label}
-      </span>
+    <label className="block rounded-xl border border-[#315B3E]/12 bg-white p-3 text-center">
+      <input type="color" value={value} onChange={(event) => onChange(event.target.value.toUpperCase())} className="mx-auto h-11 w-full cursor-pointer rounded-lg border-0 bg-transparent p-0" />
+      <span className="mt-2 block text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">{label}</span>
     </label>
   );
 }
 
-function EditorRange({
-  label,
-  value,
-  minimum,
-  maximum,
-  step = 1,
-  display,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  minimum: number;
-  maximum: number;
-  step?: number;
-  display: string;
-  onChange: (value: number) => void;
-}) {
+function EditorRange({ label, value, minimum, maximum, step = 1, display, onChange }: { label: string; value: number; minimum: number; maximum: number; step?: number; display: string; onChange: (value: number) => void }) {
   return (
     <label className="block">
       <span className="flex items-center justify-between gap-3 text-sm font-black text-[#183F37]">
         <span>{label}</span>
-        <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs text-[#176951]">
-          {display}
-        </span>
+        <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs text-[#176951]">{display}</span>
       </span>
-      <input
-        type="range"
-        value={value}
-        min={minimum}
-        max={maximum}
-        step={step}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#DDE8E2] accent-[#176951]"
-      />
+      <input type="range" value={value} min={minimum} max={maximum} step={step} onChange={(event) => onChange(Number(event.target.value))} className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#DDE8E2] accent-[#176951]" />
     </label>
   );
 }

@@ -63,6 +63,8 @@ describe("NationalFederationView", () => {
         memberTeams={[]}
         memberTeamCount={0}
         selectedTab="overview"
+        publishedJersey={null}
+        federationChat={null}
       />,
     );
 
@@ -74,7 +76,7 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Impact académies");
     expect(markup).toContain("30 %");
     expect(markup).toContain("Objectifs fédéraux prévisionnels");
-    expect(markup).toContain("Assistant fédéral");
+    expect(markup).not.toContain("Assistant fédéral");
     expect(markup).toContain("Rang de référence");
     expect(markup).not.toContain("<form");
   });
@@ -88,6 +90,8 @@ describe("NationalFederationView", () => {
         memberTeams={[]}
         memberTeamCount={0}
         selectedTab="selections"
+        publishedJersey={null}
+        federationChat={null}
       />,
     );
 
@@ -100,25 +104,28 @@ describe("NationalFederationView", () => {
     expect(markup).not.toContain("<form");
   });
 
-  it("offers a local-only national jersey editor with movable flag artwork", () => {
+  it("offers a layered national jersey editor without altering production before validation", () => {
     const markup = renderToStaticMarkup(
       <NationalFederationView
-        country={{ id: "country-fr", code: "FR", name: "France" }}
+        country={{ id: "country-be", code: "BE", name: "Belgique" }}
         snapshot={snapshot}
         nationRanking={null}
         memberTeams={[]}
         memberTeamCount={0}
         selectedTab="governance"
+        publishedJersey={null}
+        federationChat={null}
       />,
     );
 
     expect(markup).toContain("Atelier du maillot national");
-    expect(markup).toContain("/images/flags/4x3/fr.svg");
-    expect(markup).toContain("Brouillon local");
-    expect(markup).toContain("Motif central rond");
-    expect(markup).toContain("Sauvegarder sur cet appareil");
-    expect(markup).toContain("Aucune donnée envoyée au serveur");
-    expect(markup).not.toContain("<form");
+    expect(markup).toContain("Composez librement");
+    expect(markup).toContain("Bande");
+    expect(markup).toContain("Forme");
+    expect(markup).toContain("Nouveau maillot blanc");
+    expect(markup).toContain("Valider et publier");
+    expect(markup).toContain("Votre brouillon n’affecte pas le maillot publié");
+    expect(markup).toContain("<form");
   });
 
   it("shows an interactive Season 3 finance forecast without a payment action", () => {
@@ -136,6 +143,8 @@ describe("NationalFederationView", () => {
         memberTeams={[]}
         memberTeamCount={3}
         selectedTab="finances"
+        publishedJersey={null}
+        federationChat={null}
       />,
     );
 

@@ -26,9 +26,10 @@ describe("federation pages", () => {
     );
   });
 
-  it("adds the federation entry point to every nation profile", () => {
+  it("limits the visible federation entry point to the Belgian beta", () => {
     expect(nationPage).toContain("Découvrir la fédération");
-    expect(nationPage).toContain("/jeu/federations/");
+    expect(nationPage).toContain('country.country_code.toUpperCase() === "BE"');
+    expect(nationPage).toContain('href="/jeu/federations/be"');
   });
 
   it("loads one compact read-only snapshot for the selected nation", () => {
