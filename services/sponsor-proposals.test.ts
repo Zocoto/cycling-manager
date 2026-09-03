@@ -33,7 +33,7 @@ describe("generateSponsorProposals", () => {
     const argentinaProposals = generateSponsorProposals({
       teamCountryCode: "AR",
       directorCountryCode: "FR",
-      directorReputation: 100,
+      directorReputation: 93,
       random: () => 0.5,
     });
     const yemenProposals = generateSponsorProposals({
@@ -187,12 +187,12 @@ describe("generateSponsorProposals", () => {
   });
 
   it.each([
-    [99, 2],
-    [100, 3],
-    [499, 3],
-    [500, 4],
-    [999, 4],
-    [1_000, 5],
+    [74, 2],
+    [75, 3],
+    [299, 3],
+    [300, 4],
+    [749, 4],
+    [750, 5],
   ])(
     "plafonne le prestige ? %i ?toiles pour %i points de r?putation",
     (directorReputation, maximumPrestige) => {
@@ -225,10 +225,10 @@ describe("generateSponsorProposals", () => {
     ).toBe(false);
   });
 
-  it("ouvre les sponsors 5/5 ? partir de 1000", () => {
+  it("ouvre les sponsors 5/5 à partir de 750", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "BE",
-      directorReputation: 1_000,
+      directorReputation: 750,
       proposalCount: 100,
       random: () => 0.5,
       });

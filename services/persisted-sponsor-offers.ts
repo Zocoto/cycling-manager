@@ -18,8 +18,8 @@ import type { Sponsor } from "@/types/sponsor";
 import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
-const SPONSOR_OFFER_GENERATION_VERSION = 4;
-const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 5;
+const SPONSOR_OFFER_GENERATION_VERSION = 5;
+const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 6;
 
 export type SponsorOfferStatus =
   | "draft"

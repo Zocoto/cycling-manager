@@ -26,8 +26,8 @@ import type { Sponsor } from "@/types/sponsor";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
-const SPONSOR_OFFER_GENERATION_VERSION = 5;
-const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 6;
+const SPONSOR_OFFER_GENERATION_VERSION = 6;
+const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 7;
 
 export type FutureSponsorOfferMode =
   | "renewal"
