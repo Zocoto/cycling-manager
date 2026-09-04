@@ -269,7 +269,13 @@ function SelectionCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-black text-[#183F37] sm:text-2xl">
-                {selection.riderName}
+                <Link
+                  href={`/jeu/coureurs/${selection.riderId}`}
+                  className="rounded-sm underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]/35"
+                  aria-label={`Voir les statistiques de ${selection.riderName}`}
+                >
+                  {selection.riderName}
+                </Link>
               </h2>
               <span
                 className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${status.className}`}

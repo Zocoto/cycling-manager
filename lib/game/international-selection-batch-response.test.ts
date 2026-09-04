@@ -24,6 +24,15 @@ describe("bulk international selection responses", () => {
     expect(page).toContain("Forme {selection.currentForm}/100");
   });
 
+  it("opens the shared rider statistics preview from every invitation", () => {
+    expect(page).toContain(
+      'href={`/jeu/coureurs/${selection.riderId}`}',
+    );
+    expect(page).toContain(
+      "Voir les statistiques de ${selection.riderName}",
+    );
+  });
+
   it("collects every DS choice and sends one global action", () => {
     expect(page).toContain("answerInternationalSelectionsAction");
     expect(page).toContain('name={`decision:${selection.candidateId}`}');
