@@ -42,10 +42,14 @@ describe("fresh international selection conflict acknowledgement", () => {
   });
 
   it("passes exactly the conflicts rendered to the manager", () => {
-    expect(page).toContain('name="acknowledgedConflict"');
+    expect(page).toContain(
+      'name={`acknowledgedConflict:${selection.candidateId}`}',
+    );
     expect(page).toContain('value={`course:${raceName}`}');
     expect(page).toContain('value={`activité:${campName}`}');
-    expect(action).toContain('.getAll("acknowledgedConflict")');
+    expect(action).toContain(
+      '.getAll(`acknowledgedConflict:${candidateId}`)',
+    );
     expect(service).toContain(
       '"respond_to_international_selection_with_conflict_ack"',
     );

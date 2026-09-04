@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { respondToInternationalChampionshipSelection } from "@/services/international-championship-selections";
+import { respondToInternationalChampionshipSelections } from "@/services/international-championship-selections";
 
 const decisionSchema = z.object({
   candidateId: z.string().uuid(),
@@ -13,16 +13,37 @@ const decisionSchema = z.object({
   acknowledgedConflicts: z.array(z.string().trim().min(1).max(300)).max(40),
 });
 
-export async function answerInternationalSelectionAction(
-  formData: FormData
-) {
-  const parsed = decisionSchema.safeParse({
-    candidateId: formData.get("candidateId"),
-    decision: formData.get("decision"),
-    acknowledgedConflicts: formData
-      .getAll("acknowledgedConflict")
-      .filter((value): value is string => typeof value === "string"),
+const decisionBatchSchema = z
+  .array(decisionSchema)
+  .min(1)
+  .max(100)
+  .superRefine((decisions, context) => {
+    const candidateIds = new Set<string>();
+
+    for (const decision of decisions) {
+      if (candidateIds.has(decision.candidateId)) {
+        context.addIssue({
+          code: "custom",
+          message: "Une convocation ne peut apparaître qu’une fois.",
+        });
+      }
+      candidateIds.add(decision.candidateId);
+    }
   });
+
+export async function answerInternationalSelectionsAction(formData: FormData) {
+  const candidateIds = formData
+    .getAll("candidateId")
+    .filter((value): value is string => typeof value === "string");
+  const parsed = decisionBatchSchema.safeParse(
+    candidateIds.map((candidateId) => ({
+      candidateId,
+      decision: formData.get(`decision:${candidateId}`),
+      acknowledgedConflicts: formData
+        .getAll(`acknowledgedConflict:${candidateId}`)
+        .filter((value): value is string => typeof value === "string"),
+    })),
+  );
 
   if (!parsed.success) {
     redirect(
@@ -41,11 +62,13 @@ export async function answerInternationalSelectionAction(
   }
 
   try {
-    await respondToInternationalChampionshipSelection({
+    await respondToInternationalChampionshipSelections({
       supabase,
-      candidateId: parsed.data.candidateId,
-      accept: parsed.data.decision === "confirm",
-      acknowledgedConflicts: parsed.data.acknowledgedConflicts,
+      decisions: parsed.data.map((decision) => ({
+        candidateId: decision.candidateId,
+        accept: decision.decision === "confirm",
+        acknowledgedConflicts: decision.acknowledgedConflicts,
+      })),
     });
   } catch (error) {
     const message =
@@ -63,9 +86,6 @@ export async function answerInternationalSelectionAction(
   revalidatePath("/jeu/selections-internationales");
   revalidatePath("/jeu/championnats-internationaux");
   revalidatePath("/jeu/calendrier");
-  redirect(
-    `/jeu/selections-internationales?decision=${
-      parsed.data.decision === "confirm" ? "confirmee" : "refusee"
-    }`
-  );
+  revalidatePath("/jeu/boite-mail");
+  redirect(`/jeu/selections-internationales?decision=enregistrees&nombre=${parsed.data.length}`);
 }

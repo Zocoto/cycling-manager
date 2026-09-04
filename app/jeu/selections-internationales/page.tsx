@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
-import { answerInternationalSelectionAction } from "./actions";
+import { answerInternationalSelectionsAction } from "./actions";
 import { GameHeader } from "@/components/game/game-header";
 import { InternationalSelectionSubmitButton } from "@/components/game/international-selection-submit-button";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -28,6 +28,7 @@ type InternationalSelectionsPageProps = {
   searchParams: Promise<{
     decision?: string | string[];
     erreur?: string | string[];
+    nombre?: string | string[];
   }>;
 };
 
@@ -98,6 +99,9 @@ export default async function InternationalSelectionsPage({
   ).length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
+  const savedDecisionCount = Number(
+    readSingleSearchParam(resolvedSearchParams.nombre) ?? 0,
+  );
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -150,6 +154,14 @@ export default async function InternationalSelectionsPage({
           </div>
         </header>
 
+        {decision === "enregistrees" ? (
+          <FeedbackBanner tone="success">
+            {savedDecisionCount > 0
+              ? `${savedDecisionCount} décision${savedDecisionCount > 1 ? "s ont" : " a"} été enregistrée${savedDecisionCount > 1 ? "s" : ""} en une seule fois.`
+              : "Les décisions ont été enregistrées en une seule fois."}
+          </FeedbackBanner>
+        ) : null}
+
         {decision === "confirmee" ? (
           <FeedbackBanner tone="success">
             La participation est validée. Les courses, demandes de WildCard et
@@ -171,12 +183,47 @@ export default async function InternationalSelectionsPage({
 
         <section className="mt-7 space-y-5">
           {selections.length > 0 ? (
-            selections.map((selection) => (
-              <SelectionCard
-                key={selection.candidateId}
-                selection={selection}
-              />
-            ))
+            pendingCount > 0 ? (
+              <form
+                action={answerInternationalSelectionsAction}
+                className="space-y-5"
+              >
+                {selections.map((selection) => (
+                  <SelectionCard
+                    key={selection.candidateId}
+                    selection={selection}
+                  />
+                ))}
+                <div className="sticky bottom-4 z-20 rounded-2xl border border-[#315B3E]/15 bg-white/95 p-4 shadow-[0_18px_55px_rgba(19,60,46,0.2)] backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-5">
+                  <div>
+                    <p className="text-sm font-black text-[#183F37]">
+                      Arbitrage groupé · {pendingCount} convocation
+                      {pendingCount > 1 ? "s" : ""}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+                      Choisissez Valider ou Refuser sur chaque fiche, puis
+                      enregistrez toutes vos décisions avec un seul chargement.
+                    </p>
+                  </div>
+                  <div className="mt-4 shrink-0 sm:mt-0">
+                    <InternationalSelectionSubmitButton
+                      variant="confirm"
+                      pendingLabel="Enregistrement du lot…"
+                    >
+                      Enregistrer les {pendingCount} décision
+                      {pendingCount > 1 ? "s" : ""}
+                    </InternationalSelectionSubmitButton>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              selections.map((selection) => (
+                <SelectionCard
+                  key={selection.candidateId}
+                  selection={selection}
+                />
+              ))
+            )
           ) : (
             <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center shadow-[0_16px_45px_rgba(19,60,46,0.06)]">
               <p className="text-xl font-black text-[#183F37]">
@@ -324,6 +371,11 @@ function SelectionCard({
               <span className="rounded-full bg-[#EEF5F1] px-3 py-1.5">
                 {selection.uciPoints} pts UCI
               </span>
+              <span
+                className={`rounded-full border px-3 py-1.5 ${getFormBadgeClasses(selection.currentForm)}`}
+              >
+                Forme {selection.currentForm}/100
+              </span>
               <span className="rounded-full bg-[#EEF5F1] px-3 py-1.5">
                 Note {selection.overallRating.toFixed(2)}
               </span>
@@ -332,63 +384,63 @@ function SelectionCard({
         </div>
 
         {selection.canRespond ? (
-          <div className="grid min-w-60 gap-3">
-            <form action={answerInternationalSelectionAction}>
+          <fieldset className="grid min-w-60 gap-3">
+            <legend className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-[#60756E]">
+              Décision du DS
+            </legend>
+            <input
+              type="hidden"
+              name="candidateId"
+              value={selection.candidateId}
+            />
+            {selection.conflictingRaceNames.map((raceName) => (
               <input
+                key={`race:${raceName}`}
                 type="hidden"
-                name="candidateId"
-                value={selection.candidateId}
+                name={`acknowledgedConflict:${selection.candidateId}`}
+                value={`course:${raceName}`}
               />
-              <input type="hidden" name="decision" value="confirm" />
-              {selection.conflictingRaceNames.map((raceName) => (
-                <input
-                  key={`race:${raceName}`}
-                  type="hidden"
-                  name="acknowledgedConflict"
-                  value={`course:${raceName}`}
-                />
-              ))}
-              {selection.conflictingWildcardRaceNames.map((raceName) => (
-                <input
-                  key={`wildcard:${raceName}`}
-                  type="hidden"
-                  name="acknowledgedConflict"
-                  value={`wildcard:${raceName}`}
-                />
-              ))}
-              {selection.conflictingCampNames.map((campName) => (
-                <input
-                  key={`camp:${campName}`}
-                  type="hidden"
-                  name="acknowledgedConflict"
-                  value={`activité:${campName}`}
-                />
-              ))}
-              <InternationalSelectionSubmitButton
-                variant="confirm"
-                pendingLabel="Validation…"
-              >
-                Valider et donner la priorité
-              </InternationalSelectionSubmitButton>
-            </form>
-            <form action={answerInternationalSelectionAction}>
+            ))}
+            {selection.conflictingWildcardRaceNames.map((raceName) => (
               <input
+                key={`wildcard:${raceName}`}
                 type="hidden"
-                name="candidateId"
-                value={selection.candidateId}
+                name={`acknowledgedConflict:${selection.candidateId}`}
+                value={`wildcard:${raceName}`}
               />
-              <input type="hidden" name="decision" value="decline" />
-              <InternationalSelectionSubmitButton
-                variant="decline"
-                pendingLabel="Refus…"
-              >
-                Refuser la sélection
-              </InternationalSelectionSubmitButton>
-            </form>
+            ))}
+            {selection.conflictingCampNames.map((campName) => (
+              <input
+                key={`camp:${campName}`}
+                type="hidden"
+                name={`acknowledgedConflict:${selection.candidateId}`}
+                value={`activité:${campName}`}
+              />
+            ))}
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#278B70]/25 bg-[#E8F7F1] px-4 py-3 text-sm font-black text-[#176951] transition hover:bg-[#DDF3EA] has-[:checked]:border-[#176951] has-[:checked]:ring-2 has-[:checked]:ring-[#176951]/20">
+              <input
+                type="radio"
+                name={`decision:${selection.candidateId}`}
+                value="confirm"
+                required
+                className="h-4 w-4 accent-[#176951]"
+              />
+              Valider la convocation
+            </label>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#B94848]/25 bg-[#FFF1EF] px-4 py-3 text-sm font-black text-[#9A3434] transition hover:bg-[#FFE3DF] has-[:checked]:border-[#B94848] has-[:checked]:ring-2 has-[:checked]:ring-[#B94848]/20">
+              <input
+                type="radio"
+                name={`decision:${selection.candidateId}`}
+                value="decline"
+                required
+                className="h-4 w-4 accent-[#B94848]"
+              />
+              Refuser la sélection
+            </label>
             <p className="text-center text-[11px] font-bold leading-5 text-[#60756E]">
-              La décision est définitive.
+              Le choix sera appliqué avec le bouton global.
             </p>
-          </div>
+          </fieldset>
         ) : (
           <Link
             href={`/jeu/coureurs/${selection.riderId}`}
@@ -438,4 +490,16 @@ function formatDeparture(value: string) {
 
 function readSingleSearchParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function getFormBadgeClasses(form: number) {
+  if (form >= 85) {
+    return "border-emerald-300 bg-emerald-50 text-emerald-800";
+  }
+
+  if (form >= 65) {
+    return "border-amber-300 bg-amber-50 text-amber-900";
+  }
+
+  return "border-rose-300 bg-rose-50 text-rose-800";
 }

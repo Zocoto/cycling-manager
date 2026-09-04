@@ -22,6 +22,7 @@ export type InternationalChampionshipSelection = {
   riderRank: number;
   uciPoints: number;
   overallRating: number;
+  currentForm: number;
   responseStatus: InternationalSelectionResponseStatus;
   isSelected: boolean;
   wasSelected: boolean;
@@ -70,6 +71,11 @@ type InternationalSelectionRow = {
 type InternationalSelectionWildcardConflictRow = {
   candidate_id: string;
   conflicting_wildcard_race_names: string[] | null;
+};
+
+type InternationalSelectionCurrentFormRow = {
+  candidate_id: string;
+  current_form: number | string;
 };
 
 export async function processDueInternationalChampionshipSelections(
@@ -149,14 +155,18 @@ export async function getCurrentDirectorInternationalSelections({
     await processDueInternationalChampionshipSelections(now);
   }
 
-  const [selectionsResult, wildcardConflictsResult] = await Promise.all([
-    admin.rpc("get_international_championship_selections_for_auth_user", {
-      p_auth_user_id: authUserId,
-    }),
-    admin.rpc("get_international_selection_wildcards_for_auth_user", {
-      p_auth_user_id: authUserId,
-    }),
-  ]);
+  const [selectionsResult, wildcardConflictsResult, currentFormsResult] =
+    await Promise.all([
+      admin.rpc("get_international_championship_selections_for_auth_user", {
+        p_auth_user_id: authUserId,
+      }),
+      admin.rpc("get_international_selection_wildcards_for_auth_user", {
+        p_auth_user_id: authUserId,
+      }),
+      admin.rpc("get_international_selection_forms_for_auth_user", {
+        p_auth_user_id: authUserId,
+      }),
+    ]);
 
   const { data, error } = selectionsResult;
 
@@ -172,12 +182,26 @@ export async function getCurrentDirectorInternationalSelections({
     );
   }
 
+  if (currentFormsResult.error) {
+    throw new Error(
+      `Impossible de charger la forme des coureurs convoqués : ${currentFormsResult.error.message}`,
+    );
+  }
+
   const wildcardConflictsByCandidate = new Map(
     ((wildcardConflictsResult.data as
       | InternationalSelectionWildcardConflictRow[]
       | null) ?? []).map((conflict) => [
       conflict.candidate_id,
       conflict.conflicting_wildcard_race_names ?? [],
+    ]),
+  );
+  const currentFormByCandidate = new Map(
+    ((currentFormsResult.data as
+      | InternationalSelectionCurrentFormRow[]
+      | null) ?? []).map((condition) => [
+      condition.candidate_id,
+      Number(condition.current_form),
     ]),
   );
 
@@ -189,6 +213,7 @@ export async function getCurrentDirectorInternationalSelections({
       riderRank: selection.rider_rank,
       uciPoints: selection.uci_points,
       overallRating: Number(selection.overall_rating),
+      currentForm: currentFormByCandidate.get(selection.candidate_id) ?? 75,
       responseStatus: selection.response_status,
       isSelected: selection.is_selected,
       wasSelected: selection.was_selected,
@@ -246,4 +271,33 @@ export async function respondToInternationalChampionshipSelection({
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export async function respondToInternationalChampionshipSelections({
+  supabase,
+  decisions,
+}: {
+  supabase: SupabaseServerClient;
+  decisions: Array<{
+    candidateId: string;
+    accept: boolean;
+    acknowledgedConflicts: string[];
+  }>;
+}) {
+  const { data, error } = await supabase.rpc(
+    "respond_to_international_selections_with_conflict_ack",
+    {
+      p_decisions: decisions.map((decision) => ({
+        candidateId: decision.candidateId,
+        accept: decision.accept,
+        acknowledgedConflicts: decision.acknowledgedConflicts,
+      })),
+    },
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Number(data ?? 0);
 }
