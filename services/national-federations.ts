@@ -10,6 +10,11 @@ export type FederationChampion = {
   discipline: "road" | "time_trial";
   seasonName: string;
   gameYear: number;
+  avatarProfileKey?: string | null;
+  avatarSeed?: number | string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  age?: number;
 };
 
 export type FederationAcademy = {
@@ -76,7 +81,17 @@ type RiderRow = {
   id: string;
   first_name: string;
   last_name: string;
+  avatar_profile_key: string | null;
+  avatar_seed: number | string | null;
 };
+
+type JuniorRiderRow = RiderRow & {
+  team_id: string | null;
+  birth_game_year: number;
+};
+
+type RiderContractRow = { rider_id: string; team_id: string };
+type RiderRatingRow = { rider_id: string; age: number };
 
 type AcademyRow = {
   team_id: string;
@@ -220,21 +235,21 @@ export async function getNationalFederationSnapshot({
   ]);
   const academyTeamIds = unique(academyRows.map((academy) => academy.team_id));
 
-  const [professionalRidersResult, juniorRidersResult, seasonsResult, academyTeamsResult] =
+  const [professionalRidersResult, juniorRidersResult, seasonsResult, professionalContractsResult, professionalRatingsResult] =
     await Promise.all([
       professionalRiderIds.length > 0
         ? admin
             .from("riders")
-            .select("id, first_name, last_name")
+            .select("id, first_name, last_name, avatar_profile_key, avatar_seed")
             .in("id", professionalRiderIds)
             .returns<RiderRow[]>()
         : Promise.resolve({ data: [], error: null }),
       juniorRiderIds.length > 0
         ? admin
             .from("youth_academy_riders")
-            .select("id, first_name, last_name")
+            .select("id, first_name, last_name, avatar_profile_key, avatar_seed, team_id, birth_game_year")
             .in("id", juniorRiderIds)
-            .returns<RiderRow[]>()
+            .returns<JuniorRiderRow[]>()
         : Promise.resolve({ data: [], error: null }),
       seasonIds.length > 0
         ? admin
@@ -243,13 +258,21 @@ export async function getNationalFederationSnapshot({
             .in("id", seasonIds)
             .returns<Array<Pick<SeasonRow, "id" | "name" | "game_year">>>()
         : Promise.resolve({ data: [], error: null }),
-      academyTeamIds.length > 0
+      professionalRiderIds.length > 0
         ? admin
-            .from("team_seasons")
-            .select("team_id, display_name")
+            .from("rider_contracts")
+            .select("rider_id, team_id")
+            .in("rider_id", professionalRiderIds)
+            .eq("status", "active")
+            .returns<RiderContractRow[]>()
+        : Promise.resolve({ data: [], error: null }),
+      professionalRiderIds.length > 0
+        ? admin
+            .from("rider_season_ratings")
+            .select("rider_id, age")
             .eq("season_id", season.id)
-            .in("team_id", academyTeamIds)
-            .returns<TeamSeasonRow[]>()
+            .in("rider_id", professionalRiderIds)
+            .returns<RiderRatingRow[]>()
         : Promise.resolve({ data: [], error: null }),
     ]);
 
@@ -263,8 +286,50 @@ export async function getNationalFederationSnapshot({
   );
   assertFederationQuery(seasonsResult.error, "l’historique des saisons");
   assertFederationQuery(
+    professionalContractsResult.error,
+    "les équipes des champions professionnels",
+  );
+  assertFederationQuery(
+    professionalRatingsResult.error,
+    "l’âge des champions professionnels",
+  );
+
+  const professionalContractByRiderId = new Map(
+    (professionalContractsResult.data ?? []).map((contract) => [
+      contract.rider_id,
+      contract,
+    ]),
+  );
+  const professionalAgeByRiderId = new Map(
+    (professionalRatingsResult.data ?? []).map((rating) => [
+      rating.rider_id,
+      rating.age,
+    ]),
+  );
+  const professionalRiderRowById = new Map(
+    (professionalRidersResult.data ?? []).map((rider) => [rider.id, rider]),
+  );
+  const juniorRiderRowById = new Map(
+    (juniorRidersResult.data ?? []).map((rider) => [rider.id, rider]),
+  );
+  const championTeamIds = unique([
+    ...academyTeamIds,
+    ...(professionalContractsResult.data ?? []).map((contract) => contract.team_id),
+    ...(juniorRidersResult.data ?? []).flatMap((rider) =>
+      rider.team_id ? [rider.team_id] : [],
+    ),
+  ]);
+  const academyTeamsResult = championTeamIds.length
+    ? await admin
+        .from("team_seasons")
+        .select("team_id, display_name")
+        .eq("season_id", season.id)
+        .in("team_id", championTeamIds)
+        .returns<TeamSeasonRow[]>()
+    : { data: [] as TeamSeasonRow[], error: null };
+  assertFederationQuery(
     academyTeamsResult.error,
-    "les propriétaires des académies internationales",
+    "les équipes des champions et académies",
   );
 
   const professionalRiderById = toRiderNameMap(
@@ -286,6 +351,8 @@ export async function getNationalFederationSnapshot({
     const riderName = professionalRiderById.get(title.rider_id);
     if (!titleSeason || !riderName) return [];
 
+    const rider = professionalRiderRowById.get(title.rider_id);
+    const contract = professionalContractByRiderId.get(title.rider_id);
     return [
       {
         riderId: title.rider_id,
@@ -294,6 +361,13 @@ export async function getNationalFederationSnapshot({
         discipline: title.championship_type,
         seasonName: titleSeason.name,
         gameYear: titleSeason.game_year,
+        avatarProfileKey: rider?.avatar_profile_key ?? null,
+        avatarSeed: rider?.avatar_seed ?? null,
+        teamId: contract?.team_id ?? null,
+        teamName: contract
+          ? academyTeamNameById.get(contract.team_id) ?? null
+          : null,
+        age: professionalAgeByRiderId.get(title.rider_id) ?? 25,
       },
     ];
   });
@@ -302,6 +376,7 @@ export async function getNationalFederationSnapshot({
     const riderName = juniorRiderById.get(title.academy_rider_id);
     if (!titleSeason || !riderName) return [];
 
+    const rider = juniorRiderRowById.get(title.academy_rider_id);
     return [
       {
         riderId: title.academy_rider_id,
@@ -310,6 +385,13 @@ export async function getNationalFederationSnapshot({
         discipline: title.championship_type,
         seasonName: titleSeason.name,
         gameYear: titleSeason.game_year,
+        avatarProfileKey: rider?.avatar_profile_key ?? null,
+        avatarSeed: rider?.avatar_seed ?? null,
+        teamId: rider?.team_id ?? null,
+        teamName: rider?.team_id
+          ? academyTeamNameById.get(rider.team_id) ?? null
+          : null,
+        age: rider ? season.game_year - rider.birth_game_year : 17,
       },
     ];
   });
@@ -319,6 +401,8 @@ export async function getNationalFederationSnapshot({
       (champions, title) => {
         const titleSeason = seasonById.get(title.season_id);
         const riderName = professionalRiderById.get(title.rider_id);
+        const rider = professionalRiderRowById.get(title.rider_id);
+        const contract = professionalContractByRiderId.get(title.rider_id);
         if (!titleSeason || !riderName) return champions;
 
         champions[title.championship_type] = {
@@ -328,6 +412,13 @@ export async function getNationalFederationSnapshot({
           discipline: title.championship_type,
           seasonName: titleSeason.name,
           gameYear: titleSeason.game_year,
+          avatarProfileKey: rider?.avatar_profile_key ?? null,
+          avatarSeed: rider?.avatar_seed ?? null,
+          teamId: contract?.team_id ?? null,
+          teamName: contract
+            ? academyTeamNameById.get(contract.team_id) ?? null
+            : null,
+          age: professionalAgeByRiderId.get(title.rider_id) ?? 25,
         };
         return champions;
       },

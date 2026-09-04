@@ -5,6 +5,7 @@ export const NATIONAL_FEDERATION_TABS = [
   "selections",
   "infrastructures",
   "finances",
+  "races",
   "governance",
   "lounge",
 ] as const;

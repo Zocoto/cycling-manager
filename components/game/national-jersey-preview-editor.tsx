@@ -52,7 +52,7 @@ export function NationalJerseyPreviewEditor({
   canPublish,
 }: NationalJerseyPreviewEditorProps) {
   const [draft, setDraft] = useState<NationalJerseyDraft>(
-    DEFAULT_NATIONAL_JERSEY_DRAFT,
+    publishedJersey?.design ?? DEFAULT_NATIONAL_JERSEY_DRAFT,
   );
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
@@ -70,6 +70,11 @@ export function NationalJerseyPreviewEditor({
         design: publishState.publishedDesign,
         version: publishState.version ?? publishedJersey?.version ?? 1,
         publishedAt: new Date().toISOString(),
+        activationGameYear:
+          publishState.activationGameYear ??
+          publishedJersey?.activationGameYear ??
+          3,
+        isActive: false,
       }
     : publishedJersey;
   const selectedElement =
@@ -222,7 +227,7 @@ export function NationalJerseyPreviewEditor({
                 onClick={reusePublishedJersey}
                 className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15"
               >
-                Reprendre la version publiée
+                Modifier à partir de ce maillot
               </button>
             ) : null}
             <button
@@ -230,7 +235,7 @@ export function NationalJerseyPreviewEditor({
               onClick={resetDraft}
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15"
             >
-              Nouveau maillot blanc
+              Repartir de zéro
             </button>
           </div>
           <p aria-live="polite" className="mt-3 text-xs font-bold text-[#9BE0BC]">
@@ -241,7 +246,9 @@ export function NationalJerseyPreviewEditor({
                 : storageStatus === "unavailable"
                   ? "Stockage local indisponible : le brouillon reste temporaire."
                   : effectivePublishedJersey
-                    ? `Version officielle ${effectivePublishedJersey.version} actuellement utilisée.`
+                    ? effectivePublishedJersey.isActive
+                      ? `Version officielle ${effectivePublishedJersey.version} actuellement utilisée.`
+                      : `Maillot composé pour la Saison ${effectivePublishedJersey.activationGameYear}. Une seule composition future est active.`
                     : "Le maillot actuel reste inchangé tant que vous ne publiez pas."}
           </p>
         </div>
@@ -366,8 +373,9 @@ export function NationalJerseyPreviewEditor({
               <div>
                 <p className="font-black">Publication officielle</p>
                 <p className="mt-1 max-w-xl text-xs font-semibold leading-5 text-[#BFD1C6]">
-                  La publication remplace le maillot de sélection nationale sur
-                  les coureurs. Le maillot précédent est conservé dans l’historique.
+                  La validation remplace l’unique composition en attente. Elle
+                  ne s’activera qu’au début de la saison suivante ; le maillot
+                  de la saison en cours reste inchangé.
                 </p>
               </div>
               <button

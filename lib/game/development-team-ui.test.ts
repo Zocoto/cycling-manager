@@ -42,7 +42,7 @@ describe("Development Team UI", () => {
 
   it("expose le calendrier, les inscriptions et les résultats bruts", () => {
     expect(panel).toContain("registerDevelopmentRaceAction");
-    expect(panel).toContain("Dix rendez-vous, aucune course en direct");
+    expect(panel).toContain("Dix rendez-vous, des résultats au fil des jours");
     expect(panel).toContain("Résultats bruts");
     expect(panel).toContain("Classement général final");
     expect(panel).toContain("formatRaceTime");

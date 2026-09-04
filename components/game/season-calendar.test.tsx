@@ -245,6 +245,61 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("Voir les CC &amp; CM");
   });
 
+  it("ouvre un championnat junior directement sur son classement officiel", () => {
+    const juniorChampionship = createEdition({
+      id: "mondial-junior-route",
+      name: "Championnat du monde junior — Route",
+      categoryCode: "world",
+      countryCode: "CH",
+      dayNumber: 27,
+      daySlot: "late",
+      registrationClosesAt: "2026-08-27T12:00:00Z",
+      accepted: false,
+      competitionType: "world_championship",
+    });
+    juniorChampionship.isJuniorChampionship = true;
+    juniorChampionship.calendarHref =
+      "/jeu/resultats-juniors/mondial-junior-route";
+    juniorChampionship.registrationPolicy = "closed";
+    juniorChampionship.minimumRosterSize = 1;
+    juniorChampionship.maximumRosterSize = 6;
+
+    expect(getCalendarEditionHref(juniorChampionship, 20)).toBe(
+      "/jeu/resultats-juniors/mondial-junior-route",
+    );
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={{
+          seasonId: "season-juniors",
+          seasonName: "Saison 3",
+          gameYear: 3,
+          startsOn: "2026-08-01",
+          endsOn: "2026-08-28",
+          currentDayNumber: 20,
+          days: Array.from({ length: 28 }, (_, index) => ({
+            id: `day-${index + 1}`,
+            dayNumber: index + 1,
+            calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+              .toISOString()
+              .slice(0, 10),
+            label: null,
+          })),
+          events: [],
+          editions: [juniorChampionship],
+        }}
+        reputationPoints={0}
+        nowIso="2026-08-20T08:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain("Championnat du monde junior");
+    expect(markup).toContain("Résultats juniors");
+    expect(markup).toContain(
+      "/jeu/resultats-juniors/mondial-junior-route",
+    );
+  });
+
   it("retire les courses révolues du calendrier", () => {
     const pastEdition = createEdition({
       id: "course-passee",

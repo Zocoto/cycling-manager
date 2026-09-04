@@ -63,6 +63,7 @@ export default async function RaceCalendarPage({
       getGameHeaderData(supabase, user.id),
       getActiveSeasonRaceCalendar(supabase, new Date(), {
         includeEngagedRiders: false,
+        includeJuniorChampionships: true,
       })
         .then((calendar) => ({
           calendar,

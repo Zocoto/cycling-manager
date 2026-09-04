@@ -7,6 +7,7 @@ import {
   contributeArchitectToFederationProjectAction,
   initialFederationInfrastructureActionState,
   startFederationInfrastructureProjectAction,
+  updateFederationProjectPriorityAction,
   type FederationInfrastructureActionState,
 } from "@/app/jeu/federations/infrastructure-actions";
 import {
@@ -62,123 +63,55 @@ export function FederationInfrastructureCatalog({
   managementLocked,
   infrastructureState,
 }: FederationInfrastructureCatalogProps) {
-  const [previewArchitectCount, setPreviewArchitectCount] = useState(0);
-  const [priority, setPriority] =
-    useState<FederationConstructionPriority>("balanced");
-  const activeProjectCount = infrastructureState?.activeProjects.length ?? 0;
+  const activeProjects = infrastructureState?.activeProjects ?? [];
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-        <div className="grid gap-6 bg-[#123F36] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.55fr)] xl:items-center">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
-              Cellule des grands travaux · {managementLocked ? "Préparation S3" : "Gestion active"}
-            </p>
-            <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-              Neuf infrastructures, cinq niveaux chacune
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Les bâtiments sont financés par la trésorerie fédérale. Les
-              effets sont modestes, plafonnés et figés par saison afin de ne pas
-              créer de recalcul pendant les courses.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <CatalogMetric label="Bâtiments" value="9" />
-            <CatalogMetric
-              label={managementLocked ? "Niveaux" : "Chantiers"}
-              value={managementLocked ? "45" : String(activeProjectCount)}
-            />
-            <CatalogMetric
-              label="Architectes libres"
-              value={
-                managementLocked
-                  ? "0–5"
-                  : String(infrastructureState?.availableArchitects.length ?? 0)
-              }
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(260px,0.55fr)]">
-          {managementLocked ? (
-            <label className="block">
-              <span className="flex items-center justify-between gap-4 text-sm font-black text-[#183F37]">
-                <span>Simulation des architectes affiliés</span>
-                <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs text-[#176951]">
-                  {previewArchitectCount}/{MAX_FEDERATION_PROJECT_ARCHITECTS}
-                </span>
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={MAX_FEDERATION_PROJECT_ARCHITECTS}
-                value={previewArchitectCount}
-                onChange={(event) =>
-                  setPreviewArchitectCount(Number(event.target.value))
-                }
-                className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#DDE8E2] accent-[#176951]"
+      {activeProjects.length > 0 ? (
+        <section className="rounded-[2rem] border border-[#278B70]/30 bg-white p-6 shadow-[0_18px_48px_rgba(19,60,46,0.12)] sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+            Construction en cours
+          </p>
+          <h2 className="mt-2 text-3xl font-black text-[#183F37]">
+            Les chantiers de la fédération
+          </h2>
+          <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-[#60756E]">
+            Chaque DS peut affecter un seul architecte de son staff par
+            chantier. Le bonus financier est recrédité immédiatement et le
+            planning est recalculé à chaque arrivée ou départ.
+          </p>
+          <div className="mt-6 grid gap-5 xl:grid-cols-2">
+            {activeProjects.map((project) => (
+              <ActiveProjectPanel
+                key={project.id}
+                countryCode={countryCode}
+                project={project}
+                state={infrastructureState}
+                currency={currency}
               />
-              <span className="mt-3 block text-xs font-semibold leading-5 text-[#60756E]">
-                Cette jauge sert uniquement à comparer les futurs devis. En S3,
-                chaque club pourra affecter un architecte réel par chantier.
-              </span>
-            </label>
-          ) : (
-            <div className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
-                Trésorerie disponible
-              </p>
-              <p className="mt-2 text-2xl font-black text-[#183F37]">
-                {infrastructureState?.balance == null
-                  ? "Initialisation en cours"
-                  : formatMoney(infrastructureState.balance, currency)}
-              </p>
-              <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-                Le coût brut est débité au lancement. Les économies apportées
-                ensuite par les architectes sont recréditées automatiquement.
-              </p>
-            </div>
-          )}
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-          <label className="block">
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-[#60756E]">
-              Priorité des prochains chantiers
-            </span>
-            <select
-              value={priority}
-              onChange={(event) =>
-                setPriority(event.target.value as FederationConstructionPriority)
-              }
-              className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#42B99A]/25"
-            >
-              {PRIORITIES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <span className="mt-2 block text-xs font-semibold text-[#60756E]">
-              {PRIORITIES.find((option) => option.value === priority)?.detail}
-            </span>
-          </label>
-        </div>
-
-        <p className="border-t border-[#315B3E]/10 bg-[#FFF9DE] px-6 py-4 text-xs font-bold leading-5 text-[#75631C] sm:px-8">
-          Jusqu’à cinq clubs différents peuvent affecter chacun un architecte
-          à un chantier. Un architecte déjà mobilisé sur un bâtiment de club ou
-          fédéral n’est jamais proposé.
-        </p>
-      </section>
+      {!managementLocked ? (
+        <aside className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4">
+          <span className="text-sm font-bold text-[#60756E]">
+            Trésorerie fédérale disponible
+          </span>
+          <strong className="text-xl font-black text-[#183F37]">
+            {infrastructureState?.balance == null
+              ? "Initialisation en cours"
+              : formatMoney(infrastructureState.balance, currency)}
+          </strong>
+        </aside>
+      ) : null}
 
       {FEDERATION_INFRASTRUCTURE_DEFINITIONS.map((definition) => (
         <FederationInfrastructureCard
           key={definition.code}
           countryCode={countryCode}
           definition={definition}
-          previewArchitectCount={previewArchitectCount}
-          priority={priority}
           currency={currency}
           managementLocked={managementLocked}
           currentLevel={infrastructureState?.levels[definition.code] ?? 0}
@@ -197,8 +130,6 @@ export function FederationInfrastructureCatalog({
 function FederationInfrastructureCard({
   countryCode,
   definition,
-  previewArchitectCount,
-  priority,
   currency,
   managementLocked,
   currentLevel,
@@ -207,8 +138,6 @@ function FederationInfrastructureCard({
 }: {
   countryCode: string;
   definition: FederationInfrastructureDefinition;
-  previewArchitectCount: number;
-  priority: FederationConstructionPriority;
   currency: string;
   managementLocked: boolean;
   currentLevel: number;
@@ -228,8 +157,8 @@ function FederationInfrastructureCard({
   const quote = quoteLevel
     ? calculateFederationConstructionPreview({
         level: quoteLevel,
-        architectCount: managementLocked ? previewArchitectCount : 0,
-        priority,
+        architectCount: 0,
+        priority: "balanced",
       })
     : null;
   const balance = infrastructureState?.balance ?? 0;
@@ -313,12 +242,10 @@ function FederationInfrastructureCard({
         </div>
 
         {activeProject ? (
-          <ActiveProjectPanel
-            countryCode={countryCode}
-            project={activeProject}
-            state={infrastructureState}
-            currency={currency}
-          />
+          <aside className="h-fit rounded-2xl border border-[#278B70]/25 bg-[#EAF7F1] p-5 text-sm font-bold leading-6 text-[#176951]">
+            Ce chantier est suivi dans l’encart « Construction en cours » en
+            tête de page.
+          </aside>
         ) : quote && quoteLevel ? (
           <aside className="h-fit rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-5">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#75631C]">
@@ -356,7 +283,7 @@ function FederationInfrastructureCard({
                 countryCode={countryCode}
                 infrastructureCode={definition.code}
                 targetLevel={quoteLevel.level}
-                priority={priority}
+                priority="balanced"
                 disabled={
                   !infrastructureState?.canLaunch ||
                   infrastructureState.balance == null ||
@@ -395,6 +322,13 @@ function ActiveProjectPanel({
   state: FederationInfrastructureState | null;
   currency: string;
 }) {
+  const definition = FEDERATION_INFRASTRUCTURE_DEFINITIONS.find(
+    (candidate) => candidate.code === project.code,
+  );
+  const [priorityState, priorityAction, priorityPending] = useActionState(
+    updateFederationProjectPriorityAction,
+    initialFederationInfrastructureActionState,
+  );
   const elapsedDays = Math.max(
     0,
     project.finalDurationDays - project.remainingDays,
@@ -419,6 +353,9 @@ function ActiveProjectPanel({
             Chantier en cours · niveau {project.targetLevel}
           </p>
           <p className="mt-2 text-xl font-black text-[#183F37]">
+            {definition?.name ?? "Infrastructure fédérale"}
+          </p>
+          <p className="mt-1 text-sm font-black text-[#176951]">
             {project.remainingDays > 0
               ? `${project.remainingDays} jour${project.remainingDays > 1 ? "s" : ""} restant${project.remainingDays > 1 ? "s" : ""}`
               : "Livraison imminente"}
@@ -428,6 +365,42 @@ function ActiveProjectPanel({
           {project.architectCount}/5
         </span>
       </div>
+      <form action={priorityAction} className="mt-4 rounded-xl bg-white p-3">
+        <input type="hidden" name="countryCode" value={countryCode} />
+        <input type="hidden" name="projectId" value={project.id} />
+        <label className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <span>
+            <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+              Priorité du chantier
+            </span>
+            <select
+              name="priority"
+              defaultValue={project.priority}
+              disabled={!state?.canLaunch || priorityPending}
+              className="mt-1 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-black text-[#183F37] disabled:bg-[#EDF1EF]"
+            >
+              {PRIORITIES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </span>
+          <button
+            type="submit"
+            disabled={!state?.canLaunch || priorityPending}
+            className="min-h-10 rounded-lg bg-[#123F36] px-4 text-xs font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
+          >
+            {priorityPending ? "Calcul…" : "Mettre à jour"}
+          </button>
+        </label>
+        {state?.canLaunch ? (
+          <p className="mt-2 text-[10px] font-semibold text-[#60756E]">
+            {PRIORITIES.find((option) => option.value === project.priority)?.detail}
+          </p>
+        ) : null}
+        <ActionFeedback state={priorityState} />
+      </form>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#C9E3D7]">
         <div
           className="h-full rounded-full bg-[#278B70] transition-[width]"
@@ -450,10 +423,17 @@ function ActiveProjectPanel({
         <ul className="mt-4 space-y-2 border-t border-[#278B70]/15 pt-4">
           {project.architects.map((architect) => (
             <li
-              key={architect.teamId}
-              className="flex items-center justify-between gap-3 text-xs font-bold text-[#60756E]"
+              key={architect.contractId}
+              className="grid gap-2 rounded-xl bg-white p-3 text-xs font-bold text-[#60756E] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
             >
-              <span className="truncate">{architect.teamName}</span>
+              <span className="min-w-0">
+                <span className="block truncate font-black text-[#183F37]">
+                  {architect.name} · N{architect.level}
+                </span>
+                <span className="mt-1 block truncate text-[10px]">
+                  {architect.teamName} · {architect.specialty}
+                </span>
+              </span>
               <span className="shrink-0 text-[#176951]">
                 +{formatMoney(architect.costRefund, currency)} · −{architect.savedDays} j
               </span>
@@ -461,6 +441,10 @@ function ActiveProjectPanel({
           ))}
         </ul>
       ) : null}
+      <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">
+        Si son contrat prend fin, l’architecte quitte automatiquement le
+        chantier et les montants ainsi que la livraison sont recalculés.
+      </p>
       <ArchitectContributionForm
         countryCode={countryCode}
         projectId={project.id}
@@ -594,17 +578,6 @@ function ActionFeedback({ state }: { state: FederationInfrastructureActionState 
     >
       {state.message}
     </p>
-  );
-}
-
-function CatalogMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/15 bg-white/10 p-3">
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#BFD1C6]">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-black text-white">{value}</p>
-    </div>
   );
 }
 

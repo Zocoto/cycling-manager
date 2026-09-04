@@ -19,6 +19,11 @@ type NationalFederationJerseyRow = {
   design: unknown;
   version: number;
   published_at: string;
+  active_from_game_year: number | null;
+  pending_design: unknown | null;
+  pending_version: number | null;
+  pending_published_at: string | null;
+  pending_activation_game_year: number | null;
 };
 
 export async function getNationalFederationJersey(
@@ -27,7 +32,7 @@ export async function getNationalFederationJersey(
 ): Promise<PublishedNationalJersey | null> {
   const result = await supabase
     .from("national_federation_jerseys")
-    .select("country_id, design, version, published_at")
+    .select("country_id, design, version, published_at, active_from_game_year, pending_design, pending_version, pending_published_at, pending_activation_game_year")
     .eq("country_id", countryId)
     .maybeSingle<NationalFederationJerseyRow>();
 
@@ -37,7 +42,24 @@ export async function getNationalFederationJersey(
     );
   }
 
-  return result.data ? mapPublishedNationalJersey(result.data) : null;
+  if (!result.data) return null;
+  if (
+    result.data.pending_design &&
+    result.data.pending_version &&
+    result.data.pending_published_at &&
+    result.data.pending_activation_game_year
+  ) {
+    return {
+      design: normalizeNationalJerseyDraft(
+        result.data.pending_design as Partial<NationalJerseyDraft>,
+      ),
+      version: result.data.pending_version,
+      publishedAt: result.data.pending_published_at,
+      activationGameYear: result.data.pending_activation_game_year,
+      isActive: false,
+    };
+  }
+  return mapPublishedNationalJersey(result.data);
 }
 
 export async function loadNationalFederationJerseyDesigns(
@@ -50,7 +72,11 @@ export async function loadNationalFederationJerseyDesigns(
 
   return new Map(
     rows
-      .filter((row) => requestedCountryIds.has(row.country_id))
+      .filter(
+        (row) =>
+          requestedCountryIds.has(row.country_id) &&
+          row.active_from_game_year != null,
+      )
       .map((row) => [
         row.country_id,
         normalizeNationalJerseyDraft(
@@ -65,7 +91,7 @@ const getCachedNationalFederationJerseys = unstable_cache(
     const admin = createSupabaseAdminClient();
     const result = await admin
       .from("national_federation_jerseys")
-      .select("country_id, design, version, published_at")
+      .select("country_id, design, version, published_at, active_from_game_year, pending_design, pending_version, pending_published_at, pending_activation_game_year")
       .returns<NationalFederationJerseyRow[]>();
 
     if (result.error) {
@@ -90,5 +116,7 @@ function mapPublishedNationalJersey(
     ),
     version: Math.max(1, Math.trunc(Number(row.version) || 1)),
     publishedAt: row.published_at,
+    activationGameYear: row.active_from_game_year ?? 1,
+    isActive: row.active_from_game_year != null,
   };
 }

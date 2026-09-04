@@ -77,6 +77,34 @@ export async function contributeArchitectToFederationProjectAction(
   };
 }
 
+export async function updateFederationProjectPriorityAction(
+  _previousState: FederationInfrastructureActionState,
+  formData: FormData,
+): Promise<FederationInfrastructureActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const projectId = uuidSchema.safeParse(formData.get("projectId"));
+  const priority = prioritySchema.safeParse(formData.get("priority"));
+  if (!countryCode.success || !projectId.success || !priority.success) {
+    return failure("La nouvelle priorité est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const result = await supabase.rpc(
+    "update_national_federation_project_priority",
+    {
+      p_country_code: countryCode.data,
+      p_project_id: projectId.data,
+      p_priority: priority.data,
+    },
+  );
+  if (result.error) return failure(result.error.message);
+  revalidate(countryCode.data);
+  return {
+    status: "success",
+    message: "La priorité, le coût et la date de livraison ont été recalculés.",
+  };
+}
+
 function revalidate(countryCode: string) {
   revalidatePath(`/jeu/federations/${countryCode.toLowerCase()}`);
   revalidatePath("/jeu");

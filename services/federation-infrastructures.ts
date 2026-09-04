@@ -8,6 +8,10 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationProjectArchitect = {
+  contractId: string;
+  name: string;
+  level: number;
+  specialty: string;
   teamId: string;
   teamName: string;
   costRefund: number;
@@ -192,6 +196,23 @@ export async function getFederationInfrastructureState({
     }
 
     const contributionRows = contributions.data ?? [];
+    const contributionContractIds = [
+      ...new Set(
+        contributionRows.map((contribution) => contribution.staff_contract_id),
+      ),
+    ];
+    const contributionContracts = contributionContractIds.length
+      ? await admin
+          .from("staff_contracts")
+          .select("id, staff_member_id")
+          .in("id", contributionContractIds)
+          .returns<ContractRow[]>()
+      : { data: [] as ContractRow[], error: null };
+    if (contributionContracts.error) {
+      throw new Error(
+        `les contrats des architectes fédéraux : ${contributionContracts.error.message}`,
+      );
+    }
     const contributorTeamIds = [
       ...new Set(contributionRows.map((contribution) => contribution.team_id)),
     ];
@@ -211,8 +232,15 @@ export async function getFederationInfrastructureState({
     );
 
     const contractRows = contracts.data ?? [];
+    const allContractRows = [
+      ...new Map(
+        [...contractRows, ...(contributionContracts.data ?? [])].map(
+          (contract) => [contract.id, contract],
+        ),
+      ).values(),
+    ];
     const contractIds = contractRows.map((contract) => contract.id);
-    const memberIds = contractRows.map((contract) => contract.staff_member_id);
+    const memberIds = allContractRows.map((contract) => contract.staff_member_id);
     const [members, activeTeamProjects, ownFederalContributions] =
       await Promise.all([
         memberIds.length
@@ -265,6 +293,9 @@ export async function getFederationInfrastructureState({
     const memberById = new Map(
       (members.data ?? []).map((member) => [member.id, member]),
     );
+    const contractById = new Map(
+      allContractRows.map((contract) => [contract.id, contract]),
+    );
     const availableArchitects = contractRows.flatMap(
       (contract): FederationArchitectOption[] => {
         const member = memberById.get(contract.staff_member_id);
@@ -316,13 +347,27 @@ export async function getFederationInfrastructureState({
               project.completes_game_day_index - currentGameDayIndex,
             ),
             architectCount: projectContributions.length,
-            architects: projectContributions.map((contribution) => ({
-              teamId: contribution.team_id,
-              teamName:
-                teamNameById.get(contribution.team_id) ?? "Équipe affiliée",
-              costRefund: Number(contribution.cost_refund),
-              savedDays: contribution.saved_days,
-            })),
+            architects: projectContributions.map((contribution) => {
+              const contract = contractById.get(
+                contribution.staff_contract_id,
+              );
+              const member = contract
+                ? memberById.get(contract.staff_member_id)
+                : null;
+              return {
+                contractId: contribution.staff_contract_id,
+                name: member
+                  ? `${member.first_name} ${member.last_name}`.trim()
+                  : "Architecte fédéral",
+                level: member?.level ?? 1,
+                specialty: member?.architect_specialty ?? "Équilibré",
+                teamId: contribution.team_id,
+                teamName:
+                  teamNameById.get(contribution.team_id) ?? "Équipe affiliée",
+                costRefund: Number(contribution.cost_refund),
+                savedDays: contribution.saved_days,
+              };
+            }),
             viewerTeamHasContributed: projectContributions.some(
               (contribution) => contribution.team_id === viewerTeamId,
             ),

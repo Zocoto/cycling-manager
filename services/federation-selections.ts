@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationStoredSelection = {
@@ -16,6 +17,10 @@ export type FederationPendingConfirmation = {
 
 export type FederationSelectionState = {
   canManage: boolean;
+  automaticSelection: boolean;
+  competitionHosts: Partial<
+    Record<FederationHostingEventType, { countryCode: string; countryName: string }>
+  >;
   selections: Record<string, FederationStoredSelection>;
   pendingConfirmations: FederationPendingConfirmation[];
 };
@@ -36,6 +41,12 @@ type MemberRow = {
 };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
+type PreferenceRow = { automatic_selection: boolean };
+type HostingAwardRow = {
+  event_type: FederationHostingEventType;
+  country_id: string;
+};
+type HostCountryRow = { id: string; iso_alpha2: string; name: string };
 
 export async function getFederationSelectionState({
   countryId,
@@ -50,13 +61,15 @@ export async function getFederationSelectionState({
 }): Promise<FederationSelectionState> {
   const empty: FederationSelectionState = {
     canManage: false,
+    automaticSelection: true,
+    competitionHosts: {},
     selections: {},
     pendingConfirmations: [],
   };
 
   try {
     const admin = createSupabaseAdminClient();
-    const [listsResult, assignmentResult, termResult] = await Promise.all([
+    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult] = await Promise.all([
       admin
         .from("national_federation_selection_lists")
         .select("id, slot_key, status, revision")
@@ -79,24 +92,51 @@ export async function getFederationSelectionState({
         .lte("start_game_year", gameYear)
         .gte("end_game_year", gameYear)
         .maybeSingle<TermRow>(),
+      admin
+        .from("national_federation_selection_preferences")
+        .select("automatic_selection")
+        .eq("country_id", countryId)
+        .eq("season_id", seasonId)
+        .maybeSingle<PreferenceRow>(),
+      admin
+        .from("national_federation_hosting_awards")
+        .select("event_type, country_id")
+        .eq("target_game_year", gameYear)
+        .in("status", ["scheduled", "settled"])
+        .returns<HostingAwardRow[]>(),
     ]);
 
     if (listsResult.error) throw listsResult.error;
     if (assignmentResult.error) throw assignmentResult.error;
     if (termResult.error) throw termResult.error;
+    if (preferenceResult.error) throw preferenceResult.error;
+    if (hostsResult.error) throw hostsResult.error;
 
     const lists = listsResult.data ?? [];
     const listIds = lists.map((list) => list.id);
-    const membersResult = listIds.length
-      ? await admin
-          .from("national_federation_selection_members")
-          .select(
-            "id, selection_list_id, professional_rider_id, junior_rider_id, owner_team_id, response_status",
-          )
-          .in("selection_list_id", listIds)
-          .returns<MemberRow[]>()
-      : { data: [] as MemberRow[], error: null };
+    const hostCountryIds = [
+      ...new Set((hostsResult.data ?? []).map((host) => host.country_id)),
+    ];
+    const [membersResult, hostCountriesResult] = await Promise.all([
+      listIds.length
+        ? admin
+            .from("national_federation_selection_members")
+            .select(
+              "id, selection_list_id, professional_rider_id, junior_rider_id, owner_team_id, response_status",
+            )
+            .in("selection_list_id", listIds)
+            .returns<MemberRow[]>()
+        : Promise.resolve({ data: [] as MemberRow[], error: null }),
+      hostCountryIds.length
+        ? admin
+            .from("countries")
+            .select("id, iso_alpha2, name")
+            .in("id", hostCountryIds)
+            .returns<HostCountryRow[]>()
+        : Promise.resolve({ data: [] as HostCountryRow[], error: null }),
+    ]);
     if (membersResult.error) throw membersResult.error;
+    if (hostCountriesResult.error) throw hostCountriesResult.error;
 
     const members = membersResult.data ?? [];
     const listById = new Map(lists.map((list) => [list.id, list]));
@@ -116,6 +156,22 @@ export async function getFederationSelectionState({
         },
       ]),
     );
+    const countryById = new Map(
+      (hostCountriesResult.data ?? []).map((country) => [country.id, country]),
+    );
+    const competitionHosts = Object.fromEntries(
+      (hostsResult.data ?? []).flatMap((host) => {
+        const country = countryById.get(host.country_id);
+        return country
+          ? [
+              [
+                host.event_type,
+                { countryCode: country.iso_alpha2, countryName: country.name },
+              ],
+            ]
+          : [];
+      }),
+    ) as FederationSelectionState["competitionHosts"];
 
     return {
       canManage:
@@ -123,6 +179,9 @@ export async function getFederationSelectionState({
         Boolean(assignmentResult.data?.sporting_director_id) &&
         assignmentResult.data?.sporting_director_id ===
           termResult.data?.president_director_id,
+      automaticSelection:
+        preferenceResult.data?.automatic_selection ?? true,
+      competitionHosts,
       selections,
       pendingConfirmations: viewerTeamId
         ? members.flatMap((member): FederationPendingConfirmation[] => {

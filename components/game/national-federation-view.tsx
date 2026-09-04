@@ -1,16 +1,25 @@
+import Image from "next/image";
+
 import Link from "@/components/ui/app-link";
 
+import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import {
   GameSectionTabLink,
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { FederationFinancePreview } from "@/components/game/federation-finance-preview";
 import { FederationElectionPanel } from "@/components/game/federation-election-panel";
+import { FederationCoursesPanel } from "@/components/game/federation-courses-panel";
 import { FederationInfrastructureCatalog } from "@/components/game/federation-infrastructure-catalog";
 import { FederationLounge } from "@/components/game/federation-lounge";
 import { FederationSelectionWorkbench } from "@/components/game/federation-selection-workbench";
 import { NationalJerseyPreviewEditor } from "@/components/game/national-jersey-preview-editor";
+import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { FederationChatOverview } from "@/lib/game/federation-chat";
+import {
+  buildFederationObjectives,
+  type FederationObjective,
+} from "@/lib/game/federation-objectives";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
 import type { PublishedNationalJersey } from "@/lib/game/national-jersey-preview";
 import {
@@ -19,11 +28,15 @@ import {
   getFederationManagementPhase,
   type NationalFederationTab,
 } from "@/lib/game/national-federations";
+import { createNationalChampionRiderJersey } from "@/lib/rider-jersey";
 import type {
   FederationChampion,
   NationalFederationSnapshot,
 } from "@/services/national-federations";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
+import type { FederationObjectiveMetrics } from "@/services/federation-objectives";
+import type { FederationCoursesState } from "@/services/federation-courses";
+import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 import type { FederationGovernanceOverview } from "@/services/federation-governance";
 import type {
   FederationInternationalPerformance,
@@ -33,6 +46,7 @@ import type { FederationInfrastructureState } from "@/services/federation-infras
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
 import type { FederationTreasuryState } from "@/services/federation-treasury";
+import type { FederationTeamJerseyArtwork } from "@/services/federation-team-jerseys";
 import type { NationRankingEntry } from "@/services/uci-rankings";
 
 type NationalFederationViewProps = {
@@ -52,9 +66,13 @@ type NationalFederationViewProps = {
   selectionRiders: FederationSelectionRider[];
   internationalResults: FederationInternationalResults | null;
   governanceOverview: FederationGovernanceOverview | null;
+  coursesState?: FederationCoursesState | null;
+  raceCreationState?: FederationRaceCreationState | null;
   selectionState: FederationSelectionState | null;
   treasuryState: FederationTreasuryState | null;
   infrastructureState: FederationInfrastructureState | null;
+  objectiveMetrics?: FederationObjectiveMetrics | null;
+  memberTeamJerseys?: Record<string, FederationTeamJerseyArtwork>;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -90,9 +108,14 @@ const TAB_CONTENT: Array<{
     description: "Dotations et solidarité",
   },
   {
+    id: "races",
+    label: "Courses",
+    description: "Patrimoine, accueil et création",
+  },
+  {
     id: "governance",
     label: "Gouvernance",
-    description: "Présidence et journal public",
+    description: "Présidence, maillot et journal",
   },
   {
     id: "lounge",
@@ -114,9 +137,13 @@ export function NationalFederationView({
   selectionRiders,
   internationalResults,
   governanceOverview,
+  coursesState = null,
+  raceCreationState = null,
   selectionState,
   treasuryState,
   infrastructureState,
+  objectiveMetrics = null,
+  memberTeamJerseys = {},
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -185,7 +212,7 @@ export function NationalFederationView({
 
       <GameSectionTabs
         ariaLabel="Rubriques de la fédération"
-        columns={6}
+        columns={7}
         className="mt-7"
       >
         {TAB_CONTENT.map((tab) => (
@@ -209,6 +236,8 @@ export function NationalFederationView({
             memberTeamCount={memberTeamCount}
             divisionLabel={division.label}
             internationalResults={internationalResults}
+            objectiveMetrics={objectiveMetrics}
+            memberTeamJerseys={memberTeamJerseys}
           />
         ) : selectedTab === "selections" ? (
           <SelectionsPanel
@@ -233,6 +262,19 @@ export function NationalFederationView({
             gameYear={snapshot.season.gameYear}
             treasuryState={treasuryState}
           />
+        ) : selectedTab === "races" ? (
+          coursesState ? (
+            <FederationCoursesPanel
+              countryCode={country.code}
+              gameYear={snapshot.season.gameYear}
+              state={coursesState}
+              raceCreationState={raceCreationState}
+            />
+          ) : (
+            <EmptyState>
+              Le portefeuille de courses n’a pas pu être chargé pour cette nation.
+            </EmptyState>
+          )
         ) : selectedTab === "governance" ? (
           <GovernancePanel
             country={country}
@@ -302,6 +344,8 @@ function OverviewPanel({
   memberTeamCount,
   divisionLabel,
   internationalResults,
+  objectiveMetrics,
+  memberTeamJerseys,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
@@ -310,9 +354,33 @@ function OverviewPanel({
   memberTeamCount: number;
   divisionLabel: string;
   internationalResults: FederationInternationalResults | null;
+  objectiveMetrics: FederationObjectiveMetrics | null;
+  memberTeamJerseys: Record<string, FederationTeamJerseyArtwork>;
 }) {
+  const objectiveGameYear = Math.max(
+    FEDERATION_MANAGEMENT_START_GAME_YEAR,
+    snapshot.season.gameYear,
+  );
+  const objectives = buildFederationObjectives({
+    gameYear: objectiveGameYear,
+    nationRank: nationRanking?.rank ?? null,
+    referenceMemberTeamCount:
+      objectiveMetrics?.referenceMemberTeamCount ?? memberTeamCount,
+    currentMemberTeamCount: memberTeamCount,
+    naturalizationCount: objectiveMetrics?.naturalizationCount ?? 0,
+    publishedSelectionCount: objectiveMetrics?.publishedSelectionCount ?? 0,
+    nationsCupRank: objectiveMetrics?.nationsCupRank ?? null,
+    worldRank: internationalResults?.world?.rank ?? null,
+    continentalRank: internationalResults?.continental?.rank ?? null,
+  });
+
   return (
     <div className="space-y-7">
+      <FederationObjectivesBoard
+        objectives={objectives}
+        gameYear={objectiveGameYear}
+      />
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <OverviewMetric
           eyebrow="Rayonnement"
@@ -367,43 +435,6 @@ function OverviewPanel({
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-        <SectionHeading
-          eyebrow="Maillots distinctifs"
-          title="Champions nationaux en titre"
-          description="Les championnats restent intégralement automatiques. La fédération expose leurs vainqueurs et conservera leur historique."
-        />
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <ChampionCard
-            label="Professionnels · Route"
-            champion={snapshot.champions.professional.road}
-          />
-          <ChampionCard
-            label="Professionnels · CLM"
-            champion={snapshot.champions.professional.time_trial}
-          />
-          <ChampionCard
-            label="Juniors · Route"
-            champion={snapshot.champions.junior.road}
-          />
-          <ChampionCard
-            label="Juniors · CLM"
-            champion={snapshot.champions.junior.time_trial}
-          />
-        </div>
-      </section>
-
-      <FederationSeasonThreePreview
-        countryName={country.name}
-        divisionLabel={divisionLabel}
-        division={getFederationDivisionPreview(nationRanking?.rank ?? null).division}
-        nationRank={nationRanking?.rank ?? null}
-        memberTeamCount={memberTeamCount}
-        academyCount={snapshot.academies.centers.length}
-        academyImpact={snapshot.academies.totalImpactPercentage}
-        recordedTitleCount={snapshot.palmares.length}
-      />
-
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
           <SectionHeading
@@ -419,9 +450,10 @@ function OverviewPanel({
                   href={`/jeu/equipes/${team.public_identifier}`}
                   className="flex items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4 transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:shadow-[0_12px_26px_rgba(19,60,46,0.1)]"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#176951] text-xs font-black text-white">
-                    {getInitials(team.display_name)}
-                  </span>
+                  <TeamJerseyPreview
+                    artwork={memberTeamJerseys[team.entity_id]}
+                    teamName={team.display_name}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-black text-[#183F37]">
                       {team.display_name}
@@ -451,10 +483,35 @@ function OverviewPanel({
 
         <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
           <SectionHeading
-            eyebrow="Mémoire sportive"
+            eyebrow="Maillots distinctifs · Mémoire sportive"
             title="Palmarès de la nation"
-            description="Une première chronologie légère des titres nationaux déjà enregistrés."
+            description="Les champions en titre portent leur maillot distinctif ; l’historique reste consultable juste après."
           />
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <ChampionCard
+              countryCode={country.code}
+              label="Professionnels · Route"
+              champion={snapshot.champions.professional.road}
+            />
+            <ChampionCard
+              countryCode={country.code}
+              label="Professionnels · CLM"
+              champion={snapshot.champions.professional.time_trial}
+            />
+            <ChampionCard
+              countryCode={country.code}
+              label="Juniors · Route"
+              champion={snapshot.champions.junior.road}
+            />
+            <ChampionCard
+              countryCode={country.code}
+              label="Juniors · CLM"
+              champion={snapshot.champions.junior.time_trial}
+            />
+          </div>
+          <p className="mt-7 text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+            Historique des titres
+          </p>
           <PalmaresList palmares={snapshot.palmares} />
         </section>
       </div>
@@ -473,8 +530,11 @@ function SelectionsPanel({
   riders: FederationSelectionRider[];
   selectionState: FederationSelectionState | null;
 }) {
-  const nextGameYear = snapshot.season.gameYear + 1;
-  const isQuadriennialSeason = nextGameYear % 4 === 0;
+  const programmeGameYear = Math.max(
+    FEDERATION_MANAGEMENT_START_GAME_YEAR,
+    snapshot.season.gameYear,
+  );
+  const isQuadriennialSeason = programmeGameYear % 4 === 0;
   const events = [
     {
       day: 15,
@@ -487,6 +547,11 @@ function SelectionsPanel({
       detail: isQuadriennialSeason
         ? "Édition exceptionnelle à la place de la Nations Cup"
         : "Cinq profils · classement de division et de groupe",
+    },
+    {
+      day: 24,
+      name: "Nations Cup juniors",
+      detail: "Sélection fédérale · 6 juniors issus des écoles ou DevTeams",
     },
     {
       day: 26,
@@ -697,24 +762,7 @@ function GovernancePanel({
         />
       ) : null}
 
-      <div className="grid gap-7 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-          <SectionHeading
-            eyebrow="Continuité"
-            title="Filet de sécurité automatique"
-            description="La fédération continue de fonctionner même si aucun candidat ne se présente ou si aucune voix n’est exprimée."
-          />
-          <FeatureList
-            entries={[
-              "Mandat de deux saisons à compter de la Saison 3",
-              "Une voix par équipe affiliée, liste électorale figée à J21",
-              "Candidatures J21–J24 puis vote secret J25–J28",
-              "Prise de fonction à J1 ou administration automatique",
-              "Conservation du dernier maillot national valide",
-            ]}
-          />
-        </section>
-
+      <div>
         <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
           <SectionHeading
             eyebrow="Transparence"
@@ -754,130 +802,78 @@ function GovernancePanel({
   );
 }
 
-function FederationSeasonThreePreview({
-  countryName,
-  divisionLabel,
-  division,
-  nationRank,
-  memberTeamCount,
-  academyCount,
-  academyImpact,
-  recordedTitleCount,
+function FederationObjectivesBoard({
+  objectives,
+  gameYear,
 }: {
-  countryName: string;
-  divisionLabel: string;
-  division: 1 | 2 | 3 | 4;
-  nationRank: number | null;
-  memberTeamCount: number;
-  academyCount: number;
-  academyImpact: number;
-  recordedTitleCount: number;
+  objectives: FederationObjective[];
+  gameYear: number;
 }) {
-  const sportingObjective =
-    division === 1
-      ? "Terminer parmi les 16 premières nations"
-      : `Accrocher l’une des deux places de montée en Division ${division}`;
-
   return (
-    <section>
-      <div className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-        <SectionHeading
-          eyebrow="Feuille de route S3"
-          title="Objectifs fédéraux prévisionnels"
-          description="Trois axes simples, contrôlables et non cumulables à l’infini. Leur bonus financier est déjà testable dans le simulateur."
-        />
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <ObjectivePreviewCard
-            number="01"
-            label="Performance"
-            title={sportingObjective}
-            detail={`${divisionLabel} · objectif recalculé à la clôture du classement UCI S2`}
-            reward="Palier jusqu’à +10 %"
-          />
-          <ObjectivePreviewCard
-            number="02"
-            label="Sélections"
-            title="Couvrir les cinq profils internationaux"
-            detail="Une discipline manquante n’annule pas le reste de la campagne."
-            reward="Bonus de participation"
-          />
-          <ObjectivePreviewCard
-            number="03"
-            label="Formation"
-            title={
-              academyCount > 0
-                ? "Consolider le réseau d’académies"
-                : "Faire émerger une première académie"
-            }
-            detail={`${academyCount} centre${academyCount > 1 ? "s" : ""} · ${academyImpact} % d’impact actuel`}
-            reward="Bonus de développement"
-          />
+    <section className="overflow-hidden rounded-[2rem] border border-[#1E7A60]/35 bg-[linear-gradient(135deg,#0D3C32_0%,#176951_100%)] p-6 text-white shadow-[0_20px_52px_rgba(19,60,46,0.2)] sm:p-8">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+            Feuille de route · Saison {gameYear}
+          </p>
+          <h2 className="mt-2 text-3xl font-black">Objectifs fédéraux</h2>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
+            Cinq objectifs prioritaires, contrôlés automatiquement à partir des
+            données de la saison.
+          </p>
         </div>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <RecordPreview
-            label="Rang de référence"
-            value={nationRank ? `#${nationRank}` : "À établir"}
-          />
-          <RecordPreview
-            label="Titres indexés"
-            value={numberFormatter.format(recordedTitleCount)}
-          />
-          <RecordPreview
-            label="Équipes affiliées"
-            value={numberFormatter.format(memberTeamCount)}
-          />
-          <RecordPreview label="Impact académique" value={`${academyImpact} %`} />
-        </div>
-        <p className="mt-4 text-xs font-semibold leading-5 text-[#789087]">
-          Cet instantané constituera le point de départ du registre de records
-          de {countryName}. Il ne réécrit aucun historique antérieur.
-        </p>
+        <span className="w-fit rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black text-[#C9F2DF]">
+          {objectives.filter((objective) => objective.completed).length}/5 validés
+        </span>
       </div>
-
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {objectives.map((objective, index) => (
+          <ObjectiveProgressCard
+            key={objective.id}
+            objective={objective}
+            number={index + 1}
+          />
+        ))}
+      </div>
     </section>
   );
 }
 
-function ObjectivePreviewCard({
+function ObjectiveProgressCard({
   number,
-  label,
-  title,
-  detail,
-  reward,
+  objective,
 }: {
-  number: string;
-  label: string;
-  title: string;
-  detail: string;
-  reward: string;
+  number: number;
+  objective: FederationObjective;
 }) {
   return (
-    <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
+    <article className="flex min-h-64 flex-col rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-2xl font-black text-[#42B99A]">{number}</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.11em] text-[#60756E]">
-          {label}
+        <span className="text-2xl font-black text-[#9BE0BC]">
+          {String(number).padStart(2, "0")}
+        </span>
+        <span className="text-[9px] font-black uppercase tracking-[0.11em] text-[#C9E3D7]">
+          {objective.eyebrow}
         </span>
       </div>
-      <h3 className="mt-4 font-black leading-5 text-[#183F37]">{title}</h3>
-      <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-        {detail}
+      <h3 className="mt-4 font-black leading-5 text-white">{objective.title}</h3>
+      <p className="mt-2 flex-1 text-xs font-semibold leading-5 text-[#C9E3D7]">
+        {objective.detail}
       </p>
-      <p className="mt-4 border-t border-[#315B3E]/10 pt-3 text-xs font-black text-[#176951]">
-        {reward}
-      </p>
-    </article>
-  );
-}
-
-function RecordPreview({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="rounded-xl border border-[#315B3E]/10 bg-[#EEF6F2] px-4 py-3">
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-black text-[#183F37]">{value}</p>
+      <div className="mt-5">
+        <div className="flex items-center justify-between gap-3 text-[10px] font-black">
+          <span className={objective.completed ? "text-[#F2C94C]" : "text-white"}>
+            {objective.completed ? "✓ Objectif rempli" : objective.currentLabel}
+          </span>
+          <span className="text-[#C9E3D7]">{objective.targetLabel}</span>
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/20">
+          <div
+            className={objective.completed ? "h-full rounded-full bg-[#F2C94C]" : "h-full rounded-full bg-[#75D7B5]"}
+            style={{ width: `${objective.progressPercentage}%` }}
+          />
+        </div>
+      </div>
     </article>
   );
 }
@@ -1009,9 +1005,11 @@ function OverviewMetric({
 }
 
 function ChampionCard({
+  countryCode,
   label,
   champion,
 }: {
+  countryCode: string;
   label: string;
   champion?: FederationChampion;
 }) {
@@ -1022,10 +1020,25 @@ function ChampionCard({
     : null;
 
   const content = (
-    <>
-      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FFF4B8] text-xl" aria-hidden="true">
-        ♛
-      </span>
+    <span className="flex flex-col items-center text-center">
+      {champion ? (
+        <RiderAvatar
+          profileKey={champion.avatarProfileKey}
+          seed={champion.avatarSeed}
+          riderId={champion.riderId}
+          age={champion.age}
+          jersey={createNationalChampionRiderJersey({
+            countryCode,
+            championshipType: champion.discipline,
+          })}
+          label={`Portrait de ${champion.riderName}, champion national`}
+          className="h-28 w-28 border-4 border-white shadow-lg"
+        />
+      ) : (
+        <span className="grid h-28 w-28 place-items-center rounded-full border-4 border-white bg-[#E8F0EC] text-3xl shadow-lg" aria-hidden="true">
+          ♛
+        </span>
+      )}
       <span className="mt-4 block text-[10px] font-black uppercase tracking-[0.13em] text-[#278B70]">
         {label}
       </span>
@@ -1033,9 +1046,9 @@ function ChampionCard({
         {champion?.riderName ?? "Titre à attribuer"}
       </span>
       <span className="mt-1 block text-xs font-semibold text-[#60756E]">
-        {champion?.seasonName ?? "Prochaine édition automatique"}
+        {champion?.teamName ?? champion?.seasonName ?? "Prochaine édition automatique"}
       </span>
-    </>
+    </span>
   );
 
   return href ? (
@@ -1049,6 +1062,42 @@ function ChampionCard({
     <article className="rounded-2xl border border-dashed border-[#315B3E]/18 bg-[#F8FBF9] p-5">
       {content}
     </article>
+  );
+}
+
+function TeamJerseyPreview({
+  artwork,
+  teamName,
+}: {
+  artwork: FederationTeamJerseyArtwork | undefined;
+  teamName: string;
+}) {
+  if (artwork?.kind === "sponsor") {
+    return (
+      <span className="relative h-16 w-14 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm">
+        <Image
+          src={artwork.imagePath}
+          alt={`Maillot de ${teamName}`}
+          fill
+          sizes="56px"
+          className="object-contain p-1"
+        />
+      </span>
+    );
+  }
+
+  return artwork?.kind === "amateur" ? (
+    <span className="grid h-16 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm">
+      <AmateurTeamJersey
+        jersey={artwork.jersey}
+        teamName={teamName}
+        className="h-16 w-14"
+      />
+    </span>
+  ) : (
+    <span className="grid h-16 w-14 shrink-0 place-items-center rounded-xl bg-[#176951] text-xs font-black text-white">
+      {getInitials(teamName)}
+    </span>
   );
 }
 
@@ -1136,21 +1185,6 @@ function SectionHeading({
         {description}
       </p>
     </div>
-  );
-}
-
-function FeatureList({ entries }: { entries: string[] }) {
-  return (
-    <ul className="mt-6 space-y-3">
-      {entries.map((entry) => (
-        <li key={entry} className="flex gap-3 text-sm font-semibold leading-6 text-[#526B62]">
-          <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#DDF3E7] text-[10px] font-black text-[#176951]">
-            ✓
-          </span>
-          {entry}
-        </li>
-      ))}
-    </ul>
   );
 }
 

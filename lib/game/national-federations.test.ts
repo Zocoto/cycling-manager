@@ -20,6 +20,7 @@ describe("national federations", () => {
 
   it("normalizes federation tabs", () => {
     expect(parseNationalFederationTab("finances")).toBe("finances");
+    expect(parseNationalFederationTab("races")).toBe("races");
     expect(parseNationalFederationTab(["lounge", "overview"])).toBe("lounge");
     expect(parseNationalFederationTab("unknown")).toBe("overview");
     expect(parseNationalFederationTab(undefined)).toBe("overview");

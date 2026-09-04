@@ -9,6 +9,7 @@ export type FederationSelectionRider = {
   teamId: string | null;
   name: string;
   category: "professional" | "junior";
+  juniorAffiliation: "cycling_school" | "development_team" | null;
   teamName: string;
   age: number;
   profile: "Montagne" | "Vallons" | "Sprint" | "Pavés" | "Chrono" | "Polyvalent";
@@ -40,6 +41,15 @@ type RatingRow = {
 };
 type ContractRow = { rider_id: string; team_id: string };
 type TeamSeasonRow = { team_id: string; display_name: string };
+type DevelopmentTeamRow = {
+  id: string;
+  team_id: string;
+  display_name: string;
+};
+type DevelopmentRosterRow = {
+  development_team_id: string;
+  academy_rider_id: string;
+};
 type JuniorRow = {
   id: string;
   team_id: string;
@@ -101,7 +111,7 @@ async function loadFederationSelectionPool({
         "id, team_id, first_name, last_name, birth_game_year, mountain, hills, flat, time_trial, cobbles, sprint",
       )
       .eq("country_id", countryId)
-      .in("status", ["active", "free_agent"])
+      .in("status", ["active", "recruited"])
       .limit(250)
       .returns<JuniorRow[]>(),
   ]);
@@ -111,8 +121,10 @@ async function loadFederationSelectionPool({
   const riders = ridersResult.data ?? [];
   const juniors = juniorsResult.data ?? [];
   const riderIds = riders.map((rider) => rider.id);
+  const juniorTeamIds = [...new Set(juniors.map((junior) => junior.team_id))];
+  const juniorIds = juniors.map((junior) => junior.id);
 
-  const [ratingsResult, contractsResult] = await Promise.all([
+  const [ratingsResult, contractsResult, developmentTeamsResult] = await Promise.all([
     riderIds.length > 0
       ? admin
           .from("rider_season_ratings")
@@ -131,11 +143,39 @@ async function loadFederationSelectionPool({
           .in("rider_id", riderIds)
           .returns<ContractRow[]>()
       : Promise.resolve({ data: [] as ContractRow[], error: null }),
+    juniorTeamIds.length > 0
+      ? admin
+          .from("development_teams")
+          .select("id, team_id, display_name")
+          .eq("season_id", seasonId)
+          .eq("status", "active")
+          .in("team_id", juniorTeamIds)
+          .returns<DevelopmentTeamRow[]>()
+      : Promise.resolve({ data: [] as DevelopmentTeamRow[], error: null }),
   ]);
 
   assertSelectionQuery(ratingsResult.error, "les statistiques professionnelles");
   assertSelectionQuery(contractsResult.error, "les équipes des professionnels");
+  assertSelectionQuery(
+    developmentTeamsResult.error,
+    "les équipes de développement des juniors",
+  );
   const contracts = contractsResult.data ?? [];
+  const developmentTeams = developmentTeamsResult.data ?? [];
+  const developmentTeamIds = developmentTeams.map((team) => team.id);
+  const developmentRosterResult =
+    developmentTeamIds.length > 0 && juniorIds.length > 0
+      ? await admin
+          .from("development_team_roster")
+          .select("development_team_id, academy_rider_id")
+          .in("development_team_id", developmentTeamIds)
+          .in("academy_rider_id", juniorIds)
+          .returns<DevelopmentRosterRow[]>()
+      : { data: [] as DevelopmentRosterRow[], error: null };
+  assertSelectionQuery(
+    developmentRosterResult.error,
+    "les affectations en équipe de développement",
+  );
   const teamIds = [
     ...new Set([
       ...contracts.map((contract) => contract.team_id),
@@ -162,6 +202,19 @@ async function loadFederationSelectionPool({
   const teamNameById = new Map(
     (teamsResult.data ?? []).map((team) => [team.team_id, team.display_name]),
   );
+  const developmentTeamById = new Map(
+    developmentTeams.map((team) => [team.id, team]),
+  );
+  const developmentTeamByJuniorId = new Map(
+    (developmentRosterResult.data ?? []).flatMap((roster) => {
+      const developmentTeam = developmentTeamById.get(
+        roster.development_team_id,
+      );
+      return developmentTeam
+        ? [[roster.academy_rider_id, developmentTeam] as const]
+        : [];
+    }),
+  );
 
   const professionals = riders.flatMap((rider) => {
     const rating = ratingByRiderId.get(rider.id);
@@ -181,6 +234,7 @@ async function loadFederationSelectionPool({
         teamId: teamId ?? null,
         name: `${rider.first_name} ${rider.last_name}`.trim(),
         category: "professional" as const,
+        juniorAffiliation: null,
         teamName: teamId
           ? teamNameById.get(teamId) ?? "Équipe non active"
           : "Agent libre",
@@ -192,6 +246,9 @@ async function loadFederationSelectionPool({
     ];
   });
   const youth = juniors.map((junior) => {
+    const developmentTeam = developmentTeamByJuniorId.get(junior.id);
+    const academyName =
+      teamNameById.get(junior.team_id) ?? "Équipe formatrice";
     const ratings = {
       mountain: Number(junior.mountain),
       hills: Number(junior.hills),
@@ -205,7 +262,12 @@ async function loadFederationSelectionPool({
       teamId: junior.team_id,
       name: `${junior.first_name} ${junior.last_name}`.trim(),
       category: "junior" as const,
-      teamName: teamNameById.get(junior.team_id) ?? "Équipe de développement",
+      juniorAffiliation: developmentTeam
+        ? ("development_team" as const)
+        : ("cycling_school" as const),
+      teamName: developmentTeam
+        ? developmentTeam.display_name
+        : `${academyName} · École de cyclisme`,
       age: Math.max(15, gameYear - junior.birth_game_year),
       profile: getProfile(ratings),
       overall: getOverall(ratings),

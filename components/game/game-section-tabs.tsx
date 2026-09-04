@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import Link from "@/components/ui/app-link";
 
-type GameSectionTabColumns = 2 | 3 | 4 | 5 | 6;
+type GameSectionTabColumns = 2 | 3 | 4 | 5 | 6 | 7;
 
 const COLUMN_CLASSES: Record<GameSectionTabColumns, string> = {
   2: "sm:grid-cols-2",
@@ -10,6 +10,7 @@ const COLUMN_CLASSES: Record<GameSectionTabColumns, string> = {
   4: "sm:grid-cols-2 xl:grid-cols-4",
   5: "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
   6: "sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6",
+  7: "sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7",
 };
 
 type GameSectionTabsProps = {

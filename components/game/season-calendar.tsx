@@ -681,7 +681,9 @@ function RaceCalendarList({
                   {edition.engagedRiderCount} engagé{edition.engagedRiderCount > 1 ? "s" : ""}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-[#789087]">
-                  {edition.minimumRosterSize}–{edition.maximumRosterSize} par équipe
+                  {edition.isJuniorChampionship
+                    ? `${edition.minimumRosterSize}–${edition.maximumRosterSize} par nation`
+                    : `${edition.minimumRosterSize}–${edition.maximumRosterSize} par équipe`}
                 </p>
               </div>
 
@@ -691,7 +693,9 @@ function RaceCalendarList({
                 href={getCalendarEditionHref(edition, currentDayNumber)}
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
               >
-                {isInternationalChampionship
+                {edition.isJuniorChampionship
+                  ? "Résultats juniors"
+                  : isInternationalChampionship
                   ? "Voir les CC & CM"
                   : registration?.status === "accepted"
                   ? "Voir l’inscription"
@@ -839,6 +843,10 @@ export function getCalendarEditionHref(
   edition: RaceCalendarEdition,
   currentDayNumber: number,
 ) {
+  if (edition.calendarHref) {
+    return edition.calendarHref;
+  }
+
   if (isInternationalChampionshipEdition(edition)) {
     return getInternationalChampionshipDirectoryHref(edition.slug);
   }
@@ -1018,6 +1026,7 @@ function DesktopCalendarWeek({
                     segment.edition,
                     currentDayNumber,
                   )}
+                  aria-label={`${getCalendarEditionActionLabel(segment.edition)} · ${segment.edition.name}`}
                   data-registration-status={
                     registrationClosed
                       ? "closed"
@@ -1328,6 +1337,7 @@ function MobileCalendarDay({
             ) : null}
             <Link
               href={getCalendarEditionHref(edition, currentDayNumber)}
+              aria-label={`${getCalendarEditionActionLabel(edition)} · ${edition.name}`}
               data-registration-status={
                 registrationClosed
                   ? "closed"
@@ -1418,6 +1428,12 @@ function MobileCalendarDay({
       </div>
     </section>
   );
+}
+
+function getCalendarEditionActionLabel(edition: RaceCalendarEdition) {
+  if (edition.isJuniorChampionship) return "Résultats juniors";
+  if (isInternationalChampionshipEdition(edition)) return "Voir les CC & CM";
+  return "Ouvrir la course";
 }
 
 function SponsorObjectiveBadge({ compact = false }: { compact?: boolean }) {

@@ -137,6 +137,8 @@ export type RaceCalendarEdition = {
   prestigeRank: number;
   raceFormat: RaceFormat;
   competitionType: RaceCompetitionType;
+  isJuniorChampionship?: boolean;
+  calendarHref?: string;
   isGrandTour?: boolean;
   isSponsorObjective?: boolean;
   registrationClosesAt: string | null;

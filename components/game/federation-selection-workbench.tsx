@@ -7,8 +7,10 @@ import {
   publishFederationPreselectionAction,
   respondFederationPreselectionAction,
   saveFederationPreselectionAction,
+  setFederationAutomaticSelectionAction,
 } from "@/app/jeu/federations/selection-actions";
 
+import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
 
@@ -35,6 +37,7 @@ const SELECTION_SLOTS: SelectionSlot[] = [
   { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", category: "professional", profile: "Sprint", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
   { id: "nc-cobbles", label: "Nations Cup · Pavés", competition: "Nations Cup", category: "professional", profile: "Pavés", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Pavés" },
   { id: "nc-time-trial", label: "Nations Cup · Chrono", competition: "Nations Cup", category: "professional", profile: "CLM individuel en S3", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Chrono" },
+  { id: "nc-junior-road", label: "Nations Cup Juniors · Route", competition: "Nations Cup juniors", category: "junior", profile: "Route", hostName: "Suisse", hostCode: "ch", day: 24, limit: 6 },
   { id: "world-pro-road", label: "Mondiaux Pros · Route", competition: "Championnats du monde", category: "professional", profile: "Route", hostName: "Canada", hostCode: "ca", day: 26, limit: 8 },
   { id: "world-pro-itt", label: "Mondiaux Pros · CLM", competition: "Championnats du monde", category: "professional", profile: "Chrono", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
   { id: "world-junior-road", label: "Mondiaux Juniors · Route", competition: "Championnats du monde juniors", category: "junior", profile: "Route", hostName: "Canada", hostCode: "ca", day: 26, limit: 6 },
@@ -58,6 +61,9 @@ export function FederationSelectionWorkbench({
   const [query, setQuery] = useState("");
   const [team, setTeam] = useState("all");
   const [profile, setProfile] = useState("all");
+  const [automaticSelection, setAutomaticSelection] = useState(
+    selectionState?.automaticSelection ?? true,
+  );
   const [selectedBySlot, setSelectedBySlot] = useState<Record<string, string[]>>(
     () =>
       Object.fromEntries(
@@ -75,7 +81,20 @@ export function FederationSelectionWorkbench({
     publishFederationPreselectionAction,
     initialFederationSelectionActionState,
   );
-  const slot = SELECTION_SLOTS.find((candidate) => candidate.id === slotId) ?? SELECTION_SLOTS[0];
+  const baseSlot =
+    SELECTION_SLOTS.find((candidate) => candidate.id === slotId) ??
+    SELECTION_SLOTS[0];
+  const hostingEventType = getSlotHostingEventType(baseSlot.id);
+  const competitionHost = hostingEventType
+    ? selectionState?.competitionHosts[hostingEventType]
+    : null;
+  const slot = competitionHost
+    ? {
+        ...baseSlot,
+        hostName: competitionHost.countryName,
+        hostCode: competitionHost.countryCode.toLowerCase(),
+      }
+    : baseSlot;
   const selected = selectedBySlot[slot.id] ?? [];
   const storedSelection = selectionState?.selections[slot.id] ?? null;
   const canManage = gameYear >= 3 && selectionState?.canManage === true;
@@ -115,6 +134,15 @@ export function FederationSelectionWorkbench({
 
   return (
     <div className="space-y-6">
+      <section className="rounded-[2rem] border border-[#278B70]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
+        <SelectionAutomaticModeControl
+          countryCode={countryCode}
+          canManage={canManage}
+          checked={automaticSelection}
+          onChange={setAutomaticSelection}
+        />
+      </section>
+
       {selectionState?.pendingConfirmations.length ? (
         <PendingConfirmationPanel
           confirmations={selectionState.pendingConfirmations}
@@ -122,6 +150,10 @@ export function FederationSelectionWorkbench({
         />
       ) : null}
 
+      <fieldset
+        disabled={automaticSelection}
+        className={`space-y-6 transition ${automaticSelection ? "opacity-55 grayscale-[35%]" : ""}`}
+      >
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
           <div>
@@ -182,7 +214,7 @@ export function FederationSelectionWorkbench({
               {filteredRiders.map((rider) => {
                 const isSelected = selected.includes(rider.id);
                 const limitReached = !isSelected && selected.length >= slot.limit;
-                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[#176951]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p></td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]">{rider.teamName}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{Object.values(rider.ratings).map((rating, index) => <td key={index} className="px-2 py-4 text-center font-black text-[#183F37]">{formatRating(rating)}</td>)}<td className="px-3 py-4 text-center text-base font-black text-[#176951]">{formatRating(rider.overall)}</td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
+                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[#176951]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p></td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{Object.values(rider.ratings).map((rating, index) => <td key={index} className="px-2 py-4 text-center font-black text-[#183F37]">{formatRating(rating)}</td>)}<td className="px-3 py-4 text-center text-base font-black text-[#176951]">{formatRating(rider.overall)}</td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
               })}
             </tbody>
           </table>
@@ -225,7 +257,73 @@ export function FederationSelectionWorkbench({
           </p>
         ) : null}
       </section>
+      </fieldset>
+      {automaticSelection ? (
+        <p className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-sm font-bold text-[#526B62]">
+          L’atelier est verrouillé tant que la sélection automatique est active.
+        </p>
+      ) : null}
     </div>
+  );
+}
+
+function getSlotHostingEventType(
+  slotId: string,
+): FederationHostingEventType | null {
+  if (slotId.startsWith("cc-pro-")) return "continental_championship_pro";
+  if (slotId.startsWith("cc-junior-"))
+    return "continental_championship_junior";
+  if (slotId.startsWith("world-pro-")) return "world_championship_pro";
+  if (slotId.startsWith("world-junior-"))
+    return "world_championship_junior";
+  if (slotId === "nc-junior-road") return "nations_cup_junior";
+  if (slotId.startsWith("nc-")) return "nations_cup_pro";
+  return null;
+}
+
+function SelectionAutomaticModeControl({
+  countryCode,
+  canManage,
+  checked,
+  onChange,
+}: {
+  countryCode: string;
+  canManage: boolean;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const control = (
+    <label className="flex cursor-pointer items-start gap-4">
+      <input
+        type="checkbox"
+        name="automatic"
+        checked={checked}
+        disabled={!canManage}
+        onChange={(event) => {
+          onChange(event.target.checked);
+          event.currentTarget.form?.requestSubmit();
+        }}
+        className="mt-1 h-6 w-6 shrink-0 accent-[#176951]"
+      />
+      <span>
+        <span className="block text-base font-black text-[#183F37]">
+          Sélection automatique
+        </span>
+        <span className="mt-1 block text-sm font-semibold leading-6 text-[#526B62]">
+          Activée par défaut pour éviter tout oubli. Le président doit la
+          décocher pour composer et publier lui-même les listes.
+        </span>
+      </span>
+    </label>
+  );
+
+  return canManage ? (
+    <form action={setFederationAutomaticSelectionAction}>
+      <input type="hidden" name="countryCode" value={countryCode} />
+      {control}
+    </form>
+  ) : (
+    control
   );
 }
 

@@ -114,6 +114,7 @@ type SeasonEventRow = {
 type RaceEditionRow = {
   id: string;
   race_id: string;
+  host_country_id: string | null;
   race_category_id: string;
   display_name: string;
   status: string;
@@ -161,6 +162,49 @@ type StageRow = {
   distance_km: number | string;
   departure_at: string | null;
   day_slot: string;
+};
+
+type JuniorChampionshipEditionRow = {
+  id: string;
+  slug: string;
+  name: string;
+  short_name: string;
+  location_name: string;
+  country_code: string;
+  start_day_number: number;
+  end_day_number: number;
+  profile_type: RaceProfileType;
+  race_format: RaceFormat;
+  competition_type:
+    | "continental_road"
+    | "continental_time_trial"
+    | "world_road"
+    | "world_time_trial"
+    | "nations_cup_junior";
+  selection_minimum: number;
+  selection_maximum: number;
+  status: "planned" | "completed" | "cancelled";
+};
+
+type JuniorChampionshipStageRow = {
+  id: string;
+  race_edition_id: string;
+  stage_number: number;
+  day_number: number;
+  name: string;
+  stage_type: "road" | "individual_time_trial";
+  profile_type: RaceProfileType;
+  distance_km: number | string;
+};
+
+type JuniorFederationRegistrationRow = {
+  id: string;
+  race_edition_id: string;
+  status: "registered" | "withdrawn" | "completed";
+};
+
+type JuniorFederationRegistrationRiderRow = {
+  registration_id: string;
 };
 
 type StageSegmentRow = {
@@ -323,6 +367,7 @@ type ActiveSeasonCalendarLoadOptions = {
   includeEngagedCounts?: boolean;
   includeEngagedRiders?: boolean;
   includeIneligibleRegionalRaces?: boolean;
+  includeJuniorChampionships?: boolean;
 };
 
 type RiderCountryRow = {
@@ -611,6 +656,7 @@ export async function getActiveSeasonRaceCalendar(
         `
           id,
           race_id,
+          host_country_id,
           race_category_id,
           display_name,
           status,
@@ -1107,6 +1153,9 @@ export async function getActiveSeasonRaceCalendar(
   const raceRows = racesResult.data ?? [];
   const countryIds = unique([
     ...raceRows.map((race) => race.country_id),
+    ...editionRows.flatMap((edition) =>
+      edition.host_country_id ? [edition.host_country_id] : [],
+    ),
     ...riderCountryRows.map((rider) => rider.country_id),
   ]);
   const countriesResult =
@@ -1192,7 +1241,9 @@ export async function getActiveSeasonRaceCalendar(
     .map((edition): RaceCalendarEdition | null => {
       const race = raceById.get(edition.race_id);
       const category = categoryById.get(edition.race_category_id);
-      const country = race ? countryById.get(race.country_id) : null;
+      const country = race
+        ? countryById.get(edition.host_country_id ?? race.country_id)
+        : null;
 
       if (
         !race ||
@@ -1327,21 +1378,188 @@ export async function getActiveSeasonRaceCalendar(
       .filter((event): event is SeasonCalendarEvent => event !== null),
   );
 
+  const currentDayNumber = getEffectiveSeasonDay({
+    startsOn: season.starts_on,
+    persistedDayNumber: season.current_day_number,
+    parisDate: formatParisDate(now),
+  });
+  const juniorChampionshipEditions =
+    season.game_year >= 3 &&
+    options.includeJuniorChampionships === true &&
+    !options.raceSlug &&
+    options.raceEditionIds === undefined
+      ? await loadJuniorChampionshipCalendarEditions(supabase, {
+          seasonId: season.id,
+          currentDayNumber,
+        })
+      : [];
+
   return {
     seasonId: season.id,
     seasonName: season.name,
     gameYear: season.game_year,
     startsOn: season.starts_on,
     endsOn: season.ends_on,
-    currentDayNumber: getEffectiveSeasonDay({
-      startsOn: season.starts_on,
-      persistedDayNumber: season.current_day_number,
-      parisDate: formatParisDate(now),
-    }),
+    currentDayNumber,
     days,
     events,
-    editions,
+    editions: [...editions, ...juniorChampionshipEditions],
   };
+}
+
+async function loadJuniorChampionshipCalendarEditions(
+  supabase: SupabaseServerClient,
+  {
+    seasonId,
+    currentDayNumber,
+  }: {
+    seasonId: string;
+    currentDayNumber: number;
+  },
+): Promise<RaceCalendarEdition[]> {
+  const editionsResult = await supabase
+    .from("development_race_editions")
+    .select(
+      "id, slug, name, short_name, location_name, country_code, start_day_number, end_day_number, profile_type, race_format, competition_type, selection_minimum, selection_maximum, status",
+    )
+    .eq("season_id", seasonId)
+    .in("competition_type", [
+      "continental_road",
+      "continental_time_trial",
+      "world_road",
+      "world_time_trial",
+      "nations_cup_junior",
+    ])
+    .neq("status", "cancelled")
+    .order("start_day_number")
+    .returns<JuniorChampionshipEditionRow[]>();
+  assertQuerySucceeded(
+    editionsResult.error,
+    "les championnats internationaux juniors",
+  );
+
+  const juniorEditions = editionsResult.data ?? [];
+  if (juniorEditions.length === 0) return [];
+
+  const editionIds = juniorEditions.map((edition) => edition.id);
+  const registrationsResult = await supabase
+    .from("national_federation_junior_race_registrations")
+    .select("id, race_edition_id, status")
+    .in("race_edition_id", editionIds)
+    .in("status", ["registered", "completed"])
+    .returns<JuniorFederationRegistrationRow[]>();
+  assertQuerySucceeded(
+    registrationsResult.error,
+    "les inscriptions fédérales juniors",
+  );
+
+  const registrations = registrationsResult.data ?? [];
+  const [stagesResult, selectedRidersResult] = await Promise.all([
+    supabase
+      .from("development_race_stages")
+      .select(
+        "id, race_edition_id, stage_number, day_number, name, stage_type, profile_type, distance_km",
+      )
+      .in("race_edition_id", editionIds)
+      .order("stage_number")
+      .returns<JuniorChampionshipStageRow[]>(),
+    registrations.length > 0
+      ? supabase
+          .from("national_federation_junior_race_registration_riders")
+          .select("registration_id")
+          .in(
+            "registration_id",
+            registrations.map((registration) => registration.id),
+          )
+          .returns<JuniorFederationRegistrationRiderRow[]>()
+      : Promise.resolve({
+          data: [] as JuniorFederationRegistrationRiderRow[],
+          error: null,
+        }),
+  ]);
+  assertQuerySucceeded(stagesResult.error, "les parcours juniors officiels");
+  assertQuerySucceeded(
+    selectedRidersResult.error,
+    "les coureurs juniors sélectionnés",
+  );
+
+  const stagesByEditionId = groupBy(
+    stagesResult.data ?? [],
+    (stage) => stage.race_edition_id,
+  );
+  const editionIdByRegistrationId = new Map(
+    registrations.map((registration) => [
+      registration.id,
+      registration.race_edition_id,
+    ]),
+  );
+  const selectedCountByEditionId = new Map<string, number>();
+  for (const rider of selectedRidersResult.data ?? []) {
+    const editionId = editionIdByRegistrationId.get(rider.registration_id);
+    if (!editionId) continue;
+    selectedCountByEditionId.set(
+      editionId,
+      (selectedCountByEditionId.get(editionId) ?? 0) + 1,
+    );
+  }
+
+  return juniorEditions.map((edition): RaceCalendarEdition => {
+    const isWorld = edition.competition_type.startsWith("world_");
+    const isNationsCup =
+      edition.competition_type === "nations_cup_junior";
+    const stages = stagesByEditionId.get(edition.id) ?? [];
+    return {
+      id: `junior:${edition.id}`,
+      status: edition.status,
+      raceId: `junior:${edition.id}`,
+      slug: edition.slug,
+      name: edition.name,
+      shortName: edition.short_name,
+      countryName: edition.location_name,
+      countryCode: edition.country_code,
+      categoryCode: isWorld ? "world" : "continental",
+      categoryName: isNationsCup
+        ? "Nations Cup juniors"
+        : isWorld
+          ? "Mondial junior"
+          : "Continental junior",
+      prestigeRank: isWorld ? 2 : 3,
+      raceFormat: edition.race_format,
+      competitionType: isWorld
+        ? "world_championship"
+        : "continental_championship",
+      isJuniorChampionship: true,
+      calendarHref: `/jeu/resultats-juniors/${encodeURIComponent(edition.slug)}`,
+      registrationClosesAt: null,
+      wildcardClosesAt: null,
+      withdrawalClosesAt: null,
+      registrationPolicy: "closed",
+      minimumReputation: 0,
+      fieldLimit: null,
+      minimumRosterSize: edition.selection_minimum,
+      maximumRosterSize: edition.selection_maximum,
+      engagedRiderCount: selectedCountByEditionId.get(edition.id) ?? 0,
+      engagedRiders: [],
+      currentTeamRegistration: null,
+      stages: stages.map((stage) => ({
+        id: `junior:${stage.id}`,
+        dayNumber: stage.day_number,
+        stageNumber: stage.stage_number,
+        name: stage.name,
+        stageType: stage.stage_type,
+        status:
+          edition.status === "completed" || stage.day_number < currentDayNumber
+            ? "completed"
+            : "planned",
+        profileType: stage.profile_type,
+        distanceKm: Number(stage.distance_km),
+        daySlot:
+          stage.stage_type === "individual_time_trial" ? "early" : "late",
+        departureAt: null,
+        segments: [],
+      })),
+    };
+  });
 }
 
 export async function getCurrentRaceUserContext(
@@ -2331,6 +2549,18 @@ function formatParisDate(date: Date) {
 
 function unique(values: string[]) {
   return [...new Set(values)];
+}
+
+function groupBy<T>(
+  rows: T[],
+  keyForRow: (row: T) => string,
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = keyForRow(row);
+    grouped.set(key, [...(grouped.get(key) ?? []), row]);
+  }
+  return grouped;
 }
 
 const URL_SAFE_UUID_FILTER_CHUNK_SIZE = 40;

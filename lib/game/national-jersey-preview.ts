@@ -42,6 +42,8 @@ export type PublishedNationalJersey = {
   design: NationalJerseyDraft;
   version: number;
   publishedAt: string;
+  activationGameYear: number;
+  isActive: boolean;
 };
 
 export const DEFAULT_NATIONAL_JERSEY_DRAFT: NationalJerseyDraft = {

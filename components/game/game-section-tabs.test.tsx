@@ -68,4 +68,16 @@ describe("GameSectionTabs", () => {
     expect(markup).toContain("lg:grid-cols-3");
     expect(markup).toContain("2xl:grid-cols-6");
   });
+
+  it("accepte les sept rubriques de la fédération", () => {
+    const markup = renderToStaticMarkup(
+      <GameSectionTabs ariaLabel="Fédération" columns={7}>
+        <GameSectionTabLink href="/courses" active label="Courses" />
+      </GameSectionTabs>,
+    );
+
+    expect(markup).toContain("sm:grid-cols-2");
+    expect(markup).toContain("lg:grid-cols-4");
+    expect(markup).toContain("2xl:grid-cols-7");
+  });
 });

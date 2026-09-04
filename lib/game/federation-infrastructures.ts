@@ -65,8 +65,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Cellule nationale de détection et d’analyse des jeunes cyclistes",
     },
     levels: makeLevels({
-      costs: [450_000, 800_000, 1_300_000, 2_000_000, 2_900_000],
-      durations: [4, 6, 8, 10, 12],
+      costs: [900_000, 1_700_000, 2_800_000, 4_400_000, 6_400_000],
+      durations: [10, 14, 18, 23, 28],
       effects: [
         "+1 % de précision des rapports dans le pays.",
         "+2 % de précision et meilleure couverture des régions peu scoutées.",
@@ -89,8 +89,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Académie régionale accueillant de jeunes cyclistes",
     },
     levels: makeLevels({
-      costs: [500_000, 900_000, 1_450_000, 2_150_000, 3_100_000],
-      durations: [5, 6, 8, 10, 12],
+      costs: [1_000_000, 1_900_000, 3_100_000, 4_700_000, 6_800_000],
+      durations: [12, 16, 21, 26, 32],
       effects: [
         "−1 % sur les frais de formation des jeunes de la nation.",
         "−2 % et davantage de profils issus de régions secondaires.",
@@ -113,8 +113,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Centre national de haute performance cycliste",
     },
     levels: makeLevels({
-      costs: [700_000, 1_200_000, 1_900_000, 2_800_000, 4_000_000],
-      durations: [5, 7, 9, 11, 13],
+      costs: [1_400_000, 2_500_000, 4_000_000, 6_000_000, 8_500_000],
+      durations: [14, 19, 24, 30, 36],
       effects: [
         "+0,3 % d’efficacité sur les entraînements éligibles.",
         "+0,6 % d’efficacité sur les entraînements éligibles.",
@@ -137,8 +137,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Institut de formation du staff de la fédération cycliste",
     },
     levels: makeLevels({
-      costs: [400_000, 750_000, 1_200_000, 1_850_000, 2_650_000],
-      durations: [4, 5, 7, 9, 11],
+      costs: [800_000, 1_550_000, 2_600_000, 4_000_000, 5_800_000],
+      durations: [10, 14, 19, 24, 30],
       effects: [
         "+0,5 % d’efficacité pour le staff de la nation.",
         "+1 % d’efficacité pour le staff de la nation.",
@@ -161,8 +161,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Réseau médical et centre de récupération de la fédération",
     },
     levels: makeLevels({
-      costs: [550_000, 950_000, 1_500_000, 2_250_000, 3_250_000],
-      durations: [4, 6, 8, 10, 12],
+      costs: [1_100_000, 2_000_000, 3_200_000, 4_800_000, 7_000_000],
+      durations: [10, 14, 18, 23, 28],
       effects: [
         "−1 % sur la durée des blessures des coureurs affiliés.",
         "−2 % sur la durée des blessures des coureurs affiliés.",
@@ -185,8 +185,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Laboratoire aérodynamique de la sélection nationale",
     },
     levels: makeLevels({
-      costs: [750_000, 1_300_000, 2_050_000, 3_000_000, 4_300_000],
-      durations: [5, 7, 9, 11, 14],
+      costs: [1_500_000, 2_700_000, 4_400_000, 6_500_000, 9_300_000],
+      durations: [14, 19, 25, 31, 38],
       effects: [
         "+0,2 % sur la préparation chrono des sélections.",
         "+0,4 % sur la préparation chrono des sélections.",
@@ -209,8 +209,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Bureau organisant les courses cyclistes du pays",
     },
     levels: makeLevels({
-      costs: [450_000, 850_000, 1_400_000, 2_100_000, 3_000_000],
-      durations: [4, 6, 8, 10, 12],
+      costs: [900_000, 1_800_000, 3_000_000, 4_600_000, 6_600_000],
+      durations: [10, 14, 18, 23, 28],
       effects: [
         "+5 % sur les recettes fédérales des courses du pays.",
         "+10 % sur ces recettes et dossiers d’accueil mieux préparés.",
@@ -233,8 +233,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Bureau fédéral accompagnant l’intégration internationale",
     },
     levels: makeLevels({
-      costs: [600_000, 1_050_000, 1_650_000, 2_450_000, 3_500_000],
-      durations: [5, 7, 9, 11, 13],
+      costs: [1_200_000, 2_200_000, 3_500_000, 5_300_000, 7_600_000],
+      durations: [14, 19, 24, 30, 36],
       effects: [
         "−4 % sur le délai commun de naturalisation.",
         "−8 % sur le délai commun de naturalisation.",
@@ -257,8 +257,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       alt: "Programme fédéral d’analyse des routes et conditions locales",
     },
     levels: makeLevels({
-      costs: [350_000, 650_000, 1_050_000, 1_600_000, 2_300_000],
-      durations: [3, 5, 7, 9, 11],
+      costs: [700_000, 1_350_000, 2_250_000, 3_500_000, 5_000_000],
+      durations: [9, 13, 18, 23, 28],
       effects: [
         "+0,2 % au bonus local sur les étapes du pays.",
         "+0,4 % au bonus local sur les étapes du pays.",

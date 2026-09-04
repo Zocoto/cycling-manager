@@ -23,6 +23,7 @@ type SupabaseServerClient = Awaited<
 type EditionRow = {
   id: string;
   race_id: string;
+  host_country_id: string | null;
   race_category_id: string;
   display_name: string;
   status: RaceCalendarEdition["status"];
@@ -120,7 +121,7 @@ export async function getDashboardRaceCalendar(
     supabase
       .from("race_editions")
       .select(
-        "id, race_id, race_category_id, display_name, status, registration_closes_at, wildcard_closes_at, withdrawal_closes_at, minimum_reputation, registration_policy",
+        "id, race_id, host_country_id, race_category_id, display_name, status, registration_closes_at, wildcard_closes_at, withdrawal_closes_at, minimum_reputation, registration_policy",
       )
       .eq("season_id", seasonId)
       .in("status", [
@@ -196,7 +197,12 @@ export async function getDashboardRaceCalendar(
   assertQuery(stagesResult.error, "les étapes des prochaines courses");
 
   const races = racesResult.data ?? [];
-  const countryIds = unique(races.map((race) => race.country_id));
+  const countryIds = unique([
+    ...races.map((race) => race.country_id),
+    ...editions.flatMap((edition) =>
+      edition.host_country_id ? [edition.host_country_id] : [],
+    ),
+  ]);
   const countriesResult = countryIds.length
     ? await supabase
         .from("countries")
@@ -249,7 +255,9 @@ export async function getDashboardRaceCalendar(
   const calendarEditions = editions.flatMap((edition): RaceCalendarEdition[] => {
     const race = raceById.get(edition.race_id);
     const category = categoryById.get(edition.race_category_id);
-    const country = race ? countryById.get(race.country_id) : null;
+    const country = race
+      ? countryById.get(edition.host_country_id ?? race.country_id)
+      : null;
     const stages = stagesByEditionId.get(edition.id) ?? [];
 
     if (!race || !category || !country || !isRaceCategoryCode(category.code)) {

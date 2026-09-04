@@ -17,6 +17,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const programmeMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260904130000_expand_federation_program.sql",
+  ),
+  "utf8",
+);
 
 describe("federation infrastructures", () => {
   it("keeps the complete nine-building, five-level catalogue", () => {
@@ -82,6 +89,24 @@ describe("federation infrastructures", () => {
     expect(migration).toContain("balance = balance + v_refund");
     expect(migration).not.toContain(
       "national_federation_architect_one_active_project_idx",
+    );
+  });
+
+  it("uses federation-scale costs and releases dismissed architects", () => {
+    expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS[0].levels[0].cost).toBe(
+      900_000,
+    );
+    expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS[5].levels[4].durationDays).toBe(
+      38,
+    );
+    expect(programmeMigration).toContain(
+      "release_federation_architect_on_contract_end",
+    );
+    expect(programmeMigration).toContain(
+      "update_national_federation_project_priority",
+    );
+    expect(programmeMigration).toContain(
+      "recalculate_national_federation_project",
     );
   });
 });

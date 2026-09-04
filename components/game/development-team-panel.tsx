@@ -322,11 +322,6 @@ function RaceRegistrationCard({
             <span className={`fi fi-${race.countryCode.toLowerCase()} mr-2 rounded-sm`} />
             {race.locationName} · {race.stages.length} étape{race.stages.length > 1 ? "s" : ""} · sélection {race.selectionMinimum}–{race.selectionMaximum}
           </p>
-          {race.selectionMode === "automatic" ? (
-            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.08em] text-[#5A2D82]">
-              Sélection nationale automatique · top {race.selectionMaximum} de chaque nation
-            </p>
-          ) : null}
           {race.stages.length > 1 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {race.stages.map((stage) => (
@@ -477,8 +472,8 @@ function RaceResultsBlock({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap gap-2">
-              <Badge tone={race.isWorldChampionship ? "world" : race.raceFormat === "stage_race" ? "tour" : "profile"}>
-                {race.isWorldChampionship ? "Mondial" : race.raceFormat === "stage_race" ? "Mini-tour" : PROFILE_LABELS[race.profileType]}
+              <Badge tone={race.isWorldChampionship || race.competitionType.startsWith("continental_") ? "world" : race.raceFormat === "stage_race" ? "tour" : "profile"}>
+                {race.isWorldChampionship ? "Mondial" : race.competitionType.startsWith("continental_") ? "CC junior" : race.raceFormat === "stage_race" ? "Mini-tour" : PROFILE_LABELS[race.profileType]}
               </Badge>
               <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#789087]">
                 {race.status === "completed"
@@ -592,7 +587,7 @@ export function DevelopmentResultRiderLink({
 function CalendarPreview({ races }: { races: DevelopmentRace[] }) {
   return (
     <section className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-sm sm:p-6">
-      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} épreuves de J8 à J27, avec les championnats nationaux, le Piccolo Giro et les deux titres mondiaux juniors.`} />
+      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} épreuves accessibles à la DevTeam. Les CM et CC sont gérés par les fédérations et restent consultables dans Résultats.`} />
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {races.map((race) => (
           <div key={race.id} className="rounded-xl border border-[#315B3E]/10 bg-[#FAFCFB] p-3">

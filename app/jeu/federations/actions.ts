@@ -17,6 +17,7 @@ export type NationalJerseyPublishState = {
   message: string;
   publishedDesign: NationalJerseyDraft | null;
   version: number | null;
+  activationGameYear: number | null;
 };
 
 export const initialNationalJerseyPublishState: NationalJerseyPublishState = {
@@ -24,6 +25,7 @@ export const initialNationalJerseyPublishState: NationalJerseyPublishState = {
   message: "",
   publishedDesign: null,
   version: null,
+  activationGameYear: null,
 };
 
 const colorSchema = z.string().regex(/^#[0-9A-F]{6}$/);
@@ -107,6 +109,7 @@ export async function publishNationalFederationJersey(
 
   const row = Array.isArray(data) ? data[0] : data;
   const version = readPublishedVersion(row);
+  const activationGameYear = readActivationGameYear(row);
 
   revalidatePath(`/jeu/federations/${countryCode.toLowerCase()}`);
   updateTag("national-federation-jerseys");
@@ -116,9 +119,10 @@ export async function publishNationalFederationJersey(
 
   return {
     status: "success",
-    message: `Maillot national publié${version ? ` · version ${version}` : ""}. Il sera utilisé par la sélection sur les courses internationales.`,
+    message: `Maillot composé${version ? ` · version ${version}` : ""}${activationGameYear ? ` pour la Saison ${activationGameYear}` : " pour la saison suivante"}.`,
     publishedDesign: design,
     version,
+    activationGameYear,
   };
 }
 
@@ -135,11 +139,19 @@ function readPublishedVersion(value: unknown): number | null {
     : null;
 }
 
+function readActivationGameYear(value: unknown): number | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = (value as { activation_game_year?: unknown })
+    .activation_game_year;
+  return typeof raw === "number" && Number.isInteger(raw) ? raw : null;
+}
+
 function failure(message: string): NationalJerseyPublishState {
   return {
     status: "error",
     message,
     publishedDesign: null,
     version: null,
+    activationGameYear: null,
   };
 }

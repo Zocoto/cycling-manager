@@ -108,8 +108,11 @@ type EditionRow = {
     | "open"
     | "national_road"
     | "national_time_trial"
+    | "continental_road"
+    | "continental_time_trial"
     | "world_road"
-    | "world_time_trial";
+    | "world_time_trial"
+    | "nations_cup_junior";
   selection_mode: "manual" | "automatic";
   points_scale: "standard" | "national" | "piccolo" | "world";
   reward_pool: number | string;
@@ -425,11 +428,17 @@ export async function getDevelopmentTeamOverview(
   const academyCountryCodes = new Set(
     (countriesResult.data ?? []).map((country) => country.iso_alpha2),
   );
-  const visibleEditions = editions.filter(
-    (edition) =>
+  const visibleEditions = editions.filter((edition) => {
+    const isFederationChampionship =
+      edition.competition_type.startsWith("continental_") ||
+      edition.competition_type.startsWith("world_") ||
+      edition.competition_type === "nations_cup_junior";
+    if (isFederationChampionship && view !== "resultats") return false;
+    return (
       !edition.competition_type.startsWith("national_") ||
-      academyCountryCodes.has(edition.country_code),
-  );
+      academyCountryCodes.has(edition.country_code)
+    );
+  });
   let rosterRows: RosterRow[] = [];
   let registrationRows: RegistrationRow[] = [];
   let selectionRows: SelectionRow[] = [];

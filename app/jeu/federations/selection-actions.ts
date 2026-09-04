@@ -21,6 +21,26 @@ const slotKeySchema = z.string().trim().regex(/^[a-z0-9-]{3,60}$/);
 const memberIdSchema = z.string().uuid();
 const riderIdsSchema = z.array(z.string().uuid()).max(12);
 
+export async function setFederationAutomaticSelectionAction(formData: FormData) {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  if (!countryCode.success) return;
+
+  const supabase = await createSupabaseServerClient();
+  const result = await supabase.rpc("set_national_federation_selection_mode", {
+    p_country_code: countryCode.data,
+    p_automatic_selection: formData.get("automatic") === "on",
+  });
+  if (result.error) {
+    console.error(
+      "Échec de modification du mode de sélection fédéral :",
+      result.error.message,
+    );
+    return;
+  }
+
+  revalidateFederation(countryCode.data);
+}
+
 export async function saveFederationPreselectionAction(
   _previousState: FederationSelectionActionState,
   formData: FormData,

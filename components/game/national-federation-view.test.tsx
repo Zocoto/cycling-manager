@@ -108,11 +108,13 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Jeanne Peloton");
     expect(markup).toContain("Impact académies");
     expect(markup).toContain("30 %");
-    expect(markup).toContain("Objectifs fédéraux prévisionnels");
+    expect(markup).toContain("Objectifs fédéraux");
+    expect(markup).toContain("Avoir 1 équipe dans la fédération");
+    expect(markup).toContain("1/5 validés");
     expect(markup).toContain("Derniers classements de la nation");
     expect(markup).toContain("Mondial sur route");
     expect(markup).not.toContain("Assistant fédéral");
-    expect(markup).toContain("Rang de référence");
+    expect(markup).toContain("Palmarès de la nation");
     expect(markup).not.toContain("<form");
   });
 
@@ -140,6 +142,11 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Dès J1");
     expect(markup).toContain("Championnats continentaux");
     expect(markup).toContain("Nations Cup");
+    expect(markup).toContain("Nations Cup juniors");
+    expect(markup).toContain("Sélection automatique");
+    expect(markup).toContain('name="automatic"');
+    expect(markup).toContain('checked=""');
+    expect(markup).toContain("<fieldset disabled");
     expect(markup).toContain("Championnats du monde");
     expect(markup).toContain("Nationalité verrouillée");
     expect(markup).toContain("Enregistrer en S3");
@@ -176,6 +183,23 @@ describe("NationalFederationView", () => {
           candidates: [],
           journal: [],
         }}
+        raceCreationState={{
+          score: {
+            nationRank: 12,
+            rankingPoints: 29,
+            completedObjectiveCount: 2,
+            objectivePoints: 30,
+            existingRaceCount: 2,
+            calendarPenalty: 20,
+            total: 39,
+            threshold: 60,
+            eligible: false,
+          },
+          officeLevel: 0,
+          viewerIsPresident: false,
+          canCreate: false,
+          project: null,
+        }}
         selectionState={null}
         treasuryState={null}
         infrastructureState={null}
@@ -186,11 +210,12 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Composez librement");
     expect(markup).toContain("Bande");
     expect(markup).toContain("Forme");
-    expect(markup).toContain("Nouveau maillot blanc");
+    expect(markup).toContain("Repartir de zéro");
     expect(markup).toContain("Valider et publier");
     expect(markup).toContain("Prochaine élection programmée");
+    expect(markup).not.toContain("Créer une course du pays");
     expect(markup).toContain("J21–J24");
-    expect(markup).toContain("Filet de sécurité automatique");
+    expect(markup).not.toContain("Filet de sécurité automatique");
     expect(markup).toContain("Votre brouillon n’affecte pas le maillot publié");
     expect(markup).toContain("<form");
   });

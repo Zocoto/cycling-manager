@@ -62,7 +62,7 @@ describe("federation championship startlists migration", () => {
       "is_rider_protected_by_stage_race_for_international_selection",
     );
     expect(migration).toContain(
-      "le coureur est engagé sur un tour déjà verrouillé ou commencé",
+      "Le coureur est engagé sur un tour déjà verrouillé ou commencé",
     );
     expect(migration).toContain("federation-selection-camp-refund:");
     expect(migration).toContain(
