@@ -109,7 +109,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
   const marketReturnPath = buildStaffMarketReturnPath(filters);
 
   return (
-    <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+    <main className="min-h-screen overflow-x-hidden bg-[#EAF5F3] text-[#082A2A]">
       {staffTutorialProgress?.status === "in_progress" &&
       isStaffTutorialRoute(staffTutorialProgress.current_route) &&
       staffTutorialProgress.current_step_key ? (
@@ -125,7 +125,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
         maxWidth="wide"
       />
 
-      <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
+      <section className="mx-auto w-full min-w-0 max-w-[1500px] px-4 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
         <header
@@ -327,7 +327,7 @@ function EmploymentMarket({
 
       <div data-tutorial-id="staff-market-listings">
         {overview.marketListings.length > 0 ? (
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {overview.marketListings.map((listing) => (
               <StaffMarketCard
                 key={listing.id}
@@ -358,7 +358,7 @@ function StaffMarketCard({
   const definition = STAFF_ROLE_DEFINITIONS[member.role];
 
   return (
-    <article id={`staff-${listing.id}`} className="scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] target:ring-4 target:ring-[#F2C94C]/60">
+    <article id={`staff-${listing.id}`} className="min-w-0 max-w-full scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] target:ring-4 target:ring-[#F2C94C]/60">
       <div className="h-1.5" style={{ backgroundColor: definition.accent }} />
       <div className="p-5">
         <div className="flex items-start gap-4">
@@ -405,7 +405,7 @@ function StaffMarketCard({
 
         <StaffTalentBlock member={member} />
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2">
           <PriceBlock
             label="Signature"
             value={formatMoney(member.signingFee, member.currency)}
@@ -443,8 +443,8 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
 
   return (
     <section data-tutorial-id="staff-team-overview" className="mt-7 space-y-7">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-        <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+        <article className="min-w-0 max-w-full rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
           <SectionHeading
             eyebrow={`Directeur Sportif · niveau ${overview.directorLevel}`}
             title={`${overview.activeStaffCount} membre${overview.activeStaffCount > 1 ? "s" : ""} sur ${overview.staffCapacity}`}
@@ -486,7 +486,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
           </p>
         </article>
 
-        <article className="rounded-[2rem] border border-[#F2C94C]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
+        <article className="min-w-0 max-w-full rounded-[2rem] border border-[#F2C94C]/25 bg-[#0B302B] p-5 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#F2C94C]">
             Règle d’efficacité
           </p>
@@ -515,7 +515,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
           detail="Le salaire saisonnier est réparti sur les jours 7, 14, 21 et 28. Un licenciement règle uniquement les échéances restant dans la saison en cours."
         />
         {overview.teamStaff.length > 0 ? (
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {overview.teamStaff.map((member) => (
               <TeamStaffCard
                 key={member.contractId}
@@ -555,8 +555,8 @@ function TeamStaffCard({
   const balanceAfterDismissal = currentBalance - dismissalCompensation;
 
   return (
-    <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_38px_rgba(19,60,46,0.08)]">
-      <div className="flex items-start gap-4">
+    <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white p-4 shadow-[0_14px_38px_rgba(19,60,46,0.08)] sm:p-5">
+      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
         <span
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
           style={{ backgroundColor: definition.accent }}
@@ -591,7 +591,7 @@ function TeamStaffCard({
       <StaffEffectBlock member={member} />
       <StaffTalentBlock member={member} />
       <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
-        <p className="text-xs font-black text-[#183F37]">
+        <p className="min-w-0 text-xs font-black text-[#183F37] [overflow-wrap:anywhere]">
           {formatMoney(member.salaryPerWeek, member.currency)} / semaine
         </p>
         <p className="mt-1 text-[10px] font-semibold text-[#60756E]">
@@ -602,22 +602,22 @@ function TeamStaffCard({
         member={member}
         naturalization={naturalization}
       />
-      <div className="mt-4 rounded-2xl border border-[#C94848]/20 bg-[#FFF7F7] p-4">
-        <div className="flex items-end justify-between gap-3">
-          <div>
+      <div className="mt-4 min-w-0 rounded-2xl border border-[#C94848]/20 bg-[#FFF7F7] p-4">
+        <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 max-w-full">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#A12E2E]">
               {mutualAgreement
                 ? "Licenciement à l’amiable"
                 : "Indemnité de rupture"}
             </p>
-            <p className="mt-1 text-lg font-black text-[#7E2424]">
+            <p className="mt-1 min-w-0 text-lg font-black text-[#7E2424] [overflow-wrap:anywhere]">
               {mutualAgreement
                 ? "Gratuit"
                 : formatMoney(dismissalCompensation, member.currency)}
             </p>
           </div>
           <p
-            className={`text-right text-[10px] font-black ${
+            className={`min-w-0 max-w-full text-left text-[10px] font-black [overflow-wrap:anywhere] sm:text-right ${
               balanceAfterDismissal < 0 ? "text-[#C94848]" : "text-[#60756E]"
             }`}
           >
@@ -725,7 +725,7 @@ function StaffEffectBlock({ member }: { member: TeamStaffMember }) {
     : member.effects;
 
   return (
-    <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
+    <div className="mt-4 min-w-0 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
         {isResearchEngineer
           ? `Talents R&D actifs · ${member.talents.length}/3`
@@ -734,9 +734,9 @@ function StaffEffectBlock({ member }: { member: TeamStaffMember }) {
       {effects.length > 0 ? (
         <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
           {effects.map((effect) => (
-            <li key={effect} className="flex gap-2">
+            <li key={effect} className="flex min-w-0 gap-2">
               <span aria-hidden="true">◆</span>
-              <span>{effect}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{effect}</span>
             </li>
           ))}
         </ul>
@@ -767,7 +767,7 @@ function StaffTalentBlock({ member }: { member: TeamStaffMember }) {
                 <p className="text-xs font-black text-[#5E4A18]">
                   {talent.label}
                 </p>
-                <p className="mt-0.5 text-xs font-bold leading-5 text-[#6D5A27]">
+                <p className="mt-0.5 min-w-0 text-xs font-bold leading-5 text-[#6D5A27] [overflow-wrap:anywhere]">
                   {talent.description}
                 </p>
               </div>
@@ -910,12 +910,12 @@ function SectionHeading({
   detail: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
         {eyebrow}
       </p>
-      <h2 className="mt-2 text-3xl font-black text-[#183F37]">{title}</h2>
-      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
+      <h2 className="mt-2 min-w-0 text-3xl font-black text-[#183F37] [overflow-wrap:anywhere]">{title}</h2>
+      <p className="mt-2 min-w-0 max-w-3xl text-sm font-semibold leading-6 text-[#60756E] [overflow-wrap:anywhere]">
         {detail}
       </p>
     </div>
@@ -924,22 +924,22 @@ function SectionHeading({
 
 function HeroMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-28">
+    <div className="min-w-0 sm:min-w-28">
       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
         {label}
       </p>
-      <p className="mt-1 text-base font-black text-[#F2C94C]">{value}</p>
+      <p className="mt-1 min-w-0 text-base font-black text-[#F2C94C] [overflow-wrap:anywhere]">{value}</p>
     </div>
   );
 }
 
 function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#315B3E]/10 bg-[#F3F8F6] px-4 py-3">
+    <div className="min-w-0 rounded-xl border border-[#315B3E]/10 bg-[#F3F8F6] px-4 py-3">
       <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#60756E]">
         {label}
       </p>
-      <p className="mt-1 text-lg font-black text-[#183F37]">{value}</p>
+      <p className="mt-1 min-w-0 text-lg font-black text-[#183F37] [overflow-wrap:anywhere]">{value}</p>
     </div>
   );
 }
@@ -954,13 +954,13 @@ function PriceBlock({
   detail?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#315B3E]/10 bg-[#F7FAF8] px-3 py-3">
+    <div className="min-w-0 rounded-xl border border-[#315B3E]/10 bg-[#F7FAF8] px-3 py-3">
       <p className="text-[9px] font-black uppercase tracking-wider text-[#60756E]">
         {label}
       </p>
-      <p className="mt-1 text-sm font-black text-[#183F37]">{value}</p>
+      <p className="mt-1 min-w-0 text-sm font-black text-[#183F37] [overflow-wrap:anywhere]">{value}</p>
       {detail ? (
-        <p className="mt-1 text-[9px] font-semibold text-[#60756E]">{detail}</p>
+        <p className="mt-1 min-w-0 text-[9px] font-semibold text-[#60756E] [overflow-wrap:anywhere]">{detail}</p>
       ) : null}
     </div>
   );

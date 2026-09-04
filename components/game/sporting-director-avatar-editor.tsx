@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   AMBULANCIER_AVATAR_OUTFIT_KEY,
   AVATAR_BACKGROUNDS,
-  AVATAR_CHEEK_STYLES,
   AVATAR_EAR_SHAPES,
   AVATAR_EYEBROW_STYLES,
   AVATAR_EYE_COLORS,
@@ -24,6 +23,7 @@ import {
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
+  getAvailableAvatarCheekStyles,
   getAvailableAvatarGlassesStyles,
   resolveSportingDirectorAvatar,
   type SportingDirectorAvatarConfig,
@@ -43,6 +43,7 @@ type SportingDirectorAvatarEditorProps = {
   ambulancierOutfitUnlocked?: boolean;
   emergencyDoctorOutfitUnlocked?: boolean;
   inveteratePlayerOutfitUnlocked?: boolean;
+  nightAuctionSkinUnlocked?: boolean;
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -71,6 +72,7 @@ export function SportingDirectorAvatarEditor({
   ambulancierOutfitUnlocked = false,
   emergencyDoctorOutfitUnlocked = false,
   inveteratePlayerOutfitUnlocked = false,
+  nightAuctionSkinUnlocked = false,
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -80,6 +82,9 @@ export function SportingDirectorAvatarEditor({
   const availableGlassesStyles = getAvailableAvatarGlassesStyles({
     hasAssiduTrophy,
     hasHiddenSwitchbackTrophy,
+  });
+  const availableCheekStyles = getAvailableAvatarCheekStyles({
+    hasNightAuctionTrophy: nightAuctionSkinUnlocked,
   });
   const disabledOutfitKeys = [
     patronOutfitUnlocked ? null : "patron",
@@ -205,7 +210,18 @@ export function SportingDirectorAvatarEditor({
                 <AvatarChoiceGroup title="Forme du visage" field="faceShape" value={config.faceShape} options={AVATAR_FACE_SHAPES} onSelect={updateField} />
                 <AvatarChoiceGroup title="Nez" field="noseShape" value={config.noseShape} options={AVATAR_NOSE_SHAPES} onSelect={updateField} />
                 <AvatarChoiceGroup title="Oreilles" field="earShape" value={config.earShape} options={AVATAR_EAR_SHAPES} onSelect={updateField} />
-                <AvatarChoiceGroup title="Pommettes et détails" field="cheekStyle" value={config.cheekStyle} options={AVATAR_CHEEK_STYLES} onSelect={updateField} />
+                <AvatarChoiceGroup
+                  title="Pommettes et détails"
+                  description={
+                    nightAuctionSkinUnlocked
+                      ? "Le trophée Jusqu’au bout de la nuit débloque le skin Cernes."
+                      : undefined
+                  }
+                  field="cheekStyle"
+                  value={config.cheekStyle}
+                  options={availableCheekStyles}
+                  onSelect={updateField}
+                />
               </>
             ) : null}
 

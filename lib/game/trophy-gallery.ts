@@ -8,6 +8,7 @@ import {
 } from "@/lib/game/race-prestige";
 import {
   ACHIEVEMENT_TROPHY_DEFINITIONS,
+  NIGHT_AUCTION_TROPHY_KEY,
   type AchievementTrophyKey,
   type AchievementTrophyVisualVariant,
 } from "@/lib/game/achievement-trophies";
@@ -400,7 +401,12 @@ export function getLockedTrophyTargets(
   const achievementTargets = Object.entries(
     ACHIEVEMENT_TROPHY_DEFINITIONS,
   ).flatMap<CareerTrophy>(([key, definition]) => {
-    if (definition.objectiveKey === null) return [];
+    if (
+      definition.objectiveKey === null &&
+      key !== NIGHT_AUCTION_TROPHY_KEY
+    ) {
+      return [];
+    }
     if (
       earnedTrophies.some(
         (trophy) =>
@@ -419,7 +425,8 @@ export function getLockedTrophyTargets(
         seasonName: "À conquérir",
         wonAt: null,
         riderName: null,
-        href: definition.href,
+        href:
+          "targetHref" in definition ? definition.targetHref : definition.href,
         inscription: definition.inscription,
         palette: definition.palette,
         description: definition.description,

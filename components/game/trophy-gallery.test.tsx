@@ -106,6 +106,9 @@ describe("TrophyGallery", () => {
     expect(markup).toContain('data-trophy-status="locked"');
     expect(markup).toContain("À débloquer");
     expect(markup).toContain("Atlas du peloton");
+    expect(markup).toContain("Jusqu’au bout de la nuit");
+    expect(markup).toContain('data-achievement-trophy-mark="midnight-auction"');
+    expect(markup).toContain("/jeu/transferts");
     expect(markup).toContain("Corsa delle Regioni");
     expect(markup).toContain("Remporter le classement général");
     expect(markup).not.toContain('data-trophy-status="earned"');

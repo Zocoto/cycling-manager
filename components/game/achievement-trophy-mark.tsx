@@ -230,6 +230,57 @@ function TrophySymbol({
     );
   }
 
+  if (variant === "midnight-auction") {
+    return (
+      <g data-achievement-symbol="midnight-auction">
+        <circle
+          cx="90"
+          cy="77"
+          r="44"
+          fill="#14233D"
+          stroke={palette.secondary}
+          strokeWidth="3"
+        />
+        <path
+          d="M111 37a35 35 0 1 0 18 58 40 40 0 0 1-18-58Z"
+          fill={palette.primary}
+          opacity="0.9"
+        />
+        <circle
+          cx="90"
+          cy="77"
+          r="28"
+          fill="#182E45"
+          stroke={palette.primary}
+          strokeWidth="3"
+        />
+        <path
+          d="M90 57v20l14 9"
+          stroke={palette.secondary}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <text
+          x="90"
+          y="114"
+          fill={palette.accent}
+          fontSize="13"
+          fontWeight="900"
+          textAnchor="middle"
+        >
+          22 H
+        </text>
+        <path
+          d="m47 42 7-7M126 38l6-8M43 105l-9 5"
+          stroke={palette.accent}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </g>
+    );
+  }
+
   return (
     <g>
       <path

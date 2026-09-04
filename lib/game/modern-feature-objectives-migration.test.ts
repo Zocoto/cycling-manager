@@ -57,6 +57,8 @@ describe("modern feature career objectives", () => {
       "apparatus",
       "regalia",
       "switchback",
+      "poker-chips",
+      "midnight-auction",
     ]);
   });
 });

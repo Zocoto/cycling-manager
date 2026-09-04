@@ -6,9 +6,11 @@ export type AchievementTrophyVisualVariant =
   | "apparatus"
   | "regalia"
   | "switchback"
-  | "poker-chips";
+  | "poker-chips"
+  | "midnight-auction";
 
 export const INVETERATE_PLAYER_TROPHY_KEY = "joueur_inveter";
+export const NIGHT_AUCTION_TROPHY_KEY = "jusqu_au_bout_de_la_nuit";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   atlas_peloton: {
@@ -111,6 +113,24 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
       secondary: "#FFF1B8",
       accent: "#684DA0",
       glow: "rgba(215, 169, 40, 0.42)",
+    } satisfies TrophyPalette,
+  },
+  [NIGHT_AUCTION_TROPHY_KEY]: {
+    objectiveKey: null,
+    title: "Jusqu’au bout de la nuit",
+    competitionName: "Enchères nocturnes",
+    seasonName: "Carrière",
+    inscription: "Participer à une enchère prolongée jusqu’à 22 h",
+    description:
+      "Décerné à tous les DS ayant enchéri sur une vente quotidienne dont les prolongations repoussent la clôture à 22 h ou au-delà. Offre 50 000 €, 250 XP, 15 points de réputation et le skin Cernes dans l’éditeur d’avatar.",
+    href: "/jeu/directeur-sportif#night-auction-avatar-skin",
+    targetHref: "/jeu/transferts",
+    visualVariant: "midnight-auction" satisfies AchievementTrophyVisualVariant,
+    palette: {
+      primary: "#7B8FD1",
+      secondary: "#E9ECFF",
+      accent: "#E0A84B",
+      glow: "rgba(123, 143, 209, 0.42)",
     } satisfies TrophyPalette,
   },
 } as const;

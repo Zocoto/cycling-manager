@@ -17,6 +17,11 @@ describe("buildTrophyGallery", () => {
           title: "Atlas du peloton",
         }),
         expect.objectContaining({
+          id: "locked:achievement:jusqu_au_bout_de_la_nuit",
+          title: "Jusqu’au bout de la nuit",
+          href: "/jeu/transferts",
+        }),
+        expect.objectContaining({
           id: "locked:referral:25",
           title: "Don du peloton",
         }),
@@ -444,5 +449,37 @@ describe("buildTrophyGallery", () => {
       title: "Atlas du peloton",
       visualVariant: "astrolabe",
     });
+  });
+
+  it("adds the night-auction trophy with its gains and avatar skin", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "night-auction-award",
+          trophyKey: "jusqu_au_bout_de_la_nuit",
+          availableAt: "2026-09-04T20:00:00.000Z",
+          claimedAt: "2026-09-04T20:00:00.000Z",
+          href: "/jeu/directeur-sportif#night-auction-avatar-skin",
+        },
+      ],
+    });
+
+    expect(gallery.trophies[0]).toMatchObject({
+      kind: "achievement",
+      title: "Jusqu’au bout de la nuit",
+      visualVariant: "midnight-auction",
+      href: "/jeu/directeur-sportif#night-auction-avatar-skin",
+    });
+    expect(gallery.trophies[0]?.description).toContain("50 000 €");
+    expect(gallery.trophies[0]?.description).toContain("skin Cernes");
+    expect(
+      getLockedTrophyTargets(gallery.trophies).some(
+        (trophy) =>
+          trophy.id === "locked:achievement:jusqu_au_bout_de_la_nuit",
+      ),
+    ).toBe(false);
   });
 });

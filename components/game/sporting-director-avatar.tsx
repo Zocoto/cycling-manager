@@ -8,6 +8,7 @@ import {
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
+  NIGHT_AUCTION_AVATAR_CHEEK_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   SPORTING_DIRECTOR_AVATARS,
@@ -389,6 +390,17 @@ function AvatarCheeks({
         {[44, 48, 51, 69, 72, 76].map((cx, index) => (
           <circle key={cx} cx={cx} cy={index < 3 ? 58 + (index % 2) : 59 - (index % 2)} r="0.8" />
         ))}
+      </g>
+    );
+  }
+
+  if (avatar.cheekStyle === NIGHT_AUCTION_AVATAR_CHEEK_KEY) {
+    return (
+      <g data-avatar-skin="dark-circles">
+        <ellipse cx="50" cy="52.5" rx="6.2" ry="3.2" fill="#4E5575" opacity="0.2" />
+        <ellipse cx="70" cy="52.5" rx="6.2" ry="3.2" fill="#4E5575" opacity="0.2" />
+        <path d="M44.5 52.5C48 56 52 56 55.5 52.5" fill="none" stroke="#555B78" strokeWidth="1.4" strokeLinecap="round" opacity="0.68" />
+        <path d="M64.5 52.5C68 56 72 56 75.5 52.5" fill="none" stroke="#555B78" strokeWidth="1.4" strokeLinecap="round" opacity="0.68" />
       </g>
     );
   }

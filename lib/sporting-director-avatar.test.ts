@@ -2,17 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import {
   AVATAR_BACKGROUNDS,
-  AVATAR_CHEEK_STYLES,
   AVATAR_EAR_SHAPES,
   AVATAR_EYEBROW_STYLES,
   AVATAR_EYE_COLORS,
   AVATAR_EYE_SHAPES,
   AVATAR_FACE_SHAPES,
   AVATAR_FACIAL_HAIR_STYLES,
+  getAvailableAvatarCheekStyles,
   getAvailableAvatarGlassesStyles,
   AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  NIGHT_AUCTION_AVATAR_CHEEK_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   AVATAR_HAIR_COLORS,
@@ -112,6 +113,30 @@ describe("sporting director avatar editor", () => {
     ).toBe(true);
   });
 
+  it("only exposes Cernes after the night-auction trophy", () => {
+    expect(
+      getAvailableAvatarCheekStyles({
+        hasNightAuctionTrophy: false,
+      }).some(({ key }) => key === NIGHT_AUCTION_AVATAR_CHEEK_KEY),
+    ).toBe(false);
+    expect(
+      getAvailableAvatarCheekStyles({
+        hasNightAuctionTrophy: true,
+      }).some(({ key }) => key === NIGHT_AUCTION_AVATAR_CHEEK_KEY),
+    ).toBe(true);
+  });
+
+  it("round-trips the Cernes skin in a custom avatar key", () => {
+    const key = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      cheekStyle: NIGHT_AUCTION_AVATAR_CHEEK_KEY,
+    });
+
+    expect(decodeCustomSportingDirectorAvatar(key)?.cheekStyle).toBe(
+      NIGHT_AUCTION_AVATAR_CHEEK_KEY,
+    );
+  });
+
   it("rejects malformed or unknown custom options", () => {
     const validKey = encodeSportingDirectorAvatar(
       DEFAULT_SPORTING_DIRECTOR_AVATAR
@@ -142,7 +167,7 @@ describe("sporting director avatar editor", () => {
       noseShape: AVATAR_NOSE_SHAPES.at(-1)?.key,
       mouthShape: AVATAR_MOUTH_SHAPES.at(-1)?.key,
       earShape: AVATAR_EAR_SHAPES.at(-1)?.key,
-      cheekStyle: AVATAR_CHEEK_STYLES.at(-1)?.key,
+      cheekStyle: "freckles",
       facialHair: AVATAR_FACIAL_HAIR_STYLES.at(-1)?.key,
       glasses: "cat-eye",
       outfit: AVATAR_OUTFITS.find(({ key }) => key === "violet")?.key,
@@ -154,6 +179,7 @@ describe("sporting director avatar editor", () => {
     expect(avatar.outfit).not.toBe(SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(AMBULANCIER_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY);
+    expect(avatar.cheekStyle).not.toBe(NIGHT_AUCTION_AVATAR_CHEEK_KEY);
   });
 
   it("round-trips the sponsor ambassador outfit without adding it to random avatars", () => {

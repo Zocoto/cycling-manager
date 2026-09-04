@@ -15,7 +15,10 @@ import { AmateurTeamCreationForm } from "../../../components/game/amateur-team-c
 import { DeleteSportingDirectorAccount } from "../../../components/game/delete-sporting-director-account";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../../components/game/sporting-director-avatar";
-import { INVETERATE_PLAYER_TROPHY_KEY } from "@/lib/game/achievement-trophies";
+import {
+  INVETERATE_PLAYER_TROPHY_KEY,
+  NIGHT_AUCTION_TROPHY_KEY,
+} from "@/lib/game/achievement-trophies";
 import type { CountryOption } from "../../../components/game/country-select";
 import { SportingDirectorProfileForm } from "../../../components/game/sporting-director-profile-form";
 import { SportingDirectorReputation } from "../../../components/game/sporting-director-reputation";
@@ -188,6 +191,7 @@ export default async function SportingDirectorProfilePage() {
             AMBULANCIER_TROPHY_KEY,
             EMERGENCY_DOCTOR_TROPHY_KEY,
             INVETERATE_PLAYER_TROPHY_KEY,
+            NIGHT_AUCTION_TROPHY_KEY,
           ])
           .not("claimed_at", "is", null)
           .returns<Array<{ trophy_key: string }>>(),
@@ -243,6 +247,9 @@ export default async function SportingDirectorProfilePage() {
   );
   const hasInveteratePlayerTrophy = careerTrophyKeys.has(
     INVETERATE_PLAYER_TROPHY_KEY,
+  );
+  const hasNightAuctionTrophy = careerTrophyKeys.has(
+    NIGHT_AUCTION_TROPHY_KEY,
   );
   const hasSponsorAmbassadorTrophy = Boolean(
     sponsorAmbassadorTrophyResult.data,
@@ -383,6 +390,7 @@ export default async function SportingDirectorProfilePage() {
                     inveteratePlayerOutfitUnlocked={
                       hasInveteratePlayerTrophy
                     }
+                    nightAuctionSkinUnlocked={hasNightAuctionTrophy}
                   />
                 </div>
               </article>

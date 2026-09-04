@@ -10,6 +10,7 @@ import {
   encodeSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
+  NIGHT_AUCTION_AVATAR_CHEEK_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "@/lib/sporting-director-avatar";
@@ -122,5 +123,18 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-outfit="poker-chips"');
     expect(markup).toContain("#D7A928");
+  });
+
+  it("renders the Cernes skin unlocked by a night auction", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      cheekStyle: NIGHT_AUCTION_AVATAR_CHEEK_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar noctambule" />,
+    );
+
+    expect(markup).toContain('data-avatar-skin="dark-circles"');
+    expect(markup).toContain("#555B78");
   });
 });

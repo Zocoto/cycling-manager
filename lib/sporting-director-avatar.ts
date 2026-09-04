@@ -117,13 +117,30 @@ export const AVATAR_EAR_SHAPES = [
   { key: "pronounced", label: "Prononcées" },
 ] as const;
 
+export const NIGHT_AUCTION_AVATAR_CHEEK_KEY = "dark-circles";
+
 export const AVATAR_CHEEK_STYLES = [
   { key: "none", label: "Naturelles" },
   { key: "soft", label: "Douces" },
   { key: "defined", label: "Marquées" },
   { key: "high", label: "Hautes" },
   { key: "freckles", label: "Taches de rousseur" },
+  { key: NIGHT_AUCTION_AVATAR_CHEEK_KEY, label: "Cernes" },
 ] as const;
+
+const STANDARD_AVATAR_CHEEK_STYLES = AVATAR_CHEEK_STYLES.filter(
+  ({ key }) => key !== NIGHT_AUCTION_AVATAR_CHEEK_KEY,
+) as readonly (typeof AVATAR_CHEEK_STYLES)[number][];
+
+export function getAvailableAvatarCheekStyles({
+  hasNightAuctionTrophy,
+}: {
+  hasNightAuctionTrophy: boolean;
+}) {
+  return hasNightAuctionTrophy
+    ? AVATAR_CHEEK_STYLES
+    : STANDARD_AVATAR_CHEEK_STYLES;
+}
 
 export const AVATAR_FACIAL_HAIR_STYLES = [
   { key: "none", label: "Aucune" },
@@ -404,7 +421,7 @@ export function createRandomSportingDirectorAvatar(
     noseShape: randomKey(AVATAR_NOSE_SHAPES, random),
     mouthShape: randomKey(AVATAR_MOUTH_SHAPES, random),
     earShape: randomKey(AVATAR_EAR_SHAPES, random),
-    cheekStyle: randomKey(AVATAR_CHEEK_STYLES, random),
+    cheekStyle: randomKey(STANDARD_AVATAR_CHEEK_STYLES, random),
     facialHair: randomKey(AVATAR_FACIAL_HAIR_STYLES, random),
     glasses: randomKey(STANDARD_AVATAR_GLASSES_STYLES, random),
     outfit: randomKey(RANDOM_AVATAR_OUTFITS, random),

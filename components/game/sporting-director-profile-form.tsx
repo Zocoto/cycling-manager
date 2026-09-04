@@ -28,6 +28,7 @@ type SportingDirectorProfileFormProps = {
   ambulancierOutfitUnlocked?: boolean;
   emergencyDoctorOutfitUnlocked?: boolean;
   inveteratePlayerOutfitUnlocked?: boolean;
+  nightAuctionSkinUnlocked?: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -54,6 +55,7 @@ export function SportingDirectorProfileForm({
   ambulancierOutfitUnlocked = false,
   emergencyDoctorOutfitUnlocked = false,
   inveteratePlayerOutfitUnlocked = false,
+  nightAuctionSkinUnlocked = false,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -594,6 +596,24 @@ export function SportingDirectorProfileForm({
           </section>
         ) : null}
 
+        {nightAuctionSkinUnlocked ? (
+          <section
+            id="night-auction-avatar-skin"
+            className="scroll-mt-28 rounded-xl border border-[#7B8FD1]/40 bg-[linear-gradient(135deg,rgba(233,236,255,0.8),rgba(255,240,205,0.62))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#566AAE]">
+              Skin d’avatar débloqué
+            </p>
+            <p className="mt-2 text-sm font-black text-[#263653]">
+              Cernes — Jusqu’au bout de la nuit
+            </p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#5D687D]">
+              Le détail Cernes vous attend dans l’onglet Visage de l’éditeur
+              d’avatar et peut se combiner avec vos lunettes et votre tenue.
+            </p>
+          </section>
+        ) : null}
+
         <div className="rounded-xl border border-[#315B3E]/15 bg-[#F5F9F7] p-4 sm:p-5">
           <label className="flex cursor-pointer items-start gap-4">
             <input
@@ -724,6 +744,7 @@ export function SportingDirectorProfileForm({
               inveteratePlayerOutfitUnlocked={
                 inveteratePlayerOutfitUnlocked
               }
+              nightAuctionSkinUnlocked={nightAuctionSkinUnlocked}
             />
           </div>
         </div>
