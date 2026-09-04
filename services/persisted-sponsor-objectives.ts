@@ -23,6 +23,7 @@ import type {
 const OBJECTIVE_COUNT_PER_OFFER = 10;
 const OBJECTIVE_COMPLETION_ATTEMPTS = 8;
 const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 125;
+const SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE = 75;
 
 type SupabaseAdminClient = ReturnType<
   typeof createSupabaseAdminClient
@@ -840,17 +841,26 @@ async function loadSponsorObjectiveRaceCandidates({
     );
   }
 
-  const { data: raceRows, error: raceError } = await supabase
-    .from("races")
-    .select("id, country_id, slug, status, race_format, competition_type, is_monument, is_grand_tour")
-    .in("id", raceIds)
-    .eq("status", "active")
-    .returns<RaceRow[]>();
+  const raceRows: RaceRow[] = [];
 
-  if (raceError) {
-    throw new Error(
-      `Impossible de charger les courses des objectifs sponsor : ${raceError.message}`
-    );
+  for (const raceIdBatch of splitIntoBatches(
+    raceIds,
+    SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE,
+  )) {
+    const { data, error } = await supabase
+      .from("races")
+      .select("id, country_id, slug, status, race_format, competition_type, is_monument, is_grand_tour")
+      .in("id", raceIdBatch)
+      .eq("status", "active")
+      .returns<RaceRow[]>();
+
+    if (error) {
+      throw new Error(
+        `Impossible de charger les courses des objectifs sponsor : ${error.message}`
+      );
+    }
+
+    raceRows.push(...(data ?? []));
   }
 
   const { data: countryRows, error: countryError } = await supabase
@@ -879,20 +889,29 @@ async function loadSponsorObjectiveRaceCandidates({
     );
   }
 
-  const editionIds = sourceRows.map((edition) => edition.id);
-  const { data: stageRows, error: stageError } = await supabase
-    .from("stages")
-    .select("race_edition_id, profile_type")
-    .in("race_edition_id", editionIds)
-    .returns<RaceStageRow[]>();
+  const editionIds = [...new Set(sourceRows.map((edition) => edition.id))];
+  const stageRows: RaceStageRow[] = [];
 
-  if (stageError) {
-    throw new Error(
-      `Impossible de charger les profils des courses sponsor : ${stageError.message}`
-    );
+  for (const editionIdBatch of splitIntoBatches(
+    editionIds,
+    SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE,
+  )) {
+    const { data, error } = await supabase
+      .from("stages")
+      .select("race_edition_id, profile_type")
+      .in("race_edition_id", editionIdBatch)
+      .returns<RaceStageRow[]>();
+
+    if (error) {
+      throw new Error(
+        `Impossible de charger les profils des courses sponsor : ${error.message}`
+      );
+    }
+
+    stageRows.push(...(data ?? []));
   }
 
-  const raceById = new Map((raceRows ?? []).map((race) => [race.id, race]));
+  const raceById = new Map(raceRows.map((race) => [race.id, race]));
   const countryCodeById = new Map(
     (countryRows ?? []).map((country) => [country.id, country.iso_alpha2])
   );
@@ -907,7 +926,7 @@ async function loadSponsorObjectiveRaceCandidates({
   );
   const profileTypesByEditionId = new Map<string, Set<RaceProfileType>>();
 
-  for (const stage of stageRows ?? []) {
+  for (const stage of stageRows) {
     const profiles =
       profileTypesByEditionId.get(stage.race_edition_id) ??
       new Set<RaceProfileType>();
@@ -964,6 +983,23 @@ async function loadSponsorObjectiveRaceCandidates({
     raceCandidates: [...candidatesByRaceId.values()],
     continentCodeByCountryCode,
   };
+}
+
+function splitIntoBatches<T>(
+  values: readonly T[],
+  batchSize: number,
+): T[][] {
+  if (batchSize <= 0) {
+    throw new Error("La taille d'un lot doit être strictement positive.");
+  }
+
+  const batches: T[][] = [];
+
+  for (let index = 0; index < values.length; index += batchSize) {
+    batches.push(values.slice(index, index + batchSize));
+  }
+
+  return batches;
 }
 
 async function loadRaceEditionRows(
