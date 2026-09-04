@@ -5,6 +5,7 @@ import { AFRICAN_SPONSORS } from "./africa";
 import { ACTIVE_TEAM_COUNTRY_BATCH_01_SPONSORS } from "./active-team-country-batch-01";
 import { AUTOMOTIVE_SPONSORS } from "./automotive";
 import { BALTIC_SPONSORS } from "./baltics";
+import { BAHAMIAN_SPONSORS } from "./bahamas";
 import { BANKING_SPONSORS } from "./banking";
 import { BELGIAN_SPONSORS } from "./belgium";
 import { BRETON_SPONSORS } from "./brittany";
@@ -40,6 +41,7 @@ import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
 const RAW_SPONSORS = [
   ...ACTIVE_TEAM_COUNTRY_BATCH_01_SPONSORS,
+  ...BAHAMIAN_SPONSORS,
   ...FRENCH_SPONSORS,
   ...BRETON_SPONSORS,
   ...BELGIAN_SPONSORS,
