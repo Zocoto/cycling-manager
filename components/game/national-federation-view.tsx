@@ -477,7 +477,7 @@ function SelectionsPanel({
   const isQuadriennialSeason = nextGameYear % 4 === 0;
   const events = [
     {
-      day: 22,
+      day: 15,
       name: "Championnats continentaux",
       detail: "Sélection nationale · route et contre-la-montre",
     },

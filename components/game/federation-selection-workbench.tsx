@@ -26,10 +26,10 @@ type SelectionSlot = {
 };
 
 const SELECTION_SLOTS: SelectionSlot[] = [
-  { id: "cc-pro-road", label: "CC Pros · Route", competition: "Championnats continentaux", category: "professional", profile: "Route", hostName: "Pays-Bas", hostCode: "nl", day: 22, limit: 8 },
-  { id: "cc-pro-itt", label: "CC Pros · CLM", competition: "Championnats continentaux", category: "professional", profile: "Chrono", hostName: "Pays-Bas", hostCode: "nl", day: 22, limit: 2 },
-  { id: "cc-junior-road", label: "CC Juniors · Route", competition: "Championnats continentaux juniors", category: "junior", profile: "Route", hostName: "Pays-Bas", hostCode: "nl", day: 22, limit: 6 },
-  { id: "cc-junior-itt", label: "CC Juniors · CLM", competition: "Championnats continentaux juniors", category: "junior", profile: "Chrono", hostName: "Pays-Bas", hostCode: "nl", day: 22, limit: 2 },
+  { id: "cc-pro-road", label: "CC Pros · Route", competition: "Championnats continentaux", category: "professional", profile: "Route", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 8 },
+  { id: "cc-pro-itt", label: "CC Pros · CLM", competition: "Championnats continentaux", category: "professional", profile: "Chrono", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
+  { id: "cc-junior-road", label: "CC Juniors · Route", competition: "Championnats continentaux juniors", category: "junior", profile: "Route", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 6 },
+  { id: "cc-junior-itt", label: "CC Juniors · CLM", competition: "Championnats continentaux juniors", category: "junior", profile: "Chrono", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
   { id: "nc-mountain", label: "Nations Cup · Montagne", competition: "Nations Cup", category: "professional", profile: "Montagne", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Montagne" },
   { id: "nc-hills", label: "Nations Cup · Vallons", competition: "Nations Cup", category: "professional", profile: "Vallons", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Vallons" },
   { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", category: "professional", profile: "Sprint", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
