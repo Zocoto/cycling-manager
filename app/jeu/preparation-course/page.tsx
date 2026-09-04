@@ -12,6 +12,7 @@ import {
   type RacePreparationWorkspaceEdition,
 } from "@/components/game/race-preparation-workspace";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { isRacePreparationStageAvailable } from "@/lib/game/race-preparation";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -82,13 +83,18 @@ export default async function RacePreparationPage({
     preparationResult.preparations.map((plan) => [plan.editionId, plan]),
   );
   const preparableCalendarEditions =
-    calendarResult.calendar?.editions.filter(
-      (edition) =>
-        plansByEditionId.has(edition.id) &&
-        edition.stages.some(
+    calendarResult.calendar?.editions.flatMap((edition) => {
+      const stages = edition.stages.filter((stage) =>
+        isRacePreparationStageAvailable({ edition, stage }),
+      );
+
+      return plansByEditionId.has(edition.id) &&
+        stages.some(
           (stage) => getStageLiveState(stage, now).status === "scheduled",
-        ),
-    ) ?? [];
+        )
+        ? [{ ...edition, stages }]
+        : [];
+    }) ?? [];
   const equipmentPlanningResult = await getRaceEquipmentPlanningDataBatch({
     authUserId: user.id,
     entries: preparableCalendarEditions.map((edition) => ({
@@ -123,6 +129,7 @@ export default async function RacePreparationPage({
       categoryCode: edition.categoryCode,
       categoryName: edition.categoryName,
       raceFormat: edition.raceFormat,
+      competitionType: edition.competitionType,
       stages: edition.stages,
       plan: plansByEditionId.get(edition.id)!,
       equipmentPlanning:
@@ -159,7 +166,9 @@ export default async function RacePreparationPage({
             <p className="mt-4 max-w-3xl text-sm leading-6 text-[#D6DFD2] sm:text-base">
               Ouvrez une étape pour retrouver son profil, son matériel et ses
               préparatifs. Dosez aussi l’effort individuel et les relais des
-              contre-la-montre avant que le plan ne soit figé au départ.
+              contre-la-montre avant que le plan ne soit figé au départ. Les
+              courses internationales en ligne restent pilotées par les
+              sélections nationales.
             </p>
           </div>
         </header>

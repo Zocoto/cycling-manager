@@ -1331,10 +1331,7 @@ export async function getActiveSeasonRaceCalendar(
                 teamStrategies: teamStrategiesByStageId.get(stage.id),
               }
             : {}),
-          ...((season.game_year < 2 ||
-            (race.competition_type !== "world_championship" &&
-              race.competition_type !== "continental_championship")) &&
-          timeTrialPlansByStageId.has(stage.id)
+          ...(timeTrialPlansByStageId.has(stage.id)
             ? {
                 timeTrialPlans: timeTrialPlansByStageId.get(stage.id),
               }

@@ -7,7 +7,11 @@ import { useFormStatus } from "react-dom";
 import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
-import type { RaceCalendarStage, RaceFormat } from "@/lib/game/race-calendar";
+import type {
+  RaceCalendarStage,
+  RaceCompetitionType,
+  RaceFormat,
+} from "@/lib/game/race-calendar";
 import {
   RACE_CATEGORY_STYLE,
   RACE_STAGE_TYPE_LABELS,
@@ -15,6 +19,7 @@ import {
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
+  isRacePreparationStageAvailable,
   isRaceStagePreparationPending,
   isTimeTrialPreparationStage,
 } from "@/lib/game/race-preparation";
@@ -76,6 +81,7 @@ export type RacePreparationWorkspaceEdition = {
   categoryCode: RaceCategoryCode;
   categoryName: string;
   raceFormat: RaceFormat;
+  competitionType: RaceCompetitionType;
   stages: RaceCalendarStage[];
   plan: RacePreparationEditionPlan;
   equipmentPlanning: RaceEquipmentPlanningData | null;
@@ -155,6 +161,7 @@ export function RacePreparationWorkspace({
   );
   const nextPendingStageId = orderedStages.find((stage) =>
     isRaceStagePreparationPending({
+      edition: selectedEdition,
       stage,
       plan: selectedEdition.plan.stages[stage.id],
       scheduled: getStageLiveState(stage, now).status === "scheduled",
@@ -180,6 +187,7 @@ export function RacePreparationWorkspace({
             );
             const pendingCount = scheduledStages.filter((stage) =>
               isRaceStagePreparationPending({
+                edition,
                 stage,
                 plan: edition.plan.stages[stage.id],
                 scheduled: true,
@@ -339,7 +347,14 @@ function StagePreparationForm({
   const [isOpen, setIsOpen] = useState(initiallyOpen);
   const liveState = getStageLiveState(stage, now);
   const isTimeTrial = isTimeTrialPreparationStage(stage);
-  const isEditable = liveState.status === "scheduled" && !isTimeTrial;
+  const isPreparationAvailable = isRacePreparationStageAvailable({
+    edition,
+    stage,
+  });
+  const isEditable =
+    liveState.status === "scheduled" &&
+    !isTimeTrial &&
+    isPreparationAvailable;
   const hasUniqueRoles =
     Object.values(roles).filter((role) => role === "leader").length <= 1 &&
     Object.values(roles).filter(isRaceSprinterRole).length <= 1;
@@ -391,6 +406,8 @@ function StagePreparationForm({
       />
     );
   }
+
+  if (!isPreparationAvailable) return null;
 
   return (
     <details
