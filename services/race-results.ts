@@ -358,6 +358,24 @@ async function settleEditionRaceResults({
   }
 
   const rosterByRiderId = await loadRosterContext(admin, edition.id);
+  const firstStage = [...edition.stages].sort(
+    (first, second) =>
+      first.stageNumber - second.stageNumber || first.id.localeCompare(second.id),
+  )[0];
+  const firstStageSimulation = firstStage
+    ? lockedSimulations.find(
+        (lockedSimulation) => lockedSimulation.stageId === firstStage.id,
+      )
+    : null;
+  const initiallyUnavailableRiderIds = new Set(
+    firstStageSimulation?.input.unavailableRiderIds ?? [],
+  );
+  // Un coureur explicitement indisponible avant la première étape n'a jamais
+  // pris le départ. Il reste dans la startlist historique, mais ne doit pas
+  // être attendu dans le classement général de l'édition.
+  for (const riderId of initiallyUnavailableRiderIds) {
+    rosterByRiderId.delete(riderId);
+  }
   if (rosterByRiderId.size < minimumFieldSize) {
     return { processedStages: 0, completedEditions: 0 };
   }
@@ -386,21 +404,21 @@ async function settleEditionRaceResults({
   // pagination) ne pourra jamais produire un classement complet : on le
   // reconstruit tant que la course n'a pas été clôturée.
   let editionSimulations = lockedSimulations;
-  const firstStageSimulation = editionSimulations.find(
+  const firstPersistedStageSimulation = editionSimulations.find(
     (lockedSimulation) => lockedSimulation.stageId === orderedStages[0]?.id,
   );
-  if (firstStageSimulation && !resultsOnly) {
+  if (firstPersistedStageSimulation && !resultsOnly) {
     // Un coureur peut appartenir à la startlist verrouillée tout en étant
     // explicitement non-partant (blessure, indisponibilité déjà connue). Le
     // moteur l'inscrit alors dans unavailableRiderIds et, légitimement, ne le
     // place pas dans les résultats. Ne pas en tenir compte faisait considérer
     // le scénario comme tronqué et relançait inutilement toute la simulation.
     const coversRoster = officialStageSimulationCoversRoster({
-      resultRiderIds: firstStageSimulation.simulation.results.map(
+      resultRiderIds: firstPersistedStageSimulation.simulation.results.map(
         (result) => result.riderId,
       ),
       unavailableRiderIds:
-        firstStageSimulation.input.unavailableRiderIds ?? [],
+        firstPersistedStageSimulation.input.unavailableRiderIds ?? [],
       rosterRiderIds: [...rosterByRiderId.keys()],
     });
     if (!coversRoster) {
@@ -502,6 +520,15 @@ async function settleEditionRaceResults({
       stageRows = reloadedRows.filter((row) =>
         expectedRosterIds.has(row.race_roster_id),
       );
+    } else if (stage.status !== "completed") {
+      // Une tentative interrompue peut avoir écrit tous les résultats avant
+      // de marquer l'étape comme terminée. La reprise doit aussi réparer ce
+      // statut, même lorsqu'aucune ligne de résultat n'est à réécrire.
+      const { error: stageStatusError } = await admin
+        .from("stages")
+        .update({ status: "completed" })
+        .eq("id", stage.id);
+      assertQuery(stageStatusError, `la reprise du statut de ${stage.name}`);
     }
 
     if (stageRows.length !== expectedRosterIds.size) {
@@ -1322,12 +1349,22 @@ async function persistStageResult({
       rosterByRiderId,
     });
 
-    await persistPostRaceNewsEvents({
-      admin,
-      edition,
-      stage,
-      simulation,
-    });
+    try {
+      await persistPostRaceNewsEvents({
+        admin,
+        edition,
+        stage,
+        simulation,
+      });
+    } catch (error) {
+      // La Gazette est un enrichissement secondaire : une référence éditoriale
+      // périmée ne doit jamais annuler résultats, récompenses et classement.
+      console.error("post_race_news_persistence_failed", {
+        raceEditionId: edition.id,
+        stageId: stage.id,
+        error,
+      });
+    }
   }
 
   const { error: stageError } = await admin
@@ -1527,7 +1564,6 @@ async function persistRaceClassification({
   }>;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
-  let detectionRewardsApplied = false;
   const nowIso = new Date().toISOString();
   const rows = general.map((result) => ({
     race_edition_id: edition.id,
@@ -1546,7 +1582,7 @@ async function persistRaceClassification({
   assertQuery(error, `le classement final de ${edition.name}`);
 
   if (edition.raceFormat === "stage_race") {
-    detectionRewardsApplied = await persistStageRewards({
+    await persistStageRewards({
       admin,
       edition,
       finalStage,
@@ -1639,7 +1675,6 @@ async function persistRaceClassification({
         detectionRewardError,
         `le palmarès libre de ${result.riderName}`,
       );
-      detectionRewardsApplied = true;
       continue;
     }
 
@@ -1687,16 +1722,18 @@ async function persistRaceClassification({
     assertQuery(rewardError, `les gains de ${result.riderName}`);
   }
 
-  if (detectionRewardsApplied) {
-    const { error: rankingRefreshError } = await admin.rpc(
-      "refresh_race_edition_uci_rankings",
-      { p_race_edition_id: edition.id },
-    );
-    assertQuery(
-      rankingRefreshError,
-      `le classement UCI après ${edition.name}`,
-    );
-  }
+  // Les récompenses ordinaires sont appliquées une à une de façon
+  // idempotente, mais le classement UCI est une agrégation globale coûteuse.
+  // Le rafraîchir une seule fois par édition évite les timeouts des gros
+  // pelotons et couvre aussi les éventuelles équipes de détection.
+  const { error: rankingRefreshError } = await admin.rpc(
+    "refresh_race_edition_uci_rankings",
+    { p_race_edition_id: edition.id },
+  );
+  assertQuery(
+    rankingRefreshError,
+    `le classement UCI après ${edition.name}`,
+  );
 
   const attackedRiderIds = new Set(
     simulations.flatMap((simulation) =>

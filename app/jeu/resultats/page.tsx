@@ -27,6 +27,10 @@ import {
 } from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
+// Les reprises ciblées lancées depuis l'écran de résultats peuvent consolider
+// plusieurs étapes et doivent disposer du même budget que le cron officiel.
+export const maxDuration = 300;
+
 export const metadata: Metadata = {
   title: "Résultats / Live",
   description: "Consultez les résultats, directs et replays de Cyclostratège.",

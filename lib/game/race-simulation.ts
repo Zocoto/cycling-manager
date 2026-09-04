@@ -7270,30 +7270,12 @@ function validateTimeTrialPlans(input: StageSimulationInput) {
     }
   }
 
-  const teams = groupBy(input.riders, (rider) => rider.teamId);
-  if (input.stageType !== "team_time_trial") return;
-
-  for (const riders of teams.values()) {
-    const plannedRiders = riders.filter((rider) => plans[rider.id]);
-    if (plannedRiders.length === 0) continue;
-    if (plannedRiders.length !== riders.length) {
-      throw new Error(
-        "Une préparation chrono doit couvrir toute l’équipe engagée.",
-      );
-    }
-    const relayTotal = plannedRiders.reduce(
-      (total, rider) => total + (plans[rider.id].relaySharePct ?? 0),
-      0,
-    );
-    if (
-      plannedRiders.some((rider) => plans[rider.id].relaySharePct === null) ||
-      Math.abs(relayTotal - 100) > 0.001
-    ) {
-      throw new Error(
-        "La répartition des relais d’une équipe doit totaliser exactement 100 %.",
-      );
-    }
-  }
+  // Les RPC de préparation garantissent normalement une consigne complète à
+  // 100 %. Une startlist peut toutefois évoluer après son enregistrement
+  // (restauration d'urgence, blessure ou forfait). Le moteur sait déjà
+  // renormaliser les relais présents et appliquer l'effort normal aux
+  // coureurs sans consigne : refuser cet état historique bloquerait toute
+  // l'homologation de la course.
 }
 function validateTeamStrategies(input: StageSimulationInput) {
   const strategies = input.teamStrategies ?? [];

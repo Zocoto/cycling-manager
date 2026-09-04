@@ -24,6 +24,25 @@ export async function persistPostRaceNewsEvents({
   const events = buildPostRaceNewsEvents({ edition, stage, simulation });
   if (events.length === 0) return;
 
+  const featuredTeamIds = [
+    ...new Set(
+      events.flatMap((event) =>
+        event.featuredTeamId ? [event.featuredTeamId] : [],
+      ),
+    ),
+  ];
+  const existingTeams = featuredTeamIds.length
+    ? await admin.from("teams").select("id").in("id", featuredTeamIds)
+    : { data: [] as Array<{ id: string }>, error: null };
+  if (existingTeams.error) {
+    throw new Error(
+      `Impossible de vérifier l’équipe du résumé de course : ${existingTeams.error.message}`,
+    );
+  }
+  const existingTeamIds = new Set(
+    (existingTeams.data ?? []).map((team) => team.id),
+  );
+
   const { error } = await admin.from("post_race_news_events").upsert(
     events.map((event) => ({
       id: event.id,
@@ -33,7 +52,12 @@ export async function persistPostRaceNewsEvents({
       title: event.title,
       detail: event.detail,
       featured_rider_id: event.featuredRiderId,
-      featured_team_id: event.featuredTeamId,
+      // Les sélections nationales et les équipes de détection utilisent une
+      // identité d'affichage qui n'est pas forcément une ligne de `teams`.
+      featured_team_id:
+        event.featuredTeamId && existingTeamIds.has(event.featuredTeamId)
+          ? event.featuredTeamId
+          : null,
       happened_at: event.happenedAt,
       updated_at: new Date().toISOString(),
     })),

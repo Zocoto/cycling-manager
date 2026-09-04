@@ -89,6 +89,36 @@ describe("time-trial race preparation", () => {
     );
   });
 
+  it("keeps an official team time trial runnable after the roster gains a rider", () => {
+    const baseInput = createDemoSimulationInput("chrono-algarve", 103);
+    const riders = [
+      createRider("planned-strong", 88),
+      createRider("planned-weak", 62),
+      createRider("restored-rider", 70),
+    ];
+
+    const simulation = simulateRaceStage({
+      ...baseInput,
+      stageType: "team_time_trial",
+      riders,
+      timeTrialPlans: {
+        "planned-strong": {
+          effortMode: "all_in",
+          relaySharePct: 70,
+        },
+        "planned-weak": {
+          effortMode: "normal",
+          relaySharePct: 30,
+        },
+      },
+    });
+
+    expect(simulation.results).toHaveLength(3);
+    expect(
+      simulation.results.some((result) => result.riderId === "restored-rider"),
+    ).toBe(true);
+  });
+
   it("records individual times when riders lose the team time-trial group", () => {
     const baseInput = createDemoSimulationInput("chrono-algarve", 103);
     const riders = [
