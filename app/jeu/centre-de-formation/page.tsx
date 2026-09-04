@@ -294,6 +294,7 @@ export default async function YouthDevelopmentPage({
             }
             tutorialDemo={tutorialDemo}
             showReportHistory={!tutorialDemo && query.rapports === "historique"}
+            errorMessage={query.erreur}
           />
         ) : null}
         {overview && activeTab === "ecole" ? (
@@ -315,11 +316,13 @@ function ScoutingTab({
   defaultCountryId,
   tutorialDemo,
   showReportHistory,
+  errorMessage,
 }: {
   overview: YouthDevelopmentOverview;
   defaultCountryId: string;
   tutorialDemo: boolean;
   showReportHistory: boolean;
+  errorMessage?: string;
 }) {
   const activeMissions = overview.missions.filter(
     (mission) => mission.status === "active",
@@ -387,6 +390,7 @@ function ScoutingTab({
           currentDayNumber={overview.currentDayNumber}
           scoutingSupervision={overview.scoutingSupervision}
           defaultCountryId={defaultCountryId}
+          errorMessage={errorMessage}
           tutorialMode={tutorialDemo}
         />
       </section>

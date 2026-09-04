@@ -38,7 +38,15 @@ export async function startYouthScoutingAction(formData: FormData) {
     p_country_id: countryId,
     p_duration_days: durationDays,
   });
-  if (result.error) redirectWithMessage("scouting", "erreur", result.error.message);
+  if (result.error) {
+    redirectWithMessage(
+      "scouting",
+      "erreur",
+      result.error.message.includes("après la fin de la saison")
+        ? "Mission non lancée : la durée choisie dépasse le J28, dernier jour de la saison. Choisissez une durée plus courte."
+        : result.error.message,
+    );
+  }
   revalidateCenter();
   redirectWithMessage("scouting", "succes", "Le scout est en route. Son rapport sera disponible à la fin de la mission.");
 }

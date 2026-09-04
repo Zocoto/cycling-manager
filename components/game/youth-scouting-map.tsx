@@ -5,7 +5,11 @@ import { useFormStatus } from "react-dom";
 
 import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions";
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
-import { YOUTH_SCOUTING_DURATION_OPTIONS } from "@/lib/game/youth-scouting-duration";
+import {
+  YOUTH_SCOUTING_DURATION_OPTIONS,
+  YOUTH_SCOUTING_LAST_SEASON_DAY,
+  getYouthScoutingDurationOptionsForDay,
+} from "@/lib/game/youth-scouting-duration";
 import { getScoutingSupervisionPercentageForDay } from "@/lib/game/scouting-supervision";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 import type { YouthCountry, YouthScout } from "@/services/youth-development";
@@ -16,6 +20,7 @@ export function YouthScoutingMap({
   currentDayNumber,
   scoutingSupervision,
   defaultCountryId,
+  errorMessage,
   tutorialMode = false,
 }: {
   countries: YouthCountry[];
@@ -23,10 +28,17 @@ export function YouthScoutingMap({
   currentDayNumber: number;
   scoutingSupervision: ScoutingSupervisionStatus;
   defaultCountryId?: string | null;
+  errorMessage?: string | null;
   tutorialMode?: boolean;
 }) {
   const [search, setSearch] = useState("");
-  const [durationDays, setDurationDays] = useState(3);
+  const [selectedDurationDays, setSelectedDurationDays] = useState(3);
+  const [manualDialogMessage, setManualDialogMessage] = useState<string | null>(
+    null,
+  );
+  const [dismissedErrorMessage, setDismissedErrorMessage] = useState<
+    string | null
+  >(null);
   const [selectedCountryId, setSelectedCountryId] = useState(() =>
     countries.some((country) => country.id === defaultCountryId)
       ? (defaultCountryId ?? "")
@@ -41,12 +53,28 @@ export function YouthScoutingMap({
   }, [countries, search]);
   const selected = countries.find((country) => country.id === selectedCountryId) ?? countries[0];
   const availableScouts = scouts.filter((scout) => !scout.activeMissionId);
-  const completionDayNumber = currentDayNumber + durationDays;
+  const availableDurationOptions = getYouthScoutingDurationOptionsForDay(
+    currentDayNumber,
+  );
+  const unavailableDurationOptions = YOUTH_SCOUTING_DURATION_OPTIONS.filter(
+    (durationDays) => !availableDurationOptions.includes(durationDays),
+  );
+  const durationDays = availableDurationOptions.includes(selectedDurationDays)
+    ? selectedDurationDays
+    : (availableDurationOptions[0] ?? null);
+  const completionDayNumber = currentDayNumber + (durationDays ?? 0);
   const plannedSupervisionPercentage =
-    getScoutingSupervisionPercentageForDay(
-      scoutingSupervision.effects,
-      completionDayNumber,
-    );
+    durationDays === null
+      ? 0
+      : getScoutingSupervisionPercentageForDay(
+          scoutingSupervision.effects,
+          completionDayNumber,
+        );
+  const dialogMessage =
+    manualDialogMessage ??
+    (errorMessage && errorMessage !== dismissedErrorMessage
+      ? errorMessage
+      : null);
 
   useEffect(() => {
     const scroller = mapScrollRef.current;
@@ -71,10 +99,11 @@ export function YouthScoutingMap({
   if (!selected) return null;
 
   return (
-    <div
+    <>
+      <div
       data-tutorial-id="youth-tutorial-map"
       className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,0.7fr)]"
-    >
+      >
       <div className="overflow-hidden rounded-[1.75rem] border border-[#315B3E]/15 bg-[#0B302B] shadow-[0_18px_45px_rgba(11,48,43,0.15)]">
         <div
           data-tutorial-id="youth-tutorial-filters"
@@ -198,27 +227,62 @@ export function YouthScoutingMap({
           </label>
           <label className="block">
             <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">Durée du scouting</span>
-            <select name="durationDays" value={durationDays} onChange={(event) => setDurationDays(Number(event.target.value))} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]">
-              {YOUTH_SCOUTING_DURATION_OPTIONS.map((day) => <option key={day} value={day}>{day} jours</option>)}
+            <select name="durationDays" value={durationDays ?? ""} disabled={durationDays === null} onChange={(event) => setSelectedDurationDays(Number(event.target.value))} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] disabled:cursor-not-allowed disabled:bg-[#EDF1EF]">
+              {durationDays === null ? <option value="">Aucune durée disponible</option> : null}
+              {YOUTH_SCOUTING_DURATION_OPTIONS.map((day) => <option key={day} value={day} disabled={!availableDurationOptions.includes(day)}>{day} jours{availableDurationOptions.includes(day) ? "" : " — après J28"}</option>)}
             </select>
           </label>
-          {plannedSupervisionPercentage > 0 ? (
+          {unavailableDurationOptions.length ? (
+            <p role="alert" className="rounded-xl border border-[#D6A600]/30 bg-[#FFF9DB] px-3 py-2.5 text-xs font-bold leading-5 text-[#715700]">
+              {availableDurationOptions.length
+                ? `La saison est au J${currentDayNumber} : ${unavailableDurationOptions.length === 1 ? `la durée de ${unavailableDurationOptions[0]} jours dépasserait` : `les durées de ${unavailableDurationOptions.join(", ")} jours dépasseraient`} le J${YOUTH_SCOUTING_LAST_SEASON_DAY} et ${unavailableDurationOptions.length === 1 ? "a été désactivée" : "ont été désactivées"}.`
+                : `La saison est au J${currentDayNumber} : il ne reste plus assez de temps pour une mission de 3 jours avant le J${YOUTH_SCOUTING_LAST_SEASON_DAY}.`}
+            </p>
+          ) : null}
+          {durationDays !== null && plannedSupervisionPercentage > 0 ? (
             <p className="rounded-xl border border-[#42B99A]/25 bg-[#EAF5F3] px-3 py-2.5 text-xs font-bold leading-5 text-[#176951]">
               Rapport prévu au J{completionDayNumber} · bonus de supervision
               confirmé : +{plannedSupervisionPercentage} %.
             </p>
-          ) : scoutingSupervision.currentPercentage > 0 ? (
+          ) : durationDays !== null && scoutingSupervision.currentPercentage > 0 ? (
             <p className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-2.5 text-xs font-bold leading-5 text-[#715700]">
               Le bonus actif aujourd’hui aura expiré avant le rapport du J
               {completionDayNumber}.
             </p>
           ) : null}
-          <MissionSubmitButton disabled={!availableScouts.length} />
+          <MissionSubmitButton
+            disabled={!availableScouts.length}
+            seasonBoundaryBlocked={durationDays === null}
+            onSeasonBoundaryBlocked={() =>
+              setManualDialogMessage(
+                `Mission impossible : au J${currentDayNumber}, une mission de 3 jours minimum finirait après le J${YOUTH_SCOUTING_LAST_SEASON_DAY}, dernier jour de la saison. Le scouting rouvrira à la prochaine saison.`,
+              )
+            }
+          />
           {!availableScouts.length ? <p className="text-xs font-bold text-[#B54242]">Aucun scout disponible : attendez le retour d’une mission ou recrutez-en un.</p> : null}
           </form>
         )}
       </aside>
-    </div>
+      </div>
+
+      {dialogMessage ? (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="scouting-error-title"
+          aria-describedby="scouting-error-message"
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-[#041411]/80 p-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-md rounded-[1.75rem] border border-[#F4A6A6]/35 bg-[#FFFDF4] p-6 text-center shadow-[0_30px_100px_rgba(0,0,0,0.45)] sm:p-8">
+            <div aria-hidden="true" className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#FDE8E8] text-2xl font-black text-[#A22F2F]">!</div>
+            <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#A22F2F]">Scouting non lancé</p>
+            <h2 id="scouting-error-title" className="mt-2 text-2xl font-black text-[#071A17]">Le scout reste disponible</h2>
+            <p id="scouting-error-message" className="mt-3 text-sm font-semibold leading-6 text-[#526861]">{dialogMessage}</p>
+            <button type="button" autoFocus onClick={() => { setManualDialogMessage(null); if (errorMessage) setDismissedErrorMessage(errorMessage); }} className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#0B302B]">Compris</button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -289,9 +353,17 @@ function CountryMetric({ label, value, accent = false }: { label: string; value:
   return <div className={`rounded-2xl border p-3 ${accent ? "border-[#F2C94C]/60 bg-[#F2C94C]/15" : "border-[#315B3E]/10 bg-white"}`}><dt className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">{label}</dt><dd className="mt-1 text-lg font-black text-[#071A17]">{value}</dd></div>;
 }
 
-function MissionSubmitButton({ disabled }: { disabled: boolean }) {
+function MissionSubmitButton({
+  disabled,
+  seasonBoundaryBlocked,
+  onSeasonBoundaryBlocked,
+}: {
+  disabled: boolean;
+  seasonBoundaryBlocked: boolean;
+  onSeasonBoundaryBlocked: () => void;
+}) {
   const { pending } = useFormStatus();
-  return <button type="submit" disabled={disabled || pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:bg-[#B8C8C2]">{pending ? "Départ en cours…" : "Envoyer le scout"}</button>;
+  return <button type={seasonBoundaryBlocked ? "button" : "submit"} disabled={disabled || pending} onClick={seasonBoundaryBlocked ? onSeasonBoundaryBlocked : undefined} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:bg-[#B8C8C2]">{pending ? "Départ en cours…" : seasonBoundaryBlocked ? "Pourquoi le scouting est indisponible ?" : "Envoyer le scout"}</button>;
 }
 
 function WorldPlanisphere() {
