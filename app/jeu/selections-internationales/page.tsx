@@ -28,7 +28,6 @@ type InternationalSelectionsPageProps = {
   searchParams: Promise<{
     decision?: string | string[];
     erreur?: string | string[];
-    nombre?: string | string[];
   }>;
 };
 
@@ -99,9 +98,6 @@ export default async function InternationalSelectionsPage({
   ).length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
-  const savedDecisionCount = Number(
-    readSingleSearchParam(resolvedSearchParams.nombre) ?? 0,
-  );
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -153,14 +149,6 @@ export default async function InternationalSelectionsPage({
             </div>
           </div>
         </header>
-
-        {decision === "enregistrees" ? (
-          <FeedbackBanner tone="success">
-            {savedDecisionCount > 0
-              ? `${savedDecisionCount} décision${savedDecisionCount > 1 ? "s ont" : " a"} été enregistrée${savedDecisionCount > 1 ? "s" : ""} en une seule fois.`
-              : "Les décisions ont été enregistrées en une seule fois."}
-          </FeedbackBanner>
-        ) : null}
 
         {decision === "confirmee" ? (
           <FeedbackBanner tone="success">

@@ -43,6 +43,15 @@ describe("bulk international selection responses", () => {
     );
   });
 
+  it("returns to the invitations without a redundant batch confirmation", () => {
+    expect(page).not.toContain(
+      "Les décisions ont été enregistrées en une seule fois.",
+    );
+    expect(page).not.toContain("savedDecisionCount");
+    expect(action).toContain('redirect("/jeu/selections-internationales")');
+    expect(action).not.toContain("?decision=enregistrees");
+  });
+
   it("prevalidates ownership and applies the whole batch atomically", () => {
     expect(migration).toContain("v_eligible_count <> v_decision_count");
     expect(migration).toContain("director.auth_user_id = auth.uid()");

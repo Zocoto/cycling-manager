@@ -87,5 +87,5 @@ export async function answerInternationalSelectionsAction(formData: FormData) {
   revalidatePath("/jeu/championnats-internationaux");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/boite-mail");
-  redirect(`/jeu/selections-internationales?decision=enregistrees&nombre=${parsed.data.length}`);
+  redirect("/jeu/selections-internationales");
 }
