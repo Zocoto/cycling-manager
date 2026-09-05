@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const repairMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260905120000_repair_legacy_youth_dismissals.sql",
+  ),
+  "utf8",
+);
 const academyPage = readFileSync(
   join(process.cwd(), "app/jeu/centre-de-formation/page.tsx"),
   "utf8",
@@ -95,5 +102,24 @@ describe("renvoi d’un junior de l’école de cyclisme", () => {
     expect(migration).toContain("from public.youth_scouting_candidates as candidate");
     expect(migration).toContain("where candidate.status = 'signed'");
     expect(migration).toContain("where youth.status = ''promoted''");
+  });
+
+  it("répare exactement les 13/10/3 cas explicitement autorisés", () => {
+    expect(repairMigration).toContain("v_refund_count <> 13");
+    expect(repairMigration).toContain("v_suspension_count <> 10");
+    expect(repairMigration).toContain(
+      "v_refund_count - v_suspension_count <> 3",
+    );
+    expect(repairMigration).toContain("'youth-dismissal-refund:'");
+    expect(repairMigration).toContain(
+      "cash_balance = team_season.cash_balance + refund.amount",
+    );
+    expect(repairMigration).toContain("set status = 'suspended'");
+    expect(repairMigration).toContain("status = 'release_pending'");
+    expect(repairMigration).toContain("from public.rider_contracts as contract");
+    expect(repairMigration).toContain("where contract.rider_id = rider.id");
+    expect(repairMigration).toContain(
+      "v_youth.promoted_rider_id is not null",
+    );
   });
 });
