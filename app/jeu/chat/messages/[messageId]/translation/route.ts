@@ -58,7 +58,7 @@ export async function POST(
   }
 
   const [identityResult, messageResult] = await Promise.all([
-    supabase.rpc("get_current_global_chat_identity_v3"),
+    supabase.rpc("get_current_global_chat_identity_v2"),
     supabase
       .from("global_chat_messages")
       .select("id, sporting_director_id, message, edited_at")

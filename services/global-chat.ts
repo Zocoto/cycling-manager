@@ -158,8 +158,8 @@ type GlobalChatDirectorProfileRow = {
   sporting_director_id: string;
   avatar_key: string | null;
   avatar_frame_key: string | null;
-  country_name: string | null;
-  country_code: string | null;
+  country_name?: string | null;
+  country_code?: string | null;
 };
 
 type GlobalChatDirectorProfile = {
@@ -418,24 +418,37 @@ async function getProfilesByDirectorId(
   const uniqueDirectorIds = [...new Set(directorIds)];
   if (uniqueDirectorIds.length === 0) return result;
 
-  const profilesResult = await supabase.rpc("get_global_chat_director_avatars", {
-    p_sporting_director_ids: uniqueDirectorIds,
-  });
+  const profilesResult = await supabase.rpc(
+    "get_global_chat_director_profiles",
+    { p_sporting_director_ids: uniqueDirectorIds },
+  );
 
   if (profilesResult.error) {
     console.error(
-      "Global chat director profiles unavailable; continuing with defaults.",
+      "Global chat director profiles unavailable; falling back to avatars.",
       profilesResult.error,
+    );
+  }
+
+  const fallbackResult = profilesResult.error
+    ? await supabase.rpc("get_global_chat_director_avatars", {
+        p_sporting_director_ids: uniqueDirectorIds,
+      })
+    : null;
+  if (fallbackResult?.error) {
+    console.error(
+      "Global chat avatars unavailable; continuing with defaults.",
+      fallbackResult.error,
     );
     return result;
   }
 
-  for (const row of ((profilesResult.data as
+  for (const row of (((fallbackResult?.data ?? profilesResult.data) as
     GlobalChatDirectorProfileRow[] | null) ?? [])) {
     result.set(row.sporting_director_id, {
       avatarKey: row.avatar_key,
       avatarFrameKey: readAvatarFrameKey(row.avatar_frame_key),
-      country: readCountry(row.country_name, row.country_code),
+      country: readCountry(row.country_name ?? null, row.country_code ?? null),
     });
   }
 

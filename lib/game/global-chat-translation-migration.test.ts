@@ -17,6 +17,21 @@ const route = readFileSync(
   ),
   "utf8",
 );
+const chatService = readFileSync(
+  resolve(process.cwd(), "services/global-chat.ts"),
+  "utf8",
+);
+const optionalProfilesMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260905181500_restore_optional_global_chat_profiles.sql",
+  ),
+  "utf8",
+);
+const privacyPage = readFileSync(
+  resolve(process.cwd(), "app/(public)/confidentialite/page.tsx"),
+  "utf8",
+);
 
 describe("on-demand global chat translation", () => {
   it("keeps the translation cache server-only and invalidates it by fingerprint", () => {
@@ -35,9 +50,34 @@ describe("on-demand global chat translation", () => {
     expect(route).toContain("status: 429");
   });
 
+  it("never makes the core chat render depend on translation RPCs", () => {
+    expect(route).toContain('rpc("get_current_global_chat_identity_v2")');
+    expect(route).not.toContain('rpc("get_current_global_chat_identity_v3")');
+    expect(chatService).toContain('rpc("get_current_global_chat_identity_v2")');
+    expect(chatService).toContain('rpc("get_online_global_chat_directors_v2")');
+    expect(chatService).not.toContain('rpc("get_current_global_chat_identity_v3")');
+    expect(chatService).not.toContain('rpc("get_online_global_chat_directors_v3")');
+  });
+
   it("exposes author countries without treating them as source languages", () => {
     expect(migration).toContain("get_current_global_chat_identity_v3");
     expect(migration).toContain("get_online_global_chat_directors_v3");
     expect(migration).toContain("get_global_chat_director_profiles");
+    expect(optionalProfilesMigration).toContain(
+      "get_global_chat_director_profiles",
+    );
+    expect(chatService).toMatch(
+      /rpc\(\s*"get_global_chat_director_profiles"/u,
+    );
+    expect(chatService).toContain(
+      'rpc("get_global_chat_director_avatars"',
+    );
+  });
+
+  it("discloses every translation processor and keeps translation opt-in", () => {
+    expect(privacyPage).toContain("AI Gateway");
+    expect(privacyPage).toContain("Google Gemini");
+    expect(privacyPage).toContain("DeepL");
+    expect(privacyPage).toContain("clic explicite");
   });
 });

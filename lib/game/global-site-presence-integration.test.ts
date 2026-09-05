@@ -26,10 +26,17 @@ describe("global site presence integration", () => {
 
   it("loads online directors on the server and refreshes only while chat is open", () => {
     expect(chatService).toContain('rpc("get_online_global_chat_directors_v2")');
+    expect(chatService).toContain('rpc("get_current_global_chat_identity_v2")');
+    expect(chatService).not.toContain('rpc("get_online_global_chat_directors_v3")');
+    expect(chatService).not.toContain('rpc("get_current_global_chat_identity_v3")');
     expect(chatPage).toContain(
       "initialOnlineDirectors={chat.onlineDirectors}",
     );
+    expect(chatPage).toContain(
+      "translationEnabled={isChatTranslationConfigured()}",
+    );
     expect(chat).toContain('rpc("get_online_global_chat_directors_v2")');
+    expect(chat).not.toContain('rpc("get_online_global_chat_directors_v3")');
     expect(chat).toContain("GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS");
     expect(chat).toContain("GLOBAL_CHAT_ONLINE_WINDOW_MINUTES");
     expect(chat).toContain("Online");

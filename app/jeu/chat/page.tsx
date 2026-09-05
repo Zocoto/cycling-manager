@@ -9,6 +9,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentDirectUnreadCount } from "@/services/direct-messages";
+import { isChatTranslationConfigured } from "@/services/chat-translation-provider";
 import { getGlobalChatOverview } from "@/services/global-chat";
 
 export const metadata: Metadata = {
@@ -72,7 +73,7 @@ export default async function GlobalChatPage({
             initialCursor={chat.nextCursor}
             initialDirectRecipientId={initialDirectRecipientId}
             initialDirectUnreadCount={directUnreadCount}
-            translationEnabled={false}
+            translationEnabled={isChatTranslationConfigured()}
           />
         </div>
       </section>

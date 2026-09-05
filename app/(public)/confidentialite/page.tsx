@@ -141,17 +141,19 @@ export default function PrivacyPage() {
               stockage technique et temps réel ;
             </li>
             <li>
-              <strong>Vercel</strong> : hébergement du site, diffusion et
-              mesures anonymes de performance ;
+              <strong>Vercel</strong> : hébergement du site, diffusion,
+              mesures anonymes de performance et routage sécurisé des demandes
+              de traduction via AI Gateway ;
             </li>
             <li>
               <strong>Brevo</strong> : acheminement des e-mails transactionnels
               de confirmation et de service.
             </li>
             <li>
-              <strong>DeepL</strong> : traduction à la demande des messages du
-              chat général, seulement après un clic explicite sur le bouton de
-              traduction.
+              <strong>Google Gemini ou DeepL</strong> : traduction à la demande
+              des messages du chat général, seulement après un clic explicite
+              sur le bouton de traduction. DeepL n’est utilisé que lorsqu’une
+              clé dédiée est configurée.
             </li>
           </ul>
           <p className="mt-4">

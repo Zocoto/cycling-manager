@@ -7,7 +7,7 @@ import type { ChatTranslationTargetLocale } from "@/lib/game/chat-translation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ChatTranslationProviderError,
-  translateChatTextWithDeepL,
+  translateChatText,
 } from "@/services/chat-translation-provider";
 
 type CachedTranslationRow = {
@@ -94,7 +94,7 @@ export async function getOrCreateGlobalChatTranslation({
     throw new Error("Impossible d’enregistrer la demande de traduction.");
   }
 
-  const translation = await translateChatTextWithDeepL({
+  const translation = await translateChatText({
     message: sourceMessage,
     targetLocale,
   });
