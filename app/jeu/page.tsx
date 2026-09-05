@@ -817,14 +817,6 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
-              href="/jeu/awards"
-              icon="result"
-              title="Awards du peloton"
-              status="Palmarès saisonnier"
-              description="Retrouvez les distinctions individuelles, collectives et managériales attribuées à chaque fin de saison."
-            />
-
-            <ManagementModuleCard
               href="/jeu/materiel"
               icon="equipment"
               title="Matériel"

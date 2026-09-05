@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CyclogazetteArchiveNavigation } from "@/components/game/cyclogazette-archive-navigation";
+import { CyclogazetteAwards } from "@/components/game/cyclogazette-awards";
 import { CyclogazetteGamesSidebar } from "@/components/game/cyclogazette-games-sidebar";
 import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper";
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
+import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-section-navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
+import { selectCyclogazetteOpeningAwards } from "@/lib/game/cyclogazette-awards";
 import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -18,6 +21,7 @@ import {
 } from "@/services/cyclogazette";
 import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getSeasonAwards } from "@/services/season-awards";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
 
 export const metadata: Metadata = {
@@ -33,6 +37,7 @@ export default async function CyclogazettePage({
     edition?: string | string[];
     article?: string | string[];
     erreur?: string | string[];
+    onglet?: string | string[];
   }>;
 }) {
   const supabase = await createSupabaseServerClient();
@@ -43,14 +48,18 @@ export default async function CyclogazettePage({
   if (error || !user) redirect("/connexion");
 
   const params = await searchParams;
+  const activeSection =
+    readQuery(params.onglet) === "awards" ? "awards" : "journal";
   const requestedEditionId = Array.isArray(params.edition)
     ? params.edition[0]
     : params.edition;
-  const [headerData, latestEdition, mediaCenterOverview] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
-    getLatestCyclogazetteEdition(),
-    getCurrentTeamMediaCenterOverview(user.id),
-  ]);
+  const [headerData, latestEdition, mediaCenterOverview, awards] =
+    await Promise.all([
+      getGameHeaderData(supabase, user.id),
+      getLatestCyclogazetteEdition(),
+      getCurrentTeamMediaCenterOverview(user.id),
+      getSeasonAwards(supabase),
+    ]);
   const [archive, requestedEdition] = await Promise.all([
     getCyclogazetteArchive(),
     requestedEditionId && requestedEditionId !== latestEdition?.id
@@ -84,10 +93,15 @@ export default async function CyclogazettePage({
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
   );
+  const openingAwards = selectCyclogazetteOpeningAwards(
+    edition,
+    archive,
+    awards,
+  );
 
   return (
     <main
-      className={`min-h-screen text-[#082A2A] ${isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
+      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
     >
       <GameHeader
         simulatorEmail={user.email}
@@ -97,37 +111,52 @@ export default async function CyclogazettePage({
         gazetteIsOpen
       />
       <div className="px-2 py-5 sm:px-5 sm:py-9 lg:px-8">
-        {mediaCenterOverview ? (
-          <MediaCenterComposer
-            overview={mediaCenterOverview}
-            success={readQuery(params.article) === "propose"}
-            errorMessage={readQuery(params.erreur)}
-          />
-        ) : null}
-        {edition && latestEdition ? (
-          <>
-            <CyclogazetteReadMarker editionId={edition.id} />
-            <CyclogazetteArchiveNavigation
-              seasons={archive}
-              currentEditionId={edition.id}
-              latestEditionId={latestEdition.id}
-            />
-            <CyclogazetteNewspaper
-              edition={edition}
-              community={community ?? undefined}
-              interviewReactions={community?.interviewReactions}
-              gamesSection={
-                gamesOverview ? (
-                  <CyclogazetteGamesSidebar
-                    key={edition.id}
-                    overview={gamesOverview}
-                  />
-                ) : null
-              }
-            />
-          </>
+        <CyclogazetteSectionNavigation activeSection={activeSection} />
+        {activeSection === "awards" ? (
+          <CyclogazetteAwards awards={awards} />
         ) : (
-          <EmptyGazette />
+          <>
+            {mediaCenterOverview ? (
+              <MediaCenterComposer
+                overview={mediaCenterOverview}
+                success={readQuery(params.article) === "propose"}
+                errorMessage={readQuery(params.erreur)}
+              />
+            ) : null}
+            {edition && latestEdition ? (
+              <>
+                <CyclogazetteReadMarker editionId={edition.id} />
+                <CyclogazetteArchiveNavigation
+                  seasons={archive}
+                  currentEditionId={edition.id}
+                  latestEditionId={latestEdition.id}
+                />
+                <CyclogazetteNewspaper
+                  edition={edition}
+                  community={community ?? undefined}
+                  interviewReactions={community?.interviewReactions}
+                  seasonOpeningAwards={
+                    openingAwards.length > 0 ? (
+                      <CyclogazetteAwards
+                        awards={openingAwards}
+                        mode="day-one"
+                      />
+                    ) : null
+                  }
+                  gamesSection={
+                    gamesOverview ? (
+                      <CyclogazetteGamesSidebar
+                        key={edition.id}
+                        overview={gamesOverview}
+                      />
+                    ) : null
+                  }
+                />
+              </>
+            ) : (
+              <EmptyGazette />
+            )}
+          </>
         )}
       </div>
     </main>

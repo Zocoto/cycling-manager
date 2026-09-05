@@ -138,6 +138,19 @@ const interviewReactions: CyclogazetteInterviewReactionStates = {
 };
 
 describe("CyclogazetteNewspaper", () => {
+  it("place le palmarès d'ouverture avant la Une", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, dayNumber: 1 }}
+        seasonOpeningAwards={<aside>Palmarès de la saison passée</aside>}
+      />,
+    );
+
+    expect(markup.indexOf("Palmarès de la saison passée")).toBeLessThan(
+      markup.indexOf("Les vainqueurs des étapes"),
+    );
+  });
+
   it("met la course et le vainqueur en Une avec le maillot de son équipe", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper edition={edition} />,

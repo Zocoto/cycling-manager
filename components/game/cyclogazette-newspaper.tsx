@@ -204,11 +204,13 @@ export function CyclogazetteNewspaper({
   edition,
   community,
   interviewReactions,
+  seasonOpeningAwards,
   gamesSection,
 }: {
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
   interviewReactions?: CyclogazetteInterviewReactionStates;
+  seasonOpeningAwards?: ReactNode;
   gamesSection?: ReactNode;
 }) {
   const { locale } = useLocale();
@@ -422,6 +424,8 @@ export function CyclogazetteNewspaper({
           ))}
         </div>
       ) : null}
+
+      {seasonOpeningAwards}
 
       <main className="border-b border-[var(--gazette-rule)]/35 p-5 sm:p-8">
         <section>
