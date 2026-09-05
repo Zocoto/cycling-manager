@@ -617,6 +617,8 @@ type RiderState = {
     | "abandoned";
   groupSinceSegment: number;
   lostTimeSeconds: number;
+  leaderRecoveryStatus?: "active" | "failed";
+  supportingLeaderId?: string;
 };
 
 const SCORE_NOISE = 3.2;
@@ -2388,6 +2390,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             segmentIndex,
             segmentCount: input.segments.length,
           }),
+          leaderRecoverySupportActive: hasActiveLeaderRecoverySupport(
+            state,
+            states,
+          ),
+          supportingDetachedLeader: isSupportingDetachedLeader(state, states),
           protectingLeader: isProtectingTeamLeader({
             state,
             states,
@@ -2545,6 +2552,15 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       commentary,
     });
 
+    resolveSupportedLeaderRecovery({
+      states,
+      segment,
+      segmentIndex,
+      raceProgress: segmentEndProgress,
+      random,
+      commentary,
+    });
+
     resolveDelayedRiders({
       states,
       segment,
@@ -2589,6 +2605,20 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       injuries.push(...incident.injuries);
       commentary.unshift(incident.commentary);
     }
+
+    deployLeaderRecoverySupport({
+      states,
+      segment,
+      segmentIndex,
+      segmentCount: input.segments.length,
+      raceProgress: segmentEndProgress,
+      protectedRiderId: generalClassificationLeaderId,
+      incidentRiderIds: new Set(
+        incidents.flatMap((raceIncident) => raceIncident.riderIds),
+      ),
+      random,
+      commentary,
+    });
 
     const exhaustedBreakaway = getStatesInGroup(states, "breakaway").filter(
       (state) => state.energy < 9,
@@ -4193,6 +4223,8 @@ function updateRiderEnergy({
   breakawayRelayLoad = 1,
   hasBottleCarrierSupport,
   leaderProtectionStrength = 0,
+  leaderRecoverySupportActive = false,
+  supportingDetachedLeader = false,
   protectingLeader = false,
   pelotonWorker = false,
   groupPaceRating,
@@ -4212,6 +4244,8 @@ function updateRiderEnergy({
   breakawayRelayLoad?: number;
   hasBottleCarrierSupport: boolean;
   leaderProtectionStrength?: number;
+  leaderRecoverySupportActive?: boolean;
+  supportingDetachedLeader?: boolean;
   protectingLeader?: boolean;
   pelotonWorker?: boolean;
   groupPaceRating?: number;
@@ -4230,6 +4264,7 @@ function updateRiderEnergy({
           : 0.9;
   const isWorking =
     timeTrial ||
+    supportingDetachedLeader ||
     state.group === "breakaway" ||
     state.group === "breakaway_2" ||
     state.group === "chase" ||
@@ -4273,21 +4308,24 @@ function updateRiderEnergy({
   const breakawayCanSaveEnergy =
     (frontGroupIsYielding || frontGroupIsUncontested) &&
     (state.group === "breakaway" || state.group === "breakaway_2");
-  const workFactor =
-    state.group === "breakaway" ||
-    state.group === "breakaway_2" ||
-    state.group === "chase" ||
-    state.group === "delayed"
-      ? breakawayCanSaveEnergy
-        ? frontGroupIsUncontested
-          ? 1.18
-          : 0.9
-        : 1.48
-      : isWorking
-        ? 1.2
-        : protectingLeader
-          ? 1.06
-          : 0.86;
+  const workFactor = leaderRecoverySupportActive
+    ? 0.55
+    : supportingDetachedLeader
+      ? 1.68
+      : state.group === "breakaway" ||
+          state.group === "breakaway_2" ||
+          state.group === "chase" ||
+          state.group === "delayed"
+        ? breakawayCanSaveEnergy
+          ? frontGroupIsUncontested
+            ? 1.18
+            : 0.9
+          : 1.48
+        : isWorking
+          ? 1.2
+          : protectingLeader
+            ? 1.06
+            : 0.86;
   const relayWorkloadFactor =
     state.group === "breakaway"
       ? clamp(breakawayRelayLoad, 0.64, 1.85)
@@ -4490,6 +4528,343 @@ function isProtectingTeamLeader({
       teammate.group === state.group,
   );
 }
+
+export function getLeaderRecoverySuccessChance({
+  helperCount,
+  helperStrength,
+  leaderEnergy,
+  gapSeconds,
+  raceProgress,
+  wasDropped,
+}: {
+  helperCount: number;
+  helperStrength: number;
+  leaderEnergy: number;
+  gapSeconds: number;
+  raceProgress: number;
+  wasDropped: boolean;
+}) {
+  return clamp(
+    0.62 +
+      Math.min(3, Math.max(0, helperCount)) * 0.075 +
+      (helperStrength - 60) * 0.004 +
+      (leaderEnergy - 35) * 0.002 -
+      Math.max(0, gapSeconds - 20) * 0.002 -
+      Math.max(0, raceProgress - 0.75) * 0.4 -
+      (wasDropped ? 0.05 : 0),
+    0.58,
+    0.94,
+  );
+}
+
+function getLeaderRecoveryHelpers(
+  leader: RiderState,
+  states: Map<string, RiderState>,
+) {
+  return [...states.values()].filter(
+    (helper) =>
+      helper.supportingLeaderId === leader.rider.id &&
+      helper.group === leader.group &&
+      helper.group !== "abandoned",
+  );
+}
+
+function clearLeaderRecoveryAssignment(
+  leader: RiderState,
+  states: Map<string, RiderState>,
+) {
+  delete leader.leaderRecoveryStatus;
+  for (const helper of states.values()) {
+    if (helper.supportingLeaderId === leader.rider.id) {
+      delete helper.supportingLeaderId;
+    }
+  }
+}
+
+function hasActiveLeaderRecoverySupport(
+  state: RiderState,
+  states: Map<string, RiderState>,
+) {
+  return (
+    state.leaderRecoveryStatus !== undefined &&
+    getLeaderRecoveryHelpers(state, states).length > 0
+  );
+}
+
+function isSupportingDetachedLeader(
+  state: RiderState,
+  states: Map<string, RiderState>,
+) {
+  if (!state.supportingLeaderId) return false;
+  const leader = states.get(state.supportingLeaderId);
+  return Boolean(
+    leader &&
+      leader.leaderRecoveryStatus !== undefined &&
+      leader.group === state.group &&
+      leader.group !== "abandoned",
+  );
+}
+
+function getLeaderRecoveryHelperStrength(
+  helper: RiderState,
+  segment: RaceStageSegment,
+) {
+  return (
+    getStateTerrainRating(helper, segment) * 0.22 +
+    helper.rider.ratings.flat * 0.28 +
+    helper.rider.ratings.endurance * 0.22 +
+    helper.rider.ratings.resistance * 0.18 +
+    helper.energy * 0.1
+  );
+}
+
+function getLeaderRecoveryHelperPriority(helper: RiderState) {
+  if (helper.rider.raceDuty === "protector") return 5;
+  if (helper.rider.raceDuty === "lieutenant") return 4;
+  if (helper.rider.role === "domestique") return 3;
+  if (helper.rider.role === "leadout") return 2;
+  return 0;
+}
+
+function deployLeaderRecoverySupport({
+  states,
+  segment,
+  segmentIndex,
+  segmentCount,
+  raceProgress,
+  protectedRiderId,
+  incidentRiderIds,
+  random,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  segmentCount: number;
+  raceProgress: number;
+  protectedRiderId: string | null;
+  incidentRiderIds: Set<string>;
+  random: () => number;
+  commentary: string[];
+}) {
+  if (segmentIndex >= segmentCount - 1) return;
+
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+  const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
+  const detachedLeaders = [...states.values()].filter(
+    (state) =>
+      (isRaceLeaderRole(state.rider.role) ||
+        state.rider.generalClassificationProtected === true ||
+        state.rider.id === protectedRiderId) &&
+      (state.group === "delayed" || state.group === "dropped") &&
+      state.groupSinceSegment === segmentIndex &&
+      state.leaderRecoveryStatus === undefined,
+  );
+
+  for (const leader of detachedLeaders) {
+    const helpers = [...states.values()]
+      .filter((candidate) => {
+        const candidatePriority = getLeaderRecoveryHelperPriority(candidate);
+        const availableDuty =
+          candidate.rider.raceDuty === undefined ||
+          candidate.rider.raceDuty === null ||
+          candidate.rider.raceDuty === "protector" ||
+          candidate.rider.raceDuty === "lieutenant";
+        const canReachLeader =
+          candidate.group === "peloton" ||
+          (candidate.group === leader.group &&
+            candidate.groupSinceSegment === segmentIndex);
+
+        return (
+          candidate.rider.id !== leader.rider.id &&
+          candidate.rider.teamId === leader.rider.teamId &&
+          candidate.energy >= 10 &&
+          candidatePriority > 0 &&
+          availableDuty &&
+          candidate.supportingLeaderId === undefined &&
+          candidate.leaderRecoveryStatus === undefined &&
+          !incidentRiderIds.has(candidate.rider.id) &&
+          canReachLeader
+        );
+      })
+      .sort(
+        (first, second) =>
+          getLeaderRecoveryHelperPriority(second) -
+            getLeaderRecoveryHelperPriority(first) ||
+          getLeaderRecoveryHelperStrength(second, segment) -
+            getLeaderRecoveryHelperStrength(first, segment) ||
+          first.rider.id.localeCompare(second.rider.id),
+      )
+      .slice(0, 3);
+    if (helpers.length === 0) continue;
+
+    const groupTime = Math.max(
+      leader.elapsedTimeSeconds,
+      ...helpers.map((helper) => helper.elapsedTimeSeconds),
+    );
+    const groupLostTime = Math.max(
+      leader.lostTimeSeconds,
+      ...helpers.map((helper) => helper.lostTimeSeconds),
+    );
+    const gapSeconds = Math.max(0, groupTime - pelotonTime);
+    const helperStrength = average(
+      helpers.map((helper) => getLeaderRecoveryHelperStrength(helper, segment)),
+    );
+    const successChance = getLeaderRecoverySuccessChance({
+      helperCount: helpers.length,
+      helperStrength,
+      leaderEnergy: leader.energy,
+      gapSeconds,
+      raceProgress,
+      wasDropped:
+        leader.group === "dropped" &&
+        !incidentRiderIds.has(leader.rider.id),
+    });
+
+    leader.leaderRecoveryStatus =
+      random() < successChance ? "active" : "failed";
+    leader.elapsedTimeSeconds = groupTime;
+    leader.lostTimeSeconds = groupLostTime;
+    for (const helper of helpers) {
+      helper.group = leader.group;
+      helper.groupSinceSegment = segmentIndex;
+      helper.elapsedTimeSeconds = groupTime;
+      helper.lostTimeSeconds = groupLostTime;
+      helper.supportingLeaderId = leader.rider.id;
+    }
+
+    const message =
+      formatRiderList(helpers) +
+      (helpers.length > 1 ? " se relèvent" : " se relève") +
+      " pour attendre " +
+      leader.rider.name +
+      " et organiser son retour dans le peloton.";
+    if (commentary.length >= 4) commentary[3] = message;
+    else commentary.push(message);
+  }
+}
+
+function resolveSupportedLeaderRecovery({
+  states,
+  segment,
+  segmentIndex,
+  raceProgress,
+  random,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  raceProgress: number;
+  random: () => number;
+  commentary: string[];
+}) {
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+  const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
+  const leaders = [...states.values()].filter(
+    (state) => state.leaderRecoveryStatus !== undefined,
+  );
+
+  for (const leader of leaders) {
+    const helpers = getLeaderRecoveryHelpers(leader, states);
+    if (
+      leader.group === "abandoned" ||
+      (leader.group !== "delayed" && leader.group !== "dropped") ||
+      helpers.length === 0
+    ) {
+      clearLeaderRecoveryAssignment(leader, states);
+      continue;
+    }
+    if (leader.groupSinceSegment >= segmentIndex) continue;
+
+    const group = [leader, ...helpers];
+    const groupTime = Math.max(
+      ...group.map((state) => state.elapsedTimeSeconds),
+    );
+    const gapSeconds = Math.max(0, groupTime - pelotonTime);
+    for (const state of group) {
+      state.elapsedTimeSeconds = groupTime;
+      state.lostTimeSeconds = Math.max(state.lostTimeSeconds, gapSeconds);
+    }
+
+    if (leader.leaderRecoveryStatus === "failed") {
+      if (
+        segmentIndex === leader.groupSinceSegment + 1 &&
+        commentary.length < 4
+      ) {
+        commentary.push(
+          "Malgré le renfort de ses équipiers, " +
+            leader.rider.name +
+            " ne parvient pas à réduire l’écart avec le peloton.",
+        );
+      }
+      continue;
+    }
+
+    const helperStrength = average(
+      helpers.map((helper) => getLeaderRecoveryHelperStrength(helper, segment)),
+    );
+    const terrainFactor =
+      segment.terrain === "climb"
+        ? clamp(
+            0.78 - Math.abs(segment.averageGradientPct) / 28,
+            0.4,
+            0.72,
+          )
+        : segment.terrain === "descent"
+          ? 1.3
+          : 1;
+    const recoveredSeconds = Math.min(
+      gapSeconds,
+      clamp(
+        7 +
+          helpers.length * 3 +
+          (helperStrength - 55) * 0.22 +
+          random() * 4,
+        4,
+        28,
+      ) *
+        terrainFactor *
+        (1 - Math.max(0, raceProgress - 0.8) * 0.35),
+    );
+    const remainingGapSeconds = Math.max(0, gapSeconds - recoveredSeconds);
+
+    for (const state of group) {
+      state.group = "delayed";
+      state.elapsedTimeSeconds = pelotonTime + remainingGapSeconds;
+      state.lostTimeSeconds = remainingGapSeconds;
+    }
+
+    if (remainingGapSeconds <= 3) {
+      for (const state of group) {
+        state.group = "peloton";
+        state.groupSinceSegment = segmentIndex;
+        state.elapsedTimeSeconds = pelotonTime;
+        state.lostTimeSeconds = 0;
+        delete state.supportingLeaderId;
+      }
+      delete leader.leaderRecoveryStatus;
+      if (commentary.length < 4) {
+        commentary.push(
+          formatRiderList(group) +
+            " recollent au peloton grâce au travail des équipiers.",
+        );
+      }
+    } else if (
+      segmentIndex === leader.groupSinceSegment + 1 &&
+      commentary.length < 4
+    ) {
+      commentary.push(
+        "Les équipiers de " +
+          leader.rider.name +
+          " ramènent progressivement leur leader vers le peloton.",
+      );
+    }
+  }
+}
+
 function dropStrugglingRiders({
   states,
   segment,
@@ -4992,7 +5367,11 @@ function resolveDelayedRiders({
   const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
   const rejoined: RiderState[] = [];
 
-  for (const state of getStatesInGroup(states, "delayed")) {
+  for (const state of getStatesInGroup(states, "delayed").filter(
+    (candidate) =>
+      candidate.leaderRecoveryStatus === undefined &&
+      candidate.supportingLeaderId === undefined,
+  )) {
     if (state.groupSinceSegment >= segmentIndex) continue;
 
     const gapSeconds = Math.max(0, state.elapsedTimeSeconds - pelotonTime);

@@ -19,6 +19,7 @@ import {
   decideLargeBreakawayStandoff,
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
+  getLeaderRecoverySuccessChance,
   getStageGeneralClassificationInterest,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
@@ -1182,6 +1183,194 @@ describe("simulateRaceStage", () => {
         ...helpers.map((helper) => resultByRiderId.get(helper.id)!.energyAfter),
       ),
     ).toBeLessThan(resultByRiderId.get(protectedLeader.id)!.energyAfter);
+  });
+
+  it("fait attendre les protecteurs lorsqu’un leader est distancé", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const teamId = "leader-recovery-team";
+    const leader = {
+      ...createSelectionTestRider("leader-to-rescue", {
+        flat: 75,
+        mountain: 53,
+        hills: 58,
+        endurance: 68,
+        resistance: 68,
+      }),
+      teamId,
+      teamName: "Leader recovery team",
+      form: 72,
+      role: "leader_sprinter" as const,
+    };
+    const helpers = [
+      {
+        ...createSelectionTestRider("leader-protector", {
+          flat: 82,
+          mountain: 82,
+          hills: 80,
+          endurance: 84,
+          resistance: 84,
+        }),
+        teamId,
+        teamName: "Leader recovery team",
+        form: 78,
+        role: "domestique" as const,
+        raceDuty: "protector" as const,
+      },
+      {
+        ...createSelectionTestRider("leader-lieutenant", {
+          flat: 80,
+          mountain: 80,
+          hills: 80,
+          endurance: 82,
+          resistance: 82,
+        }),
+        teamId,
+        teamName: "Leader recovery team",
+        form: 78,
+        role: "domestique" as const,
+        raceDuty: "lieutenant" as const,
+      },
+    ];
+    const fillers = Array.from({ length: 8 }, (_, index) => ({
+      ...createSelectionTestRider("leader-recovery-filler-" + index, {
+        flat: 75,
+        mountain: 75,
+        hills: 75,
+        endurance: 76,
+        resistance: 76,
+      }),
+      form: 78,
+      role: "leader" as const,
+    }));
+    const segments: RaceStageSegment[] = [
+      {
+        segmentNumber: 1,
+        distanceKm: 10,
+        terrain: "flat",
+        averageGradientPct: 0,
+        surface: "asphalt",
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 10,
+        terrain: "climb",
+        averageGradientPct: 8,
+        surface: "asphalt",
+        prime: null,
+      },
+      ...Array.from({ length: 7 }, (_, index) => ({
+        segmentNumber: index + 3,
+        distanceKm: 18,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      })),
+    ];
+    const simulate = (seed: number) =>
+      simulateRaceStage({
+        ...baseInput,
+        id: "leader-recovery-" + seed,
+        seed,
+        profileType: "mountain",
+        segments,
+        riders: [leader, ...helpers, ...fillers],
+        weather: {
+          ...baseInput.weather!,
+          condition: "clear",
+          windSpeedKph: 5,
+          windIntensity: "calm",
+          rainIntensity: "none",
+          isWet: false,
+        },
+        teamStrategies: [
+          {
+            teamId,
+            objective: "general_classification",
+            collectivePosture: "balanced",
+            breakawayPolicy: "avoid",
+            chasePolicy: "protect_lead",
+            lieutenantRiderId: helpers[1].id,
+            dangerPacerRiderId: null,
+            protectorRiderId: helpers[0].id,
+            breakawayRiderId: null,
+            attackOrders: [],
+          },
+        ],
+      });
+    const simulations = Array.from({ length: 40 }, (_, index) =>
+      simulate(index + 1),
+    );
+    const waitingSnapshot = simulations
+      .flatMap((simulation) => simulation.timeline)
+      .find((snapshot) =>
+        snapshot.commentary.some((line) =>
+          line.includes("organiser son retour dans le peloton"),
+        ),
+      );
+
+    expect(waitingSnapshot).toBeDefined();
+    expect(
+      waitingSnapshot!.groups.some(
+        (group) =>
+          group.riderIds.includes(leader.id) &&
+          helpers.every((helper) => group.riderIds.includes(helper.id)),
+      ),
+    ).toBe(true);
+
+    const successfulRecovery = simulations.find((simulation) => {
+      const waitingIndex = simulation.timeline.findIndex((snapshot) =>
+        snapshot.commentary.some((line) =>
+          line.includes("organiser son retour dans le peloton"),
+        ),
+      );
+      if (waitingIndex < 0) return false;
+      return simulation.timeline
+        .slice(waitingIndex + 1)
+        .some((snapshot) =>
+          snapshot.groups.some(
+            (group) =>
+              group.type === "peloton" &&
+              group.riderIds.includes(leader.id) &&
+              helpers.every((helper) => group.riderIds.includes(helper.id)),
+          ),
+        );
+    });
+    const failedRecovery = simulations.find((simulation) =>
+      simulation.timeline.some((snapshot) =>
+        snapshot.commentary.some((line) =>
+          line.includes("ne parvient pas à réduire l’écart"),
+        ),
+      ),
+    );
+
+    expect(successfulRecovery).toBeDefined();
+    expect(failedRecovery).toBeDefined();
+  });
+
+  it("favorise le retour collectif sans le rendre certain", () => {
+    const favorableChance = getLeaderRecoverySuccessChance({
+      helperCount: 2,
+      helperStrength: 72,
+      leaderEnergy: 55,
+      gapSeconds: 24,
+      raceProgress: 0.55,
+      wasDropped: false,
+    });
+    const difficultChance = getLeaderRecoverySuccessChance({
+      helperCount: 1,
+      helperStrength: 50,
+      leaderEnergy: 12,
+      gapSeconds: 120,
+      raceProgress: 0.96,
+      wasDropped: true,
+    });
+
+    expect(favorableChance).toBeGreaterThan(0.8);
+    expect(favorableChance).toBeLessThan(1);
+    expect(difficultChance).toBe(0.58);
+    expect(favorableChance).toBeGreaterThan(difficultChance);
   });
 
   it("ne lâche pas un coureur épuisé sur une portion plate", () => {
