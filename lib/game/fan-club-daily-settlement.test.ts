@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const initialReportMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260905102000_run_initial_fan_club_sales_report.sql",
+  ),
+  "utf8",
+);
 const cronRoute = readFileSync(
   join(process.cwd(), "app/api/cron/fan-club-sales/route.ts"),
   "utf8",
@@ -53,5 +60,15 @@ describe("daily Fan Club shop settlement", () => {
     expect(migration).toContain("sales_processed_today boolean");
     expect(migration).toContain("today_units_sold integer");
     expect(migration).toContain("today_revenue numeric");
+  });
+
+  it("runs one atomic catch-up CR when the feature is deployed", () => {
+    expect(initialReportMigration).toContain(
+      "from public.settle_due_fan_club_shop_sales()",
+    );
+    expect(initialReportMigration).toContain(
+      "Initial Fan Club sales CR failed",
+    );
+    expect(initialReportMigration).toContain("raise notice");
   });
 });
