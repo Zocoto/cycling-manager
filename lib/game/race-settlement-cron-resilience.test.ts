@@ -58,6 +58,8 @@ describe("race settlement cron resilience", () => {
     expect(route).toContain("preSettlementFailures");
     expect(route).toContain("raceSlug: requestedRaceSlug ?? undefined");
     expect(route).toContain('skipped: "targeted_race_settlement"');
+    expect(route).toContain('skipped: "secondary_job_pack"');
+    expect(route).toContain("getRaceJobPackFromSlot");
   });
 
   it("discovers cheaply and loads only editions that can be settled", () => {
@@ -65,6 +67,8 @@ describe("race settlement cron resilience", () => {
     expect(runner).toContain("includeEngagedRiders: false");
     expect(runner).toContain("isRaceEditionSettlementCandidate");
     expect(runner).toContain("claim_race_editions_for_settlement");
+    expect(runner).toContain("selectRaceJobPack");
+    expect(runner).toContain("deferredEditions");
     expect(runner).toContain("raceEditionIds: claimedEditionIds");
     expect(runner).toContain("repairableCompletedEditionIds");
   });

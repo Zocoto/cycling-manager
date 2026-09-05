@@ -20,18 +20,22 @@ describe("background official race simulations", () => {
   it("discovers live races cheaply before loading their full startlists", () => {
     expect(runner).toContain("includeEngagedRiders: false");
     expect(runner).toContain("targetedEditionIds");
+    expect(runner).toContain("selectRaceJobPack");
+    expect(runner).toContain("maxEditions");
+    expect(runner).toContain("deferredEditions");
     expect(runner).toContain("raceEditionIds: targetedEditionIds");
     expect(runner).toContain("ensureLockedOfficialRaceSimulations");
     expect(runner).toContain("precomputeRequestedOfficialRaceReplay");
   });
 
   it("runs at both Paris start slots with a resilience retry", () => {
-    expect(vercel).toContain("/api/cron/race-simulations/early-summer-pre");
-    expect(vercel).toContain("/api/cron/race-simulations/early-winter-02");
-    expect(vercel).toContain("/api/cron/race-simulations/late-summer-pre");
-    expect(vercel).toContain("/api/cron/race-simulations/late-winter-02");
+    expect(vercel).toContain("/api/cron/race-simulations/early-summer-pre-p1");
+    expect(vercel).toContain("/api/cron/race-simulations/early-winter-recovery");
+    expect(vercel).toContain("/api/cron/race-simulations/late-summer-pre-p2");
+    expect(vercel).toContain("/api/cron/race-simulations/late-winter-retry");
     expect(runner).toContain("6 * 60 * 1_000");
     expect(route).toContain("official_race_simulations_precomputed");
+    expect(route).toContain("getRaceJobPackFromSlot");
     expect(runner).toContain("durationMs");
   });
 });

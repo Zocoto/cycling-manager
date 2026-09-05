@@ -1,6 +1,11 @@
 import "server-only";
 
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
+import {
+  RACE_SIMULATION_EDITION_BATCH_SIZE,
+  selectRaceJobPack,
+  type RaceJobPack,
+} from "@/lib/game/race-job-packs";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
@@ -51,6 +56,11 @@ export async function precomputeRequestedOfficialRaceReplay({
 
 export async function precomputeDueOfficialRaceSimulations(
   now = new Date(),
+  {
+    packIndex = 0,
+    packCount = 1,
+    maxEditions = RACE_SIMULATION_EDITION_BATCH_SIZE,
+  }: Partial<RaceJobPack> & { maxEditions?: number } = {},
 ) {
   const startedAt = Date.now();
   // Les équipements sont figés cinq minutes avant le départ. Calculer avec un
@@ -60,15 +70,17 @@ export async function precomputeDueOfficialRaceSimulations(
   // La sélection nationale est figée avant de lire la startlist servant au
   // live. L'index de fraîcheur évite toute écriture si aucun DS n'a modifié sa
   // réponse depuis le passage précédent.
-  try {
-    await syncDueNationalFederationChampionshipLineups({
-      now: simulationClock,
-      force: false,
-    });
-  } catch (error) {
-    // Une anomalie fédérale ne doit jamais empêcher les autres courses de se
-    // préparer. Le passage de maintenance reprendra la synchronisation.
-    console.error("federation_startlist_precompute_sync_failed", error);
+  if (packIndex === 0) {
+    try {
+      await syncDueNationalFederationChampionshipLineups({
+        now: simulationClock,
+        force: false,
+      });
+    } catch (error) {
+      // Une anomalie fédérale ne doit jamais empêcher les autres courses de se
+      // préparer. Le passage de maintenance reprendra la synchronisation.
+      console.error("federation_startlist_precompute_sync_failed", error);
+    }
   }
   const admin = createSupabaseAdminClient();
   const discoveryStartedAt = Date.now();
@@ -89,7 +101,11 @@ export async function precomputeDueOfficialRaceSimulations(
       discoveryDurationMs,
       liveEditions: 0,
       targetedEditions: 0,
+      eligibleEditions: 0,
+      deferredEditions: 0,
       loadedStages: 0,
+      packIndex,
+      packCount,
     });
   }
 
@@ -108,7 +124,11 @@ export async function precomputeDueOfficialRaceSimulations(
       discoveryDurationMs,
       liveEditions: 0,
       targetedEditions: 0,
+      eligibleEditions: 0,
+      deferredEditions: 0,
       loadedStages: 0,
+      packIndex,
+      packCount,
     });
   }
 
@@ -132,7 +152,7 @@ export async function precomputeDueOfficialRaceSimulations(
   const existingStageIds = new Set(
     (existing.data ?? []).map((row) => row.stage_id),
   );
-  const targetedEditionIds = liveEditions
+  const missingEditions = liveEditions
     .filter((edition) =>
       edition.stages.some((stage) => {
         const status = getStageLiveState(stage, simulationClock).status;
@@ -142,7 +162,19 @@ export async function precomputeDueOfficialRaceSimulations(
         );
       }),
     )
-    .map((edition) => edition.id);
+    .sort((left, right) => {
+      const leftDeparture = getEditionQueueTimestamp(left);
+      const rightDeparture = getEditionQueueTimestamp(right);
+      return leftDeparture - rightDeparture || left.id.localeCompare(right.id);
+    });
+  const jobPack = selectRaceJobPack({
+    items: missingEditions,
+    getId: (edition) => edition.id,
+    packIndex,
+    packCount,
+    limit: maxEditions,
+  });
+  const targetedEditionIds = jobPack.items.map((edition) => edition.id);
 
   if (targetedEditionIds.length === 0) {
     return createResult({
@@ -150,7 +182,11 @@ export async function precomputeDueOfficialRaceSimulations(
       discoveryDurationMs,
       liveEditions: liveEditions.length,
       targetedEditions: 0,
+      eligibleEditions: jobPack.eligibleItems,
+      deferredEditions: jobPack.deferredItems,
       loadedStages: 0,
+      packIndex,
+      packCount,
     });
   }
 
@@ -181,9 +217,22 @@ export async function precomputeDueOfficialRaceSimulations(
     discoveryDurationMs,
     liveEditions: liveEditions.length,
     targetedEditions: targetedEditionIds.length,
+    eligibleEditions: jobPack.eligibleItems,
+    deferredEditions: jobPack.deferredItems,
     loadedStages,
+    packIndex,
+    packCount,
     processingDurationMs: Date.now() - processingStartedAt,
   });
+}
+
+function getEditionQueueTimestamp(
+  edition: SeasonRaceCalendar["editions"][number],
+) {
+  return edition.stages.reduce((earliest, stage) => {
+    const timestamp = stage.departureAt ? Date.parse(stage.departureAt) : NaN;
+    return Number.isFinite(timestamp) ? Math.min(earliest, timestamp) : earliest;
+  }, Number.POSITIVE_INFINITY);
 }
 
 function createResult({
@@ -191,20 +240,32 @@ function createResult({
   discoveryDurationMs,
   liveEditions,
   targetedEditions,
+  eligibleEditions,
+  deferredEditions,
   loadedStages,
+  packIndex,
+  packCount,
   processingDurationMs = 0,
 }: {
   startedAt: number;
   discoveryDurationMs: number;
   liveEditions: number;
   targetedEditions: number;
+  eligibleEditions: number;
+  deferredEditions: number;
   loadedStages: number;
+  packIndex: number;
+  packCount: number;
   processingDurationMs?: number;
 }) {
   return {
     liveEditions,
     targetedEditions,
+    eligibleEditions,
+    deferredEditions,
     loadedStages,
+    pack: packIndex + 1,
+    packCount,
     discoveryDurationMs,
     processingDurationMs,
     durationMs: Date.now() - startedAt,

@@ -1,3 +1,7 @@
+import {
+  getRaceJobPackFromSlot,
+  RACE_SETTLEMENT_EDITION_BATCH_SIZE,
+} from "@/lib/game/race-job-packs";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
 import { settleDueStandardRaceResults } from "@/services/race-settlement-runner";
@@ -21,13 +25,23 @@ async function runPreSettlementTask<T>(
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ slot: string }> },
+) {
   if (!isAuthorizedCronRequest(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const startedAt = Date.now();
   const now = new Date();
+  const { slot } = await params;
+  let jobPack;
+  try {
+    jobPack = getRaceJobPackFromSlot(slot);
+  } catch {
+    return Response.json({ error: "Invalid race job pack" }, { status: 400 });
+  }
   const requestedRaceSlug = new URL(request.url).searchParams.get("race");
   if (
     requestedRaceSlug &&
@@ -45,14 +59,22 @@ export async function GET(request: Request) {
         value: { skipped: "targeted_race_settlement" },
         error: null,
       } as const)
-    : await runPreSettlementTask("sélections internationales", () =>
-        processDueInternationalChampionshipSelections(now),
-      );
+    : jobPack.packIndex === 0
+      ? await runPreSettlementTask("sélections internationales", () =>
+          processDueInternationalChampionshipSelections(now),
+        )
+      : ({
+          ok: true,
+          value: { skipped: "secondary_job_pack" },
+          error: null,
+        } as const);
   const preSettlementDurationMs = Date.now() - preSettlementStartedAt;
   const settlementStartedAt = Date.now();
   const settlement = await settleDueStandardRaceResults({
     now,
     raceSlug: requestedRaceSlug ?? undefined,
+    ...jobPack,
+    maxEditions: RACE_SETTLEMENT_EDITION_BATCH_SIZE,
   });
   const settlementDurationMs = Date.now() - settlementStartedAt;
   const result = {
@@ -60,6 +82,10 @@ export async function GET(request: Request) {
     completedEditions: settlement.completedEditions,
     failedEditions: settlement.failedEditions,
     targetedEditions: settlement.targetedEditions,
+    eligibleEditions: settlement.eligibleEditions,
+    deferredEditions: settlement.deferredEditions,
+    pack: settlement.pack,
+    packCount: settlement.packCount,
     internationalSelections,
     preSettlementFailures: internationalSelections.ok ? 0 : 1,
     raceSlug: requestedRaceSlug,

@@ -1,6 +1,11 @@
 import "server-only";
 
 import { isRaceEditionSettlementCandidate } from "@/lib/game/race-results";
+import {
+  RACE_SETTLEMENT_EDITION_BATCH_SIZE,
+  selectRaceJobPack,
+  type RaceJobPack,
+} from "@/lib/game/race-job-packs";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import {
@@ -11,9 +16,15 @@ import {
 export async function settleDueStandardRaceResults({
   now = new Date(),
   raceSlug,
+  packIndex = 0,
+  packCount = 1,
+  maxEditions = RACE_SETTLEMENT_EDITION_BATCH_SIZE,
 }: {
   now?: Date;
   raceSlug?: string;
+  packIndex?: RaceJobPack["packIndex"];
+  packCount?: RaceJobPack["packCount"];
+  maxEditions?: number;
 } = {}) {
   const admin = createSupabaseAdminClient();
   const discoveryCalendar = await getActiveSeasonRaceCalendar(admin, now, {
@@ -27,6 +38,10 @@ export async function settleDueStandardRaceResults({
     return {
       calendar: null,
       targetedEditions: 0,
+      eligibleEditions: 0,
+      deferredEditions: 0,
+      pack: raceSlug ? 1 : packIndex + 1,
+      packCount: raceSlug ? 1 : packCount,
       processedStages: 0,
       completedEditions: 0,
       failedEditions: 0,
@@ -38,7 +53,7 @@ export async function settleDueStandardRaceResults({
       admin,
       calendar: discoveryCalendar,
     });
-  const targetEditionIds = discoveryCalendar.editions
+  const candidateEditions = discoveryCalendar.editions
     .filter(
       (edition) =>
         edition.competitionType !== "national_road" &&
@@ -49,12 +64,36 @@ export async function settleDueStandardRaceResults({
           now,
         ),
     )
-    .map((edition) => edition.id);
+    .sort((left, right) => {
+      const leftDeparture = getEditionQueueTimestamp(left);
+      const rightDeparture = getEditionQueueTimestamp(right);
+      return leftDeparture - rightDeparture || left.id.localeCompare(right.id);
+    });
+  const jobPack = raceSlug
+    ? {
+        packIndex: 0,
+        packCount: 1,
+        items: candidateEditions,
+        eligibleItems: candidateEditions.length,
+        deferredItems: 0,
+      }
+    : selectRaceJobPack({
+        items: candidateEditions,
+        getId: (edition) => edition.id,
+        packIndex,
+        packCount,
+        limit: maxEditions,
+      });
+  const targetEditionIds = jobPack.items.map((edition) => edition.id);
 
   if (targetEditionIds.length === 0) {
     return {
       calendar: discoveryCalendar,
       targetedEditions: 0,
+      eligibleEditions: jobPack.eligibleItems,
+      deferredEditions: jobPack.deferredItems,
+      pack: raceSlug ? 1 : packIndex + 1,
+      packCount: raceSlug ? 1 : packCount,
       processedStages: 0,
       completedEditions: 0,
       failedEditions: 0,
@@ -82,6 +121,10 @@ export async function settleDueStandardRaceResults({
     return {
       calendar: discoveryCalendar,
       targetedEditions: 0,
+      eligibleEditions: jobPack.eligibleItems,
+      deferredEditions: jobPack.deferredItems,
+      pack: raceSlug ? 1 : packIndex + 1,
+      packCount: raceSlug ? 1 : packCount,
       processedStages: 0,
       completedEditions: 0,
       failedEditions: 0,
@@ -105,6 +148,21 @@ export async function settleDueStandardRaceResults({
   return {
     calendar: discoveryCalendar,
     targetedEditions: claimedEditionIds.length,
+    eligibleEditions: jobPack.eligibleItems,
+    deferredEditions: jobPack.deferredItems,
+    pack: raceSlug ? 1 : packIndex + 1,
+    packCount: raceSlug ? 1 : packCount,
     ...settlement,
   };
+}
+
+function getEditionQueueTimestamp(
+  edition: NonNullable<
+    Awaited<ReturnType<typeof getActiveSeasonRaceCalendar>>
+  >["editions"][number],
+) {
+  return edition.stages.reduce((earliest, stage) => {
+    const timestamp = stage.departureAt ? Date.parse(stage.departureAt) : NaN;
+    return Number.isFinite(timestamp) ? Math.min(earliest, timestamp) : earliest;
+  }, Number.POSITIVE_INFINITY);
 }
