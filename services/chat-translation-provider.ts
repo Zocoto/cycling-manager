@@ -47,7 +47,8 @@ export function isChatTranslationConfigured() {
   return Boolean(
     process.env.DEEPL_API_KEY?.trim() ||
       process.env.AI_GATEWAY_API_KEY?.trim() ||
-      process.env.VERCEL_OIDC_TOKEN?.trim(),
+      process.env.VERCEL_OIDC_TOKEN?.trim() ||
+      process.env.VERCEL === "1",
   );
 }
 

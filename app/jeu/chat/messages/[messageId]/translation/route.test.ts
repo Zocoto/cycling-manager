@@ -61,6 +61,7 @@ describe("global chat translation route", () => {
     const response = await POST(
       new Request(`https://cyclostratege.fr/jeu/chat/messages/${MESSAGE_ID}/translation`, {
         method: "POST",
+        headers: { "x-vercel-oidc-token": "deployment-oidc-token" },
         body: JSON.stringify({ targetLocale: "fr" }),
       }),
       { params: Promise.resolve({ messageId: MESSAGE_ID }) },
@@ -80,6 +81,7 @@ describe("global chat translation route", () => {
       sourceEditedAt: null,
       targetLocale: "fr",
       requesterDirectorId: DIRECTOR_ID,
+      vercelOidcToken: "deployment-oidc-token",
     });
   });
 

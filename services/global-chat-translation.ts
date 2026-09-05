@@ -37,12 +37,14 @@ export async function getOrCreateGlobalChatTranslation({
   sourceEditedAt,
   targetLocale,
   requesterDirectorId,
+  vercelOidcToken,
 }: {
   messageId: string;
   sourceMessage: string;
   sourceEditedAt: string | null;
   targetLocale: ChatTranslationTargetLocale;
   requesterDirectorId: string;
+  vercelOidcToken?: string;
 }): Promise<GlobalChatTranslation> {
   const admin = createSupabaseAdminClient();
   const fingerprint = createSourceFingerprint(sourceMessage, sourceEditedAt);
@@ -97,6 +99,7 @@ export async function getOrCreateGlobalChatTranslation({
   const translation = await translateChatText({
     message: sourceMessage,
     targetLocale,
+    vercelOidcToken,
   });
   const cacheResult = await admin
     .from("global_chat_message_translations")

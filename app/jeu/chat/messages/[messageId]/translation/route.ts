@@ -99,6 +99,8 @@ export async function POST(
       sourceEditedAt: messageResult.data.edited_at,
       targetLocale,
       requesterDirectorId: identity.sporting_director_id,
+      vercelOidcToken:
+        request.headers.get("x-vercel-oidc-token") ?? undefined,
     });
 
     return Response.json(translation, {

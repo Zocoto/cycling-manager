@@ -24,6 +24,15 @@ describe("chat translation providers", () => {
     expect(isChatTranslationConfigured()).toBe(true);
   });
 
+  it("exposes translation on Vercel where OIDC arrives on each request", () => {
+    vi.stubEnv("DEEPL_API_KEY", "");
+    vi.stubEnv("AI_GATEWAY_API_KEY", "");
+    vi.stubEnv("VERCEL_OIDC_TOKEN", "");
+    vi.stubEnv("VERCEL", "1");
+
+    expect(isChatTranslationConfigured()).toBe(true);
+  });
+
   it("translates text while preserving chat tokens", async () => {
     const fetcher = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as {
