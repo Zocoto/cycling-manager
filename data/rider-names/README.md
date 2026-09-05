@@ -4,7 +4,9 @@ Les fichiers JSON alimentent les générations de coureurs côté serveur. Un pr
 
 ## Couverture mondiale
 
-Le catalogue comprend désormais 70 profils et impose un socle de 120 prénoms et 160 noms par bibliothèque, avec des seuils nationaux plus élevés quand les sources le permettent. Les deux pays les plus représentés dans le jeu disposent des catalogues les plus profonds : 420 prénoms et 420 noms pour la France, 420 prénoms et 360 noms pour la Belgique.
+Le catalogue comprend 70 profils, 16 460 prénoms et 18 953 noms. Il impose un socle de 120 prénoms et 160 noms par bibliothèque, avec un seuil propre à chaque profil aligné sur la profondeur réellement validée du corpus. Les deux pays les plus représentés dans le jeu disposent des catalogues les plus profonds : 420 prénoms et 500 noms pour la France, 420 prénoms et 431 noms pour la Belgique.
+
+La profondeur n'est jamais obtenue en ajoutant indistinctement les noms de tous les résidents d'un pays. Comme le tirage du jeu est uniforme, cela surreprésenterait fortement les patronymes très minoritaires. Les ajouts privilégient donc les formes locales attestées et les variantes de romanisation pertinentes. Les systèmes naturellement concentrés, notamment coréen et vietnamien, conservent volontairement un corpus plus compact plutôt que des noms étrangers de remplissage.
 
 Vingt-six profils nationaux ont été séparés des anciens regroupements régionaux :
 
@@ -23,13 +25,13 @@ Les graphies ont été recoupées avec le fournisseur grec de [Faker](https://gi
 
 ## Sources et licences
 
-Les listes ont été normalisées en alphabet latin, dédupliquées et filtrées pour retirer les identifiants, titres et initiales isolées. Elles ont été constituées et recoupées à partir des sources suivantes :
+Les listes ont été normalisées en alphabet latin, dédupliquées et filtrées pour retirer les identifiants, titres, initiales isolées, prénoms employés par erreur comme patronymes et formes féminines incompatibles avec les coureurs générés. Elles ont été constituées et recoupées à partir des sources suivantes :
 
 - [Fichier des noms de l’Insee](https://www.insee.fr/fr/statistiques/3536630), utilisé pour renforcer la profondeur et la fréquence des noms français ;
 - [Faker](https://github.com/faker-js/faker), données localisées sous licence MIT ;
 - [Wikidata](https://www.wikidata.org/wiki/Wikidata:Licensing), données CC0 utilisées pour compléter les pays insuffisamment couverts et conserver des graphies attestées ;
 - [Popular names by country](https://github.com/sigpwned/popular-names-by-country-dataset), données CC0 avec codes ISO et formes romanisées ;
-- [Onomaverse — Most Popular Names by Country 2026](https://github.com/onomaverse/datasets/tree/main/popular-names-by-country-2026), données sous licence CC BY 4.0. Attribution : Names data from Onomaverse.
+- [Onomaverse — datasets 2026](https://github.com/onomaverse/datasets), données sous licence CC BY 4.0, utilisées seulement quand la couverture et la fréquence permettent de conserver une cohérence nationale. Attribution : Names data from Onomaverse.
 
 La convention patronymique éthiopienne et érythréenne a également été vérifiée avec la documentation de l’[Université de Bergen](https://www.uib.no/lle/23168/navn-i-etiopia-og-eritrea).
 

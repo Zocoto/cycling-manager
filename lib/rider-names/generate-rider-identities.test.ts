@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import afghanistan from "@/data/rider-names/afghanistan.json";
 import arabianPeninsula from "@/data/rider-names/arabian_peninsula.json";
 import centralAsia from "@/data/rider-names/central_asia.json";
+import centralEurope from "@/data/rider-names/central_europe.json";
+import china from "@/data/rider-names/china.json";
 import denmark from "@/data/rider-names/denmark.json";
+import easternEurope from "@/data/rider-names/eastern_europe.json";
 import eritrea from "@/data/rider-names/eritrea.json";
 import ethiopia from "@/data/rider-names/ethiopia.json";
 import finland from "@/data/rider-names/finland.json";
@@ -14,11 +17,13 @@ import greece from "@/data/rider-names/greece.json";
 import iceland from "@/data/rider-names/iceland.json";
 import india from "@/data/rider-names/india.json";
 import ivoryCoast from "@/data/rider-names/ivory_coast.json";
+import korea from "@/data/rider-names/korea.json";
 import middleEastArabic from "@/data/rider-names/middle_east_arabic.json";
 import nigeria from "@/data/rider-names/nigeria.json";
 import norway from "@/data/rider-names/norway.json";
 import profilesManifest from "@/data/rider-names/profiles.json";
 import sweden from "@/data/rider-names/sweden.json";
+import taiwan from "@/data/rider-names/taiwan.json";
 import thailand from "@/data/rider-names/thailand.json";
 import vietnam from "@/data/rider-names/vietnam.json";
 import {
@@ -94,9 +99,40 @@ describe("rider name libraries", () => {
 
   it("gives France and Belgium the deepest high-volume catalogs", () => {
     expect(france.firstNames).toHaveLength(420);
-    expect(france.lastNames).toHaveLength(420);
+    expect(france.lastNames).toHaveLength(500);
     expect(belgium.firstNames).toHaveLength(420);
-    expect(belgium.lastNames).toHaveLength(360);
+    expect(belgium.lastNames.length).toBeGreaterThanOrEqual(430);
+    expect(
+      profilesManifest.profiles.reduce(
+        (total, profile) => total + profile.minimumLastNames,
+        0,
+      ),
+    ).toBeGreaterThanOrEqual(18_900);
+  });
+
+  it("keeps East Asian libraries free of unrelated fallback names", () => {
+    const forbiddenByLibrary = [
+      [china, ["Njoto", "Wilhelm", "Carvalho", "Hadikusuma", "Santos", "Epstein", "Bruce"]],
+      [korea, ["Dupont", "Stevenson", "Schacht", "Mendoza", "Rodríguez", "Zhang"]],
+      [taiwan, ["Karlova", "Wibowo", "Freeman", "Najwa", "Persson", "Michele"]],
+    ] as const;
+
+    for (const [library, forbiddenNames] of forbiddenByLibrary) {
+      expect(library.lastNames.length, library.code).toBeGreaterThanOrEqual(200);
+      expect(
+        forbiddenNames.filter((name) => library.lastNames.includes(name)),
+        library.code,
+      ).toEqual([]);
+    }
+  });
+
+  it("uses masculine surname forms for generated Central and Eastern European riders", () => {
+    expect(
+      centralEurope.lastNames.some((name) => /(?:ová|ská|cká|dzka)$/iu.test(name)),
+    ).toBe(false);
+    expect(
+      easternEurope.lastNames.some((name) => /(?:ova|eva|ina|ska)$/iu.test(name)),
+    ).toBe(false);
   });
 
   it("keeps the French first-name pool familiar across generations", () => {

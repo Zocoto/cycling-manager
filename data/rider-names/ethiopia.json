@@ -27,7 +27,6 @@
     "Dinkesa",
     "Ali",
     "Birra",
-    "Zara",
     "Yaqob",
     "Meles",
     "Zenawi",
@@ -157,7 +156,6 @@
     "Abshero",
     "Azmeraw",
     "Ba’eda",
-    "Mariam",
     "Bazu",
     "Debele",
     "Berhaneyesus",
@@ -240,7 +238,9 @@
     "Adilo",
     "Gudisa",
     "Shentema",
-    "Habtamu"
+    "Habtamu",
+    "Hassan",
+    "Hale"
   ],
   "lastNames": [
     "Dejen",
@@ -269,7 +269,6 @@
     "Dinkesa",
     "Ali",
     "Birra",
-    "Zara",
     "Yaqob",
     "Meles",
     "Zenawi",
@@ -399,7 +398,6 @@
     "Abshero",
     "Azmeraw",
     "Ba’eda",
-    "Mariam",
     "Bazu",
     "Debele",
     "Berhaneyesus",
@@ -482,6 +480,8 @@
     "Adilo",
     "Gudisa",
     "Shentema",
-    "Habtamu"
+    "Habtamu",
+    "Hassan",
+    "Hale"
   ]
 }

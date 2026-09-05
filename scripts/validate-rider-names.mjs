@@ -9,6 +9,46 @@ const projectDirectory = path.resolve(scriptsDirectory, "..");
 const namesDirectory = path.join(projectDirectory, "data", "rider-names");
 const catalogPath = path.join(namesDirectory, "profiles.json");
 
+const forbiddenLastNamesByProfile = {
+  china: [
+    "Njoto", "Wilhelm", "Frey", "Carvalho", "Hadikusuma", "Wiratama",
+    "bebetris", "Hariyanto", "Santos", "Flu", "Alexander", "Zeman",
+    "Leach", "Epstein", "Luke", "Hatem", "Bruce", "Hassan", "Rain",
+    "Seven", "Raymond", "Caroline", "Power", "Bowen", "Dev",
+  ],
+  korea: [
+    "Dupont", "Shigemitsu", "Simon", "Will", "Elrich", "Stevenson",
+    "Chuva", "Zhang", "Li", "Zheng", "Schacht", "Nikolić", "Regan",
+    "Kahn", "Katayama", "Mendoza", "Akiyama", "Martins", "Rodríguez",
+  ],
+  taiwan: [
+    "Karlova", "Andō", "Wibowo", "Freeman", "Winkler", "Rahma",
+    "Najwa", "Fauzi", "Bruce", "Rain", "Zidan", "Viola", "Deva",
+    "Seven", "Raymond", "Power", "Caroline", "Persson",
+  ],
+  vietnam: ["Santos", "Urrutia", "Alves", "king"],
+  cambodia: [
+    "Cambodia", "Jolie", "Hell", "Bunny", "Victor", "Stephane",
+    "Hiroshi", "Polonsky", "Fernandez", "Destombes",
+  ],
+  myanmar: [
+    "YMB", "Peter", "Charles", "Raymond", "John", "Paul", "Stephen",
+    "Louis", "Stanley", "Felix", "Francis", "Joseph", "Basilio",
+    "Abraham", "Pascal",
+  ],
+};
+
+const forbiddenLastNamePatternsByProfile = {
+  central_europe: [/(?:ová|ská|cká|dzka)$/iu],
+  eastern_europe: [/(?:ova|eva|ina|ska)$/iu],
+  greece: [/(?:poulou|idou|iadou)$/iu],
+};
+
+const universallyForbiddenLastNames = [
+  "Rain", "Seven", "Zara", "Mariam", "Ayesha", "Ayman", "Zidan", "Rm",
+  "Caroline", "Jana", "Elena", "Anna",
+];
+
 function normalizeValue(value) {
   return value
     .normalize("NFC")
@@ -89,6 +129,33 @@ function validateStringList({
   if (duplicates.length > 0) {
     errors.push(
       `[${profileCode}] Doublon(s) dans "${fieldName}" : ${duplicates.join(", ")}.`,
+    );
+  }
+}
+
+function validateSurnameQuality({ values, profileCode, errors }) {
+  if (!Array.isArray(values)) return;
+
+  const normalizedValues = new Set(values.map(normalizeValue));
+  const forbiddenValues = [
+    ...universallyForbiddenLastNames,
+    ...(forbiddenLastNamesByProfile[profileCode] ?? []),
+  ].filter((value) => normalizedValues.has(normalizeValue(value)));
+
+  if (forbiddenValues.length > 0) {
+    errors.push(
+      `[${profileCode}] Patronyme(s) hors profil détecté(s) : ${forbiddenValues.join(", ")}.`,
+    );
+  }
+
+  const forbiddenPatterns = forbiddenLastNamePatternsByProfile[profileCode] ?? [];
+  const invalidMorphologies = values.filter((value) =>
+    forbiddenPatterns.some((pattern) => pattern.test(value)),
+  );
+
+  if (invalidMorphologies.length > 0) {
+    errors.push(
+      `[${profileCode}] Forme(s) morphologique(s) incompatible(s) : ${invalidMorphologies.slice(0, 10).join(", ")}.`,
     );
   }
 }
@@ -243,6 +310,12 @@ async function validateCatalog() {
       fieldName: "lastNames",
       profileCode: profile.code,
       minimumCount: minimumLastNames,
+      errors,
+    });
+
+    validateSurnameQuality({
+      values: profileData.lastNames,
+      profileCode: profile.code,
       errors,
     });
 
