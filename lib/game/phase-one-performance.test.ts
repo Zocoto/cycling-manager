@@ -26,4 +26,14 @@ describe("phase one performance safeguards", () => {
       expect(source).toContain("[contain-intrinsic-size:auto_");
     }
   });
+
+  it("lifts training-card paint containment while a report is consulted", () => {
+    const trainingPage = readSource("app/jeu/entrainement/page.tsx");
+
+    expect(trainingPage).toContain("hover:[content-visibility:visible]");
+    expect(trainingPage).toContain("focus-within:[content-visibility:visible]");
+    expect(trainingPage).toContain(
+      "has-[details[open]]:[content-visibility:visible]",
+    );
+  });
 });
