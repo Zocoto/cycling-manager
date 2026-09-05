@@ -20,14 +20,6 @@ export type NationalJerseyPublishState = {
   activationGameYear: number | null;
 };
 
-export const initialNationalJerseyPublishState: NationalJerseyPublishState = {
-  status: "idle",
-  message: "",
-  publishedDesign: null,
-  version: null,
-  activationGameYear: null,
-};
-
 const colorSchema = z.string().regex(/^#[0-9A-F]{6}$/);
 const nationalJerseyElementSchema = z.object({
   id: z.string().regex(/^[a-zA-Z0-9_-]{1,48}$/),

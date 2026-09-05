@@ -5,11 +5,11 @@ import { useActionState, useState } from "react";
 
 import {
   contributeArchitectToFederationProjectAction,
-  initialFederationInfrastructureActionState,
   startFederationInfrastructureProjectAction,
   updateFederationProjectPriorityAction,
   type FederationInfrastructureActionState,
 } from "@/app/jeu/federations/infrastructure-actions";
+import { initialFederationInfrastructureActionState } from "@/lib/game/federation-action-states";
 import {
   FEDERATION_INFRASTRUCTURE_DEFINITIONS,
   MAX_FEDERATION_PROJECT_ARCHITECTS,

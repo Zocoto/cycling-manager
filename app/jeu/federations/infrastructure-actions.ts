@@ -11,9 +11,6 @@ export type FederationInfrastructureActionState = {
   message: string;
 };
 
-export const initialFederationInfrastructureActionState: FederationInfrastructureActionState =
-  { status: "idle", message: "" };
-
 const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
 const infrastructureCodeSchema = z.enum(FEDERATION_INFRASTRUCTURE_CODES);
 const prioritySchema = z.enum(["balanced", "cost", "time"]);

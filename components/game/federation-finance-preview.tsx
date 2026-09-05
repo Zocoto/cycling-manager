@@ -5,9 +5,9 @@ import { useActionState, useMemo, useState } from "react";
 import {
   donateToFederationAction,
   executeFederationSolidarityAction,
-  initialFederationFinanceActionState,
 } from "@/app/jeu/federations/finance-actions";
 
+import { initialFederationFinanceActionState } from "@/lib/game/federation-action-states";
 import { calculateFederationFinancePreview } from "@/lib/game/federation-finance-preview";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
 import type { FederationTreasuryState } from "@/services/federation-treasury";

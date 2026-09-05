@@ -10,11 +10,6 @@ export type FederationFinanceActionState = {
   message: string;
 };
 
-export const initialFederationFinanceActionState: FederationFinanceActionState = {
-  status: "idle",
-  message: "",
-};
-
 const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
 const donationSchema = z.coerce.number().min(25_000).max(5_000_000);
 const thresholdSchema = z.coerce.number().int().min(0).max(500);

@@ -4,8 +4,8 @@ import { useActionState, useState } from "react";
 
 import {
   changeAmateurTeamNationalAffiliationAction,
-  initialAmateurTeamAffiliationActionState,
 } from "@/app/jeu/federations/affiliation-actions";
+import { initialAmateurTeamAffiliationActionState } from "@/lib/game/federation-action-states";
 import type { AmateurTeamAffiliationState } from "@/services/amateur-team-affiliation";
 
 type CountryOption = {
@@ -93,9 +93,9 @@ export function AmateurTeamAffiliationPanel({
             Je confirme le transfert durable vers {selectedCountry?.name ?? "la fédération sélectionnée"}.
           </label>
           <p className="mt-3 text-xs font-semibold leading-5 text-[#789087]">
-            Cette opération est réservée aux équipes sans sponsor principal et
-            n’est possible qu’une fois par saison. La nationalité des coureurs
-            n’est pas modifiée.
+            Aucune ancienneté minimale n’est requise. Le transfert est possible
+            une fois par saison ; le sponsor et les contrats déjà signés restent
+            inchangés. La nationalité des coureurs n’est pas modifiée.
           </p>
           {state.unavailableReason ? (
             <p className="mt-3 rounded-xl bg-[#FFF3E8] px-4 py-3 text-xs font-black text-[#8A4B16]">

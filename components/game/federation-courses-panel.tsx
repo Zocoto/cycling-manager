@@ -3,11 +3,11 @@
 import { useActionState } from "react";
 
 import {
-  initialFederationGovernanceActionState,
   submitFederationHostingCandidacyAction,
 } from "@/app/jeu/federations/governance-actions";
 import { FederationRaceCreationPanel } from "@/components/game/federation-race-creation-panel";
 import Link from "@/components/ui/app-link";
+import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
 import { getFederationHostingEvent } from "@/lib/game/federation-hosting";
 import {
   RACE_PROFILE_LABELS,

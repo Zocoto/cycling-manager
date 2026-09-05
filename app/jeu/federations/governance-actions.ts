@@ -10,11 +10,6 @@ export type FederationGovernanceActionState = {
   message: string;
 };
 
-export const initialFederationGovernanceActionState: FederationGovernanceActionState = {
-  status: "idle",
-  message: "",
-};
-
 const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
 const manifestoSchema = z.string().trim().min(40).max(800);
 const candidateIdSchema = z.string().uuid();

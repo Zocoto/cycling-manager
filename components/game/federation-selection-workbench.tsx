@@ -3,13 +3,13 @@
 import { useActionState, useMemo, useState } from "react";
 
 import {
-  initialFederationSelectionActionState,
   publishFederationPreselectionAction,
   respondFederationPreselectionAction,
   saveFederationPreselectionAction,
   setFederationAutomaticSelectionAction,
 } from "@/app/jeu/federations/selection-actions";
 
+import { initialFederationSelectionActionState } from "@/lib/game/federation-action-states";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";

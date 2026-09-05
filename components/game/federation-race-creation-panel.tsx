@@ -4,8 +4,8 @@ import { useActionState, useState } from "react";
 
 import {
   createFederationRaceAction,
-  initialFederationGovernanceActionState,
 } from "@/app/jeu/federations/governance-actions";
+import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
 import {
   FEDERATION_RACE_CATEGORY_OPTIONS,
   FEDERATION_RACE_CREATION_START_GAME_YEAR,
