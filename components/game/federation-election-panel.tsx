@@ -3,10 +3,10 @@
 import { useActionState, type ReactNode } from "react";
 
 import {
-  initialFederationGovernanceActionState,
   submitFederationCandidacyAction,
   voteFederationPresidentAction,
 } from "@/app/jeu/federations/governance-actions";
+import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
 import type {
   FederationElectionCandidate,
   FederationElectionPhase,

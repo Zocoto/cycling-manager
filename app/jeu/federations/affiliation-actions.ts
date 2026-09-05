@@ -10,11 +10,6 @@ export type AmateurTeamAffiliationActionState = {
   message: string;
 };
 
-export const initialAmateurTeamAffiliationActionState: AmateurTeamAffiliationActionState = {
-  status: "idle",
-  message: "",
-};
-
 const schema = z.object({
   countryId: z.string().uuid(),
   confirmed: z.literal("yes"),

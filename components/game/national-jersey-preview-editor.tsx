@@ -3,13 +3,13 @@
 import { useActionState, useEffect, useId, useState } from "react";
 
 import {
-  initialNationalJerseyPublishState,
   publishNationalFederationJersey,
 } from "@/app/jeu/federations/actions";
 import {
   NationalJerseyDesignArtwork,
   NATIONAL_JERSEY_SHIRT_PATH,
 } from "@/components/game/national-jersey-design-artwork";
+import { initialNationalJerseyPublishState } from "@/lib/game/federation-action-states";
 import {
   decodeNationalJerseyDraft,
   DEFAULT_NATIONAL_JERSEY_DRAFT,
@@ -45,6 +45,15 @@ const ELEMENT_LABELS: Record<NationalJerseyElementKind, string> = {
   shape: "Forme libre",
 };
 
+const publicationDateFormatter = new Intl.DateTimeFormat("fr-FR", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Paris",
+});
+
 export function NationalJerseyPreviewEditor({
   countryCode,
   countryName,
@@ -77,10 +86,17 @@ export function NationalJerseyPreviewEditor({
         isActive: false,
       }
     : publishedJersey;
+  const pendingJersey =
+    effectivePublishedJersey && !effectivePublishedJersey.isActive
+      ? effectivePublishedJersey
+      : null;
+  const hasStoredPendingJersey = publishedJersey?.isActive === false;
   const selectedElement =
     draft.elements.find((element) => element.id === selectedElementId) ?? null;
 
   useEffect(() => {
+    if (hasStoredPendingJersey) return;
+
     const restorationTimer = window.setTimeout(() => {
       try {
         const storedDraft = decodeNationalJerseyDraft(
@@ -99,7 +115,7 @@ export function NationalJerseyPreviewEditor({
     }, 0);
 
     return () => window.clearTimeout(restorationTimer);
-  }, [countryCode]);
+  }, [countryCode, hasStoredPendingJersey]);
 
   function updateDraft(patch: Partial<NationalJerseyDraft>) {
     setDraft((current) => normalizeNationalJerseyDraft({ ...current, ...patch }));
@@ -254,6 +270,37 @@ export function NationalJerseyPreviewEditor({
         </div>
       </div>
 
+      {pendingJersey ? (
+        <div
+          role="status"
+          className="mx-6 mt-6 grid gap-5 rounded-2xl border border-[var(--federation-secondary)]/25 bg-[var(--federation-soft)] p-5 sm:mx-8 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
+        >
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--federation-primary)] text-2xl text-white">
+            ✓
+          </span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
+              Composition réservée · version {pendingJersey.version}
+            </p>
+            <p className="mt-1 text-lg font-black text-[#183F37]">
+              Activation automatique au début de la Saison {pendingJersey.activationGameYear}
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+              Validée le {publicationDateFormatter.format(new Date(pendingJersey.publishedAt))}.
+              Vous pouvez encore la modifier : une nouvelle validation remplacera
+              cette composition, sans changer le maillot de la saison en cours.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={reusePublishedJersey}
+            className="min-h-11 rounded-xl bg-[var(--federation-secondary)] px-4 text-xs font-black text-white"
+          >
+            Modifier cette composition
+          </button>
+        </div>
+      ) : null}
+
       <div className="grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(19rem,0.72fr)_minmax(0,1.28fr)]">
         <div className="space-y-6">
           <EditorGroup title="Fond du maillot">
@@ -383,7 +430,11 @@ export function NationalJerseyPreviewEditor({
                 disabled={!canPublish || publishPending}
                 className="shrink-0 rounded-xl bg-[var(--federation-accent)] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {publishPending ? "Publication…" : "Valider et publier"}
+                {publishPending
+                  ? "Publication…"
+                  : pendingJersey
+                    ? "Mettre à jour la composition réservée"
+                    : "Valider et publier"}
               </button>
             </div>
             <p

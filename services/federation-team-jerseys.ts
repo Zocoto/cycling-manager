@@ -44,7 +44,7 @@ export async function getFederationTeamJerseyArtworks(
       .in("id", uniqueTeamIds)
       .returns<TeamRow[]>(),
     admin
-      .from("sponsor_contracts")
+      .from("team_sponsor_contracts")
       .select("team_id, sponsor_id, selected_jersey_id, created_at")
       .in("team_id", uniqueTeamIds)
       .eq("status", "active")

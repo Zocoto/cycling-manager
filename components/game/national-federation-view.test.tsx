@@ -221,6 +221,43 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("<form");
   });
 
+  it("makes a reserved next-season jersey visible and editable", () => {
+    const markup = renderToStaticMarkup(
+      <NationalFederationView
+        country={{ id: "country-be", code: "BE", name: "Belgique" }}
+        snapshot={snapshot}
+        nationRanking={null}
+        memberTeams={[]}
+        memberTeamCount={0}
+        selectedTab="governance"
+        publishedJersey={{
+          design: {
+            schemaVersion: 2,
+            baseColor: "#F2C94C",
+            elements: [],
+          },
+          version: 2,
+          publishedAt: "2026-09-05T10:30:00.000Z",
+          activationGameYear: 3,
+          isActive: false,
+        }}
+        federationChat={null}
+        financeBaseline={null}
+        selectionRiders={[]}
+        internationalResults={null}
+        governanceOverview={null}
+        selectionState={null}
+        treasuryState={null}
+        infrastructureState={null}
+      />,
+    );
+
+    expect(markup).toContain("Composition réservée · version 2");
+    expect(markup).toContain("Activation automatique au début de la Saison 3");
+    expect(markup).toContain("Modifier cette composition");
+    expect(markup).toContain("Mettre à jour la composition réservée");
+  });
+
   it("shows an interactive Season 3 finance forecast without a payment action", () => {
     const markup = renderToStaticMarkup(
       <NationalFederationView

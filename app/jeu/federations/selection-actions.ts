@@ -11,11 +11,6 @@ export type FederationSelectionActionState = {
   message: string;
 };
 
-export const initialFederationSelectionActionState: FederationSelectionActionState = {
-  status: "idle",
-  message: "",
-};
-
 const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
 const slotKeySchema = z.string().trim().regex(/^[a-z0-9-]{3,60}$/);
 const memberIdSchema = z.string().uuid();
