@@ -26,7 +26,8 @@ describe("bouclage éditorial de La Cyclogazette", () => {
     expect(editorialService).toContain("Promise.allSettled([");
   });
 
-  it("couvre start-lists, DevTeams, rumeurs et convalescences", () => {
+  it("couvre rivalités, start-lists, DevTeams, rumeurs et convalescences", () => {
+    expect(editorialService).toContain('.from("team_rivalry_events")');
     expect(editorialService).toContain('.from("race_registrations")');
     expect(editorialService).toContain('.from("development_race_results")');
     expect(editorialService).toContain('.from("direct_transfer_offers")');

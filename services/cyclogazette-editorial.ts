@@ -112,11 +112,38 @@ type InjuryStageRow = {
   race_editions: { display_name: string } | null;
 };
 
+type RivalryEditorialEventRow = {
+  id: string;
+  rivalry_id: string;
+  race_edition_id: string;
+  team_a_rank: number;
+  team_b_rank: number;
+  team_a_points: number;
+  team_b_points: number;
+  is_draw: boolean;
+  intensity_delta: number;
+  team_a_score_after: number;
+  team_b_score_after: number;
+  decided_at: string;
+};
+
+type RivalryEditorialRow = {
+  id: string;
+  team_a_name: string;
+  team_b_name: string;
+};
+
+type RivalryEditionRow = {
+  id: string;
+  display_name: string;
+};
+
 export async function loadCyclogazetteFeatureStories(
   admin: AdminClient,
   context: EditorialContext,
 ): Promise<CyclogazetteFeatureStory[]> {
   const results = await Promise.allSettled([
+    loadRivalryStories(admin, context),
     loadStartlistPreviews(admin, context),
     loadDevelopmentStories(admin, context),
     loadTransferRumors(admin, context),
@@ -135,6 +162,83 @@ export async function loadCyclogazetteFeatureStories(
   }
 
   return stories;
+}
+
+async function loadRivalryStories(
+  admin: AdminClient,
+  context: EditorialContext,
+): Promise<CyclogazetteFeatureStory[]> {
+  const eventsResult = await admin
+    .from("team_rivalry_events")
+    .select(
+      "id, rivalry_id, race_edition_id, team_a_rank, team_b_rank, team_a_points, team_b_points, is_draw, intensity_delta, team_a_score_after, team_b_score_after, decided_at",
+    )
+    .eq("season_id", context.seasonId)
+    .order("decided_at", { ascending: false })
+    .limit(30)
+    .returns<RivalryEditorialEventRow[]>();
+  const events = (eventsResult.data ?? []).filter(
+    (event) => getParisDateKey(event.decided_at) === context.calendarDate,
+  );
+  if (eventsResult.error || events.length === 0) return [];
+
+  const [rivalriesResult, editionsResult] = await Promise.all([
+    admin
+      .from("team_rivalries")
+      .select("id, team_a_name, team_b_name")
+      .in("id", unique(events.map((event) => event.rivalry_id)))
+      .returns<RivalryEditorialRow[]>(),
+    admin
+      .from("race_editions")
+      .select("id, display_name")
+      .in("id", unique(events.map((event) => event.race_edition_id)))
+      .returns<RivalryEditionRow[]>(),
+  ]);
+  if (rivalriesResult.error || editionsResult.error) return [];
+
+  const rivalriesById = toMap(rivalriesResult.data ?? []);
+  const editionsById = toMap(editionsResult.data ?? []);
+
+  return events.flatMap((event): CyclogazetteFeatureStory[] => {
+    const rivalry = rivalriesById.get(event.rivalry_id);
+    const edition = editionsById.get(event.race_edition_id);
+    if (!rivalry || !edition) return [];
+
+    const winnerName = event.team_a_points === 1
+      ? rivalry.team_a_name
+      : event.team_b_points === 1
+        ? rivalry.team_b_name
+        : null;
+    const losingName = event.team_a_points === 1
+      ? rivalry.team_b_name
+      : rivalry.team_a_name;
+    const winningRank = Math.min(event.team_a_rank, event.team_b_rank);
+    const losingRank = Math.max(event.team_a_rank, event.team_b_rank);
+    const title = event.is_draw
+      ? `${rivalry.team_a_name} et ${rivalry.team_b_name} se neutralisent`
+      : `${winnerName} prend un point à ${losingName}`;
+    const titleEn = event.is_draw
+      ? `${rivalry.team_a_name} and ${rivalry.team_b_name} cancel each other out`
+      : `${winnerName} takes a point from ${losingName}`;
+    const resultFr = event.is_draw
+      ? `Leurs meilleurs coureurs terminent au même rang : aucun point, un nul au registre.`
+      : `Le meilleur coureur du vainqueur finit ${winningRank}${winningRank === 1 ? "er" : "e"}, contre ${losingRank}e pour son rival : voilà précisément pourquoi le point est attribué.`;
+    const resultEn = event.is_draw
+      ? "Their best riders finish level: no point, one draw in the ledger."
+      : `The winner's best rider finishes ${winningRank}, against ${losingRank} for the rival: that is exactly why the point is awarded.`;
+
+    return [{
+      id: `rivalry:${event.id}`,
+      kind: "rivalry",
+      kicker: "Rivalités · Feuille de match",
+      kickerEn: "Rivalries · Scorecard",
+      title,
+      titleEn,
+      body: `Sur ${edition.display_name}, ${resultFr} Le score passe à ${event.team_a_score_after}–${event.team_b_score_after} et l’intensité gagne ${event.intensity_delta} point${event.intensity_delta > 1 ? "s" : ""}.`,
+      bodyEn: `At ${edition.display_name}, ${resultEn} The score moves to ${event.team_a_score_after}–${event.team_b_score_after}, while intensity gains ${event.intensity_delta} point${event.intensity_delta === 1 ? "" : "s"}.`,
+      href: "/jeu/gazette?onglet=rivalites",
+    }];
+  }).slice(0, 2);
 }
 
 async function loadStartlistPreviews(

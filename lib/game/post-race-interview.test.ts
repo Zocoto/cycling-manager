@@ -182,6 +182,34 @@ describe("questions après-course", () => {
     expect(question.text).toContain(quote);
   });
 
+  it("peut interroger le DS sur sa rivalité de saison avec le score réel", () => {
+    const context: PostRaceInterviewContext = {
+      ...BASE_CONTEXT,
+      rivalry: {
+        kind: "season_rivalry",
+        teamId: "team-rival",
+        teamName: "Échappée Boréale",
+        directorName: "Jeanne Martin",
+        riderName: "Milo Hansen",
+        rivalRank: 4,
+        ownScore: 3,
+        rivalScore: 2,
+        pairingReason: "Équipes voisines dans l’ordre sportif.",
+      },
+    };
+    const question = findSelectedQuestion(
+      context,
+      ({ id }) => id.startsWith("season-rivalry-"),
+    );
+
+    expect(question).toMatchObject({
+      category: "rivalry",
+      subjectTeamId: "team-rival",
+    });
+    expect(question.text).not.toContain("{{");
+    expect(question.text).toMatch(/3–2|Échappée Boréale|Jeanne Martin|4e/);
+  });
+
   it("emploie exclusivement le pool tactique dédié sur un CLM individuel", () => {
     const context: PostRaceInterviewContext = {
       ...BASE_CONTEXT,

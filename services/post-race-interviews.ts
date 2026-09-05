@@ -59,6 +59,18 @@ type SubmittedInterviewRow = PostRaceInterviewRow & {
   sporting_director_id: string;
 };
 
+type ActiveTeamRivalryRow = {
+  team_a_id: string;
+  team_a_name: string;
+  team_a_director_name: string;
+  team_a_wins: number;
+  team_b_id: string;
+  team_b_name: string;
+  team_b_director_name: string;
+  team_b_wins: number;
+  pairing_reason: string;
+};
+
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 const INTERVIEW_SELECT =
@@ -454,6 +466,52 @@ async function loadRivalryContext(
     }
   }
 
+  const activeRivalry = await admin
+    .from("team_rivalries")
+    .select(
+      "team_a_id, team_a_name, team_a_director_name, team_a_wins, team_b_id, team_b_name, team_b_director_name, team_b_wins, pairing_reason",
+    )
+    .eq("status", "active")
+    .or(`team_a_id.eq.${currentTeamId},team_b_id.eq.${currentTeamId}`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<ActiveTeamRivalryRow>();
+  if (!activeRivalry.error && activeRivalry.data) {
+    const ownIsA = activeRivalry.data.team_a_id === currentTeamId;
+    const rivalTeamId = ownIsA
+      ? activeRivalry.data.team_b_id
+      : activeRivalry.data.team_a_id;
+    const rivalResult = stageResults
+      .filter(
+        (result) =>
+          result.teamId === rivalTeamId &&
+          result.status === "finished" &&
+          result.rank !== null,
+      )
+      .sort((first, second) => (first.rank ?? 999) - (second.rank ?? 999))[0];
+    if (rivalResult?.rank) {
+      return {
+        kind: "season_rivalry",
+        teamId: rivalTeamId,
+        teamName: ownIsA
+          ? activeRivalry.data.team_b_name
+          : activeRivalry.data.team_a_name,
+        directorName: ownIsA
+          ? activeRivalry.data.team_b_director_name
+          : activeRivalry.data.team_a_director_name,
+        riderName: rivalResult.riderName,
+        rivalRank: rivalResult.rank,
+        ownScore: ownIsA
+          ? activeRivalry.data.team_a_wins
+          : activeRivalry.data.team_b_wins,
+        rivalScore: ownIsA
+          ? activeRivalry.data.team_b_wins
+          : activeRivalry.data.team_a_wins,
+        pairingReason: activeRivalry.data.pairing_reason,
+      };
+    }
+  }
+
   const candidates = stageResults
     .filter(
       (result) =>
@@ -547,6 +605,13 @@ function sameRivalry(
   }
   if (current.kind === "rebound" && next.kind === "rebound") {
     return current.sourceInterviewId === next.sourceInterviewId;
+  }
+  if (current.kind === "season_rivalry" && next.kind === "season_rivalry") {
+    return (
+      current.ownScore === next.ownScore &&
+      current.rivalScore === next.rivalScore &&
+      current.rivalRank === next.rivalRank
+    );
   }
   return current.kind === "opinion" && next.kind === "opinion";
 }

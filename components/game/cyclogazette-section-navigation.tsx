@@ -6,7 +6,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 export function CyclogazetteSectionNavigation({
   activeSection,
 }: {
-  activeSection: "journal" | "awards";
+  activeSection: "journal" | "rivalries" | "awards";
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -21,6 +21,12 @@ export function CyclogazetteSectionNavigation({
         active={activeSection === "journal"}
         label={isEnglish ? "Today's paper" : "Le journal"}
         description={isEnglish ? "Front page and archives" : "Une et archives"}
+      />
+      <SectionLink
+        href="/jeu/gazette?onglet=rivalites"
+        active={activeSection === "rivalries"}
+        label={isEnglish ? "Rivalries" : "Rivalités"}
+        description={isEnglish ? "Scores and stories" : "Scores et feuilletons"}
       />
       <SectionLink
         href="/jeu/gazette?onglet=awards"

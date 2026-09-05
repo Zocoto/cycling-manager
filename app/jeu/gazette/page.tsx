@@ -6,6 +6,7 @@ import { CyclogazetteAwards } from "@/components/game/cyclogazette-awards";
 import { CyclogazetteGamesSidebar } from "@/components/game/cyclogazette-games-sidebar";
 import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper";
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
+import { CyclogazetteRivalries } from "@/components/game/cyclogazette-rivalries";
 import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-section-navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
@@ -23,6 +24,7 @@ import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getSeasonAwards } from "@/services/season-awards";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
+import { getCurrentTeamRivalries } from "@/services/team-rivalries";
 
 export const metadata: Metadata = {
   title: "La Cyclogazette",
@@ -48,20 +50,36 @@ export default async function CyclogazettePage({
   if (error || !user) redirect("/connexion");
 
   const params = await searchParams;
-  const activeSection =
-    readQuery(params.onglet) === "awards" ? "awards" : "journal";
+  const requestedSection = readQuery(params.onglet);
+  const activeSection = requestedSection === "awards"
+    ? "awards"
+    : requestedSection === "rivalites"
+      ? "rivalries"
+      : "journal";
   const requestedEditionId = Array.isArray(params.edition)
     ? params.edition[0]
     : params.edition;
-  const [headerData, latestEdition, mediaCenterOverview, awards] =
+  const [headerData, latestEdition, mediaCenterOverview, awards, rivalries] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
-      getLatestCyclogazetteEdition(),
-      getCurrentTeamMediaCenterOverview(user.id),
-      getSeasonAwards(supabase),
+      activeSection === "journal"
+        ? getLatestCyclogazetteEdition()
+        : Promise.resolve(null),
+      activeSection === "journal"
+        ? getCurrentTeamMediaCenterOverview(user.id)
+        : Promise.resolve(null),
+      activeSection === "rivalries"
+        ? Promise.resolve([])
+        : getSeasonAwards(supabase),
+      activeSection === "rivalries"
+        ? getCurrentTeamRivalries(supabase)
+        : Promise.resolve([]),
     ]);
   const [archive, requestedEdition] = await Promise.all([
-    getCyclogazetteArchive(),
+    activeSection === "journal"
+      ? getCyclogazetteArchive()
+      : Promise.resolve([]),
+    activeSection === "journal" &&
     requestedEditionId && requestedEditionId !== latestEdition?.id
       ? getCyclogazetteEditionById(requestedEditionId)
       : Promise.resolve(null),
@@ -114,6 +132,8 @@ export default async function CyclogazettePage({
         <CyclogazetteSectionNavigation activeSection={activeSection} />
         {activeSection === "awards" ? (
           <CyclogazetteAwards awards={awards} />
+        ) : activeSection === "rivalries" ? (
+          <CyclogazetteRivalries rivalries={rivalries} />
         ) : (
           <>
             {mediaCenterOverview ? (

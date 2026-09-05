@@ -10,6 +10,10 @@ const rivalryMigration = readFileSync(
   "supabase/migrations/20260905152000_create_team_rivalries.sql",
   "utf8",
 ).toLowerCase();
+const rivalryGazetteMigration = readFileSync(
+  "supabase/migrations/20260905190000_detail_team_rivalries_in_gazette.sql",
+  "utf8",
+).toLowerCase();
 const awardsMigration = readFileSync(
   "supabase/migrations/20260905153000_create_season_awards.sql",
   "utf8",
@@ -35,6 +39,16 @@ describe("community RP system migrations", () => {
     expect(rivalryMigration).toContain("'team_rivalry'");
   });
 
+  it("journalise chaque point de rivalité et expose sa justification à la Gazette", () => {
+    expect(rivalryGazetteMigration).toContain("create table if not exists public.team_rivalry_events");
+    expect(rivalryGazetteMigration).toContain("unique (rivalry_id, race_edition_id)");
+    expect(rivalryGazetteMigration).toContain("team_a_rank");
+    expect(rivalryGazetteMigration).toContain("intensity_delta");
+    expect(rivalryGazetteMigration).toContain("get_current_team_rivalry_dossiers");
+    expect(rivalryGazetteMigration).toContain("pairing_reason");
+    expect(rivalryGazetteMigration).toContain("without changing its score");
+  });
+
   it("freezes five awards after the season rankings are complete", () => {
     for (const key of [
       "rider_of_year",
@@ -51,7 +65,12 @@ describe("community RP system migrations", () => {
   });
 
   it("keeps every SQL function body balanced", () => {
-    for (const migration of [pressMigration, rivalryMigration, awardsMigration]) {
+    for (const migration of [
+      pressMigration,
+      rivalryMigration,
+      rivalryGazetteMigration,
+      awardsMigration,
+    ]) {
       expect((migration.match(/\$\$/g)?.length ?? 0) % 2).toBe(0);
     }
   });

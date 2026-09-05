@@ -7,6 +7,7 @@ import {
   PRE_RACE_INTENT_LABELS,
   PRE_RACE_INTENTS,
   type PreRacePressConference,
+  type PreRaceRivalryPrompt,
 } from "@/lib/game/pre-race-press";
 import type { RaceRosterOption } from "@/services/race-calendar";
 
@@ -17,6 +18,7 @@ export function PreRacePressConferencePanel({
   conferences,
   canPublish,
   loadError,
+  rivalryPrompt = null,
 }: {
   editionId: string;
   raceSlug: string;
@@ -24,6 +26,7 @@ export function PreRacePressConferencePanel({
   conferences: PreRacePressConference[];
   canPublish: boolean;
   loadError: boolean;
+  rivalryPrompt?: PreRaceRivalryPrompt | null;
 }) {
   const ownConference = conferences.find((conference) => conference.isOwn) ?? null;
 
@@ -54,6 +57,19 @@ export function PreRacePressConferencePanel({
         <form action={submitPreRacePressConferenceAction} className="space-y-4 px-5 py-5">
           <input type="hidden" name="editionId" value={editionId} />
           <input type="hidden" name="slug" value={raceSlug} />
+          {rivalryPrompt ? (
+            <aside className="border-l-4 border-[#C72F5E] bg-white/80 px-4 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9C234A]">
+                Question de la rédaction · Rivalité
+              </p>
+              <p className="mt-2 font-serif text-sm font-bold leading-5 text-[#183F37]">
+                Vous retrouvez {rivalryPrompt.rivalTeamName}, dirigée par {rivalryPrompt.rivalDirectorName}, alors que le duel est à {rivalryPrompt.ownScore}–{rivalryPrompt.rivalScore}. Cette confrontation change-t-elle votre plan pour la course ?
+              </p>
+              <p className="mt-2 text-[10px] font-semibold leading-4 text-[#6F6650]">
+                Pourquoi ce duel : {rivalryPrompt.pairingReason}
+              </p>
+            </aside>
+          ) : null}
           <label className="block">
             <span className="text-xs font-black uppercase tracking-[0.14em] text-[#174C3E]">
               Leader annoncé
@@ -109,7 +125,7 @@ export function PreRacePressConferencePanel({
 
           <label className="block">
             <span className="text-xs font-black uppercase tracking-[0.14em] text-[#174C3E]">
-              Déclaration aux médias
+              {rivalryPrompt ? "Votre réponse à la rédaction" : "Déclaration aux médias"}
             </span>
             <textarea
               name="publicStatement"
@@ -117,7 +133,9 @@ export function PreRacePressConferencePanel({
               minLength={10}
               maxLength={500}
               rows={4}
-              placeholder="Notre collectif arrive avec une ambition claire…"
+              placeholder={rivalryPrompt
+                ? `Face à ${rivalryPrompt.rivalTeamName}, notre intention est…`
+                : "Notre collectif arrive avec une ambition claire…"}
               className="mt-2 w-full resize-y rounded-xl border border-[#B99A4A]/35 bg-white px-3 py-3 text-sm font-semibold leading-5 text-[#183F37] placeholder:text-[#8A816C]"
             />
           </label>

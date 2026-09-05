@@ -64,3 +64,11 @@ export type PendingPreRacePressConference = {
   raceName: string;
   startDayNumber: number;
 };
+
+export type PreRaceRivalryPrompt = {
+  rivalTeamName: string;
+  rivalDirectorName: string;
+  ownScore: number;
+  rivalScore: number;
+  pairingReason: string;
+};

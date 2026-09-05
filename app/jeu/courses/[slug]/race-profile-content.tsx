@@ -50,6 +50,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPreRacePressConferences } from "@/services/pre-race-press";
 import type { PreRacePressConference } from "@/lib/game/pre-race-press";
+import type { PreRaceRivalryPrompt } from "@/lib/game/pre-race-press";
 import {
   getActiveSeasonRaceCalendar,
   getCurrentRaceUserContext,
@@ -67,6 +68,7 @@ import {
   getCurrentTeamWeatherCenterLevel,
   getWeatherForecastHorizon,
 } from "@/services/team-weather-center";
+import { getCurrentTeamRivalries, type TeamRivalry } from "@/services/team-rivalries";
 
 export type RaceProfilePageProps = {
   params: Promise<{
@@ -157,12 +159,13 @@ export async function RaceProfileContent({
   let rosterOptions: RaceRosterOption[] = [];
   let engagedRiders: RaceEngagedRider[] = [];
   let pressConferences: PreRacePressConference[] = [];
+  let teamRivalries: TeamRivalry[] = [];
   let winnersError = false;
   let rosterError: string | null = null;
   let engagedRidersError = false;
   let pressConferencesError = false;
 
-  const [contextResult, winnersResult, rosterResult, engagedRidersResult, pressResult] =
+  const [contextResult, winnersResult, rosterResult, engagedRidersResult, pressResult, rivalriesResult] =
     await Promise.all([
       getCurrentRaceUserContext(supabase, user.id, edition.id)
         .then((context) => ({
@@ -204,6 +207,14 @@ export async function RaceProfileContent({
             .then((conferences) => ({ conferences, error: null }))
             .catch((error: unknown) => ({
               conferences: [] as PreRacePressConference[],
+              error,
+            })),
+      isInternationalChampionship
+        ? Promise.resolve({ rivalries: [] as TeamRivalry[], error: null })
+        : getCurrentTeamRivalries(supabase)
+            .then((rivalries) => ({ rivalries, error: null }))
+            .catch((error: unknown) => ({
+              rivalries: [] as TeamRivalry[],
               error,
             })),
     ]);
@@ -271,6 +282,36 @@ export async function RaceProfileContent({
     );
     pressConferencesError = true;
   }
+
+  teamRivalries = rivalriesResult.rivalries;
+  if (rivalriesResult.error) {
+    console.error(
+      "Impossible de charger la rivalité pour la conférence d’avant-course :",
+      rivalriesResult.error,
+    );
+  }
+
+  const raceRivalry = teamRivalries.find((rivalry) => {
+    if (rivalry.status !== "active") return false;
+    const opponentId = rivalry.ownTeamId === rivalry.teamA.id
+      ? rivalry.teamB.id
+      : rivalry.teamA.id;
+    return engagedRiders.some((rider) => rider.teamId === opponentId);
+  });
+  const preRaceRivalryPrompt: PreRaceRivalryPrompt | null = raceRivalry
+    ? (() => {
+        const ownIsA = raceRivalry.ownTeamId === raceRivalry.teamA.id;
+        const own = ownIsA ? raceRivalry.teamA : raceRivalry.teamB;
+        const opponent = ownIsA ? raceRivalry.teamB : raceRivalry.teamA;
+        return {
+          rivalTeamName: opponent.name,
+          rivalDirectorName: opponent.directorName,
+          ownScore: own.wins,
+          rivalScore: opponent.wins,
+          pairingReason: raceRivalry.pairingReason,
+        };
+      })()
+    : null;
 
   const successMessage = readSingleSearchParam(
     resolvedSearchParams.inscription,
@@ -553,6 +594,7 @@ export async function RaceProfileContent({
                           !["in_progress", "completed", "cancelled"].includes(edition.status ?? "planned")
                         }
                         loadError={pressConferencesError}
+                        rivalryPrompt={preRaceRivalryPrompt}
                       />
                     </div>
                   ) : null}

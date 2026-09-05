@@ -11,6 +11,10 @@ const shortcut = readFileSync(
   join(process.cwd(), "components/game/cyclogazette-shortcut.tsx"),
   "utf8",
 );
+const rivalryRedirect = readFileSync(
+  join(process.cwd(), "app/jeu/rivalites/page.tsx"),
+  "utf8",
+);
 
 describe("points d’accès à La Cyclogazette", () => {
   it("ne propose plus La Cyclogazette parmi les tuiles du bureau du DS", () => {
@@ -23,5 +27,12 @@ describe("points d’accès à La Cyclogazette", () => {
     expect(shortcut).toContain('href="/jeu/gazette"');
     expect(shortcut).toContain('aria-label={label}');
     expect(shortcut).toContain('"Lire La Cyclogazette"');
+  });
+
+  it("range les rivalités dans la Gazette plutôt que dans une tuile du bureau", () => {
+    expect(dashboard).not.toContain('href="/jeu/rivalites"');
+    expect(rivalryRedirect).toContain(
+      'permanentRedirect("/jeu/gazette?onglet=rivalites")',
+    );
   });
 });

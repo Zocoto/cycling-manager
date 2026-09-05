@@ -57,7 +57,8 @@ export type CyclogazetteFeatureKind =
   | "startlist"
   | "development"
   | "transfer_rumor"
-  | "injury";
+  | "injury"
+  | "rivalry";
 
 export type CyclogazetteFeatureStory = {
   id: string;

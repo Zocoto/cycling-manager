@@ -809,14 +809,6 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
-              href="/jeu/rivalites"
-              icon="strategy"
-              title="Rivalités"
-              status="Duels de la saison"
-              description="Suivez votre face-à-face avec une équipe humaine proche au classement et faites monter l’intensité à chaque course commune."
-            />
-
-            <ManagementModuleCard
               href="/jeu/materiel"
               icon="equipment"
               title="Matériel"

@@ -41,6 +41,17 @@ export type PostRaceInterviewQuestion = {
 
 export type PostRaceInterviewRivalryContext =
   | {
+      kind: "season_rivalry";
+      teamId: string;
+      teamName: string;
+      directorName: string;
+      riderName: string;
+      rivalRank: number;
+      ownScore: number;
+      rivalScore: number;
+      pairingReason: string;
+    }
+  | {
       kind: "opinion";
       teamId: string;
       teamName: string;
@@ -126,7 +137,8 @@ type QuestionRequirement =
   | "uci_leader"
   | "rival_winner"
   | "rival_runner_up"
-  | "rival_quote";
+  | "rival_quote"
+  | "season_rivalry";
 
 type QuestionDefinition = {
   id: string;
@@ -760,6 +772,30 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
 
     // Autres équipes · volontairement occasionnel
     {
+      id: "season-rivalry-score",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Le duel de saison contre {{rivalTeamName}} affiche désormais {{rivalryScore}}. Quel poids ce score a-t-il dans votre lecture de la course ?",
+    },
+    {
+      id: "season-rivalry-director",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Vous êtes opposé toute la saison à {{rivalDirectorName}} et {{rivalTeamName}}. Cette rivalité influence-t-elle réellement vos décisions sportives ?",
+    },
+    {
+      id: "season-rivalry-result",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Le meilleur coureur de {{rivalTeamName}}, {{rivalRiderName}}, termine {{rivalRank}}. Que retenez-vous de cette confrontation directe ?",
+    },
+    {
+      id: "season-rivalry-origin",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Cette rivalité est née de votre proximité dans l’ordre sportif. Est-ce encore ce qui sépare le mieux {{teamName}} de {{rivalTeamName}} aujourd’hui ?",
+    },
+    {
       id: "rivalry-winner-team",
       category: "rivalry",
       requires: "rival_winner",
@@ -972,6 +1008,9 @@ function eligibleQuestions(context: PostRaceInterviewContext) {
     if (question.requires === "rival_quote") {
       return context.rivalry?.kind === "rebound";
     }
+    if (question.requires === "season_rivalry") {
+      return context.rivalry?.kind === "season_rivalry";
+    }
     return true;
   });
 }
@@ -981,7 +1020,7 @@ function shouldAskRivalryQuestion(
   seed: string,
 ) {
   if (!context.rivalry) return false;
-  const frequency = context.rivalry.kind === "rebound" ? 2 : 4;
+  const frequency = context.rivalry.kind === "opinion" ? 4 : 2;
   return seededIndex(`${seed}:rivalry`, frequency) === 0;
 }
 
@@ -1010,9 +1049,17 @@ function renderQuestion(template: string, context: PostRaceInterviewContext) {
     rivalTeamName: context.rivalry?.teamName ?? "l’équipe rivale",
     rivalDirectorName: context.rivalry?.directorName ?? "le DS adverse",
     rivalRiderName:
-      context.rivalry?.kind === "opinion"
+      context.rivalry?.kind === "opinion" || context.rivalry?.kind === "season_rivalry"
         ? context.rivalry.riderName
         : "Le coureur adverse",
+    rivalRank:
+      context.rivalry?.kind === "season_rivalry"
+        ? `${context.rivalry.rivalRank}${context.rivalry.rivalRank === 1 ? "er" : "e"}`
+        : "—",
+    rivalryScore:
+      context.rivalry?.kind === "season_rivalry"
+        ? `${context.rivalry.ownScore}–${context.rivalry.rivalScore}`
+        : "—",
     rivalQuote:
       context.rivalry?.kind === "rebound" ? context.rivalry.quote : "",
   };
