@@ -13,6 +13,7 @@ import {
   getGeneralClassificationProtectedRiderIds,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
+  findDroppedRiderIdsCaughtByDelayedGroup,
   getHillyClimbSelectionRating,
   getControlledRaceDayExecutionSwing,
   getRaceInjuryInRaceImpact,
@@ -90,6 +91,42 @@ describe("accumulateRaceGroupGapsFromLeader", () => {
         (group) => group.gapToLeaderSeconds,
       ),
     ).toEqual([0, 8, 10, 10]);
+  });
+});
+
+describe("findDroppedRiderIdsCaughtByDelayedGroup", () => {
+  it("fait intégrer le groupe à un coureur isolé lorsque celui-ci est rattrapé", () => {
+    expect(
+      findDroppedRiderIdsCaughtByDelayedGroup({
+        delayedGroupSize: 21,
+        delayedGroupStartElapsedTimeSeconds: 280,
+        delayedGroupEndElapsedTimeSeconds: 199,
+        droppedRiders: [
+          {
+            riderId: "murray",
+            startElapsedTimeSeconds: 211,
+            endElapsedTimeSeconds: 214,
+          },
+        ],
+      }),
+    ).toEqual(["murray"]);
+  });
+
+  it("ne fusionne pas deux trajectoires qui ne se sont pas croisées", () => {
+    expect(
+      findDroppedRiderIdsCaughtByDelayedGroup({
+        delayedGroupSize: 21,
+        delayedGroupStartElapsedTimeSeconds: 280,
+        delayedGroupEndElapsedTimeSeconds: 230,
+        droppedRiders: [
+          {
+            riderId: "murray",
+            startElapsedTimeSeconds: 211,
+            endElapsedTimeSeconds: 214,
+          },
+        ],
+      }),
+    ).toEqual([]);
   });
 });
 

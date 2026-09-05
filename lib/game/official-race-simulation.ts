@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-flat-group-finish-order-v18";
+  "2026.09-road-group-continuity-v19";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

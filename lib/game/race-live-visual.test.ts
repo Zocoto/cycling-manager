@@ -73,6 +73,99 @@ describe("race live visual timeline", () => {
     ).toBeCloseTo(13.5);
   });
 
+  it("stabilise le croisement d'un coureur isolé avec un groupe retardé", () => {
+    const leader = {
+      id: "peloton",
+      label: "Peloton",
+      type: "peloton" as const,
+      riderIds: ["leader"],
+      gapToLeaderSeconds: 0,
+      averageEnergy: 70,
+    };
+    const murrayAt120 = {
+      id: "dropped-murray",
+      label: "Groupe attardé",
+      type: "dropped" as const,
+      riderIds: ["murray"],
+      gapToLeaderSeconds: 211,
+      averageEnergy: 60,
+    };
+    const delayedAt120 = {
+      id: "dropped-delayed-pack",
+      label: "Groupe retardé",
+      type: "dropped" as const,
+      riderIds: ["rider-1", "rider-2"],
+      gapToLeaderSeconds: 280,
+      averageEnergy: 55,
+    };
+    const timeline: RaceTimelineSnapshot[] = [
+      {
+        segmentNumber: 12,
+        completedDistanceKm: 120,
+        groups: [leader, murrayAt120, delayedAt120],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+      {
+        segmentNumber: 13,
+        completedDistanceKm: 130,
+        groups: [
+          leader,
+          { ...delayedAt120, gapToLeaderSeconds: 199 },
+          { ...murrayAt120, gapToLeaderSeconds: 214 },
+        ],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+    ];
+    const rawVisualFrame = {
+      segmentNumber: 13,
+      completedDistanceKm: 122,
+      sourceTimelineIndex: 1,
+      groups: [
+        leader,
+        { ...delayedAt120, gapToLeaderSeconds: 267 },
+        { ...murrayAt120, gapToLeaderSeconds: 272 },
+      ],
+    };
+    const nearCatchVisualFrame = {
+      ...rawVisualFrame,
+      completedDistanceKm: 128,
+      groups: [
+        leader,
+        { ...delayedAt120, gapToLeaderSeconds: 223 },
+        { ...murrayAt120, gapToLeaderSeconds: 229 },
+      ],
+    };
+    const simulation = buildSimulation({
+      timeline,
+      visualTimeline: [rawVisualFrame, nearCatchVisualFrame],
+    });
+
+    const [stabilized, caught] = getRaceVisualTimeline(simulation);
+
+    expect(
+      stabilized.groups.find((group) => group.riderIds.includes("murray"))
+        ?.gapToLeaderSeconds,
+    ).toBeCloseTo(211.6);
+    expect(
+      stabilized.groups.find((group) => group.riderIds.includes("rider-1"))
+        ?.gapToLeaderSeconds,
+    ).toBeCloseTo(263.8);
+    expect(stabilized.groups.map((group) => group.id)).toEqual([
+      "peloton",
+      "dropped-murray",
+      "dropped-delayed-pack",
+    ]);
+    expect(caught.groups).toHaveLength(2);
+    expect(caught.groups[1]?.riderIds).toEqual(
+      expect.arrayContaining(["murray", "rider-1", "rider-2"]),
+    );
+    expect(rawVisualFrame.groups[2]?.gapToLeaderSeconds).toBe(272);
+  });
+
   it("interpolates group gaps and tactical pressure without blending rider identities", () => {
     const frames = [
       {

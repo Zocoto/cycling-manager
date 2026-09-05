@@ -14,6 +14,7 @@ import {
   RaceGapLine,
   RoadTextureOverlay,
   RoadSurfaceDefinition,
+  getGroupScreenPosition,
 } from "./race-live-lab";
 
 describe("PreviousStageStandings", () => {
@@ -62,6 +63,51 @@ describe("PreviousStageStandings", () => {
 });
 
 describe("race visual primitives", () => {
+  it("conserve une trajectoire continue lorsque deux groupes se croisent", () => {
+    const leader: RaceGroupSnapshot = {
+      id: "leader",
+      label: "Peloton",
+      type: "peloton",
+      riderIds: ["leader"],
+      gapToLeaderSeconds: 0,
+      averageEnergy: 70,
+    };
+    const murray: RaceGroupSnapshot = {
+      id: "murray",
+      label: "Murray",
+      type: "dropped",
+      riderIds: ["murray"],
+      gapToLeaderSeconds: 211,
+      averageEnergy: 60,
+    };
+    const delayedPack: RaceGroupSnapshot = {
+      id: "delayed-pack",
+      label: "Groupe retardé",
+      type: "dropped",
+      riderIds: ["rider-1", "rider-2"],
+      gapToLeaderSeconds: 280,
+      averageEnergy: 55,
+    };
+    const beforeCatch = [leader, murray, delayedPack];
+    const afterCatch = [
+      leader,
+      { ...delayedPack, gapToLeaderSeconds: 199 },
+      { ...murray, gapToLeaderSeconds: 214 },
+    ];
+    const murrayBefore = getGroupScreenPosition(murray, beforeCatch);
+    const delayedPackBefore = getGroupScreenPosition(
+      delayedPack,
+      beforeCatch,
+    );
+    const delayedPackAfter = getGroupScreenPosition(afterCatch[1], afterCatch);
+    const murrayAfter = getGroupScreenPosition(afterCatch[2], afterCatch);
+
+    expect(murrayBefore).toBeGreaterThan(delayedPackBefore);
+    expect(delayedPackAfter).toBeGreaterThan(murrayAfter);
+    expect(Math.abs(murrayAfter - murrayBefore)).toBeLessThan(12);
+    expect(Math.abs(delayedPackAfter - delayedPackBefore)).toBeLessThan(12);
+  });
+
   it("rotates only centered wheel rotors on the director car", () => {
     const markup = renderToStaticMarkup(<RaceDirectorCar isMoving />);
 

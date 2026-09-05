@@ -1746,6 +1746,18 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const chase = getStatesInGroup(states, "chase");
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
+    const delayedGroupAtSegmentStart =
+      delayed.length >= 2
+        ? {
+            riderIds: new Set(delayed.map((state) => state.rider.id)),
+            elapsedTimeSeconds: average(
+              delayed.map((state) => state.elapsedTimeSeconds),
+            ),
+          }
+        : null;
+    const droppedElapsedTimeAtSegmentStartByRiderId = new Map(
+      dropped.map((state) => [state.rider.id, state.elapsedTimeSeconds]),
+    );
     const activeBreakawaySize = breakaway.length + secondaryBreakaway.length;
     const fieldPaceStates =
       peloton.length > 0
@@ -2566,6 +2578,14 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       segment,
       segmentIndex,
       random,
+      commentary,
+    });
+
+    mergeDroppedRidersCaughtByDelayedGroup({
+      states,
+      segmentIndex,
+      delayedGroupAtSegmentStart,
+      droppedElapsedTimeAtSegmentStartByRiderId,
       commentary,
     });
 
@@ -5405,6 +5425,114 @@ function resolveDelayedRiders({
   if (rejoined.length > 0 && commentary.length < 4) {
     commentary.push(
       `${formatRiderList(rejoined)} recollent au peloton apr\u00e8s leur poursuite.`,
+    );
+  }
+}
+
+export function findDroppedRiderIdsCaughtByDelayedGroup({
+  delayedGroupSize,
+  delayedGroupStartElapsedTimeSeconds,
+  delayedGroupEndElapsedTimeSeconds,
+  droppedRiders,
+}: {
+  delayedGroupSize: number;
+  delayedGroupStartElapsedTimeSeconds: number;
+  delayedGroupEndElapsedTimeSeconds: number;
+  droppedRiders: Array<{
+    riderId: string;
+    startElapsedTimeSeconds: number;
+    endElapsedTimeSeconds: number;
+  }>;
+}) {
+  if (delayedGroupSize < 2) return [];
+
+  return droppedRiders
+    .filter(
+      (rider) =>
+        delayedGroupStartElapsedTimeSeconds > rider.startElapsedTimeSeconds &&
+        delayedGroupEndElapsedTimeSeconds <= rider.endElapsedTimeSeconds,
+    )
+    .map((rider) => rider.riderId);
+}
+
+function mergeDroppedRidersCaughtByDelayedGroup({
+  states,
+  segmentIndex,
+  delayedGroupAtSegmentStart,
+  droppedElapsedTimeAtSegmentStartByRiderId,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segmentIndex: number;
+  delayedGroupAtSegmentStart: {
+    riderIds: Set<string>;
+    elapsedTimeSeconds: number;
+  } | null;
+  droppedElapsedTimeAtSegmentStartByRiderId: Map<string, number>;
+  commentary: string[];
+}) {
+  if (!delayedGroupAtSegmentStart) return;
+
+  const delayedGroupAtSegmentEnd = [...delayedGroupAtSegmentStart.riderIds]
+    .map((riderId) => states.get(riderId))
+    .filter(
+      (state): state is RiderState => Boolean(state?.group === "delayed"),
+    );
+  if (delayedGroupAtSegmentEnd.length < 2) return;
+
+  const delayedGroupEndElapsedTimeSeconds = average(
+    delayedGroupAtSegmentEnd.map((state) => state.elapsedTimeSeconds),
+  );
+  const caughtRiderIds = findDroppedRiderIdsCaughtByDelayedGroup({
+    delayedGroupSize: delayedGroupAtSegmentEnd.length,
+    delayedGroupStartElapsedTimeSeconds:
+      delayedGroupAtSegmentStart.elapsedTimeSeconds,
+    delayedGroupEndElapsedTimeSeconds,
+    droppedRiders: [...droppedElapsedTimeAtSegmentStartByRiderId]
+      .map(([riderId, startElapsedTimeSeconds]) => {
+        const state = states.get(riderId);
+        return state?.group === "dropped"
+          ? {
+              riderId,
+              startElapsedTimeSeconds,
+              endElapsedTimeSeconds: state.elapsedTimeSeconds,
+            }
+          : null;
+      })
+      .filter(
+        (
+          rider,
+        ): rider is {
+          riderId: string;
+          startElapsedTimeSeconds: number;
+          endElapsedTimeSeconds: number;
+        } => rider !== null,
+      ),
+  });
+  if (caughtRiderIds.length === 0) return;
+
+  const peloton = getStatesInGroup(states, "peloton");
+  const referenceTimeSeconds =
+    peloton.length > 0
+      ? average(peloton.map((state) => state.elapsedTimeSeconds))
+      : delayedGroupEndElapsedTimeSeconds;
+  const caughtStates = caughtRiderIds
+    .map((riderId) => states.get(riderId))
+    .filter((state): state is RiderState => Boolean(state));
+
+  for (const state of caughtStates) {
+    state.group = "delayed";
+    state.groupSinceSegment = segmentIndex;
+    state.elapsedTimeSeconds = delayedGroupEndElapsedTimeSeconds;
+    state.lostTimeSeconds = Math.max(
+      0,
+      delayedGroupEndElapsedTimeSeconds - referenceTimeSeconds,
+    );
+  }
+
+  if (commentary.length < 4) {
+    commentary.push(
+      `${formatRiderList(caughtStates)} ${caughtStates.length > 1 ? "s’accrochent" : "s’accroche"} au groupe retardé qui vient de les reprendre.`,
     );
   }
 }

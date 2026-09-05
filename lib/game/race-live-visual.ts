@@ -1,22 +1,151 @@
 import type {
+  RaceGroupSnapshot,
   RaceTimelineSnapshot,
   RaceVisualFrame,
   StageSimulationResult,
 } from "@/lib/game/race-simulation";
 
+const ROAD_GROUP_VISUAL_MERGE_GAP_SECONDS = 20;
+
 export function getRaceVisualTimeline(
   simulation: StageSimulationResult,
 ): RaceVisualFrame[] {
-  if (simulation.visualTimeline?.length) {
-    return simulation.visualTimeline;
+  const authoredFrames = simulation.visualTimeline?.length
+    ? simulation.visualTimeline
+    : simulation.timeline.map((snapshot, sourceTimelineIndex) => ({
+        segmentNumber: snapshot.segmentNumber,
+        completedDistanceKm: snapshot.completedDistanceKm,
+        groups: snapshot.groups,
+        sourceTimelineIndex,
+      }));
+
+  return authoredFrames.map((frame) =>
+    stabilizeRaceVisualFrame(simulation.timeline, frame),
+  );
+}
+
+function stabilizeRaceVisualFrame(
+  officialTimeline: RaceTimelineSnapshot[],
+  frame: RaceVisualFrame,
+): RaceVisualFrame {
+  const officialTo = officialTimeline[frame.sourceTimelineIndex];
+  const officialFrom = officialTimeline[frame.sourceTimelineIndex - 1];
+
+  if (!officialTo || !officialFrom) {
+    return {
+      ...frame,
+      groups: mergeNearbyDroppedVisualGroups(frame.groups),
+    };
   }
 
-  return simulation.timeline.map((snapshot, sourceTimelineIndex) => ({
-    segmentNumber: snapshot.segmentNumber,
-    completedDistanceKm: snapshot.completedDistanceKm,
-    groups: snapshot.groups,
-    sourceTimelineIndex,
-  }));
+  const segmentDistanceKm =
+    officialTo.completedDistanceKm - officialFrom.completedDistanceKm;
+  const segmentProgress =
+    segmentDistanceKm <= 0
+      ? 1
+      : Math.max(
+          0,
+          Math.min(
+            1,
+            (frame.completedDistanceKm - officialFrom.completedDistanceKm) /
+              segmentDistanceKm,
+          ),
+        );
+  const fromGroupById = new Map(
+    officialFrom.groups.map((group) => [group.id, group]),
+  );
+  const toGroupById = new Map(
+    officialTo.groups.map((group) => [group.id, group]),
+  );
+  const stabilizedGroups = frame.groups
+    .map((group) => {
+      const fromGroup = fromGroupById.get(group.id);
+      const toGroup = toGroupById.get(group.id);
+      if (!fromGroup || !toGroup) return group;
+
+      return {
+        ...group,
+        gapToLeaderSeconds: interpolateNumber(
+          fromGroup.gapToLeaderSeconds,
+          toGroup.gapToLeaderSeconds,
+          segmentProgress,
+        ),
+        averageEnergy: interpolateNumber(
+          fromGroup.averageEnergy,
+          toGroup.averageEnergy,
+          segmentProgress,
+        ),
+        elapsedTimeSeconds:
+          fromGroup.elapsedTimeSeconds === undefined ||
+          toGroup.elapsedTimeSeconds === undefined
+            ? group.elapsedTimeSeconds
+            : interpolateNumber(
+                fromGroup.elapsedTimeSeconds,
+                toGroup.elapsedTimeSeconds,
+                segmentProgress,
+              ),
+      };
+    })
+    .sort(
+      (first, second) =>
+        first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+        first.id.localeCompare(second.id),
+    );
+
+  return {
+    ...frame,
+    groups: mergeNearbyDroppedVisualGroups(stabilizedGroups),
+  };
+}
+
+function mergeNearbyDroppedVisualGroups(
+  groups: RaceGroupSnapshot[],
+): RaceGroupSnapshot[] {
+  const mergedGroups: RaceGroupSnapshot[] = [];
+
+  for (const group of groups) {
+    const previous = mergedGroups.at(-1);
+    if (
+      !previous ||
+      previous.type !== "dropped" ||
+      group.type !== "dropped" ||
+      group.gapToLeaderSeconds - previous.gapToLeaderSeconds >
+        ROAD_GROUP_VISUAL_MERGE_GAP_SECONDS
+    ) {
+      mergedGroups.push(group);
+      continue;
+    }
+
+    const previousWeight = Math.max(1, previous.riderIds.length);
+    const groupWeight = Math.max(1, group.riderIds.length);
+    const totalWeight = previousWeight + groupWeight;
+    const riderIds = [...new Set([...previous.riderIds, ...group.riderIds])];
+    const labelSource =
+      group.riderIds.length > previous.riderIds.length ? group : previous;
+
+    mergedGroups[mergedGroups.length - 1] = {
+      ...labelSource,
+      id: `dropped-${[...riderIds].sort().join("-")}`,
+      riderIds,
+      gapToLeaderSeconds:
+        (previous.gapToLeaderSeconds * previousWeight +
+          group.gapToLeaderSeconds * groupWeight) /
+        totalWeight,
+      averageEnergy:
+        (previous.averageEnergy * previousWeight +
+          group.averageEnergy * groupWeight) /
+        totalWeight,
+      elapsedTimeSeconds:
+        previous.elapsedTimeSeconds === undefined ||
+        group.elapsedTimeSeconds === undefined
+          ? undefined
+          : (previous.elapsedTimeSeconds * previousWeight +
+              group.elapsedTimeSeconds * groupWeight) /
+            totalWeight,
+    };
+  }
+
+  return mergedGroups;
 }
 
 export function getRaceVisualFrameAtProgress(

@@ -846,8 +846,8 @@ function RoadScene({
     sceneryDurationSeconds: motionProfile.sceneryDurationSeconds,
   });
   const groups = snapshot.groups.slice(0, 6);
-  const mediaGroupPositions = groups.map((group, groupIndex) =>
-    getGroupScreenPosition(group, groupIndex, groups.length),
+  const mediaGroupPositions = groups.map((group) =>
+    getGroupScreenPosition(group, groups),
   );
   const primeWinnerId =
     segmentProgress >= 0.5
@@ -902,9 +902,8 @@ function RoadScene({
         ? "bg-[linear-gradient(#9ACFDA_0_47%,#A7C585_47%_100%)]"
         : "bg-[linear-gradient(#8FD1DC_0_46%,#A7C585_46%_100%)]";
   const trailingGroup = groups.at(-1) ?? null;
-  const trailingGroupIndex = Math.max(0, groups.length - 1);
   const trailingGroupLeft = trailingGroup
-    ? getGroupScreenPosition(trailingGroup, trailingGroupIndex, groups.length)
+    ? getGroupScreenPosition(trailingGroup, groups)
     : 18;
   const convoyLeft = Math.max(6, trailingGroupLeft - 12);
   const convoyTop =
@@ -1076,7 +1075,7 @@ function RoadScene({
           />
 
           {groups.map((group, groupIndex) => {
-        const left = getGroupScreenPosition(group, groupIndex, groups.length);
+        const left = getGroupScreenPosition(group, groups);
         const roadFormationTopPct = getRaceRoadFormationTop({
           roadLeft: roadLeftPct,
           roadRight: roadRightPct,
@@ -1819,16 +1818,32 @@ function getFinishRiderName(name: string) {
   return `${parts[0].charAt(0)}. ${parts.at(-1)}`;
 }
 
-function getGroupScreenPosition(
+export function getGroupScreenPosition(
   group: RaceGroupSnapshot,
-  groupIndex: number,
-  groupCount: number
+  groups: RaceGroupSnapshot[]
 ) {
-  if (groupIndex === 0) return 84;
+  if (groups.length <= 1) return 84;
 
-  const evenlySpaced = 84 - groupIndex * (groupCount <= 3 ? 28 : 18);
-  const gapDetail = Math.min(10, Math.log2(group.gapToLeaderSeconds + 1) * 1.3);
-  return Math.max(10, evenlySpaced - gapDetail);
+  const smallestGapSeconds = Math.min(
+    ...groups.map((candidate) => candidate.gapToLeaderSeconds)
+  );
+  const largestGapSeconds = Math.max(
+    ...groups.map((candidate) => candidate.gapToLeaderSeconds)
+  );
+  const gapRangeSeconds = largestGapSeconds - smallestGapSeconds;
+  if (gapRangeSeconds <= 0) return 84;
+
+  const normalizedGap = Math.sqrt(
+    Math.max(
+      0,
+      (group.gapToLeaderSeconds - smallestGapSeconds) / gapRangeSeconds
+    )
+  );
+  const availableSpan =
+    groups.length <= 3
+      ? Math.min(64, (groups.length - 1) * 28)
+      : Math.min(74, (groups.length - 1) * 18);
+  return Math.max(10, 84 - normalizedGap * availableSpan);
 }
 
 function getMassSprintPhase(metersRemaining: number) {
