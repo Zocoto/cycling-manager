@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260820090000_dismiss_youth_academy_riders.sql",
+    "supabase/migrations/20260905090000_defer_youth_dismissals_until_season_end.sql",
   ),
   "utf8",
 );
@@ -16,6 +16,10 @@ const academyPage = readFileSync(
 );
 const academyActions = readFileSync(
   join(process.cwd(), "app/jeu/centre-de-formation/actions.ts"),
+  "utf8",
+);
+const youthService = readFileSync(
+  join(process.cwd(), "services/youth-development.ts"),
   "utf8",
 );
 
@@ -32,25 +36,25 @@ describe("renvoi d’un junior de l’école de cyclisme", () => {
     );
   });
 
-  it("débite une année complète et annule les échéances encore en attente", () => {
-    expect(migration).toContain(
-      "v_tuition_cost := round(v_academy.tuition_per_season, 2)",
-    );
-    expect(migration).toContain("v_cash_balance < v_tuition_cost");
-    expect(migration).toContain("'youth-dismissal:' || v_academy.id::text");
-    expect(migration).toContain("cash_balance = cash_balance - v_tuition_cost");
+  it("arrête gratuitement la scolarité et annule les échéances futures", () => {
+    expect(migration).toContain("status = 'release_pending'");
     expect(migration).toContain("transaction.status = 'pending'");
     expect(migration).toContain(
       "'youth-tuition:' || v_academy.id::text",
     );
+    expect(migration).not.toContain("'youth-dismissal:' || v_academy.id::text");
+    expect(migration).not.toContain("cash_balance = cash_balance - v_tuition_cost");
+    expect(migration).toContain("'tuitionCost', 0");
+    expect(migration).toContain("status = 'expired'");
   });
 
-  it("crée un agent libre avec ses notes seulement à partir de 16 ans", () => {
-    expect(migration).toContain("if v_age >= 16 then");
-    expect(migration).toContain("insert into public.riders");
-    expect(migration).toContain("insert into public.rider_season_ratings");
-    expect(migration).toContain("'free_agent'");
-    expect(migration).toContain("status = 'released'");
+  it("diffère la création de l’agent libre jusqu’au changement de saison", () => {
+    expect(migration).toContain("'releaseScheduled', true");
+    expect(migration).toContain("'releaseGameYear', v_context.game_year + 1");
+    expect(migration).toContain("'freeAgent', false");
+    expect(migration).not.toContain("insert into public.riders");
+    expect(migration).not.toContain("insert into public.rider_season_ratings");
+    expect(migration).toContain("academy.status = ''release_pending''");
     expect(migration).toContain("promoted_rider_id = null");
   });
 
@@ -65,17 +69,31 @@ describe("renvoi d’un junior de l’école de cyclisme", () => {
     expect(migration).toContain("delete from public.development_team_roster");
   });
 
-  it("affiche le coût, la confirmation et appelle la RPC depuis l’école", () => {
-    expect(academyPage).toContain("Renvoyer ce junior");
-    expect(academyPage).toContain("rider.tuitionPerSeason");
+  it("explique le départ différé et conserve le junior visible sans frais", () => {
+    expect(academyPage).toContain("Programmer le départ");
+    expect(academyPage).toContain("Fin de saison · sans frais");
     expect(academyPage).toContain("required");
-    expect(academyPage).toContain("Payer et renvoyer");
+    expect(academyPage).not.toContain("Payer et renvoyer");
+    expect(academyPage).not.toContain("immédiatement agent libre");
+    expect(youthService).toContain(
+      '["active", "recruited", "release_pending"]',
+    );
+    expect(youthService).toContain(
+      'rider.status === "release_pending"',
+    );
     expect(academyActions).toContain(
       'supabase.rpc("dismiss_current_team_youth_rider"',
     );
-    expect(academyActions).toContain('revalidatePath("/jeu/transferts")');
+    expect(academyActions).toContain("release.releaseGameYear");
+    expect(academyActions).not.toContain('revalidatePath("/jeu/transferts")');
     expect(academyActions).toContain(
       '"/jeu/centre-de-formation/development/[academyRiderId]"',
     );
+  });
+
+  it("base les récompenses sur les vraies signatures et promotions", () => {
+    expect(migration).toContain("from public.youth_scouting_candidates as candidate");
+    expect(migration).toContain("where candidate.status = 'signed'");
+    expect(migration).toContain("where youth.status = ''promoted''");
   });
 });

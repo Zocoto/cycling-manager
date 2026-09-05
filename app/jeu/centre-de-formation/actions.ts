@@ -211,7 +211,6 @@ export async function dismissYouthRiderAction(formData: FormData) {
 
   const release = readYouthDismissalResult(result.data);
   revalidateCenter();
-  revalidatePath("/jeu/transferts");
   revalidatePath(
     "/jeu/centre-de-formation/development/[academyRiderId]",
     "page",
@@ -219,13 +218,7 @@ export async function dismissYouthRiderAction(formData: FormData) {
   redirectWithMessage(
     "ecole",
     "succes",
-    release.mutualAgreement
-      ? release.freeAgent
-        ? `${release.riderName} a quitté l’école à l’amiable, sans frais, et rejoint les agents libres.`
-        : `${release.riderName} a quitté l’école à l’amiable, sans frais. Comme il a moins de 16 ans, il ne rejoint pas les agents libres.`
-      : release.freeAgent
-      ? `${release.riderName} a quitté l’école et rejoint les agents libres. ${formatMoney(release.tuitionCost, release.currency)} ont été débités immédiatement.`
-      : `${release.riderName} a quitté l’école. Comme il a moins de 16 ans, il ne rejoint pas les agents libres. ${formatMoney(release.tuitionCost, release.currency)} ont été débités immédiatement.`,
+    `${release.riderName} reste dans l’école sans nouveaux frais ni entraînement et rejoindra les agents libres au passage en saison ${release.releaseGameYear}.`,
   );
 }
 
@@ -273,35 +266,16 @@ function readYouthDismissalResult(data: unknown) {
     typeof result.riderName === "string"
       ? result.riderName.slice(0, 120)
       : "Le junior";
-  const tuitionCost =
-    result && "tuitionCost" in result
-      ? Number(result.tuitionCost)
-      : 0;
-  const currency =
-    result && "currency" in result && typeof result.currency === "string"
-      ? result.currency.slice(0, 3).toUpperCase()
-      : "EUR";
-  const freeAgent = Boolean(
-    result && "freeAgent" in result && result.freeAgent,
-  );
-  const mutualAgreement = Boolean(
-    result && "mutualAgreement" in result && result.mutualAgreement,
-  );
+  const releaseGameYear =
+    result && "releaseGameYear" in result
+      ? Number(result.releaseGameYear)
+      : Number.NaN;
   return {
     riderName,
-    tuitionCost: Number.isFinite(tuitionCost) ? tuitionCost : 0,
-    currency,
-    freeAgent,
-    mutualAgreement,
+    releaseGameYear: Number.isInteger(releaseGameYear)
+      ? releaseGameYear
+      : "suivante",
   };
-}
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
 }
 
 async function authenticatedClient() {

@@ -181,6 +181,7 @@ type AcademyRow = Omit<
   status:
     | "active"
     | "recruited"
+    | "release_pending"
     | "promoted"
     | "free_agent"
     | "released";
@@ -583,7 +584,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       .from("youth_academy_riders")
       .select("*")
       .eq("team_id", context.teamId)
-      .in("status", ["active", "recruited"])
+      .in("status", ["active", "recruited", "release_pending"])
       .order("signed_at", { ascending: true })
       .returns<AcademyRow[]>(),
     admin.rpc("get_team_roster_commitment_count", {
@@ -927,7 +928,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
     canScheduleYouthPromotion,
     totalTuitionPerSeason: academy.reduce(
-      (sum, rider) => sum + rider.tuitionPerSeason,
+      (sum, rider) =>
+        rider.status === "release_pending"
+          ? sum
+          : sum + rider.tuitionPerSeason,
       0,
     ),
     scoutingSupervision: getScoutingSupervisionStatus(

@@ -9,10 +9,6 @@ import {
   recruitYouthRiderAction,
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
-import {
-  isMutualAgreementDismissal,
-  resolveDismissalCost,
-} from "@/lib/game/mutual-dismissal";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import {
   DevelopmentTeamPanel,
@@ -692,11 +688,13 @@ function AcademyTab({
       ) : null}
       {overview.academy.length ? (
         <YouthTrainingBulkEditor
-          initialSettings={overview.academy.map((rider) => ({
-            academyRiderId: rider.id,
-            trainingPriority: rider.trainingPriority,
-            trainingMode: rider.trainingModePreference,
-          }))}
+          initialSettings={overview.academy
+            .filter((rider) => rider.status !== "release_pending")
+            .map((rider) => ({
+              academyRiderId: rider.id,
+              trainingPriority: rider.trainingPriority,
+              trainingMode: rider.trainingModePreference,
+            }))}
         >
           <div className="space-y-3">
             {overview.academy.map((rider) => (
@@ -705,7 +703,6 @@ function AcademyTab({
                 rider={rider}
                 gameYear={overview.gameYear}
                 currency={overview.currency}
-                balance={overview.balance}
                 canSchedulePromotion={overview.canScheduleYouthPromotion}
                 rosterLimit={overview.rosterLimit}
               />
@@ -892,22 +889,16 @@ function AcademyRiderCard({
   rider,
   gameYear,
   currency,
-  balance,
   canSchedulePromotion,
   rosterLimit,
 }: {
   rider: AcademyYouth;
   gameYear: number;
   currency: string;
-  balance: number;
   canSchedulePromotion: boolean;
   rosterLimit: number;
 }) {
-  const mutualAgreement = isMutualAgreementDismissal(balance);
-  const dismissalCost = resolveDismissalCost(
-    balance,
-    rider.tuitionPerSeason,
-  );
+  const releasePending = rider.status === "release_pending";
 
   return (
     <article
@@ -960,7 +951,23 @@ function AcademyRiderCard({
         <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">
           <RatingsGrid ratings={rider.ratings} compact />
         </div>
-        <div className="contents">
+        {releasePending ? (
+          <div className="rounded-2xl border border-[#D99A2B]/25 bg-[#FFF9EA] p-4 xl:col-span-2 2xl:col-span-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#986A17]">
+              Départ programmé · fin de saison {gameYear}
+            </p>
+            <p className="mt-2 text-sm font-bold leading-6 text-[#654B20]">
+              Le junior reste dans l’école jusqu’au changement de saison, sans
+              nouvel entraînement ni frais de scolarité. Il rejoindra les
+              agents libres au début de la saison {gameYear + 1}.
+            </p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#806630]">
+              Sa place en Development Team et toute promotion professionnelle
+              programmée ont été annulées.
+            </p>
+          </div>
+        ) : (
+          <div className="contents">
           <NaturalizationCard
             eligibility={rider.naturalization}
             subjectName={`${rider.firstName} ${rider.lastName}`}
@@ -1027,23 +1034,17 @@ function AcademyRiderCard({
           </div>
           <details className="group overflow-hidden rounded-xl border border-[#C94848]/20 bg-[#FFF8F6] xl:col-span-2 2xl:col-span-4">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#8A2F2F] marker:content-none">
-              <span>Renvoyer ce junior</span>
+              <span>Programmer le départ</span>
               <span className="rounded-full bg-white px-3 py-1.5 text-[#A12E2E] shadow-sm">
-                {mutualAgreement
-                  ? "Gratuit · à l’amiable"
-                  : formatCurrency(dismissalCost, currency)}
+                Fin de saison · sans frais
               </span>
             </summary>
             <div className="border-t border-[#C94848]/15 p-3 sm:p-4">
               <p className="text-xs font-bold leading-5 text-[#775959]">
-                {mutualAgreement
-                  ? "Votre trésorerie négative permet un licenciement à l’amiable sans coût. Les échéances encore en attente seront annulées et cette décision est définitive."
-                  : "Le coût annuel de scolarité sera débité immédiatement. Les échéances encore en attente seront annulées et cette décision est définitive."}
-              </p>
-              <p className="mt-2 text-xs font-semibold leading-5 text-[#775959]">
-                {rider.age >= 16
-                  ? "À partir de 16 ans, le junior devient immédiatement agent libre."
-                  : "Avant 16 ans, le junior quitte l’école sans rejoindre les agents libres."}
+                Le junior restera visible dans l’école jusqu’à la fin de la
+                saison, mais sa formation et ses futurs frais de scolarité
+                s’arrêteront immédiatement. Il ne rejoindra les agents libres
+                qu’au début de la saison {gameYear + 1}.
               </p>
               <p className="mt-2 text-[10px] font-semibold leading-4 text-[#8A6660]">
                 Il sera également retiré de la Development Team et de ses
@@ -1055,35 +1056,29 @@ function AcademyRiderCard({
                   Sa promotion déjà programmée en équipe première sera annulée.
                 </p>
               ) : null}
-              {mutualAgreement || balance >= dismissalCost ? (
-                <form action={dismissYouthRiderAction} className="mt-3 space-y-3">
+              <form action={dismissYouthRiderAction} className="mt-3 space-y-3">
+                <input
+                  type="hidden"
+                  name="academyRiderId"
+                  value={rider.id}
+                />
+                <label className="flex items-start gap-3 rounded-xl border border-[#C94848]/15 bg-white px-3 py-3 text-[11px] font-bold leading-5 text-[#702E2E]">
                   <input
-                    type="hidden"
-                    name="academyRiderId"
-                    value={rider.id}
+                    type="checkbox"
+                    required
+                    className="mt-0.5 h-4 w-4 accent-[#B54242]"
                   />
-                  <label className="flex items-start gap-3 rounded-xl border border-[#C94848]/15 bg-white px-3 py-3 text-[11px] font-bold leading-5 text-[#702E2E]">
-                    <input
-                      type="checkbox"
-                      required
-                      className="mt-0.5 h-4 w-4 accent-[#B54242]"
-                    />
-                    {mutualAgreement
-                      ? "Je confirme le renvoi définitif et gratuit à l’amiable."
-                      : `Je confirme le renvoi définitif et le paiement immédiat de ${formatCurrency(dismissalCost, currency)}.`}
-                  </label>
-                  <button className="min-h-11 w-full rounded-xl border border-[#C94848]/35 bg-[#FFF1F1] px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-[#A12E2E] transition hover:bg-[#FDE3E3]">
-                    {mutualAgreement ? "Renvoyer à l’amiable" : "Payer et renvoyer"}
-                  </button>
-                </form>
-              ) : (
-                <p className="mt-3 rounded-xl bg-[#FBE4DF] px-3 py-3 text-xs font-black text-[#8A2F2F]">
-                  Trésorerie insuffisante pour régler ce coût annuel.
-                </p>
-              )}
+                  Je confirme l’arrêt de sa formation et sa libération à la fin
+                  de la saison.
+                </label>
+                <button className="min-h-11 w-full rounded-xl border border-[#C94848]/35 bg-[#FFF1F1] px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-[#A12E2E] transition hover:bg-[#FDE3E3]">
+                  Programmer le départ
+                </button>
+              </form>
             </div>
           </details>
-        </div>
+          </div>
+        )}
       </div>
     </article>
   );
