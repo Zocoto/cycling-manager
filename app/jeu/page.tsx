@@ -150,7 +150,7 @@ type ManagementModuleIcon =
   | "strategy"
   | "result"
   | "academy"
-  | "camp"
+  | "medical"
   | "transfer"
   | "finance"
   | "ranking"
@@ -171,7 +171,7 @@ const MODULE_WATERMARKS: Partial<Record<ManagementModuleIcon, string>> = {
   staff: DASHBOARD_WATERMARK,
   infrastructure: DASHBOARD_WATERMARK,
   academy: DASHBOARD_WATERMARK,
-  camp: DASHBOARD_WATERMARK,
+  medical: DASHBOARD_WATERMARK,
   transfer: DASHBOARD_WATERMARK,
 };
 
@@ -826,7 +826,7 @@ export default async function GamePage() {
 
             <ManagementModuleCard
               href="/jeu/centre-de-soin"
-              icon="camp"
+              icon="medical"
               title="Centre de soin"
               status="Infirmerie & forme"
               description="Suivez les blessures, appliquez des protocoles médicaux et programmez les stages de remise en forme."
@@ -1801,12 +1801,8 @@ function ManagementModuleIcon({ icon }: { icon: ManagementModuleIcon }) {
       </>
     ),
 
-    camp: (
-      <>
-        <path d="m4 20 8-16 8 16" />
-        <path d="M7 20h10" />
-        <path d="m9 20 3-6 3 6" />
-      </>
+    medical: (
+      <path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z" />
     ),
 
     transfer: (
