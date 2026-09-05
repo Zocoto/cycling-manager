@@ -10,6 +10,7 @@ import {
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { PreRacePressConferencePanel } from "@/components/game/pre-race-press-conference-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -47,6 +48,8 @@ import {
 } from "@/lib/game/international-championship-navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getPreRacePressConferences } from "@/services/pre-race-press";
+import type { PreRacePressConference } from "@/lib/game/pre-race-press";
 import {
   getActiveSeasonRaceCalendar,
   getCurrentRaceUserContext,
@@ -71,6 +74,7 @@ export type RaceProfilePageProps = {
   }>;
   searchParams: Promise<{
     inscription?: string | string[];
+    presse?: string | string[];
     erreur?: string | string[];
   }>;
 };
@@ -152,11 +156,13 @@ export async function RaceProfileContent({
   let pastWinners: RacePastWinner[] = [];
   let rosterOptions: RaceRosterOption[] = [];
   let engagedRiders: RaceEngagedRider[] = [];
+  let pressConferences: PreRacePressConference[] = [];
   let winnersError = false;
   let rosterError: string | null = null;
   let engagedRidersError = false;
+  let pressConferencesError = false;
 
-  const [contextResult, winnersResult, rosterResult, engagedRidersResult] =
+  const [contextResult, winnersResult, rosterResult, engagedRidersResult, pressResult] =
     await Promise.all([
       getCurrentRaceUserContext(supabase, user.id, edition.id)
         .then((context) => ({
@@ -190,6 +196,14 @@ export async function RaceProfileContent({
             .then((riders) => ({ riders, error: null }))
             .catch((error: unknown) => ({
               riders: [] as RaceEngagedRider[],
+              error,
+            })),
+      isInternationalChampionship
+        ? Promise.resolve({ conferences: [] as PreRacePressConference[], error: null })
+        : getPreRacePressConferences(supabase, edition.id)
+            .then((conferences) => ({ conferences, error: null }))
+            .catch((error: unknown) => ({
+              conferences: [] as PreRacePressConference[],
               error,
             })),
     ]);
@@ -249,9 +263,19 @@ export async function RaceProfileContent({
     engagedRidersError = true;
   }
 
+  pressConferences = pressResult.conferences;
+  if (pressResult.error) {
+    console.error(
+      "Impossible de charger les conférences d’avant-course :",
+      pressResult.error,
+    );
+    pressConferencesError = true;
+  }
+
   const successMessage = readSingleSearchParam(
     resolvedSearchParams.inscription,
   );
+  const pressSuccess = readSingleSearchParam(resolvedSearchParams.presse);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
   const style = RACE_CATEGORY_STYLE[edition.categoryCode];
   const { startDay, endDay } = getEditionDayRange(edition);
@@ -375,6 +399,12 @@ export async function RaceProfileContent({
             {successMessage === "roles-mis-a-jour" ? (
               <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
                 Les rôles de cette étape ont bien été mis à jour.
+              </div>
+            ) : null}
+
+            {pressSuccess === "publiee" ? (
+              <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
+                Votre conférence d’avant-course est publiée. Votre objectif engage désormais votre réputation.
               </div>
             ) : null}
 
@@ -511,6 +541,21 @@ export async function RaceProfileContent({
                     rosterError={rosterError}
                     riderJersey={riderJersey}
                   />
+                  {!isInternationalChampionship && raceUserContext.registration?.status === "accepted" ? (
+                    <div className="mt-3">
+                      <PreRacePressConferencePanel
+                        editionId={edition.id}
+                        raceSlug={edition.slug}
+                        selectedRiders={rosterOptions.filter((rider) => rider.isSelected)}
+                        conferences={pressConferences}
+                        canPublish={
+                          raceUserContext.registration.rosterCount >= edition.minimumRosterSize &&
+                          !["in_progress", "completed", "cancelled"].includes(edition.status ?? "planned")
+                        }
+                        loadError={pressConferencesError}
+                      />
+                    </div>
+                  ) : null}
                   <RaceRewardDetails edition={edition} className="mt-3" />
                 </div>
 

@@ -15,6 +15,8 @@ import {
   type InternationalChampionshipSelection,
 } from "@/services/international-championship-selections";
 import { getYouthDevelopmentAlertCount } from "@/services/youth-development";
+import { getPendingPreRacePressConferences } from "@/services/pre-race-press";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type InjuryRow = {
   id: string;
@@ -89,6 +91,7 @@ export async function getCurrentDashboardOperationalEvents({
   const [
     youthDevelopmentAlertCount,
     internationalSelections,
+    pendingPressConferences,
   ] = await Promise.all([
     getYouthDevelopmentAlertCount(authUserId),
     [21, 22, 25, 26].includes(currentDayNumber)
@@ -97,6 +100,12 @@ export async function getCurrentDashboardOperationalEvents({
           processDue: false,
         })
       : Promise.resolve([] as InternationalChampionshipSelection[]),
+    createSupabaseServerClient()
+      .then((supabase) => getPendingPreRacePressConferences(supabase))
+      .catch((error: unknown) => {
+        console.error("Impossible de charger les conférences de presse à préparer :", error);
+        return [];
+      }),
   ]);
 
   const [
@@ -196,6 +205,19 @@ export async function getCurrentDashboardOperationalEvents({
 
   return {
     events: [
+      ...pendingPressConferences.map((conference) => ({
+        id: `pre-race-press:${conference.raceEditionId}`,
+        category: "race" as const,
+        priority: "action" as const,
+        title: `Conférence de presse · ${conference.raceName}`,
+        description:
+          "Votre startlist est validée. Annoncez votre leader et vos objectifs avant le départ pour engager la réputation de l’équipe.",
+        href: `/jeu/courses/${conference.raceSlug}#conference-presse`,
+        actionLabel: "Prendre la parole",
+        badgeLabel: "Événement RP",
+        dayNumber: conference.startDayNumber,
+        happenedAt: null,
+      })),
       ...buildInternationalSelectionEvents(internationalSelections),
       ...buildInjuryEvents(injuriesResult.data ?? [], currentDayNumber),
       ...buildTrainingEvents(trainingResult.data ?? [], currentDayNumber, seasonId),

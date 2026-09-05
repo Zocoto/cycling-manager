@@ -9,7 +9,60 @@ import {
   parseRaceEquipmentPlanEntry,
 } from "@/lib/game/race-equipment-planning";
 import { RACE_ROLES, type RaceRole } from "@/lib/game/race-simulation";
+import {
+  isPreRaceAmbition,
+  isPreRaceIntent,
+} from "@/lib/game/pre-race-press";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export async function submitPreRacePressConferenceAction(formData: FormData) {
+  const editionId = readFormValue(formData, "editionId");
+  const slug = readFormValue(formData, "slug");
+  const leaderRiderId = readFormValue(formData, "leaderRiderId");
+  const ambition = readFormValue(formData, "ambition");
+  const raceIntent = readFormValue(formData, "raceIntent");
+  const publicStatement = readFormValue(formData, "publicStatement");
+
+  if (
+    !isUuid(editionId) ||
+    !isUuid(leaderRiderId) ||
+    !isSlug(slug) ||
+    !isPreRaceAmbition(ambition) ||
+    !isPreRaceIntent(raceIntent) ||
+    publicStatement.length < 10 ||
+    publicStatement.length > 500
+  ) {
+    redirectWithError(
+      isSlug(slug) ? `/jeu/courses/${slug}#conference-presse` : "/jeu/calendrier",
+      "La déclaration d’avant-course est invalide.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc(
+    "submit_current_team_pre_race_press_conference",
+    {
+      p_race_edition_id: editionId,
+      p_leader_rider_id: leaderRiderId,
+      p_ambition: ambition,
+      p_race_intent: raceIntent,
+      p_public_statement: publicStatement,
+    },
+  );
+  if (error) {
+    redirectWithError(`/jeu/courses/${slug}#conference-presse`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  revalidatePath("/jeu/boite-mail");
+  redirect(`/jeu/courses/${slug}?presse=publiee#conference-presse`);
+}
 
 export async function registerRaceRosterAction(
   formData: FormData
@@ -337,11 +390,14 @@ export async function completeUnderfilledRaceRosterAction(
 }
 
 function redirectWithError(path: string, message: string): never {
-  const separator = path.includes("?") ? "&" : "?";
+  const hashIndex = path.indexOf("#");
+  const basePath = hashIndex >= 0 ? path.slice(0, hashIndex) : path;
+  const fragment = hashIndex >= 0 ? path.slice(hashIndex) : "";
+  const separator = basePath.includes("?") ? "&" : "?";
   redirect(
-    `${path}${separator}erreur=${encodeURIComponent(
+    `${basePath}${separator}erreur=${encodeURIComponent(
       message.slice(0, 300)
-    )}`
+    )}${fragment}`
   );
 }
 
