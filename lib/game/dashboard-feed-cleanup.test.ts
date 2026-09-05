@@ -17,12 +17,15 @@ describe("Bureau du Directeur Sportif allégé", () => {
     expect(tutorial).not.toContain('targetId: "dashboard-news-feed"');
   });
 
-  it("place l’assistant du DS avant les tuiles de gestion", () => {
+  it("place la fédération avant l’assistant, puis les tuiles de gestion", () => {
+    const federationIndex = dashboard.indexOf("data-dashboard-federation");
     const assistantIndex = dashboard.indexOf("<DashboardAssistant");
     const profileIndex = dashboard.indexOf("<DirectorProfileCard");
     const raceOperationsIndex = dashboard.indexOf("<RaceOperationsCard");
 
+    expect(federationIndex).toBeGreaterThan(-1);
     expect(assistantIndex).toBeGreaterThan(-1);
+    expect(federationIndex).toBeLessThan(assistantIndex);
     expect(assistantIndex).toBeLessThan(profileIndex);
     expect(assistantIndex).toBeLessThan(raceOperationsIndex);
   });

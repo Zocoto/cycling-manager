@@ -635,19 +635,6 @@ export default async function GamePage() {
             <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
           ) : null}
 
-          {DASHBOARD_ASSISTANT_ENABLED ? (
-            <Suspense fallback={<DashboardAssistantSkeleton />}>
-              <DashboardAssistant
-                summaryPromise={dashboardAssistantPromise}
-                raceRosterAlerts={raceRosterAlerts}
-                raceRegistrationAlerts={raceRegistrationAlerts}
-                rewardCount={readyRewardCount}
-                cashBalance={financeOverview?.balance ?? null}
-                hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
-              />
-            </Suspense>
-          ) : null}
-
           {teamSponsorIdentity?.sponsor.countryCode.trim().toUpperCase() ===
           "BE" ? (
             <Link
@@ -681,6 +668,19 @@ export default async function GamePage() {
                 →
               </span>
             </Link>
+          ) : null}
+
+          {DASHBOARD_ASSISTANT_ENABLED ? (
+            <Suspense fallback={<DashboardAssistantSkeleton />}>
+              <DashboardAssistant
+                summaryPromise={dashboardAssistantPromise}
+                raceRosterAlerts={raceRosterAlerts}
+                raceRegistrationAlerts={raceRegistrationAlerts}
+                rewardCount={readyRewardCount}
+                cashBalance={financeOverview?.balance ?? null}
+                hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
+              />
+            </Suspense>
           ) : null}
 
           <section
