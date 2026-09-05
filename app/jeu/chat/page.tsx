@@ -10,7 +10,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentDirectUnreadCount } from "@/services/direct-messages";
 import { getGlobalChatOverview } from "@/services/global-chat";
-import { isChatTranslationConfigured } from "@/services/chat-translation-provider";
 
 export const metadata: Metadata = {
   title: "Chat général",
@@ -73,7 +72,7 @@ export default async function GlobalChatPage({
             initialCursor={chat.nextCursor}
             initialDirectRecipientId={initialDirectRecipientId}
             initialDirectUnreadCount={directUnreadCount}
-            translationEnabled={isChatTranslationConfigured()}
+            translationEnabled={false}
           />
         </div>
       </section>

@@ -229,8 +229,8 @@ export async function getGlobalChatOverview(
   nextCursor: GlobalChatCursor | null;
 }> {
   const [identityResult, onlineDirectorsResult, messagePage] = await Promise.all([
-    supabase.rpc("get_current_global_chat_identity_v3"),
-    supabase.rpc("get_online_global_chat_directors_v3"),
+    supabase.rpc("get_current_global_chat_identity_v2"),
+    supabase.rpc("get_online_global_chat_directors_v2"),
     getGlobalChatMessagePage(supabase, {
       limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
     }),
@@ -257,7 +257,7 @@ export async function getGlobalChatOverview(
     displayName: identityRow.display_name,
     avatarKey: identityRow.avatar_key,
     avatarFrameKey: readAvatarFrameKey(identityRow.avatar_frame_key),
-    country: readCountry(identityRow.country_name, identityRow.country_code),
+    country: null,
     teamId: identityRow.team_id,
     teamName: identityRow.team_name,
     teamHref: `/jeu/equipes/${identityRow.team_id}`,
@@ -418,10 +418,9 @@ async function getProfilesByDirectorId(
   const uniqueDirectorIds = [...new Set(directorIds)];
   if (uniqueDirectorIds.length === 0) return result;
 
-  const profilesResult = await supabase.rpc(
-    "get_global_chat_director_profiles",
-    { p_sporting_director_ids: uniqueDirectorIds },
-  );
+  const profilesResult = await supabase.rpc("get_global_chat_director_avatars", {
+    p_sporting_director_ids: uniqueDirectorIds,
+  });
 
   if (profilesResult.error) {
     console.error(

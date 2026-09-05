@@ -243,7 +243,7 @@ export function GlobalGameChat({
       }
 
       requestInFlight = true;
-      const result = await supabase.rpc("get_online_global_chat_directors_v3");
+      const result = await supabase.rpc("get_online_global_chat_directors_v2");
       requestInFlight = false;
 
       if (!active || result.error) return;
