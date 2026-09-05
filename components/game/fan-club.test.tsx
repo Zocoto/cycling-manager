@@ -180,4 +180,21 @@ describe("Fan Club de production", () => {
     expect(pink).toContain("#F0A1BB");
     expect(red).toContain("#D84848");
   });
+
+  it("ouvre directement le magasin depuis une alerte de stock", () => {
+    const markup = renderToStaticMarkup(
+      <FanClub
+        headquartersLevel={1}
+        shopLevel={1}
+        data={LIVE_DATA}
+        management={MANAGEMENT}
+        sponsorIdentity={null}
+        initialTab="store"
+      />,
+    );
+
+    expect(markup).toContain("Stock et prix de vente");
+    expect(markup).toContain("Rapport des ventes");
+    expect(markup).toContain("Acheter du stock");
+  });
 });

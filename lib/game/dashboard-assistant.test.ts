@@ -49,6 +49,11 @@ const snapshot: DashboardAssistantSnapshot = {
   sponsorRenewalAvailable: false,
   sponsorJerseyChangeAvailable: false,
   sponsorTargetSeasonName: null,
+  fanClubShopLevel: 0,
+  fanClubStockCount: 0,
+  fanClubSalesProcessedToday: false,
+  fanClubTodayUnitsSold: 0,
+  fanClubTodayRevenue: 0,
   journalItems: [],
 };
 
@@ -157,6 +162,49 @@ describe("dashboard DS assistant", () => {
     expect(groups.alerts).toEqual([
       expect.objectContaining({ id: "all-clear", tone: "success", href: null }),
     ]);
+  });
+
+  it("alerts on an empty shop and links the daily sales report", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+        fanClubShopLevel: 2,
+        fanClubStockCount: 0,
+        fanClubSalesProcessedToday: true,
+        fanClubTodayUnitsSold: 14,
+        fanClubTodayRevenue: 735,
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "fan-club-out-of-stock",
+        metric: "0",
+        href: "/jeu/fan-club?onglet=magasin",
+      }),
+    ]);
+    expect(groups.information).toContainEqual(
+      expect.objectContaining({
+        id: "fan-club-sales-report",
+        metric: "14",
+        detail: expect.stringContaining("735"),
+        href: "/jeu/fan-club/rapport-ventes",
+      }),
+    );
   });
 
   it("warns before J1 when firm arrivals and scheduled promotions exceed 35 riders", () => {

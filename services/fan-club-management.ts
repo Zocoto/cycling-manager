@@ -71,11 +71,6 @@ export async function getFanClubManagementState({
   );
   assertQuery(profileResult.error, "le profil de production du Fan Club");
 
-  const settlementResult = await supabase.rpc(
-    "settle_current_team_fan_club_sales",
-  );
-  assertQuery(settlementResult.error, "les ventes quotidiennes du Fan Club");
-
   const [
     fleetResult,
     tripsResult,

@@ -3,6 +3,7 @@
   "regions": ["cdg1"],
   "crons": [
     { "path": "/api/cron/game-maintenance", "schedule": "5 23 * * *" },
+    { "path": "/api/cron/fan-club-sales", "schedule": "15 23 * * *" },
     { "path": "/api/cron/director-inactivity", "schedule": "35 23 * * *" },
     { "path": "/api/cron/rider-state-maintenance/training", "schedule": "0,15,30,45 * * * *" },
     { "path": "/api/cron/rider-state-maintenance/health", "schedule": "2,17,32,47 * * * *" },

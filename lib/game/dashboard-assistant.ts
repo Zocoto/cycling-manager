@@ -55,6 +55,11 @@ export type DashboardAssistantSnapshot = {
   sponsorRenewalAvailable: boolean;
   sponsorJerseyChangeAvailable: boolean;
   sponsorTargetSeasonName: string | null;
+  fanClubShopLevel: number;
+  fanClubStockCount: number;
+  fanClubSalesProcessedToday: boolean;
+  fanClubTodayUnitsSold: number;
+  fanClubTodayRevenue: number;
   journalItems: DashboardJournalItem[];
 };
 
@@ -102,6 +107,7 @@ const ALERT_PRIORITY = [
   "available-scouts",
   "low-form",
   "zero-training",
+  "fan-club-out-of-stock",
   "next-season-roster-overflow",
   "contract-renewals",
   "youth-alerts",
@@ -335,6 +341,17 @@ export function buildDashboardAssistantLines({
     });
   }
 
+  if (snapshot.fanClubShopLevel > 0 && snapshot.fanClubStockCount === 0) {
+    alerts.push({
+      id: "fan-club-out-of-stock",
+      tone: "alert",
+      metric: "0",
+      title: "Stock de la boutique épuisé",
+      detail: "Réapprovisionnez le magasin pour reprendre les ventes quotidiennes.",
+      href: "/jeu/fan-club?onglet=magasin",
+    });
+  }
+
   if (raceRosterAlerts.length > 0) {
     const prioritizedAlert = raceRosterAlerts[0]!;
     const actionableCount = raceRosterAlerts.length;
@@ -408,6 +425,21 @@ export function buildDashboardAssistantLines({
       title: "Rapport quotidien des juniors",
       detail: `${snapshot.juniorSessionCount}/${snapshot.juniorRiderCount} entraînés · ${formatProgressCount(snapshot.juniorProgressCount)}`,
       href: "/jeu/centre-de-formation/rapport-entrainement",
+    });
+  }
+
+  if (snapshot.fanClubShopLevel > 0) {
+    information.push({
+      id: "fan-club-sales-report",
+      tone: "info",
+      metric: snapshot.fanClubSalesProcessedToday
+        ? String(snapshot.fanClubTodayUnitsSold)
+        : "…",
+      title: "Rapport des ventes du jour",
+      detail: snapshot.fanClubSalesProcessedToday
+        ? `${formatAssistantCurrency(snapshot.fanClubTodayRevenue)} de recettes · ${pluralize(snapshot.fanClubTodayUnitsSold, "1 article vendu", `${snapshot.fanClubTodayUnitsSold} articles vendus`)}`
+        : "Le CR quotidien sera disponible après le règlement programmé.",
+      href: "/jeu/fan-club/rapport-ventes",
     });
   }
 
@@ -620,6 +652,14 @@ function buildAuctionDetail(snapshot: DashboardAssistantSnapshot): string {
 
 function formatProgressCount(count: number): string {
   return pluralize(count, "1 progression", `${count} progressions`);
+}
+
+function formatAssistantCurrency(amount: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 function getAlertPriority(id: string): number {

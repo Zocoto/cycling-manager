@@ -17,6 +17,7 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
+import Link from "@/components/ui/app-link";
 import {
   estimateDailyProductSalesForecast,
   getAvailableCarsForRace,
@@ -90,15 +91,19 @@ export function FanClub({
   data,
   management,
   sponsorIdentity,
+  initialTab = "overview",
 }: {
   headquartersLevel: number;
   shopLevel: number;
   data: FanClubLiveData;
   management: FanClubManagementState;
   sponsorIdentity: FanClubSponsorIdentity | null;
+  initialTab?: FanClubPilotTab;
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<FanClubPilotTab>("overview");
+  const [activeTab, setActiveTab] = useState<FanClubPilotTab>(
+    initialTab === "store" && shopLevel > 0 ? "store" : "overview",
+  );
   const [feedback, setFeedback] = useState("");
   const [isPending, startTransition] = useTransition();
   const tabs = shopLevel > 0
@@ -604,7 +609,15 @@ function StorePanel({
             title="Stock et prix de vente"
             detail="Les ventes sont réglées automatiquement à chaque nouvelle journée de jeu. Le prix influe fortement sur la demande, tandis que les résultats, la ferveur et une part d’aléatoire rendent chaque journée différente."
           />
-          <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[var(--fan-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--fan-secondary)]">Acheter du stock</button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/jeu/fan-club/rapport-ventes"
+              className="inline-flex min-h-11 items-center rounded-xl border border-[var(--fan-primary)] px-4 text-sm font-black text-[var(--fan-primary)] transition hover:bg-[var(--fan-soft)]"
+            >
+              Rapport des ventes
+            </Link>
+            <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[var(--fan-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--fan-secondary)]">Acheter du stock</button>
+          </div>
         </div>
         {management.eligibleCollectorProductIds.length > 0 ? (
           <div className="mt-5 rounded-2xl border border-[var(--fan-accent)] bg-[var(--fan-soft)] px-4 py-3 text-sm font-bold leading-6 text-[var(--fan-ink)]">
@@ -751,8 +764,16 @@ function StorePanel({
       <Surface>
         <Heading
           eyebrow="Ventes réalisées"
-          title="Dernières journées de boutique"
-          detail="Les quantités vendues varient avec vos prix, la ferveur, les résultats et les fluctuations propres à chaque journée."
+          title="Aperçu des dernières ventes"
+          detail="Le rapport complet regroupe le CR du jour et l’historique des journées précédentes."
+          action={
+            <Link
+              href="/jeu/fan-club/rapport-ventes"
+              className="inline-flex min-h-10 items-center rounded-xl bg-[var(--fan-soft)] px-3 text-xs font-black text-[var(--fan-primary)]"
+            >
+              Consulter l’historique →
+            </Link>
+          }
         />
         {management.recentSales.length > 0 ? (
           <div className="mt-5 overflow-x-auto">

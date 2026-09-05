@@ -22,7 +22,12 @@ export const metadata: Metadata = {
   description: "Gérez les supporters, les déplacements et la boutique du club.",
 };
 
-export default async function FanClubPage() {
+export default async function FanClubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ onglet?: string | string[] }>;
+}) {
+  const query = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -183,6 +188,11 @@ export default async function FanClubPage() {
           data={liveData}
           management={management}
           sponsorIdentity={headerData.teamSponsorIdentity}
+          initialTab={
+            query.onglet === "magasin" && buildings.shopLevel > 0
+              ? "store"
+              : "overview"
+          }
         />
       </section>
     </main>

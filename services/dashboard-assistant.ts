@@ -45,16 +45,27 @@ type SponsoringAlertRow = {
   target_season_name: string | null;
 };
 
+type FanClubAssistantSummaryRow = {
+  shop_level: number;
+  total_stock: number;
+  sales_processed_today: boolean;
+  today_units_sold: number;
+  today_revenue: number | string;
+};
+
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardAssistantSnapshot | null> {
-  const [result, sponsoringAlertResult] = await Promise.all([
+  const [result, sponsoringAlertResult, fanClubResult] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
       .maybeSingle<DashboardAssistantSummaryRow>(),
     supabase
       .rpc("get_current_sponsoring_alerts")
       .maybeSingle<SponsoringAlertRow>(),
+    supabase
+      .rpc("get_current_fan_club_assistant_summary")
+      .maybeSingle<FanClubAssistantSummaryRow>(),
   ]);
 
   if (result.error) {
@@ -69,11 +80,19 @@ export async function getCurrentDashboardAssistantSummary(
     );
   }
 
+  if (fanClubResult.error) {
+    console.error(
+      "Impossible de charger l’état de la boutique du Fan Club :",
+      fanClubResult.error.message,
+    );
+  }
+
   const row = result.data;
   if (!row) return null;
 
   const assistantPayload = normalizeAssistantPayload(row.journal_items);
   const sponsoringAlert = sponsoringAlertResult.data;
+  const fanClubSummary = fanClubResult.error ? null : fanClubResult.data;
 
   return {
     gameDate: row.game_date,
@@ -115,6 +134,12 @@ export async function getCurrentDashboardAssistantSummary(
     sponsorJerseyChangeAvailable:
       sponsoringAlert?.jersey_change_available === true,
     sponsorTargetSeasonName: sponsoringAlert?.target_season_name ?? null,
+    fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
+    fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
+    fanClubSalesProcessedToday:
+      fanClubSummary?.sales_processed_today === true,
+    fanClubTodayUnitsSold: normalizeCount(fanClubSummary?.today_units_sold),
+    fanClubTodayRevenue: normalizeAmount(fanClubSummary?.today_revenue),
     journalItems: assistantPayload.journalItems,
   };
 }
@@ -191,6 +216,11 @@ function normalizeCount(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.max(0, Math.trunc(value))
     : 0;
+}
+
+function normalizeAmount(value: unknown): number {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.max(0, amount) : 0;
 }
 
 function normalizeJournalItems(value: unknown): DashboardJournalItem[] {
