@@ -368,7 +368,8 @@ function OverviewPanel({
       objectiveMetrics?.referenceMemberTeamCount ?? memberTeamCount,
     currentMemberTeamCount: memberTeamCount,
     naturalizationCount: objectiveMetrics?.naturalizationCount ?? 0,
-    publishedSelectionCount: objectiveMetrics?.publishedSelectionCount ?? 0,
+    manuallySubmittedSelectionCount:
+      objectiveMetrics?.manuallySubmittedSelectionCount ?? 0,
     nationsCupRank: objectiveMetrics?.nationsCupRank ?? null,
     worldRank: internationalResults?.world?.rank ?? null,
     continentalRank: internationalResults?.continental?.rank ?? null,

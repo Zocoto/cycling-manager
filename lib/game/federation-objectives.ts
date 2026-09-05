@@ -15,7 +15,7 @@ export type FederationObjectiveInput = {
   referenceMemberTeamCount: number;
   currentMemberTeamCount: number;
   naturalizationCount: number;
-  publishedSelectionCount: number;
+  manuallySubmittedSelectionCount: number;
   nationsCupRank: number | null;
   worldRank: number | null;
   continentalRank: number | null;
@@ -77,12 +77,13 @@ export function buildFederationObjectives(
     countObjective({
       id: "selections",
       eyebrow: "Responsabilité",
-      title: "Publier 5 listes fédérales",
+      title:
+        "Soumettre des convocations pour 5 événements internationaux (manuellement)",
       detail:
-        "Les listes soumises aux DS ou finalisées comptent dans la progression.",
-      current: input.publishedSelectionCount,
+        "Chaque événement distinct soumis manuellement aux DS compte une fois. Les sélections automatiques ne comptent pas.",
+      current: input.manuallySubmittedSelectionCount,
       target: 5,
-      noun: "listes",
+      noun: "événements",
     }),
   ];
 }

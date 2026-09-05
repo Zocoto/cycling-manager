@@ -19,7 +19,7 @@ describe("federation objectives", () => {
       referenceMemberTeamCount: 5,
       currentMemberTeamCount: 6,
       naturalizationCount: 2,
-      publishedSelectionCount: 5,
+      manuallySubmittedSelectionCount: 5,
       nationsCupRank: 7,
       worldRank: 9,
       continentalRank: 5,
@@ -28,6 +28,10 @@ describe("federation objectives", () => {
     expect(objectives).toHaveLength(5);
     expect(objectives.every((objective) => objective.completed)).toBe(true);
     expect(objectives.every((objective) => objective.progressPercentage === 100)).toBe(true);
+    expect(objectives[4].title).toBe(
+      "Soumettre des convocations pour 5 événements internationaux (manuellement)",
+    );
+    expect(objectives[4].currentLabel).toBe("5 événements");
   });
 
   it("switches the Nations Cup wording to the quadriennial programme", () => {
@@ -37,7 +41,7 @@ describe("federation objectives", () => {
       referenceMemberTeamCount: 2,
       currentMemberTeamCount: 2,
       naturalizationCount: 0,
-      publishedSelectionCount: 0,
+      manuallySubmittedSelectionCount: 0,
       nationsCupRank: null,
       worldRank: null,
       continentalRank: null,

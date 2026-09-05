@@ -5,7 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export type FederationObjectiveMetrics = {
   referenceMemberTeamCount: number;
   naturalizationCount: number;
-  publishedSelectionCount: number;
+  manuallySubmittedSelectionCount: number;
   nationsCupRank: number | null;
 };
 
@@ -33,7 +33,7 @@ export async function getFederationObjectiveMetrics({
   const fallback: FederationObjectiveMetrics = {
     referenceMemberTeamCount: currentMemberTeamCount,
     naturalizationCount: 0,
-    publishedSelectionCount: 0,
+    manuallySubmittedSelectionCount: 0,
     nationsCupRank: null,
   };
 
@@ -68,6 +68,7 @@ export async function getFederationObjectiveMetrics({
           .select("id", { count: "exact", head: true })
           .eq("country_id", countryId)
           .eq("season_id", seasonId)
+          .not("created_by_director_id", "is", null)
           .in("status", ["pending_confirmation", "finalized"]),
         admin
           .from("development_ranking_entries")
@@ -93,7 +94,7 @@ export async function getFederationObjectiveMetrics({
       referenceMemberTeamCount:
         memberTeams.count ?? currentMemberTeamCount,
       naturalizationCount: naturalizations.count ?? 0,
-      publishedSelectionCount: publishedSelections.count ?? 0,
+      manuallySubmittedSelectionCount: publishedSelections.count ?? 0,
       nationsCupRank: nationsCupIndex >= 0 ? nationsCupIndex + 1 : null,
     };
   } catch (error) {

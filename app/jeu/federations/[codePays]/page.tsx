@@ -202,8 +202,8 @@ export default async function FederationPage({
               (country.team_count ?? 0),
             currentMemberTeamCount: country.team_count ?? 0,
             naturalizationCount: objectiveMetrics?.naturalizationCount ?? 0,
-            publishedSelectionCount:
-              objectiveMetrics?.publishedSelectionCount ?? 0,
+            manuallySubmittedSelectionCount:
+              objectiveMetrics?.manuallySubmittedSelectionCount ?? 0,
             nationsCupRank: objectiveMetrics?.nationsCupRank ?? null,
             worldRank: internationalResults?.world?.rank ?? null,
             continentalRank: internationalResults?.continental?.rank ?? null,
