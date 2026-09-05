@@ -46,6 +46,11 @@ import {
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { canEditChatMessage } from "@/lib/game/chat-message-text";
+import { useLocale } from "@/components/i18n/locale-provider";
+import {
+  hasTranslatableChatText,
+  splitChatMessageForTranslation,
+} from "@/lib/game/chat-translation";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import {
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
@@ -65,6 +70,15 @@ import type {
   GlobalChatReactionRow,
 } from "@/services/global-chat";
 
+type ChatMessageTranslationState = {
+  targetLocale: "fr" | "en";
+  status: "loading" | "loaded" | "error";
+  translatedText: string | null;
+  detectedSourceLocale: string | null;
+  error: string | null;
+  visible: boolean;
+};
+
 export function GlobalGameChat({
   identity,
   initialOnlineDirectors,
@@ -73,6 +87,7 @@ export function GlobalGameChat({
   initialCursor,
   initialDirectRecipientId = null,
   initialDirectUnreadCount = 0,
+  translationEnabled = false,
 }: {
   identity: GlobalChatIdentity;
   initialOnlineDirectors: GlobalChatOnlineDirector[];
@@ -81,7 +96,9 @@ export function GlobalGameChat({
   initialCursor: GlobalChatCursor | null;
   initialDirectRecipientId?: string | null;
   initialDirectUnreadCount?: number;
+  translationEnabled?: boolean;
 }) {
+  const { locale } = useLocale();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
@@ -134,6 +151,9 @@ export function GlobalGameChat({
     messageId: string;
     authorDisplayName: string;
   } | null>(null);
+  const [messageTranslations, setMessageTranslations] = useState<
+    Record<string, ChatMessageTranslationState>
+  >({});
 
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
   const [selectedReaction, setSelectedReaction] =
@@ -223,7 +243,7 @@ export function GlobalGameChat({
       }
 
       requestInFlight = true;
-      const result = await supabase.rpc("get_online_global_chat_directors_v2");
+      const result = await supabase.rpc("get_online_global_chat_directors_v3");
       requestInFlight = false;
 
       if (!active || result.error) return;
@@ -357,12 +377,20 @@ export function GlobalGameChat({
               setMessages((current) =>
                 current.filter((message) => message.id !== deletedId),
               );
+              setMessageTranslations((current) =>
+                omitMessageTranslation(current, deletedId),
+              );
             }
             return;
           }
 
           const message = readRealtimeMessage(payload.new);
           if (!message) return;
+          if (payload.eventType === "UPDATE") {
+            setMessageTranslations((current) =>
+              omitMessageTranslation(current, message.id),
+            );
+          }
           if (
             payload.eventType === "INSERT" &&
             message.sportingDirectorId !== identity.sportingDirectorId &&
@@ -395,6 +423,7 @@ export function GlobalGameChat({
           username: identity.username,
           avatarKey: identity.avatarKey,
           avatarFrameKey: identity.avatarFrameKey,
+          country: identity.country,
           teamId: identity.teamId,
           teamName: identity.teamName,
           teamHref: identity.teamHref,
@@ -453,6 +482,87 @@ export function GlobalGameChat({
       );
     } finally {
       setIsLoadingOlder(false);
+    }
+  }
+
+  async function toggleMessageTranslation(message: GlobalChatMessage) {
+    const current = messageTranslations[message.id];
+    if (current?.status === "loading") return;
+    if (current?.status === "loaded" && current.targetLocale === locale) {
+      setMessageTranslations((translations) => ({
+        ...translations,
+        [message.id]: { ...current, visible: !current.visible },
+      }));
+      return;
+    }
+
+    setMessageTranslations((translations) => ({
+      ...translations,
+      [message.id]: {
+        targetLocale: locale,
+        status: "loading",
+        translatedText: null,
+        detectedSourceLocale: null,
+        error: null,
+        visible: true,
+      },
+    }));
+
+    try {
+      const response = await fetch(
+        `/jeu/chat/messages/${encodeURIComponent(message.id)}/translation`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ targetLocale: locale }),
+        },
+      );
+      const result = (await response.json()) as {
+        translatedText?: unknown;
+        detectedSourceLocale?: unknown;
+        error?: unknown;
+      };
+      if (!response.ok || typeof result.translatedText !== "string") {
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Le message n’a pas pu être traduit.",
+        );
+      }
+      const translatedText = result.translatedText;
+
+      setMessageTranslations((translations) => ({
+        ...translations,
+        [message.id]: {
+          targetLocale: locale,
+          status: "loaded",
+          translatedText,
+          detectedSourceLocale:
+            typeof result.detectedSourceLocale === "string"
+              ? result.detectedSourceLocale
+              : null,
+          error: null,
+          visible: true,
+        },
+      }));
+    } catch (translationError) {
+      setMessageTranslations((translations) => ({
+        ...translations,
+        [message.id]: {
+          targetLocale: locale,
+          status: "error",
+          translatedText: null,
+          detectedSourceLocale: null,
+          error:
+            translationError instanceof Error
+              ? translationError.message
+              : "Le message n’a pas pu être traduit.",
+          visible: false,
+        },
+      }));
     }
   }
 
@@ -759,6 +869,9 @@ export function GlobalGameChat({
                   onlineAuthor?.avatarFrameKey ??
                   (isCurrentDirector ? identity.avatarFrameKey : null)
                 }
+                authorCountry={
+                  message.authorCountry ?? onlineAuthor?.country ?? null
+                }
                 isCurrentDirector={isCurrentDirector}
                 isMentioned={globalChatMessageMentionsUsername(
                   message.message,
@@ -775,6 +888,8 @@ export function GlobalGameChat({
                 editingDraft={editingDraft}
                 editingError={editingError}
                 isEditPending={isEditing}
+                translation={messageTranslations[message.id] ?? null}
+                translationEnabled={translationEnabled}
                 onReply={beginReply}
                 onReaction={toggleMessageReaction}
                 onDirectMessage={beginDirectMessage}
@@ -782,6 +897,9 @@ export function GlobalGameChat({
                 onEditingDraftChange={setEditingDraft}
                 onCancelEdit={cancelMessageEdit}
                 onSubmitEdit={submitMessageEdit}
+                onToggleTranslation={() =>
+                  void toggleMessageTranslation(message)
+                }
               />
             );
           })}
@@ -1040,6 +1158,7 @@ function ChatMessage({
   message,
   avatarKey,
   avatarFrameKey,
+  authorCountry,
   isCurrentDirector,
   isMentioned,
   currentDirectorId,
@@ -1050,6 +1169,8 @@ function ChatMessage({
   editingDraft,
   editingError,
   isEditPending,
+  translation,
+  translationEnabled,
   onReply,
   onReaction,
   onDirectMessage,
@@ -1057,10 +1178,12 @@ function ChatMessage({
   onEditingDraftChange,
   onCancelEdit,
   onSubmitEdit,
+  onToggleTranslation,
 }: {
   message: GlobalChatMessage;
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
+  authorCountry: { name: string; code: string } | null;
   isCurrentDirector: boolean;
   isMentioned: boolean;
   currentDirectorId: string;
@@ -1071,6 +1194,8 @@ function ChatMessage({
   editingDraft: string;
   editingError: string | null;
   isEditPending: boolean;
+  translation: ChatMessageTranslationState | null;
+  translationEnabled: boolean;
   onReply: (message: GlobalChatMessage) => void;
   onReaction: React.ComponentProps<
     typeof GlobalChatMessageReactions
@@ -1080,7 +1205,13 @@ function ChatMessage({
   onEditingDraftChange: (value: string) => void;
   onCancelEdit: () => void;
   onSubmitEdit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onToggleTranslation: () => void;
 }) {
+  const canTranslate =
+    translationEnabled &&
+    !isCurrentDirector &&
+    hasTranslatableChatText(splitChatMessageForTranslation(message.message));
+
   return (
     <article
       id={`global-chat-message-${message.id}`}
@@ -1114,6 +1245,14 @@ function ChatMessage({
             }`}
           >
             {isCurrentDirector ? "Vous" : message.authorDisplayName}
+            {!isCurrentDirector && authorCountry ? (
+              <span
+                role="img"
+                title={authorCountry.name}
+                aria-label={`Pays : ${authorCountry.name}`}
+                className={`fi fi-${authorCountry.code.toLowerCase()} ml-1.5 rounded-sm`}
+              />
+            ) : null}
             <span
               className={`ml-1.5 font-bold ${
                 isCurrentDirector ? "text-white/60" : "text-[#789087]"
@@ -1251,6 +1390,55 @@ function ChatMessage({
             {renderMessageText(message.message, isCurrentDirector)}
           </div>
         )}
+
+        {!isEditing && translation?.status === "loaded" && translation.visible ? (
+          <div
+            data-i18n-skip
+            className={`mt-2 rounded-xl border px-3 py-2.5 ${
+              isCurrentDirector
+                ? "border-white/15 bg-black/10"
+                : "border-[#42B99A]/25 bg-[#EAF7F1]"
+            }`}
+          >
+            <p
+              className={`text-[8px] font-black uppercase tracking-[0.12em] ${
+                isCurrentDirector ? "text-white/60" : "text-[#278B70]"
+              }`}
+            >
+              {formatTranslationLabel(translation)}
+            </p>
+            <div className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+              {renderMessageText(
+                translation.translatedText ?? message.message,
+                isCurrentDirector,
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {!isEditing && canTranslate ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleTranslation}
+              disabled={translation?.status === "loading"}
+              className="rounded-full border border-[#176951]/15 bg-[#F3F8F6] px-2.5 py-1 text-[9px] font-black text-[#176951] transition hover:border-[#176951]/35 hover:bg-[#EAF7F1] disabled:cursor-wait disabled:opacity-60"
+            >
+              {translation?.status === "loading"
+                ? "Traduction…"
+                : translation?.status === "loaded" && translation.visible
+                  ? "Masquer la traduction"
+                  : translation?.status === "loaded"
+                    ? "Voir la traduction"
+                    : "Traduire"}
+            </button>
+            {translation?.status === "error" && translation.error ? (
+              <span role="alert" className="text-[9px] font-bold text-red-700">
+                {translation.error}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
         {message.preview ? (
           <GlobalChatSharePreview preview={message.preview} />
@@ -1714,6 +1902,7 @@ function readRealtimeMessage(
     sportingDirectorId: row.sporting_director_id,
     authorAvatarKey: null,
     authorAvatarFrameKey: null,
+    authorCountry: null,
     teamId: row.team_id,
     authorDisplayName: row.author_display_name,
     teamDisplayName: row.team_display_name,
@@ -1908,11 +2097,49 @@ function isOnlineDirector(value: unknown): value is GlobalChatOnlineDirector {
     (director.avatarKey === null || typeof director.avatarKey === "string") &&
     (director.avatarFrameKey === null ||
       director.avatarFrameKey === "alpha_tester") &&
+    isOnlineDirectorCountry(director.country) &&
     typeof director.teamId === "string" &&
     typeof director.teamName === "string" &&
     typeof director.teamHref === "string" &&
     director.teamHref === `/jeu/equipes/${director.teamId}`
   );
+}
+
+function isOnlineDirectorCountry(value: unknown) {
+  if (value === null) return true;
+  if (!value || typeof value !== "object") return false;
+  const country = value as Record<string, unknown>;
+  return (
+    typeof country.name === "string" &&
+    typeof country.code === "string" &&
+    /^[A-Z]{2}$/.test(country.code)
+  );
+}
+
+function omitMessageTranslation(
+  translations: Record<string, ChatMessageTranslationState>,
+  messageId: string,
+) {
+  if (!(messageId in translations)) return translations;
+  const nextTranslations = { ...translations };
+  delete nextTranslations[messageId];
+  return nextTranslations;
+}
+
+function formatTranslationLabel(translation: ChatMessageTranslationState) {
+  const isEnglish = translation.targetLocale === "en";
+  const baseLabel = isEnglish
+    ? "Automatic translation"
+    : "Traduction automatique";
+  if (!translation.detectedSourceLocale) return baseLabel;
+
+  const normalizedSourceLocale = translation.detectedSourceLocale.toLowerCase();
+  const knownLanguage = {
+    en: isEnglish ? "English" : "anglais",
+    fr: isEnglish ? "French" : "français",
+  }[normalizedSourceLocale];
+  const sourceLanguage = knownLanguage ?? normalizedSourceLocale.toUpperCase();
+  return `${baseLabel} · source ${sourceLanguage}`;
 }
 
 function renderMessageText(message: string, inverted: boolean) {

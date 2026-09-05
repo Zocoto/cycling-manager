@@ -29,7 +29,7 @@ export default function TermsPage() {
           </p>
           <p className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-[#F2C94C]">
             Version {legalConfig.termsVersion} · applicable le{" "}
-            {legalConfig.effectiveDateLabel}
+            {legalConfig.termsEffectiveDateLabel}
           </p>
         </div>
       </header>

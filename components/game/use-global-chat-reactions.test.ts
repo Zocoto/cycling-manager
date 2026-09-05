@@ -9,6 +9,7 @@ const baseMessage = {
   sportingDirectorId: "22222222-2222-4222-8222-222222222222",
   authorAvatarKey: null,
   authorAvatarFrameKey: null,
+  authorCountry: null,
   teamId: "33333333-3333-4333-8333-333333333333",
   authorDisplayName: "Marco Velo",
   teamDisplayName: "Roues Libres",

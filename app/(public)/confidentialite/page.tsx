@@ -25,7 +25,7 @@ const processingPurposes = [
   },
   {
     purpose: "Faire fonctionner les espaces communautaires",
-    data: "Messages, réactions, mentions, messages privés et contenus que vous choisissez de publier.",
+    data: "Messages, réactions, mentions, messages privés et contenus que vous choisissez de publier. Dans le chat général, le texte d’un message est transmis au prestataire de traduction uniquement lorsqu’un membre clique sur « Traduire ».",
     basis: "Exécution du service et intérêt légitime à proposer et modérer la communauté.",
   },
   {
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
           </p>
           <p className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-[#F2C94C]">
             Version {legalConfig.privacyNoticeVersion} · applicable le{" "}
-            {legalConfig.effectiveDateLabel}
+            {legalConfig.privacyEffectiveDateLabel}
           </p>
         </div>
       </header>
@@ -147,6 +147,11 @@ export default function PrivacyPage() {
             <li>
               <strong>Brevo</strong> : acheminement des e-mails transactionnels
               de confirmation et de service.
+            </li>
+            <li>
+              <strong>DeepL</strong> : traduction à la demande des messages du
+              chat général, seulement après un clic explicite sur le bouton de
+              traduction.
             </li>
           </ul>
           <p className="mt-4">

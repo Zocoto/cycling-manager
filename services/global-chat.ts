@@ -73,6 +73,10 @@ export type GlobalChatMessage = {
   sportingDirectorId: string;
   authorAvatarKey: string | null;
   authorAvatarFrameKey: "alpha_tester" | null;
+  authorCountry: {
+    name: string;
+    code: string;
+  } | null;
   teamId: string;
   authorDisplayName: string;
   teamDisplayName: string;
@@ -144,19 +148,27 @@ type GlobalChatIdentityRow = {
   display_name: string;
   avatar_key: string | null;
   avatar_frame_key: string | null;
+  country_name: string | null;
+  country_code: string | null;
   team_id: string;
   team_name: string;
 };
 
-type GlobalChatDirectorAvatarRow = {
+type GlobalChatDirectorProfileRow = {
   sporting_director_id: string;
   avatar_key: string | null;
   avatar_frame_key: string | null;
+  country_name: string | null;
+  country_code: string | null;
 };
 
-type GlobalChatDirectorAvatar = {
+type GlobalChatDirectorProfile = {
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
+  country: {
+    name: string;
+    code: string;
+  } | null;
 };
 
 type GlobalChatMentionRecipientRow = {
@@ -217,8 +229,8 @@ export async function getGlobalChatOverview(
   nextCursor: GlobalChatCursor | null;
 }> {
   const [identityResult, onlineDirectorsResult, messagePage] = await Promise.all([
-    supabase.rpc("get_current_global_chat_identity_v2"),
-    supabase.rpc("get_online_global_chat_directors_v2"),
+    supabase.rpc("get_current_global_chat_identity_v3"),
+    supabase.rpc("get_online_global_chat_directors_v3"),
     getGlobalChatMessagePage(supabase, {
       limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
     }),
@@ -245,6 +257,7 @@ export async function getGlobalChatOverview(
     displayName: identityRow.display_name,
     avatarKey: identityRow.avatar_key,
     avatarFrameKey: readAvatarFrameKey(identityRow.avatar_frame_key),
+    country: readCountry(identityRow.country_name, identityRow.country_code),
     teamId: identityRow.team_id,
     teamName: identityRow.team_name,
     teamHref: `/jeu/equipes/${identityRow.team_id}`,
@@ -311,12 +324,12 @@ export async function getGlobalChatMessagePage(
   const hasMore = rows.length > pageSize;
   const selectedRows = rows.slice(0, pageSize);
   const oldestRow = selectedRows.at(-1) ?? null;
-  const [reactionsByMessageId, avatarsByDirectorId] = await Promise.all([
+  const [reactionsByMessageId, profilesByDirectorId] = await Promise.all([
     getReactionsByMessageId(
       supabase,
       selectedRows.map((row) => row.id),
     ),
-    getAvatarsByDirectorId(
+    getProfilesByDirectorId(
       supabase,
       selectedRows.map((row) => row.sporting_director_id),
     ),
@@ -329,7 +342,7 @@ export async function getGlobalChatMessagePage(
         mapGlobalChatMessage(
           row,
           reactionsByMessageId.get(row.id) ?? [],
-          avatarsByDirectorId.get(row.sporting_director_id),
+          profilesByDirectorId.get(row.sporting_director_id),
         ),
       ),
     hasMore,
@@ -346,13 +359,14 @@ export async function getGlobalChatMessagePage(
 export function mapGlobalChatMessage(
   row: GlobalChatMessageRow,
   reactions: GlobalChatMessageReaction[] = [],
-  avatar: GlobalChatDirectorAvatar | undefined = undefined,
+  profile: GlobalChatDirectorProfile | undefined = undefined,
 ): GlobalChatMessage {
   return {
     id: row.id,
     sportingDirectorId: row.sporting_director_id,
-    authorAvatarKey: avatar?.avatarKey ?? null,
-    authorAvatarFrameKey: avatar?.avatarFrameKey ?? null,
+    authorAvatarKey: profile?.avatarKey ?? null,
+    authorAvatarFrameKey: profile?.avatarFrameKey ?? null,
+    authorCountry: profile?.country ?? null,
     teamId: row.team_id,
     authorDisplayName: row.author_display_name,
     teamDisplayName: row.team_display_name,
@@ -396,31 +410,33 @@ export async function searchGlobalChatMentionRecipients(
   );
 }
 
-async function getAvatarsByDirectorId(
+async function getProfilesByDirectorId(
   supabase: SupabaseServerClient,
   directorIds: string[],
 ) {
-  const result = new Map<string, GlobalChatDirectorAvatar>();
+  const result = new Map<string, GlobalChatDirectorProfile>();
   const uniqueDirectorIds = [...new Set(directorIds)];
   if (uniqueDirectorIds.length === 0) return result;
 
-  const avatarsResult = await supabase.rpc("get_global_chat_director_avatars", {
-    p_sporting_director_ids: uniqueDirectorIds,
-  });
+  const profilesResult = await supabase.rpc(
+    "get_global_chat_director_profiles",
+    { p_sporting_director_ids: uniqueDirectorIds },
+  );
 
-  if (avatarsResult.error) {
+  if (profilesResult.error) {
     console.error(
-      "Global chat avatars unavailable; continuing with default avatars.",
-      avatarsResult.error,
+      "Global chat director profiles unavailable; continuing with defaults.",
+      profilesResult.error,
     );
     return result;
   }
 
-  for (const row of ((avatarsResult.data as
-    GlobalChatDirectorAvatarRow[] | null) ?? [])) {
+  for (const row of ((profilesResult.data as
+    GlobalChatDirectorProfileRow[] | null) ?? [])) {
     result.set(row.sporting_director_id, {
       avatarKey: row.avatar_key,
       avatarFrameKey: readAvatarFrameKey(row.avatar_frame_key),
+      country: readCountry(row.country_name, row.country_code),
     });
   }
 
@@ -614,4 +630,10 @@ function readJerseyStatus(
 
 function readAvatarFrameKey(value: string | null): "alpha_tester" | null {
   return value === "alpha_tester" ? value : null;
+}
+
+function readCountry(name: string | null, code: string | null) {
+  return name && code && /^[A-Z]{2}$/i.test(code)
+    ? { name, code: code.toUpperCase() }
+    : null;
 }

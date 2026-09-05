@@ -9,6 +9,10 @@ export type GlobalChatOnlineDirector = {
   displayName: string;
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
+  country: {
+    name: string;
+    code: string;
+  } | null;
   teamId: string;
   teamName: string;
   teamHref: string;
@@ -20,6 +24,8 @@ type GlobalChatOnlineDirectorRow = {
   display_name?: unknown;
   avatar_key?: unknown;
   avatar_frame_key?: unknown;
+  country_name?: unknown;
+  country_code?: unknown;
   team_id?: unknown;
   team_name?: unknown;
 };
@@ -64,6 +70,15 @@ export function mapGlobalChatOnlineDirectorRows(
       avatarKey: row.avatar_key,
       avatarFrameKey:
         row.avatar_frame_key === "alpha_tester" ? row.avatar_frame_key : null,
+      country:
+        typeof row.country_name === "string" &&
+        typeof row.country_code === "string" &&
+        /^[A-Z]{2}$/i.test(row.country_code)
+          ? {
+              name: row.country_name,
+              code: row.country_code.toUpperCase(),
+            }
+          : null,
       teamId: row.team_id,
       teamName: row.team_name,
       teamHref: `/jeu/equipes/${row.team_id}`,
