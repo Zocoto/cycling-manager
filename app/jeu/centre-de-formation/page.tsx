@@ -77,9 +77,11 @@ export const metadata: Metadata = {
 export const maxDuration = 300;
 
 type Tab = "scouting" | "ecole" | "development";
+type AcademyFilter = "all" | "final_year";
 type PageProps = {
   searchParams: Promise<{
     onglet?: string;
+    age?: string;
     succes?: string;
     erreur?: string;
     didacticiel?: string;
@@ -102,6 +104,8 @@ export default async function YouthDevelopmentPage({
     query.dev === "maillot"
       ? query.dev
       : "effectif";
+  const academyFilter: AcademyFilter =
+    query.age === "18" ? "final_year" : "all";
   const tutorialDemo =
     query.didacticiel === YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE;
   const supabase = await createSupabaseServerClient();
@@ -294,7 +298,11 @@ export default async function YouthDevelopmentPage({
           />
         ) : null}
         {overview && activeTab === "ecole" ? (
-          <AcademyTab overview={overview} tutorialDemo={tutorialDemo} />
+          <AcademyTab
+            overview={overview}
+            tutorialDemo={tutorialDemo}
+            activeFilter={academyFilter}
+          />
         ) : null}
         {activeTab === "development" && developmentOverview ? (
           <DevelopmentTeamPanel
@@ -616,9 +624,11 @@ function TutorialScoutingReport({ currency }: { currency: string }) {
 function AcademyTab({
   overview,
   tutorialDemo,
+  activeFilter,
 }: {
   overview: YouthDevelopmentOverview;
   tutorialDemo: boolean;
+  activeFilter: AcademyFilter;
 }) {
   const tutorialReferenceRider = overview.academy[0] ?? null;
   const tutorialGameType =
@@ -636,6 +646,9 @@ function AcademyTab({
       rider.status === "recruited" &&
       rider.promotionGameYear === overview.gameYear + 1,
   );
+  const finalYearRiders = overview.academy.filter((rider) => rider.age === 18);
+  const visibleRiders =
+    activeFilter === "final_year" ? finalYearRiders : overview.academy;
 
   return (
     <div className="mt-7 space-y-8">
@@ -687,28 +700,79 @@ function AcademyTab({
         </Alert>
       ) : null}
       {overview.academy.length ? (
-        <YouthTrainingBulkEditor
-          initialSettings={overview.academy
-            .filter((rider) => rider.status !== "release_pending")
-            .map((rider) => ({
-              academyRiderId: rider.id,
-              trainingPriority: rider.trainingPriority,
-              trainingMode: rider.trainingModePreference,
-            }))}
-        >
-          <div className="space-y-3">
-            {overview.academy.map((rider) => (
-              <AcademyRiderCard
-                key={rider.id}
-                rider={rider}
-                gameYear={overview.gameYear}
-                currency={overview.currency}
-                canSchedulePromotion={overview.canScheduleYouthPromotion}
-                rosterLimit={overview.rosterLimit}
-              />
-            ))}
-          </div>
-        </YouthTrainingBulkEditor>
+        <>
+          {!tutorialDemo ? (
+            <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+                  Décisions de fin de cycle
+                </p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+                  Les juniors de 18 ans vivent leur dernière saison à l’école :
+                  programmez leur passage professionnel ou leur départ.
+                </p>
+              </div>
+              <nav
+                aria-label="Filtrer les juniors par âge"
+                className="mt-3 grid shrink-0 grid-cols-2 gap-2 sm:mt-0"
+              >
+                <Link
+                  href="/jeu/centre-de-formation?onglet=ecole"
+                  aria-current={activeFilter === "all" ? "page" : undefined}
+                  className={`rounded-xl px-3 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.09em] transition ${
+                    activeFilter === "all"
+                      ? "bg-[#0B302B] text-white"
+                      : "bg-[#EAF5F3] text-[#176951] hover:bg-[#DCEFEA]"
+                  }`}
+                >
+                  Tous · {overview.academy.length}
+                </Link>
+                <Link
+                  href="/jeu/centre-de-formation?onglet=ecole&age=18"
+                  aria-current={
+                    activeFilter === "final_year" ? "page" : undefined
+                  }
+                  className={`rounded-xl px-3 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.09em] transition ${
+                    activeFilter === "final_year"
+                      ? "bg-[#B9821E] text-white"
+                      : "bg-[#FFF3D5] text-[#806114] hover:bg-[#FBE8B8]"
+                  }`}
+                >
+                  18 ans · {finalYearRiders.length}
+                </Link>
+              </nav>
+            </section>
+          ) : null}
+          {visibleRiders.length ? (
+            <YouthTrainingBulkEditor
+              initialSettings={visibleRiders
+                .filter((rider) => rider.status !== "release_pending")
+                .map((rider) => ({
+                  academyRiderId: rider.id,
+                  trainingPriority: rider.trainingPriority,
+                  trainingMode: rider.trainingModePreference,
+                }))}
+            >
+              <div className="space-y-3">
+                {visibleRiders.map((rider) => (
+                  <AcademyRiderCard
+                    key={rider.id}
+                    rider={rider}
+                    gameYear={overview.gameYear}
+                    currency={overview.currency}
+                    canSchedulePromotion={overview.canScheduleYouthPromotion}
+                    rosterLimit={overview.rosterLimit}
+                  />
+                ))}
+              </div>
+            </YouthTrainingBulkEditor>
+          ) : (
+            <EmptyState
+              title="Aucun junior de 18 ans"
+              text="Aucune décision de fin de cycle n’est nécessaire pour le moment."
+            />
+          )}
+        </>
       ) : (
         <EmptyState
           title="Votre école est encore vide"
@@ -915,13 +979,18 @@ function AcademyRiderCard({
             className="h-16 w-16"
           />
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`fi fi-${rider.countryCode.toLowerCase()} h-4 w-6 rounded`}
               />
               <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
                 {rider.age} ans
               </span>
+              {rider.age === 18 ? (
+                <span className="rounded-full bg-[#FFF0C7] px-2 py-1 text-[8px] font-black uppercase tracking-[0.09em] text-[#806114]">
+                  Dernière année
+                </span>
+              ) : null}
             </div>
             <h3 className="mt-1 text-lg font-black text-[#071A17]">
               {rider.firstName} {rider.lastName}

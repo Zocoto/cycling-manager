@@ -39,6 +39,19 @@ describe("gestion de l’école de cyclisme", () => {
     expect(academyPage).toContain("Passage pro la saison prochaine");
   });
 
+  it("filtre immédiatement les juniors de 18 ans en dernière année", () => {
+    expect(academyPage).toContain('query.age === "18"');
+    expect(academyPage).toContain(
+      "overview.academy.filter((rider) => rider.age === 18)",
+    );
+    expect(academyPage).toContain(
+      'href="/jeu/centre-de-formation?onglet=ecole&age=18"',
+    );
+    expect(academyPage).toContain("18 ans · {finalYearRiders.length}");
+    expect(academyPage).toContain("Dernière année");
+    expect(academyPage).toContain("Aucun junior de 18 ans");
+  });
+
   it("reste dans le scouting après la signature d’un junior", () => {
     const actionStart = academyActions.indexOf(
       "export async function signYouthCandidateAction",
