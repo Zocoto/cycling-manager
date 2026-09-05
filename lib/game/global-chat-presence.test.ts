@@ -4,6 +4,7 @@ import {
   GAME_PRESENCE_CROSS_TAB_THROTTLE_MS,
   GAME_PRESENCE_HEARTBEAT_INTERVAL_MS,
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
+  GLOBAL_CHAT_ONLINE_WINDOW_MINUTES,
   mapGlobalChatOnlineDirectorRows,
   mergeGlobalChatOnlineDirectors,
   shouldRecordGamePresence,
@@ -26,6 +27,7 @@ describe("global game presence", () => {
     expect(GAME_PRESENCE_HEARTBEAT_INTERVAL_MS).toBe(90_000);
     expect(GAME_PRESENCE_CROSS_TAB_THROTTLE_MS).toBe(60_000);
     expect(GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS).toBe(45_000);
+    expect(GLOBAL_CHAT_ONLINE_WINDOW_MINUTES).toBe(15);
   });
 
   it("does not repeat a heartbeat during the cross-tab throttle window", () => {

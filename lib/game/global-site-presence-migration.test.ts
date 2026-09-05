@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(
-  "supabase/migrations/20260824214500_refine_global_chat_online_presence.sql",
+  "supabase/migrations/20260905130000_extend_global_chat_online_presence.sql",
   "utf8",
 );
 
@@ -13,9 +13,9 @@ describe("global site presence migration", () => {
     expect((migration.match(/\$\$/g)?.length ?? 0) % 2).toBe(0);
   });
 
-  it("returns only directors active during the last three minutes", () => {
+  it("returns only directors active during the last fifteen minutes", () => {
     expect(migration).toContain(
-      "activity.last_seen_at >= pg_catalog.now() - interval '3 minutes'",
+      "activity.last_seen_at >= pg_catalog.now() - interval '15 minutes'",
     );
     expect(migration).toContain("director.status = 'active'");
     expect(migration).toContain("assignment.status = 'active'");

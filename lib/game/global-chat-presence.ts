@@ -1,6 +1,7 @@
 export const GAME_PRESENCE_HEARTBEAT_INTERVAL_MS = 90_000;
 export const GAME_PRESENCE_CROSS_TAB_THROTTLE_MS = 60_000;
 export const GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS = 45_000;
+export const GLOBAL_CHAT_ONLINE_WINDOW_MINUTES = 15;
 
 export type GlobalChatOnlineDirector = {
   sportingDirectorId: string;

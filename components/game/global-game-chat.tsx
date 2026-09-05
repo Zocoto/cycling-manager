@@ -49,6 +49,7 @@ import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import {
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
+  GLOBAL_CHAT_ONLINE_WINDOW_MINUTES,
   mapGlobalChatOnlineDirectorRows,
   mergeGlobalChatOnlineDirectors,
   type GlobalChatOnlineDirector,
@@ -1392,7 +1393,8 @@ function OnlineDirectors({
         </p>
         <h2 className="mt-1 text-lg font-black">DS en ligne</h2>
         <p className="mt-1 text-xs font-semibold leading-5 text-[#AFC6BB]">
-          Cliquez sur un nom pour consulter son équipe.
+          Actifs dans le jeu ces {GLOBAL_CHAT_ONLINE_WINDOW_MINUTES} dernières
+          minutes. Cliquez sur un nom pour consulter son équipe.
         </p>
       </header>
 
@@ -1421,8 +1423,13 @@ function OnlineDirectors({
                   />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
-                    {isCurrent ? "Vous" : director.displayName}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="min-w-0 truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
+                      {isCurrent ? "Vous" : director.displayName}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#72D4B7]">
+                      Online
+                    </span>
                   </span>
                   <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#8FA99D]">
                     {director.teamName}
