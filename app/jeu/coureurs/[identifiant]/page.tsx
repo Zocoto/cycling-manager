@@ -23,6 +23,7 @@ import {
 import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
 import { WorldChampionJersey } from "@/components/game/world-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RiderComparisonLauncher } from "@/components/game/rider-comparison-launcher";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
@@ -88,6 +89,7 @@ import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { RiderTransferListingCard } from "@/components/game/rider-transfer-listing-card";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
+import { getCurrentTeamRiderComparisonOptions } from "@/services/rider-comparison";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { ROSTER_TUTORIAL_KEY } from "@/lib/tutorial/roster";
@@ -136,8 +138,13 @@ export default async function RiderProfilePage({
     redirect("/connexion");
   }
 
-  const [profile, headerData, riderRanking, rosterTutorialProgress] =
-    await Promise.all([
+  const [
+    profile,
+    headerData,
+    riderRanking,
+    rosterTutorialProgress,
+    comparisonOptions,
+  ] = await Promise.all([
       getPublicRiderProfile({
         riderIdentifier: identifiant,
         viewerAuthUserId: user.id,
@@ -151,6 +158,15 @@ export default async function RiderProfilePage({
             error,
           );
           return null;
+        },
+      ),
+      getCurrentTeamRiderComparisonOptions(supabase).catch(
+        (error: unknown) => {
+          console.error(
+            "Impossible de charger les coureurs disponibles pour la comparaison :",
+            error,
+          );
+          return [];
         },
       ),
     ]);
@@ -468,6 +484,14 @@ export default async function RiderProfilePage({
                     )}
                   </IdentityBadge>
                 ) : null}
+              </div>
+              <div className="mt-5">
+                <RiderComparisonLauncher
+                  riderId={profile.id}
+                  riderName={fullName}
+                  options={comparisonOptions}
+                  tone="dark"
+                />
               </div>
             </div>
 

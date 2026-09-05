@@ -14,6 +14,10 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
 import { GameHeader } from "../../../components/game/game-header";
 import { RiderAvatar } from "../../../components/game/rider-avatar";
+import {
+  RiderComparisonLauncher,
+  RiderComparisonRosterProvider,
+} from "@/components/game/rider-comparison-launcher";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { PotentialStars } from "../../../components/game/potential-stars";
@@ -40,6 +44,7 @@ import {
   type RiderRatings,
 } from "../../../lib/game/rider-profile";
 import { getEquipmentRatingBonusTotals } from "@/lib/game/equipment";
+import type { RiderComparisonOption } from "@/lib/game/rider-comparison";
 import { getRiderRatingColorClasses } from "../../../lib/game/rider-rating-colors";
 import {
   getNextRosterSortDirection,
@@ -337,6 +342,14 @@ export default async function TeamRosterPage({
   }
 
   const riders = (rosterResult.data ?? []) as RiderRow[];
+  const comparisonOptions: RiderComparisonOption[] = riders.map((rider) => ({
+    id: rider.rider_id,
+    firstName: rider.first_name,
+    lastName: rider.last_name,
+    countryCode: rider.country_iso_alpha2,
+    countryName: rider.country_name,
+    age: rider.age,
+  }));
   const riderIds = riders.map((rider) => rider.rider_id);
   const [activeChampionshipTitles, riderEquipmentEffectsByRiderId] =
     await Promise.all([
@@ -562,7 +575,7 @@ export default async function TeamRosterPage({
               </div>
 
               {riders.length > 0 ? (
-                <>
+                <RiderComparisonRosterProvider options={comparisonOptions}>
                   <div className="xl:hidden">
                     <MobileRatingCategoryGuide />
                     <MobileRosterSortMenu
@@ -693,7 +706,7 @@ export default async function TeamRosterPage({
                       </tbody>
                     </table>
                   </div>
-                </>
+                </RiderComparisonRosterProvider>
               ) : (
                 <EmptyRoster />
               )}
@@ -1124,6 +1137,13 @@ function RiderMobileCard({
         }))}
       />
 
+      <div className="mt-3">
+        <RiderComparisonLauncher
+          riderId={rider.rider_id}
+          riderName={riderName}
+          compact
+        />
+      </div>
     </article>
   );
 }
@@ -1233,6 +1253,13 @@ function RiderTableRow({
             ) : null}
           </div>
         </Link>
+        <div className="mt-2">
+          <RiderComparisonLauncher
+            riderId={rider.rider_id}
+            riderName={riderName}
+            compact
+          />
+        </div>
       </th>
 
       <td className="px-2 py-3 text-center font-black text-[#082A2A]">
