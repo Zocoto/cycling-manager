@@ -7,6 +7,7 @@ import {
   type RaceJobPack,
 } from "@/lib/game/race-job-packs";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { hasMinimumRaceEditionField } from "@/lib/game/race-results";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { syncDueNationalFederationChampionshipLineups } from "@/services/international-championship-selections";
@@ -111,7 +112,7 @@ export async function precomputeDueOfficialRaceSimulations(
 
   const liveEditions = discoveryCalendar.editions.filter(
     (edition) =>
-      edition.engagedRiderCount > 0 &&
+      hasMinimumRaceEditionField(edition) &&
       edition.competitionType !== "national_road" &&
       edition.competitionType !== "national_time_trial" &&
       edition.stages.some(

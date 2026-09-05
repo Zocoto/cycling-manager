@@ -1,6 +1,10 @@
 import "server-only";
 
-import { isRaceEditionSettlementCandidate } from "@/lib/game/race-results";
+import {
+  hasMinimumRaceEditionField,
+  isRaceEditionSettlementCandidate,
+} from "@/lib/game/race-results";
+import { getStageLiveState } from "@/lib/game/race-live";
 import {
   RACE_SETTLEMENT_EDITION_BATCH_SIZE,
   selectRaceJobPack,
@@ -28,7 +32,7 @@ export async function settleDueStandardRaceResults({
 } = {}) {
   const admin = createSupabaseAdminClient();
   const discoveryCalendar = await getActiveSeasonRaceCalendar(admin, now, {
-    includeEngagedCounts: false,
+    includeEngagedCounts: true,
     includeEngagedRiders: false,
     includeIneligibleRegionalRaces: true,
     raceSlug,
@@ -40,6 +44,7 @@ export async function settleDueStandardRaceResults({
       targetedEditions: 0,
       eligibleEditions: 0,
       deferredEditions: 0,
+      skippedUnviableEditions: 0,
       pack: raceSlug ? 1 : packIndex + 1,
       packCount: raceSlug ? 1 : packCount,
       processedStages: 0,
@@ -53,7 +58,7 @@ export async function settleDueStandardRaceResults({
       admin,
       calendar: discoveryCalendar,
     });
-  const candidateEditions = discoveryCalendar.editions
+  const temporalCandidateEditions = discoveryCalendar.editions
     .filter(
       (edition) =>
         edition.competitionType !== "national_road" &&
@@ -63,12 +68,48 @@ export async function settleDueStandardRaceResults({
           repairableCompletedEditionIds,
           now,
         ),
-    )
-    .sort((left, right) => {
-      const leftDeparture = getEditionQueueTimestamp(left);
-      const rightDeparture = getEditionQueueTimestamp(right);
-      return leftDeparture - rightDeparture || left.id.localeCompare(right.id);
-    });
+    );
+  const candidateEditions = temporalCandidateEditions.filter(
+    (edition) =>
+      repairableCompletedEditionIds.has(edition.id) ||
+      hasMinimumRaceEditionField(edition),
+  );
+  const candidateEditionIds = candidateEditions.map((edition) => edition.id);
+  const previousClaimAtByEditionId = new Map<string, number>();
+  if (candidateEditionIds.length > 0) {
+    const { data: previousClaimRows, error: previousClaimError } = await admin
+      .from("race_edition_settlement_claims")
+      .select("race_edition_id, claimed_at")
+      .in("race_edition_id", candidateEditionIds)
+      .returns<Array<{ race_edition_id: string; claimed_at: string }>>();
+    if (previousClaimError) {
+      throw new Error(
+        `Impossible de prioriser la file des courses : ${previousClaimError.message}`,
+      );
+    }
+    for (const row of previousClaimRows ?? []) {
+      const claimedAt = Date.parse(row.claimed_at);
+      if (Number.isFinite(claimedAt)) {
+        previousClaimAtByEditionId.set(row.race_edition_id, claimedAt);
+      }
+    }
+  }
+  candidateEditions.sort((left, right) => {
+    const leftClaimedAt = previousClaimAtByEditionId.get(left.id);
+    const rightClaimedAt = previousClaimAtByEditionId.get(right.id);
+    if (leftClaimedAt === undefined && rightClaimedAt !== undefined) return -1;
+    if (leftClaimedAt !== undefined && rightClaimedAt === undefined) return 1;
+    if (
+      leftClaimedAt !== undefined &&
+      rightClaimedAt !== undefined &&
+      leftClaimedAt !== rightClaimedAt
+    ) {
+      return leftClaimedAt - rightClaimedAt;
+    }
+    const leftDeparture = getEditionQueueTimestamp(left, now);
+    const rightDeparture = getEditionQueueTimestamp(right, now);
+    return leftDeparture - rightDeparture || left.id.localeCompare(right.id);
+  });
   const jobPack = raceSlug
     ? {
         packIndex: 0,
@@ -85,6 +126,8 @@ export async function settleDueStandardRaceResults({
         limit: maxEditions,
       });
   const targetEditionIds = jobPack.items.map((edition) => edition.id);
+  const skippedUnviableEditions =
+    temporalCandidateEditions.length - candidateEditions.length;
 
   if (targetEditionIds.length === 0) {
     return {
@@ -92,6 +135,7 @@ export async function settleDueStandardRaceResults({
       targetedEditions: 0,
       eligibleEditions: jobPack.eligibleItems,
       deferredEditions: jobPack.deferredItems,
+      skippedUnviableEditions,
       pack: raceSlug ? 1 : packIndex + 1,
       packCount: raceSlug ? 1 : packCount,
       processedStages: 0,
@@ -123,6 +167,7 @@ export async function settleDueStandardRaceResults({
       targetedEditions: 0,
       eligibleEditions: jobPack.eligibleItems,
       deferredEditions: jobPack.deferredItems,
+      skippedUnviableEditions,
       pack: raceSlug ? 1 : packIndex + 1,
       packCount: raceSlug ? 1 : packCount,
       processedStages: 0,
@@ -150,6 +195,7 @@ export async function settleDueStandardRaceResults({
     targetedEditions: claimedEditionIds.length,
     eligibleEditions: jobPack.eligibleItems,
     deferredEditions: jobPack.deferredItems,
+    skippedUnviableEditions,
     pack: raceSlug ? 1 : packIndex + 1,
     packCount: raceSlug ? 1 : packCount,
     ...settlement,
@@ -160,8 +206,19 @@ function getEditionQueueTimestamp(
   edition: NonNullable<
     Awaited<ReturnType<typeof getActiveSeasonRaceCalendar>>
   >["editions"][number],
+  now: Date,
 ) {
-  return edition.stages.reduce((earliest, stage) => {
+  const unsettledFinishedStages = edition.stages.filter(
+    (stage) =>
+      stage.status !== "completed" &&
+      getStageLiveState(stage, now).status === "finished",
+  );
+  const queueStages =
+    unsettledFinishedStages.length > 0
+      ? unsettledFinishedStages
+      : edition.stages.slice(-1);
+
+  return queueStages.reduce((earliest, stage) => {
     const timestamp = stage.departureAt ? Date.parse(stage.departureAt) : NaN;
     return Number.isFinite(timestamp) ? Math.min(earliest, timestamp) : earliest;
   }, Number.POSITIVE_INFINITY);

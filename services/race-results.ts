@@ -186,21 +186,6 @@ export async function settleFinishedRaceResults(
   const repairableCompletedEditionIds =
     knownRepairableCompletedEditionIds ??
     (await loadIncompleteCompletedEditionIds({ admin, calendar }));
-  const replayCalendar = {
-    ...calendar,
-    editions: calendar.editions.filter(
-      (edition) =>
-        !shouldUseNationalChampionshipResultsOnly({
-          gameYear: calendar.gameYear,
-          competitionType: edition.competitionType,
-        }),
-    ),
-  };
-  const officialSimulations =
-    lockedDirectory ??
-    (replayCalendar.editions.length > 0
-      ? await ensureLockedOfficialRaceSimulations(replayCalendar, now)
-      : {});
   const allowSimulationRelock = lockedDirectory === undefined;
   const dueEditions = calendar.editions.filter((edition) => {
     const hasPendingStage = edition.stages.some(
@@ -233,15 +218,23 @@ export async function settleFinishedRaceResults(
         gameYear: calendar.gameYear,
         competitionType: edition.competitionType,
       });
+      const lockedSimulations = resultsOnly
+        ? createNationalChampionshipResultsOnlySimulations({ edition, now })
+        : lockedDirectory
+          ? (lockedDirectory[edition.id] ?? [])
+          : (
+              await ensureLockedOfficialRaceSimulations(
+                { ...calendar, editions: [edition] },
+                now,
+              )
+            )[edition.id] ?? [];
       const settlement = await settleEditionRaceResults({
         admin,
         calendar,
         edition,
         now,
         resultsOnly,
-        lockedSimulations: resultsOnly
-          ? createNationalChampionshipResultsOnlySimulations({ edition, now })
-          : (officialSimulations[edition.id] ?? []),
+        lockedSimulations,
         allowSimulationRelock,
       });
       return {

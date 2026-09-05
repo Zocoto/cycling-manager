@@ -63,14 +63,36 @@ describe("race settlement cron resilience", () => {
   });
 
   it("discovers cheaply and loads only editions that can be settled", () => {
-    expect(runner).toContain("includeEngagedCounts: false");
+    expect(runner).toContain("includeEngagedCounts: true");
     expect(runner).toContain("includeEngagedRiders: false");
     expect(runner).toContain("isRaceEditionSettlementCandidate");
+    expect(runner).toContain("hasMinimumRaceEditionField");
+    expect(runner.indexOf("hasMinimumRaceEditionField(edition)")).toBeLessThan(
+      runner.indexOf("selectRaceJobPack({"),
+    );
     expect(runner).toContain("claim_race_editions_for_settlement");
+    expect(runner).toContain('from("race_edition_settlement_claims")');
+    expect(runner).toContain("previousClaimAtByEditionId");
     expect(runner).toContain("selectRaceJobPack");
     expect(runner).toContain("deferredEditions");
     expect(runner).toContain("raceEditionIds: claimedEditionIds");
     expect(runner).toContain("repairableCompletedEditionIds");
+    expect(route).toContain("official_race_settlement_anomaly");
+    expect(route).toContain("result.failedEditions > 0 || settlementStalled");
+  });
+
+  it("isolates official simulation loading inside each edition settlement", () => {
+    const settleEditionStart = resultsService.indexOf(
+      "const settleEdition = async",
+    );
+    const simulationLoad = resultsService.indexOf(
+      "await ensureLockedOfficialRaceSimulations",
+    );
+    const catchStart = resultsService.indexOf("} catch (error) {", simulationLoad);
+
+    expect(settleEditionStart).toBeGreaterThan(-1);
+    expect(simulationLoad).toBeGreaterThan(settleEditionStart);
+    expect(catchStart).toBeGreaterThan(simulationLoad);
   });
 
   it("keeps editorial side effects from blocking official results", () => {

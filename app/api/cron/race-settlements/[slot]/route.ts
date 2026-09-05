@@ -84,6 +84,7 @@ export async function GET(
     targetedEditions: settlement.targetedEditions,
     eligibleEditions: settlement.eligibleEditions,
     deferredEditions: settlement.deferredEditions,
+    skippedUnviableEditions: settlement.skippedUnviableEditions,
     pack: settlement.pack,
     packCount: settlement.packCount,
     internationalSelections,
@@ -94,6 +95,16 @@ export async function GET(
     settlementDurationMs,
     durationMs: Date.now() - startedAt,
   };
+  const settlementStalled =
+    result.targetedEditions > 0 &&
+    result.processedStages === 0 &&
+    result.completedEditions === 0;
+  if (result.failedEditions > 0 || settlementStalled) {
+    console.error("official_race_settlement_anomaly", {
+      ...result,
+      settlementStalled,
+    });
+  }
   console.info("official_race_settlement_completed", result);
   return Response.json(result);
 }

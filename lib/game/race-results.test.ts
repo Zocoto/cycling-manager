@@ -5,6 +5,7 @@ import {
   buildPersistedStageRaceStandings,
   buildTeamTimeTrialStageClassification,
   filterInactiveTeamsFromOfficialClassification,
+  hasMinimumRaceEditionField,
   isRaceEditionSettlementCandidate,
   normalizeOfficialResultGapsToLeader,
   shouldSettleRaceEdition,
@@ -154,7 +155,7 @@ describe("race settlement selection", () => {
     ).toBe(true);
   });
 
-  it("loads only live, finished or explicitly repairable editions", () => {
+  it("loads only finished unsettled or explicitly repairable editions", () => {
     expect(
       isRaceEditionSettlementCandidate(
         {
@@ -171,12 +172,12 @@ describe("race settlement selection", () => {
         {
           id: "live",
           status: "in_progress",
-          stages: [stage("2026-08-23T12:00:00.000Z", "in_progress")],
+          stages: [stage("2026-08-23T12:10:00.000Z", "in_progress")],
         },
         incompleteCompletedIds,
         now,
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isRaceEditionSettlementCandidate(
         {
@@ -198,6 +199,55 @@ describe("race settlement selection", () => {
         incompleteCompletedIds,
         now,
       ),
+    ).toBe(true);
+  });
+
+  it("does not let a completed historic stage enqueue a tour whose current stage is live", () => {
+    const tour = {
+      id: "tour",
+      status: "in_progress",
+      stages: [
+        stage("2026-08-23T10:00:00.000Z", "completed"),
+        stage("2026-08-23T12:10:00.000Z", "in_progress"),
+      ],
+    };
+
+    expect(
+      isRaceEditionSettlementCandidate(tour, incompleteCompletedIds, now),
+    ).toBe(false);
+    expect(
+      isRaceEditionSettlementCandidate(
+        tour,
+        incompleteCompletedIds,
+        new Date("2026-08-23T12:40:00.000Z"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects empty fields before they can consume a bounded job batch", () => {
+    expect(
+      hasMinimumRaceEditionField({
+        competitionType: "standard",
+        engagedRiderCount: 0,
+      }),
+    ).toBe(false);
+    expect(
+      hasMinimumRaceEditionField({
+        competitionType: "standard",
+        engagedRiderCount: 1,
+      }),
+    ).toBe(false);
+    expect(
+      hasMinimumRaceEditionField({
+        competitionType: "standard",
+        engagedRiderCount: 2,
+      }),
+    ).toBe(true);
+    expect(
+      hasMinimumRaceEditionField({
+        competitionType: "continental_road",
+        engagedRiderCount: 1,
+      }),
     ).toBe(true);
   });
 });

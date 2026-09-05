@@ -182,6 +182,17 @@ export function shouldSettleRaceEdition(
   return repairableCompletedEditionIds.has(edition.id);
 }
 
+export function hasMinimumRaceEditionField({
+  competitionType,
+  engagedRiderCount,
+}: {
+  competitionType: string;
+  engagedRiderCount: number;
+}) {
+  const minimumFieldSize = competitionType === "standard" ? 2 : 1;
+  return engagedRiderCount >= minimumFieldSize;
+}
+
 export function isRaceEditionSettlementCandidate(
   edition: {
     id: string;
@@ -207,10 +218,22 @@ export function isRaceEditionSettlementCandidate(
 
   if (repairableCompletedEditionIds.has(edition.id)) return true;
 
-  return edition.stages.some((stage) => {
-    const state = getStageLiveState(stage, now).status;
-    return state === "live" || state === "finished";
-  });
+  const finishedStages = edition.stages.filter(
+    (stage) => getStageLiveState(stage, now).status === "finished",
+  );
+
+  // Une étape simplement en direct ne peut encore produire aucun résultat.
+  // Sur un tour, les étapes historiques déjà homologuées ne doivent pas non
+  // plus maintenir l'édition en tête de file pendant l'étape du jour.
+  if (finishedStages.some((stage) => stage.status !== "completed")) return true;
+
+  // Reprend une interruption située entre la clôture de la dernière étape et
+  // celle de l'édition/classement général, sans réveiller un tour encore actif.
+  return (
+    edition.status !== "completed" &&
+    edition.stages.length > 0 &&
+    finishedStages.length === edition.stages.length
+  );
 }
 
 export function normalizeOfficialResultGapsToLeader(
