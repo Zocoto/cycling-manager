@@ -134,7 +134,7 @@ export function FederationSelectionWorkbench({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-[#278B70]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
+      <section className="rounded-[2rem] border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
         <SelectionAutomaticModeControl
           countryCode={countryCode}
           canManage={canManage}
@@ -157,7 +157,7 @@ export function FederationSelectionWorkbench({
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">{gameYear < 3 ? "Atelier de présélection S3" : "Sélections officielles"}</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">{gameYear < 3 ? "Atelier de présélection S3" : "Sélections officielles"}</p>
             <h2 className="mt-2 text-3xl font-black text-[#183F37]">Construire les listes dès J1</h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
               Le filtre de nationalité est verrouillé sur {countryName}. {gameYear < 3
@@ -167,7 +167,7 @@ export function FederationSelectionWorkbench({
           </div>
           <label>
             <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">Épreuve à préparer</span>
-            <select value={slot.id} onChange={(event) => { setSlotId(event.target.value); setTeam("all"); setProfile("all"); }} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[#278B70]">
+            <select value={slot.id} onChange={(event) => { setSlotId(event.target.value); setTeam("all"); setProfile("all"); }} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[var(--federation-secondary)]">
               {SELECTION_SLOTS.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.label}</option>)}
             </select>
           </label>
@@ -177,7 +177,7 @@ export function FederationSelectionWorkbench({
       {slot.competition === "Nations Cup" ? (
         <nav aria-label="Profils de la Nations Cup" className="grid grid-cols-2 gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 sm:grid-cols-5">
           {SELECTION_SLOTS.filter((candidate) => candidate.competition === "Nations Cup").map((candidate) => (
-            <button key={candidate.id} type="button" onClick={() => setSlotId(candidate.id)} className={`rounded-xl px-3 py-3 text-xs font-black transition ${candidate.id === slot.id ? "bg-[#123F36] text-white" : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"}`}>
+            <button key={candidate.id} type="button" onClick={() => setSlotId(candidate.id)} className={`rounded-xl px-3 py-3 text-xs font-black transition ${candidate.id === slot.id ? "bg-[var(--federation-primary)] text-white" : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"}`}>
               {candidate.nationsCupProfile}
             </button>
           ))}
@@ -185,11 +185,11 @@ export function FederationSelectionWorkbench({
       ) : null}
 
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-        <div className="grid gap-4 bg-[#123F36] p-5 text-white sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="grid gap-4 bg-[var(--federation-primary)] p-5 text-white sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="flex items-center gap-4">
             <span role="img" aria-label={`Pays hôte : ${slot.hostName}`} className={`fi fi-${slot.hostCode} text-4xl shadow-sm`} />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">J{slot.day} · Pays hôte : {slot.hostName}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-accent)]">J{slot.day} · Pays hôte : {slot.hostName}</p>
               <h3 className="mt-1 text-xl font-black">{slot.label}</h3>
               <p className="mt-1 text-xs font-semibold text-[#D6DFD2]">Profil : {slot.profile}</p>
             </div>
@@ -202,7 +202,7 @@ export function FederationSelectionWorkbench({
 
         <div className="grid gap-3 border-b border-[#315B3E]/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Nationalité verrouillée</span><span className="mt-2 flex min-h-11 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#EEF3F1] px-3 text-sm font-black text-[#183F37]"><span className={`fi fi-${countryCode.toLowerCase()}`} />{countryName}</span></label>
-          <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Recherche</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Coureur ou équipe" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]" /></label>
+          <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Recherche</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Coureur ou équipe" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[var(--federation-secondary)]" /></label>
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Équipe</span><select value={team} onChange={(event) => setTeam(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37]"><option value="all">Toutes</option>{availableTeams.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Profil</span><select value={profile} onChange={(event) => setProfile(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37]"><option value="all">Tous</option>{["Montagne", "Vallons", "Sprint", "Pavés", "Chrono", "Polyvalent"].map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
         </div>
@@ -214,7 +214,7 @@ export function FederationSelectionWorkbench({
               {filteredRiders.map((rider) => {
                 const isSelected = selected.includes(rider.id);
                 const limitReached = !isSelected && selected.length >= slot.limit;
-                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[#176951]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p></td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{Object.values(rider.ratings).map((rating, index) => <td key={index} className="px-2 py-4 text-center font-black text-[#183F37]">{formatRating(rating)}</td>)}<td className="px-3 py-4 text-center text-base font-black text-[#176951]">{formatRating(rider.overall)}</td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
+                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p></td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{Object.values(rider.ratings).map((rating, index) => <td key={index} className="px-2 py-4 text-center font-black text-[#183F37]">{formatRating(rating)}</td>)}<td className="px-3 py-4 text-center text-base font-black text-[var(--federation-secondary)]">{formatRating(rider.overall)}</td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
               })}
             </tbody>
           </table>
@@ -233,14 +233,14 @@ export function FederationSelectionWorkbench({
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
                 <input type="hidden" name="riderIds" value={JSON.stringify(selected)} />
-                <button type="submit" disabled={savePending} className="min-h-11 rounded-xl border border-[#176951]/25 bg-white px-5 text-sm font-black text-[#176951] disabled:cursor-wait disabled:opacity-60">
+                <button type="submit" disabled={savePending} className="min-h-11 rounded-xl border border-[var(--federation-secondary)]/25 bg-white px-5 text-sm font-black text-[var(--federation-secondary)] disabled:cursor-wait disabled:opacity-60">
                   {savePending ? "Enregistrement…" : "Enregistrer le brouillon"}
                 </button>
               </form>
               <form action={publishAction}>
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
-                <button type="submit" disabled={publishPending || !storedSelection} className="min-h-11 rounded-xl bg-[#123F36] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                <button type="submit" disabled={publishPending || !storedSelection} className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
                   {publishPending ? "Envoi…" : "Soumettre aux DS"}
                 </button>
               </form>
@@ -252,7 +252,7 @@ export function FederationSelectionWorkbench({
           )}
         </div>
         {canManage && (saveState.message || publishState.message) ? (
-          <p role="status" className={`border-t border-[#315B3E]/10 px-5 py-3 text-xs font-black ${saveState.status === "error" || publishState.status === "error" ? "bg-[#FBE3DE] text-[#9D3E37]" : "bg-[#E8F7F1] text-[#176951]"}`}>
+          <p role="status" className={`border-t border-[#315B3E]/10 px-5 py-3 text-xs font-black ${saveState.status === "error" || publishState.status === "error" ? "bg-[#FBE3DE] text-[#9D3E37]" : "bg-[#E8F7F1] text-[var(--federation-secondary)]"}`}>
             {publishState.message || saveState.message}
           </p>
         ) : null}
@@ -303,7 +303,7 @@ function SelectionAutomaticModeControl({
           onChange(event.target.checked);
           event.currentTarget.form?.requestSubmit();
         }}
-        className="mt-1 h-6 w-6 shrink-0 accent-[#176951]"
+        className="mt-1 h-6 w-6 shrink-0 accent-[var(--federation-secondary)]"
       />
       <span>
         <span className="block text-base font-black text-[#183F37]">
@@ -357,7 +357,7 @@ function PendingConfirmationPanel({
                 <form action={respondFederationPreselectionAction}>
                   <input type="hidden" name="memberId" value={confirmation.memberId} />
                   <input type="hidden" name="decision" value="confirm" />
-                  <button type="submit" className="min-h-10 rounded-xl bg-[#176951] px-4 text-xs font-black text-white">Confirmer</button>
+                  <button type="submit" className="min-h-10 rounded-xl bg-[var(--federation-secondary)] px-4 text-xs font-black text-white">Confirmer</button>
                 </form>
                 <form action={respondFederationPreselectionAction}>
                   <input type="hidden" name="memberId" value={confirmation.memberId} />

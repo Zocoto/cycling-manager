@@ -68,8 +68,8 @@ export function FederationInfrastructureCatalog({
   return (
     <div className="space-y-6">
       {activeProjects.length > 0 ? (
-        <section className="rounded-[2rem] border border-[#278B70]/30 bg-white p-6 shadow-[0_18px_48px_rgba(19,60,46,0.12)] sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+        <section className="rounded-[2rem] border border-[var(--federation-secondary)]/30 bg-white p-6 shadow-[0_18px_48px_rgba(19,60,46,0.12)] sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">
             Construction en cours
           </p>
           <h2 className="mt-2 text-3xl font-black text-[#183F37]">
@@ -204,7 +204,7 @@ function FederationInfrastructureCard({
 
       <div className="grid gap-7 p-5 sm:p-7 xl:grid-cols-[minmax(0,1fr)_minmax(330px,0.42fr)]">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[#278B70]">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--federation-secondary)]">
             Apports niveau par niveau
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-5">
@@ -216,10 +216,10 @@ function FederationInfrastructureCard({
                 aria-pressed={selectedLevel === candidate.level}
                 className={`rounded-xl border p-3 text-left transition ${
                   currentLevel >= candidate.level
-                    ? "border-[#278B70]/45 bg-[#DDF3E7]"
+                    ? "border-[var(--federation-secondary)]/45 bg-[#DDF3E7]"
                     : selectedLevel === candidate.level
-                      ? "border-[#278B70]/55 bg-[#EAF7F1] shadow-sm"
-                      : "border-[#315B3E]/10 bg-[#F6F8F6] hover:border-[#278B70]/30"
+                      ? "border-[var(--federation-secondary)]/55 bg-[#EAF7F1] shadow-sm"
+                      : "border-[#315B3E]/10 bg-[#F6F8F6] hover:border-[var(--federation-secondary)]/30"
                 }`}
               >
                 <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
@@ -229,7 +229,7 @@ function FederationInfrastructureCard({
                 <span className="mt-1 block text-xs font-bold leading-5 text-[#183F37]">
                   {candidate.effect}
                 </span>
-                <span className="mt-3 block text-[10px] font-black text-[#278B70]">
+                <span className="mt-3 block text-[10px] font-black text-[var(--federation-secondary)]">
                   {formatMoney(candidate.cost, currency)} · {candidate.durationDays} j
                 </span>
               </button>
@@ -242,7 +242,7 @@ function FederationInfrastructureCard({
         </div>
 
         {activeProject ? (
-          <aside className="h-fit rounded-2xl border border-[#278B70]/25 bg-[#EAF7F1] p-5 text-sm font-bold leading-6 text-[#176951]">
+          <aside className="h-fit rounded-2xl border border-[var(--federation-secondary)]/25 bg-[#EAF7F1] p-5 text-sm font-bold leading-6 text-[var(--federation-secondary)]">
             Ce chantier est suivi dans l’encart « Construction en cours » en
             tête de page.
           </aside>
@@ -302,7 +302,7 @@ function FederationInfrastructureCard({
             )}
           </aside>
         ) : (
-          <aside className="h-fit rounded-2xl border border-[#278B70]/25 bg-[#E5F4ED] p-5 text-sm font-black text-[#176951]">
+          <aside className="h-fit rounded-2xl border border-[var(--federation-secondary)]/25 bg-[#E5F4ED] p-5 text-sm font-black text-[var(--federation-secondary)]">
             Niveau maximal atteint. Aucun nouveau chantier n’est nécessaire.
           </aside>
         )}
@@ -346,22 +346,22 @@ function ActiveProjectPanel({
     (state?.availableArchitects.length ?? 0) > 0;
 
   return (
-    <aside className="h-fit rounded-2xl border border-[#278B70]/30 bg-[#EAF7F1] p-5">
+    <aside className="h-fit rounded-2xl border border-[var(--federation-secondary)]/30 bg-[#EAF7F1] p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#176951]">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
             Chantier en cours · niveau {project.targetLevel}
           </p>
           <p className="mt-2 text-xl font-black text-[#183F37]">
             {definition?.name ?? "Infrastructure fédérale"}
           </p>
-          <p className="mt-1 text-sm font-black text-[#176951]">
+          <p className="mt-1 text-sm font-black text-[var(--federation-secondary)]">
             {project.remainingDays > 0
               ? `${project.remainingDays} jour${project.remainingDays > 1 ? "s" : ""} restant${project.remainingDays > 1 ? "s" : ""}`
               : "Livraison imminente"}
           </p>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#176951]">
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[var(--federation-secondary)]">
           {project.architectCount}/5
         </span>
       </div>
@@ -389,7 +389,7 @@ function ActiveProjectPanel({
           <button
             type="submit"
             disabled={!state?.canLaunch || priorityPending}
-            className="min-h-10 rounded-lg bg-[#123F36] px-4 text-xs font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
+            className="min-h-10 rounded-lg bg-[var(--federation-primary)] px-4 text-xs font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
           >
             {priorityPending ? "Calcul…" : "Mettre à jour"}
           </button>
@@ -403,7 +403,7 @@ function ActiveProjectPanel({
       </form>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#C9E3D7]">
         <div
-          className="h-full rounded-full bg-[#278B70] transition-[width]"
+          className="h-full rounded-full bg-[var(--federation-secondary)] transition-[width]"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -420,7 +420,7 @@ function ActiveProjectPanel({
         />
       </dl>
       {project.architects.length > 0 ? (
-        <ul className="mt-4 space-y-2 border-t border-[#278B70]/15 pt-4">
+        <ul className="mt-4 space-y-2 border-t border-[var(--federation-secondary)]/15 pt-4">
           {project.architects.map((architect) => (
             <li
               key={architect.contractId}
@@ -434,7 +434,7 @@ function ActiveProjectPanel({
                   {architect.teamName} · {architect.specialty}
                 </span>
               </span>
-              <span className="shrink-0 text-[#176951]">
+              <span className="shrink-0 text-[var(--federation-secondary)]">
                 +{formatMoney(architect.costRefund, currency)} · −{architect.savedDays} j
               </span>
             </li>
@@ -493,7 +493,7 @@ function LaunchProjectForm({
       <button
         type="submit"
         disabled={disabled || pending}
-        className="min-h-11 w-full rounded-xl bg-[#123F36] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
+        className="min-h-11 w-full rounded-xl bg-[var(--federation-primary)] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
       >
         {pending ? "Lancement…" : `Lancer le niveau ${targetLevel}`}
       </button>
@@ -526,7 +526,7 @@ function ArchitectContributionForm({
     initialFederationInfrastructureActionState,
   );
   return (
-    <form action={action} className="mt-5 border-t border-[#278B70]/15 pt-4">
+    <form action={action} className="mt-5 border-t border-[var(--federation-secondary)]/15 pt-4">
       <input type="hidden" name="countryCode" value={countryCode} />
       <input type="hidden" name="projectId" value={projectId} />
       <label className="block">
@@ -553,7 +553,7 @@ function ArchitectContributionForm({
       <button
         type="submit"
         disabled={disabled || pending || !selectedArchitect}
-        className="mt-3 min-h-11 w-full rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] disabled:cursor-not-allowed disabled:text-[#9AA9A3]"
+        className="mt-3 min-h-11 w-full rounded-xl border border-[var(--federation-secondary)]/25 bg-white px-4 text-sm font-black text-[var(--federation-secondary)] disabled:cursor-not-allowed disabled:text-[#9AA9A3]"
       >
         {pending ? "Affectation…" : "Affecter au chantier"}
       </button>
@@ -572,7 +572,7 @@ function ActionFeedback({ state }: { state: FederationInfrastructureActionState 
       role="status"
       className={`mt-3 rounded-xl px-3 py-2 text-xs font-bold ${
         state.status === "success"
-          ? "bg-white text-[#176951]"
+          ? "bg-white text-[var(--federation-secondary)]"
           : "bg-[#FFF2F0] text-[#9D3E37]"
       }`}
     >

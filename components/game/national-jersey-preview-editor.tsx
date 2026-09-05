@@ -189,7 +189,7 @@ export function NationalJerseyPreviewEditor({
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-      <div className="grid gap-6 bg-[#123F36] p-6 text-white sm:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-center">
+      <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-center">
         <JerseyArtwork
           countryCode={countryCode}
           countryName={countryName}
@@ -198,11 +198,11 @@ export function NationalJerseyPreviewEditor({
         />
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
               Atelier du maillot national
             </p>
-            <span className="rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FFE790]">
-              Bêta belge
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/85">
+              Toutes fédérations
             </span>
           </div>
           <h2 className="mt-3 text-3xl font-black">
@@ -238,7 +238,7 @@ export function NationalJerseyPreviewEditor({
               Repartir de zéro
             </button>
           </div>
-          <p aria-live="polite" className="mt-3 text-xs font-bold text-[#9BE0BC]">
+          <p aria-live="polite" className="mt-3 text-xs font-bold text-[var(--federation-accent)]">
             {storageStatus === "saved"
               ? "Brouillon enregistré sur cet appareil."
               : storageStatus === "restored"
@@ -283,8 +283,8 @@ export function NationalJerseyPreviewEditor({
                       onClick={() => setSelectedElementId(element.id)}
                       className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-xs font-black transition ${
                         selectedElementId === element.id
-                          ? "border-[#278B70] bg-[#DDF3E7] text-[#176951]"
-                          : "border-[#315B3E]/12 bg-[#F8FBF9] text-[#4F665E] hover:border-[#278B70]/40"
+                          ? "border-[var(--federation-secondary)] bg-[#DDF3E7] text-[var(--federation-secondary)]"
+                          : "border-[#315B3E]/12 bg-[#F8FBF9] text-[#4F665E] hover:border-[var(--federation-secondary)]/40"
                       }`}
                     >
                       <span>{ELEMENT_LABELS[element.kind]}</span>
@@ -366,7 +366,7 @@ export function NationalJerseyPreviewEditor({
             )}
           </EditorGroup>
 
-          <form action={publishAction} className="mt-6 rounded-2xl bg-[#123F36] p-5 text-white">
+          <form action={publishAction} className="mt-6 rounded-2xl bg-[var(--federation-primary)] p-5 text-white">
             <input type="hidden" name="countryCode" value={countryCode} />
             <input type="hidden" name="design" value={JSON.stringify(draft)} />
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -381,17 +381,17 @@ export function NationalJerseyPreviewEditor({
               <button
                 type="submit"
                 disabled={!canPublish || publishPending}
-                className="shrink-0 rounded-xl bg-[#F2C94C] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 hover:bg-[#FFE071] disabled:cursor-not-allowed disabled:opacity-45"
+                className="shrink-0 rounded-xl bg-[var(--federation-accent)] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {publishPending ? "Publication…" : "Valider et publier"}
               </button>
             </div>
             <p
               aria-live="polite"
-              className={`mt-3 text-xs font-bold ${publishState.status === "error" ? "text-[#FFB0B6]" : "text-[#9BE0BC]"}`}
+              className={`mt-3 text-xs font-bold ${publishState.status === "error" ? "text-[#FFB0B6]" : "text-[var(--federation-accent)]"}`}
             >
               {!canPublish
-                ? "Publication réservée aux équipes affiliées à la fédération belge pendant la bêta."
+                ? "La validation est réservée aux équipes affiliées à cette fédération."
                 : publishState.message || "Votre brouillon n’affecte pas le maillot publié avant validation."}
             </p>
           </form>
@@ -468,7 +468,7 @@ function createNationalJerseyElement(
 function EditorGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">{title}</h3>
+      <h3 className="text-xs font-black uppercase tracking-[0.16em] text-[var(--federation-secondary)]">{title}</h3>
       <div className="mt-3 space-y-4">{children}</div>
     </section>
   );
@@ -476,8 +476,8 @@ function EditorGroup({ title, children }: { title: string; children: React.React
 
 function AddElementButton({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex min-h-12 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] px-3 text-xs font-black text-[#183F37] transition hover:border-[#278B70]/45 hover:bg-[#EEF8F3]">
-      <span className="text-lg text-[#176951]" aria-hidden="true">{icon}</span>
+    <button type="button" onClick={onClick} className="flex min-h-12 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] px-3 text-xs font-black text-[#183F37] transition hover:border-[var(--federation-secondary)]/45 hover:bg-[#EEF8F3]">
+      <span className="text-lg text-[var(--federation-secondary)]" aria-hidden="true">{icon}</span>
       {label}
     </button>
   );
@@ -485,7 +485,7 @@ function AddElementButton({ label, icon, onClick }: { label: string; icon: strin
 
 function LayerButton({ label, onClick, danger = false, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className={`grid h-9 w-9 place-items-center rounded-lg border text-base font-black transition ${danger ? "border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#B9343F] hover:bg-[#EF5B65]/15" : "border-[#315B3E]/15 bg-white text-[#176951] hover:bg-[#DDF3E7]"}`}>
+    <button type="button" aria-label={label} title={label} onClick={onClick} className={`grid h-9 w-9 place-items-center rounded-lg border text-base font-black transition ${danger ? "border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#B9343F] hover:bg-[#EF5B65]/15" : "border-[#315B3E]/15 bg-white text-[var(--federation-secondary)] hover:bg-[#DDF3E7]"}`}>
       {children}
     </button>
   );
@@ -495,7 +495,7 @@ function EditorSelect({ label, value, options, onChange }: { label: string; valu
   return (
     <label className="block">
       <span className="text-sm font-black text-[#183F37]">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-[#315B3E]/18 bg-white px-4 py-3 text-sm font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#42B99A]/25">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-[#315B3E]/18 bg-white px-4 py-3 text-sm font-black text-[#183F37] outline-none focus:border-[var(--federation-secondary)] focus:ring-2 focus:ring-[#42B99A]/25">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
@@ -516,9 +516,9 @@ function EditorRange({ label, value, minimum, maximum, step = 1, display, onChan
     <label className="block">
       <span className="flex items-center justify-between gap-3 text-sm font-black text-[#183F37]">
         <span>{label}</span>
-        <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs text-[#176951]">{display}</span>
+        <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs text-[var(--federation-secondary)]">{display}</span>
       </span>
-      <input type="range" value={value} min={minimum} max={maximum} step={step} onChange={(event) => onChange(Number(event.target.value))} className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#DDE8E2] accent-[#176951]" />
+      <input type="range" value={value} min={minimum} max={maximum} step={step} onChange={(event) => onChange(Number(event.target.value))} className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[#DDE8E2] accent-[var(--federation-secondary)]" />
     </label>
   );
 }

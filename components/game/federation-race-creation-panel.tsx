@@ -23,7 +23,7 @@ import {
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 
 const fieldClassName =
-  "min-h-11 w-full rounded-xl border border-[#315B3E]/18 bg-white px-3 text-sm font-bold text-[#183F37] outline-none transition focus:border-[#278B70] disabled:cursor-not-allowed disabled:bg-[#EEF3F1]";
+  "min-h-11 w-full rounded-xl border border-[#315B3E]/18 bg-white px-3 text-sm font-bold text-[#183F37] outline-none transition focus:border-[var(--federation-secondary,#278B70)] disabled:cursor-not-allowed disabled:bg-[#EEF3F1]";
 
 const STAGE_TYPE_OPTIONS: Array<{
   value: FederationRaceStageType;
@@ -93,7 +93,7 @@ export function FederationRaceCreationPanel({
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-      <div className="grid gap-6 bg-[linear-gradient(135deg,#102F2A_0%,#176951_100%)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+      <div className="grid gap-6 bg-[linear-gradient(135deg,var(--federation-primary,#102F2A)_0%,var(--federation-secondary,#176951)_100%)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
             Homologation fédérale · active en Saison 4
@@ -122,7 +122,7 @@ export function FederationRaceCreationPanel({
           <span
             className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${
               state.score.eligible
-                ? "bg-[#9BE0BC] text-[#123F36]"
+                ? "bg-[var(--federation-accent,#9BE0BC)] text-[var(--federation-primary,#123F36)]"
                 : "bg-[#F2C94C] text-[#4A3A00]"
             }`}
           >
@@ -227,8 +227,8 @@ export function FederationRaceCreationPanel({
                   <option value="late">18 h</option>
                 </select>
               </Field>
-              <div className="rounded-xl bg-[#E5F4ED] px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#278B70]">
+              <div className="rounded-xl bg-[var(--federation-soft,#E5F4ED)] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--federation-secondary,#278B70)]">
                   Programmation
                 </p>
                 <p className="mt-1 text-sm font-black text-[#183F37]">
@@ -278,7 +278,7 @@ export function FederationRaceCreationPanel({
                         createDefaultStage(current.length + 1),
                       ])
                     }
-                    className="min-h-11 rounded-xl border border-[#176951]/25 bg-[#E5F4ED] px-4 text-sm font-black text-[#176951]"
+                    className="min-h-11 rounded-xl border border-[var(--federation-secondary,#176951)]/25 bg-[var(--federation-soft,#E5F4ED)] px-4 text-sm font-black text-[var(--federation-secondary,#176951)]"
                   >
                     + Ajouter une étape
                   </button>
@@ -290,7 +290,7 @@ export function FederationRaceCreationPanel({
               <button
                 type="submit"
                 disabled={pending}
-                className="min-h-12 rounded-xl bg-[#123F36] px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
+                className="min-h-12 rounded-xl bg-[var(--federation-primary,#123F36)] px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
               >
                 {pending ? "Homologation…" : "Homologuer la course"}
               </button>
@@ -351,7 +351,7 @@ function ScoreBreakdown({
             <p className="mt-2 text-2xl font-black text-[#183F37]">
               {item.value}
             </p>
-            <p className="mt-1 text-xs font-bold text-[#278B70]">{item.detail}</p>
+            <p className="mt-1 text-xs font-bold text-[var(--federation-secondary,#278B70)]">{item.detail}</p>
           </article>
         ))}
       </div>
@@ -413,10 +413,10 @@ function ScheduledProject({
     (option) => option.code === project.categoryCode,
   );
   return (
-    <article className="rounded-2xl border border-[#278B70]/35 bg-[#E5F4ED] p-5 sm:p-6">
+    <article className="rounded-2xl border border-[var(--federation-secondary,#278B70)]/35 bg-[var(--federation-soft,#E5F4ED)] p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary,#278B70)]">
             Course homologuée · Saison {project.activationGameYear}
           </p>
           <h3 className="mt-2 text-2xl font-black text-[#183F37]">
@@ -426,7 +426,7 @@ function ScheduledProject({
             {project.raceFormat === "one_day" ? "Classique" : "Tour"} · {category?.label ?? project.categoryCode} · départ J{project.startDay} à {project.startSlot === "early" ? "14 h" : "18 h"}
           </p>
         </div>
-        <span className="rounded-full bg-[#176951] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white">
+        <span className="rounded-full bg-[var(--federation-secondary,#176951)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white">
           Programmée
         </span>
       </div>
@@ -489,7 +489,7 @@ function StageEditor({
     <article className="rounded-2xl border border-[#315B3E]/14 bg-[#F8FBF9] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.13em] text-[#278B70]">
+          <p className="text-xs font-black uppercase tracking-[0.13em] text-[var(--federation-secondary,#278B70)]">
             Étape {stageIndex + 1} · J{schedule.dayNumber} · {schedule.daySlot === "early" ? "14 h" : "18 h"}
           </p>
           <p className="mt-1 text-sm font-black text-[#183F37]">
@@ -573,7 +573,7 @@ function StageEditor({
             key={segmentIndex}
             className="grid gap-2 rounded-xl border border-[#315B3E]/10 bg-white p-3 sm:grid-cols-2 lg:grid-cols-[70px_minmax(92px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_90px_42px] lg:items-center"
           >
-            <span className="text-xs font-black text-[#278B70]">
+            <span className="text-xs font-black text-[var(--federation-secondary,#278B70)]">
               #{segmentIndex + 1}
             </span>
             <input
@@ -665,7 +665,7 @@ function StageEditor({
               segments: [...stage.segments, createDefaultSegment()],
             })
           }
-          className="mt-3 rounded-lg border border-[#176951]/20 bg-white px-3 py-2 text-xs font-black text-[#176951]"
+          className="mt-3 rounded-lg border border-[var(--federation-secondary,#176951)]/20 bg-white px-3 py-2 text-xs font-black text-[var(--federation-secondary,#176951)]"
         >
           + Ajouter un tronçon
         </button>
@@ -706,7 +706,7 @@ function ActionFeedback({
       role={status === "error" ? "alert" : "status"}
       className={`rounded-xl px-4 py-3 text-sm font-bold ${
         status === "success"
-          ? "bg-[#E5F4ED] text-[#176951]"
+          ? "bg-[var(--federation-soft,#E5F4ED)] text-[var(--federation-secondary,#176951)]"
           : "bg-[#FBE9E5] text-[#9B392C]"
       }`}
     >

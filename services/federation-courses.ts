@@ -11,7 +11,16 @@ import {
   type FederationHostingEventType,
   type FederationHostingRiderCategory,
 } from "@/lib/game/federation-hosting";
+import type { RaceProfileType } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
+
+export type FederationRacePastWinner = {
+  gameYear: number;
+  riderName: string;
+  teamName: string | null;
+};
 
 export type FederationCountryRace = {
   id: string;
@@ -39,6 +48,8 @@ export type FederationCountryRace = {
   moneyGain: number;
   prestigeGain: number;
   gainKind: "money" | "mixed";
+  profiles: Array<{ type: RaceProfileType; count: number }>;
+  pastWinners: FederationRacePastWinner[];
 };
 
 export type FederationRenownState = {
@@ -118,6 +129,7 @@ type RaceRow = {
 type EditionRow = {
   id: string;
   race_id: string;
+  season_id: string;
   race_category_id: string;
   status: string;
   field_limit: number | null;
@@ -135,7 +147,11 @@ type RegistrationRow = {
   status: "pending" | "accepted" | "rejected" | "withdrawn";
 };
 type RosterRow = { race_registration_id: string; status: string };
-type StageRow = { race_edition_id: string; status: string };
+type StageRow = {
+  race_edition_id: string;
+  status: string;
+  profile_type: RaceProfileType;
+};
 type RenownRow = {
   score: number;
   uci_history_points: number;
@@ -168,6 +184,28 @@ type AccountRow = { balance: number | string };
 type InfrastructureRow = { level: number };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
+type HistoricEditionRow = {
+  id: string;
+  race_id: string;
+  season_id: string;
+};
+type HistoricWinnerRow = {
+  race_edition_id: string;
+  race_roster_id: string;
+};
+type HistoricRosterRow = {
+  id: string;
+  rider_id: string;
+  race_registration_id: string;
+};
+type HistoricRegistrationRow = {
+  id: string;
+  team_season_id: string | null;
+  historical_team_name: string | null;
+};
+type HistoricRiderRow = { id: string; first_name: string; last_name: string };
+type HistoricSeasonRow = { id: string; game_year: number };
+type HistoricTeamSeasonRow = { id: string; display_name: string };
 
 const emptyRenown = (gameYear: number): FederationRenownState => ({
   score: 0,
@@ -273,7 +311,7 @@ export async function getFederationCoursesState({
     const editionsResult = raceIds.length
       ? await admin
           .from("race_editions")
-          .select("id, race_id, race_category_id, status, field_limit")
+          .select("id, race_id, season_id, race_category_id, status, field_limit")
           .eq("season_id", seasonId)
           .in("race_id", raceIds)
           .returns<EditionRow[]>()
@@ -283,7 +321,7 @@ export async function getFederationCoursesState({
     const editions = editionsResult.data ?? [];
     const editionIds = editions.map((edition) => edition.id);
     const categoryIds = [...new Set(editions.map((edition) => edition.race_category_id))];
-    const [categoriesResult, registrationsResult, stagesResult, candidaciesResult, awardsResult] =
+    const [categoriesResult, registrationsResult, stagesResult, candidaciesResult, awardsResult, pastWinnersByRaceId] =
       await Promise.all([
         categoryIds.length
           ? admin
@@ -302,7 +340,7 @@ export async function getFederationCoursesState({
         editionIds.length
           ? admin
               .from("stages")
-              .select("race_edition_id, status")
+              .select("race_edition_id, status, profile_type")
               .in("race_edition_id", editionIds)
               .returns<StageRow[]>()
           : Promise.resolve({ data: [] as StageRow[], error: null }),
@@ -321,6 +359,7 @@ export async function getFederationCoursesState({
           .eq("target_game_year", targetGameYear)
           .in("status", ["scheduled", "settled"])
           .returns<AwardRow[]>(),
+        loadRacePastWinners(admin, raceIds),
       ]);
     for (const result of [
       categoriesResult,
@@ -402,6 +441,13 @@ export async function getFederationCoursesState({
       });
       const fieldLimit = edition?.field_limit ?? null;
       const maximumRosterSize = category?.maximum_roster_size ?? 0;
+      const profileCounts = new Map<RaceProfileType, number>();
+      for (const stage of raceStages) {
+        profileCounts.set(
+          stage.profile_type,
+          (profileCounts.get(stage.profile_type) ?? 0) + 1,
+        );
+      }
       return {
         id: race.id,
         slug: race.slug,
@@ -428,6 +474,11 @@ export async function getFederationCoursesState({
         moneyGain: raceReturn.money,
         prestigeGain: raceReturn.prestige,
         gainKind: raceReturn.kind,
+        profiles: [...profileCounts.entries()].map(([type, count]) => ({
+          type,
+          count,
+        })),
+        pastWinners: pastWinnersByRaceId.get(race.id) ?? [],
       };
     });
 
@@ -539,6 +590,149 @@ export async function getFederationCoursesState({
     console.error("Impossible de charger le portefeuille de courses fédérales :", error);
     return fallback;
   }
+}
+
+async function loadRacePastWinners(
+  admin: AdminClient,
+  raceIds: string[],
+): Promise<Map<string, FederationRacePastWinner[]>> {
+  if (raceIds.length === 0) return new Map();
+
+  const editionsResult = await admin
+    .from("race_editions")
+    .select("id, race_id, season_id")
+    .in("race_id", raceIds)
+    .eq("status", "completed")
+    .returns<HistoricEditionRow[]>();
+  if (editionsResult.error) throw editionsResult.error;
+  const editions = editionsResult.data ?? [];
+  if (editions.length === 0) return new Map();
+
+  const winnersResult = await admin
+    .from("race_results")
+    .select("race_edition_id, race_roster_id")
+    .in(
+      "race_edition_id",
+      editions.map((edition) => edition.id),
+    )
+    .eq("status", "classified")
+    .eq("final_rank", 1)
+    .returns<HistoricWinnerRow[]>();
+  if (winnersResult.error) throw winnersResult.error;
+  const winners = winnersResult.data ?? [];
+  if (winners.length === 0) return new Map();
+
+  const rostersResult = await admin
+    .from("race_rosters")
+    .select("id, rider_id, race_registration_id")
+    .in(
+      "id",
+      winners.map((winner) => winner.race_roster_id),
+    )
+    .returns<HistoricRosterRow[]>();
+  if (rostersResult.error) throw rostersResult.error;
+  const rosters = rostersResult.data ?? [];
+  const registrationIds = [
+    ...new Set(rosters.map((roster) => roster.race_registration_id)),
+  ];
+  const teamSeasonIds: string[] = [];
+  const [ridersResult, registrationsResult, seasonsResult] = await Promise.all([
+    admin
+      .from("riders")
+      .select("id, first_name, last_name")
+      .in(
+        "id",
+        rosters.map((roster) => roster.rider_id),
+      )
+      .returns<HistoricRiderRow[]>(),
+    registrationIds.length
+      ? admin
+          .from("race_registrations")
+          .select("id, team_season_id, historical_team_name")
+          .in("id", registrationIds)
+          .returns<HistoricRegistrationRow[]>()
+      : Promise.resolve({ data: [] as HistoricRegistrationRow[], error: null }),
+    admin
+      .from("seasons")
+      .select("id, game_year")
+      .in(
+        "id",
+        [...new Set(editions.map((edition) => edition.season_id))],
+      )
+      .returns<HistoricSeasonRow[]>(),
+  ]);
+  if (ridersResult.error) throw ridersResult.error;
+  if (registrationsResult.error) throw registrationsResult.error;
+  if (seasonsResult.error) throw seasonsResult.error;
+
+  for (const registration of registrationsResult.data ?? []) {
+    if (registration.team_season_id) teamSeasonIds.push(registration.team_season_id);
+  }
+  const teamSeasonsResult = teamSeasonIds.length
+    ? await admin
+        .from("team_seasons")
+        .select("id, display_name")
+        .in("id", [...new Set(teamSeasonIds)])
+        .returns<HistoricTeamSeasonRow[]>()
+    : { data: [] as HistoricTeamSeasonRow[], error: null };
+  if (teamSeasonsResult.error) throw teamSeasonsResult.error;
+
+  const editionById = new Map(editions.map((edition) => [edition.id, edition]));
+  const rosterById = new Map(rosters.map((roster) => [roster.id, roster]));
+  const riderById = new Map(
+    (ridersResult.data ?? []).map((rider) => [rider.id, rider]),
+  );
+  const registrationById = new Map(
+    (registrationsResult.data ?? []).map((registration) => [
+      registration.id,
+      registration,
+    ]),
+  );
+  const gameYearBySeasonId = new Map(
+    (seasonsResult.data ?? []).map((season) => [season.id, season.game_year]),
+  );
+  const teamNameBySeasonId = new Map(
+    (teamSeasonsResult.data ?? []).map((teamSeason) => [
+      teamSeason.id,
+      teamSeason.display_name,
+    ]),
+  );
+  const result = new Map<string, FederationRacePastWinner[]>();
+
+  for (const winner of winners) {
+    const edition = editionById.get(winner.race_edition_id);
+    const roster = rosterById.get(winner.race_roster_id);
+    const rider = roster ? riderById.get(roster.rider_id) : null;
+    const registration = roster
+      ? registrationById.get(roster.race_registration_id)
+      : null;
+    const gameYear = edition
+      ? gameYearBySeasonId.get(edition.season_id)
+      : null;
+    if (!edition || !rider || !gameYear) continue;
+
+    const raceWinners = result.get(edition.race_id) ?? [];
+    raceWinners.push({
+      gameYear,
+      riderName: `${rider.first_name} ${rider.last_name}`,
+      teamName:
+        registration?.historical_team_name ??
+        (registration?.team_season_id
+          ? teamNameBySeasonId.get(registration.team_season_id) ?? null
+          : null),
+    });
+    result.set(edition.race_id, raceWinners);
+  }
+
+  for (const [raceId, raceWinners] of result) {
+    result.set(
+      raceId,
+      raceWinners
+        .sort((first, second) => second.gameYear - first.gameYear)
+        .slice(0, 3),
+    );
+  }
+  return result;
 }
 
 function parseRenown(value: unknown, gameYear: number): FederationRenownState {

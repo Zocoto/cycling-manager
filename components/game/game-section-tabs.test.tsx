@@ -30,7 +30,7 @@ describe("GameSectionTabs", () => {
     expect(markup).toContain("sm:grid-cols-3");
     expect(markup).not.toContain("grid-cols-3 sm:grid-cols-3");
     expect(markup).toContain('aria-current="page"');
-    expect(markup).toContain("bg-[#123F36]");
+    expect(markup).toContain("bg-[var(--federation-primary,#123F36)]");
     expect(markup).toContain("Description active");
     expect(markup).not.toContain("Description inactive");
     expect(markup).toContain(">2</span>");

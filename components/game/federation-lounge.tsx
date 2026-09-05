@@ -138,9 +138,9 @@ export function FederationLounge({
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-      <header className="flex flex-col gap-4 bg-[#123F36] px-6 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <header className="flex flex-col gap-4 bg-[var(--federation-primary)] px-6 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
             Salon privé de la fédération
           </p>
           <h2 className="mt-2 text-2xl font-black">Le vestiaire de {countryName}</h2>
@@ -164,7 +164,7 @@ export function FederationLounge({
               type="button"
               onClick={loadOlderMessages}
               disabled={loadingOlder}
-              className="rounded-full border border-[#315B3E]/15 bg-white px-4 py-2 text-xs font-black text-[#176951] shadow-sm disabled:opacity-50"
+              className="rounded-full border border-[#315B3E]/15 bg-white px-4 py-2 text-xs font-black text-[var(--federation-secondary)] shadow-sm disabled:opacity-50"
             >
               {loadingOlder ? "Chargement…" : "Afficher les messages précédents"}
             </button>
@@ -186,12 +186,12 @@ export function FederationLounge({
                 key={message.id}
                 className={`max-w-[min(88%,42rem)] rounded-2xl border px-4 py-3 shadow-sm ${
                   ownMessage
-                    ? "ml-auto border-[#176951]/25 bg-[#176951] text-white"
+                    ? "ml-auto border-[var(--federation-secondary)]/25 bg-[var(--federation-secondary)] text-white"
                     : "border-[#315B3E]/12 bg-white text-[#183F37]"
                 }`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <p className={`text-xs font-black ${ownMessage ? "text-[#FFF4B8]" : "text-[#176951]"}`}>
+                  <p className={`text-xs font-black ${ownMessage ? "text-[#FFF4B8]" : "text-[var(--federation-secondary)]"}`}>
                     {ownMessage ? "Vous" : message.authorDisplayName}
                   </p>
                   <time className={`text-[10px] font-bold ${ownMessage ? "text-[#BFE2D4]" : "text-[#789087]"}`} dateTime={message.createdAt}>
@@ -222,12 +222,12 @@ export function FederationLounge({
             maxLength={MESSAGE_MAX_LENGTH}
             rows={2}
             placeholder="Écrire aux équipes affiliées…"
-            className="min-h-12 flex-1 resize-none rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 py-3 text-sm font-semibold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#42B99A]/25"
+            className="min-h-12 flex-1 resize-none rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 py-3 text-sm font-semibold text-[#183F37] outline-none focus:border-[var(--federation-secondary)] focus:ring-2 focus:ring-[#42B99A]/25"
           />
           <button
             type="submit"
             disabled={isPending || !draft.trim()}
-            className="min-h-12 rounded-xl bg-[#176951] px-5 text-sm font-black text-white transition hover:bg-[#0F5944] disabled:cursor-not-allowed disabled:opacity-45"
+            className="min-h-12 rounded-xl bg-[var(--federation-secondary)] px-5 text-sm font-black text-white transition hover:bg-[#0F5944] disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isPending ? "Envoi…" : "Envoyer"}
           </button>

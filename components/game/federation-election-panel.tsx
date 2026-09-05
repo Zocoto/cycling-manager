@@ -43,9 +43,9 @@ export function FederationElectionPanel({
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-      <div className="grid gap-6 bg-[#123F36] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+      <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
             Présidence fédérale · mandat S{overview.termStartGameYear}–S
             {overview.termEndGameYear}
           </p>
@@ -86,7 +86,7 @@ export function FederationElectionPanel({
               key={phase.id}
               className={`rounded-xl border px-4 py-3 ${
                 active
-                  ? "border-[#278B70]/45 bg-[#E5F4ED]"
+                  ? "border-[var(--federation-secondary)]/45 bg-[#E5F4ED]"
                   : complete
                     ? "border-[#315B3E]/10 bg-white"
                     : "border-transparent bg-[#EEF3F1]"
@@ -185,7 +185,7 @@ function ApplicationsPhase({
 
       <form action={action} className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
         <input type="hidden" name="countryCode" value={countryCode} />
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#278B70]">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
           {overview.viewerCandidateId
             ? "Mettre à jour votre candidature"
             : "Présenter votre candidature"}
@@ -200,7 +200,7 @@ function ApplicationsPhase({
           maxLength={800}
           disabled={!overview.canApply || pending}
           placeholder="Présentez en quelques lignes votre projet pour la fédération…"
-          className="mt-4 min-h-40 w-full resize-y rounded-xl border border-[#315B3E]/18 bg-white p-4 text-sm font-semibold leading-6 text-[#183F37] outline-none focus:border-[#278B70] disabled:cursor-not-allowed disabled:bg-[#EEF3F1]"
+          className="mt-4 min-h-40 w-full resize-y rounded-xl border border-[#315B3E]/18 bg-white p-4 text-sm font-semibold leading-6 text-[#183F37] outline-none focus:border-[var(--federation-secondary)] disabled:cursor-not-allowed disabled:bg-[#EEF3F1]"
         />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs font-bold text-[#60756E]">
@@ -209,7 +209,7 @@ function ApplicationsPhase({
           <button
             type="submit"
             disabled={!overview.canApply || pending}
-            className="min-h-11 rounded-xl bg-[#123F36] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
+            className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
           >
             {pending ? "Enregistrement…" : overview.viewerCandidateId ? "Mettre à jour" : "Déposer"}
           </button>
@@ -262,7 +262,7 @@ function VotingPhase({
         <button
           type="submit"
           disabled={!overview.canVote || pending}
-          className="min-h-11 rounded-xl bg-[#123F36] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
+          className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
         >
           {pending
             ? "Enregistrement…"
@@ -275,7 +275,7 @@ function VotingPhase({
         {overview.candidates.map((candidate) => (
           <label
             key={candidate.id}
-            className="flex cursor-pointer gap-4 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5 transition has-checked:border-[#278B70]/55 has-checked:bg-[#E5F4ED]"
+            className="flex cursor-pointer gap-4 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5 transition has-checked:border-[var(--federation-secondary)]/55 has-checked:bg-[#E5F4ED]"
           >
             <input
               type="radio"
@@ -284,13 +284,13 @@ function VotingPhase({
               defaultChecked={overview.viewerVotedCandidateId === candidate.id}
               disabled={!overview.canVote || pending}
               required
-              className="mt-1 h-5 w-5 shrink-0 accent-[#176951]"
+              className="mt-1 h-5 w-5 shrink-0 accent-[var(--federation-secondary)]"
             />
             <span className="min-w-0">
               <span className="block font-black text-[#183F37]">
                 {candidate.directorName}
               </span>
-              <span className="mt-1 block text-xs font-bold text-[#278B70]">
+              <span className="mt-1 block text-xs font-bold text-[var(--federation-secondary)]">
                 {candidate.teamName}
               </span>
               <span className="mt-3 block text-sm font-semibold leading-6 text-[#60756E]">
@@ -315,10 +315,10 @@ function CandidateCard({ candidate }: { candidate: FederationElectionCandidate }
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-black text-[#183F37]">{candidate.directorName}</p>
-          <p className="mt-1 text-xs font-bold text-[#278B70]">{candidate.teamName}</p>
+          <p className="mt-1 text-xs font-bold text-[var(--federation-secondary)]">{candidate.teamName}</p>
         </div>
         {candidate.isViewer ? (
-          <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]">
+          <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--federation-secondary)]">
             Votre candidature
           </span>
         ) : null}
@@ -357,7 +357,7 @@ function ElectionNotice({
     <p
       className={`rounded-2xl border p-5 text-sm font-bold leading-6 ${
         tone === "success"
-          ? "border-[#278B70]/25 bg-[#E8F7F1] text-[#176951]"
+          ? "border-[var(--federation-secondary)]/25 bg-[#E8F7F1] text-[var(--federation-secondary)]"
           : "border-[#315B3E]/12 bg-[#F2F8F5] text-[#60756E]"
       }`}
     >
@@ -379,7 +379,7 @@ function ActionFeedback({
       role="status"
       className={`mt-4 rounded-xl px-4 py-3 text-xs font-black ${
         status === "success"
-          ? "bg-[#DDF3E7] text-[#176951]"
+          ? "bg-[#DDF3E7] text-[var(--federation-secondary)]"
           : "bg-[#FBE3DE] text-[#9D3E37]"
       }`}
     >

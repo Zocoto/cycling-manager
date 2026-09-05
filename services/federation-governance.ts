@@ -99,6 +99,8 @@ export async function getFederationGovernanceOverview({
 
   try {
     const admin = createSupabaseAdminClient();
+    const settlementResult = await admin.rpc("settle_due_federation_elections");
+    if (settlementResult.error) throw settlementResult.error;
     const targetTermStart =
       season.gameYear % 2 === 0 ? season.gameYear + 1 : season.gameYear;
     const [electionResult, termResult, journalResult] = await Promise.all([

@@ -1,8 +1,10 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 
 import Link from "@/components/ui/app-link";
 
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
+import { AmateurTeamAffiliationPanel } from "@/components/game/amateur-team-affiliation-panel";
 import {
   GameSectionTabLink,
   GameSectionTabs,
@@ -20,6 +22,7 @@ import {
   buildFederationObjectives,
   type FederationObjective,
 } from "@/lib/game/federation-objectives";
+import { getFederationNationTheme } from "@/lib/game/federation-nation-theme";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
 import type { PublishedNationalJersey } from "@/lib/game/national-jersey-preview";
 import {
@@ -48,6 +51,7 @@ import type { FederationSelectionState } from "@/services/federation-selections"
 import type { FederationTreasuryState } from "@/services/federation-treasury";
 import type { FederationTeamJerseyArtwork } from "@/services/federation-team-jerseys";
 import type { NationRankingEntry } from "@/services/uci-rankings";
+import type { AmateurTeamAffiliationState } from "@/services/amateur-team-affiliation";
 
 type NationalFederationViewProps = {
   country: {
@@ -73,6 +77,8 @@ type NationalFederationViewProps = {
   infrastructureState: FederationInfrastructureState | null;
   objectiveMetrics?: FederationObjectiveMetrics | null;
   memberTeamJerseys?: Record<string, FederationTeamJerseyArtwork>;
+  amateurAffiliationState?: AmateurTeamAffiliationState | null;
+  affiliationCountries?: Array<{ id: string; name: string; code: string }>;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -144,22 +150,43 @@ export function NationalFederationView({
   infrastructureState,
   objectiveMetrics = null,
   memberTeamJerseys = {},
+  amateurAffiliationState = null,
+  affiliationCountries = [],
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
   const isPreview = phase === "preview";
   const baseHref = `/jeu/federations/${country.code.toLowerCase()}`;
+  const nationTheme = getFederationNationTheme(
+    country.code,
+    publishedJersey?.design,
+  );
+  const federationStyle = {
+    "--federation-primary": nationTheme.primary,
+    "--federation-secondary": nationTheme.secondary,
+    "--federation-accent": nationTheme.accent,
+    "--federation-soft": nationTheme.soft,
+    "--federation-ink": nationTheme.ink,
+  } as CSSProperties;
 
   return (
-    <>
-      <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17_0%,#0B302B_52%,#176951_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
+    <div style={federationStyle}>
+      <header
+        className="relative mt-5 overflow-hidden rounded-[2rem] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        style={{
+          background: `linear-gradient(135deg, ${nationTheme.primary} 0%, ${nationTheme.secondary} 72%, ${nationTheme.accent} 150%)`,
+        }}
+      >
         <div
           aria-hidden="true"
           className="absolute -right-20 -top-28 h-96 w-96 rounded-full border-[64px] border-white/5"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]"
+          className="absolute inset-x-0 bottom-0 h-1"
+          style={{
+            background: `linear-gradient(90deg, ${nationTheme.secondary}, ${nationTheme.accent}, ${nationTheme.secondary})`,
+          }}
         />
 
         <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
@@ -169,7 +196,7 @@ export function NationalFederationView({
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--federation-accent)]">
                   Fédération nationale
                 </p>
                 {snapshot.viewer.isAffiliated ? (
@@ -208,7 +235,9 @@ export function NationalFederationView({
         </div>
       </header>
 
-      {isPreview ? <SeasonTwoPreviewNotice /> : <AutomaticModeNotice />}
+      {selectedTab !== "overview" ? (
+        isPreview ? <SeasonTwoPreviewNotice /> : <AutomaticModeNotice />
+      ) : null}
 
       <GameSectionTabs
         ariaLabel="Rubriques de la fédération"
@@ -238,6 +267,8 @@ export function NationalFederationView({
             internationalResults={internationalResults}
             objectiveMetrics={objectiveMetrics}
             memberTeamJerseys={memberTeamJerseys}
+            amateurAffiliationState={amateurAffiliationState}
+            affiliationCountries={affiliationCountries}
           />
         ) : selectedTab === "selections" ? (
           <SelectionsPanel
@@ -300,7 +331,7 @@ export function NationalFederationView({
           />
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -329,7 +360,7 @@ function SeasonTwoPreviewNotice() {
 
 function AutomaticModeNotice() {
   return (
-    <aside className="mt-6 rounded-2xl border border-[#278B70]/25 bg-[#E8F7F1] px-5 py-4 text-sm font-bold text-[#176951]">
+    <aside className="mt-6 rounded-2xl border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] px-5 py-4 text-sm font-bold text-[var(--federation-secondary)]">
       La fédération fonctionne automatiquement tant qu’aucun président n’est
       élu. Les échéances sportives ne peuvent jamais être bloquées.
     </aside>
@@ -346,6 +377,8 @@ function OverviewPanel({
   internationalResults,
   objectiveMetrics,
   memberTeamJerseys,
+  amateurAffiliationState,
+  affiliationCountries,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
@@ -356,6 +389,8 @@ function OverviewPanel({
   internationalResults: FederationInternationalResults | null;
   objectiveMetrics: FederationObjectiveMetrics | null;
   memberTeamJerseys: Record<string, FederationTeamJerseyArtwork>;
+  amateurAffiliationState: AmateurTeamAffiliationState | null;
+  affiliationCountries: Array<{ id: string; name: string; code: string }>;
 }) {
   const objectiveGameYear = Math.max(
     FEDERATION_MANAGEMENT_START_GAME_YEAR,
@@ -409,6 +444,13 @@ function OverviewPanel({
         />
       </section>
 
+      {amateurAffiliationState && affiliationCountries.length > 0 ? (
+        <AmateurTeamAffiliationPanel
+          countries={affiliationCountries}
+          state={amateurAffiliationState}
+        />
+      ) : null}
+
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
         <SectionHeading
           eyebrow="Repères internationaux"
@@ -425,7 +467,7 @@ function OverviewPanel({
             performance={internationalResults?.continental ?? null}
           />
           <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
               Nations Cup
             </p>
             <p className="mt-3 text-2xl font-black text-[#183F37]">À venir</p>
@@ -449,7 +491,7 @@ function OverviewPanel({
                 <Link
                   key={team.entity_id}
                   href={`/jeu/equipes/${team.public_identifier}`}
-                  className="flex items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4 transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:shadow-[0_12px_26px_rgba(19,60,46,0.1)]"
+                  className="flex items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4 transition hover:-translate-y-0.5 hover:border-[var(--federation-secondary)]/40 hover:shadow-[0_12px_26px_rgba(19,60,46,0.1)]"
                 >
                   <TeamJerseyPreview
                     artwork={memberTeamJerseys[team.entity_id]}
@@ -463,7 +505,7 @@ function OverviewPanel({
                       {team.sporting_director_name ?? "Gestion automatique"}
                     </span>
                   </span>
-                  <span className="text-lg font-black text-[#278B70]" aria-hidden="true">
+                  <span className="text-lg font-black text-[var(--federation-secondary)]" aria-hidden="true">
                     →
                   </span>
                 </Link>
@@ -580,7 +622,7 @@ function SelectionsPanel({
               className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#2D74DA,#F2C94C,#C75348,#42B99A,#8D60C7)]"
             />
             <div className="flex items-start justify-between gap-4">
-              <span className="rounded-xl bg-[#123F36] px-3 py-2 text-sm font-black text-white">
+              <span className="rounded-xl bg-[var(--federation-primary)] px-3 py-2 text-sm font-black text-white">
                 J{event.day}
               </span>
               <StatusPill>
@@ -593,7 +635,7 @@ function SelectionsPanel({
             <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
               {event.detail}
             </p>
-            <p className="mt-5 border-t border-[#315B3E]/10 pt-4 text-xs font-black uppercase tracking-[0.12em] text-[#278B70]">
+            <p className="mt-5 border-t border-[#315B3E]/10 pt-4 text-xs font-black uppercase tracking-[0.12em] text-[var(--federation-secondary)]">
               Repère arc-en-ciel dans le calendrier
             </p>
           </article>
@@ -625,9 +667,9 @@ function InfrastructuresPanel({
   return (
     <div className="space-y-7">
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-        <div className="grid gap-6 bg-[#123F36] p-6 text-white sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
               Formation internationale existante
             </p>
             <h2 className="mt-2 text-3xl font-black">
@@ -672,11 +714,11 @@ function InfrastructuresPanel({
                       Centre international
                     </p>
                   </div>
-                  <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">
+                  <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[var(--federation-secondary)]">
                     {academy.qualityLevel} ★
                   </span>
                 </div>
-                <p className="mt-4 text-sm font-black text-[#278B70]">
+                <p className="mt-4 text-sm font-black text-[var(--federation-secondary)]">
                   +{academy.contributionPercentage} % de contribution
                 </p>
               </article>
@@ -795,9 +837,7 @@ function GovernancePanel({
         countryCode={country.code}
         countryName={country.name}
         publishedJersey={publishedJersey}
-        canPublish={
-          snapshot.viewer.isAffiliated && country.code.toUpperCase() === "BE"
-        }
+        canPublish={snapshot.viewer.isAffiliated}
       />
     </div>
   );
@@ -811,10 +851,10 @@ function FederationObjectivesBoard({
   gameYear: number;
 }) {
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#1E7A60]/35 bg-[linear-gradient(135deg,#0D3C32_0%,#176951_100%)] p-6 text-white shadow-[0_20px_52px_rgba(19,60,46,0.2)] sm:p-8">
+    <section className="overflow-hidden rounded-[2rem] border border-[#1E7A60]/35 bg-[linear-gradient(135deg,var(--federation-primary)_0%,var(--federation-secondary)_100%)] p-6 text-white shadow-[0_20px_52px_rgba(19,60,46,0.2)] sm:p-8">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
             Feuille de route · Saison {gameYear}
           </p>
           <h2 className="mt-2 text-3xl font-black">Objectifs fédéraux</h2>
@@ -850,7 +890,7 @@ function ObjectiveProgressCard({
   return (
     <article className="flex min-h-64 flex-col rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-2xl font-black text-[#9BE0BC]">
+        <span className="text-2xl font-black text-[var(--federation-accent)]">
           {String(number).padStart(2, "0")}
         </span>
         <span className="text-[9px] font-black uppercase tracking-[0.11em] text-[#C9E3D7]">
@@ -893,10 +933,10 @@ function FederationLoungePanel({
         className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#DDF3E7] blur-2xl"
       />
       <div className="relative mx-auto max-w-3xl text-center">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#123F36] text-2xl text-[#F2C94C]">
+        <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[var(--federation-primary)] text-2xl text-[#F2C94C]">
           ◌
         </span>
-        <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+        <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">
           Salon privé de la fédération
         </p>
         <h2 className="mt-2 text-3xl font-black text-[#183F37]">
@@ -952,7 +992,7 @@ function InternationalResultCard({
 }) {
   return (
     <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
-      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
         {label}
       </p>
       {performance ? (
@@ -993,7 +1033,7 @@ function OverviewMetric({
 }) {
   return (
     <article className="rounded-[1.65rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_36px_rgba(19,60,46,0.06)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#278B70]">
+      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--federation-secondary)]">
         {eyebrow}
       </p>
       <p className="mt-3 text-sm font-black text-[#60756E]">{label}</p>
@@ -1040,7 +1080,7 @@ function ChampionCard({
           ♛
         </span>
       )}
-      <span className="mt-4 block text-[10px] font-black uppercase tracking-[0.13em] text-[#278B70]">
+      <span className="mt-4 block text-[10px] font-black uppercase tracking-[0.13em] text-[var(--federation-secondary)]">
         {label}
       </span>
       <span className="mt-2 block font-black text-[#183F37]">
@@ -1096,7 +1136,7 @@ function TeamJerseyPreview({
       />
     </span>
   ) : (
-    <span className="grid h-16 w-14 shrink-0 place-items-center rounded-xl bg-[#176951] text-xs font-black text-white">
+    <span className="grid h-16 w-14 shrink-0 place-items-center rounded-xl bg-[var(--federation-secondary)] text-xs font-black text-white">
       {getInitials(teamName)}
     </span>
   );
@@ -1118,7 +1158,7 @@ function PalmaresList({ palmares }: { palmares: FederationChampion[] }) {
           key={`${title.category}-${title.discipline}-${title.gameYear}-${title.riderId}-${index}`}
           className="flex items-center gap-3 rounded-2xl bg-[#F2F8F5] px-4 py-3"
         >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-sm font-black text-[#176951] shadow-sm">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-sm font-black text-[var(--federation-secondary)] shadow-sm">
             S{title.gameYear}
           </span>
           <span className="min-w-0 flex-1">
@@ -1146,10 +1186,10 @@ function LockedFeatureHeader({
   description: string;
 }) {
   return (
-    <section className="rounded-[2rem] border border-[#315B3E]/12 bg-[#123F36] p-6 text-white shadow-[0_18px_45px_rgba(19,60,46,0.14)] sm:p-8">
+    <section className="rounded-[2rem] border border-[#315B3E]/12 bg-[var(--federation-primary)] p-6 text-white shadow-[0_18px_45px_rgba(19,60,46,0.14)] sm:p-8">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
             {eyebrow}
           </p>
           <h2 className="mt-2 text-3xl font-black">{title}</h2>
@@ -1176,7 +1216,7 @@ function SectionHeading({
 }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">
         {eyebrow}
       </p>
       <h2 className="mt-2 text-2xl font-black text-[#183F37] sm:text-3xl">
@@ -1203,7 +1243,7 @@ function JournalEntry({
   return (
     <li className="flex gap-4">
       <span
-        className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xs font-black ${future ? "bg-[#EEF3F1] text-[#60756E]" : "bg-[#DDF3E7] text-[#176951]"}`}
+        className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xs font-black ${future ? "bg-[#EEF3F1] text-[#60756E]" : "bg-[#DDF3E7] text-[var(--federation-secondary)]"}`}
       >
         {day}
       </span>

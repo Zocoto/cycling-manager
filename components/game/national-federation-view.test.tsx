@@ -103,8 +103,8 @@ describe("NationalFederationView", () => {
 
     expect(markup).toContain("Fédération de France");
     expect(markup).toContain("Votre fédération");
-    expect(markup).toContain("gestion inchangée en Saison 2");
-    expect(markup).toContain("Activation Saison 3");
+    expect(markup).not.toContain("gestion inchangée en Saison 2");
+    expect(markup).not.toContain("Activation Saison 3");
     expect(markup).toContain("Jeanne Peloton");
     expect(markup).toContain("Impact académies");
     expect(markup).toContain("30 %");
@@ -207,6 +207,7 @@ describe("NationalFederationView", () => {
     );
 
     expect(markup).toContain("Atelier du maillot national");
+    expect(markup).toContain("Toutes fédérations");
     expect(markup).toContain("Composez librement");
     expect(markup).toContain("Bande");
     expect(markup).toContain("Forme");

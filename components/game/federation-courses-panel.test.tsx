@@ -39,6 +39,17 @@ const state: FederationCoursesState = {
       moneyGain: 25_000,
       prestigeGain: 12,
       gainKind: "mixed",
+      profiles: [
+        { type: "flat", count: 2 },
+        { type: "mountain", count: 2 },
+      ],
+      pastWinners: [
+        {
+          gameYear: 2,
+          riderName: "Jeanne Peloton",
+          teamName: "Équipe formatrice",
+        },
+      ],
     },
   ],
   hosting: {
@@ -84,6 +95,9 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Courses du pays");
     expect(markup).toContain("Tour du pays");
     expect(markup).toContain("Participation équipes");
+    expect(markup).toContain("Montagne");
+    expect(markup).toContain("Derniers vainqueurs");
+    expect(markup).toContain("Jeanne Peloton");
     expect(markup).toContain("60 %");
     expect(markup).toContain("Nation reconnue");
     expect(markup).toContain("Classements UCI · 10 saisons");

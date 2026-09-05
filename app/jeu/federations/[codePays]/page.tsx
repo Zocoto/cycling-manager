@@ -13,6 +13,7 @@ import {
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getAmateurTeamAffiliationState } from "@/services/amateur-team-affiliation";
 import { getFederationChatOverview } from "@/services/federation-chat";
 import { getFederationCoursesState } from "@/services/federation-courses";
 import { getFederationFinanceBaseline } from "@/services/federation-finances";
@@ -39,6 +40,12 @@ export const metadata: Metadata = {
 type FederationPageProps = {
   params: Promise<{ codePays: string }>;
   searchParams: Promise<{ onglet?: string | string[] }>;
+};
+
+type AffiliationCountryRow = {
+  id: string;
+  name: string;
+  iso_alpha2: string;
 };
 
 export default async function FederationPage({
@@ -82,10 +89,10 @@ export default async function FederationPage({
     infrastructureState,
     objectiveMetrics,
     memberTeamJerseys,
+    amateurAffiliationState,
+    affiliationCountriesResult,
   ] = await Promise.all([
-    selectedTab === "governance"
-      ? getNationalFederationJersey(supabase, country.entity_id)
-      : Promise.resolve(null),
+    getNationalFederationJersey(supabase, country.entity_id),
     selectedTab === "lounge" && snapshot.viewer.isAffiliated
       ? getFederationChatOverview(supabase, country.entity_id)
       : Promise.resolve(null),
@@ -179,7 +186,28 @@ export default async function FederationPage({
           return {};
         })
       : Promise.resolve({}),
+    selectedTab === "overview"
+      ? getAmateurTeamAffiliationState(headerData.teamId).catch((error) => {
+          console.error("Impossible de charger le transfert d’affiliation :", error);
+          return null;
+        })
+      : Promise.resolve(null),
+    selectedTab === "overview"
+      ? supabase
+          .from("countries")
+          .select("id, name, iso_alpha2")
+          .eq("is_active", true)
+          .order("name")
+          .returns<AffiliationCountryRow[]>()
+      : Promise.resolve({ data: [] as AffiliationCountryRow[], error: null }),
   ]);
+
+  if (affiliationCountriesResult.error) {
+    console.error(
+      "Impossible de charger les fédérations d’affiliation :",
+      affiliationCountriesResult.error,
+    );
+  }
 
   const federationRaceCreationState =
     selectedTab === "races"
@@ -255,6 +283,14 @@ export default async function FederationPage({
           infrastructureState={infrastructureState}
           objectiveMetrics={objectiveMetrics}
           memberTeamJerseys={memberTeamJerseys}
+          amateurAffiliationState={amateurAffiliationState}
+          affiliationCountries={(affiliationCountriesResult.data ?? []).map(
+            (option) => ({
+              id: option.id,
+              name: option.name,
+              code: option.iso_alpha2,
+            }),
+          )}
         />
       </section>
     </main>

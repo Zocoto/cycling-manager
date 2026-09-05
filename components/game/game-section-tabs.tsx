@@ -126,7 +126,7 @@ function GameSectionTabContent({
         {description ? (
           <span
             className={`mt-1 block text-xs font-semibold ${
-              active ? "text-[#ABD5C2]" : "text-[#789087]"
+              active ? "text-white/75" : "text-[#789087]"
             }`}
           >
             {description}
@@ -143,9 +143,9 @@ function GameSectionTabContent({
 }
 
 function getTabClassName(active: boolean) {
-  return `flex min-w-0 items-start justify-between gap-3 rounded-xl px-5 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-inset ${
+  return `flex min-w-0 items-start justify-between gap-3 rounded-xl px-5 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--federation-secondary,#278B70)] focus-visible:ring-inset ${
     active
-      ? "bg-[#123F36] text-white shadow-[0_10px_25px_rgba(18,63,54,0.18)]"
-      : "text-[#183F37] hover:bg-[#F0F7F3]"
+      ? "bg-[var(--federation-primary,#123F36)] text-white shadow-[0_10px_25px_rgba(18,63,54,0.18)]"
+      : "text-[#183F37] hover:bg-[var(--federation-soft,#F0F7F3)]"
   }`;
 }

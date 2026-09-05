@@ -9,6 +9,10 @@ import {
 import { FederationRaceCreationPanel } from "@/components/game/federation-race-creation-panel";
 import Link from "@/components/ui/app-link";
 import { getFederationHostingEvent } from "@/lib/game/federation-hosting";
+import {
+  RACE_PROFILE_LABELS,
+  type RaceProfileType,
+} from "@/lib/game/race-calendar";
 import type { FederationCoursesState } from "@/services/federation-courses";
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
 
@@ -18,6 +22,19 @@ const moneyFormatter = new Intl.NumberFormat("fr-FR", {
   currency: "EUR",
   maximumFractionDigits: 0,
 });
+
+const PROFILE_VISUALS: Record<
+  RaceProfileType,
+  { color: string; height: string; symbol: string }
+> = {
+  flat: { color: "#59AFC9", height: "h-3", symbol: "▬" },
+  sprint: { color: "#4FB59B", height: "h-4", symbol: "➜" },
+  hilly: { color: "#E2A23A", height: "h-7", symbol: "∿" },
+  mountain: { color: "#C94D4D", height: "h-11", symbol: "▲" },
+  cobbles: { color: "#7D6A58", height: "h-6", symbol: "▦" },
+  time_trial: { color: "#6658A8", height: "h-5", symbol: "◴" },
+  mixed: { color: "#D36F3A", height: "h-8", symbol: "◆" },
+};
 
 export function FederationCoursesPanel({
   countryCode,
@@ -41,9 +58,9 @@ export function FederationCoursesPanel({
       <CountryRacePortfolio state={state} />
 
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-        <div className="grid gap-5 bg-[#123F36] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+        <div className="grid gap-5 bg-[var(--federation-primary)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
               Accueil international · Saison {state.hosting.targetGameYear}
             </p>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">
@@ -84,7 +101,7 @@ export function FederationCoursesPanel({
               role="status"
               className={`rounded-xl px-4 py-3 text-sm font-bold ${
                 actionState.status === "success"
-                  ? "bg-[#E5F4ED] text-[#176951]"
+                  ? "bg-[#E5F4ED] text-[var(--federation-secondary)]"
                   : "bg-[#FDECEC] text-[#A52E2E]"
               }`}
             >
@@ -100,10 +117,10 @@ export function FederationCoursesPanel({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
                       {opportunity.shortLabel} · S{state.hosting.targetGameYear}
                     </p>
-                    <p className="mt-2 inline-flex rounded-full bg-[#E5F4ED] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#176951]">
+                    <p className="mt-2 inline-flex rounded-full bg-[#E5F4ED] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--federation-secondary)]">
                       {opportunity.riderCategory === "professional"
                         ? "Professionnels"
                         : "Juniors"}
@@ -143,7 +160,7 @@ export function FederationCoursesPanel({
                     <button
                       type="submit"
                       disabled={!opportunity.canApply || pending}
-                      className="min-h-11 w-full rounded-xl bg-[#123F36] px-4 text-sm font-black text-white transition hover:bg-[#176951] disabled:cursor-not-allowed disabled:bg-[#A8B7B1]"
+                      className="min-h-11 w-full rounded-xl bg-[var(--federation-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--federation-secondary)] disabled:cursor-not-allowed disabled:bg-[#A8B7B1]"
                     >
                       {pending ? "Dépôt…" : "Déposer la candidature"}
                     </button>
@@ -176,10 +193,10 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
     { label: "Héritage d’organisation", value: state.renown.breakdown.hostingLegacy, maximum: 50 },
   ];
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#278B70]/30 bg-[linear-gradient(135deg,#0B302B_0%,#176951_100%)] p-6 text-white shadow-[0_20px_55px_rgba(19,60,46,0.18)] sm:p-8">
+    <section className="overflow-hidden rounded-[2rem] border border-[var(--federation-secondary)]/30 bg-[linear-gradient(135deg,var(--federation-primary)_0%,var(--federation-secondary)_100%)] p-6 text-white shadow-[0_20px_55px_rgba(19,60,46,0.18)] sm:p-8">
       <div className="grid gap-7 xl:grid-cols-[0.7fr_1.3fr] xl:items-end">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
             Renommée historique · calcul S{state.renown.sourceThroughGameYear}
           </p>
           <div className="mt-3 flex items-end gap-3">
@@ -198,7 +215,7 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
             <div key={metric.label} className="rounded-2xl border border-white/15 bg-white/10 p-4">
               <div className="flex items-center justify-between gap-3 text-xs font-black">
                 <span>{metric.label}</span>
-                <span className="text-[#9BE0BC]">{metric.value}/{metric.maximum}</span>
+                <span className="text-[var(--federation-accent)]">{metric.value}/{metric.maximum}</span>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/20">
                 <div
@@ -218,7 +235,7 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
   return (
     <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">
           Patrimoine sportif national
         </p>
         <h2 className="mt-2 text-3xl font-black text-[#183F37]">Courses du pays</h2>
@@ -235,20 +252,22 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[#123F36] px-3 py-1 text-[10px] font-black uppercase text-white">
+                    <span className="rounded-full bg-[var(--federation-primary)] px-3 py-1 text-[10px] font-black uppercase text-white">
                       {race.categoryName ?? "Hors calendrier"}
                       {race.prestigeRank ? ` · rang ${race.prestigeRank}` : ""}
                     </span>
-                    <span className="rounded-full bg-[#E5F4ED] px-3 py-1 text-[10px] font-black uppercase text-[#176951]">
+                    <span className="rounded-full bg-[#E5F4ED] px-3 py-1 text-[10px] font-black uppercase text-[var(--federation-secondary)]">
                       {race.format === "one_day" ? "Classique" : "Tour"}
                     </span>
                   </div>
                   <h3 className="mt-3 text-xl font-black text-[#183F37]">{race.name}</h3>
                 </div>
-                <Link href={`/jeu/courses/${race.slug}`} className="text-xs font-black text-[#176951] hover:underline">
+                <Link href={`/jeu/courses/${race.slug}`} className="text-xs font-black text-[var(--federation-secondary)] hover:underline">
                   Voir la course →
                 </Link>
               </div>
+
+              <RaceProfileRibbon profiles={race.profiles} />
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <ParticipationGauge
@@ -267,10 +286,40 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
                 <p className="text-xs font-bold text-[#60756E]">
                   {race.returnStatus === "earned" ? "Gain acquis" : "Gain projeté"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées
                 </p>
-                <p className="text-sm font-black text-[#176951]">
+                <p className="text-sm font-black text-[var(--federation-secondary)]">
                   {moneyFormatter.format(race.moneyGain)}
                   {race.gainKind === "mixed" ? ` + ${race.prestigeGain} prestige` : " · gain financier"}
                 </p>
+              </div>
+
+              <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
+                  Derniers vainqueurs
+                </p>
+                {race.pastWinners.length ? (
+                  <ol className="mt-3 grid gap-2 sm:grid-cols-3">
+                    {race.pastWinners.map((winner) => (
+                      <li
+                        key={`${winner.gameYear}-${winner.riderName}`}
+                        className="rounded-xl border border-[#315B3E]/10 bg-white p-3"
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-wide text-[var(--federation-secondary)]">
+                          Saison {winner.gameYear}
+                        </p>
+                        <p className="mt-1 text-sm font-black text-[#183F37]">
+                          {winner.riderName}
+                        </p>
+                        <p className="mt-1 truncate text-[10px] font-bold text-[#789087]">
+                          {winner.teamName ?? "Équipe non renseignée"}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="mt-2 text-xs font-bold text-[#789087]">
+                    Le premier vainqueur apparaîtra dès qu’une édition sera terminée.
+                  </p>
+                )}
               </div>
             </article>
           ))}
@@ -284,12 +333,61 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
   );
 }
 
+function RaceProfileRibbon({
+  profiles,
+}: {
+  profiles: FederationCoursesState["portfolio"][number]["profiles"];
+}) {
+  if (!profiles.length) {
+    return (
+      <p className="mt-5 rounded-xl border border-dashed border-[#315B3E]/16 bg-white px-4 py-3 text-xs font-bold text-[#789087]">
+        Profil détaillé à venir.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-5 overflow-hidden rounded-xl border border-[#315B3E]/10 bg-white px-4 pb-3 pt-4">
+      <div className="flex h-12 items-end gap-1" aria-hidden="true">
+        {profiles.flatMap((profile) =>
+          Array.from({ length: profile.count }, (_, index) => {
+            const visual = PROFILE_VISUALS[profile.type];
+            return (
+              <span
+                key={`${profile.type}-${index}`}
+                className={`min-w-5 flex-1 rounded-t-lg ${visual.height}`}
+                style={{ backgroundColor: visual.color }}
+              />
+            );
+          }),
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {profiles.map((profile) => {
+          const visual = PROFILE_VISUALS[profile.type];
+          return (
+            <span
+              key={profile.type}
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black text-white"
+              style={{ backgroundColor: visual.color }}
+            >
+              <span aria-hidden="true">{visual.symbol}</span>
+              {RACE_PROFILE_LABELS[profile.type]}
+              {profile.count > 1 ? ` ×${profile.count}` : ""}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function CandidacyRanking({ state }: { state: FederationCoursesState }) {
   return (
     <div className="rounded-2xl border border-[#315B3E]/14 bg-[#F8FBF9] p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">Transparence de l’attribution</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">Transparence de l’attribution</p>
           <h3 className="mt-1 text-xl font-black text-[#183F37]">Candidatures déposées</h3>
         </div>
         <p className="text-xs font-bold text-[#60756E]">Toutes les équipes affiliées consultent le même classement.</p>
@@ -312,7 +410,7 @@ function CandidacyRanking({ state }: { state: FederationCoursesState }) {
               {state.hosting.candidacies.map((candidate) => (
                 <tr key={candidate.id} className="border-t border-[#315B3E]/10 font-bold text-[#183F37]">
                   <td className="px-3 py-3">
-                    <span className="mr-2 rounded bg-[#E5F4ED] px-2 py-1 text-[10px] font-black text-[#176951]">{candidate.countryCode}</span>
+                    <span className="mr-2 rounded bg-[#E5F4ED] px-2 py-1 text-[10px] font-black text-[var(--federation-secondary)]">{candidate.countryCode}</span>
                     {candidate.countryName} · {getFederationHostingEvent(candidate.eventType).shortLabel}
                   </td>
                   <td className="px-3 py-3">{candidate.lastHostedGameYear ? `S${candidate.lastHostedGameYear}` : "Jamais"}</td>
@@ -346,7 +444,7 @@ function ParticipationGauge({ label, percentage, detail }: { label: string; perc
   return (
     <div>
       <div className="flex items-center justify-between text-xs font-black text-[#183F37]"><span>{label}</span><span>{percentage} %</span></div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#DDE7E3]"><div className="h-full rounded-full bg-[#278B70]" style={{ width: `${percentage}%` }} /></div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#DDE7E3]"><div className="h-full rounded-full bg-[var(--federation-secondary)]" style={{ width: `${percentage}%` }} /></div>
       <p className="mt-2 text-[11px] font-bold text-[#60756E]">{detail}</p>
     </div>
   );
