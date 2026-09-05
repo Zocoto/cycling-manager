@@ -1,5 +1,6 @@
 import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
+import type { RiderSportingProfile } from "@/lib/game/rider-profile";
 
 export type SponsorObjectiveAmbitionLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -12,6 +13,7 @@ export type SponsorObjectiveType =
   | "national_championship"
   | "homegrown_roster"
   | "youth_development"
+  | "rider_recruitment"
   | "infrastructure";
 
 export type SponsorObjectivePriority =
@@ -94,6 +96,16 @@ export type InfrastructureObjectiveDetails = {
   minimumCompletedCount: number;
 };
 
+export type RiderRecruitmentObjectiveDetails = {
+  kind: "rider_recruitment";
+  riderId: string;
+  riderName: string;
+  countryCode: string;
+  sportingProfile: RiderSportingProfile;
+  overallRating: number;
+  accessibilityMaximumOverall: number;
+};
+
 type SponsorObjectiveTarget =
   | RaceResultObjectiveDetails
   | NationalityQuotaObjectiveDetails
@@ -103,6 +115,7 @@ type SponsorObjectiveTarget =
   | NationalChampionshipObjectiveDetails
   | HomegrownRosterObjectiveDetails
   | YouthDevelopmentObjectiveDetails
+  | RiderRecruitmentObjectiveDetails
   | InfrastructureObjectiveDetails;
 
 export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {

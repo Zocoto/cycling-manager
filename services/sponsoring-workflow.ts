@@ -737,11 +737,13 @@ async function hydrateSponsorContract({
         );
       }
 
-      const nationalityObjectiveIds = (
+      const trackedObjectiveIds = (
         objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
       )
         .filter(
-          (objective) => objective.targetDetails.kind === "nationality_quota",
+          (objective) =>
+            objective.targetDetails.kind === "nationality_quota" ||
+            objective.targetDetails.kind === "rider_recruitment",
         )
         .map((objective) => objective.id);
 
@@ -750,7 +752,7 @@ async function hydrateSponsorContract({
         loadSponsorObjectiveCurrentValues({
           supabase,
           contractId: contractRow.id,
-          objectiveIds: nationalityObjectiveIds,
+          objectiveIds: trackedObjectiveIds,
         }),
       ]);
     }

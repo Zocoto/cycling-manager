@@ -19,9 +19,14 @@ import {
   adjustSponsorObjectiveAmbitionLevel,
   type SponsorObjectiveDifficulty,
 } from "@/lib/game/sponsor-negotiation";
+import type {
+  RiderRatings,
+  RiderSportingProfile,
+  RiderSpecialtyProfile,
+} from "@/lib/game/rider-profile";
 
 const OBJECTIVE_COUNT = 10;
-const SPONSOR_OBJECTIVE_GENERATION_VERSION = 7;
+const SPONSOR_OBJECTIVE_GENERATION_VERSION = 8;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -40,6 +45,15 @@ export type SponsorObjectiveRaceCandidate = {
   isGrandTour?: boolean;
 };
 
+export type SponsorObjectiveRiderCandidate = {
+  riderId: string;
+  riderName: string;
+  countryCode: string;
+  sportingProfile: RiderSportingProfile;
+  overallRating: number;
+  ratings: RiderRatings;
+};
+
 type GenerateSponsorObjectivesOptions = {
   sponsorCountryCode: string;
   sponsorPrestige: SponsorPrestige;
@@ -52,6 +66,8 @@ type GenerateSponsorObjectivesOptions = {
   sportingPhilosophy?: SponsorSportingPhilosophy;
   relationshipYear?: number;
   objectiveDifficulty?: SponsorObjectiveDifficulty;
+  riderCandidates?: readonly SponsorObjectiveRiderCandidate[];
+  includeRiderRecruitmentObjective?: boolean;
   random?: () => number;
 };
 
@@ -213,6 +229,8 @@ export function generateProvisionalSponsorObjectives({
   sportingPhilosophy: requestedSportingPhilosophy,
   relationshipYear = 1,
   objectiveDifficulty = "balanced",
+  riderCandidates = [],
+  includeRiderRecruitmentObjective = false,
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
@@ -268,6 +286,20 @@ export function generateProvisionalSponsorObjectives({
     sponsorPrestige < 4 &&
     !includeFormation &&
     stableSponsorBucket(sponsorCatalogKey || normalizedCountryCode, 6) === 0;
+  const recruitmentCandidate =
+    includeRiderRecruitmentObjective &&
+    shouldSponsorRequestRiderRecruitment({
+      sponsorCatalogKey: sponsorCatalogKey || normalizedCountryCode,
+      sportingPhilosophy,
+    })
+      ? selectSponsorRecruitmentRider({
+          sponsorCountryCode: normalizedCountryCode,
+          sportingPhilosophy,
+          teamReputationPoints,
+          riderCandidates,
+          random,
+        })
+      : null;
 
   const domesticRaceObjective =
     ambitionLevel >= 4
@@ -294,7 +326,12 @@ export function generateProvisionalSponsorObjectives({
   });
 
   const ambitionObjective =
-    includeFormation
+    recruitmentCandidate
+      ? createRiderRecruitmentObjective(
+          recruitmentCandidate,
+          resolveSponsorRecruitmentOverallRange(teamReputationPoints).maximum,
+        )
+      : includeFormation
       ? createHomegrownRosterObjective(
           Math.min(30, ambitionLevel * 5),
         )
@@ -428,6 +465,124 @@ export function resolveSponsorObjectiveAmbitionLevel({
     sponsorPrestige,
     budgetLevel,
   ) as SponsorObjectiveAmbitionLevel;
+}
+
+const RECRUITMENT_PROFILE_BY_PHILOSOPHY: Partial<Record<
+  SponsorSportingPhilosophy,
+  RiderSpecialtyProfile
+>> = {
+  cobbled_classics: "Coureur de pavés",
+  ardennes_classics: "Puncheur",
+  medium_stage_races: "Coureur de tour",
+  time_trials: "Rouleur",
+  sprints: "Sprinteur",
+  grand_tour_general: "Coureur de tour",
+};
+
+export function shouldSponsorRequestRiderRecruitment({
+  sponsorCatalogKey,
+  sportingPhilosophy,
+}: {
+  sponsorCatalogKey: string;
+  sportingPhilosophy: SponsorSportingPhilosophy;
+}): boolean {
+  return Boolean(RECRUITMENT_PROFILE_BY_PHILOSOPHY[sportingPhilosophy]) &&
+    stableSponsorBucket(`${sponsorCatalogKey}:rider-recruitment`, 3) === 0;
+}
+
+export function resolveSponsorRecruitmentOverallRange(
+  teamReputationPoints: number,
+): { minimum: number; maximum: number } {
+  const reputation = Math.max(0, Math.floor(teamReputationPoints));
+  const maximum = reputation < 75
+    ? 66
+    : reputation < 150
+      ? 69
+      : reputation < 300
+        ? 72
+        : reputation < 500
+          ? 75
+          : reputation < 750
+            ? 79
+            : 84;
+
+  return { minimum: maximum - 10, maximum };
+}
+
+export function selectSponsorRecruitmentRider({
+  sponsorCountryCode,
+  sportingPhilosophy,
+  teamReputationPoints,
+  riderCandidates,
+  random = Math.random,
+}: {
+  sponsorCountryCode: string;
+  sportingPhilosophy: SponsorSportingPhilosophy;
+  teamReputationPoints: number;
+  riderCandidates: readonly SponsorObjectiveRiderCandidate[];
+  random?: () => number;
+}): SponsorObjectiveRiderCandidate | null {
+  const expectedProfile =
+    RECRUITMENT_PROFILE_BY_PHILOSOPHY[sportingPhilosophy];
+
+  if (!expectedProfile) return null;
+
+  const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
+  const range = resolveSponsorRecruitmentOverallRange(teamReputationPoints);
+  const eligibleCandidates = riderCandidates.filter(
+    (candidate) =>
+      candidate.countryCode.trim().toUpperCase() === normalizedCountryCode &&
+      candidate.overallRating <= range.maximum &&
+      candidate.sportingProfile.includes(expectedProfile),
+  );
+  const preferredCandidates = eligibleCandidates.filter(
+    (candidate) => candidate.overallRating >= range.minimum,
+  );
+  const rankedCandidates = [
+    ...(preferredCandidates.length > 0
+      ? preferredCandidates
+      : eligibleCandidates),
+  ].sort(
+    (left, right) =>
+      getRecruitmentPhilosophyScore(right.ratings, sportingPhilosophy) -
+        getRecruitmentPhilosophyScore(left.ratings, sportingPhilosophy) ||
+      right.overallRating - left.overallRating ||
+      left.riderName.localeCompare(right.riderName, "fr"),
+  );
+  const shortlist = rankedCandidates.slice(0, 3);
+
+  if (shortlist.length === 0) return null;
+
+  return shortlist[
+    Math.min(shortlist.length - 1, Math.floor(random() * shortlist.length))
+  ];
+}
+
+function getRecruitmentPhilosophyScore(
+  ratings: RiderRatings,
+  sportingPhilosophy: SponsorSportingPhilosophy,
+): number {
+  switch (sportingPhilosophy) {
+    case "cobbled_classics":
+      return ratings.cobbles * 0.65 + ratings.endurance * 0.2 +
+        ratings.resistance * 0.15;
+    case "ardennes_classics":
+      return ratings.hills * 0.6 + ratings.acceleration * 0.25 +
+        ratings.resistance * 0.15;
+    case "medium_stage_races":
+    case "grand_tour_general":
+      return ratings.mountain * 0.35 + ratings.timeTrial * 0.25 +
+        ratings.recovery * 0.2 + ratings.endurance * 0.2;
+    case "time_trials":
+      return ratings.timeTrial * 0.7 + ratings.prologue * 0.2 +
+        ratings.flat * 0.1;
+    case "sprints":
+      return ratings.sprint * 0.55 + ratings.acceleration * 0.3 +
+        ratings.flat * 0.15;
+    case "national_preference":
+    case "youth_development":
+      return 0;
+  }
 }
 
 function withSatisfactionPoints(
@@ -1222,6 +1377,33 @@ function createHomegrownRosterObjective(
     targetDetails: {
       kind: "homegrown_roster",
       minimumPercentage,
+    },
+  };
+}
+
+function createRiderRecruitmentObjective(
+  rider: SponsorObjectiveRiderCandidate,
+  accessibilityMaximumOverall: number,
+): ObjectiveWithoutDisplayOrder {
+  return {
+    name: `Recruter ${rider.riderName}`,
+    description:
+      `Faire signer ${rider.riderName}, coureur ${rider.countryCode} au profil ${rider.sportingProfile.toLowerCase()} (note générale ${rider.overallRating.toFixed(1)}), avant la fin de la saison.`,
+    objectiveType: "rider_recruitment",
+    priority: "important",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: {
+      kind: "rider_recruitment",
+      riderId: rider.riderId,
+      riderName: rider.riderName,
+      countryCode: rider.countryCode,
+      sportingProfile: rider.sportingProfile,
+      overallRating: rider.overallRating,
+      accessibilityMaximumOverall,
     },
   };
 }

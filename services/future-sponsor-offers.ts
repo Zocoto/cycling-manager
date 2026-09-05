@@ -18,6 +18,7 @@ import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
+  RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
   type SponsorOfferObjectiveContext,
 } from "@/services/persisted-sponsor-objectives";
 import type {
@@ -261,6 +262,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       supabase,
       seasonId: targetSeason.id,
       teamReputationPoints: sportingDirector.reputation_points,
+      teamId: normalizedTeamId,
       offerRows: existingOfferRows,
       renewalSponsorCatalogKey:
         mode === "renewal" ? currentSponsorCatalogKey : null,
@@ -392,7 +394,10 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       available_from: availableFrom,
       available_until: null,
       status: "open",
-      generation_version: generationVersion,
+      generation_version: Math.max(
+        generationVersion,
+        RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
+      ),
     };
   });
 
@@ -430,6 +435,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       supabase,
       seasonId: targetSeason.id,
       teamReputationPoints: sportingDirector.reputation_points,
+      teamId: normalizedTeamId,
       offerRows: insertedOfferRows ?? [],
       renewalSponsorCatalogKey:
         mode === "renewal"
@@ -924,12 +930,14 @@ async function hydrateFutureSponsorOffersWithObjectives({
   supabase,
   seasonId,
   teamReputationPoints,
+  teamId,
   offerRows,
   renewalSponsorCatalogKey,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
   teamReputationPoints: number;
+  teamId: string;
   offerRows: readonly SponsorOfferRow[];
   renewalSponsorCatalogKey: string | null;
 }): Promise<PersistedSponsorOffer[]> {
@@ -946,6 +954,9 @@ async function hydrateFutureSponsorOffersWithObjectives({
       proposedBudget: offer.baseBudget,
       relationshipYear: offer.isRenewal ? 2 : 1,
       objectiveDifficulty: offer.objectiveDifficulty,
+      includeRiderRecruitmentObjective:
+        (offerRows.find((row) => row.id === offer.id)?.generation_version ?? 0) >=
+        RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
     }));
 
   const objectivesByOfferId =
@@ -953,6 +964,7 @@ async function hydrateFutureSponsorOffersWithObjectives({
       supabase,
       seasonId,
       teamReputationPoints,
+      teamId,
       offers: objectiveContexts,
     });
 

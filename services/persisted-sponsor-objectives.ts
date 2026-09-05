@@ -4,8 +4,16 @@ import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   generateProvisionalSponsorObjectives,
   selectSponsorObjectiveRaces,
+  shouldSponsorRequestRiderRecruitment,
   type SponsorObjectiveRaceCandidate,
+  type SponsorObjectiveRiderCandidate,
 } from "@/services/sponsor-objectives";
+import {
+  getRiderSportingProfile,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
+import { calculateNationRiderOverall } from "@/lib/game/nation-rider-ranking";
+import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { Sponsor } from "@/types/sponsor";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 import type {
@@ -25,6 +33,8 @@ const OBJECTIVE_COMPLETION_ATTEMPTS = 8;
 const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 125;
 const SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE = 75;
 
+export const RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION = 8;
+
 type SupabaseAdminClient = ReturnType<
   typeof createSupabaseAdminClient
 >;
@@ -36,6 +46,7 @@ export type SponsorOfferObjectiveContext = {
   relationshipYear?: number;
   objectiveDifficulty?: SponsorObjectiveDifficulty;
   neutralizeMissingObjectives?: boolean;
+  includeRiderRecruitmentObjective?: boolean;
 };
 
 type SponsorObjectiveRow = {
@@ -119,15 +130,47 @@ type SeasonReferenceRow = {
   id: string;
 };
 
+type RiderRow = {
+  id: string;
+  country_id: string;
+  first_name: string;
+  last_name: string;
+};
+
+type RiderSeasonRatingRow = {
+  rider_id: string;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
+};
+
+type RiderContractAvailabilityRow = {
+  rider_id: string;
+  team_id: string;
+  status: "planned" | "active";
+};
+
 export async function ensureAndLoadSponsorObjectives({
   supabase,
   seasonId,
   teamReputationPoints,
+  teamId,
   offers,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
   teamReputationPoints: number;
+  teamId?: string;
   offers: readonly SponsorOfferObjectiveContext[];
 }): Promise<Map<string, PersistedSponsorObjective[]>> {
   if (offers.length === 0) {
@@ -142,6 +185,32 @@ export async function ensureAndLoadSponsorObjectives({
     supabase,
     seasonId,
   });
+  const riderRecruitmentOffers = offers.filter(
+    (offer) =>
+      offer.includeRiderRecruitmentObjective === true &&
+      shouldSponsorRequestRiderRecruitment({
+        sponsorCatalogKey: offer.sponsor.id,
+        sportingPhilosophy: resolveSponsorSportingPhilosophy(offer.sponsor.id),
+      }),
+  );
+  const riderRecruitmentRequested = riderRecruitmentOffers.length > 0;
+
+  if (riderRecruitmentRequested && !teamId?.trim()) {
+    throw new Error(
+      "L’équipe destinataire est obligatoire pour générer un objectif de recrutement sponsor.",
+    );
+  }
+
+  const riderCandidates = riderRecruitmentRequested
+    ? await loadSponsorObjectiveRiderCandidates({
+        supabase,
+        seasonId,
+        teamId: teamId!.trim(),
+        sponsorCountryCodes: riderRecruitmentOffers.map(
+          (offer) => offer.sponsor.countryCode,
+        ),
+      })
+    : [];
 
   const existingObjectiveRows =
     await loadSponsorObjectiveRows(
@@ -191,6 +260,9 @@ export async function ensureAndLoadSponsorObjectives({
           ) ?? null,
         relationshipYear: offer.relationshipYear ?? 1,
         objectiveDifficulty: offer.objectiveDifficulty ?? "balanced",
+        riderCandidates,
+        includeRiderRecruitmentObjective:
+          offer.includeRiderRecruitmentObjective === true,
         teamReputationPoints,
         raceCandidates,
         random: createSeededRandom(
@@ -679,6 +751,10 @@ function getObjectiveSignature(
     return `youth_development:${details.metric}`;
   }
 
+  if (details.kind === "rider_recruitment") {
+    return `rider_recruitment:${details.riderId}`;
+  }
+
   return details.kind;
 }
 
@@ -982,6 +1058,223 @@ async function loadSponsorObjectiveRaceCandidates({
   return {
     raceCandidates: [...candidatesByRaceId.values()],
     continentCodeByCountryCode,
+  };
+}
+
+async function loadSponsorObjectiveRiderCandidates({
+  supabase,
+  seasonId,
+  teamId,
+  sponsorCountryCodes,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+  teamId: string;
+  sponsorCountryCodes: readonly string[];
+}): Promise<SponsorObjectiveRiderCandidate[]> {
+  const normalizedCountryCodes = [
+    ...new Set(
+      sponsorCountryCodes
+        .map((countryCode) => countryCode.trim().toUpperCase())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (normalizedCountryCodes.length === 0) return [];
+
+  const { data: countryRows, error: countryError } = await supabase
+    .from("countries")
+    .select("id, iso_alpha2, continent_code")
+    .in("iso_alpha2", normalizedCountryCodes)
+    .returns<CountryRow[]>();
+
+  if (countryError) {
+    throw new Error(
+      `Impossible de charger les pays des cibles de recrutement sponsor : ${countryError.message}`,
+    );
+  }
+
+  const countries = countryRows ?? [];
+  const countryIds = countries.map((country) => country.id);
+  if (countryIds.length === 0) return [];
+
+  const { data: riderRows, error: riderError } = await supabase
+    .from("riders")
+    .select("id, country_id, first_name, last_name")
+    .in("country_id", countryIds)
+    .in("status", ["active", "free_agent"])
+    .returns<RiderRow[]>();
+
+  if (riderError) {
+    throw new Error(
+      `Impossible de charger les coureurs ciblables par les sponsors : ${riderError.message}`,
+    );
+  }
+
+  const riders = riderRows ?? [];
+  const riderIds = riders.map((rider) => rider.id);
+  if (riderIds.length === 0) return [];
+
+  const [targetSeasonRatings, activeSeasonResult, contractRows] =
+    await Promise.all([
+      loadRiderSeasonRatingRows({ supabase, seasonId, riderIds }),
+      supabase
+        .from("seasons")
+        .select("id")
+        .eq("status", "active")
+        .limit(1)
+        .returns<SeasonReferenceRow[]>(),
+      loadRiderContractAvailabilityRows({ supabase, riderIds }),
+    ]);
+
+  if (activeSeasonResult.error) {
+    throw new Error(
+      `Impossible de charger la saison de référence des cibles sponsor : ${activeSeasonResult.error.message}`,
+    );
+  }
+
+  const ratingsByRiderId = new Map(
+    targetSeasonRatings.map((ratings) => [ratings.rider_id, ratings]),
+  );
+  const missingRiderIds = riderIds.filter(
+    (riderId) => !ratingsByRiderId.has(riderId),
+  );
+  const activeSeasonId = activeSeasonResult.data?.[0]?.id;
+
+  if (
+    missingRiderIds.length > 0 &&
+    activeSeasonId &&
+    activeSeasonId !== seasonId
+  ) {
+    const fallbackRatings = await loadRiderSeasonRatingRows({
+      supabase,
+      seasonId: activeSeasonId,
+      riderIds: missingRiderIds,
+    });
+
+    for (const ratings of fallbackRatings) {
+      ratingsByRiderId.set(ratings.rider_id, ratings);
+    }
+  }
+
+  const unavailableRiderIds = new Set(
+    contractRows
+      .filter(
+        (contract) =>
+          contract.status === "planned" || contract.team_id === teamId,
+      )
+      .map((contract) => contract.rider_id),
+  );
+  const countryCodeById = new Map(
+    countries.map((country) => [
+      country.id,
+      country.iso_alpha2.trim().toUpperCase(),
+    ]),
+  );
+
+  return riders.flatMap((rider) => {
+    if (unavailableRiderIds.has(rider.id)) return [];
+
+    const ratingRow = ratingsByRiderId.get(rider.id);
+    const countryCode = countryCodeById.get(rider.country_id);
+    if (!ratingRow || !countryCode) return [];
+
+    const ratings = toRiderRatings(ratingRow);
+
+    return [{
+      riderId: rider.id,
+      riderName: `${rider.first_name} ${rider.last_name}`.trim(),
+      countryCode,
+      sportingProfile: getRiderSportingProfile(ratings),
+      overallRating: calculateNationRiderOverall(ratings),
+      ratings,
+    }];
+  });
+}
+
+async function loadRiderSeasonRatingRows({
+  supabase,
+  seasonId,
+  riderIds,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+  riderIds: readonly string[];
+}): Promise<RiderSeasonRatingRow[]> {
+  const rows: RiderSeasonRatingRow[] = [];
+
+  for (const riderIdBatch of splitIntoBatches(
+    riderIds,
+    SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE,
+  )) {
+    const { data, error } = await supabase
+      .from("rider_season_ratings")
+      .select(
+        "rider_id, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+      )
+      .eq("season_id", seasonId)
+      .in("rider_id", riderIdBatch)
+      .returns<RiderSeasonRatingRow[]>();
+
+    if (error) {
+      throw new Error(
+        `Impossible de charger le niveau des cibles de recrutement sponsor : ${error.message}`,
+      );
+    }
+
+    rows.push(...(data ?? []));
+  }
+
+  return rows;
+}
+
+async function loadRiderContractAvailabilityRows({
+  supabase,
+  riderIds,
+}: {
+  supabase: SupabaseAdminClient;
+  riderIds: readonly string[];
+}): Promise<RiderContractAvailabilityRow[]> {
+  const rows: RiderContractAvailabilityRow[] = [];
+
+  for (const riderIdBatch of splitIntoBatches(
+    riderIds,
+    SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE,
+  )) {
+    const { data, error } = await supabase
+      .from("rider_contracts")
+      .select("rider_id, team_id, status")
+      .in("rider_id", riderIdBatch)
+      .in("status", ["planned", "active"])
+      .returns<RiderContractAvailabilityRow[]>();
+
+    if (error) {
+      throw new Error(
+        `Impossible de vérifier la disponibilité des cibles sponsor : ${error.message}`,
+      );
+    }
+
+    rows.push(...(data ?? []));
+  }
+
+  return rows;
+}
+
+function toRiderRatings(row: RiderSeasonRatingRow): RiderRatings {
+  return {
+    mountain: row.mountain,
+    hills: row.hills,
+    flat: row.flat,
+    timeTrial: row.time_trial,
+    cobbles: row.cobbles,
+    sprint: row.sprint,
+    acceleration: row.acceleration,
+    downhill: row.downhill,
+    endurance: row.endurance,
+    resistance: row.resistance,
+    recovery: row.recovery,
+    breakaway: row.breakaway,
+    prologue: row.prologue,
   };
 }
 

@@ -48,4 +48,28 @@ describe("SponsorObjectiveTitle", () => {
     expect(markup).not.toContain("href=");
     expect(markup).not.toContain("data-race-preview-trigger");
   });
+
+  it("ouvre la fiche et l’aperçu du coureur demandé par le sponsor", () => {
+    const targetDetails: SponsorObjectiveTargetDetails = {
+      kind: "rider_recruitment",
+      riderId: "11111111-1111-4111-8111-111111111111",
+      riderName: "Jean Kerbrat",
+      countryCode: "FR",
+      sportingProfile: "Coureur de pavés",
+      overallRating: 68,
+      accessibilityMaximumOverall: 72,
+    };
+
+    const markup = renderToStaticMarkup(
+      <SponsorObjectiveTitle targetDetails={targetDetails}>
+        Recruter Jean Kerbrat
+      </SponsorObjectiveTitle>,
+    );
+
+    expect(markup).toContain(
+      'href="/jeu/coureurs/11111111-1111-4111-8111-111111111111"',
+    );
+    expect(markup).toContain("data-sponsor-rider-objective-link");
+    expect(markup).toContain("Aperçu · coureur");
+  });
 });

@@ -15,6 +15,7 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
+  RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
   type SponsorOfferObjectiveContext,
 } from "@/services/persisted-sponsor-objectives";
 import { generateSponsorProposals } from "@/services/sponsor-proposals";
@@ -234,6 +235,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
       supabase,
       seasonId: activeSeason.id,
       teamReputationPoints: sportingDirector.reputation_points,
+      teamId,
       offerRows: existingOfferRows,
     });
 
@@ -364,7 +366,10 @@ export async function getOrCreateSponsorOffersForAuthUser(
         available_from: availableFrom,
         available_until: null,
         status: "open",
-        generation_version: generationVersion,
+        generation_version: Math.max(
+          generationVersion,
+          RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
+        ),
       };
     });
 
@@ -399,6 +404,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
     supabase,
     seasonId: activeSeason.id,
     teamReputationPoints: sportingDirector.reputation_points,
+    teamId,
     offerRows: insertedOfferRows ?? [],
   });
 }
@@ -507,11 +513,13 @@ async function hydrateSponsorOffersWithObjectives({
   supabase,
   seasonId,
   teamReputationPoints,
+  teamId,
   offerRows,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
   teamReputationPoints: number;
+  teamId: string;
   offerRows: readonly SponsorOfferRow[];
 }): Promise<PersistedSponsorOffer[]> {
   const hydratedOffers =
@@ -527,6 +535,9 @@ async function hydrateSponsorOffersWithObjectives({
       sponsor: offer.sponsor,
       proposedBudget: offer.baseBudget,
       objectiveDifficulty: offer.objectiveDifficulty,
+      includeRiderRecruitmentObjective:
+        (offerRows.find((row) => row.id === offer.id)?.generation_version ?? 0) >=
+        RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
     }));
 
   const objectivesByOfferId =
@@ -534,6 +545,7 @@ async function hydrateSponsorOffersWithObjectives({
       supabase,
       seasonId,
       teamReputationPoints,
+      teamId,
       offers: objectiveContexts,
     });
 

@@ -1177,6 +1177,11 @@ function ContractObjectiveItem({
           Math.max(0, (objective.currentValue / nationalityTarget) * 100),
         )
       : null;
+  const recruitmentProgress =
+    objective.targetDetails.kind === "rider_recruitment" &&
+    objective.currentValue !== null
+      ? objective.currentValue >= 1
+      : null;
 
   return (
     <li className="flex items-start gap-3 rounded-xl border border-[#315B3E]/10 bg-white/75 px-4 py-3">
@@ -1219,6 +1224,13 @@ function ContractObjectiveItem({
               />
             </div>
           </div>
+        ) : null}
+        {recruitmentProgress !== null ? (
+          <p className="mt-2 text-[11px] font-bold text-[#526A62]">
+            {recruitmentProgress
+              ? "Le coureur a signé avec votre équipe."
+              : "Le coureur doit encore signer avec votre équipe."}
+          </p>
         ) : null}
         <p
           className={`mt-1 text-xs font-extrabold ${

@@ -5,10 +5,13 @@ import {
   generateProvisionalSponsorObjectives as generateObjectivesFromRaces,
   isRaceCategoryUnlockedForSponsorObjectives,
   matchesSponsorSportingPhilosophy,
+  resolveSponsorRecruitmentOverallRange,
   resolveSponsorObjectiveFocus,
   resolveSponsorObjectiveAmbitionLevel,
+  selectSponsorRecruitmentRider,
   selectSponsorObjectiveRaces,
   type SponsorObjectiveRaceCandidate,
+  type SponsorObjectiveRiderCandidate,
 } from "./sponsor-objectives";
 import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 
@@ -105,7 +108,161 @@ function createDeterministicRandom(
   };
 }
 
+function createRiderCandidate({
+  riderId,
+  riderName,
+  countryCode = "FR",
+  sportingProfile = "Coureur de pavés",
+  overallRating,
+  cobbles = 76,
+}: {
+  riderId: string;
+  riderName: string;
+  countryCode?: string;
+  sportingProfile?: SponsorObjectiveRiderCandidate["sportingProfile"];
+  overallRating: number;
+  cobbles?: number;
+}): SponsorObjectiveRiderCandidate {
+  return {
+    riderId,
+    riderName,
+    countryCode,
+    sportingProfile,
+    overallRating,
+    ratings: {
+      mountain: 60,
+      hills: 62,
+      recovery: 64,
+      endurance: 68,
+      resistance: 67,
+      breakaway: 61,
+      downhill: 60,
+      acceleration: 63,
+      sprint: 61,
+      flat: 66,
+      cobbles,
+      prologue: 58,
+      timeTrial: 60,
+    },
+  };
+}
+
 describe("generateProvisionalSponsorObjectives", () => {
+  it("réserve la cible de recrutement aux nouvelles offres des sponsors concernés", () => {
+    const riderCandidates = [
+      createRiderCandidate({
+        riderId: "11111111-1111-4111-8111-111111111111",
+        riderName: "Jean Kerbrat",
+        overallRating: 68,
+      }),
+      createRiderCandidate({
+        riderId: "22222222-2222-4222-8222-222222222222",
+        riderName: "Jules Van Aert",
+        countryCode: "BE",
+        overallRating: 70,
+      }),
+    ];
+    const commonOptions = {
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 3 as const,
+      sponsorCatalogKey: "montbrun-private",
+      sportingPhilosophy: "cobbled_classics" as const,
+      riderCandidates,
+      random: () => 0,
+    };
+
+    const previousOffer = generateProvisionalSponsorObjectives(commonOptions);
+    const newOffer = generateProvisionalSponsorObjectives({
+      ...commonOptions,
+      includeRiderRecruitmentObjective: true,
+    });
+    const recruitmentObjective = newOffer.find(
+      (objective) => objective.targetDetails.kind === "rider_recruitment",
+    );
+
+    expect(
+      previousOffer.some(
+        (objective) => objective.targetDetails.kind === "rider_recruitment",
+      ),
+    ).toBe(false);
+    expect(recruitmentObjective?.name).toBe("Recruter Jean Kerbrat");
+    expect(recruitmentObjective?.targetDetails).toMatchObject({
+      kind: "rider_recruitment",
+      riderId: "11111111-1111-4111-8111-111111111111",
+      countryCode: "FR",
+      sportingProfile: "Coureur de pavés",
+      overallRating: 68,
+      accessibilityMaximumOverall: 72,
+    });
+    expect(newOffer).toHaveLength(10);
+    expect(
+      newOffer.reduce(
+        (total, objective) => total + objective.satisfactionPoints,
+        0,
+      ),
+    ).toBe(100);
+  });
+
+  it("adapte le prestige maximal de la cible à la réputation de l’équipe", () => {
+    const accessibleRider = createRiderCandidate({
+      riderId: "33333333-3333-4333-8333-333333333333",
+      riderName: "Paul Accessible",
+      overallRating: 65,
+      cobbles: 72,
+    });
+    const eliteRider = createRiderCandidate({
+      riderId: "44444444-4444-4444-8444-444444444444",
+      riderName: "Pierre Élite",
+      overallRating: 82,
+      cobbles: 92,
+    });
+    const candidates = [accessibleRider, eliteRider];
+
+    expect(resolveSponsorRecruitmentOverallRange(50)).toEqual({
+      minimum: 56,
+      maximum: 66,
+    });
+    expect(resolveSponsorRecruitmentOverallRange(800)).toEqual({
+      minimum: 74,
+      maximum: 84,
+    });
+    expect(
+      selectSponsorRecruitmentRider({
+        sponsorCountryCode: "FR",
+        sportingPhilosophy: "cobbled_classics",
+        teamReputationPoints: 50,
+        riderCandidates: candidates,
+        random: () => 0,
+      })?.riderId,
+    ).toBe(accessibleRider.riderId);
+    expect(
+      selectSponsorRecruitmentRider({
+        sponsorCountryCode: "FR",
+        sportingPhilosophy: "cobbled_classics",
+        teamReputationPoints: 800,
+        riderCandidates: candidates,
+        random: () => 0,
+      })?.riderId,
+    ).toBe(eliteRider.riderId);
+  });
+
+  it("n’invente pas de cible individuelle sans spécialité sportive cohérente", () => {
+    const candidate = createRiderCandidate({
+      riderId: "55555555-5555-4555-8555-555555555555",
+      riderName: "Louis National",
+      overallRating: 66,
+    });
+
+    expect(
+      selectSponsorRecruitmentRider({
+        sponsorCountryCode: "FR",
+        sportingPhilosophy: "national_preference",
+        teamReputationPoints: 200,
+        riderCandidates: [candidate],
+      }),
+    ).toBeNull();
+  });
+
   it("génère exactement dix objectifs ordonnés totalisant 100 points", () => {
     const objectives = generateProvisionalSponsorObjectives({
       sponsorCountryCode: "FR",
