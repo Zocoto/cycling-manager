@@ -38,8 +38,11 @@ describe("matériel équipementier virtuel", () => {
     expect(equipmentService).toContain("item.isUnlimited ||");
   });
 
-  it("exclut toutes les références partenaire de l’inventaire physique", () => {
+  it("exclut les références partenaire mais conserve les prototypes R&D", () => {
     expect(inventoryService).toContain(
+      'item.channel !== "equipment_partner" && item.ownedQuantity > 0',
+    );
+    expect(inventoryService).not.toContain(
       'item.channel === "commercial" && item.ownedQuantity > 0',
     );
   });

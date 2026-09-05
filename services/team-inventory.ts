@@ -100,7 +100,8 @@ export async function getCurrentTeamInventoryOverview(
 
   const equipmentItems = equipmentOverview.catalog
     .filter(
-      (item) => item.channel === "commercial" && item.ownedQuantity > 0,
+      (item) =>
+        item.channel !== "equipment_partner" && item.ownedQuantity > 0,
     )
     .map(
       (item) =>
