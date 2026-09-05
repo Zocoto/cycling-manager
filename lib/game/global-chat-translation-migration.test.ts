@@ -28,6 +28,20 @@ const optionalProfilesMigration = readFileSync(
   ),
   "utf8",
 );
+const cacheRepairMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260905183500_restore_global_chat_translation_cache.sql",
+  ),
+  "utf8",
+);
+const requestRepairMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260905184500_restore_global_chat_translation_requests.sql",
+  ),
+  "utf8",
+);
 const privacyPage = readFileSync(
   resolve(process.cwd(), "app/(public)/confidentialite/page.tsx"),
   "utf8",
@@ -41,10 +55,28 @@ describe("on-demand global chat translation", () => {
       /revoke all on table public\.global_chat_message_translations\s+from public, anon, authenticated/i,
     );
     expect(migration).toContain("grant all on table public.global_chat_message_translations to service_role");
+    expect(cacheRepairMigration).toContain(
+      "create table if not exists public.global_chat_message_translations",
+    );
+    expect(cacheRepairMigration).toMatch(
+      /revoke all on table public\.global_chat_message_translations\s+from public, anon, authenticated/i,
+    );
+    expect(cacheRepairMigration).toContain(
+      "grant all on table public.global_chat_message_translations to service_role",
+    );
   });
 
   it("rate limits provider calls and authenticates each translation request", () => {
     expect(migration).toContain("global_chat_translation_requests");
+    expect(requestRepairMigration).toContain(
+      "create table if not exists public.global_chat_translation_requests",
+    );
+    expect(requestRepairMigration).toContain(
+      "create index if not exists global_chat_translation_requests_director_created_idx",
+    );
+    expect(requestRepairMigration).toMatch(
+      /revoke all on table public\.global_chat_translation_requests\s+from public, anon, authenticated/i,
+    );
     expect(route).toContain("getAuthenticatedUser(supabase)");
     expect(route).toContain("ChatTranslationRateLimitError");
     expect(route).toContain("status: 429");
