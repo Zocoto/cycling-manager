@@ -66,7 +66,7 @@ export const YOUTH_RAW_RATING_MIN = 1;
 export const YOUTH_RAW_RATING_MAX = 8.25;
 export const YOUTH_RATING_PROJECTION_BASE = 34;
 export const YOUTH_RATING_PROJECTION_SCALE = 8;
-export const YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN = 0.32;
+export const YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN = 0.3;
 export const YOUTH_MANUAL_SESSION_SHARE = 0.75;
 export const YOUTH_TRAINING_VARIANCE_MIN = 0.78;
 export const YOUTH_TRAINING_VARIANCE_MAX = 1.28;
@@ -242,6 +242,18 @@ export function getYouthRatingProgressFactor(projectedRating: number) {
   return clamp(0.45 + 0.75 * normalizedRemaining ** 1.15, 0.45, 1.3);
 }
 
+export function getYouthTrainingRatingProgressFactor(
+  projectedRating: number,
+) {
+  const normalizedDevelopmentRoom = clamp(
+    (88 - clamp(projectedRating, 0, 100)) / 48,
+    0,
+    1,
+  );
+
+  return 0.08 + 1.52 * normalizedDevelopmentRoom ** 2;
+}
+
 export function getYouthProfileLoadFactor({
   profilePeakRating,
   profileAverageRating,
@@ -290,7 +302,7 @@ function getYouthDevelopmentFactor({
 }) {
   return (
     getYouthTalentProgressMultiplier(potentialSteps) *
-    getYouthRatingProgressFactor(currentProjectedRating) *
+    getYouthTrainingRatingProgressFactor(currentProjectedRating) *
     getYouthProfileLoadFactor({
       profilePeakRating,
       profileAverageRating,

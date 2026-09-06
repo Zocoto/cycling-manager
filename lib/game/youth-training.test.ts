@@ -53,6 +53,7 @@ import {
   getYouthPuncheurChargeRateMultiplier,
   getYouthPuncheurScoredOpportunities,
   getYouthRatingProgressFactor,
+  getYouthTrainingRatingProgressFactor,
   getYouthReflexTargetInterval,
   getYouthRhythmCursorPosition,
   getYouthTimeTrialWindDrift,
@@ -88,10 +89,16 @@ function simulateYouthCareer({
   potentialSteps,
   mode,
   score,
+  dayCount = 84,
+  schoolTrainingBonusPercentage = 0,
+  sessionVariance = 1,
 }: {
   potentialSteps: number;
   mode: "automatic" | "manual";
   score: number;
+  dayCount?: number;
+  schoolTrainingBonusPercentage?: number;
+  sessionVariance?: number;
 }) {
   const ratings: Record<SimulatedYouthRatingKey, number> = {
     mountain: 50,
@@ -109,7 +116,7 @@ function simulateYouthCareer({
     prologue: 42,
   };
 
-  for (let day = 0; day < 84; day += 1) {
+  for (let day = 0; day < dayCount; day += 1) {
     const sessionCount = mode === "manual" ? 2 : 1;
     for (let session = 0; session < sessionCount; session += 1) {
       const profileValues = Object.values(ratings);
@@ -125,7 +132,8 @@ function simulateYouthCareer({
           currentProjectedRating: ratings[ratingKey],
           profilePeakRating,
           profileAverageRating,
-          sessionVariance: 1,
+          sessionVariance,
+          schoolTrainingBonusPercentage,
           domain: "climber" as const,
           ratingKey,
         };
@@ -259,7 +267,7 @@ describe("youth training", () => {
     ).toBe(false);
   });
 
-  it("remplace tous les paliers par une courbe continue jusque dans l’élite", () => {
+  it("conserve une courbe continue distincte pour les récompenses de course", () => {
     const aroundSeventy = [69.99, 70, 70.01].map(
       getYouthRatingProgressFactor,
     );
@@ -272,6 +280,25 @@ describe("youth training", () => {
     );
     expect(getYouthRatingProgressFactor(80)).toBeGreaterThan(0.65);
     expect(getYouthRatingProgressFactor(90)).toBeGreaterThan(0.55);
+  });
+
+  it("bonifie les notes basses puis augmente continûment le malus d entraînement", () => {
+    const ratings = [42, 50, 60, 65, 70, 75, 80, 90];
+    const factors = ratings.map(getYouthTrainingRatingProgressFactor);
+    const aroundSeventy = [69.99, 70, 70.01].map(
+      getYouthTrainingRatingProgressFactor,
+    );
+
+    expect(factors[0]).toBeGreaterThan(1.4);
+    expect(factors[4]).toBeLessThan(0.3);
+    expect(factors[5]).toBeLessThan(0.2);
+    expect(factors.at(-1)).toBeCloseTo(0.08, 10);
+    for (let index = 1; index < factors.length; index += 1) {
+      expect(factors[index]).toBeLessThan(factors[index - 1]);
+    }
+    expect(Math.max(...aroundSeventy) - Math.min(...aroundSeventy)).toBeLessThan(
+      0.001,
+    );
   });
 
   it("donne au talent un poids nettement supérieur à celui du modèle pro", () => {
@@ -341,8 +368,8 @@ describe("youth training", () => {
       profilePeakRating: 82,
       profileAverageRating: 60,
     });
-    const strongStatFactor = getYouthRatingProgressFactor(82);
-    const ordinaryStatFactor = getYouthRatingProgressFactor(55);
+    const strongStatFactor = getYouthTrainingRatingProgressFactor(82);
+    const ordinaryStatFactor = getYouthTrainingRatingProgressFactor(55);
 
     expect(loadedProfileFactor).toBeLessThan(freshProfileFactor);
     expect(loadedProfileFactor).toBeGreaterThan(0.8);
@@ -364,7 +391,7 @@ describe("youth training", () => {
     );
   });
 
-  it("permet à un talent exceptionnel très travaillé de devenir fort sans être à 80 partout", () => {
+  it("garde même un talent exceptionnel très travaillé autour de 75", () => {
     const ratings = simulateYouthCareer({
       potentialSteps: 8,
       mode: "manual",
@@ -372,12 +399,11 @@ describe("youth training", () => {
     });
     const values = Object.values(ratings);
 
-    expect(Math.max(...values)).toBeGreaterThan(85);
-    expect(values.filter((rating) => rating >= 80).length).toBeLessThanOrEqual(
-      3,
-    );
+    expect(Math.max(...values)).toBeGreaterThan(72);
+    expect(Math.max(...values)).toBeLessThan(76);
+    expect(values.filter((rating) => rating >= 80)).toHaveLength(0);
     expect(values.reduce((sum, rating) => sum + rating, 0) / values.length).toBeLessThan(
-      70,
+      60,
     );
   });
 
@@ -397,14 +423,44 @@ describe("youth training", () => {
       }),
     );
 
-    expect(Math.max(...automaticRatings)).toBeGreaterThan(68);
-    expect(Math.max(...automaticRatings)).toBeLessThan(74);
-    expect(Math.max(...manualRatings)).toBeGreaterThan(74);
-    expect(Math.max(...manualRatings)).toBeLessThan(80);
+    expect(Math.max(...automaticRatings)).toBeGreaterThan(62);
+    expect(Math.max(...automaticRatings)).toBeLessThan(66);
+    expect(Math.max(...manualRatings)).toBeGreaterThan(66);
+    expect(Math.max(...manualRatings)).toBeLessThan(70);
     expect(
       manualRatings.reduce((sum, rating) => sum + rating, 0) /
         manualRatings.length,
     ).toBeLessThan(60);
+  });
+
+  it("borne une formation parfaite ordinaire autour de 75 sur quatre saisons", () => {
+    const ratings = Object.values(
+      simulateYouthCareer({
+        potentialSteps: 6,
+        mode: "manual",
+        score: 1_000,
+        dayCount: 112,
+      }),
+    );
+
+    expect(Math.max(...ratings)).toBeGreaterThanOrEqual(74);
+    expect(Math.max(...ratings)).toBeLessThanOrEqual(76);
+  });
+
+  it("réserve les notes au-delà de 80 aux circonstances exceptionnelles", () => {
+    const ratings = Object.values(
+      simulateYouthCareer({
+        potentialSteps: 8,
+        mode: "manual",
+        score: 1_000,
+        dayCount: 112,
+        schoolTrainingBonusPercentage: 20,
+        sessionVariance: 1.28,
+      }),
+    );
+
+    expect(Math.max(...ratings)).toBeGreaterThan(80);
+    expect(Math.max(...ratings)).toBeLessThan(84);
   });
 
   it("continue à faire progresser une très bonne statistique sans plafond artificiel", () => {
