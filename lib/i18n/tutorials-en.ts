@@ -491,7 +491,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "director-selling": {
         title: "List a rider for at least 24 hours",
         content:
-          "Browse your valuation list, select a rider and review exact ratings in the processing tile. Set the opening price and confirm: the listing immediately joins Auctions for 24 hours.\n\nA rider recruited during the season cannot be resold until the next; founding riders can be listed immediately.",
+          "Browse your valuation list, select a rider and review exact ratings in the processing tile. Set the opening price and confirm: the listing immediately joins Auctions for 24 hours.\n\nA rider may change teams only once and represent at most two teams in a season. Their first signing as a free agent does not count as a team change.",
       },
       "director-market": {
         title: "Track your listed riders",

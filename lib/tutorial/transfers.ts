@@ -66,7 +66,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-director-selling",
       title: "Mettez un coureur en vente pendant 24 heures",
       content:
-        "Parcourez votre liste de valeur, sélectionnez un coureur puis contrôlez ses notes exactes dans la tuile de traitement. Fixez son prix d’appel et confirmez : l’annonce rejoint immédiatement la rubrique Enchères pour 24 heures.\n\nUn coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.",
+        "Parcourez votre liste de valeur, sélectionnez un coureur puis contrôlez ses notes exactes dans la tuile de traitement. Fixez son prix d’appel et confirmez : l’annonce rejoint immédiatement la rubrique Enchères pour 24 heures.\n\nUn coureur peut changer une seule fois d’équipe et connaître au maximum deux équipes pendant la saison. Sa première signature comme agent libre ne compte pas comme un changement.",
       placement: "bottom",
       highlightPadding: 8,
     },

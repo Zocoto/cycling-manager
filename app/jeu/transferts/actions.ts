@@ -49,7 +49,13 @@ export async function createDirectorListingAction(formData: FormData) {
     p_rider_id: riderId,
     p_minimum_bid: minimumBid,
   });
-  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+  if (error) {
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      normalizeSeasonTransferRuleError(error.message),
+    );
+  }
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
   redirectWithMessage(returnPath, "succes", "Le coureur est proposé pendant 24 heures.");
@@ -110,7 +116,13 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
     p_rider_id: riderId,
     p_amount: amount,
   });
-  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+  if (error) {
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      normalizeSeasonTransferRuleError(error.message),
+    );
+  }
 
   schedulePushDispatch();
   revalidateTransferPaths();
@@ -139,7 +151,13 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
     p_offer_id: offerId,
     p_accept: decision === "accept",
   });
-  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+  if (error) {
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      normalizeSeasonTransferRuleError(error.message),
+    );
+  }
 
   schedulePushDispatch();
   revalidateTransferPaths();
@@ -240,6 +258,12 @@ function resolveTransferOrRiderReturnPath(value: string, riderId: string) {
     buildRiderReturnPath(value, riderId) ??
     sanitizeTransferMarketReturnPath(value)
   );
+}
+
+function normalizeSeasonTransferRuleError(message: string) {
+  return /recruté cette saison/i.test(message)
+    ? "Transfert impossible : ce coureur a déjà changé d’équipe cette saison."
+    : message;
 }
 
 function readValue(formData: FormData, key: string) {

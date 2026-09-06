@@ -175,6 +175,7 @@ export type TransferRiderSearchResult = TransferMarketRider & {
   contractStatus: TransferContractFilter;
   teamId: string | null;
   teamName: string | null;
+  hasChangedTeamThisSeason: boolean;
 };
 
 export type TransferRosterRider = {
@@ -484,8 +485,13 @@ export async function getTransferMarketOverview(
         ([, gameYear]) => gameYear === context.season.game_year + 1,
       )?.[0] ?? null)
     : null;
-  const [riders, teams, currentSalaryQuotes, renewalSalaryQuotes] =
-    await Promise.all([
+  const [
+    riders,
+    teams,
+    currentSalaryQuotes,
+    renewalSalaryQuotes,
+    teamChangeLockedRiderIds,
+  ] = await Promise.all([
     loadMarketRiders(
       admin,
       salaryRiderIds,
@@ -510,6 +516,11 @@ export async function getTransferMarketOverview(
     ),
     loadRiderSalaryQuotes(admin, salaryRiderIds, context.season.id),
     loadRiderSalaryQuotes(admin, salaryRiderIds, nextSeasonId),
+    loadSeasonTeamChangeLockedRiderIds(
+      admin,
+      salaryRiderIds,
+      context.season.id,
+    ),
   ]);
 
   const riderById = new Map(riders.map((rider) => [rider.id, rider]));
@@ -601,6 +612,7 @@ export async function getTransferMarketOverview(
       contractStatus: searchRow.team_id ? "contracted" : "free",
       teamId: searchRow.team_id,
       teamName: searchRow.team_name,
+      hasChangedTeamThisSeason: teamChangeLockedRiderIds.has(rider.id),
     } satisfies TransferRiderSearchResult];
   });
   const pendingTotal = (transactionsResult.data ?? []).reduce(
@@ -729,7 +741,7 @@ export async function getTransferMarketOverview(
           listBlockedReason: listed
             ? "Déjà proposé sur le marché"
             : locked
-              ? "Recruté cette saison : revente impossible"
+              ? "Déjà transféré cette saison : nouvelle revente impossible"
               : null,
           canRenew:
             endYear <= currentSeasonYear && !plannedRiderIds.has(rider.id),
@@ -756,6 +768,7 @@ export async function getRiderTransferManagement(
     teamContractsResult,
     pendingOfferResult,
     reservationsResult,
+    teamChangeLockResult,
   ] = await Promise.all([
     admin
       .from("riders")
@@ -806,6 +819,14 @@ export async function getRiderTransferManagement(
       p_excluded_offer_id: null,
       p_excluded_listing_id: null,
     }),
+    admin
+      .from("rider_contracts")
+      .select("id")
+      .eq("rider_id", riderId)
+      .eq("transfer_locked_season_id", context.season.id)
+      .in("status", ["active", "terminated", "completed"])
+      .limit(1)
+      .returns<Array<{ id: string }>>(),
   ]);
   assertQuery(riderResult.error, "le statut du coureur");
   assertQuery(ratingResult.error, "le niveau du coureur");
@@ -814,6 +835,7 @@ export async function getRiderTransferManagement(
   assertQuery(teamContractsResult.error, "la capacité de l’effectif");
   assertQuery(pendingOfferResult.error, "l'offre directe en attente");
   assertQuery(reservationsResult.error, "les engagements de transfert");
+  assertQuery(teamChangeLockResult.error, "l’historique des transferts");
   if (!riderResult.data || !ratingResult.data) return null;
 
   const ratings = toRatings(ratingResult.data);
@@ -888,6 +910,8 @@ export async function getRiderTransferManagement(
   );
   const sourceContractLocked =
     activeContract?.transfer_locked_season_id === context.season.id;
+  const hasChangedTeamThisSeason =
+    (teamChangeLockResult.data?.length ?? 0) > 0;
   const canListRider = Boolean(
     ownsRider && !listingResult.data && !sourceContractLocked,
   );
@@ -895,7 +919,7 @@ export async function getRiderTransferManagement(
     ? listingResult.data
       ? "Ce coureur est déjà proposé sur le marché."
       : sourceContractLocked
-        ? "Recruté cette saison : sa revente sera possible dès la saison suivante."
+        ? "Ce coureur a déjà changé d’équipe cette saison : un nouveau transfert sera possible la saison suivante."
         : null
     : null;
   const canTargetRider = Boolean(activeContract && !ownsRider && !isFreeAgent);
@@ -912,7 +936,7 @@ export async function getRiderTransferManagement(
     ? pendingOfferResult.data
       ? "Votre équipe a déjà une offre en attente pour ce coureur."
       : sourceContractLocked
-        ? "Ce coureur recruté cette saison ne peut pas encore être transféré."
+        ? "Ce coureur a déjà changé d’équipe cette saison et ne peut pas être transféré une seconde fois."
         : rosterIsFull
           ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
           : availableBudget < 500
@@ -922,15 +946,21 @@ export async function getRiderTransferManagement(
 
   return {
     isFreeAgent,
-    canSignFreeAgent: isFreeAgent && !listingResult.data && !rosterIsFull,
+    canSignFreeAgent:
+      isFreeAgent &&
+      !listingResult.data &&
+      !rosterIsFull &&
+      !hasChangedTeamThisSeason,
     freeAgentSalary: isFreeAgent ? salary : null,
     freeAgentWeeklySalary: isFreeAgent ? calculateWeeklySalary(salary) : null,
     freeAgentBlockedReason: isFreeAgent
       ? listingResult.data
         ? "Ce coureur est encore engagé dans une enchère."
-        : rosterIsFull
-          ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
-          : null
+        : hasChangedTeamThisSeason
+          ? "Ce coureur a déjà changé d’équipe cette saison et ne peut pas en rejoindre une nouvelle."
+          : rosterIsFull
+            ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
+            : null
       : null,
     rosterSize,
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
@@ -1272,6 +1302,25 @@ async function loadRiderSalaryQuotes(
       toNumber(quote.salary_per_season),
     ]),
   );
+}
+
+async function loadSeasonTeamChangeLockedRiderIds(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  riderIds: string[],
+  seasonId: string,
+) {
+  if (riderIds.length === 0) return new Set<string>();
+
+  const { data, error } = await admin
+    .from("rider_contracts")
+    .select("rider_id")
+    .eq("transfer_locked_season_id", seasonId)
+    .in("status", ["active", "terminated", "completed"])
+    .in("rider_id", riderIds)
+    .returns<Array<{ rider_id: string }>>();
+  assertQuery(error, "l’historique des transferts");
+
+  return new Set((data ?? []).map((contract) => contract.rider_id));
 }
 
 function groupBids(bids: BidRow[]) {

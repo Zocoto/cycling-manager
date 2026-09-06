@@ -715,7 +715,7 @@ function TeamManagementSection() {
             "Ventes entre DS pendant 24 heures",
             "Recherche de coureurs libres ou sous contrat",
             "Contrats couvrant la saison actuelle et la suivante",
-            "Un nouveau recruté ne peut pas être revendu la même saison",
+            "Un seul changement et deux équipes maximum par coureur et par saison",
           ]}
         />
         <FeatureCard

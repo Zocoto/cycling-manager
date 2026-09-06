@@ -326,7 +326,7 @@ function RiderSales({ listings, roster, overview, jersey, sponsors, returnPath }
         />
         <aside className="mt-5 rounded-2xl border border-[#F2C94C]/25 bg-[#0B302B] px-5 py-4 text-white">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#F2C94C]">Règle contractuelle</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#BFD1C6]">Un coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#BFD1C6]">Un coureur peut connaître au maximum deux équipes et changer une seule fois d’équipe pendant la saison. Une première signature comme agent libre ne compte pas comme un changement.</p>
         </aside>
       </article>
 
@@ -741,11 +741,12 @@ function RiderSearchCard({ rider, currency, currentTeamId, rosterIsFull, returnP
       <div className={`mt-4 rounded-xl px-4 py-3 ${isFreeAgent ? "bg-[#ECF8F1] text-[#176951]" : "bg-[#FFF8DD] text-[#705B00]"}`}><p className="text-[10px] font-black uppercase tracking-wider">{isFreeAgent ? "Libre" : isOwnRider ? "Votre effectif" : "Sous contrat"}</p><p className="mt-1 truncate text-sm font-black">{isFreeAgent ? "Disponible immédiatement" : (rider.teamName ?? "Équipe actuelle")}</p></div>
       <div className="mt-4"><TransferScoutingReportPanel report={rider.scoutingReport} compact /></div>
       <div className="mt-4 rounded-xl bg-[#F3F8F6] px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">{isFreeAgent ? "Demande salariale" : "Salaire estimé après transfert"}</p><p className="mt-1 text-lg font-black text-[#183F37]">{formatMoney(Math.round(seasonSalary / 4), currency)} / semaine</p><p className="text-[10px] font-bold text-[#60756E]">{formatMoney(seasonSalary, currency)} par saison</p></div>
+      {rider.hasChangedTeamThisSeason ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Ce coureur a déjà changé d’équipe cette saison · nouveau transfert impossible</p> : null}
       {isFreeAgent ? (
-        rosterIsFull ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · signature impossible</p> : <form action={signFreeAgentAction} className="mt-4 flex"><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>
+        rider.hasChangedTeamThisSeason ? null : rosterIsFull ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · signature impossible</p> : <form action={signFreeAgentAction} className="mt-4 flex"><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>
       ) : (
         <Link href={`/jeu/coureurs/${rider.id}`} className="mt-4 flex min-h-11 items-center justify-center rounded-xl bg-[#0B302B] px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white transition hover:bg-[#176951]">
-          {isOwnRider || rosterIsFull ? "Voir la fiche" : "Voir et faire une offre"}
+          {isOwnRider || rosterIsFull || rider.hasChangedTeamThisSeason ? "Voir la fiche" : "Voir et faire une offre"}
         </Link>
       )}
     </article>
