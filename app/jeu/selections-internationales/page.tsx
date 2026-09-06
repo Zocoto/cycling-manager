@@ -17,6 +17,7 @@ import {
   type InternationalChampionshipSelection,
   type InternationalSelectionResponseStatus,
 } from "@/services/international-championship-selections";
+import { splitDirectorInternationalSelections } from "@/lib/game/international-championship-selections";
 
 export const metadata: Metadata = {
   title: "Sélections internationales",
@@ -93,9 +94,9 @@ export default async function InternationalSelectionsPage({
     }),
   ]);
 
-  const pendingCount = selections.filter(
-    (selection) => selection.canRespond,
-  ).length;
+  const { pendingSelections, historicalSelections } =
+    splitDirectorInternationalSelections(selections);
+  const pendingCount = pendingSelections.length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
 
@@ -169,61 +170,86 @@ export default async function InternationalSelectionsPage({
           <FeedbackBanner tone="error">{errorMessage}</FeedbackBanner>
         ) : null}
 
-        <section className="mt-7 space-y-5">
-          {selections.length > 0 ? (
-            pendingCount > 0 ? (
-              <form
-                action={answerInternationalSelectionsAction}
-                className="space-y-5"
-              >
-                {selections.map((selection) => (
+        <section className="mt-7 space-y-6">
+          {pendingCount > 0 ? (
+            <form
+              action={answerInternationalSelectionsAction}
+              className="space-y-5"
+            >
+              {pendingSelections.map((selection) => (
+                <SelectionCard
+                  key={selection.candidateId}
+                  selection={selection}
+                />
+              ))}
+              <div className="sticky bottom-4 z-20 rounded-2xl border border-[#315B3E]/15 bg-white/95 p-4 shadow-[0_18px_55px_rgba(19,60,46,0.2)] backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-5">
+                <div>
+                  <p className="text-sm font-black text-[#183F37]">
+                    Arbitrage groupé · {pendingCount} convocation
+                    {pendingCount > 1 ? "s" : ""} en attente
+                  </p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+                    Répondez à une ou plusieurs fiches. Les convocations
+                    laissées en attente resteront disponibles pour plus tard.
+                  </p>
+                </div>
+                <div className="mt-4 shrink-0 sm:mt-0">
+                  <InternationalSelectionSubmitButton
+                    variant="confirm"
+                    pendingLabel="Enregistrement du lot…"
+                  >
+                    Enregistrer les décisions renseignées
+                  </InternationalSelectionSubmitButton>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center shadow-[0_16px_45px_rgba(19,60,46,0.06)]">
+              <p className="text-xl font-black text-[#183F37]">
+                Aucune convocation en attente
+              </p>
+              <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#60756E]">
+                {historicalSelections.length > 0
+                  ? "Toutes les convocations reçues ont déjà été traitées. Vous pouvez retrouver leur détail dans l’historique ci-dessous."
+                  : "Les convocations apparaîtront ici dès que le classement sera figé, exactement 24 heures avant un championnat continental ou mondial."}
+              </p>
+            </div>
+          )}
+
+          {historicalSelections.length > 0 ? (
+            <details className="group overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
+              <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 marker:hidden sm:px-8">
+                <span>
+                  <span className="block text-base font-black text-[#183F37] sm:text-lg">
+                    Historique des convocations
+                  </span>
+                  <span className="mt-1 block text-xs font-bold text-[#60756E]">
+                    {historicalSelections.length} convocation
+                    {historicalSelections.length > 1 ? "s" : ""} déjà traitée
+                    {historicalSelections.length > 1 ? "s" : ""}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-sm font-black text-[#176951]">
+                  <span className="group-open:hidden">Ouvrir</span>
+                  <span className="hidden group-open:inline">Fermer</span>
+                  <span
+                    aria-hidden="true"
+                    className="text-lg transition-transform group-open:rotate-180"
+                  >
+                    ↓
+                  </span>
+                </span>
+              </summary>
+              <div className="space-y-5 border-t border-[#315B3E]/10 bg-[#F5FAF7] p-4 sm:p-6">
+                {historicalSelections.map((selection) => (
                   <SelectionCard
                     key={selection.candidateId}
                     selection={selection}
                   />
                 ))}
-                <div className="sticky bottom-4 z-20 rounded-2xl border border-[#315B3E]/15 bg-white/95 p-4 shadow-[0_18px_55px_rgba(19,60,46,0.2)] backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-5">
-                  <div>
-                    <p className="text-sm font-black text-[#183F37]">
-                      Arbitrage groupé · {pendingCount} convocation
-                      {pendingCount > 1 ? "s" : ""}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
-                      Choisissez Valider ou Refuser sur chaque fiche, puis
-                      enregistrez toutes vos décisions avec un seul chargement.
-                    </p>
-                  </div>
-                  <div className="mt-4 shrink-0 sm:mt-0">
-                    <InternationalSelectionSubmitButton
-                      variant="confirm"
-                      pendingLabel="Enregistrement du lot…"
-                    >
-                      Enregistrer les {pendingCount} décision
-                      {pendingCount > 1 ? "s" : ""}
-                    </InternationalSelectionSubmitButton>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              selections.map((selection) => (
-                <SelectionCard
-                  key={selection.candidateId}
-                  selection={selection}
-                />
-              ))
-            )
-          ) : (
-            <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center shadow-[0_16px_45px_rgba(19,60,46,0.06)]">
-              <p className="text-xl font-black text-[#183F37]">
-                Aucune sélection à traiter
-              </p>
-              <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#60756E]">
-                Les convocations apparaîtront ici dès que le classement sera
-                figé, exactement 24 heures avant un championnat continental ou
-                mondial.
-              </p>
-            </div>
-          )}
+              </div>
+            </details>
+          ) : null}
         </section>
       </section>
     </main>
@@ -288,6 +314,11 @@ function SelectionCard({
                 ? "Sans validation explicite, cette convocation conflictuelle sera abandonnée et vos engagements seront conservés."
                 : status.description}
             </p>
+            {!selection.canRespond && selection.respondedAt ? (
+              <p className="mt-2 text-xs font-bold text-[#60756E]">
+                Traitée le {formatResponseDate(selection.respondedAt)}
+              </p>
+            ) : null}
             {selection.canRespond && hasCalendarConflict ? (
               <div className="mt-4 space-y-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-950">
                 {selection.conflictingRaceNames.length > 0 ? (
@@ -416,7 +447,6 @@ function SelectionCard({
                 type="radio"
                 name={`decision:${selection.candidateId}`}
                 value="confirm"
-                required
                 className="h-4 w-4 accent-[#176951]"
               />
               Valider la convocation
@@ -426,13 +456,22 @@ function SelectionCard({
                 type="radio"
                 name={`decision:${selection.candidateId}`}
                 value="decline"
-                required
                 className="h-4 w-4 accent-[#B94848]"
               />
               Refuser la sélection
             </label>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#315B3E]/15 bg-[#F5FAF7] px-4 py-3 text-sm font-black text-[#526760] transition hover:bg-[#EEF5F1] has-[:checked]:border-[#60756E] has-[:checked]:ring-2 has-[:checked]:ring-[#60756E]/15">
+              <input
+                type="radio"
+                name={`decision:${selection.candidateId}`}
+                value="skip"
+                defaultChecked
+                className="h-4 w-4 accent-[#60756E]"
+              />
+              Décider plus tard
+            </label>
             <p className="text-center text-[11px] font-bold leading-5 text-[#60756E]">
-              Le choix sera appliqué avec le bouton global.
+              Seuls les choix Valider ou Refuser seront enregistrés.
             </p>
           </fieldset>
         ) : (
@@ -477,6 +516,17 @@ function formatDeparture(value: string) {
     weekday: "long",
     day: "numeric",
     month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatResponseDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));

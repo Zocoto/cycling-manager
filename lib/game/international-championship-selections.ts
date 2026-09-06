@@ -44,3 +44,17 @@ export function shouldDisplayInternationalSelection({
     responseStatus === "declined"
   );
 }
+
+export function splitDirectorInternationalSelections<
+  TSelection extends {
+    canRespond: boolean;
+    responseStatus: InternationalSelectionDecisionStatus;
+  },
+>(selections: TSelection[]) {
+  return {
+    pendingSelections: selections.filter((selection) => selection.canRespond),
+    historicalSelections: selections
+      .filter((selection) => selection.responseStatus !== "pending")
+      .reverse(),
+  };
+}

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canRespondToInternationalSelection,
   shouldDisplayInternationalSelection,
+  splitDirectorInternationalSelections,
 } from "./international-championship-selections";
 
 const departureAt = "2026-07-26T16:00:00.000Z";
@@ -72,5 +73,37 @@ describe("international championship selections", () => {
         responseStatus: "ineligible_injury",
       })
     ).toBe(false);
+  });
+
+  it("sépare les demandes à traiter des convocations déjà traitées", () => {
+    const selections = [
+      { candidateId: "pending", canRespond: true, responseStatus: "pending" },
+      {
+        candidateId: "confirmed",
+        canRespond: false,
+        responseStatus: "confirmed",
+      },
+      {
+        candidateId: "declined",
+        canRespond: false,
+        responseStatus: "declined",
+      },
+      {
+        candidateId: "expired",
+        canRespond: false,
+        responseStatus: "pending",
+      },
+    ] as const;
+
+    const { pendingSelections, historicalSelections } =
+      splitDirectorInternationalSelections([...selections]);
+
+    expect(pendingSelections.map(({ candidateId }) => candidateId)).toEqual([
+      "pending",
+    ]);
+    expect(historicalSelections.map(({ candidateId }) => candidateId)).toEqual([
+      "declined",
+      "confirmed",
+    ]);
   });
 });

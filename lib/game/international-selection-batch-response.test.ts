@@ -33,14 +33,27 @@ describe("bulk international selection responses", () => {
     );
   });
 
-  it("collects every DS choice and sends one global action", () => {
+  it("collects the answered DS choices and sends one global action", () => {
     expect(page).toContain("answerInternationalSelectionsAction");
     expect(page).toContain('name={`decision:${selection.candidateId}`}');
-    expect(page).toContain("Enregistrer les {pendingCount} décision");
+    expect(page).toContain("Enregistrer les décisions renseignées");
+    expect(page).toContain('value="skip"');
+    expect(page).toContain("defaultChecked");
     expect(action).toContain('formData.get(`decision:${candidateId}`)');
+    expect(action).toContain("parseAnsweredInternationalSelectionDecisions");
+    expect(action).toContain("parsed.decisions.map");
     expect(service).toContain(
       '"respond_to_international_selections_with_conflict_ack"',
     );
+  });
+
+  it("keeps unanswered invitations pending and moves processed ones to history", () => {
+    expect(page).toContain("splitDirectorInternationalSelections(selections)");
+    expect(page).toContain("pendingSelections.map");
+    expect(page).toContain("Historique des convocations");
+    expect(page).toContain("historicalSelections.map");
+    expect(page).toContain("Décider plus tard");
+    expect(action).toContain('parsed.reason === "empty"');
   });
 
   it("returns to the invitations without a redundant batch confirmation", () => {
