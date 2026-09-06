@@ -9,6 +9,8 @@ export type FederationElectionPhase =
   | "finalized"
   | "automatic";
 
+export type FederationElectionType = "regular" | "exceptional";
+
 export type FederationElectionCandidate = {
   id: string;
   directorName: string;
@@ -29,8 +31,11 @@ export type FederationJournalEntry = {
 
 export type FederationGovernanceOverview = {
   phase: FederationElectionPhase;
+  electionType: FederationElectionType;
   termStartGameYear: number;
   termEndGameYear: number;
+  applicationsCloseAt: string | null;
+  votingCloseAt: string | null;
   eligibleTeamCount: number;
   voteCount: number;
   viewerIsEligible: boolean;
@@ -38,6 +43,7 @@ export type FederationGovernanceOverview = {
   viewerVotedCandidateId: string | null;
   canApply: boolean;
   canVote: boolean;
+  candidacyBlockReason: string | null;
   presidentName: string | null;
   candidates: FederationElectionCandidate[];
   journal: FederationJournalEntry[];
@@ -46,9 +52,13 @@ export type FederationGovernanceOverview = {
 type ElectionRow = {
   id: string;
   status: FederationElectionPhase;
+  election_type: FederationElectionType;
   term_start_game_year: number;
   term_end_game_year: number;
   elected_director_id: string | null;
+  applications_close_at: string | null;
+  voting_close_at: string | null;
+  created_at: string;
 };
 type ElectorateRow = {
   team_id: string;
@@ -99,19 +109,27 @@ export async function getFederationGovernanceOverview({
 
   try {
     const admin = createSupabaseAdminClient();
+    const exceptionalSettlementResult = await admin.rpc(
+      "settle_due_exceptional_federation_elections",
+    );
+    if (exceptionalSettlementResult.error) {
+      throw exceptionalSettlementResult.error;
+    }
     const settlementResult = await admin.rpc("settle_due_federation_elections");
     if (settlementResult.error) throw settlementResult.error;
     const targetTermStart =
       season.gameYear % 2 === 0 ? season.gameYear + 1 : season.gameYear;
-    const [electionResult, termResult, journalResult] = await Promise.all([
+    const [electionsResult, termResult, journalResult] = await Promise.all([
       admin
         .from("national_federation_elections")
         .select(
-          "id, status, term_start_game_year, term_end_game_year, elected_director_id",
+          "id, status, election_type, term_start_game_year, term_end_game_year, elected_director_id, applications_close_at, voting_close_at, created_at",
         )
         .eq("country_id", countryId)
-        .eq("term_start_game_year", targetTermStart)
-        .maybeSingle<ElectionRow>(),
+        .gte("term_end_game_year", season.gameYear)
+        .order("created_at", { ascending: false })
+        .limit(12)
+        .returns<ElectionRow[]>(),
       admin
         .from("national_federation_terms")
         .select("governance_mode, president_director_id")
@@ -128,11 +146,31 @@ export async function getFederationGovernanceOverview({
         .returns<JournalRow[]>(),
     ]);
 
-    if (electionResult.error) throw electionResult.error;
+    if (electionsResult.error) throw electionsResult.error;
     if (termResult.error) throw termResult.error;
     if (journalResult.error) throw journalResult.error;
 
-    const election = electionResult.data;
+    const elections = electionsResult.data ?? [];
+    const activeExceptionalElection = elections.find(
+      (election) =>
+        election.election_type === "exceptional" &&
+        (election.status === "applications" || election.status === "voting") &&
+        election.term_start_game_year <= season.gameYear &&
+        election.term_end_game_year >= season.gameYear,
+    );
+    const regularElection = elections.find(
+      (election) =>
+        election.election_type === "regular" &&
+        election.term_start_game_year === targetTermStart,
+    );
+    const latestExceptionalElection = elections.find(
+      (election) =>
+        election.election_type === "exceptional" &&
+        election.term_start_game_year <= season.gameYear &&
+        election.term_end_game_year >= season.gameYear,
+    );
+    const election =
+      activeExceptionalElection ?? regularElection ?? latestExceptionalElection;
     const journal = (journalResult.data ?? []).map(toJournalEntry);
     const presidentDirectorId =
       termResult.data?.president_director_id ??
@@ -187,6 +225,14 @@ export async function getFederationGovernanceOverview({
     const viewerElector = viewerTeamId
       ? electorate.find((entry) => entry.team_id === viewerTeamId) ?? null
       : null;
+    const viewerEligibilityResult = viewerElector
+      ? await admin.rpc("is_national_federation_candidate_eligible", {
+          p_election_id: election.id,
+          p_team_id: viewerElector.team_id,
+        })
+      : { data: false, error: null };
+    if (viewerEligibilityResult.error) throw viewerEligibilityResult.error;
+    const viewerCanStand = viewerEligibilityResult.data === true;
     const directorIds = [
       ...new Set(candidateRows.map((candidate) => candidate.sporting_director_id)),
     ];
@@ -240,24 +286,40 @@ export async function getFederationGovernanceOverview({
           : null,
       }),
     );
+    const activeCandidateIds = new Set(
+      candidates.map((candidate) => candidate.id),
+    );
 
     return {
       phase: election.status,
+      electionType: election.election_type,
       termStartGameYear: election.term_start_game_year,
       termEndGameYear: election.term_end_game_year,
+      applicationsCloseAt: election.applications_close_at,
+      votingCloseAt: election.voting_close_at,
       eligibleTeamCount: electorate.length,
       voteCount: votes.length,
       viewerIsEligible: Boolean(viewerElector),
       viewerCandidateId:
         candidates.find((candidate) => candidate.isViewer)?.id ?? null,
       viewerVotedCandidateId:
-        votes.find((vote) => vote.team_id === viewerTeamId)?.candidate_id ?? null,
+        votes.find(
+          (vote) =>
+            vote.team_id === viewerTeamId &&
+            activeCandidateIds.has(vote.candidate_id),
+        )?.candidate_id ?? null,
       canApply:
-        election.status === "applications" && Boolean(viewerElector),
+        election.status === "applications" &&
+        Boolean(viewerElector) &&
+        viewerCanStand,
       canVote:
         election.status === "voting" &&
         Boolean(viewerElector) &&
         candidates.length > 0,
+      candidacyBlockReason:
+        viewerElector && !viewerCanStand
+          ? "Votre prochain sponsor principal affiliera votre équipe à une autre fédération pendant ce mandat : vous ne pouvez pas vous présenter."
+          : null,
       presidentName: presidentResult.data?.display_name ?? null,
       candidates,
       journal,
@@ -272,8 +334,11 @@ function createScheduledOverview(gameYear: number): FederationGovernanceOverview
   const termStartGameYear = gameYear % 2 === 0 ? gameYear + 1 : gameYear + 2;
   return {
     phase: "scheduled",
+    electionType: "regular",
     termStartGameYear,
     termEndGameYear: termStartGameYear + 1,
+    applicationsCloseAt: null,
+    votingCloseAt: null,
     eligibleTeamCount: 0,
     voteCount: 0,
     viewerIsEligible: false,
@@ -281,6 +346,7 @@ function createScheduledOverview(gameYear: number): FederationGovernanceOverview
     viewerVotedCandidateId: null,
     canApply: false,
     canVote: false,
+    candidacyBlockReason: null,
     presidentName: null,
     candidates: [],
     journal: [],

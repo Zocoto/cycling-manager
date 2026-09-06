@@ -16,11 +16,10 @@ import type {
 const PHASES: Array<{
   id: FederationElectionPhase;
   label: string;
-  timing: string;
 }> = [
-  { id: "applications", label: "Candidatures", timing: "J21–J24" },
-  { id: "voting", label: "Vote des équipes", timing: "J25–J28" },
-  { id: "finalized", label: "Prise de fonction", timing: "J1" },
+  { id: "applications", label: "Candidatures" },
+  { id: "voting", label: "Vote des équipes" },
+  { id: "finalized", label: "Prise de fonction" },
 ];
 
 export function FederationElectionPanel({
@@ -46,7 +45,9 @@ export function FederationElectionPanel({
       <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
-            Présidence fédérale · mandat S{overview.termStartGameYear}–S
+            {overview.electionType === "exceptional"
+              ? "Élection exceptionnelle"
+              : "Présidence fédérale"} · mandat S{overview.termStartGameYear}–S
             {overview.termEndGameYear}
           </p>
           <h2 className="mt-2 text-3xl font-black sm:text-4xl">
@@ -54,8 +55,9 @@ export function FederationElectionPanel({
           </h2>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
             Une seule voix est accordée à chaque équipe présente sur la liste
-            figée à J21. Sans élu, l’administration automatique prend le relais
-            et aucune échéance sportive n’est bloquée.
+            électorale. Un DS dont l’équipe changera de fédération pendant le
+            mandat peut voter, mais ne peut pas se présenter. Sans élu,
+            l’administration automatique prend le relais.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
@@ -93,7 +95,7 @@ export function FederationElectionPanel({
               }`}
             >
               <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-                {phase.timing}
+                {getPhaseTiming(overview, phase.id)}
               </p>
               <p className="mt-1 text-sm font-black text-[#183F37]">
                 {complete ? "✓ " : ""}
@@ -135,7 +137,9 @@ export function FederationElectionPanel({
         {overview.phase === "finalized" ? (
           <ElectionNotice tone="success">
             {overview.presidentName
-              ? `${overview.presidentName} a été élu et prendra ses fonctions pour deux saisons.`
+              ? overview.electionType === "exceptional"
+                ? `${overview.presidentName} a été élu et prend immédiatement ses fonctions jusqu’à la fin du mandat.`
+                : `${overview.presidentName} a été élu et prendra ses fonctions pour deux saisons.`
               : "Le résultat est enregistré. Le mandat débutera à J1."}
           </ElectionNotice>
         ) : null}
@@ -143,7 +147,9 @@ export function FederationElectionPanel({
         {overview.phase === "automatic" ? (
           <ElectionNotice tone="neutral">
             Aucun candidat n’a réuni de voix. La fédération reste administrée
-            automatiquement pour ce mandat.
+            automatiquement {overview.electionType === "exceptional"
+              ? "jusqu’à la fin du mandat en cours."
+              : "pour ce mandat."}
           </ElectionNotice>
         ) : null}
       </div>
@@ -192,6 +198,7 @@ function ApplicationsPhase({
         </p>
         <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
           Votre profession de foi est publique et restera attachée à ce scrutin.
+          Votre équipe doit conserver cette nationalité pendant tout le mandat.
         </p>
         <textarea
           name="manifesto"
@@ -204,7 +211,9 @@ function ApplicationsPhase({
         />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs font-bold text-[#60756E]">
-            40 à 800 caractères · clôture J24
+            40 à 800 caractères · {overview.electionType === "exceptional"
+              ? formatExceptionalDeadline(overview.applicationsCloseAt)
+              : "clôture J24"}
           </span>
           <button
             type="submit"
@@ -216,6 +225,8 @@ function ApplicationsPhase({
         </div>
         {!overview.viewerIsEligible ? (
           <ActionFeedback status="error" message="Votre équipe ne figure pas sur la liste électorale figée à J21." />
+        ) : overview.candidacyBlockReason ? (
+          <ActionFeedback status="error" message={overview.candidacyBlockReason} />
         ) : (
           <ActionFeedback status={state.status} message={state.message} />
         )}
@@ -240,8 +251,10 @@ function VotingPhase({
   if (overview.candidates.length === 0) {
     return (
       <ElectionNotice tone="neutral">
-        Aucune candidature n’a été déposée. Le mode automatique sera confirmé à
-        J1 de la prochaine saison.
+        Aucune candidature n’a été déposée. Le mode automatique sera confirmé
+        {overview.electionType === "exceptional"
+          ? " à la clôture du scrutin."
+          : " à J1 de la prochaine saison."}
       </ElectionNotice>
     );
   }
@@ -256,7 +269,9 @@ function VotingPhase({
           </h3>
           <p className="mt-2 text-sm font-semibold text-[#60756E]">
             Le choix reste secret jusqu’à la clôture. Vous pouvez le modifier
-            jusqu’à la fin de J28.
+            {overview.electionType === "exceptional"
+              ? ` ${formatExceptionalDeadline(overview.votingCloseAt)}.`
+              : " jusqu’à la fin de J28."}
           </p>
         </div>
         <button
@@ -389,9 +404,45 @@ function ActionFeedback({
 }
 
 function getElectionTitle(overview: FederationGovernanceOverview): string {
-  if (overview.phase === "applications") return "L’appel à candidatures est ouvert";
-  if (overview.phase === "voting") return "Le scrutin est ouvert";
-  if (overview.phase === "finalized") return "Le président est élu";
+  const exceptional = overview.electionType === "exceptional";
+  if (overview.phase === "applications") {
+    return exceptional
+      ? "Une élection exceptionnelle est ouverte"
+      : "L’appel à candidatures est ouvert";
+  }
+  if (overview.phase === "voting") {
+    return exceptional ? "Le vote exceptionnel est ouvert" : "Le scrutin est ouvert";
+  }
+  if (overview.phase === "finalized") {
+    return exceptional ? "La vacance est terminée" : "Le président est élu";
+  }
   if (overview.phase === "automatic") return "Administration automatique";
   return "Prochaine élection programmée";
+}
+
+function getPhaseTiming(
+  overview: FederationGovernanceOverview,
+  phase: FederationElectionPhase,
+) {
+  if (overview.electionType !== "exceptional") {
+    if (phase === "applications") return "J21–J24";
+    if (phase === "voting") return "J25–J28";
+    return "J1";
+  }
+
+  if (phase === "applications") return "48 h";
+  if (phase === "voting") return "48 h suivantes";
+  return "Immédiate";
+}
+
+function formatExceptionalDeadline(deadline: string | null) {
+  if (!deadline) return "clôture dans 48 h";
+
+  return `clôture le ${new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).format(new Date(deadline))}`;
 }

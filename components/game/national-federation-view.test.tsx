@@ -170,8 +170,11 @@ describe("NationalFederationView", () => {
         internationalResults={null}
         governanceOverview={{
           phase: "scheduled",
+          electionType: "regular",
           termStartGameYear: 3,
           termEndGameYear: 4,
+          applicationsCloseAt: null,
+          votingCloseAt: null,
           eligibleTeamCount: 0,
           voteCount: 0,
           viewerIsEligible: false,
@@ -179,6 +182,7 @@ describe("NationalFederationView", () => {
           viewerVotedCandidateId: null,
           canApply: false,
           canVote: false,
+          candidacyBlockReason: null,
           presidentName: null,
           candidates: [],
           journal: [],

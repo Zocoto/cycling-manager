@@ -222,7 +222,8 @@ export async function voteFederationPresidentAction(
   revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
   return {
     status: "success",
-    message: "Votre voix est enregistrée. Vous pouvez la modifier jusqu’à J28.",
+    message:
+      "Votre voix est enregistrée. Vous pouvez la modifier jusqu’à la clôture du scrutin.",
   };
 }
 

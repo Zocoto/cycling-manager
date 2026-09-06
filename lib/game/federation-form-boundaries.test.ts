@@ -32,7 +32,7 @@ describe("federation form boundaries", () => {
     const migration = readFileSync(
       join(
         process.cwd(),
-        "supabase/migrations/20260905170000_allow_sponsored_amateur_affiliation_transfer.sql",
+        "supabase/migrations/20260906121000_allow_sponsored_amateur_affiliation_transfer.sql",
       ),
       "utf8",
     ).replace(/\r\n/g, "\n");
