@@ -13,6 +13,10 @@ type SponsorObjectiveWeightRow = {
   satisfaction_points: number;
 };
 
+type SponsorContractSatisfactionRow = {
+  satisfaction_score: number;
+};
+
 export async function getSponsorObjectiveSummary(contractId: string) {
   const normalizedContractId = contractId.trim();
   if (!normalizedContractId) {
@@ -20,11 +24,20 @@ export async function getSponsorObjectiveSummary(contractId: string) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("objective_progress")
-    .select("sponsor_objective_id, status")
-    .eq("team_sponsor_contract_id", normalizedContractId)
-    .returns<ObjectiveProgressRow[]>();
+  const [progressResult, contractResult] = await Promise.all([
+    supabase
+      .from("objective_progress")
+      .select("sponsor_objective_id, status")
+      .eq("team_sponsor_contract_id", normalizedContractId)
+      .returns<ObjectiveProgressRow[]>(),
+    supabase
+      .from("team_sponsor_contracts")
+      .select("satisfaction_score")
+      .eq("id", normalizedContractId)
+      .maybeSingle<SponsorContractSatisfactionRow>(),
+  ]);
+
+  const { data, error } = progressResult;
 
   if (error) {
     throw new Error(
@@ -32,13 +45,30 @@ export async function getSponsorObjectiveSummary(contractId: string) {
     );
   }
 
+  if (contractResult.error) {
+    throw new Error(
+      `Impossible de charger la satisfaction sponsor : ${contractResult.error.message}`,
+    );
+  }
+
+  const persistedSatisfactionScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(Number(contractResult.data?.satisfaction_score ?? 0)),
+    ),
+  );
+
   const progressRows = data ?? [];
   const objectiveIds = progressRows.map(
     (objective) => objective.sponsor_objective_id,
   );
 
   if (objectiveIds.length === 0) {
-    return summarizeSponsorObjectives([]);
+    return {
+      ...summarizeSponsorObjectives([]),
+      satisfactionScore: persistedSatisfactionScore,
+    };
   }
 
   const { data: weightRows, error: weightError } = await supabase
@@ -60,11 +90,14 @@ export async function getSponsorObjectiveSummary(contractId: string) {
     ]),
   );
 
-  return summarizeSponsorObjectives(
-    progressRows.map((objective) => ({
-      status: objective.status,
-      satisfactionPoints:
-        weightByObjectiveId.get(objective.sponsor_objective_id) ?? 0,
-    })),
-  );
+  return {
+    ...summarizeSponsorObjectives(
+      progressRows.map((objective) => ({
+        status: objective.status,
+        satisfactionPoints:
+          weightByObjectiveId.get(objective.sponsor_objective_id) ?? 0,
+      })),
+    ),
+    satisfactionScore: persistedSatisfactionScore,
+  };
 }

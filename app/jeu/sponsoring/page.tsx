@@ -11,6 +11,7 @@ import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
+import { SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM } from "@/lib/game/sponsor-performance-satisfaction";
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -1095,7 +1096,9 @@ function ContractObjectivesSection({
             {contract.objectives.length} objectifs saisonniers
           </h2>
           <p className="mt-1 text-xs font-semibold text-[#60756E]">
-            Chaque objectif validé ajoute son poids à la satisfaction du partenaire.
+            {contract.performanceSatisfactionEnabled
+              ? "Les objectifs et les performances sportives font progresser la satisfaction du partenaire."
+              : "Chaque objectif validé ajoute son poids à la satisfaction du partenaire."}
           </p>
         </div>
 
@@ -1115,7 +1118,105 @@ function ContractObjectivesSection({
           />
         ))}
       </ol>
+
+      {contract.performanceSatisfactionEnabled ? (
+        <SponsorPerformanceSatisfactionSection contract={contract} />
+      ) : null}
     </section>
+  );
+}
+
+function SponsorPerformanceSatisfactionSection({
+  contract,
+}: {
+  contract: PersistedSponsorContract;
+}) {
+  const sponsor = contract.sponsor;
+
+  return (
+    <div
+      className="border-t px-5 py-5 sm:px-6"
+      style={{ borderColor: `${sponsor.colors.primary}24` }}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p
+            className="text-xs font-extrabold uppercase tracking-[0.16em]"
+            style={{ color: sponsor.colors.primary }}
+          >
+            Bonus sportifs · Saison 3
+          </p>
+          <h3 className="mt-1 text-lg font-black" style={{ color: sponsor.colors.text }}>
+            Les résultats qui ont convaincu {sponsor.name}
+          </h3>
+        </div>
+        <p
+          className="rounded-full border bg-white px-3 py-1 text-sm font-black"
+          style={{
+            borderColor: `${sponsor.colors.primary}35`,
+            color: sponsor.colors.primary,
+          }}
+        >
+          +{contract.performanceSatisfactionBonus}/
+          {SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM}
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-3 text-xs font-semibold leading-5 text-[#526A62] lg:grid-cols-3">
+        <p className="rounded-xl bg-[#F4F8F6] px-4 py-3">
+          Victoire, podium ou top 10 : jusqu’à +4 selon le prestige de la course.
+        </p>
+        <p className="rounded-xl bg-[#F4F8F6] px-4 py-3">
+          Course dans le pays du sponsor : +2 pour une victoire, +1 pour un top 10.
+        </p>
+        <p className="rounded-xl bg-[#F4F8F6] px-4 py-3">
+          Classement UCI : bonus progressif du top 20 à la 1re place, jusqu’à +6.
+        </p>
+      </div>
+
+      {contract.satisfactionEvents.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-[#CBD9D3] px-4 py-4 text-sm font-semibold text-[#60756E]">
+          Aucun gain sportif pour le moment. Les prochains résultats éligibles
+          apparaîtront ici automatiquement.
+        </p>
+      ) : (
+        <ol className="mt-4 grid gap-3 lg:grid-cols-2">
+          {contract.satisfactionEvents.map((event) => (
+            <li
+              key={event.id}
+              className="flex gap-3 rounded-xl border bg-white px-4 py-3"
+              style={{ borderColor: `${sponsor.colors.primary}24` }}
+            >
+              <span
+                className="mt-0.5 shrink-0 rounded-full px-2 py-1 text-xs font-black text-white"
+                style={{ backgroundColor: sponsor.colors.primary }}
+              >
+                +{event.points}
+              </span>
+              <div>
+                <p className="text-sm font-black" style={{ color: sponsor.colors.text }}>
+                  {event.title}
+                </p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+                  {event.description}
+                </p>
+                <time
+                  dateTime={event.occurredAt}
+                  className="mt-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A9B95]"
+                >
+                  {formatDate(event.occurredAt)}
+                </time>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <p className="mt-4 text-[11px] font-semibold leading-5 text-[#72847E]">
+        Les bonus sportifs sont plafonnés à {SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM}
+        points par contrat et ne peuvent jamais porter la satisfaction au-delà de 100.
+      </p>
+    </div>
   );
 }
 

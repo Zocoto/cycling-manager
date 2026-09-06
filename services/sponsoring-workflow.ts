@@ -23,6 +23,10 @@ import {
   resolveSponsorSportingPhilosophy,
   type SponsorSportingPhilosophy,
 } from "@/lib/game/sponsor-philosophy";
+import {
+  calculateSponsorSatisfactionScore,
+  isSponsorPerformanceSatisfactionEnabled,
+} from "@/lib/game/sponsor-performance-satisfaction";
 
 
 
@@ -48,6 +52,15 @@ export type SponsorContractObjective = {
   currentValue: number | null;
 };
 
+export type SponsorSatisfactionEvent = {
+  id: string;
+  eventType: "race_result" | "uci_ranking";
+  points: number;
+  title: string;
+  description: string;
+  occurredAt: string;
+};
+
 export type PersistedSponsorContract = {
   id: string;
   sponsor: Sponsor;
@@ -71,6 +84,10 @@ export type PersistedSponsorContract = {
   completedAt: string | null;
   terminatedAt: string | null;
   terminationReason: string | null;
+  objectiveSatisfactionScore: number;
+  performanceSatisfactionEnabled: boolean;
+  performanceSatisfactionBonus: number;
+  satisfactionEvents: SponsorSatisfactionEvent[];
   satisfactionScore: number;
   reputationPenalty: number;
   objectives: SponsorContractObjective[];
@@ -220,6 +237,15 @@ type SponsorObjectiveProgressRow = {
   current_value: number | string;
 };
 
+type SponsorSatisfactionEventRow = {
+  id: string;
+  event_type: SponsorSatisfactionEvent["eventType"];
+  points: number;
+  title: string;
+  description: string;
+  occurred_at: string;
+};
+
 export async function getSponsoringStateForAuthUser(
   authUserId: string
 ): Promise<SponsoringState> {
@@ -282,6 +308,7 @@ export async function getSponsoringStateForAuthUser(
       contract: await hydrateSponsorContract({
         supabase,
         contractRow: currentPlannedContract,
+        currentGameYear: activeSeason.game_year,
         teamReputationPoints: sportingDirector.reputation_points,
         neutralizeMissingObjectives: true,
       }),
@@ -298,6 +325,7 @@ export async function getSponsoringStateForAuthUser(
     const activeContract = await hydrateSponsorContract({
       supabase,
       contractRow: activeContractRow,
+      currentGameYear: activeSeason.game_year,
       teamReputationPoints: sportingDirector.reputation_points,
       neutralizeMissingObjectives: true,
     });
@@ -331,6 +359,7 @@ export async function getSponsoringStateForAuthUser(
       await hydrateSponsorContract({
         supabase,
         contractRow: terminatedContractRow,
+        currentGameYear: activeSeason.game_year,
         teamReputationPoints: sportingDirector.reputation_points,
         neutralizeMissingObjectives: true,
       });
@@ -418,6 +447,7 @@ async function resolveFutureSponsoringState({
       const futureContract = await hydrateSponsorContract({
         supabase,
         contractRow: futureContractRow,
+        currentGameYear: activeSeason.game_year,
         teamReputationPoints: currentReputation,
         neutralizeMissingObjectives: false,
       });
@@ -647,15 +677,17 @@ function contractSelection(): string {
 async function hydrateSponsorContract({
   supabase,
   contractRow,
+  currentGameYear,
   teamReputationPoints,
   neutralizeMissingObjectives,
 }: {
   supabase: SupabaseAdminClient;
   contractRow: SponsorContractRow;
+  currentGameYear: number;
   teamReputationPoints: number;
   neutralizeMissingObjectives: boolean;
 }): Promise<PersistedSponsorContract> {
-  const [sponsorRegistryResult, startSeasonResult] =
+  const [sponsorRegistryResult, startSeasonResult, satisfactionEventsResult] =
     await Promise.all([
       supabase
         .from("sponsors")
@@ -667,6 +699,12 @@ async function hydrateSponsorContract({
         .select("id, game_year, name")
         .eq("id", contractRow.start_season_id)
         .maybeSingle<SeasonRow>(),
+      supabase
+        .from("sponsor_satisfaction_events")
+        .select("id, event_type, points, title, description, occurred_at")
+        .eq("team_sponsor_contract_id", contractRow.id)
+        .order("occurred_at", { ascending: false })
+        .returns<SponsorSatisfactionEventRow[]>(),
     ]);
 
   if (sponsorRegistryResult.error) {
@@ -684,6 +722,12 @@ async function hydrateSponsorContract({
   if (startSeasonResult.error || !startSeasonResult.data) {
     throw new Error(
       "Impossible de retrouver la saison de départ du contrat sponsor."
+    );
+  }
+
+  if (satisfactionEventsResult.error) {
+    throw new Error(
+      `Impossible de charger les gains sportifs de satisfaction : ${satisfactionEventsResult.error.message}`,
     );
   }
 
@@ -805,14 +849,35 @@ async function hydrateSponsorContract({
     contractRow.contract_duration_seasons -
     1;
 
-  const satisfactionScore = objectives.reduce(
+  const objectiveSatisfactionScore = objectives.reduce(
     (total, objective) =>
       total +
       (objective.status === "completed"
         ? objective.satisfactionPoints
         : 0),
-    0
+    0,
   );
+  const satisfactionEvents = (satisfactionEventsResult.data ?? []).map(
+    (event): SponsorSatisfactionEvent => ({
+      id: event.id,
+      eventType: event.event_type,
+      points: Number(event.points),
+      title: event.title,
+      description: event.description,
+      occurredAt: event.occurred_at,
+    }),
+  );
+  const performanceSatisfactionBonus = satisfactionEvents.reduce(
+    (total, event) => total + event.points,
+    0,
+  );
+  const performanceSatisfactionEnabled =
+    isSponsorPerformanceSatisfactionEnabled(currentGameYear);
+  const satisfactionScore = calculateSponsorSatisfactionScore({
+    objectivePoints: objectiveSatisfactionScore,
+    performancePoints: performanceSatisfactionBonus,
+    gameYear: currentGameYear,
+  });
   return {
     id: contractRow.id,
     sponsor,
@@ -839,6 +904,10 @@ async function hydrateSponsorContract({
     terminatedAt: contractRow.terminated_at,
     terminationReason: contractRow.termination_reason,
     reputationPenalty,
+    objectiveSatisfactionScore,
+    performanceSatisfactionEnabled,
+    performanceSatisfactionBonus,
+    satisfactionEvents,
     satisfactionScore,
     objectives,
   };
