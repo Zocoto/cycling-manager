@@ -11,7 +11,9 @@ type TeamRow = {
 };
 
 type TeamSeasonIdentityRow = {
+  season_id: string;
   display_name: string;
+  registration_country_id: string;
 };
 
 type RiderContractRow = {
@@ -58,7 +60,7 @@ export async function loadTeamSponsorCountryAffinity({
       .returns<RiderContractRow[]>(),
     supabase
       .from("team_seasons")
-      .select("display_name")
+      .select("season_id, display_name, registration_country_id")
       .eq("team_id", teamId)
       .returns<TeamSeasonIdentityRow[]>(),
   ]);
@@ -86,17 +88,21 @@ export async function loadTeamSponsorCountryAffinity({
       teamSeason.display_name
     )
   );
+  const primaryCountryId =
+    (teamIdentitiesResult.data ?? []).find(
+      (teamSeason) => teamSeason.season_id === seasonId,
+    )?.registration_country_id ?? teamResult.data.home_country_id;
 
   const riderIds = [
     ...new Set((contractsResult.data ?? []).map((contract) => contract.rider_id)),
   ];
-  const countryIds = new Set<string>([teamResult.data.home_country_id]);
+  const countryIds = new Set<string>([primaryCountryId]);
 
   if (riderIds.length === 0) {
     return {
       teamCountryCode: await loadCountryCode({
         supabase,
-        countryId: teamResult.data.home_country_id,
+        countryId: primaryCountryId,
       }),
       leaderCountryCodes: [],
       rosterMajorityCountryCode: null,
@@ -152,7 +158,7 @@ export async function loadTeamSponsorCountryAffinity({
       country.iso_alpha2.trim().toUpperCase(),
     ])
   );
-  const teamCountryCode = countryCodeById.get(teamResult.data.home_country_id);
+  const teamCountryCode = countryCodeById.get(primaryCountryId);
 
   if (!teamCountryCode) {
     throw new Error("Le pays fondateur de l'équipe est introuvable.");

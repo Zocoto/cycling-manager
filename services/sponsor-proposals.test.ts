@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { SPONSORS } from "@/data/sponsors";
 import {
   applySponsorPhilosophyBudgetBonus,
   generateSponsorProposals,
+  isSponsorEligibleForNationalBridgeOffer,
+  isSponsorEligibleForTeamAffinity,
 } from "./sponsor-proposals";
 
 describe("generateSponsorProposals", () => {
@@ -47,6 +50,108 @@ describe("generateSponsorProposals", () => {
     expect(yemenProposals[0]?.sponsor.id).toBe(
       "aden-maritime-exchange",
     );
+  });
+
+  it("accorde une offre passerelle nationale à une équipe et un effectif alignés", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "KG",
+      leaderCountryCodes: ["KG"],
+      rosterMajorityCountryCode: "KG",
+      directorReputation: 30.12,
+      random: () => 0.5,
+    });
+
+    expect(proposals[0]?.sponsor.id).toBe("kyrgyz-highlands");
+    expect(
+      proposals.filter((proposal) => proposal.sponsor.countryCode === "KG"),
+    ).toHaveLength(1);
+  });
+
+  it("n'accorde pas la passerelle nationale sans majorité de l'effectif", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "KG",
+      rosterMajorityCountryCode: "UZ",
+      directorReputation: 30.12,
+      random: () => 0.5,
+    });
+
+    expect(
+      proposals.some((proposal) => proposal.sponsor.countryCode === "KG"),
+    ).toBe(false);
+  });
+
+  it("n'accorde pas la passerelle nationale sous le palier précédent", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "KG",
+      rosterMajorityCountryCode: "KG",
+      directorReputation: 29.99,
+      random: () => 0.5,
+    });
+
+    expect(
+      proposals.some((proposal) => proposal.sponsor.countryCode === "KG"),
+    ).toBe(false);
+  });
+
+  it("écarte un sponsor national indisponible au profit du suivant", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "KG",
+      rosterMajorityCountryCode: "KG",
+      directorReputation: 30.12,
+      unavailableSponsorIds: ["kyrgyz-highlands"],
+      random: () => 0.5,
+    });
+
+    expect(
+      proposals.some(
+        (proposal) => proposal.sponsor.id === "kyrgyz-highlands",
+      ),
+    ).toBe(false);
+    expect(proposals[0]?.sponsor.id).toBe("nomad-dome-acoustics");
+  });
+
+  it("respecte les exigences particulières supérieures au palier standard", () => {
+    const kyrgyzHighlands = SPONSORS.find(
+      (sponsor) => sponsor.id === "kyrgyz-highlands",
+    );
+
+    expect(kyrgyzHighlands).toBeDefined();
+    expect(
+      isSponsorEligibleForNationalBridgeOffer(kyrgyzHighlands!, 30.12),
+    ).toBe(true);
+    expect(
+      isSponsorEligibleForNationalBridgeOffer(
+        {
+          ...kyrgyzHighlands!,
+          minimumReputation: 76,
+        },
+        30.12,
+      ),
+    ).toBe(false);
+  });
+
+  it("reconnaît une offre persistée devenue éligible par affinité nationale", () => {
+    const kyrgyzHighlands = SPONSORS.find(
+      (sponsor) => sponsor.id === "kyrgyz-highlands",
+    );
+
+    expect(kyrgyzHighlands).toBeDefined();
+    expect(
+      isSponsorEligibleForTeamAffinity({
+        sponsor: kyrgyzHighlands!,
+        reputationPoints: 30.12,
+        teamCountryCode: "kg",
+        rosterMajorityCountryCode: "KG",
+      }),
+    ).toBe(true);
+    expect(
+      isSponsorEligibleForTeamAffinity({
+        sponsor: kyrgyzHighlands!,
+        reputationPoints: 30.12,
+        teamCountryCode: "KG",
+        rosterMajorityCountryCode: "UZ",
+      }),
+    ).toBe(false);
   });
 
   it("complète l'offre nationale avec les pays des leaders puis de l'effectif majoritaire", () => {

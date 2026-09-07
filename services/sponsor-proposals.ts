@@ -5,7 +5,10 @@ import {
   normalizeSponsorCountryCode,
   type FeaturedRiderSponsorAffinity,
 } from "@/lib/game/sponsor-nationality-affinity";
-import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
+import {
+  SPONSOR_PRESTIGE_REPUTATION_THRESHOLDS,
+  isSponsorEligibleForReputation,
+} from "@/lib/game/sponsor-prestige";
 import {
   getSponsorInitialBudgetBonusPercent,
   resolveSponsorSportingPhilosophy,
@@ -79,12 +82,31 @@ export function generateSponsorProposals({
     unavailableSponsorIds
   );
   const preferredSponsorIdSet = new Set(preferredSponsorIds);
-
   const eligibleSponsors = SPONSORS.filter(
     (sponsor) =>
       isSponsorEligibleForReputation(sponsor, directorReputation) &&
       !unavailableSponsorIdSet.has(sponsor.id)
   );
+
+  const nationalBridgeSponsors = primaryCountry
+    ? SPONSORS.filter(
+        (sponsor) =>
+          sponsor.countryCode === primaryCountry &&
+          !unavailableSponsorIdSet.has(sponsor.id) &&
+          !isSponsorEligibleForReputation(sponsor, directorReputation) &&
+          isSponsorEligibleForTeamAffinity({
+            sponsor,
+            reputationPoints: directorReputation,
+            teamCountryCode: primaryCountry,
+            rosterMajorityCountryCode: majorityCountry,
+          }),
+      ).sort(
+        (left, right) =>
+          left.minimumReputation - right.minimumReputation ||
+          left.prestige - right.prestige ||
+          left.id.localeCompare(right.id),
+      )
+    : [];
 
   const neighboringCountries = new Set(
     uniqueAffinityCountries.flatMap((countryCode) =>
@@ -148,9 +170,10 @@ export function generateSponsorProposals({
     selectFromPool(preferredSponsors, Math.floor(proposalCount / 2) + 1);
   }
 
-  if (affinitySponsorPools.some((pool) => pool.length > 0)) {
-    selectFromPool(nationalSponsors, 1);
-  }
+  selectFromPool(
+    nationalSponsors.length > 0 ? nationalSponsors : nationalBridgeSponsors,
+    1,
+  );
 
   for (const pool of affinitySponsorPools) {
     selectFromPool(pool, 1);
@@ -164,6 +187,53 @@ export function generateSponsorProposals({
 
   return selectedSponsors.map((sponsor) =>
     createSponsorProposal(sponsor, random)
+  );
+}
+
+export function isSponsorEligibleForNationalBridgeOffer(
+  sponsor: Sponsor,
+  reputationPoints: number,
+): boolean {
+  if (sponsor.prestige <= 1) return false;
+
+  const standardThreshold =
+    SPONSOR_PRESTIGE_REPUTATION_THRESHOLDS[sponsor.prestige];
+  const previousTier = (sponsor.prestige - 1) as Sponsor["prestige"];
+  const bridgeThreshold =
+    SPONSOR_PRESTIGE_REPUTATION_THRESHOLDS[previousTier];
+
+  return (
+    sponsor.minimumReputation <= standardThreshold &&
+    reputationPoints >= bridgeThreshold
+  );
+}
+
+export function isSponsorEligibleForTeamAffinity({
+  sponsor,
+  reputationPoints,
+  teamCountryCode,
+  rosterMajorityCountryCode,
+}: {
+  sponsor: Sponsor;
+  reputationPoints: number;
+  teamCountryCode?: string | null;
+  rosterMajorityCountryCode?: string | null;
+}): boolean {
+  if (isSponsorEligibleForReputation(sponsor, reputationPoints)) {
+    return true;
+  }
+
+  const sponsorCountry = normalizeSponsorCountryCode(sponsor.countryCode);
+  const teamCountry = normalizeSponsorCountryCode(teamCountryCode ?? "");
+  const majorityCountry = normalizeSponsorCountryCode(
+    rosterMajorityCountryCode ?? "",
+  );
+
+  return (
+    Boolean(sponsorCountry) &&
+    sponsorCountry === teamCountry &&
+    sponsorCountry === majorityCountry &&
+    isSponsorEligibleForNationalBridgeOffer(sponsor, reputationPoints)
   );
 }
 

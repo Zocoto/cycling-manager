@@ -7,7 +7,6 @@ import {
   isSponsoringUnlocked,
 } from "@/lib/gameplay-rules";
 import type { TeamSponsorCountryAffinity } from "@/lib/game/sponsor-nationality-affinity";
-import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import {
   getSponsorNegotiationBudgetCeiling,
   isSponsorObjectiveDifficulty,
@@ -25,7 +24,10 @@ import type {
   PersistedSponsorOffer,
   SponsorOfferStatus,
 } from "@/services/persisted-sponsor-offers";
-import { generateSponsorProposals } from "@/services/sponsor-proposals";
+import {
+  generateSponsorProposals,
+  isSponsorEligibleForTeamAffinity,
+} from "@/services/sponsor-proposals";
 import { loadTeamSponsorCountryAffinity } from "@/services/sponsor-team-affinity";
 import type { Sponsor } from "@/types/sponsor";
 
@@ -271,10 +273,13 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     if (
       existingOffers.every(
         (offer) =>
-          isSponsorEligibleForReputation(
-            offer.sponsor,
-            sportingDirector.reputation_points
-          ) &&
+          isSponsorEligibleForTeamAffinity({
+            sponsor: offer.sponsor,
+            reputationPoints: sportingDirector.reputation_points,
+            teamCountryCode: countryAffinity.teamCountryCode,
+            rosterMajorityCountryCode:
+              countryAffinity.rosterMajorityCountryCode,
+          }) &&
           (!unavailableSponsorCatalogKeySet.has(offer.sponsor.id) ||
             (mode === "renewal" &&
               offer.sponsor.id === currentSponsorCatalogKey))
@@ -499,10 +504,12 @@ function createFutureProposals({
     }
 
     unavailableSponsorIds.add(currentSponsorCatalogKey);
-    const renewalIsEligible = isSponsorEligibleForReputation(
-      currentSponsor,
-      directorReputation
-    );
+    const renewalIsEligible = isSponsorEligibleForTeamAffinity({
+      sponsor: currentSponsor,
+      reputationPoints: directorReputation,
+      teamCountryCode: countryAffinity.teamCountryCode,
+      rosterMajorityCountryCode: countryAffinity.rosterMajorityCountryCode,
+    });
 
     const alternativeProposals = generateSponsorProposals({
       teamCountryCode: countryAffinity.teamCountryCode,

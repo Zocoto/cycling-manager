@@ -2,7 +2,6 @@ import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
 import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
-import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import {
   getSponsorNegotiationBudgetCeiling,
   isSponsorObjectiveDifficulty,
@@ -18,7 +17,10 @@ import {
   RIDER_RECRUITMENT_OBJECTIVE_OFFER_GENERATION_VERSION,
   type SponsorOfferObjectiveContext,
 } from "@/services/persisted-sponsor-objectives";
-import { generateSponsorProposals } from "@/services/sponsor-proposals";
+import {
+  generateSponsorProposals,
+  isSponsorEligibleForTeamAffinity,
+} from "@/services/sponsor-proposals";
 import { loadTeamSponsorCountryAffinity } from "@/services/sponsor-team-affinity";
 import type { Sponsor } from "@/types/sponsor";
 import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
@@ -242,10 +244,13 @@ export async function getOrCreateSponsorOffersForAuthUser(
     if (
       existingOffers.every(
         (offer) =>
-          isSponsorEligibleForReputation(
-            offer.sponsor,
-            sportingDirector.reputation_points
-          ) && !unavailableSponsorIdSet.has(offer.sponsor.id)
+          isSponsorEligibleForTeamAffinity({
+            sponsor: offer.sponsor,
+            reputationPoints: sportingDirector.reputation_points,
+            teamCountryCode: countryAffinity.teamCountryCode,
+            rosterMajorityCountryCode:
+              countryAffinity.rosterMajorityCountryCode,
+          }) && !unavailableSponsorIdSet.has(offer.sponsor.id)
       )
     ) {
       return existingOffers;
