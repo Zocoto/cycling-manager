@@ -99,10 +99,19 @@ export async function GET(
     result.targetedEditions > 0 &&
     result.processedStages === 0 &&
     result.completedEditions === 0;
-  if (result.failedEditions > 0 || settlementStalled) {
+  const persistentBacklog =
+    slot.endsWith("-recovery") &&
+    now.getUTCMinutes() >= 55 &&
+    result.deferredEditions > 0;
+  if (
+    result.failedEditions > 0 ||
+    settlementStalled ||
+    persistentBacklog
+  ) {
     console.error("official_race_settlement_anomaly", {
       ...result,
       settlementStalled,
+      persistentBacklog,
     });
   }
   console.info("official_race_settlement_completed", result);

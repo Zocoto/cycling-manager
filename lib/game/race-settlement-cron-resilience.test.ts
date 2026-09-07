@@ -44,6 +44,10 @@ const initialNonStarterMigration = readFileSync(
   ),
   "utf8",
 );
+const vercel = readFileSync(
+  resolve(process.cwd(), "vercel.json"),
+  "utf8",
+);
 
 describe("race settlement cron resilience", () => {
   it("isolates pre-settlement failures instead of aborting race results", () => {
@@ -78,7 +82,26 @@ describe("race settlement cron resilience", () => {
     expect(runner).toContain("raceEditionIds: claimedEditionIds");
     expect(runner).toContain("repairableCompletedEditionIds");
     expect(route).toContain("official_race_settlement_anomaly");
-    expect(route).toContain("result.failedEditions > 0 || settlementStalled");
+    expect(route).toContain("result.failedEditions > 0");
+    expect(route).toContain("settlementStalled ||");
+    expect(route).toContain('slot.endsWith("-recovery")');
+    expect(route).toContain("result.deferredEditions > 0");
+    expect(route).toContain("persistentBacklog");
+  });
+
+  it("retries every five minutes after the first partitioned settlement", () => {
+    expect(vercel).toContain(
+      '"path": "/api/cron/race-settlements/early-summer-recovery", "schedule": "15,20,25,30,35,40,45,50,55 12 * * *"',
+    );
+    expect(vercel).toContain(
+      '"path": "/api/cron/race-settlements/late-summer-recovery", "schedule": "15,20,25,30,35,40,45,50,55 16 * * *"',
+    );
+    expect(vercel).toContain(
+      '"path": "/api/cron/race-settlements/early-winter-recovery", "schedule": "15,20,25,30,35,40,45,50,55 13 * * *"',
+    );
+    expect(vercel).toContain(
+      '"path": "/api/cron/race-settlements/late-winter-recovery", "schedule": "15,20,25,30,35,40,45,50,55 17 * * *"',
+    );
   });
 
   it("isolates official simulation loading inside each edition settlement", () => {

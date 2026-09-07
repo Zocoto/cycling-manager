@@ -23,6 +23,7 @@ import {
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { getRaceLiveMessages } from "@/services/race-live-chat";
 import { getOfficialRaceResults } from "@/services/race-results";
+import { settleDueStandardRaceResults } from "@/services/race-settlement-runner";
 import { getLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { getOrCreatePostRaceInterview } from "@/services/post-race-interviews";
 import { precomputeRequestedOfficialRaceReplay } from "@/services/race-simulation-runner";
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
   description:
     "Consultez une course, ses résultats et, hors CN, son direct ou son replay.",
 };
+export const maxDuration = 300;
 
 type RaceLivePageProps = {
   params: Promise<{
@@ -120,6 +122,30 @@ export default async function RaceLivePage({
       (candidate) => candidate.stageId === stage.id,
     ),
   );
+  if (
+    !isNationalChampionship &&
+    state.status === "finished" &&
+    !selectedStageResultAvailable
+  ) {
+    // La page reste rapide et en lecture seule pendant son rendu. Si un
+    // résultat manque après l'arrivée, une reprise ciblée et idempotente est
+    // néanmoins lancée après la réponse : l'utilisateur n'attend plus le
+    // prochain créneau global du cron.
+    after(async () => {
+      try {
+        await settleDueStandardRaceResults({
+          now: new Date(),
+          raceSlug: edition.slug,
+        });
+      } catch (error) {
+        console.error("targeted_race_settlement_recovery_failed", {
+          raceSlug: edition.slug,
+          stageId: stage.id,
+          error,
+        });
+      }
+    });
+  }
   const replayRequested = resolvedSearchParams.replay === "1";
   const shouldLoadReplay =
     !resultsOnlyNationalChampionship &&

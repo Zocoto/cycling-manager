@@ -18,6 +18,10 @@ const stagePage = readFileSync(
   ),
   "utf8",
 );
+const settlementRunner = readFileSync(
+  join(process.cwd(), "services/race-settlement-runner.ts"),
+  "utf8",
+);
 
 describe("race route performance", () => {
   it("loads the live, results and chat modules only when displayed", () => {
@@ -36,6 +40,11 @@ describe("race route performance", () => {
     expect(stagePage).not.toContain("ensureLockedOfficialRaceSimulations");
     expect(stagePage).toContain("precomputeRequestedOfficialRaceReplay");
     expect(stagePage).toContain("after(async () =>");
+    expect(stagePage).toContain("settleDueStandardRaceResults");
+    expect(stagePage).toContain("raceSlug: edition.slug");
+    expect(stagePage).toContain("targeted_race_settlement_recovery_failed");
+    expect(stagePage).toContain("export const maxDuration = 300");
+    expect(settlementRunner).toContain("claim_race_editions_for_settlement");
     expect(stagePage).toContain("[stage.id]");
     expect(stageExperience).toContain("waitingForSimulation ? 15_000 : 5_000");
   });
