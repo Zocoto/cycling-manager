@@ -12,6 +12,12 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
 import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+  FREE_AGENT_RIDER_JERSEY,
+  type RiderJerseyAppearance,
+} from "@/lib/rider-jersey";
 
 type SeasonRow = { id: string; name: string };
 type TeamSeasonRow = {
@@ -29,8 +35,11 @@ type RiderRow = {
   country_id: string;
   first_name: string;
   last_name: string;
+  avatar_profile_key: string | null;
+  avatar_seed: number | string | null;
 };
 type RiderSummaryRow = { rider_id: string; points: number | null };
+type RiderAgeRow = { rider_id: string; age: number };
 type ContractRow = { rider_id: string; team_id: string };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
 type TeamRow = {
@@ -69,6 +78,10 @@ export type RiderRankingEntry = {
   rank: number;
   riderId: string;
   riderName: string;
+  avatarProfileKey: string | null;
+  avatarSeed: number | string | null;
+  age: number;
+  jersey: RiderJerseyAppearance;
   teamId: string | null;
   teamName: string | null;
   countryCode: string;
@@ -152,6 +165,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     divisionsResult,
     teamsResult,
     sponsorContractsResult,
+    riderAgesResult,
   ] = await Promise.all([
     teamIds.length
       ? supabase
@@ -165,7 +179,9 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     riderIds.length
       ? supabase
           .from("riders")
-          .select("id, country_id, first_name, last_name")
+          .select(
+            "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed"
+          )
           .in("id", riderIds)
           .returns<RiderRow[]>()
       : Promise.resolve({ data: [] as RiderRow[], error: null }),
@@ -203,6 +219,14 @@ async function loadUciRankings(): Promise<UciRankings | null> {
           .order("created_at", { ascending: false })
           .returns<SponsorContractRow[]>()
       : Promise.resolve({ data: [] as SponsorContractRow[], error: null }),
+    riderIds.length
+      ? supabase
+          .from("rider_season_ratings")
+          .select("rider_id, age")
+          .eq("season_id", season.id)
+          .in("rider_id", riderIds)
+          .returns<RiderAgeRow[]>()
+      : Promise.resolve({ data: [] as RiderAgeRow[], error: null }),
   ]);
 
   assertQuery(assignmentsResult.error, "les Directeurs Sportifs classés");
@@ -211,6 +235,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
   assertQuery(divisionsResult.error, "les divisions de la saison");
   assertQuery(teamsResult.error, "les maillots amateurs des équipes");
   assertQuery(sponsorContractsResult.error, "les maillots sponsorisés des équipes");
+  assertQuery(riderAgesResult.error, "l’âge des coureurs classés");
 
   const assignments = assignmentsResult.data ?? [];
   const directorIds = assignments.map((assignment) => assignment.sporting_director_id);
@@ -274,6 +299,19 @@ async function loadUciRankings(): Promise<UciRankings | null> {
   const sponsorRegistryById = new Map(
     (sponsorsResult.data ?? []).map((sponsor) => [sponsor.id, sponsor])
   );
+  const ageByRiderId = new Map(
+    (riderAgesResult.data ?? []).map((rating) => [rating.rider_id, rating.age])
+  );
+  const riderJerseyByTeamId = new Map(
+    teamIds.map((teamId) => [
+      teamId,
+      resolveTeamRiderJersey({
+        team: teamIdentityById.get(teamId),
+        contract: sponsorContractByTeamId.get(teamId),
+        sponsorRegistryById,
+      }),
+    ])
+  );
 
   const teams = teamSeasons
     .filter((team) => team.points > 0)
@@ -320,6 +358,12 @@ async function loadUciRankings(): Promise<UciRankings | null> {
         rank: 0,
         riderId: rider.id,
         riderName: `${rider.first_name} ${rider.last_name}`,
+        avatarProfileKey: rider.avatar_profile_key,
+        avatarSeed: rider.avatar_seed,
+        age: ageByRiderId.get(rider.id) ?? 25,
+        jersey: contract
+          ? (riderJerseyByTeamId.get(contract.team_id) ?? FREE_AGENT_RIDER_JERSEY)
+          : FREE_AGENT_RIDER_JERSEY,
         teamId: team?.team_id ?? null,
         teamName: team?.display_name ?? null,
         countryCode: country.iso_alpha2,
@@ -403,6 +447,37 @@ function getAmateurJersey(team: TeamRow | undefined): AmateurJerseyConfig {
       normalizeHexColor(team.amateur_jersey_accent_color) ??
       DEFAULT_AMATEUR_JERSEY.accentColor,
   };
+}
+
+function resolveTeamRiderJersey({
+  team,
+  contract,
+  sponsorRegistryById,
+}: {
+  team: TeamRow | undefined;
+  contract: SponsorContractRow | undefined;
+  sponsorRegistryById: Map<string, SponsorRegistryRow>;
+}): RiderJerseyAppearance {
+  const sponsorRegistry = contract
+    ? sponsorRegistryById.get(contract.sponsor_id)
+    : null;
+  const sponsor = sponsorRegistry
+    ? SPONSORS.find((candidate) => candidate.id === sponsorRegistry.catalog_key)
+    : null;
+  const sponsorJersey = sponsor
+    ? sponsor.jerseys.find((jersey) => jersey.id === contract?.selected_jersey_id) ??
+      sponsor.jerseys[0]
+    : null;
+
+  if (sponsor && sponsorJersey) {
+    return createSponsoredRiderJersey({
+      colors: sponsor.colors,
+      style: sponsorJersey.style,
+      imagePath: sponsorJersey.imagePath,
+    });
+  }
+
+  return createAmateurRiderJersey(getAmateurJersey(team));
 }
 
 export async function getTeamRankingEntry(

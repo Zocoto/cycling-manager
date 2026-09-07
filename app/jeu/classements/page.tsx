@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   GameSectionTabLink,
   GameSectionTabs,
@@ -201,7 +202,30 @@ function RidersTable({ entries }: { entries: RiderRankingEntry[] }) {
       <TableHead labels={["Rang", "Coureur", "Équipe", "Points"]} />
       <tbody>{entries.map((entry) => <tr key={entry.riderId} className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">
         <RankCell rank={entry.rank} />
-        <td className="px-5 py-4"><Link href={`/jeu/coureurs/${entry.riderId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.riderName}</Link><p className="mt-1 text-xs text-[#60756E]"><span className={`fi fi-${entry.countryCode.toLowerCase()} mr-2`} />{entry.countryName}</p></td>
+        <td className="px-5 py-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/jeu/coureurs/${entry.riderId}`}
+              aria-label={`Voir la fiche de ${entry.riderName}`}
+              className="shrink-0 rounded-full transition hover:ring-2 hover:ring-[#278B70]/35"
+            >
+              <RiderAvatar
+                profileKey={entry.avatarProfileKey}
+                seed={entry.avatarSeed}
+                riderId={entry.riderId}
+                age={entry.age}
+                jersey={entry.jersey}
+                label={`Portrait de ${entry.riderName}`}
+                className="h-12 w-12"
+                renderMode="compact"
+              />
+            </Link>
+            <div className="min-w-0">
+              <Link href={`/jeu/coureurs/${entry.riderId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.riderName}</Link>
+              <p className="mt-1 text-xs text-[#60756E]"><span className={`fi fi-${entry.countryCode.toLowerCase()} mr-2`} />{entry.countryName}</p>
+            </div>
+          </div>
+        </td>
         <td className="px-5 py-4">{entry.teamId ? <Link href={`/jeu/equipes/${entry.teamId}`} className="font-bold text-[#48665F] hover:text-[#278B70]">{entry.teamName}</Link> : "Agent libre"}</td>
         <PointsCell points={entry.points} />
       </tr>)}</tbody>
