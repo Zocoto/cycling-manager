@@ -127,8 +127,6 @@ export function FederationInfrastructureCatalog({
       {FEDERATION_INFRASTRUCTURE_DEFINITIONS.map((definition) => {
         const currentLevel =
           infrastructureState?.levels[definition.code] ?? 0;
-        const specializationProposal =
-          getInfrastructureSpecializationProposal("federation", definition.code);
         return (
           <div key={definition.code} className="space-y-4">
             <FederationInfrastructureCard
@@ -144,27 +142,6 @@ export function FederationInfrastructureCatalog({
               }
               infrastructureState={infrastructureState}
             />
-            {specializationProposal ? (
-              <InfrastructureSpecializationPanel
-                proposal={specializationProposal}
-                level={currentLevel}
-                selection={
-                  infrastructureState?.specializations[definition.code] ?? {
-                    activeCode: null,
-                    pendingCode: null,
-                    effectiveGameDayIndex: null,
-                    canSelectThisSeason: true,
-                    reorientationCost: currentLevel * 250_000,
-                  }
-                }
-                gameYear={infrastructureState?.gameYear ?? 2}
-                currency={currency}
-                countryCode={countryCode}
-                canManage={
-                  infrastructureState?.canManageSpecializations ?? false
-                }
-              />
-            ) : null}
             {definition.code === "regional_academies" ? (
               <FederationSchoolCyclingPlan
                 countryCode={countryCode}
@@ -464,6 +441,10 @@ function FederationInfrastructureCard({
     : null;
   const balance = infrastructureState?.balance ?? 0;
   const insufficientFunds = Boolean(quote && balance < quote.cost);
+  const specializationProposal = getInfrastructureSpecializationProposal(
+    "federation",
+    definition.code,
+  );
 
   return (
     <article className="overflow-hidden rounded-[1.9rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_44px_rgba(19,60,46,0.09)]">
@@ -608,6 +589,27 @@ function FederationInfrastructureCard({
           </aside>
         )}
       </div>
+      {specializationProposal ? (
+        <InfrastructureSpecializationPanel
+          proposal={specializationProposal}
+          level={currentLevel}
+          selection={
+            infrastructureState?.specializations[definition.code] ?? {
+              activeCode: null,
+              pendingCode: null,
+              effectiveGameDayIndex: null,
+              canSelectThisSeason: true,
+              reorientationCost: currentLevel * 250_000,
+            }
+          }
+          gameYear={infrastructureState?.gameYear ?? 2}
+          currency={currency}
+          countryCode={countryCode}
+          canManage={
+            infrastructureState?.canManageSpecializations ?? false
+          }
+        />
+      ) : null}
     </article>
   );
 }

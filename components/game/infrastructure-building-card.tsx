@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/actions";
 import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
@@ -31,6 +31,7 @@ export function InfrastructureBuildingCard({
   balance,
   currency,
   prerequisiteMessage = null,
+  children,
 }: {
   definition: TeamInfrastructureDefinition;
   currentLevel: number;
@@ -42,6 +43,7 @@ export function InfrastructureBuildingCard({
   balance: number;
   currency: string;
   prerequisiteMessage?: string | null;
+  children?: ReactNode;
 }) {
   const [architectContractId, setArchitectContractId] = useState("");
   const constructionOptions = getInfrastructureConstructionOptions({
@@ -225,6 +227,7 @@ export function InfrastructureBuildingCard({
           </p>
         )}
       </div>
+      {children}
     </article>
   );
 }

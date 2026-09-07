@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import {
   startInfrastructureProjectAction,
@@ -35,6 +35,7 @@ export function StaffAcademyCard({
   directorLevel,
   balance,
   currency,
+  children,
 }: {
   academy: StaffAcademyOverview;
   currentEfficiencyBonusPercentage?: number;
@@ -43,6 +44,7 @@ export function StaffAcademyCard({
   directorLevel: number;
   balance: number;
   currency: string;
+  children?: ReactNode;
 }) {
   const [architectContractId, setArchitectContractId] = useState("");
   const constructionOptions = getInfrastructureConstructionOptions({
@@ -539,6 +541,7 @@ export function StaffAcademyCard({
           </div>
         ) : null}
       </div>
+      {children}
     </article>
   );
 }

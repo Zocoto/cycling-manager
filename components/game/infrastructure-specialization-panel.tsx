@@ -59,6 +59,11 @@ export function InfrastructureSpecializationPanel({
   const unlocked = level >= INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL;
   const power = getInfrastructureSpecializationPowerPercentage(level);
   const hasChoice = Boolean(selection.activeCode);
+  const activeOptionName = selection.pendingCode
+    ? getOptionName(proposal, selection.pendingCode)
+    : selection.activeCode
+      ? getOptionName(proposal, selection.activeCode)
+      : null;
   const canSubmit =
     unlocked &&
     canManage &&
@@ -67,28 +72,53 @@ export function InfrastructureSpecializationPanel({
     !pending;
 
   return (
-    <section className="overflow-hidden rounded-[1.6rem] border border-[#C9A227]/30 bg-[#FFFDF4] shadow-[0_12px_32px_rgba(19,60,46,0.07)]">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#C9A227]/20 bg-[linear-gradient(105deg,#102C27,#183F37)] px-5 py-5 text-white sm:px-7">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-            Spécialisation · palier niveau 3
-          </p>
-          <h4 className="mt-1 text-xl font-black">Orientation du bâtiment</h4>
-          <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-[#D6DFD2] sm:text-sm">
-            Une seule voie peut être active. Sa puissance progresse avec le
-            bâtiment : 60 % au N3, 80 % au N4 et 100 % dès le N5. Les valeurs
-            ci-dessous correspondent à la pleine puissance.
-          </p>
+    <details className="group border-t border-[#315B3E]/12 bg-[#F8FBF9]">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 transition hover:bg-[#EEF7F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] [&::-webkit-details-marker]:hidden sm:px-7">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#E5F4ED] text-lg font-black text-[#176951]"
+          >
+            ◇
+          </span>
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+              Spécialisation · niveau 3
+            </p>
+            <p className="mt-0.5 truncate text-sm font-black text-[#183F37] sm:text-base">
+              Orientation du bâtiment
+              {activeOptionName ? ` · ${activeOptionName}` : ""}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <StatusPill>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden rounded-full border border-[#315B3E]/12 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#60756E] sm:inline-flex">
             {unlocked ? `Puissance ${power} %` : `Verrouillé · N${level}/3`}
-          </StatusPill>
-          {gameYear < 3 ? <StatusPill>Saison 3</StatusPill> : null}
+          </span>
+          {gameYear < 3 ? (
+            <span className="hidden rounded-full bg-[#102C27] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#F2C94C] md:inline-flex">
+              Saison 3
+            </span>
+          ) : null}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className="h-5 w-5 text-[#60756E] transition-transform group-open:rotate-180"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m5 7 5 5 5-5" />
+          </svg>
         </div>
-      </div>
+      </summary>
 
-      <div className="p-4 sm:p-6">
+      <div className="border-t border-[#315B3E]/10 bg-[#FFFDF4] p-4 sm:p-6">
+        <p className="mb-4 text-xs font-semibold leading-5 text-[#60756E]">
+          Une seule voie peut être active. Sa puissance progresse avec le
+          bâtiment : 60 % au N3, 80 % au N4 et 100 % dès le N5. Les valeurs
+          indiquées correspondent à la pleine puissance.
+        </p>
         {!unlocked ? (
           <p className="mb-4 rounded-xl border border-[#315B3E]/10 bg-white px-4 py-3 text-xs font-bold text-[#60756E]">
             Les voies sont visibles dès maintenant. Construisez le niveau 3
@@ -200,7 +230,7 @@ export function InfrastructureSpecializationPanel({
           </p>
         ) : null}
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -218,14 +248,6 @@ function Effect({
       <dt className="font-black">{label}</dt>
       <dd className="font-semibold">{value}</dd>
     </div>
-  );
-}
-
-function StatusPill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em]">
-      {children}
-    </span>
   );
 }
 

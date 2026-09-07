@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/actions";
 import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
@@ -27,6 +27,7 @@ export function DataRoomConstructionCard({
   directorLevel,
   balance,
   currency,
+  children,
 }: {
   currentLevel: number;
   currentEfficiencyBonusPercentage?: number;
@@ -36,6 +37,7 @@ export function DataRoomConstructionCard({
   directorLevel: number;
   balance: number;
   currency: string;
+  children?: ReactNode;
 }) {
   const [architectContractId, setArchitectContractId] = useState("");
   const constructionOptions = getInfrastructureConstructionOptions({
@@ -215,6 +217,7 @@ export function DataRoomConstructionCard({
           </p>
         )}
       </div>
+      {children}
     </article>
   );
 }

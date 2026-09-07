@@ -82,7 +82,7 @@ describe("infrastructure specializations", () => {
     expect(migration).toContain("season.game_year >= 3");
   });
 
-  it("integrates the selector directly beneath the real infrastructure cards", () => {
+  it("embeds a collapsed specialization section inside each real building card", () => {
     const teamPage = readFileSync(
       join(root, "app/jeu/infrastructures/page.tsx"),
       "utf8",
@@ -91,8 +91,28 @@ describe("infrastructure specializations", () => {
       join(root, "components/game/federation-infrastructure-catalog.tsx"),
       "utf8",
     );
-    expect(teamPage).toContain("<InfrastructureSpecializationPanel");
-    expect(federationCatalog).toContain("<InfrastructureSpecializationPanel");
+    const panel = readFileSync(
+      join(root, "components/game/infrastructure-specialization-panel.tsx"),
+      "utf8",
+    );
+    const federationCard = federationCatalog.slice(
+      federationCatalog.indexOf("function FederationInfrastructureCard"),
+      federationCatalog.indexOf("function ActiveProjectPanel"),
+    );
+
+    expect(teamPage).toMatch(
+      /<InfrastructureBuildingCard[\s\S]*?<InfrastructureSpecializationPanel[\s\S]*?<\/InfrastructureBuildingCard>/,
+    );
+    expect(teamPage).toMatch(
+      /<DataRoomConstructionCard[\s\S]*?<InfrastructureSpecializationPanel[\s\S]*?<\/DataRoomConstructionCard>/,
+    );
+    expect(teamPage).toMatch(
+      /<StaffAcademyCard[\s\S]*?<InfrastructureSpecializationPanel[\s\S]*?<\/StaffAcademyCard>/,
+    );
+    expect(federationCard).toContain("<InfrastructureSpecializationPanel");
+    expect(panel).toContain('<details className="group border-t');
+    expect(panel).toContain("<summary");
+    expect(panel).not.toContain("shadow-[0_12px_32px");
     expect(teamPage).not.toContain("laboratoire-specialisations");
   });
 });
