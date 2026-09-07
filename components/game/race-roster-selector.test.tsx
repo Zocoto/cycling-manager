@@ -28,6 +28,7 @@ const rider = {
   cobbles: 63,
   sprint: 61,
   form: 87.5,
+  climateProfile: { strength: "sun", weakness: "rain" },
   isSelected: false,
   isAvailable: true,
   unavailability: null,
@@ -51,6 +52,10 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain("Forme 87,5/100");
     expect(markup).toContain("MON 78 · VAL 76 · PLA 69");
     expect(markup).toContain("CLM 66 · PAV 63 · SPR 61");
+    expect(markup).toContain("+ Soleil");
+    expect(markup).toContain("− Pluie");
+    expect(markup).toContain("bonus de 1,5 point");
+    expect(markup).toContain("malus de 1,25 point");
   });
 
   it("borne l’affichage et distingue visuellement les niveaux de forme", () => {
@@ -78,5 +83,6 @@ describe("RaceRosterSelector", () => {
     expect(migration).toContain("order by season_day.day_number desc");
     expect(migration).toContain("coalesce(latest_condition.form, 75::numeric)");
     expect(service).toContain("form: Number(rider.current_form)");
+    expect(service).toContain("climateProfile: getRiderClimateProfile({");
   });
 });

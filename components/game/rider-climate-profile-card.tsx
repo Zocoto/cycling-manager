@@ -3,7 +3,7 @@ import type {
   RiderClimateProfile,
 } from "@/lib/game/race-weather";
 
-const CLIMATE_LABELS = {
+export const RIDER_CLIMATE_LABELS = {
   sun: "Soleil",
   heat: "Forte chaleur",
   cold: "Froid",
@@ -89,7 +89,7 @@ function ClimateAffinity({
           aria-hidden="true"
           className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${palette.icon}`}
         >
-          <ClimateIcon preference={preference} />
+          <RiderClimateIcon preference={preference} />
         </span>
         <div className="min-w-0">
           <p
@@ -98,7 +98,7 @@ function ClimateAffinity({
             {label}
           </p>
           <p className={`mt-1 text-sm font-black ${palette.title}`}>
-            {CLIMATE_LABELS[preference]}
+            {RIDER_CLIMATE_LABELS[preference]}
           </p>
         </div>
       </div>
@@ -109,12 +109,18 @@ function ClimateAffinity({
   );
 }
 
-function ClimateIcon({ preference }: { preference: RiderClimatePreference }) {
+export function RiderClimateIcon({
+  preference,
+  className = "h-5 w-5",
+}: {
+  preference: RiderClimatePreference;
+  className?: string;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
-      className="h-5 w-5"
+      className={className}
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"

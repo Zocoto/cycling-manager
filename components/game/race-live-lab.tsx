@@ -101,7 +101,9 @@ import {
   shouldShowRaceSpectators,
 } from "@/lib/game/race-visuals";
 import {
+  getRaceStageWeatherSeed,
   getRaceWeather,
+  getStageSeasonGameYear,
   type RaceWeather,
 } from "@/lib/game/race-weather";
 
@@ -219,7 +221,14 @@ export function RaceLiveLab({
     };
   }, [edition.raceFormat, edition.stages, input, lockedSimulations, stage.id]);
   const raceWeather =
-    input.weather ?? getRaceWeather(`${edition.id}:${stage.id}:weather`);
+    input.weather ??
+    getRaceWeather(
+      getRaceStageWeatherSeed({
+        seasonGameYear: getStageSeasonGameYear(stage),
+        raceEditionId: edition.id,
+        stageId: stage.id,
+      }),
+    );
   const [activeIndex, setActiveIndex] = useState(0);
   const [replaySegmentProgress, setReplaySegmentProgress] = useState(0);
   const replaySegmentProgressRef = useRef(0);

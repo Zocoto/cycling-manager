@@ -43,10 +43,46 @@ describe("RaceStageProfile", () => {
 
     expect(markup).toContain("GPM");
   });
+
+  it("affiche la météo connue dans le coin supérieur du profil", () => {
+    const markup = renderToStaticMarkup(
+      <RaceStageProfile
+        segments={[createSegment(null)]}
+        compact
+        weather={{
+          condition: "rain",
+          rainIntensity: "steady",
+          temperatureC: 13,
+          windSpeedKph: 21,
+          windDirection: "crosswind",
+          windIntensity: "breeze",
+          isWet: true,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-stage-weather="rain"');
+    expect(markup).toContain("Pluie continue");
+    expect(markup).toContain("Météo de l’étape");
+  });
+
+  it("masque la condition et affiche un verrou avant la fenêtre de prévision", () => {
+    const markup = renderToStaticMarkup(
+      <RaceStageProfile
+        segments={[createSegment(null)]}
+        compact
+        weatherUnavailableLabel="Prévision disponible dans 3 jours"
+      />,
+    );
+
+    expect(markup).toContain('data-stage-weather="hidden"');
+    expect(markup).toContain("Prévision disponible dans 3 jours");
+    expect(markup).not.toContain("Météo de l’étape");
+  });
 });
 
 function createSegment(
-  prime: RaceSegmentPrime
+  prime: RaceSegmentPrime | null,
 ): RaceStageSegment {
   return {
     segmentNumber: 1,

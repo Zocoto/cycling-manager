@@ -1,4 +1,8 @@
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
+import {
+  getRaceWeatherLabel,
+  type RaceWeather,
+} from "@/lib/game/race-weather";
 
 type RaceStageProfileProps = {
   segments: RaceStageSegment[];
@@ -6,6 +10,8 @@ type RaceStageProfileProps = {
   compact?: boolean;
   tone?: "light" | "dark";
   showLegend?: boolean;
+  weather?: RaceWeather | null;
+  weatherUnavailableLabel?: string | null;
   onSelectSegment?: (segmentNumber: number) => void;
 };
 
@@ -15,6 +21,8 @@ export function RaceStageProfile({
   compact = false,
   tone = "light",
   showLegend = false,
+  weather,
+  weatherUnavailableLabel,
   onSelectSegment,
 }: RaceStageProfileProps) {
   if (segments.length === 0) {
@@ -166,6 +174,20 @@ export function RaceStageProfile({
           ) : null}
         </svg>
 
+        {weather ? (
+          <StageWeatherCorner weather={weather} compact={compact} />
+        ) : weatherUnavailableLabel ? (
+          <span
+            data-stage-weather="hidden"
+            title={weatherUnavailableLabel}
+            aria-label={weatherUnavailableLabel}
+            className="pointer-events-none absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded-lg border border-[#315B3E]/15 bg-white/90 px-1.5 py-1 text-[9px] font-black text-[#60756E] shadow-sm backdrop-blur"
+          >
+            <span aria-hidden="true" className="text-sm leading-none">🔒</span>
+            {!compact ? <span>Météo masquée</span> : null}
+          </span>
+        ) : null}
+
         {onSelectSegment ? (
           <div className="absolute inset-0 flex" aria-label="Sélection d'un tronçon">
             {chart.segments.map((entry) => (
@@ -202,6 +224,44 @@ export function RaceStageProfile({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function StageWeatherCorner({
+  weather,
+  compact,
+}: {
+  weather: RaceWeather;
+  compact: boolean;
+}) {
+  const label = getRaceWeatherLabel(weather);
+  const icon = {
+    clear: "☀️",
+    cloudy: "☁️",
+    wind: "💨",
+    rain: "🌧️",
+    storm: "⛈️",
+    snow: "🌨️",
+  }[weather.condition];
+  const palette = {
+    clear: "border-amber-300/40 bg-amber-50/95 text-amber-950",
+    cloudy: "border-slate-300/60 bg-slate-50/95 text-slate-700",
+    wind: "border-cyan-300/50 bg-cyan-50/95 text-cyan-900",
+    rain: "border-sky-300/55 bg-sky-50/95 text-sky-900",
+    storm: "border-violet-300/55 bg-violet-50/95 text-violet-950",
+    snow: "border-cyan-200/60 bg-white/95 text-slate-700",
+  }[weather.condition];
+
+  return (
+    <span
+      data-stage-weather={weather.condition}
+      title={`${label} · ${weather.temperatureC} °C · vent ${weather.windSpeedKph} km/h`}
+      aria-label={`Météo de l’étape : ${label}, ${weather.temperatureC} degrés, vent ${weather.windSpeedKph} kilomètres par heure`}
+      className={`pointer-events-none absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1.5 rounded-lg border px-1.5 py-1 text-[9px] font-black uppercase tracking-wide shadow-md backdrop-blur ${palette}`}
+    >
+      <span aria-hidden="true" className="text-base leading-none">{icon}</span>
+      <span className={compact ? "max-w-20 truncate" : ""}>{label}</span>
+    </span>
   );
 }
 

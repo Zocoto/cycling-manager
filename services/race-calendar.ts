@@ -56,6 +56,10 @@ import {
 } from "@/lib/game/race-profiles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { TeamDivisionCode } from "@/lib/game/economy";
+import {
+  getRiderClimateProfile,
+  type RiderClimateProfile,
+} from "@/lib/game/race-weather";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import {
   chunkValues,
@@ -445,6 +449,7 @@ export type RaceRosterOption = {
   cobbles: number;
   sprint: number;
   form: number;
+  climateProfile: RiderClimateProfile;
   isSelected: boolean;
   isAvailable: boolean;
   unavailability: {
@@ -1663,6 +1668,10 @@ export async function getCurrentTeamRaceRosterOptions(
     cobbles: rider.cobbles,
     sprint: rider.sprint,
     form: Number(rider.current_form),
+    climateProfile: getRiderClimateProfile({
+      riderId: rider.rider_id,
+      countryCode: rider.country_iso_alpha2,
+    }),
     isSelected: rider.is_selected,
     isAvailable: rider.is_available,
     unavailability:

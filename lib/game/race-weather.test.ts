@@ -4,9 +4,11 @@ import {
   applyRaceWeatherRatingAdjustments,
   getRaceClimatePerformanceAdjustment,
   getRaceCrosswindIncidentRisk,
+  getRaceStageWeatherSeed,
   getRiderClimateProfile,
   getRaceWeather,
   getRaceWeatherCrashRiskBonus,
+  getStageSeasonGameYear,
 } from "./race-weather";
 import type { RiderSimulationRatings } from "./race-simulation";
 
@@ -31,6 +33,31 @@ describe("race weather", () => {
     expect(getRaceWeather("stage:official")).toEqual(
       getRaceWeather("stage:official")
     );
+  });
+
+  it("changes the official stage draw from one season to another", () => {
+    const seasonalWeather = Array.from({ length: 12 }, (_, index) => {
+      const seasonGameYear = index + 1;
+      return getRaceWeather(
+        getRaceStageWeatherSeed({
+          seasonGameYear,
+          raceEditionId: "same-recurring-race",
+          stageId: "stage-2",
+        }),
+      );
+    });
+    const seasonThreeSeed = getRaceStageWeatherSeed({
+      seasonGameYear: 3,
+      raceEditionId: "same-recurring-race",
+      stageId: "stage-2",
+    });
+
+    expect(new Set(seasonalWeather.map((weather) => weather.condition)).size)
+      .toBeGreaterThan(1);
+    expect(getRaceWeather(seasonThreeSeed)).toEqual(
+      getRaceWeather(seasonThreeSeed),
+    );
+    expect(getStageSeasonGameYear({ gameDayIndex: 3 * 28 + 11 })).toBe(3);
   });
 
   it("keeps blue skies dominant and severe weather rare", () => {

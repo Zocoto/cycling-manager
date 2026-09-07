@@ -55,6 +55,33 @@ export type RaceWeather = {
   isWet: boolean;
 };
 
+export function getRaceStageWeatherSeed({
+  seasonGameYear,
+  raceEditionId,
+  stageId,
+}: {
+  seasonGameYear: number;
+  raceEditionId: string;
+  stageId: string;
+}) {
+  const normalizedGameYear = Number.isFinite(seasonGameYear)
+    ? Math.max(1, Math.trunc(seasonGameYear))
+    : 1;
+
+  return `season:${normalizedGameYear}:edition:${raceEditionId}:stage:${stageId}:weather`;
+}
+
+export function getStageSeasonGameYear(
+  stage: { gameDayIndex?: number },
+  fallback = 1,
+) {
+  if (stage.gameDayIndex === undefined || !Number.isFinite(stage.gameDayIndex)) {
+    return Math.max(1, Math.trunc(fallback));
+  }
+
+  return Math.max(1, Math.floor(stage.gameDayIndex / 28));
+}
+
 export function getRaceWeather(
   seed: string | number,
   options: RaceWeatherGenerationOptions = {}

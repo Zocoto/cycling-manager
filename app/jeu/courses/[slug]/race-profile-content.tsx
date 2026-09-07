@@ -40,7 +40,11 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 import { getStageFormCostRange } from "@/lib/game/form-management";
-import { getRaceWeather, type RaceWeather } from "@/lib/game/race-weather";
+import {
+  getRaceStageWeatherSeed,
+  getRaceWeather,
+  type RaceWeather,
+} from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import {
   INTERNATIONAL_SELECTIONS_HREF,
@@ -477,7 +481,11 @@ export async function RaceProfileContent({
                           stage.dayNumber - calendar.currentDayNumber <=
                           getWeatherForecastHorizon(weatherCenterLevel)
                             ? getRaceWeather(
-                                `${edition.id}:${stage.id}:weather`,
+                                getRaceStageWeatherSeed({
+                                  seasonGameYear: calendar.gameYear,
+                                  raceEditionId: edition.id,
+                                  stageId: stage.id,
+                                }),
                                 {
                                   countryCode: edition.countryCode,
                                   profileType: stage.profileType,
@@ -1412,7 +1420,18 @@ function StageCard({
       </div>
 
       <div>
-        <RaceStageProfile segments={stage.segments} compact />
+        <RaceStageProfile
+          segments={stage.segments}
+          compact
+          weather={weather}
+          weatherUnavailableLabel={
+            weather
+              ? null
+              : weatherCenterLevel > 0
+                ? `Prévision disponible dans ${forecastAvailableInDays} jour(s)`
+                : "Centre météo requis pour anticiper les conditions"
+          }
+        />
         <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#789087]">
           {stage.segments.some((segment) => segment.prime)
             ? `${stage.segments.filter((segment) => segment.prime?.type === "mountain").length} GPM · ${stage.segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length} SI`

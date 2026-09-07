@@ -6,7 +6,12 @@ import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
+import {
+  RIDER_CLIMATE_LABELS,
+  RiderClimateIcon,
+} from "@/components/game/rider-climate-profile-card";
 import { isRosterSelectionValid } from "@/lib/game/race-calendar";
+import type { RiderClimateProfile } from "@/lib/game/race-weather";
 import {
   isRaceSprinterRole,
   RACE_ROLES,
@@ -167,6 +172,7 @@ export function RaceRosterSelector({
                       >
                         Forme {formatRosterForm(rider.form)}/100
                       </span>
+                      <RiderWeatherAffinities profile={rider.climateProfile} />
                     </span>
                     <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
                       {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint}
@@ -302,6 +308,39 @@ export function RaceRosterSelector({
           : "Après validation, la composition ne pourra plus être modifiée directement."}
       </p>
     </div>
+  );
+}
+
+function RiderWeatherAffinities({
+  profile,
+}: {
+  profile: RiderClimateProfile;
+}) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-black">
+      <span
+        title={`Condition favorite : ${RIDER_CLIMATE_LABELS[profile.strength]} (+1,5)`}
+        aria-label={`Condition météo favorite : ${RIDER_CLIMATE_LABELS[profile.strength]}, bonus de 1,5 point`}
+        className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-1.5 py-0.5 text-[#9BE0BC]"
+      >
+        <RiderClimateIcon
+          preference={profile.strength}
+          className="h-3 w-3"
+        />
+        <span>+ {RIDER_CLIMATE_LABELS[profile.strength]}</span>
+      </span>
+      <span
+        title={`Condition difficile : ${RIDER_CLIMATE_LABELS[profile.weakness]} (−1,25)`}
+        aria-label={`Condition météo difficile : ${RIDER_CLIMATE_LABELS[profile.weakness]}, malus de 1,25 point`}
+        className="inline-flex items-center gap-1 rounded-full border border-rose-300/30 bg-rose-300/10 px-1.5 py-0.5 text-[#FFB5BB]"
+      >
+        <RiderClimateIcon
+          preference={profile.weakness}
+          className="h-3 w-3"
+        />
+        <span>− {RIDER_CLIMATE_LABELS[profile.weakness]}</span>
+      </span>
+    </span>
   );
 }
 

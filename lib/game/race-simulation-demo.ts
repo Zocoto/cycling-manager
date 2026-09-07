@@ -7,7 +7,11 @@ import {
   buildRaceSegments,
   removeOneDayRaceMountainPrimes,
 } from "./race-profiles";
-import { getRaceWeather } from "./race-weather";
+import {
+  getRaceStageWeatherSeed,
+  getRaceWeather,
+  getStageSeasonGameYear,
+} from "./race-weather";
 import {
   isRaceSprinterRole,
   type RiderSimulationInput,
@@ -225,7 +229,11 @@ export function createCalendarSimulationInput({
     stageNumber: stage.stageNumber,
     stageCount: edition.stages.length,
     seed,
-    weather: getRaceWeather(`${edition.id}:${stage.id}:weather`, {
+    weather: getRaceWeather(getRaceStageWeatherSeed({
+      seasonGameYear: getStageSeasonGameYear(stage),
+      raceEditionId: edition.id,
+      stageId: stage.id,
+    }), {
       countryCode: edition.countryCode,
       profileType: stage.profileType,
     }),

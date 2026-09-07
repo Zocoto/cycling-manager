@@ -12,6 +12,7 @@ import {
   RACE_PROFILE_LABELS,
 } from "@/lib/game/race-calendar";
 import { RACE_ROLE_LABELS } from "@/lib/game/race-simulation";
+import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -153,6 +154,10 @@ export async function CriteriumDiscoveryRaceContent({
       cobbles: Number(rider.cobbles),
       sprint: Number(rider.sprint),
       form: health?.form ?? 75,
+      climateProfile: getRiderClimateProfile({
+        riderId: rider.rider_id,
+        countryCode: rider.country_iso_alpha2,
+      }),
       isSelected: selectedIds.has(rider.rider_id),
       isAvailable: unavailability === null,
       unavailability,
