@@ -12,6 +12,7 @@ import type {
   FanClubPilotRace,
 } from "@/lib/game/fan-club-pilot";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentDashboardFastSummary } from "@/services/dashboard-fast-summary";
 
@@ -236,11 +237,23 @@ export async function getFanClubLiveData({
   );
 
   const [raceRostersResult, upcomingRegistrationsResult] = await Promise.all([
-    admin
-      .from("race_rosters")
-      .select("id, rider_id, race_registration_id")
-      .in("rider_id", riderIds)
-      .returns<RaceRosterRow[]>(),
+    collectChunkedPaginatedRows<
+      RaceRosterRow,
+      { message: string },
+      string
+    >({
+      values: riderIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_rosters")
+          .select("id, rider_id, race_registration_id")
+          .in("rider_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RaceRosterRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
     admin
       .from("race_registrations")
       .select("id, race_edition_id, team_season_id")
@@ -253,55 +266,100 @@ export async function getFanClubLiveData({
 
   const raceRosters = raceRostersResult.data ?? [];
   const raceRosterIds = raceRosters.map((row) => row.id);
-  const registrationIds = [
-    ...new Set(raceRosters.map((row) => row.race_registration_id)),
-  ];
 
-  const [raceResultsResult, stageResultsResult, attacksResult, registrationsResult] =
+  const [raceResultsResult, stageResultsResult, attacksResult] =
     await Promise.all([
-      raceRosterIds.length > 0
-        ? admin
+      collectChunkedPaginatedRows<
+        RaceResultRow,
+        { message: string },
+        string
+      >({
+        values: raceRosterIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
             .from("race_results")
             .select("id, race_edition_id, race_roster_id, final_rank")
-            .in("race_roster_id", raceRosterIds)
+            .in("race_roster_id", chunk)
             .not("final_rank", "is", null)
             .lte("final_rank", 20)
-            .returns<RaceResultRow[]>()
-        : emptyResult<RaceResultRow>(),
-      raceRosterIds.length > 0
-        ? admin
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<RaceResultRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
+      collectChunkedPaginatedRows<
+        StageResultRow,
+        { message: string },
+        string
+      >({
+        values: raceRosterIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
             .from("stage_results")
             .select("id, stage_id, race_roster_id, rank")
-            .in("race_roster_id", raceRosterIds)
+            .in("race_roster_id", chunk)
             .not("rank", "is", null)
             .lte("rank", 10)
-            .returns<StageResultRow[]>()
-        : emptyResult<StageResultRow>(),
-      raceRosterIds.length > 0
-        ? admin
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<StageResultRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
+      collectChunkedPaginatedRows<AttackRow, { message: string }, string>({
+        values: raceRosterIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
             .from("stage_attack_participants")
             .select("stage_id, race_roster_id, participation_type")
-            .in("race_roster_id", raceRosterIds)
+            .in("race_roster_id", chunk)
             .eq("participation_type", "breakaway")
-            .returns<AttackRow[]>()
-        : emptyResult<AttackRow>(),
-      registrationIds.length > 0
-        ? admin
-            .from("race_registrations")
-            .select("id, race_edition_id, team_season_id")
-            .in("id", registrationIds)
-            .returns<RegistrationRow[]>()
-        : emptyResult<RegistrationRow>(),
+            .order("stage_id", { ascending: true })
+            .range(from, to)
+            .returns<AttackRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
     ]);
 
   assertQuery(raceResultsResult.error, "les classements généraux");
   assertQuery(stageResultsResult.error, "les résultats d’étapes");
   assertQuery(attacksResult.error, "les échappées");
-  assertQuery(registrationsResult.error, "les équipes des résultats");
 
   const raceResults = raceResultsResult.data ?? [];
   const stageResults = stageResultsResult.data ?? [];
   const attacks = attacksResult.data ?? [];
+  const performanceRosterIds = new Set([
+    ...raceResults.map((row) => row.race_roster_id),
+    ...stageResults.map((row) => row.race_roster_id),
+    ...attacks.map((row) => row.race_roster_id),
+  ]);
+  const registrationIds = [
+    ...new Set(
+      raceRosters
+        .filter((row) => performanceRosterIds.has(row.id))
+        .map((row) => row.race_registration_id),
+    ),
+  ];
+  const registrationsResult = await collectChunkedPaginatedRows<
+    RegistrationRow,
+    { message: string },
+    string
+  >({
+    values: registrationIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("race_registrations")
+        .select("id, race_edition_id, team_season_id")
+        .in("id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<RegistrationRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+  assertQuery(registrationsResult.error, "les équipes des résultats");
   const historicalRegistrations = registrationsResult.data ?? [];
   const stageIds = [
     ...new Set([
@@ -310,16 +368,25 @@ export async function getFanClubLiveData({
     ]),
   ];
 
-  const seedStagesResult =
-    stageIds.length > 0
-      ? await admin
-          .from("stages")
-          .select(
-            "id, race_edition_id, season_day_id, stage_number, name, distance_km",
-          )
-          .in("id", stageIds)
-          .returns<StageRow[]>()
-      : await emptyResult<StageRow>();
+  const seedStagesResult = await collectChunkedPaginatedRows<
+    StageRow,
+    { message: string },
+    string
+  >({
+    values: stageIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("stages")
+        .select(
+          "id, race_edition_id, season_day_id, stage_number, name, distance_km",
+        )
+        .in("id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<StageRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
   assertQuery(seedStagesResult.error, "les étapes des performances");
 
   const seedStages = seedStagesResult.data ?? [];
@@ -332,16 +399,25 @@ export async function getFanClubLiveData({
     ]),
   ];
 
-  const editionsResult =
-    editionIds.length > 0
-      ? await admin
-          .from("race_editions")
-          .select(
-            "id, race_id, season_id, race_category_id, display_name, status",
-          )
-          .in("id", editionIds)
-          .returns<EditionRow[]>()
-      : await emptyResult<EditionRow>();
+  const editionsResult = await collectChunkedPaginatedRows<
+    EditionRow,
+    { message: string },
+    string
+  >({
+    values: editionIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("race_editions")
+        .select(
+          "id, race_id, season_id, race_category_id, display_name, status",
+        )
+        .in("id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<EditionRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
   assertQuery(editionsResult.error, "les éditions de course");
 
   const editions = editionsResult.data ?? [];
@@ -357,15 +433,21 @@ export async function getFanClubLiveData({
 
   const [allStagesResult, categoriesResult, racesResult, teamSeasonsResult] =
     await Promise.all([
-      editionIds.length > 0
-        ? admin
+      collectChunkedPaginatedRows<StageRow, { message: string }, string>({
+        values: editionIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
             .from("stages")
             .select(
               "id, race_edition_id, season_day_id, stage_number, name, distance_km",
             )
-            .in("race_edition_id", editionIds)
-            .returns<StageRow[]>()
-        : emptyResult<StageRow>(),
+            .in("race_edition_id", chunk)
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<StageRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
       categoryIds.length > 0
         ? admin
             .from("race_categories")

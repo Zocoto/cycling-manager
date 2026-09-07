@@ -26,6 +26,16 @@ type QueryFilter = {
 class FakeAdminClient {
   readonly inFilters: Array<{ column: string; values: unknown[] }> = [];
 
+  constructor(
+    private readonly raceRosters = [
+      {
+        id: "00000000-0000-4000-8000-000000000005",
+        rider_id: "00000000-0000-4000-8000-000000000006",
+        race_registration_id: "00000000-0000-4000-8000-000000000007",
+      },
+    ],
+  ) {}
+
   from(table: string) {
     return new FakeQuery(this, table);
   }
@@ -68,13 +78,7 @@ class FakeAdminClient {
     }
 
     if (table === "race_rosters") {
-      return [
-        {
-          id: "00000000-0000-4000-8000-000000000005",
-          rider_id: "00000000-0000-4000-8000-000000000006",
-          race_registration_id: "00000000-0000-4000-8000-000000000007",
-        },
-      ];
+      return this.raceRosters;
     }
 
     if (table === "race_registrations") {
@@ -135,6 +139,10 @@ class FakeQuery {
     return this;
   }
 
+  range() {
+    return this;
+  }
+
   returns<T>() {
     return this as unknown as PromiseLike<{ data: T; error: null }>;
   }
@@ -156,6 +164,36 @@ class FakeQuery {
   }
 }
 
+function createSupabaseClient() {
+  return {
+    rpc: vi.fn().mockResolvedValue({
+      data: [
+        {
+          rider_id: "00000000-0000-4000-8000-000000000006",
+          first_name: "Alice",
+          last_name: "Martin",
+          country_id: "00000000-0000-4000-8000-000000000009",
+          country_name: "France",
+          mountain: 70,
+          hills: 70,
+          flat: 60,
+          time_trial: 60,
+          cobbles: 50,
+          sprint: 65,
+          acceleration: 65,
+          downhill: 60,
+          endurance: 70,
+          resistance: 70,
+          recovery: 70,
+          breakaway: 60,
+          prologue: 60,
+        },
+      ],
+      error: null,
+    }),
+  };
+}
+
 describe("données du Fan Club", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -171,33 +209,7 @@ describe("données du Fan Club", () => {
   it("ignore l’équipe technique absente d’une inscription historique", async () => {
     const admin = new FakeAdminClient();
     mocks.createAdminClient.mockReturnValue(admin);
-    const supabase = {
-      rpc: vi.fn().mockResolvedValue({
-        data: [
-          {
-            rider_id: "00000000-0000-4000-8000-000000000006",
-            first_name: "Alice",
-            last_name: "Martin",
-            country_id: "00000000-0000-4000-8000-000000000009",
-            country_name: "France",
-            mountain: 70,
-            hills: 70,
-            flat: 60,
-            time_trial: 60,
-            cobbles: 50,
-            sprint: 65,
-            acceleration: 65,
-            downhill: 60,
-            endurance: 70,
-            resistance: 70,
-            recovery: 70,
-            breakaway: 60,
-            prologue: 60,
-          },
-        ],
-        error: null,
-      }),
-    };
+    const supabase = createSupabaseClient();
 
     const result = await getFanClubLiveData({
       supabase: supabase as never,
@@ -209,5 +221,30 @@ describe("données du Fan Club", () => {
     expect(admin.inFilters.every(({ values }) => !values.includes(null))).toBe(
       true,
     );
+  });
+
+  it("découpe les historiques volumineux avant les filtres PostgREST", async () => {
+    const raceRosters = Array.from({ length: 205 }, (_, index) => ({
+      id: `roster-${index}`,
+      rider_id: "00000000-0000-4000-8000-000000000006",
+      race_registration_id: `registration-${index}`,
+    }));
+    const admin = new FakeAdminClient(raceRosters);
+    mocks.createAdminClient.mockReturnValue(admin);
+
+    const result = await getFanClubLiveData({
+      supabase: createSupabaseClient() as never,
+      authUserId: "00000000-0000-4000-8000-000000000001",
+      headquartersLevel: 1,
+    });
+
+    const historyFilters = admin.inFilters.filter(
+      ({ column }) => column === "race_roster_id",
+    );
+    expect(result?.teamName).toBe("Équipe actuelle");
+    expect(historyFilters.length).toBeGreaterThan(3);
+    expect(
+      historyFilters.every(({ values }) => values.length <= 100),
+    ).toBe(true);
   });
 });
