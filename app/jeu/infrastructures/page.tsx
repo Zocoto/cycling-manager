@@ -378,11 +378,13 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         balance={overview.balance}
                         currency={overview.currency}
                         prerequisiteMessage={
-                          code === "club_shop" &&
-                          overview.infrastructureLevels.fan_club_headquarters <
-                            1
-                            ? "Construisez d’abord le siège social du Fan Club."
-                            : null
+                          code === "tactical_center" && overview.gameYear < 3
+                            ? "Le Centre tactique ouvre avec la saison 3."
+                            : code === "club_shop" &&
+                                overview.infrastructureLevels
+                                  .fan_club_headquarters < 1
+                              ? "Construisez d’abord le siège social du Fan Club."
+                              : null
                         }
                       />
                     </div>

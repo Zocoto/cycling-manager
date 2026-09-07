@@ -36,4 +36,19 @@ describe("race preparation individual missions", () => {
     expect(source).toContain("Toutes les étapes sont préparées");
     expect(source).not.toContain("const editableCount = edition.stages.filter");
   });
+
+  it("intègre le briefing du Centre tactique sans imbriquer son formulaire", () => {
+    expect(source).toContain("<TacticalBriefingSection");
+    expect(source).toContain("Déclencheur");
+    expect(source).toContain("Bénéfice possible");
+    expect(source).toContain("Coût / risque");
+    expect(source).toContain("Plan de repli conditionnel");
+    expect(source).toContain("Historique · Débrief officiel");
+    expect(source.indexOf("</form>\n\n      <TacticalBriefingSection")).toBeGreaterThan(-1);
+  });
+
+  it("annonce la fonctionnalité en S2 sans appliquer d’effet", () => {
+    expect(source).toContain("if (gameYear < 3)");
+    expect(source).toMatch(/Aucun\s+effet n’est appliqué à la saison en cours/);
+  });
 });

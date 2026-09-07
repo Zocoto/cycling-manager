@@ -71,6 +71,16 @@ import {
   evolveBreakawayCooperation,
   type BreakawayCooperationState,
 } from "./race-breakaway-cooperation";
+import {
+  RACE_TACTICAL_DOCTRINES,
+  isRaceTacticalDoctrineCode,
+  isRaceTacticalDoctrineEligible,
+  isRaceTacticalDoctrineUnlocked,
+  validateRaceTacticalAssignments,
+  type RaceTacticalBriefing,
+  type RaceTacticalDoctrineCode,
+  type RaceTacticalReport,
+} from "./race-tactics";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -219,6 +229,7 @@ export type StageSimulationInput = {
   }>;
   mountainObjectiveRiderIds?: Record<string, string>;
   teamStrategies?: RaceTeamStrategy[];
+  teamTacticalBriefings?: RaceTacticalBriefing[];
   timeTrialPlans?: Record<string, TimeTrialRiderPlan>;
 };
 
@@ -327,6 +338,7 @@ export type StageSimulationResult = {
   primes: RacePrimeResult[];
   mountainPoints: Record<string, number>;
   sprintPoints: Record<string, number>;
+  tacticalReports?: RaceTacticalReport[];
 };
 
 export type StageAttackParticipant = {
@@ -621,6 +633,8 @@ type RiderState = {
   lostTimeSeconds: number;
   leaderRecoveryStatus?: "active" | "failed";
   supportingLeaderId?: string;
+  tacticalFinishBonus?: number;
+  tacticalNoiseMultiplier?: number;
 };
 
 const SCORE_NOISE = 3.2;
@@ -968,11 +982,21 @@ function normalizeStageSimulationInput(
       (order) => !unavailableRiderIds.has(order.riderId),
     ),
   }));
+  const eligibleTeamTacticalBriefings = input.teamTacticalBriefings?.map(
+    (briefing) => ({
+      ...briefing,
+      primaryRiderIds: [...briefing.primaryRiderIds],
+      backupRiderIds: [...briefing.backupRiderIds],
+    }),
+  );
   const eligibleInput = {
     ...input,
     weather,
     ...(eligibleTeamStrategies
       ? { teamStrategies: eligibleTeamStrategies }
+      : {}),
+    ...(eligibleTeamTacticalBriefings
+      ? { teamTacticalBriefings: eligibleTeamTacticalBriefings }
       : {}),
     riders: input.riders
       .filter((rider) => !unavailableRiderIds.has(rider.id))
@@ -1551,6 +1575,195 @@ function getStageWinBreakawayScore(
   );
 }
 
+type RaceTacticalResolution = {
+  reports: RaceTacticalReport[];
+  controlTeamIds: Set<string>;
+};
+
+function applyRaceTacticalBriefings({
+  input,
+  states,
+  plannedBreakawayIds,
+  likelyMassSprint,
+}: {
+  input: StageSimulationInput;
+  states: Map<string, RiderState>;
+  plannedBreakawayIds: Set<string>;
+  likelyMassSprint: boolean;
+}): RaceTacticalResolution {
+  const reports: RaceTacticalReport[] = [];
+  const controlTeamIds = new Set<string>();
+  const briefings = [...(input.teamTacticalBriefings ?? [])].sort((left, right) =>
+    left.teamId.localeCompare(right.teamId),
+  );
+
+  for (const briefing of briefings) {
+    const primaryTrigger = canTriggerRaceTacticalDoctrine({
+      briefing,
+      doctrine: briefing.primaryDoctrine,
+      riderIds: briefing.primaryRiderIds,
+      input,
+      states,
+      plannedBreakawayIds,
+      likelyMassSprint,
+    });
+    const canUseBackup = briefing.centerLevel >= 4 && briefing.backupDoctrine;
+    const backupTrigger =
+      !primaryTrigger && canUseBackup
+        ? canTriggerRaceTacticalDoctrine({
+            briefing,
+            doctrine: briefing.backupDoctrine!,
+            riderIds: briefing.backupRiderIds,
+            input,
+            states,
+            plannedBreakawayIds,
+            likelyMassSprint,
+          })
+        : false;
+    const appliedDoctrine = primaryTrigger
+      ? briefing.primaryDoctrine
+      : backupTrigger
+        ? briefing.backupDoctrine
+        : null;
+    const appliedRiderIds = primaryTrigger
+      ? briefing.primaryRiderIds
+      : backupTrigger
+        ? briefing.backupRiderIds
+        : [];
+
+    if (!appliedDoctrine) {
+      reports.push({
+        teamId: briefing.teamId,
+        requestedDoctrine: briefing.primaryDoctrine,
+        appliedDoctrine: null,
+        source: "none",
+        triggered: false,
+        summary: `${RACE_TACTICAL_DOCTRINES[briefing.primaryDoctrine].name} : les conditions n’ont pas été réunies.`,
+        impacts: [
+          "Aucun bonus et aucun coût d’énergie n’ont été appliqués.",
+        ],
+        energyCosts: [],
+      });
+      continue;
+    }
+
+    const random = createSeededRandom(
+      `${input.id}:${input.seed}:tactical:${briefing.teamId}:${appliedDoctrine}`,
+    );
+    const energyCosts: RaceTacticalReport["energyCosts"] = [];
+    const impacts: string[] = [];
+    const chargeEnergy = (riderId: string, percentage: number) => {
+      const state = states.get(riderId);
+      if (!state) return;
+      state.energy = clamp(state.energy - percentage, 0, 100);
+      energyCosts.push({ riderId, percentage });
+    };
+    const improveFinish = (
+      riderId: string,
+      bonus: number,
+      noiseMultiplier = 1,
+    ) => {
+      const state = states.get(riderId);
+      if (!state) return;
+      state.tacticalFinishBonus = Math.min(
+        1.5,
+        (state.tacticalFinishBonus ?? 0) + bonus,
+      );
+      state.tacticalNoiseMultiplier = Math.max(
+        0.85,
+        Math.min(state.tacticalNoiseMultiplier ?? 1, noiseMultiplier),
+      );
+    };
+
+    if (appliedDoctrine === "breakaway_control") {
+      appliedRiderIds.forEach((riderId) =>
+        chargeEnergy(riderId, 5 + Math.floor(random() * 4)),
+      );
+      controlTeamIds.add(briefing.teamId);
+      impacts.push("Pression de poursuite du peloton augmentée de 8 %.");
+    } else if (appliedDoctrine === "crosswind_offensive") {
+      improveFinish(appliedRiderIds[0], 1.1, 0.9);
+      chargeEnergy(appliedRiderIds[1], 8);
+      impacts.push(
+        "Placement du coureur protégé stabilisé dans le vent latéral.",
+      );
+    } else if (appliedDoctrine === "satellite_rider") {
+      const leaderState = states.get(appliedRiderIds[0]);
+      if (leaderState) leaderState.energy = clamp(leaderState.energy + 4, 0, 100);
+      improveFinish(appliedRiderIds[0], 0.7, 0.96);
+      chargeEnergy(appliedRiderIds[1], 8);
+      impacts.push("Le leader économise 4 % d’énergie grâce au relais satellite.");
+    } else if (appliedDoctrine === "sprint_train") {
+      improveFinish(appliedRiderIds[0], 1.2, 0.85);
+      appliedRiderIds.slice(1).forEach((riderId) => chargeEnergy(riderId, 8));
+      impacts.push("Variance de placement du sprinteur réduite de 15 %.");
+    } else {
+      improveFinish(appliedRiderIds[0], 0.8, 0.94);
+      appliedRiderIds.slice(1).forEach((riderId) => chargeEnergy(riderId, 6));
+      impacts.push("Exécution du leader stabilisée face aux attaques lointaines.");
+    }
+
+    reports.push({
+      teamId: briefing.teamId,
+      requestedDoctrine: briefing.primaryDoctrine,
+      appliedDoctrine,
+      source: primaryTrigger ? "primary" : "backup",
+      triggered: true,
+      summary: `${RACE_TACTICAL_DOCTRINES[appliedDoctrine].name} déclenchée${primaryTrigger ? "" : " comme plan de repli"}.`,
+      impacts,
+      energyCosts,
+    });
+  }
+
+  return { reports, controlTeamIds };
+}
+
+function canTriggerRaceTacticalDoctrine({
+  briefing,
+  doctrine,
+  riderIds,
+  input,
+  states,
+  plannedBreakawayIds,
+  likelyMassSprint,
+}: {
+  briefing: RaceTacticalBriefing;
+  doctrine: RaceTacticalDoctrineCode;
+  riderIds: string[];
+  input: StageSimulationInput;
+  states: Map<string, RiderState>;
+  plannedBreakawayIds: Set<string>;
+  likelyMassSprint: boolean;
+}) {
+  if (
+    !isRaceTacticalDoctrineUnlocked(doctrine, briefing.centerLevel) ||
+    !isRaceTacticalDoctrineEligible({
+      code: doctrine,
+      stageType: input.stageType,
+      profileType: input.profileType,
+      weather: input.weather,
+    }) ||
+    !validateRaceTacticalAssignments(doctrine, riderIds) ||
+    riderIds.some(
+      (riderId) => states.get(riderId)?.rider.teamId !== briefing.teamId,
+    )
+  ) {
+    return false;
+  }
+
+  if (doctrine === "breakaway_control") {
+    return [...plannedBreakawayIds].some(
+      (riderId) => states.get(riderId)?.rider.teamId !== briefing.teamId,
+    );
+  }
+  if (doctrine === "satellite_rider") {
+    return plannedBreakawayIds.has(riderIds[1]);
+  }
+  if (doctrine === "sprint_train") return likelyMassSprint;
+
+  return true;
+}
+
 function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   const random = createSeededRandom(`${input.id}:${input.seed}:road`);
   const dynamicAttackRandom = createSeededRandom(
@@ -1609,6 +1822,12 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       (segment) => segment.terrain === "climb" || segment.surface === "cobbles",
     ).length / input.segments.length;
   const likelyMassSprint = isLikelyMassSprint(input.segments);
+  const tacticalResolution = applyRaceTacticalBriefings({
+    input,
+    states,
+    plannedBreakawayIds,
+    likelyMassSprint,
+  });
   const hasEstablishedGeneralClassification =
     input.isStageRace && (input.generalClassification?.length ?? 0) > 1;
   const tourProgress =
@@ -1626,10 +1845,21 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     teamStrategies: input.teamStrategies ?? [],
     likelyMassSprint,
   });
-  const initialPelotonChaseCapacity = getPelotonChaseCapacity(
-    [...states.values()],
-    input.segments[0],
-    controllingTeamIds,
+  for (const teamId of tacticalResolution.controlTeamIds) {
+    controllingTeamIds.add(teamId);
+  }
+  const tacticalChaseMultiplier = Math.min(
+    1.16,
+    1 + tacticalResolution.controlTeamIds.size * 0.08,
+  );
+  const initialPelotonChaseCapacity = clamp(
+    getPelotonChaseCapacity(
+      [...states.values()],
+      input.segments[0],
+      controllingTeamIds,
+    ) * tacticalChaseMultiplier,
+    0.08,
+    1,
   );
   const breakawayQuality = average(
     breakawayRiders.map(
@@ -1674,6 +1904,13 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
+    if (segmentIndex === 0) {
+      commentary.push(
+        ...tacticalResolution.reports
+          .filter((report) => report.triggered)
+          .map((report) => report.summary),
+      );
+    }
     const incidents: RaceIncident[] = [];
     const strategyAttackLaunched = attemptPlannedStrategyAttacks({
       orders: attackPlan.strategyAttackOrders.filter(
@@ -1816,10 +2053,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       generalClassificationLeaderId,
       likelyMassSprint,
     });
-    const pelotonChaseCapacity = getPelotonChaseCapacity(
-      peloton,
-      segment,
-      controllingTeamIds,
+    const pelotonChaseCapacity = clamp(
+      getPelotonChaseCapacity(peloton, segment, controllingTeamIds) *
+        tacticalChaseMultiplier,
+      0.08,
+      1,
     );
     const breakawayAverageEnergy = average(
       [...breakaway, ...secondaryBreakaway].map((state) => state.energy),
@@ -2923,6 +3161,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     primes,
     mountainPoints,
     sprintPoints,
+    tacticalReports: tacticalResolution.reports,
   };
 }
 
@@ -6413,10 +6652,14 @@ function getRoadFinishScores(
       rider.id,
       score -
         (sprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) +
-        random() * SCORE_NOISE * scoreNoiseFactor +
+        random() *
+          SCORE_NOISE *
+          scoreNoiseFactor *
+          (state.tacticalNoiseMultiplier ?? 1) +
         state.raceDayExecutionBonus * (sprintFinish ? 0.7 : 1) +
         state.decisiveAttackBonus -
-        state.injuryPerformancePenalty,
+        state.injuryPerformancePenalty +
+        (state.tacticalFinishBonus ?? 0),
     );
   }
 
@@ -7772,6 +8015,34 @@ function validateSimulationInput(input: StageSimulationInput) {
   }
   validateExplicitRoles(input.riders);
   validateTeamStrategies(input);
+  validateTeamTacticalBriefings(input);
+}
+
+function validateTeamTacticalBriefings(input: StageSimulationInput) {
+  const briefings = input.teamTacticalBriefings ?? [];
+  if (
+    new Set(briefings.map((briefing) => briefing.teamId)).size !==
+    briefings.length
+  ) {
+    throw new Error(
+      "Une équipe ne peut transmettre qu’un briefing tactique par étape.",
+    );
+  }
+
+  for (const briefing of briefings) {
+    if (
+      !isRaceTacticalDoctrineCode(briefing.primaryDoctrine) ||
+      (briefing.backupDoctrine !== null &&
+        !isRaceTacticalDoctrineCode(briefing.backupDoctrine)) ||
+      !Number.isInteger(briefing.centerLevel) ||
+      briefing.centerLevel < 1 ||
+      briefing.centerLevel > 5 ||
+      !Array.isArray(briefing.primaryRiderIds) ||
+      !Array.isArray(briefing.backupRiderIds)
+    ) {
+      throw new Error("Un briefing tactique transmis est invalide.");
+    }
+  }
 }
 
 function validateTimeTrialPlans(input: StageSimulationInput) {

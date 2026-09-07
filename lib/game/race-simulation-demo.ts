@@ -125,6 +125,9 @@ export function createCalendarSimulationInput({
   const teamStrategies = Object.values(stage.teamStrategies ?? {}).sort(
     (first, second) => first.teamId.localeCompare(second.teamId),
   );
+  const teamTacticalBriefings = Object.values(
+    stage.teamTacticalBriefings ?? {},
+  ).sort((first, second) => first.teamId.localeCompare(second.teamId));
   const rawSourceRiders =
     edition.engagedRiders.length > 0
       ? edition.engagedRiders
@@ -248,6 +251,9 @@ export function createCalendarSimulationInput({
     }),
     ...(Object.keys(timeTrialPlans).length > 0 ? { timeTrialPlans } : {}),
     ...(teamStrategies.length > 0 ? { teamStrategies } : {}),
+    ...(teamTacticalBriefings.length > 0
+      ? { teamTacticalBriefings }
+      : {}),
   };
 }
 

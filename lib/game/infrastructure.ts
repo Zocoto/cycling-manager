@@ -67,6 +67,7 @@ export type TeamInfrastructureCode =
   | "research_lab"
   | "international_welcome_center"
   | "weather_center"
+  | "tactical_center"
   | "media_center"
   | "fan_club_headquarters"
   | "club_shop";
@@ -334,6 +335,54 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
           ? "Prévisions accessibles sur toute la saison."
           : `Prévisions accessibles ${horizon} jour${horizon > 1 ? "s" : ""} avant le départ.`,
     })),
+  },
+  tactical_center: {
+    code: "tactical_center",
+    name: "Centre tactique",
+    domain: "Course · Briefings avancés",
+    summary:
+      "Débloque des doctrines de course à effet borné, avec contrepartie visible et débrief déterministe.",
+    illustration: {
+      src: "/images/infrastructure/research-lab.webp",
+      alt: "Salle d’analyse tactique d’une équipe cycliste",
+    },
+    levels: [
+      {
+        level: 1,
+        cost: 3_000_000,
+        durationDays: 12,
+        effect:
+          "Débloque le briefing tactique et la doctrine Contrôle de l’échappée.",
+      },
+      {
+        level: 2,
+        cost: 1_800_000,
+        durationDays: 18,
+        effect:
+          "Ajoute les recommandations de parcours, l’historique des débriefs et la Bordure offensive.",
+      },
+      {
+        level: 3,
+        cost: 2_100_000,
+        durationDays: 24,
+        effect:
+          "Débloque Coureur satellite, Train de sprint et Tempo montagne.",
+      },
+      {
+        level: 4,
+        cost: 2_400_000,
+        durationDays: 30,
+        effect:
+          "Autorise un plan de repli conditionnel ; une seule doctrine peut produire un effet.",
+      },
+      {
+        level: 5,
+        cost: 2_700_000,
+        durationDays: 35,
+        effect:
+          "Affiche un diagnostic d’exécution enrichi, sans coefficient sportif supplémentaire.",
+      },
+    ],
   },
   media_center: {
     code: "media_center",
@@ -764,6 +813,7 @@ export function isTeamInfrastructureCode(
     value === "research_lab" ||
     value === "international_welcome_center" ||
     value === "weather_center" ||
+    value === "tactical_center" ||
     value === "media_center" ||
     value === "fan_club_headquarters" ||
     value === "club_shop"

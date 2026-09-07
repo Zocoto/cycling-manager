@@ -41,6 +41,10 @@ import type {
   RaceTeamStrategy,
 } from "@/lib/game/race-strategy";
 import type {
+  RaceTacticalBriefing,
+  RaceTacticalDoctrineCode,
+} from "@/lib/game/race-tactics";
+import type {
   TimeTrialEffortMode,
   TimeTrialRiderPlan,
 } from "@/lib/game/time-trial-preparation";
@@ -266,6 +270,16 @@ type StageStrategyRow = {
   protector_rider_id: string | null;
   breakaway_rider_id: string | null;
   attack_orders: RaceAttackOrder[];
+};
+
+type StageTacticalBriefingRow = {
+  stage_id: string;
+  team_id: string;
+  primary_doctrine: RaceTacticalDoctrineCode;
+  primary_rider_ids: string[] | null;
+  backup_doctrine: RaceTacticalDoctrineCode | null;
+  backup_rider_ids: string[] | null;
+  center_level_snapshot: number;
 };
 
 type TimeTrialPlanRow = {
@@ -1001,6 +1015,7 @@ export async function getActiveSeasonRaceCalendar(
     timeTrialPlansResult,
     stageRoleOverridesResult,
     stageStrategiesResult,
+    stageTacticalBriefingsResult,
   ] = await Promise.all([
     loadStageSegments(stageIds),
     stageIds.length > 0
@@ -1099,6 +1114,28 @@ export async function getActiveSeasonRaceCalendar(
           },
         })
       : Promise.resolve(emptyResult<StageStrategyRow>()),
+    stageIds.length > 0 && includeEngagedRiders
+      ? collectChunkedPaginatedRows<
+          StageTacticalBriefingRow,
+          { message: string },
+          string
+        >({
+          values: stageIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("race_stage_tactical_briefings")
+              .select(
+                "stage_id, team_id, primary_doctrine, primary_rider_ids, backup_doctrine, backup_rider_ids, center_level_snapshot",
+              )
+              .in("stage_id", chunk)
+              .order("stage_id", { ascending: true })
+              .order("team_id", { ascending: true })
+              .range(from, to)
+              .returns<StageTacticalBriefingRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
+      : Promise.resolve(emptyResult<StageTacticalBriefingRow>()),
   ]);
 
   assertQuerySucceeded(segmentsResult.error, "les profils tronçonnés");
@@ -1113,6 +1150,10 @@ export async function getActiveSeasonRaceCalendar(
   assertQuerySucceeded(
     stageStrategiesResult.error,
     "les stratégies de course par étape",
+  );
+  assertQuerySucceeded(
+    stageTacticalBriefingsResult.error,
+    "les briefings du Centre tactique",
   );
   assertQuerySucceeded(
     timeTrialPlansResult.error,
@@ -1159,6 +1200,9 @@ export async function getActiveSeasonRaceCalendar(
   );
   const teamStrategiesByStageId = groupStageStrategies(
     stageStrategiesResult.data ?? [],
+  );
+  const teamTacticalBriefingsByStageId = groupStageTacticalBriefings(
+    stageTacticalBriefingsResult.data ?? [],
   );
   const timeTrialPlansByStageId = groupTimeTrialPlans(
     timeTrialPlansResult.data ?? [],
@@ -1372,6 +1416,13 @@ export async function getActiveSeasonRaceCalendar(
           teamStrategiesByStageId.has(stage.id)
             ? {
                 teamStrategies: teamStrategiesByStageId.get(stage.id),
+              }
+            : {}),
+          ...(season.game_year >= 3 &&
+          teamTacticalBriefingsByStageId.has(stage.id)
+            ? {
+                teamTacticalBriefings:
+                  teamTacticalBriefingsByStageId.get(stage.id),
               }
             : {}),
           ...(timeTrialPlansByStageId.has(stage.id)
@@ -2487,6 +2538,28 @@ function groupStageStrategies(rows: StageStrategyRow[]) {
   }
 
   return strategiesByStageId;
+}
+
+function groupStageTacticalBriefings(rows: StageTacticalBriefingRow[]) {
+  const briefingsByStageId = new Map<
+    string,
+    Record<string, RaceTacticalBriefing>
+  >();
+
+  for (const row of rows) {
+    const stageBriefings = briefingsByStageId.get(row.stage_id) ?? {};
+    stageBriefings[row.team_id] = {
+      teamId: row.team_id,
+      primaryDoctrine: row.primary_doctrine,
+      primaryRiderIds: row.primary_rider_ids ?? [],
+      backupDoctrine: row.backup_doctrine,
+      backupRiderIds: row.backup_rider_ids ?? [],
+      centerLevel: Number(row.center_level_snapshot),
+    };
+    briefingsByStageId.set(row.stage_id, stageBriefings);
+  }
+
+  return briefingsByStageId;
 }
 
 function groupTimeTrialPlans(rows: TimeTrialPlanRow[]) {

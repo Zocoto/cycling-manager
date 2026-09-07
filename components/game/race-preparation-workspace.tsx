@@ -58,6 +58,19 @@ import {
   type RaceStrategyObjective,
 } from "@/lib/game/race-strategy";
 import {
+  RACE_TACTICAL_DOCTRINE_CODES,
+  RACE_TACTICAL_DOCTRINES,
+  getRecommendedRaceTacticalDoctrineCodes,
+  isRaceTacticalDoctrineEligible,
+  isRaceTacticalDoctrineUnlocked,
+  validateRaceTacticalAssignments,
+  type RaceTacticalDoctrineCode,
+} from "@/lib/game/race-tactics";
+import {
+  getRaceStageWeatherSeed,
+  getRaceWeather,
+} from "@/lib/game/race-weather";
+import {
   getDefaultTeamTimeTrialRelayShares,
   TIME_TRIAL_EFFORT_DESCRIPTIONS,
   TIME_TRIAL_EFFORT_LABELS,
@@ -71,6 +84,7 @@ import type {
   RacePreparationRider,
   RaceStagePreparationPlan,
 } from "@/services/race-calendar";
+import type { RaceTacticalPreparationPlan } from "@/services/race-tactics";
 
 export type RacePreparationWorkspaceEdition = {
   id: string;
@@ -89,8 +103,13 @@ export type RacePreparationWorkspaceEdition = {
 
 type RacePreparationWorkspaceProps = {
   action: (formData: FormData) => Promise<void>;
+  tacticalAction: (formData: FormData) => Promise<void>;
   timeTrialAction: (formData: FormData) => Promise<void>;
   editions: RacePreparationWorkspaceEdition[];
+  gameYear: number;
+  tacticalCenterLevel: number;
+  tacticalBriefingsByStageId: Record<string, RaceTacticalPreparationPlan>;
+  tacticalError: boolean;
   nowIso: string;
   initialSlug?: string;
   equipmentError: boolean;
@@ -125,8 +144,13 @@ const RACE_MENU_DATE_FORMATTER = new Intl.DateTimeFormat("fr-FR", {
 
 export function RacePreparationWorkspace({
   action,
+  tacticalAction,
   timeTrialAction,
   editions,
+  gameYear,
+  tacticalCenterLevel,
+  tacticalBriefingsByStageId,
+  tacticalError,
   nowIso,
   initialSlug,
   equipmentError,
@@ -266,11 +290,16 @@ export function RacePreparationWorkspace({
             <StagePreparationForm
               key={`${selectedEdition.id}:${stage.id}`}
               action={action}
+              tacticalAction={tacticalAction}
               timeTrialAction={timeTrialAction}
               edition={selectedEdition}
               stage={stage}
               riders={selectedEdition.plan.riders}
               strategy={selectedEdition.plan.stages[stage.id]}
+              gameYear={gameYear}
+              tacticalCenterLevel={tacticalCenterLevel}
+              tacticalBriefing={tacticalBriefingsByStageId[stage.id]}
+              tacticalError={tacticalError}
               now={now}
               equipmentPlanning={selectedEdition.equipmentPlanning}
               equipmentError={equipmentError}
@@ -293,11 +322,16 @@ export function RacePreparationWorkspace({
 
 function StagePreparationForm({
   action,
+  tacticalAction,
   timeTrialAction,
   edition,
   stage,
   riders,
   strategy,
+  gameYear,
+  tacticalCenterLevel,
+  tacticalBriefing,
+  tacticalError,
   now,
   equipmentPlanning,
   equipmentError,
@@ -305,11 +339,16 @@ function StagePreparationForm({
   initiallyOpen,
 }: {
   action: (formData: FormData) => Promise<void>;
+  tacticalAction: (formData: FormData) => Promise<void>;
   timeTrialAction: (formData: FormData) => Promise<void>;
   edition: RacePreparationWorkspaceEdition;
   stage: RaceCalendarStage;
   riders: RacePreparationRider[];
   strategy: RaceStagePreparationPlan;
+  gameYear: number;
+  tacticalCenterLevel: number;
+  tacticalBriefing: RaceTacticalPreparationPlan | undefined;
+  tacticalError: boolean;
   now: Date;
   equipmentPlanning: RaceEquipmentPlanningData | null;
   equipmentError: boolean;
@@ -788,6 +827,18 @@ function StagePreparationForm({
         </footer>
       </form>
 
+      <TacticalBriefingSection
+        action={tacticalAction}
+        edition={edition}
+        stage={stage}
+        riders={riders}
+        briefing={tacticalBriefing}
+        gameYear={gameYear}
+        centerLevel={tacticalCenterLevel}
+        isEditable={isEditable}
+        hasError={tacticalError}
+      />
+
       <StageEquipmentSection
         edition={edition}
         stage={stage}
@@ -798,6 +849,519 @@ function StagePreparationForm({
       />
     </details>
   );
+}
+
+function TacticalBriefingSection({
+  action,
+  edition,
+  stage,
+  riders,
+  briefing,
+  gameYear,
+  centerLevel,
+  isEditable,
+  hasError,
+}: {
+  action: (formData: FormData) => Promise<void>;
+  edition: RacePreparationWorkspaceEdition;
+  stage: RaceCalendarStage;
+  riders: RacePreparationRider[];
+  briefing: RaceTacticalPreparationPlan | undefined;
+  gameYear: number;
+  centerLevel: number;
+  isEditable: boolean;
+  hasError: boolean;
+}) {
+  const weather = useMemo(
+    () =>
+      getRaceWeather(
+        getRaceStageWeatherSeed({
+          seasonGameYear: gameYear,
+          raceEditionId: edition.id,
+          stageId: stage.id,
+        }),
+        {
+          countryCode: edition.countryCode,
+          profileType: stage.profileType,
+        },
+      ),
+    [edition.countryCode, edition.id, gameYear, stage.id, stage.profileType],
+  );
+  const recommendedCodes = getRecommendedRaceTacticalDoctrineCodes({
+    stageType: stage.stageType,
+    profileType: stage.profileType,
+    weather,
+    centerLevel,
+  });
+  const initialPrimaryDoctrine =
+    briefing?.primaryDoctrine ??
+    recommendedCodes[0] ??
+    RACE_TACTICAL_DOCTRINE_CODES.find(
+      (code) =>
+        isRaceTacticalDoctrineUnlocked(code, centerLevel) &&
+        isRaceTacticalDoctrineEligible({
+          code,
+          stageType: stage.stageType,
+          profileType: stage.profileType,
+          weather,
+        }),
+    ) ??
+    "breakaway_control";
+  const [primaryDoctrine, setPrimaryDoctrine] =
+    useState<RaceTacticalDoctrineCode>(initialPrimaryDoctrine);
+  const [primaryRiderIds, setPrimaryRiderIds] = useState<string[]>(() =>
+    fillTacticalAssignments(
+      initialPrimaryDoctrine,
+      briefing?.primaryRiderIds ?? [],
+      riders,
+    ),
+  );
+  const [backupDoctrine, setBackupDoctrine] = useState<
+    RaceTacticalDoctrineCode | ""
+  >(briefing?.backupDoctrine ?? "");
+  const [backupRiderIds, setBackupRiderIds] = useState<string[]>(() =>
+    briefing?.backupDoctrine
+      ? fillTacticalAssignments(
+          briefing.backupDoctrine,
+          briefing.backupRiderIds,
+          riders,
+        )
+      : [],
+  );
+  const primaryDefinition = RACE_TACTICAL_DOCTRINES[primaryDoctrine];
+  const backupDefinition = backupDoctrine
+    ? RACE_TACTICAL_DOCTRINES[backupDoctrine]
+    : null;
+  const primaryIsEligible = isRaceTacticalDoctrineEligible({
+    code: primaryDoctrine,
+    stageType: stage.stageType,
+    profileType: stage.profileType,
+    weather,
+  });
+  const isValid =
+    primaryIsEligible &&
+    isRaceTacticalDoctrineUnlocked(primaryDoctrine, centerLevel) &&
+    validateRaceTacticalAssignments(primaryDoctrine, primaryRiderIds) &&
+    (!backupDoctrine ||
+      (backupDoctrine !== primaryDoctrine &&
+        isRaceTacticalDoctrineUnlocked(backupDoctrine, centerLevel) &&
+        isRaceTacticalDoctrineEligible({
+          code: backupDoctrine,
+          stageType: stage.stageType,
+          profileType: stage.profileType,
+          weather,
+        }) &&
+        validateRaceTacticalAssignments(backupDoctrine, backupRiderIds)));
+
+  if (gameYear < 3) {
+    return (
+      <section className="border-t border-[#315B3E]/10 bg-[#F5F1E5] p-5 sm:p-7">
+        <SectionTitle
+          eyebrow="Centre tactique · Saison 3"
+          title="Le briefing avancé arrive la saison prochaine"
+          description="Le bâtiment permettra de choisir une doctrine conditionnelle avec un bénéfice borné, un coût certain et un débrief intégré à la simulation officielle."
+        />
+        <p className="mt-4 rounded-2xl border border-[#B98B18]/25 bg-white/70 px-4 py-3 text-xs font-bold leading-5 text-[#71580A]">
+          Le Centre tactique sera constructible en S3 à partir de 3 M€. Aucun
+          effet n’est appliqué à la saison en cours.
+        </p>
+      </section>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <section className="border-t border-[#315B3E]/10 bg-[#FFF0ED] p-5 sm:p-7">
+        <p className="text-sm font-black text-[#934137]">
+          Le Centre tactique n’a pas pu être chargé. Le plan sportif reste
+          intact et aucun briefing n’a été modifié.
+        </p>
+      </section>
+    );
+  }
+
+  if (centerLevel < 1) {
+    return (
+      <section className="border-t border-[#315B3E]/10 bg-[#F5F1E5] p-5 sm:p-7">
+        <SectionTitle
+          eyebrow="Haute performance"
+          title="Centre tactique requis"
+          description="Construisez cette installation d’équipe pour ouvrir les doctrines, leurs contreparties et le débrief post-course."
+        />
+        <a
+          href="/jeu/infrastructures"
+          className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#0B302B] px-5 text-xs font-black text-white"
+        >
+          Voir le Centre tactique
+        </a>
+      </section>
+    );
+  }
+
+  return (
+    <section className="border-t border-[#315B3E]/10 bg-[#F5F1E5] p-5 sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <SectionTitle
+          eyebrow={`Centre tactique · Niveau ${centerLevel}`}
+          title="Briefing de doctrine"
+          description="Une seule doctrine produit un effet. Son déclencheur, son bénéfice et sa dépense sont enregistrés avec la graine officielle."
+        />
+        {centerLevel >= 2 ? (
+          <div className="rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 text-right">
+            <p className="text-[9px] font-black uppercase tracking-wide text-[#397A67]">
+              Diagnostic parcours
+            </p>
+            <p className="mt-1 text-xs font-black text-[#0B302B]">
+              {formatProfile(stage.profileType)} · vent {weather.windSpeedKph} km/h
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <form action={action} className="mt-5">
+        <input type="hidden" name="editionId" value={edition.id} />
+        <input type="hidden" name="stageId" value={stage.id} />
+        <input type="hidden" name="stageNumber" value={stage.stageNumber} />
+        <input type="hidden" name="slug" value={edition.slug} />
+        <input type="hidden" name="primaryDoctrine" value={primaryDoctrine} />
+        <input
+          type="hidden"
+          name="primaryRiderIds"
+          value={JSON.stringify(primaryRiderIds)}
+        />
+        <input type="hidden" name="backupDoctrine" value={backupDoctrine} />
+        <input
+          type="hidden"
+          name="backupRiderIds"
+          value={JSON.stringify(backupRiderIds)}
+        />
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
+          <div className="rounded-2xl border border-[#315B3E]/12 bg-white p-4">
+            <label className="text-[10px] font-black uppercase tracking-wide text-[#397A67]">
+              Doctrine principale
+              <select
+                value={primaryDoctrine}
+                disabled={!isEditable}
+                onChange={(event) => {
+                  const code = event.target.value as RaceTacticalDoctrineCode;
+                  setPrimaryDoctrine(code);
+                  setPrimaryRiderIds(fillTacticalAssignments(code, [], riders));
+                  if (backupDoctrine === code) {
+                    setBackupDoctrine("");
+                    setBackupRiderIds([]);
+                  }
+                }}
+                className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/18 bg-white px-3 text-xs font-bold normal-case tracking-normal text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF]"
+              >
+                {RACE_TACTICAL_DOCTRINE_CODES.map((code) => {
+                  const definition = RACE_TACTICAL_DOCTRINES[code];
+                  const unlocked = isRaceTacticalDoctrineUnlocked(
+                    code,
+                    centerLevel,
+                  );
+                  const eligible = isRaceTacticalDoctrineEligible({
+                    code,
+                    stageType: stage.stageType,
+                    profileType: stage.profileType,
+                    weather,
+                  });
+                  return (
+                    <option
+                      key={code}
+                      value={code}
+                      disabled={
+                        !unlocked ||
+                        !eligible ||
+                        riders.length < definition.assignmentSlots.length
+                      }
+                    >
+                      {definition.name}
+                      {!unlocked
+                        ? ` · N${definition.unlockLevel}`
+                        : !eligible
+                          ? " · conditions absentes"
+                          : recommendedCodes.includes(code)
+                            ? " · recommandé"
+                            : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            {centerLevel >= 2 && recommendedCodes[0] ? (
+              <p className="mt-3 text-[10px] font-bold leading-4 text-[#176951]">
+                Recommandation : {RACE_TACTICAL_DOCTRINES[recommendedCodes[0]].name}
+              </p>
+            ) : null}
+          </div>
+
+          <DoctrinePreview definition={primaryDefinition} />
+        </div>
+
+        <TacticalAssignmentGrid
+          title="Affectations principales"
+          doctrine={primaryDoctrine}
+          riderIds={primaryRiderIds}
+          riders={riders}
+          disabled={!isEditable}
+          onChange={setPrimaryRiderIds}
+        />
+
+        {centerLevel >= 4 ? (
+          <div className="mt-5 rounded-2xl border border-[#B98B18]/25 bg-[#FFF9E8] p-4">
+            <label className="text-[10px] font-black uppercase tracking-wide text-[#71580A]">
+              Plan de repli conditionnel
+              <select
+                value={backupDoctrine}
+                disabled={!isEditable}
+                onChange={(event) => {
+                  const code = event.target.value as
+                    | RaceTacticalDoctrineCode
+                    | "";
+                  setBackupDoctrine(code);
+                  setBackupRiderIds(
+                    code ? fillTacticalAssignments(code, [], riders) : [],
+                  );
+                }}
+                className="mt-2 min-h-11 w-full rounded-xl border border-[#B98B18]/25 bg-white px-3 text-xs font-bold normal-case tracking-normal text-[#3D351D] outline-none"
+              >
+                <option value="">Aucun plan de repli</option>
+                {RACE_TACTICAL_DOCTRINE_CODES.map((code) => {
+                  const definition = RACE_TACTICAL_DOCTRINES[code];
+                  const eligible = isRaceTacticalDoctrineEligible({
+                    code,
+                    stageType: stage.stageType,
+                    profileType: stage.profileType,
+                    weather,
+                  });
+                  return (
+                    <option
+                      key={code}
+                      value={code}
+                      disabled={
+                        code === primaryDoctrine ||
+                        !isRaceTacticalDoctrineUnlocked(code, centerLevel) ||
+                        !eligible ||
+                        riders.length < definition.assignmentSlots.length
+                      }
+                    >
+                      {definition.name}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            {backupDefinition ? (
+              <>
+                <div className="mt-4">
+                  <DoctrinePreview definition={backupDefinition} compact />
+                </div>
+                <TacticalAssignmentGrid
+                  title="Affectations du plan de repli"
+                  doctrine={backupDefinition.code}
+                  riderIds={backupRiderIds}
+                  riders={riders}
+                  disabled={!isEditable}
+                  onChange={setBackupRiderIds}
+                />
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        {centerLevel >= 5 ? (
+          <p className="mt-4 rounded-xl border border-[#278B70]/20 bg-[#EAF5F0] px-4 py-3 text-xs font-bold text-[#176951]">
+            Diagnostic N5 · déclencheur {primaryIsEligible ? "compatible" : "absent"} · affectations {primaryRiderIds.filter(Boolean).length}/{primaryDefinition.assignmentSlots.length} · aucune caractéristique permanente modifiée.
+          </p>
+        ) : null}
+
+        <footer className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#0B302B] px-5 py-4 text-white">
+          <p className="max-w-2xl text-xs font-semibold leading-5 text-[#BFD1C6]">
+            {isEditable
+              ? "Le briefing est figé au départ et rejoué à l’identique par tous les spectateurs."
+              : "Le départ est passé : ce briefing est consultable mais verrouillé."}
+          </p>
+          {isEditable ? (
+            <SavePreparationButton
+              disabled={!isValid}
+              label="Enregistrer le briefing"
+            />
+          ) : null}
+        </footer>
+      </form>
+
+      {centerLevel >= 2 && briefing?.report ? (
+        <TacticalDebrief report={briefing.report} riders={riders} />
+      ) : null}
+    </section>
+  );
+}
+
+function DoctrinePreview({
+  definition,
+  compact = false,
+}: {
+  definition: (typeof RACE_TACTICAL_DOCTRINES)[RaceTacticalDoctrineCode];
+  compact?: boolean;
+}) {
+  return (
+    <div className={`grid gap-2 ${compact ? "" : "sm:grid-cols-3"}`}>
+      <TacticalFact label="Déclencheur" value={definition.trigger} />
+      <TacticalFact label="Bénéfice possible" value={definition.benefit} />
+      <TacticalFact label="Coût / risque" value={definition.cost} danger />
+    </div>
+  );
+}
+
+function TacticalFact({
+  label,
+  value,
+  danger = false,
+}: {
+  label: string;
+  value: string;
+  danger?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border px-3 py-3 ${
+        danger
+          ? "border-[#C8574A]/20 bg-[#FFF0ED]"
+          : "border-[#315B3E]/10 bg-white"
+      }`}
+    >
+      <p className="text-[9px] font-black uppercase tracking-wide text-[#397A67]">
+        {label}
+      </p>
+      <p className="mt-1 text-[10px] font-semibold leading-4 text-[#315B3E]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function TacticalAssignmentGrid({
+  title,
+  doctrine,
+  riderIds,
+  riders,
+  disabled,
+  onChange,
+}: {
+  title: string;
+  doctrine: RaceTacticalDoctrineCode;
+  riderIds: string[];
+  riders: RacePreparationRider[];
+  disabled: boolean;
+  onChange: (riderIds: string[]) => void;
+}) {
+  const definition = RACE_TACTICAL_DOCTRINES[doctrine];
+
+  return (
+    <div className="mt-4">
+      <p className="text-[10px] font-black uppercase tracking-wide text-[#397A67]">
+        {title}
+      </p>
+      <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        {definition.assignmentSlots.map((slot, index) => (
+          <label
+            key={slot.key}
+            className="rounded-xl border border-[#315B3E]/12 bg-white p-3"
+          >
+            <span className="block text-xs font-black text-[#0B302B]">
+              {slot.label}
+            </span>
+            <span className="mt-1 block text-[9px] font-semibold leading-4 text-[#66877C]">
+              {slot.hint}
+            </span>
+            <select
+              value={riderIds[index] ?? ""}
+              disabled={disabled}
+              onChange={(event) => {
+                const next = [...riderIds];
+                next[index] = event.target.value;
+                onChange(next);
+              }}
+              className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/18 bg-white px-2 text-xs font-bold text-[#0B302B] outline-none disabled:bg-[#EDF2EF]"
+            >
+              <option value="">Choisir un coureur</option>
+              {riders.map((rider) => (
+                <option
+                  key={rider.riderId}
+                  value={rider.riderId}
+                  disabled={
+                    riderIds.includes(rider.riderId) &&
+                    riderIds[index] !== rider.riderId
+                  }
+                >
+                  {rider.firstName} {rider.lastName}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TacticalDebrief({
+  report,
+  riders,
+}: {
+  report: NonNullable<RaceTacticalPreparationPlan["report"]>;
+  riders: RacePreparationRider[];
+}) {
+  const riderNameById = new Map(
+    riders.map((rider) => [
+      rider.riderId,
+      `${rider.firstName} ${rider.lastName}`,
+    ]),
+  );
+
+  return (
+    <div className="mt-5 rounded-2xl border border-[#278B70]/20 bg-white p-4">
+      <p className="text-[10px] font-black uppercase tracking-wide text-[#278B70]">
+        Historique · Débrief officiel
+      </p>
+      <p className="mt-2 text-sm font-black text-[#0B302B]">{report.summary}</p>
+      <ul className="mt-2 space-y-1 text-xs font-semibold text-[#66877C]">
+        {report.impacts.map((impact) => (
+          <li key={impact}>• {impact}</li>
+        ))}
+        {report.energyCosts.map((cost) => (
+          <li key={`${cost.riderId}:${cost.percentage}`}>
+            • {riderNameById.get(cost.riderId) ?? "Coureur"} : −{cost.percentage} % d’énergie
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function fillTacticalAssignments(
+  doctrine: RaceTacticalDoctrineCode,
+  currentRiderIds: string[],
+  riders: RacePreparationRider[],
+) {
+  const requiredCount =
+    RACE_TACTICAL_DOCTRINES[doctrine].assignmentSlots.length;
+  const availableRiderIds = new Set(riders.map((rider) => rider.riderId));
+  const selected = currentRiderIds
+    .filter(
+      (riderId, index) =>
+        availableRiderIds.has(riderId) &&
+        currentRiderIds.indexOf(riderId) === index,
+    )
+    .slice(0, requiredCount);
+
+  for (const rider of riders) {
+    if (selected.length >= requiredCount) break;
+    if (!selected.includes(rider.riderId)) selected.push(rider.riderId);
+  }
+
+  return selected;
 }
 
 function TimeTrialPreparationForm({
@@ -1297,7 +1861,13 @@ function AttackSelect({
   );
 }
 
-function SavePreparationButton({ disabled }: { disabled: boolean }) {
+function SavePreparationButton({
+  disabled,
+  label = "Enregistrer ce plan",
+}: {
+  disabled: boolean;
+  label?: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -1306,7 +1876,7 @@ function SavePreparationButton({ disabled }: { disabled: boolean }) {
       disabled={disabled || pending}
       className="min-h-11 rounded-xl bg-[#F2C94C] px-5 text-xs font-black text-[#17261E] transition hover:bg-[#F7D96C] disabled:cursor-not-allowed disabled:opacity-45"
     >
-      {pending ? "Enregistrement…" : "Enregistrer ce plan"}
+      {pending ? "Enregistrement…" : label}
     </button>
   );
 }

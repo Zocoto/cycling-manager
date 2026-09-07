@@ -29,6 +29,7 @@ const expectedTeamDurations = {
   research_lab: [10, 15, 20, 25, 30, 33, 35],
   international_welcome_center: [10, 16, 22, 28, 35],
   weather_center: [6, 10, 15, 21, 28],
+  tactical_center: [12, 18, 24, 30, 35],
   media_center: [9, 14, 20, 27, 35],
   fan_club_headquarters: [6, 10, 15, 21, 28],
   club_shop: [5, 9, 14, 20, 26],

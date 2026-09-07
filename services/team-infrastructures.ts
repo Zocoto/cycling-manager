@@ -443,6 +443,7 @@ export async function getTeamInfrastructureOverview(
       "international_welcome_center",
     ),
     weather_center: getInfrastructureLevel("weather_center"),
+    tactical_center: getInfrastructureLevel("tactical_center"),
     media_center: getInfrastructureLevel("media_center"),
     fan_club_headquarters: getInfrastructureLevel("fan_club_headquarters"),
     club_shop: getInfrastructureLevel("club_shop"),

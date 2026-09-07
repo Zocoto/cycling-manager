@@ -1,6 +1,7 @@
 import type { RaceStageSegment } from "./race-profiles";
 import type { RiderSimulationInput } from "./race-simulation";
 import type { RaceTeamStrategy } from "./race-strategy";
+import type { RaceTacticalBriefing } from "./race-tactics";
 import type { TimeTrialRiderPlan } from "./time-trial-preparation";
 
 export const RACE_CATEGORY_CODES = [
@@ -114,6 +115,7 @@ export type RaceCalendarStage = {
   reconnaissanceBonuses?: Record<string, number>;
   riderRoleOverrides?: Record<string, RiderSimulationInput["role"]>;
   teamStrategies?: Record<string, RaceTeamStrategy>;
+  teamTacticalBriefings?: Record<string, RaceTacticalBriefing>;
   timeTrialPlans?: Record<string, TimeTrialRiderPlan>;
 };
 
