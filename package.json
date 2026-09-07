@@ -7,6 +7,7 @@
     "build": "next build",
     "postbuild": "node scripts/validate-race-registration-routes.mjs",
     "marketing:assets": "node scripts/generate-season2-marketing-assets.mjs && node scripts/generate-evergreen-sharing-assets.mjs",
+    "marketing:training-story": "tsx scripts/generate-training-how-it-works-story.tsx",
     "marketing:sharing": "node scripts/generate-evergreen-sharing-assets.mjs",
     "start": "next start",
     "lint": "eslint",
