@@ -44,17 +44,22 @@ export type FanClubSupporterBreakdown = {
   headquartersBonus: number;
 };
 
+export type FanClubReachBreakdown = {
+  supporters: number;
+  reputation: number;
+  leadingRiders: number;
+  recentResults: number;
+};
+
 export type FanClubLiveData = {
   teamName: string;
   supporterCount: number;
-  supporterTrend: number;
   fervor: number;
-  popularityIndex: number;
-  recentResultsMultiplier: number;
-  sportingResultCount: number;
+  teamReach: number;
   riders: ReadonlyArray<FanClubPilotRider>;
   races: ReadonlyArray<FanClubPilotRace>;
   supporterBreakdown: FanClubSupporterBreakdown;
+  reachBreakdown: FanClubReachBreakdown;
 };
 
 export type FanClubCarModel = {
@@ -93,7 +98,6 @@ export type FanClubProduct = {
   priceElasticity: number;
   marginMultipleTolerance: number;
   marginPenalty: number;
-  popularityMarginBonus: number;
   priceResistanceStart: number;
   maximumCustomerPrice: number;
 };
@@ -112,7 +116,7 @@ export type FanClubTripPreview = {
 
 export const FAN_CLUB_SUPPORTER_COUNT = 12_480;
 export const FAN_CLUB_FERVOR = 74;
-export const FAN_CLUB_POPULARITY_INDEX = 58;
+export const FAN_CLUB_TEAM_REACH = 58;
 export const FAN_CLUB_TRAVEL_SHARE = 0.4;
 export const FAN_CLUB_HEADQUARTERS_LEVEL = 2;
 export const FAN_CLUB_SHOP_LEVEL = 1;
@@ -440,7 +444,6 @@ export const FAN_CLUB_STANDARD_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.6,
     marginMultipleTolerance: 2,
     marginPenalty: 1.8,
-    popularityMarginBonus: 0.5,
     priceResistanceStart: 100,
     maximumCustomerPrice: 200,
   },
@@ -455,7 +458,6 @@ export const FAN_CLUB_STANDARD_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.35,
     marginMultipleTolerance: 2.15,
     marginPenalty: 2.2,
-    popularityMarginBonus: 0.25,
     priceResistanceStart: 18,
     maximumCustomerPrice: 35,
   },
@@ -470,7 +472,6 @@ export const FAN_CLUB_STANDARD_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.45,
     marginMultipleTolerance: 2.15,
     marginPenalty: 2,
-    popularityMarginBonus: 0.3,
     priceResistanceStart: 28,
     maximumCustomerPrice: 50,
   },
@@ -485,7 +486,6 @@ export const FAN_CLUB_STANDARD_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.5,
     marginMultipleTolerance: 2.2,
     marginPenalty: 1.9,
-    popularityMarginBonus: 0.35,
     priceResistanceStart: 38,
     maximumCustomerPrice: 70,
   },
@@ -500,7 +500,6 @@ export const FAN_CLUB_STANDARD_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.2,
     marginMultipleTolerance: 2.3,
     marginPenalty: 2.3,
-    popularityMarginBonus: 0.2,
     priceResistanceStart: 8,
     maximumCustomerPrice: 16,
   },
@@ -520,7 +519,6 @@ export const FAN_CLUB_COLLECTOR_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.25,
     marginMultipleTolerance: 3.4,
     marginPenalty: 1.2,
-    popularityMarginBonus: 0.7,
     priceResistanceStart: 155,
     maximumCustomerPrice: 260,
   },
@@ -537,7 +535,6 @@ export const FAN_CLUB_COLLECTOR_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.25,
     marginMultipleTolerance: 3.4,
     marginPenalty: 1.2,
-    popularityMarginBonus: 0.7,
     priceResistanceStart: 155,
     maximumCustomerPrice: 260,
   },
@@ -554,7 +551,6 @@ export const FAN_CLUB_COLLECTOR_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     priceElasticity: 1.25,
     marginMultipleTolerance: 3.4,
     marginPenalty: 1.2,
-    popularityMarginBonus: 0.7,
     priceResistanceStart: 155,
     maximumCustomerPrice: 260,
   },
@@ -737,32 +733,23 @@ export function estimateDailyProductSales({
   unitCost,
   supporterCount,
   fervor,
-  popularityIndex,
-  recentResultsMultiplier = 1,
 }: {
   product: FanClubProduct;
   salePrice: number;
   unitCost?: number;
   supporterCount: number;
   fervor: number;
-  popularityIndex: number;
-  recentResultsMultiplier?: number;
 }): number {
   const priceFactor = getFanClubPriceDemandFactor({
     product,
     salePrice,
     unitCost,
-    popularityIndex,
   });
   const fervorFactor = 0.65 + Math.max(0, Math.min(100, fervor)) / 200;
-  const popularityFactor =
-    0.75 + Math.max(0, Math.min(100, popularityIndex)) / 200;
   const rawDemand =
     Math.max(0, supporterCount) *
     product.baseDailyPurchaseRate *
     fervorFactor *
-    popularityFactor *
-    Math.max(0, recentResultsMultiplier) *
     priceFactor;
 
   return Math.max(0, Math.round(rawDemand));
@@ -772,26 +759,17 @@ export function getFanClubPriceDemandFactor({
   product,
   salePrice,
   unitCost,
-  popularityIndex,
 }: {
   product: FanClubProduct;
   salePrice: number;
   unitCost?: number;
-  popularityIndex: number;
 }): number {
   const safeSalePrice = Math.max(0.01, salePrice);
   const currentWholesalePrice = getCurrentWholesalePrice(product);
   const safeUnitCost =
     unitCost && unitCost > 0 ? unitCost : Math.max(0.01, currentWholesalePrice);
-  const popularityException = Math.max(
-    0,
-    Math.min(1, (Math.max(0, popularityIndex) - 80) / 20),
-  );
-  const toleratedCostMultiple =
-    product.marginMultipleTolerance +
-    popularityException * product.popularityMarginBonus;
-  const customerPriceCeiling =
-    product.maximumCustomerPrice * (1 + popularityException * 0.15);
+  const toleratedCostMultiple = product.marginMultipleTolerance;
+  const customerPriceCeiling = product.maximumCustomerPrice;
 
   if (safeSalePrice >= customerPriceCeiling) {
     return 0;

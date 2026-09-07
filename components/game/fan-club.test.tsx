@@ -21,10 +21,8 @@ vi.mock("next/navigation", () => ({
 const LIVE_DATA = {
   teamName: "Équipe test",
   supporterCount: 250,
-  supporterTrend: 0,
   fervor: 22,
-  popularityIndex: 0,
-  recentResultsMultiplier: 0.85,
+  teamReach: 17,
   sportingResultCount: 0,
   riders: [],
   races: [],
@@ -34,6 +32,12 @@ const LIVE_DATA = {
     riders: 0,
     recentResults: 0,
     headquartersBonus: 0,
+  },
+  reachBreakdown: {
+    supporters: 17,
+    reputation: 0,
+    leadingRiders: 0,
+    recentResults: 0,
   },
 } satisfies FanClubLiveData;
 

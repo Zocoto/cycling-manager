@@ -92,20 +92,25 @@ export default async function FanClubPage({
     {
       label: "Supporters",
       value: liveData.supporterCount.toLocaleString("fr-FR"),
-      detail: "40 % mobilisables par déplacement",
+      detail: "La taille durable de votre communauté",
+      breakdown: null,
     },
     {
       label: "Ferveur",
       value: `${liveData.fervor} / 100`,
-      detail:
-        liveData.supporterTrend > 0
-          ? `+${liveData.supporterTrend.toLocaleString("fr-FR")} liés aux résultats`
-          : "Audience stable cette saison",
+      detail: "Résultats pondérés sur les 7 derniers jours",
+      breakdown: null,
     },
     {
-      label: "Popularité de l’effectif",
-      value: `${liveData.popularityIndex} / 100`,
-      detail: `${liveData.sportingResultCount} résultat(s) analysé(s)`,
+      label: "Rayonnement de l’équipe",
+      value: `${liveData.teamReach} / 100`,
+      detail: "Indicateur de notoriété, sans bonus économique direct",
+      breakdown: [
+        `Supporters : ${liveData.reachBreakdown.supporters} / 35`,
+        `Réputation du DS : ${liveData.reachBreakdown.reputation} / 25`,
+        `5 coureurs les plus populaires : ${liveData.reachBreakdown.leadingRiders} / 25`,
+        `Résultats de la saison : ${liveData.reachBreakdown.recentResults} / 15`,
+      ],
     },
   ];
 
@@ -157,6 +162,18 @@ export default async function FanClubPage({
                     <p className="mt-1 text-xs font-bold text-[#BFD1C6]">
                       {metric.detail}
                     </p>
+                    {metric.breakdown ? (
+                      <details className="group mt-3 text-xs text-[#D6DFD2]">
+                        <summary className="cursor-pointer list-none font-black text-[var(--fan-accent)] underline decoration-white/30 underline-offset-4">
+                          Voir le détail du calcul
+                        </summary>
+                        <ul className="mt-2 space-y-1 font-semibold">
+                          {metric.breakdown.map((entry) => (
+                            <li key={entry}>{entry}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -169,7 +186,7 @@ export default async function FanClubPage({
               <BuildingLevel
                 name="Siège du Fan Club"
                 level={buildings.headquartersLevel}
-                detail="Popularité et déplacements de supporters"
+                detail="Communauté et déplacements de supporters"
               />
               {buildings.shopLevel > 0 ? (
                 <BuildingLevel

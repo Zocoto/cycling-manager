@@ -164,6 +164,7 @@ describe("audience réelle du Fan Club", () => {
       directorReputation: 10,
       headquartersLevel: 1,
       activeSeason: 3,
+      activeDay: 20,
       events: [],
     });
     const withResults = calculateFanClubAudience({
@@ -171,6 +172,7 @@ describe("audience réelle du Fan Club", () => {
       directorReputation: 50,
       headquartersLevel: 1,
       activeSeason: 3,
+      activeDay: 20,
       events: [event()],
     });
 
@@ -179,7 +181,6 @@ describe("audience réelle du Fan Club", () => {
     );
     expect(withResults.breakdown.reputation).toBe(2_000);
     expect(withResults.breakdown.recentResults).toBeGreaterThan(0);
-    expect(withResults.supporterTrend).toBeGreaterThan(0);
   });
 
   it("augmente les nouveaux supporters grâce au trait du community manager", () => {
@@ -189,6 +190,7 @@ describe("audience réelle du Fan Club", () => {
       directorReputation: 10,
       headquartersLevel: 1,
       activeSeason: 3,
+      activeDay: 20,
       events: [event()],
     });
     const withTrait = calculateFanClubAudience({
@@ -196,6 +198,7 @@ describe("audience réelle du Fan Club", () => {
       directorReputation: 10,
       headquartersLevel: 1,
       activeSeason: 3,
+      activeDay: 20,
       events: [event()],
       communityGrowthBonusPercentage: 15,
     });
@@ -203,9 +206,37 @@ describe("audience réelle du Fan Club", () => {
     expect(withTrait.breakdown.recentResults).toBeGreaterThan(
       withoutTrait.breakdown.recentResults,
     );
-    expect(withTrait.supporterTrend).toBeGreaterThan(
-      withoutTrait.supporterTrend,
+  });
+
+  it("sépare la ferveur récente du rayonnement global", () => {
+    const popularRider = rider();
+    const withoutRecentResult = calculateFanClubAudience({
+      riders: [popularRider],
+      directorReputation: 40,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      activeDay: 20,
+      events: [event({ day: 5 })],
+    });
+    const withRecentResult = calculateFanClubAudience({
+      riders: [popularRider],
+      directorReputation: 40,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      activeDay: 20,
+      events: [event({ day: 18 })],
+    });
+
+    expect(withRecentResult.fervor).toBeGreaterThan(
+      withoutRecentResult.fervor,
     );
+    expect(withRecentResult.teamReach).toBeGreaterThan(0);
+    expect(
+      Object.values(withRecentResult.reachBreakdown).reduce(
+        (total, value) => total + value,
+        0,
+      ),
+    ).toBe(withRecentResult.teamReach);
   });
 });
 

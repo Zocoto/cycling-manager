@@ -587,6 +587,7 @@ export async function getFanClubLiveData({
     directorReputation: Number(directorResult.data?.reputation_points ?? 0),
     headquartersLevel,
     activeSeason: activeSeason.game_year,
+    activeDay: activeSeason.current_day_number ?? summary.seasonDayNumber ?? 1,
     events: sportingEvents.map((entry) => entry.event),
     communityGrowthBonusPercentage,
   });
@@ -614,13 +615,8 @@ export async function getFanClubLiveData({
   return {
     teamName: summary.teamName,
     supporterCount: audience.supporterCount,
-    supporterTrend: audience.supporterTrend,
     fervor: audience.fervor,
-    popularityIndex: audience.popularityIndex,
-    recentResultsMultiplier: audience.recentResultsMultiplier,
-    sportingResultCount: sportingEvents.filter(
-      (entry) => entry.event.kind !== "breakaway",
-    ).length,
+    teamReach: audience.teamReach,
     riders,
     races: buildUpcomingRaces({
       editionIds: upcomingEditionIds,
@@ -630,6 +626,7 @@ export async function getFanClubLiveData({
       activeDay: activeSeason.current_day_number ?? summary.seasonDayNumber ?? 1,
     }),
     supporterBreakdown: audience.breakdown,
+    reachBreakdown: audience.reachBreakdown,
   };
 }
 
@@ -870,19 +867,18 @@ function buildEmptyLiveData({
     directorReputation,
     headquartersLevel,
     activeSeason: 1,
+    activeDay: 1,
     events: [],
   });
   return {
     teamName,
     supporterCount: audience.supporterCount,
-    supporterTrend: audience.supporterTrend,
     fervor: audience.fervor,
-    popularityIndex: audience.popularityIndex,
-    recentResultsMultiplier: audience.recentResultsMultiplier,
-    sportingResultCount: 0,
+    teamReach: audience.teamReach,
     riders: [],
     races: [],
     supporterBreakdown: audience.breakdown,
+    reachBreakdown: audience.reachBreakdown,
   };
 }
 

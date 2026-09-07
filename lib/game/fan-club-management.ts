@@ -66,8 +66,6 @@ export function estimateDailyProductSalesForecast(input: {
   unitCost?: number;
   supporterCount: number;
   fervor: number;
-  popularityIndex: number;
-  recentResultsMultiplier?: number;
 }): FanClubSalesForecast {
   const expected = estimateDailyProductSales(input);
   const priceFactor = getFanClubPriceDemandFactor(input);

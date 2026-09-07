@@ -63,8 +63,6 @@ export async function getFanClubManagementState({
       team_id: teamId,
       supporter_count: liveData.supporterCount,
       fervor: liveData.fervor,
-      popularity_index: liveData.popularityIndex,
-      recent_results_multiplier: liveData.recentResultsMultiplier,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "team_id" },

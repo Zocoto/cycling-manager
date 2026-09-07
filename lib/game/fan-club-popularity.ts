@@ -2,6 +2,7 @@ import {
   getPopularityMaturityCap,
   type FanClubPilotRider,
   type FanClubPopularityHistoryEntry,
+  type FanClubReachBreakdown,
   type FanClubSupporterBreakdown,
 } from "@/lib/game/fan-club-pilot";
 
@@ -34,11 +35,10 @@ export type FanClubRiderPopularityInput = {
 
 export type FanClubAudience = {
   supporterCount: number;
-  supporterTrend: number;
   fervor: number;
-  popularityIndex: number;
-  recentResultsMultiplier: number;
+  teamReach: number;
   breakdown: FanClubSupporterBreakdown;
+  reachBreakdown: FanClubReachBreakdown;
 };
 
 type PopularityFactors = {
@@ -112,6 +112,7 @@ export function calculateFanClubAudience({
   directorReputation,
   headquartersLevel,
   activeSeason,
+  activeDay,
   events,
   communityGrowthBonusPercentage = 0,
 }: {
@@ -119,18 +120,13 @@ export function calculateFanClubAudience({
   directorReputation: number;
   headquartersLevel: number;
   activeSeason: number;
+  activeDay: number;
   events: ReadonlyArray<FanClubSportingEvent>;
   communityGrowthBonusPercentage?: number;
 }): FanClubAudience {
   const popularities = riders.map((rider) => rider.popularity);
-  const rosterAverage = average(popularities);
   const leadingAverage = average(
     [...popularities].sort((left, right) => right - left).slice(0, 5),
-  );
-  const popularityIndex = clamp(
-    Math.round(rosterAverage * 0.35 + leadingAverage * 0.65),
-    0,
-    100,
   );
   const currentTeamResultValue = events
     .filter(
@@ -163,28 +159,54 @@ export function calculateFanClubAudience({
     foundation,
     beforeHeadquarters + headquartersBonus,
   );
-  const supporterTrend = Math.round(recentResults + headquartersBonus);
+  const recentFervorValue = events
+    .filter(
+      (event) =>
+        event.forCurrentTeam &&
+        event.season === activeSeason &&
+        event.kind !== "breakaway" &&
+        event.day <= activeDay &&
+        activeDay - event.day <= 7,
+    )
+    .reduce((total, event) => {
+      const age = Math.max(0, activeDay - event.day);
+      const recencyWeight = (8 - age) / 8;
+      return total + recentResultValue(event) * recencyWeight;
+    }, 0);
   const fervor = clamp(
     Math.round(
       20 +
-        popularityIndex * 0.52 +
-        Math.min(24, currentTeamResultValue) +
+        Math.min(70, recentFervorValue * 5) +
         Math.max(1, headquartersLevel) * 2,
     ),
     0,
     100,
   );
+  const reachBreakdown = {
+    supporters: clamp(
+      Math.round(
+        (Math.log1p(supporterCount) / Math.log1p(100_000)) * 35,
+      ),
+      0,
+      35,
+    ),
+    reputation: clamp(Math.round(Math.max(0, directorReputation) / 4), 0, 25),
+    leadingRiders: clamp(Math.round(leadingAverage / 4), 0, 25),
+    recentResults: clamp(
+      Math.round((Math.min(40, currentTeamResultValue) / 40) * 15),
+      0,
+      15,
+    ),
+  } satisfies FanClubReachBreakdown;
+  const teamReach = Object.values(reachBreakdown).reduce(
+    (total, value) => total + value,
+    0,
+  );
 
   return {
     supporterCount,
-    supporterTrend,
     fervor,
-    popularityIndex,
-    recentResultsMultiplier: clamp(
-      0.85 + currentTeamResultValue / 80,
-      0.85,
-      1.35,
-    ),
+    teamReach,
     breakdown: {
       foundation,
       reputation,
@@ -192,6 +214,7 @@ export function calculateFanClubAudience({
       recentResults,
       headquartersBonus,
     },
+    reachBreakdown,
   };
 }
 

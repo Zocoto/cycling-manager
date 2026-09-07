@@ -18,8 +18,6 @@ describe("gestion de production du Fan Club", () => {
       product,
       supporterCount: 12_480,
       fervor: 74,
-      popularityIndex: 58,
-      recentResultsMultiplier: 1,
     };
     const balanced = estimateDailyProductSalesForecast({
       ...inputs,

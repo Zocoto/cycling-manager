@@ -607,7 +607,7 @@ function StorePanel({
           <Heading
             eyebrow="Boutique officielle"
             title="Stock et prix de vente"
-            detail="Les ventes sont réglées automatiquement à chaque nouvelle journée de jeu. Le prix influe fortement sur la demande, tandis que les résultats, la ferveur et une part d’aléatoire rendent chaque journée différente."
+            detail="Les ventes sont réglées automatiquement à chaque nouvelle journée de jeu. La taille de la communauté, sa ferveur récente, le prix et une part d’aléatoire déterminent la demande."
           />
           <div className="flex flex-wrap gap-2">
             <Link
@@ -642,8 +642,6 @@ function StorePanel({
               unitCost: averageCost,
               supporterCount: data.supporterCount,
               fervor: data.fervor,
-              popularityIndex: data.popularityIndex,
-              recentResultsMultiplier: data.recentResultsMultiplier,
             });
             return (
               <article key={product.id} className="group overflow-hidden rounded-[1.35rem] border border-[var(--fan-line)] bg-[var(--fan-surface)] shadow-[0_12px_30px_var(--fan-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--fan-secondary)] hover:shadow-[0_18px_38px_var(--fan-shadow)]">

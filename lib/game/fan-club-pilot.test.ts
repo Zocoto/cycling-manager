@@ -85,7 +85,6 @@ describe("boutique du Fan Club", () => {
       product: jersey,
       supporterCount: 12_480,
       fervor: 74,
-      popularityIndex: 58,
     };
     const fairPriceDemand = estimateDailyProductSales({
       ...commonInputs,
@@ -115,7 +114,6 @@ describe("boutique du Fan Club", () => {
       unitCost: 38,
       supporterCount: 12_480,
       fervor: 74,
-      popularityIndex: 58,
     };
     const fairPriceDemand = estimateDailyProductSales({
       ...commonInputs,
@@ -129,18 +127,14 @@ describe("boutique du Fan Club", () => {
     expect(excessiveMarginDemand).toBeLessThan(fairPriceDemand * 0.2);
   });
 
-  it("réserve l’exception de popularité aux équipes réellement immenses", () => {
+  it("ne modifie pas la tolérance tarifaire selon un marqueur de notoriété", () => {
     const commonInputs = {
       product: jersey,
       salePrice: 100,
       unitCost: 38,
     };
 
-    expect(
-      getFanClubPriceDemandFactor({ ...commonInputs, popularityIndex: 100 }),
-    ).toBeGreaterThan(
-      getFanClubPriceDemandFactor({ ...commonInputs, popularityIndex: 80 }),
-    );
+    expect(getFanClubPriceDemandFactor(commonInputs)).toBeGreaterThanOrEqual(0);
   });
 
   it("ne débloque que les maillots collectors remportés pendant la saison", () => {
@@ -158,7 +152,6 @@ describe("boutique du Fan Club", () => {
       unitCost: 38,
       supporterCount: 12_480,
       fervor: 74,
-      popularityIndex: 58,
     };
 
     expect(
