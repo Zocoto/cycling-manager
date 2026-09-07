@@ -12,6 +12,7 @@ import {
 } from "@/lib/game/federation-school-cycling-plan";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { YouthArchetype } from "@/lib/game/youth-development";
+import type { InfrastructureSpecializationSelection } from "@/lib/game/infrastructure-specializations";
 
 export type FederationProjectArchitect = {
   contractId: string;
@@ -55,7 +56,12 @@ export type FederationInfrastructureState = {
   availableArchitects: FederationArchitectOption[];
   canLaunch: boolean;
   canContribute: boolean;
+  canManageSpecializations: boolean;
+  gameYear: number;
   balance: number | null;
+  specializations: Partial<
+    Record<FederationInfrastructureCode, InfrastructureSpecializationSelection>
+  >;
   schoolCyclingPlan: FederationSchoolCyclingPlanState | null;
 };
 
@@ -75,6 +81,13 @@ export type FederationSchoolCyclingPlanState = {
 type InfrastructureRow = {
   infrastructure_code: string;
   level: number;
+};
+type InfrastructureSpecializationRow = {
+  infrastructure_code: string;
+  active_specialization_code: string;
+  pending_specialization_code: string | null;
+  effective_game_day_index: number;
+  last_selected_season_id: string;
 };
 type ProjectRow = {
   id: string;
@@ -140,7 +153,10 @@ export async function getFederationInfrastructureState({
     availableArchitects: [],
     canLaunch: false,
     canContribute: gameYear >= 3 && Boolean(viewerTeamId),
+    canManageSpecializations: false,
+    gameYear,
     balance: null,
+    specializations: {},
     schoolCyclingPlan: null,
   };
 
@@ -154,8 +170,17 @@ export async function getFederationInfrastructureState({
         `le déploiement du Plan vélo scolaire : ${schoolPlanSettlement.error.message}`,
       );
     }
+    const specializationSettlement = await admin.rpc(
+      "settle_due_infrastructure_specializations",
+    );
+    if (specializationSettlement.error) {
+      throw new Error(
+        `les transitions de spécialisation : ${specializationSettlement.error.message}`,
+      );
+    }
     const [
       infrastructures,
+      specializations,
       projects,
       assignment,
       term,
@@ -168,6 +193,13 @@ export async function getFederationInfrastructureState({
           .select("infrastructure_code, level")
           .eq("country_id", countryId)
           .returns<InfrastructureRow[]>(),
+        admin
+          .from("national_federation_infrastructure_specializations")
+          .select(
+            "infrastructure_code, active_specialization_code, pending_specialization_code, effective_game_day_index, last_selected_season_id",
+          )
+          .eq("country_id", countryId)
+          .returns<InfrastructureSpecializationRow[]>(),
         admin
           .from("national_federation_infrastructure_projects")
           .select(
@@ -221,6 +253,7 @@ export async function getFederationInfrastructureState({
 
     for (const [result, label] of [
       [infrastructures, "les niveaux fédéraux"],
+      [specializations, "les spécialisations fédérales"],
       [projects, "les chantiers fédéraux"],
       [assignment, "le mandat du DS"],
       [term, "la présidence fédérale"],
@@ -432,22 +465,55 @@ export async function getFederationInfrastructureState({
       },
     );
 
-    return {
-      levels: Object.fromEntries(
+    const levels = Object.fromEntries(
         (infrastructures.data ?? []).flatMap((infrastructure) =>
           infrastructureCodeSet.has(infrastructure.infrastructure_code)
             ? [[infrastructure.infrastructure_code, infrastructure.level]]
             : [],
         ),
-      ),
+      ) as Partial<Record<FederationInfrastructureCode, number>>;
+    const specializationByCode = new Map(
+      (specializations.data ?? []).map((specialization) => [
+        specialization.infrastructure_code,
+        specialization,
+      ]),
+    );
+    const specializationState = Object.fromEntries(
+      FEDERATION_INFRASTRUCTURE_CODES.map((code) => {
+        const specialization = specializationByCode.get(code);
+        return [
+          code,
+          {
+            activeCode: specialization?.active_specialization_code ?? null,
+            pendingCode: specialization?.pending_specialization_code ?? null,
+            effectiveGameDayIndex:
+              specialization?.effective_game_day_index ?? null,
+            canSelectThisSeason:
+              specialization?.last_selected_season_id !== seasonId,
+            reorientationCost: (levels[code] ?? 0) * 250_000,
+          } satisfies InfrastructureSpecializationSelection,
+        ];
+      }),
+    ) as Record<
+      FederationInfrastructureCode,
+      InfrastructureSpecializationSelection
+    >;
+    const viewerIsPresident =
+      Boolean(viewerDirectorId) &&
+      viewerDirectorId === term.data?.president_director_id;
+
+    return {
+      levels,
       activeProjects,
       availableArchitects,
       canLaunch:
         gameYear >= 3 &&
-        Boolean(viewerDirectorId) &&
-        viewerDirectorId === term.data?.president_director_id,
+        viewerIsPresident,
       canContribute: gameYear >= 3 && Boolean(viewerTeamId),
+      canManageSpecializations: gameYear >= 3 && viewerIsPresident,
+      gameYear,
       balance: account.data ? Number(account.data.balance) : null,
+      specializations: specializationState,
       schoolCyclingPlan: schoolCyclingPlan.data
         ? {
             id: schoolCyclingPlan.data.id,

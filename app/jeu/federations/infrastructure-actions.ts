@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { FEDERATION_INFRASTRUCTURE_CODES } from "@/lib/game/federation-infrastructures";
+import { isInfrastructureSpecializationChoice } from "@/lib/game/infrastructure-specializations";
 import {
   getCountryYouthSpecialties,
   YOUTH_ARCHETYPES,
@@ -20,6 +21,54 @@ const infrastructureCodeSchema = z.enum(FEDERATION_INFRASTRUCTURE_CODES);
 const prioritySchema = z.enum(["balanced", "cost", "time"]);
 const uuidSchema = z.string().uuid();
 const youthArchetypeSchema = z.enum(YOUTH_ARCHETYPES);
+
+export async function chooseFederationInfrastructureSpecializationAction(
+  _previousState: FederationInfrastructureActionState,
+  formData: FormData,
+): Promise<FederationInfrastructureActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const infrastructureCode = infrastructureCodeSchema.safeParse(
+    formData.get("infrastructureCode"),
+  );
+  const specializationCode = z.string().trim().min(1).max(80).safeParse(
+    formData.get("specializationCode"),
+  );
+  if (
+    !countryCode.success ||
+    !infrastructureCode.success ||
+    !specializationCode.success ||
+    !isInfrastructureSpecializationChoice(
+      "federation",
+      infrastructureCode.data,
+      specializationCode.data,
+    )
+  ) {
+    return failure(
+      "La spécialisation transmise ne correspond pas à ce bâtiment fédéral.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const result = await supabase.rpc(
+    "choose_national_federation_infrastructure_specialization",
+    {
+      p_country_code: countryCode.data,
+      p_infrastructure_code: infrastructureCode.data,
+      p_specialization_code: specializationCode.data,
+    },
+  );
+  if (result.error) return failure(result.error.message);
+
+  revalidate(countryCode.data);
+  const payload = result.data as { status?: string; delayDays?: number } | null;
+  return {
+    status: "success",
+    message:
+      payload?.status === "transition"
+        ? `La réorientation fédérale sera active dans ${payload.delayDays ?? 7} jours de jeu.`
+        : "La spécialisation fédérale est enregistrée.",
+  };
+}
 
 export async function startFederationSchoolCyclingPlanAction(
   _previousState: FederationInfrastructureActionState,

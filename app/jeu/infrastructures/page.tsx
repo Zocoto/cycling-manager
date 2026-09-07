@@ -10,6 +10,7 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { InfrastructureBuildingCard } from "@/components/game/infrastructure-building-card";
+import { InfrastructureSpecializationPanel } from "@/components/game/infrastructure-specialization-panel";
 import { InternationalYouthCenterMap } from "@/components/game/international-youth-center-map";
 import { StaffAcademyCard } from "@/components/game/staff-academy-card";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
@@ -20,6 +21,7 @@ import {
   getTeamInfrastructureCodesByStartingCost,
   getTeamInfrastructureLevelDefinition,
 } from "@/lib/game/infrastructure";
+import { getInfrastructureSpecializationProposal } from "@/lib/game/infrastructure-specializations";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -306,6 +308,8 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                 {infrastructureCodesByStartingCost.map((code) => {
                   const definition = TEAM_INFRASTRUCTURE_DEFINITIONS[code];
                   const currentLevel = overview.infrastructureLevels[code];
+                  const specializationProposal =
+                    getInfrastructureSpecializationProposal("team", code);
 
                   if (code === "recruitment_data_room") {
                     return (
@@ -314,6 +318,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         data-building-code={code}
                         data-starting-cost={definition.levels[0]?.cost}
                         data-tutorial-id="infrastructure-data-room"
+                        className="space-y-4"
                       >
                         <DataRoomConstructionCard
                           currentLevel={overview.dataRoomLevel}
@@ -328,6 +333,15 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           balance={overview.balance}
                           currency={overview.currency}
                         />
+                        {specializationProposal ? (
+                          <InfrastructureSpecializationPanel
+                            proposal={specializationProposal}
+                            level={currentLevel}
+                            selection={overview.infrastructureSpecializations[code]}
+                            gameYear={overview.gameYear}
+                            currency={overview.currency}
+                          />
+                        ) : null}
                       </div>
                     );
                   }
@@ -339,6 +353,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         data-building-code={code}
                         data-starting-cost={definition.levels[0]?.cost}
                         data-tutorial-id="infrastructure-staff-academy"
+                        className="space-y-4"
                       >
                         <StaffAcademyCard
                           academy={academy}
@@ -352,6 +367,15 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           balance={overview.balance}
                           currency={overview.currency}
                         />
+                        {specializationProposal ? (
+                          <InfrastructureSpecializationPanel
+                            proposal={specializationProposal}
+                            level={currentLevel}
+                            selection={overview.infrastructureSpecializations[code]}
+                            gameYear={overview.gameYear}
+                            currency={overview.currency}
+                          />
+                        ) : null}
                       </div>
                     );
                   }
@@ -361,6 +385,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                       key={code}
                       data-building-code={code}
                       data-starting-cost={definition.levels[0]?.cost}
+                      className="space-y-4"
                     >
                       <InfrastructureBuildingCard
                         definition={definition}
@@ -389,6 +414,15 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                               : null
                         }
                       />
+                      {specializationProposal ? (
+                        <InfrastructureSpecializationPanel
+                          proposal={specializationProposal}
+                          level={currentLevel}
+                          selection={overview.infrastructureSpecializations[code]}
+                          gameYear={overview.gameYear}
+                          currency={overview.currency}
+                        />
+                      ) : null}
                     </div>
                   );
                 })}

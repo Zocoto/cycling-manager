@@ -14,6 +14,7 @@ import {
   type TeamInfrastructureCode,
 } from "@/lib/game/infrastructure";
 import { calculateSportingDirectorProgression } from "@/lib/game/sporting-director-progression";
+import type { InfrastructureSpecializationSelection } from "@/lib/game/infrastructure-specializations";
 import {
   calculateConstructionWithArchitect,
   getArchitectConstructionBonuses,
@@ -63,6 +64,14 @@ type ProjectRow = {
   status: "active" | "completed" | "cancelled";
   completed_at: string | null;
   created_at: string;
+};
+
+type InfrastructureSpecializationRow = {
+  infrastructure_code: string;
+  active_specialization_code: string;
+  pending_specialization_code: string | null;
+  effective_game_day_index: number;
+  last_selected_season_id: string;
 };
 
 export type InfrastructureArchitect = {
@@ -144,6 +153,10 @@ export type TeamInfrastructureOverview = {
   currency: string;
   infrastructureLevels: Record<TeamInfrastructureCode, number>;
   infrastructureEfficiencyBonuses: Record<TeamInfrastructureCode, number>;
+  infrastructureSpecializations: Record<
+    TeamInfrastructureCode,
+    InfrastructureSpecializationSelection
+  >;
   dataRoomLevel: number;
   dataRoomNextLevel: ReturnType<typeof getTeamInfrastructureLevelDefinition>;
   architects: InfrastructureArchitect[];
@@ -165,8 +178,17 @@ export async function getTeamInfrastructureOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
+  const specializationSettlement = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuery(
+    specializationSettlement.error,
+    "les transitions de spécialisation",
+  );
+
   const [
     infrastructureResult,
+    specializationsResult,
     projectsResult,
     contractsResult,
     countriesResult,
@@ -186,6 +208,13 @@ export async function getTeamInfrastructureOverview(
           efficiency_bonus_percentage: number;
         }>
       >(),
+    admin
+      .from("team_infrastructure_specializations")
+      .select(
+        "infrastructure_code, active_specialization_code, pending_specialization_code, effective_game_day_index, last_selected_season_id",
+      )
+      .eq("team_id", context.teamId)
+      .returns<InfrastructureSpecializationRow[]>(),
     admin
       .from("infrastructure_projects")
       .select(
@@ -244,6 +273,7 @@ export async function getTeamInfrastructureOverview(
 
   for (const [result, label] of [
     [infrastructureResult, "les infrastructures de l’équipe"],
+    [specializationsResult, "les spécialisations de l’équipe"],
     [projectsResult, "les chantiers"],
     [contractsResult, "les architectes"],
     [countriesResult, "les pays"],
@@ -458,6 +488,30 @@ export async function getTeamInfrastructureOverview(
       getInfrastructureEfficiencyBonus(code as TeamInfrastructureCode),
     ]),
   ) as Record<TeamInfrastructureCode, number>;
+  const specializationByCode = new Map(
+    (specializationsResult.data ?? []).map((specialization) => [
+      specialization.infrastructure_code,
+      specialization,
+    ]),
+  );
+  const infrastructureSpecializations = Object.fromEntries(
+    Object.keys(infrastructureLevels).map((rawCode) => {
+      const code = rawCode as TeamInfrastructureCode;
+      const specialization = specializationByCode.get(code);
+      return [
+        code,
+        {
+          activeCode: specialization?.active_specialization_code ?? null,
+          pendingCode: specialization?.pending_specialization_code ?? null,
+          effectiveGameDayIndex:
+            specialization?.effective_game_day_index ?? null,
+          canSelectThisSeason:
+            specialization?.last_selected_season_id !== context.seasonId,
+          reorientationCost: infrastructureLevels[code] * 50_000,
+        } satisfies InfrastructureSpecializationSelection,
+      ];
+    }),
+  ) as Record<TeamInfrastructureCode, InfrastructureSpecializationSelection>;
   const dataRoomLevel = infrastructureLevels.recruitment_data_room;
   const directorLevel = calculateSportingDirectorProgression(
     context.experiencePoints,
@@ -475,6 +529,7 @@ export async function getTeamInfrastructureOverview(
     currency: context.currency,
     infrastructureLevels,
     infrastructureEfficiencyBonuses,
+    infrastructureSpecializations,
     dataRoomLevel,
     dataRoomNextLevel: getTeamInfrastructureLevelDefinition(
       TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room.code,

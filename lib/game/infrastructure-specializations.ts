@@ -23,6 +23,26 @@ export type InfrastructureSpecializationProposal = {
   ];
 };
 
+export type InfrastructureSpecializationSelection = {
+  activeCode: string | null;
+  pendingCode: string | null;
+  effectiveGameDayIndex: number | null;
+  canSelectThisSeason: boolean;
+  reorientationCost: number;
+};
+
+export const INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL = 3;
+export const INFRASTRUCTURE_SPECIALIZATION_TRANSITION_DAYS = 7;
+
+export function getInfrastructureSpecializationPowerPercentage(
+  level: number,
+): number {
+  if (level < INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL) return 0;
+  if (level === 3) return 60;
+  if (level === 4) return 80;
+  return 100;
+}
+
 const option = (
   value: Omit<InfrastructureSpecializationOption, "powerBudget">,
 ): InfrastructureSpecializationOption => ({ ...value, powerBudget: 100 });
@@ -265,3 +285,27 @@ export const INFRASTRUCTURE_SPECIALIZATION_PROPOSALS = [
   ...TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
   ...FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
 ] as const;
+
+export function getInfrastructureSpecializationProposal(
+  scope: InfrastructureSpecializationScope,
+  buildingCode: string,
+): InfrastructureSpecializationProposal | null {
+  return (
+    INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.find(
+      (proposal) =>
+        proposal.scope === scope && proposal.buildingCode === buildingCode,
+    ) ?? null
+  );
+}
+
+export function isInfrastructureSpecializationChoice(
+  scope: InfrastructureSpecializationScope,
+  buildingCode: string,
+  specializationCode: string,
+): boolean {
+  return Boolean(
+    getInfrastructureSpecializationProposal(scope, buildingCode)?.options.some(
+      (candidate) => candidate.code === specializationCode,
+    ),
+  );
+}

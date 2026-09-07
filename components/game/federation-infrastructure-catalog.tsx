@@ -10,7 +10,9 @@ import {
   updateFederationProjectPriorityAction,
   type FederationInfrastructureActionState,
 } from "@/app/jeu/federations/infrastructure-actions";
+import { InfrastructureSpecializationPanel } from "@/components/game/infrastructure-specialization-panel";
 import { initialFederationInfrastructureActionState } from "@/lib/game/federation-action-states";
+import { getInfrastructureSpecializationProposal } from "@/lib/game/infrastructure-specializations";
 import {
   FEDERATION_INFRASTRUCTURE_DEFINITIONS,
   MAX_FEDERATION_PROJECT_ARCHITECTS,
@@ -125,6 +127,8 @@ export function FederationInfrastructureCatalog({
       {FEDERATION_INFRASTRUCTURE_DEFINITIONS.map((definition) => {
         const currentLevel =
           infrastructureState?.levels[definition.code] ?? 0;
+        const specializationProposal =
+          getInfrastructureSpecializationProposal("federation", definition.code);
         return (
           <div key={definition.code} className="space-y-4">
             <FederationInfrastructureCard
@@ -140,6 +144,27 @@ export function FederationInfrastructureCatalog({
               }
               infrastructureState={infrastructureState}
             />
+            {specializationProposal ? (
+              <InfrastructureSpecializationPanel
+                proposal={specializationProposal}
+                level={currentLevel}
+                selection={
+                  infrastructureState?.specializations[definition.code] ?? {
+                    activeCode: null,
+                    pendingCode: null,
+                    effectiveGameDayIndex: null,
+                    canSelectThisSeason: true,
+                    reorientationCost: currentLevel * 250_000,
+                  }
+                }
+                gameYear={infrastructureState?.gameYear ?? 2}
+                currency={currency}
+                countryCode={countryCode}
+                canManage={
+                  infrastructureState?.canManageSpecializations ?? false
+                }
+              />
+            ) : null}
             {definition.code === "regional_academies" ? (
               <FederationSchoolCyclingPlan
                 countryCode={countryCode}
