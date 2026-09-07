@@ -122,21 +122,21 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 200_000,
-        durationDays: 14,
+        durationDays: 7,
         effect:
           "3 notes exactes, 8 fourchettes, 2 inconnues et potentiel toujours estimé.",
       },
       {
         level: 2,
         cost: 120_000,
-        durationDays: 28,
+        durationDays: 14,
         effect:
           "5 notes exactes, 8 fourchettes resserrées et plus aucune note inconnue.",
       },
       {
         level: 3,
         cost: 140_000,
-        durationDays: 42,
+        durationDays: 21,
         effect:
           "7 notes exactes et 6 fourchettes très resserrées ; potentiel estimé à une demi-étoile près.",
       },
@@ -173,31 +173,31 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 100_000,
-        durationDays: 7,
+        durationDays: 5,
         effect: "+2 % de progression à chaque entraînement professionnel.",
       },
       {
         level: 2,
         cost: 250_000,
-        durationDays: 14,
+        durationDays: 9,
         effect: "+4 % de progression à chaque entraînement professionnel.",
       },
       {
         level: 3,
         cost: 500_000,
-        durationDays: 24,
+        durationDays: 14,
         effect: "+6 % de progression à chaque entraînement professionnel.",
       },
       {
         level: 4,
         cost: 900_000,
-        durationDays: 35,
+        durationDays: 20,
         effect: "+8 % de progression à chaque entraînement professionnel.",
       },
       {
         level: 5,
         cost: 1_500_000,
-        durationDays: 49,
+        durationDays: 28,
         effect: "+10 % de progression à chaque entraînement professionnel.",
       },
     ],
@@ -216,35 +216,35 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 180_000,
-        durationDays: 10,
+        durationDays: 7,
         effect:
           "Après 2 jours de préparation : +1 SPR et +1 ACC pendant 2 jours.",
       },
       {
         level: 2,
         cost: 450_000,
-        durationDays: 18,
+        durationDays: 11,
         effect:
           "Après 2 jours de préparation : +1 SPR et +1 ACC pendant 3 jours.",
       },
       {
         level: 3,
         cost: 900_000,
-        durationDays: 28,
+        durationDays: 16,
         effect:
           "Après 2 jours de préparation : +2 SPR et +2 ACC pendant 2 jours.",
       },
       {
         level: 4,
         cost: 1_550_000,
-        durationDays: 40,
+        durationDays: 22,
         effect:
           "Après 2 jours de préparation : +2 SPR et +2 ACC pendant 3 jours.",
       },
       {
         level: 5,
         cost: 2_400_000,
-        durationDays: 55,
+        durationDays: 28,
         effect:
           "Après 2 jours de préparation : +3 SPR et +3 ACC pendant 2 jours.",
       },
@@ -263,7 +263,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     levels: [10, 20, 30, 40, 50].map((bonus, index) => ({
       level: index + 1,
       cost: [150_000, 90_000, 105_000, 120_000, 135_000][index]!,
-      durationDays: [12, 22, 34, 48, 64][index]!,
+      durationDays: [6, 10, 15, 21, 28][index]!,
       effect: `−${bonus} % sur la perte de forme post-course, après application du kiné.`,
     })),
   },
@@ -281,35 +281,35 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 400_000,
-        durationDays: 16,
+        durationDays: 9,
         effect:
           "Après 2 jours de préparation : +1 CLM, +1 PRO et +1 END pendant 2 jours.",
       },
       {
         level: 2,
         cost: 850_000,
-        durationDays: 28,
+        durationDays: 14,
         effect:
           "Après 2 jours de préparation : +1 CLM, +1 PRO et +1 END pendant 3 jours.",
       },
       {
         level: 3,
         cost: 1_500_000,
-        durationDays: 42,
+        durationDays: 20,
         effect:
           "Après 2 jours de préparation : +2 CLM, +2 PRO et +2 END pendant 2 jours.",
       },
       {
         level: 4,
         cost: 2_400_000,
-        durationDays: 58,
+        durationDays: 27,
         effect:
           "Après 2 jours de préparation : +2 CLM, +2 PRO et +2 END pendant 3 jours.",
       },
       {
         level: 5,
         cost: 3_600_000,
-        durationDays: 76,
+        durationDays: 35,
         effect:
           "Après 2 jours de préparation : +3 CLM, +3 PRO et +3 END pendant 2 jours.",
       },
@@ -328,7 +328,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     levels: [1, 3, 5, 8, 28].map((horizon, index) => ({
       level: index + 1,
       cost: [50_000, 30_000, 35_000, 40_000, 45_000][index]!,
-      durationDays: [14, 24, 36, 50, 66][index]!,
+      durationDays: [6, 10, 15, 21, 28][index]!,
       effect:
         horizon === 28
           ? "Prévisions accessibles sur toute la saison."
@@ -349,34 +349,34 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 650_000,
-        durationDays: 18,
+        durationDays: 9,
         effect: "1 tribune tous les 7 jours · bonus média de niveau 1.",
       },
       {
         level: 2,
         cost: 1_200_000,
-        durationDays: 30,
+        durationDays: 14,
         effect:
           "1 tribune tous les 5 jours · impact des community managers +10 %.",
       },
       {
         level: 3,
         cost: 2_000_000,
-        durationDays: 44,
+        durationDays: 20,
         effect:
           "1 tribune tous les 4 jours · publicité sponsor dans la Gazette.",
       },
       {
         level: 4,
         cost: 3_000_000,
-        durationDays: 60,
+        durationDays: 27,
         effect:
           "1 tribune tous les 3 jours · gains de fans et de réputation renforcés.",
       },
       {
         level: 5,
         cost: 4_300_000,
-        durationDays: 78,
+        durationDays: 35,
         effect: "1 tribune tous les 2 jours · rayonnement médiatique maximal.",
       },
     ],
@@ -395,35 +395,35 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 800_000,
-        durationDays: 24,
+        durationDays: 10,
         effect:
           "Naturalisation pro en 70 jours et junior en 21 jours · 1 membre du staff naturalisable par saison.",
       },
       {
         level: 2,
         cost: 1_500_000,
-        durationDays: 38,
+        durationDays: 16,
         effect:
           "Naturalisation pro en 56 jours et junior en 14 jours · 2 membres du staff naturalisables par saison.",
       },
       {
         level: 3,
         cost: 2_500_000,
-        durationDays: 54,
+        durationDays: 22,
         effect:
           "Affinité du staff et bonus local étendus aux pays frontaliers ; junior en 7 jours · 3 membres du staff naturalisables par saison.",
       },
       {
         level: 4,
         cost: 3_800_000,
-        durationDays: 72,
+        durationDays: 28,
         effect:
           "Affinité du staff étendue au continent ; naturalisation pro en 28 jours · 4 membres du staff naturalisables par saison.",
       },
       {
         level: 5,
         cost: 5_500_000,
-        durationDays: 84,
+        durationDays: 35,
         effect:
           "Naturalisation pro en 14 jours et naturalisation junior immédiate · 5 membres du staff naturalisables par saison.",
       },
@@ -443,44 +443,44 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 1_200_000,
-        durationDays: 28,
+        durationDays: 10,
         effect: "R&D sur les cadres · 50 % de réussite · base de 5 jours.",
       },
       {
         level: 2,
         cost: 2_000_000,
-        durationDays: 42,
+        durationDays: 15,
         effect: "Débloque les roues · 55 % de réussite · base de 5 jours.",
       },
       {
         level: 3,
         cost: 3_000_000,
-        durationDays: 56,
+        durationDays: 20,
         effect: "Débloque les casques · 60 % de réussite · base de 5 jours.",
       },
       {
         level: 4,
         cost: 4_200_000,
-        durationDays: 70,
+        durationDays: 25,
         effect:
           "Débloque les chaussures · 65 % de réussite · base de 5 jours.",
       },
       {
         level: 5,
         cost: 5_600_000,
-        durationDays: 84,
+        durationDays: 30,
         effect: "Débloque les cuissards · 70 % de réussite · base de 5 jours.",
       },
       {
         level: 6,
         cost: 7_200_000,
-        durationDays: 84,
+        durationDays: 33,
         effect: "Débloque les gants · 75 % de réussite · base de 5 jours.",
       },
       {
         level: 7,
         cost: 9_000_000,
-        durationDays: 84,
+        durationDays: 35,
         effect: "Débloque les lunettes · 80 % de réussite · base de 5 jours.",
       },
     ],
@@ -499,31 +499,31 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 200_000,
-        durationDays: 10,
+        durationDays: 6,
         effect: "Débloque le Fan Club et permet de gérer jusqu’à 2 cars.",
       },
       {
         level: 2,
         cost: 450_000,
-        durationDays: 18,
+        durationDays: 10,
         effect: "+10 % d’audience calculée et un parc porté à 5 cars.",
       },
       {
         level: 3,
         cost: 850_000,
-        durationDays: 28,
+        durationDays: 15,
         effect: "+20 % d’audience calculée et un parc porté à 10 cars.",
       },
       {
         level: 4,
         cost: 1_400_000,
-        durationDays: 40,
+        durationDays: 21,
         effect: "+30 % d’audience calculée et un parc porté à 18 cars.",
       },
       {
         level: 5,
         cost: 2_200_000,
-        durationDays: 56,
+        durationDays: 28,
         effect: "+40 % d’audience calculée et un parc porté à 30 cars.",
       },
     ],
@@ -542,31 +542,31 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       {
         level: 1,
         cost: 150_000,
-        durationDays: 8,
+        durationDays: 5,
         effect: "Maillots disponibles et capacité maximale de 300 objets.",
       },
       {
         level: 2,
         cost: 350_000,
-        durationDays: 16,
+        durationDays: 9,
         effect: "2 produits disponibles et capacité maximale de 800 objets.",
       },
       {
         level: 3,
         cost: 650_000,
-        durationDays: 24,
+        durationDays: 14,
         effect: "3 produits disponibles et capacité maximale de 1 600 objets.",
       },
       {
         level: 4,
         cost: 1_050_000,
-        durationDays: 34,
+        durationDays: 20,
         effect: "4 produits disponibles et capacité maximale de 3 000 objets.",
       },
       {
         level: 5,
         cost: 1_600_000,
-        durationDays: 46,
+        durationDays: 26,
         effect: "5 produits disponibles et capacité maximale de 5 000 objets.",
       },
     ],
@@ -616,31 +616,31 @@ export const INTERNATIONAL_CENTER_LEVELS = [
   {
     level: 1,
     cost: 500_000,
-    durationDays: 28,
+    durationDays: 10,
     bonusPercentage: 10,
   },
   {
     level: 2,
     cost: getInfrastructureUpgradeCost(500_000, 2),
-    durationDays: 35,
+    durationDays: 16,
     bonusPercentage: 20,
   },
   {
     level: 3,
     cost: getInfrastructureUpgradeCost(500_000, 3),
-    durationDays: 42,
+    durationDays: 22,
     bonusPercentage: 30,
   },
   {
     level: 4,
     cost: getInfrastructureUpgradeCost(500_000, 4),
-    durationDays: 49,
+    durationDays: 28,
     bonusPercentage: 40,
   },
   {
     level: 5,
     cost: getInfrastructureUpgradeCost(500_000, 5),
-    durationDays: 56,
+    durationDays: 35,
     bonusPercentage: 50,
   },
 ] as const;

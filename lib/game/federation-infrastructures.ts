@@ -66,7 +66,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [900_000, 1_700_000, 2_800_000, 4_400_000, 6_400_000],
-      durations: [10, 14, 18, 23, 28],
+      durations: [7, 10, 14, 18, 23],
       effects: [
         "+1 % de précision des rapports dans le pays.",
         "+2 % de précision et meilleure couverture des régions peu scoutées.",
@@ -90,7 +90,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [1_000_000, 1_900_000, 3_100_000, 4_700_000, 6_800_000],
-      durations: [12, 16, 21, 26, 32],
+      durations: [8, 12, 16, 21, 27],
       effects: [
         "−1 % sur les frais de formation des jeunes de la nation.",
         "−2 % et davantage de profils issus de régions secondaires.",
@@ -114,7 +114,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [1_400_000, 2_500_000, 4_000_000, 6_000_000, 8_500_000],
-      durations: [14, 19, 24, 30, 36],
+      durations: [9, 14, 19, 24, 30],
       effects: [
         "+0,3 % d’efficacité sur les entraînements éligibles.",
         "+0,6 % d’efficacité sur les entraînements éligibles.",
@@ -138,7 +138,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [800_000, 1_550_000, 2_600_000, 4_000_000, 5_800_000],
-      durations: [10, 14, 19, 24, 30],
+      durations: [7, 11, 15, 20, 26],
       effects: [
         "+0,5 % d’efficacité pour le staff de la nation.",
         "+1 % d’efficacité pour le staff de la nation.",
@@ -162,7 +162,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [1_100_000, 2_000_000, 3_200_000, 4_800_000, 7_000_000],
-      durations: [10, 14, 18, 23, 28],
+      durations: [7, 10, 14, 18, 23],
       effects: [
         "−1 % sur la durée des blessures des coureurs affiliés.",
         "−2 % sur la durée des blessures des coureurs affiliés.",
@@ -186,7 +186,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [1_500_000, 2_700_000, 4_400_000, 6_500_000, 9_300_000],
-      durations: [14, 19, 25, 31, 38],
+      durations: [9, 14, 19, 25, 32],
       effects: [
         "+0,2 % sur la préparation chrono des sélections.",
         "+0,4 % sur la préparation chrono des sélections.",
@@ -210,7 +210,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [900_000, 1_800_000, 3_000_000, 4_600_000, 6_600_000],
-      durations: [10, 14, 18, 23, 28],
+      durations: [7, 10, 14, 18, 23],
       effects: [
         "+5 % sur les recettes fédérales des courses du pays.",
         "+10 % sur ces recettes et dossiers d’accueil mieux préparés.",
@@ -234,7 +234,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [1_200_000, 2_200_000, 3_500_000, 5_300_000, 7_600_000],
-      durations: [14, 19, 24, 30, 36],
+      durations: [9, 14, 19, 24, 30],
       effects: [
         "−4 % sur le délai commun de naturalisation.",
         "−8 % sur le délai commun de naturalisation.",
@@ -258,7 +258,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     },
     levels: makeLevels({
       costs: [700_000, 1_350_000, 2_250_000, 3_500_000, 5_000_000],
-      durations: [9, 13, 18, 23, 28],
+      durations: [6, 9, 13, 18, 23],
       effects: [
         "+0,2 % au bonus local sur les étapes du pays.",
         "+0,4 % au bonus local sur les étapes du pays.",

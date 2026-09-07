@@ -104,7 +104,7 @@ describe("federation infrastructures", () => {
       900_000,
     );
     expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS[5].levels[4].durationDays).toBe(
-      38,
+      32,
     );
     expect(programmeMigration).toContain(
       "release_federation_architect_on_contract_end",

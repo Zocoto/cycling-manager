@@ -18,42 +18,43 @@ Les neuf bâtiments fédéraux doivent produire l’effet annoncé par leur fich
 
 Les prix et délais du catalogue sont désormais la même source fonctionnelle que les débits côté serveur. Le détail des bonus est calculé avec les données déjà chargées par la page : le survol n’émet aucune requête réseau. Sur écran tactile, le même composant s’ouvre au clic.
 
-## 2. Bâtiments dont la durée de base dépasse une saison
+## 2. Durées de construction rééquilibrées
 
-Une saison dure 28 jours. Les durées ci-dessous sont les durées de base ; un architecte peut réduire la durée réelle.
+Une saison dure 28 jours. La nouvelle grille suit trois rythmes lisibles : les bâtiments utilitaires culminent entre 23 et 28 jours, les bâtiments structurants à 35 jours et les projets fédéraux les plus complexes à 32 jours. Les paliers intermédiaires restent strictement croissants et les architectes conservent leurs réductions.
 
 ### Équipe
 
-| Bâtiment | Niveaux de plus de 28 jours |
+| Bâtiment | Nouvelle progression |
 | --- | --- |
-| Data Room du recrutement | N3 : 42 j |
-| Académie des métiers | N1 : 42 j · N2 : 49 j · N3 : 56 j · N4 : 70 j · N5 : 84 j |
-| Centre d’entraînement | N4 : 35 j · N5 : 49 j |
-| Piste indoor | N4 : 40 j · N5 : 55 j |
-| Centre de cryothérapie | N3 : 34 j · N4 : 48 j · N5 : 64 j |
-| Soufflerie | N3 : 42 j · N4 : 58 j · N5 : 76 j |
-| Centre météo | N3 : 36 j · N4 : 50 j · N5 : 66 j |
-| Média Center | N2 : 30 j · N3 : 44 j · N4 : 60 j · N5 : 78 j |
-| Centre d’accueil international | N2 : 38 j · N3 : 54 j · N4 : 72 j · N5 : 84 j |
-| Laboratoire R&D | N2 : 42 j · N3 : 56 j · N4 : 70 j · N5/N6/N7 : 84 j |
-| Siège du Fan Club | N4 : 40 j · N5 : 56 j |
-| Boutique du club | N4 : 34 j · N5 : 46 j |
+| Data Room du recrutement | 7 · 14 · 21 j |
+| Académie des métiers | 10 · 16 · 22 · 28 · 35 j |
+| Centre d’entraînement | 5 · 9 · 14 · 20 · 28 j |
+| Piste indoor | 7 · 11 · 16 · 22 · 28 j |
+| Centre de cryothérapie | 6 · 10 · 15 · 21 · 28 j |
+| Soufflerie | 9 · 14 · 20 · 27 · 35 j |
+| Centre météo | 6 · 10 · 15 · 21 · 28 j |
+| Média Center | 9 · 14 · 20 · 27 · 35 j |
+| Centre d’accueil international | 10 · 16 · 22 · 28 · 35 j |
+| Centre international des jeunes | 10 · 16 · 22 · 28 · 35 j |
+| Laboratoire R&D | 10 · 15 · 20 · 25 · 30 · 33 · 35 j |
+| Siège du Fan Club | 6 · 10 · 15 · 21 · 28 j |
+| Boutique du club | 5 · 9 · 14 · 20 · 26 j |
 
 ### Fédération
 
-| Bâtiment | Niveaux de plus de 28 jours |
+| Bâtiment | Nouvelle progression |
 | --- | --- |
-| Académies régionales | N5 : 32 j |
-| Centre national de performance | N4 : 30 j · N5 : 36 j |
-| Institut fédéral du staff | N5 : 30 j |
-| Laboratoire technique national | N4 : 31 j · N5 : 38 j |
-| Bureau fédéral d’intégration | N4 : 30 j · N5 : 36 j |
+| Réseau national de détection | 7 · 10 · 14 · 18 · 23 j |
+| Académies régionales | 8 · 12 · 16 · 21 · 27 j |
+| Centre national de performance | 9 · 14 · 19 · 24 · 30 j |
+| Institut fédéral du staff | 7 · 11 · 15 · 20 · 26 j |
+| Réseau médical fédéral | 7 · 10 · 14 · 18 · 23 j |
+| Laboratoire technique national | 9 · 14 · 19 · 25 · 32 j |
+| Bureau d’organisation | 7 · 10 · 14 · 18 · 23 j |
+| Bureau fédéral d’intégration | 9 · 14 · 19 · 24 · 30 j |
+| Programme avantage du terrain | 6 · 9 · 13 · 18 · 23 j |
 
-### Arbitrage recommandé
-
-Conserver les chantiers longs, mais supprimer les attentes mortes : maximum 28 jours sans bénéfice. Un chantier de 29 à 56 jours délivre 50 % de son nouvel effet au premier jalon de 28 jours, puis 100 % à la livraison. Au-delà de 56 jours, il faut réduire la durée de base. Les durées de 70 à 84 jours de l’Académie, de l’accueil et de la R&D sont trop longues pour une boucle saisonnière de 28 jours.
-
-Recommandation chiffrée : plafonner à 42 jours les bâtiments d’équipe, à 35 jours les bâtiments fédéraux et conserver l’avantage de l’architecte. Cette décision doit être arbitrée avant modification, car elle touche tous les chantiers futurs et la valeur économique des architectes.
+Les chantiers déjà actifs sont raccourcis lors de la migration. Tous les jours précédemment économisés grâce à un architecte ou une récompense sont conservés en valeur absolue et aucun chantier existant ne peut être rallongé.
 
 ## 3. Popularité, ferveur et supporters
 

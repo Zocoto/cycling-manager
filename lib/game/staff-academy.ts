@@ -23,31 +23,31 @@ export const STAFF_ACADEMY_LEVELS = [
   {
     level: 1,
     cost: 1_500_000,
-    durationDays: 42,
+    durationDays: 10,
     capacity: 1,
   },
   {
     level: 2,
     cost: 900_000,
-    durationDays: 49,
+    durationDays: 16,
     capacity: 2,
   },
   {
     level: 3,
     cost: 1_050_000,
-    durationDays: 56,
+    durationDays: 22,
     capacity: 3,
   },
   {
     level: 4,
     cost: 1_200_000,
-    durationDays: 70,
+    durationDays: 28,
     capacity: 4,
   },
   {
     level: 5,
     cost: 1_350_000,
-    durationDays: 84,
+    durationDays: 35,
     capacity: 5,
   },
 ] as const;
