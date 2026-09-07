@@ -3,9 +3,12 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type AmateurTeamAffiliationState = {
-  currentCountryId: string | null;
-  currentCountryCode: string | null;
-  currentCountryName: string | null;
+  currentCountryId: string;
+  currentCountryCode: string;
+  currentCountryName: string;
+  federationCountryId: string;
+  federationCountryCode: string;
+  federationCountryName: string;
   canChange: boolean;
   unavailableReason: string | null;
 };
@@ -15,9 +18,9 @@ type TeamRow = {
   amateur_name: string | null;
 };
 
-type SeasonRow = { id: string };
+type SeasonRow = { id: string; game_year: number };
 type TeamSeasonRow = { registration_country_id: string };
-type CountryRow = { iso_alpha2: string; name: string };
+type CountryRow = { id: string; iso_alpha2: string; name: string };
 
 export async function getAmateurTeamAffiliationState(
   teamId: string | null,
@@ -28,7 +31,7 @@ export async function getAmateurTeamAffiliationState(
   const [seasonResult, teamResult] = await Promise.all([
     admin
       .from("seasons")
-      .select("id")
+      .select("id, game_year")
       .eq("status", "active")
       .maybeSingle<SeasonRow>(),
     admin
@@ -41,46 +44,90 @@ export async function getAmateurTeamAffiliationState(
   assertQuery(seasonResult.error, "la saison active");
   assertQuery(teamResult.error, "l’identité de l’équipe");
   if (!seasonResult.data || !teamResult.data) return null;
+  const season = seasonResult.data;
+  const team = teamResult.data;
 
   const [teamSeasonResult, changeResult] = await Promise.all([
     admin
       .from("team_seasons")
       .select("registration_country_id")
       .eq("team_id", teamId)
-      .eq("season_id", seasonResult.data.id)
+      .eq("season_id", season.id)
       .maybeSingle<TeamSeasonRow>(),
     admin
       .from("team_national_affiliation_changes")
       .select("id", { count: "exact", head: true })
       .eq("team_id", teamId)
-      .eq("season_id", seasonResult.data.id),
+      .eq("season_id", season.id),
   ]);
 
   assertQuery(teamSeasonResult.error, "l’affiliation sportive de l’équipe");
   assertQuery(changeResult.error, "l’historique des changements d’affiliation");
+  if (!teamSeasonResult.data) return null;
 
-  const currentCountryId =
-    teamSeasonResult.data?.registration_country_id ??
-    teamResult.data.home_country_id;
-  const countryResult = await admin
-    .from("countries")
-    .select("iso_alpha2, name")
-    .eq("id", currentCountryId)
-    .maybeSingle<CountryRow>();
-  assertQuery(countryResult.error, "le pays d’affiliation de l’équipe");
+  const federationCountryId = teamSeasonResult.data.registration_country_id;
+  const [countriesResult, previousSeasonResult] = await Promise.all([
+    admin
+      .from("countries")
+      .select("id, iso_alpha2, name")
+      .in("id", [team.home_country_id, federationCountryId])
+      .eq("is_active", true)
+      .returns<CountryRow[]>(),
+    admin
+      .from("seasons")
+      .select("id, game_year")
+      .eq("game_year", season.game_year - 1)
+      .eq("status", "completed")
+      .maybeSingle<SeasonRow>(),
+  ]);
+  assertQuery(countriesResult.error, "les nationalités de l’équipe");
+  assertQuery(previousSeasonResult.error, "la saison précédente");
+
+  const currentCountry = (countriesResult.data ?? []).find(
+    (country) => country.id === team.home_country_id,
+  );
+  const federationCountry = (countriesResult.data ?? []).find(
+    (country) => country.id === federationCountryId,
+  );
+  if (!currentCountry || !federationCountry) return null;
+
+  const previousAffiliationResult = previousSeasonResult.data
+    ? await admin
+        .from("team_seasons")
+        .select("id")
+        .eq("team_id", teamId)
+        .eq("season_id", previousSeasonResult.data.id)
+        .eq("registration_country_id", federationCountryId)
+        .eq("status", "completed")
+        .maybeSingle<{ id: string }>()
+    : { data: null, error: null };
+  assertQuery(
+    previousAffiliationResult.error,
+    "l’ancienneté de l’équipe dans la fédération",
+  );
 
   const alreadyChanged = (changeResult.count ?? 0) > 0;
-  const hasAmateurIdentity = Boolean(teamResult.data.amateur_name);
+  const hasAmateurIdentity = Boolean(team.amateur_name);
+  const hasCompletedFederationSeason = Boolean(
+    previousAffiliationResult.data,
+  );
   const unavailableReason = !hasAmateurIdentity
     ? "L’identité de l’équipe amateur doit d’abord être finalisée."
-    : alreadyChanged
-      ? "Le transfert d’affiliation a déjà été utilisé cette saison."
-      : null;
+    : currentCountry.id === federationCountry.id
+      ? "Votre équipe porte déjà la nationalité sportive de cette fédération."
+      : !hasCompletedFederationSeason
+        ? `Ce changement sera disponible en Saison ${season.game_year + 1} si votre équipe reste affiliée à cette fédération.`
+        : alreadyChanged
+          ? "Le changement de nationalité a déjà été utilisé cette saison."
+          : null;
 
   return {
-    currentCountryId,
-    currentCountryCode: countryResult.data?.iso_alpha2 ?? null,
-    currentCountryName: countryResult.data?.name ?? null,
+    currentCountryId: currentCountry.id,
+    currentCountryCode: currentCountry.iso_alpha2,
+    currentCountryName: currentCountry.name,
+    federationCountryId: federationCountry.id,
+    federationCountryCode: federationCountry.iso_alpha2,
+    federationCountryName: federationCountry.name,
     canChange: unavailableReason === null,
     unavailableReason,
   };

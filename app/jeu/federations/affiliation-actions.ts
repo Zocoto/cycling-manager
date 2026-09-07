@@ -26,7 +26,7 @@ export async function changeAmateurTeamNationalAffiliationAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Sélectionnez une fédération et confirmez le transfert.",
+      message: "Confirmez le changement de nationalité sportive.",
     };
   }
 
@@ -44,14 +44,14 @@ export async function changeAmateurTeamNationalAffiliationAction(
     { p_country_id: parsed.data.countryId },
   );
   if (result.error) {
-    console.error("Échec du transfert d’affiliation nationale :", {
+    console.error("Échec du changement de nationalité sportive :", {
       code: result.error.code,
       message: result.error.message,
     });
     return {
       status: "error",
       message:
-        result.error.message || "Le transfert d’affiliation n’a pas abouti.",
+        result.error.message || "Le changement de nationalité n’a pas abouti.",
     };
   }
 
@@ -61,6 +61,6 @@ export async function changeAmateurTeamNationalAffiliationAction(
   refresh();
   return {
     status: "success",
-    message: `Affiliation transférée${payload?.countryName ? ` vers ${payload.countryName}` : ""}. Les prochaines affinités sponsors utiliseront ce nouveau pays.`,
+    message: `Nationalité sportive adoptée${payload?.countryName ? ` : ${payload.countryName}` : ""}. Elle sera prise en compte dans les prochaines affinités sponsors.`,
   };
 }

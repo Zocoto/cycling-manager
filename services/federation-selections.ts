@@ -1,7 +1,9 @@
 import "server-only";
 
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
+import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getFederationSelectionForecasts } from "@/services/federation-selection-weather";
 
 export type FederationStoredSelection = {
   status: "draft" | "pending_confirmation" | "finalized";
@@ -21,6 +23,7 @@ export type FederationSelectionState = {
   competitionHosts: Partial<
     Record<FederationHostingEventType, { countryCode: string; countryName: string }>
   >;
+  forecasts: Record<string, FederationSelectionForecast>;
   selections: Record<string, FederationStoredSelection>;
   pendingConfirmations: FederationPendingConfirmation[];
 };
@@ -52,17 +55,20 @@ export async function getFederationSelectionState({
   countryId,
   seasonId,
   gameYear,
+  currentDayNumber,
   viewerTeamId,
 }: {
   countryId: string;
   seasonId: string;
   gameYear: number;
+  currentDayNumber: number;
   viewerTeamId: string | null;
 }): Promise<FederationSelectionState> {
   const empty: FederationSelectionState = {
     canManage: false,
     automaticSelection: true,
     competitionHosts: {},
+    forecasts: {},
     selections: {},
     pendingConfirmations: [],
   };
@@ -172,6 +178,24 @@ export async function getFederationSelectionState({
           : [];
       }),
     ) as FederationSelectionState["competitionHosts"];
+    const forecasts = await getFederationSelectionForecasts({
+      countryId,
+      seasonId,
+      gameYear,
+      currentDayNumber,
+      hostCountryCodeByEventType: Object.fromEntries(
+        Object.entries(competitionHosts).map(([eventType, host]) => [
+          eventType,
+          host.countryCode,
+        ]),
+      ),
+    }).catch((error) => {
+      console.error(
+        "Impossible de charger les prévisions des sélections fédérales :",
+        error,
+      );
+      return {};
+    });
 
     return {
       canManage:
@@ -182,6 +206,7 @@ export async function getFederationSelectionState({
       automaticSelection:
         preferenceResult.data?.automatic_selection ?? true,
       competitionHosts,
+      forecasts,
       selections,
       pendingConfirmations: viewerTeamId
         ? members.flatMap((member): FederationPendingConfirmation[] => {

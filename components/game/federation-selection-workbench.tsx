@@ -8,9 +8,29 @@ import {
   saveFederationPreselectionAction,
   setFederationAutomaticSelectionAction,
 } from "@/app/jeu/federations/selection-actions";
+import {
+  RIDER_CLIMATE_LABELS,
+  RiderClimateIcon,
+} from "@/components/game/rider-climate-profile-card";
 
 import { initialFederationSelectionActionState } from "@/lib/game/federation-action-states";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
+import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
+import {
+  FEDERATION_SELECTION_SORT_OPTIONS,
+  getFederationSelectionSortLabel,
+  getFederationSelectionSortValue,
+  sortFederationSelectionRiders,
+  type FederationSelectionSortDirection,
+  type FederationSelectionSortKey,
+} from "@/lib/game/federation-selection-ranking";
+import {
+  getRaceClimatePerformanceAdjustment,
+  getRaceWeatherLabel,
+  getRaceWindLabel,
+  getRiderClimateProfile,
+  type RiderClimateProfile,
+} from "@/lib/game/race-weather";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
 
@@ -44,6 +64,15 @@ const SELECTION_SLOTS: SelectionSlot[] = [
   { id: "world-junior-itt", label: "Mondiaux Juniors · CLM", competition: "Championnats du monde juniors", category: "junior", profile: "Chrono", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
 ];
 
+const PRIMARY_RATING_COLUMNS = [
+  { key: "mountain", label: "MO" },
+  { key: "hills", label: "VAL" },
+  { key: "flat", label: "PL" },
+  { key: "timeTrial", label: "CLM" },
+  { key: "cobbles", label: "PAV" },
+  { key: "sprint", label: "SPR" },
+] as const;
+
 export function FederationSelectionWorkbench({
   countryCode,
   countryName,
@@ -61,6 +90,10 @@ export function FederationSelectionWorkbench({
   const [query, setQuery] = useState("");
   const [team, setTeam] = useState("all");
   const [profile, setProfile] = useState("all");
+  const [sortKey, setSortKey] =
+    useState<FederationSelectionSortKey>("overall");
+  const [sortDirection, setSortDirection] =
+    useState<FederationSelectionSortDirection>("descending");
   const [automaticSelection, setAutomaticSelection] = useState(
     selectionState?.automaticSelection ?? true,
   );
@@ -97,6 +130,8 @@ export function FederationSelectionWorkbench({
     : baseSlot;
   const selected = selectedBySlot[slot.id] ?? [];
   const storedSelection = selectionState?.selections[slot.id] ?? null;
+  const forecast = selectionState?.forecasts[slot.id] ?? null;
+  const publishedWeather = forecast?.weather ?? null;
   const canManage = gameYear >= 3 && selectionState?.canManage === true;
   const availableTeams = useMemo(
     () => [...new Set(riders.filter((rider) => rider.category === slot.category).map((rider) => rider.teamName))].sort((a, b) => a.localeCompare(b, "fr")),
@@ -104,13 +139,41 @@ export function FederationSelectionWorkbench({
   );
   const filteredRiders = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("fr");
-    return riders.filter((rider) =>
-      rider.category === slot.category &&
-      (team === "all" || rider.teamName === team) &&
-      (profile === "all" || rider.profile === profile) &&
-      (!normalizedQuery || `${rider.name} ${rider.teamName}`.toLocaleLowerCase("fr").includes(normalizedQuery)),
+    return sortFederationSelectionRiders(
+      riders.filter((rider) =>
+        rider.category === slot.category &&
+        (team === "all" || rider.teamName === team) &&
+        (profile === "all" || rider.profile === profile) &&
+        (!normalizedQuery || `${rider.name} ${rider.teamName}`.toLocaleLowerCase("fr").includes(normalizedQuery)),
+      ),
+      {
+        key: sortKey,
+        direction: sortDirection,
+        countryCode,
+        weather: publishedWeather,
+      },
     );
-  }, [profile, query, riders, slot.category, team]);
+  }, [countryCode, profile, publishedWeather, query, riders, slot.category, sortDirection, sortKey, team]);
+
+  function updateSort(nextKey: FederationSelectionSortKey) {
+    if (nextKey === "weatherAffinity" && !publishedWeather) return;
+    if (nextKey === sortKey) {
+      setSortDirection((current) =>
+        current === "descending" ? "ascending" : "descending",
+      );
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection("descending");
+  }
+
+  function changeSlot(nextSlotId: string) {
+    setSlotId(nextSlotId);
+    setTeam("all");
+    setProfile("all");
+    setSortKey("overall");
+    setSortDirection("descending");
+  }
 
   function toggleRider(riderId: string) {
     setSelectedBySlot((current) => {
@@ -167,7 +230,7 @@ export function FederationSelectionWorkbench({
           </div>
           <label>
             <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">Épreuve à préparer</span>
-            <select value={slot.id} onChange={(event) => { setSlotId(event.target.value); setTeam("all"); setProfile("all"); }} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[var(--federation-secondary)]">
+            <select value={slot.id} onChange={(event) => changeSlot(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[var(--federation-secondary)]">
               {SELECTION_SLOTS.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.label}</option>)}
             </select>
           </label>
@@ -177,7 +240,7 @@ export function FederationSelectionWorkbench({
       {slot.competition === "Nations Cup" ? (
         <nav aria-label="Profils de la Nations Cup" className="grid grid-cols-2 gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 sm:grid-cols-5">
           {SELECTION_SLOTS.filter((candidate) => candidate.competition === "Nations Cup").map((candidate) => (
-            <button key={candidate.id} type="button" onClick={() => setSlotId(candidate.id)} className={`rounded-xl px-3 py-3 text-xs font-black transition ${candidate.id === slot.id ? "bg-[var(--federation-primary)] text-white" : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"}`}>
+            <button key={candidate.id} type="button" onClick={() => changeSlot(candidate.id)} className={`rounded-xl px-3 py-3 text-xs font-black transition ${candidate.id === slot.id ? "bg-[var(--federation-primary)] text-white" : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"}`}>
               {candidate.nationsCupProfile}
             </button>
           ))}
@@ -194,27 +257,48 @@ export function FederationSelectionWorkbench({
               <p className="mt-1 text-xs font-semibold text-[#D6DFD2]">Profil : {slot.profile}</p>
             </div>
           </div>
-          <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-center">
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#BFD1C6]">Liste</p>
-            <p className="mt-1 text-2xl font-black text-[#F2C94C]">{selected.length}/{slot.limit}</p>
+          <div className="flex flex-wrap items-stretch justify-end gap-3">
+            <SelectionWeatherSummary
+              forecast={forecast}
+              gameYear={gameYear}
+            />
+            <div className="min-w-24 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-center">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#BFD1C6]">Liste</p>
+              <p className="mt-1 text-2xl font-black text-[#F2C94C]">{selected.length}/{slot.limit}</p>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-3 border-b border-[#315B3E]/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 border-b border-[#315B3E]/10 p-5 sm:grid-cols-2 lg:grid-cols-5">
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Nationalité verrouillée</span><span className="mt-2 flex min-h-11 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#EEF3F1] px-3 text-sm font-black text-[#183F37]"><span className={`fi fi-${countryCode.toLowerCase()}`} />{countryName}</span></label>
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Recherche</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Coureur ou équipe" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[var(--federation-secondary)]" /></label>
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Équipe</span><select value={team} onChange={(event) => setTeam(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37]"><option value="all">Toutes</option>{availableTeams.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Profil</span><select value={profile} onChange={(event) => setProfile(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37]"><option value="all">Tous</option>{["Montagne", "Vallons", "Sprint", "Pavés", "Chrono", "Polyvalent"].map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
+          <label>
+            <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Trier par</span>
+            <span className="mt-2 flex gap-2">
+              <select value={sortKey} onChange={(event) => updateSort(event.target.value as FederationSelectionSortKey)} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37]">
+                {FEDERATION_SELECTION_SORT_OPTIONS.map((option) => <option key={option.key} value={option.key} disabled={option.key === "weatherAffinity" && !publishedWeather}>{option.label}</option>)}
+              </select>
+              <button type="button" onClick={() => setSortDirection((current) => current === "descending" ? "ascending" : "descending")} aria-label={sortDirection === "descending" ? "Trier par ordre croissant" : "Trier par ordre décroissant"} title={sortDirection === "descending" ? "Ordre décroissant" : "Ordre croissant"} className="grid min-h-11 min-w-11 place-items-center rounded-xl border border-[#315B3E]/15 bg-[#F8FBF9] text-base font-black text-[#315B3E]">
+                {sortDirection === "descending" ? "↓" : "↑"}
+              </button>
+            </span>
+          </label>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1050px] w-full border-collapse text-left">
-            <thead className="bg-[#F2F8F5] text-[9px] font-black uppercase tracking-[0.11em] text-[#60756E]"><tr><th className="px-5 py-3">Choix</th><th className="px-3 py-3">Coureur</th><th className="px-3 py-3">Équipe</th><th className="px-3 py-3">Profil</th>{["MO", "VAL", "PL", "CLM", "PAV", "SPR"].map((label) => <th key={label} className="px-2 py-3 text-center">{label}</th>)}<th className="px-3 py-3 text-center">Moy.</th><th className="px-5 py-3">Accord</th></tr></thead>
+          <table className="min-w-[1280px] w-full border-collapse text-left">
+            <thead className="bg-[#F2F8F5] text-[9px] font-black uppercase tracking-[0.11em] text-[#60756E]"><tr><th className="px-5 py-3">Choix</th><th className="px-3 py-3">Coureur</th><th className="px-3 py-3">Équipe</th><th className="px-3 py-3">Profil</th>{PRIMARY_RATING_COLUMNS.map((column) => <SortableRatingHeader key={column.key} label={column.label} sortKey={column.key} activeSortKey={sortKey} direction={sortDirection} onSort={updateSort} />)}<SortableRatingHeader label="Moy." sortKey="overall" activeSortKey={sortKey} direction={sortDirection} onSort={updateSort} /><SortableRatingHeader label="Affinités météo" sortKey="weatherAffinity" activeSortKey={sortKey} direction={sortDirection} onSort={updateSort} disabled={!publishedWeather} wide /><th className="px-5 py-3">Accord</th></tr></thead>
             <tbody className="divide-y divide-[#315B3E]/10">
               {filteredRiders.map((rider) => {
                 const isSelected = selected.includes(rider.id);
                 const limitReached = !isSelected && selected.length >= slot.limit;
-                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p></td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{Object.values(rider.ratings).map((rating, index) => <td key={index} className="px-2 py-4 text-center font-black text-[#183F37]">{formatRating(rating)}</td>)}<td className="px-3 py-4 text-center text-base font-black text-[var(--federation-secondary)]">{formatRating(rider.overall)}</td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
+                const climateProfile = getRiderClimateProfile({ riderId: rider.id, countryCode });
+                const weatherAdjustment = publishedWeather ? getRaceClimatePerformanceAdjustment(climateProfile, publishedWeather) : 0;
+                const selectedSortValue = getFederationSelectionSortValue(rider, { key: sortKey, countryCode, weather: publishedWeather });
+                const showSecondarySortValue = !["overall", "weatherAffinity", ...PRIMARY_RATING_COLUMNS.map((column) => column.key)].includes(sortKey);
+                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p>{showSecondarySortValue ? <p className="mt-2 inline-flex rounded-full bg-[#FFF5C8] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#745B00]">{getFederationSelectionSortLabel(sortKey)} · {formatRating(selectedSortValue)}</p> : null}</td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{PRIMARY_RATING_COLUMNS.map((column) => <td key={column.key} className={`px-2 py-4 text-center font-black ${sortKey === column.key ? "bg-[#FFF9DE] text-[#745B00]" : "text-[#183F37]"}`}>{formatRating(rider.ratings[column.key])}</td>)}<td className={`px-3 py-4 text-center text-base font-black ${sortKey === "overall" ? "bg-[#FFF9DE] text-[#745B00]" : "text-[var(--federation-secondary)]"}`}>{formatRating(rider.overall)}</td><td className={`min-w-48 px-3 py-4 ${sortKey === "weatherAffinity" ? "bg-[#FFF9DE]" : ""}`}><RiderClimateAffinities profile={climateProfile} adjustment={publishedWeather && rider.category === "professional" && forecast?.isOfficialCourse ? weatherAdjustment : null} /></td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
               })}
             </tbody>
           </table>
@@ -279,6 +363,145 @@ function getSlotHostingEventType(
   if (slotId === "nc-junior-road") return "nations_cup_junior";
   if (slotId.startsWith("nc-")) return "nations_cup_pro";
   return null;
+}
+
+function SelectionWeatherSummary({
+  forecast,
+  gameYear,
+}: {
+  forecast: FederationSelectionForecast | null;
+  gameYear: number;
+}) {
+  if (!forecast) {
+    return (
+      <div className="min-w-52 rounded-2xl border border-white/15 bg-white/10 px-4 py-3">
+        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#BFD1C6]">
+          Météo fédérale
+        </p>
+        <p className="mt-1 text-xs font-bold text-white">
+          Prévision en attente du calendrier
+        </p>
+      </div>
+    );
+  }
+
+  if (!forecast.weather) {
+    return (
+      <div className="min-w-52 rounded-2xl border border-white/15 bg-white/10 px-4 py-3">
+        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#BFD1C6]">
+          Météo fédérale · sans centre météo
+        </p>
+        <p className="mt-1 text-sm font-black text-white">
+          Disponible {forecast.gameYear > gameYear ? `en S${forecast.gameYear} · ` : ""}J{forecast.revealDayNumber}
+        </p>
+        <p className="mt-1 text-[10px] font-semibold text-[#D6DFD2]">
+          À l’ouverture de la fenêtre de convocation
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-w-56 rounded-2xl border border-[#F2C94C]/35 bg-white/10 px-4 py-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#F2C94C]">
+        Prévision fédérale · {forecast.isOfficialCourse ? "parcours officiel" : "créneau officiel"}
+      </p>
+      <p className="mt-1 text-sm font-black text-white">
+        {getRaceWeatherLabel(forecast.weather)} · {forecast.weather.temperatureC} °C
+      </p>
+      <p className="mt-1 text-[10px] font-semibold text-[#D6DFD2]">
+        {getRaceWindLabel(forecast.weather.windDirection)} · {forecast.weather.windSpeedKph} km/h
+      </p>
+    </div>
+  );
+}
+
+function SortableRatingHeader({
+  label,
+  sortKey,
+  activeSortKey,
+  direction,
+  onSort,
+  disabled = false,
+  wide = false,
+}: {
+  label: string;
+  sortKey: FederationSelectionSortKey;
+  activeSortKey: FederationSelectionSortKey;
+  direction: FederationSelectionSortDirection;
+  onSort: (key: FederationSelectionSortKey) => void;
+  disabled?: boolean;
+  wide?: boolean;
+}) {
+  const isActive = activeSortKey === sortKey;
+  return (
+    <th className={`${wide ? "min-w-48" : ""} px-2 py-2 text-center`}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onSort(sortKey)}
+        title={
+          disabled
+            ? "Disponible lorsque la prévision est publiée"
+            : `Trier par ${label}`
+        }
+        className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-lg px-2 transition ${
+          isActive
+            ? "bg-[#DCEFE7] text-[#176951]"
+            : disabled
+              ? "cursor-not-allowed text-[#A3AEA9]"
+              : "hover:bg-[#E5F4ED] hover:text-[#176951]"
+        }`}
+      >
+        {label}
+        {isActive ? (
+          <span aria-hidden="true">
+            {direction === "descending" ? "↓" : "↑"}
+          </span>
+        ) : null}
+      </button>
+    </th>
+  );
+}
+
+function RiderClimateAffinities({
+  profile,
+  adjustment,
+}: {
+  profile: RiderClimateProfile;
+  adjustment: number | null;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span
+        title="Condition favorite"
+        className="inline-flex items-center gap-1 rounded-full bg-[#E5F4ED] px-2 py-1 text-[9px] font-black text-[#176951]"
+      >
+        <RiderClimateIcon preference={profile.strength} className="h-3.5 w-3.5" />
+        + {RIDER_CLIMATE_LABELS[profile.strength]}
+      </span>
+      <span
+        title="Condition difficile"
+        className="inline-flex items-center gap-1 rounded-full bg-[#FFF0EE] px-2 py-1 text-[9px] font-black text-[#8A2F2F]"
+      >
+        <RiderClimateIcon preference={profile.weakness} className="h-3.5 w-3.5" />
+        − {RIDER_CLIMATE_LABELS[profile.weakness]}
+      </span>
+      {adjustment !== null ? (
+        <span
+          className={`rounded-full px-2 py-1 text-[9px] font-black ${
+            adjustment > 0
+              ? "bg-[#176951] text-white"
+              : adjustment < 0
+                ? "bg-[#8A2F2F] text-white"
+                : "bg-[#EEF3F1] text-[#526B62]"
+          }`}
+        >
+          Impact {adjustment > 0 ? "+" : ""}{formatRating(adjustment)}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function SelectionAutomaticModeControl({

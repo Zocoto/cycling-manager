@@ -78,7 +78,6 @@ type NationalFederationViewProps = {
   objectiveMetrics?: FederationObjectiveMetrics | null;
   memberTeamJerseys?: Record<string, FederationTeamJerseyArtwork>;
   amateurAffiliationState?: AmateurTeamAffiliationState | null;
-  affiliationCountries?: Array<{ id: string; name: string; code: string }>;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -151,7 +150,6 @@ export function NationalFederationView({
   objectiveMetrics = null,
   memberTeamJerseys = {},
   amateurAffiliationState = null,
-  affiliationCountries = [],
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -268,7 +266,6 @@ export function NationalFederationView({
             objectiveMetrics={objectiveMetrics}
             memberTeamJerseys={memberTeamJerseys}
             amateurAffiliationState={amateurAffiliationState}
-            affiliationCountries={affiliationCountries}
           />
         ) : selectedTab === "selections" ? (
           <SelectionsPanel
@@ -378,7 +375,6 @@ function OverviewPanel({
   objectiveMetrics,
   memberTeamJerseys,
   amateurAffiliationState,
-  affiliationCountries,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
@@ -390,7 +386,6 @@ function OverviewPanel({
   objectiveMetrics: FederationObjectiveMetrics | null;
   memberTeamJerseys: Record<string, FederationTeamJerseyArtwork>;
   amateurAffiliationState: AmateurTeamAffiliationState | null;
-  affiliationCountries: Array<{ id: string; name: string; code: string }>;
 }) {
   const objectiveGameYear = Math.max(
     FEDERATION_MANAGEMENT_START_GAME_YEAR,
@@ -444,11 +439,8 @@ function OverviewPanel({
         />
       </section>
 
-      {amateurAffiliationState && affiliationCountries.length > 0 ? (
-        <AmateurTeamAffiliationPanel
-          countries={affiliationCountries}
-          state={amateurAffiliationState}
-        />
+      {amateurAffiliationState ? (
+        <AmateurTeamAffiliationPanel state={amateurAffiliationState} />
       ) : null}
 
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">

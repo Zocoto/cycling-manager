@@ -21,6 +21,13 @@ export type FederationSelectionRider = {
     timeTrial: number;
     cobbles: number;
     sprint: number;
+    acceleration: number;
+    downhill: number;
+    endurance: number;
+    resistance: number;
+    recovery: number;
+    breakaway: number;
+    prologue: number;
   };
 };
 
@@ -38,6 +45,13 @@ type RatingRow = {
   time_trial: number;
   cobbles: number;
   sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
 };
 type ContractRow = { rider_id: string; team_id: string };
 type TeamSeasonRow = { team_id: string; display_name: string };
@@ -62,6 +76,13 @@ type JuniorRow = {
   time_trial: number | string;
   cobbles: number | string;
   sprint: number | string;
+  acceleration: number | string;
+  downhill: number | string;
+  endurance: number | string;
+  resistance: number | string;
+  recovery: number | string;
+  breakaway: number | string;
+  prologue: number | string;
 };
 
 const getCachedFederationSelectionPool = unstable_cache(
@@ -108,7 +129,7 @@ async function loadFederationSelectionPool({
     admin
       .from("youth_academy_riders")
       .select(
-        "id, team_id, first_name, last_name, birth_game_year, mountain, hills, flat, time_trial, cobbles, sprint",
+        "id, team_id, first_name, last_name, birth_game_year, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
       )
       .eq("country_id", countryId)
       .in("status", ["active", "recruited"])
@@ -129,7 +150,7 @@ async function loadFederationSelectionPool({
       ? admin
           .from("rider_season_ratings")
           .select(
-            "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint",
+            "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
           )
           .eq("season_id", seasonId)
           .in("rider_id", riderIds)
@@ -226,6 +247,13 @@ async function loadFederationSelectionPool({
       timeTrial: rating.time_trial,
       cobbles: rating.cobbles,
       sprint: rating.sprint,
+      acceleration: rating.acceleration,
+      downhill: rating.downhill,
+      endurance: rating.endurance,
+      resistance: rating.resistance,
+      recovery: rating.recovery,
+      breakaway: rating.breakaway,
+      prologue: rating.prologue,
     };
     const teamId = teamIdByRiderId.get(rider.id);
     return [
@@ -256,6 +284,13 @@ async function loadFederationSelectionPool({
       timeTrial: Number(junior.time_trial),
       cobbles: Number(junior.cobbles),
       sprint: Number(junior.sprint),
+      acceleration: Number(junior.acceleration),
+      downhill: Number(junior.downhill),
+      endurance: Number(junior.endurance),
+      resistance: Number(junior.resistance),
+      recovery: Number(junior.recovery),
+      breakaway: Number(junior.breakaway),
+      prologue: Number(junior.prologue),
     };
     return {
       id: junior.id,

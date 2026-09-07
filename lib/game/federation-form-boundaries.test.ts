@@ -28,11 +28,11 @@ describe("federation form boundaries", () => {
     },
   );
 
-  it("allows affiliation with an existing sponsor and keeps the limits explicit", () => {
+  it("only aligns the amateur team nationality with its current federation after one full season", () => {
     const migration = readFileSync(
       join(
         process.cwd(),
-        "supabase/migrations/20260906121000_allow_sponsored_amateur_affiliation_transfer.sql",
+        "supabase/migrations/20260907100000_restrict_amateur_team_nationality_change_to_federation.sql",
       ),
       "utf8",
     ).replace(/\r\n/g, "\n");
@@ -44,11 +44,19 @@ describe("federation form boundaries", () => {
       "utf8",
     ).replace(/\r\n/g, "\n");
 
-    expect(migration).not.toContain("from public.team_sponsor_contracts");
-    expect(migration).toContain("team_national_affiliation_changes");
-    expect(migration).toContain("set home_country_id = v_new_country.id");
-    expect(panel).toContain("Aucune ancienneté minimale n’est requise");
-    expect(panel).toContain("le sponsor et les contrats déjà signés restent");
+    expect(migration).toContain(
+      "p_country_id is distinct from v_federation_country.id",
+    );
+    expect(migration).toContain(
+      "previous_season.game_year = v_season.game_year - 1",
+    );
+    expect(migration).toContain("previous_team_season.status = 'completed'");
+    expect(migration).toContain("set home_country_id = v_federation_country.id");
+    expect(migration).not.toContain("set registration_country_id =");
+    expect(panel).not.toContain("<select");
+    expect(panel).toContain('value={state.federationCountryId}');
+    expect(panel).toContain("Une saison complète dans cette fédération est requise");
+    expect(panel).toContain("les sponsors");
   });
 
   it("loads federation member jerseys from the production contract table", () => {

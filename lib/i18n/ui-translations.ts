@@ -218,6 +218,55 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Build all seven performance facilities: indoor track, cryotherapy centre, wind tunnel, R&D lab, international welcome centre, weather centre and Media Centre. Reward: one Precision Architect’s T-square.",
   "Réunir trois membres actifs du staff ayant la nationalité de l’équipe, définie par son sponsor. Récompense : un Insigne d’expertise.":
     "Employ three active staff members with the team nationality set by its sponsor. Reward: one Expertise Badge.",
+  "Nationalité de l’équipe": "Team nationality",
+  "Actuelle": "Current",
+  "Fédération": "Federation",
+  "Ancrer votre équipe amateur dans la fédération":
+    "Root your amateur team in the federation",
+  "Alignez durablement la nationalité sportive de votre équipe amateur sur celle de la fédération. Elle contribue à déterminer les sponsors qui vous contacteront en fin de saison.":
+    "Permanently align your amateur team’s sporting nationality with the federation. It helps determine which sponsors will contact you at the end of the season.",
+  "Une saison complète dans cette fédération est requise. Les coureurs et les contrats en cours restent inchangés.":
+    "One full season in this federation is required. Riders and current contracts remain unchanged.",
+  "Je confirme l’adoption de la nationalité sportive :":
+    "I confirm the adoption of the following sporting nationality:",
+  "Confirmer le changement": "Confirm the change",
+  "Changement…": "Changing…",
+  "Votre équipe porte déjà la nationalité sportive de cette fédération.":
+    "Your team already holds this federation’s sporting nationality.",
+  "Ce changement sera disponible en Saison":
+    "This change will become available in Season",
+  "si votre équipe reste affiliée à cette fédération.":
+    "if your team remains affiliated with this federation.",
+  "Le changement de nationalité a déjà été utilisé cette saison.":
+    "The nationality change has already been used this season.",
+  "Confirmez le changement de nationalité sportive.":
+    "Confirm the sporting nationality change.",
+  "Le changement de nationalité n’a pas abouti.":
+    "The nationality change could not be completed.",
+  "Nationalité sportive adoptée": "Sporting nationality adopted",
+  "Elle sera prise en compte dans les prochaines affinités sponsors.":
+    "It will be reflected in future sponsor affinities.",
+  "Trier par": "Sort by",
+  "Ordre décroissant": "Descending order",
+  "Ordre croissant": "Ascending order",
+  "Trier par ordre croissant": "Sort in ascending order",
+  "Trier par ordre décroissant": "Sort in descending order",
+  "Affinités météo": "Weather affinities",
+  "Affinité avec la météo annoncée": "Affinity with the forecast weather",
+  "Météo fédérale": "Federation weather",
+  "Météo fédérale · sans centre météo":
+    "Federation weather · no weather centre required",
+  "Prévision fédérale · parcours officiel":
+    "Federation forecast · official course",
+  "Prévision fédérale · créneau officiel":
+    "Federation forecast · official event slot",
+  "Prévision en attente du calendrier": "Forecast awaiting the calendar",
+  "À l’ouverture de la fenêtre de convocation":
+    "When the call-up window opens",
+  "Disponible lorsque la prévision est publiée":
+    "Available once the forecast is published",
+  "Condition favorite": "Preferred conditions",
+  "Condition difficile": "Difficult conditions",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

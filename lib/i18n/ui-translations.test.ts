@@ -12,6 +12,10 @@ describe("French to English UI catalog", () => {
       "Fanclub / Boutique": "Fan Club / Shop",
       Pavés: "Cobblestones",
       "Contre-la-montre": "Time trial",
+      "Affinités météo": "Weather affinities",
+      "Trier par": "Sort by",
+      "Météo fédérale · sans centre météo":
+        "Federation weather · no weather centre required",
     });
   });
 
@@ -25,6 +29,13 @@ describe("French to English UI catalog", () => {
     expect(translateUiText("Erik Van Dijk")).toBe("Erik Van Dijk");
     expect(translateUiText("Coureur · Moyenne générale")).toBe(
       "Rider · Overall average",
+    );
+    expect(
+      translateUiText(
+        "Ce changement sera disponible en Saison 3 si votre équipe reste affiliée à cette fédération.",
+      ),
+    ).toBe(
+      "This change will become available in Season 3 if your team remains affiliated with this federation.",
     );
   });
 });
