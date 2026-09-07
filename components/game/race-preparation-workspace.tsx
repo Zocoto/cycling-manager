@@ -953,7 +953,7 @@ function TacticalBriefingSection({
         }) &&
         validateRaceTacticalAssignments(backupDoctrine, backupRiderIds)));
 
-  if (gameYear < 3) {
+  if (gameYear < 3 && centerLevel < 1) {
     return (
       <section className="border-t border-[#315B3E]/10 bg-[#F5F1E5] p-5 sm:p-7">
         <SectionTitle
@@ -962,8 +962,8 @@ function TacticalBriefingSection({
           description="Le bâtiment permettra de choisir une doctrine conditionnelle avec un bénéfice borné, un coût certain et un débrief intégré à la simulation officielle."
         />
         <p className="mt-4 rounded-2xl border border-[#B98B18]/25 bg-white/70 px-4 py-3 text-xs font-bold leading-5 text-[#71580A]">
-          Le Centre tactique sera constructible en S3 à partir de 3 M€. Aucun
-          effet n’est appliqué à la saison en cours.
+          Le Centre tactique sera constructible en S3 à partir de 3 M€. Les
+          centres pilotes attribués manuellement peuvent être testés dès la S2.
         </p>
       </section>
     );

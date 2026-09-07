@@ -1418,8 +1418,7 @@ export async function getActiveSeasonRaceCalendar(
                 teamStrategies: teamStrategiesByStageId.get(stage.id),
               }
             : {}),
-          ...(season.game_year >= 3 &&
-          teamTacticalBriefingsByStageId.has(stage.id)
+          ...(teamTacticalBriefingsByStageId.has(stage.id)
             ? {
                 teamTacticalBriefings:
                   teamTacticalBriefingsByStageId.get(stage.id),

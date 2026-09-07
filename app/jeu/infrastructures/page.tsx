@@ -378,7 +378,9 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         balance={overview.balance}
                         currency={overview.currency}
                         prerequisiteMessage={
-                          code === "tactical_center" && overview.gameYear < 3
+                          code === "tactical_center" &&
+                          overview.gameYear < 3 &&
+                          overview.infrastructureLevels.tactical_center < 1
                             ? "Le Centre tactique ouvre avec la saison 3."
                             : code === "club_shop" &&
                                 overview.infrastructureLevels

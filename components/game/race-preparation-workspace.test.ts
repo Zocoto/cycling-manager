@@ -47,8 +47,8 @@ describe("race preparation individual missions", () => {
     expect(source.indexOf("</form>\n\n      <TacticalBriefingSection")).toBeGreaterThan(-1);
   });
 
-  it("annonce la fonctionnalité en S2 sans appliquer d’effet", () => {
-    expect(source).toContain("if (gameYear < 3)");
-    expect(source).toMatch(/Aucun\s+effet n’est appliqué à la saison en cours/);
+  it("annonce la fonctionnalité en S2 tout en ouvrant les centres pilotes", () => {
+    expect(source).toContain("if (gameYear < 3 && centerLevel < 1)");
+    expect(source).toMatch(/centres pilotes\s+attribués manuellement/);
   });
 });
