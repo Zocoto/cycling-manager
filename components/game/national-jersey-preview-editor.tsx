@@ -27,7 +27,7 @@ type NationalJerseyPreviewEditorProps = {
   countryCode: string;
   countryName: string;
   publishedJersey: PublishedNationalJersey | null;
-  canPublish: boolean;
+  canEdit: boolean;
 };
 
 const SHAPES: Array<{ value: NationalJerseyElementShape; label: string }> = [
@@ -58,7 +58,7 @@ export function NationalJerseyPreviewEditor({
   countryCode,
   countryName,
   publishedJersey,
-  canPublish,
+  canEdit,
 }: NationalJerseyPreviewEditorProps) {
   const [draft, setDraft] = useState<NationalJerseyDraft>(
     publishedJersey?.design ?? DEFAULT_NATIONAL_JERSEY_DRAFT,
@@ -205,6 +205,36 @@ export function NationalJerseyPreviewEditor({
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+      {!canEdit ? (
+        <aside
+          role="note"
+          className="m-6 flex gap-4 rounded-2xl border border-[#D5AC18]/35 bg-[#FFF9DE] p-5 text-[#4A3A00] sm:m-8"
+        >
+          <span
+            aria-hidden="true"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-xl"
+          >
+            🔒
+          </span>
+          <div>
+            <p className="font-black">Modification réservée à la présidence</p>
+            <p className="mt-1 text-sm font-semibold leading-6">
+              Seul le président élu de la fédération peut composer, modifier
+              ou publier le maillot national. L’atelier reste visible en
+              consultation pour les autres membres.
+            </p>
+          </div>
+        </aside>
+      ) : null}
+
+      <fieldset
+        disabled={!canEdit}
+        aria-disabled={!canEdit}
+        className={`min-w-0 border-0 p-0 ${!canEdit ? "opacity-55 grayscale-[0.25]" : ""}`}
+      >
+        <legend className="sr-only">
+          Atelier présidentiel du maillot national
+        </legend>
       <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-center">
         <JerseyArtwork
           countryCode={countryCode}
@@ -219,6 +249,9 @@ export function NationalJerseyPreviewEditor({
             </p>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/85">
               Toutes fédérations
+            </span>
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/85">
+              {canEdit ? "Accès présidentiel" : "Consultation uniquement"}
             </span>
           </div>
           <h2 className="mt-3 text-3xl font-black">
@@ -427,7 +460,7 @@ export function NationalJerseyPreviewEditor({
               </div>
               <button
                 type="submit"
-                disabled={!canPublish || publishPending}
+                disabled={!canEdit || publishPending}
                 className="shrink-0 rounded-xl bg-[var(--federation-accent)] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {publishPending
@@ -441,13 +474,14 @@ export function NationalJerseyPreviewEditor({
               aria-live="polite"
               className={`mt-3 text-xs font-bold ${publishState.status === "error" ? "text-[#FFB0B6]" : "text-[var(--federation-accent)]"}`}
             >
-              {!canPublish
-                ? "La validation est réservée aux équipes affiliées à cette fédération."
+              {!canEdit
+                ? "La composition et la validation sont réservées au président élu de cette fédération."
                 : publishState.message || "Votre brouillon n’affecte pas le maillot publié avant validation."}
             </p>
           </form>
         </div>
       </div>
+      </fieldset>
     </section>
   );
 }

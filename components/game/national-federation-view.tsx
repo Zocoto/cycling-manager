@@ -829,7 +829,7 @@ function GovernancePanel({
         countryCode={country.code}
         countryName={country.name}
         publishedJersey={publishedJersey}
-        canPublish={snapshot.viewer.isAffiliated}
+        canEdit={governanceOverview?.viewerIsPresident === true}
       />
     </div>
   );

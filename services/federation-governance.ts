@@ -44,6 +44,7 @@ export type FederationGovernanceOverview = {
   canApply: boolean;
   canVote: boolean;
   candidacyBlockReason: string | null;
+  viewerIsPresident: boolean;
   presidentName: string | null;
   candidates: FederationElectionCandidate[];
   journal: FederationJournalEntry[];
@@ -83,6 +84,7 @@ type TermRow = {
   governance_mode: "automatic" | "elected";
   president_director_id: string | null;
 };
+type AssignmentRow = { sporting_director_id: string };
 type JournalRow = {
   id: string;
   day_number: number | null;
@@ -119,7 +121,12 @@ export async function getFederationGovernanceOverview({
     if (settlementResult.error) throw settlementResult.error;
     const targetTermStart =
       season.gameYear % 2 === 0 ? season.gameYear + 1 : season.gameYear;
-    const [electionsResult, termResult, journalResult] = await Promise.all([
+    const [
+      electionsResult,
+      termResult,
+      journalResult,
+      viewerAssignmentResult,
+    ] = await Promise.all([
       admin
         .from("national_federation_elections")
         .select(
@@ -144,11 +151,21 @@ export async function getFederationGovernanceOverview({
         .order("created_at", { ascending: false })
         .limit(20)
         .returns<JournalRow[]>(),
+      viewerTeamId
+        ? admin
+            .from("team_manager_assignments")
+            .select("sporting_director_id")
+            .eq("team_id", viewerTeamId)
+            .eq("role", "general_manager")
+            .eq("status", "active")
+            .maybeSingle<AssignmentRow>()
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (electionsResult.error) throw electionsResult.error;
     if (termResult.error) throw termResult.error;
     if (journalResult.error) throw journalResult.error;
+    if (viewerAssignmentResult.error) throw viewerAssignmentResult.error;
 
     const elections = electionsResult.data ?? [];
     const activeExceptionalElection = elections.find(
@@ -176,6 +193,11 @@ export async function getFederationGovernanceOverview({
       termResult.data?.president_director_id ??
       election?.elected_director_id ??
       null;
+    const viewerDirectorId =
+      viewerAssignmentResult.data?.sporting_director_id ?? null;
+    const viewerIsPresident = Boolean(
+      viewerDirectorId && viewerDirectorId === presidentDirectorId,
+    );
     const presidentResult = presidentDirectorId
       ? await admin
           .from("sporting_directors")
@@ -188,6 +210,7 @@ export async function getFederationGovernanceOverview({
     if (!election) {
       return {
         ...scheduled,
+        viewerIsPresident,
         presidentName: presidentResult.data?.display_name ?? null,
         journal,
       };
@@ -320,6 +343,7 @@ export async function getFederationGovernanceOverview({
         viewerElector && !viewerCanStand
           ? "Votre prochain sponsor principal affiliera votre équipe à une autre fédération pendant ce mandat : vous ne pouvez pas vous présenter."
           : null,
+      viewerIsPresident,
       presidentName: presidentResult.data?.display_name ?? null,
       candidates,
       journal,
@@ -347,6 +371,7 @@ function createScheduledOverview(gameYear: number): FederationGovernanceOverview
     canApply: false,
     canVote: false,
     candidacyBlockReason: null,
+    viewerIsPresident: false,
     presidentName: null,
     candidates: [],
     journal: [],

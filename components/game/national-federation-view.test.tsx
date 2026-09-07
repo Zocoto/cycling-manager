@@ -183,6 +183,7 @@ describe("NationalFederationView", () => {
           canApply: false,
           canVote: false,
           candidacyBlockReason: null,
+          viewerIsPresident: false,
           presidentName: null,
           candidates: [],
           journal: [],
@@ -217,11 +218,19 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Forme");
     expect(markup).toContain("Repartir de zéro");
     expect(markup).toContain("Valider et publier");
+    expect(markup).toContain("Modification réservée à la présidence");
+    expect(markup).toContain(
+      "Seul le président élu de la fédération peut composer",
+    );
+    expect(markup).toContain("<fieldset disabled");
+    expect(markup).toContain("Consultation uniquement");
     expect(markup).toContain("Prochaine élection programmée");
     expect(markup).not.toContain("Créer une course du pays");
     expect(markup).toContain("J21–J24");
     expect(markup).not.toContain("Filet de sécurité automatique");
-    expect(markup).toContain("Votre brouillon n’affecte pas le maillot publié");
+    expect(markup).toContain(
+      "La composition et la validation sont réservées au président élu",
+    );
     expect(markup).toContain("<form");
   });
 
@@ -249,7 +258,26 @@ describe("NationalFederationView", () => {
         financeBaseline={null}
         selectionRiders={[]}
         internationalResults={null}
-        governanceOverview={null}
+        governanceOverview={{
+          phase: "finalized",
+          electionType: "regular",
+          termStartGameYear: 3,
+          termEndGameYear: 4,
+          applicationsCloseAt: null,
+          votingCloseAt: null,
+          eligibleTeamCount: 2,
+          voteCount: 2,
+          viewerIsEligible: true,
+          viewerCandidateId: "candidate-president",
+          viewerVotedCandidateId: "candidate-president",
+          canApply: false,
+          canVote: false,
+          candidacyBlockReason: null,
+          viewerIsPresident: true,
+          presidentName: "Présidente Test",
+          candidates: [],
+          journal: [],
+        }}
         selectionState={null}
         treasuryState={null}
         infrastructureState={null}
@@ -260,6 +288,9 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Activation automatique au début de la Saison 3");
     expect(markup).toContain("Modifier cette composition");
     expect(markup).toContain("Mettre à jour la composition réservée");
+    expect(markup).toContain("Accès présidentiel");
+    expect(markup).not.toContain("Modification réservée à la présidence");
+    expect(markup).not.toContain("<fieldset disabled");
   });
 
   it("shows an interactive Season 3 finance forecast without a payment action", () => {

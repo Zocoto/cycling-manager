@@ -24,6 +24,7 @@ describe("FederationElectionPanel", () => {
           canVote: false,
           candidacyBlockReason:
             "Votre prochain sponsor principal affiliera votre équipe à une autre fédération pendant ce mandat : vous ne pouvez pas vous présenter.",
+          viewerIsPresident: false,
           presidentName: null,
           candidates: [],
           journal: [],
