@@ -48,20 +48,42 @@ export function RaceStageProfile({
   return (
     <div>
       <div className="relative overflow-hidden rounded-xl">
-        <svg
-          viewBox={`0 0 1000 ${chart.viewHeight}`}
-          role="img"
-          aria-label={describeProfile(segments)}
-          className={compact ? "h-16 w-full" : "h-28 w-full sm:h-32"}
-          preserveAspectRatio="none"
-        >
-          <title>{describeProfile(segments)}</title>
-          <defs>
-            <linearGradient id={`profile-fill-${tone}-${segments.length}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor={foreground} stopOpacity="0.34" />
-              <stop offset="1" stopColor={foreground} stopOpacity="0.04" />
-            </linearGradient>
-          </defs>
+        {weather || weatherUnavailableLabel ? (
+          <div
+            data-stage-weather-slot="reserved"
+            className="flex min-h-8 items-center justify-end px-1 pb-1"
+          >
+            {weather ? (
+              <StageWeatherCorner weather={weather} compact={compact} />
+            ) : (
+              <span
+                data-stage-weather="hidden"
+                title={weatherUnavailableLabel ?? undefined}
+                aria-label={weatherUnavailableLabel ?? undefined}
+                className="inline-flex items-center gap-1 rounded-lg border border-[#315B3E]/15 bg-white px-1.5 py-1 text-[9px] font-black text-[#60756E] shadow-sm"
+              >
+                <span aria-hidden="true" className="text-sm leading-none">🔒</span>
+                {!compact ? <span>Météo masquée</span> : null}
+              </span>
+            )}
+          </div>
+        ) : null}
+
+        <div className="relative">
+          <svg
+            viewBox={`0 0 1000 ${chart.viewHeight}`}
+            role="img"
+            aria-label={describeProfile(segments)}
+            className={compact ? "h-16 w-full" : "h-28 w-full sm:h-32"}
+            preserveAspectRatio="none"
+          >
+            <title>{describeProfile(segments)}</title>
+            <defs>
+              <linearGradient id={`profile-fill-${tone}-${segments.length}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor={foreground} stopOpacity="0.34" />
+                <stop offset="1" stopColor={foreground} stopOpacity="0.04" />
+              </linearGradient>
+            </defs>
 
           {chart.segments.map((entry) => (
             <g key={`grid-${entry.segment.segmentNumber}`}>
@@ -172,37 +194,24 @@ export function RaceStageProfile({
               </text>
             </>
           ) : null}
-        </svg>
+          </svg>
 
-        {weather ? (
-          <StageWeatherCorner weather={weather} compact={compact} />
-        ) : weatherUnavailableLabel ? (
-          <span
-            data-stage-weather="hidden"
-            title={weatherUnavailableLabel}
-            aria-label={weatherUnavailableLabel}
-            className="pointer-events-none absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded-lg border border-[#315B3E]/15 bg-white/90 px-1.5 py-1 text-[9px] font-black text-[#60756E] shadow-sm backdrop-blur"
-          >
-            <span aria-hidden="true" className="text-sm leading-none">🔒</span>
-            {!compact ? <span>Météo masquée</span> : null}
-          </span>
-        ) : null}
-
-        {onSelectSegment ? (
-          <div className="absolute inset-0 flex" aria-label="Sélection d'un tronçon">
-            {chart.segments.map((entry) => (
-              <button
-                key={`select-${entry.segment.segmentNumber}`}
-                type="button"
-                onClick={() => onSelectSegment(entry.segment.segmentNumber)}
-                className="h-full min-w-0 outline-none transition hover:bg-white/5 focus-visible:bg-white/10"
-                style={{ flexGrow: entry.segment.distanceKm, flexBasis: 0 }}
-                aria-label={describeSegment(entry.segment)}
-                aria-current={entry.segment.segmentNumber === activeSegmentNumber ? "step" : undefined}
-              />
-            ))}
-          </div>
-        ) : null}
+          {onSelectSegment ? (
+            <div className="absolute inset-0 flex" aria-label="Sélection d'un tronçon">
+              {chart.segments.map((entry) => (
+                <button
+                  key={`select-${entry.segment.segmentNumber}`}
+                  type="button"
+                  onClick={() => onSelectSegment(entry.segment.segmentNumber)}
+                  className="h-full min-w-0 outline-none transition hover:bg-white/5 focus-visible:bg-white/10"
+                  style={{ flexGrow: entry.segment.distanceKm, flexBasis: 0 }}
+                  aria-label={describeSegment(entry.segment)}
+                  aria-current={entry.segment.segmentNumber === activeSegmentNumber ? "step" : undefined}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {showLegend ? (
@@ -257,7 +266,7 @@ function StageWeatherCorner({
       data-stage-weather={weather.condition}
       title={`${label} · ${weather.temperatureC} °C · vent ${weather.windSpeedKph} km/h`}
       aria-label={`Météo de l’étape : ${label}, ${weather.temperatureC} degrés, vent ${weather.windSpeedKph} kilomètres par heure`}
-      className={`pointer-events-none absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1.5 rounded-lg border px-1.5 py-1 text-[9px] font-black uppercase tracking-wide shadow-md backdrop-blur ${palette}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-1.5 py-1 text-[9px] font-black uppercase tracking-wide shadow-sm ${palette}`}
     >
       <span aria-hidden="true" className="text-base leading-none">{icon}</span>
       <span className={compact ? "max-w-20 truncate" : ""}>{label}</span>

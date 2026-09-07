@@ -62,8 +62,12 @@ describe("RaceStageProfile", () => {
     );
 
     expect(markup).toContain('data-stage-weather="rain"');
+    expect(markup).toContain('data-stage-weather-slot="reserved"');
     expect(markup).toContain("Pluie continue");
     expect(markup).toContain("Météo de l’étape");
+    expect(markup.indexOf('data-stage-weather="rain"')).toBeLessThan(
+      markup.indexOf("<svg"),
+    );
   });
 
   it("masque la condition et affiche un verrou avant la fenêtre de prévision", () => {
