@@ -5,7 +5,13 @@ import {
   type FederationConstructionPriority,
   type FederationInfrastructureCode,
 } from "@/lib/game/federation-infrastructures";
+import {
+  getSchoolCyclingPlanDeliveryGameYear,
+  getSchoolCyclingPlanTransferPoints,
+  type SchoolCyclingPlanTransferPoints,
+} from "@/lib/game/federation-school-cycling-plan";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { YouthArchetype } from "@/lib/game/youth-development";
 
 export type FederationProjectArchitect = {
   contractId: string;
@@ -50,6 +56,20 @@ export type FederationInfrastructureState = {
   canLaunch: boolean;
   canContribute: boolean;
   balance: number | null;
+  schoolCyclingPlan: FederationSchoolCyclingPlanState | null;
+};
+
+export type FederationSchoolCyclingPlanState = {
+  id: string;
+  historicalArchetype: YouthArchetype;
+  targetArchetype: YouthArchetype;
+  status: "deploying" | "active";
+  cost: number;
+  startsGameDayIndex: number;
+  completesGameDayIndex: number;
+  deliveryGameYear: number;
+  remainingDays: number;
+  transferPoints: SchoolCyclingPlanTransferPoints;
 };
 
 type InfrastructureRow = {
@@ -87,6 +107,15 @@ type StaffMemberRow = {
   architect_specialty: string | null;
 };
 type TeamSeasonRow = { team_id: string; display_name: string };
+type SchoolCyclingPlanRow = {
+  id: string;
+  historical_archetype: YouthArchetype;
+  target_archetype: YouthArchetype;
+  cost: number | string;
+  starts_game_day_index: number;
+  completes_game_day_index: number;
+  status: "deploying" | "active";
+};
 
 const infrastructureCodeSet = new Set<string>(
   FEDERATION_INFRASTRUCTURE_CODES,
@@ -112,12 +141,28 @@ export async function getFederationInfrastructureState({
     canLaunch: false,
     canContribute: gameYear >= 3 && Boolean(viewerTeamId),
     balance: null,
+    schoolCyclingPlan: null,
   };
 
   try {
     const admin = createSupabaseAdminClient();
-    const [infrastructures, projects, assignment, term, account, contracts] =
-      await Promise.all([
+    const schoolPlanSettlement = await admin.rpc(
+      "settle_due_national_federation_school_plans",
+    );
+    if (schoolPlanSettlement.error) {
+      throw new Error(
+        `le déploiement du Plan vélo scolaire : ${schoolPlanSettlement.error.message}`,
+      );
+    }
+    const [
+      infrastructures,
+      projects,
+      assignment,
+      term,
+      account,
+      contracts,
+      schoolCyclingPlan,
+    ] = await Promise.all([
         admin
           .from("national_federation_infrastructures")
           .select("infrastructure_code, level")
@@ -162,6 +207,16 @@ export async function getFederationInfrastructureState({
               .eq("status", "active")
               .returns<ContractRow[]>()
           : Promise.resolve({ data: [], error: null }),
+        admin
+          .from("national_federation_school_cycling_plans")
+          .select(
+            "id, historical_archetype, target_archetype, cost, starts_game_day_index, completes_game_day_index, status",
+          )
+          .eq("country_id", countryId)
+          .in("status", ["deploying", "active"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle<SchoolCyclingPlanRow>(),
       ]);
 
     for (const [result, label] of [
@@ -171,6 +226,7 @@ export async function getFederationInfrastructureState({
       [term, "la présidence fédérale"],
       [account, "la trésorerie fédérale"],
       [contracts, "les architectes du club"],
+      [schoolCyclingPlan, "le Plan vélo scolaire"],
     ] as const) {
       if (result.error) {
         throw new Error(`${label} : ${result.error.message}`);
@@ -392,6 +448,38 @@ export async function getFederationInfrastructureState({
         viewerDirectorId === term.data?.president_director_id,
       canContribute: gameYear >= 3 && Boolean(viewerTeamId),
       balance: account.data ? Number(account.data.balance) : null,
+      schoolCyclingPlan: schoolCyclingPlan.data
+        ? {
+            id: schoolCyclingPlan.data.id,
+            historicalArchetype:
+              schoolCyclingPlan.data.historical_archetype,
+            targetArchetype: schoolCyclingPlan.data.target_archetype,
+            status:
+              currentGameDayIndex >=
+              schoolCyclingPlan.data.completes_game_day_index
+                ? "active"
+                : "deploying",
+            cost: Number(schoolCyclingPlan.data.cost),
+            startsGameDayIndex:
+              schoolCyclingPlan.data.starts_game_day_index,
+            completesGameDayIndex:
+              schoolCyclingPlan.data.completes_game_day_index,
+            deliveryGameYear: getSchoolCyclingPlanDeliveryGameYear(
+              schoolCyclingPlan.data.completes_game_day_index,
+            ),
+            remainingDays: Math.max(
+              0,
+              schoolCyclingPlan.data.completes_game_day_index -
+                currentGameDayIndex,
+            ),
+            transferPoints: getSchoolCyclingPlanTransferPoints({
+              completesGameDayIndex:
+                schoolCyclingPlan.data.completes_game_day_index,
+              currentGameDayIndex,
+              currentGameYear: gameYear,
+            }),
+          }
+        : null,
     };
   } catch (error) {
     console.error("Impossible de charger les infrastructures fédérales :", error);

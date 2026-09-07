@@ -1350,6 +1350,9 @@ function MissionReport({
           </span>
         ) : null}
       </div>
+      {mission.generationProfile ? (
+        <YouthGenerationProfileSummary profile={mission.generationProfile} />
+      ) : null}
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
         {mission.candidates.map((candidate) => (
           <CandidateCard
@@ -1361,6 +1364,45 @@ function MissionReport({
         ))}
       </div>
     </article>
+  );
+}
+
+function YouthGenerationProfileSummary({
+  profile,
+}: {
+  profile: NonNullable<YouthMission["generationProfile"]>;
+}) {
+  return (
+    <aside className="mt-4 rounded-2xl border border-[#315B3E]/12 bg-[#F5F9F7] p-4">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+          Profil de génération du rapport
+        </p>
+        <p className="text-xs font-black text-[#183F37]">
+          Style historique · {profile.historicalArchetypeLabel}
+        </p>
+        <p className="text-xs font-black text-[#176951]">
+          Plan scolaire ·{" "}
+          {profile.schoolPlanArchetypeLabel
+            ? `${profile.schoolPlanArchetypeLabel} (+${profile.schoolPlanTransferPoints} pts)`
+            : "aucun"}
+        </p>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {profile.probabilities.map((probability) => (
+          <span
+            key={probability.archetype}
+            className="rounded-full border border-[#176951]/15 bg-white px-2.5 py-1 text-[9px] font-black text-[#45655C]"
+          >
+            {probability.label} ·{" "}
+            {Number.isInteger(probability.probabilityPercentage)
+              ? probability.probabilityPercentage
+              : probability.probabilityPercentage.toFixed(1).replace(".", ",")}
+            %
+          </span>
+        ))}
+      </div>
+    </aside>
   );
 }
 

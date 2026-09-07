@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  YOUTH_ARCHETYPES,
   YOUTH_INITIAL_PROJECTED_OVERALL_MAX,
   YOUTH_RATING_KEYS,
   calculateCountryWorldReputationFromUciRank,
@@ -12,6 +13,7 @@ import {
   generateYouthPotentialSteps,
   generateYouthRatings,
   getScoutingCandidateCount,
+  getYouthArchetypeProbabilities,
   getYouthScoutingReportDetailLevel,
   rollYouthNativeSpecialAbility,
 } from "@/lib/game/youth-development";
@@ -30,6 +32,94 @@ describe("youth development", () => {
       "puncheur",
     );
   });
+
+  it("transfère les points du plan scolaire depuis le style historique", () => {
+    const probabilities = getYouthArchetypeProbabilities({
+      primary: "climber",
+      secondary: "puncheur",
+      diversityLevel: 2,
+      schoolPlanArchetype: "sprinter",
+      schoolPlanTransferPoints: 6,
+    });
+
+    expect(probabilities).toContainEqual({
+      archetype: "climber",
+      probabilityPercentage: 48,
+    });
+    expect(probabilities).toContainEqual({
+      archetype: "sprinter",
+      probabilityPercentage: 6,
+    });
+    expect(
+      probabilities.reduce(
+        (total, probability) => total + probability.probabilityPercentage,
+        0,
+      ),
+    ).toBe(100);
+  });
+
+  it("applique le plan uniquement sur la tranche retirée au style historique", () => {
+    const baseInput = {
+      primary: "climber" as const,
+      secondary: "puncheur" as const,
+      schoolPlanArchetype: "sprinter" as const,
+      schoolPlanTransferPoints: 10,
+    };
+
+    expect(chooseYouthArchetype({ ...baseInput, random: () => 0.45 })).toBe(
+      "climber",
+    );
+    expect(chooseYouthArchetype({ ...baseInput, random: () => 0.5 })).toBe(
+      "sprinter",
+    );
+    expect(chooseYouthArchetype({ ...baseInput, random: () => 0.7 })).toBe(
+      "puncheur",
+    );
+  });
+
+  it("ignore une orientation identique au style historique", () => {
+    expect(
+      getYouthArchetypeProbabilities({
+        primary: "climber",
+        secondary: "puncheur",
+        schoolPlanArchetype: "climber",
+        schoolPlanTransferPoints: 10,
+      }),
+    ).toContainEqual({
+      archetype: "climber",
+      probabilityPercentage: 56,
+    });
+  });
+
+  it("conserve une distribution valide pour tous les profils et niveaux", () => {
+    for (const primary of YOUTH_ARCHETYPES) {
+      for (const target of YOUTH_ARCHETYPES) {
+        for (let diversityLevel = 0; diversityLevel <= 5; diversityLevel += 1) {
+          const probabilities = getYouthArchetypeProbabilities({
+            primary,
+            secondary: "breakaway",
+            diversityLevel,
+            schoolPlanArchetype: target,
+            schoolPlanTransferPoints: 10,
+          });
+
+          expect(
+            probabilities.reduce(
+              (total, probability) =>
+                total + probability.probabilityPercentage,
+              0,
+            ),
+          ).toBe(100);
+          expect(
+            probabilities.every(
+              (probability) => probability.probabilityPercentage > 0,
+            ),
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
   it("keeps every junior rating between 1 and 6", () => {
     for (const archetype of ["climber", "puncheur", "stage_racer", "northern_classics", "rouleur", "breakaway", "sprinter", "all_rounder"] as const) {
       const ratings = generateYouthRatings({

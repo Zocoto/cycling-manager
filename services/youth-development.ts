@@ -9,6 +9,7 @@ import {
   getBestNaturalizationRequiredDays,
   getFederationInfrastructureEffectPercentage,
 } from "@/lib/game/federation-infrastructure-effects";
+import { getSchoolCyclingPlanTransferPoints } from "@/lib/game/federation-school-cycling-plan";
 import {
   calculateCountryBoundNaturalizationDays,
   evaluateNaturalizationEligibility,
@@ -30,8 +31,10 @@ import {
   getCountryYouthSpecialties,
   getScoutNationalityEfficiencyBonus,
   getScoutingCandidateCount,
+  getYouthArchetypeProbabilities,
   getYouthScoutingReportDetailLevel,
   rollYouthNativeSpecialAbility,
+  YOUTH_ARCHETYPES,
   YOUTH_ARCHETYPE_LABELS,
   YOUTH_RATING_KEYS,
   type YouthArchetype,
@@ -168,6 +171,17 @@ type CandidateRow = {
   native_special_ability_code: string | null;
   federal_tuition_reduction_percentage: number | string;
   scout_tuition_reduction_percentage: number | string;
+  historical_archetype: YouthArchetype | null;
+  school_plan_archetype: YouthArchetype | null;
+  school_plan_transfer_points: number | string;
+  archetype_probabilities: Record<string, unknown> | null;
+};
+
+type SchoolCyclingPlanRow = {
+  target_archetype: YouthArchetype;
+  starts_game_day_index: number;
+  completes_game_day_index: number;
+  created_at: string;
 };
 
 type AcademyRow = Omit<
@@ -179,6 +193,10 @@ type AcademyRow = Omit<
   | "status"
   | "international_center_bonus_applied"
   | "international_center_bonus_percentage"
+  | "historical_archetype"
+  | "school_plan_archetype"
+  | "school_plan_transfer_points"
+  | "archetype_probabilities"
 > & {
   team_id: string;
   joined_season_id: string;
@@ -282,7 +300,21 @@ export type YouthMission = {
   status: MissionRow["status"];
   unread: boolean;
   viewedAt: string | null;
+  generationProfile: YouthGenerationProfile | null;
   candidates: YouthCandidate[];
+};
+
+export type YouthGenerationProfile = {
+  historicalArchetype: YouthArchetype;
+  historicalArchetypeLabel: string;
+  schoolPlanArchetype: YouthArchetype | null;
+  schoolPlanArchetypeLabel: string | null;
+  schoolPlanTransferPoints: number;
+  probabilities: Array<{
+    archetype: YouthArchetype;
+    label: string;
+    probabilityPercentage: number;
+  }>;
 };
 
 export type AcademyYouth = {
@@ -738,6 +770,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       scout?.countryId === context.registrationCountryId
         ? STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE
         : 0;
+    const missionCandidates = candidatesByMission.get(mission.id) ?? [];
     return {
       id: mission.id,
       scoutName: scout ? `${scout.firstName} ${scout.lastName}` : "Scout",
@@ -780,7 +813,8 @@ async function loadOverview(admin: AdminClient, context: Context) {
       status: mission.status,
       unread: mission.status === "completed" && !mission.report_viewed_at,
       viewedAt: mission.report_viewed_at,
-      candidates: (candidatesByMission.get(mission.id) ?? []).map((candidate) =>
+      generationProfile: toYouthGenerationProfile(missionCandidates[0]),
+      candidates: missionCandidates.map((candidate) =>
         toCandidate(
           candidate,
           countryById.get(candidate.country_id),
@@ -1094,11 +1128,13 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const [
     contractResult,
     countryResult,
+    seasonResult,
     facilityResult,
     profileResult,
     centersResult,
     countryRankings,
     federationInfrastructureResult,
+    schoolCyclingPlansResult,
   ] = await Promise.all([
     admin
       .from("staff_contracts")
@@ -1110,6 +1146,11 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       .select("id, name, iso_alpha2, is_active")
       .eq("id", mission.country_id)
       .single<CountryRow>(),
+    admin
+      .from("seasons")
+      .select("id, game_year")
+      .eq("id", mission.season_id)
+      .single<{ id: string; game_year: number }>(),
     admin
       .from("country_cycling_development")
       .select("facility_level")
@@ -1140,9 +1181,19 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         "regional_academies",
       ])
       .returns<Array<{ infrastructure_code: string; level: number }>>(),
+    admin
+      .from("national_federation_school_cycling_plans")
+      .select(
+        "target_archetype, starts_game_day_index, completes_game_day_index, created_at",
+      )
+      .eq("country_id", mission.country_id)
+      .order("starts_game_day_index", { ascending: false })
+      .order("created_at", { ascending: false })
+      .returns<SchoolCyclingPlanRow[]>(),
   ]);
   assertQuery(contractResult.error, "le contrat du scout");
   assertQuery(countryResult.error, "le pays scouté");
+  assertQuery(seasonResult.error, "la saison du rapport de scouting");
   assertQuery(facilityResult.error, "les installations locales");
   assertQuery(profileResult.error, "le profil régional");
   assertQuery(centersResult.error, "les centres internationaux");
@@ -1150,8 +1201,16 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     federationInfrastructureResult.error,
     "les infrastructures fédérales de détection",
   );
+  assertQuery(
+    schoolCyclingPlansResult.error,
+    "le Plan vélo scolaire du pays scouté",
+  );
   const contract = requireData(contractResult.data, "le contrat du scout");
   const country = requireData(countryResult.data, "le pays scouté");
+  const missionSeason = requireData(
+    seasonResult.data,
+    "la saison du rapport de scouting",
+  );
   const profile = requireData(profileResult.data, "le profil régional");
   const memberResult = await admin
     .from("staff_members")
@@ -1295,6 +1354,25 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       federalStaffMultiplier *
       dailyScoutingQualityMultiplier,
   });
+  const missionCompletionGameDayIndex =
+    missionSeason.game_year * 28 + mission.completes_day_number - 1;
+  const schoolCyclingPlan = (schoolCyclingPlansResult.data ?? []).find(
+    (plan) => plan.starts_game_day_index <= missionCompletionGameDayIndex,
+  );
+  const schoolPlanTransferPoints = schoolCyclingPlan
+    ? getSchoolCyclingPlanTransferPoints({
+        completesGameDayIndex: schoolCyclingPlan.completes_game_day_index,
+        currentGameDayIndex: missionCompletionGameDayIndex,
+        currentGameYear: missionSeason.game_year,
+      })
+    : 0;
+  const archetypeProbabilities = getYouthArchetypeProbabilities({
+    ...specialties,
+    diversityLevel:
+      federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
+    schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
+    schoolPlanTransferPoints,
+  });
   const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
     (total, center) =>
       total +
@@ -1310,6 +1388,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       ...specialties,
       diversityLevel:
         federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
+      schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
+      schoolPlanTransferPoints,
       random,
     });
     const basePotentialSteps = generateYouthPotentialSteps({
@@ -1378,6 +1458,15 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         federalTuitionReductionPercentage,
       scout_tuition_reduction_percentage:
         Math.round(scoutTuitionReductionPercentage * 100) / 100,
+      historical_archetype: specialties.primary,
+      school_plan_archetype: schoolCyclingPlan?.target_archetype ?? null,
+      school_plan_transfer_points: schoolPlanTransferPoints,
+      archetype_probabilities: Object.fromEntries(
+        archetypeProbabilities.map((probability) => [
+          probability.archetype,
+          probability.probabilityPercentage,
+        ]),
+      ),
       tuition_per_season: Math.max(
         500,
         Math.round(
@@ -1933,6 +2022,40 @@ function toCandidate(
     ]),
   };
 }
+
+function toYouthGenerationProfile(
+  row: CandidateRow | undefined,
+): YouthGenerationProfile | null {
+  if (!row?.historical_archetype || !row.archetype_probabilities) return null;
+
+  const probabilities = YOUTH_ARCHETYPES.flatMap((archetype) => {
+    const probabilityPercentage = Number(
+      row.archetype_probabilities?.[archetype],
+    );
+    return Number.isFinite(probabilityPercentage) && probabilityPercentage > 0
+      ? [
+          {
+            archetype,
+            label: YOUTH_ARCHETYPE_LABELS[archetype],
+            probabilityPercentage,
+          },
+        ]
+      : [];
+  });
+
+  return {
+    historicalArchetype: row.historical_archetype,
+    historicalArchetypeLabel:
+      YOUTH_ARCHETYPE_LABELS[row.historical_archetype],
+    schoolPlanArchetype: row.school_plan_archetype,
+    schoolPlanArchetypeLabel: row.school_plan_archetype
+      ? YOUTH_ARCHETYPE_LABELS[row.school_plan_archetype]
+      : null,
+    schoolPlanTransferPoints: Number(row.school_plan_transfer_points ?? 0),
+    probabilities,
+  };
+}
+
 function rowToRatings(row: CandidateRow | AcademyRow): YouthRatings {
   return {
     mountain: toNumber(row.mountain),

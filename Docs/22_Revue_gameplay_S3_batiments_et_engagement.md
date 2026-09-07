@@ -73,6 +73,10 @@ Migration conseillée en S3 : conserver toutes les données historiques, calcule
 
 ## 4. Plan vélo scolaire
 
+**Statut : livré pour la Saison 3.** Le programme, son financement fédéral,
+sa montée en puissance et la traçabilité des probabilités dans les rapports de
+scouting sont implémentés.
+
 Le Plan vélo scolaire devient un **programme fédéral pluri-saisonnier** rattaché aux Académies régionales, et non un bonus instantané.
 
 ### Parcours président

@@ -18,6 +18,7 @@ const MAINTENANCE_TASKS = [
   "initialize_due_national_federation_accounts",
   "sync_due_national_federation_championship_lineups",
   "settle_due_national_federation_infrastructure_projects",
+  "settle_due_national_federation_school_plans",
   "settle_due_national_federation_hosting_returns",
   "purge_expired_director_messages",
 ] as const;

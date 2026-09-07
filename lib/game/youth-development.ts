@@ -1,6 +1,10 @@
 import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
 import type { RiderSpecialAbility } from "@/lib/game/special-abilities";
-import { TRAINING_DOMAIN_LABELS, type TrainingDomain } from "@/lib/game/training";
+import {
+  TRAINING_DOMAINS,
+  TRAINING_DOMAIN_LABELS,
+  type TrainingDomain,
+} from "@/lib/game/training";
 import {
   YOUTH_TRAINING_DOMAINS,
   isYouthTrainingDomain,
@@ -23,7 +27,12 @@ export const YOUTH_RATING_KEYS = [
   "prologue",
 ] as const satisfies ReadonlyArray<RiderRatingKey>;
 
-export type YouthArchetype = TrainingDomain | "all_rounder";
+export const YOUTH_ARCHETYPES = [
+  ...TRAINING_DOMAINS,
+  "all_rounder",
+] as const satisfies ReadonlyArray<TrainingDomain | "all_rounder">;
+
+export type YouthArchetype = (typeof YOUTH_ARCHETYPES)[number];
 export type YouthRatings = RiderRatings;
 
 const YOUTH_BASE_RATING_BY_AGE: Record<number, number> = {
@@ -428,11 +437,15 @@ export function chooseYouthArchetype({
   secondary,
   random,
   diversityLevel = 0,
+  schoolPlanArchetype = null,
+  schoolPlanTransferPoints = 0,
 }: {
   primary: YouthArchetype;
   secondary: YouthArchetype;
   random: () => number;
   diversityLevel?: number;
+  schoolPlanArchetype?: YouthArchetype | null;
+  schoolPlanTransferPoints?: number;
 }): YouthArchetype {
   const roll = random();
   const safeDiversityLevel = Math.min(
@@ -441,9 +454,92 @@ export function chooseYouthArchetype({
   );
   const primaryThreshold = 0.56 - safeDiversityLevel * 0.01;
   const secondaryThreshold = 0.82 - safeDiversityLevel * 0.005;
-  if (roll < primaryThreshold) return primary;
+  const planTransferThreshold = getSchoolPlanTransferThreshold({
+    primary,
+    schoolPlanArchetype,
+    schoolPlanTransferPoints,
+    primaryThreshold,
+  });
+  if (roll < primaryThreshold - planTransferThreshold) return primary;
+  if (roll < primaryThreshold && schoolPlanArchetype) {
+    return schoolPlanArchetype;
+  }
   if (roll < secondaryThreshold) return secondary;
   return roll < 0.94 ? "breakaway" : "all_rounder";
+}
+
+export type YouthArchetypeProbability = {
+  archetype: YouthArchetype;
+  probabilityPercentage: number;
+};
+
+export function getYouthArchetypeProbabilities({
+  primary,
+  secondary,
+  diversityLevel = 0,
+  schoolPlanArchetype = null,
+  schoolPlanTransferPoints = 0,
+}: {
+  primary: YouthArchetype;
+  secondary: YouthArchetype;
+  diversityLevel?: number;
+  schoolPlanArchetype?: YouthArchetype | null;
+  schoolPlanTransferPoints?: number;
+}): YouthArchetypeProbability[] {
+  const safeDiversityLevel = Math.min(
+    5,
+    Math.max(0, Math.trunc(diversityLevel)),
+  );
+  const primaryProbability = 56 - safeDiversityLevel;
+  const secondaryProbability = 26 + safeDiversityLevel * 0.5;
+  const breakawayProbability = 12 + safeDiversityLevel * 0.5;
+  const transferPercentage =
+    getSchoolPlanTransferThreshold({
+      primary,
+      schoolPlanArchetype,
+      schoolPlanTransferPoints,
+      primaryThreshold: primaryProbability / 100,
+    }) * 100;
+  const probabilityByArchetype = new Map<YouthArchetype, number>();
+  const addProbability = (archetype: YouthArchetype, percentage: number) => {
+    probabilityByArchetype.set(
+      archetype,
+      (probabilityByArchetype.get(archetype) ?? 0) + percentage,
+    );
+  };
+
+  addProbability(primary, primaryProbability - transferPercentage);
+  if (schoolPlanArchetype && transferPercentage > 0) {
+    addProbability(schoolPlanArchetype, transferPercentage);
+  }
+  addProbability(secondary, secondaryProbability);
+  addProbability("breakaway", breakawayProbability);
+  addProbability("all_rounder", 6);
+
+  return YOUTH_ARCHETYPES.flatMap((archetype) => {
+    const probabilityPercentage = probabilityByArchetype.get(archetype) ?? 0;
+    return probabilityPercentage > 0
+      ? [{ archetype, probabilityPercentage }]
+      : [];
+  });
+}
+
+function getSchoolPlanTransferThreshold({
+  primary,
+  schoolPlanArchetype,
+  schoolPlanTransferPoints,
+  primaryThreshold,
+}: {
+  primary: YouthArchetype;
+  schoolPlanArchetype: YouthArchetype | null;
+  schoolPlanTransferPoints: number;
+  primaryThreshold: number;
+}): number {
+  if (!schoolPlanArchetype || schoolPlanArchetype === primary) return 0;
+  return Math.min(
+    primaryThreshold,
+    Math.max(0, Math.min(10, schoolPlanTransferPoints)) / 100,
+  );
 }
 
 export function getScoutNationalityEfficiencyBonus(

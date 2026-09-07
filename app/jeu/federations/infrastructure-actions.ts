@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { FEDERATION_INFRASTRUCTURE_CODES } from "@/lib/game/federation-infrastructures";
+import {
+  getCountryYouthSpecialties,
+  YOUTH_ARCHETYPES,
+} from "@/lib/game/youth-development";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type FederationInfrastructureActionState = {
@@ -15,6 +19,44 @@ const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
 const infrastructureCodeSchema = z.enum(FEDERATION_INFRASTRUCTURE_CODES);
 const prioritySchema = z.enum(["balanced", "cost", "time"]);
 const uuidSchema = z.string().uuid();
+const youthArchetypeSchema = z.enum(YOUTH_ARCHETYPES);
+
+export async function startFederationSchoolCyclingPlanAction(
+  _previousState: FederationInfrastructureActionState,
+  formData: FormData,
+): Promise<FederationInfrastructureActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const targetArchetype = youthArchetypeSchema.safeParse(
+    formData.get("targetArchetype"),
+  );
+  if (!countryCode.success || !targetArchetype.success) {
+    return failure("L’orientation du Plan vélo scolaire est invalide.");
+  }
+  if (
+    getCountryYouthSpecialties(countryCode.data).primary ===
+    targetArchetype.data
+  ) {
+    return failure(
+      "Le style historique ne peut pas être choisi comme nouvelle orientation.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const result = await supabase.rpc(
+    "start_national_federation_school_cycling_plan",
+    {
+      p_country_code: countryCode.data,
+      p_target_archetype: targetArchetype.data,
+    },
+  );
+  if (result.error) return failure(result.error.message);
+  revalidate(countryCode.data);
+  return {
+    status: "success",
+    message:
+      "Le Plan vélo scolaire est financé. Son déploiement de 56 jours commence aujourd’hui.",
+  };
+}
 
 export async function startFederationInfrastructureProjectAction(
   _previousState: FederationInfrastructureActionState,

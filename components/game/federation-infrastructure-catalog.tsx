@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 
 import {
   contributeArchitectToFederationProjectAction,
+  startFederationSchoolCyclingPlanAction,
   startFederationInfrastructureProjectAction,
   updateFederationProjectPriorityAction,
   type FederationInfrastructureActionState,
@@ -17,6 +18,20 @@ import {
   type FederationConstructionPriority,
   type FederationInfrastructureDefinition,
 } from "@/lib/game/federation-infrastructures";
+import {
+  SCHOOL_CYCLING_PLAN_COST,
+  SCHOOL_CYCLING_PLAN_DURATION_DAYS,
+  SCHOOL_CYCLING_PLAN_MATURITY_TRANSFERS,
+  SCHOOL_CYCLING_PLAN_REQUIRED_ACADEMY_LEVEL,
+} from "@/lib/game/federation-school-cycling-plan";
+import {
+  getCountryYouthSpecialties,
+  getYouthArchetypeProbabilities,
+  YOUTH_ARCHETYPES,
+  YOUTH_ARCHETYPE_LABELS,
+  type YouthArchetype,
+  type YouthArchetypeProbability,
+} from "@/lib/game/youth-development";
 import type {
   FederationInfrastructureProjectState,
   FederationInfrastructureState,
@@ -107,24 +122,285 @@ export function FederationInfrastructureCatalog({
         </aside>
       ) : null}
 
-      {FEDERATION_INFRASTRUCTURE_DEFINITIONS.map((definition) => (
-        <FederationInfrastructureCard
-          key={definition.code}
-          countryCode={countryCode}
-          definition={definition}
-          currency={currency}
-          managementLocked={managementLocked}
-          currentLevel={infrastructureState?.levels[definition.code] ?? 0}
-          activeProject={
-            infrastructureState?.activeProjects.find(
-              (project) => project.code === definition.code,
-            ) ?? null
-          }
-          infrastructureState={infrastructureState}
-        />
+      {FEDERATION_INFRASTRUCTURE_DEFINITIONS.map((definition) => {
+        const currentLevel =
+          infrastructureState?.levels[definition.code] ?? 0;
+        return (
+          <div key={definition.code} className="space-y-4">
+            <FederationInfrastructureCard
+              countryCode={countryCode}
+              definition={definition}
+              currency={currency}
+              managementLocked={managementLocked}
+              currentLevel={currentLevel}
+              activeProject={
+                infrastructureState?.activeProjects.find(
+                  (project) => project.code === definition.code,
+                ) ?? null
+              }
+              infrastructureState={infrastructureState}
+            />
+            {definition.code === "regional_academies" ? (
+              <FederationSchoolCyclingPlan
+                countryCode={countryCode}
+                currency={currency}
+                managementLocked={managementLocked}
+                academyLevel={currentLevel}
+                infrastructureState={infrastructureState}
+              />
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FederationSchoolCyclingPlan({
+  countryCode,
+  currency,
+  managementLocked,
+  academyLevel,
+  infrastructureState,
+}: {
+  countryCode: string;
+  currency: string;
+  managementLocked: boolean;
+  academyLevel: number;
+  infrastructureState: FederationInfrastructureState | null;
+}) {
+  const specialties = getCountryYouthSpecialties(countryCode);
+  const plan = infrastructureState?.schoolCyclingPlan ?? null;
+  const choices = YOUTH_ARCHETYPES.filter(
+    (archetype) => archetype !== specialties.primary,
+  );
+  const [selectedArchetype, setSelectedArchetype] = useState<YouthArchetype>(
+    choices.find((archetype) => archetype !== plan?.targetArchetype) ??
+      choices[0]!,
+  );
+  const [actionState, action, pending] = useActionState(
+    startFederationSchoolCyclingPlanAction,
+    initialFederationInfrastructureActionState,
+  );
+  const currentPlanIsActive = plan?.status === "active";
+  const currentProbabilities = getYouthArchetypeProbabilities({
+    ...specialties,
+    diversityLevel: academyLevel,
+    schoolPlanArchetype: currentPlanIsActive ? plan.targetArchetype : null,
+    schoolPlanTransferPoints: currentPlanIsActive ? plan.transferPoints : 0,
+  });
+  const matureProbabilities = getYouthArchetypeProbabilities({
+    ...specialties,
+    diversityLevel: academyLevel,
+    schoolPlanArchetype: selectedArchetype,
+    schoolPlanTransferPoints: 10,
+  });
+  const isUnlocked =
+    academyLevel >= SCHOOL_CYCLING_PLAN_REQUIRED_ACADEMY_LEVEL;
+  const hasEnoughFunds =
+    (infrastructureState?.balance ?? 0) >= SCHOOL_CYCLING_PLAN_COST;
+  const sameOrientation = plan?.targetArchetype === selectedArchetype;
+  const canSubmit =
+    !managementLocked &&
+    isUnlocked &&
+    Boolean(infrastructureState?.canLaunch) &&
+    hasEnoughFunds &&
+    !sameOrientation;
+
+  return (
+    <section className="overflow-hidden rounded-[1.9rem] border border-[#D5AC18]/30 bg-[#FFFDF4] shadow-[0_16px_44px_rgba(19,60,46,0.08)]">
+      <div className="grid gap-5 bg-[#102C27] p-5 text-white sm:p-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+            Politique de formation · programme pluri-saisonnier
+          </p>
+          <h3 className="mt-2 text-2xl font-black sm:text-3xl">
+            Plan vélo scolaire
+          </h3>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
+            Réoriente une part des jeunes détectés vers un nouveau style sans
+            augmenter leur potentiel, leurs notes initiales ou leurs capacités
+            rares.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <PlanMetric label="Déploiement" value={`${SCHOOL_CYCLING_PLAN_DURATION_DAYS} j`} />
+          <PlanMetric label="Coût" value={formatMoney(SCHOOL_CYCLING_PLAN_COST, currency)} />
+        </div>
+      </div>
+
+      <div className="grid gap-6 p-5 sm:p-7 xl:grid-cols-2">
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+                Probabilités actuelles du pays
+              </p>
+              <p className="mt-1 text-sm font-black text-[#183F37]">
+                Style historique · {YOUTH_ARCHETYPE_LABELS[specialties.primary]}
+              </p>
+            </div>
+            <span className="rounded-full bg-[#EAF5F3] px-3 py-1.5 text-[10px] font-black text-[#176951]">
+              Académies N{academyLevel}/5
+            </span>
+          </div>
+          <ProbabilityBars probabilities={currentProbabilities} />
+          {plan ? (
+            <div className="mt-4 rounded-2xl border border-[#315B3E]/12 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+                    Orientation fédérale
+                  </p>
+                  <p className="mt-1 font-black text-[#183F37]">
+                    {YOUTH_ARCHETYPE_LABELS[plan.targetArchetype]}
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#FFF4C7] px-3 py-1.5 text-[10px] font-black text-[#806114]">
+                  {plan.status === "deploying"
+                    ? `${plan.remainingDays} j restants · livraison S${plan.deliveryGameYear}`
+                    : `Actif · +${plan.transferPoints} points`}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="rounded-2xl border border-[#D5AC18]/25 bg-white p-4 sm:p-5">
+          <label className="block">
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+              Nouvelle orientation
+            </span>
+            <select
+              value={selectedArchetype}
+              onChange={(event) =>
+                setSelectedArchetype(event.target.value as YouthArchetype)
+              }
+              className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-black text-[#183F37]"
+            >
+              {choices.map((archetype) => (
+                <option key={archetype} value={archetype}>
+                  {YOUTH_ARCHETYPE_LABELS[archetype]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
+            À pleine maturité, 10 points quittent le style historique pour
+            rejoindre {YOUTH_ARCHETYPE_LABELS[selectedArchetype].toLocaleLowerCase("fr")}.
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {SCHOOL_CYCLING_PLAN_MATURITY_TRANSFERS.map((transfer, index) => (
+              <div
+                key={transfer}
+                className="rounded-xl bg-[#F5F8F6] p-3 text-center"
+              >
+                <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[#60756E]">
+                  Promotion {index + 1}
+                </p>
+                <p className="mt-1 text-lg font-black text-[#176951]">
+                  +{transfer} pts
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+            Projection à maturité
+          </p>
+          <ProbabilityBars probabilities={matureProbabilities} compact />
+
+          <form action={action} className="mt-5">
+            <input type="hidden" name="countryCode" value={countryCode} />
+            <input
+              type="hidden"
+              name="targetArchetype"
+              value={selectedArchetype}
+            />
+            <button
+              type="submit"
+              disabled={!canSubmit || pending}
+              className="min-h-11 w-full rounded-xl bg-[#F2C94C] px-4 text-sm font-black text-[#183F37] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-[#D5D6CE] disabled:text-[#6F7773]"
+            >
+              {pending
+                ? "Financement…"
+                : plan
+                  ? `Réorienter · ${formatMoney(SCHOOL_CYCLING_PLAN_COST, currency)}`
+                  : `Financer · ${formatMoney(SCHOOL_CYCLING_PLAN_COST, currency)}`}
+            </button>
+            {!isUnlocked ? (
+              <PlanBlockReason>
+                Académies régionales niveau {SCHOOL_CYCLING_PLAN_REQUIRED_ACADEMY_LEVEL} requises.
+              </PlanBlockReason>
+            ) : managementLocked ? (
+              <PlanBlockReason>Programme disponible à partir de la Saison 3.</PlanBlockReason>
+            ) : !infrastructureState?.canLaunch ? (
+              <PlanBlockReason>Décision réservée au président élu.</PlanBlockReason>
+            ) : !hasEnoughFunds ? (
+              <PlanBlockReason>Trésorerie fédérale insuffisante.</PlanBlockReason>
+            ) : sameOrientation ? (
+              <PlanBlockReason>Cette orientation est déjà engagée.</PlanBlockReason>
+            ) : plan ? (
+              <p className="mt-3 text-[11px] font-semibold leading-5 text-[#806114]">
+                Une réorientation remplace le plan actuel et relance intégralement
+                les 56 jours de déploiement.
+              </p>
+            ) : null}
+            <ActionFeedback state={actionState} />
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProbabilityBars({
+  probabilities,
+  compact = false,
+}: {
+  probabilities: YouthArchetypeProbability[];
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "mt-3 space-y-2" : "mt-4 space-y-2.5"}>
+      {probabilities.map((probability) => (
+        <div key={probability.archetype}>
+          <div className="flex items-center justify-between gap-3 text-[10px] font-black text-[#45655C]">
+            <span>{YOUTH_ARCHETYPE_LABELS[probability.archetype]}</span>
+            <span>{formatPercentage(probability.probabilityPercentage)} %</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#E7EEEA]">
+            <div
+              className="h-full rounded-full bg-[#278B70]"
+              style={{ width: `${probability.probabilityPercentage}%` }}
+            />
+          </div>
+        </div>
       ))}
     </div>
   );
+}
+
+function PlanMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-28 rounded-xl border border-white/15 bg-white/10 px-3 py-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.11em] text-[#BFD0C9]">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function PlanBlockReason({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-3 text-xs font-bold text-[#9D3E37]">{children}</p>
+  );
+}
+
+function formatPercentage(value: number): string {
+  return Number.isInteger(value)
+    ? value.toString()
+    : value.toFixed(1).replace(".", ",");
 }
 
 function FederationInfrastructureCard({
