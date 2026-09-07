@@ -41,38 +41,56 @@ export function createStandardTransferScoutingReport({
   precisionBonusPercentage?: number;
 }): TransferScoutingReport {
   const visibility = getScoutingVisibilityForDataRoom(dataRoomLevel);
+  const safePrecisionBonusPercentage = clamp(
+    precisionBonusPercentage,
+    0,
+    100,
+  );
   const visibilityOrder = RIDER_RATING_AXES.map((axis) => ({
     key: axis.key,
     score: stableHash(`${riderId}:${seasonId}:${axis.key}:visibility`),
   })).sort(
     (left, right) => left.score - right.score || left.key.localeCompare(right.key)
   );
+  const additionalExactRatingCount = getDeterministicPrecisionUpgradeCount({
+    availableCount: visibility.rangeRatingCount,
+    precisionBonusPercentage: safePrecisionBonusPercentage,
+    seed: `${riderId}:${seasonId}:precision:exact`,
+  });
+  const unknownRatingCount = Math.max(
+    0,
+    RIDER_RATING_AXES.length -
+      visibility.exactRatingCount -
+      visibility.rangeRatingCount,
+  );
+  const additionalRangeRatingCount = getDeterministicPrecisionUpgradeCount({
+    availableCount: unknownRatingCount,
+    precisionBonusPercentage: safePrecisionBonusPercentage,
+    seed: `${riderId}:${seasonId}:precision:range`,
+  });
+  const exactRatingCount =
+    visibility.exactRatingCount + additionalExactRatingCount;
+  const rangeRatingCount =
+    visibility.rangeRatingCount -
+    additionalExactRatingCount +
+    additionalRangeRatingCount;
   const exactKeys = new Set(
     visibilityOrder
-      .slice(0, visibility.exactRatingCount)
+      .slice(0, exactRatingCount)
       .map(({ key }) => key)
-  );
-  const precisionThreshold = Math.round(
-    Math.min(5, Math.max(0, precisionBonusPercentage)) * 100,
   );
   const rangedKeys = new Set(
     visibilityOrder
       .slice(
-        visibility.exactRatingCount,
-        visibility.exactRatingCount + visibility.rangeRatingCount
+        exactRatingCount,
+        exactRatingCount + rangeRatingCount
       )
       .map(({ key }) => key)
   );
   const scoutedRatings = Object.fromEntries(
     RIDER_RATING_AXES.map((axis) => {
       const value = ratings[axis.key];
-      const promotedByFederalPrecision =
-        precisionThreshold > 0 &&
-        stableHash(`${riderId}:${seasonId}:${axis.key}:federal-precision`) %
-          10_000 <
-          precisionThreshold;
-
-      if (exactKeys.has(axis.key) || promotedByFederalPrecision) {
+      if (exactKeys.has(axis.key)) {
         return [axis.key, { kind: "exact", value } satisfies ScoutedNumericValue];
       }
 
@@ -93,30 +111,29 @@ export function createStandardTransferScoutingReport({
   ) as Record<RiderRatingKey, ScoutedNumericValue>;
   const overall = calculateOverall(ratings);
   const potentialSeed = stableHash(`${riderId}:${seasonId}:potential`);
-  const overallPromoted =
-    stableHash(`${riderId}:${seasonId}:overall:federal-precision`) % 10_000 <
-    precisionThreshold;
-  const potentialPromoted =
-    stableHash(`${riderId}:${seasonId}:potential:federal-precision`) % 10_000 <
-    precisionThreshold;
+  const potentialPrecisionUpgrade = isPrecisionUpgrade({
+    precisionBonusPercentage: safePrecisionBonusPercentage,
+    seed: `${riderId}:${seasonId}:precision:potential`,
+  });
 
   return {
-    overall: overallPromoted
-      ? { kind: "exact", value: overall }
-      : createNumericRange(
-          overall,
-          stableHash(`${riderId}:${seasonId}:overall`),
-          1,
-          dataRoomLevel >= 2 ? 1 : 3,
-        ),
-    potential: potentialPromoted
-      ? { kind: "exact", steps: normalizePotentialSteps(potentialSteps) }
-      : visibility.potentialCanBeUnknown && potentialSeed % 4 === 0
+    overall: createNumericRange(
+      overall,
+      stableHash(`${riderId}:${seasonId}:overall`),
+      1,
+      dataRoomLevel >= 2 || potentialPrecisionUpgrade ? 1 : 3,
+    ),
+    potential:
+      visibility.potentialCanBeUnknown &&
+      potentialSeed % 4 === 0 &&
+      !potentialPrecisionUpgrade
         ? { kind: "unknown" }
         : createPotentialRange(
             potentialSteps,
             potentialSeed,
-            visibility.potentialMaximumSpreadSteps,
+            potentialPrecisionUpgrade
+              ? 1
+              : visibility.potentialMaximumSpreadSteps,
           ),
     ratings: scoutedRatings,
   };
@@ -227,6 +244,42 @@ function calculateOverall(ratings: RiderRatings): number {
   return Math.round(
     (values.reduce((total, value) => total + value, 0) / values.length) * 10
   ) / 10;
+}
+
+function getDeterministicPrecisionUpgradeCount({
+  availableCount,
+  precisionBonusPercentage,
+  seed,
+}: {
+  availableCount: number;
+  precisionBonusPercentage: number;
+  seed: string;
+}): number {
+  if (availableCount <= 0 || precisionBonusPercentage <= 0) return 0;
+
+  const expectedUpgrades =
+    availableCount * (precisionBonusPercentage / 100);
+  const guaranteedUpgrades = Math.floor(expectedUpgrades);
+  const fractionalUpgrade = expectedUpgrades - guaranteedUpgrades;
+  const roll = stableHash(seed) / 4_294_967_296;
+
+  return Math.min(
+    availableCount,
+    guaranteedUpgrades + (roll < fractionalUpgrade ? 1 : 0),
+  );
+}
+
+function isPrecisionUpgrade({
+  precisionBonusPercentage,
+  seed,
+}: {
+  precisionBonusPercentage: number;
+  seed: string;
+}): boolean {
+  if (precisionBonusPercentage <= 0) return false;
+  return (
+    stableHash(seed) / 4_294_967_296 < precisionBonusPercentage / 100
+  );
 }
 
 function formatPotentialSteps(steps: number): string {

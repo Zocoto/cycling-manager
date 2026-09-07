@@ -111,6 +111,46 @@ describe("transfer scouting", () => {
     expect(improvedFieldCount).toBeGreaterThan(0);
   });
 
+  it("rend les rapports statistiquement plus précis avec un bonus de détection", () => {
+    const informationScore = (precisionBonusPercentage: number) =>
+      Array.from({ length: 500 }, (_, index) =>
+        createStandardTransferScoutingReport({
+          riderId: `precision-rider-${index}`,
+          seasonId: "season-precision",
+          ratings,
+          potentialSteps: 6,
+          precisionBonusPercentage,
+        }),
+      ).reduce(
+        (total, report) =>
+          total +
+          RIDER_RATING_AXES.reduce((score, axis) => {
+            const kind = report.ratings[axis.key].kind;
+            return score + (kind === "exact" ? 2 : kind === "range" ? 1 : 0);
+          }, 0),
+        0,
+      );
+
+    expect(informationScore(5)).toBeGreaterThan(informationScore(0));
+  });
+
+  it("transforme toutes les informations incertaines au bonus maximal", () => {
+    const report = createStandardTransferScoutingReport({
+      riderId: "fully-supervised-rider",
+      seasonId: "season-precision",
+      ratings,
+      potentialSteps: 6,
+      precisionBonusPercentage: 100,
+    });
+
+    expect(
+      RIDER_RATING_AXES.every(
+        (axis) => report.ratings[axis.key].kind !== "unknown",
+      ),
+    ).toBe(true);
+    expect(report.potential.kind).not.toBe("unknown");
+  });
+
   it("ne révèle jamais précisément le potentiel avec l'analyse standard", () => {
     const reports = Array.from({ length: 40 }, (_, index) =>
       createStandardTransferScoutingReport({

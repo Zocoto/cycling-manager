@@ -134,6 +134,7 @@ export function calculateYouthScoutingQuality({
   countryReputation,
   nationalityBonusPercentage,
   scoutExpertiseBonus = 0,
+  federationDetectionBonusPercentage = 0,
   qualityMultiplier = 1,
 }: {
   scoutLevel: number;
@@ -142,6 +143,7 @@ export function calculateYouthScoutingQuality({
   countryReputation: number;
   nationalityBonusPercentage: number;
   scoutExpertiseBonus?: number;
+  federationDetectionBonusPercentage?: number;
   qualityMultiplier?: number;
 }): number {
   const multiplierBonus = clamp((qualityMultiplier - 1) / 0.35, 0, 1);
@@ -152,6 +154,7 @@ export function calculateYouthScoutingQuality({
       normalize(countryReputation, 1, 10) * 0.22 +
       normalize(nationalityBonusPercentage, 0, 15) * 0.13 +
       normalize(scoutExpertiseBonus, 0, 0.75) * 0.1 +
+      normalize(federationDetectionBonusPercentage, 0, 5) * 0.05 +
       multiplierBonus * 0.05,
     0,
     1,

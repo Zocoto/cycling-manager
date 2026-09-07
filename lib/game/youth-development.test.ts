@@ -140,6 +140,24 @@ describe("youth development", () => {
     ).toBe(8);
   });
 
+  it("augmente la qualité réelle grâce au réseau fédéral de détection", () => {
+    const mission = {
+      scoutLevel: 3,
+      durationDays: 5,
+      facilityLevel: 5,
+      countryReputation: 5,
+      nationalityBonusPercentage: 0,
+    };
+    const baseline = calculateYouthScoutingQuality(mission);
+    const improved = calculateYouthScoutingQuality({
+      ...mission,
+      federationDetectionBonusPercentage: 5,
+    });
+
+    expect(improved).toBeGreaterThan(baseline);
+    expect(improved - baseline).toBeCloseTo(0.05, 8);
+  });
+
   it("attribue rarement une capacité native cohérente avec le profil", () => {
     const sampleSize = 20_000;
     const weakCount = Array.from({ length: sampleSize }, (_, index) =>

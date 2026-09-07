@@ -31,6 +31,17 @@ const effectsMigration = readFileSync(
   ),
   "utf8",
 );
+const detectionBonusMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260907160000_apply_detection_bonuses_to_youth_quality_and_reports.sql",
+  ),
+  "utf8",
+);
+const youthDevelopmentService = readFileSync(
+  join(process.cwd(), "services/youth-development.ts"),
+  "utf8",
+);
 
 describe("federation infrastructures", () => {
   it("keeps the complete nine-building, five-level catalogue", () => {
@@ -135,5 +146,28 @@ describe("federation infrastructures", () => {
     ]) {
       expect(effectsMigration).toContain(marker);
     }
+  });
+
+  it("applies the national detection network to junior quality and report precision", () => {
+    expect(
+      FEDERATION_INFRASTRUCTURE_DEFINITIONS[0].levels.every((level) =>
+        level.effect.includes("qualité réelle"),
+      ),
+    ).toBe(true);
+    expect(detectionBonusMigration).toContain(
+      "scouting_supervision_bonus_percentage",
+    );
+    expect(youthDevelopmentService).toContain(
+      '"national_detection_network",',
+    );
+    expect(youthDevelopmentService).toContain(
+      "federationDetectionBonusPercentage: federalDetectionBonusPercentage",
+    );
+    expect(youthDevelopmentService).toContain(
+      "supervisionBonusPercentage + federationDetectionBonusPercentage",
+    );
+    expect(youthDevelopmentService).toContain(
+      "precisionBonusPercentage: reportPrecisionBonusPercentage",
+    );
   });
 });

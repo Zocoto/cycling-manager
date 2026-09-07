@@ -1344,9 +1344,9 @@ function MissionReport({
             Connaissance locale +{mission.localKnowledgeBonusPercentage} %
           </span>
         ) : null}
-        {mission.federationPrecisionBonusPercentage > 0 ? (
+        {mission.reportPrecisionBonusPercentage > 0 ? (
           <span className="rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[9px] font-black text-[#176951]">
-            Précision fédérale +{mission.federationPrecisionBonusPercentage} %
+            Précision du rapport +{mission.reportPrecisionBonusPercentage} %
           </span>
         ) : null}
       </div>
