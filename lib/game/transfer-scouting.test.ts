@@ -77,6 +77,40 @@ describe("transfer scouting", () => {
     expect(report.potential.kind).toBe("range");
   });
 
+  it("améliore parfois la précision fédérale sans dégrader un champ", () => {
+    let improvedFieldCount = 0;
+
+    for (let index = 0; index < 300; index += 1) {
+      const base = createStandardTransferScoutingReport({
+        riderId: `federal-rider-${index}`,
+        seasonId: "season-3",
+        ratings,
+        potentialSteps: 6,
+      });
+      const federal = createStandardTransferScoutingReport({
+        riderId: `federal-rider-${index}`,
+        seasonId: "season-3",
+        ratings,
+        potentialSteps: 6,
+        precisionBonusPercentage: 5,
+      });
+
+      for (const axis of RIDER_RATING_AXES) {
+        if (
+          base.ratings[axis.key].kind !== "exact" &&
+          federal.ratings[axis.key].kind === "exact"
+        ) {
+          improvedFieldCount += 1;
+        }
+        if (base.ratings[axis.key].kind === "exact") {
+          expect(federal.ratings[axis.key].kind).toBe("exact");
+        }
+      }
+    }
+
+    expect(improvedFieldCount).toBeGreaterThan(0);
+  });
+
   it("ne révèle jamais précisément le potentiel avec l'analyse standard", () => {
     const reports = Array.from({ length: 40 }, (_, index) =>
       createStandardTransferScoutingReport({

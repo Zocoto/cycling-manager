@@ -1,4 +1,5 @@
 import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
+import type { BonusBreakdown } from "@/lib/game/bonus-breakdown";
 
 export const TRAINING_DOMAINS = [
   "climber",
@@ -59,6 +60,7 @@ export type RiderTrainingReport = {
   progressMilli: Record<string, number>;
   declineMilli: Record<string, number>;
   ratingChanges: Record<string, number>;
+  bonusBreakdownByStat?: Partial<Record<TrainingStatCode, BonusBreakdown>>;
   processedAt: string;
 };
 
@@ -278,6 +280,15 @@ const TRAINER_SPECIALTY_STATS: Record<
   endurance: ["endurance", "resistance", "recovery", "breakaway", "downhill"],
 };
 
+export const TRAINER_NATIONALITY_BONUS_PERCENTAGE = 10;
+
+export function trainerSpecialtySupportsRating(
+  specialty: TrainerSpecialty | null,
+  ratingKey: RiderRatingKey,
+): boolean {
+  return Boolean(specialty && TRAINER_SPECIALTY_STATS[specialty].includes(ratingKey));
+}
+
 export function normalizePotentialSteps(value: number): number {
   return Math.min(
     POTENTIAL_MAX_STEPS,
@@ -332,10 +343,12 @@ export function getTrainerMultiplier({
   countryMatch?: boolean;
 }): number {
   const specialtyBonus =
-    specialty && TRAINER_SPECIALTY_STATS[specialty].includes(ratingKey)
+    trainerSpecialtySupportsRating(specialty, ratingKey)
       ? Math.min(5, Math.max(1, Math.round(level))) * 0.04
       : 0;
-  const nationalityBonus = countryMatch ? 0.05 : 0;
+  const nationalityBonus = countryMatch
+    ? TRAINER_NATIONALITY_BONUS_PERCENTAGE / 100
+    : 0;
   return 1 + specialtyBonus + nationalityBonus;
 }
 

@@ -24,6 +24,13 @@ const programmeMigration = readFileSync(
   ),
   "utf8",
 );
+const effectsMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260907120000_activate_federation_infrastructure_effects.sql",
+  ),
+  "utf8",
+);
 
 describe("federation infrastructures", () => {
   it("keeps the complete nine-building, five-level catalogue", () => {
@@ -108,5 +115,25 @@ describe("federation infrastructures", () => {
     expect(programmeMigration).toContain(
       "recalculate_national_federation_project",
     );
+  });
+
+  it("synchronise le débit et active chaque famille d’effets", () => {
+    expect(programmeMigration).toContain(
+      "array[900000,1700000,2800000,4400000,6400000]",
+    );
+    expect(programmeMigration).toContain(
+      "array[700000,1350000,2250000,3500000,5000000]",
+    );
+
+    for (const marker of [
+      "get_team_national_performance_multiplier",
+      "get_staff_contract_federal_institute_multiplier",
+      "federal_recovery_hours_reduced",
+      "federal_integration_office",
+      "federation_detection_bonus_percentage",
+      "federal_tuition_reduction_percentage",
+    ]) {
+      expect(effectsMigration).toContain(marker);
+    }
   });
 });

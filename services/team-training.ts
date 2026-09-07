@@ -20,12 +20,14 @@ import {
   getTrainerRiderCapacity,
   indexLatestTrainingSessionsByRider,
   isTrainingDomain,
+  TRAINING_STAT_CODES,
   type RiderTrainingReport,
   type RiderTrainingSeasonReport,
   type TrainingDomain,
   type TrainingSeasonStatProgressRow,
   type TrainingSessionStatus,
 } from "@/lib/game/training";
+import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
@@ -34,7 +36,11 @@ type SeasonRow = {
   name: string;
   current_day_number: number | null;
 };
-type TeamSeasonRow = { team_id: string; display_name: string };
+type TeamSeasonRow = {
+  team_id: string;
+  display_name: string;
+  registration_country_id: string;
+};
 type DayRow = { id: string; day_number: number; calendar_date: string };
 type ContractRow = { rider_id: string };
 type RiderRow = {
@@ -48,7 +54,28 @@ type RiderRow = {
   decline_resistance_multiplier: number | string;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
-type IronHealthAbilityRow = { rider_id: string };
+type SpecialAbilityRow = {
+  rider_id: string;
+  ability_code: "iron_health" | "first_in_class";
+};
+type TeamInfrastructureRow = {
+  infrastructure_code: "training_center";
+  level: number;
+  efficiency_bonus_percentage: number | string;
+};
+type FederationInfrastructureRow = {
+  infrastructure_code:
+    | "national_performance_center"
+    | "federal_staff_institute";
+  level: number;
+};
+type TrainingRewardEffectRow = {
+  effect_payload: Record<string, unknown>;
+  starts_day_number: number;
+  ends_day_number: number;
+  consumed_day_number: number | null;
+  status: "active" | "consumed";
+};
 type RatingRow = {
   rider_id: string;
   age: number;
@@ -258,7 +285,10 @@ export async function getCurrentTeamTrainingOverview(
     statProgressResult,
     staffMembersResult,
     staffTalentsResult,
-    ironHealthResult,
+    specialAbilitiesResult,
+    teamInfrastructuresResult,
+    federationInfrastructuresResult,
+    trainingRewardEffectsResult,
   ] =
     await Promise.all([
       riderIds.length
@@ -328,11 +358,36 @@ export async function getCurrentTeamTrainingOverview(
       riderIds.length
         ? admin
             .from("rider_special_abilities")
-            .select("rider_id")
-            .eq("ability_code", "iron_health")
+            .select("rider_id, ability_code")
+            .in("ability_code", ["iron_health", "first_in_class"])
             .in("rider_id", riderIds)
-            .returns<IronHealthAbilityRow[]>()
-        : Promise.resolve({ data: [] as IronHealthAbilityRow[], error: null }),
+            .returns<SpecialAbilityRow[]>()
+        : Promise.resolve({ data: [] as SpecialAbilityRow[], error: null }),
+      admin
+        .from("team_infrastructures")
+        .select("infrastructure_code, level, efficiency_bonus_percentage")
+        .eq("team_id", teamSeason.team_id)
+        .eq("infrastructure_code", "training_center")
+        .returns<TeamInfrastructureRow[]>(),
+      admin
+        .from("national_federation_infrastructures")
+        .select("infrastructure_code, level")
+        .eq("country_id", teamSeason.registration_country_id)
+        .in("infrastructure_code", [
+          "national_performance_center",
+          "federal_staff_institute",
+        ])
+        .returns<FederationInfrastructureRow[]>(),
+      admin
+        .from("daily_reward_active_effects")
+        .select(
+          "effect_payload, starts_day_number, ends_day_number, consumed_day_number, status",
+        )
+        .eq("team_id", teamSeason.team_id)
+        .eq("season_id", season.id)
+        .eq("effect_kind", "training_multiplier")
+        .in("status", ["active", "consumed"])
+        .returns<TrainingRewardEffectRow[]>(),
     ]);
 
   assertQuery(ridersResult.error, "les coureurs");
@@ -342,7 +397,13 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(statProgressResult.error, "la progression saisonnière des coureurs");
   assertQuery(staffMembersResult.error, "les entraîneurs");
   assertQuery(staffTalentsResult.error, "les talents des entraîneurs");
-  assertQuery(ironHealthResult.error, "les capacités de longévité");
+  assertQuery(specialAbilitiesResult.error, "les capacités spéciales d’entraînement");
+  assertQuery(teamInfrastructuresResult.error, "le Centre d’entraînement");
+  assertQuery(
+    federationInfrastructuresResult.error,
+    "les infrastructures fédérales d’entraînement",
+  );
+  assertQuery(trainingRewardEffectsResult.error, "les bonus quotidiens d’entraînement");
 
   const countryIds = [
     ...new Set([
@@ -360,7 +421,14 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(countriesResult.error, "les pays des coureurs");
 
   const ironHealthRiderIds = new Set(
-    (ironHealthResult.data ?? []).map((ability) => ability.rider_id),
+    (specialAbilitiesResult.data ?? [])
+      .filter((ability) => ability.ability_code === "iron_health")
+      .map((ability) => ability.rider_id),
+  );
+  const firstInClassRiderIds = new Set(
+    (specialAbilitiesResult.data ?? [])
+      .filter((ability) => ability.ability_code === "first_in_class")
+      .map((ability) => ability.rider_id),
   );
   const currentDayNumber = season.current_day_number ?? 1;
   const dayById = new Map(days.map((day) => [day.id, day]));
@@ -378,6 +446,13 @@ export async function getCurrentTeamTrainingOverview(
   const countryById = new Map((countriesResult.data ?? []).map((country) => [country.id, country]));
   const ratingByRiderId = new Map((ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]));
   const plansByRiderId = firstByKey(plansResult.data ?? [], (plan) => plan.rider_id);
+  const planVersionsByRiderId = groupByKey(
+    plansResult.data ?? [],
+    (plan) => plan.rider_id,
+  );
+  const staffContractById = new Map(
+    staffContracts.map((contract) => [contract.id, contract]),
+  );
   const trainerAssignmentCountByContractId = new Map<string, number>();
   for (const riderId of riderIds) {
     const trainerContractId = plansByRiderId.get(riderId)?.trainer_contract_id;
@@ -447,6 +522,13 @@ export async function getCurrentTeamTrainingOverview(
 
   const latestSetting = settingsResult.data?.[0];
   const currentDay = days.find((day) => day.day_number === currentDayNumber);
+  const trainingCenter = teamInfrastructuresResult.data?.[0];
+  const federationInfrastructureLevel = new Map(
+    (federationInfrastructuresResult.data ?? []).map((infrastructure) => [
+      infrastructure.infrastructure_code,
+      Number(infrastructure.level),
+    ]),
+  );
 
   return {
     teamId: teamSeason.team_id,
@@ -470,6 +552,31 @@ export async function getCurrentTeamTrainingOverview(
         const domain =
           planRow && isTrainingDomain(planRow.domain) ? planRow.domain : "stage_racer";
         const reportRow = latestSessionByRiderId.get(rider.id);
+        const reportDayNumber = reportRow
+          ? (dayNumberById.get(reportRow.season_day_id) ?? currentDayNumber)
+          : currentDayNumber;
+        const reportPlan = (planVersionsByRiderId.get(rider.id) ?? []).find(
+          (candidate) =>
+            candidate.rider_id === rider.id &&
+            candidate.effective_from_day_number <= reportDayNumber,
+        );
+        const reportTrainerContract = reportPlan?.trainer_contract_id
+          ? staffContractById.get(reportPlan.trainer_contract_id)
+          : null;
+        const reportTrainer = reportTrainerContract
+          ? staffMemberById.get(reportTrainerContract.staff_member_id)
+          : null;
+        const reportTrainerTalentSpecialties = reportTrainer
+          ? (trainerTalentsByMemberId.get(reportTrainer.id) ?? []).flatMap(
+              (talent) => {
+                if (!isStaffTalentForRole(talent.talent_code, "trainer")) {
+                  return [];
+                }
+                const specialty = getTrainerTalentSpecialty(talent.talent_code);
+                return specialty ? [specialty] : [];
+              },
+            )
+          : [];
         const reportDomain =
           reportRow && isTrainingDomain(reportRow.domain)
             ? reportRow.domain
@@ -533,7 +640,7 @@ export async function getCurrentTeamTrainingOverview(
             },
             latestReport: reportRow
               ? {
-                  dayNumber: dayById.get(reportRow.season_day_id)?.day_number ?? currentDayNumber,
+                  dayNumber: reportDayNumber,
                   status: reportRow.status,
                   intensity: reportRow.intensity,
                   domain: reportDomain,
@@ -548,6 +655,41 @@ export async function getCurrentTeamTrainingOverview(
                   progressMilli: reportRow.progress_milli ?? {},
                   declineMilli: reportRow.decline_milli ?? {},
                   ratingChanges: reportRow.rating_changes ?? {},
+                  bonusBreakdownByStat: Object.fromEntries(
+                    TRAINING_STAT_CODES.map((statCode) => [
+                      statCode,
+                      buildTrainingBonusBreakdown({
+                        ratingKey: toRiderRatingKey(statCode),
+                        trainerLevel: reportRow.trainer_level,
+                        trainerSpecialty: reportSpecialty,
+                        trainerCountryMatch: reportRow.trainer_country_match,
+                        trainerTalentSpecialties:
+                          reportTrainerTalentSpecialties,
+                        trainerTalentNationalityMultiplier:
+                          reportRow.trainer_country_match ? 1.1 : 1,
+                        trainingCenterLevel: Number(trainingCenter?.level ?? 0),
+                        trainingCenterEfficiencyBonusPercentage: Number(
+                          trainingCenter?.efficiency_bonus_percentage ?? 0,
+                        ),
+                        federationPerformanceLevel:
+                          federationInfrastructureLevel.get(
+                            "national_performance_center",
+                          ) ?? 0,
+                        federationStaffInstituteLevel:
+                          federationInfrastructureLevel.get(
+                            "federal_staff_institute",
+                          ) ?? 0,
+                        trainerMatchesFederation:
+                          reportTrainer?.country_id ===
+                          teamSeason.registration_country_id,
+                        dailyRewardMultiplier: getTrainingRewardMultiplierForDay(
+                          trainingRewardEffectsResult.data ?? [],
+                          reportDayNumber,
+                        ),
+                        hasFirstInClass: firstInClassRiderIds.has(rider.id),
+                      }),
+                    ]),
+                  ),
                   processedAt: reportRow.processed_at,
                 }
               : null,
@@ -603,7 +745,7 @@ async function loadContext(
 
   const { data: teamSeason, error: teamSeasonError } = await admin
     .from("team_seasons")
-    .select("team_id, display_name")
+    .select("team_id, display_name, registration_country_id")
     .eq("team_id", assignmentResult.data.team_id)
     .eq("season_id", seasonResult.data.id)
     .maybeSingle<TeamSeasonRow>();
@@ -611,6 +753,28 @@ async function loadContext(
   if (!teamSeason) return null;
 
   return { season: seasonResult.data, teamSeason };
+}
+
+function getTrainingRewardMultiplierForDay(
+  effects: readonly TrainingRewardEffectRow[],
+  dayNumber: number,
+): number {
+  return effects.reduce((best, effect) => {
+    const applies =
+      effect.consumed_day_number === dayNumber ||
+      (effect.status === "active" &&
+        dayNumber >= effect.starts_day_number &&
+        dayNumber <= effect.ends_day_number);
+    if (!applies) return best;
+    const multiplier = Number(effect.effect_payload.multiplier ?? 1);
+    return Number.isFinite(multiplier)
+      ? Math.max(best, Math.min(3, Math.max(1, multiplier)))
+      : best;
+  }, 1);
+}
+
+function toRiderRatingKey(statCode: (typeof TRAINING_STAT_CODES)[number]) {
+  return statCode === "time_trial" ? ("timeTrial" as const) : statCode;
 }
 
 function groupByKey<T>(

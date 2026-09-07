@@ -424,14 +424,22 @@ export function chooseYouthArchetype({
   primary,
   secondary,
   random,
+  diversityLevel = 0,
 }: {
   primary: YouthArchetype;
   secondary: YouthArchetype;
   random: () => number;
+  diversityLevel?: number;
 }): YouthArchetype {
   const roll = random();
-  if (roll < 0.56) return primary;
-  if (roll < 0.82) return secondary;
+  const safeDiversityLevel = Math.min(
+    5,
+    Math.max(0, Math.trunc(diversityLevel)),
+  );
+  const primaryThreshold = 0.56 - safeDiversityLevel * 0.01;
+  const secondaryThreshold = 0.82 - safeDiversityLevel * 0.005;
+  if (roll < primaryThreshold) return primary;
+  if (roll < secondaryThreshold) return secondary;
   return roll < 0.94 ? "breakaway" : "all_rounder";
 }
 

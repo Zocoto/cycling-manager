@@ -7,6 +7,7 @@ import {
   calculateYouthScoutingQuality,
   calculateYouthProjectedOverall,
   calculateYouthSigningCosts,
+  chooseYouthArchetype,
   createSeededRandom,
   generateYouthPotentialSteps,
   generateYouthRatings,
@@ -17,6 +18,18 @@ import {
 import { projectYouthRating } from "@/lib/game/youth-training";
 
 describe("youth development", () => {
+  it("diversifie progressivement les archétypes via les académies régionales", () => {
+    const input = {
+      primary: "climber" as const,
+      secondary: "puncheur" as const,
+      random: () => 0.54,
+    };
+
+    expect(chooseYouthArchetype(input)).toBe("climber");
+    expect(chooseYouthArchetype({ ...input, diversityLevel: 5 })).toBe(
+      "puncheur",
+    );
+  });
   it("keeps every junior rating between 1 and 6", () => {
     for (const archetype of ["climber", "puncheur", "stage_racer", "northern_classics", "rouleur", "breakaway", "sprinter", "all_rounder"] as const) {
       const ratings = generateYouthRatings({

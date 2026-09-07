@@ -149,7 +149,7 @@ describe("training progression", () => {
         ratingKey: "mountain",
         countryMatch: true,
       }),
-    ).toBeCloseTo(1.05);
+    ).toBeCloseTo(1.1);
     expect(
       getTrainerMultiplier({
         specialty: "sprint",
@@ -157,7 +157,7 @@ describe("training progression", () => {
         ratingKey: "sprint",
         countryMatch: true,
       }),
-    ).toBeCloseTo(1.25);
+    ).toBeCloseTo(1.3);
   });
 
   it("makes low ratings progress faster and caps seasonal integer gains", () => {

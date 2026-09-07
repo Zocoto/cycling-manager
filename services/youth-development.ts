@@ -2,6 +2,14 @@ import "server-only";
 
 import { COUNTRY_MAP_COORDINATES } from "@/data/country-map-coordinates";
 import {
+  buildStackedBonusBreakdown,
+  type BonusBreakdown,
+} from "@/lib/game/bonus-breakdown";
+import {
+  getBestNaturalizationRequiredDays,
+  getFederationInfrastructureEffectPercentage,
+} from "@/lib/game/federation-infrastructure-effects";
+import {
   calculateCountryBoundNaturalizationDays,
   evaluateNaturalizationEligibility,
   type NaturalizationEligibility,
@@ -48,6 +56,7 @@ import { getScoutYouthBonuses } from "@/lib/game/staff";
 import {
   getScoutTalentBonuses,
   isStaffTalentForRole,
+  STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE,
 } from "@/lib/game/staff-talents";
 import {
   YOUTH_RAW_RATING_MAX,
@@ -88,6 +97,8 @@ type Context = {
   currentDayNumber: number;
   registrationCountryId: string;
   welcomeCenterLevel: number;
+  welcomeCenterEfficiencyBonusPercentage: number;
+  federalIntegrationLevel: number;
 };
 
 type CountryRow = {
@@ -118,6 +129,8 @@ type MissionRow = {
   report_ready_at: string | null;
   report_viewed_at: string | null;
   created_at: string;
+  federation_detection_bonus_percentage: number | string;
+  federal_staff_bonus_percentage: number | string;
 };
 
 type CandidateRow = {
@@ -152,6 +165,8 @@ type CandidateRow = {
   international_center_bonus_applied: boolean;
   international_center_bonus_percentage: number;
   native_special_ability_code: string | null;
+  federal_tuition_reduction_percentage: number | string;
+  scout_tuition_reduction_percentage: number | string;
 };
 
 type AcademyRow = Omit<
@@ -248,6 +263,7 @@ export type YouthCandidate = {
   internationalCenterBonusApplied: boolean;
   internationalCenterBonusPercentage: number;
   nativeSpecialAbility: SpecialAbilityDefinition | null;
+  tuitionDiscountBreakdown: BonusBreakdown;
 };
 
 export type YouthMission = {
@@ -259,6 +275,9 @@ export type YouthMission = {
   durationDays: number;
   completesDayNumber: number;
   supervisionBonusPercentage: number;
+  scoutingQualityBonusBreakdown: BonusBreakdown;
+  localKnowledgeBonusPercentage: number;
+  federationPrecisionBonusPercentage: number;
   status: MissionRow["status"];
   unread: boolean;
   viewedAt: string | null;
@@ -700,6 +719,15 @@ async function loadOverview(admin: AdminClient, context: Context) {
   const missions = (missionsResult.data ?? []).map((mission): YouthMission => {
     const country = countryDtoById.get(mission.country_id);
     const scout = scoutByContractId.get(mission.scout_contract_id);
+    const supervisionBonusPercentage =
+      getScoutingSupervisionPercentageForDay(
+        scoutingSupervisionEffects,
+        mission.completes_day_number,
+      );
+    const teamAffinityBonusPercentage =
+      scout?.countryId === context.registrationCountryId
+        ? STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE
+        : 0;
     return {
       id: mission.id,
       scoutName: scout ? `${scout.firstName} ${scout.lastName}` : "Scout",
@@ -708,11 +736,33 @@ async function loadOverview(admin: AdminClient, context: Context) {
       startDayNumber: mission.start_day_number,
       durationDays: mission.duration_days,
       completesDayNumber: mission.completes_day_number,
-      supervisionBonusPercentage:
-        getScoutingSupervisionPercentageForDay(
-          scoutingSupervisionEffects,
-          mission.completes_day_number,
-        ),
+      supervisionBonusPercentage,
+      scoutingQualityBonusBreakdown: buildStackedBonusBreakdown([
+        {
+          key: "scout-team-affinity",
+          label: "Affinité du scout avec l’équipe",
+          percentage: teamAffinityBonusPercentage,
+          detail: "Multiplie la qualité et le rendement de la mission",
+        },
+        {
+          key: "scouting-supervision",
+          label: "Supervision de scouting",
+          percentage: supervisionBonusPercentage,
+          detail: `Bonus actif au retour du J${mission.completes_day_number}`,
+        },
+        {
+          key: "federal-staff-institute",
+          label: "Institut fédéral du staff",
+          percentage: Number(mission.federal_staff_bonus_percentage ?? 0),
+          detail: "Bonus réservé aux scouts de la nation",
+        },
+      ]),
+      localKnowledgeBonusPercentage: scout
+        ? getScoutNationalityEfficiencyBonus(scout.countryId, mission.country_id)
+        : 0,
+      federationPrecisionBonusPercentage: Number(
+        mission.federation_detection_bonus_percentage ?? 0,
+      ),
       status: mission.status,
       unread: mission.status === "completed" && !mission.report_viewed_at,
       viewedAt: mission.report_viewed_at,
@@ -722,6 +772,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
           countryById.get(candidate.country_id),
           scout?.level ?? 1,
           mission.duration_days,
+          Number(mission.federation_detection_bonus_percentage ?? 0),
         ),
       ),
     };
@@ -854,9 +905,16 @@ async function loadOverview(admin: AdminClient, context: Context) {
         name: country?.name ?? "Pays inconnu",
         code: country?.iso_alpha2 ?? "--",
       },
-      requiredDays: [28, 21, 14, 7, 3, 0][
-        Math.max(0, Math.min(5, context.welcomeCenterLevel))
-      ],
+      requiredDays: getBestNaturalizationRequiredDays({
+        teamRequiredDays: Math.ceil(
+          [28, 21, 14, 7, 3, 0][
+            Math.max(0, Math.min(5, context.welcomeCenterLevel))
+          ] /
+            (1 + context.welcomeCenterEfficiencyBonusPercentage / 100),
+        ),
+        federalIntegrationLevel: context.federalIntegrationLevel,
+        baseDays: 28,
+      }),
       targetCountry: {
         id: targetCountry.id,
         name: targetCountry.name,
@@ -1026,6 +1084,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     profileResult,
     centersResult,
     countryRankings,
+    federationInfrastructureResult,
   ] = await Promise.all([
     admin
       .from("staff_contracts")
@@ -1058,12 +1117,25 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         }>
       >(),
     loadPreviousSeasonCountryUciRankings(admin, mission.season_id),
+    admin
+      .from("national_federation_infrastructures")
+      .select("infrastructure_code, level")
+      .eq("country_id", mission.country_id)
+      .in("infrastructure_code", [
+        "national_detection_network",
+        "regional_academies",
+      ])
+      .returns<Array<{ infrastructure_code: string; level: number }>>(),
   ]);
   assertQuery(contractResult.error, "le contrat du scout");
   assertQuery(countryResult.error, "le pays scouté");
   assertQuery(facilityResult.error, "les installations locales");
   assertQuery(profileResult.error, "le profil régional");
   assertQuery(centersResult.error, "les centres internationaux");
+  assertQuery(
+    federationInfrastructureResult.error,
+    "les infrastructures fédérales de détection",
+  );
   const contract = requireData(contractResult.data, "le contrat du scout");
   const country = requireData(countryResult.data, "le pays scouté");
   const profile = requireData(profileResult.data, "le profil régional");
@@ -1107,6 +1179,18 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   assertQuery(talentsResult.error, "les talents du scout");
   assertQuery(teamSeasonResult.error, "la nationalité de l’équipe");
   assertQuery(dailyRewardBoostResult.error, "le bonus quotidien de scouting");
+  const federalStaffInstituteResult = teamSeasonResult.data
+    ? await admin
+        .from("national_federation_infrastructures")
+        .select("level")
+        .eq("country_id", teamSeasonResult.data.registration_country_id)
+        .eq("infrastructure_code", "federal_staff_institute")
+        .maybeSingle<{ level: number }>()
+    : { data: null, error: null };
+  assertQuery(
+    federalStaffInstituteResult.error,
+    "l’Institut fédéral du staff",
+  );
   const talentCodes = (talentsResult.data ?? []).flatMap((talent) =>
     isStaffTalentForRole(talent.talent_code, "scout")
       ? [talent.talent_code]
@@ -1116,6 +1200,14 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     scout.country_id === teamSeasonResult.data?.registration_country_id
       ? 1.1
       : 1;
+  const federalStaffBonusPercentage =
+    scout.country_id === teamSeasonResult.data?.registration_country_id
+      ? getFederationInfrastructureEffectPercentage(
+          "federal_staff_institute",
+          Number(federalStaffInstituteResult.data?.level ?? 0),
+        )
+      : 0;
+  const federalStaffMultiplier = 1 + federalStaffBonusPercentage / 100;
   const dailyScoutingQualityMultiplier =
     1 +
     getScoutingSupervisionPercentageForDay(
@@ -1137,11 +1229,13 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     initialRatingBonus:
       (baseScoutBonuses.initialRatingBonus + talentBonuses.initialRatingBonus) *
       nationalityAffinity *
+      federalStaffMultiplier *
       dailyScoutingQualityMultiplier,
   };
   const count =
     getScoutingCandidateCount({
-      scoutLevel: scout.level * nationalityAffinity,
+      scoutLevel:
+        scout.level * nationalityAffinity * federalStaffMultiplier,
       durationDays: mission.duration_days,
       facilityLevel,
       random,
@@ -1164,8 +1258,27 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     nationalityBonusPercentage: nationalityBonus,
     scoutExpertiseBonus: talentBonuses.potentialBonus,
     qualityMultiplier:
-      nationalityAffinity * dailyScoutingQualityMultiplier,
+      nationalityAffinity *
+      federalStaffMultiplier *
+      dailyScoutingQualityMultiplier,
   });
+  const federationInfrastructureLevelByCode = new Map(
+    (federationInfrastructureResult.data ?? []).map((infrastructure) => [
+      infrastructure.infrastructure_code,
+      infrastructure.level,
+    ]),
+  );
+  const federationDetectionBonusPercentage =
+    getFederationInfrastructureEffectPercentage(
+      "national_detection_network",
+      federationInfrastructureLevelByCode.get("national_detection_network") ??
+        0,
+    );
+  const federalTuitionReductionPercentage =
+    getFederationInfrastructureEffectPercentage(
+      "regional_academies",
+      federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
+    );
   const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
     (total, center) =>
       total +
@@ -1177,7 +1290,12 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   );
   const candidates = identities.map((identity, index) => {
     const age = clamp(15 + Math.floor(random() * 4), 15, 18);
-    const archetype = chooseYouthArchetype({ ...specialties, random });
+    const archetype = chooseYouthArchetype({
+      ...specialties,
+      diversityLevel:
+        federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
+      random,
+    });
     const basePotentialSteps = generateYouthPotentialSteps({
       qualityScore: scoutingQuality,
       random,
@@ -1209,6 +1327,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       ratings,
       countryReputation: reputation,
     });
+    const scoutTuitionReductionPercentage =
+      talentBonuses.tuitionReductionPercentage *
+      nationalityAffinity *
+      federalStaffMultiplier;
     return {
       mission_id: mission.id,
       report_slot: index + 1,
@@ -1233,15 +1355,19 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         Math.round(
           talentBonuses.academyTrainingBonusPercentage *
             nationalityAffinity *
+            federalStaffMultiplier *
             100,
         ) / 100,
+      federal_tuition_reduction_percentage:
+        federalTuitionReductionPercentage,
+      scout_tuition_reduction_percentage:
+        Math.round(scoutTuitionReductionPercentage * 100) / 100,
       tuition_per_season: Math.max(
         500,
         Math.round(
           (costs.tuitionPerSeason *
-            (1 -
-              (talentBonuses.tuitionReductionPercentage * nationalityAffinity) /
-                100)) /
+            (1 - scoutTuitionReductionPercentage / 100) *
+            (1 - federalTuitionReductionPercentage / 100)) /
             500,
         ) * 500,
       ),
@@ -1258,6 +1384,9 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     .from("youth_scouting_missions")
     .update({
       status: "completed",
+      federation_detection_bonus_percentage:
+        federationDetectionBonusPercentage,
+      federal_staff_bonus_percentage: federalStaffBonusPercentage,
       report_ready_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -1689,14 +1818,27 @@ async function loadContext(
       }>(),
     admin
       .from("team_infrastructures")
-      .select("level")
+      .select("level, efficiency_bonus_percentage")
       .eq("team_id", assignmentResult.data.team_id)
       .eq("infrastructure_code", "international_welcome_center")
-      .maybeSingle<{ level: number }>(),
+      .maybeSingle<{
+        level: number;
+        efficiency_bonus_percentage: number | string;
+      }>(),
   ]);
   assertQuery(teamSeasonResult.error, "l’équipe de la saison");
   assertQuery(welcomeCenterResult.error, "le Centre d’accueil international");
   if (!teamSeasonResult.data) return null;
+  const federalIntegrationResult = await admin
+    .from("national_federation_infrastructures")
+    .select("level")
+    .eq("country_id", teamSeasonResult.data.registration_country_id)
+    .eq("infrastructure_code", "federal_integration_office")
+    .maybeSingle<{ level: number }>();
+  assertQuery(
+    federalIntegrationResult.error,
+    "le Bureau fédéral d’intégration",
+  );
   return {
     teamId: assignmentResult.data.team_id,
     teamSeasonId: teamSeasonResult.data.id,
@@ -1709,6 +1851,10 @@ async function loadContext(
     currentDayNumber: seasonResult.data.current_day_number ?? 1,
     registrationCountryId: teamSeasonResult.data.registration_country_id,
     welcomeCenterLevel: Number(welcomeCenterResult.data?.level ?? 0),
+    welcomeCenterEfficiencyBonusPercentage: Number(
+      welcomeCenterResult.data?.efficiency_bonus_percentage ?? 0,
+    ),
+    federalIntegrationLevel: Number(federalIntegrationResult.data?.level ?? 0),
   };
 }
 
@@ -1717,6 +1863,7 @@ function toCandidate(
   country: CountryRow | undefined,
   scoutLevel: number,
   durationDays: number,
+  federationPrecisionBonusPercentage: number,
 ): YouthCandidate {
   const ratings = scaleYouthRatings(rowToRatings(row));
   return {
@@ -1744,6 +1891,7 @@ function toCandidate(
         scoutLevel,
         durationDays,
       }),
+      precisionBonusPercentage: federationPrecisionBonusPercentage,
     }),
     signingFee: toNumber(row.signing_fee),
     tuitionPerSeason: toNumber(row.tuition_per_season),
@@ -1751,6 +1899,20 @@ function toCandidate(
     internationalCenterBonusApplied: row.international_center_bonus_applied,
     internationalCenterBonusPercentage:
       row.international_center_bonus_percentage,
+    tuitionDiscountBreakdown: buildStackedBonusBreakdown([
+      {
+        key: "scout-tuition",
+        label: "Talent du scout",
+        percentage: -toNumber(row.scout_tuition_reduction_percentage),
+        detail: "Réduction propre au scout qui a découvert ce junior",
+      },
+      {
+        key: "federal-regional-academies",
+        label: "Académies régionales",
+        percentage: -toNumber(row.federal_tuition_reduction_percentage),
+        detail: "Réduction fédérale du pays de formation",
+      },
+    ]),
   };
 }
 function rowToRatings(row: CandidateRow | AcademyRow): YouthRatings {

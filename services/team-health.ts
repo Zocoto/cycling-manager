@@ -76,6 +76,7 @@ type InjuryRow = {
   base_expected_recovery_at: string;
   expected_recovery_at: string;
   doctor_recovery_hours_reduced: number;
+  federal_recovery_hours_reduced: number;
   form_loss_per_day: number;
   protocol_code: string | null;
   status: string;
@@ -150,6 +151,7 @@ export type RiderMedicalInjury = {
   baseExpectedRecoveryAt: string;
   expectedRecoveryAt: string;
   doctorRecoveryHoursReduced: number;
+  federalRecoveryHoursReduced: number;
   formLossPerDay: number;
   protocolCode: string | null;
   treatment: {
@@ -351,7 +353,7 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("rider_injuries")
         .select(
-          "id, rider_id, diagnosis_code, recovery_hours, started_at, base_expected_recovery_at, expected_recovery_at, doctor_recovery_hours_reduced, form_loss_per_day, protocol_code, status",
+          "id, rider_id, diagnosis_code, recovery_hours, started_at, base_expected_recovery_at, expected_recovery_at, doctor_recovery_hours_reduced, federal_recovery_hours_reduced, form_loss_per_day, protocol_code, status",
         )
         .in("rider_id", riderIds)
         .eq("status", "active")
@@ -530,6 +532,8 @@ export async function getCurrentTeamHealthOverview(
                 expectedRecoveryAt: injury.expected_recovery_at,
                 doctorRecoveryHoursReduced:
                   injury.doctor_recovery_hours_reduced,
+                federalRecoveryHoursReduced:
+                  injury.federal_recovery_hours_reduced,
                 formLossPerDay: injury.form_loss_per_day,
                 protocolCode: injury.protocol_code,
                 treatment: treatment

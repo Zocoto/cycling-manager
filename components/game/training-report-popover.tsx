@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 
 import { TRAINER_SPECIALTY_LABELS } from "@/lib/game/staff";
+import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
 import {
   formatTrainingProgressMilli,
   LOW_FORM_REST_GAIN,
@@ -206,7 +207,7 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
           }
         />
         {report.trainerCountryMatch ? (
-          <ReportValue label="Affinité nationale" value="Active · +5%" />
+          <ReportValue label="Affinité nationale" value="Active · +10%" />
         ) : null}
       </dl>
 
@@ -217,19 +218,36 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
           </p>
           {trainingProgress.length > 0 ? (
             <ul className="mt-3 grid grid-cols-2 gap-2 text-xs font-black">
-              {trainingProgress.map(([stat, value]) => (
-                <li
-                  key={stat}
-                  className="flex items-center justify-between rounded-lg bg-white/7 px-3 py-2"
-                >
-                  <span className="text-[#D6DFD2]">
-                    {STAT_LABELS[stat] ?? stat}
-                  </span>
-                  <span className="text-[#9BE0BC]">
-                    +{formatTrainingProgressMilli(value)}
-                  </span>
-                </li>
-              ))}
+              {trainingProgress.map(([stat, value]) => {
+                const bonusBreakdown =
+                  report.bonusBreakdownByStat?.[
+                    stat as keyof NonNullable<
+                      RiderTrainingReport["bonusBreakdownByStat"]
+                    >
+                  ];
+                return (
+                  <li
+                    key={stat}
+                    className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/7 px-3 py-2"
+                  >
+                    <span className="text-[#D6DFD2]">
+                      {STAT_LABELS[stat] ?? stat}
+                    </span>
+                    <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                      <span className="text-[#9BE0BC]">
+                        +{formatTrainingProgressMilli(value)}
+                      </span>
+                      {bonusBreakdown ? (
+                        <BonusBreakdownPopover
+                          breakdown={bonusBreakdown}
+                          tone="dark"
+                          compact
+                        />
+                      ) : null}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">

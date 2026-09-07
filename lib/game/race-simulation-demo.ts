@@ -224,6 +224,8 @@ export function createCalendarSimulationInput({
     stageType: stage.stageType,
     profileType: stage.profileType,
     raceCountryCode: edition.countryCode,
+    federationHomeAdvantageBonus:
+      edition.federationHomeAdvantageBonus ?? 0,
     gameDayIndex: stage.gameDayIndex,
     isStageRace: edition.raceFormat === "stage_race",
     stageNumber: stage.stageNumber,

@@ -10,6 +10,7 @@ import {
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
 import {
   DevelopmentTeamPanel,
   type DevelopmentTeamView,
@@ -1332,6 +1333,23 @@ function MissionReport({
           </span>
         )}
       </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <BonusBreakdownPopover
+          breakdown={mission.scoutingQualityBonusBreakdown}
+          label="Qualité globale"
+          compact
+        />
+        {mission.localKnowledgeBonusPercentage > 0 ? (
+          <span className="rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[9px] font-black text-[#176951]">
+            Connaissance locale +{mission.localKnowledgeBonusPercentage} %
+          </span>
+        ) : null}
+        {mission.federationPrecisionBonusPercentage > 0 ? (
+          <span className="rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[9px] font-black text-[#176951]">
+            Précision fédérale +{mission.federationPrecisionBonusPercentage} %
+          </span>
+        ) : null}
+      </div>
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
         {mission.candidates.map((candidate) => (
           <CandidateCard
@@ -1431,6 +1449,13 @@ function CandidateCard({
           <p className="text-[9px] font-bold text-[#60756E]">
             + {formatCurrency(candidate.tuitionPerSeason, currency)} / saison
           </p>
+          <div className="mt-1.5">
+            <BonusBreakdownPopover
+              breakdown={candidate.tuitionDiscountBreakdown}
+              label="Réduction globale"
+              compact
+            />
+          </div>
         </div>
         {candidate.status === "spotted" ? (
           <form action={signYouthCandidateAction}>
@@ -1531,12 +1556,12 @@ function ActiveMissionCard({
           style={{ width: `${progress}%` }}
         />
       </div>
-      {mission.supervisionBonusPercentage > 0 ? (
-        <p className="mt-3 rounded-xl border border-[#42B99A]/20 bg-[#EAF5F3] px-3 py-2 text-xs font-black text-[#176951]">
-          Supervision +{mission.supervisionBonusPercentage} % appliquée au
-          rapport du J{mission.completesDayNumber}
-        </p>
-      ) : null}
+      <div className="mt-3">
+        <BonusBreakdownPopover
+          breakdown={mission.scoutingQualityBonusBreakdown}
+          label="Qualité globale"
+        />
+      </div>
     </article>
   );
 }

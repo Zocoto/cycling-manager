@@ -141,6 +141,7 @@ export type RaceCalendarEdition = {
   calendarHref?: string;
   isGrandTour?: boolean;
   isSponsorObjective?: boolean;
+  federationHomeAdvantageBonus?: number;
   registrationClosesAt: string | null;
   wildcardClosesAt: string | null;
   withdrawalClosesAt: string | null;

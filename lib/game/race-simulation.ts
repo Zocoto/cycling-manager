@@ -176,6 +176,7 @@ export type RiderSimulationInput = {
   countryCode?: string | null;
   climateProfile?: RiderClimateProfile;
   localRaceBonus?: number;
+  nationalTechnicalLabBonus?: number;
   localRaceCountryCodes?: string[];
   reconnaissanceBonus?: number;
   performancePreparations?: Array<{
@@ -202,6 +203,7 @@ export type StageSimulationInput = {
   stageType: SimulationStageType;
   profileType: RaceProfileType;
   raceCountryCode?: string | null;
+  federationHomeAdvantageBonus?: number;
   gameDayIndex?: number;
   isStageRace: boolean;
   stageNumber?: number;
@@ -980,9 +982,14 @@ function normalizeStageSimulationInput(
           rider.performancePreparations,
           input.gameDayIndex,
         );
+        const federationAdjustedRatings = applyNationalTechnicalLabBonus(
+          preparationAdjustedRatings,
+          input.stageType,
+          rider.nationalTechnicalLabBonus,
+        );
         const equipmentAdjustedRatings = rider.equipmentEffects
           ? applyEquipmentRatingBonuses(
-              preparationAdjustedRatings,
+              federationAdjustedRatings,
               rider.equipmentEffects,
               {
                 isTimeTrial:
@@ -991,7 +998,7 @@ function normalizeStageSimulationInput(
                   input.stageType === "prologue",
               },
             )
-          : preparationAdjustedRatings;
+          : federationAdjustedRatings;
         const climateProfile =
           rider.climateProfile ??
           getRiderClimateProfile({
@@ -1012,7 +1019,7 @@ function normalizeStageSimulationInput(
                   countryCode.toUpperCase() ===
                   input.raceCountryCode?.toUpperCase(),
               ))
-              ? 2
+              ? 2 + Math.max(0, input.federationHomeAdvantageBonus ?? 0)
               : 0,
           ratings: applyReconnaissanceRatingBonus(
             applyRaceWeatherRatingAdjustments(
@@ -7588,6 +7595,26 @@ function applyPerformancePreparationBonuses(
     }
   }
   return next;
+}
+
+export function applyNationalTechnicalLabBonus(
+  ratings: RiderSimulationRatings,
+  stageType: SimulationStageType,
+  bonusPercentage = 0,
+): RiderSimulationRatings {
+  const isTimeTrial =
+    stageType === "individual_time_trial" ||
+    stageType === "team_time_trial" ||
+    stageType === "prologue";
+  const normalizedBonus = clamp(bonusPercentage, 0, 1);
+  if (!isTimeTrial || normalizedBonus === 0) return ratings;
+
+  const multiplier = 1 + normalizedBonus / 100;
+  return {
+    ...ratings,
+    timeTrial: Math.min(100, ratings.timeTrial * multiplier),
+    prologue: Math.min(100, ratings.prologue * multiplier),
+  };
 }
 
 function getRaceDayBonus(rider: RiderSimulationInput) {

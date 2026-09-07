@@ -61,6 +61,7 @@ import {
   type RiderClimateProfile,
 } from "@/lib/game/race-weather";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
+import { getFederationInfrastructureEffectPercentage } from "@/lib/game/federation-infrastructure-effects";
 import {
   chunkValues,
   collectChunkedPaginatedRows,
@@ -89,6 +90,14 @@ type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
 >;
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
+
+type FederationInfrastructureLevelRow = {
+  country_id: string;
+  infrastructure_code:
+    | "national_technical_laboratory"
+    | "home_advantage_program";
+  level: number;
+};
 
 type SeasonRow = {
   id: string;
@@ -1185,6 +1194,21 @@ export async function getActiveSeasonRaceCalendar(
       : emptyResult<CountryRow>();
 
   assertQuerySucceeded(countriesResult.error, "les pays des courses");
+  const federationInfrastructureResult = countryIds.length
+    ? await raceDataAdmin
+        .from("national_federation_infrastructures")
+        .select("country_id, infrastructure_code, level")
+        .in("country_id", countryIds)
+        .in("infrastructure_code", [
+          "national_technical_laboratory",
+          "home_advantage_program",
+        ])
+        .returns<FederationInfrastructureLevelRow[]>()
+    : emptyResult<FederationInfrastructureLevelRow>();
+  assertQuerySucceeded(
+    federationInfrastructureResult.error,
+    "les bonus fédéraux de course",
+  );
 
   const dayById = new Map(dayRows.map((day) => [day.id, day]));
   const raceById = new Map(raceRows.map((race) => [race.id, race]));
@@ -1193,6 +1217,12 @@ export async function getActiveSeasonRaceCalendar(
   );
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
+  );
+  const federationInfrastructureLevelByCountryAndCode = new Map(
+    (federationInfrastructureResult.data ?? []).map((infrastructure) => [
+      `${infrastructure.country_id}:${infrastructure.infrastructure_code}`,
+      Number(infrastructure.level),
+    ]),
   );
   const stagesByEditionId = groupStages(
     stageRows,
@@ -1240,6 +1270,7 @@ export async function getActiveSeasonRaceCalendar(
     raceStaffEffects,
     teamSponsorVisuals,
     welcomeCenterLocalRaceContext,
+    federationInfrastructureLevelByCountryAndCode,
   );
 
   const editions = editionRows
@@ -1292,6 +1323,13 @@ export async function getActiveSeasonRaceCalendar(
         isGrandTour: race.is_grand_tour,
         registrationClosesAt: edition.registration_closes_at,
         isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id),
+        federationHomeAdvantageBonus:
+          getFederationInfrastructureEffectPercentage(
+            "home_advantage_program",
+            federationInfrastructureLevelByCountryAndCode.get(
+              `${country.id}:home_advantage_program`,
+            ) ?? 0,
+          ),
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,
         registrationPolicy: edition.registration_policy,
@@ -2124,6 +2162,7 @@ function groupCalendarEngagedRiders(
   raceStaffEffects: RaceStaffEffects,
   teamSponsorVisuals: Map<string, RaceTeamSponsorVisual>,
   welcomeCenterLocalRaceContext: WelcomeCenterLocalRaceContext,
+  federationInfrastructureLevelByCountryAndCode: ReadonlyMap<string, number>,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -2237,6 +2276,17 @@ function groupCalendarEngagedRiders(
       form: Number(row.form),
       careerRaceDays: Number(riderMetadata?.career_race_days ?? 0),
       countryCode: riderCountry?.iso_alpha2 ?? null,
+      ...(usesNationalWorldModel && riderMetadata
+        ? {
+            nationalTechnicalLabBonus:
+              getFederationInfrastructureEffectPercentage(
+                "national_technical_laboratory",
+                federationInfrastructureLevelByCountryAndCode.get(
+                  `${riderMetadata.country_id}:national_technical_laboratory`,
+                ) ?? 0,
+              ),
+          }
+        : {}),
       ...(usesNationalWorldModel
         ? {}
         : {

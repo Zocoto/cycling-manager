@@ -492,6 +492,12 @@ function InjuryCard({
             </p>
           ) : null}
 
+          {rider.injury.federalRecoveryHoursReduced > 0 ? (
+            <p className="mt-3 rounded-xl bg-[#EAF5F3] px-4 py-3 text-sm font-bold text-[#176951]">
+              Réseau médical fédéral · {rider.injury.federalRecoveryHoursReduced} h de convalescence évitées dès le diagnostic
+            </p>
+          ) : null}
+
           {treatment ? (
             <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
               Protocole appliqué · {getProtocolName(overview, treatment.protocolCode)}

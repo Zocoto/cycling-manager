@@ -25,7 +25,7 @@ import {
   getChangedTrainingPlanIds,
   type TrainingPlanDraft,
 } from "@/lib/game/training-plan-drafts";
-import { STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE } from "@/lib/game/staff-talents";
+import { TRAINER_NATIONALITY_BONUS_PERCENTAGE } from "@/lib/game/training";
 import type { TeamTrainer } from "@/services/team-training";
 
 type TrainingPlanPatch = Partial<Omit<TrainingPlanDraft, "riderId">>;
@@ -402,7 +402,7 @@ export function RiderTrainingPlanFields({
         ) : null}
         {nationalityBonus ? (
           <span className="mt-2 block text-[10px] font-black text-[#8A6B16]">
-            {`Affinité nationale active · +${STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE} %`}
+            {`Affinité nationale active · +${TRAINER_NATIONALITY_BONUS_PERCENTAGE} %`}
           </span>
         ) : null}
       </div>

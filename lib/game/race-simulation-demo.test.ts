@@ -8,6 +8,7 @@ import {
   simulateOfficialRaceEdition,
 } from "./official-race-simulation";
 import {
+  applyNationalTechnicalLabBonus,
   buildStageRaceStandings,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -17,6 +18,30 @@ import {
 } from "./stage-race-jerseys";
 
 describe("createCalendarSimulationInput", () => {
+  it("transmet l’avantage fédéral du pays hôte au moteur", () => {
+    const edition = createEdition({
+      slug: "federal-home-bonus",
+      riders: [createRider("rider-a", "team-a")],
+    });
+    edition.federationHomeAdvantageBonus = 1;
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "official",
+    });
+
+    expect(input.federationHomeAdvantageBonus).toBe(1);
+  });
+
+  it("réserve le laboratoire fédéral aux épreuves chronométrées", () => {
+    const ratings = createRider("rider-a", "nation-a").ratings;
+
+    expect(
+      applyNationalTechnicalLabBonus(ratings, "individual_time_trial", 1),
+    ).toMatchObject({ timeTrial: 65.65, prologue: 65.65 });
+    expect(applyNationalTechnicalLabBonus(ratings, "road", 1)).toBe(ratings);
+  });
   it("utilise exclusivement les coureurs de la startlist enregistrée", () => {
     const registeredRiders = [
       createRider("rider-a", "team-a"),

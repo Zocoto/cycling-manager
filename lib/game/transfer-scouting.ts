@@ -31,12 +31,14 @@ export function createStandardTransferScoutingReport({
   ratings,
   potentialSteps,
   dataRoomLevel = 0,
+  precisionBonusPercentage = 0,
 }: {
   riderId: string;
   seasonId: string;
   ratings: RiderRatings;
   potentialSteps: number;
   dataRoomLevel?: number;
+  precisionBonusPercentage?: number;
 }): TransferScoutingReport {
   const visibility = getScoutingVisibilityForDataRoom(dataRoomLevel);
   const visibilityOrder = RIDER_RATING_AXES.map((axis) => ({
@@ -50,6 +52,9 @@ export function createStandardTransferScoutingReport({
       .slice(0, visibility.exactRatingCount)
       .map(({ key }) => key)
   );
+  const precisionThreshold = Math.round(
+    Math.min(5, Math.max(0, precisionBonusPercentage)) * 100,
+  );
   const rangedKeys = new Set(
     visibilityOrder
       .slice(
@@ -61,8 +66,13 @@ export function createStandardTransferScoutingReport({
   const scoutedRatings = Object.fromEntries(
     RIDER_RATING_AXES.map((axis) => {
       const value = ratings[axis.key];
+      const promotedByFederalPrecision =
+        precisionThreshold > 0 &&
+        stableHash(`${riderId}:${seasonId}:${axis.key}:federal-precision`) %
+          10_000 <
+          precisionThreshold;
 
-      if (exactKeys.has(axis.key)) {
+      if (exactKeys.has(axis.key) || promotedByFederalPrecision) {
         return [axis.key, { kind: "exact", value } satisfies ScoutedNumericValue];
       }
 
@@ -83,16 +93,25 @@ export function createStandardTransferScoutingReport({
   ) as Record<RiderRatingKey, ScoutedNumericValue>;
   const overall = calculateOverall(ratings);
   const potentialSeed = stableHash(`${riderId}:${seasonId}:potential`);
+  const overallPromoted =
+    stableHash(`${riderId}:${seasonId}:overall:federal-precision`) % 10_000 <
+    precisionThreshold;
+  const potentialPromoted =
+    stableHash(`${riderId}:${seasonId}:potential:federal-precision`) % 10_000 <
+    precisionThreshold;
 
   return {
-    overall: createNumericRange(
-      overall,
-      stableHash(`${riderId}:${seasonId}:overall`),
-      1,
-      dataRoomLevel >= 2 ? 1 : 3,
-    ),
-    potential:
-      visibility.potentialCanBeUnknown && potentialSeed % 4 === 0
+    overall: overallPromoted
+      ? { kind: "exact", value: overall }
+      : createNumericRange(
+          overall,
+          stableHash(`${riderId}:${seasonId}:overall`),
+          1,
+          dataRoomLevel >= 2 ? 1 : 3,
+        ),
+    potential: potentialPromoted
+      ? { kind: "exact", steps: normalizePotentialSteps(potentialSteps) }
+      : visibility.potentialCanBeUnknown && potentialSeed % 4 === 0
         ? { kind: "unknown" }
         : createPotentialRange(
             potentialSteps,
