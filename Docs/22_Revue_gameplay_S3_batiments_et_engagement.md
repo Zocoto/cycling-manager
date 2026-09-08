@@ -2,12 +2,11 @@
 
 ## 1. Décisions déjà implémentées
 
-Les neuf bâtiments fédéraux doivent produire l’effet annoncé par leur fiche. Les effets sont centralisés et plafonnés par niveau :
+Les huit bâtiments fédéraux conservés doivent produire l’effet annoncé par leur fiche. Les effets sont centralisés et plafonnés par niveau :
 
 | Bâtiment fédéral | Effet effectif au niveau 5 | Règle d’empilement |
 | --- | ---: | --- |
 | Réseau national de détection | +5 % de chance de rendre une donnée de rapport exacte | N’augmente ni le nombre ni la rareté des talents |
-| Académies régionales | −5 % de scolarité et davantage d’archétypes secondaires | Réduction multipliée après celle du scout |
 | Centre national de performance | +1,5 % de progression professionnelle | Multiplicatif avec staff, bâtiment d’équipe et récompenses |
 | Institut fédéral du staff | +2,5 % d’efficacité du staff de la nation | Seulement si le pays du membre correspond à la fédération |
 | Réseau médical fédéral | −5 % de durée de blessure | Ajouté au médecin, plafond global de 85 % |
@@ -45,7 +44,6 @@ Une saison dure 28 jours. La nouvelle grille suit trois rythmes lisibles : les b
 | Bâtiment | Nouvelle progression |
 | --- | --- |
 | Réseau national de détection | 7 · 10 · 14 · 18 · 23 j |
-| Académies régionales | 8 · 12 · 16 · 21 · 27 j |
 | Centre national de performance | 9 · 14 · 19 · 24 · 30 j |
 | Institut fédéral du staff | 7 · 11 · 15 · 20 · 26 j |
 | Réseau médical fédéral | 7 · 10 · 14 · 18 · 23 j |
@@ -77,11 +75,11 @@ Migration conseillée en S3 : conserver toutes les données historiques, calcule
 sa montée en puissance et la traçabilité des probabilités dans les rapports de
 scouting sont implémentés.
 
-Le Plan vélo scolaire devient un **programme fédéral pluri-saisonnier** rattaché aux Académies régionales, et non un bonus instantané.
+Le Plan vélo scolaire est un **programme fédéral autonome et pluri-saisonnier**, distinct des bonus de détection. Son accès est débloqué par le Réseau national de détection niveau 2.
 
 ### Parcours président
 
-1. Débloquer les Académies régionales N2.
+1. Débloquer le Réseau national de détection N2.
 2. Ouvrir « Politique de formation » et consulter les probabilités actuelles du pays.
 3. Choisir un objectif parmi les huit archétypes. Le style principal historique ne peut pas être choisi comme nouveau style.
 4. Prévisualiser le transfert de probabilités avant de voter le plan.
@@ -90,7 +88,7 @@ Le Plan vélo scolaire devient un **programme fédéral pluri-saisonnier** ratta
 
 ### Effet de simulation
 
-Le plan ne crée pas de meilleurs coureurs. À pleine maturité, il transfère 10 points de probabilité depuis le style principal vers le style choisi. Le potentiel, les notes initiales et le taux de capacités rares restent inchangés. Les Académies régionales continuent séparément à élargir légèrement la part des profils secondaires.
+Le plan ne crée pas de meilleurs coureurs. À pleine maturité, il transfère 10 points de probabilité depuis le style principal vers le style choisi. Le potentiel, les notes initiales et le taux de capacités rares restent inchangés.
 
 Un pays ne peut avoir qu’un plan actif. Changer d’orientation relance 56 jours de déploiement et ne modifie jamais les juniors déjà générés. Chaque rapport affiche « style historique », « plan scolaire » et les probabilités utilisées au moment de la détection.
 
@@ -159,7 +157,6 @@ Une spécialisation est choisie au N3. Sa puissance vaut 60 % au N3, 80 % au N4 
 | Bâtiment | Spécialisation A | Spécialisation B | Spécialisation C |
 | --- | --- | --- | --- |
 | Réseau de détection | **Précision** : +2 points de précision, −10 % de volume | **Maillage** : +1 candidat potentiel, précision divisée par deux | **Diversité** : +8 points vers profils secondaires, aucune précision additionnelle |
-| Académies régionales | **Accessibilité** : réduction de scolarité doublée, diversité annulée | **Plan scolaire** : débloque l’orientation pluri-saisons, réduction divisée par deux | **Territoires** : diversité doublée, réduction de scolarité annulée |
 | Centre de performance | **Endurance** : bonus sur END/RES/REC uniquement, coefficient ×2 | **Vitesse** : bonus sur SPR/ACC/PLA uniquement, coefficient ×2 | **Relief** : bonus sur MON/VAL/DES uniquement, coefficient ×2 |
 | Institut du staff | **Entraîneurs** : bonus ×2 pour entraîneurs seulement | **Médical** : bonus ×2 pour médecins/kinés/nutritionnistes | **Détection** : bonus ×2 pour scouts ; autres rôles sans bonus fédéral |
 | Réseau médical | **Prévention** : −5 % de risque, plus de réduction de durée | **Récupération** : réduction de durée ×2, aucun effet prévention | **Forme** : −1 perte de forme/jour blessé, réduction de durée divisée par deux |

@@ -1,6 +1,5 @@
 export const FEDERATION_INFRASTRUCTURE_CODES = [
   "national_detection_network",
-  "regional_academies",
   "national_performance_center",
   "federal_staff_institute",
   "federal_medical_network",
@@ -72,30 +71,6 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
         "+3 % sur la qualité réelle et la précision, plus +2 % de chances relatives de détecter un style hors des archétypes du pays.",
         "+4 % sur la qualité réelle et la précision des détections nationales.",
         "+5 % sur la qualité réelle des juniors et la précision des rapports dans le pays.",
-      ],
-    }),
-  },
-  {
-    code: "regional_academies",
-    name: "Académies régionales",
-    domain: "Jeunesse · Formation de proximité",
-    summary:
-      "Structure un réseau local complémentaire aux écoles internationales déjà construites par les équipes.",
-    principle:
-      "Le bâtiment réduit modérément les coûts de formation et accentue la variété des profils, avec un plafond strict de 5 %.",
-    illustration: {
-      src: "/images/infrastructure/training-center.webp",
-      alt: "Académie régionale accueillant de jeunes cyclistes",
-    },
-    levels: makeLevels({
-      costs: [1_000_000, 1_900_000, 3_100_000, 4_700_000, 6_800_000],
-      durations: [8, 12, 16, 21, 27],
-      effects: [
-        "−1 % sur les frais de formation des jeunes de la nation.",
-        "−2 % et davantage de profils issus de régions secondaires.",
-        "−3 % et diversité accrue des archétypes formés.",
-        "−4 % et maillage régional renforcé.",
-        "−5 % au maximum et réseau national arrivé à maturité.",
       ],
     }),
   },

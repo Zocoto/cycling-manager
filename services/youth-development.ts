@@ -1219,10 +1219,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       .from("national_federation_infrastructures")
       .select("infrastructure_code, level")
       .eq("country_id", mission.country_id)
-      .in("infrastructure_code", [
-        "national_detection_network",
-        "regional_academies",
-      ])
+      .eq("infrastructure_code", "national_detection_network")
       .returns<Array<{ infrastructure_code: string; level: number }>>(),
     admin
       .from("national_federation_infrastructure_specializations")
@@ -1398,11 +1395,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       "national_detection_network",
       federalDetectionNetworkLevel,
     );
-  const federalTuitionReductionPercentage =
-    getFederationInfrastructureEffectPercentage(
-      "regional_academies",
-      federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
-    );
   const nationalityBonus = getScoutNationalityEfficiencyBonus(
     scout.country_id,
     country.id,
@@ -1481,8 +1473,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     : 0;
   const archetypeProbabilities = getYouthArchetypeProbabilities({
     ...specialties,
-    diversityLevel:
-      federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
     schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
     schoolPlanTransferPoints,
     atypicalStyleRelativeBonusPercentage:
@@ -1492,8 +1482,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     const age = clamp(15 + Math.floor(random() * 4), 15, 18);
     const archetype = chooseYouthArchetype({
       ...specialties,
-      diversityLevel:
-        federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
       schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
       schoolPlanTransferPoints,
       atypicalStyleRelativeBonusPercentage:
@@ -1570,8 +1558,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
             federalStaffMultiplier *
             100,
         ) / 100,
-      federal_tuition_reduction_percentage:
-        federalTuitionReductionPercentage,
+      federal_tuition_reduction_percentage: 0,
       scout_tuition_reduction_percentage:
         Math.round(scoutTuitionReductionPercentage * 100) / 100,
       data_room_tuition_reduction_percentage:
@@ -1592,7 +1579,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         Math.round(
           (costs.tuitionPerSeason *
             (1 - scoutTuitionReductionPercentage / 100) *
-            (1 - federalTuitionReductionPercentage / 100) *
             (1 - dataRoomTuitionReductionPercentage / 100) *
             (1 - welcomeCenterTuitionReductionPercentage / 100)) /
             500,
@@ -2147,9 +2133,9 @@ function toCandidate(
       },
       {
         key: "federal-regional-academies",
-        label: "Académies régionales",
+        label: "Aide fédérale historique",
         percentage: -toNumber(row.federal_tuition_reduction_percentage),
-        detail: "Réduction fédérale du pays de formation",
+        detail: "Réduction conservée sur les anciens contrats de formation",
       },
       {
         key: "data-room-talent-network",

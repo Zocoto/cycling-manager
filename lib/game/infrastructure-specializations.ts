@@ -182,14 +182,6 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
     ],
   },
   {
-    buildingCode: "regional_academies", buildingName: "Académies régionales", domain: "Jeunesse · Formation de proximité", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
-    options: [
-      option({ code: "open_access", name: "Accès populaire", identity: "Former davantage sans privilégier une élite précoce.", primaryEffect: "−6 % sur les frais de formation des jeunes nationaux.", secondaryEffect: "+5 % de capacité régionale.", guardrail: "Aucun bonus de progression individuelle." }),
-      option({ code: "regional_excellence", name: "Pôles d’excellence", identity: "Renforcer les meilleurs bassins existants.", primaryEffect: "+3 % d’efficacité d’entraînement dans les académies régionales.", secondaryEffect: "+4 % de précision sur le potentiel à 18 ans.", guardrail: "Aucune réduction des frais de formation." }),
-      option({ code: "multidiscipline", name: "Passerelles multidisciplinaires", identity: "Faire émerger des jeunes plus polyvalents.", primaryEffect: "+5 % d’efficacité sur les compétences secondaires inférieures à 65.", secondaryEffect: "+6 % de variété des styles formés.", guardrail: "Aucun bonus sur la meilleure caractéristique du jeune." }),
-    ],
-  },
-  {
     buildingCode: "national_performance_center", buildingName: "Centre national de performance", domain: "Entraînement · Haute performance", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
       option({ code: "altitude_endurance", name: "Altitude et endurance", identity: "Façonner une sélection résistante aux longues courses.", primaryEffect: "+1,5 % d’efficacité fédérale en Montagne et Endurance.", secondaryEffect: "+0,5 % de récupération sur les stages nationaux.", guardrail: "Aucun bonus sur Sprint et Accélération." }),

@@ -18,7 +18,6 @@ export type NationalDetectionNetworkEffects = {
 
 export const FEDERATION_INFRASTRUCTURE_EFFECT_PER_LEVEL = {
   national_detection_network: 1,
-  regional_academies: 1,
   national_performance_center: 0.3,
   federal_staff_institute: 0.5,
   federal_medical_network: 1,

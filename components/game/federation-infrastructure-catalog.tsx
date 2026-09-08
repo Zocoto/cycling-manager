@@ -24,7 +24,7 @@ import {
   SCHOOL_CYCLING_PLAN_COST,
   SCHOOL_CYCLING_PLAN_DURATION_DAYS,
   SCHOOL_CYCLING_PLAN_MATURITY_TRANSFERS,
-  SCHOOL_CYCLING_PLAN_REQUIRED_ACADEMY_LEVEL,
+  SCHOOL_CYCLING_PLAN_REQUIRED_DETECTION_NETWORK_LEVEL,
 } from "@/lib/game/federation-school-cycling-plan";
 import {
   getCountryYouthSpecialties,
@@ -142,12 +142,12 @@ export function FederationInfrastructureCatalog({
               }
               infrastructureState={infrastructureState}
             />
-            {definition.code === "regional_academies" ? (
+            {definition.code === "national_detection_network" ? (
               <FederationSchoolCyclingPlan
                 countryCode={countryCode}
                 currency={currency}
                 managementLocked={managementLocked}
-                academyLevel={currentLevel}
+                detectionNetworkLevel={currentLevel}
                 infrastructureState={infrastructureState}
               />
             ) : null}
@@ -162,13 +162,13 @@ function FederationSchoolCyclingPlan({
   countryCode,
   currency,
   managementLocked,
-  academyLevel,
+  detectionNetworkLevel,
   infrastructureState,
 }: {
   countryCode: string;
   currency: string;
   managementLocked: boolean;
-  academyLevel: number;
+  detectionNetworkLevel: number;
   infrastructureState: FederationInfrastructureState | null;
 }) {
   const specialties = getCountryYouthSpecialties(countryCode);
@@ -187,18 +187,17 @@ function FederationSchoolCyclingPlan({
   const currentPlanIsActive = plan?.status === "active";
   const currentProbabilities = getYouthArchetypeProbabilities({
     ...specialties,
-    diversityLevel: academyLevel,
     schoolPlanArchetype: currentPlanIsActive ? plan.targetArchetype : null,
     schoolPlanTransferPoints: currentPlanIsActive ? plan.transferPoints : 0,
   });
   const matureProbabilities = getYouthArchetypeProbabilities({
     ...specialties,
-    diversityLevel: academyLevel,
     schoolPlanArchetype: selectedArchetype,
     schoolPlanTransferPoints: 10,
   });
   const isUnlocked =
-    academyLevel >= SCHOOL_CYCLING_PLAN_REQUIRED_ACADEMY_LEVEL;
+    detectionNetworkLevel >=
+    SCHOOL_CYCLING_PLAN_REQUIRED_DETECTION_NETWORK_LEVEL;
   const hasEnoughFunds =
     (infrastructureState?.balance ?? 0) >= SCHOOL_CYCLING_PLAN_COST;
   const sameOrientation = plan?.targetArchetype === selectedArchetype;
@@ -214,7 +213,7 @@ function FederationSchoolCyclingPlan({
       <div className="grid gap-5 bg-[#102C27] p-5 text-white sm:p-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-            Politique de formation · programme pluri-saisonnier
+            Politique fédérale autonome · programme pluri-saisonnier
           </p>
           <h3 className="mt-2 text-2xl font-black sm:text-3xl">
             Plan vélo scolaire
@@ -243,7 +242,7 @@ function FederationSchoolCyclingPlan({
               </p>
             </div>
             <span className="rounded-full bg-[#EAF5F3] px-3 py-1.5 text-[10px] font-black text-[#176951]">
-              Académies N{academyLevel}/5
+              Réseau de détection N{detectionNetworkLevel}/5
             </span>
           </div>
           <ProbabilityBars probabilities={currentProbabilities} />
@@ -331,7 +330,7 @@ function FederationSchoolCyclingPlan({
             </button>
             {!isUnlocked ? (
               <PlanBlockReason>
-                Académies régionales niveau {SCHOOL_CYCLING_PLAN_REQUIRED_ACADEMY_LEVEL} requises.
+                Réseau national de détection niveau {SCHOOL_CYCLING_PLAN_REQUIRED_DETECTION_NETWORK_LEVEL} requis.
               </PlanBlockReason>
             ) : managementLocked ? (
               <PlanBlockReason>Programme disponible à partir de la Saison 3.</PlanBlockReason>

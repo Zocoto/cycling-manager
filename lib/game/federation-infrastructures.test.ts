@@ -52,9 +52,10 @@ const youthDevelopmentService = readFileSync(
 );
 
 describe("federation infrastructures", () => {
-  it("keeps the complete nine-building, five-level catalogue", () => {
-    expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS).toHaveLength(9);
-    expect(new Set(FEDERATION_INFRASTRUCTURE_CODES)).toHaveProperty("size", 9);
+  it("keeps the streamlined eight-building, five-level catalogue", () => {
+    expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS).toHaveLength(8);
+    expect(new Set(FEDERATION_INFRASTRUCTURE_CODES)).toHaveProperty("size", 8);
+    expect(FEDERATION_INFRASTRUCTURE_CODES).not.toContain("regional_academies");
     expect(
       FEDERATION_INFRASTRUCTURE_DEFINITIONS.every(
         (definition) => definition.levels.length === 5,
@@ -82,7 +83,11 @@ describe("federation infrastructures", () => {
   });
 
   it("applies time and balanced priorities independently", () => {
-    const level = FEDERATION_INFRASTRUCTURE_DEFINITIONS[2].levels[4];
+    const performanceCenter = FEDERATION_INFRASTRUCTURE_DEFINITIONS.find(
+      (definition) => definition.code === "national_performance_center",
+    );
+    expect(performanceCenter).toBeDefined();
+    const level = performanceCenter!.levels[4];
     const fast = calculateFederationConstructionPreview({
       level,
       architectCount: 5,
@@ -122,9 +127,11 @@ describe("federation infrastructures", () => {
     expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS[0].levels[0].cost).toBe(
       900_000,
     );
-    expect(FEDERATION_INFRASTRUCTURE_DEFINITIONS[5].levels[4].durationDays).toBe(
-      32,
-    );
+    expect(
+      FEDERATION_INFRASTRUCTURE_DEFINITIONS.find(
+        (definition) => definition.code === "national_technical_laboratory",
+      )?.levels[4].durationDays,
+    ).toBe(32);
     expect(programmeMigration).toContain(
       "release_federation_architect_on_contract_end",
     );

@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const academyRetirementMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260908170000_retire_regional_academies.sql",
+  ),
+  "utf8",
+);
 const maintenanceRoute = readFileSync(
   resolve(process.cwd(), "app/api/cron/game-maintenance/route.ts"),
   "utf8",
@@ -20,7 +27,7 @@ const youthService = readFileSync(
 );
 
 describe("federal school cycling plan migration", () => {
-  it("réserve le lancement au président en S3 avec les Académies N2", () => {
+  it("réserve le lancement au président en S3 avec le Réseau de détection N2", () => {
     expect(migration).toContain(
       "start_national_federation_school_cycling_plan",
     );
@@ -29,10 +36,13 @@ describe("federal school cycling plan migration", () => {
     expect(migration).toContain(
       "term.president_director_id = v_identity.sporting_director_id",
     );
-    expect(migration).toContain(
-      "infrastructure.infrastructure_code = 'regional_academies'",
+    expect(academyRetirementMigration).toContain(
+      "infrastructure.infrastructure_code = 'national_detection_network'",
     );
-    expect(migration).toContain("), 0) < 2");
+    expect(academyRetirementMigration).toContain("), 0) < 2");
+    expect(academyRetirementMigration).toContain(
+      "Le Réseau national de détection doit atteindre le niveau 2.",
+    );
     expect(migration).toContain("v_cost constant numeric := 1500000");
   });
 

@@ -37,7 +37,6 @@ const expectedTeamDurations = {
 
 const expectedFederationDurations = {
   national_detection_network: [7, 10, 14, 18, 23],
-  regional_academies: [8, 12, 16, 21, 27],
   national_performance_center: [9, 14, 19, 24, 30],
   federal_staff_institute: [7, 11, 15, 20, 26],
   federal_medical_network: [7, 10, 14, 18, 23],

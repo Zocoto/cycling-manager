@@ -16,7 +16,12 @@ const root = process.cwd();
 describe("infrastructure specializations", () => {
   it("covers every standard team and federation building with three balanced choices", () => {
     expect(TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(10);
-    expect(FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(9);
+    expect(FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(8);
+    expect(
+      FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.some(
+        (proposal) => proposal.buildingCode === "regional_academies",
+      ),
+    ).toBe(false);
     for (const proposal of [
       ...TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
       ...FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
