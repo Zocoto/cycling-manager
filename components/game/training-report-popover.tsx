@@ -227,23 +227,26 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
                 return (
                   <li
                     key={stat}
-                    className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white/7 px-3 py-2"
+                    className="min-w-0 rounded-lg bg-white/7 px-3 py-2 has-[details[open]]:col-span-2"
                   >
-                    <span className="text-[#D6DFD2]">
-                      {STAT_LABELS[stat] ?? stat}
-                    </span>
-                    <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                    <span className="flex min-w-0 items-center justify-between gap-2">
+                      <span className="text-[#D6DFD2]">
+                        {STAT_LABELS[stat] ?? stat}
+                      </span>
                       <span className="text-[#9BE0BC]">
                         +{formatTrainingProgressMilli(value)}
                       </span>
-                      {bonusBreakdown ? (
+                    </span>
+                    {bonusBreakdown ? (
+                      <span className="mt-2 block border-t border-white/10 pt-2">
                         <BonusBreakdownPopover
                           breakdown={bonusBreakdown}
                           tone="dark"
                           compact
+                          layout="inline"
                         />
-                      ) : null}
-                    </span>
+                      </span>
+                    ) : null}
                   </li>
                 );
               })}

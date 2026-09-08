@@ -22,6 +22,19 @@ describe("TrainingReportPopover", () => {
           formDelta: -13,
           formAfter: 69,
           progressMilli: { mountain: 850 },
+          bonusBreakdownByStat: {
+            mountain: {
+              totalPercentage: 26.6,
+              items: [
+                {
+                  key: "trainer",
+                  label: "Spécialité de l’entraîneur",
+                  detail: "Montagne · niveau 3",
+                  percentage: 20,
+                },
+              ],
+            },
+          },
           declineMilli: {},
           ratingChanges: { mountain: 1 },
           processedAt: "2026-07-27T08:00:00.000Z",
@@ -56,5 +69,9 @@ describe("TrainingReportPopover", () => {
     expect(markup).toContain("Bilan J1");
     expect(markup).toContain("J1 60");
     expect(markup).toContain("Travail +2,350");
+    expect(markup).toContain('data-layout="inline"');
+    expect(markup).toContain("Détail du bonus · +26,6 %");
+    expect(markup).toContain("Spécialité de l’entraîneur");
+    expect(markup).not.toContain("absolute right-0 z-50");
   });
 });

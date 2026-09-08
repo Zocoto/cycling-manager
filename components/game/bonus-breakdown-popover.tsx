@@ -5,21 +5,33 @@ export function BonusBreakdownPopover({
   label = "Bonus global",
   tone = "light",
   compact = false,
+  layout = "floating",
 }: {
   breakdown: BonusBreakdown;
   label?: string;
   tone?: "light" | "dark";
   compact?: boolean;
+  layout?: "floating" | "inline";
 }) {
   if (breakdown.items.length === 0) return null;
 
   const isDark = tone === "dark";
+  const isInline = layout === "inline";
   const formattedTotal = formatPercentage(breakdown.totalPercentage);
 
   return (
-    <details className="group/bonus relative inline-block">
+    <details
+      data-layout={layout}
+      className={
+        isInline
+          ? "group/bonus block w-full"
+          : "group/bonus relative inline-block"
+      }
+    >
       <summary
-        className={`inline-flex min-h-7 cursor-help list-none items-center gap-1.5 rounded-full border px-2.5 py-1 font-black transition focus-visible:outline-none focus-visible:ring-2 ${
+        className={`inline-flex min-h-7 list-none items-center gap-1.5 rounded-full border px-2.5 py-1 font-black transition focus-visible:outline-none focus-visible:ring-2 ${
+          isInline ? "cursor-pointer" : "cursor-help"
+        } ${
           compact ? "text-[9px]" : "text-[10px]"
         } ${
           isDark
@@ -34,8 +46,12 @@ export function BonusBreakdownPopover({
       </summary>
 
       <span
-        role="tooltip"
-        className={`invisible absolute right-0 z-50 mt-2 block w-[min(320px,calc(100vw-2rem))] translate-y-1 rounded-2xl border p-4 text-left opacity-0 shadow-2xl transition group-open/bonus:visible group-open/bonus:translate-y-0 group-open/bonus:opacity-100 group-hover/bonus:visible group-hover/bonus:translate-y-0 group-hover/bonus:opacity-100 group-focus-within/bonus:visible group-focus-within/bonus:translate-y-0 group-focus-within/bonus:opacity-100 ${
+        role={isInline ? undefined : "tooltip"}
+        className={`${
+          isInline
+            ? "mt-2 hidden w-full rounded-xl border p-3 text-left group-open/bonus:block"
+            : "invisible absolute right-0 z-50 mt-2 block w-[min(320px,calc(100vw-2rem))] translate-y-1 rounded-2xl border p-4 text-left opacity-0 shadow-2xl transition group-open/bonus:visible group-open/bonus:translate-y-0 group-open/bonus:opacity-100 group-hover/bonus:visible group-hover/bonus:translate-y-0 group-hover/bonus:opacity-100 group-focus-within/bonus:visible group-focus-within/bonus:translate-y-0 group-focus-within/bonus:opacity-100"
+        } ${
           isDark
             ? "border-white/15 bg-[#102A25] text-white"
             : "border-[#315B3E]/15 bg-white text-[#183F37]"
