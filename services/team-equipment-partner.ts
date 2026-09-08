@@ -265,7 +265,7 @@ function ratingLabel(key: string) {
     endurance: "Endurance",
     resistance: "Résistance",
     recovery: "Récupération",
-    breakaway: "Échappée",
+    breakaway: "Baroudeur",
     prologue: "Prologue",
   };
   return labels[key] ?? key;
