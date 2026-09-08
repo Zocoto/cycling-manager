@@ -42,6 +42,7 @@ const LIVE_DATA = {
 } satisfies FanClubLiveData;
 
 const MANAGEMENT = {
+  shopSpecialization: null,
   fleet: {},
   trips: [],
   inventory: [],

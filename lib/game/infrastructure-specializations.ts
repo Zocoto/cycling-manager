@@ -200,8 +200,8 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     unlockRule: "Choix au niveau 3",
     options: [
       option({ code: "volume_retail", name: "Grande diffusion", identity: "Vendre davantage avec une gamme accessible.", primaryEffect: "+10 % de volume de ventes.", secondaryEffect: "+5 % de conversion des nouveaux supporters.", guardrail: "−2 points de marge sur chaque article." }),
-      option({ code: "premium_retail", name: "Gamme premium", identity: "Privilégier la marge et l’image de marque.", primaryEffect: "+8 % de marge unitaire.", secondaryEffect: "+4 % de popularité sur les lancements premium.", guardrail: "−5 % de volume de ventes." }),
-      option({ code: "limited_editions", name: "Éditions limitées", identity: "Créer des pics de demande autour des grands moments.", primaryEffect: "+14 % de revenus les jours d’édition événementielle.", secondaryEffect: "+6 % d’engagement lors du lancement.", guardrail: "Revenus ordinaires inchangés et un lancement au maximum par mois de jeu." }),
+      option({ code: "premium_retail", name: "Gamme premium", identity: "Privilégier la marge et l’image de marque.", primaryEffect: "Jusqu’à +8 % de marge unitaire sans baisse du volume de ventes.", guardrail: "Le bonus augmente le prix accepté par les supporters, sans malus de volume." }),
+      option({ code: "limited_editions", name: "Commerce opportuniste", identity: "Profiter des fortes demandes et acheter au meilleur coût.", primaryEffect: "+10 points de chance d’obtenir une journée prolifique.", secondaryEffect: "−5 % sur le prix des matières premières.", guardrail: "Les journées prolifiques restent aléatoires et le cours mondial ne change pas." }),
     ],
   },
 ];

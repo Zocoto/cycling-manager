@@ -16,6 +16,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTeamFanClubBuildings } from "@/services/fan-club-buildings";
 import { getFanClubManagementState } from "@/services/fan-club-management";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { isClubShopSpecializationCode } from "@/lib/game/club-shop-specialization";
 
 export const metadata: Metadata = {
   title: "Fan Club",
@@ -47,6 +48,29 @@ export default async function FanClubPage({
   if (buildings.headquartersLevel < 1) {
     redirect("/jeu");
   }
+  const shopSpecializationResult = await supabase.rpc(
+    "get_team_infrastructure_specialization",
+    {
+      p_team_id: headerData.teamId,
+      p_infrastructure_code: "club_shop",
+    },
+  );
+  if (shopSpecializationResult.error) {
+    throw new Error(
+      `Impossible de charger l’orientation de la boutique : ${shopSpecializationResult.error.message}`,
+    );
+  }
+  const shopSpecializationCode = isClubShopSpecializationCode(
+    shopSpecializationResult.data,
+  )
+    ? shopSpecializationResult.data
+    : null;
+  const shopSpecialization = shopSpecializationCode
+    ? {
+        code: shopSpecializationCode,
+        infrastructureLevel: buildings.shopLevel,
+      }
+    : null;
   const liveData = await getFanClubLiveData({
     supabase,
     authUserId: user.id,
@@ -59,6 +83,7 @@ export default async function FanClubPage({
     supabase,
     teamId: headerData.teamId,
     liveData,
+    shopSpecialization,
   });
   const shopLevel = FAN_CLUB_SHOP_LEVELS.find(
     (level) => level.level === buildings.shopLevel,

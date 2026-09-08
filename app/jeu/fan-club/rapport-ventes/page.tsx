@@ -253,7 +253,7 @@ function DailyReportCard({
 }
 
 function formatDemand(factor: number): string {
-  if (factor >= 1.15) return "Journée porteuse";
+  if (factor >= 1.15) return "Journée prolifique";
   if (factor <= 0.8) return "Journée calme";
   return "Demande normale";
 }

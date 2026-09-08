@@ -642,6 +642,7 @@ function StorePanel({
               unitCost: averageCost,
               supporterCount: data.supporterCount,
               fervor: data.fervor,
+              shopSpecialization: management.shopSpecialization,
             });
             return (
               <article key={product.id} className="group overflow-hidden rounded-[1.35rem] border border-[var(--fan-line)] bg-[var(--fan-surface)] shadow-[0_12px_30px_var(--fan-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--fan-secondary)] hover:shadow-[0_18px_38px_var(--fan-shadow)]">
@@ -733,7 +734,12 @@ function StorePanel({
             <div className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-secondary)]">Cours des sept derniers jours</p>
               <h3 className="mt-1 text-xl font-black text-[var(--fan-ink)]">{selectedProduct.name}</h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">Cours global, identique pour toutes les équipes et actualisé à chaque nouvelle journée de jeu.</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">
+                Cours mondial actualisé à chaque nouvelle journée de jeu.
+                {management.shopSpecialization?.code === "limited_editions"
+                  ? " Les prix affichés incluent la remise de votre orientation Commerce opportuniste."
+                  : " Il est identique pour toutes les équipes."}
+              </p>
               <PriceCourse
                 product={selectedProduct}
                 history={selectedWholesaleHistory}
@@ -779,7 +785,7 @@ function StorePanel({
               <thead><tr className="border-b border-[var(--fan-line)] text-xs font-black uppercase tracking-[0.1em] text-[var(--fan-muted)]"><th className="px-2 py-3">Journée</th><th className="px-2 py-3">Article</th><th className="px-2 py-3">Vendus</th><th className="px-2 py-3">Recette</th><th className="px-2 py-3">Conjoncture</th></tr></thead>
               <tbody>{management.recentSales.map((sale) => {
                 const product = FAN_CLUB_PRODUCTS.find((candidate) => candidate.id === sale.productId);
-                return <tr key={sale.id} className="border-b border-[var(--fan-line)] last:border-0"><td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{sale.seasonName} · J{sale.dayNumber}</td><td className="px-2 py-4 font-black text-[var(--fan-ink)]">{product?.name ?? "Article"}</td><td className="px-2 py-4 font-black text-[var(--fan-secondary)]">{sale.unitsSold}</td><td className="px-2 py-4 font-black text-[var(--fan-primary)]">{decimalEuroFormatter.format(sale.revenue)}</td><td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{sale.demandFactor >= 1.15 ? "Journée porteuse" : sale.demandFactor <= 0.8 ? "Journée calme" : "Demande normale"}</td></tr>;
+                return <tr key={sale.id} className="border-b border-[var(--fan-line)] last:border-0"><td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{sale.seasonName} · J{sale.dayNumber}</td><td className="px-2 py-4 font-black text-[var(--fan-ink)]">{product?.name ?? "Article"}</td><td className="px-2 py-4 font-black text-[var(--fan-secondary)]">{sale.unitsSold}</td><td className="px-2 py-4 font-black text-[var(--fan-primary)]">{decimalEuroFormatter.format(sale.revenue)}</td><td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{sale.demandFactor >= 1.15 ? "Journée prolifique" : sale.demandFactor <= 0.8 ? "Journée calme" : "Demande normale"}</td></tr>;
               })}</tbody>
             </table>
           </div>

@@ -9,6 +9,10 @@ import type {
 } from "@/lib/game/fan-club-management";
 import type { FanClubLiveData } from "@/lib/game/fan-club-pilot";
 import { isFanClubCollectorProductId } from "@/lib/game/fan-club-pilot";
+import {
+  applyClubShopWholesaleDiscount,
+  type ClubShopSpecialization,
+} from "@/lib/game/club-shop-specialization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -52,10 +56,12 @@ export async function getFanClubManagementState({
   supabase,
   teamId,
   liveData,
+  shopSpecialization,
 }: {
   supabase: ServerClient;
   teamId: string;
   liveData: FanClubLiveData;
+  shopSpecialization: ClubShopSpecialization | null;
 }): Promise<FanClubManagementState> {
   const admin = createSupabaseAdminClient();
   const profileResult = await admin.from("fan_club_profiles").upsert(
@@ -166,6 +172,7 @@ export async function getFanClubManagementState({
   );
 
   return {
+    shopSpecialization,
     fleet: Object.fromEntries(
       (fleetResult.data ?? []).map((row) => [row.model_code, row.quantity]),
     ),
@@ -204,7 +211,10 @@ export async function getFanClubManagementState({
       ...wholesaleMarketRows.map<FanClubWholesalePrice>((row) => ({
         productId: row.product_code,
         dayNumber: row.day_number,
-        unitCost: Number(row.unit_cost),
+        unitCost: applyClubShopWholesaleDiscount({
+          unitCost: Number(row.unit_cost),
+          specialization: shopSpecialization,
+        }),
       })),
       ...eligibleCollectorProductIds.flatMap((productId) =>
         wholesaleMarketRows
@@ -212,7 +222,10 @@ export async function getFanClubManagementState({
           .map<FanClubWholesalePrice>((row) => ({
             productId,
             dayNumber: row.day_number,
-            unitCost: Number(row.unit_cost),
+            unitCost: applyClubShopWholesaleDiscount({
+              unitCost: Number(row.unit_cost),
+              specialization: shopSpecialization,
+            }),
           })),
       ),
     ],

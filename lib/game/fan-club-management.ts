@@ -3,6 +3,11 @@ import {
   getFanClubPriceDemandFactor,
   type FanClubProduct,
 } from "@/lib/game/fan-club-pilot";
+import {
+  getClubShopEffectiveDemandPrice,
+  getClubShopSpecializationEffects,
+  type ClubShopSpecialization,
+} from "@/lib/game/club-shop-specialization";
 
 export type FanClubTripAllocation = {
   id: string;
@@ -40,6 +45,7 @@ export type FanClubWholesalePrice = {
 };
 
 export type FanClubManagementState = {
+  shopSpecialization: ClubShopSpecialization | null;
   fleet: Readonly<Record<string, number>>;
   trips: ReadonlyArray<FanClubTripAllocation>;
   inventory: ReadonlyArray<FanClubInventoryItem>;
@@ -66,10 +72,28 @@ export function estimateDailyProductSalesForecast(input: {
   unitCost?: number;
   supporterCount: number;
   fervor: number;
+  shopSpecialization?: ClubShopSpecialization | null;
 }): FanClubSalesForecast {
-  const expected = estimateDailyProductSales(input);
-  const priceFactor = getFanClubPriceDemandFactor(input);
-  const ratio = input.salePrice / input.product.suggestedSalePrice;
+  const effectiveSalePrice = getClubShopEffectiveDemandPrice({
+    salePrice: input.salePrice,
+    specialization: input.shopSpecialization,
+  });
+  const { salesVolumeBonusPercentage } = getClubShopSpecializationEffects(
+    input.shopSpecialization,
+  );
+  const priceAdjustedInput = {
+    ...input,
+    salePrice: effectiveSalePrice,
+  };
+  const expected = Math.max(
+    0,
+    Math.round(
+      estimateDailyProductSales(priceAdjustedInput) *
+        (1 + salesVolumeBonusPercentage / 100),
+    ),
+  );
+  const priceFactor = getFanClubPriceDemandFactor(priceAdjustedInput);
+  const ratio = effectiveSalePrice / input.product.suggestedSalePrice;
   const assessment =
     priceFactor === 0 || expected === 0
       ? "unmarketable"
