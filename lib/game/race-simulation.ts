@@ -81,6 +81,12 @@ import {
   type RaceTacticalDoctrineCode,
   type RaceTacticalReport,
 } from "./race-tactics";
+import {
+  applyWeatherCenterEnergyCostReduction,
+  applyWeatherCenterPerformanceBonus,
+  getWeatherCenterSpecializationEffects,
+  type WeatherCenterSpecialization,
+} from "./weather-center-specialization";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -205,6 +211,8 @@ export type RiderSimulationInput = {
   equipmentEffects?: EquipmentEffects;
   equipmentEffectsByStageId?: Record<string, EquipmentEffects>;
   mechanicalIncidentTimeReductionPct?: number;
+  weatherCenterSpecialization?: WeatherCenterSpecialization | null;
+  weatherCenterEnergyCostReductionPercentage?: number;
 };
 
 export type StageSimulationInput = {
@@ -946,7 +954,18 @@ export function simulateRaceStageResultsOnly(
         status: "finished" as const,
         elapsedTimeSeconds: winnerElapsedTimeSeconds + gapToWinnerSeconds,
         gapToWinnerSeconds,
-        energyAfter: round(clamp(rider.form - distanceKm / 6, 5, 100), 2),
+        energyAfter: round(
+          clamp(
+            rider.form -
+              applyWeatherCenterEnergyCostReduction(
+                distanceKm / 6,
+                rider.weatherCenterEnergyCostReductionPercentage ?? 0,
+              ),
+            5,
+            100,
+          ),
+          2,
+        ),
         injury: null,
         abandonment: null,
       };
@@ -1029,10 +1048,27 @@ function normalizeStageSimulationInput(
             riderId: rider.id,
             countryCode: rider.countryCode,
           });
+        const weatherCenterEffects = getWeatherCenterSpecializationEffects({
+          specialization: rider.weatherCenterSpecialization,
+          weather,
+        });
+        const weatherAdjustedRatings = applyRaceWeatherRatingAdjustments(
+          equipmentAdjustedRatings,
+          weather,
+          hasSpecialAbility(rider, "flahute"),
+          climateProfile,
+        );
+        const reconnaissanceAdjustedRatings = applyReconnaissanceRatingBonus(
+          weatherAdjustedRatings,
+          rider.reconnaissanceBonus,
+          equipmentAdjustedRatings,
+        );
 
         return {
           ...rider,
           climateProfile,
+          weatherCenterEnergyCostReductionPercentage:
+            weatherCenterEffects.energyCostReductionPercentage,
           localRaceBonus:
             input.raceCountryCode &&
             ((rider.countryCode &&
@@ -1045,15 +1081,9 @@ function normalizeStageSimulationInput(
               ))
               ? 2 + Math.max(0, input.federationHomeAdvantageBonus ?? 0)
               : 0,
-          ratings: applyReconnaissanceRatingBonus(
-            applyRaceWeatherRatingAdjustments(
-              equipmentAdjustedRatings,
-              weather,
-              hasSpecialAbility(rider, "flahute"),
-              climateProfile,
-            ),
-            rider.reconnaissanceBonus,
-            equipmentAdjustedRatings,
+          ratings: applyWeatherCenterPerformanceBonus(
+            reconnaissanceAdjustedRatings,
+            weatherCenterEffects.performanceBonusPercentage,
           ),
         };
       }),
@@ -4672,7 +4702,15 @@ function updateRiderEnergy({
     return clamp(state.energy + recoveryGain, 0, recoveryCeiling);
   }
 
-  return clamp(state.energy - loss, 0, 100);
+  return clamp(
+    state.energy -
+      applyWeatherCenterEnergyCostReduction(
+        loss,
+        rider.weatherCenterEnergyCostReductionPercentage ?? 0,
+      ),
+    0,
+    100,
+  );
 }
 
 function hasTeammateBottleCarrier(

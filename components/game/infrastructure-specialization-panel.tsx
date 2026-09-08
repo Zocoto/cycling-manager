@@ -180,7 +180,6 @@ export function InfrastructureSpecializationPanel({
                 <dl className="mt-4 space-y-2 text-xs leading-5">
                   <Effect label="Effet principal" value={option.primaryEffect} />
                   <Effect label="Effet secondaire" value={option.secondaryEffect} />
-                  <Effect label="Limite" value={option.guardrail} muted />
                 </dl>
                 <form action={action} className="mt-auto pt-4">
                   <input type="hidden" name="infrastructureCode" value={proposal.buildingCode} />
@@ -237,14 +236,12 @@ export function InfrastructureSpecializationPanel({
 function Effect({
   label,
   value,
-  muted = false,
 }: {
   label: string;
   value: string;
-  muted?: boolean;
 }) {
   return (
-    <div className={muted ? "text-[#7B6B37]" : "text-[#183F37]"}>
+    <div className="text-[#183F37]">
       <dt className="font-black">{label}</dt>
       <dd className="font-semibold">{value}</dd>
     </div>

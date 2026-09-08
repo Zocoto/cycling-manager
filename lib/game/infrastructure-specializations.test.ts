@@ -56,6 +56,10 @@ describe("infrastructure specializations", () => {
         "national_detection_network",
       )?.options[0].code,
     ).toBe("territorial_coverage");
+    expect(
+      getInfrastructureSpecializationProposal("team", "weather_center")
+        ?.options[0].code,
+    ).toBe("normal_weather");
   });
 
   it("persists choices through authenticated, season-bounded RPCs", () => {
@@ -112,6 +116,7 @@ describe("infrastructure specializations", () => {
     expect(federationCard).toContain("<InfrastructureSpecializationPanel");
     expect(panel).toContain('<details className="group border-t');
     expect(panel).toContain("<summary");
+    expect(panel).not.toContain('label="Limite"');
     expect(panel).not.toContain("shadow-[0_12px_32px");
     expect(teamPage).not.toContain("laboratoire-specialisations");
   });

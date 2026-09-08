@@ -64,6 +64,10 @@ import {
   getRiderClimateProfile,
   type RiderClimateProfile,
 } from "@/lib/game/race-weather";
+import {
+  isWeatherCenterSpecializationCode,
+  type WeatherCenterSpecialization,
+} from "@/lib/game/weather-center-specialization";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import { getFederationInfrastructureEffectPercentage } from "@/lib/game/federation-infrastructure-effects";
 import {
@@ -101,6 +105,16 @@ type FederationInfrastructureLevelRow = {
     | "national_technical_laboratory"
     | "home_advantage_program";
   level: number;
+};
+
+type TeamWeatherCenterInfrastructureRow = {
+  team_id: string;
+  level: number;
+};
+
+type TeamWeatherCenterSpecializationRow = {
+  team_id: string;
+  active_specialization_code: string | null;
 };
 
 type SeasonRow = {
@@ -884,6 +898,8 @@ export async function getActiveSeasonRaceCalendar(
     engagedTeamIds,
     engagedRiderIds,
   );
+  const weatherCenterSpecializationsPromise =
+    loadWeatherCenterSpecializations(raceDataAdmin, engagedTeamIds);
   const riderContext = await loadRaceCalendarRiderContext({
     supabase,
     admin: raceDataAdmin,
@@ -897,12 +913,17 @@ export async function getActiveSeasonRaceCalendar(
     specialAbilitiesByRiderId,
     worldChampionshipTitlesByRiderId,
   } = riderContext;
-  const [raceStaffEffects, teamSponsorVisuals, welcomeCenterLocalRaceContext] =
-    await Promise.all([
-      raceStaffEffectsPromise,
-      teamSponsorVisualsPromise,
-      localRaceCountriesPromise,
-    ]);
+  const [
+    raceStaffEffects,
+    teamSponsorVisuals,
+    welcomeCenterLocalRaceContext,
+    weatherCenterSpecializations,
+  ] = await Promise.all([
+    raceStaffEffectsPromise,
+    teamSponsorVisualsPromise,
+    localRaceCountriesPromise,
+    weatherCenterSpecializationsPromise,
+  ]);
 
   const dayRows = daysResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
@@ -1315,6 +1336,7 @@ export async function getActiveSeasonRaceCalendar(
     teamSponsorVisuals,
     welcomeCenterLocalRaceContext,
     federationInfrastructureLevelByCountryAndCode,
+    weatherCenterSpecializations,
   );
 
   const editions = editionRows
@@ -2103,6 +2125,68 @@ function scaleEquipmentEffect(
   };
 }
 
+async function loadWeatherCenterSpecializations(
+  admin: SupabaseAdminClient,
+  teamIds: string[],
+): Promise<Map<string, WeatherCenterSpecialization>> {
+  if (!teamIds.length) return new Map();
+
+  const settlementResult = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuerySucceeded(
+    settlementResult.error,
+    "les transitions de spécialisation du Centre météo",
+  );
+
+  const [infrastructuresResult, specializationsResult] = await Promise.all([
+    admin
+      .from("team_infrastructures")
+      .select("team_id, level")
+      .in("team_id", teamIds)
+      .eq("infrastructure_code", "weather_center")
+      .gte("level", 3)
+      .returns<TeamWeatherCenterInfrastructureRow[]>(),
+    admin
+      .from("team_infrastructure_specializations")
+      .select("team_id, active_specialization_code")
+      .in("team_id", teamIds)
+      .eq("infrastructure_code", "weather_center")
+      .returns<TeamWeatherCenterSpecializationRow[]>(),
+  ]);
+  assertQuerySucceeded(
+    infrastructuresResult.error,
+    "les niveaux des Centres météo",
+  );
+  assertQuerySucceeded(
+    specializationsResult.error,
+    "les orientations des Centres météo",
+  );
+
+  const levelByTeamId = new Map(
+    (infrastructuresResult.data ?? []).map((row) => [
+      row.team_id,
+      Number(row.level),
+    ]),
+  );
+  const result = new Map<string, WeatherCenterSpecialization>();
+  for (const row of specializationsResult.data ?? []) {
+    const level = levelByTeamId.get(row.team_id) ?? 0;
+    if (
+      level < 3 ||
+      !isWeatherCenterSpecializationCode(row.active_specialization_code)
+    ) {
+      continue;
+    }
+    result.set(row.team_id, {
+      code: row.active_specialization_code,
+      infrastructureLevel: level,
+    });
+  }
+
+  return result;
+}
+
 type WelcomeCenterLocalRaceContext = {
   eligibleTeamIds: Set<string>;
   adjacentRaceCountryCodesByRiderId: Map<string, string[]>;
@@ -2213,6 +2297,10 @@ function groupCalendarEngagedRiders(
   teamSponsorVisuals: Map<string, RaceTeamSponsorVisual>,
   welcomeCenterLocalRaceContext: WelcomeCenterLocalRaceContext,
   federationInfrastructureLevelByCountryAndCode: ReadonlyMap<string, number>,
+  weatherCenterSpecializations: ReadonlyMap<
+    string,
+    WeatherCenterSpecialization
+  >,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -2362,6 +2450,12 @@ function groupCalendarEngagedRiders(
       ...(equipmentEffectsByStageId ? { equipmentEffectsByStageId } : {}),
       mechanicalIncidentTimeReductionPct:
         teamStaffEffects?.incidentTimeReductionPercentage ?? 0,
+      ...(usesNationalWorldModel
+        ? {}
+        : {
+            weatherCenterSpecialization:
+              weatherCenterSpecializations.get(row.team_id) ?? null,
+          }),
       ratings: {
         mountain: Number(row.mountain),
         hills: Number(row.hills),

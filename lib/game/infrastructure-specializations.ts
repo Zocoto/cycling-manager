@@ -127,9 +127,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "microclimate", name: "Microclimats", identity: "Réduire l’incertitude locale avant le départ.", primaryEffect: "−8 % d’écart entre la prévision affichée et la météo officielle.", secondaryEffect: "+1 jour d’horizon fiable sur les courses nationales.", guardrail: "N’atténue aucun malus météo pendant la course." }),
-      option({ code: "wet_protocol", name: "Protocole pluie", identity: "Préparer matériel et placement sur route humide.", primaryEffect: "−2 % sur les pénalités d’exécution liées à la pluie.", secondaryEffect: "−4 % de coût énergétique dans les conditions humides.", guardrail: "Effet nul par temps sec." }),
-      option({ code: "extreme_weather", name: "Conditions extrêmes", identity: "Mieux encaisser chaleur, froid et vent violent.", primaryEffect: "−2 % sur les pénalités d’exécution par météo extrême.", secondaryEffect: "−4 % de fatigue additionnelle lors de ces journées.", guardrail: "Effet nul lorsque les conditions restent ordinaires." }),
+      option({ code: "normal_weather", name: "Météo normale", identity: "Optimiser les réglages dans les conditions les plus courantes.", primaryEffect: "+0,5 % de performance par temps normal.", secondaryEffect: "−1 % de coût énergétique sur l’étape.", guardrail: "Effet nul sous la pluie et lors de conditions extrêmes." }),
+      option({ code: "wet_protocol", name: "Protocole pluie", identity: "Préparer matériel et placement sur route humide.", primaryEffect: "+1 % de performance sous la pluie.", secondaryEffect: "−3 % de coût énergétique sur l’étape.", guardrail: "Effet nul par temps sec et lors de conditions extrêmes." }),
+      option({ code: "extreme_weather", name: "Conditions extrêmes", identity: "Mieux encaisser chaleur, froid, neige, tempête et vent violent.", primaryEffect: "+2 % de performance par météo extrême.", secondaryEffect: "−5 % de coût énergétique sur l’étape.", guardrail: "Effet nul lorsque les conditions restent ordinaires." }),
     ],
   },
   {
