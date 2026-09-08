@@ -48,6 +48,7 @@ import type {
 import type { FederationInfrastructureState } from "@/services/federation-infrastructures";
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
+import type { FederationSponsorCoverage } from "@/services/federation-sponsors";
 import type { FederationTreasuryState } from "@/services/federation-treasury";
 import type { FederationTeamJerseyArtwork } from "@/services/federation-team-jerseys";
 import type { NationRankingEntry } from "@/services/uci-rankings";
@@ -77,6 +78,7 @@ type NationalFederationViewProps = {
   infrastructureState: FederationInfrastructureState | null;
   objectiveMetrics?: FederationObjectiveMetrics | null;
   memberTeamJerseys?: Record<string, FederationTeamJerseyArtwork>;
+  sponsorCoverage?: FederationSponsorCoverage | null;
   amateurAffiliationState?: AmateurTeamAffiliationState | null;
 };
 
@@ -149,6 +151,7 @@ export function NationalFederationView({
   infrastructureState,
   objectiveMetrics = null,
   memberTeamJerseys = {},
+  sponsorCoverage = null,
   amateurAffiliationState = null,
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
@@ -265,6 +268,7 @@ export function NationalFederationView({
             internationalResults={internationalResults}
             objectiveMetrics={objectiveMetrics}
             memberTeamJerseys={memberTeamJerseys}
+            sponsorCoverage={sponsorCoverage}
             amateurAffiliationState={amateurAffiliationState}
           />
         ) : selectedTab === "selections" ? (
@@ -374,6 +378,7 @@ function OverviewPanel({
   internationalResults,
   objectiveMetrics,
   memberTeamJerseys,
+  sponsorCoverage,
   amateurAffiliationState,
 }: {
   country: NationalFederationViewProps["country"];
@@ -385,6 +390,7 @@ function OverviewPanel({
   internationalResults: FederationInternationalResults | null;
   objectiveMetrics: FederationObjectiveMetrics | null;
   memberTeamJerseys: Record<string, FederationTeamJerseyArtwork>;
+  sponsorCoverage: FederationSponsorCoverage | null;
   amateurAffiliationState: AmateurTeamAffiliationState | null;
 }) {
   const objectiveGameYear = Math.max(
@@ -412,7 +418,7 @@ function OverviewPanel({
         gameYear={objectiveGameYear}
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <OverviewMetric
           eyebrow="Rayonnement"
           label="Points UCI"
@@ -424,6 +430,20 @@ function OverviewPanel({
           label="Équipes affiliées"
           value={numberFormatter.format(memberTeamCount)}
           detail="Nationalité sportive de la saison"
+        />
+        <OverviewMetric
+          eyebrow="Partenaires"
+          label="Sponsors nationaux"
+          value={
+            sponsorCoverage
+              ? `${numberFormatter.format(sponsorCoverage.affiliatedSponsorCount)} / ${numberFormatter.format(sponsorCoverage.availableSponsorCount)}`
+              : "—"
+          }
+          detail={
+            sponsorCoverage
+              ? "Sponsors affiliés sur les marques nationales disponibles"
+              : "Catalogue national indisponible"
+          }
         />
         <OverviewMetric
           eyebrow="Compétition"

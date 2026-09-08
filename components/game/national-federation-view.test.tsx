@@ -109,6 +109,10 @@ describe("NationalFederationView", () => {
         selectionState={null}
         treasuryState={null}
         infrastructureState={null}
+        sponsorCoverage={{
+          affiliatedSponsorCount: 2,
+          availableSponsorCount: 7,
+        }}
       />,
     );
 
@@ -119,6 +123,11 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Jeanne Peloton");
     expect(markup).toContain("Intensité du réseau");
     expect(markup).toContain("14 %");
+    expect(markup).toContain("Sponsors nationaux");
+    expect(markup).toContain("2 / 7");
+    expect(markup).toContain(
+      "Sponsors affiliés sur les marques nationales disponibles",
+    );
     expect(markup).toContain("Objectifs fédéraux");
     expect(markup).toContain("Avoir 1 équipe dans la fédération");
     expect(markup).toContain("1/5 validés");

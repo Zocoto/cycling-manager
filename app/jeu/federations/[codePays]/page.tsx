@@ -24,6 +24,7 @@ import { getFederationInternationalResults } from "@/services/federation-interna
 import { getFederationInfrastructureState } from "@/services/federation-infrastructures";
 import { getFederationSelectionPool } from "@/services/federation-selection-pool";
 import { getFederationSelectionState } from "@/services/federation-selections";
+import { getFederationSponsorCoverage } from "@/services/federation-sponsors";
 import { getFederationTreasuryState } from "@/services/federation-treasury";
 import { getFederationTeamJerseyArtworks } from "@/services/federation-team-jerseys";
 import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
@@ -83,6 +84,7 @@ export default async function FederationPage({
     infrastructureState,
     objectiveMetrics,
     memberTeamJerseys,
+    sponsorCoverage,
     amateurAffiliationState,
   ] = await Promise.all([
     getNationalFederationJersey(supabase, country.entity_id),
@@ -180,6 +182,18 @@ export default async function FederationPage({
           return {};
         })
       : Promise.resolve({}),
+    selectedTab === "overview"
+      ? getFederationSponsorCoverage({
+          countryCode: country.country_code,
+          teamIds: directory.members.teams.map((team) => team.entity_id),
+        }).catch((error) => {
+          console.error(
+            "Impossible de charger les sponsors de la fédération :",
+            error,
+          );
+          return null;
+        })
+      : Promise.resolve(null),
     selectedTab === "overview" && snapshot.viewer.isAffiliated
       ? getAmateurTeamAffiliationState(headerData.teamId).catch((error) => {
           console.error(
@@ -265,6 +279,7 @@ export default async function FederationPage({
           infrastructureState={infrastructureState}
           objectiveMetrics={objectiveMetrics}
           memberTeamJerseys={memberTeamJerseys}
+          sponsorCoverage={sponsorCoverage}
           amateurAffiliationState={amateurAffiliationState}
         />
       </section>
