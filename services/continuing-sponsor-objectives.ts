@@ -5,6 +5,7 @@ import {
   isSponsorObjectiveDifficulty,
   type SponsorObjectiveDifficulty,
 } from "@/lib/game/sponsor-negotiation";
+import { calculateSponsorRenewalBudget } from "@/lib/game/sponsor-renewal-budget";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
@@ -39,7 +40,13 @@ export async function ensureContinuingSponsorObjectivePlan({
     game_year: number;
   };
 }): Promise<PersistedSponsorOffer> {
-  const baseBudget = contract.budgetPerSeason;
+  // The annual ambition tier stacks on top of the current season's sponsor
+  // satisfaction. This remains a preview until rollover, where the database
+  // repeats the calculation from the final satisfaction score.
+  const baseBudget = calculateSponsorRenewalBudget({
+    currentBudget: contract.budgetPerSeason,
+    satisfactionScore: contract.satisfactionScore,
+  });
   const budgetCeiling = getSponsorNegotiationBudgetCeiling({
     baseBudget,
     sponsorMaximumBudget: contract.sponsor.budgetRange.max,

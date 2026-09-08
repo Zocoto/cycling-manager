@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { calculateSponsorNegotiatedBudget } from "./sponsor-negotiation";
+import { calculateSponsorRenewalBudget } from "./sponsor-renewal-budget";
+
 const migration = readFileSync(
   new URL(
     "../../supabase/migrations/20260908080000_add_annual_sponsor_objective_renegotiation.sql",
@@ -28,8 +31,38 @@ const futureSection = readFileSync(
   ),
   "utf8",
 );
+const cumulativeBudgetMigration = readFileSync(
+  new URL(
+    "../../supabase/migrations/20260908090000_stack_annual_sponsor_budget_modifiers.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 describe("renégociation annuelle des objectifs sponsor", () => {
+  it.each([
+    { satisfaction: 0, difficulty: "accessible" as const, expected: 680_000 },
+    { satisfaction: 50, difficulty: "balanced" as const, expected: 1_000_000 },
+    { satisfaction: 75, difficulty: "ambitious" as const, expected: 1_160_000 },
+    { satisfaction: 100, difficulty: "ambitious" as const, expected: 1_210_000 },
+  ])(
+    "compose la satisfaction $satisfaction puis le palier $difficulty",
+    ({ satisfaction, difficulty, expected }) => {
+      const satisfactionAdjustedBudget = calculateSponsorRenewalBudget({
+        currentBudget: 1_000_000,
+        satisfactionScore: satisfaction,
+      });
+
+      expect(
+        calculateSponsorNegotiatedBudget({
+          baseBudget: satisfactionAdjustedBudget,
+          budgetCeiling: 2_000_000,
+          difficulty,
+        }),
+      ).toBe(expected);
+    },
+  );
+
   it("isole l'offre future du contrat et de ses objectifs courants", () => {
     expect(migration).toContain("continuing_contract_id uuid");
     expect(migration).toContain("pending_sponsor_offer_id uuid");
@@ -81,7 +114,7 @@ describe("renégociation annuelle des objectifs sponsor", () => {
       "v_contract.objective_season_id",
     );
     expect(workflow).toContain(
-      "contractRow.objective_season_id ?? startSeasonResult.data.id",
+      "contractRow.objective_season_id ?? contractRow.start_season_id",
     );
   });
 
@@ -97,5 +130,34 @@ describe("renégociation annuelle des objectifs sponsor", () => {
       "negotiateContinuingSponsorObjectivesAction",
     );
     expect(actions).toContain("ensureAndLoadSponsorObjectives");
+  });
+
+  it("cumule dès la saison 3 la satisfaction courante puis le palier annuel", () => {
+    expect(annualObjectives).toContain("calculateSponsorRenewalBudget");
+    expect(annualObjectives).toContain(
+      "satisfactionScore: contract.satisfactionScore",
+    );
+    expect(cumulativeBudgetMigration).toContain(
+      "v_target_season.game_year < 3",
+    );
+    expect(cumulativeBudgetMigration).toContain(
+      "new.satisfaction_score <= 50",
+    );
+    expect(cumulativeBudgetMigration).toContain(
+      "Annual sponsor satisfaction and ambition stack",
+    );
+    expect(cumulativeBudgetMigration).toContain(
+      "contract.satisfaction_score <= 50",
+    );
+    expect(cumulativeBudgetMigration).toContain(
+      "offer.objective_difficulty",
+    );
+    expect(cumulativeBudgetMigration).toContain(
+      "budget_per_season = annual_budget.negotiated_budget",
+    );
+    expect(workflow).toContain('.eq("season_id", satisfactionSeasonId)');
+    expect(futureSection).toContain(
+      "le montant définitif sera recalculé",
+    );
   });
 });

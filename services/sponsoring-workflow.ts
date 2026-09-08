@@ -118,6 +118,7 @@ export type FutureSponsoringState =
       contract: PersistedSponsorContract;
       jerseySelectionOpen: boolean;
       objectivePlan: PersistedSponsorOffer | null;
+      renewalBudgetIsFinal: boolean;
     }
   | {
       kind: "offers";
@@ -523,6 +524,9 @@ async function resolveFutureSponsoringState({
       contract: currentContract,
       jerseySelectionOpen,
       objectivePlan,
+      renewalBudgetIsFinal:
+        activeSeason.current_day_number >=
+        GAMEPLAY_RULES.sponsorRenewalBudgetFinalizationDay,
     };
   }
 
@@ -711,6 +715,8 @@ async function hydrateSponsorContract({
   teamReputationPoints: number;
   neutralizeMissingObjectives: boolean;
 }): Promise<PersistedSponsorContract> {
+  const satisfactionSeasonId =
+    contractRow.objective_season_id ?? contractRow.start_season_id;
   const [sponsorRegistryResult, startSeasonResult, satisfactionEventsResult] =
     await Promise.all([
       supabase
@@ -727,6 +733,7 @@ async function hydrateSponsorContract({
         .from("sponsor_satisfaction_events")
         .select("id, event_type, points, title, description, occurred_at")
         .eq("team_sponsor_contract_id", contractRow.id)
+        .eq("season_id", satisfactionSeasonId)
         .order("occurred_at", { ascending: false })
         .returns<SponsorSatisfactionEventRow[]>(),
     ]);
@@ -774,8 +781,7 @@ async function hydrateSponsorContract({
   let currentValuesByObjectiveId = new Map<string, number>();
 
   if (contractRow.sponsor_offer_id) {
-    const objectiveSeasonId =
-      contractRow.objective_season_id ?? startSeasonResult.data.id;
+    const objectiveSeasonId = satisfactionSeasonId;
     const objectiveContext = {
       supabase,
       seasonId: objectiveSeasonId,

@@ -205,10 +205,32 @@ function ContinuingContractNotice({
                 Ambition de {state.targetSeasonName}
               </h3>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
-                Le palier choisi ajuste uniquement les dix engagements et
-                l’apport de la prochaine saison. Le contrat, le budget et la
-                satisfaction en cours ne changent pas.
+                Le budget estimé cumule d’abord les résultats et objectifs de
+                la saison en cours, puis le palier choisi ajuste les dix
+                engagements et l’apport de la prochaine saison. Le contrat en
+                cours ne change pas.
               </p>
+
+              <div className="mt-4 rounded-xl border border-[#278B70]/15 bg-[#F3F8F6] px-4 py-3 text-xs font-semibold leading-5 text-[#48665F]">
+                <p>
+                  Satisfaction actuelle : {contract.satisfactionScore} % · base
+                  estimée{" "}
+                  {formatMoney(
+                    state.objectivePlan.baseBudget,
+                    contract.currencyCode,
+                  )}
+                </p>
+                {!state.renewalBudgetIsFinal ? (
+                  <p className="mt-1 text-[#7A6A3A]">
+                    Estimation évolutive : le montant définitif sera recalculé
+                    avec la satisfaction clôturée avant le changement de saison.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[#28735F]">
+                    Satisfaction clôturée : cette base est définitive.
+                  </p>
+                )}
+              </div>
 
               <SponsorNegotiationControl
                 offerId={state.objectivePlan.id}
