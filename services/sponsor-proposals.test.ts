@@ -46,10 +46,8 @@ describe("generateSponsorProposals", () => {
       random: () => 0.5,
     });
 
-    expect(argentinaProposals[0]?.sponsor.id).toBe("fugazza-sprint");
-    expect(yemenProposals[0]?.sponsor.id).toBe(
-      "aden-maritime-exchange",
-    );
+    expect(argentinaProposals[0]?.sponsor.countryCode).toBe("AR");
+    expect(yemenProposals[0]?.sponsor.countryCode).toBe("YE");
   });
 
   it("accorde une offre passerelle nationale à une équipe et un effectif alignés", () => {

@@ -23,7 +23,7 @@ function isBackgroundCandidate(red, green, blue, alpha) {
 
   return (
     alpha <= 220 ||
-    (minimum >= 205 && maximum - minimum <= 16)
+    (minimum >= 110 && maximum - minimum <= 18)
   );
 }
 
