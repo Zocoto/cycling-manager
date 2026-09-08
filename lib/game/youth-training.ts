@@ -231,7 +231,7 @@ export function isYouthAutomaticTrainingDue({
 export function getYouthTalentProgressMultiplier(potentialSteps: number) {
   const normalizedTalent =
     (Math.min(8, Math.max(1, Math.round(potentialSteps))) - 1) / 7;
-  return 0.5 + 1.05 * normalizedTalent ** 1.35;
+  return 0.5 + 1.5 * normalizedTalent ** 1.35;
 }
 
 export function getYouthRatingProgressFactor(projectedRating: number) {
@@ -251,7 +251,7 @@ export function getYouthTrainingRatingProgressFactor(
     1,
   );
 
-  return 0.08 + 1.52 * normalizedDevelopmentRoom ** 2;
+  return 0.03 + 1.57 * normalizedDevelopmentRoom ** 2;
 }
 
 export function getYouthProfileLoadFactor({

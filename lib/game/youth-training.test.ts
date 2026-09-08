@@ -292,7 +292,7 @@ describe("youth training", () => {
     expect(factors[0]).toBeGreaterThan(1.4);
     expect(factors[4]).toBeLessThan(0.3);
     expect(factors[5]).toBeLessThan(0.2);
-    expect(factors.at(-1)).toBeCloseTo(0.08, 10);
+    expect(factors.at(-1)).toBeCloseTo(0.03, 10);
     for (let index = 1; index < factors.length; index += 1) {
       expect(factors[index]).toBeLessThan(factors[index - 1]);
     }
@@ -301,13 +301,18 @@ describe("youth training", () => {
     );
   });
 
-  it("donne au talent un poids nettement supérieur à celui du modèle pro", () => {
-    const lowTalent = getYouthTalentProgressMultiplier(1);
-    const mediumTalent = getYouthTalentProgressMultiplier(4);
-    const eliteTalent = getYouthTalentProgressMultiplier(8);
+  it("lisse le talent junior de ×0,5 à ×2 selon le potentiel", () => {
+    const multipliers = Array.from({ length: 8 }, (_, index) =>
+      getYouthTalentProgressMultiplier(index + 1),
+    );
 
-    expect(eliteTalent / lowTalent).toBeGreaterThan(3);
-    expect(eliteTalent / mediumTalent).toBeGreaterThan(1.8);
+    expect(multipliers[0]).toBe(0.5);
+    expect(multipliers[3]).toBeCloseTo(0.978, 3);
+    expect(multipliers[5]).toBeCloseTo(1.452, 3);
+    expect(multipliers[7]).toBe(2);
+    for (let index = 1; index < multipliers.length; index += 1) {
+      expect(multipliers[index]).toBeGreaterThan(multipliers[index - 1]);
+    }
   });
 
   it("rend deux bonnes séances manuelles 33 à 50 % plus efficaces", () => {
