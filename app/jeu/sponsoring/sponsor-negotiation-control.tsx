@@ -10,10 +10,15 @@ import {
   type SponsorObjectiveDifficulty,
 } from "@/lib/game/sponsor-negotiation";
 
-import { negotiateSponsorOfferAction } from "./actions";
+import {
+  negotiateContinuingSponsorObjectivesAction,
+  negotiateSponsorOfferAction,
+} from "./actions";
 
 type SponsorNegotiationControlProps = {
   offerId: string;
+  contractId?: string;
+  negotiationMode?: "offer" | "continuing-contract";
   sponsorName: string;
   targetSeasonName: string;
   baseBudget: number;
@@ -26,6 +31,8 @@ type SponsorNegotiationControlProps = {
 
 export function SponsorNegotiationControl({
   offerId,
+  contractId,
+  negotiationMode = "offer",
   sponsorName,
   targetSeasonName,
   baseBudget,
@@ -53,13 +60,17 @@ export function SponsorNegotiationControl({
       SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG[selectedDifficulty];
     const confirmed = window.confirm(
       [
-        `Négocier l’offre de ${sponsorName} pour ${targetSeasonName} ?`,
+        negotiationMode === "continuing-contract"
+          ? `Renégocier les objectifs de ${sponsorName} pour ${targetSeasonName} ?`
+          : `Négocier l’offre de ${sponsorName} pour ${targetSeasonName} ?`,
         "",
         `Difficulté : ${selectedConfig.label}`,
         `Nouvel apport annuel : ${formatMoney(selectedBudget)}`,
         "",
         "Les dix objectifs seront recalculés immédiatement.",
-        "Vous pourrez encore modifier ce réglage avant la signature.",
+        negotiationMode === "continuing-contract"
+          ? "Le budget et les objectifs actuels restent inchangés jusqu’au changement de saison."
+          : "Vous pourrez encore modifier ce réglage avant la signature.",
       ].join("\n"),
     );
 
@@ -68,12 +79,19 @@ export function SponsorNegotiationControl({
 
   return (
     <form
-      action={negotiateSponsorOfferAction}
+      action={
+        negotiationMode === "continuing-contract"
+          ? negotiateContinuingSponsorObjectivesAction
+          : negotiateSponsorOfferAction
+      }
       onSubmit={confirmNegotiation}
       className="mt-5 rounded-xl border bg-white/85 p-4"
       style={{ borderColor: `${primaryColor}30` }}
     >
       <input type="hidden" name="offerId" value={offerId} />
+      {contractId ? (
+        <input type="hidden" name="contractId" value={contractId} />
+      ) : null}
       <input
         type="hidden"
         name="objectiveDifficulty"
@@ -89,7 +107,7 @@ export function SponsorNegotiationControl({
             Négociation des objectifs
           </p>
           <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
-            Plus les attentes montent, plus l’apport augmente.
+            Plus les attentes montent, plus l’apport de la future saison augmente.
           </p>
         </div>
         <span

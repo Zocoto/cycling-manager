@@ -15,6 +15,7 @@ import {
 } from "@/lib/game/sponsor-negotiation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { SponsorJerseyStyle } from "@/services/sponsoring-workflow";
 
 const JERSEY_STYLES: readonly SponsorJerseyStyle[] = [
@@ -144,6 +145,230 @@ export async function negotiateSponsorOfferAction(formData: FormData) {
 
   revalidateSponsoringPaths();
   redirect("/jeu/sponsoring?succes=negociation");
+}
+
+export async function negotiateContinuingSponsorObjectivesAction(
+  formData: FormData,
+) {
+  const contractId = readRequiredValue(formData, "contractId");
+  const offerId = readRequiredValue(formData, "offerId");
+  const objectiveDifficulty = readRequiredValue(
+    formData,
+    "objectiveDifficulty",
+  );
+
+  if (!isUuid(contractId) || !isUuid(offerId)) {
+    redirectWithError("Le contrat sponsor sélectionné est invalide.");
+  }
+
+  if (!isSponsorObjectiveDifficulty(objectiveDifficulty)) {
+    redirectWithError("Le niveau de difficulté sélectionné est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const admin = createSupabaseAdminClient();
+  const { data: director, error: directorError } = await admin
+    .from("sporting_directors")
+    .select("id, reputation_points")
+    .eq("auth_user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle<{ id: string; reputation_points: number }>();
+
+  if (directorError || !director) {
+    redirectWithError("Le profil du Directeur Sportif est indisponible.");
+  }
+
+  const { data: assignment, error: assignmentError } = await admin
+    .from("team_manager_assignments")
+    .select("team_id")
+    .eq("sporting_director_id", director.id)
+    .eq("role", "general_manager")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ team_id: string }>();
+
+  if (assignmentError || !assignment) {
+    redirectWithError("L’équipe du Directeur Sportif est indisponible.");
+  }
+
+  const [contractResult, offerResult, activeSeasonResult] = await Promise.all([
+    admin
+      .from("team_sponsor_contracts")
+      .select(
+        "id, sponsor_id, start_season_id, contract_duration_seasons, status, pending_sponsor_offer_id",
+      )
+      .eq("id", contractId)
+      .eq("team_id", assignment.team_id)
+      .eq("role", "principal")
+      .eq("status", "active")
+      .maybeSingle<{
+        id: string;
+        sponsor_id: string;
+        start_season_id: string;
+        contract_duration_seasons: number;
+        status: "active";
+        pending_sponsor_offer_id: string | null;
+      }>(),
+    admin
+      .from("sponsor_offers")
+      .select(
+        "id, sponsor_id, season_id, continuing_contract_id, status, base_budget_per_season",
+      )
+      .eq("id", offerId)
+      .eq("sporting_director_id", director.id)
+      .maybeSingle<{
+        id: string;
+        sponsor_id: string;
+        season_id: string;
+        continuing_contract_id: string | null;
+        status: string;
+        base_budget_per_season: number | string;
+      }>(),
+    admin
+      .from("seasons")
+      .select("id, game_year, current_day_number")
+      .eq("status", "active")
+      .maybeSingle<{
+        id: string;
+        game_year: number;
+        current_day_number: number | null;
+      }>(),
+  ]);
+
+  const contract = contractResult.data;
+  const offer = offerResult.data;
+  const activeSeason = activeSeasonResult.data;
+
+  if (contractResult.error || !contract) {
+    redirectWithError("Ce contrat est introuvable ou ne vous appartient pas.");
+  }
+
+  if (
+    offerResult.error ||
+    !offer ||
+    offer.status !== "accepted" ||
+    offer.continuing_contract_id !== contract.id ||
+    offer.sponsor_id !== contract.sponsor_id ||
+    contract.pending_sponsor_offer_id !== offer.id
+  ) {
+    redirectWithError("Les objectifs annuels de ce contrat sont indisponibles.");
+  }
+
+  if (
+    activeSeasonResult.error ||
+    !activeSeason ||
+    activeSeason.current_day_number === null ||
+    !isFutureSponsoringWindowOpen(activeSeason.current_day_number)
+  ) {
+    redirectWithError(
+      `La renégociation annuelle ouvre au jour ${GAMEPLAY_RULES.futureSponsoringOpeningDay}.`,
+    );
+  }
+
+  const [targetSeasonResult, startSeasonResult, sponsorResult] =
+    await Promise.all([
+      admin
+        .from("seasons")
+        .select("id, game_year, status")
+        .eq("id", offer.season_id)
+        .maybeSingle<{ id: string; game_year: number; status: string }>(),
+      admin
+        .from("seasons")
+        .select("game_year")
+        .eq("id", contract.start_season_id)
+        .maybeSingle<{ game_year: number }>(),
+      admin
+        .from("sponsors")
+        .select("catalog_key")
+        .eq("id", contract.sponsor_id)
+        .maybeSingle<{ catalog_key: string }>(),
+    ]);
+
+  const targetSeason = targetSeasonResult.data;
+  const startSeason = startSeasonResult.data;
+  const sponsorRegistry = sponsorResult.data;
+
+  if (
+    targetSeasonResult.error ||
+    !targetSeason ||
+    targetSeason.status !== "planned" ||
+    targetSeason.game_year < 3 ||
+    targetSeason.game_year !== activeSeason.game_year + 1
+  ) {
+    redirectWithError(
+      "La renégociation annuelle ne peut concerner que la saison suivante.",
+    );
+  }
+
+  if (
+    startSeasonResult.error ||
+    !startSeason ||
+    startSeason.game_year + contract.contract_duration_seasons - 1 <
+      targetSeason.game_year
+  ) {
+    redirectWithError("Ce contrat ne couvre pas la saison suivante.");
+  }
+
+  if (sponsorResult.error || !sponsorRegistry) {
+    redirectWithError("Le sponsor de ce contrat est introuvable.");
+  }
+
+  const sponsor = SPONSORS.find(
+    (candidate) => candidate.id === sponsorRegistry.catalog_key,
+  );
+  const baseBudget = Number(offer.base_budget_per_season);
+
+  if (!sponsor || !Number.isFinite(baseBudget) || baseBudget <= 0) {
+    redirectWithError("Les paramètres de ce contrat sponsor sont invalides.");
+  }
+
+  const budgetCeiling = getSponsorNegotiationBudgetCeiling({
+    baseBudget,
+    sponsorMaximumBudget: sponsor.budgetRange.max,
+  });
+  const { error: negotiationError } = await admin.rpc(
+    "negotiate_continuing_sponsor_objectives",
+    {
+      p_contract_id: contract.id,
+      p_sporting_director_id: director.id,
+      p_objective_difficulty: objectiveDifficulty,
+      p_base_budget: baseBudget,
+      p_budget_ceiling: budgetCeiling,
+    },
+  );
+
+  if (negotiationError) redirectWithError(negotiationError.message);
+
+  await ensureAndLoadSponsorObjectives({
+    supabase: admin,
+    seasonId: targetSeason.id,
+    teamReputationPoints: director.reputation_points,
+    teamId: assignment.team_id,
+    offers: [
+      {
+        offerId: offer.id,
+        sponsor,
+        proposedBudget: baseBudget,
+        relationshipYear: Math.max(
+          2,
+          targetSeason.game_year - startSeason.game_year + 1,
+        ),
+        objectiveDifficulty,
+        includeRiderRecruitmentObjective: true,
+      },
+    ],
+  });
+
+  revalidateSponsoringPaths();
+  redirect("/jeu/sponsoring?succes=negociation-annuelle");
 }
 
 export async function signSponsorOfferAction(

@@ -148,7 +148,8 @@ export default async function SponsoringPage({
 
           {actionSuccess === "rupture" ? <ActionSuccessMessage /> : null}
 
-          {actionSuccess === "negociation" ? (
+          {actionSuccess === "negociation" ||
+          actionSuccess === "negociation-annuelle" ? (
             <NegotiationSuccessMessage />
           ) : null}
 

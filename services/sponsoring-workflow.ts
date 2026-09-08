@@ -7,6 +7,7 @@ import {
   isFutureSponsoringWindowOpen,
   isSponsoringUnlocked,
 } from "@/lib/gameplay-rules";
+import { ensureContinuingSponsorObjectivePlan } from "@/services/continuing-sponsor-objectives";
 import {
   getOrCreateFutureSponsorOffersForAuthUser,
   type FutureSponsorOfferMode,
@@ -73,6 +74,7 @@ export type PersistedSponsorContract = {
   startSeasonId: string;
   startSeasonName: string;
   startGameYear: number;
+  objectiveSeasonId: string;
   endGameYear: number;
   selectedJerseyId: string | null;
   selectedJerseyStyle: SponsorJerseyStyle | null;
@@ -115,6 +117,7 @@ export type FutureSponsoringState =
       contractEndGameYear: number;
       contract: PersistedSponsorContract;
       jerseySelectionOpen: boolean;
+      objectivePlan: PersistedSponsorOffer | null;
     }
   | {
       kind: "offers";
@@ -210,6 +213,7 @@ type SponsorContractRow = {
   sponsor_id: string;
   sponsor_offer_id: string | null;
   start_season_id: string;
+  objective_season_id: string | null;
   budget_per_season: number | string;
   currency_code: string;
   contract_duration_seasons: number;
@@ -336,6 +340,7 @@ export async function getSponsoringStateForAuthUser(
       future: await resolveFutureSponsoringState({
         supabase,
         authUserId: normalizedAuthUserId,
+        sportingDirectorId: sportingDirector.id,
         teamId,
         activeSeason,
         currentContract: activeContract,
@@ -370,6 +375,7 @@ export async function getSponsoringStateForAuthUser(
       future: await resolveFutureSponsoringState({
         supabase,
         authUserId: normalizedAuthUserId,
+        sportingDirectorId: sportingDirector.id,
         teamId,
         activeSeason,
         currentContract: null,
@@ -396,6 +402,7 @@ export async function getSponsoringStateForAuthUser(
     future: await resolveFutureSponsoringState({
       supabase,
       authUserId: normalizedAuthUserId,
+      sportingDirectorId: sportingDirector.id,
       teamId,
       activeSeason,
       currentContract: null,
@@ -410,6 +417,7 @@ export async function getSponsoringStateForAuthUser(
 async function resolveFutureSponsoringState({
   supabase,
   authUserId,
+  sportingDirectorId,
   teamId,
   activeSeason,
   currentContract,
@@ -420,6 +428,7 @@ async function resolveFutureSponsoringState({
 }: {
   supabase: SupabaseAdminClient;
   authUserId: string;
+  sportingDirectorId: string;
   teamId: string;
   activeSeason: ActiveSeasonRow & {
     current_day_number: number;
@@ -491,15 +500,29 @@ async function resolveFutureSponsoringState({
     currentContract &&
     currentContract.endGameYear >= nextGameYear
   ) {
+    const jerseySelectionOpen = isFutureSponsoringWindowOpen(
+      activeSeason.current_day_number,
+    );
+    const objectivePlan =
+      jerseySelectionOpen && targetSeason && nextGameYear >= 3
+        ? await ensureContinuingSponsorObjectivePlan({
+            supabase,
+            sportingDirectorId,
+            teamId,
+            teamReputationPoints: currentReputation,
+            contract: currentContract,
+            targetSeason,
+          })
+        : null;
+
     return {
       kind: "continuing",
       targetGameYear: nextGameYear,
       targetSeasonName,
       contractEndGameYear: currentContract.endGameYear,
       contract: currentContract,
-      jerseySelectionOpen: isFutureSponsoringWindowOpen(
-        activeSeason.current_day_number
-      ),
+      jerseySelectionOpen,
+      objectivePlan,
     };
   }
 
@@ -655,6 +678,7 @@ function contractSelection(): string {
     sponsor_id,
     sponsor_offer_id,
     start_season_id,
+    objective_season_id,
     budget_per_season,
     currency_code,
     contract_duration_seasons,
@@ -750,9 +774,11 @@ async function hydrateSponsorContract({
   let currentValuesByObjectiveId = new Map<string, number>();
 
   if (contractRow.sponsor_offer_id) {
+    const objectiveSeasonId =
+      contractRow.objective_season_id ?? startSeasonResult.data.id;
     const objectiveContext = {
       supabase,
-      seasonId: startSeasonResult.data.id,
+      seasonId: objectiveSeasonId,
       teamReputationPoints,
       offers: [
         {
@@ -891,6 +917,8 @@ async function hydrateSponsorContract({
     startSeasonId: startSeason.id,
     startSeasonName: startSeason.name,
     startGameYear: startSeason.game_year,
+    objectiveSeasonId:
+      contractRow.objective_season_id ?? startSeason.id,
     endGameYear,
     selectedJerseyId: contractRow.selected_jersey_id,
     selectedJerseyStyle:

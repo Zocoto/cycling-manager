@@ -162,8 +162,8 @@ function ContinuingContractNotice({
         <p className="mt-2 leading-7 text-[#48665F]">
           Aucun renouvellement n’est nécessaire. Le partenariat reste valable
           jusqu’à la fin de la saison {state.contractEndGameYear}. Vous pouvez
-          néanmoins choisir librement l’un des trois maillots du sponsor pour
-          {state.targetSeasonName}.
+          préparer son niveau d’ambition et choisir librement l’un des trois
+          maillots pour {state.targetSeasonName}.
         </p>
 
         {!state.jerseySelectionOpen ? (
@@ -177,6 +177,103 @@ function ContinuingContractNotice({
           </p>
         ) : null}
       </aside>
+
+      {state.objectivePlan ? (
+        <article
+          className="mt-7 overflow-hidden rounded-2xl border bg-white shadow-[0_18px_44px_rgba(19,60,46,0.08)]"
+          style={{
+            borderColor: `${contract.sponsor.colors.primary}35`,
+          }}
+        >
+          <div
+            className="grid gap-6 p-5 sm:p-6 xl:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)]"
+            style={{
+              background: `linear-gradient(145deg, ${contract.sponsor.colors.background}, #FFFFFF 48%)`,
+            }}
+          >
+            <div>
+              <p
+                className="text-xs font-extrabold uppercase tracking-[0.15em]"
+                style={{ color: contract.sponsor.colors.primary }}
+              >
+                Renégociation annuelle
+              </p>
+              <h3
+                className="mt-2 text-2xl font-black tracking-[-0.025em]"
+                style={{ color: contract.sponsor.colors.text }}
+              >
+                Ambition de {state.targetSeasonName}
+              </h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
+                Le palier choisi ajuste uniquement les dix engagements et
+                l’apport de la prochaine saison. Le contrat, le budget et la
+                satisfaction en cours ne changent pas.
+              </p>
+
+              <SponsorNegotiationControl
+                offerId={state.objectivePlan.id}
+                contractId={contract.id}
+                negotiationMode="continuing-contract"
+                sponsorName={contract.sponsor.name}
+                targetSeasonName={state.targetSeasonName}
+                baseBudget={state.objectivePlan.baseBudget}
+                budgetCeiling={state.objectivePlan.negotiationBudgetCeiling}
+                currentDifficulty={state.objectivePlan.objectiveDifficulty}
+                primaryColor={contract.sponsor.colors.primary}
+                textColor={contract.sponsor.colors.text}
+                backgroundColor={contract.sponsor.colors.background}
+              />
+            </div>
+
+            <section className="rounded-xl border border-black/10 bg-white/85 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p
+                  className="text-xs font-extrabold uppercase tracking-[0.14em]"
+                  style={{ color: contract.sponsor.colors.primary }}
+                >
+                  Objectifs proposés · 100 points
+                </p>
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-black"
+                  style={{
+                    backgroundColor: contract.sponsor.colors.background,
+                    color: contract.sponsor.colors.text,
+                  }}
+                >
+                  {formatMoney(
+                    state.objectivePlan.proposedBudget,
+                    contract.currencyCode,
+                  )} / saison
+                </span>
+              </div>
+
+              <ol className="mt-4 grid gap-2.5 md:grid-cols-2">
+                {state.objectivePlan.objectives.map((objective, index) => (
+                  <li
+                    key={objective.id}
+                    className="flex items-start gap-2.5 rounded-lg bg-[#F4F7F5] px-3 py-2.5 text-sm font-bold leading-5"
+                    style={{ color: contract.sponsor.colors.text }}
+                  >
+                    <span
+                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black"
+                      style={{
+                        backgroundColor: `${contract.sponsor.colors.accent}2A`,
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+                    <SponsorObjectiveTitle
+                      targetDetails={objective.targetDetails}
+                    >
+                      {objective.name}
+                    </SponsorObjectiveTitle>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </div>
+        </article>
+      ) : null}
 
       {state.jerseySelectionOpen ? (
         <SponsorJerseySelector
@@ -811,7 +908,7 @@ function getFutureSectionIntroduction(
   }
 
   if (state.kind === "continuing") {
-    return "La durée du contrat en cours couvre déjà la prochaine saison. Vous pouvez néanmoins choisir un nouveau maillot parmi les trois modèles du sponsor.";
+    return "La durée du contrat en cours couvre déjà la prochaine saison. À partir du jour 21, vous pouvez renégocier son niveau d’ambition et choisir un nouveau maillot.";
   }
 
   if (state.kind === "offers") {
