@@ -103,9 +103,9 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     name: "Institut fédéral du staff",
     domain: "Staff · Transmission des compétences",
     summary:
-      "Met en commun les méthodes du personnel local et valorise les spécialistes de la nationalité de la fédération.",
+      "Renforce les effets quantitatifs du staff de la nation employé par les équipes affiliées.",
     principle:
-      "Seuls les membres du staff de la nation sont concernés ; l’affinité d’équipe reste le bonus principal.",
+      "Le bonus se cumule avec l’affinité d’équipe et s’applique uniquement aux effets réellement produits.",
     illustration: {
       src: "/images/infrastructure/staff-academy.webp",
       alt: "Institut de formation du staff de la fédération cycliste",
@@ -118,7 +118,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
         "+1 % d’efficacité pour le staff de la nation.",
         "+1,5 % d’efficacité pour le staff de la nation.",
         "+2 % d’efficacité pour le staff de la nation.",
-        "+2,5 % au maximum pour le staff de la nation.",
+        "+2,5 % d’efficacité pour le staff de la nation.",
       ],
     }),
   },

@@ -1,6 +1,7 @@
 import type { FederationInfrastructureCode } from "@/lib/game/federation-infrastructures";
 import { getInfrastructureSpecializationPowerPercentage } from "@/lib/game/infrastructure-specializations";
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
+import type { StaffRole } from "@/lib/game/staff";
 
 export type NationalDetectionNetworkSpecializationCode =
   | "territorial_coverage"
@@ -11,6 +12,11 @@ export type NationalPerformanceCenterSpecializationCode =
   | "altitude_endurance"
   | "speed_power"
   | "rolling_engine";
+
+export type FederalStaffInstituteSpecializationCode =
+  | "coach_school"
+  | "scout_school"
+  | "medical_school";
 
 export const NATIONAL_DETECTION_NETWORK_ATYPICAL_STYLE_BONUS_PERCENTAGE = 2;
 
@@ -133,6 +139,119 @@ export function getNationalPerformanceCenterSpecializationBonusPercentage({
     (specializationCode === "rolling_engine" &&
       ratingKey === "resistance");
   return isSecondary ? Math.round(0.5 * power * 10) / 10 : 0;
+}
+
+export function isFederalStaffInstituteSpecializationCode(
+  value: unknown,
+): value is FederalStaffInstituteSpecializationCode {
+  return (
+    value === "coach_school" ||
+    value === "scout_school" ||
+    value === "medical_school"
+  );
+}
+
+export function getFederalStaffInstituteSpecializationBonusPercentage({
+  level,
+  specializationCode,
+  role,
+}: {
+  level: number;
+  specializationCode: FederalStaffInstituteSpecializationCode | null;
+  role: StaffRole;
+}): number {
+  if (!specializationCode) return 0;
+
+  const power =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizeFederationInfrastructureLevel(level),
+      "federal_staff_institute",
+    ) / 100;
+  if (power <= 0) return 0;
+
+  const roleMatches =
+    (specializationCode === "coach_school" && role === "trainer") ||
+    (specializationCode === "scout_school" && role === "scout") ||
+    (specializationCode === "medical_school" &&
+      (role === "doctor" ||
+        role === "physiotherapist" ||
+        role === "nutritionist"));
+
+  return roleMatches ? Math.round(3 * power * 10) / 10 : 0;
+}
+
+export function getFederalStaffInstituteBonusPercentage({
+  level,
+  specializationCode,
+  role,
+  isNationalStaff,
+}: {
+  level: number;
+  specializationCode: FederalStaffInstituteSpecializationCode | null;
+  role: StaffRole;
+  isNationalStaff: boolean;
+}): number {
+  if (!isNationalStaff) return 0;
+
+  return (
+    getFederationInfrastructureEffectPercentage(
+      "federal_staff_institute",
+      level,
+    ) +
+    getFederalStaffInstituteSpecializationBonusPercentage({
+      level,
+      specializationCode,
+      role,
+    })
+  );
+}
+
+export function getFederalStaffAcademyDurationReductionPercentage({
+  level,
+  specializationCode,
+  role,
+  isNationalStaff,
+}: {
+  level: number;
+  specializationCode: FederalStaffInstituteSpecializationCode | null;
+  role: StaffRole;
+  isNationalStaff: boolean;
+}): number {
+  if (!isNationalStaff) return 0;
+
+  const affectsTraining =
+    (specializationCode === "coach_school" && role === "trainer") ||
+    (specializationCode === "medical_school" &&
+      (role === "doctor" ||
+        role === "physiotherapist" ||
+        role === "nutritionist"));
+  if (!affectsTraining) return 0;
+
+  const power =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizeFederationInfrastructureLevel(level),
+      "federal_staff_institute",
+    ) / 100;
+  return Math.round(5 * power * 10) / 10;
+}
+
+export function getFederalScoutReportPrecisionBonusPercentage({
+  level,
+  specializationCode,
+  isNationalStaff,
+}: {
+  level: number;
+  specializationCode: FederalStaffInstituteSpecializationCode | null;
+  isNationalStaff: boolean;
+}): number {
+  if (!isNationalStaff || specializationCode !== "scout_school") return 0;
+
+  const power =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizeFederationInfrastructureLevel(level),
+      "federal_staff_institute",
+    ) / 100;
+  return Math.round(5 * power * 10) / 10;
 }
 
 export function getFederationNaturalizationRequiredDays({

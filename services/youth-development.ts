@@ -7,8 +7,11 @@ import {
 } from "@/lib/game/bonus-breakdown";
 import {
   getBestNaturalizationRequiredDays,
+  getFederalScoutReportPrecisionBonusPercentage,
+  getFederalStaffInstituteBonusPercentage,
   getFederationInfrastructureEffectPercentage,
   getNationalDetectionNetworkEffects,
+  isFederalStaffInstituteSpecializationCode,
 } from "@/lib/game/federation-infrastructure-effects";
 import { getSchoolCyclingPlanTransferPoints } from "@/lib/game/federation-school-cycling-plan";
 import {
@@ -144,6 +147,7 @@ type MissionRow = {
   created_at: string;
   federation_detection_bonus_percentage: number | string;
   federal_staff_bonus_percentage: number | string;
+  federal_staff_spec_report_bonus_percentage: number | string;
   data_room_quality_bonus_percentage: number | string;
   data_room_report_precision_bonus_percentage: number | string;
   federation_detection_spec_report_bonus_percentage: number | string;
@@ -783,6 +787,9 @@ async function loadOverview(admin: AdminClient, context: Context) {
     const federationSpecializationReportPrecisionBonusPercentage = toNumber(
       mission.federation_detection_spec_report_bonus_percentage ?? 0,
     );
+    const federalStaffReportPrecisionBonusPercentage = toNumber(
+      mission.federal_staff_spec_report_bonus_percentage ?? 0,
+    );
     const potentialPrecisionBonusPercentage = toNumber(
       mission.federation_detection_spec_potential_bonus_percentage ?? 0,
     );
@@ -790,6 +797,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       supervisionBonusPercentage +
       federationDetectionBonusPercentage +
       federationSpecializationReportPrecisionBonusPercentage +
+      federalStaffReportPrecisionBonusPercentage +
       toNumber(mission.data_room_report_precision_bonus_percentage ?? 0);
     const teamAffinityBonusPercentage =
       scout?.countryId === context.registrationCountryId
@@ -1336,17 +1344,33 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     country.id !== teamSeasonResult.data?.registration_country_id
       ? 4 * welcomeCenterSpecialization.power
       : 0;
-  const federalStaffInstituteResult = teamSeasonResult.data
-    ? await admin
-        .from("national_federation_infrastructures")
-        .select("level")
-        .eq("country_id", teamSeasonResult.data.registration_country_id)
-        .eq("infrastructure_code", "federal_staff_institute")
-        .maybeSingle<{ level: number }>()
-    : { data: null, error: null };
+  const [federalStaffInstituteResult, federalStaffSpecializationResult] =
+    teamSeasonResult.data
+      ? await Promise.all([
+          admin
+            .from("national_federation_infrastructures")
+            .select("level")
+            .eq("country_id", teamSeasonResult.data.registration_country_id)
+            .eq("infrastructure_code", "federal_staff_institute")
+            .maybeSingle<{ level: number }>(),
+          admin
+            .from("national_federation_infrastructure_specializations")
+            .select("active_specialization_code")
+            .eq("country_id", teamSeasonResult.data.registration_country_id)
+            .eq("infrastructure_code", "federal_staff_institute")
+            .maybeSingle<{ active_specialization_code: string | null }>(),
+        ])
+      : [
+          { data: null, error: null },
+          { data: null, error: null },
+        ];
   assertQuery(
     federalStaffInstituteResult.error,
     "l’Institut fédéral du staff",
+  );
+  assertQuery(
+    federalStaffSpecializationResult.error,
+    "l’orientation de l’Institut fédéral du staff",
   );
   const talentCodes = (talentsResult.data ?? []).flatMap((talent) =>
     isStaffTalentForRole(talent.talent_code, "scout")
@@ -1357,13 +1381,32 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     scout.country_id === teamSeasonResult.data?.registration_country_id
       ? 1.1
       : 1;
+  const federalStaffInstituteLevel = Number(
+    federalStaffInstituteResult.data?.level ?? 0,
+  );
+  const rawFederalStaffSpecializationCode =
+    federalStaffSpecializationResult.data?.active_specialization_code;
+  const federalStaffSpecializationCode =
+    isFederalStaffInstituteSpecializationCode(
+      rawFederalStaffSpecializationCode,
+    )
+      ? rawFederalStaffSpecializationCode
+      : null;
+  const isNationalScout =
+    scout.country_id === teamSeasonResult.data?.registration_country_id;
   const federalStaffBonusPercentage =
-    scout.country_id === teamSeasonResult.data?.registration_country_id
-      ? getFederationInfrastructureEffectPercentage(
-          "federal_staff_institute",
-          Number(federalStaffInstituteResult.data?.level ?? 0),
-        )
-      : 0;
+    getFederalStaffInstituteBonusPercentage({
+      level: federalStaffInstituteLevel,
+      specializationCode: federalStaffSpecializationCode,
+      role: "scout",
+      isNationalStaff: isNationalScout,
+    });
+  const federalStaffReportPrecisionBonusPercentage =
+    getFederalScoutReportPrecisionBonusPercentage({
+      level: federalStaffInstituteLevel,
+      specializationCode: federalStaffSpecializationCode,
+      isNationalStaff: isNationalScout,
+    });
   const federalStaffMultiplier = 1 + federalStaffBonusPercentage / 100;
   const dailyScoutingBonusPercentage =
     getScoutingSupervisionPercentageForDay(
@@ -1600,6 +1643,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       federation_detection_bonus_percentage:
         federalDetectionBonusPercentage,
       federal_staff_bonus_percentage: federalStaffBonusPercentage,
+      federal_staff_spec_report_bonus_percentage:
+        federalStaffReportPrecisionBonusPercentage,
       scouting_supervision_bonus_percentage:
         dailyScoutingBonusPercentage,
       data_room_quality_bonus_percentage:

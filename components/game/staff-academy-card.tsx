@@ -354,6 +354,14 @@ export function StaffAcademyCard({
                         )}
                       </p>
                     ) : null}
+                    {training.federalDurationReductionPercentage > 0 ? (
+                      <p className="mt-1 text-[10px] font-black text-[#176951]">
+                        Institut fédéral · délai −
+                        {formatPercentage(
+                          training.federalDurationReductionPercentage,
+                        )}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -405,6 +413,14 @@ export function StaffAcademyCard({
                     <p className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
                       Bonus actuels · {member.talents.length}/{STAFF_ACADEMY_MAX_TALENT_LINES}
                     </p>
+                    {member.federalDurationReductionPercentage > 0 ? (
+                      <p className="mt-2 text-[10px] font-black text-[#F2C94C]">
+                        Institut fédéral · formations −
+                        {formatPercentage(
+                          member.federalDurationReductionPercentage,
+                        )}
+                      </p>
+                    ) : null}
                     <div className="mt-3 space-y-2">
                       {member.talents.length ? (
                         member.talents.map((talent) => (
@@ -540,6 +556,14 @@ export function StaffAcademyCard({
                       )} · délai −
                       {formatPercentage(
                         training.educatorDurationReductionPercentage,
+                      )}
+                    </p>
+                  ) : null}
+                  {training.federalDurationReductionPercentage > 0 ? (
+                    <p className="mt-1 text-[10px] font-black text-[#176951]">
+                      Institut fédéral : délai −
+                      {formatPercentage(
+                        training.federalDurationReductionPercentage,
                       )}
                     </p>
                   ) : null}

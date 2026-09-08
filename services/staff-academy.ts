@@ -1,6 +1,10 @@
 import "server-only";
 
 import {
+  getFederalStaffAcademyDurationReductionPercentage,
+  isFederalStaffInstituteSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
+import {
   STAFF_ACADEMY_MAX_TALENT_LINES,
   calculateStaffAcademyTraining,
   getStaffAcademyCapacity,
@@ -40,6 +44,7 @@ type MemberRow = {
   last_name: string;
   role: string;
   level: number;
+  country_id: string;
   trainer_specialty: string | null;
 };
 
@@ -66,6 +71,7 @@ type TrainingRow = {
   created_at: string;
   educator_cost_reduction_percentage: number | string;
   educator_duration_reduction_percentage: number | string;
+  federal_duration_reduction_percentage: number | string;
 };
 
 export type StaffAcademyTalentLine = {
@@ -95,6 +101,7 @@ export type StaffAcademyTraining = {
   completedAt: string | null;
   educatorCostReductionPercentage: number;
   educatorDurationReductionPercentage: number;
+  federalDurationReductionPercentage: number;
 };
 
 export type StaffAcademyMember = {
@@ -115,6 +122,7 @@ export type StaffAcademyMember = {
   canImproveLevel: boolean;
   canAddTalent: boolean;
   activeTrainingId: string | null;
+  federalDurationReductionPercentage: number;
 };
 
 export type StaffAcademyOverview = {
@@ -141,6 +149,8 @@ export async function getStaffAcademyOverview(
     contractsResult,
     trainingsResult,
     educatorBonusesResult,
+    federalStaffInstituteResult,
+    federalStaffSpecializationResult,
   ] =
     await Promise.all([
       admin
@@ -158,7 +168,7 @@ export async function getStaffAcademyOverview(
       admin
         .from("staff_academy_trainings")
         .select(
-          "id, staff_contract_id, staff_member_id, improvement_type, previous_level, previous_talent_count, cost, duration_days, starts_game_day_index, completes_game_day_index, status, awarded_talent_code, completed_at, created_at, educator_cost_reduction_percentage, educator_duration_reduction_percentage",
+          "id, staff_contract_id, staff_member_id, improvement_type, previous_level, previous_talent_count, cost, duration_days, starts_game_day_index, completes_game_day_index, status, awarded_talent_code, completed_at, created_at, educator_cost_reduction_percentage, educator_duration_reduction_percentage, federal_duration_reduction_percentage",
         )
         .eq("team_id", context.teamId)
         .order("created_at", { ascending: false })
@@ -167,12 +177,29 @@ export async function getStaffAcademyOverview(
       admin.rpc("get_team_staff_academy_educator_bonuses", {
         p_team_id: context.teamId,
       }),
+      admin
+        .from("national_federation_infrastructures")
+        .select("level")
+        .eq("country_id", context.registrationCountryId)
+        .eq("infrastructure_code", "federal_staff_institute")
+        .maybeSingle<{ level: number }>(),
+      admin
+        .from("national_federation_infrastructure_specializations")
+        .select("active_specialization_code")
+        .eq("country_id", context.registrationCountryId)
+        .eq("infrastructure_code", "federal_staff_institute")
+        .maybeSingle<{ active_specialization_code: string | null }>(),
     ]);
 
   assertQuery(infrastructureResult.error, "l’Académie des métiers");
   assertQuery(contractsResult.error, "les contrats du staff");
   assertQuery(trainingsResult.error, "les stages de l’Académie");
   assertQuery(educatorBonusesResult.error, "les bonus des formateurs");
+  assertQuery(federalStaffInstituteResult.error, "l’Institut fédéral du staff");
+  assertQuery(
+    federalStaffSpecializationResult.error,
+    "l’orientation de l’Institut fédéral du staff",
+  );
 
   const contracts = contractsResult.data ?? [];
   const memberIds = [
@@ -185,7 +212,7 @@ export async function getStaffAcademyOverview(
     ? await Promise.all([
         admin
           .from("staff_members")
-          .select("id, first_name, last_name, role, level, trainer_specialty")
+          .select("id, first_name, last_name, role, level, country_id, trainer_specialty")
           .in("id", memberIds)
           .returns<MemberRow[]>(),
         admin
@@ -220,6 +247,17 @@ export async function getStaffAcademyOverview(
   const educatorBonuses = normalizeEducatorBonuses(
     educatorBonusesResult.data,
   );
+  const federalStaffInstituteLevel = Number(
+    federalStaffInstituteResult.data?.level ?? 0,
+  );
+  const rawFederalStaffSpecializationCode =
+    federalStaffSpecializationResult.data?.active_specialization_code;
+  const federalStaffSpecializationCode =
+    isFederalStaffInstituteSpecializationCode(
+      rawFederalStaffSpecializationCode,
+    )
+      ? rawFederalStaffSpecializationCode
+      : null;
 
   const members = contracts.flatMap((contract): StaffAcademyMember[] => {
     const member = memberById.get(contract.staff_member_id);
@@ -256,18 +294,41 @@ export async function getStaffAcademyOverview(
           code === `trainer_${trainerSpecialty}`
         ),
     );
-    const levelTraining = calculateStaffAcademyTraining({
-      improvementType: "level",
-      staffLevel: member.level,
-      talentCount: talents.length,
-      educatorBonuses,
+    const federalDurationReductionPercentage =
+      getFederalStaffAcademyDurationReductionPercentage({
+        level: federalStaffInstituteLevel,
+        specializationCode: federalStaffSpecializationCode,
+        role,
+        isNationalStaff: member.country_id === context.registrationCountryId,
+      });
+    const applyFederalDurationReduction = (
+      training: ReturnType<typeof calculateStaffAcademyTraining>,
+    ) => ({
+      ...training,
+      durationDays: Math.max(
+        1,
+        Math.ceil(
+          training.durationDays *
+            (1 - federalDurationReductionPercentage / 100),
+        ),
+      ),
     });
-    const talentTraining = calculateStaffAcademyTraining({
-      improvementType: "talent",
-      staffLevel: member.level,
-      talentCount: talents.length,
-      educatorBonuses,
-    });
+    const levelTraining = applyFederalDurationReduction(
+      calculateStaffAcademyTraining({
+        improvementType: "level",
+        staffLevel: member.level,
+        talentCount: talents.length,
+        educatorBonuses,
+      }),
+    );
+    const talentTraining = applyFederalDurationReduction(
+      calculateStaffAcademyTraining({
+        improvementType: "talent",
+        staffLevel: member.level,
+        talentCount: talents.length,
+        educatorBonuses,
+      }),
+    );
 
     return [
       {
@@ -295,6 +356,7 @@ export async function getStaffAcademyOverview(
           availableTalentCodes.length > 0,
         activeTrainingId:
           activeTrainingByMemberId.get(member.id)?.id ?? null,
+        federalDurationReductionPercentage,
       },
     ];
   });
@@ -350,21 +412,32 @@ async function loadContext(admin: AdminClient, authUserId: string) {
       .maybeSingle<{ team_id: string }>(),
     admin
       .from("seasons")
-      .select("game_year, current_day_number")
+      .select("id, game_year, current_day_number")
       .eq("status", "active")
       .maybeSingle<{
         game_year: number;
         current_day_number: number | null;
+        id: string;
       }>(),
   ]);
   assertQuery(assignmentResult.error, "l’équipe du Directeur Sportif");
   assertQuery(seasonResult.error, "la saison active");
   if (!assignmentResult.data || !seasonResult.data) return null;
 
+  const teamSeasonResult = await admin
+    .from("team_seasons")
+    .select("registration_country_id")
+    .eq("team_id", assignmentResult.data.team_id)
+    .eq("season_id", seasonResult.data.id)
+    .maybeSingle<{ registration_country_id: string }>();
+  assertQuery(teamSeasonResult.error, "la nationalité de l’équipe");
+  if (!teamSeasonResult.data) return null;
+
   return {
     teamId: assignmentResult.data.team_id,
     gameYear: seasonResult.data.game_year,
     currentDayNumber: seasonResult.data.current_day_number ?? 1,
+    registrationCountryId: teamSeasonResult.data.registration_country_id,
   };
 }
 
@@ -420,6 +493,9 @@ function toTraining(
     ),
     educatorDurationReductionPercentage: toNumber(
       training.educator_duration_reduction_percentage,
+    ),
+    federalDurationReductionPercentage: toNumber(
+      training.federal_duration_reduction_percentage,
     ),
   };
 }

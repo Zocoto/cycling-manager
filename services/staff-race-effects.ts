@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  getFederalStaffInstituteBonusPercentage,
+  isFederalStaffInstituteSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -12,6 +16,11 @@ type TeamSeasonRow = {
 type WelcomeCenterRow = { team_id: string; level: number };
 type CountryContinentRow = { id: string; continent_code: string | null };
 type CountryAdjacencyRow = { country_id: string; adjacent_country_id: string };
+type FederalStaffInstituteRow = { country_id: string; level: number };
+type FederalStaffSpecializationRow = {
+  country_id: string;
+  active_specialization_code: string | null;
+};
 
 type ContractRow = {
   id: string;
@@ -141,7 +150,18 @@ export async function loadRaceStaffEffects(
       (team) => team.registration_country_id,
     ),
   ]);
-  const [welcomeCentersResult, countriesResult, adjacenciesResult] =
+  const teamCountryIds = unique(
+    (teamSeasonsResult.data ?? []).map(
+      (team) => team.registration_country_id,
+    ),
+  );
+  const [
+    welcomeCentersResult,
+    countriesResult,
+    adjacenciesResult,
+    federalStaffInstitutesResult,
+    federalStaffSpecializationsResult,
+  ] =
     await Promise.all([
       admin
         .from("team_infrastructures")
@@ -163,6 +183,28 @@ export async function loadRaceStaffEffects(
             .in("country_id", relevantCountryIds)
             .returns<CountryAdjacencyRow[]>()
         : Promise.resolve({ data: [] as CountryAdjacencyRow[], error: null }),
+      teamCountryIds.length
+        ? admin
+            .from("national_federation_infrastructures")
+            .select("country_id, level")
+            .eq("infrastructure_code", "federal_staff_institute")
+            .in("country_id", teamCountryIds)
+            .returns<FederalStaffInstituteRow[]>()
+        : Promise.resolve({
+            data: [] as FederalStaffInstituteRow[],
+            error: null,
+          }),
+      teamCountryIds.length
+        ? admin
+            .from("national_federation_infrastructure_specializations")
+            .select("country_id, active_specialization_code")
+            .eq("infrastructure_code", "federal_staff_institute")
+            .in("country_id", teamCountryIds)
+            .returns<FederalStaffSpecializationRow[]>()
+        : Promise.resolve({
+            data: [] as FederalStaffSpecializationRow[],
+            error: null,
+          }),
     ]);
   assertQuery(
     welcomeCentersResult.error,
@@ -170,6 +212,14 @@ export async function loadRaceStaffEffects(
   );
   assertQuery(countriesResult.error, "les continents du staff");
   assertQuery(adjacenciesResult.error, "les pays adjacents du staff");
+  assertQuery(
+    federalStaffInstitutesResult.error,
+    "les Instituts fédéraux du staff",
+  );
+  assertQuery(
+    federalStaffSpecializationsResult.error,
+    "les orientations des Instituts fédéraux du staff",
+  );
   const welcomeLevelByTeamId = new Map(
     (welcomeCentersResult.data ?? []).map((row) => [
       row.team_id,
@@ -184,6 +234,44 @@ export async function loadRaceStaffEffects(
       (row) => `${row.country_id}:${row.adjacent_country_id}`,
     ),
   );
+  const federalStaffInstituteLevelByCountryId = new Map(
+    (federalStaffInstitutesResult.data ?? []).map((row) => [
+      row.country_id,
+      Number(row.level),
+    ]),
+  );
+  const federalStaffSpecializationByCountryId = new Map(
+    (federalStaffSpecializationsResult.data ?? []).map((row) => [
+      row.country_id,
+      isFederalStaffInstituteSpecializationCode(
+        row.active_specialization_code,
+      )
+        ? row.active_specialization_code
+        : null,
+    ]),
+  );
+  const getFederalStaffMultiplier = (
+    contract: ContractRow,
+    member: MemberRow,
+  ) => {
+    const teamCountryId = teamCountryById.get(contract.team_id);
+    const role =
+      member.role === "mechanic" ? "mechanic" : "physiotherapist";
+    return (
+      1 +
+      getFederalStaffInstituteBonusPercentage({
+        level: teamCountryId
+          ? (federalStaffInstituteLevelByCountryId.get(teamCountryId) ?? 0)
+          : 0,
+        specializationCode: teamCountryId
+          ? (federalStaffSpecializationByCountryId.get(teamCountryId) ?? null)
+          : null,
+        role,
+        isNationalStaff: member.country_id === teamCountryId,
+      }) /
+        100
+    );
+  };
   const affinityByContractId = new Map(
     relevantContracts.map((contract) => {
       const member = membersById.get(contract.staff_member_id)!;
@@ -214,21 +302,26 @@ export async function loadRaceStaffEffects(
     const affinity =
       affinityByContractId.get(contract.id) ??
       (member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1);
+    const federalStaffMultiplier = getFederalStaffMultiplier(contract, member);
     const talentCodes =
       talentCodesByMemberId.get(contract.staff_member_id) ?? new Set();
     const current = byTeamId.get(contract.team_id) ?? {
       ...EMPTY_TEAM_EFFECTS,
     };
 
-    current.incidentTimeReductionPercentage += member.level * 8 * affinity;
+    current.incidentTimeReductionPercentage +=
+      member.level * 8 * affinity * federalStaffMultiplier;
     if (talentCodes.has("mechanic_incident_time")) {
-      current.incidentTimeReductionPercentage += member.level * 3 * affinity;
+      current.incidentTimeReductionPercentage +=
+        member.level * 3 * affinity * federalStaffMultiplier;
     }
     if (talentCodes.has("mechanic_wheel_efficiency")) {
-      current.wheelEfficiencyPercentage += member.level * 4 * affinity;
+      current.wheelEfficiencyPercentage +=
+        member.level * 4 * affinity * federalStaffMultiplier;
     }
     if (talentCodes.has("mechanic_frame_efficiency")) {
-      current.frameEfficiencyPercentage += member.level * 4 * affinity;
+      current.frameEfficiencyPercentage +=
+        member.level * 4 * affinity * federalStaffMultiplier;
     }
     byTeamId.set(contract.team_id, current);
   }
@@ -291,7 +384,12 @@ export async function loadRaceStaffEffects(
     const affinity =
       affinityByContractId.get(contract.id) ??
       (member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1);
-    const prevention = clamp(member.level * 3 * affinity, 0, 30);
+    const federalStaffMultiplier = getFederalStaffMultiplier(contract, member);
+    const prevention = clamp(
+      member.level * 3 * affinity * federalStaffMultiplier,
+      0,
+      30,
+    );
     injuryPreventionByRiderId.set(
       assignment.rider_id,
       Math.max(

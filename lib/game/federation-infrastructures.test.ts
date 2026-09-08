@@ -9,7 +9,12 @@ import {
   MAX_FEDERATION_PROJECT_ARCHITECTS,
   calculateFederationConstructionPreview,
 } from "@/lib/game/federation-infrastructures";
-import { getNationalDetectionNetworkEffects } from "@/lib/game/federation-infrastructure-effects";
+import {
+  getFederalScoutReportPrecisionBonusPercentage,
+  getFederalStaffAcademyDurationReductionPercentage,
+  getFederalStaffInstituteBonusPercentage,
+  getNationalDetectionNetworkEffects,
+} from "@/lib/game/federation-infrastructure-effects";
 
 const migration = readFileSync(
   join(
@@ -43,6 +48,13 @@ const detectionSpecializationMigration = readFileSync(
   join(
     process.cwd(),
     "supabase/migrations/20260908162000_activate_national_detection_network_specializations.sql",
+  ),
+  "utf8",
+);
+const staffInstituteSpecializationMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260908210000_activate_federal_staff_institute_specializations.sql",
   ),
   "utf8",
 );
@@ -179,7 +191,7 @@ describe("federation infrastructures", () => {
       "federationDetectionBonusPercentage: federalDetectionBonusPercentage",
     );
     expect(youthDevelopmentService).toMatch(
-      /supervisionBonusPercentage\s*\+\s*federationDetectionBonusPercentage\s*\+\s*federationSpecializationReportPrecisionBonusPercentage\s*\+\s*toNumber\(mission\.data_room_report_precision_bonus_percentage/,
+      /supervisionBonusPercentage\s*\+\s*federationDetectionBonusPercentage\s*\+\s*federationSpecializationReportPrecisionBonusPercentage\s*\+\s*federalStaffReportPrecisionBonusPercentage\s*\+\s*toNumber\(mission\.data_room_report_precision_bonus_percentage/,
     );
     expect(youthDevelopmentService).toContain(
       "precisionBonusPercentage: reportPrecisionBonusPercentage",
@@ -221,5 +233,60 @@ describe("federation infrastructures", () => {
     expect(youthDevelopmentService).toContain(
       "elitePotentialRelativeBonusPercentage:",
     );
+  });
+
+  it("applique les trois écoles de l’Institut au métier national choisi", () => {
+    expect(
+      getFederalStaffInstituteBonusPercentage({
+        level: 3,
+        specializationCode: "coach_school",
+        role: "trainer",
+        isNationalStaff: true,
+      }),
+    ).toBe(3.3);
+    expect(
+      getFederalStaffInstituteBonusPercentage({
+        level: 5,
+        specializationCode: "medical_school",
+        role: "physiotherapist",
+        isNationalStaff: true,
+      }),
+    ).toBe(5.5);
+    expect(
+      getFederalStaffInstituteBonusPercentage({
+        level: 5,
+        specializationCode: "scout_school",
+        role: "scout",
+        isNationalStaff: false,
+      }),
+    ).toBe(0);
+    expect(
+      getFederalScoutReportPrecisionBonusPercentage({
+        level: 5,
+        specializationCode: "scout_school",
+        isNationalStaff: true,
+      }),
+    ).toBe(5);
+    expect(
+      getFederalStaffAcademyDurationReductionPercentage({
+        level: 3,
+        specializationCode: "medical_school",
+        role: "doctor",
+        isNationalStaff: true,
+      }),
+    ).toBe(3);
+
+    for (const marker of [
+      "federal_staff_spec_report_bonus_percentage",
+      "get_staff_contract_federal_training_reduction",
+      "federal_duration_reduction_percentage",
+      "get_rider_physio_form_protection",
+      "get_race_preparer_bonus_percentage",
+      "get_architect_adjusted_reduction",
+      "apply_federal_staff_to_academy_training",
+      "apply_federal_staff_to_equipment_rnd",
+    ]) {
+      expect(staffInstituteSpecializationMigration).toContain(marker);
+    }
   });
 });

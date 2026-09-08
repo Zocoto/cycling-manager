@@ -192,9 +192,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "federal_staff_institute", buildingName: "Institut fédéral du staff", domain: "Staff · Transmission des compétences", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "coach_school", name: "École des entraîneurs", identity: "Diffuser les meilleures méthodes d’entraînement.", primaryEffect: "+3 % d’efficacité du bonus fédéral des entraîneurs nationaux.", secondaryEffect: "+5 % d’expérience sur leurs formations.", guardrail: "Scouts et personnel médical inchangés." }),
-      option({ code: "scout_school", name: "École des recruteurs", identity: "Professionnaliser l’observation du territoire.", primaryEffect: "+3 % d’efficacité du bonus fédéral des scouts nationaux.", secondaryEffect: "+5 % de précision de leurs rapports.", guardrail: "Entraîneurs et personnel médical inchangés." }),
-      option({ code: "medical_school", name: "École médicale", identity: "Partager protocoles de soin et prévention.", primaryEffect: "+3 % d’efficacité du bonus fédéral du staff médical national.", secondaryEffect: "+5 % d’expérience sur ses formations.", guardrail: "Entraîneurs et scouts inchangés." }),
+      option({ code: "coach_school", name: "École des entraîneurs", identity: "Diffuser les meilleures méthodes d’entraînement.", primaryEffect: "Jusqu’à +3 % d’efficacité supplémentaire pour les entraîneurs nationaux.", secondaryEffect: "Jusqu’à −5 % sur la durée de leurs formations à l’Académie des métiers.", guardrail: "" }),
+      option({ code: "scout_school", name: "École des recruteurs", identity: "Professionnaliser l’observation du territoire.", primaryEffect: "Jusqu’à +3 % d’efficacité supplémentaire pour les scouts nationaux.", secondaryEffect: "Jusqu’à +5 % de précision sur leurs rapports.", guardrail: "" }),
+      option({ code: "medical_school", name: "École médicale", identity: "Partager protocoles de soin et prévention.", primaryEffect: "Jusqu’à +3 % d’efficacité supplémentaire pour les médecins, kinés et nutritionnistes nationaux.", secondaryEffect: "Jusqu’à −5 % sur la durée de leurs formations à l’Académie des métiers.", guardrail: "" }),
     ],
   },
   {
