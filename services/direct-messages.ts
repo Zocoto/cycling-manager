@@ -35,6 +35,8 @@ export type DirectMessage = {
   body: string;
   createdAt: string;
   editedAt: string | null;
+  messageType: "user" | "transfer_offer";
+  sourceReference: string | null;
 };
 
 export type DirectMessageRecipient = {
@@ -80,6 +82,8 @@ export type DirectMessageRow = {
   body: string;
   created_at: string;
   edited_at: string | null;
+  message_type: string;
+  source_reference: string | null;
 };
 
 type DirectMessageRecipientRow = {
@@ -99,6 +103,8 @@ const DIRECT_MESSAGE_SELECT = [
   "body",
   "created_at",
   "edited_at",
+  "message_type",
+  "source_reference",
 ].join(", ");
 
 export async function getDirectMessagingOverview(
@@ -296,6 +302,9 @@ export function mapDirectMessage(row: DirectMessageRow): DirectMessage {
     body: row.body,
     createdAt: row.created_at,
     editedAt: row.edited_at,
+    messageType:
+      row.message_type === "transfer_offer" ? "transfer_offer" : "user",
+    sourceReference: row.source_reference,
   };
 }
 

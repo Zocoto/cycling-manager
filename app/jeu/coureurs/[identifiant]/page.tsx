@@ -1122,6 +1122,19 @@ function DirectTransferOfferCard({
               className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-white px-4 text-base font-black text-[#183F37]"
             />
           </label>
+          <label className="mt-4 block text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">
+            Message au Directeur Sportif <span className="text-white/55">· facultatif</span>
+            <textarea
+              name="message"
+              rows={3}
+              maxLength={500}
+              placeholder="Présentez votre projet sportif ou les raisons de votre offre…"
+              className="mt-2 w-full resize-y rounded-xl border border-white/15 bg-white px-4 py-3 text-sm font-semibold normal-case leading-5 tracking-normal text-[#183F37] placeholder:text-[#789087]"
+            />
+          </label>
+          <p className="mt-2 text-[10px] font-semibold leading-4 text-[#9BE0BC]">
+            L’offre et votre message seront ajoutés au fil privé avec un lien vers la fiche du coureur.
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-bold text-[#BFD1C6]">
             <p>
               Budget disponible

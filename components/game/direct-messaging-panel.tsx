@@ -22,6 +22,7 @@ import {
   DIRECT_MESSAGE_MAX_LENGTH,
   DIRECT_RECIPIENT_SEARCH_MIN_LENGTH,
   normalizeDirectMessage,
+  splitDirectMessageLinks,
   type DirectConversationCursor,
   type DirectMessageCursor,
 } from "@/lib/game/direct-messages";
@@ -933,6 +934,7 @@ export function DirectMessagingPanel({
                 const isMessageEditing = editingMessageId === message.id;
                 const messageCanBeEdited =
                   isCurrentDirector &&
+                  message.messageType === "user" &&
                   canEditChatMessage(message.createdAt, editClockMs);
                 return (
                   <article
@@ -1010,12 +1012,25 @@ export function DirectMessagingPanel({
                           </div>
                         </form>
                       ) : (
-                        <p
-                          data-i18n-skip
-                          className="whitespace-pre-wrap text-sm font-semibold leading-6 [overflow-wrap:anywhere]"
-                        >
-                          {message.body}
-                        </p>
+                        <div data-i18n-skip>
+                          {message.messageType === "transfer_offer" ? (
+                            <p
+                              className={`mb-1 text-[9px] font-black uppercase tracking-[0.16em] ${
+                                isCurrentDirector
+                                  ? "text-[#F2C94C]"
+                                  : "text-[#176951]"
+                              }`}
+                            >
+                              Offre de transfert
+                            </p>
+                          ) : null}
+                          <p className="whitespace-pre-wrap text-sm font-semibold leading-6 [overflow-wrap:anywhere]">
+                            {renderDirectMessageText(
+                              message.body,
+                              isCurrentDirector,
+                            )}
+                          </p>
+                        </div>
                       )}
                       {!isMessageEditing ? (
                         <div className="mt-1 flex items-center justify-end gap-2">
@@ -1194,7 +1209,33 @@ function readRealtimeDirectMessage(
     createdAt: row.created_at,
     editedAt:
       typeof row.edited_at === "string" ? row.edited_at : null,
+    messageType:
+      row.message_type === "transfer_offer" ? "transfer_offer" : "user",
+    sourceReference:
+      typeof row.source_reference === "string"
+        ? row.source_reference
+        : null,
   };
+}
+
+function renderDirectMessageText(message: string, inverted: boolean) {
+  return splitDirectMessageLinks(message).map((part, index) =>
+    part.href ? (
+      <Link
+        key={`${part.text}-${index}`}
+        href={part.href}
+        className={`font-black underline decoration-2 underline-offset-2 ${
+          inverted
+            ? "decoration-[#F2C94C]/60 hover:text-[#F2C94C]"
+            : "text-[#176951] decoration-[#42B99A]/55 hover:text-[#0B302B]"
+        }`}
+      >
+        {part.text}
+      </Link>
+    ) : (
+      <span key={`${part.text}-${index}`}>{part.text}</span>
+    ),
+  );
 }
 
 function mergeConversations(

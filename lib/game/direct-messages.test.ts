@@ -4,6 +4,7 @@ import {
   isDirectConversationCursor,
   isDirectMessageCursor,
   normalizeDirectMessage,
+  splitDirectMessageLinks,
 } from "@/lib/game/direct-messages";
 
 const uuid = "123e4567-e89b-42d3-a456-426614174000";
@@ -43,5 +44,19 @@ describe("direct messages helpers", () => {
         id: "conversation-1",
       }),
     ).toBe(false);
+  });
+
+  it("extracts safe internal rider links from an offer message", () => {
+    expect(
+      splitDirectMessageLinks(
+        `Offre transmise.\n/jeu/coureurs/${uuid}`,
+      ),
+    ).toEqual([
+      { text: "Offre transmise.\n", href: null },
+      {
+        text: `/jeu/coureurs/${uuid}`,
+        href: `/jeu/coureurs/${uuid}`,
+      },
+    ]);
   });
 });

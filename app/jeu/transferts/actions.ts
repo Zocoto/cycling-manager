@@ -9,6 +9,11 @@ import {
   sanitizeTransferMarketReturnPath,
   withPageFeedback,
 } from "@/lib/game/filtered-page-paths";
+import {
+  DIRECT_TRANSFER_OFFER_MESSAGE_MAX_LENGTH,
+  normalizeDirectMessage,
+} from "@/lib/game/direct-messages";
+import { hasForbiddenGlobalChatLink } from "@/lib/game/global-chat";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dispatchDuePushNotifications } from "@/services/push-notifications";
 
@@ -98,6 +103,7 @@ export async function renewRiderContractAction(formData: FormData) {
 export async function submitDirectTransferOfferAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const amount = Number(readValue(formData, "amount"));
+  const message = normalizeDirectMessage(readValue(formData, "message"));
   const returnPath = isUuid(riderId)
     ? (buildRiderReturnPath(readValue(formData, "returnPath"), riderId) ??
       `/jeu/coureurs/${riderId}`)
@@ -110,12 +116,30 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   ) {
     redirectWithMessage(returnPath, "erreur", "Le montant de l'offre est invalide.");
   }
+  if (message.length > DIRECT_TRANSFER_OFFER_MESSAGE_MAX_LENGTH) {
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      `Le message ne peut pas dépasser ${DIRECT_TRANSFER_OFFER_MESSAGE_MAX_LENGTH} caractères.`,
+    );
+  }
+  if (hasForbiddenGlobalChatLink(message)) {
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      "Seuls les liens Cyclo Stratège sont autorisés dans le message.",
+    );
+  }
 
   const supabase = await authenticatedClient();
-  const { error } = await supabase.rpc("submit_direct_transfer_offer", {
-    p_rider_id: riderId,
-    p_amount: amount,
-  });
+  const { error } = await supabase.rpc(
+    "submit_direct_transfer_offer_with_message",
+    {
+      p_rider_id: riderId,
+      p_amount: amount,
+      p_message: message || null,
+    },
+  );
   if (error) {
     redirectWithMessage(
       returnPath,
@@ -128,10 +152,11 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/messagerie");
+  revalidatePath("/jeu/chat");
   redirectWithMessage(
     returnPath,
     "succes",
-    "Votre offre a été transmise au Directeur Sportif de l'équipe concernée.",
+    "Votre offre a été transmise et ajoutée à votre conversation privée avec le Directeur Sportif.",
   );
 }
 
