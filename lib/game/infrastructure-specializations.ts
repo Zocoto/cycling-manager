@@ -5,7 +5,7 @@ export type InfrastructureSpecializationOption = {
   name: string;
   identity: string;
   primaryEffect: string;
-  secondaryEffect: string;
+  secondaryEffect?: string;
   guardrail: string;
   powerBudget: 100;
 };
@@ -79,9 +79,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3, effet progressif aux niveaux 4 et 5",
     options: [
-      option({ code: "individualization", name: "Individualisation", identity: "Combler les faiblesses sans fabriquer trop vite des champions.", primaryEffect: "+4 % d’efficacité sur les notes strictement inférieures à 70.", secondaryEffect: "+2 % sur les compétences secondaires inférieures à 65.", guardrail: "Aucun bonus sur une note ayant atteint 75." }),
-      option({ code: "elite_performance", name: "Haute performance", identity: "Optimiser de faibles marges chez les leaders.", primaryEffect: "+2 % d’efficacité sur les notes comprises entre 75 et 82.", secondaryEffect: "+2 % sur les séances parfaitement adaptées au profil.", guardrail: "+5 % de fatigue de séance et aucun effet au-dessus de 82." }),
-      option({ code: "durability", name: "Développement durable", identity: "Préserver la régularité sur toute la saison.", primaryEffect: "+3 % de récupération de forme liée aux séances légères.", secondaryEffect: "−4 % de fatigue cumulée lors des blocs de trois jours.", guardrail: "N’ajoute aucun gain direct de caractéristique." }),
+      option({ code: "individualization", name: "Individualisation", identity: "Combler les faiblesses sans fabriquer trop vite des champions.", primaryEffect: "+5 % d’efficacité sur les notes inférieures à 70.", secondaryEffect: "+5 % sur les notes secondaires sous 65, cumulable : +10 % au total.", guardrail: "Les deux seuils d’éligibilité suffisent à encadrer cet effet." }),
+      option({ code: "elite_performance", name: "Haute performance", identity: "Optimiser de faibles marges chez les leaders.", primaryEffect: "+2 % d’efficacité sur les notes comprises entre 75 et 82.", secondaryEffect: "+5 % d’efficacité lorsque l’entraîneur apporte son bonus de nationalité.", guardrail: "Aucune fatigue supplémentaire n’est appliquée." }),
+      option({ code: "durability", name: "Développement durable", identity: "Préserver la régularité sur toute la saison.", primaryEffect: "Une séance annulée par le seuil de forme rend 3 points au lieu de 2.", guardrail: "Aucune notion de bloc de trois jours n’est appliquée." }),
     ],
   },
   {

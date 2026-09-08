@@ -179,7 +179,9 @@ export function InfrastructureSpecializationPanel({
                 </p>
                 <dl className="mt-4 space-y-2 text-xs leading-5">
                   <Effect label="Effet principal" value={option.primaryEffect} />
-                  <Effect label="Effet secondaire" value={option.secondaryEffect} />
+                  {option.secondaryEffect ? (
+                    <Effect label="Effet secondaire" value={option.secondaryEffect} />
+                  ) : null}
                 </dl>
                 <form action={action} className="mt-auto pt-4">
                   <input type="hidden" name="infrastructureCode" value={proposal.buildingCode} />

@@ -6,6 +6,10 @@ import {
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
 import type { TrainerSpecialty } from "@/lib/game/staff";
 import {
+  getTrainingCenterSpecializationProgressBonusPercentage,
+  type TrainingCenterSpecializationCode,
+} from "@/lib/game/training-center-specialization";
+import {
   FIRST_IN_CLASS_TRAINING_MULTIPLIER,
   TRAINER_NATIONALITY_BONUS_PERCENTAGE,
   trainerSpecialtySupportsRating,
@@ -20,6 +24,8 @@ export function buildTrainingBonusBreakdown({
   trainerTalentNationalityMultiplier = 1,
   trainingCenterLevel = 0,
   trainingCenterEfficiencyBonusPercentage = 0,
+  trainingCenterSpecializationCode = null,
+  currentRating,
   federationPerformanceLevel = 0,
   federationStaffInstituteLevel = 0,
   trainerMatchesFederation = false,
@@ -34,6 +40,8 @@ export function buildTrainingBonusBreakdown({
   trainerTalentNationalityMultiplier?: number;
   trainingCenterLevel?: number;
   trainingCenterEfficiencyBonusPercentage?: number;
+  trainingCenterSpecializationCode?: TrainingCenterSpecializationCode | null;
+  currentRating?: number;
   federationPerformanceLevel?: number;
   federationStaffInstituteLevel?: number;
   trainerMatchesFederation?: boolean;
@@ -93,6 +101,30 @@ export function buildTrainingBonusBreakdown({
         trainingCenterEfficiencyBonusPercentage > 0
           ? `Niveau ${safeTrainingCenterLevel} · conception architecte +${trainingCenterEfficiencyBonusPercentage} %`
           : `Niveau ${safeTrainingCenterLevel}`,
+    });
+  }
+
+  const specializationBonus =
+    trainingCenterSpecializationCode && currentRating !== undefined
+      ? getTrainingCenterSpecializationProgressBonusPercentage({
+          specialization: {
+            code: trainingCenterSpecializationCode,
+            infrastructureLevel: safeTrainingCenterLevel,
+          },
+          ratingKey,
+          currentRating,
+          trainerCountryMatch,
+        })
+      : 0;
+  if (specializationBonus > 0) {
+    items.push({
+      key: `training-center-${trainingCenterSpecializationCode}`,
+      label: "Orientation du Centre d’entraînement",
+      percentage: specializationBonus,
+      detail:
+        trainingCenterSpecializationCode === "individualization"
+          ? "Individualisation · bonus selon la note et son type"
+          : "Haute performance · bonus de niveau et/ou de nationalité",
     });
   }
 

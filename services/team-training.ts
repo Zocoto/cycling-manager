@@ -28,6 +28,10 @@ import {
   type TrainingSessionStatus,
 } from "@/lib/game/training";
 import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
+import {
+  getSkippedLowFormRecoveryGain,
+  isTrainingCenterSpecializationCode,
+} from "@/lib/game/training-center-specialization";
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
@@ -212,6 +216,7 @@ export type TeamTrainingOverview = {
   minimumForm: number;
   minimumFormEffectiveFromDayNumber: number;
   minimumFormIsPending: boolean;
+  lowFormRestGain: number;
   sessionCutoffPassed: boolean;
   trainers: TeamTrainer[];
   riders: TeamTrainingRider[];
@@ -287,6 +292,7 @@ export async function getCurrentTeamTrainingOverview(
     staffTalentsResult,
     specialAbilitiesResult,
     teamInfrastructuresResult,
+    trainingCenterSpecializationResult,
     federationInfrastructuresResult,
     trainingRewardEffectsResult,
   ] =
@@ -369,6 +375,10 @@ export async function getCurrentTeamTrainingOverview(
         .eq("team_id", teamSeason.team_id)
         .eq("infrastructure_code", "training_center")
         .returns<TeamInfrastructureRow[]>(),
+      admin.rpc("get_team_infrastructure_specialization", {
+        p_team_id: teamSeason.team_id,
+        p_infrastructure_code: "training_center",
+      }),
       admin
         .from("national_federation_infrastructures")
         .select("infrastructure_code, level")
@@ -399,6 +409,10 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(staffTalentsResult.error, "les talents des entraîneurs");
   assertQuery(specialAbilitiesResult.error, "les capacités spéciales d’entraînement");
   assertQuery(teamInfrastructuresResult.error, "le Centre d’entraînement");
+  assertQuery(
+    trainingCenterSpecializationResult.error,
+    "l’orientation du Centre d’entraînement",
+  );
   assertQuery(
     federationInfrastructuresResult.error,
     "les infrastructures fédérales d’entraînement",
@@ -523,6 +537,18 @@ export async function getCurrentTeamTrainingOverview(
   const latestSetting = settingsResult.data?.[0];
   const currentDay = days.find((day) => day.day_number === currentDayNumber);
   const trainingCenter = teamInfrastructuresResult.data?.[0];
+  const trainingCenterSpecializationCode =
+    isTrainingCenterSpecializationCode(
+      trainingCenterSpecializationResult.data,
+    )
+      ? trainingCenterSpecializationResult.data
+      : null;
+  const trainingCenterSpecialization = trainingCenterSpecializationCode
+    ? {
+        code: trainingCenterSpecializationCode,
+        infrastructureLevel: Number(trainingCenter?.level ?? 0),
+      }
+    : null;
   const federationInfrastructureLevel = new Map(
     (federationInfrastructuresResult.data ?? []).map((infrastructure) => [
       infrastructure.infrastructure_code,
@@ -541,6 +567,9 @@ export async function getCurrentTeamTrainingOverview(
       latestSetting?.effective_from_day_number ?? currentDayNumber,
     minimumFormIsPending:
       (latestSetting?.effective_from_day_number ?? currentDayNumber) > currentDayNumber,
+    lowFormRestGain: getSkippedLowFormRecoveryGain({
+      specialization: trainingCenterSpecialization,
+    }),
     sessionCutoffPassed: currentDay ? isAfterParisTrainingTime(currentDay.calendar_date) : false,
     trainers,
     riders: (ridersResult.data ?? [])
@@ -671,6 +700,8 @@ export async function getCurrentTeamTrainingOverview(
                         trainingCenterEfficiencyBonusPercentage: Number(
                           trainingCenter?.efficiency_bonus_percentage ?? 0,
                         ),
+                        trainingCenterSpecializationCode,
+                        currentRating: riderRatings[statCode],
                         federationPerformanceLevel:
                           federationInfrastructureLevel.get(
                             "national_performance_center",

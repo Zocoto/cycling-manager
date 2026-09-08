@@ -13,6 +13,8 @@ describe("training bonus breakdown", () => {
       trainerTalentNationalityMultiplier: 1.1,
       trainingCenterLevel: 5,
       trainingCenterEfficiencyBonusPercentage: 10,
+      trainingCenterSpecializationCode: "elite_performance",
+      currentRating: 80,
       federationPerformanceLevel: 5,
       federationStaffInstituteLevel: 5,
       trainerMatchesFederation: true,
@@ -25,12 +27,31 @@ describe("training bonus breakdown", () => {
       "trainer-affinity",
       "trainer-talent-mountain",
       "training-center",
+      "training-center-elite_performance",
       "federation-performance",
       "federation-staff",
       "daily-reward",
       "first-in-class",
     ]);
-    expect(breakdown.totalPercentage).toBe(229.7);
+    expect(breakdown.totalPercentage).toBe(252.8);
+  });
+
+  it("affiche le cumul d’Individualisation sur une note secondaire faible", () => {
+    const breakdown = buildTrainingBonusBreakdown({
+      ratingKey: "acceleration",
+      currentRating: 60,
+      trainerLevel: 0,
+      trainerSpecialty: null,
+      trainerCountryMatch: false,
+      trainingCenterLevel: 5,
+      trainingCenterSpecializationCode: "individualization",
+    });
+
+    expect(
+      breakdown.items.find(
+        (item) => item.key === "training-center-individualization",
+      )?.percentage,
+    ).toBe(10);
   });
 
   it("n’affiche pas une spécialité qui ne soutient pas la note", () => {

@@ -6,7 +6,6 @@ import { TRAINER_SPECIALTY_LABELS } from "@/lib/game/staff";
 import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
 import {
   formatTrainingProgressMilli,
-  LOW_FORM_REST_GAIN,
   TRAINING_DOMAIN_LABELS,
   type RiderTrainingReport,
   type RiderTrainingSeasonReport,
@@ -179,7 +178,7 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
           {displaysFormChange ? (
             <>
               Forme {report.formDelta > 0 ? "+" : ""}
-              {report.formDelta}
+              {formatFormPoints(report.formDelta)}
             </>
           ) : (
             "Aucun gain"
@@ -262,7 +261,7 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
           </p>
           <p className="mt-1 text-xs font-bold leading-5 text-[#D6DFD2]">
             {isLowFormRest
-              ? `Aucun gain de statistique, mais ${LOW_FORM_REST_GAIN} points de forme récupérés.`
+              ? `Aucun gain de statistique, mais ${formatFormPoints(report.formDelta)} points de forme récupérés.`
               : "Aucun gain d’entraînement n’a été crédité pendant la séance de 8 h."}
           </p>
         </div>
@@ -446,6 +445,12 @@ function sortStatEntries(values: Record<string, number>) {
       (statOrder.get(left) ?? Number.MAX_SAFE_INTEGER) -
       (statOrder.get(right) ?? Number.MAX_SAFE_INTEGER),
   );
+}
+
+function formatFormPoints(value: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function ReportValue({ label, value }: { label: string; value: string }) {

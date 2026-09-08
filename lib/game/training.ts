@@ -1,5 +1,10 @@
 import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
 import type { BonusBreakdown } from "@/lib/game/bonus-breakdown";
+import {
+  getSkippedLowFormRecoveryGain,
+  getTrainingCenterSpecializationProgressBonusPercentage,
+  type TrainingCenterSpecialization,
+} from "@/lib/game/training-center-specialization";
 
 export const TRAINING_DOMAINS = [
   "climber",
@@ -318,8 +323,14 @@ export function getTrainingFormDelta(intensity: number): number {
 
 export function getSkippedTrainingFormDelta(
   status: SkippedTrainingStatus,
+  trainingCenterSpecialization?: TrainingCenterSpecialization | null,
 ): number {
-  return status === "skipped_low_form" ? LOW_FORM_REST_GAIN : 0;
+  return status === "skipped_low_form"
+    ? getSkippedLowFormRecoveryGain({
+        specialization: trainingCenterSpecialization,
+        baseGain: LOW_FORM_REST_GAIN,
+      })
+    : 0;
 }
 
 export function getTrainingDomainWeight(
@@ -450,6 +461,7 @@ export function calculateDailyTrainingProgressMilli({
   trainerLevel = 0,
   trainerCountryMatch = false,
   hasFirstInClass = false,
+  trainingCenterSpecialization = null,
 }: {
   intensity: number;
   age: number;
@@ -461,6 +473,7 @@ export function calculateDailyTrainingProgressMilli({
   trainerLevel?: number;
   trainerCountryMatch?: boolean;
   hasFirstInClass?: boolean;
+  trainingCenterSpecialization?: TrainingCenterSpecialization | null;
 }): number {
   const intensityFactor = Math.min(100, Math.max(0, intensity)) / 100;
   const raw =
@@ -476,6 +489,14 @@ export function calculateDailyTrainingProgressMilli({
       ratingKey,
       countryMatch: trainerCountryMatch,
     }) *
+    (1 +
+      getTrainingCenterSpecializationProgressBonusPercentage({
+        specialization: trainingCenterSpecialization,
+        ratingKey,
+        currentRating: rating,
+        trainerCountryMatch,
+      }) /
+        100) *
     (hasFirstInClass ? FIRST_IN_CLASS_TRAINING_MULTIPLIER : 1);
 
   return Math.max(0, Math.round(raw));

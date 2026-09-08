@@ -28,7 +28,6 @@ import {
   type RiderRatings,
 } from "@/lib/game/rider-profile";
 import {
-  LOW_FORM_REST_GAIN,
   parseTrainingPageTab,
   type TrainingPageTab,
 } from "@/lib/game/training";
@@ -153,6 +152,9 @@ export default async function TrainingPage({
     activeTab === "reconnaissance"
       ? TRAINING_RECONNAISSANCE_TUTORIAL_ROUTE
       : TRAINING_TUTORIAL_ROUTE;
+  const lowFormRestGainLabel = new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 1,
+  }).format(overview.lowFormRestGain);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -233,7 +235,7 @@ export default async function TrainingPage({
                   </h1>
                   <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
                     Séance quotidienne à 8 h. Sous le seuil de forme, le coureur
-                    se repose et récupère {LOW_FORM_REST_GAIN} points. Blessure,
+                    se repose et récupère {lowFormRestGainLabel} points. Blessure,
                     stage ou reconnaissance suspendent l’entraînement.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
