@@ -65,4 +65,31 @@ describe("training bonus breakdown", () => {
     expect(breakdown.items).toEqual([]);
     expect(breakdown.totalPercentage).toBe(0);
   });
+
+  it("additionne l’orientation au bonus général du Centre national", () => {
+    const primaryBreakdown = buildTrainingBonusBreakdown({
+      ratingKey: "mountain",
+      trainerLevel: 0,
+      trainerSpecialty: null,
+      trainerCountryMatch: false,
+      federationPerformanceLevel: 5,
+      federationPerformanceSpecializationCode: "altitude_endurance",
+    });
+    const unrelatedBreakdown = buildTrainingBonusBreakdown({
+      ratingKey: "sprint",
+      trainerLevel: 0,
+      trainerSpecialty: null,
+      trainerCountryMatch: false,
+      federationPerformanceLevel: 5,
+      federationPerformanceSpecializationCode: "altitude_endurance",
+    });
+
+    expect(primaryBreakdown.items.map((item) => item.key)).toEqual([
+      "federation-performance",
+      "federation-performance-altitude_endurance",
+    ]);
+    expect(primaryBreakdown.totalPercentage).toBe(3);
+    expect(unrelatedBreakdown.items).toHaveLength(1);
+    expect(unrelatedBreakdown.totalPercentage).toBe(1.5);
+  });
 });

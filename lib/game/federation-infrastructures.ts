@@ -79,9 +79,9 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     name: "Centre national de performance",
     domain: "Entraînement · Haute performance",
     summary:
-      "Diffuse méthodes, données et protocoles communs aux structures affiliées sans attribuer directement de statistiques.",
+      "Améliore la progression obtenue lors des entraînements quotidiens des coureurs professionnels des équipes affiliées.",
     principle:
-      "L’effet porte uniquement sur l’efficacité future des entraînements et reste plafonné à 1,5 %.",
+      "Chaque niveau renforce les séances réellement effectuées, sans attribuer directement de statistiques.",
     illustration: {
       src: "/images/infrastructure/indoor-track.webp",
       alt: "Centre national de haute performance cycliste",
@@ -90,11 +90,11 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       costs: [1_400_000, 2_500_000, 4_000_000, 6_000_000, 8_500_000],
       durations: [9, 14, 19, 24, 30],
       effects: [
-        "+0,3 % d’efficacité sur les entraînements éligibles.",
-        "+0,6 % d’efficacité sur les entraînements éligibles.",
-        "+0,9 % d’efficacité sur les entraînements éligibles.",
-        "+1,2 % d’efficacité sur les entraînements éligibles.",
-        "+1,5 % au maximum, sans gain instantané de statistique.",
+        "+0,3 % de progression sur les entraînements quotidiens réalisés.",
+        "+0,6 % de progression sur les entraînements quotidiens réalisés.",
+        "+0,9 % de progression sur les entraînements quotidiens réalisés.",
+        "+1,2 % de progression sur les entraînements quotidiens réalisés.",
+        "+1,5 % de progression sur les entraînements quotidiens réalisés.",
       ],
     }),
   },

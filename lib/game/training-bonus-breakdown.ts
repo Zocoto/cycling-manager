@@ -14,6 +14,10 @@ import {
   TRAINER_NATIONALITY_BONUS_PERCENTAGE,
   trainerSpecialtySupportsRating,
 } from "@/lib/game/training";
+import {
+  getNationalPerformanceCenterSpecializationBonusPercentage,
+  type NationalPerformanceCenterSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
 
 export function buildTrainingBonusBreakdown({
   ratingKey,
@@ -27,6 +31,7 @@ export function buildTrainingBonusBreakdown({
   trainingCenterSpecializationCode = null,
   currentRating,
   federationPerformanceLevel = 0,
+  federationPerformanceSpecializationCode = null,
   federationStaffInstituteLevel = 0,
   trainerMatchesFederation = false,
   dailyRewardMultiplier = 1,
@@ -43,6 +48,7 @@ export function buildTrainingBonusBreakdown({
   trainingCenterSpecializationCode?: TrainingCenterSpecializationCode | null;
   currentRating?: number;
   federationPerformanceLevel?: number;
+  federationPerformanceSpecializationCode?: NationalPerformanceCenterSpecializationCode | null;
   federationStaffInstituteLevel?: number;
   trainerMatchesFederation?: boolean;
   dailyRewardMultiplier?: number;
@@ -138,6 +144,29 @@ export function buildTrainingBonusBreakdown({
       label: "Centre national de performance",
       percentage: safeFederationPerformanceLevel * 0.3,
       detail: `Infrastructure fédérale niveau ${safeFederationPerformanceLevel}`,
+      stackingGroup: "federation-performance",
+    });
+  }
+
+  const federationPerformanceSpecializationBonus =
+    getNationalPerformanceCenterSpecializationBonusPercentage({
+      level: safeFederationPerformanceLevel,
+      specializationCode: federationPerformanceSpecializationCode,
+      ratingKey,
+    });
+  if (federationPerformanceSpecializationBonus > 0) {
+    const specializationLabel =
+      federationPerformanceSpecializationCode === "altitude_endurance"
+        ? "Altitude et endurance"
+        : federationPerformanceSpecializationCode === "speed_power"
+          ? "Vitesse et puissance"
+          : "Moteur rouleur";
+    items.push({
+      key: `federation-performance-${federationPerformanceSpecializationCode}`,
+      label: "Orientation du Centre national",
+      percentage: federationPerformanceSpecializationBonus,
+      detail: `${specializationLabel} · bonus ciblé niveau ${safeFederationPerformanceLevel}`,
+      stackingGroup: "federation-performance",
     });
   }
 

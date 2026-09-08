@@ -182,11 +182,11 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
     ],
   },
   {
-    buildingCode: "national_performance_center", buildingName: "Centre national de performance", domain: "Entraînement · Haute performance", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
+    buildingCode: "national_performance_center", buildingName: "Centre national de performance", domain: "Entraînement · Haute performance", scope: "federation", unlockRule: "Vote au niveau 3 · effet progressif jusqu’au niveau 5",
     options: [
-      option({ code: "altitude_endurance", name: "Altitude et endurance", identity: "Façonner une sélection résistante aux longues courses.", primaryEffect: "+1,5 % d’efficacité fédérale en Montagne et Endurance.", secondaryEffect: "+0,5 % de récupération sur les stages nationaux.", guardrail: "Aucun bonus sur Sprint et Accélération." }),
-      option({ code: "speed_power", name: "Vitesse et puissance", identity: "Construire des finisseurs et des spécialistes des efforts courts.", primaryEffect: "+1,5 % d’efficacité fédérale en Sprint et Accélération.", secondaryEffect: "+0,5 % sur les exercices de piste.", guardrail: "Aucun bonus sur Montagne et Endurance." }),
-      option({ code: "rolling_engine", name: "Moteur rouleur", identity: "Développer chrono, plaine et résistance.", primaryEffect: "+1,5 % d’efficacité fédérale en Chrono et Plaine.", secondaryEffect: "+0,5 % en Résistance.", guardrail: "Aucun bonus sur Montagne et Sprint." }),
+      option({ code: "altitude_endurance", name: "Altitude et endurance", identity: "Renforcer les grimpeurs et les coureurs de longues épreuves.", primaryEffect: "Jusqu’à +1,5 % de progression supplémentaire en Montagne et Endurance.", secondaryEffect: "Jusqu’à +0,5 % supplémentaire en Récupération.", guardrail: "" }),
+      option({ code: "speed_power", name: "Vitesse et puissance", identity: "Construire des finisseurs et des spécialistes des efforts courts.", primaryEffect: "Jusqu’à +1,5 % de progression supplémentaire en Sprint et Accélération.", secondaryEffect: "Jusqu’à +0,5 % supplémentaire en Prologue.", guardrail: "" }),
+      option({ code: "rolling_engine", name: "Moteur rouleur", identity: "Développer les rouleurs capables de soutenir les efforts prolongés.", primaryEffect: "Jusqu’à +1,5 % de progression supplémentaire en Contre-la-montre et Plaine.", secondaryEffect: "Jusqu’à +0,5 % supplémentaire en Résistance.", guardrail: "" }),
     ],
   },
   {

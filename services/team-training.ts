@@ -28,6 +28,7 @@ import {
   type TrainingSessionStatus,
 } from "@/lib/game/training";
 import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
+import { isNationalPerformanceCenterSpecializationCode } from "@/lib/game/federation-infrastructure-effects";
 import {
   getSkippedLowFormRecoveryGain,
   isTrainingCenterSpecializationCode,
@@ -294,6 +295,7 @@ export async function getCurrentTeamTrainingOverview(
     teamInfrastructuresResult,
     trainingCenterSpecializationResult,
     federationInfrastructuresResult,
+    federationPerformanceSpecializationResult,
     trainingRewardEffectsResult,
   ] =
     await Promise.all([
@@ -388,6 +390,10 @@ export async function getCurrentTeamTrainingOverview(
           "federal_staff_institute",
         ])
         .returns<FederationInfrastructureRow[]>(),
+      admin.rpc("get_federation_infrastructure_specialization", {
+        p_country_id: teamSeason.registration_country_id,
+        p_infrastructure_code: "national_performance_center",
+      }),
       admin
         .from("daily_reward_active_effects")
         .select(
@@ -416,6 +422,10 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(
     federationInfrastructuresResult.error,
     "les infrastructures fédérales d’entraînement",
+  );
+  assertQuery(
+    federationPerformanceSpecializationResult.error,
+    "l’orientation du Centre national de performance",
   );
   assertQuery(trainingRewardEffectsResult.error, "les bonus quotidiens d’entraînement");
 
@@ -555,6 +565,12 @@ export async function getCurrentTeamTrainingOverview(
       Number(infrastructure.level),
     ]),
   );
+  const federationPerformanceSpecializationCode =
+    isNationalPerformanceCenterSpecializationCode(
+      federationPerformanceSpecializationResult.data,
+    )
+      ? federationPerformanceSpecializationResult.data
+      : null;
 
   return {
     teamId: teamSeason.team_id,
@@ -706,6 +722,7 @@ export async function getCurrentTeamTrainingOverview(
                           federationInfrastructureLevel.get(
                             "national_performance_center",
                           ) ?? 0,
+                        federationPerformanceSpecializationCode,
                         federationStaffInstituteLevel:
                           federationInfrastructureLevel.get(
                             "federal_staff_institute",
