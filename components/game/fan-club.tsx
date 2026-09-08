@@ -562,7 +562,11 @@ function TravelPanel({
             />
             <PreviewLine
               label="Bonus sur la course"
-              value={`+${formatRaceRating(raceBoost.ratingBoost)} à toutes les notes`}
+              value={`+${formatRaceRating(raceBoost.ratingBoost)} note principale`}
+            />
+            <PreviewLine
+              label="Soutien à l’effort"
+              value={`+${formatRaceRating(raceBoost.ratingBoost / 2)} en ACC, END et RES`}
             />
             <PreviewLine
               label="Exemple montagne"
@@ -573,7 +577,8 @@ function TravelPanel({
           <p className="mt-4 text-xs font-semibold leading-5 text-white/75">
             Calcul : √(supporters mobilisés ÷ 100) × (ferveur ÷ 100), avec un
             plafond de +3,00. Les rendements décroissants préservent
-            l’équilibre sportif tout en valorisant chaque car supplémentaire.
+            l’équilibre sportif. Le bonus complet cible la note principale du
+            profil ; ACC, END et RES en reçoivent la moitié.
           </p>
           <button
             type="button"

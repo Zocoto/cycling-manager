@@ -44,12 +44,51 @@ describe("bonus de course des supporters", () => {
     ).toBe(3);
   });
 
-  it("applique le même encouragement aux notes de course sans dépasser 100", () => {
+  it("cible la note du profil et la moitié du bonus sur ACC, END et RES", () => {
     expect(
-      applyFanClubRaceRatingBoost(
-        { mountain: 70, hills: 99.5 },
-        1.1,
-      ),
-    ).toEqual({ mountain: 71.1, hills: 100 });
+      applyFanClubRaceRatingBoost({
+        ratings: {
+          mountain: 70,
+          hills: 99.5,
+          acceleration: 70,
+          endurance: 70,
+          resistance: 70,
+          recovery: 70,
+          downhill: 70,
+        },
+        ratingBoost: 1.1,
+        profileType: "mountain",
+        stageType: "road",
+      }),
+    ).toEqual({
+      mountain: 71.1,
+      hills: 99.5,
+      acceleration: 70.55,
+      endurance: 70.55,
+      resistance: 70.55,
+      recovery: 70,
+      downhill: 70,
+    });
+  });
+
+  it("cible le CLM ou le prologue selon la discipline de l’étape", () => {
+    const ratings = { timeTrial: 70, prologue: 70, resistance: 70 };
+
+    expect(
+      applyFanClubRaceRatingBoost({
+        ratings,
+        ratingBoost: 1,
+        profileType: "flat",
+        stageType: "individual_time_trial",
+      }),
+    ).toEqual({ timeTrial: 71, prologue: 70, resistance: 70.5 });
+    expect(
+      applyFanClubRaceRatingBoost({
+        ratings,
+        ratingBoost: 1,
+        profileType: "flat",
+        stageType: "prologue",
+      }),
+    ).toEqual({ timeTrial: 70, prologue: 71, resistance: 70.5 });
   });
 });

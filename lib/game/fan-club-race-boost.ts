@@ -26,6 +26,21 @@ export type FanClubRaceBoost = {
   projectedMountainRatingAt70: number;
 };
 
+type FanClubBoostProfileType =
+  | "flat"
+  | "sprint"
+  | "hilly"
+  | "mountain"
+  | "cobbles"
+  | "time_trial"
+  | "mixed";
+
+type FanClubBoostStageType =
+  | "road"
+  | "individual_time_trial"
+  | "team_time_trial"
+  | "prologue";
+
 export function getFanClubCarCapacity(
   allocations: ReadonlyArray<FanClubRaceTripAllocation>,
 ) {
@@ -113,16 +128,61 @@ export function projectFanClubRaceRating(
 
 export function applyFanClubRaceRatingBoost<
   Ratings extends Record<string, number>,
->(ratings: Ratings, ratingBoost: number): Ratings {
+>({
+  ratings,
+  ratingBoost,
+  profileType,
+  stageType,
+}: {
+  ratings: Ratings;
+  ratingBoost: number;
+  profileType: FanClubBoostProfileType;
+  stageType: FanClubBoostStageType;
+}): Ratings {
   const safeBoost = Math.max(0, ratingBoost);
   if (safeBoost === 0) return ratings;
 
+  const primaryRatings = getFanClubPrimaryBoostedRatings(
+    profileType,
+    stageType,
+  );
+  const effortRatings = new Set(["acceleration", "endurance", "resistance"]);
+
   return Object.fromEntries(
-    Object.entries(ratings).map(([key, value]) => [
-      key,
-      projectFanClubRaceRating(value, safeBoost),
-    ]),
+    Object.entries(ratings).map(([key, value]) => {
+      const appliedBoost = primaryRatings.has(key)
+        ? safeBoost
+        : effortRatings.has(key)
+          ? safeBoost / 2
+          : 0;
+      return [key, projectFanClubRaceRating(value, appliedBoost)];
+    }),
   ) as Ratings;
+}
+
+function getFanClubPrimaryBoostedRatings(
+  profileType: FanClubBoostProfileType,
+  stageType: FanClubBoostStageType,
+) {
+  if (stageType === "prologue") return new Set(["prologue"]);
+  if (
+    stageType === "individual_time_trial" ||
+    stageType === "team_time_trial"
+  ) {
+    return new Set(["timeTrial"]);
+  }
+
+  return new Set(
+    {
+      flat: ["flat"],
+      sprint: ["sprint"],
+      hilly: ["hills"],
+      mountain: ["mountain"],
+      cobbles: ["cobbles"],
+      time_trial: ["timeTrial"],
+      mixed: ["flat", "hills"],
+    }[profileType],
+  );
 }
 
 function roundRating(value: number) {

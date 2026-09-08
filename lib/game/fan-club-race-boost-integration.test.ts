@@ -27,6 +27,8 @@ describe("intégration du bonus supporters dans la course", () => {
   it("applique le bonus aux notes avant la simulation", () => {
     expect(raceSimulation).toContain("applyFanClubRaceRatingBoost(");
     expect(raceSimulation).toContain("rider.fanClubSupport?.ratingBoost ?? 0");
+    expect(raceSimulation).toContain("profileType: input.profileType");
+    expect(raceSimulation).toContain("stageType: input.stageType");
   });
 
   it("rend le détail et la projection 70 MO sur la fiche course", () => {

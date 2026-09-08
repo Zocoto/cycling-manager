@@ -674,7 +674,10 @@ export function calculateFanClubTripPreview({
   });
   const bonuses =
     raceBoost.ratingBoost > 0
-      ? [`+${raceBoost.ratingBoost.toFixed(2).replace(".", ",")} à toutes les notes`]
+      ? [
+          `+${raceBoost.ratingBoost.toFixed(2).replace(".", ",")} sur la note principale`,
+          `+${(raceBoost.ratingBoost / 2).toFixed(2).replace(".", ",")} en ACC, END et RES`,
+        ]
       : [];
   const boostDetails = {
     fervorMultiplier: raceBoost.fervorMultiplier,

@@ -1511,7 +1511,7 @@ function FanClubRaceBoostCard({
                 +{formatRaceRating(boost.ratingBoost)}
               </p>
               <p className="text-xs font-bold text-white/70">
-                sur toutes les notes pendant la course
+                sur la note principale du profil
               </p>
             </div>
             <p className="rounded-xl bg-white/10 px-3 py-2 text-sm font-black text-[#F2C94C]">
@@ -1537,7 +1537,9 @@ function FanClubRaceBoostCard({
             />
           </dl>
           <p className="mt-4 text-[11px] font-semibold leading-5 text-white/65">
-            Bonus = min(3 ; √(supporters ÷ 100)) × (ferveur ÷ 100).
+            Bonus = min(3 ; √(supporters ÷ 100)) × (ferveur ÷ 100). ACC, END
+            et RES reçoivent la moitié de cette valeur ; les autres notes
+            restent inchangées.
           </p>
         </>
       ) : (

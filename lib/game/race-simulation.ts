@@ -1111,15 +1111,17 @@ function normalizeStageSimulationInput(
               ))
               ? 2 + Math.max(0, input.federationHomeAdvantageBonus ?? 0)
               : 0,
-          ratings: applyFanClubRaceRatingBoost(
-            applyRaceInfrastructurePerformanceBonuses({
+          ratings: applyFanClubRaceRatingBoost({
+            ratings: applyRaceInfrastructurePerformanceBonuses({
               ratings: weatherCenterAdjustedRatings,
               rider,
               stageType: input.stageType,
               raceCountryCode: input.raceCountryCode,
             }),
-            rider.fanClubSupport?.ratingBoost ?? 0,
-          ),
+            ratingBoost: rider.fanClubSupport?.ratingBoost ?? 0,
+            profileType: input.profileType,
+            stageType: input.stageType,
+          }),
         };
       }),
   };
