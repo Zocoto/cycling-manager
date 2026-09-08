@@ -178,6 +178,7 @@ export async function settleDueStandardRaceResults({
 
   const settlementCalendar = await getActiveSeasonRaceCalendar(admin, now, {
     includeIneligibleRegionalRaces: true,
+    includeSimulationEnhancements: false,
     raceEditionIds: claimedEditionIds,
   });
   if (!settlementCalendar) {

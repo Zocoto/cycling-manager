@@ -17,11 +17,13 @@ export async function GET(request: Request) {
 
   const now = new Date();
   const admin = createSupabaseAdminClient();
-  const calendar = await getActiveSeasonRaceCalendar(admin, now, {
+  const discoveryCalendar = await getActiveSeasonRaceCalendar(admin, now, {
+    includeEngagedCounts: false,
+    includeEngagedRiders: false,
     includeIneligibleRegionalRaces: true,
   });
 
-  if (!calendar) {
+  if (!discoveryCalendar) {
     return Response.json({
       processedStages: 0,
       completedEditions: 0,
@@ -30,30 +32,41 @@ export async function GET(request: Request) {
     });
   }
 
-  const worldEditions = calendar.editions.filter(
-    (edition) =>
-      edition.competitionType === "world_championship" &&
-      WORLD_SLUGS.has(edition.slug),
-  );
+  const worldEditionIds = discoveryCalendar.editions
+    .filter(
+      (edition) =>
+        edition.competitionType === "world_championship" &&
+        WORLD_SLUGS.has(edition.slug),
+    )
+    .map((edition) => edition.id);
 
-  if (worldEditions.length !== 2) {
+  if (worldEditionIds.length !== 2) {
     return Response.json(
       {
         error: "Expected exactly two world championship editions.",
-        editionCount: worldEditions.length,
+        editionCount: worldEditionIds.length,
       },
       { status: 409 },
     );
   }
 
-  const settlement = await settleFinishedRaceResults(
-    { ...calendar, editions: worldEditions },
-    now,
-  );
+  const calendar = await getActiveSeasonRaceCalendar(admin, now, {
+    includeIneligibleRegionalRaces: true,
+    includeSimulationEnhancements: false,
+    raceEditionIds: worldEditionIds,
+  });
+  if (!calendar || calendar.editions.length !== worldEditionIds.length) {
+    return Response.json(
+      { error: "Unable to load the targeted world championship editions." },
+      { status: 409 },
+    );
+  }
+
+  const settlement = await settleFinishedRaceResults(calendar, now);
 
   return Response.json({
     ...settlement,
-    editions: worldEditions.map((edition) => ({
+    editions: calendar.editions.map((edition) => ({
       id: edition.id,
       slug: edition.slug,
       riders: edition.engagedRiders.length,

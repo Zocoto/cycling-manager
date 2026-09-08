@@ -19,6 +19,17 @@ const resultsService = readFileSync(
   resolve(process.cwd(), "services/race-results.ts"),
   "utf8",
 );
+const calendarService = readFileSync(
+  resolve(process.cwd(), "services/race-calendar.ts"),
+  "utf8",
+);
+const worldChampionshipHotfixRoute = readFileSync(
+  resolve(
+    process.cwd(),
+    "app/api/cron/world-championship-hotfix/route.ts",
+  ),
+  "utf8",
+);
 const newsService = readFileSync(
   resolve(process.cwd(), "services/post-race-news.ts"),
   "utf8",
@@ -80,6 +91,7 @@ describe("race settlement cron resilience", () => {
     expect(runner).toContain("selectRaceJobPack");
     expect(runner).toContain("deferredEditions");
     expect(runner).toContain("raceEditionIds: claimedEditionIds");
+    expect(runner).toContain("includeSimulationEnhancements: false");
     expect(runner).toContain("repairableCompletedEditionIds");
     expect(route).toContain("official_race_settlement_anomaly");
     expect(route).toContain("result.failedEditions > 0");
@@ -87,6 +99,22 @@ describe("race settlement cron resilience", () => {
     expect(route).toContain('slot.endsWith("-recovery")');
     expect(route).toContain("result.deferredEditions > 0");
     expect(route).toContain("persistentBacklog");
+  });
+
+  it("keeps locked-result settlement independent from simulation bonuses", () => {
+    expect(calendarService).toContain("includeSimulationEnhancements?: boolean");
+    expect(calendarService).toContain(
+      "options.includeSimulationEnhancements !== false",
+    );
+    expect(worldChampionshipHotfixRoute).toContain(
+      "includeEngagedRiders: false",
+    );
+    expect(worldChampionshipHotfixRoute).toContain(
+      "raceEditionIds: worldEditionIds",
+    );
+    expect(worldChampionshipHotfixRoute).toContain(
+      "includeSimulationEnhancements: false",
+    );
   });
 
   it("retries every five minutes after the first partitioned settlement", () => {

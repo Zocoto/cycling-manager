@@ -429,6 +429,13 @@ type ActiveSeasonCalendarLoadOptions = {
   includeEngagedRiders?: boolean;
   includeIneligibleRegionalRaces?: boolean;
   includeJuniorChampionships?: boolean;
+  /**
+   * Les bonus de simulation sont inutiles lorsqu'un scénario officiel est
+   * déjà verrouillé et que le service ne fait que l'homologuer. Les ignorer
+   * dans ce cas empêche une fonctionnalité périphérique (staff, supporters,
+   * infrastructures) de bloquer la publication d'un classement existant.
+   */
+  includeSimulationEnhancements?: boolean;
 };
 
 type RiderCountryRow = {
@@ -706,6 +713,8 @@ export async function getActiveSeasonRaceCalendar(
   const includeEngagedRiders = options.includeEngagedRiders !== false;
   const includeEngagedCounts =
     !includeEngagedRiders && options.includeEngagedCounts !== false;
+  const includeSimulationEnhancements =
+    options.includeSimulationEnhancements !== false;
 
   const fetchEditionsPage = async (
     from: number,
@@ -904,34 +913,51 @@ export async function getActiveSeasonRaceCalendar(
   );
   const engagedTeamIds = unique(engagedRiderRows.map((rider) => rider.team_id));
   const raceDataAdmin = createSupabaseAdminClient();
-  const raceStaffEffectsPromise = loadRaceStaffEffects(raceDataAdmin, {
-    seasonId: season.id,
-    teamIds: engagedTeamIds,
-    riderIds: engagedRiderIds,
-  });
-  const teamSponsorVisualsPromise = loadActiveRaceTeamSponsorVisuals(
-    raceDataAdmin,
-    engagedTeamIds,
-  );
-  const localRaceCountriesPromise = loadWelcomeCenterLocalRaceCountries(
-    raceDataAdmin,
-    engagedTeamIds,
-    engagedRiderIds,
-  );
+  const raceStaffEffectsPromise = includeSimulationEnhancements
+    ? loadRaceStaffEffects(raceDataAdmin, {
+        seasonId: season.id,
+        teamIds: engagedTeamIds,
+        riderIds: engagedRiderIds,
+      })
+    : Promise.resolve<RaceStaffEffects>({
+        byTeamId: new Map(),
+        injuryPreventionByRiderId: new Map(),
+      });
+  const teamSponsorVisualsPromise = includeSimulationEnhancements
+    ? loadActiveRaceTeamSponsorVisuals(raceDataAdmin, engagedTeamIds)
+    : Promise.resolve(new Map<string, RaceTeamSponsorVisual>());
+  const localRaceCountriesPromise = includeSimulationEnhancements
+    ? loadWelcomeCenterLocalRaceCountries(
+        raceDataAdmin,
+        engagedTeamIds,
+        engagedRiderIds,
+      )
+    : Promise.resolve<WelcomeCenterLocalRaceContext>({
+        eligibleTeamIds: new Set(),
+        adjacentRaceCountryCodesByRiderId: new Map(),
+      });
   const raceInfrastructureSpecializationsPromise =
-    loadRaceInfrastructureSpecializations(raceDataAdmin, engagedTeamIds);
-  const teamRegistrationCountryCodesPromise = loadTeamRegistrationCountryCodes(
-    raceDataAdmin,
-    season.id,
-    engagedTeamIds,
-  );
-  const fanClubRaceBoostsPromise = loadFanClubRaceBoostDirectory(
-    raceDataAdmin,
-    {
-      raceEditionIds: editionIds,
-      teamIds: engagedTeamIds,
-    },
-  );
+    includeSimulationEnhancements
+      ? loadRaceInfrastructureSpecializations(raceDataAdmin, engagedTeamIds)
+      : Promise.resolve<RaceInfrastructureSpecializations>({
+          weatherCenter: new Map(),
+          indoorTrack: new Map(),
+          windTunnel: new Map(),
+          welcomeCenter: new Map(),
+        });
+  const teamRegistrationCountryCodesPromise = includeSimulationEnhancements
+    ? loadTeamRegistrationCountryCodes(
+        raceDataAdmin,
+        season.id,
+        engagedTeamIds,
+      )
+    : Promise.resolve(new Map<string, string>());
+  const fanClubRaceBoostsPromise = includeSimulationEnhancements
+    ? loadFanClubRaceBoostDirectory(raceDataAdmin, {
+        raceEditionIds: editionIds,
+        teamIds: engagedTeamIds,
+      })
+    : Promise.resolve(new Map<string, FanClubRaceBoost>());
   const riderContext = await loadRaceCalendarRiderContext({
     supabase,
     admin: raceDataAdmin,
@@ -2276,12 +2302,24 @@ async function loadTeamRegistrationCountryCodes(
   teamIds: string[],
 ) {
   if (!teamIds.length) return new Map<string, string>();
-  const teamSeasonsResult = await admin
-    .from("team_seasons")
-    .select("team_id, registration_country_id")
-    .eq("season_id", seasonId)
-    .in("team_id", teamIds)
-    .returns<TeamSeasonCountryRow[]>();
+  const teamSeasonsResult = await collectChunkedPaginatedRows<
+    TeamSeasonCountryRow,
+    { message: string },
+    string
+  >({
+    values: teamIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("team_seasons")
+        .select("team_id, registration_country_id")
+        .eq("season_id", seasonId)
+        .in("team_id", chunk)
+        .order("team_id", { ascending: true })
+        .range(from, to)
+        .returns<TeamSeasonCountryRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
   assertQuerySucceeded(
     teamSeasonsResult.error,
     "les nationalités d’inscription des équipes",
@@ -2290,11 +2328,23 @@ async function loadTeamRegistrationCountryCodes(
     (teamSeasonsResult.data ?? []).map((row) => row.registration_country_id),
   );
   if (!countryIds.length) return new Map<string, string>();
-  const countriesResult = await admin
-    .from("countries")
-    .select("id, iso_alpha2")
-    .in("id", countryIds)
-    .returns<Array<{ id: string; iso_alpha2: string }>>();
+  const countriesResult = await collectChunkedPaginatedRows<
+    { id: string; iso_alpha2: string },
+    { message: string },
+    string
+  >({
+    values: countryIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("countries")
+        .select("id, iso_alpha2")
+        .in("id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<Array<{ id: string; iso_alpha2: string }>>();
+      return { data: result.data, error: result.error };
+    },
+  });
   assertQuerySucceeded(countriesResult.error, "les codes pays des équipes");
   const codeByCountryId = new Map(
     (countriesResult.data ?? []).map((country) => [
@@ -2326,18 +2376,42 @@ async function loadWelcomeCenterLocalRaceCountries(
   };
   if (!teamIds.length || !riderIds.length) return result;
   const [facilitiesResult, ridersResult] = await Promise.all([
-    admin
-      .from("team_infrastructures")
-      .select("team_id")
-      .in("team_id", teamIds)
-      .eq("infrastructure_code", "international_welcome_center")
-      .gte("level", 3)
-      .returns<Array<{ team_id: string }>>(),
-    admin
-      .from("riders")
-      .select("id,country_id")
-      .in("id", riderIds)
-      .returns<Array<{ id: string; country_id: string }>>(),
+    collectChunkedPaginatedRows<
+      { team_id: string },
+      { message: string },
+      string
+    >({
+      values: teamIds,
+      fetchPage: async (chunk, from, to) => {
+        const query = await admin
+          .from("team_infrastructures")
+          .select("team_id")
+          .in("team_id", chunk)
+          .eq("infrastructure_code", "international_welcome_center")
+          .gte("level", 3)
+          .order("team_id", { ascending: true })
+          .range(from, to)
+          .returns<Array<{ team_id: string }>>();
+        return { data: query.data, error: query.error };
+      },
+    }),
+    collectChunkedPaginatedRows<
+      { id: string; country_id: string },
+      { message: string },
+      string
+    >({
+      values: riderIds,
+      fetchPage: async (chunk, from, to) => {
+        const query = await admin
+          .from("riders")
+          .select("id,country_id")
+          .in("id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<Array<{ id: string; country_id: string }>>();
+        return { data: query.data, error: query.error };
+      },
+    }),
   ]);
   assertQuerySucceeded(
     facilitiesResult.error,
@@ -2353,21 +2427,49 @@ async function loadWelcomeCenterLocalRaceCountries(
     (ridersResult.data ?? []).map((row) => row.country_id),
   );
   if (!countryIds.length) return result;
-  const adjacencyResult = await admin
-    .from("country_adjacencies")
-    .select("country_id,adjacent_country_id")
-    .in("country_id", countryIds)
-    .returns<Array<{ country_id: string; adjacent_country_id: string }>>();
+  const adjacencyResult = await collectChunkedPaginatedRows<
+    { country_id: string; adjacent_country_id: string },
+    { message: string },
+    string
+  >({
+    values: countryIds,
+    fetchPage: async (chunk, from, to) => {
+      const query = await admin
+        .from("country_adjacencies")
+        .select("country_id,adjacent_country_id")
+        .in("country_id", chunk)
+        .order("country_id", { ascending: true })
+        .order("adjacent_country_id", { ascending: true })
+        .range(from, to)
+        .returns<Array<{
+          country_id: string;
+          adjacent_country_id: string;
+        }>>();
+      return { data: query.data, error: query.error };
+    },
+  });
   assertQuerySucceeded(adjacencyResult.error, "les pays adjacents");
   const adjacentIds = unique(
     (adjacencyResult.data ?? []).map((row) => row.adjacent_country_id),
   );
   const countriesResult = adjacentIds.length
-    ? await admin
-        .from("countries")
-        .select("id,iso_alpha2")
-        .in("id", adjacentIds)
-        .returns<Array<{ id: string; iso_alpha2: string }>>()
+    ? await collectChunkedPaginatedRows<
+        { id: string; iso_alpha2: string },
+        { message: string },
+        string
+      >({
+        values: adjacentIds,
+        fetchPage: async (chunk, from, to) => {
+          const query = await admin
+            .from("countries")
+            .select("id,iso_alpha2")
+            .in("id", chunk)
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<Array<{ id: string; iso_alpha2: string }>>();
+          return { data: query.data, error: query.error };
+        },
+      })
     : emptyResult<{ id: string; iso_alpha2: string }>();
   assertQuerySucceeded(countriesResult.error, "les codes des pays adjacents");
   const codeById = new Map(

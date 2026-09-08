@@ -15,6 +15,13 @@ const raceProfile = readFileSync(
   resolve(process.cwd(), "app/jeu/courses/[slug]/race-profile-content.tsx"),
   "utf8",
 );
+const fanClubGrantMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260908193000_harden_race_settlement_enrichment_dependencies.sql",
+  ),
+  "utf8",
+);
 
 describe("intégration du bonus supporters dans la course", () => {
   it("charge les cars et la ferveur dans les entrées officielles", () => {
@@ -22,6 +29,15 @@ describe("intégration du bonus supporters dans la course", () => {
     expect(raceCalendarService).toContain("fanClubSupport:");
     expect(raceCalendarService).toContain("mobilizedSupporters:");
     expect(raceCalendarService).toContain("ratingBoost:");
+    expect(fanClubGrantMigration).toContain(
+      "grant select on table public.fan_club_trip_allocations to service_role",
+    );
+  });
+
+  it("découpe les grands effectifs avant les filtres PostgREST", () => {
+    expect(raceCalendarService).toMatch(
+      /values: riderIds,[\s\S]*?\.from\("riders"\)[\s\S]*?\.in\("id", chunk\)/,
+    );
   });
 
   it("applique le bonus aux notes avant la simulation", () => {
