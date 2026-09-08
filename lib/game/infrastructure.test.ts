@@ -118,8 +118,10 @@ describe("team infrastructure buildings", () => {
       "international_welcome_center",
       "research_lab",
       "staff_academy",
-      "tactical_center",
     ]);
+    expect(getTeamInfrastructureCodesByStartingCost()).not.toContain(
+      "tactical_center",
+    );
   });
 
   it("associe chaque bâtiment actif à une illustration WebP livrée", () => {
@@ -196,9 +198,10 @@ describe("team infrastructure buildings", () => {
       TEAM_INFRASTRUCTURE_DEFINITIONS.cryotherapy_center.levels,
     ).toHaveLength(5);
     expect(TEAM_INFRASTRUCTURE_DEFINITIONS.wind_tunnel.levels).toHaveLength(5);
-    expect(TEAM_INFRASTRUCTURE_DEFINITIONS.tactical_center.levels).toHaveLength(
-      5,
-    );
+    // Kept only to decode historical projects and levels; no longer offered.
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.tactical_center.levels,
+    ).toHaveLength(5);
     expect(TEAM_INFRASTRUCTURE_DEFINITIONS.research_lab.levels).toHaveLength(7);
     for (const code of getTeamInfrastructureCodesByStartingCost()) {
       const costs = TEAM_INFRASTRUCTURE_DEFINITIONS[code].levels.map(

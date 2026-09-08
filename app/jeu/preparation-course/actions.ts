@@ -25,10 +25,6 @@ import {
   isTimeTrialEffortMode,
   type TimeTrialEffortMode,
 } from "@/lib/game/time-trial-preparation";
-import {
-  isRaceTacticalDoctrineCode,
-  validateRaceTacticalAssignments,
-} from "@/lib/game/race-tactics";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function saveRacePreparationAction(formData: FormData) {
@@ -202,68 +198,10 @@ export async function saveTimeTrialPreparationAction(formData: FormData) {
 }
 
 export async function saveRaceTacticalBriefingAction(formData: FormData) {
-  const editionId = readFormValue(formData, "editionId");
-  const stageId = readFormValue(formData, "stageId");
-  const stageNumber = readFormValue(formData, "stageNumber");
   const slug = readFormValue(formData, "slug");
-  const primaryDoctrine = readFormValue(formData, "primaryDoctrine");
-  const primaryRiderIds = readRiderIdArray(formData, "primaryRiderIds");
-  const rawBackupDoctrine = readFormValue(formData, "backupDoctrine");
-  const backupDoctrine = rawBackupDoctrine || null;
-  const backupRiderIds = readRiderIdArray(formData, "backupRiderIds");
-
-  if (
-    !isUuid(editionId) ||
-    !isUuid(stageId) ||
-    !isSlug(slug) ||
-    !/^\d+$/.test(stageNumber) ||
-    !isRaceTacticalDoctrineCode(primaryDoctrine) ||
-    !primaryRiderIds ||
-    !validateRaceTacticalAssignments(primaryDoctrine, primaryRiderIds) ||
-    (backupDoctrine !== null &&
-      (!isRaceTacticalDoctrineCode(backupDoctrine) ||
-        backupDoctrine === primaryDoctrine ||
-        !backupRiderIds ||
-        !validateRaceTacticalAssignments(backupDoctrine, backupRiderIds)))
-  ) {
-    redirectWithError(
-      `/jeu/preparation-course${slug ? `?course=${encodeURIComponent(slug)}` : ""}`,
-      "Le briefing tactique transmis est incomplet ou invalide.",
-    );
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: authenticationError,
-  } = await supabase.auth.getUser();
-  if (authenticationError || !user) redirect("/connexion");
-
-  const { error } = await supabase.rpc(
-    "save_current_team_tactical_briefing",
-    {
-      p_race_edition_id: editionId,
-      p_stage_id: stageId,
-      p_primary_doctrine: primaryDoctrine,
-      p_primary_rider_ids: primaryRiderIds,
-      p_backup_doctrine: backupDoctrine,
-      p_backup_rider_ids: backupDoctrine ? backupRiderIds : [],
-    },
-  );
-
-  if (error) {
-    redirectWithError(
-      `/jeu/preparation-course?course=${encodeURIComponent(slug)}`,
-      error.message,
-    );
-  }
-
-  revalidatePath("/jeu/preparation-course");
-  revalidatePath(`/jeu/courses/${slug}`);
-  revalidatePath("/jeu/resultats");
-  revalidatePath("/jeu");
-  redirect(
-    `/jeu/preparation-course?course=${encodeURIComponent(slug)}&etape=${stageNumber}&tactique=enregistre#etape-${stageId}`,
+  redirectWithError(
+    `/jeu/preparation-course${slug ? `?course=${encodeURIComponent(slug)}` : ""}`,
+    "Les doctrines de course et le Centre tactique ont été retirés.",
   );
 }
 
@@ -448,27 +386,6 @@ function readTimeTrialPlans(formData: FormData): Array<{
   }
 
   return plans;
-}
-
-function readRiderIdArray(formData: FormData, key: string): string[] | null {
-  const serialized = readFormValue(formData, key);
-  let entries: unknown;
-
-  try {
-    entries = JSON.parse(serialized || "[]");
-  } catch {
-    return null;
-  }
-
-  if (
-    !Array.isArray(entries) ||
-    entries.some((entry) => typeof entry !== "string" || !isUuid(entry)) ||
-    new Set(entries).size !== entries.length
-  ) {
-    return null;
-  }
-
-  return entries;
 }
 
 function readOptionalRiderId(formData: FormData, key: string) {

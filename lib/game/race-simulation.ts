@@ -72,6 +72,7 @@ import {
   type BreakawayCooperationState,
 } from "./race-breakaway-cooperation";
 import {
+  RACE_TACTICAL_DOCTRINES_ENABLED,
   RACE_TACTICAL_DOCTRINES,
   isRaceTacticalDoctrineCode,
   isRaceTacticalDoctrineEligible,
@@ -1020,22 +1021,20 @@ function normalizeStageSimulationInput(
       (order) => !unavailableRiderIds.has(order.riderId),
     ),
   }));
-  const eligibleTeamTacticalBriefings = input.teamTacticalBriefings?.map(
-    (briefing) => ({
-      ...briefing,
-      primaryRiderIds: [...briefing.primaryRiderIds],
-      backupRiderIds: [...briefing.backupRiderIds],
-    }),
-  );
+  const eligibleTeamTacticalBriefings = RACE_TACTICAL_DOCTRINES_ENABLED
+    ? input.teamTacticalBriefings?.map((briefing) => ({
+        ...briefing,
+        primaryRiderIds: [...briefing.primaryRiderIds],
+        backupRiderIds: [...briefing.backupRiderIds],
+      }))
+    : undefined;
   const eligibleInput = {
     ...input,
     weather,
     ...(eligibleTeamStrategies
       ? { teamStrategies: eligibleTeamStrategies }
       : {}),
-    ...(eligibleTeamTacticalBriefings
-      ? { teamTacticalBriefings: eligibleTeamTacticalBriefings }
-      : {}),
+    teamTacticalBriefings: eligibleTeamTacticalBriefings,
     riders: input.riders
       .filter((rider) => !unavailableRiderIds.has(rider.id))
       .map((rider) => {

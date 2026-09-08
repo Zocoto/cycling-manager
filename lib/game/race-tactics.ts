@@ -4,6 +4,12 @@ import type {
 } from "./race-calendar";
 import type { RaceWeather } from "./race-weather";
 
+/**
+ * The doctrine experiment is retired. Keeping its data contracts lets us read
+ * historical simulations without letting a legacy briefing affect a new one.
+ */
+export const RACE_TACTICAL_DOCTRINES_ENABLED = false;
+
 export const RACE_TACTICAL_DOCTRINE_CODES = [
   "breakaway_control",
   "crosswind_offensive",

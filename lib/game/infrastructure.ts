@@ -117,6 +117,21 @@ export type TeamInfrastructureCode =
   | "fan_club_headquarters"
   | "club_shop";
 
+/**
+ * Codes kept in the domain model only to read historical projects and levels.
+ * Retired buildings must never be offered by the catalogue or accepted by a
+ * new user action.
+ */
+export const RETIRED_TEAM_INFRASTRUCTURE_CODES = ["tactical_center"] as const;
+
+export function isTeamInfrastructureAvailable(
+  code: TeamInfrastructureCode,
+): boolean {
+  return !RETIRED_TEAM_INFRASTRUCTURE_CODES.includes(
+    code as (typeof RETIRED_TEAM_INFRASTRUCTURE_CODES)[number],
+  );
+}
+
 export type ArchitectSpecialty = "economist" | "foreman" | "balanced";
 
 export const ARCHITECT_SPECIALTIES = [
@@ -688,7 +703,7 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS = Object.fromEntries(
 export function getTeamInfrastructureCodesByStartingCost() {
   return (
     Object.keys(TEAM_INFRASTRUCTURE_DEFINITIONS) as TeamInfrastructureCode[]
-  ).sort((left, right) => {
+  ).filter(isTeamInfrastructureAvailable).sort((left, right) => {
     const leftCost =
       TEAM_INFRASTRUCTURE_DEFINITIONS[left].levels[0]?.cost ??
       Number.POSITIVE_INFINITY;

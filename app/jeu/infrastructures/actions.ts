@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { isTeamInfrastructureCode } from "@/lib/game/infrastructure";
+import {
+  isTeamInfrastructureAvailable,
+  isTeamInfrastructureCode,
+} from "@/lib/game/infrastructure";
 import { isInfrastructureSpecializationChoice } from "@/lib/game/infrastructure-specializations";
 import { isStaffAcademyImprovementType } from "@/lib/game/staff-academy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,6 +26,7 @@ export async function chooseTeamInfrastructureSpecializationAction(
   const specializationCode = readValue(formData, "specializationCode");
   if (
     !isTeamInfrastructureCode(infrastructureCode) ||
+    !isTeamInfrastructureAvailable(infrastructureCode) ||
     !isInfrastructureSpecializationChoice(
       "team",
       infrastructureCode,
@@ -75,7 +79,8 @@ export async function startInfrastructureProjectAction(formData: FormData) {
 
   if (
     infrastructureCode !== "international_youth_center" &&
-    !isTeamInfrastructureCode(infrastructureCode)
+    (!isTeamInfrastructureCode(infrastructureCode) ||
+      !isTeamInfrastructureAvailable(infrastructureCode))
   ) {
     redirectWithMessage(tab, "erreur", "Le chantier transmis est invalide.");
   }

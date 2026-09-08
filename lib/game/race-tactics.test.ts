@@ -64,7 +64,7 @@ describe("Centre tactique", () => {
     expect(validateRaceTacticalAssignments("breakaway_control", ["a", "a"])).toBe(false);
   });
 
-  it("rejoue exactement le même briefing avec la même graine", () => {
+  it("ignore un ancien briefing et conserve exactement la simulation standard", () => {
     const input = createDemoSimulationInput("sprint-littoral", 971);
     const teamId = input.riders[0]!.teamId;
     const riderIds = input.riders
@@ -73,9 +73,12 @@ describe("Centre tactique", () => {
       .map((rider) => rider.id);
     expect(riderIds).toHaveLength(4);
 
-    const tacticalInput = {
+    const standardInput = {
       ...input,
       weather: CALM_WEATHER,
+    };
+    const tacticalInput = {
+      ...standardInput,
       teamTacticalBriefings: [
         {
           teamId,
@@ -87,20 +90,10 @@ describe("Centre tactique", () => {
         },
       ],
     };
-    const first = simulateRaceStage(tacticalInput);
-    const replay = simulateRaceStage(tacticalInput);
+    const standard = simulateRaceStage(standardInput);
+    const withRetiredBriefing = simulateRaceStage(tacticalInput);
 
-    expect(replay).toEqual(first);
-    expect(first.tacticalReports).toHaveLength(1);
-    expect(first.tacticalReports?.[0]).toMatchObject({
-      teamId,
-      requestedDoctrine: "crosswind_offensive",
-      appliedDoctrine: "sprint_train",
-      source: "backup",
-      triggered: true,
-    });
-    expect(first.tacticalReports?.[0].energyCosts).toEqual(
-      riderIds.slice(1).map((riderId) => ({ riderId, percentage: 8 })),
-    );
+    expect(withRetiredBriefing).toEqual(standard);
+    expect(withRetiredBriefing.tacticalReports).toEqual([]);
   });
 });

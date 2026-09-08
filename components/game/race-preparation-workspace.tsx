@@ -58,6 +58,7 @@ import {
   type RaceStrategyObjective,
 } from "@/lib/game/race-strategy";
 import {
+  RACE_TACTICAL_DOCTRINES_ENABLED,
   RACE_TACTICAL_DOCTRINE_CODES,
   RACE_TACTICAL_DOCTRINES,
   getRecommendedRaceTacticalDoctrineCodes,
@@ -827,17 +828,19 @@ function StagePreparationForm({
         </footer>
       </form>
 
-      <TacticalBriefingSection
-        action={tacticalAction}
-        edition={edition}
-        stage={stage}
-        riders={riders}
-        briefing={tacticalBriefing}
-        gameYear={gameYear}
-        centerLevel={tacticalCenterLevel}
-        isEditable={isEditable}
-        hasError={tacticalError}
-      />
+      {RACE_TACTICAL_DOCTRINES_ENABLED ? (
+        <TacticalBriefingSection
+          action={tacticalAction}
+          edition={edition}
+          stage={stage}
+          riders={riders}
+          briefing={tacticalBriefing}
+          gameYear={gameYear}
+          centerLevel={tacticalCenterLevel}
+          isEditable={isEditable}
+          hasError={tacticalError}
+        />
+      ) : null}
 
       <StageEquipmentSection
         edition={edition}

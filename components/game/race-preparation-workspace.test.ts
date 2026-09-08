@@ -7,6 +7,10 @@ const source = readFileSync(
   join(process.cwd(), "components/game/race-preparation-workspace.tsx"),
   "utf8",
 );
+const tacticsSource = readFileSync(
+  join(process.cwd(), "lib/game/race-tactics.ts"),
+  "utf8",
+);
 
 describe("race preparation individual missions", () => {
   it("consolidates leader protection into the race lieutenant", () => {
@@ -37,18 +41,10 @@ describe("race preparation individual missions", () => {
     expect(source).not.toContain("const editableCount = edition.stages.filter");
   });
 
-  it("intègre le briefing du Centre tactique sans imbriquer son formulaire", () => {
-    expect(source).toContain("<TacticalBriefingSection");
-    expect(source).toContain("Déclencheur");
-    expect(source).toContain("Bénéfice possible");
-    expect(source).toContain("Coût / risque");
-    expect(source).toContain("Plan de repli conditionnel");
-    expect(source).toContain("Historique · Débrief officiel");
-    expect(source.indexOf("</form>\n\n      <TacticalBriefingSection")).toBeGreaterThan(-1);
-  });
-
-  it("annonce la fonctionnalité en S2 tout en ouvrant les centres pilotes", () => {
-    expect(source).toContain("if (gameYear < 3 && centerLevel < 1)");
-    expect(source).toMatch(/centres pilotes\s+attribués manuellement/);
+  it("neutralise et masque le briefing du Centre tactique", () => {
+    expect(tacticsSource).toContain(
+      "export const RACE_TACTICAL_DOCTRINES_ENABLED = false",
+    );
+    expect(source).toContain("RACE_TACTICAL_DOCTRINES_ENABLED ? (");
   });
 });

@@ -94,9 +94,13 @@ Le plan ne crée pas de meilleurs coureurs. À pleine maturité, il transfère 1
 
 Un pays ne peut avoir qu’un plan actif. Changer d’orientation relance 56 jours de déploiement et ne modifie jamais les juniors déjà générés. Chaque rapport affiche « style historique », « plan scolaire » et les probabilités utilisées au moment de la détection.
 
-## 5. Centre tactique — fonctionnement proposé
+## 5. Centre tactique — expérimentation retirée
 
-Le Centre tactique doit donner des choix avant-course et produire un compte rendu compréhensible. Il ne doit pas vendre des points de caractéristiques.
+**Décision du 8 septembre 2026 : fonctionnalité neutralisée.** Le bâtiment est
+retiré du catalogue, aucun nouveau briefing ne peut être enregistré et les
+briefings historiques ne sont plus injectés dans les simulations. Les éléments
+ci-dessous restent uniquement comme archive de conception ; ils n’ont aucun
+effet sur les courses à venir.
 
 ### Parcours utilisateur
 
@@ -169,5 +173,5 @@ Une spécialisation est choisie au N3. Sa puissance vaut 60 % au N3, 80 % au N4 
 1. Stabiliser et mesurer les effets fédéraux ainsi que les détails de bonus.
 2. Ajouter les spécialisations à trois bâtiments pilotes : Centre d’entraînement, Réseau de détection, Bureau d’organisation.
 3. Livrer le Plan vélo scolaire avec ses probabilités visibles et son délai de 56 jours.
-4. Construire le Centre tactique derrière un drapeau S3, avec simulations comparatives automatisées.
+4. Conserver l’expérimentation du Centre tactique hors du moteur actif.
 5. Faire tourner Rayonnement en lecture seule pendant une saison avant de simplifier l’économie du Fan Club.

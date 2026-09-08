@@ -22,7 +22,6 @@ import {
   getActiveSeasonRaceCalendar,
   getCurrentTeamRacePreparation,
 } from "@/services/race-calendar";
-import { getTeamRaceTacticalPreparation } from "@/services/race-tactics";
 
 export const metadata: Metadata = {
   title: "Préparation de course",
@@ -98,36 +97,22 @@ export default async function RacePreparationPage({
         ? [{ ...edition, stages }]
         : [];
     }) ?? [];
-  const [equipmentPlanningResult, tacticalPreparationResult] =
-    await Promise.all([
-      getRaceEquipmentPlanningDataBatch({
-        authUserId: user.id,
-        entries: preparableCalendarEditions.map((edition) => ({
-          edition,
-          riderIds: plansByEditionId
-            .get(edition.id)!
-            .riders.map((rider) => rider.riderId),
-        })),
-        authenticatedClient: supabase,
-        now,
-      })
-        .then((planningByEditionId) => ({ planningByEditionId, error: null }))
-        .catch((error: unknown) => ({
-          planningByEditionId: new Map(),
-          error,
-        })),
-      headerData.teamId
-        ? getTeamRaceTacticalPreparation(headerData.teamId)
-            .then((preparation) => ({ preparation, error: null }))
-            .catch((error: unknown) => ({
-              preparation: { centerLevel: 0, briefingsByStageId: {} },
-              error,
-            }))
-        : Promise.resolve({
-            preparation: { centerLevel: 0, briefingsByStageId: {} },
-            error: null,
-          }),
-    ]);
+  const equipmentPlanningResult = await getRaceEquipmentPlanningDataBatch({
+    authUserId: user.id,
+    entries: preparableCalendarEditions.map((edition) => ({
+      edition,
+      riderIds: plansByEditionId
+        .get(edition.id)!
+        .riders.map((rider) => rider.riderId),
+    })),
+    authenticatedClient: supabase,
+    now,
+  })
+    .then((planningByEditionId) => ({ planningByEditionId, error: null }))
+    .catch((error: unknown) => ({
+      planningByEditionId: new Map(),
+      error,
+    }));
 
   if (equipmentPlanningResult.error) {
     console.error(
@@ -135,13 +120,6 @@ export default async function RacePreparationPage({
       equipmentPlanningResult.error,
     );
   }
-  if (tacticalPreparationResult.error) {
-    console.error(
-      "Impossible de charger les briefings du Centre tactique :",
-      tacticalPreparationResult.error,
-    );
-  }
-
   const editions: RacePreparationWorkspaceEdition[] =
     preparableCalendarEditions.map((edition) => ({
       id: edition.id,
@@ -245,13 +223,9 @@ export default async function RacePreparationPage({
               timeTrialAction={saveTimeTrialPreparationAction}
               editions={editions}
               gameYear={calendarResult.calendar?.gameYear ?? 1}
-              tacticalCenterLevel={
-                tacticalPreparationResult.preparation.centerLevel
-              }
-              tacticalBriefingsByStageId={
-                tacticalPreparationResult.preparation.briefingsByStageId
-              }
-              tacticalError={Boolean(tacticalPreparationResult.error)}
+              tacticalCenterLevel={0}
+              tacticalBriefingsByStageId={{}}
+              tacticalError={false}
               nowIso={now.toISOString()}
               initialSlug={readSingleSearchParam(resolvedSearchParams.course)}
               equipmentError={Boolean(equipmentPlanningResult.error)}
