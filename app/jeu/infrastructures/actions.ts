@@ -126,10 +126,10 @@ export async function startStaffAcademyTrainingAction(formData: FormData) {
   const improvementType = readValue(formData, "improvementType");
 
   if (!isUuid(staffContractId)) {
-    redirectWithMessage("batiments", "erreur", "Le membre du staff sélectionné est invalide.");
+    redirectStaffTrainingWithMessage("erreur", "Le membre du staff sélectionné est invalide.");
   }
   if (!isStaffAcademyImprovementType(improvementType)) {
-    redirectWithMessage("batiments", "erreur", "Le type de stage est invalide.");
+    redirectStaffTrainingWithMessage("erreur", "Le type de stage est invalide.");
   }
 
   const supabase = await authenticatedClient();
@@ -141,15 +141,25 @@ export async function startStaffAcademyTrainingAction(formData: FormData) {
     },
   );
   if (result.error) {
-    redirectWithMessage("batiments", "erreur", result.error.message);
+    redirectStaffTrainingWithMessage("erreur", result.error.message);
   }
 
   revalidateInfrastructurePages();
   revalidatePath("/jeu/staff");
-  redirectWithMessage(
-    "batiments",
+  redirectStaffTrainingWithMessage(
     "succes",
     "Le stage est lancé. Le membre du staff reste pleinement opérationnel jusqu’à l’activation de son amélioration.",
+  );
+}
+
+function redirectStaffTrainingWithMessage(
+  key: "succes" | "erreur",
+  message: string,
+): never {
+  redirect(
+    `/jeu/staff?onglet=formations&${key}=${encodeURIComponent(
+      message.slice(0, 280),
+    )}`,
   );
 }
 export async function markInfrastructureNotificationsReadAction() {

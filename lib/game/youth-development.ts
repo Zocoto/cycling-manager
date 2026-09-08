@@ -200,19 +200,19 @@ export function rollYouthNativeSpecialAbility({
   potentialSteps,
   qualityScore,
   internationalCenterBonusPercentage = 0,
+  additionalSpecialAbilityBonusPercentage = 0,
   random,
 }: {
   archetype: YouthArchetype;
   potentialSteps: number;
   qualityScore: number;
   internationalCenterBonusPercentage?: number;
+  additionalSpecialAbilityBonusPercentage?: number;
   random: () => number;
 }): RiderSpecialAbility | null {
-  const networkBonus = clamp(
-    internationalCenterBonusPercentage,
-    0,
-    2,
-  );
+  const networkBonus =
+    clamp(internationalCenterBonusPercentage, 0, 2) +
+    clamp(additionalSpecialAbilityBonusPercentage, 0, 2);
   const chance = clamp(
     0.004 +
       clamp(qualityScore, 0, 1) * 0.028 +

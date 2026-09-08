@@ -15,7 +15,7 @@ const root = process.cwd();
 
 describe("infrastructure specializations", () => {
   it("covers every standard team and federation building with three balanced choices", () => {
-    expect(TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(13);
+    expect(TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(10);
     expect(FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(9);
     for (const proposal of [
       ...TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
@@ -33,6 +33,12 @@ describe("infrastructure specializations", () => {
     expect(getInfrastructureSpecializationPowerPercentage(4)).toBe(80);
     expect(getInfrastructureSpecializationPowerPercentage(5)).toBe(100);
     expect(getInfrastructureSpecializationPowerPercentage(7)).toBe(100);
+    expect(
+      getInfrastructureSpecializationPowerPercentage(
+        3,
+        "recruitment_data_room",
+      ),
+    ).toBe(100);
   });
 
   it("validates a choice against its scope and building", () => {
@@ -110,9 +116,23 @@ describe("infrastructure specializations", () => {
     expect(teamPage).toMatch(
       /<DataRoomConstructionCard[\s\S]*?<InfrastructureSpecializationPanel[\s\S]*?<\/DataRoomConstructionCard>/,
     );
-    expect(teamPage).toMatch(
-      /<StaffAcademyCard[\s\S]*?<InfrastructureSpecializationPanel[\s\S]*?<\/StaffAcademyCard>/,
-    );
+    expect(teamPage).toContain('<StaffAcademyCard');
+    expect(teamPage).toContain('mode="construction"');
+    expect(
+      TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.some(
+        (proposal) => proposal.buildingCode === "staff_academy",
+      ),
+    ).toBe(false);
+    expect(
+      TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.some(
+        (proposal) => proposal.buildingCode === "research_lab",
+      ),
+    ).toBe(false);
+    expect(
+      TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.some(
+        (proposal) => proposal.buildingCode === "tactical_center",
+      ),
+    ).toBe(false);
     expect(federationCard).toContain("<InfrastructureSpecializationPanel");
     expect(panel).toContain('<details className="group border-t');
     expect(panel).toContain("<summary");

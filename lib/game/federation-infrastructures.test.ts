@@ -163,8 +163,8 @@ describe("federation infrastructures", () => {
     expect(youthDevelopmentService).toContain(
       "federationDetectionBonusPercentage: federalDetectionBonusPercentage",
     );
-    expect(youthDevelopmentService).toContain(
-      "supervisionBonusPercentage + federationDetectionBonusPercentage",
+    expect(youthDevelopmentService).toMatch(
+      /supervisionBonusPercentage\s*\+\s*federationDetectionBonusPercentage\s*\+\s*toNumber\(mission\.data_room_report_precision_bonus_percentage/,
     );
     expect(youthDevelopmentService).toContain(
       "precisionBonusPercentage: reportPrecisionBonusPercentage",

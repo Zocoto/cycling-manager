@@ -15,6 +15,7 @@ export type FanClubSportingEvent = {
   rank: number | null;
   prestigeRank: number;
   forCurrentTeam: boolean;
+  homeRace?: boolean;
 };
 
 export type FanClubRiderPopularityInput = {
@@ -31,6 +32,7 @@ export type FanClubRiderPopularityInput = {
   events: ReadonlyArray<FanClubSportingEvent>;
   communityGrowthBonusPercentage?: number;
   mediaPopularityPoints?: number;
+  resultPopularityBonusPercentage?: number;
 };
 
 export type FanClubAudience = {
@@ -115,6 +117,11 @@ export function calculateFanClubAudience({
   activeDay,
   events,
   communityGrowthBonusPercentage = 0,
+  supporterGrowthBonusPercentage = 0,
+  homeVictorySupporterBonusPercentage = 0,
+  fervorGainBonusPercentage = 0,
+  directSupporterBonus = 0,
+  directFervorBonus = 0,
 }: {
   riders: ReadonlyArray<FanClubPilotRider>;
   directorReputation: number;
@@ -123,6 +130,11 @@ export function calculateFanClubAudience({
   activeDay: number;
   events: ReadonlyArray<FanClubSportingEvent>;
   communityGrowthBonusPercentage?: number;
+  supporterGrowthBonusPercentage?: number;
+  homeVictorySupporterBonusPercentage?: number;
+  fervorGainBonusPercentage?: number;
+  directSupporterBonus?: number;
+  directFervorBonus?: number;
 }): FanClubAudience {
   const popularities = riders.map((rider) => rider.popularity);
   const leadingAverage = average(
@@ -150,8 +162,29 @@ export function calculateFanClubAudience({
       45 *
       percentageMultiplier(communityGrowthBonusPercentage),
   );
+  const baseSupporterGrowth = reputation + riderAudience + recentResults;
+  const specializationBonus = Math.round(
+    baseSupporterGrowth *
+      (Math.max(0, supporterGrowthBonusPercentage) / 100),
+  );
+  const homeVictorySupporterBonus = Math.round(
+    events
+      .filter(
+        (event) =>
+          event.forCurrentTeam &&
+          event.season === activeSeason &&
+          event.rank === 1 &&
+          event.homeRace === true,
+      )
+      .reduce((total, event) => total + recentResultValue(event) * 45, 0) *
+      (Math.max(0, homeVictorySupporterBonusPercentage) / 100),
+  );
   const beforeHeadquarters =
-    foundation + reputation + riderAudience + recentResults;
+    foundation +
+    baseSupporterGrowth +
+    specializationBonus +
+    homeVictorySupporterBonus +
+    Math.max(0, Math.round(directSupporterBonus));
   const headquartersBonus = Math.round(
     beforeHeadquarters * Math.max(0, headquartersLevel - 1) * 0.1,
   );
@@ -176,8 +209,10 @@ export function calculateFanClubAudience({
   const fervor = clamp(
     Math.round(
       20 +
-        Math.min(70, recentFervorValue * 5) +
-        Math.max(1, headquartersLevel) * 2,
+        Math.min(70, recentFervorValue * 5) *
+          percentageMultiplier(fervorGainBonusPercentage) +
+        Math.max(1, headquartersLevel) * 2 +
+        Math.max(0, directFervorBonus),
     ),
     0,
     100,
@@ -212,6 +247,12 @@ export function calculateFanClubAudience({
       reputation,
       riders: riderAudience,
       recentResults,
+      specializationBonus:
+        specializationBonus + homeVictorySupporterBonus,
+      mediaInterventionBonus: Math.max(
+        0,
+        Math.round(directSupporterBonus),
+      ),
       headquartersBonus,
     },
     reachBreakdown,
@@ -356,6 +397,7 @@ function calculateFactors({
   nationalityMatchesTeam,
   communityGrowthBonusPercentage = 0,
   mediaPopularityPoints = 0,
+  resultPopularityBonusPercentage = 0,
   snapshotSeason,
   snapshotDay,
 }: FanClubRiderPopularityInput & {
@@ -380,7 +422,7 @@ function calculateFactors({
           (total, event) => total + recentResultValue(event),
           0,
         ),
-        communityGrowthBonusPercentage,
+        communityGrowthBonusPercentage + resultPopularityBonusPercentage,
       ),
       0,
       25,
@@ -391,7 +433,7 @@ function calculateFactors({
           (total, event) => total + majorResultValue(event),
           0,
         ),
-        communityGrowthBonusPercentage,
+        communityGrowthBonusPercentage + resultPopularityBonusPercentage,
       ),
       0,
       20,
@@ -404,7 +446,7 @@ function calculateFactors({
             (total, event) => total + (event.prestigeRank <= 2 ? 2 : 1),
             0,
           ),
-        communityGrowthBonusPercentage,
+        communityGrowthBonusPercentage + resultPopularityBonusPercentage,
       ),
       0,
       15,
@@ -417,7 +459,7 @@ function calculateFactors({
           (total, event) => total + recentResultValue(event),
           0,
         ) / 3,
-        communityGrowthBonusPercentage,
+        communityGrowthBonusPercentage + resultPopularityBonusPercentage,
       ),
       0,
       5,

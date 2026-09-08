@@ -2039,6 +2039,41 @@ describe("simulateRaceStage", () => {
     expect(pureSprinterWinRate).toBeGreaterThanOrEqual(0.9);
   });
 
+  it("rend concrètement Vitesse pure décisive entre deux sprinteurs égaux", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const specialist = {
+      ...createSelectionTestRider("specialiste-vitesse", {
+        sprint: 82,
+        acceleration: 80,
+        flat: 76,
+        resistance: 76,
+      }),
+      role: "sprinter" as const,
+      indoorTrackSpecialization: {
+        code: "pure_speed" as const,
+        infrastructureLevel: 5,
+      },
+    };
+    const rival = {
+      ...createSelectionTestRider("rival-sans-piste", {
+        sprint: 82,
+        acceleration: 80,
+        flat: 76,
+        resistance: 76,
+      }),
+      role: "sprinter" as const,
+    };
+    const wins = Array.from({ length: 80 }, (_, index) =>
+      simulateRaceStage({
+        ...baseInput,
+        seed: index + 1,
+        riders: [specialist, rival],
+      }),
+    ).filter((result) => result.results[0]?.riderId === specialist.id).length;
+
+    expect(wins).toBeGreaterThanOrEqual(55);
+  });
+
   it("permet au vécu de course de départager deux coureurs très proches sans remplacer les notes", () => {
     const youngerRider = {
       ...createSelectionTestRider("jeune-plus-fort", { flat: 65 }),

@@ -83,14 +83,23 @@ export async function getCyclogazetteGamesOverview({
   latestEditionId: string;
   previousIssueNumber: number | null;
 }): Promise<CyclogazetteGamesOverview> {
-  const summaryResult = await supabase.rpc("get_cyclogazette_game_summary", {
-    p_edition_id: edition.id,
-  });
+  const [summaryResult, rewardResult] = await Promise.all([
+    supabase.rpc("get_cyclogazette_game_summary", {
+      p_edition_id: edition.id,
+    }),
+    supabase.rpc("get_current_team_media_game_reward"),
+  ]);
 
   if (summaryResult.error) {
     console.error(
       "Impossible de charger le palmarès des jeux de La Cyclogazette :",
       summaryResult.error,
+    );
+  }
+  if (rewardResult.error) {
+    console.error(
+      "Impossible de charger le bonus des jeux de La Cyclogazette :",
+      rewardResult.error,
     );
   }
 
@@ -108,7 +117,10 @@ export async function getCyclogazetteGamesOverview({
     viewerCompletedGames: summary.viewerCompletedGames,
     completers: summary.completers,
     totalCompleters: summary.totalCompleters,
-    rewardCash: CYCLOGAZETTE_GAME_REWARD_CASH,
+    rewardCash: Math.max(
+      CYCLOGAZETTE_GAME_REWARD_CASH,
+      Number(rewardResult.data) || CYCLOGAZETTE_GAME_REWARD_CASH,
+    ),
     poll: summary.poll,
   };
 }

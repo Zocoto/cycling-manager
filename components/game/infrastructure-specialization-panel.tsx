@@ -57,7 +57,10 @@ export function InfrastructureSpecializationPanel({
   const actionState = isFederation ? federationState : teamState;
   const pending = isFederation ? federationPending : teamPending;
   const unlocked = level >= INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL;
-  const power = getInfrastructureSpecializationPowerPercentage(level);
+  const power = getInfrastructureSpecializationPowerPercentage(
+    level,
+    proposal.buildingCode,
+  );
   const hasChoice = Boolean(selection.activeCode);
   const activeOptionName = selection.pendingCode
     ? getOptionName(proposal, selection.pendingCode)

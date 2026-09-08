@@ -212,6 +212,13 @@ export async function getTeamStaffOverview(
   assertQuery(settlement.error, "l’actualisation des finances");
 
   const admin = createSupabaseAdminClient();
+  const specializationSettlement = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuery(
+    specializationSettlement.error,
+    "l’activation des orientations d’infrastructure",
+  );
   await ensureTodayStaffMarket(admin);
 
   const context = await loadCurrentContext(admin, authUserId);
@@ -226,6 +233,7 @@ export async function getTeamStaffOverview(
     researchLabResult,
     staffAcademyResult,
     welcomeCenterResult,
+    welcomeCenterSpecializationResult,
     staffNaturalizationsResult,
   ] = await Promise.all([
     admin
@@ -273,6 +281,12 @@ export async function getTeamStaffOverview(
       .eq("infrastructure_code", "international_welcome_center")
       .maybeSingle<{ level: number }>(),
     admin
+      .from("team_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("infrastructure_code", "international_welcome_center")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
+    admin
       .from("staff_naturalizations")
       .select("id", { count: "exact", head: true })
       .eq("team_id", context.teamSeason.team_id)
@@ -286,6 +300,10 @@ export async function getTeamStaffOverview(
   assertQuery(researchLabResult.error, "le Laboratoire R&D");
   assertQuery(staffAcademyResult.error, "l’Académie des métiers");
   assertQuery(welcomeCenterResult.error, "le Centre d’accueil international");
+  assertQuery(
+    welcomeCenterSpecializationResult.error,
+    "l’orientation du Centre d’accueil international",
+  );
   assertQuery(
     staffNaturalizationsResult.error,
     "les naturalisations du staff",
@@ -357,7 +375,11 @@ export async function getTeamStaffOverview(
   }
   const welcomeCenterLevel = Number(welcomeCenterResult.data?.level ?? 0);
   const staffNaturalizationLimit =
-    getStaffNaturalizationSeasonLimit(welcomeCenterLevel);
+    getStaffNaturalizationSeasonLimit(welcomeCenterLevel) +
+    (welcomeCenterSpecializationResult.data
+      ?.active_specialization_code === "administrative_path"
+      ? 1
+      : 0);
   const staffNaturalizationUsed = staffNaturalizationsResult.count ?? 0;
   const balance = toNumber(context.teamSeason.cash_balance);
   const projectedBudget = (transactionsResult.data ?? []).reduce(

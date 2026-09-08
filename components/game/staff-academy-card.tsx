@@ -35,6 +35,7 @@ export function StaffAcademyCard({
   directorLevel,
   balance,
   currency,
+  mode = "complete",
   children,
 }: {
   academy: StaffAcademyOverview;
@@ -44,8 +45,11 @@ export function StaffAcademyCard({
   directorLevel: number;
   balance: number;
   currency: string;
+  mode?: "complete" | "construction" | "training";
   children?: ReactNode;
 }) {
+  const showConstructionManagement = mode !== "training";
+  const showTrainingManagement = mode !== "construction";
   const [architectContractId, setArchitectContractId] = useState("");
   const constructionOptions = getInfrastructureConstructionOptions({
     architects,
@@ -102,7 +106,11 @@ export function StaffAcademyCard({
         currency={currency}
         levelLabel={`Niveau ${academy.academyLevel}/5`}
         secondaryLabel={`${academy.activeTrainingCount}/${academy.capacity} stage(s)`}
-        description="Développez durablement un membre du staff sans l’écarter de ses fonctions. Son étoile ou son nouveau bonus s’active uniquement à la fin du stage."
+        description={
+          mode === "construction"
+            ? "Construisez puis améliorez l’Académie. Chaque niveau ouvre une place de formation supplémentaire dans la rubrique Staff."
+            : "Formez un membre du staff sans l’écarter de ses fonctions. Son étoile ou son nouveau bonus s’active à la fin du stage."
+        }
       />
 
       {currentEfficiencyBonusPercentage > 0 ? (
@@ -180,7 +188,7 @@ export function StaffAcademyCard({
           </div>
         </div>
 
-        {nextLevel && constructionQuote ? (
+        {showConstructionManagement ? (nextLevel && constructionQuote ? (
           <form
             action={startInfrastructureProjectAction}
             className="mt-6 grid gap-5 rounded-2xl border border-[#315B3E]/12 bg-[#F6F8F6] p-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.62fr)]"
@@ -278,9 +286,9 @@ export function StaffAcademyCard({
               : ""}
             .
           </p>
-        )}
+        )) : null}
 
-        {academy.academyLevel > 0 ? (
+        {showTrainingManagement ? (academy.academyLevel > 0 ? (
           <div className="mt-8 border-t border-[#315B3E]/12 pt-8">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -499,9 +507,9 @@ export function StaffAcademyCard({
               suivant ajoute un emplacement, jusqu’à cinq.
             </p>
           </div>
-        )}
+        )) : null}
 
-        {academy.recentTrainings.length ? (
+        {showTrainingManagement && academy.recentTrainings.length ? (
           <div className="mt-8 border-t border-[#315B3E]/12 pt-6">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
               Stages terminés

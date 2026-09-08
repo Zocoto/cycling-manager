@@ -36,8 +36,10 @@ export const INFRASTRUCTURE_SPECIALIZATION_TRANSITION_DAYS = 7;
 
 export function getInfrastructureSpecializationPowerPercentage(
   level: number,
+  infrastructureCode?: string,
 ): number {
   if (level < INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL) return 0;
+  if (infrastructureCode === "recruitment_data_room") return 100;
   if (level === 3) return 60;
   if (level === 4) return 80;
   return 100;
@@ -55,21 +57,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "market_intelligence", name: "Intelligence marché", identity: "Décider avec des estimations plus fiables.", primaryEffect: "+8 % de précision sur les valeurs et demandes salariales estimées.", secondaryEffect: "+4 % de précision sur la concurrence autour d’une cible.", guardrail: "N’améliore ni la qualité ni la vitesse des détections de jeunes." }),
-      option({ code: "talent_network", name: "Réseau de talents", identity: "Élargir la profondeur du vivier observé.", primaryEffect: "+6 % de chances qu’un rapport contienne un profil rare cohérent avec la zone.", secondaryEffect: "+5 % de couverture sur les marchés peu observés.", guardrail: "N’accorde aucune remise financière lors d’une signature." }),
-      option({ code: "deal_room", name: "Cellule de négociation", identity: "Transformer l’information en contrats mieux maîtrisés.", primaryEffect: "−4 % sur les primes à la signature négociées.", secondaryEffect: "−3 % sur le coût d’une rupture de négociation relancée.", guardrail: "N’améliore pas la précision des rapports ni la qualité des cibles." }),
-    ],
-  },
-  {
-    buildingCode: "staff_academy",
-    buildingName: "Académie des métiers",
-    domain: "Staff · Formation avancée",
-    scope: "team",
-    unlockRule: "Choix au niveau 3, puissance complète au niveau 5",
-    options: [
-      option({ code: "pedagogy", name: "École de pédagogie", identity: "Faire progresser plus vite l’ensemble du staff.", primaryEffect: "+6 % d’expérience sur les formations du personnel.", secondaryEffect: "−5 % de durée sur une formation généraliste.", guardrail: "N’augmente pas la puissance maximale des talents uniques." }),
-      option({ code: "expertise", name: "Pôle d’expertise", identity: "Développer des spécialistes de très haut niveau.", primaryEffect: "+4 % d’efficacité sur le talent unique actif d’un staff niveau 5.", secondaryEffect: "+5 % de chances de proposer une formation spécialisée.", guardrail: "N’accélère pas la progression générale du personnel." }),
-      option({ code: "versatility", name: "Campus polyvalent", identity: "Adapter le staff aux besoins qui changent.", primaryEffect: "−8 % sur le temps de reconversion d’une spécialité.", secondaryEffect: "−5 % sur le coût de la première reconversion de la saison.", guardrail: "N’apporte aucun coefficient direct sur une spécialité conservée." }),
+      option({ code: "market_intelligence", name: "Intelligence du marché", identity: "Rendre chaque rapport plus fiable et plus exploitable.", primaryEffect: "+5 % d’efficacité réelle des missions de scouting.", secondaryEffect: "+8 % de précision sur les notes et le potentiel du rapport.", guardrail: "Le bonus affine les rapports sans garantir un talent exceptionnel." }),
+      option({ code: "talent_network", name: "Réseau de talents", identity: "Mieux repérer puis accompagner les singularités du vivier.", primaryEffect: "+2 points de chance de révéler une capacité spéciale chez un junior.", secondaryEffect: "−5 % sur le coût annuel de son école de cyclisme.", guardrail: "Le profil et la capacité spéciale éventuelle restent tirés aléatoirement." }),
+      option({ code: "deal_room", name: "Cellule de négociation", identity: "Transformer l’information en contrats mieux maîtrisés.", primaryEffect: "−3 % sur les salaires des nouveaux contrats coureurs.", secondaryEffect: "−4 % sur le coût net des signatures avec indemnité de transfert.", guardrail: "Les enchères et les exigences sportives des coureurs restent inchangées." }),
     ],
   },
   {
@@ -91,9 +81,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "pure_speed", name: "Vitesse pure", identity: "Construire le dernier geste du sprinteur.", primaryEffect: "+1,5 % d’exécution sur un sprint massif.", secondaryEffect: "−5 % d’aléa de placement dans les 500 derniers mètres.", guardrail: "Actif uniquement sur les profils plat et sprint." }),
-      option({ code: "explosiveness", name: "Explosivité", identity: "Travailler les relances et efforts très courts.", primaryEffect: "+1,5 % d’exécution sur les accélérations de moins de deux kilomètres.", secondaryEffect: "+3 % d’efficacité des séances Accélération.", guardrail: "Aucun bonus lors d’un sprint massif classique." }),
-      option({ code: "leadout_school", name: "École des lanceurs", identity: "Valoriser la coordination plutôt qu’un seul finisseur.", primaryEffect: "−6 % de coût énergétique pour les lanceurs assignés.", secondaryEffect: "+4 % de stabilité du train de sprint.", guardrail: "Exige au moins deux équipiers affectés au sprinteur." }),
+      option({ code: "pure_speed", name: "Vitesse pure", identity: "Rendre le sprinteur plus difficile à battre dans l’emballage final.", primaryEffect: "Dans un sprint massif, votre sprinteur est 1,5 % plus performant dans le duel final.", secondaryEffect: "Il a 5 % de risque en moins d’être mal placé ou de perdre la bonne roue.", guardrail: "Actif uniquement lorsque l’étape se termine réellement au sprint massif." }),
+      option({ code: "explosiveness", name: "Explosivité", identity: "Donner plus de tranchant aux relances et aux attaques courtes.", primaryEffect: "Les attaques et contre-attaques courtes sont 1,5 % plus tranchantes.", secondaryEffect: "+3 % d’efficacité des séances Accélération.", guardrail: "Ne renforce pas directement la vitesse finale d’un sprint massif." }),
+      option({ code: "leadout_school", name: "École des lanceurs", identity: "Amener le sprinteur plus frais et mieux placé dans la dernière ligne droite.", primaryEffect: "Les poissons pilotes assignés dépensent 6 % d’énergie en moins.", secondaryEffect: "Le train place le sprinteur 4 % plus efficacement avant la dernière ligne droite.", guardrail: "Le bonus de placement exige au moins deux équipiers autour du sprinteur." }),
     ],
   },
   {
@@ -115,9 +105,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "solo_aero", name: "Aéro individuelle", identity: "Optimiser la position du spécialiste solitaire.", primaryEffect: "+1,5 % d’exécution en contre-la-montre individuel.", secondaryEffect: "−3 % de coût énergétique sur les longs secteurs roulants.", guardrail: "Aucun bonus collectif en contre-la-montre par équipes." }),
-      option({ code: "team_aero", name: "Aéro collective", identity: "Synchroniser positions, relais et matériel.", primaryEffect: "+1,5 % d’exécution en contre-la-montre par équipes.", secondaryEffect: "−4 % d’écart de rendement entre les relais.", guardrail: "Aucun bonus sur un chrono individuel." }),
-      option({ code: "versatile_aero", name: "Aéro polyvalente", identity: "Gagner moins, mais sur davantage de terrains.", primaryEffect: "+0,6 % d’exécution sur les chronos et secteurs plats exposés.", secondaryEffect: "−2 % de coût énergétique face au vent.", guardrail: "Plafond inférieur aux deux spécialisations dédiées." }),
+      option({ code: "solo_aero", name: "Aéro individuelle", identity: "Optimiser la position du spécialiste solitaire.", primaryEffect: "+1,5 % de performance en contre-la-montre individuel et prologue.", secondaryEffect: "−3 % de coût énergétique pendant ces chronos.", guardrail: "Aucun bonus collectif en contre-la-montre par équipes." }),
+      option({ code: "team_aero", name: "Aéro collective", identity: "Synchroniser positions, relais et matériel.", primaryEffect: "+1,5 % de performance en contre-la-montre par équipes.", secondaryEffect: "Les meilleurs rouleurs peuvent prendre jusqu’à 4 % de relais en plus sans surcoût énergétique.", guardrail: "Aucun bonus sur un chrono individuel." }),
+      option({ code: "versatile_aero", name: "Aéro polyvalente", identity: "Amortir les journées où les conditions aérologiques se dégradent.", primaryEffect: "−2 % d’impact énergétique par vent fort, pluie ou météo extrême.", secondaryEffect: "−2 % de perte de forme après une étape disputée dans ces conditions.", guardrail: "Aucun bonus par météo calme ou sur un chrono sans condition difficile." }),
     ],
   },
   {
@@ -133,27 +123,15 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     ],
   },
   {
-    buildingCode: "tactical_center",
-    buildingName: "Centre tactique",
-    domain: "Course · Briefings avancés",
-    scope: "team",
-    unlockRule: "Choix au niveau 3, appliqué aux doctrines débloquées",
-    options: [
-      option({ code: "offensive_school", name: "École offensive", identity: "Donner davantage de poids aux plans qui prennent l’initiative.", primaryEffect: "+8 % d’efficacité relative des doctrines Bordure et Satellite.", secondaryEffect: "+4 % de stabilité lors de leur déclenchement.", guardrail: "Contrôle, Train et Tempo ne reçoivent aucun bonus." }),
-      option({ code: "race_control", name: "Maîtrise de course", identity: "Réduire le coût des plans collectifs de contrôle.", primaryEffect: "−8 % sur le coût énergétique relatif des équipiers tactiques.", secondaryEffect: "+4 % d’efficacité relative de Contrôle et Tempo.", guardrail: "N’améliore pas les doctrines offensives." }),
-      option({ code: "adaptive_cell", name: "Cellule adaptative", identity: "Faire du plan de repli un véritable filet de sécurité.", primaryEffect: "+10 % de stabilité du déclenchement du plan de repli.", secondaryEffect: "−5 % de son coût énergétique relatif.", guardrail: "Aucun avantage si la doctrine principale se déclenche." }),
-    ],
-  },
-  {
     buildingCode: "media_center",
     buildingName: "Média Center",
     domain: "Gazette · Popularité",
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "prestige_press", name: "Presse de prestige", identity: "Amplifier les grands résultats sportifs.", primaryEffect: "+10 % de popularité issue des victoires majeures publiées.", secondaryEffect: "+5 % de portée sur les annonces de leaders.", guardrail: "Faible rendement sans résultat sportif notable." }),
-      option({ code: "community_media", name: "Média de proximité", identity: "Créer une relation régulière avec les supporters.", primaryEffect: "+8 % d’engagement sur les publications ordinaires.", secondaryEffect: "+5 % de croissance organique du Fan Club.", guardrail: "N’amplifie pas spécifiquement les résultats majeurs." }),
-      option({ code: "crisis_room", name: "Cellule de crise", identity: "Protéger la réputation lors des périodes difficiles.", primaryEffect: "−12 % sur les pertes de popularité liées aux mauvaises nouvelles.", secondaryEffect: "+5 % d’efficacité des communiqués de réponse.", guardrail: "N’accorde aucun gain supplémentaire en période positive." }),
+      option({ code: "prestige_press", name: "La Presse qui se creuse", identity: "Faire du journal un vrai rendez-vous cérébral.", primaryEffect: "+50 % de gains en réussissant les mots croisés.", secondaryEffect: "+50 % de gains en réussissant le Sudoku.", guardrail: "Chaque jeu reste récompensé une seule fois par édition." }),
+      option({ code: "community_media", name: "Partenaires à la une", identity: "Mieux valoriser les engagements pris avec le sponsor.", primaryEffect: "+5 % sur le montant des nouveaux contrats de sponsoring.", secondaryEffect: "+10 % de satisfaction attribuée par un objectif sponsor réussi.", guardrail: "Les plafonds de satisfaction et les conditions des objectifs restent inchangés." }),
+      option({ code: "crisis_room", name: "Micro ouvert", identity: "Transformer chaque prise de parole en lien avec la communauté.", primaryEffect: "+10 supporters à chaque conférence ou interview publiée.", secondaryEffect: "+1 point de ferveur et +1 point de popularité au coureur mis en avant.", guardrail: "Une même intervention ne peut attribuer son bonus qu’une fois." }),
     ],
   },
   {
@@ -163,21 +141,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "administrative_path", name: "Parcours administratif", identity: "Accélérer les dossiers de naturalisation.", primaryEffect: "−5 % supplémentaires sur le délai de naturalisation.", secondaryEffect: "−5 % de risque d’interruption du dossier.", guardrail: "Ne se cumule pas avec un meilleur bonus fédéral." }),
-      option({ code: "sporting_integration", name: "Intégration sportive", identity: "Faire fonctionner plus vite un effectif multiculturel.", primaryEffect: "+4 % sur les bonus d’affinité du staff étranger.", secondaryEffect: "+3 % de stabilité de forme des recrues étrangères.", guardrail: "N’accélère pas la naturalisation administrative." }),
-      option({ code: "youth_gateway", name: "Passerelle jeunes", identity: "Relier les écoles internationales à l’équipe première.", primaryEffect: "+5 % d’efficacité d’intégration la première saison professionnelle.", secondaryEffect: "−4 % de coût d’accueil des juniors étrangers.", guardrail: "Réservé aux coureurs issus d’une école internationale de l’équipe." }),
-    ],
-  },
-  {
-    buildingCode: "research_lab",
-    buildingName: "Laboratoire R&D",
-    domain: "Matériel · Prototypes uniques",
-    scope: "team",
-    unlockRule: "Choix au niveau 3",
-    options: [
-      option({ code: "pure_performance", name: "Performance pure", identity: "Chercher le meilleur prototype possible.", primaryEffect: "+5 % de qualité sportive à la sortie du laboratoire.", secondaryEffect: "+3 % de chances d’obtenir l’affixe de performance ciblé.", guardrail: "−10 % de durabilité du prototype produit." }),
-      option({ code: "reliability", name: "Fiabilité", identity: "Prolonger la valeur d’usage de chaque innovation.", primaryEffect: "+20 % de durabilité des prototypes.", secondaryEffect: "−8 % de risque d’usure critique lors d’une course.", guardrail: "Aucun bonus sur la puissance sportive initiale." }),
-      option({ code: "frugal_innovation", name: "Innovation frugale", identity: "Multiplier les essais plutôt que viser une pièce parfaite.", primaryEffect: "−10 % sur les ressources consommées par un projet.", secondaryEffect: "−6 % sur sa durée de développement.", guardrail: "Qualité maximale plafonnée un palier sous Performance pure." }),
+      option({ code: "administrative_path", name: "Parcours administratif", identity: "Accélérer et simplifier les dossiers de naturalisation professionnelle.", primaryEffect: "−5 % supplémentaires sur le délai de naturalisation des professionnels.", secondaryEffect: "+1 naturalisation du staff disponible par saison.", guardrail: "N’accélère pas les dossiers des juniors." }),
+      option({ code: "sporting_integration", name: "Intégration sportive", identity: "Faire fonctionner plus vite un effectif multiculturel.", primaryEffect: "+4 % d’efficacité sur les effets du staff étranger.", secondaryEffect: "+1 % de performance des coureurs étrangers dans le pays de l’équipe.", guardrail: "N’accélère pas la naturalisation administrative." }),
+      option({ code: "youth_gateway", name: "Passerelle jeunes", identity: "Relier les écoles internationales à l’équipe première.", primaryEffect: "−5 % supplémentaires sur le délai de naturalisation des juniors.", secondaryEffect: "−4 % sur le coût de formation des jeunes étrangers.", guardrail: "Réservé aux juniors dont la nationalité diffère de celle de l’équipe." }),
     ],
   },
   {
@@ -187,9 +153,9 @@ export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infrastructu
     scope: "team",
     unlockRule: "Choix au niveau 3",
     options: [
-      option({ code: "recruitment_campaigns", name: "Campagnes d’adhésion", identity: "Faire grossir rapidement la communauté.", primaryEffect: "+8 % de nouveaux supporters lors des gains de popularité.", secondaryEffect: "+5 % de conversion après une victoire à domicile.", guardrail: "N’améliore pas la fidélité lors d’une mauvaise série." }),
-      option({ code: "loyalty_program", name: "Programme fidélité", identity: "Conserver une base solide dans les périodes creuses.", primaryEffect: "−10 % d’attrition des supporters.", secondaryEffect: "+5 % de renouvellement des adhésions.", guardrail: "N’accélère pas l’acquisition de nouveaux membres." }),
-      option({ code: "event_house", name: "Maison événementielle", identity: "Transformer la communauté en rendez-vous réguliers.", primaryEffect: "+8 % de revenus sur les événements du Fan Club.", secondaryEffect: "+4 % de ferveur après un événement réussi.", guardrail: "Exige un événement actif et n’agit pas sur la croissance passive." }),
+      option({ code: "recruitment_campaigns", name: "Campagnes d’adhésion", identity: "Convertir la visibilité sportive en nouveaux membres.", primaryEffect: "+8 % sur le nombre de supporters gagnés par l’équipe.", secondaryEffect: "+5 % supplémentaires sur les supporters gagnés après une victoire à domicile.", guardrail: "La conversion désigne bien le nombre de nouveaux supporters acquis." }),
+      option({ code: "loyalty_program", name: "Mobilité des supporters", identity: "Remplir les tribunes à l’extérieur plus efficacement.", primaryEffect: "+10 % de supporters mobilisables dans chaque car.", secondaryEffect: "−5 % sur le prix d’achat des cars du Fan Club.", guardrail: "Le nombre de véhicules et leur disponibilité restent inchangés." }),
+      option({ code: "event_house", name: "Maison des supporters", identity: "Faire rayonner la ferveur sur toute l’équipe.", primaryEffect: "+5 % sur les gains de ferveur liés aux résultats récents.", secondaryEffect: "+3 % sur les gains de popularité des coureurs.", guardrail: "Les plafonds de ferveur et de popularité restent fixés à 100." }),
     ],
   },
   {

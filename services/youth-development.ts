@@ -20,6 +20,7 @@ import {
   applyInternationalCenterPotentialBonus,
   getInternationalCenterNetworkEffects,
 } from "@/lib/game/infrastructure";
+import { getInfrastructureSpecializationPowerPercentage } from "@/lib/game/infrastructure-specializations";
 import { MAX_TEAM_ROSTER_SIZE } from "@/lib/game/team-roster-capacity";
 import {
   calculateCountryWorldReputationFromUciRank,
@@ -105,6 +106,12 @@ type Context = {
   federalIntegrationLevel: number;
 };
 
+type TeamSpecializationState = {
+  code: string | null;
+  level: number;
+  power: number;
+};
+
 type CountryRow = {
   id: string;
   name: string;
@@ -136,6 +143,8 @@ type MissionRow = {
   created_at: string;
   federation_detection_bonus_percentage: number | string;
   federal_staff_bonus_percentage: number | string;
+  data_room_quality_bonus_percentage: number | string;
+  data_room_report_precision_bonus_percentage: number | string;
 };
 
 type CandidateRow = {
@@ -172,6 +181,8 @@ type CandidateRow = {
   native_special_ability_code: string | null;
   federal_tuition_reduction_percentage: number | string;
   scout_tuition_reduction_percentage: number | string;
+  data_room_tuition_reduction_percentage: number | string;
+  welcome_center_tuition_reduction_percentage: number | string;
   historical_archetype: YouthArchetype | null;
   school_plan_archetype: YouthArchetype | null;
   school_plan_transfer_points: number | string;
@@ -766,7 +777,9 @@ async function loadOverview(admin: AdminClient, context: Context) {
       mission.federation_detection_bonus_percentage ?? 0,
     );
     const reportPrecisionBonusPercentage =
-      supervisionBonusPercentage + federationDetectionBonusPercentage;
+      supervisionBonusPercentage +
+      federationDetectionBonusPercentage +
+      toNumber(mission.data_room_report_precision_bonus_percentage ?? 0);
     const teamAffinityBonusPercentage =
       scout?.countryId === context.registrationCountryId
         ? STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE
@@ -805,6 +818,14 @@ async function loadOverview(admin: AdminClient, context: Context) {
           label: "Réseau national de détection",
           percentage: federationDetectionBonusPercentage,
           detail: "Qualité réelle des juniors et précision du rapport",
+        },
+        {
+          key: "data-room-market-intelligence",
+          label: "Intelligence du marché",
+          percentage: toNumber(
+            mission.data_room_quality_bonus_percentage ?? 0,
+          ),
+          detail: "Améliore la qualité réelle des juniors détectés",
         },
       ]),
       localKnowledgeBonusPercentage: scout
@@ -1126,6 +1147,13 @@ async function settleDueScoutingMissions(admin: AdminClient, context: Context) {
 }
 
 async function completeMission(admin: AdminClient, mission: MissionRow) {
+  const specializationSettlement = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuery(
+    specializationSettlement.error,
+    "l’activation des orientations d’infrastructure",
+  );
   const [
     contractResult,
     countryResult,
@@ -1253,6 +1281,40 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   assertQuery(talentsResult.error, "les talents du scout");
   assertQuery(teamSeasonResult.error, "la nationalité de l’équipe");
   assertQuery(dailyRewardBoostResult.error, "le bonus quotidien de scouting");
+  const [dataRoomSpecialization, welcomeCenterSpecialization] =
+    await Promise.all([
+      loadTeamSpecializationState(
+        admin,
+        mission.team_id,
+        "recruitment_data_room",
+      ),
+      loadTeamSpecializationState(
+        admin,
+        mission.team_id,
+        "international_welcome_center",
+      ),
+    ]);
+  const dataRoomQualityBonusPercentage =
+    dataRoomSpecialization.code === "market_intelligence"
+      ? 5 * dataRoomSpecialization.power
+      : 0;
+  const dataRoomReportPrecisionBonusPercentage =
+    dataRoomSpecialization.code === "market_intelligence"
+      ? 8 * dataRoomSpecialization.power
+      : 0;
+  const dataRoomSpecialAbilityBonusPercentage =
+    dataRoomSpecialization.code === "talent_network"
+      ? 2 * dataRoomSpecialization.power
+      : 0;
+  const dataRoomTuitionReductionPercentage =
+    dataRoomSpecialization.code === "talent_network"
+      ? 5 * dataRoomSpecialization.power
+      : 0;
+  const welcomeCenterTuitionReductionPercentage =
+    welcomeCenterSpecialization.code === "youth_gateway" &&
+    country.id !== teamSeasonResult.data?.registration_country_id
+      ? 4 * welcomeCenterSpecialization.power
+      : 0;
   const federalStaffInstituteResult = teamSeasonResult.data
     ? await admin
         .from("national_federation_infrastructures")
@@ -1367,7 +1429,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     qualityMultiplier:
       nationalityAffinity *
       federalStaffMultiplier *
-      dailyScoutingQualityMultiplier,
+      dailyScoutingQualityMultiplier *
+      (1 + dataRoomQualityBonusPercentage / 100),
   });
   const missionCompletionGameDayIndex =
     missionSeason.game_year * 28 + mission.completes_day_number - 1;
@@ -1426,6 +1489,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       qualityScore: scoutingQuality,
       internationalCenterBonusPercentage:
         internationalCenterEffects.specialAbilityBonusPercentage,
+      additionalSpecialAbilityBonusPercentage:
+        dataRoomSpecialAbilityBonusPercentage,
       random,
     });
     const costs = calculateYouthSigningCosts({
@@ -1468,6 +1533,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         federalTuitionReductionPercentage,
       scout_tuition_reduction_percentage:
         Math.round(scoutTuitionReductionPercentage * 100) / 100,
+      data_room_tuition_reduction_percentage:
+        Math.round(dataRoomTuitionReductionPercentage * 100) / 100,
+      welcome_center_tuition_reduction_percentage:
+        Math.round(welcomeCenterTuitionReductionPercentage * 100) / 100,
       historical_archetype: specialties.primary,
       school_plan_archetype: schoolCyclingPlan?.target_archetype ?? null,
       school_plan_transfer_points: schoolPlanTransferPoints,
@@ -1482,7 +1551,9 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         Math.round(
           (costs.tuitionPerSeason *
             (1 - scoutTuitionReductionPercentage / 100) *
-            (1 - federalTuitionReductionPercentage / 100)) /
+            (1 - federalTuitionReductionPercentage / 100) *
+            (1 - dataRoomTuitionReductionPercentage / 100) *
+            (1 - welcomeCenterTuitionReductionPercentage / 100)) /
             500,
         ) * 500,
       ),
@@ -1504,6 +1575,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       federal_staff_bonus_percentage: federalStaffBonusPercentage,
       scouting_supervision_bonus_percentage:
         dailyScoutingBonusPercentage,
+      data_room_quality_bonus_percentage:
+        dataRoomQualityBonusPercentage,
+      data_room_report_precision_bonus_percentage:
+        dataRoomReportPrecisionBonusPercentage,
       report_ready_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -2029,6 +2104,22 @@ function toCandidate(
         percentage: -toNumber(row.federal_tuition_reduction_percentage),
         detail: "Réduction fédérale du pays de formation",
       },
+      {
+        key: "data-room-talent-network",
+        label: "Réseau de talents",
+        percentage: -toNumber(
+          row.data_room_tuition_reduction_percentage ?? 0,
+        ),
+        detail: "Réduction accordée par la Dataroom",
+      },
+      {
+        key: "welcome-center-youth-gateway",
+        label: "Passerelle jeunes",
+        percentage: -toNumber(
+          row.welcome_center_tuition_reduction_percentage ?? 0,
+        ),
+        detail: "Réduction réservée aux jeunes étrangers",
+      },
     ]),
   };
 }
@@ -2129,6 +2220,48 @@ function getParisHour(now = new Date()) {
     .formatToParts(now)
     .find((part) => part.type === "hour");
   return Number(hourPart?.value ?? 0);
+}
+
+async function loadTeamSpecializationState(
+  admin: AdminClient,
+  teamId: string,
+  infrastructureCode: string,
+): Promise<TeamSpecializationState> {
+  const [infrastructureResult, specializationResult] = await Promise.all([
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", teamId)
+      .eq("infrastructure_code", infrastructureCode)
+      .maybeSingle<{ level: number }>(),
+    admin
+      .from("team_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("team_id", teamId)
+      .eq("infrastructure_code", infrastructureCode)
+      .maybeSingle<{ active_specialization_code: string | null }>(),
+  ]);
+  assertQuery(
+    infrastructureResult.error,
+    `le niveau de l’infrastructure ${infrastructureCode}`,
+  );
+  assertQuery(
+    specializationResult.error,
+    `l’orientation de l’infrastructure ${infrastructureCode}`,
+  );
+  const level = Number(infrastructureResult.data?.level ?? 0);
+  return {
+    code:
+      level >= 3
+        ? (specializationResult.data?.active_specialization_code ?? null)
+        : null,
+    level,
+    power:
+      getInfrastructureSpecializationPowerPercentage(
+        level,
+        infrastructureCode,
+      ) / 100,
+  };
 }
 
 function groupBy<T>(rows: T[], key: (row: T) => string) {

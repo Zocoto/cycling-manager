@@ -41,6 +41,8 @@ export type FanClubSupporterBreakdown = {
   reputation: number;
   riders: number;
   recentResults: number;
+  specializationBonus?: number;
+  mediaInterventionBonus?: number;
   headquartersBonus: number;
 };
 
@@ -60,6 +62,8 @@ export type FanClubLiveData = {
   races: ReadonlyArray<FanClubPilotRace>;
   supporterBreakdown: FanClubSupporterBreakdown;
   reachBreakdown: FanClubReachBreakdown;
+  carCapacityBonusPercentage?: number;
+  carPurchaseDiscountPercentage?: number;
 };
 
 export type FanClubCarModel = {

@@ -295,6 +295,12 @@ function OverviewPanel({
             <AudienceLine label="Réputation de l’équipe" value={data.supporterBreakdown.reputation} />
             <AudienceLine label="Popularité des coureurs" value={data.supporterBreakdown.riders} />
             <AudienceLine label="Résultats de la saison" value={data.supporterBreakdown.recentResults} />
+            {data.supporterBreakdown.specializationBonus ? (
+              <AudienceLine label="Bonus de l’orientation" value={data.supporterBreakdown.specializationBonus} />
+            ) : null}
+            {data.supporterBreakdown.mediaInterventionBonus ? (
+              <AudienceLine label="Interventions média" value={data.supporterBreakdown.mediaInterventionBonus} />
+            ) : null}
             <AudienceLine label="Bonus du Siège" value={data.supporterBreakdown.headquartersBonus} />
           </dl>
         </Surface>
@@ -426,11 +432,18 @@ function TravelPanel({
   const cars = Math.min(Math.max(1, requestedCars), Math.max(1, availableCars));
   const allocatedSeats = raceTrips.reduce((total, trip) => {
     const tripModel = FAN_CLUB_CAR_MODELS.find((candidate) => candidate.id === trip.modelId);
-    return total + (tripModel?.capacity ?? 0) * trip.carCount;
+    const effectiveCapacity = Math.round(
+      (tripModel?.capacity ?? 0) *
+        (1 + (data.carCapacityBonusPercentage ?? 0) / 100),
+    );
+    return total + effectiveCapacity * trip.carCount;
   }, 0);
   const supporterLimit = getAvailableTravelingSupporters(data.supporterCount);
   const remainingSupporters = Math.max(0, supporterLimit - allocatedSeats);
-  const seats = availableCars > 0 ? cars * model.capacity : 0;
+  const effectiveModelCapacity = Math.round(
+    model.capacity * (1 + (data.carCapacityBonusPercentage ?? 0) / 100),
+  );
+  const seats = availableCars > 0 ? cars * effectiveModelCapacity : 0;
   const travelers = Math.min(remainingSupporters, seats);
   const cost = race
     ? Math.round(cars * (race.distanceKm * 2 * model.operatingCostPerKm + 250))
@@ -448,13 +461,21 @@ function TravelPanel({
           {FAN_CLUB_CAR_MODELS.map((candidate) => {
             const owned = management.fleet[candidate.id] ?? 0;
             const unlocked = candidate.requiredHeadquartersLevel <= headquartersLevel;
+            const effectiveCapacity = Math.round(
+              candidate.capacity *
+                (1 + (data.carCapacityBonusPercentage ?? 0) / 100),
+            );
+            const purchasePrice = Math.round(
+              candidate.purchasePrice *
+                (1 - (data.carPurchaseDiscountPercentage ?? 0) / 100),
+            );
             return (
               <article key={candidate.id} className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--fan-secondary)]">{owned} dans le parc</p>
                 <h3 className="mt-2 text-lg font-black text-[var(--fan-ink)]">{candidate.name}</h3>
-                <p className="mt-2 text-xs font-semibold leading-5 text-[var(--fan-muted)]">{candidate.capacity} places · {candidate.description}</p>
+                <p className="mt-2 text-xs font-semibold leading-5 text-[var(--fan-muted)]">{effectiveCapacity} supporters mobilisables · {candidate.description}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                  <Metric label="Achat" value={euroFormatter.format(candidate.purchasePrice)} />
+                  <Metric label="Achat" value={euroFormatter.format(purchasePrice)} />
                   <Metric label="Revente" value={euroFormatter.format(calculateCarResalePrice(candidate))} />
                 </dl>
                 {!unlocked ? <p className="mt-3 text-xs font-black text-[var(--fan-primary)]">Siège niveau {candidate.requiredHeadquartersLevel} requis</p> : null}

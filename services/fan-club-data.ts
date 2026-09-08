@@ -11,6 +11,10 @@ import type {
   FanClubLiveData,
   FanClubPilotRace,
 } from "@/lib/game/fan-club-pilot";
+import {
+  getFanClubHeadquartersSpecializationEffects,
+  isFanClubHeadquartersSpecializationCode,
+} from "@/lib/game/fan-club-specialization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -122,6 +126,7 @@ type EditionRow = {
   race_category_id: string;
   display_name: string;
   status: string;
+  host_country_id: string | null;
 };
 
 type CategoryRow = {
@@ -132,6 +137,13 @@ type CategoryRow = {
 type RaceRow = {
   id: string;
   race_format: string;
+  country_id: string;
+};
+
+type MediaInterventionRewardRow = {
+  season_id: string;
+  supporter_bonus: number;
+  fervor_bonus: number;
 };
 
 type SeasonDayRow = {
@@ -151,6 +163,13 @@ export async function getFanClubLiveData({
   const summary = await getCurrentDashboardFastSummary(supabase);
   if (!summary) return null;
   const admin = createSupabaseAdminClient();
+  const specializationSettlement = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuery(
+    specializationSettlement.error,
+    "l’activation des orientations d’infrastructure",
+  );
 
   const [
     rosterResult,
@@ -159,6 +178,8 @@ export async function getFanClubLiveData({
     directorResult,
     currentTeamSeasonResult,
     communityGrowthResult,
+    headquartersSpecializationResult,
+    mediaInterventionRewardsResult,
   ] = await Promise.all([
     supabase.rpc("get_current_team_roster_with_potential"),
     admin
@@ -188,6 +209,17 @@ export async function getFanClubLiveData({
       p_talent_code: "community_rider_popularity_and_fans",
       p_points_per_level: 3,
     }),
+    admin
+      .from("team_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("team_id", summary.teamId)
+      .eq("infrastructure_code", "fan_club_headquarters")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
+    admin
+      .from("team_media_intervention_rewards")
+      .select("season_id, supporter_bonus, fervor_bonus")
+      .eq("team_id", summary.teamId)
+      .returns<MediaInterventionRewardRow[]>(),
   ]);
 
   assertQuery(rosterResult.error, "l’effectif du Fan Club");
@@ -198,6 +230,43 @@ export async function getFanClubLiveData({
   assertQuery(
     communityGrowthResult.error,
     "le bonus communautaire du community manager",
+  );
+  assertQuery(
+    headquartersSpecializationResult.error,
+    "l’orientation du Siège du Fan Club",
+  );
+  assertQuery(
+    mediaInterventionRewardsResult.error,
+    "les retombées des interventions média",
+  );
+
+  const headquartersSpecializationCode =
+    isFanClubHeadquartersSpecializationCode(
+      headquartersSpecializationResult.data?.active_specialization_code,
+    )
+      ? headquartersSpecializationResult.data.active_specialization_code
+      : null;
+  const headquartersSpecializationEffects =
+    getFanClubHeadquartersSpecializationEffects(
+      headquartersSpecializationCode
+        ? {
+            code: headquartersSpecializationCode,
+            infrastructureLevel: headquartersLevel,
+          }
+        : null,
+    );
+  const mediaInterventionBonuses = (
+    mediaInterventionRewardsResult.data ?? []
+  ).reduce(
+    (total, reward) => ({
+      supporters: total.supporters + Number(reward.supporter_bonus),
+      fervor:
+        total.fervor +
+        (reward.season_id === summary.seasonId
+          ? Number(reward.fervor_bonus)
+          : 0),
+    }),
+    { supporters: 0, fervor: 0 },
   );
 
   const roster = (rosterResult.data ?? []) as RosterRow[];
@@ -216,6 +285,12 @@ export async function getFanClubLiveData({
       teamName: summary.teamName,
       headquartersLevel,
       directorReputation: Number(directorResult.data?.reputation_points ?? 0),
+      carCapacityBonusPercentage:
+        headquartersSpecializationEffects.carCapacityBonusPercentage,
+      carPurchaseDiscountPercentage:
+        headquartersSpecializationEffects.carPurchaseDiscountPercentage,
+      directSupporterBonus: mediaInterventionBonuses.supporters,
+      directFervorBonus: mediaInterventionBonuses.fervor,
     });
   }
   const [ratingHistoryResult, popularityProfilesResult] = await Promise.all([
@@ -409,7 +484,7 @@ export async function getFanClubLiveData({
       const result = await admin
         .from("race_editions")
         .select(
-          "id, race_id, season_id, race_category_id, display_name, status",
+          "id, race_id, season_id, race_category_id, display_name, status, host_country_id",
         )
         .in("id", chunk)
         .order("id", { ascending: true })
@@ -458,7 +533,7 @@ export async function getFanClubLiveData({
       raceIds.length > 0
         ? admin
             .from("races")
-            .select("id, race_format")
+            .select("id, race_format, country_id")
             .in("id", raceIds)
             .returns<RaceRow[]>()
         : emptyResult<RaceRow>(),
@@ -579,6 +654,8 @@ export async function getFanClubLiveData({
       communityGrowthBonusPercentage,
       mediaPopularityPoints:
         mediaPopularityByRiderId.get(rider.rider_id) ?? 0,
+      resultPopularityBonusPercentage:
+        headquartersSpecializationEffects.riderPopularityGainBonusPercentage,
     });
   });
 
@@ -590,6 +667,14 @@ export async function getFanClubLiveData({
     activeDay: activeSeason.current_day_number ?? summary.seasonDayNumber ?? 1,
     events: sportingEvents.map((entry) => entry.event),
     communityGrowthBonusPercentage,
+    supporterGrowthBonusPercentage:
+      headquartersSpecializationEffects.supporterGrowthBonusPercentage,
+    homeVictorySupporterBonusPercentage:
+      headquartersSpecializationEffects.homeVictorySupporterBonusPercentage,
+    fervorGainBonusPercentage:
+      headquartersSpecializationEffects.fervorGainBonusPercentage,
+    directSupporterBonus: mediaInterventionBonuses.supporters,
+    directFervorBonus: mediaInterventionBonuses.fervor,
   });
   const totalPopularity = calculatedRiders.reduce(
     (total, rider) => total + rider.popularity,
@@ -627,6 +712,10 @@ export async function getFanClubLiveData({
     }),
     supporterBreakdown: audience.breakdown,
     reachBreakdown: audience.reachBreakdown,
+    carCapacityBonusPercentage:
+      headquartersSpecializationEffects.carCapacityBonusPercentage,
+    carPurchaseDiscountPercentage:
+      headquartersSpecializationEffects.carPurchaseDiscountPercentage,
   };
 }
 
@@ -682,12 +771,17 @@ function buildSportingEvents({
     const category = edition
       ? categoryById.get(edition.race_category_id)
       : null;
+    const race = edition ? raceById.get(edition.race_id) : null;
     return {
       roster,
       edition,
       season,
       prestigeRank: category?.prestige_rank ?? 4,
       forCurrentTeam: teamSeason?.team_id === currentTeamId,
+      homeRace:
+        Boolean(teamSeason?.registration_country_id) &&
+        (edition?.host_country_id ?? race?.country_id) ===
+          teamSeason?.registration_country_id,
     };
   };
 
@@ -713,6 +807,7 @@ function buildSportingEvents({
         rank: result.final_rank,
         prestigeRank: context.prestigeRank,
         forCurrentTeam: context.forCurrentTeam,
+        homeRace: context.homeRace,
       },
     });
   }
@@ -740,6 +835,7 @@ function buildSportingEvents({
         rank: result.rank,
         prestigeRank: context.prestigeRank,
         forCurrentTeam: context.forCurrentTeam,
+        homeRace: context.homeRace,
       },
     });
   }
@@ -760,6 +856,7 @@ function buildSportingEvents({
         rank: null,
         prestigeRank: context.prestigeRank,
         forCurrentTeam: context.forCurrentTeam,
+        homeRace: context.homeRace,
       },
     });
   }
@@ -857,10 +954,18 @@ function buildEmptyLiveData({
   teamName,
   headquartersLevel,
   directorReputation,
+  carCapacityBonusPercentage,
+  carPurchaseDiscountPercentage,
+  directSupporterBonus,
+  directFervorBonus,
 }: {
   teamName: string;
   headquartersLevel: number;
   directorReputation: number;
+  carCapacityBonusPercentage: number;
+  carPurchaseDiscountPercentage: number;
+  directSupporterBonus: number;
+  directFervorBonus: number;
 }): FanClubLiveData {
   const audience = calculateFanClubAudience({
     riders: [],
@@ -869,6 +974,8 @@ function buildEmptyLiveData({
     activeSeason: 1,
     activeDay: 1,
     events: [],
+    directSupporterBonus,
+    directFervorBonus,
   });
   return {
     teamName,
@@ -879,6 +986,8 @@ function buildEmptyLiveData({
     races: [],
     supporterBreakdown: audience.breakdown,
     reachBreakdown: audience.reachBreakdown,
+    carCapacityBonusPercentage,
+    carPurchaseDiscountPercentage,
   };
 }
 

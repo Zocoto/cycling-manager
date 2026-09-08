@@ -356,6 +356,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                       >
                         <StaffAcademyCard
                           academy={academy}
+                          mode="construction"
                           currentEfficiencyBonusPercentage={
                             overview.infrastructureEfficiencyBonuses
                               .staff_academy
@@ -365,17 +366,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           directorLevel={overview.directorLevel}
                           balance={overview.balance}
                           currency={overview.currency}
-                        >
-                          {specializationProposal ? (
-                            <InfrastructureSpecializationPanel
-                              proposal={specializationProposal}
-                              level={currentLevel}
-                              selection={overview.infrastructureSpecializations[code]}
-                              gameYear={overview.gameYear}
-                              currency={overview.currency}
-                            />
-                          ) : null}
-                        </StaffAcademyCard>
+                        />
                       </div>
                     );
                   }

@@ -87,6 +87,14 @@ import {
   getWeatherCenterSpecializationEffects,
   type WeatherCenterSpecialization,
 } from "./weather-center-specialization";
+import {
+  applyPercentageToRating,
+  getSpecializationScaledPercentage,
+  isDifficultAeroWeather,
+  type IndoorTrackSpecialization,
+  type WelcomeCenterSpecialization,
+  type WindTunnelSpecialization,
+} from "./race-infrastructure-specializations";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -213,6 +221,11 @@ export type RiderSimulationInput = {
   mechanicalIncidentTimeReductionPct?: number;
   weatherCenterSpecialization?: WeatherCenterSpecialization | null;
   weatherCenterEnergyCostReductionPercentage?: number;
+  indoorTrackSpecialization?: IndoorTrackSpecialization | null;
+  windTunnelSpecialization?: WindTunnelSpecialization | null;
+  welcomeCenterSpecialization?: WelcomeCenterSpecialization | null;
+  teamRegistrationCountryCode?: string | null;
+  infrastructureEnergyCostReductionPercentage?: number;
 };
 
 export type StageSimulationInput = {
@@ -1063,12 +1076,23 @@ function normalizeStageSimulationInput(
           rider.reconnaissanceBonus,
           equipmentAdjustedRatings,
         );
+        const weatherCenterAdjustedRatings = applyWeatherCenterPerformanceBonus(
+          reconnaissanceAdjustedRatings,
+          weatherCenterEffects.performanceBonusPercentage,
+        );
+        const infrastructureEnergyCostReductionPercentage =
+          getRaceInfrastructureEnergyCostReduction({
+            rider,
+            stageType: input.stageType,
+            weather,
+          });
 
         return {
           ...rider,
           climateProfile,
           weatherCenterEnergyCostReductionPercentage:
             weatherCenterEffects.energyCostReductionPercentage,
+          infrastructureEnergyCostReductionPercentage,
           localRaceBonus:
             input.raceCountryCode &&
             ((rider.countryCode &&
@@ -1081,10 +1105,12 @@ function normalizeStageSimulationInput(
               ))
               ? 2 + Math.max(0, input.federationHomeAdvantageBonus ?? 0)
               : 0,
-          ratings: applyWeatherCenterPerformanceBonus(
-            reconnaissanceAdjustedRatings,
-            weatherCenterEffects.performanceBonusPercentage,
-          ),
+          ratings: applyRaceInfrastructurePerformanceBonuses({
+            ratings: weatherCenterAdjustedRatings,
+            rider,
+            stageType: input.stageType,
+            raceCountryCode: input.raceCountryCode,
+          }),
         };
       }),
   };
@@ -1104,6 +1130,99 @@ function normalizeStageSimulationInput(
   };
 
   return normalizedInput;
+}
+
+function applyRaceInfrastructurePerformanceBonuses({
+  ratings,
+  rider,
+  stageType,
+  raceCountryCode,
+}: {
+  ratings: RiderSimulationRatings;
+  rider: RiderSimulationInput;
+  stageType: SimulationStageType;
+  raceCountryCode?: string | null;
+}) {
+  let result = ratings;
+  const windTunnel = rider.windTunnelSpecialization;
+  const soloTimeTrial =
+    stageType === "individual_time_trial" || stageType === "prologue";
+  const teamTimeTrial = stageType === "team_time_trial";
+  if (
+    windTunnel?.code === "solo_aero" &&
+    soloTimeTrial
+  ) {
+    result = applyPercentageToAllRatings(
+      result,
+      getSpecializationScaledPercentage(windTunnel, 1.5),
+    );
+  } else if (
+    windTunnel?.code === "team_aero" &&
+    teamTimeTrial
+  ) {
+    result = applyPercentageToAllRatings(
+      result,
+      getSpecializationScaledPercentage(windTunnel, 1.5),
+    );
+  }
+
+  const welcomeCenter = rider.welcomeCenterSpecialization;
+  const normalizedRaceCountry = raceCountryCode?.toUpperCase();
+  const normalizedTeamCountry =
+    rider.teamRegistrationCountryCode?.toUpperCase();
+  const normalizedRiderCountry = rider.countryCode?.toUpperCase();
+  if (
+    welcomeCenter?.code === "sporting_integration" &&
+    normalizedRaceCountry &&
+    normalizedTeamCountry &&
+    normalizedRaceCountry === normalizedTeamCountry &&
+    normalizedRiderCountry &&
+    normalizedRiderCountry !== normalizedTeamCountry
+  ) {
+    result = applyPercentageToAllRatings(
+      result,
+      getSpecializationScaledPercentage(welcomeCenter, 1),
+    );
+  }
+
+  return result;
+}
+
+function getRaceInfrastructureEnergyCostReduction({
+  rider,
+  stageType,
+  weather,
+}: {
+  rider: RiderSimulationInput;
+  stageType: SimulationStageType;
+  weather: RaceWeather;
+}) {
+  const windTunnel = rider.windTunnelSpecialization;
+  if (
+    windTunnel?.code === "solo_aero" &&
+    (stageType === "individual_time_trial" || stageType === "prologue")
+  ) {
+    return getSpecializationScaledPercentage(windTunnel, 3);
+  }
+  if (
+    windTunnel?.code === "versatile_aero" &&
+    isDifficultAeroWeather(weather)
+  ) {
+    return getSpecializationScaledPercentage(windTunnel, 2);
+  }
+  return 0;
+}
+
+function applyPercentageToAllRatings(
+  ratings: RiderSimulationRatings,
+  percentage: number,
+) {
+  return Object.fromEntries(
+    Object.entries(ratings).map(([key, value]) => [
+      key,
+      applyPercentageToRating(value, percentage),
+    ]),
+  ) as RiderSimulationRatings;
 }
 
 function getResultsOnlyTimeTrialRating(
@@ -3441,6 +3560,23 @@ function simulateTeamTimeTrial(
         input.timeTrialPlans,
       );
       const equalRelayShare = 1 / Math.max(1, activeRiders.length);
+      const timeTrialRatingByRiderId = new Map(
+        activeRiders.map((rider) => [
+          rider.id,
+          getTimeTrialSegmentRating(
+            rider,
+            segment,
+            "team_time_trial",
+            getPistardTimeTrialBonus({
+              hasPistard: hasSpecialAbility(rider, "pistard"),
+              distanceKm: totalDistanceKm,
+            }),
+          ),
+        ]),
+      );
+      const averageTeamTimeTrialRating = average(
+        [...timeTrialRatingByRiderId.values()],
+      );
       const teamRating = activeRiders.reduce((total, rider) => {
         const effort =
           TIME_TRIAL_EFFORT_EFFECTS[
@@ -3480,8 +3616,19 @@ function simulateTeamTimeTrial(
         const plan = getTimeTrialPlan(input, rider.id);
         const effort = TIME_TRIAL_EFFORT_EFFECTS[plan.effortMode];
         const normalizedRelayShare = relayShares[rider.id];
+        const windTunnel = rider.windTunnelSpecialization;
+        const freeRelayAllowance =
+          windTunnel?.code === "team_aero" &&
+          (timeTrialRatingByRiderId.get(rider.id) ?? 0) >=
+            averageTeamTimeTrialRating
+            ? 1 + getSpecializationScaledPercentage(windTunnel, 4) / 100
+            : 1;
+        const energyChargedRelayShare =
+          normalizedRelayShare > equalRelayShare
+            ? normalizedRelayShare / freeRelayAllowance
+            : normalizedRelayShare;
         const relayLoadMultiplier = clamp(
-          0.55 + (normalizedRelayShare / equalRelayShare) * 0.45,
+          0.55 + (energyChargedRelayShare / equalRelayShare) * 0.45,
           0.45,
           2.2,
         );
@@ -4657,6 +4804,18 @@ function updateRiderEnergy({
   if (hasSpecialAbility(rider, "locomotive") && isWorking) {
     abilityFactor *= 0.84;
   }
+  if (
+    rider.role === "leadout" &&
+    rider.indoorTrackSpecialization?.code === "leadout_school"
+  ) {
+    abilityFactor *=
+      1 -
+      getSpecializationScaledPercentage(
+        rider.indoorTrackSpecialization,
+        6,
+      ) /
+        100;
+  }
 
   const teamSupport = hasBottleCarrierSupport ? 0.97 : 1;
   const loss =
@@ -4706,7 +4865,8 @@ function updateRiderEnergy({
     state.energy -
       applyWeatherCenterEnergyCostReduction(
         loss,
-        rider.weatherCenterEnergyCostReductionPercentage ?? 0,
+        (rider.weatherCenterEnergyCostReductionPercentage ?? 0) +
+          (rider.infrastructureEnergyCostReductionPercentage ?? 0),
       ),
     0,
     100,
@@ -5422,7 +5582,8 @@ function maybeLaunchCounterAttack({
         hasSpecialAbility(rider, "chase_potato") ||
         hasSpecialAbility(rider, "panache") ||
         rider.role === "free_agent" ||
-        (rider.ratings.breakaway >= 66 && rider.ratings.acceleration >= 60)
+        (rider.ratings.breakaway >= 66 &&
+          getExplosiveAccelerationRating(rider) >= 60)
       );
     })
     .map((state) => {
@@ -5432,7 +5593,7 @@ function maybeLaunchCounterAttack({
         state,
         favoriteTier,
         score:
-          state.rider.ratings.acceleration * 0.34 +
+          getExplosiveAccelerationRating(state.rider) * 0.34 +
           state.rider.ratings.breakaway * 0.36 +
           state.rider.ratings.endurance * 0.12 +
           state.rider.form * 0.1 +
@@ -5544,7 +5705,7 @@ function maybeLaunchDecisiveFavoriteAttack({
       const challengerInitiative = Math.min(3, (favoriteRank - 1) * 0.45);
       const score =
         terrainRating * 0.34 +
-        state.rider.ratings.acceleration * 0.27 +
+        getExplosiveAccelerationRating(state.rider) * 0.27 +
         state.energy * 0.17 +
         state.rider.ratings.resistance * 0.08 +
         getRiderExperienceRaceBonus(state.rider.careerRaceDays ?? 0) * 2.4 +
@@ -5563,7 +5724,10 @@ function maybeLaunchDecisiveFavoriteAttack({
   const launchChance = clamp(
     (0.13 +
       (selectiveTerrain ? 0.08 : 0) +
-      Math.max(0, candidate.state.rider.ratings.acceleration - 70) * 0.007 +
+      Math.max(
+        0,
+        getExplosiveAccelerationRating(candidate.state.rider) - 70,
+      ) * 0.007 +
       Math.min(0.08, (candidate.favoriteRank - 1) * 0.012) +
       (hasSpecialAbility(candidate.state.rider, "giclette") ? 0.08 : 0) +
       (hasSpecialAbility(candidate.state.rider, "panache") ? 0.06 : 0) +
@@ -5577,7 +5741,7 @@ function maybeLaunchDecisiveFavoriteAttack({
 
   const timingQuality =
     candidate.terrainRating * 0.38 +
-    candidate.state.rider.ratings.acceleration * 0.34 +
+    getExplosiveAccelerationRating(candidate.state.rider) * 0.34 +
     candidate.state.energy * 0.18 +
     candidate.state.rider.ratings.resistance * 0.1;
   candidate.state.decisiveAttackBonus = clamp(
@@ -5620,7 +5784,7 @@ function resolveExistingChasers({
 
     const bridgeScore =
       state.rider.ratings.breakaway * 0.42 +
-      state.rider.ratings.acceleration * 0.34 +
+      getExplosiveAccelerationRating(state.rider) * 0.34 +
       state.energy * 0.24 +
       (hasSpecialAbility(state.rider, "chase_potato") ? 11 : 0) +
       random() * 10;
@@ -6611,11 +6775,19 @@ function getRoadFinishScores(
         : rider.role === "leadout"
           ? -3
           : 0;
+      const lostWheelRiskReductionPercentage =
+        rider.indoorTrackSpecialization?.code === "pure_speed"
+          ? getSpecializationScaledPercentage(
+              rider.indoorTrackSpecialization,
+              5,
+            )
+          : 0;
       const lostWheelPenalty =
         !hasSpecialAbility(rider, "pistard") &&
         !borrowedWheel &&
         trainRank > 2 &&
-        random() < 0.16
+        random() <
+          0.16 * (1 - lostWheelRiskReductionPercentage / 100)
           ? 4
           : 0;
       score =
@@ -6628,6 +6800,18 @@ function getRoadFinishScores(
         pistardPositioningBonus +
         roleFactor -
         lostWheelPenalty;
+      if (
+        isRaceSprinterRole(rider.role) &&
+        rider.indoorTrackSpecialization?.code === "pure_speed"
+      ) {
+        score *=
+          1 +
+          getSpecializationScaledPercentage(
+            rider.indoorTrackSpecialization,
+            1.5,
+          ) /
+            100;
+      }
     } else if (profileType === "hilly") {
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 6 : 0;
       const roleBonus = isRaceLeaderRole(rider.role) ? 4 : 0;
@@ -6962,6 +7146,16 @@ function getSprintLaunchRating(state: RiderState) {
   );
 }
 
+function getExplosiveAccelerationRating(rider: RiderSimulationInput) {
+  const specialization = rider.indoorTrackSpecialization;
+  return specialization?.code === "explosiveness"
+    ? applyPercentageToRating(
+        rider.ratings.acceleration,
+        getSpecializationScaledPercentage(specialization, 1.5),
+      )
+    : rider.ratings.acceleration;
+}
+
 function getSprintTrainScores(states: RiderState[]) {
   const teams = groupBy(states, (state) => state.rider.teamId);
   const result = new Map<string, number>();
@@ -6974,7 +7168,7 @@ function getSprintTrainScores(states: RiderState[]) {
       (state) => state.rider.role === "domestique",
     );
     const helpers = leadouts.length > 0 ? leadouts : domestiques.slice(0, 2);
-    const score = helpers.length
+    let score = helpers.length
       ? average(
           helpers.map(
             (state) =>
@@ -6986,6 +7180,23 @@ function getSprintTrainScores(states: RiderState[]) {
         ) +
         helpers.length * 2.5
       : 0;
+    const teamSprinter = teamStates.find((state) =>
+      isRaceSprinterRole(state.rider.role),
+    );
+    const leadoutSpecialization = teamSprinter?.rider.indoorTrackSpecialization;
+    if (
+      score > 0 &&
+      helpers.length >= 2 &&
+      leadoutSpecialization?.code === "leadout_school"
+    ) {
+      score *=
+        1 +
+        getSpecializationScaledPercentage(
+          leadoutSpecialization,
+          4,
+        ) /
+          100;
+    }
     result.set(teamId, score);
   }
 

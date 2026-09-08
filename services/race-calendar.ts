@@ -68,6 +68,14 @@ import {
   isWeatherCenterSpecializationCode,
   type WeatherCenterSpecialization,
 } from "@/lib/game/weather-center-specialization";
+import {
+  isIndoorTrackSpecializationCode,
+  isWelcomeCenterSpecializationCode,
+  isWindTunnelSpecializationCode,
+  type IndoorTrackSpecialization,
+  type WelcomeCenterSpecialization,
+  type WindTunnelSpecialization,
+} from "@/lib/game/race-infrastructure-specializations";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import { getFederationInfrastructureEffectPercentage } from "@/lib/game/federation-infrastructure-effects";
 import {
@@ -107,14 +115,21 @@ type FederationInfrastructureLevelRow = {
   level: number;
 };
 
-type TeamWeatherCenterInfrastructureRow = {
+type TeamRaceInfrastructureRow = {
   team_id: string;
+  infrastructure_code: string;
   level: number;
 };
 
-type TeamWeatherCenterSpecializationRow = {
+type TeamRaceInfrastructureSpecializationRow = {
   team_id: string;
+  infrastructure_code: string;
   active_specialization_code: string | null;
+};
+
+type TeamSeasonCountryRow = {
+  team_id: string;
+  registration_country_id: string;
 };
 
 type SeasonRow = {
@@ -898,8 +913,13 @@ export async function getActiveSeasonRaceCalendar(
     engagedTeamIds,
     engagedRiderIds,
   );
-  const weatherCenterSpecializationsPromise =
-    loadWeatherCenterSpecializations(raceDataAdmin, engagedTeamIds);
+  const raceInfrastructureSpecializationsPromise =
+    loadRaceInfrastructureSpecializations(raceDataAdmin, engagedTeamIds);
+  const teamRegistrationCountryCodesPromise = loadTeamRegistrationCountryCodes(
+    raceDataAdmin,
+    season.id,
+    engagedTeamIds,
+  );
   const riderContext = await loadRaceCalendarRiderContext({
     supabase,
     admin: raceDataAdmin,
@@ -917,12 +937,14 @@ export async function getActiveSeasonRaceCalendar(
     raceStaffEffects,
     teamSponsorVisuals,
     welcomeCenterLocalRaceContext,
-    weatherCenterSpecializations,
+    raceInfrastructureSpecializations,
+    teamRegistrationCountryCodes,
   ] = await Promise.all([
     raceStaffEffectsPromise,
     teamSponsorVisualsPromise,
     localRaceCountriesPromise,
-    weatherCenterSpecializationsPromise,
+    raceInfrastructureSpecializationsPromise,
+    teamRegistrationCountryCodesPromise,
   ]);
 
   const dayRows = daysResult.data ?? [];
@@ -1336,7 +1358,8 @@ export async function getActiveSeasonRaceCalendar(
     teamSponsorVisuals,
     welcomeCenterLocalRaceContext,
     federationInfrastructureLevelByCountryAndCode,
-    weatherCenterSpecializations,
+    raceInfrastructureSpecializations,
+    teamRegistrationCountryCodes,
   );
 
   const editions = editionRows
@@ -2125,66 +2148,151 @@ function scaleEquipmentEffect(
   };
 }
 
-async function loadWeatherCenterSpecializations(
+type RaceInfrastructureSpecializations = {
+  weatherCenter: Map<string, WeatherCenterSpecialization>;
+  indoorTrack: Map<string, IndoorTrackSpecialization>;
+  windTunnel: Map<string, WindTunnelSpecialization>;
+  welcomeCenter: Map<string, WelcomeCenterSpecialization>;
+};
+
+const RACE_INFRASTRUCTURE_CODES = [
+  "weather_center",
+  "indoor_track",
+  "wind_tunnel",
+  "international_welcome_center",
+] as const;
+
+async function loadRaceInfrastructureSpecializations(
   admin: SupabaseAdminClient,
   teamIds: string[],
-): Promise<Map<string, WeatherCenterSpecialization>> {
-  if (!teamIds.length) return new Map();
+): Promise<RaceInfrastructureSpecializations> {
+  const result: RaceInfrastructureSpecializations = {
+    weatherCenter: new Map(),
+    indoorTrack: new Map(),
+    windTunnel: new Map(),
+    welcomeCenter: new Map(),
+  };
+  if (!teamIds.length) return result;
 
   const settlementResult = await admin.rpc(
     "settle_due_infrastructure_specializations",
   );
   assertQuerySucceeded(
     settlementResult.error,
-    "les transitions de spécialisation du Centre météo",
+    "les transitions de spécialisation des infrastructures de course",
   );
 
   const [infrastructuresResult, specializationsResult] = await Promise.all([
     admin
       .from("team_infrastructures")
-      .select("team_id, level")
+      .select("team_id, infrastructure_code, level")
       .in("team_id", teamIds)
-      .eq("infrastructure_code", "weather_center")
+      .in("infrastructure_code", [...RACE_INFRASTRUCTURE_CODES])
       .gte("level", 3)
-      .returns<TeamWeatherCenterInfrastructureRow[]>(),
+      .returns<TeamRaceInfrastructureRow[]>(),
     admin
       .from("team_infrastructure_specializations")
-      .select("team_id, active_specialization_code")
+      .select("team_id, infrastructure_code, active_specialization_code")
       .in("team_id", teamIds)
-      .eq("infrastructure_code", "weather_center")
-      .returns<TeamWeatherCenterSpecializationRow[]>(),
+      .in("infrastructure_code", [...RACE_INFRASTRUCTURE_CODES])
+      .returns<TeamRaceInfrastructureSpecializationRow[]>(),
   ]);
   assertQuerySucceeded(
     infrastructuresResult.error,
-    "les niveaux des Centres météo",
+    "les niveaux des infrastructures de course",
   );
   assertQuerySucceeded(
     specializationsResult.error,
-    "les orientations des Centres météo",
+    "les orientations des infrastructures de course",
   );
 
   const levelByTeamId = new Map(
     (infrastructuresResult.data ?? []).map((row) => [
-      row.team_id,
+      `${row.team_id}:${row.infrastructure_code}`,
       Number(row.level),
     ]),
   );
-  const result = new Map<string, WeatherCenterSpecialization>();
   for (const row of specializationsResult.data ?? []) {
-    const level = levelByTeamId.get(row.team_id) ?? 0;
+    const level =
+      levelByTeamId.get(`${row.team_id}:${row.infrastructure_code}`) ?? 0;
+    if (level < 3) continue;
+    const code = row.active_specialization_code;
     if (
-      level < 3 ||
-      !isWeatherCenterSpecializationCode(row.active_specialization_code)
+      row.infrastructure_code === "weather_center" &&
+      isWeatherCenterSpecializationCode(code)
     ) {
-      continue;
+      result.weatherCenter.set(row.team_id, {
+        code,
+        infrastructureLevel: level,
+      });
+    } else if (
+      row.infrastructure_code === "indoor_track" &&
+      isIndoorTrackSpecializationCode(code)
+    ) {
+      result.indoorTrack.set(row.team_id, {
+        code,
+        infrastructureLevel: level,
+      });
+    } else if (
+      row.infrastructure_code === "wind_tunnel" &&
+      isWindTunnelSpecializationCode(code)
+    ) {
+      result.windTunnel.set(row.team_id, {
+        code,
+        infrastructureLevel: level,
+      });
+    } else if (
+      row.infrastructure_code === "international_welcome_center" &&
+      isWelcomeCenterSpecializationCode(code)
+    ) {
+      result.welcomeCenter.set(row.team_id, {
+        code,
+        infrastructureLevel: level,
+      });
     }
-    result.set(row.team_id, {
-      code: row.active_specialization_code,
-      infrastructureLevel: level,
-    });
   }
 
   return result;
+}
+
+async function loadTeamRegistrationCountryCodes(
+  admin: SupabaseAdminClient,
+  seasonId: string,
+  teamIds: string[],
+) {
+  if (!teamIds.length) return new Map<string, string>();
+  const teamSeasonsResult = await admin
+    .from("team_seasons")
+    .select("team_id, registration_country_id")
+    .eq("season_id", seasonId)
+    .in("team_id", teamIds)
+    .returns<TeamSeasonCountryRow[]>();
+  assertQuerySucceeded(
+    teamSeasonsResult.error,
+    "les nationalités d’inscription des équipes",
+  );
+  const countryIds = unique(
+    (teamSeasonsResult.data ?? []).map((row) => row.registration_country_id),
+  );
+  if (!countryIds.length) return new Map<string, string>();
+  const countriesResult = await admin
+    .from("countries")
+    .select("id, iso_alpha2")
+    .in("id", countryIds)
+    .returns<Array<{ id: string; iso_alpha2: string }>>();
+  assertQuerySucceeded(countriesResult.error, "les codes pays des équipes");
+  const codeByCountryId = new Map(
+    (countriesResult.data ?? []).map((country) => [
+      country.id,
+      country.iso_alpha2,
+    ]),
+  );
+  return new Map(
+    (teamSeasonsResult.data ?? []).flatMap((row) => {
+      const code = codeByCountryId.get(row.registration_country_id);
+      return code ? [[row.team_id, code] as const] : [];
+    }),
+  );
 }
 
 type WelcomeCenterLocalRaceContext = {
@@ -2297,10 +2405,8 @@ function groupCalendarEngagedRiders(
   teamSponsorVisuals: Map<string, RaceTeamSponsorVisual>,
   welcomeCenterLocalRaceContext: WelcomeCenterLocalRaceContext,
   federationInfrastructureLevelByCountryAndCode: ReadonlyMap<string, number>,
-  weatherCenterSpecializations: ReadonlyMap<
-    string,
-    WeatherCenterSpecialization
-  >,
+  raceInfrastructureSpecializations: RaceInfrastructureSpecializations,
+  teamRegistrationCountryCodes: ReadonlyMap<string, string>,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -2454,7 +2560,21 @@ function groupCalendarEngagedRiders(
         ? {}
         : {
             weatherCenterSpecialization:
-              weatherCenterSpecializations.get(row.team_id) ?? null,
+              raceInfrastructureSpecializations.weatherCenter.get(
+                row.team_id,
+              ) ?? null,
+            indoorTrackSpecialization:
+              raceInfrastructureSpecializations.indoorTrack.get(row.team_id) ??
+              null,
+            windTunnelSpecialization:
+              raceInfrastructureSpecializations.windTunnel.get(row.team_id) ??
+              null,
+            welcomeCenterSpecialization:
+              raceInfrastructureSpecializations.welcomeCenter.get(
+                row.team_id,
+              ) ?? null,
+            teamRegistrationCountryCode:
+              teamRegistrationCountryCodes.get(row.team_id) ?? null,
           }),
       ratings: {
         mountain: Number(row.mountain),

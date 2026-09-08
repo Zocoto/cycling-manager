@@ -17,6 +17,7 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { StaffDismissalSubmitButton } from "@/components/game/staff-dismissal-submit-button";
+import { StaffAcademyCard } from "@/components/game/staff-academy-card";
 import { NaturalizationSubmitButton } from "@/components/game/naturalization-submit-button";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
@@ -39,6 +40,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { isStaffTutorialRoute, STAFF_TUTORIAL_KEY } from "@/lib/tutorial/staff";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getStaffAcademyOverview } from "@/services/staff-academy";
 import {
   getTeamStaffOverview,
   type StaffMarketFilters,
@@ -53,7 +55,7 @@ export const metadata: Metadata = {
     "Recrutez les spécialistes qui développent les performances de votre équipe.",
 };
 
-type StaffTab = "marche" | "equipe";
+type StaffTab = "marche" | "equipe" | "formations";
 
 type StaffPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -69,6 +71,11 @@ const tabs: Array<{ id: StaffTab; label: string; detail: string }> = [
     id: "equipe",
     label: "Staff de l’équipe",
     detail: "Contrats, masse salariale et effets actifs",
+  },
+  {
+    id: "formations",
+    label: "Formations",
+    detail: "Stages, progression et nouveaux talents du staff",
   },
 ];
 
@@ -86,9 +93,10 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
     redirect("/connexion");
   }
 
-  const [headerData, overview, staffTutorialProgress] = await Promise.all([
+  const [headerData, overview, academy, staffTutorialProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getTeamStaffOverview(supabase, user.id, filters),
+    getStaffAcademyOverview(supabase, user.id),
     getAuthenticatedTutorialProgress(supabase, STAFF_TUTORIAL_KEY).catch(
       (error: unknown) => {
         console.error(
@@ -100,7 +108,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
     ),
   ]);
 
-  if (!overview) {
+  if (!overview || !academy) {
     redirect("/jeu");
   }
 
@@ -187,7 +195,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
 
         <GameSectionTabs
           ariaLabel="Rubriques du staff"
-          columns={2}
+          columns={3}
           className="mt-7"
           data-tutorial-id="staff-tabs"
         >
@@ -208,8 +216,20 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
             query={query}
             returnPath={marketReturnPath}
           />
-        ) : (
+        ) : tab === "equipe" ? (
           <TeamStaff overview={overview} />
+        ) : (
+          <section className="mt-7" data-tutorial-id="staff-academy-training">
+            <StaffAcademyCard
+              academy={academy}
+              mode="training"
+              architects={[]}
+              activeProjects={[]}
+              directorLevel={overview.directorLevel}
+              balance={overview.balance}
+              currency={overview.currency}
+            />
+          </section>
         )}
       </section>
     </main>
@@ -1045,7 +1065,8 @@ function readFilters(
 }
 
 function readTab(value: string): StaffTab {
-  return value === "equipe" ? "equipe" : "marche";
+  if (value === "equipe" || value === "formations") return value;
+  return "marche";
 }
 
 function readQuery(value: string | string[] | undefined) {
