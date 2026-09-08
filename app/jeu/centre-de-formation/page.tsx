@@ -1446,7 +1446,9 @@ function CandidateCard({
           </p>
           {candidate.internationalCenterBonusPercentage > 0 ? (
             <p className="mt-2 inline-flex rounded-full bg-[#F2C94C]/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#8A6714]">
-              Centre international mobilisé · potentiel estimé
+              {candidate.internationalCenterBonusApplied
+                ? "École internationale · bonus de potentiel +0,5 ★"
+                : `École internationale · ${candidate.internationalCenterBonusPercentage} % de chance de potentiel`}
             </p>
           ) : null}
         </div>

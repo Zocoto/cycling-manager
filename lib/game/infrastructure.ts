@@ -3,7 +3,52 @@ import { STAFF_ACADEMY_LEVELS } from "@/lib/game/staff-academy";
 export const INFRASTRUCTURE_UNLOCK_LEVEL = 10;
 export const INFRASTRUCTURE_MANAGER_LEVEL_PER_BUILDING_LEVEL = 10;
 export const INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT = 50;
-export const MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE = 90;
+
+export type InternationalCenterNetworkEffects = {
+  effectiveQualityStars: number;
+  networkStrengthPercentage: number;
+  initialRatingBonus: number;
+  projectedPrimaryRatingBonus: number;
+  potentialBonusPercentage: number;
+  potentialBonusSteps: number;
+  candidateCountBonus: number;
+  specialAbilityBonusPercentage: number;
+};
+
+/**
+ * Les écoles restent cumulables sans plafond. La courbe exponentielle donne
+ * rapidement un intérêt aux premiers investissements puis réduit chaque gain
+ * marginal, afin qu'un pays très équipé produise davantage d'exceptions sans
+ * transformer tous ses juniors en champions.
+ */
+export function getInternationalCenterNetworkEffects(
+  totalQualityStars: number,
+): InternationalCenterNetworkEffects {
+  const effectiveQualityStars = Number.isFinite(totalQualityStars)
+    ? Math.max(0, Math.round(totalQualityStars * 100) / 100)
+    : 0;
+  const strength = 1 - Math.exp(-effectiveQualityStars / 20);
+
+  return {
+    effectiveQualityStars,
+    networkStrengthPercentage: Math.round(strength * 100),
+    initialRatingBonus: Math.round(strength * 0.12 * 1_000) / 1_000,
+    projectedPrimaryRatingBonus: Math.round(strength * 0.96 * 100) / 100,
+    potentialBonusPercentage: Math.round(strength * 20),
+    potentialBonusSteps: 1,
+    candidateCountBonus:
+      effectiveQualityStars >= 50
+        ? 4
+        : effectiveQualityStars >= 30
+          ? 3
+          : effectiveQualityStars >= 15
+            ? 2
+            : effectiveQualityStars >= 5
+              ? 1
+              : 0,
+    specialAbilityBonusPercentage: Math.round(strength * 20) / 10,
+  };
+}
 
 export function applyInfrastructureEfficiencyBonus(
   baseValue: number,
@@ -666,31 +711,31 @@ export const INTERNATIONAL_CENTER_LEVELS = [
     level: 1,
     cost: 500_000,
     durationDays: 10,
-    bonusPercentage: 10,
+    contributionStars: 1,
   },
   {
     level: 2,
     cost: getInfrastructureUpgradeCost(500_000, 2),
     durationDays: 16,
-    bonusPercentage: 20,
+    contributionStars: 2,
   },
   {
     level: 3,
     cost: getInfrastructureUpgradeCost(500_000, 3),
     durationDays: 22,
-    bonusPercentage: 30,
+    contributionStars: 3,
   },
   {
     level: 4,
     cost: getInfrastructureUpgradeCost(500_000, 4),
     durationDays: 28,
-    bonusPercentage: 40,
+    contributionStars: 4,
   },
   {
     level: 5,
     cost: getInfrastructureUpgradeCost(500_000, 5),
     durationDays: 35,
-    bonusPercentage: 50,
+    contributionStars: 5,
   },
 ] as const;
 
@@ -716,10 +761,8 @@ export function getInternationalCenterLevelDefinition(level: number) {
 export function getInternationalCenterBonusPercentage(
   totalQualityStars: number,
 ): number {
-  return Math.min(
-    MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE,
-    Math.round(Math.max(0, totalQualityStars) * 10),
-  );
+  return getInternationalCenterNetworkEffects(totalQualityStars)
+    .potentialBonusPercentage;
 }
 
 export function applyInternationalCenterPotentialBonus({
@@ -738,10 +781,10 @@ export function applyInternationalCenterPotentialBonus({
   const safePotential = Math.min(8, Math.max(1, Math.round(potentialSteps)));
   const bonusPercentage =
     getInternationalCenterBonusPercentage(totalQualityStars);
-  const bonusApplied = safePotential <= 6 && random() < bonusPercentage / 100;
+  const bonusApplied = safePotential < 8 && random() < bonusPercentage / 100;
 
   return {
-    potentialSteps: bonusApplied ? safePotential + 2 : safePotential,
+    potentialSteps: bonusApplied ? safePotential + 1 : safePotential,
     bonusApplied,
     bonusPercentage,
   };

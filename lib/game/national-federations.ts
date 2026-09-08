@@ -1,3 +1,5 @@
+import { getInternationalCenterNetworkEffects } from "@/lib/game/infrastructure";
+
 export const FEDERATION_MANAGEMENT_START_GAME_YEAR = 3;
 
 export const NATIONAL_FEDERATION_TABS = [
@@ -77,13 +79,14 @@ export function getFederationDivisionPreview(
 export function getInternationalAcademyImpact(
   qualityLevels: readonly number[],
 ): number {
-  const contribution = qualityLevels.reduce(
+  const totalQualityStars = qualityLevels.reduce(
     (total, qualityLevel) =>
-      total + Math.max(0, Math.min(5, Math.trunc(qualityLevel))) * 10,
+      total + Math.max(0, Math.min(5, Math.trunc(qualityLevel))),
     0,
   );
 
-  return Math.min(90, contribution);
+  return getInternationalCenterNetworkEffects(totalQualityStars)
+    .networkStrengthPercentage;
 }
 
 function getSerpentineGroup(

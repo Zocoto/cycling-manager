@@ -39,8 +39,8 @@ describe("national federations", () => {
   });
 
   it("caps the shared academy impact at 90 percent", () => {
-    expect(getInternationalAcademyImpact([1, 2, 3])).toBe(60);
-    expect(getInternationalAcademyImpact([5, 5])).toBe(90);
-    expect(getInternationalAcademyImpact([-4, 12])).toBe(50);
+    expect(getInternationalAcademyImpact([1, 2, 3])).toBe(26);
+    expect(getInternationalAcademyImpact([5, 5])).toBe(39);
+    expect(getInternationalAcademyImpact([-4, 12])).toBe(22);
   });
 });

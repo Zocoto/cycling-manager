@@ -620,17 +620,17 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "international-school-effect": {
         title: "Schools improve youth from their country",
         content:
-          "Each centre star in a country adds a 10-point chance that a scouted youth there gains a full potential star. Contributions stack globally up to 90%.\n\nThe effect applies when the youth is generated and never changes already discovered riders.",
+          "Each centre star improves starting attributes, the chance of gaining half a potential star, candidate count through tiers, and the chance of a special ability.\n\nAll completed schools in a country stack without limit. Diminishing returns increase the odds of finding an exceptional junior without making every prospect overpowered. Existing reports are never changed retroactively.",
       },
       "international-school-map": {
         title: "Choose the country before investing",
         content:
-          "The map shows centres funded by the community. Select a country to see global stars, shared chance and teams with a school there.\n\nYour centre can reach five levels; each upgrade costs more, takes longer and follows the one-project rule.",
+          "The map shows centres funded by the community. Select a country to see its network stars, all four shared effects and the teams with a school there.\n\nYour centre can reach five levels; each upgrade costs more, takes longer and follows the one-project rule.",
       },
       "international-school-strategy": {
         title: "Concentrate or diversify your network",
         content:
-          "Strengthening an established country quickly improves a shared probability, while opening in an uncovered nation creates a new improved scouting area.\n\nThe bonus belongs to the country, not the paying team: every SD benefits when scouting there.",
+          "Strengthening an established country improves all four bonuses with diminishing returns, while opening in an uncovered nation creates a new improved scouting area.\n\nThe bonuses belong to the country, not the paying team: every SD benefits from the national network when scouting there.",
       },
       complete: {
         title: "Your infrastructure strategy is ready",

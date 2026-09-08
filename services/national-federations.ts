@@ -1,6 +1,10 @@
 import "server-only";
 
-import { getInternationalAcademyImpact } from "@/lib/game/national-federations";
+import {
+  applyInfrastructureEfficiencyBonus,
+  getInternationalCenterNetworkEffects,
+  type InternationalCenterNetworkEffects,
+} from "@/lib/game/infrastructure";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationChampion = {
@@ -21,7 +25,8 @@ export type FederationAcademy = {
   teamId: string;
   teamName: string;
   qualityLevel: number;
-  contributionPercentage: number;
+  efficiencyBonusPercentage: number;
+  effectiveQualityStars: number;
   completedAt: string;
 };
 
@@ -42,7 +47,8 @@ export type NationalFederationSnapshot = {
   };
   academies: {
     centers: FederationAcademy[];
-    totalImpactPercentage: number;
+    totalQualityStars: number;
+    effects: InternationalCenterNetworkEffects;
   };
   champions: {
     professional: Partial<
@@ -96,6 +102,7 @@ type RiderRatingRow = { rider_id: string; age: number };
 type AcademyRow = {
   team_id: string;
   quality_level: number;
+  efficiency_bonus_percentage: number;
   completed_at: string;
 };
 
@@ -192,7 +199,9 @@ export async function getNationalFederationSnapshot({
         .returns<JuniorTitleRow[]>(),
       admin
         .from("international_youth_centers")
-        .select("team_id, quality_level, completed_at")
+        .select(
+          "team_id, quality_level, efficiency_bonus_percentage, completed_at",
+        )
         .eq("country_id", countryId)
         .order("quality_level", { ascending: false })
         .returns<AcademyRow[]>(),
@@ -431,9 +440,17 @@ export async function getNationalFederationSnapshot({
       teamName:
         academyTeamNameById.get(academy.team_id) ?? "Équipe non active",
       qualityLevel: academy.quality_level,
-      contributionPercentage: Math.min(50, academy.quality_level * 10),
+      efficiencyBonusPercentage: academy.efficiency_bonus_percentage,
+      effectiveQualityStars: applyInfrastructureEfficiencyBonus(
+        academy.quality_level,
+        academy.efficiency_bonus_percentage,
+      ),
       completedAt: academy.completed_at,
     }),
+  );
+  const totalQualityStars = academies.reduce(
+    (total, academy) => total + academy.effectiveQualityStars,
+    0,
   );
 
   return {
@@ -454,9 +471,8 @@ export async function getNationalFederationSnapshot({
     },
     academies: {
       centers: academies,
-      totalImpactPercentage: getInternationalAcademyImpact(
-        academies.map((academy) => academy.qualityLevel),
-      ),
+      totalQualityStars,
+      effects: getInternationalCenterNetworkEffects(totalQualityStars),
     },
     champions: {
       professional: professionalCurrent,

@@ -433,8 +433,8 @@ function OverviewPanel({
         />
         <OverviewMetric
           eyebrow="Formation"
-          label="Impact académies"
-          value={`${snapshot.academies.totalImpactPercentage} %`}
+          label="Intensité du réseau"
+          value={`${snapshot.academies.effects.networkStrengthPercentage} %`}
           detail={`${snapshot.academies.centers.length} centre${snapshot.academies.centers.length > 1 ? "s" : ""} international${snapshot.academies.centers.length > 1 ? "aux" : ""}`}
         />
       </section>
@@ -662,28 +662,21 @@ function InfrastructuresPanel({
               Formation internationale existante
             </p>
             <h2 className="mt-2 text-3xl font-black">
-              {snapshot.academies.centers.length} académie
-              {snapshot.academies.centers.length > 1 ? "s" : ""} · impact{" "}
-              {snapshot.academies.totalImpactPercentage} %
+              {snapshot.academies.centers.length} école
+              {snapshot.academies.centers.length > 1 ? "s" : ""} · {numberFormatter.format(snapshot.academies.totalQualityStars)} ★ de réseau
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Cette probabilité partagée peut ajouter une étoile de potentiel à
-              un jeune généré dans la nation, dans la limite globale de 90 %.
+              Le réseau améliore les notes, le potentiel, le nombre de candidats
+              et la chance de capacité spéciale des juniors détectés dans la
+              nation. Les écoles sont cumulables sans plafond, avec des rendements
+              décroissants.
             </p>
           </div>
-          <div className="min-w-48 rounded-2xl border border-white/15 bg-white/10 p-4">
-            <div className="flex items-center justify-between text-xs font-black">
-              <span>Impact cumulé</span>
-              <span>{snapshot.academies.totalImpactPercentage}/90 %</span>
-            </div>
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/15">
-              <div
-                className="h-full rounded-full bg-[#F2C94C]"
-                style={{
-                  width: `${(snapshot.academies.totalImpactPercentage / 90) * 100}%`,
-                }}
-              />
-            </div>
+          <div className="grid min-w-72 grid-cols-2 gap-2 rounded-2xl border border-white/15 bg-white/10 p-3">
+            <AcademyEffect label="Potentiel +0,5 ★" value={`+${snapshot.academies.effects.potentialBonusPercentage} %`} />
+            <AcademyEffect label="Notes clés" value={`+${numberFormatter.format(snapshot.academies.effects.projectedPrimaryRatingBonus)} pt`} />
+            <AcademyEffect label="Candidats" value={`+${snapshot.academies.effects.candidateCountBonus}`} />
+            <AcademyEffect label="Capacité spéciale" value={`+${numberFormatter.format(snapshot.academies.effects.specialAbilityBonusPercentage)} pt`} />
           </div>
         </div>
 
@@ -708,8 +701,13 @@ function InfrastructuresPanel({
                   </span>
                 </div>
                 <p className="mt-4 text-sm font-black text-[var(--federation-secondary)]">
-                  +{academy.contributionPercentage} % de contribution
+                  {numberFormatter.format(academy.effectiveQualityStars)} ★ de contribution effective
                 </p>
+                {academy.efficiencyBonusPercentage > 0 ? (
+                  <p className="mt-1 text-xs font-bold text-[#60756E]">
+                    dont +{academy.efficiencyBonusPercentage} % d’efficacité architecte
+                  </p>
+                ) : null}
               </article>
             ))
           ) : (
@@ -727,6 +725,17 @@ function InfrastructuresPanel({
         managementLocked={managementLocked}
         infrastructureState={infrastructureState}
       />
+    </div>
+  );
+}
+
+function AcademyEffect({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white/10 px-3 py-2">
+      <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[#BFD1C6]">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-black text-[#F2C94C]">{value}</p>
     </div>
   );
 }

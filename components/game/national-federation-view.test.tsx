@@ -26,11 +26,22 @@ const snapshot: NationalFederationSnapshot = {
         teamId: "academy-owner",
         teamName: "Équipe formatrice",
         qualityLevel: 3,
-        contributionPercentage: 30,
+        efficiencyBonusPercentage: 0,
+        effectiveQualityStars: 3,
         completedAt: "2026-08-01T10:00:00.000Z",
       },
     ],
-    totalImpactPercentage: 30,
+    totalQualityStars: 3,
+    effects: {
+      effectiveQualityStars: 3,
+      networkStrengthPercentage: 14,
+      initialRatingBonus: 0.017,
+      projectedPrimaryRatingBonus: 0.13,
+      potentialBonusPercentage: 3,
+      potentialBonusSteps: 1,
+      candidateCountBonus: 0,
+      specialAbilityBonusPercentage: 0.3,
+    },
   },
   champions: {
     professional: {
@@ -106,8 +117,8 @@ describe("NationalFederationView", () => {
     expect(markup).not.toContain("gestion inchangée en Saison 2");
     expect(markup).not.toContain("Activation Saison 3");
     expect(markup).toContain("Jeanne Peloton");
-    expect(markup).toContain("Impact académies");
-    expect(markup).toContain("30 %");
+    expect(markup).toContain("Intensité du réseau");
+    expect(markup).toContain("14 %");
     expect(markup).toContain("Objectifs fédéraux");
     expect(markup).toContain("Avoir 1 équipe dans la fédération");
     expect(markup).toContain("1/5 validés");

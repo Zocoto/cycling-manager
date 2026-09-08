@@ -40,21 +40,35 @@ futurs rapports ou objets spécialisés.
 Chaque équipe peut construire puis améliorer son propre centre dans chaque
 pays. Plusieurs équipes peuvent donc posséder un centre dans le même pays.
 
-| Qualité | Coût de base | Durée de base | Contribution mondiale |
+| Qualité | Coût de base | Durée de base | Contribution au réseau |
 |---|---:|---:|---:|
-| 1 étoile | 500 000 € | 28 jours | +10 % |
-| 2 étoiles | 750 000 € | 35 jours | +20 % |
-| 3 étoiles | 1 000 000 € | 42 jours | +30 % |
-| 4 étoiles | 1 350 000 € | 49 jours | +40 % |
-| 5 étoiles | 1 800 000 € | 56 jours | +50 % |
+| 1 étoile | 500 000 € | 10 jours | 1 étoile |
+| 2 étoiles | 300 000 € | 16 jours | 2 étoiles |
+| 3 étoiles | 350 000 € | 22 jours | 3 étoiles |
+| 4 étoiles | 400 000 € | 28 jours | 4 étoiles |
+| 5 étoiles | 450 000 € | 35 jours | 5 étoiles |
 
-La contribution de tous les centres terminés dans un pays est additionnée,
-avec un plafond de 90 %. Pour chaque jeune généré dans ce pays, un tirage
-indépendant est effectué. En cas de réussite, il gagne une étoile entière de
-potentiel, sans dépasser quatre étoiles.
+La contribution de tous les centres terminés dans un pays est additionnée sans
+plafond de nombre d’écoles. Le niveau maximal reste de cinq étoiles pour chaque
+école. L’efficacité de construction de l’architecte augmente sa contribution
+effective.
+
+Le total national améliore quatre aspects de chaque nouvelle détection :
+
+- un léger bonus aux notes initiales, concentré sur les caractéristiques clés ;
+- une chance de gagner une demi-étoile de potentiel, sans dépasser quatre étoiles ;
+- des candidats supplémentaires par mission aux paliers 5, 15, 30 et 50 étoiles ;
+- jusqu’à deux points de pourcentage supplémentaires de chance d’obtenir une
+  capacité spéciale native.
+
+Les trois bonus continus suivent une courbe à rendements décroissants. Même un
+réseau extrêmement développé reste limité à environ un point sur les notes clés,
+20 % de chance de gagner une demi-étoile de potentiel et deux points de chance
+de capacité spéciale. Le réseau augmente donc la fréquence des exceptions sans
+remplacer le poids du scout, du pays, de l’âge et de l’aléatoire.
 
 Le planisphère affiche les centres déjà construits, leur qualité, l’équipe et
-le Directeur Sportif propriétaires. Le bonus est identique pour tous les DS :
+le Directeur Sportif propriétaires de chaque centre. Les bonus sont identiques pour tous les DS :
 le propriétaire ne reçoit aucun avantage de détection privé.
 
 ## Notifications et finances

@@ -50,15 +50,16 @@ describe("infrastructure tutorial", () => {
     }
   });
 
-  it("précise l’effet partagé, plafonné et non rétroactif des écoles", () => {
+  it("précise les quatre effets partagés, décroissants et non rétroactifs", () => {
     const content = getTutorialDefinition(INFRASTRUCTURE_TUTORIAL_KEY)
       ?.steps.map((step) => step.content)
       .join(" ");
 
-    expect(content).toContain("10 points de probabilité");
-    expect(content).toContain("toutes les équipes");
-    expect(content).toContain("90 %");
-    expect(content).toContain("ne modifie pas rétroactivement");
+    expect(content).toContain("notes initiales");
+    expect(content).toContain("nombre de candidats");
+    expect(content).toContain("capacité spéciale");
+    expect(content).toContain("sans limite");
+    expect(content).toContain("jamais modifiés rétroactivement");
   });
 
   it("annonce explicitement la validation dans le Centre des didacticiels", () => {

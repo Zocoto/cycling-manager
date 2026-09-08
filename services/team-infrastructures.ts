@@ -6,11 +6,12 @@ import {
   INFRASTRUCTURE_UNLOCK_LEVEL,
   TEAM_INFRASTRUCTURE_DEFINITIONS,
   applyInfrastructureEfficiencyBonus,
-  getInternationalCenterBonusPercentage,
+  getInternationalCenterNetworkEffects,
   getInternationalCenterLevelDefinition,
   getTeamInfrastructureLevelDefinition,
   isArchitectSpecialty,
   type ArchitectSpecialty,
+  type InternationalCenterNetworkEffects,
   type TeamInfrastructureCode,
 } from "@/lib/game/infrastructure";
 import { calculateSportingDirectorProgression } from "@/lib/game/sporting-director-progression";
@@ -106,7 +107,7 @@ export type InfrastructureCountry = {
   latitude: number;
   longitude: number;
   totalQualityStars: number;
-  globalBonusPercentage: number;
+  networkEffects: InternationalCenterNetworkEffects;
   currentTeamLevel: number;
   centers: InternationalCenterOwner[];
 };
@@ -440,8 +441,8 @@ export async function getTeamInfrastructureOverview(
           latitude: coordinate.latitude,
           longitude: coordinate.longitude,
           totalQualityStars,
-          globalBonusPercentage:
-            getInternationalCenterBonusPercentage(totalQualityStars),
+          networkEffects:
+            getInternationalCenterNetworkEffects(totalQualityStars),
           currentTeamLevel:
             centers.find((center) => center.isCurrentTeam)?.qualityLevel ?? 0,
           centers,

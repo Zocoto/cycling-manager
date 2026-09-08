@@ -18,6 +18,7 @@ import {
 import {
   applyInfrastructureEfficiencyBonus,
   applyInternationalCenterPotentialBonus,
+  getInternationalCenterNetworkEffects,
 } from "@/lib/game/infrastructure";
 import { MAX_TEAM_ROSTER_SIZE } from "@/lib/game/team-roster-capacity";
 import {
@@ -1323,6 +1324,18 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       dailyScoutingQualityMultiplier +
       federalDetectionBonusPercentage / 100,
   };
+  const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
+    (total, center) =>
+      total +
+      applyInfrastructureEfficiencyBonus(
+        center.quality_level,
+        center.efficiency_bonus_percentage,
+      ),
+    0,
+  );
+  const internationalCenterEffects = getInternationalCenterNetworkEffects(
+    totalInternationalCenterStars,
+  );
   const count =
     getScoutingCandidateCount({
       scoutLevel:
@@ -1330,7 +1343,9 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       durationDays: mission.duration_days,
       facilityLevel,
       random,
-    }) + talentBonuses.reportSizeBonus;
+    }) +
+    talentBonuses.reportSizeBonus +
+    internationalCenterEffects.candidateCountBonus;
   const identities = generateRiderIdentities(profile.name_profile_code, count);
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
   const countryRanking = countryRankings.find(
@@ -1373,15 +1388,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
     schoolPlanTransferPoints,
   });
-  const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
-    (total, center) =>
-      total +
-      applyInfrastructureEfficiencyBonus(
-        center.quality_level,
-        center.efficiency_bonus_percentage,
-      ),
-    0,
-  );
   const candidates = identities.map((identity, index) => {
     const age = clamp(15 + Math.floor(random() * 4), 15, 18);
     const archetype = chooseYouthArchetype({
@@ -1408,7 +1414,9 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       talent: potentialSteps,
       countryReputation: reputation,
       accuracyBonus: nationalityBonus / 100,
-      initialRatingBonus: scoutBonuses.initialRatingBonus,
+      initialRatingBonus:
+        scoutBonuses.initialRatingBonus +
+        internationalCenterEffects.initialRatingBonus,
       scoutingQuality,
       random,
     });
@@ -1416,6 +1424,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       archetype,
       potentialSteps,
       qualityScore: scoutingQuality,
+      internationalCenterBonusPercentage:
+        internationalCenterEffects.specialAbilityBonusPercentage,
       random,
     });
     const costs = calculateYouthSigningCosts({

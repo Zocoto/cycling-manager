@@ -7,8 +7,10 @@ import { InfrastructureSubmitButton } from "@/components/game/infrastructure-sub
 import Link from "@/components/ui/app-link";
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
 import {
+  applyInfrastructureEfficiencyBonus,
   canDirectorBuildInfrastructureLevel,
   getInternationalCenterLevelDefinition,
+  getInternationalCenterNetworkEffects,
   getRequiredDirectorLevelForInfrastructureLevel,
 } from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
@@ -78,6 +80,25 @@ export function InternationalYouthCenterMap({
         architectSpecialty: selectedArchitect?.specialty,
       })
     : null;
+  const currentTeamCenter = selected.centers.find(
+    (center) => center.isCurrentTeam,
+  );
+  const currentTeamContribution = currentTeamCenter
+    ? applyInfrastructureEfficiencyBonus(
+        currentTeamCenter.qualityLevel,
+        currentTeamCenter.efficiencyBonusPercentage,
+      )
+    : 0;
+  const projectedEffects = nextLevel
+    ? getInternationalCenterNetworkEffects(
+        selected.totalQualityStars -
+          currentTeamContribution +
+          applyInfrastructureEfficiencyBonus(
+            nextLevel.contributionStars,
+            selectedArchitect?.buildingEfficiencyBonusPercentage ?? 0,
+          ),
+      )
+    : selected.networkEffects;
   const requiredDirectorLevel = nextLevel
     ? getRequiredDirectorLevelForInfrastructureLevel(nextLevel.level)
     : null;
@@ -151,7 +172,7 @@ export function InternationalYouthCenterMap({
               <button
                 key={country.id}
                 type="button"
-                title={`${country.name} · ${country.globalBonusPercentage} %`}
+                title={`${country.name} · ${country.totalQualityStars} étoile(s) de réseau`}
                 aria-label={`Sélectionner ${country.name}`}
                 onClick={() => setSelectedCountryId(country.id)}
                 className={`group absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
@@ -215,19 +236,41 @@ export function InternationalYouthCenterMap({
 
         <dl className="mt-5 grid grid-cols-2 gap-3">
           <Metric
-            label="Étoiles mondiales"
+            label="Réseau national"
             value={String(selected.totalQualityStars)}
           />
           <Metric
-            label="Chance partagée"
-            value={`+${selected.globalBonusPercentage} %`}
+            label="Chance +0,5 ★"
+            value={`+${selected.networkEffects.potentialBonusPercentage} %`}
             accent
+          />
+          <Metric
+            label="Notes clés"
+            value={`+${formatDecimal(selected.networkEffects.projectedPrimaryRatingBonus)} pt`}
+          />
+          <Metric
+            label="Candidats / mission"
+            value={`+${selected.networkEffects.candidateCountBonus}`}
+          />
+          <Metric
+            label="Capacité spéciale"
+            value={`+${formatDecimal(selected.networkEffects.specialAbilityBonusPercentage)} pt`}
+          />
+          <Metric
+            label="Intensité du réseau"
+            value={`${selected.networkEffects.networkStrengthPercentage} %`}
           />
         </dl>
 
+        <p className="mt-3 text-[11px] font-semibold leading-5 text-[#60756E]">
+          Les écoles de toutes les équipes se cumulent sans limite. Les gains
+          deviennent progressivement plus faibles pour préserver la rareté des
+          juniors exceptionnels.
+        </p>
+
         <div className="mt-5 rounded-2xl border border-[#315B3E]/10 bg-white p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#60756E]">
-            Camps déjà construits
+            Écoles déjà construites
           </p>
           {selected.centers.length ? (
             <ul className="mt-3 space-y-3">
@@ -303,11 +346,17 @@ export function InternationalYouthCenterMap({
                     </span>
                   </p>
                   <p className="mt-1 text-xs font-bold text-[#BFD1C6]">
-                    +{nextLevel.bonusPercentage} % dans ce pays grâce à
-                    votre centre
+                    Votre centre contribuera à hauteur de {nextLevel.contributionStars} ★
+                    au réseau de ce pays.
                   </p>
                 </div>
               </div>
+              <p className="mt-3 border-t border-white/10 pt-3 text-[11px] font-bold leading-5 text-[#BFD1C6]">
+                Après livraison : +{projectedEffects.potentialBonusPercentage} % potentiel · +
+                {formatDecimal(projectedEffects.projectedPrimaryRatingBonus)} pt sur les notes clés · +
+                {projectedEffects.candidateCountBonus} candidat(s) · +
+                {formatDecimal(projectedEffects.specialAbilityBonusPercentage)} pt de capacité spéciale
+              </p>
             </div>
             <label className="block">
               <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
@@ -425,4 +474,11 @@ function normalize(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLocaleLowerCase("fr");
+}
+
+function formatDecimal(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
 }

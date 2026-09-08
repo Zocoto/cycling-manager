@@ -436,13 +436,14 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
               className="mb-5 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-5"
             >
               <p className="font-black text-[#71580A]">
-                Un effet mondial, financé par les équipes
+                Un réseau national, financé par toutes les équipes
               </p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[#7B6B37]">
-                Chaque étoile de centre ajoute 10 points de probabilité de
-                gagner une étoile entière de potentiel lors d’une détection dans
-                le pays. Les étoiles de toutes les équipes se cumulent, avec un
-                plafond mondial de 90 %.
+                Les écoles améliorent les notes initiales, le potentiel, le
+                nombre de candidats et la chance d’obtenir une capacité spéciale
+                lors des détections dans le pays. Toutes les étoiles se cumulent
+                sans limite d’écoles, avec des rendements décroissants pour que
+                les juniors exceptionnels restent rares.
               </p>
             </div>
             <div data-tutorial-id="infrastructure-school-map">

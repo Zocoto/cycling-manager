@@ -12,38 +12,66 @@ import {
   getStaffNaturalizationSeasonLimit,
   getTeamInfrastructureCodesByStartingCost,
   getInternationalCenterBonusPercentage,
+  getInternationalCenterNetworkEffects,
   isTeamInfrastructureCode,
   getScoutingVisibilityForDataRoom,
 } from "@/lib/game/infrastructure";
 
 describe("international cycling schools", () => {
-  it("adds one full potential star when the shared country roll succeeds", () => {
+  it("adds half a potential star when the shared country roll succeeds", () => {
     expect(
       applyInternationalCenterPotentialBonus({
         potentialSteps: 5,
         totalQualityStars: 3,
-        random: () => 0.29,
+        random: () => 0.02,
       }),
     ).toEqual({
-      potentialSteps: 7,
+      potentialSteps: 6,
       bonusApplied: true,
-      bonusPercentage: 30,
+      bonusPercentage: 3,
     });
   });
 
-  it("never exceeds four stars and caps the shared chance", () => {
-    expect(getInternationalCenterBonusPercentage(14)).toBe(90);
+  it("never exceeds four stars", () => {
+    expect(getInternationalCenterBonusPercentage(14)).toBe(10);
     expect(
       applyInternationalCenterPotentialBonus({
-        potentialSteps: 7,
+        potentialSteps: 8,
         totalQualityStars: 14,
         random: () => 0,
       }),
     ).toEqual({
-      potentialSteps: 7,
+      potentialSteps: 8,
       bonusApplied: false,
-      bonusPercentage: 90,
+      bonusPercentage: 10,
     });
+  });
+
+  it("cumule toutes les écoles avec des rendements décroissants", () => {
+    const oneSchool = getInternationalCenterNetworkEffects(5);
+    const sixSchools = getInternationalCenterNetworkEffects(30);
+    const manySchools = getInternationalCenterNetworkEffects(100);
+
+    expect(oneSchool).toMatchObject({
+      candidateCountBonus: 1,
+      potentialBonusSteps: 1,
+      potentialBonusPercentage: 4,
+      specialAbilityBonusPercentage: 0.4,
+    });
+    expect(sixSchools).toMatchObject({
+      candidateCountBonus: 3,
+      potentialBonusPercentage: 16,
+      specialAbilityBonusPercentage: 1.6,
+    });
+    expect(manySchools.effectiveQualityStars).toBe(100);
+    expect(manySchools.potentialBonusPercentage).toBeLessThanOrEqual(20);
+    expect(
+      manySchools.networkStrengthPercentage -
+        sixSchools.networkStrengthPercentage,
+    ).toBeLessThan(
+      sixSchools.networkStrengthPercentage -
+        oneSchool.networkStrengthPercentage,
+    );
   });
 });
 
@@ -185,6 +213,6 @@ describe("team infrastructure buildings", () => {
 
   it("intègre l’efficacité de l’architecte dans la qualité partagée", () => {
     expect(applyInfrastructureEfficiencyBonus(5, 10)).toBe(5.5);
-    expect(getInternationalCenterBonusPercentage(5.5)).toBe(55);
+    expect(getInternationalCenterBonusPercentage(5.5)).toBe(5);
   });
 });

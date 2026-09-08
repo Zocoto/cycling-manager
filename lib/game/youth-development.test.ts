@@ -266,10 +266,25 @@ describe("youth development", () => {
         random: createSeededRandom(`strong-ability-${index}`),
       }),
     ).filter(Boolean);
+    const schoolNetworkAbilities = Array.from(
+      { length: sampleSize },
+      (_, index) =>
+        rollYouthNativeSpecialAbility({
+          archetype: "sprinter",
+          potentialSteps: 8,
+          qualityScore: 1,
+          internationalCenterBonusPercentage: 2,
+          random: createSeededRandom(`school-network-ability-${index}`),
+        }),
+    ).filter(Boolean);
 
     expect(weakCount / sampleSize).toBeLessThan(0.01);
     expect(strongAbilities.length / sampleSize).toBeGreaterThan(0.035);
     expect(strongAbilities.length / sampleSize).toBeLessThan(0.055);
+    expect(schoolNetworkAbilities.length).toBeGreaterThan(
+      strongAbilities.length,
+    );
+    expect(schoolNetworkAbilities.length / sampleSize).toBeLessThan(0.075);
     expect(new Set(strongAbilities)).toEqual(
       new Set(["pistard", "giclette", "locomotive"]),
     );

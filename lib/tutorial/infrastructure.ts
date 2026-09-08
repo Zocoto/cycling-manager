@@ -1,11 +1,8 @@
-import {
-  INFRASTRUCTURE_UNLOCK_LEVEL,
-  MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE,
-} from "@/lib/game/infrastructure";
+import { INFRASTRUCTURE_UNLOCK_LEVEL } from "@/lib/game/infrastructure";
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const INFRASTRUCTURE_TUTORIAL_KEY = "infrastructure";
-export const INFRASTRUCTURE_TUTORIAL_VERSION = 2;
+export const INFRASTRUCTURE_TUTORIAL_VERSION = 3;
 export const INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE =
   "/jeu/infrastructures?onglet=batiments";
 export const INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE =
@@ -76,7 +73,8 @@ export const infrastructureTutorialDefinition = {
       route: INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE,
       targetId: "infrastructure-school-effect",
       title: "Les écoles améliorent les jeunes du pays",
-      content: `Chaque étoile de centre construite dans un pays ajoute 10 points de probabilité qu’un jeune détecté dans ce pays gagne une étoile entière de potentiel. Les contributions de toutes les équipes se cumulent, jusqu’au plafond mondial de ${MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE} %.\n\nL’effet intervient lors de la génération du jeune dans un rapport de scouting : il ne modifie pas rétroactivement les coureurs déjà découverts.`,
+      content:
+        "Chaque étoile de centre améliore les notes initiales, la chance de gagner une demi-étoile de potentiel, le nombre de candidats par mission selon des paliers, et la chance d’obtenir une capacité spéciale.\n\nToutes les écoles terminées dans le pays se cumulent sans limite. Les rendements deviennent progressivement plus faibles : le réseau augmente les chances de découvrir une exception, sans rendre tous les juniors surpuissants. Les rapports déjà générés ne sont jamais modifiés rétroactivement.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -86,7 +84,7 @@ export const infrastructureTutorialDefinition = {
       targetId: "infrastructure-school-map",
       title: "Choisissez le pays avant d’investir",
       content:
-        "La carte affiche les centres déjà financés par la communauté. Sélectionnez un pays pour consulter ses étoiles mondiales, la chance partagée et les équipes qui y possèdent déjà une école.\n\nVotre propre centre peut atteindre cinq niveaux. La première implantation est la plus chère ; les améliorations restent moins chères que celle-ci, durent plus longtemps et peuvent bénéficier d’un architecte.",
+        "La carte affiche les centres déjà financés par la communauté. Sélectionnez un pays pour consulter ses étoiles de réseau et le détail des quatre effets partagés, ainsi que les équipes qui y possèdent déjà une école.\n\nVotre propre centre peut atteindre cinq niveaux. La première implantation est la plus chère ; les améliorations restent moins chères que celle-ci, durent plus longtemps et peuvent bénéficier d’un architecte.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -96,7 +94,7 @@ export const infrastructureTutorialDefinition = {
       targetId: "infrastructure-school-map",
       title: "Concentrez ou diversifiez votre réseau",
       content:
-        "Renforcer un pays déjà développé augmente rapidement une probabilité partagée, tandis qu’ouvrir une école dans une nation peu couverte crée une nouvelle zone de détection améliorée.\n\nLe bonus appartient au pays, pas à l’équipe qui a payé : tous les DS profitent du total mondial lorsqu’ils y découvrent un jeune.",
+        "Renforcer un pays déjà développé améliore ses quatre bonus avec des rendements décroissants, tandis qu’ouvrir une école dans une nation peu couverte crée une nouvelle zone de détection améliorée.\n\nLes bonus appartiennent au pays, pas à l’équipe qui a payé : tous les DS profitent du réseau national lorsqu’ils y découvrent un jeune.",
       placement: "top",
       highlightPadding: 8,
     },
