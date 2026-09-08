@@ -176,9 +176,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "national_detection_network", buildingName: "Réseau national de détection", domain: "Scouting · Maillage territorial", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "territorial_coverage", name: "Couverture territoriale", identity: "Ne laisser aucune région hors du radar.", primaryEffect: "+8 % de couverture des régions secondaires.", secondaryEffect: "+4 % de précision sur les rapports locaux.", guardrail: "N’augmente pas la probabilité des potentiels exceptionnels." }),
-      option({ code: "elite_detection", name: "Détection élite", identity: "Concentrer les moyens sur les signaux les plus rares.", primaryEffect: "+3 % de chances relatives d’identifier un très haut potentiel.", secondaryEffect: "+5 % de précision sur le plafond estimé.", guardrail: "−6 % de couverture sur les régions secondaires." }),
-      option({ code: "profile_diversity", name: "Diversité des profils", identity: "Élargir l’identité sportive de la nation.", primaryEffect: "+10 % de chances relatives de détecter un style hors des archétypes nationaux.", secondaryEffect: "+4 % de variété régionale.", guardrail: "Qualité moyenne inchangée." }),
+      option({ code: "territorial_coverage", name: "Maillage territorial", identity: "Faire remonter davantage de profils à chaque mission nationale.", primaryEffect: "Jusqu’à 1 candidat supplémentaire par mission dans le pays.", secondaryEffect: "+4 % de précision sur l’ensemble du rapport.", guardrail: "" }),
+      option({ code: "elite_detection", name: "Détection élite", identity: "Concentrer les moyens sur les signaux les plus rares.", primaryEffect: "+3 % de chances relatives de détecter un junior de 3,5★ ou 4★.", secondaryEffect: "+5 % de précision sur l’estimation de son potentiel.", guardrail: "" }),
+      option({ code: "profile_diversity", name: "Diversité des profils", identity: "Élargir l’identité sportive de la nation.", primaryEffect: "+10 % de chances relatives de détecter un style hors des deux archétypes historiques du pays.", guardrail: "" }),
     ],
   },
   {

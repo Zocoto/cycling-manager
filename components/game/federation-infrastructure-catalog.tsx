@@ -517,10 +517,12 @@ function FederationInfrastructureCard({
               </button>
             ))}
           </div>
-          <p className="mt-4 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
-            <strong className="text-[#183F37]">Garde-fou :</strong>{" "}
-            {definition.principle}
-          </p>
+          {definition.principle ? (
+            <p className="mt-4 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
+              <strong className="text-[#183F37]">Garde-fou :</strong>{" "}
+              {definition.principle}
+            </p>
+          ) : null}
         </div>
 
         {activeProject ? (

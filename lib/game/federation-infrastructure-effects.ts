@@ -1,4 +1,20 @@
 import type { FederationInfrastructureCode } from "@/lib/game/federation-infrastructures";
+import { getInfrastructureSpecializationPowerPercentage } from "@/lib/game/infrastructure-specializations";
+
+export type NationalDetectionNetworkSpecializationCode =
+  | "territorial_coverage"
+  | "elite_detection"
+  | "profile_diversity";
+
+export const NATIONAL_DETECTION_NETWORK_ATYPICAL_STYLE_BONUS_PERCENTAGE = 2;
+
+export type NationalDetectionNetworkEffects = {
+  additionalCandidateChance: number;
+  reportPrecisionBonusPercentage: number;
+  elitePotentialRelativeBonusPercentage: number;
+  potentialPrecisionBonusPercentage: number;
+  atypicalStyleRelativeBonusPercentage: number;
+};
 
 export const FEDERATION_INFRASTRUCTURE_EFFECT_PER_LEVEL = {
   national_detection_network: 1,
@@ -24,6 +40,48 @@ export function getFederationInfrastructureEffectPercentage(
     normalizeFederationInfrastructureLevel(level) *
     FEDERATION_INFRASTRUCTURE_EFFECT_PER_LEVEL[code]
   );
+}
+
+export function getNationalDetectionNetworkEffects({
+  level,
+  specializationCode,
+}: {
+  level: number;
+  specializationCode: string | null;
+}): NationalDetectionNetworkEffects {
+  const normalizedLevel = normalizeFederationInfrastructureLevel(level);
+  const specializationPower =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizedLevel,
+      "national_detection_network",
+    ) / 100;
+  const hasSpecialization = (
+    code: NationalDetectionNetworkSpecializationCode,
+  ) => specializationCode === code && specializationPower > 0;
+
+  return {
+    additionalCandidateChance: hasSpecialization("territorial_coverage")
+      ? specializationPower
+      : 0,
+    reportPrecisionBonusPercentage: hasSpecialization("territorial_coverage")
+      ? 4 * specializationPower
+      : 0,
+    elitePotentialRelativeBonusPercentage: hasSpecialization(
+      "elite_detection",
+    )
+      ? 3 * specializationPower
+      : 0,
+    potentialPrecisionBonusPercentage: hasSpecialization("elite_detection")
+      ? 5 * specializationPower
+      : 0,
+    atypicalStyleRelativeBonusPercentage:
+      (normalizedLevel >= 3
+        ? NATIONAL_DETECTION_NETWORK_ATYPICAL_STYLE_BONUS_PERCENTAGE
+        : 0) +
+      (hasSpecialization("profile_diversity")
+        ? 10 * specializationPower
+        : 0),
+  };
 }
 
 export function getFederationNaturalizationRequiredDays({

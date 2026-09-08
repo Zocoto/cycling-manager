@@ -172,16 +172,20 @@ export function calculateYouthScoutingQuality({
 
 export function generateYouthPotentialSteps({
   qualityScore,
+  elitePotentialRelativeBonusPercentage = 0,
   random,
 }: {
   qualityScore: number;
+  elitePotentialRelativeBonusPercentage?: number;
   random: () => number;
 }): number {
   const quality = clamp(qualityScore, 0, 1);
   const roll = random();
+  const elitePotentialMultiplier =
+    1 + clamp(elitePotentialRelativeBonusPercentage, 0, 100) / 100;
   const atLeast = {
-    8: 0.0002 + quality * 0.012,
-    7: 0.001 + quality * 0.035,
+    8: (0.0002 + quality * 0.012) * elitePotentialMultiplier,
+    7: (0.001 + quality * 0.035) * elitePotentialMultiplier,
     6: 0.004 + quality * 0.09,
     5: 0.015 + quality * 0.18,
     4: 0.06 + quality * 0.32,
@@ -447,6 +451,7 @@ export function chooseYouthArchetype({
   diversityLevel = 0,
   schoolPlanArchetype = null,
   schoolPlanTransferPoints = 0,
+  atypicalStyleRelativeBonusPercentage = 0,
 }: {
   primary: YouthArchetype;
   secondary: YouthArchetype;
@@ -454,6 +459,7 @@ export function chooseYouthArchetype({
   diversityLevel?: number;
   schoolPlanArchetype?: YouthArchetype | null;
   schoolPlanTransferPoints?: number;
+  atypicalStyleRelativeBonusPercentage?: number;
 }): YouthArchetype {
   const roll = random();
   const safeDiversityLevel = Math.min(
@@ -468,12 +474,61 @@ export function chooseYouthArchetype({
     schoolPlanTransferPoints,
     primaryThreshold,
   });
-  if (roll < primaryThreshold - planTransferThreshold) return primary;
-  if (roll < primaryThreshold && schoolPlanArchetype) {
-    return schoolPlanArchetype;
+  const baseArchetype =
+    roll < primaryThreshold - planTransferThreshold
+      ? primary
+      : roll < primaryThreshold && schoolPlanArchetype
+        ? schoolPlanArchetype
+        : roll < secondaryThreshold
+          ? secondary
+          : roll < 0.94
+            ? "breakaway"
+            : "all_rounder";
+  const safeAtypicalBonus = clamp(
+    atypicalStyleRelativeBonusPercentage,
+    0,
+    100,
+  );
+  const nationalArchetypes = new Set<YouthArchetype>([primary, secondary]);
+  if (
+    safeAtypicalBonus <= 0 ||
+    !nationalArchetypes.has(baseArchetype)
+  ) {
+    return baseArchetype;
   }
-  if (roll < secondaryThreshold) return secondary;
-  return roll < 0.94 ? "breakaway" : "all_rounder";
+
+  const baseProbabilities = getYouthArchetypeProbabilities({
+    primary,
+    secondary,
+    diversityLevel,
+    schoolPlanArchetype,
+    schoolPlanTransferPoints,
+  });
+  const atypicalProbabilityPercentage = baseProbabilities.reduce(
+    (total, probability) =>
+      total +
+      (nationalArchetypes.has(probability.archetype)
+        ? 0
+        : probability.probabilityPercentage),
+    0,
+  );
+  const nationalProbabilityPercentage = 100 - atypicalProbabilityPercentage;
+  const promotionChance = Math.min(
+    1,
+    (atypicalProbabilityPercentage * (safeAtypicalBonus / 100)) /
+      Math.max(0.001, nationalProbabilityPercentage),
+  );
+  if (random() >= promotionChance) return baseArchetype;
+
+  const atypicalArchetypes = YOUTH_ARCHETYPES.filter(
+    (archetype) => !nationalArchetypes.has(archetype),
+  );
+  return atypicalArchetypes[
+    Math.min(
+      atypicalArchetypes.length - 1,
+      Math.floor(random() * atypicalArchetypes.length),
+    )
+  ];
 }
 
 export type YouthArchetypeProbability = {
@@ -487,12 +542,14 @@ export function getYouthArchetypeProbabilities({
   diversityLevel = 0,
   schoolPlanArchetype = null,
   schoolPlanTransferPoints = 0,
+  atypicalStyleRelativeBonusPercentage = 0,
 }: {
   primary: YouthArchetype;
   secondary: YouthArchetype;
   diversityLevel?: number;
   schoolPlanArchetype?: YouthArchetype | null;
   schoolPlanTransferPoints?: number;
+  atypicalStyleRelativeBonusPercentage?: number;
 }): YouthArchetypeProbability[] {
   const safeDiversityLevel = Math.min(
     5,
@@ -523,6 +580,44 @@ export function getYouthArchetypeProbabilities({
   addProbability(secondary, secondaryProbability);
   addProbability("breakaway", breakawayProbability);
   addProbability("all_rounder", 6);
+
+  const safeAtypicalBonus = clamp(
+    atypicalStyleRelativeBonusPercentage,
+    0,
+    100,
+  );
+  if (safeAtypicalBonus > 0) {
+    const nationalArchetypes = new Set<YouthArchetype>([primary, secondary]);
+    const atypicalArchetypes = YOUTH_ARCHETYPES.filter(
+      (archetype) => !nationalArchetypes.has(archetype),
+    );
+    const atypicalProbabilityPercentage = atypicalArchetypes.reduce(
+      (total, archetype) => total + (probabilityByArchetype.get(archetype) ?? 0),
+      0,
+    );
+    const nationalProbabilityPercentage = 100 - atypicalProbabilityPercentage;
+    const transferredProbabilityPercentage = Math.min(
+      nationalProbabilityPercentage,
+      atypicalProbabilityPercentage * (safeAtypicalBonus / 100),
+    );
+
+    for (const archetype of nationalArchetypes) {
+      const probability = probabilityByArchetype.get(archetype) ?? 0;
+      probabilityByArchetype.set(
+        archetype,
+        probability -
+          transferredProbabilityPercentage *
+            (probability / Math.max(0.001, nationalProbabilityPercentage)),
+      );
+    }
+    for (const archetype of atypicalArchetypes) {
+      probabilityByArchetype.set(
+        archetype,
+        (probabilityByArchetype.get(archetype) ?? 0) +
+          transferredProbabilityPercentage / atypicalArchetypes.length,
+      );
+    }
+  }
 
   return YOUTH_ARCHETYPES.flatMap((archetype) => {
     const probabilityPercentage = probabilityByArchetype.get(archetype) ?? 0;

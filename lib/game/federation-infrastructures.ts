@@ -58,8 +58,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     domain: "Scouting · Maillage territorial",
     summary:
       "Partage les observations entre les équipes, améliore légèrement les jeunes réellement trouvés et fiabilise leur rapport.",
-    principle:
-      "Chaque niveau agit à la fois sur la qualité réelle des juniors générés et sur la précision du rapport ; les phénomènes restent rares.",
+    principle: "",
     illustration: {
       src: "/images/infrastructure/recruitment-data-room.webp",
       alt: "Cellule nationale de détection et d’analyse des jeunes cyclistes",
@@ -69,10 +68,10 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       durations: [7, 10, 14, 18, 23],
       effects: [
         "+1 % sur la qualité réelle des juniors et la précision des rapports dans le pays.",
-        "+2 % sur la qualité réelle et la précision, avec une meilleure couverture régionale.",
-        "+3 % sur la qualité réelle et la précision, avec des profils plus variés.",
+        "+2 % sur la qualité réelle des juniors et la précision des rapports dans le pays.",
+        "+3 % sur la qualité réelle et la précision, plus +2 % de chances relatives de détecter un style hors des archétypes du pays.",
         "+4 % sur la qualité réelle et la précision des détections nationales.",
-        "+5 % sur la qualité réelle et la précision, avec une couverture nationale complète.",
+        "+5 % sur la qualité réelle des juniors et la précision des rapports dans le pays.",
       ],
     }),
   },

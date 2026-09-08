@@ -33,6 +33,33 @@ describe("youth development", () => {
     );
   });
 
+  it("augmente réellement la part des styles hors archétypes nationaux", () => {
+    const probabilities = getYouthArchetypeProbabilities({
+      primary: "climber",
+      secondary: "puncheur",
+      atypicalStyleRelativeBonusPercentage: 10,
+    });
+    const atypicalProbability = probabilities.reduce(
+      (total, probability) =>
+        total +
+        (["climber", "puncheur"].includes(probability.archetype)
+          ? 0
+          : probability.probabilityPercentage),
+      0,
+    );
+    const rolls = [0.5, 0, 0];
+
+    expect(atypicalProbability).toBeCloseTo(19.8, 8);
+    expect(
+      chooseYouthArchetype({
+        primary: "climber",
+        secondary: "puncheur",
+        atypicalStyleRelativeBonusPercentage: 10,
+        random: () => rolls.shift() ?? 0,
+      }),
+    ).toBe("stage_racer");
+  });
+
   it("transfère les points du plan scolaire depuis le style historique", () => {
     const probabilities = getYouthArchetypeProbabilities({
       primary: "climber",
@@ -228,6 +255,22 @@ describe("youth development", () => {
     expect(
       generateYouthPotentialSteps({ qualityScore: 0, random: () => 0 }),
     ).toBe(8);
+  });
+
+  it("augmente spécifiquement la probabilité des potentiels de 3,5 et 4 étoiles", () => {
+    expect(
+      generateYouthPotentialSteps({
+        qualityScore: 0,
+        random: () => 0.0015,
+      }),
+    ).toBe(6);
+    expect(
+      generateYouthPotentialSteps({
+        qualityScore: 0,
+        elitePotentialRelativeBonusPercentage: 100,
+        random: () => 0.0015,
+      }),
+    ).toBe(7);
   });
 
   it("augmente la qualité réelle grâce au réseau fédéral de détection", () => {

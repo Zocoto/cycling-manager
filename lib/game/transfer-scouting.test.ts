@@ -151,6 +151,28 @@ describe("transfer scouting", () => {
     expect(report.potential.kind).not.toBe("unknown");
   });
 
+  it("peut affiner uniquement le potentiel sans révéler davantage de notes", () => {
+    const input = {
+      riderId: "elite-detection-rider",
+      seasonId: "season-precision",
+      ratings,
+      potentialSteps: 7,
+    };
+    const base = createStandardTransferScoutingReport(input);
+    const elite = createStandardTransferScoutingReport({
+      ...input,
+      potentialPrecisionBonusPercentage: 100,
+    });
+
+    expect(elite.ratings).toEqual(base.ratings);
+    expect(elite.potential.kind).toBe("range");
+    if (elite.potential.kind === "range") {
+      expect(elite.potential.maximumSteps - elite.potential.minimumSteps).toBeLessThanOrEqual(
+        2,
+      );
+    }
+  });
+
   it("ne révèle jamais précisément le potentiel avec l'analyse standard", () => {
     const reports = Array.from({ length: 40 }, (_, index) =>
       createStandardTransferScoutingReport({

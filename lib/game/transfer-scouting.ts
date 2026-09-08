@@ -32,6 +32,7 @@ export function createStandardTransferScoutingReport({
   potentialSteps,
   dataRoomLevel = 0,
   precisionBonusPercentage = 0,
+  potentialPrecisionBonusPercentage = 0,
 }: {
   riderId: string;
   seasonId: string;
@@ -39,6 +40,7 @@ export function createStandardTransferScoutingReport({
   potentialSteps: number;
   dataRoomLevel?: number;
   precisionBonusPercentage?: number;
+  potentialPrecisionBonusPercentage?: number;
 }): TransferScoutingReport {
   const visibility = getScoutingVisibilityForDataRoom(dataRoomLevel);
   const safePrecisionBonusPercentage = clamp(
@@ -112,7 +114,11 @@ export function createStandardTransferScoutingReport({
   const overall = calculateOverall(ratings);
   const potentialSeed = stableHash(`${riderId}:${seasonId}:potential`);
   const potentialPrecisionUpgrade = isPrecisionUpgrade({
-    precisionBonusPercentage: safePrecisionBonusPercentage,
+    precisionBonusPercentage: clamp(
+      safePrecisionBonusPercentage + potentialPrecisionBonusPercentage,
+      0,
+      100,
+    ),
     seed: `${riderId}:${seasonId}:precision:potential`,
   });
 

@@ -9,6 +9,7 @@ import {
   MAX_FEDERATION_PROJECT_ARCHITECTS,
   calculateFederationConstructionPreview,
 } from "@/lib/game/federation-infrastructures";
+import { getNationalDetectionNetworkEffects } from "@/lib/game/federation-infrastructure-effects";
 
 const migration = readFileSync(
   join(
@@ -35,6 +36,13 @@ const detectionBonusMigration = readFileSync(
   join(
     process.cwd(),
     "supabase/migrations/20260907160000_apply_detection_bonuses_to_youth_quality_and_reports.sql",
+  ),
+  "utf8",
+);
+const detectionSpecializationMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260908162000_activate_national_detection_network_specializations.sql",
   ),
   "utf8",
 );
@@ -164,10 +172,47 @@ describe("federation infrastructures", () => {
       "federationDetectionBonusPercentage: federalDetectionBonusPercentage",
     );
     expect(youthDevelopmentService).toMatch(
-      /supervisionBonusPercentage\s*\+\s*federationDetectionBonusPercentage\s*\+\s*toNumber\(mission\.data_room_report_precision_bonus_percentage/,
+      /supervisionBonusPercentage\s*\+\s*federationDetectionBonusPercentage\s*\+\s*federationSpecializationReportPrecisionBonusPercentage\s*\+\s*toNumber\(mission\.data_room_report_precision_bonus_percentage/,
     );
     expect(youthDevelopmentService).toContain(
       "precisionBonusPercentage: reportPrecisionBonusPercentage",
+    );
+  });
+
+  it("applique les trois orientations du réseau national à des mécaniques existantes", () => {
+    expect(
+      getNationalDetectionNetworkEffects({
+        level: 3,
+        specializationCode: "territorial_coverage",
+      }),
+    ).toMatchObject({
+      additionalCandidateChance: 0.6,
+      reportPrecisionBonusPercentage: 2.4,
+      atypicalStyleRelativeBonusPercentage: 2,
+    });
+    expect(
+      getNationalDetectionNetworkEffects({
+        level: 5,
+        specializationCode: "elite_detection",
+      }),
+    ).toMatchObject({
+      elitePotentialRelativeBonusPercentage: 3,
+      potentialPrecisionBonusPercentage: 5,
+    });
+    expect(
+      getNationalDetectionNetworkEffects({
+        level: 5,
+        specializationCode: "profile_diversity",
+      }).atypicalStyleRelativeBonusPercentage,
+    ).toBe(12);
+    expect(detectionSpecializationMigration).toContain(
+      "federation_detection_spec_report_bonus_percentage",
+    );
+    expect(youthDevelopmentService).toContain(
+      "federalDetectionNetworkEffects.additionalCandidateChance",
+    );
+    expect(youthDevelopmentService).toContain(
+      "elitePotentialRelativeBonusPercentage:",
     );
   });
 });

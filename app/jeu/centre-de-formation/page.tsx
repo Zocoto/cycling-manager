@@ -1349,6 +1349,11 @@ function MissionReport({
             Précision du rapport +{mission.reportPrecisionBonusPercentage} %
           </span>
         ) : null}
+        {mission.potentialPrecisionBonusPercentage > 0 ? (
+          <span className="rounded-full bg-[#EEF3FF] px-2.5 py-1 text-[9px] font-black text-[#3459A5]">
+            Précision du potentiel +{mission.potentialPrecisionBonusPercentage} %
+          </span>
+        ) : null}
       </div>
       {mission.generationProfile ? (
         <YouthGenerationProfileSummary profile={mission.generationProfile} />

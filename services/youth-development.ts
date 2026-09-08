@@ -8,6 +8,7 @@ import {
 import {
   getBestNaturalizationRequiredDays,
   getFederationInfrastructureEffectPercentage,
+  getNationalDetectionNetworkEffects,
 } from "@/lib/game/federation-infrastructure-effects";
 import { getSchoolCyclingPlanTransferPoints } from "@/lib/game/federation-school-cycling-plan";
 import {
@@ -145,6 +146,8 @@ type MissionRow = {
   federal_staff_bonus_percentage: number | string;
   data_room_quality_bonus_percentage: number | string;
   data_room_report_precision_bonus_percentage: number | string;
+  federation_detection_spec_report_bonus_percentage: number | string;
+  federation_detection_spec_potential_bonus_percentage: number | string;
 };
 
 type CandidateRow = {
@@ -309,6 +312,7 @@ export type YouthMission = {
   scoutingQualityBonusBreakdown: BonusBreakdown;
   localKnowledgeBonusPercentage: number;
   reportPrecisionBonusPercentage: number;
+  potentialPrecisionBonusPercentage: number;
   status: MissionRow["status"];
   unread: boolean;
   viewedAt: string | null;
@@ -776,9 +780,16 @@ async function loadOverview(admin: AdminClient, context: Context) {
     const federationDetectionBonusPercentage = toNumber(
       mission.federation_detection_bonus_percentage ?? 0,
     );
+    const federationSpecializationReportPrecisionBonusPercentage = toNumber(
+      mission.federation_detection_spec_report_bonus_percentage ?? 0,
+    );
+    const potentialPrecisionBonusPercentage = toNumber(
+      mission.federation_detection_spec_potential_bonus_percentage ?? 0,
+    );
     const reportPrecisionBonusPercentage =
       supervisionBonusPercentage +
       federationDetectionBonusPercentage +
+      federationSpecializationReportPrecisionBonusPercentage +
       toNumber(mission.data_room_report_precision_bonus_percentage ?? 0);
     const teamAffinityBonusPercentage =
       scout?.countryId === context.registrationCountryId
@@ -832,6 +843,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
         ? getScoutNationalityEfficiencyBonus(scout.countryId, mission.country_id)
         : 0,
       reportPrecisionBonusPercentage,
+      potentialPrecisionBonusPercentage,
       status: mission.status,
       unread: mission.status === "completed" && !mission.report_viewed_at,
       viewedAt: mission.report_viewed_at,
@@ -843,6 +855,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
           scout?.level ?? 1,
           mission.duration_days,
           reportPrecisionBonusPercentage,
+          potentialPrecisionBonusPercentage,
         ),
       ),
     };
@@ -1163,6 +1176,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     centersResult,
     countryRankings,
     federationInfrastructureResult,
+    federationDetectionSpecializationResult,
     schoolCyclingPlansResult,
   ] = await Promise.all([
     admin
@@ -1211,6 +1225,12 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       ])
       .returns<Array<{ infrastructure_code: string; level: number }>>(),
     admin
+      .from("national_federation_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("country_id", mission.country_id)
+      .eq("infrastructure_code", "national_detection_network")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
+    admin
       .from("national_federation_school_cycling_plans")
       .select(
         "target_archetype, starts_game_day_index, completes_game_day_index, created_at",
@@ -1229,6 +1249,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   assertQuery(
     federationInfrastructureResult.error,
     "les infrastructures fédérales de détection",
+  );
+  assertQuery(
+    federationDetectionSpecializationResult.error,
+    "l’orientation du Réseau national de détection",
   );
   assertQuery(
     schoolCyclingPlansResult.error,
@@ -1361,11 +1385,18 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       infrastructure.level,
     ]),
   );
+  const federalDetectionNetworkLevel =
+    federationInfrastructureLevelByCode.get("national_detection_network") ?? 0;
+  const federalDetectionNetworkEffects = getNationalDetectionNetworkEffects({
+    level: federalDetectionNetworkLevel,
+    specializationCode:
+      federationDetectionSpecializationResult.data
+        ?.active_specialization_code ?? null,
+  });
   const federalDetectionBonusPercentage =
     getFederationInfrastructureEffectPercentage(
       "national_detection_network",
-      federationInfrastructureLevelByCode.get("national_detection_network") ??
-        0,
+      federalDetectionNetworkLevel,
     );
   const federalTuitionReductionPercentage =
     getFederationInfrastructureEffectPercentage(
@@ -1407,7 +1438,11 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       random,
     }) +
     talentBonuses.reportSizeBonus +
-    internationalCenterEffects.candidateCountBonus;
+    internationalCenterEffects.candidateCountBonus +
+    (createSeededRandom(`${mission.id}:national-detection-extra-candidate`)() <
+    federalDetectionNetworkEffects.additionalCandidateChance
+      ? 1
+      : 0);
   const identities = generateRiderIdentities(profile.name_profile_code, count);
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
   const countryRanking = countryRankings.find(
@@ -1450,6 +1485,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
     schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
     schoolPlanTransferPoints,
+    atypicalStyleRelativeBonusPercentage:
+      federalDetectionNetworkEffects.atypicalStyleRelativeBonusPercentage,
   });
   const candidates = identities.map((identity, index) => {
     const age = clamp(15 + Math.floor(random() * 4), 15, 18);
@@ -1459,10 +1496,14 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         federationInfrastructureLevelByCode.get("regional_academies") ?? 0,
       schoolPlanArchetype: schoolCyclingPlan?.target_archetype ?? null,
       schoolPlanTransferPoints,
+      atypicalStyleRelativeBonusPercentage:
+        federalDetectionNetworkEffects.atypicalStyleRelativeBonusPercentage,
       random,
     });
     const basePotentialSteps = generateYouthPotentialSteps({
       qualityScore: scoutingQuality,
+      elitePotentialRelativeBonusPercentage:
+        federalDetectionNetworkEffects.elitePotentialRelativeBonusPercentage,
       random,
     });
     const internationalCenterBonus = applyInternationalCenterPotentialBonus({
@@ -1579,6 +1620,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         dataRoomQualityBonusPercentage,
       data_room_report_precision_bonus_percentage:
         dataRoomReportPrecisionBonusPercentage,
+      federation_detection_spec_report_bonus_percentage:
+        federalDetectionNetworkEffects.reportPrecisionBonusPercentage,
+      federation_detection_spec_potential_bonus_percentage:
+        federalDetectionNetworkEffects.potentialPrecisionBonusPercentage,
       report_ready_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -2056,6 +2101,7 @@ function toCandidate(
   scoutLevel: number,
   durationDays: number,
   reportPrecisionBonusPercentage = 0,
+  potentialPrecisionBonusPercentage = 0,
 ): YouthCandidate {
   const ratings = scaleYouthRatings(rowToRatings(row));
   return {
@@ -2084,6 +2130,7 @@ function toCandidate(
         durationDays,
       }),
       precisionBonusPercentage: reportPrecisionBonusPercentage,
+      potentialPrecisionBonusPercentage,
     }),
     signingFee: toNumber(row.signing_fee),
     tuitionPerSeason: toNumber(row.tuition_per_season),
