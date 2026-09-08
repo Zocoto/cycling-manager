@@ -746,7 +746,7 @@ function AcademyTab({
           ) : null}
           {visibleRiders.length ? (
             <YouthTrainingBulkEditor
-              initialSettings={visibleRiders
+              initialSettings={overview.academy
                 .filter((rider) => rider.status !== "release_pending")
                 .map((rider) => ({
                   academyRiderId: rider.id,

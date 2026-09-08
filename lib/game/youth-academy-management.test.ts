@@ -52,6 +52,11 @@ describe("gestion de l’école de cyclisme", () => {
     expect(academyPage).toContain("Aucun junior de 18 ans");
   });
 
+  it("ne confond pas le filtre des 18 ans avec des entraînements modifiés", () => {
+    expect(academyPage).toContain("initialSettings={overview.academy");
+    expect(academyPage).not.toContain("initialSettings={visibleRiders");
+  });
+
   it("reste dans le scouting après la signature d’un junior", () => {
     const actionStart = academyActions.indexOf(
       "export async function signYouthCandidateAction",

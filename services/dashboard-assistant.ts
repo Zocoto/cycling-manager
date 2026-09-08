@@ -134,6 +134,8 @@ export async function getCurrentDashboardAssistantSummary(
     sponsorJerseyChangeAvailable:
       sponsoringAlert?.jersey_change_available === true,
     sponsorTargetSeasonName: sponsoringAlert?.target_season_name ?? null,
+    equipmentPartnerSignatureAvailable:
+      assistantPayload.equipmentPartnerSignatureAvailable,
     fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
     fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
     fanClubSalesProcessedToday:
@@ -152,6 +154,7 @@ function normalizeAssistantPayload(value: unknown): {
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
   nextSeasonRosterProjectedCount: number;
   nextSeasonRosterOverflowCount: number;
+  equipmentPartnerSignatureAvailable: boolean;
   journalItems: DashboardJournalItem[];
 } {
   if (Array.isArray(value)) {
@@ -163,6 +166,7 @@ function normalizeAssistantPayload(value: unknown): {
       juniorManualTrainingSlot: null,
       nextSeasonRosterProjectedCount: 0,
       nextSeasonRosterOverflowCount: 0,
+      equipmentPartnerSignatureAvailable: false,
       journalItems: normalizeJournalItems(value),
     };
   }
@@ -176,6 +180,7 @@ function normalizeAssistantPayload(value: unknown): {
       juniorManualTrainingSlot: null,
       nextSeasonRosterProjectedCount: 0,
       nextSeasonRosterOverflowCount: 0,
+      equipmentPartnerSignatureAvailable: false,
       journalItems: [],
     };
   }
@@ -208,6 +213,8 @@ function normalizeAssistantPayload(value: unknown): {
     nextSeasonRosterOverflowCount: normalizeCount(
       rosterProjection.overflowCount,
     ),
+    equipmentPartnerSignatureAvailable:
+      payload.equipmentPartnerSignatureAvailable === true,
     journalItems: normalizeJournalItems(payload.items),
   };
 }

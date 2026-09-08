@@ -49,6 +49,7 @@ const snapshot: DashboardAssistantSnapshot = {
   sponsorRenewalAvailable: false,
   sponsorJerseyChangeAvailable: false,
   sponsorTargetSeasonName: null,
+  equipmentPartnerSignatureAvailable: false,
   fanClubShopLevel: 0,
   fanClubStockCount: 0,
   fanClubSalesProcessedToday: false,
@@ -271,6 +272,38 @@ describe("dashboard DS assistant", () => {
       expect.objectContaining({
         title: "Changement de maillot S3 possible",
         href: "/jeu/sponsoring",
+      }),
+    ]);
+  });
+
+  it("alerts when an equipment partner contract can actually be signed", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+        equipmentPartnerSignatureAvailable: true,
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "equipment-partner-signature",
+        metric: "200+",
+        title: "Contrat équipementier disponible",
+        href: "/jeu/materiel/equipementier",
       }),
     ]);
   });

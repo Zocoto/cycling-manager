@@ -421,6 +421,46 @@ describe("buildRaceFavorites", () => {
     );
   });
 
+  it("combine les qualités de rouleur et de spécialiste des pavés sur un CLM pavé", () => {
+    const cobbledTimeTrial = createStage(
+      "cobbles",
+      [
+        createSegment(1, "flat", 8),
+        {
+          ...createSegment(2, "flat", 20),
+          surface: "cobbles",
+        },
+        createSegment(3, "flat", 4),
+      ],
+      1,
+      "individual_time_trial",
+    );
+    const edition = createEdition("one_day", [cobbledTimeTrial], []);
+    const pavedSpecialist = createRider("paved-specialist", {
+      timeTrial: 75,
+      cobbles: 88,
+    });
+    const pavedNovice = createRider("paved-novice", {
+      timeTrial: 75,
+      cobbles: 42,
+    });
+    const strongRouleur = createRider("strong-rouleur", {
+      timeTrial: 88,
+      cobbles: 75,
+    });
+    const weakRouleur = createRider("weak-rouleur", {
+      timeTrial: 42,
+      cobbles: 75,
+    });
+
+    expect(getRaceFavoriteScore(edition, pavedSpecialist)).toBeGreaterThan(
+      getRaceFavoriteScore(edition, pavedNovice),
+    );
+    expect(getRaceFavoriteScore(edition, strongRouleur)).toBeGreaterThan(
+      getRaceFavoriteScore(edition, weakRouleur),
+    );
+  });
+
   it("amplifie l'impact d'un CLM long et montagneux sur le general", () => {
     const chronoClimber = createRider("chrono-climber", {
       flat: 58,

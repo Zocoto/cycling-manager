@@ -55,6 +55,7 @@ export type DashboardAssistantSnapshot = {
   sponsorRenewalAvailable: boolean;
   sponsorJerseyChangeAvailable: boolean;
   sponsorTargetSeasonName: string | null;
+  equipmentPartnerSignatureAvailable: boolean;
   fanClubShopLevel: number;
   fanClubStockCount: number;
   fanClubSalesProcessedToday: boolean;
@@ -101,6 +102,7 @@ const ALERT_PRIORITY = [
   "sponsor-signature",
   "sponsor-renewal",
   "sponsor-jersey-change",
+  "equipment-partner-signature",
   "rider-recruitment-matches",
   "staff-recruitment-matches",
   "completed-scouting",
@@ -245,6 +247,17 @@ export function buildDashboardAssistantLines({
       title: `Changement de maillot ${seasonLabel} possible`,
       detail: "Choisissez l’un des trois modèles avant le changement de saison.",
       href: "/jeu/sponsoring",
+    });
+  }
+
+  if (snapshot.equipmentPartnerSignatureAvailable) {
+    alerts.push({
+      id: "equipment-partner-signature",
+      tone: "alert",
+      metric: "200+",
+      title: "Contrat équipementier disponible",
+      detail: "Choisissez votre partenaire technique pour les deux prochaines saisons.",
+      href: "/jeu/materiel/equipementier",
     });
   }
 

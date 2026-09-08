@@ -627,9 +627,6 @@ function SelectionsPanel({
             <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
               {event.detail}
             </p>
-            <p className="mt-5 border-t border-[#315B3E]/10 pt-4 text-xs font-black uppercase tracking-[0.12em] text-[var(--federation-secondary)]">
-              Repère arc-en-ciel dans le calendrier
-            </p>
           </article>
         ))}
       </section>
