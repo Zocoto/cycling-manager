@@ -42,6 +42,7 @@ describe("déplacements du Fan Club", () => {
         requestedCars: 1,
         ownedCars: 1,
         supporterCount: 50,
+        fervor: 74,
         distanceKm: 170,
       }),
     ).toMatchObject({
@@ -61,6 +62,7 @@ describe("déplacements du Fan Club", () => {
         requestedCars: 8,
         ownedCars: 2,
         supporterCount: 12_480,
+        fervor: 74,
         distanceKm: 420,
       }).cars,
     ).toBe(2);

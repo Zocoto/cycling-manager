@@ -1,3 +1,11 @@
+import {
+  FAN_CLUB_CAR_CAPACITY_BY_MODEL,
+  calculateFanClubRaceBoost,
+  getAvailableFanClubTravelingSupporters,
+} from "./fan-club-race-boost";
+
+export { FAN_CLUB_TRAVEL_SHARE } from "./fan-club-race-boost";
+
 export type FanClubPilotTab =
   | "overview"
   | "riders"
@@ -116,12 +124,14 @@ export type FanClubTripPreview = {
   level: 1 | 2 | 3 | 4;
   name: string;
   bonuses: ReadonlyArray<string>;
+  fervorMultiplier: number;
+  ratingBoost: number;
+  projectedMountainRatingAt70: number;
 };
 
 export const FAN_CLUB_SUPPORTER_COUNT = 12_480;
 export const FAN_CLUB_FERVOR = 74;
 export const FAN_CLUB_TEAM_REACH = 58;
-export const FAN_CLUB_TRAVEL_SHARE = 0.4;
 export const FAN_CLUB_HEADQUARTERS_LEVEL = 2;
 export const FAN_CLUB_SHOP_LEVEL = 1;
 
@@ -363,7 +373,7 @@ export const FAN_CLUB_CAR_MODELS: ReadonlyArray<FanClubCarModel> = [
     id: "regional",
     name: "Car régional",
     description: "Format économique pour les déplacements proches.",
-    capacity: 40,
+    capacity: FAN_CLUB_CAR_CAPACITY_BY_MODEL.regional,
     purchasePrice: 85_000,
     resaleRate: 0.65,
     operatingCostPerKm: 1.35,
@@ -373,7 +383,7 @@ export const FAN_CLUB_CAR_MODELS: ReadonlyArray<FanClubCarModel> = [
     id: "grand-tourisme",
     name: "Car grand tourisme",
     description: "Davantage de places et de confort pour les longues distances.",
-    capacity: 55,
+    capacity: FAN_CLUB_CAR_CAPACITY_BY_MODEL["grand-tourisme"],
     purchasePrice: 135_000,
     resaleRate: 0.65,
     operatingCostPerKm: 1.75,
@@ -383,7 +393,7 @@ export const FAN_CLUB_CAR_MODELS: ReadonlyArray<FanClubCarModel> = [
     id: "double-etage",
     name: "Car double étage",
     description: "La capacité maximale pour les grandes mobilisations.",
-    capacity: 80,
+    capacity: FAN_CLUB_CAR_CAPACITY_BY_MODEL["double-etage"],
     purchasePrice: 220_000,
     resaleRate: 0.65,
     operatingCostPerKm: 2.4,
@@ -621,10 +631,7 @@ export function getPopularityMaturityCap(
 export function getAvailableTravelingSupporters(
   supporterCount: number,
 ): number {
-  return Math.max(
-    0,
-    Math.floor(Math.max(0, supporterCount) * FAN_CLUB_TRAVEL_SHARE),
-  );
+  return getAvailableFanClubTravelingSupporters(supporterCount);
 }
 
 export function calculateCarResalePrice(model: FanClubCarModel): number {
@@ -636,12 +643,14 @@ export function calculateFanClubTripPreview({
   requestedCars,
   ownedCars,
   supporterCount,
+  fervor,
   distanceKm,
 }: {
   model: FanClubCarModel;
   requestedCars: number;
   ownedCars: number;
   supporterCount: number;
+  fervor: number;
   distanceKm: number;
 }): FanClubTripPreview {
   const safeOwnedCars = Math.max(0, Math.floor(ownedCars));
@@ -658,6 +667,20 @@ export function calculateFanClubTripPreview({
   const cost = Math.round(
     cars * (safeDistanceKm * 2 * model.operatingCostPerKm + 250),
   );
+  const raceBoost = calculateFanClubRaceBoost({
+    supporterCount,
+    fervor,
+    seatCapacity: seats,
+  });
+  const bonuses =
+    raceBoost.ratingBoost > 0
+      ? [`+${raceBoost.ratingBoost.toFixed(2).replace(".", ",")} à toutes les notes`]
+      : [];
+  const boostDetails = {
+    fervorMultiplier: raceBoost.fervorMultiplier,
+    ratingBoost: raceBoost.ratingBoost,
+    projectedMountainRatingAt70: raceBoost.projectedMountainRatingAt70,
+  };
 
   if (travelers >= 220) {
     return {
@@ -669,7 +692,8 @@ export function calculateFanClubTripPreview({
       cost,
       level: 4,
       name: "Marée de supporters",
-      bonuses: ["+2 Résistance", "+1 Accélération"],
+      bonuses,
+      ...boostDetails,
     };
   }
 
@@ -683,7 +707,8 @@ export function calculateFanClubTripPreview({
       cost,
       level: 3,
       name: "Forte mobilisation",
-      bonuses: ["+1 Résistance", "+1 Accélération"],
+      bonuses,
+      ...boostDetails,
     };
   }
 
@@ -697,7 +722,8 @@ export function calculateFanClubTripPreview({
       cost,
       level: 2,
       name: "Tribune engagée",
-      bonuses: ["+1 Résistance"],
+      bonuses,
+      ...boostDetails,
     };
   }
 
@@ -710,7 +736,8 @@ export function calculateFanClubTripPreview({
     cost,
     level: 1,
     name: cars > 0 ? "Présence visible" : "Aucun car engagé",
-    bonuses: cars > 0 ? ["+1 Motivation"] : [],
+    bonuses,
+    ...boostDetails,
   };
 }
 

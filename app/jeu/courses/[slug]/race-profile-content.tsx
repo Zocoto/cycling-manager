@@ -40,6 +40,7 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 import { getStageFormCostRange } from "@/lib/game/form-management";
+import type { FanClubRaceBoost } from "@/lib/game/fan-club-race-boost";
 import {
   getRaceStageWeatherSeed,
   getRaceWeather,
@@ -73,6 +74,7 @@ import {
   getWeatherForecastHorizon,
 } from "@/services/team-weather-center";
 import { getCurrentTeamRivalries, type TeamRivalry } from "@/services/team-rivalries";
+import { getTeamFanClubRaceBoost } from "@/services/fan-club-race-boost";
 
 export type RaceProfilePageProps = {
   params: Promise<{
@@ -169,7 +171,15 @@ export async function RaceProfileContent({
   let engagedRidersError = false;
   let pressConferencesError = false;
 
-  const [contextResult, winnersResult, rosterResult, engagedRidersResult, pressResult, rivalriesResult] =
+  const [
+    contextResult,
+    winnersResult,
+    rosterResult,
+    engagedRidersResult,
+    pressResult,
+    rivalriesResult,
+    fanClubRaceBoostResult,
+  ] =
     await Promise.all([
       getCurrentRaceUserContext(supabase, user.id, edition.id)
         .then((context) => ({
@@ -221,6 +231,20 @@ export async function RaceProfileContent({
               rivalries: [] as TeamRivalry[],
               error,
             })),
+      !isInternationalChampionship && headerData.teamId
+        ? getTeamFanClubRaceBoost({
+            raceEditionId: edition.id,
+            teamId: headerData.teamId,
+          })
+            .then((boost) => ({ boost, error: null }))
+            .catch((error: unknown) => ({
+              boost: null as FanClubRaceBoost | null,
+              error,
+            }))
+        : Promise.resolve({
+            boost: null as FanClubRaceBoost | null,
+            error: null,
+          }),
     ]);
 
   if (contextResult.context) {
@@ -292,6 +316,12 @@ export async function RaceProfileContent({
     console.error(
       "Impossible de charger la rivalité pour la conférence d’avant-course :",
       rivalriesResult.error,
+    );
+  }
+  if (fanClubRaceBoostResult.error) {
+    console.error(
+      "Impossible de charger la mobilisation des supporters pour la course :",
+      fanClubRaceBoostResult.error,
     );
   }
 
@@ -607,6 +637,12 @@ export async function RaceProfileContent({
                     </div>
                   ) : null}
                   <RaceRewardDetails edition={edition} className="mt-3" />
+                  {!isInternationalChampionship &&
+                  raceUserContext.registration?.status === "accepted" ? (
+                    <FanClubRaceBoostCard
+                      boost={fanClubRaceBoostResult.boost}
+                    />
+                  ) : null}
                 </div>
 
                 <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
@@ -1455,6 +1491,93 @@ function weatherLabel(weather: RaceWeather) {
 
 function formatFormCost(value: number) {
   return value.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+}
+
+function FanClubRaceBoostCard({
+  boost,
+}: {
+  boost: FanClubRaceBoost | null;
+}) {
+  return (
+    <section className="mt-3 overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[linear-gradient(145deg,#0B302B,#176951)] p-5 text-white shadow-sm">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#F2C94C]">
+        Mobilisation des supporters
+      </p>
+      {boost ? (
+        <>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-2xl font-black">
+                +{formatRaceRating(boost.ratingBoost)}
+              </p>
+              <p className="text-xs font-bold text-white/70">
+                sur toutes les notes pendant la course
+              </p>
+            </div>
+            <p className="rounded-xl bg-white/10 px-3 py-2 text-sm font-black text-[#F2C94C]">
+              70 MO → {formatRaceRating(boost.projectedMountainRatingAt70)} MO
+            </p>
+          </div>
+          <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs">
+            <DefinitionRowDark
+              label="Supporters présents"
+              value={boost.mobilizedSupporters.toLocaleString("fr-FR")}
+            />
+            <DefinitionRowDark
+              label="Cars mobilisés"
+              value={String(boost.carCount)}
+            />
+            <DefinitionRowDark
+              label="Ferveur"
+              value={`${formatRaceRating(boost.fervor)} / 100`}
+            />
+            <DefinitionRowDark
+              label="Multiplicateur"
+              value={`× ${formatRaceRating(boost.fervorMultiplier)}`}
+            />
+          </dl>
+          <p className="mt-4 text-[11px] font-semibold leading-5 text-white/65">
+            Bonus = min(3 ; √(supporters ÷ 100)) × (ferveur ÷ 100).
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mt-3 text-sm font-semibold leading-6 text-white/75">
+            Aucun car n’est encore affecté à cette course. Sans supporters
+            mobilisés, aucun bonus de note n’est appliqué.
+          </p>
+          <Link
+            href="/jeu/fan-club?onglet=travel"
+            className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-[#F2C94C] px-4 text-xs font-black text-[#0B302B]"
+          >
+            Organiser un déplacement →
+          </Link>
+        </>
+      )}
+    </section>
+  );
+}
+
+function DefinitionRowDark({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <dt className="font-bold text-white/60">{label}</dt>
+      <dd className="mt-1 font-black text-white">{value}</dd>
+    </div>
+  );
+}
+
+function formatRaceRating(value: number) {
+  return value.toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function SecondaryClassifications({

@@ -95,6 +95,7 @@ import {
   type WelcomeCenterSpecialization,
   type WindTunnelSpecialization,
 } from "./race-infrastructure-specializations";
+import { applyFanClubRaceRatingBoost } from "./fan-club-race-boost";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -203,6 +204,11 @@ export type RiderSimulationInput = {
   nationalTechnicalLabBonus?: number;
   localRaceCountryCodes?: string[];
   reconnaissanceBonus?: number;
+  fanClubSupport?: {
+    mobilizedSupporters: number;
+    fervor: number;
+    ratingBoost: number;
+  };
   performancePreparations?: Array<{
     type: "indoor_track" | "wind_tunnel";
     bonusStartGameDay: number;
@@ -1105,12 +1111,15 @@ function normalizeStageSimulationInput(
               ))
               ? 2 + Math.max(0, input.federationHomeAdvantageBonus ?? 0)
               : 0,
-          ratings: applyRaceInfrastructurePerformanceBonuses({
-            ratings: weatherCenterAdjustedRatings,
-            rider,
-            stageType: input.stageType,
-            raceCountryCode: input.raceCountryCode,
-          }),
+          ratings: applyFanClubRaceRatingBoost(
+            applyRaceInfrastructurePerformanceBonuses({
+              ratings: weatherCenterAdjustedRatings,
+              rider,
+              stageType: input.stageType,
+              raceCountryCode: input.raceCountryCode,
+            }),
+            rider.fanClubSupport?.ratingBoost ?? 0,
+          ),
         };
       }),
   };

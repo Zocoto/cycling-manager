@@ -27,6 +27,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import type { FanClubRaceBoost } from "@/lib/game/fan-club-race-boost";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -101,6 +102,10 @@ import {
   parseContinentalChampionshipTitleType,
   type ActiveContinentalChampionshipTitlesByDiscipline,
 } from "@/services/rider-continental-championship-titles";
+import {
+  getFanClubRaceBoostKey,
+  loadFanClubRaceBoostDirectory,
+} from "@/services/fan-club-race-boost";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -920,6 +925,13 @@ export async function getActiveSeasonRaceCalendar(
     season.id,
     engagedTeamIds,
   );
+  const fanClubRaceBoostsPromise = loadFanClubRaceBoostDirectory(
+    raceDataAdmin,
+    {
+      raceEditionIds: editionIds,
+      teamIds: engagedTeamIds,
+    },
+  );
   const riderContext = await loadRaceCalendarRiderContext({
     supabase,
     admin: raceDataAdmin,
@@ -939,12 +951,14 @@ export async function getActiveSeasonRaceCalendar(
     welcomeCenterLocalRaceContext,
     raceInfrastructureSpecializations,
     teamRegistrationCountryCodes,
+    fanClubRaceBoosts,
   ] = await Promise.all([
     raceStaffEffectsPromise,
     teamSponsorVisualsPromise,
     localRaceCountriesPromise,
     raceInfrastructureSpecializationsPromise,
     teamRegistrationCountryCodesPromise,
+    fanClubRaceBoostsPromise,
   ]);
 
   const dayRows = daysResult.data ?? [];
@@ -1360,6 +1374,7 @@ export async function getActiveSeasonRaceCalendar(
     federationInfrastructureLevelByCountryAndCode,
     raceInfrastructureSpecializations,
     teamRegistrationCountryCodes,
+    fanClubRaceBoosts,
   );
 
   const editions = editionRows
@@ -2407,6 +2422,7 @@ function groupCalendarEngagedRiders(
   federationInfrastructureLevelByCountryAndCode: ReadonlyMap<string, number>,
   raceInfrastructureSpecializations: RaceInfrastructureSpecializations,
   teamRegistrationCountryCodes: ReadonlyMap<string, string>,
+  fanClubRaceBoosts: ReadonlyMap<string, FanClubRaceBoost>,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -2452,6 +2468,11 @@ function groupCalendarEngagedRiders(
     const usesNationalWorldModel = nationalInternationalEditionIds.has(
       row.race_edition_id,
     );
+    const fanClubRaceBoost = usesNationalWorldModel
+      ? null
+      : (fanClubRaceBoosts.get(
+          getFanClubRaceBoostKey(row.race_edition_id, row.team_id),
+        ) ?? null);
     const nationalChampionships = nationalChampionshipTitlesByRiderId.get(
       row.rider_id,
     );
@@ -2575,6 +2596,16 @@ function groupCalendarEngagedRiders(
               ) ?? null,
             teamRegistrationCountryCode:
               teamRegistrationCountryCodes.get(row.team_id) ?? null,
+            ...(fanClubRaceBoost && fanClubRaceBoost.ratingBoost > 0
+              ? {
+                  fanClubSupport: {
+                    mobilizedSupporters:
+                      fanClubRaceBoost.mobilizedSupporters,
+                    fervor: fanClubRaceBoost.fervor,
+                    ratingBoost: fanClubRaceBoost.ratingBoost,
+                  },
+                }
+              : {}),
           }),
       ratings: {
         mountain: Number(row.mountain),

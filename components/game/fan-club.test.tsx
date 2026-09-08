@@ -130,6 +130,18 @@ describe("Fan Club de production", () => {
     expect(source).not.toContain("Paliers proposés");
   });
 
+  it("explique le bonus sportif et projette une note montagne à 70", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "components/game/fan-club.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("Multiplicateur de ferveur");
+    expect(source).toContain("Bonus sur la course");
+    expect(source).toContain("70 MO →");
+    expect(source).toContain("√(supporters mobilisés ÷ 100)");
+  });
+
   it("présente les articles comme des produits en vitrine", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/game/fan-club.tsx"),

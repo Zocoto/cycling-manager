@@ -25,6 +25,7 @@ import {
   type FanClubTripAllocation,
   type FanClubWholesalePrice,
 } from "@/lib/game/fan-club-management";
+import { calculateFanClubRaceBoost } from "@/lib/game/fan-club-race-boost";
 import {
   calculateCarResalePrice,
   FAN_CLUB_CAR_MODELS,
@@ -445,6 +446,11 @@ function TravelPanel({
   );
   const seats = availableCars > 0 ? cars * effectiveModelCapacity : 0;
   const travelers = Math.min(remainingSupporters, seats);
+  const raceBoost = calculateFanClubRaceBoost({
+    supporterCount: data.supporterCount,
+    fervor: data.fervor,
+    seatCapacity: allocatedSeats + seats,
+  });
   const cost = race
     ? Math.round(cars * (race.distanceKm * 2 * model.operatingCostPerKm + 250))
     : 0;
@@ -546,8 +552,29 @@ function TravelPanel({
             <PreviewLine label="Supporters encore mobilisables" value={remainingSupporters.toLocaleString("fr-FR")} />
             <PreviewLine label="Places ajoutées" value={seats.toLocaleString("fr-FR")} />
             <PreviewLine label="Voyageurs supplémentaires" value={travelers.toLocaleString("fr-FR")} />
+            <PreviewLine
+              label="Supporters mobilisés au total"
+              value={raceBoost.mobilizedSupporters.toLocaleString("fr-FR")}
+            />
+            <PreviewLine
+              label="Multiplicateur de ferveur"
+              value={`${data.fervor} / 100 · × ${formatRaceRating(raceBoost.fervorMultiplier)}`}
+            />
+            <PreviewLine
+              label="Bonus sur la course"
+              value={`+${formatRaceRating(raceBoost.ratingBoost)} à toutes les notes`}
+            />
+            <PreviewLine
+              label="Exemple montagne"
+              value={`70 MO → ${formatRaceRating(raceBoost.projectedMountainRatingAt70)} MO`}
+            />
             <PreviewLine label="Coût du trajet" value={euroFormatter.format(cost)} />
           </dl>
+          <p className="mt-4 text-xs font-semibold leading-5 text-white/75">
+            Calcul : √(supporters mobilisés ÷ 100) × (ferveur ÷ 100), avec un
+            plafond de +3,00. Les rendements décroissants préservent
+            l’équilibre sportif tout en valorisant chaque car supplémentaire.
+          </p>
           <button
             type="button"
             disabled={isPending || !race || availableCars <= 0 || travelers <= 0}
@@ -998,3 +1025,9 @@ function StatusMessage({ message, dark = false }: { message: string; dark?: bool
 function getTabId(tab: FanClubPilotTab): string { return `fan-club-tab-${tab}`; }
 function getPanelId(tab: FanClubPilotTab): string { return `fan-club-panel-${tab}`; }
 function formatTrend(value: number): string { return value > 0 ? `+${value}` : value < 0 ? `−${Math.abs(value)}` : "Stable"; }
+function formatRaceRating(value: number): string {
+  return value.toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
