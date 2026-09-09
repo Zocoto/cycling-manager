@@ -53,8 +53,7 @@ export function GameHeader({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
-  const federationCountryCode =
-    sponsor?.countryCode.trim().toUpperCase() === "BE" ? "BE" : null;
+  const federationCountryCode = sponsor?.countryCode.trim().toUpperCase() || null;
 
   const maxWidthClassName =
     maxWidth === "wide" ? "max-w-[1500px]" : "max-w-7xl";

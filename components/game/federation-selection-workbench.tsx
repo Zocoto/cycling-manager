@@ -208,6 +208,7 @@ export function FederationSelectionWorkbench({
 
       {selectionState?.pendingConfirmations.length ? (
         <PendingConfirmationPanel
+          countryCode={countryCode}
           confirmations={selectionState.pendingConfirmations}
           riders={riders}
         />
@@ -551,9 +552,11 @@ function SelectionAutomaticModeControl({
 }
 
 function PendingConfirmationPanel({
+  countryCode,
   confirmations,
   riders,
 }: {
+  countryCode: string;
   confirmations: FederationSelectionState["pendingConfirmations"];
   riders: FederationSelectionRider[];
 }) {
@@ -578,11 +581,13 @@ function PendingConfirmationPanel({
               <p className="mt-1 text-xs font-bold text-[#60756E]">{slot?.label ?? confirmation.slotKey}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <form action={respondFederationPreselectionAction}>
+                  <input type="hidden" name="countryCode" value={countryCode} />
                   <input type="hidden" name="memberId" value={confirmation.memberId} />
                   <input type="hidden" name="decision" value="confirm" />
                   <button type="submit" className="min-h-10 rounded-xl bg-[var(--federation-secondary)] px-4 text-xs font-black text-white">Confirmer</button>
                 </form>
                 <form action={respondFederationPreselectionAction}>
+                  <input type="hidden" name="countryCode" value={countryCode} />
                   <input type="hidden" name="memberId" value={confirmation.memberId} />
                   <input type="hidden" name="decision" value="decline" />
                   <button type="submit" className="min-h-10 rounded-xl border border-[#B94848]/25 bg-[#FFF1EF] px-4 text-xs font-black text-[#9A3434]">Refuser</button>

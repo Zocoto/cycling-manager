@@ -93,9 +93,10 @@ export async function publishFederationPreselectionAction(
 }
 
 export async function respondFederationPreselectionAction(formData: FormData) {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
   const memberId = memberIdSchema.safeParse(formData.get("memberId"));
   const decision = z.enum(["confirm", "decline"]).safeParse(formData.get("decision"));
-  if (!memberId.success || !decision.success) return;
+  if (!countryCode.success || !memberId.success || !decision.success) return;
 
   const supabase = await createSupabaseServerClient();
   const result = await supabase.rpc(
@@ -110,8 +111,7 @@ export async function respondFederationPreselectionAction(formData: FormData) {
     return;
   }
   await syncFederationChampionshipStartlists();
-  revalidatePath("/jeu/federations/be");
-  revalidatePath("/jeu");
+  revalidateFederation(countryCode.data);
 }
 
 async function syncFederationChampionshipStartlists() {

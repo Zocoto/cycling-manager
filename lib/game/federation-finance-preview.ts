@@ -88,9 +88,9 @@ export function calculateFederationFinancePreview(
     objectiveBonus,
     donations,
     totalRevenue,
-    reserveEnvelope: roundToNearest(totalRevenue * 0.35, 5_000),
+    reserveEnvelope: roundToNearest(totalRevenue * 0.5, 5_000),
     infrastructureEnvelope: roundToNearest(totalRevenue * 0.4, 5_000),
-    solidarityEnvelope: roundToNearest(totalRevenue * 0.25, 5_000),
+    solidarityEnvelope: roundToNearest(totalRevenue * 0.1, 5_000),
     courseFillRate,
   };
 }

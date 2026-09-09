@@ -22,7 +22,10 @@ export type FederationTreasuryState = {
   } | null;
   canDonate: boolean;
   canManageSolidarity: boolean;
-  solidarityExecuted: boolean;
+  solidarityLimit: number;
+  solidarityDistributed: number;
+  solidarityRemaining: number;
+  solidarityPlanCount: number;
   transactions: FederationTreasuryTransaction[];
 };
 
@@ -44,6 +47,7 @@ type TransactionRow = {
 };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
+type SolidarityPlanRow = { total_amount: number | string };
 
 export async function getFederationTreasuryState({
   countryId,
@@ -60,7 +64,10 @@ export async function getFederationTreasuryState({
     account: null,
     canDonate: false,
     canManageSolidarity: false,
-    solidarityExecuted: false,
+    solidarityLimit: 0,
+    solidarityDistributed: 0,
+    solidarityRemaining: 0,
+    solidarityPlanCount: 0,
     transactions: [],
   };
   try {
@@ -109,13 +116,19 @@ export async function getFederationTreasuryState({
         .returns<TransactionRow[]>(),
       admin
         .from("national_federation_solidarity_plans")
-        .select("id", { count: "exact", head: true })
-        .eq("account_id", account.id),
+        .select("total_amount")
+        .eq("account_id", account.id)
+        .returns<SolidarityPlanRow[]>(),
     ]);
     if (transactionsResult.error) throw transactionsResult.error;
     if (solidarityResult.error) throw solidarityResult.error;
 
     const viewerDirectorId = assignmentResult.data?.sporting_director_id ?? null;
+    const solidarityLimit = Number(account.opening_balance) * 0.1;
+    const solidarityDistributed = (solidarityResult.data ?? []).reduce(
+      (total, plan) => total + Number(plan.total_amount),
+      0,
+    );
     return {
       account: {
         id: account.id,
@@ -130,7 +143,10 @@ export async function getFederationTreasuryState({
         gameYear >= 3 &&
         Boolean(viewerDirectorId) &&
         viewerDirectorId === termResult.data?.president_director_id,
-      solidarityExecuted: (solidarityResult.count ?? 0) > 0,
+      solidarityLimit,
+      solidarityDistributed,
+      solidarityRemaining: Math.max(0, solidarityLimit - solidarityDistributed),
+      solidarityPlanCount: solidarityResult.data?.length ?? 0,
       transactions: (transactionsResult.data ?? []).map((transaction) => ({
         id: transaction.id,
         dayNumber: transaction.day_number,

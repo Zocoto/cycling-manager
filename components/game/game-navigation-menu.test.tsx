@@ -21,7 +21,7 @@ describe("GameNavigationMenu", () => {
     expect(markup).toContain('href="/jeu/parrainage">Parrainage');
   });
 
-  it("affiche l’entrée fédération uniquement pour la bêta belge", () => {
+  it("affiche l’entrée fédération correspondant au pays du sponsor", () => {
     const belgianMarkup = renderToStaticMarkup(
       <GameNavigationMenu federationCountryCode="BE" />,
     );
@@ -32,7 +32,9 @@ describe("GameNavigationMenu", () => {
     expect(belgianMarkup).toContain('href="/jeu/federations/be"');
     expect(belgianMarkup).toContain("fi-be");
     expect(belgianMarkup).toContain("Fédération");
-    expect(otherMarkup).not.toContain('href="/jeu/federations/be"');
+    expect(otherMarkup).toContain('href="/jeu/federations/fr"');
+    expect(otherMarkup).toContain("fi-fr");
+    expect(belgianMarkup).not.toContain("Bêta belge");
   });
 
   it("masque les indicateurs de chargement qui se déforment dans le menu contextuel", () => {

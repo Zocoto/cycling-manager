@@ -111,14 +111,18 @@ export async function getFederationGovernanceOverview({
 
   try {
     const admin = createSupabaseAdminClient();
+    const settlementResult = await admin.rpc("settle_due_federation_elections");
+    if (settlementResult.error) throw settlementResult.error;
+    const initializationResult = await admin.rpc(
+      "initialize_due_federation_presidencies",
+    );
+    if (initializationResult.error) throw initializationResult.error;
     const exceptionalSettlementResult = await admin.rpc(
       "settle_due_exceptional_federation_elections",
     );
     if (exceptionalSettlementResult.error) {
       throw exceptionalSettlementResult.error;
     }
-    const settlementResult = await admin.rpc("settle_due_federation_elections");
-    if (settlementResult.error) throw settlementResult.error;
     const targetTermStart =
       season.gameYear % 2 === 0 ? season.gameYear + 1 : season.gameYear;
     const [

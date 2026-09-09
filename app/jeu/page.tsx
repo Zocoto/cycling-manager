@@ -523,6 +523,13 @@ export default async function GamePage() {
     teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
+  const federationCountryCode = (
+    teamSponsorIdentity?.sponsor.countryCode ??
+    teamAmateurIdentity?.homeCountryCode ??
+    ""
+  )
+    .trim()
+    .toUpperCase();
 
   const featuredRiders = [...((rosterResult.data ?? []) as DashboardRider[])]
     .sort(
@@ -635,30 +642,29 @@ export default async function GamePage() {
             <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
           ) : null}
 
-          {teamSponsorIdentity?.sponsor.countryCode.trim().toUpperCase() ===
-          "BE" ? (
+          {federationCountryCode ? (
             <Link
-              href="/jeu/federations/be"
+              href={`/jeu/federations/${federationCountryCode.toLowerCase()}`}
               prefetchOnIntent
-              data-dashboard-federation="be"
+              data-dashboard-federation={federationCountryCode.toLowerCase()}
               className="group relative mt-5 flex items-center gap-4 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[linear-gradient(105deg,#071A17_0%,#0B302B_62%,#176951_100%)] px-5 py-4 text-white shadow-[0_16px_42px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:border-[#F2C94C]/65 hover:shadow-[0_20px_48px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:px-7 sm:py-5"
             >
               <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
                 <span
                   role="img"
-                  aria-label="Drapeau de la Belgique"
-                  className="fi fi-be text-4xl"
+                  aria-label={`Drapeau ${federationCountryCode}`}
+                  className={`fi fi-${federationCountryCode.toLowerCase()} text-4xl`}
                 />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-                  Espace national · bêta belge
+                  Espace national
                 </span>
                 <span className="mt-1 block text-lg font-black sm:text-xl">
                   Fédération
                 </span>
                 <span className="mt-1 hidden text-xs font-semibold text-[#BFD1C6] sm:block">
-                  Ouvrez le salon fédéral et testez la création du futur maillot national.
+                  Retrouvez le salon, les sélections et les projets de votre fédération.
                 </span>
               </span>
               <span

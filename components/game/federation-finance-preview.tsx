@@ -71,7 +71,7 @@ export function FederationFinancePreview({
     ],
   );
   const [reputationThreshold, setReputationThreshold] = useState(100);
-  const [solidarityAmount, setSolidarityAmount] = useState(100_000);
+  const [solidarityAmount, setSolidarityAmount] = useState(25_000);
   const [donationAmount, setDonationAmount] = useState(25_000);
   const [donationState, donationAction, donationPending] = useActionState(
     donateToFederationAction,
@@ -85,10 +85,22 @@ export function FederationFinancePreview({
     (team) => team.reputationPoints <= reputationThreshold,
   );
   const solidarityCommitment = eligibleTeams.length * solidarityAmount;
+  const hasTreasuryAccount = Boolean(treasuryState?.account);
   const availableBalance =
     treasuryState?.account?.balance ?? projection.solidarityEnvelope;
-  const overBudget = solidarityCommitment > availableBalance;
+  const solidarityLimit = hasTreasuryAccount
+    ? (treasuryState?.solidarityLimit ?? 0)
+    : projection.solidarityEnvelope;
+  const solidarityDistributed = hasTreasuryAccount
+    ? (treasuryState?.solidarityDistributed ?? 0)
+    : 0;
+  const solidarityRemaining = hasTreasuryAccount
+    ? (treasuryState?.solidarityRemaining ?? 0)
+    : solidarityLimit;
+  const availableSolidarity = Math.min(availableBalance, solidarityRemaining);
+  const overBudget = solidarityCommitment > availableSolidarity;
   const isActive = gameYear >= 3;
+  const solidarityCapReached = isActive && solidarityRemaining <= 0;
 
   return (
     <div className="space-y-7">
@@ -113,9 +125,9 @@ export function FederationFinancePreview({
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
-            <Envelope label="Réserve" value={projection.reserveEnvelope} ratio="35 %" />
+            <Envelope label="Réserve" value={projection.reserveEnvelope} ratio="50 %" />
             <Envelope label="Bâtiments" value={projection.infrastructureEnvelope} ratio="40 %" />
-            <Envelope label="Solidarité" value={projection.solidarityEnvelope} ratio="25 % max." />
+            <Envelope label="Solidarité" value={solidarityLimit} ratio="10 % max." />
           </div>
         </div>
 
@@ -170,31 +182,32 @@ export function FederationFinancePreview({
           <h3 className="mt-2 text-2xl font-black text-[#183F37]">Deux jauges, une dépense toujours couverte</h3>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
             Les équipes affiliées sous le seuil de réputation reçoivent le même
-            montant. La validation est bloquée si le total dépasse le budget.
+            montant. Sur la saison, les versements cumulés sont plafonnés à 10 %
+            du budget d’ouverture de la fédération.
           </p>
           <div className="mt-6 space-y-6">
             <RangeControl label="Réputation maximale éligible" value={reputationThreshold} display={`${reputationThreshold} points`} min={0} max={500} step={10} onChange={setReputationThreshold} />
-            <RangeControl label="Montant par bénéficiaire" value={solidarityAmount} display={money.format(solidarityAmount)} min={0} max={500_000} step={25_000} onChange={setSolidarityAmount} />
+            <RangeControl label="Montant par bénéficiaire" value={solidarityAmount} display={money.format(solidarityAmount)} min={25_000} max={500_000} step={25_000} onChange={setSolidarityAmount} />
           </div>
           <div className={`mt-6 rounded-2xl border p-5 ${overBudget ? "border-[#C75348]/30 bg-[#FFF2F0]" : "border-[var(--federation-secondary)]/25 bg-[#E8F7F1]"}`}>
             <div className="grid grid-cols-3 gap-3 text-center">
               <Metric label="Bénéficiaires" value={`${eligibleTeams.length}`} small />
               <Metric label="Engagement" value={compactMoney.format(solidarityCommitment)} small />
-              <Metric label="Solde disponible" value={compactMoney.format(availableBalance)} small />
+              <Metric label="Plafond restant" value={compactMoney.format(solidarityRemaining)} small />
             </div>
             <p className={`mt-4 text-xs font-black leading-5 ${overBudget ? "text-[#9D3E37]" : "text-[var(--federation-secondary)]"}`}>
               {overBudget
-                ? `Validation impossible : il manque ${money.format(solidarityCommitment - projection.solidarityEnvelope)}.`
-                : `${money.format(availableBalance - solidarityCommitment)} resteraient disponibles.`}
+                ? `Validation impossible : il manque ${money.format(solidarityCommitment - availableSolidarity)} sur l’enveloppe autorisée.`
+                : `${money.format(solidarityDistributed)} déjà versés sur un plafond saisonnier de ${money.format(solidarityLimit)}.`}
             </p>
             {isActive && treasuryState?.canManageSolidarity ? (
               <form action={solidarityAction}>
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="reputationThreshold" value={reputationThreshold} />
                 <input type="hidden" name="amountPerTeam" value={solidarityAmount} />
-                <button type="submit" disabled={overBudget || solidarityPending || treasuryState.solidarityExecuted} className="mt-4 min-h-11 w-full rounded-xl bg-[var(--federation-primary)] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
-                  {treasuryState.solidarityExecuted
-                    ? "Fonds déjà versé cette saison"
+                <button type="submit" disabled={overBudget || solidarityPending || solidarityCapReached} className="mt-4 min-h-11 w-full rounded-xl bg-[var(--federation-primary)] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                  {solidarityCapReached
+                    ? "Plafond saisonnier atteint"
                     : solidarityPending
                       ? "Versement…"
                       : overBudget
