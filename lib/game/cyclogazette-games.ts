@@ -230,7 +230,191 @@ const GENERAL_CROSSWORD_WORDS: readonly CrosswordWord[] = [
   { answer: "SOURIRE", clue: "Expression joyeuse dessinée par la bouche" },
 ] as const;
 
+const EXTRA_CROSSWORD_WORDS: readonly CrosswordWord[] = [
+  { answer: "SOURCE", clue: "Point où une eau souterraine jaillit" },
+  { answer: "CASCADE", clue: "Chute d’eau naturelle" },
+  { answer: "MARAIS", clue: "Terrain humide couvert d’une eau peu profonde" },
+  { answer: "DUNE", clue: "Colline de sable façonnée par le vent" },
+  { answer: "RECIF", clue: "Relief rocheux ou corallien proche de la surface" },
+  { answer: "GROTTE", clue: "Cavité naturelle creusée dans la roche" },
+  { answer: "GORGE", clue: "Passage étroit encaissé entre des reliefs" },
+  { answer: "PLAINE", clue: "Grande étendue de terrain peu accidentée" },
+  { answer: "TUNDRA", clue: "Végétation rase des régions froides" },
+  { answer: "TAIGA", clue: "Forêt de conifères des régions boréales" },
+  { answer: "STEPPE", clue: "Vaste prairie d’un climat sec" },
+  { answer: "LAGON", clue: "Étendue d’eau séparée de la mer par un récif" },
+  { answer: "ESTUAIRE", clue: "Embouchure où la marée remonte le fleuve" },
+  { answer: "ARCHIPEL", clue: "Ensemble d’îles proches les unes des autres" },
+  { answer: "CANAL", clue: "Voie d’eau aménagée par l’être humain" },
+  { answer: "TORRENT", clue: "Cours d’eau de montagne rapide et irrégulier" },
+  { answer: "RUISSEAU", clue: "Petit cours d’eau" },
+  { answer: "SOMMET", clue: "Point le plus élevé d’un relief" },
+  { answer: "CRATERE", clue: "Dépression circulaire au sommet d’un volcan" },
+  { answer: "GEYSER", clue: "Source projetant périodiquement de l’eau chaude" },
+  { answer: "BANQUISE", clue: "Étendue de glace flottant sur la mer" },
+  { answer: "ICEBERG", clue: "Grande masse de glace dérivant en mer" },
+  { answer: "AVALANCHE", clue: "Masse de neige dévalant une pente" },
+  { answer: "HORIZON", clue: "Ligne apparente où le ciel rejoint la terre" },
+  { answer: "CANYON", clue: "Vallée profonde aux parois abruptes" },
+  { answer: "LITTORAL", clue: "Zone située au contact de la terre et de la mer" },
+  { answer: "EQUATEUR", clue: "Cercle imaginaire partageant la Terre en deux" },
+  { answer: "CONTINENT", clue: "Très vaste étendue de terres émergées" },
+  { answer: "DETROIT", clue: "Bras de mer resserré entre deux terres" },
+  { answer: "OASIS", clue: "Lieu fertile au milieu d’un désert" },
+  { answer: "GIRAFE", clue: "Mammifère africain au très long cou" },
+  { answer: "ELEPHANT", clue: "Grand mammifère muni d’une trompe" },
+  { answer: "PANTHERE", clue: "Grand félin à la robe souvent tachetée" },
+  { answer: "GAZELLE", clue: "Antilope légère et très rapide" },
+  { answer: "CHAMOIS", clue: "Animal montagnard agile sur les rochers" },
+  { answer: "MARMOTTE", clue: "Rongeur des Alpes qui hiberne" },
+  { answer: "ECUREUIL", clue: "Petit rongeur arboricole à la queue touffue" },
+  { answer: "HIRONDELLE", clue: "Oiseau migrateur au vol très agile" },
+  { answer: "ABEILLE", clue: "Insecte pollinisateur qui produit du miel" },
+  { answer: "PAPILLON", clue: "Insecte aux ailes couvertes d’écailles colorées" },
+  { answer: "LIBELLULE", clue: "Insecte au corps fin qui vole près de l’eau" },
+  { answer: "TORTUE", clue: "Reptile protégé par une carapace" },
+  { answer: "LEZARD", clue: "Petit reptile souvent aperçu au soleil" },
+  { answer: "IGUANE", clue: "Grand lézard des régions tropicales" },
+  { answer: "PIEUVRE", clue: "Mollusque marin doté de huit bras" },
+  { answer: "HOMARD", clue: "Crustacé marin muni de grosses pinces" },
+  { answer: "SAUMON", clue: "Poisson qui remonte les rivières pour se reproduire" },
+  { answer: "TRUITE", clue: "Poisson d’eau douce apprécié des pêcheurs" },
+  { answer: "MANCHOT", clue: "Oiseau marin incapable de voler" },
+  { answer: "FLAMANT", clue: "Grand oiseau rose aux longues pattes" },
+  { answer: "PELICAN", clue: "Oiseau pêcheur reconnaissable à sa grande poche" },
+  { answer: "FAUCON", clue: "Rapace réputé pour la vitesse de son piqué" },
+  { answer: "CORBEAU", clue: "Grand oiseau noir très intelligent" },
+  { answer: "SANGLIER", clue: "Cochon sauvage vivant dans les forêts" },
+  { answer: "HIBOU", clue: "Rapace nocturne portant des aigrettes" },
+  { answer: "BLAIREAU", clue: "Mammifère fouisseur au museau rayé" },
+  { answer: "PHOQUE", clue: "Mammifère marin aux membres transformés en nageoires" },
+  { answer: "MORSE", clue: "Mammifère marin muni de longues défenses" },
+  { answer: "REQUIN", clue: "Poisson prédateur au squelette cartilagineux" },
+  { answer: "HIPPOCAMPE", clue: "Petit poisson marin à tête de cheval" },
+  { answer: "CHANSON", clue: "Texte mis en musique pour être chanté" },
+  { answer: "GUITARE", clue: "Instrument à cordes joué avec les doigts ou un médiator" },
+  { answer: "TROMPETTE", clue: "Instrument à vent de la famille des cuivres" },
+  { answer: "FLUTE", clue: "Instrument à vent au son clair" },
+  { answer: "TAMBOUR", clue: "Instrument dont on frappe la membrane" },
+  { answer: "ORGUE", clue: "Grand instrument à clavier alimenté par des tuyaux" },
+  { answer: "CHORALE", clue: "Ensemble de personnes qui chantent en groupe" },
+  { answer: "CONCERT", clue: "Représentation musicale devant un public" },
+  { answer: "CIRQUE", clue: "Spectacle mêlant notamment acrobaties et clowns" },
+  { answer: "DANSEUR", clue: "Artiste qui s’exprime par le mouvement" },
+  { answer: "PEINTRE", clue: "Artiste qui compose avec des couleurs" },
+  { answer: "TOILE", clue: "Support traditionnel d’une peinture" },
+  { answer: "PALETTE", clue: "Planche sur laquelle le peintre mélange ses couleurs" },
+  { answer: "ARGILE", clue: "Terre malléable utilisée par le potier" },
+  { answer: "MOSAIQUE", clue: "Décor formé par l’assemblage de petits fragments" },
+  { answer: "GRAVURE", clue: "Image obtenue à partir d’une surface incisée" },
+  { answer: "ATELIER", clue: "Lieu de travail d’un artisan ou d’un artiste" },
+  { answer: "GALERIE", clue: "Lieu où sont exposées des œuvres" },
+  { answer: "BIBLIOTHEQUE", clue: "Lieu où des livres sont conservés et consultés" },
+  { answer: "CONTE", clue: "Court récit qui fait souvent appel au merveilleux" },
+  { answer: "FABLE", clue: "Petit récit qui se termine souvent par une morale" },
+  { answer: "AUTEUR", clue: "Personne qui a écrit une œuvre" },
+  { answer: "CHAPITRE", clue: "Grande division d’un livre" },
+  { answer: "LECTURE", clue: "Action de parcourir et comprendre un texte" },
+  { answer: "CRAYON", clue: "Instrument servant à écrire ou dessiner" },
+  { answer: "AFFICHE", clue: "Support imprimé destiné à être vu du public" },
+  { answer: "COSTUME", clue: "Tenue portée pour incarner un personnage" },
+  { answer: "PORTRAIT", clue: "Représentation d’une personne" },
+  { answer: "ORCHESTRE", clue: "Ensemble de musiciens dirigé par un chef" },
+  { answer: "NEBULEUSE", clue: "Nuage de gaz et de poussières dans l’espace" },
+  { answer: "ASTEROIDE", clue: "Petit corps rocheux en orbite autour du Soleil" },
+  { answer: "METEORE", clue: "Phénomène lumineux produit dans l’atmosphère" },
+  { answer: "TELESCOPE", clue: "Instrument qui permet d’observer les astres" },
+  { answer: "PLANCTON", clue: "Ensemble d’organismes flottant dans l’eau" },
+  { answer: "CELLULE", clue: "Unité fondamentale du vivant" },
+  { answer: "MOLECULE", clue: "Assemblage d’atomes liés entre eux" },
+  { answer: "CRISTAL", clue: "Solide dont les constituants sont ordonnés" },
+  { answer: "AIMANT", clue: "Objet qui attire certains métaux" },
+  { answer: "VOLTAGE", clue: "Nom courant de la tension électrique" },
+  { answer: "ENERGIE", clue: "Capacité d’un système à produire une action" },
+  { answer: "GRAVITE", clue: "Force qui attire les corps les uns vers les autres" },
+  { answer: "PRISME", clue: "Solide transparent qui décompose la lumière" },
+  { answer: "SONDE", clue: "Appareil envoyé pour recueillir des informations" },
+  { answer: "RADAR", clue: "Système qui localise des objets grâce aux ondes" },
+  { answer: "ECHO", clue: "Son renvoyé par un obstacle" },
+  { answer: "VACCIN", clue: "Préparation qui entraîne les défenses immunitaires" },
+  { answer: "FOSSILE", clue: "Trace ancienne d’un être vivant conservée dans la roche" },
+  { answer: "MINERAL", clue: "Substance naturelle généralement solide" },
+  { answer: "QUARTZ", clue: "Minéral très répandu formé de silice" },
+  { answer: "MAGMA", clue: "Roche fondue présente sous la croûte terrestre" },
+  { answer: "VAPEUR", clue: "État gazeux pris par un liquide chauffé" },
+  { answer: "OXYGENE", clue: "Gaz indispensable à la respiration humaine" },
+  { answer: "CARBONE", clue: "Élément chimique essentiel à la vie" },
+  { answer: "CLIMAT", clue: "Ensemble des conditions météorologiques habituelles" },
+  { answer: "ELECTRON", clue: "Particule portant une charge électrique négative" },
+  { answer: "PROTON", clue: "Particule du noyau portant une charge positive" },
+  { answer: "NEUTRON", clue: "Particule du noyau sans charge électrique" },
+  { answer: "BACTERIE", clue: "Micro-organisme formé d’une seule cellule" },
+  { answer: "POLLEN", clue: "Poudre produite par les fleurs" },
+  { answer: "RACINE", clue: "Partie d’une plante généralement cachée dans le sol" },
+  { answer: "AMANDE", clue: "Fruit à coque utilisé notamment en pâtisserie" },
+  { answer: "NOISETTE", clue: "Petit fruit rond du noisetier" },
+  { answer: "PISTACHE", clue: "Petit fruit vert protégé par une coque" },
+  { answer: "CANNELLE", clue: "Épice parfumée tirée de l’écorce d’un arbre" },
+  { answer: "GINGEMBRE", clue: "Rhizome au goût frais et piquant" },
+  { answer: "BASILIC", clue: "Herbe aromatique emblématique du pesto" },
+  { answer: "ROMARIN", clue: "Plante aromatique aux feuilles en aiguilles" },
+  { answer: "THYM", clue: "Petite herbe aromatique du bouquet garni" },
+  { answer: "POIVRE", clue: "Épice issue de baies souvent moulues" },
+  { answer: "FIGUE", clue: "Fruit méditerranéen rempli de petites graines" },
+  { answer: "ABRICOT", clue: "Fruit orangé à noyau" },
+  { answer: "POMME", clue: "Fruit du pommier que l’on peut croquer" },
+  { answer: "POIRE", clue: "Fruit souvent reconnaissable à sa forme allongée" },
+  { answer: "FRAISE", clue: "Petit fruit rouge portant ses graines à l’extérieur" },
+  { answer: "FRAMBOISE", clue: "Petit fruit rouge formé de multiples grains" },
+  { answer: "MYRTILLE", clue: "Petite baie bleu foncé" },
+  { answer: "MELON", clue: "Gros fruit estival à la chair parfumée" },
+  { answer: "PASTEQUE", clue: "Très gros fruit à la chair rouge et aqueuse" },
+  { answer: "ARTICHAUT", clue: "Légume dont on mange le cœur et la base des feuilles" },
+  { answer: "CAROTTE", clue: "Racine comestible généralement orange" },
+  { answer: "NAVET", clue: "Racine potagère blanche et violette" },
+  { answer: "POIREAU", clue: "Légume allongé proche de l’oignon" },
+  { answer: "POTIRON", clue: "Grande courge à la chair orangée" },
+  { answer: "CHATAIGNE", clue: "Fruit du châtaignier protégé par une bogue" },
+  { answer: "BISCUIT", clue: "Petit gâteau sec" },
+  { answer: "CROISSANT", clue: "Viennoiserie feuilletée en forme de lune" },
+  { answer: "BAGUETTE", clue: "Pain français long et étroit" },
+  { answer: "YAOURT", clue: "Produit laitier obtenu par fermentation" },
+  { answer: "CREPE", clue: "Fine pâte cuite que l’on garnit" },
+  { answer: "GAUFRE", clue: "Pâtisserie cuite entre deux plaques quadrillées" },
+  { answer: "BOUSSOLE", clue: "Instrument qui indique le nord" },
+  { answer: "VALISE", clue: "Bagage rigide ou souple emporté en voyage" },
+  { answer: "PASSEPORT", clue: "Document officiel nécessaire pour franchir certaines frontières" },
+  { answer: "TUNNEL", clue: "Passage creusé sous un obstacle" },
+  { answer: "GARE", clue: "Lieu où les voyageurs prennent le train" },
+  { answer: "QUAI", clue: "Plateforme d’embarquement d’une gare ou d’un port" },
+  { answer: "NAVIRE", clue: "Grand bateau destiné à naviguer en mer" },
+  { answer: "VOILIER", clue: "Bateau principalement propulsé par ses voiles" },
+  { answer: "ANCRE", clue: "Pièce lourde qui immobilise un bateau" },
+  { answer: "HELICE", clue: "Pièce à pales qui assure une propulsion" },
+  { answer: "FENETRE", clue: "Ouverture vitrée pratiquée dans un mur" },
+  { answer: "ESCALIER", clue: "Suite de marches permettant de changer d’étage" },
+  { answer: "PLAFOND", clue: "Surface qui ferme le haut d’une pièce" },
+  { answer: "GRENIER", clue: "Espace situé sous le toit d’une maison" },
+  { answer: "BALCON", clue: "Plateforme extérieure accessible depuis un étage" },
+  { answer: "BOUGIE", clue: "Mèche entourée de cire qui produit une flamme" },
+  { answer: "COUSSIN", clue: "Petit sac rembourré servant d’appui" },
+  { answer: "FAUTEUIL", clue: "Siège confortable muni de bras" },
+  { answer: "ARMOIRE", clue: "Meuble haut destiné au rangement" },
+  { answer: "TIROIR", clue: "Compartiment coulissant d’un meuble" },
+  { answer: "CISEAUX", clue: "Outil à deux lames articulées" },
+  { answer: "MARTEAU", clue: "Outil utilisé pour enfoncer un clou" },
+  { answer: "PARAPLUIE", clue: "Accessoire que l’on ouvre pour se protéger de la pluie" },
+  { answer: "CARNET", clue: "Petit cahier destiné à prendre des notes" },
+  { answer: "ENVELOPPE", clue: "Pochette de papier destinée à contenir une lettre" },
+  { answer: "TIMBRE", clue: "Petite vignette qui affranchit un courrier" },
+  { answer: "CALENDRIER", clue: "Tableau qui organise les jours, semaines et mois" },
+  { answer: "PANIER", clue: "Récipient léger souvent muni d’une anse" },
+  { answer: "LAMPE", clue: "Appareil qui produit de la lumière" },
+] as const;
+
 const GENERAL_CROSSWORDS_FROM_ISSUE = 47;
+const DIVERSE_CROSSWORDS_FROM_ISSUE = 57;
+const CROSSWORD_VOCABULARY_COHORTS = 10;
 
 type DenseCrosswordSquare = readonly [string, string, string, string];
 
@@ -615,6 +799,28 @@ function createSudokuLineOrder(random: () => number) {
 
 function createCrosswordPuzzle(issueNumber: number): PrivateCrosswordPuzzle {
   const difficulty = getDifficulty(issueNumber, 1);
+  if (issueNumber >= DIVERSE_CROSSWORDS_FROM_ISSUE) {
+    const targetCount =
+      difficulty === "facile" ? 15 : difficulty === "moyen" ? 16 : 17;
+    const wordPool = getDiverseCrosswordWordPool(issueNumber);
+    let best: PlacedCrosswordWord[] = [];
+
+    for (let attempt = 0; attempt < 16; attempt += 1) {
+      const random = createSeededRandom(
+        issueNumber * 15485863 + attempt * 32452843 + 49999,
+      );
+      const candidate = placeCrosswordWords(
+        shuffle([...wordPool], random),
+        targetCount,
+        random,
+      );
+      if (candidate.length > best.length) best = candidate;
+      if (candidate.length >= targetCount) break;
+    }
+
+    return buildCrosswordPuzzle(best, difficulty);
+  }
+
   if (issueNumber < 45) {
     const targetCount =
       difficulty === "facile" ? 6 : difficulty === "moyen" ? 7 : 8;
@@ -877,6 +1083,21 @@ function getCrosswordWordPool(issueNumber: number) {
   );
 
   return [...GENERAL_CROSSWORD_WORDS, ...cyclingTouches];
+}
+
+function getDiverseCrosswordWordPool(issueNumber: number) {
+  const cohort =
+    (issueNumber - DIVERSE_CROSSWORDS_FROM_ISSUE) %
+    CROSSWORD_VOCABULARY_COHORTS;
+  const vocabulary = [
+    ...GENERAL_CROSSWORD_WORDS,
+    ...EXTRA_CROSSWORD_WORDS,
+    ...CYCLING_CROSSWORD_WORDS,
+  ];
+
+  return vocabulary.filter(
+    (_, index) => index % CROSSWORD_VOCABULARY_COHORTS === cohort,
+  );
 }
 
 function placeCrosswordWords(

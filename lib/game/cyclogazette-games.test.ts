@@ -110,26 +110,72 @@ describe("Cyclogazette daily games", () => {
       }
     }
   });
+
+  it("renouvelle fortement le vocabulaire à partir de la saison 3", () => {
+    const answersByIssue = new Map<number, Set<string>>();
+    const vocabulary = new Set<string>();
+
+    for (let issueNumber = 57; issueNumber <= 140; issueNumber += 1) {
+      const crossword = getCyclogazetteDailyGames(issueNumber).crossword;
+      const solutionRows =
+        getCyclogazetteGameSolutions(issueNumber).crosswordRows;
+      const answers = extractCrosswordAnswers(crossword, solutionRows);
+
+      expect(crossword.entries.length).toBeGreaterThanOrEqual(15);
+      expect(crossword.entries.length).toBeLessThanOrEqual(17);
+      expect(answers.size).toBe(crossword.entries.length);
+      expect(isConnectedCrossword(solutionRows)).toBe(true);
+
+      for (let previousIssue = issueNumber - 9; previousIssue < issueNumber; previousIssue += 1) {
+        const previousAnswers = answersByIssue.get(previousIssue);
+        if (!previousAnswers) continue;
+        expect([...answers].filter((answer) => previousAnswers.has(answer))).toEqual(
+          [],
+        );
+      }
+
+      answers.forEach((answer) => vocabulary.add(answer));
+      answersByIssue.set(issueNumber, answers);
+    }
+
+    expect(vocabulary.size).toBeGreaterThanOrEqual(300);
+  });
 });
 
 function isConnectedCrossword(rows: string[]) {
   const firstIndex = rows.join("").search(/[A-Z]/);
   if (firstIndex < 0) return false;
+  const columns = rows[0]?.length ?? 0;
   const seen = new Set<number>();
   const queue = [firstIndex];
 
   while (queue.length > 0) {
     const index = queue.shift();
     if (index === undefined || seen.has(index)) continue;
-    const row = Math.floor(index / 9);
-    const column = index % 9;
+    const row = Math.floor(index / columns);
+    const column = index % columns;
     if (rows[row]?.[column] === "#") continue;
     seen.add(index);
-    if (row > 0) queue.push(index - 9);
-    if (row < 8) queue.push(index + 9);
+    if (row > 0) queue.push(index - columns);
+    if (row < rows.length - 1) queue.push(index + columns);
     if (column > 0) queue.push(index - 1);
-    if (column < 8) queue.push(index + 1);
+    if (column < columns - 1) queue.push(index + 1);
   }
 
   return seen.size === rows.join("").replaceAll("#", "").length;
+}
+
+function extractCrosswordAnswers(
+  crossword: ReturnType<typeof getCyclogazetteDailyGames>["crossword"],
+  solutionRows: string[],
+) {
+  return new Set(
+    crossword.entries.map((entry) =>
+      Array.from({ length: entry.length }, (_, index) =>
+        entry.direction === "horizontal"
+          ? solutionRows[entry.row][entry.column + index]
+          : solutionRows[entry.row + index][entry.column],
+      ).join(""),
+    ),
+  );
 }
