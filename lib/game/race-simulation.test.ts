@@ -2142,12 +2142,183 @@ describe("simulateRaceStage", () => {
     const result = simulateRaceStage({
       ...baseInput,
       raceCountryCode: "BE",
+      federationHomeAdvantageBonus: 1,
+      federationHomeAdvantageSpecialization: {
+        code: "terrain_library",
+        infrastructureLevel: 5,
+      },
       riders: [rider, createSelectionTestRider("temoin", { hills: 64 })],
     });
     expect(
       result.resolvedRiders.find((candidate) => candidate.id === rider.id)
         ?.localRaceBonus,
     ).toBe(2);
+  });
+
+  it("réserve les points fédéraux et la Bibliothèque aux coureurs nationaux", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const national = {
+      ...createSelectionTestRider("national", { hills: 64 }),
+      countryCode: "BE",
+    };
+    const assimilatedLocal = {
+      ...createSelectionTestRider("local-par-accueil", { hills: 64 }),
+      countryCode: "FR",
+      localRaceCountryCodes: ["BE"],
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      profileType: "hilly",
+      raceCountryCode: "BE",
+      federationHomeAdvantageBonus: 1,
+      federationHomeAdvantageSpecialization: {
+        code: "terrain_library",
+        infrastructureLevel: 5,
+      },
+      riders: [national, assimilatedLocal],
+    });
+
+    expect(
+      result.resolvedRiders.find((rider) => rider.id === national.id)
+        ?.localRaceBonus,
+    ).toBe(3.6);
+    expect(
+      result.resolvedRiders.find(
+        (rider) => rider.id === assimilatedLocal.id,
+      )?.localRaceBonus,
+    ).toBe(2);
+  });
+
+  it("augmente l’efficacité d’une reconnaissance nationale à domicile", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const climateProfile = { strength: "rain", weakness: "snow" } as const;
+    const prepared = {
+      ...createSelectionTestRider("reconnaissance-nationale", { hills: 64 }),
+      countryCode: "BE",
+      climateProfile,
+      reconnaissanceBonus: 2,
+    };
+    const witness = {
+      ...createSelectionTestRider("sans-reconnaissance", { hills: 64 }),
+      countryCode: "BE",
+      climateProfile,
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      profileType: "hilly",
+      raceCountryCode: "BE",
+      weather: {
+        condition: "cloudy",
+        rainIntensity: "none",
+        temperatureC: 18,
+        windSpeedKph: 8,
+        windDirection: "headwind",
+        windIntensity: "calm",
+        isWet: false,
+      },
+      federationHomeAdvantageSpecialization: {
+        code: "terrain_library",
+        infrastructureLevel: 5,
+      },
+      riders: [prepared, witness],
+    });
+    const preparedResult = result.resolvedRiders.find(
+      (rider) => rider.id === prepared.id,
+    )!;
+    const witnessResult = result.resolvedRiders.find(
+      (rider) => rider.id === witness.id,
+    )!;
+
+    expect(
+      preparedResult.ratings.hills - witnessResult.ratings.hills,
+    ).toBeCloseTo(2.2);
+  });
+
+  it("câble le climat local sur l’exécution et la dépense énergétique", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const national = {
+      ...createSelectionTestRider("climat-national", { hills: 64 }),
+      countryCode: "FR",
+      climateProfile: { strength: "sun", weakness: "snow" } as const,
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      raceCountryCode: "FR",
+      federationHomeAdvantageBonus: 1,
+      weather: {
+        condition: "rain",
+        rainIntensity: "steady",
+        temperatureC: 14,
+        windSpeedKph: 12,
+        windDirection: "headwind",
+        windIntensity: "breeze",
+        isWet: true,
+      },
+      federationHomeAdvantageSpecialization: {
+        code: "climate_lab",
+        infrastructureLevel: 5,
+      },
+      riders: [national, createSelectionTestRider("temoin-climat", { hills: 64 })],
+    });
+    const nationalResult = result.resolvedRiders.find(
+      (rider) => rider.id === national.id,
+    )!;
+
+    expect(nationalResult.localRaceBonus).toBe(3.6);
+    expect(nationalResult.infrastructureEnergyCostReductionPercentage).toBe(4);
+  });
+
+  it("renforce le bonus des supporters mobilisés pour le coureur national", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const climateProfile = { strength: "rain", weakness: "snow" } as const;
+    const supported = {
+      ...createSelectionTestRider("support-populaire", { hills: 64 }),
+      countryCode: "BE",
+      climateProfile,
+      fanClubSupport: {
+        mobilizedSupporters: 100,
+        fervor: 100,
+        ratingBoost: 1,
+      },
+    };
+    const witness = {
+      ...createSelectionTestRider("sans-support", { hills: 64 }),
+      countryCode: "BE",
+      climateProfile,
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      profileType: "hilly",
+      raceCountryCode: "BE",
+      weather: {
+        condition: "cloudy",
+        rainIntensity: "none",
+        temperatureC: 18,
+        windSpeedKph: 8,
+        windDirection: "headwind",
+        windIntensity: "calm",
+        isWet: false,
+      },
+      federationHomeAdvantageSpecialization: {
+        code: "supporter_roads",
+        infrastructureLevel: 5,
+      },
+      riders: [supported, witness],
+    });
+    const supportedResult = result.resolvedRiders.find(
+      (rider) => rider.id === supported.id,
+    )!;
+    const witnessResult = result.resolvedRiders.find(
+      (rider) => rider.id === witness.id,
+    )!;
+
+    expect(
+      supportedResult.ratings.hills - witnessResult.ratings.hills,
+    ).toBeCloseTo(1.2);
+    expect(
+      supportedResult.ratings.acceleration -
+        witnessResult.ratings.acceleration,
+    ).toBeCloseTo(0.6);
   });
 
   it("applique les bonus indoor et soufflerie uniquement dans leur fenêtre de jours", () => {

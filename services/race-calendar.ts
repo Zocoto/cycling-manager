@@ -82,6 +82,7 @@ import {
   getFederalMedicalNetworkEffects,
   getFederationInfrastructureEffectPercentage,
   isFederalMedicalNetworkSpecializationCode,
+  isHomeAdvantageProgramSpecializationCode,
   isNationalTechnicalLaboratorySpecializationCode,
   type FederalMedicalNetworkEffects,
   type NationalTechnicalLaboratorySpecialization,
@@ -161,6 +162,14 @@ type FederationTechnicalLaboratoryInfrastructureRow = {
 
 type FederationTechnicalLaboratorySpecializationRow = {
   country_id: string;
+  active_specialization_code: string | null;
+};
+
+type FederationRaceSpecializationRow = {
+  country_id: string;
+  infrastructure_code:
+    | "national_technical_laboratory"
+    | "home_advantage_program";
   active_specialization_code: string | null;
 };
 
@@ -1369,14 +1378,19 @@ export async function getActiveSeasonRaceCalendar(
             .returns<FederationInfrastructureLevelRow[]>(),
           raceDataAdmin
             .from("national_federation_infrastructure_specializations")
-            .select("country_id, active_specialization_code")
-            .eq("infrastructure_code", "national_technical_laboratory")
+            .select(
+              "country_id, infrastructure_code, active_specialization_code",
+            )
+            .in("infrastructure_code", [
+              "national_technical_laboratory",
+              "home_advantage_program",
+            ])
             .in("country_id", countryIds)
-            .returns<FederationTechnicalLaboratorySpecializationRow[]>(),
+            .returns<FederationRaceSpecializationRow[]>(),
         ])
       : [
           emptyResult<FederationInfrastructureLevelRow>(),
-          emptyResult<FederationTechnicalLaboratorySpecializationRow>(),
+          emptyResult<FederationRaceSpecializationRow>(),
         ];
   assertQuerySucceeded(
     federationInfrastructureResult.error,
@@ -1384,7 +1398,7 @@ export async function getActiveSeasonRaceCalendar(
   );
   assertQuerySucceeded(
     federationSpecializationResult.error,
-    "les orientations techniques des sélections",
+    "les orientations fédérales de course",
   );
 
   const dayById = new Map(dayRows.map((day) => [day.id, day]));
@@ -1403,7 +1417,23 @@ export async function getActiveSeasonRaceCalendar(
   );
   const technicalLaboratorySpecializationByCountryId = new Map(
     (season.game_year >= 3
-      ? (federationSpecializationResult.data ?? [])
+      ? (federationSpecializationResult.data ?? []).filter(
+          (specialization) =>
+            specialization.infrastructure_code ===
+            "national_technical_laboratory",
+        )
+      : []
+    ).map((specialization) => [
+      specialization.country_id,
+      specialization.active_specialization_code,
+    ]),
+  );
+  const homeAdvantageSpecializationByCountryId = new Map(
+    (season.game_year >= 3
+      ? (federationSpecializationResult.data ?? []).filter(
+          (specialization) =>
+            specialization.infrastructure_code === "home_advantage_program",
+        )
       : []
     ).map((specialization) => [
       specialization.country_id,
@@ -1496,6 +1526,13 @@ export async function getActiveSeasonRaceCalendar(
         return null;
       }
 
+      const homeAdvantageLevel =
+        federationInfrastructureLevelByCountryAndCode.get(
+          `${country.id}:home_advantage_program`,
+        ) ?? 0;
+      const homeAdvantageSpecializationCode =
+        homeAdvantageSpecializationByCountryId.get(country.id);
+
       return {
         id: edition.id,
         status: edition.status as RaceCalendarEdition["status"],
@@ -1516,10 +1553,18 @@ export async function getActiveSeasonRaceCalendar(
         federationHomeAdvantageBonus:
           getFederationInfrastructureEffectPercentage(
             "home_advantage_program",
-            federationInfrastructureLevelByCountryAndCode.get(
-              `${country.id}:home_advantage_program`,
-            ) ?? 0,
+            homeAdvantageLevel,
           ),
+        federationHomeAdvantageSpecialization:
+          homeAdvantageLevel >= 3 &&
+          isHomeAdvantageProgramSpecializationCode(
+            homeAdvantageSpecializationCode,
+          )
+            ? {
+                code: homeAdvantageSpecializationCode,
+                infrastructureLevel: homeAdvantageLevel,
+              }
+            : null,
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,
         registrationPolicy: edition.registration_policy,

@@ -1,5 +1,6 @@
 import type { FederationInfrastructureCode } from "@/lib/game/federation-infrastructures";
 import { getInfrastructureSpecializationPowerPercentage } from "@/lib/game/infrastructure-specializations";
+import type { RaceProfileType } from "@/lib/game/race-calendar";
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
 import type { StaffRole } from "@/lib/game/staff";
 
@@ -37,6 +38,24 @@ export type FederalIntegrationOfficeSpecializationCode =
   | "professional_path"
   | "youth_gateway"
   | "technical_passport";
+
+export type HomeAdvantageProgramSpecializationCode =
+  | "terrain_library"
+  | "climate_lab"
+  | "supporter_roads";
+
+export type HomeAdvantageProgramSpecialization = {
+  code: HomeAdvantageProgramSpecializationCode;
+  infrastructureLevel: number;
+};
+
+export type HomeAdvantageProgramEffects = {
+  localExecutionBonusPoints: number;
+  reconnaissanceEffectivenessBonusPercentage: number;
+  weatherEnergyCostReductionPercentage: number;
+  fanClubBoostEffectivenessPercentage: number;
+  homePodiumFervorGainBonusPercentage: number;
+};
 
 export type FederalIntegrationOfficeEffects = {
   naturalizationDelayReductionPercentage: number;
@@ -598,6 +617,68 @@ export function getFederalIntegrationOfficeEffects({
           ? 2
           : 1
         : 0,
+  };
+}
+
+export function isHomeAdvantageProgramSpecializationCode(
+  value: unknown,
+): value is HomeAdvantageProgramSpecializationCode {
+  return (
+    value === "terrain_library" ||
+    value === "climate_lab" ||
+    value === "supporter_roads"
+  );
+}
+
+export function getHomeAdvantageProgramEffects({
+  specialization,
+  profileType,
+  characteristicWeather,
+}: {
+  specialization: HomeAdvantageProgramSpecialization | null | undefined;
+  profileType?: RaceProfileType | null;
+  characteristicWeather?: boolean;
+}): HomeAdvantageProgramEffects {
+  const power = specialization
+    ? getInfrastructureSpecializationPowerPercentage(
+        normalizeFederationInfrastructureLevel(
+          specialization.infrastructureLevel,
+        ),
+        "home_advantage_program",
+      ) / 100
+    : 0;
+  const scaled = (maximum: number) =>
+    Math.round(maximum * power * 100) / 100;
+  const terrainLibraryApplies =
+    specialization?.code === "terrain_library" && power > 0;
+  const climateLabApplies =
+    specialization?.code === "climate_lab" &&
+    power > 0 &&
+    characteristicWeather === true;
+  const supporterRoadsApplies =
+    specialization?.code === "supporter_roads" && power > 0;
+  const isTechnicalProfile =
+    profileType === "hilly" ||
+    profileType === "mountain" ||
+    profileType === "cobbles";
+
+  return {
+    localExecutionBonusPoints:
+      (terrainLibraryApplies && isTechnicalProfile) || climateLabApplies
+        ? scaled(0.6)
+        : 0,
+    reconnaissanceEffectivenessBonusPercentage: terrainLibraryApplies
+      ? scaled(10)
+      : 0,
+    weatherEnergyCostReductionPercentage: climateLabApplies
+      ? scaled(4)
+      : 0,
+    fanClubBoostEffectivenessPercentage: supporterRoadsApplies
+      ? scaled(20)
+      : 0,
+    homePodiumFervorGainBonusPercentage: supporterRoadsApplies
+      ? scaled(5)
+      : 0,
   };
 }
 

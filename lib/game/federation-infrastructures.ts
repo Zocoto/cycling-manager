@@ -223,7 +223,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     summary:
       "Documente les routes, le climat et les particularités du pays pour renforcer subtilement l’avantage local.",
     principle:
-      "Le bonus ne s’applique qu’aux coureurs de la nation sur une étape disputée dans leur pays.",
+      "Les points fédéraux ne s’appliquent qu’aux coureurs de la nation sur une étape disputée dans leur pays. Un statut local accordé par une infrastructure d’équipe ne les reçoit pas.",
     illustration: {
       src: "/images/infrastructure/weather-center.webp",
       alt: "Programme fédéral d’analyse des routes et conditions locales",
@@ -232,11 +232,11 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       costs: [700_000, 1_350_000, 2_250_000, 3_500_000, 5_000_000],
       durations: [6, 9, 13, 18, 23],
       effects: [
-        "+0,2 % au bonus local sur les étapes du pays.",
-        "+0,4 % au bonus local sur les étapes du pays.",
-        "+0,6 % au bonus local sur les étapes du pays.",
-        "+0,8 % au bonus local sur les étapes du pays.",
-        "+1 % au maximum au bonus local sur les étapes du pays.",
+        "+0,2 point d’exécution locale sur les étapes du pays.",
+        "+0,4 point d’exécution locale sur les étapes du pays.",
+        "+0,6 point d’exécution locale sur les étapes du pays.",
+        "+0,8 point d’exécution locale sur les étapes du pays.",
+        "+1 point d’exécution locale sur les étapes du pays.",
       ],
     }),
   },

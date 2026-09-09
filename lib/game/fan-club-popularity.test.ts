@@ -238,5 +238,41 @@ describe("audience réelle du Fan Club", () => {
       ),
     ).toBe(withRecentResult.teamReach);
   });
+
+  it("renforce seulement la ferveur issue des podiums à domicile", () => {
+    const popularRider = rider();
+    const homePodium = event({ day: 19, rank: 2, homeRace: true });
+    const withoutFederalProgram = calculateFanClubAudience({
+      riders: [popularRider],
+      directorReputation: 40,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      activeDay: 20,
+      events: [homePodium],
+    });
+    const withFederalProgram = calculateFanClubAudience({
+      riders: [popularRider],
+      directorReputation: 40,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      activeDay: 20,
+      events: [homePodium],
+      homePodiumFervorGainBonusPercentage: 5,
+    });
+    const awayPodium = calculateFanClubAudience({
+      riders: [popularRider],
+      directorReputation: 40,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      activeDay: 20,
+      events: [{ ...homePodium, homeRace: false }],
+      homePodiumFervorGainBonusPercentage: 5,
+    });
+
+    expect(withFederalProgram.fervor).toBeGreaterThan(
+      withoutFederalProgram.fervor,
+    );
+    expect(awayPodium.fervor).toBe(withoutFederalProgram.fervor);
+  });
 });
 

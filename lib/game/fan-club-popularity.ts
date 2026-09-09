@@ -120,6 +120,7 @@ export function calculateFanClubAudience({
   supporterGrowthBonusPercentage = 0,
   homeVictorySupporterBonusPercentage = 0,
   fervorGainBonusPercentage = 0,
+  homePodiumFervorGainBonusPercentage = 0,
   directSupporterBonus = 0,
   directFervorBonus = 0,
 }: {
@@ -133,6 +134,7 @@ export function calculateFanClubAudience({
   supporterGrowthBonusPercentage?: number;
   homeVictorySupporterBonusPercentage?: number;
   fervorGainBonusPercentage?: number;
+  homePodiumFervorGainBonusPercentage?: number;
   directSupporterBonus?: number;
   directFervorBonus?: number;
 }): FanClubAudience {
@@ -192,7 +194,7 @@ export function calculateFanClubAudience({
     foundation,
     beforeHeadquarters + headquartersBonus,
   );
-  const recentFervorValue = events
+  const recentFervorEvents = events
     .filter(
       (event) =>
         event.forCurrentTeam &&
@@ -200,16 +202,34 @@ export function calculateFanClubAudience({
         event.kind !== "breakaway" &&
         event.day <= activeDay &&
         activeDay - event.day <= 7,
+    );
+  const getFervorEventValue = (event: FanClubSportingEvent) => {
+    const age = Math.max(0, activeDay - event.day);
+    const recencyWeight = (8 - age) / 8;
+    return recentResultValue(event) * recencyWeight;
+  };
+  const recentFervorValue = recentFervorEvents.reduce(
+    (total, event) => total + getFervorEventValue(event),
+    0,
+  );
+  const homePodiumFervorValue = recentFervorEvents
+    .filter(
+      (event) =>
+        event.homeRace === true &&
+        event.rank !== null &&
+        event.rank <= 3,
     )
-    .reduce((total, event) => {
-      const age = Math.max(0, activeDay - event.day);
-      const recencyWeight = (8 - age) / 8;
-      return total + recentResultValue(event) * recencyWeight;
-    }, 0);
+    .reduce((total, event) => total + getFervorEventValue(event), 0);
+  const federalHomePodiumFervorBonus =
+    homePodiumFervorValue *
+    (Math.max(0, homePodiumFervorGainBonusPercentage) / 100);
   const fervor = clamp(
     Math.round(
       20 +
-        Math.min(70, recentFervorValue * 5) *
+        Math.min(
+          70,
+          (recentFervorValue + federalHomePodiumFervorBonus) * 5,
+        ) *
           percentageMultiplier(fervorGainBonusPercentage) +
         Math.max(1, headquartersLevel) * 2 +
         Math.max(0, directFervorBonus),

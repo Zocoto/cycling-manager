@@ -43,12 +43,15 @@ import {
   getRaceCrosswindIncidentRisk,
   getRaceWeatherCrashRiskBonus,
   getRaceWeather,
+  isRaceWeatherCharacteristicForCountry,
   type RaceWeather,
   type RiderClimateProfile,
 } from "./race-weather";
 import {
+  getHomeAdvantageProgramEffects,
   getNationalTechnicalLaboratoryEffects,
   type FederalMedicalNetworkEffects,
+  type HomeAdvantageProgramSpecialization,
   type NationalTechnicalLaboratorySpecialization,
 } from "./federation-infrastructure-effects";
 import {
@@ -252,6 +255,7 @@ export type StageSimulationInput = {
   profileType: RaceProfileType;
   raceCountryCode?: string | null;
   federationHomeAdvantageBonus?: number;
+  federationHomeAdvantageSpecialization?: HomeAdvantageProgramSpecialization | null;
   gameDayIndex?: number;
   isStageRace: boolean;
   stageNumber?: number;
@@ -1049,6 +1053,33 @@ function normalizeStageSimulationInput(
     riders: input.riders
       .filter((rider) => !unavailableRiderIds.has(rider.id))
       .map((rider) => {
+        const normalizedRaceCountryCode =
+          input.raceCountryCode?.trim().toUpperCase() ?? "";
+        const isFederationNationalRider = Boolean(
+          normalizedRaceCountryCode &&
+            rider.countryCode?.trim().toUpperCase() ===
+              normalizedRaceCountryCode,
+        );
+        const hasTeamLocalStatus = Boolean(
+          normalizedRaceCountryCode &&
+            rider.localRaceCountryCodes?.some(
+              (countryCode) =>
+                countryCode.trim().toUpperCase() ===
+                normalizedRaceCountryCode,
+            ),
+        );
+        const homeAdvantageEffects = getHomeAdvantageProgramEffects({
+          specialization: isFederationNationalRider
+            ? input.federationHomeAdvantageSpecialization
+            : null,
+          profileType: input.profileType,
+          characteristicWeather:
+            isFederationNationalRider &&
+            isRaceWeatherCharacteristicForCountry(
+              normalizedRaceCountryCode,
+              weather,
+            ),
+        });
         const preparationAdjustedRatings = applyPerformancePreparationBonuses(
           rider.ratings,
           rider.performancePreparations,
@@ -1102,7 +1133,10 @@ function normalizeStageSimulationInput(
         );
         const reconnaissanceAdjustedRatings = applyReconnaissanceRatingBonus(
           weatherAdjustedRatings,
-          rider.reconnaissanceBonus,
+          (rider.reconnaissanceBonus ?? 0) *
+            (1 +
+              homeAdvantageEffects.reconnaissanceEffectivenessBonusPercentage /
+                100),
           equipmentAdjustedRatings,
         );
         const weatherCenterAdjustedRatings = applyWeatherCenterPerformanceBonus(
@@ -1115,7 +1149,8 @@ function normalizeStageSimulationInput(
             stageType: input.stageType,
             weather,
           }) +
-          nationalTechnicalLaboratoryEffects.energyCostReductionPercentage;
+          nationalTechnicalLaboratoryEffects.energyCostReductionPercentage +
+          homeAdvantageEffects.weatherEnergyCostReductionPercentage;
 
         return {
           ...rider,
@@ -1131,16 +1166,12 @@ function normalizeStageSimulationInput(
               nationalTechnicalLaboratoryEffects.mechanicalIncidentTimeReductionPercentage,
           ),
           localRaceBonus:
-            input.raceCountryCode &&
-            ((rider.countryCode &&
-              rider.countryCode.toUpperCase() ===
-                input.raceCountryCode.toUpperCase()) ||
-              rider.localRaceCountryCodes?.some(
-                (countryCode) =>
-                  countryCode.toUpperCase() ===
-                  input.raceCountryCode?.toUpperCase(),
-              ))
-              ? 2 + Math.max(0, input.federationHomeAdvantageBonus ?? 0)
+            isFederationNationalRider || hasTeamLocalStatus
+              ? 2 +
+                (isFederationNationalRider
+                  ? Math.max(0, input.federationHomeAdvantageBonus ?? 0) +
+                    homeAdvantageEffects.localExecutionBonusPoints
+                  : 0)
               : 0,
           ratings: applyFanClubRaceRatingBoost({
             ratings: applyRaceInfrastructurePerformanceBonuses({
@@ -1149,7 +1180,11 @@ function normalizeStageSimulationInput(
               stageType: input.stageType,
               raceCountryCode: input.raceCountryCode,
             }),
-            ratingBoost: rider.fanClubSupport?.ratingBoost ?? 0,
+            ratingBoost:
+              (rider.fanClubSupport?.ratingBoost ?? 0) *
+              (1 +
+                homeAdvantageEffects.fanClubBoostEffectivenessPercentage /
+                  100),
             profileType: input.profileType,
             stageType: input.stageType,
           }),

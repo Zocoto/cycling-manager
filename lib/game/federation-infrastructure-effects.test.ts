@@ -9,7 +9,9 @@ import {
   getFederalIntegrationOfficeEffects,
   getFederationInfrastructureEffectPercentage,
   getFederationNaturalizationRequiredDays,
+  getHomeAdvantageProgramEffects,
   getNationalPerformanceCenterSpecializationBonusPercentage,
+  isHomeAdvantageProgramSpecializationCode,
   isNationalPerformanceCenterSpecializationCode,
 } from "./federation-infrastructure-effects";
 
@@ -138,6 +140,59 @@ describe("federation infrastructure effects", () => {
       true,
     );
     expect(isNationalPerformanceCenterSpecializationCode("elite_detection")).toBe(
+      false,
+    );
+  });
+
+  it("dimensionne les trois orientations de l’avantage du terrain", () => {
+    expect(
+      getHomeAdvantageProgramEffects({
+        specialization: {
+          code: "terrain_library",
+          infrastructureLevel: 3,
+        },
+        profileType: "mountain",
+      }),
+    ).toMatchObject({
+      localExecutionBonusPoints: 0.36,
+      reconnaissanceEffectivenessBonusPercentage: 6,
+    });
+    expect(
+      getHomeAdvantageProgramEffects({
+        specialization: {
+          code: "terrain_library",
+          infrastructureLevel: 5,
+        },
+        profileType: "flat",
+      }).localExecutionBonusPoints,
+    ).toBe(0);
+    expect(
+      getHomeAdvantageProgramEffects({
+        specialization: {
+          code: "climate_lab",
+          infrastructureLevel: 4,
+        },
+        characteristicWeather: true,
+      }),
+    ).toMatchObject({
+      localExecutionBonusPoints: 0.48,
+      weatherEnergyCostReductionPercentage: 3.2,
+    });
+    expect(
+      getHomeAdvantageProgramEffects({
+        specialization: {
+          code: "supporter_roads",
+          infrastructureLevel: 5,
+        },
+      }),
+    ).toMatchObject({
+      fanClubBoostEffectivenessPercentage: 20,
+      homePodiumFervorGainBonusPercentage: 5,
+    });
+    expect(isHomeAdvantageProgramSpecializationCode("supporter_roads")).toBe(
+      true,
+    );
+    expect(isHomeAdvantageProgramSpecializationCode("professional_path")).toBe(
       false,
     );
   });

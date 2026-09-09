@@ -9,6 +9,7 @@ import {
   getRaceWeather,
   getRaceWeatherCrashRiskBonus,
   getStageSeasonGameYear,
+  isRaceWeatherCharacteristicForCountry,
 } from "./race-weather";
 import type { RiderSimulationRatings } from "./race-simulation";
 
@@ -223,6 +224,28 @@ describe("race weather", () => {
         climateProfile
       ).mountain
     ).toBeGreaterThan(ratings.mountain);
+  });
+
+  it("reconnaît uniquement les conditions caractéristiques du pays", () => {
+    const baseWeather = getRaceWeather("french-characteristic-weather");
+    const rain = {
+      ...baseWeather,
+      condition: "rain" as const,
+      rainIntensity: "steady" as const,
+      temperatureC: 14,
+      isWet: true,
+    };
+    const sun = {
+      ...baseWeather,
+      condition: "clear" as const,
+      rainIntensity: "none" as const,
+      temperatureC: 22,
+      isWet: false,
+    };
+
+    expect(isRaceWeatherCharacteristicForCountry("FR", rain)).toBe(true);
+    expect(isRaceWeatherCharacteristicForCountry("FR", sun)).toBe(false);
+    expect(isRaceWeatherCharacteristicForCountry(null, rain)).toBe(false);
   });
 
   it("only allows bordures in strong lateral wind on flat terrain", () => {

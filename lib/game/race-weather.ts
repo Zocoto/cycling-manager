@@ -269,6 +269,19 @@ export function getRaceClimatePerformanceAdjustment(
   return 0;
 }
 
+export function isRaceWeatherCharacteristicForCountry(
+  countryCode: string | null | undefined,
+  weather: RaceWeather,
+) {
+  const normalizedCountryCode = countryCode?.trim().toUpperCase() ?? "";
+  const condition = getRaceClimateCondition(weather);
+  if (!normalizedCountryCode || condition === "temperate") return false;
+
+  return getCountryClimateTendency(normalizedCountryCode).strengths.includes(
+    condition,
+  );
+}
+
 export function getRaceWindIntensity(windSpeedKph: number) {
   if (windSpeedKph < 12) return "calm" as const;
   if (windSpeedKph < 24) return "breeze" as const;

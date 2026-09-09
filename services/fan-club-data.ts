@@ -15,6 +15,10 @@ import {
   getFanClubHeadquartersSpecializationEffects,
   isFanClubHeadquartersSpecializationCode,
 } from "@/lib/game/fan-club-specialization";
+import {
+  getHomeAdvantageProgramEffects,
+  isHomeAdvantageProgramSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -149,6 +153,11 @@ type MediaInterventionRewardRow = {
 type SeasonDayRow = {
   id: string;
   day_number: number;
+};
+
+type FederationInfrastructureRow = { level: number };
+type FederationSpecializationRow = {
+  active_specialization_code: string | null;
 };
 
 export async function getFanClubLiveData({
@@ -293,7 +302,14 @@ export async function getFanClubLiveData({
       directFervorBonus: mediaInterventionBonuses.fervor,
     });
   }
-  const [ratingHistoryResult, popularityProfilesResult] = await Promise.all([
+  const federationCountryId =
+    currentTeamSeasonResult.data?.registration_country_id ?? null;
+  const [
+    ratingHistoryResult,
+    popularityProfilesResult,
+    homeAdvantageInfrastructureResult,
+    homeAdvantageSpecializationResult,
+  ] = await Promise.all([
     admin
       .from("rider_season_ratings")
       .select("rider_id, season_id")
@@ -304,12 +320,59 @@ export async function getFanClubLiveData({
       .select("rider_id, popularity_points")
       .in("rider_id", riderIds)
       .returns<RiderPopularityProfileRow[]>(),
+    federationCountryId && activeSeason.game_year >= 3
+      ? admin
+          .from("national_federation_infrastructures")
+          .select("level")
+          .eq("country_id", federationCountryId)
+          .eq("infrastructure_code", "home_advantage_program")
+          .maybeSingle<FederationInfrastructureRow>()
+      : Promise.resolve({
+          data: null as FederationInfrastructureRow | null,
+          error: null,
+        }),
+    federationCountryId && activeSeason.game_year >= 3
+      ? admin
+          .from("national_federation_infrastructure_specializations")
+          .select("active_specialization_code")
+          .eq("country_id", federationCountryId)
+          .eq("infrastructure_code", "home_advantage_program")
+          .maybeSingle<FederationSpecializationRow>()
+      : Promise.resolve({
+          data: null as FederationSpecializationRow | null,
+          error: null,
+        }),
   ]);
   assertQuery(ratingHistoryResult.error, "l’ancienneté des coureurs");
   assertQuery(
     popularityProfilesResult.error,
     "le rayonnement média des coureurs",
   );
+  assertQuery(
+    homeAdvantageInfrastructureResult.error,
+    "le Programme avantage du terrain",
+  );
+  assertQuery(
+    homeAdvantageSpecializationResult.error,
+    "l’orientation du Programme avantage du terrain",
+  );
+  const homeAdvantageLevel = Number(
+    homeAdvantageInfrastructureResult.data?.level ?? 0,
+  );
+  const homeAdvantageSpecializationCode =
+    homeAdvantageSpecializationResult.data?.active_specialization_code;
+  const homeAdvantageEffects = getHomeAdvantageProgramEffects({
+    specialization:
+      homeAdvantageLevel >= 3 &&
+      isHomeAdvantageProgramSpecializationCode(
+        homeAdvantageSpecializationCode,
+      )
+        ? {
+            code: homeAdvantageSpecializationCode,
+            infrastructureLevel: homeAdvantageLevel,
+          }
+        : null,
+  });
 
   const [raceRostersResult, upcomingRegistrationsResult] = await Promise.all([
     collectChunkedPaginatedRows<
@@ -673,6 +736,8 @@ export async function getFanClubLiveData({
       headquartersSpecializationEffects.homeVictorySupporterBonusPercentage,
     fervorGainBonusPercentage:
       headquartersSpecializationEffects.fervorGainBonusPercentage,
+    homePodiumFervorGainBonusPercentage:
+      homeAdvantageEffects.homePodiumFervorGainBonusPercentage,
     directSupporterBonus: mediaInterventionBonuses.supporters,
     directFervorBonus: mediaInterventionBonuses.fervor,
   });

@@ -24,6 +24,10 @@ describe("createCalendarSimulationInput", () => {
       riders: [createRider("rider-a", "team-a")],
     });
     edition.federationHomeAdvantageBonus = 1;
+    edition.federationHomeAdvantageSpecialization = {
+      code: "terrain_library",
+      infrastructureLevel: 5,
+    };
 
     const input = createCalendarSimulationInput({
       edition,
@@ -32,6 +36,10 @@ describe("createCalendarSimulationInput", () => {
     });
 
     expect(input.federationHomeAdvantageBonus).toBe(1);
+    expect(input.federationHomeAdvantageSpecialization).toEqual({
+      code: "terrain_library",
+      infrastructureLevel: 5,
+    });
   });
 
   it("réserve le laboratoire fédéral aux épreuves chronométrées", () => {

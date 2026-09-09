@@ -232,9 +232,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "home_advantage_program", buildingName: "Programme avantage du terrain", domain: "Course · Connaissance locale", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "terrain_library", name: "Bibliothèque des parcours", identity: "Connaître chaque difficulté et chaque route décisive.", primaryEffect: "+0,6 % d’exécution locale sur le profil dominant du pays.", secondaryEffect: "+4 % de précision des reconnaissances nationales.", guardrail: "Aucun bonus météo supplémentaire." }),
-      option({ code: "climate_lab", name: "Laboratoire climatique", identity: "Transformer le climat local en avantage maîtrisé.", primaryEffect: "+0,6 % d’exécution locale par météo caractéristique du pays.", secondaryEffect: "−4 % de fatigue liée à cette météo.", guardrail: "Aucun bonus par conditions neutres." }),
-      option({ code: "supporter_roads", name: "Routes populaires", identity: "Faire de la ferveur nationale une force de course.", primaryEffect: "+0,6 % d’exécution locale lorsque la ferveur dépasse son seuil élevé.", secondaryEffect: "+5 % de gain de ferveur après un podium national.", guardrail: "Aucun bonus si la mobilisation populaire est insuffisante." }),
+      option({ code: "terrain_library", name: "Bibliothèque des parcours", identity: "Connaître chaque difficulté et chaque route décisive.", primaryEffect: "+0,36, +0,48 puis +0,60 point d’exécution locale sur les étapes vallonnées, montagneuses ou pavées.", secondaryEffect: "+6 %, +8 % puis +10 % d’efficacité aux reconnaissances des coureurs nationaux sur une course du pays.", guardrail: "" }),
+      option({ code: "climate_lab", name: "Laboratoire climatique", identity: "Transformer le climat local en avantage maîtrisé.", primaryEffect: "+0,36, +0,48 puis +0,60 point d’exécution lorsque la météo correspond au climat caractéristique du pays.", secondaryEffect: "−2,4 %, −3,2 % puis −4 % de dépense énergétique dans ces conditions.", guardrail: "" }),
+      option({ code: "supporter_roads", name: "Routes populaires", identity: "Faire de la ferveur nationale une force de course.", primaryEffect: "+12 %, +16 % puis +20 % d’efficacité au bonus des supporters mobilisés à domicile pour les coureurs nationaux.", secondaryEffect: "+3 %, +4 % puis +5 % de ferveur générée par les podiums à domicile des équipes affiliées.", guardrail: "" }),
     ],
   },
 ];

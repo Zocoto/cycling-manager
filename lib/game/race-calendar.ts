@@ -1,5 +1,6 @@
 import type { RaceStageSegment } from "./race-profiles";
 import type { RiderSimulationInput } from "./race-simulation";
+import type { HomeAdvantageProgramSpecialization } from "./federation-infrastructure-effects";
 import type { RaceTeamStrategy } from "./race-strategy";
 import type { RaceTacticalBriefing } from "./race-tactics";
 import type { TimeTrialRiderPlan } from "./time-trial-preparation";
@@ -144,6 +145,7 @@ export type RaceCalendarEdition = {
   isGrandTour?: boolean;
   isSponsorObjective?: boolean;
   federationHomeAdvantageBonus?: number;
+  federationHomeAdvantageSpecialization?: HomeAdvantageProgramSpecialization | null;
   registrationClosesAt: string | null;
   wildcardClosesAt: string | null;
   withdrawalClosesAt: string | null;
