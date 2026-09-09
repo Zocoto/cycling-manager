@@ -47,9 +47,11 @@ export type FederationRaceCreationScore = {
   completedObjectiveCount: number;
   objectivePoints: number;
   existingRaceCount: number;
+  calendarPenaltyPerRace: number;
   calendarPenalty: number;
   total: number;
   threshold: number;
+  continentalThreshold: number;
   eligible: boolean;
 };
 
@@ -82,9 +84,11 @@ export function buildFederationRaceCreationScore({
     completedObjectiveCount: normalizedObjectives,
     objectivePoints,
     existingRaceCount: normalizedRaceCount,
+    calendarPenaltyPerRace: 10,
     calendarPenalty,
     total,
     threshold: FEDERATION_RACE_CREATION_SCORE_THRESHOLD,
+    continentalThreshold: FEDERATION_RACE_CREATION_SCORE_THRESHOLD,
     eligible: total >= FEDERATION_RACE_CREATION_SCORE_THRESHOLD,
   };
 }

@@ -80,6 +80,10 @@ export function FederationRaceCreationPanel({
   const [stages, setStages] = useState<FederationRaceStageBlueprint[]>([
     createDefaultStage(1),
   ]);
+  const selectedCategoryThreshold =
+    categoryCode === "continental"
+      ? state.score.continentalThreshold
+      : state.score.threshold;
 
   const setFormat = (format: FederationRaceFormat) => {
     setRaceFormat(format);
@@ -289,10 +293,14 @@ export function FederationRaceCreationPanel({
               </div>
               <button
                 type="submit"
-                disabled={pending}
+                disabled={pending || state.score.total < selectedCategoryThreshold}
                 className="min-h-12 rounded-xl bg-[var(--federation-primary,#123F36)] px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
               >
-                {pending ? "Homologation…" : "Homologuer la course"}
+                {pending
+                  ? "Homologation…"
+                  : state.score.total < selectedCategoryThreshold
+                    ? `Indice ${selectedCategoryThreshold} requis pour ce rang`
+                    : "Homologuer la course"}
               </button>
             </div>
             <ActionFeedback
@@ -356,9 +364,9 @@ function ScoreBreakdown({
         ))}
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
-        Formule : classement (40 points maximum) + 15 points par objectif − 10
-        points par course existante. Seuil 60. Une seule homologation par
-        fédération et par saison, à partir de S
+        Formule : classement (40 points maximum) + 15 points par objectif − {state.score.calendarPenaltyPerRace}
+        {" "}points par course existante. Seuil {state.score.threshold} pour les rangs régional et national,
+        {" "}{state.score.continentalThreshold} pour le rang continental. Une seule homologation par fédération et par saison, à partir de S
         {FEDERATION_RACE_CREATION_START_GAME_YEAR}
         {gameYear < FEDERATION_RACE_CREATION_START_GAME_YEAR ? " (verrouillée actuellement)" : ""}.
       </p>

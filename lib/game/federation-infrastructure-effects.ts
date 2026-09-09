@@ -28,6 +28,23 @@ export type NationalTechnicalLaboratorySpecializationCode =
   | "national_ttt"
   | "equipment_standards";
 
+export type RaceOrganizationOfficeSpecializationCode =
+  | "prestige_events"
+  | "dense_calendar"
+  | "national_pipeline";
+
+export type RaceOrganizationOfficeEffects = {
+  raceRevenueBonusPercentage: number;
+  canCreateNationalRace: boolean;
+  canSubmitInternationalCandidacy: boolean;
+  hostingCostReductionPercentage: number;
+  candidacyScoreBonusPercentage: number;
+  internationalHostingRevenueBonusPercentage: number;
+  calendarPenaltyPerExistingRace: number;
+  regionalNationalHomologationThreshold: number;
+  marketNationalityChanceBonusPercentage: number;
+};
+
 export type NationalTechnicalLaboratorySpecialization = {
   code: NationalTechnicalLaboratorySpecializationCode;
   infrastructureLevel: number;
@@ -293,6 +310,76 @@ export function getNationalTechnicalLaboratoryEffects({
       : 0,
     mechanicalIncidentTimeReductionPercentage: equipmentStandardsApply
       ? scaled(5)
+      : 0,
+  };
+}
+
+export function isRaceOrganizationOfficeSpecializationCode(
+  value: unknown,
+): value is RaceOrganizationOfficeSpecializationCode {
+  return (
+    value === "prestige_events" ||
+    value === "dense_calendar" ||
+    value === "national_pipeline"
+  );
+}
+
+export function getRaceOrganizationOfficeEffects({
+  level,
+  specializationCode,
+}: {
+  level: number;
+  specializationCode: RaceOrganizationOfficeSpecializationCode | null;
+}): RaceOrganizationOfficeEffects {
+  const normalizedLevel = normalizeFederationInfrastructureLevel(level);
+  const power =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizedLevel,
+      "race_organization_office",
+    ) / 100;
+  const scaled = (maximum: number) =>
+    Math.round(maximum * power * 10) / 10;
+  const prestigeApplies =
+    specializationCode === "prestige_events" && power > 0;
+  const calendarApplies =
+    specializationCode === "dense_calendar" && power > 0;
+  const pipelineApplies =
+    specializationCode === "national_pipeline" && power > 0;
+
+  return {
+    raceRevenueBonusPercentage:
+      getFederationInfrastructureEffectPercentage(
+        "race_organization_office",
+        normalizedLevel,
+      ),
+    canCreateNationalRace: normalizedLevel >= 1,
+    canSubmitInternationalCandidacy: normalizedLevel >= 3,
+    hostingCostReductionPercentage:
+      normalizedLevel >= 5 ? 10 : normalizedLevel >= 4 ? 5 : 0,
+    candidacyScoreBonusPercentage: prestigeApplies ? scaled(8) : 0,
+    internationalHostingRevenueBonusPercentage: prestigeApplies
+      ? scaled(6)
+      : 0,
+    calendarPenaltyPerExistingRace: calendarApplies
+      ? normalizedLevel >= 5
+        ? 7
+        : normalizedLevel >= 4
+          ? 8
+          : 9
+      : 10,
+    regionalNationalHomologationThreshold: calendarApplies
+      ? normalizedLevel >= 5
+        ? 55
+        : normalizedLevel >= 4
+          ? 56
+          : 58
+      : 60,
+    marketNationalityChanceBonusPercentage: pipelineApplies
+      ? normalizedLevel >= 5
+        ? 50
+        : normalizedLevel >= 4
+          ? 40
+          : 30
       : 0,
   };
 }

@@ -122,10 +122,14 @@ export function calculateFederationHostingAttendance({
   eventType,
   participationRate,
   renown,
+  hostingCost,
+  revenueBonusPercentage = 0,
 }: {
   eventType: FederationHostingEventType;
   participationRate: number;
   renown: number;
+  hostingCost?: number;
+  revenueBonusPercentage?: number;
 }): FederationHostingAttendance {
   const event = getFederationHostingEvent(eventType);
   const participationMultiplier =
@@ -135,11 +139,15 @@ export function calculateFederationHostingAttendance({
   const attendance = Math.round(
     event.baseAttendance * participationMultiplier * renownMultiplier,
   );
-  const grossRevenue = attendance * event.revenuePerAttendee;
+  const grossRevenue = Math.round(
+    attendance *
+      event.revenuePerAttendee *
+      (1 + Math.max(0, revenueBonusPercentage) / 100),
+  );
   return {
     attendance,
     grossRevenue,
-    netReturn: grossRevenue - event.hostingCost,
+    netReturn: grossRevenue - (hostingCost ?? event.hostingCost),
   };
 }
 

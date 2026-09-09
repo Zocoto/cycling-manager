@@ -11,6 +11,10 @@ import {
   type FederationHostingEventType,
   type FederationHostingRiderCategory,
 } from "@/lib/game/federation-hosting";
+import {
+  getRaceOrganizationOfficeEffects,
+  isRaceOrganizationOfficeSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
 import type { RaceProfileType } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -81,6 +85,7 @@ export type FederationHostingCandidacy = {
   recencyPoints: number;
   rankingPoints: number;
   renownPoints: number;
+  specializationBonusPoints: number;
   selectionScore: number;
   submittedAt: string;
 };
@@ -173,6 +178,7 @@ type CandidacyRow = {
   recency_points: number;
   ranking_points: number;
   renown_points: number;
+  specialization_bonus_points: number;
   selection_score: number;
   status: FederationHostingCandidacy["status"];
   created_at: string;
@@ -182,6 +188,9 @@ type FederationCountryMetaRow = { continent_code: string | null };
 type AwardRow = { event_key: string; country_id: string; status: string };
 type AccountRow = { balance: number | string };
 type InfrastructureRow = { level: number };
+type InfrastructureSpecializationRow = {
+  active_specialization_code: string;
+};
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
 type HistoricEditionRow = {
@@ -246,7 +255,7 @@ export async function getFederationCoursesState({
 
   try {
     const admin = createSupabaseAdminClient();
-    const [countryResult, racesResult, renownResult, accountResult, officeResult, assignmentResult, termResult] =
+    const [countryResult, racesResult, renownResult, accountResult, officeResult, officeSpecializationResult, assignmentResult, termResult] =
       await Promise.all([
         admin
           .from("countries")
@@ -275,6 +284,12 @@ export async function getFederationCoursesState({
           .eq("country_id", countryId)
           .eq("infrastructure_code", "race_organization_office")
           .maybeSingle<InfrastructureRow>(),
+        admin
+          .from("national_federation_infrastructure_specializations")
+          .select("active_specialization_code")
+          .eq("country_id", countryId)
+          .eq("infrastructure_code", "race_organization_office")
+          .maybeSingle<InfrastructureSpecializationRow>(),
         viewerTeamId
           ? admin
               .from("team_manager_assignments")
@@ -299,6 +314,7 @@ export async function getFederationCoursesState({
       renownResult,
       accountResult,
       officeResult,
+      officeSpecializationResult,
       assignmentResult,
       termResult,
     ]) {
@@ -346,8 +362,8 @@ export async function getFederationCoursesState({
           : Promise.resolve({ data: [] as StageRow[], error: null }),
         admin
           .from("national_federation_hosting_candidacies")
-          .select(
-            "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, selection_score, status, created_at",
+              .select(
+            "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, specialization_bonus_points, selection_score, status, created_at",
           )
           .eq("target_game_year", targetGameYear)
           .order("selection_score", { ascending: false })
@@ -410,6 +426,16 @@ export async function getFederationCoursesState({
       (row) => row.race_registration_id,
     );
     const officeLevel = officeResult.data?.level ?? 0;
+    const officeSpecializationCode =
+      officeSpecializationResult.data?.active_specialization_code ?? null;
+    const officeEffects = getRaceOrganizationOfficeEffects({
+      level: officeLevel,
+      specializationCode: isRaceOrganizationOfficeSpecializationCode(
+        officeSpecializationCode,
+      )
+        ? officeSpecializationCode
+        : null,
+    });
 
     const portfolio = races.map((race): FederationCountryRace => {
       const edition = editionByRaceId.get(race.id) ?? null;
@@ -504,6 +530,7 @@ export async function getFederationCoursesState({
         recencyPoints: row.recency_points,
         rankingPoints: row.ranking_points,
         renownPoints: row.renown_points,
+        specializationBonusPoints: row.specialization_bonus_points,
         selectionScore: row.selection_score,
         submittedAt: row.created_at,
       };
@@ -536,10 +563,18 @@ export async function getFederationCoursesState({
           ) ?? null;
         const award = awardByEventKey.get(eventKey);
         const selectedCountry = award ? countryById.get(award.country_id) : null;
+        const discountedHostingCost = Math.round(
+          event.hostingCost *
+            (1 - officeEffects.hostingCostReductionPercentage / 100),
+        );
+        const hostingCost = candidacy?.hostingCost ?? discountedHostingCost;
         const projection = calculateFederationHostingAttendance({
           eventType: event.type,
           participationRate: 0.85,
           renown: renown.score,
+          hostingCost,
+          revenueBonusPercentage:
+            officeEffects.internationalHostingRevenueBonusPercentage,
         });
         const unavailableReason = getUnavailableReason({
           gameYear,
@@ -547,7 +582,8 @@ export async function getFederationCoursesState({
           viewerIsPresident,
           balance,
           reservedAmount,
-          eventCost: event.hostingCost,
+          eventCost: hostingCost,
+          officeLevel,
           candidacy,
           hasContinent: Boolean(continentCode),
           eventType: event.type,
@@ -558,7 +594,7 @@ export async function getFederationCoursesState({
           eventKey,
           label: event.label,
           shortLabel: event.shortLabel,
-          hostingCost: event.hostingCost,
+          hostingCost,
           prestigeGain: event.prestigeGain,
           projectedAttendance: projection.attendance,
           projectedGrossRevenue: projection.grossRevenue,
@@ -754,6 +790,7 @@ function parseRenown(value: unknown, gameYear: number): FederationRenownState {
 function getUnavailableReason({
   gameYear,
   currentDayNumber,
+  officeLevel,
   viewerIsPresident,
   balance,
   reservedAmount,
@@ -764,6 +801,7 @@ function getUnavailableReason({
 }: {
   gameYear: number;
   currentDayNumber: number;
+  officeLevel: number;
   viewerIsPresident: boolean;
   balance: number | null;
   reservedAmount: number;
@@ -773,6 +811,8 @@ function getUnavailableReason({
   eventType: FederationHostingEventType;
 }): string | null {
   if (gameYear < 3) return "Ouverture des candidatures en Saison 3.";
+  if (officeLevel < 3)
+    return "Bureau d’organisation niveau 3 requis.";
   if (currentDayNumber > FEDERATION_HOSTING_APPLICATION_CLOSE_DAY)
     return `Dépôts clos depuis la J${FEDERATION_HOSTING_APPLICATION_CLOSE_DAY}.`;
   if (!viewerIsPresident) return "Action réservée au président élu.";

@@ -41,8 +41,10 @@ import {
   hasStaffMarketNoonWaveStarted,
   type StaffMarketWave,
 } from "@/lib/game/staff-market-waves";
+import { selectWeightedRandomDistinct } from "@/lib/game/weighted-random-selection";
 import { calculateSportingDirectorProgression } from "@/lib/game/sporting-director-progression";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadFederationMarketNationalityWeights } from "@/services/federation-market-nationality";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -532,6 +534,13 @@ export async function settleCurrentStaffMarketWave(
   now = new Date(),
 ) {
   const admin = createSupabaseAdminClient();
+  const specializationSettlement = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuery(
+    specializationSettlement.error,
+    "l’activation des orientations d’infrastructure",
+  );
   const marketDate = formatParisDate(now);
   const generatedCount = await ensureStaffMarketWave(admin, marketDate, wave);
 
@@ -594,7 +603,8 @@ async function createStaffMarketWave(
 async function generateStaffMarketCandidates(
   admin: ReturnType<typeof createSupabaseAdminClient>,
 ) {
-  const [countriesResult, profilesResult] = await Promise.all([
+  const [countriesResult, profilesResult, nationalityWeights] =
+    await Promise.all([
     admin
       .from("countries")
       .select("id, name, iso_alpha2, is_active")
@@ -604,6 +614,7 @@ async function generateStaffMarketCandidates(
       .from("country_rider_generation_profiles")
       .select("country_id, name_profile_code")
       .returns<GenerationProfileRow[]>(),
+    loadFederationMarketNationalityWeights(admin),
   ]);
 
   assertQuery(countriesResult.error, "les pays de génération du staff");
@@ -618,7 +629,12 @@ async function generateStaffMarketCandidates(
     const profileCode = profileByCountryId.get(country.id);
     return Boolean(profileCode && hasRiderNameLibrary(profileCode));
   });
-  const selectedCountries = selectRandomDistinct(eligibleCountries, 25);
+  const selectedCountries = selectWeightedRandomDistinct({
+    values: eligibleCountries,
+    count: 25,
+    getWeight: (country) => nationalityWeights.get(country.id) ?? 1,
+    random: () => randomInt(0, 1_000_000) / 1_000_000,
+  });
   const identitiesByCountryId = generateStaffIdentities(
     selectedCountries,
     profileByCountryId,
@@ -872,15 +888,6 @@ function formatParisDate(date: Date) {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
-}
-
-function selectRandomDistinct<T>(values: T[], count: number) {
-  if (values.length < count) {
-    throw new Error(
-      `Pas assez de nationalités pour générer ${count} profils de staff.`,
-    );
-  }
-  return shuffleCopy(values).slice(0, count);
 }
 
 function shuffleCopy<T>(values: readonly T[]) {

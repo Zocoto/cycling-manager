@@ -284,7 +284,7 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3">
                 <p className="text-xs font-bold text-[#60756E]">
-                  {race.returnStatus === "earned" ? "Gain acquis" : "Gain projeté"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées
+                  {race.returnStatus === "earned" ? "Estimation consolidée pour le budget S+1" : "Estimation projetée pour le budget S+1"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées
                 </p>
                 <p className="text-sm font-black text-[var(--federation-secondary)]">
                   {moneyFormatter.format(race.moneyGain)}
@@ -416,7 +416,12 @@ function CandidacyRanking({ state }: { state: FederationCoursesState }) {
                   <td className="px-3 py-3">{candidate.lastHostedGameYear ? `S${candidate.lastHostedGameYear}` : "Jamais"}</td>
                   <td className="px-3 py-3">#{candidate.uciRank}</td>
                   <td className="px-3 py-3">{candidate.renownScore}/1000</td>
-                  <td className="px-3 py-3 text-xs text-[#60756E]">{candidate.recencyPoints} + {candidate.rankingPoints} + {candidate.renownPoints}</td>
+                  <td className="px-3 py-3 text-xs text-[#60756E]">
+                    {candidate.recencyPoints} + {candidate.rankingPoints} + {candidate.renownPoints}
+                    {candidate.specializationBonusPoints > 0
+                      ? ` + ${candidate.specializationBonusPoints} orientation`
+                      : ""}
+                  </td>
                   <td className="px-3 py-3">{getCandidacyStatusLabel(candidate.status)}</td>
                   <td className="px-3 py-3 text-right font-black">{candidate.selectionScore}/1000</td>
                 </tr>

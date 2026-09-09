@@ -38,6 +38,8 @@ import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
+import { selectWeightedRandomDistinct } from "@/lib/game/weighted-random-selection";
+import { loadFederationMarketNationalityWeights } from "@/services/federation-market-nationality";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -1010,7 +1012,8 @@ async function ensureTodayDailyMarket(
   assertQuery(batchError, "la génération quotidienne");
   if (batch || getParisHour(new Date()) < 9) return 0;
 
-  const [countriesResult, profilesResult] = await Promise.all([
+  const [countriesResult, profilesResult, nationalityWeights] =
+    await Promise.all([
     admin
       .from("countries")
       .select("id, name, iso_alpha2, is_active")
@@ -1020,6 +1023,7 @@ async function ensureTodayDailyMarket(
       .from("country_rider_generation_profiles")
       .select("country_id, name_profile_code")
       .returns<GenerationProfileRow[]>(),
+    loadFederationMarketNationalityWeights(admin),
   ]);
   assertQuery(countriesResult.error, "les pays de génération");
   assertQuery(profilesResult.error, "les profils de noms");
@@ -1052,10 +1056,12 @@ async function ensureTodayDailyMarket(
   const regularCandidates = candidates.filter(
     (country) => !nationalDayCountryIds.has(country.id),
   );
-  const selectedCountries = selectRandomDistinct(
-    regularCandidates,
-    DAILY_TRANSFER_RIDER_COUNT,
-  );
+  const selectedCountries = selectWeightedRandomDistinct({
+    values: regularCandidates,
+    count: DAILY_TRANSFER_RIDER_COUNT,
+    getWeight: (country) => nationalityWeights.get(country.id) ?? 1,
+    random: () => randomInt(0, 1_000_000) / 1_000_000,
+  });
   const selectionsByProfile = new Map<string, CountryRow[]>();
   for (const country of selectedCountries) {
     const code = profileByCountry.get(country.id)!;
@@ -1147,6 +1153,13 @@ async function prepareCurrentTransferMarket(
 
 export async function runTransferMarketMaintenance() {
   const admin = createSupabaseAdminClient();
+  const specializationSettlement = await admin.rpc(
+    "settle_due_infrastructure_specializations",
+  );
+  assertQuery(
+    specializationSettlement.error,
+    "l’activation des orientations d’infrastructure",
+  );
   return prepareCurrentTransferMarket(admin);
 }
 
@@ -1463,17 +1476,6 @@ function getParisHour(date: Date) {
       hourCycle: "h23",
     }).format(date),
   );
-}
-
-function selectRandomDistinct<T>(values: T[], count: number) {
-  if (values.length < count)
-    throw new Error("Pas assez de pays pour générer le marché quotidien.");
-  const copy = [...values];
-  for (let index = 0; index < count; index += 1) {
-    const selectedIndex = randomInt(index, copy.length);
-    [copy[index], copy[selectedIndex]] = [copy[selectedIndex]!, copy[index]!];
-  }
-  return copy.slice(0, count);
 }
 
 function shuffle<T>(values: T[]) {

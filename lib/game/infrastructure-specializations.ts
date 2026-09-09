@@ -216,9 +216,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "race_organization_office", buildingName: "Bureau d’organisation", domain: "Courses · Revenus territoriaux", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "prestige_events", name: "Événements de prestige", identity: "Attirer moins d’épreuves, mais mieux classées.", primaryEffect: "+8 % de qualité de dossier pour les candidatures majeures.", secondaryEffect: "+6 % de revenus sur une épreuve internationale accueillie.", guardrail: "Aucun avantage sur les courses locales ordinaires." }),
-      option({ code: "dense_calendar", name: "Calendrier territorial", identity: "Multiplier les occasions de courir dans le pays.", primaryEffect: "−8 % de coût d’organisation des épreuves locales.", secondaryEffect: "+5 % de capacité annuelle d’accueil.", guardrail: "Aucun bonus de prestige international." }),
-      option({ code: "profitable_events", name: "Événements rentables", identity: "Maximiser la contribution de chaque course aux finances fédérales.", primaryEffect: "+10 % de recettes fédérales nettes par épreuve.", secondaryEffect: "−4 % de risque de déficit organisationnel.", guardrail: "N’améliore ni le prestige ni la capacité d’accueil." }),
+      option({ code: "prestige_events", name: "Événements de prestige", identity: "Renforcer les candidatures et mieux valoriser les rendez-vous internationaux.", primaryEffect: "Jusqu’à +8 % sur le score réel des candidatures internationales.", secondaryEffect: "Jusqu’à +6 % de recettes sur une compétition internationale accueillie.", guardrail: "" }),
+      option({ code: "dense_calendar", name: "Calendrier territorial", identity: "Continuer à développer un calendrier national déjà dense.", primaryEffect: "Chaque course existante retire 9, 8 puis 7 points au lieu de 10 à l’indice d’homologation.", secondaryEffect: "Seuil abaissé à 58, 56 puis 55 pour une course régionale ou nationale.", guardrail: "" }),
+      option({ code: "national_pipeline", name: "Rayonnement de la filière", identity: "Faire émerger davantage de professionnels issus du pays.", primaryEffect: "+30 %, +40 % puis +50 % de chances relatives de voir un coureur national aux enchères quotidiennes.", secondaryEffect: "Même bonus dans chaque vague du marché du staff, sans modifier la qualité des profils.", guardrail: "" }),
     ],
   },
   {

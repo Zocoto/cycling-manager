@@ -193,10 +193,14 @@ function parseScore(
     objectivePoints: number("objectivePoints") ?? fallback.objectivePoints,
     existingRaceCount:
       number("existingRaceCount") ?? fallback.existingRaceCount,
+    calendarPenaltyPerRace:
+      number("calendarPenaltyPerRace") ?? fallback.calendarPenaltyPerRace,
     calendarPenalty:
       number("calendarPenalty") ?? fallback.calendarPenalty,
     total,
     threshold,
+    continentalThreshold:
+      number("continentalThreshold") ?? fallback.continentalThreshold,
     eligible:
       typeof score.eligible === "boolean"
         ? score.eligible
