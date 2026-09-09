@@ -136,9 +136,6 @@ export function FederationFinancePreview({
     treasuryState?.account?.uciRank ?? initialNationRank;
   const openingDivision =
     treasuryState?.account?.nationsCupDivision ?? initialDivision;
-  const envelopeBase =
-    treasuryState?.account?.openingBalance ?? projection.totalRevenue;
-
   return (
     <div className="space-y-7">
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
@@ -165,10 +162,8 @@ export function FederationFinancePreview({
                 : `Budget d’ouverture calculé depuis le classement UCI, les courses et les objectifs réellement terminés en S${sourceGameYear}. Aucun don ni objectif futur n’est ajouté artificiellement.`}
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <Envelope label="Réserve" value={roundEnvelope(envelopeBase, 0.5)} ratio="50 %" />
-            <Envelope label="Bâtiments" value={roundEnvelope(envelopeBase, 0.4)} ratio="40 %" />
-            <Envelope label="Solidarité" value={solidarityLimit} ratio="10 % max." />
+          <div className="min-w-48 text-center">
+            <Envelope label="Plafond solidarité" value={solidarityLimit} ratio="10 % maximum" />
           </div>
         </div>
 
@@ -229,7 +224,7 @@ export function FederationFinancePreview({
 
       <section className="grid gap-7 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">Fonds de solidarité · Réglage S3</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">Fonds de solidarité · Plafond saisonnier</p>
           <h3 className="mt-2 text-2xl font-black text-[#183F37]">Deux jauges, une dépense toujours couverte</h3>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
             Les équipes affiliées sous le seuil de réputation reçoivent le même
@@ -376,10 +371,6 @@ function formatObjectiveLevel(level: "none" | "bronze" | "silver" | "gold") {
   if (level === "silver") return "argent";
   if (level === "bronze") return "bronze";
   return "non atteint";
-}
-
-function roundEnvelope(value: number, ratio: number): number {
-  return Math.round((value * ratio) / 5_000) * 5_000;
 }
 
 function Metric({ label, value, small = false }: { label: string; value: string; small?: boolean }) {

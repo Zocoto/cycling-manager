@@ -47,6 +47,7 @@ export type FederationCountryRace = {
   teamParticipationPercentage: number;
   riderFillPercentage: number;
   completedStageCount: number;
+  creditedStageCount: number;
   totalStageCount: number;
   returnStatus: "earned" | "projected";
   moneyGain: number;
@@ -436,6 +437,28 @@ export async function getFederationCoursesState({
         ? officeSpecializationCode
         : null,
     });
+    const allActiveRiders = registrations.reduce(
+      (count, registration) =>
+        count +
+        (registration.status === "accepted"
+          ? (rosterByRegistration.get(registration.id) ?? []).filter((roster) =>
+              ["selected", "confirmed"].includes(roster.status),
+            ).length
+          : 0),
+      0,
+    );
+    const completedEditionCount = new Set(
+      (stagesResult.data ?? [])
+        .filter((stage) => stage.status === "completed")
+        .map((stage) => stage.race_edition_id),
+    ).size;
+    const settledAverageStarters =
+      completedEditionCount > 0
+        ? Math.round(allActiveRiders / completedEditionCount)
+        : 0;
+    const projectedAverageStarters =
+      editions.length > 0 ? Math.round(allActiveRiders / editions.length) : 0;
+    let remainingCreditedRaceDays = 40;
 
     const portfolio = races.map((race): FederationCountryRace => {
       const edition = editionByRaceId.get(race.id) ?? null;
@@ -459,10 +482,18 @@ export async function getFederationCoursesState({
       const returnStatus = edition?.status === "completed" ? "earned" : "projected";
       const countedStages =
         returnStatus === "earned" ? completedStageCount : raceStages.length;
+      const creditedStageCount = Math.min(
+        remainingCreditedRaceDays,
+        countedStages,
+      );
+      remainingCreditedRaceDays -= creditedStageCount;
       const raceReturn = calculateFederationRaceReturn({
         categoryCode: category?.code ?? "regional",
-        completedStageCount: countedStages,
-        starterCount: activeRiders,
+        completedStageCount: creditedStageCount,
+        starterCount:
+          returnStatus === "earned"
+            ? settledAverageStarters
+            : projectedAverageStarters,
         officeLevel,
       });
       const fieldLimit = edition?.field_limit ?? null;
@@ -495,6 +526,7 @@ export async function getFederationCoursesState({
         teamParticipationPercentage: percentage(accepted.length, fieldLimit ?? 0),
         riderFillPercentage: percentage(activeRiders, accepted.length * maximumRosterSize),
         completedStageCount,
+        creditedStageCount,
         totalStageCount: raceStages.length,
         returnStatus,
         moneyGain: raceReturn.money,

@@ -7,25 +7,29 @@ export type FederationObjectiveMetrics = {
   naturalizationCount: number;
   manuallySubmittedSelectionCount: number;
   nationsCupRank: number | null;
+  nationsCupDivision: number | null;
+  nationsCupGroup: string | null;
+  nationsCupPoints: number;
+  nationsCupEvents: number;
 };
 
 type SeasonRow = { id: string };
-type DevelopmentNationRow = {
-  entity_key: string;
-  display_name: string;
+type NationsCupStandingRow = {
+  country_id: string;
+  division: number;
+  group_code: string | null;
   points: number;
-  wins: number;
+  events_count: number;
+  overall_rank: number;
 };
 
 export async function getFederationObjectiveMetrics({
   countryId,
-  countryCode,
   seasonId,
   gameYear,
   currentMemberTeamCount,
 }: {
   countryId: string;
-  countryCode: string;
   seasonId: string;
   gameYear: number;
   currentMemberTeamCount: number;
@@ -35,6 +39,10 @@ export async function getFederationObjectiveMetrics({
     naturalizationCount: 0,
     manuallySubmittedSelectionCount: 0,
     nationsCupRank: null,
+    nationsCupDivision: null,
+    nationsCupGroup: null,
+    nationsCupPoints: 0,
+    nationsCupEvents: 0,
   };
 
   try {
@@ -50,7 +58,7 @@ export async function getFederationObjectiveMetrics({
     if (referenceSeason.error) throw referenceSeason.error;
 
     const referenceSeasonId = referenceSeason.data?.id ?? seasonId;
-    const [memberTeams, naturalizations, publishedSelections, juniorNations] =
+    const [memberTeams, naturalizations, publishedSelections, nationsCup] =
       await Promise.all([
         admin
           .from("team_seasons")
@@ -70,32 +78,33 @@ export async function getFederationObjectiveMetrics({
           .eq("season_id", seasonId)
           .not("created_by_director_id", "is", null)
           .in("status", ["pending_confirmation", "finalized"]),
-        admin
-          .from("development_ranking_entries")
-          .select("entity_key, display_name, points, wins")
-          .eq("season_id", seasonId)
-          .eq("entity_type", "nation")
-          .order("points", { ascending: false })
-          .order("wins", { ascending: false })
-          .order("display_name", { ascending: true })
-          .returns<DevelopmentNationRow[]>(),
+        admin.rpc("get_national_federation_nations_cup_standings", {
+          p_season_id: seasonId,
+        }),
       ]);
 
     if (memberTeams.error) throw memberTeams.error;
     if (naturalizations.error) throw naturalizations.error;
     if (publishedSelections.error) throw publishedSelections.error;
-    if (juniorNations.error) throw juniorNations.error;
+    if (nationsCup.error) throw nationsCup.error;
 
-    const nationsCupIndex = (juniorNations.data ?? []).findIndex(
-      (entry) => entry.entity_key.toUpperCase() === countryCode.toUpperCase(),
-    );
+    const nationsCupStanding = (
+      (nationsCup.data ?? []) as NationsCupStandingRow[]
+    ).find((entry) => entry.country_id === countryId);
+    const hasNationsCupResult = (nationsCupStanding?.events_count ?? 0) > 0;
 
     return {
       referenceMemberTeamCount:
         memberTeams.count ?? currentMemberTeamCount,
       naturalizationCount: naturalizations.count ?? 0,
       manuallySubmittedSelectionCount: publishedSelections.count ?? 0,
-      nationsCupRank: nationsCupIndex >= 0 ? nationsCupIndex + 1 : null,
+      nationsCupRank: hasNationsCupResult
+        ? (nationsCupStanding?.overall_rank ?? null)
+        : null,
+      nationsCupDivision: nationsCupStanding?.division ?? null,
+      nationsCupGroup: nationsCupStanding?.group_code ?? null,
+      nationsCupPoints: nationsCupStanding?.points ?? 0,
+      nationsCupEvents: nationsCupStanding?.events_count ?? 0,
     };
   } catch (error) {
     console.error("Impossible de charger les objectifs fédéraux :", error);

@@ -42,9 +42,10 @@ export type NationalFederationSnapshot = {
     isAffiliated: boolean;
   };
   presidency: {
-    mode: "automatic";
-    presidentName: null;
+    mode: "automatic" | "elected";
+    presidentName: string | null;
   };
+  treasuryBalance: number | null;
   academies: {
     centers: FederationAcademy[];
     totalQualityStars: number;
@@ -118,6 +119,12 @@ type ViewerTeamSeasonRow = {
 type CountryCodeRow = {
   iso_alpha2: string;
 };
+type FederationTermRow = {
+  governance_mode: "automatic" | "elected";
+  president_director_id: string | null;
+};
+type FederationAccountRow = { balance: number | string };
+type DirectorNameRow = { display_name: string };
 
 export async function getCurrentTeamFederationCountryCode(
   teamId: string,
@@ -179,7 +186,14 @@ export async function getNationalFederationSnapshot({
   }
 
   const season = seasonResult.data;
-  const [professionalTitlesResult, juniorTitlesResult, academiesResult, viewerResult] =
+  const [
+    professionalTitlesResult,
+    juniorTitlesResult,
+    academiesResult,
+    viewerResult,
+    termResult,
+    accountResult,
+  ] =
     await Promise.all([
       admin
         .from("rider_national_championship_titles")
@@ -213,6 +227,19 @@ export async function getNationalFederationSnapshot({
             .eq("season_id", season.id)
             .maybeSingle<ViewerTeamSeasonRow>()
         : Promise.resolve({ data: null, error: null }),
+      admin
+        .from("national_federation_terms")
+        .select("governance_mode, president_director_id")
+        .eq("country_id", countryId)
+        .lte("start_game_year", season.game_year)
+        .gte("end_game_year", season.game_year)
+        .maybeSingle<FederationTermRow>(),
+      admin
+        .from("national_federation_accounts")
+        .select("balance")
+        .eq("country_id", countryId)
+        .eq("season_id", season.id)
+        .maybeSingle<FederationAccountRow>(),
     ]);
 
   assertFederationQuery(
@@ -228,6 +255,17 @@ export async function getNationalFederationSnapshot({
     "les académies internationales de la nation",
   );
   assertFederationQuery(viewerResult.error, "l’affiliation de votre équipe");
+  assertFederationQuery(termResult.error, "la présidence de la fédération");
+  assertFederationQuery(accountResult.error, "la trésorerie de la fédération");
+
+  const presidentResult = termResult.data?.president_director_id
+    ? await admin
+        .from("sporting_directors")
+        .select("display_name")
+        .eq("id", termResult.data.president_director_id)
+        .maybeSingle<DirectorNameRow>()
+    : { data: null as DirectorNameRow | null, error: null };
+  assertFederationQuery(presidentResult.error, "le nom du président");
 
   const professionalTitles = professionalTitlesResult.data ?? [];
   const juniorTitles = juniorTitlesResult.data ?? [];
@@ -466,9 +504,11 @@ export async function getNationalFederationSnapshot({
         viewerResult.data?.registration_country_id === countryId,
     },
     presidency: {
-      mode: "automatic",
-      presidentName: null,
+      mode: termResult.data?.governance_mode ?? "automatic",
+      presidentName: presidentResult.data?.display_name ?? null,
     },
+    treasuryBalance:
+      accountResult.data == null ? null : Number(accountResult.data.balance),
     academies: {
       centers: academies,
       totalQualityStars,

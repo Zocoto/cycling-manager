@@ -61,7 +61,7 @@ describe("calculateFederationFinancePreview", () => {
     expect(preview.donations).toBe(5_000_000);
   });
 
-  it("exposes balanced advisory envelopes without creating transactions", () => {
+  it("exposes the enforced ten-percent solidarity ceiling", () => {
     const preview = calculateFederationFinancePreview({
       nationRank: 20,
       division: 1,
@@ -71,11 +71,8 @@ describe("calculateFederationFinancePreview", () => {
       objectiveLevel: "silver",
     });
 
-    const allocated =
-      preview.reserveEnvelope +
-      preview.infrastructureEnvelope +
-      preview.solidarityEnvelope;
-
-    expect(Math.abs(allocated - preview.totalRevenue)).toBeLessThanOrEqual(5_000);
+    expect(preview.solidarityEnvelope).toBe(
+      Math.round((preview.totalRevenue * 0.1) / 5_000) * 5_000,
+    );
   });
 });

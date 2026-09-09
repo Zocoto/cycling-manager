@@ -34,6 +34,7 @@ const state: FederationCoursesState = {
       teamParticipationPercentage: 60,
       riderFillPercentage: 86,
       completedStageCount: 0,
+      creditedStageCount: 4,
       totalStageCount: 4,
       returnStatus: "projected",
       moneyGain: 25_000,

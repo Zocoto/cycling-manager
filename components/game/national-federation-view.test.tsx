@@ -20,6 +20,7 @@ const snapshot: NationalFederationSnapshot = {
     mode: "automatic",
     presidentName: null,
   },
+  treasuryBalance: null,
   academies: {
     centers: [
       {

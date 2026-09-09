@@ -288,7 +288,7 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3">
                 <p className="text-xs font-bold text-[#60756E]">
-                  {race.returnStatus === "earned" ? "Estimation consolidée pour le budget S+1" : "Estimation projetée pour le budget S+1"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées
+                  {race.returnStatus === "earned" ? "Contribution consolidée au budget S+1" : "Contribution projetée au budget S+1"} · {race.completedStageCount}/{race.totalStageCount} étapes terminées · {race.creditedStageCount} jour{race.creditedStageCount > 1 ? "s" : ""} rémunéré{race.creditedStageCount > 1 ? "s" : ""}
                 </p>
                 <p className="text-sm font-black text-[var(--federation-secondary)]">
                   {moneyFormatter.format(race.moneyGain)}

@@ -228,10 +228,17 @@ export function NationalFederationView({
               value={nationRanking ? `#${nationRanking.rank}` : "—"}
             />
             <HeroMetric label="Nations Cup" value={division.label} compact />
-            <HeroMetric label="Présidence" value="Automatique" />
+            <HeroMetric
+              label="Présidence"
+              value={snapshot.presidency.presidentName ?? "Automatique"}
+            />
             <HeroMetric
               label="Trésorerie"
-              value={isPreview ? `S${FEDERATION_MANAGEMENT_START_GAME_YEAR}` : moneyFormatter.format(0)}
+              value={
+                snapshot.treasuryBalance == null
+                  ? `Ouverture S${FEDERATION_MANAGEMENT_START_GAME_YEAR}`
+                  : moneyFormatter.format(snapshot.treasuryBalance)
+              }
               highlight
             />
           </div>
@@ -485,10 +492,22 @@ function OverviewPanel({
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
               Nations Cup
             </p>
-            <p className="mt-3 text-2xl font-black text-[#183F37]">À venir</p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-              Première édition et premier classement de groupe en Saison 3.
+            <p className="mt-3 text-2xl font-black text-[#183F37]">
+              {objectiveMetrics?.nationsCupEvents
+                ? `#${objectiveMetrics.nationsCupRank}`
+                : "À venir"}
             </p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
+              {objectiveMetrics?.nationsCupEvents
+                ? `${numberFormatter.format(objectiveMetrics.nationsCupPoints)} points · Division ${objectiveMetrics.nationsCupDivision}${objectiveMetrics.nationsCupGroup ? `, groupe ${objectiveMetrics.nationsCupGroup}` : ""} · ${objectiveMetrics.nationsCupEvents}/5 épreuves`
+                : "Les cinq épreuves professionnelles auront lieu à J24."}
+            </p>
+            <Link
+              href="/jeu/nations-cup"
+              className="mt-4 inline-flex text-xs font-black text-[var(--federation-secondary)] hover:underline"
+            >
+              Voir le classement complet →
+            </Link>
           </article>
         </div>
       </section>
@@ -588,11 +607,6 @@ function SelectionsPanel({
   riders: FederationSelectionRider[];
   selectionState: FederationSelectionState | null;
 }) {
-  const programmeGameYear = Math.max(
-    FEDERATION_MANAGEMENT_START_GAME_YEAR,
-    snapshot.season.gameYear,
-  );
-  const isQuadriennialSeason = programmeGameYear % 4 === 0;
   const events = [
     {
       day: 15,
@@ -601,10 +615,8 @@ function SelectionsPanel({
     },
     {
       day: 24,
-      name: isQuadriennialSeason ? "Jeux quadriennaux" : "Nations Cup",
-      detail: isQuadriennialSeason
-        ? "Édition exceptionnelle à la place de la Nations Cup"
-        : "Cinq profils · classement de division et de groupe",
+      name: "Nations Cup",
+      detail: "Cinq courses réelles · classement de division et de groupe",
     },
     {
       day: 24,
@@ -623,7 +635,9 @@ function SelectionsPanel({
       <LockedFeatureHeader
         eyebrow={snapshot.season.gameYear < 3 ? "Préparation Saison 3" : "Programme international"}
         title="Composer tôt, sécuriser automatiquement"
-        description="Dès J1, le président préparera ses listes. Chaque équipe validera uniquement ses propres coureurs et toute place laissée vacante sera complétée automatiquement avant le départ."
+        description={snapshot.season.gameYear < 3
+          ? "Dès J1, le président préparera ses listes. Chaque équipe validera uniquement ses propres coureurs et toute place laissée vacante sera complétée automatiquement avant le départ."
+          : "Le président compose les listes, chaque équipe valide ses propres coureurs et toute place laissée vacante est complétée automatiquement avant le départ."}
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -792,8 +806,10 @@ function FinancesPanel({
     <div className="space-y-7">
       <LockedFeatureHeader
         eyebrow="Trésorerie fédérale"
-        title="Projection officielle du budget Saison 3"
-        description="Le calcul s’appuie désormais sur le classement UCI et les courses réellement disputées en Saison 2. Les dons, aides et dépenses restent verrouillés jusqu’au passage en Saison 3."
+        title={gameYear < 3 ? "Projection officielle du budget Saison 3" : "Budget fédéral en temps réel"}
+        description={gameYear < 3
+          ? "Le calcul s’appuie sur le classement UCI et les courses réellement disputées en Saison 2. Les dons, aides et dépenses restent verrouillés jusqu’au passage en Saison 3."
+          : "Le solde, les dotations, les dons, les investissements et les versements de solidarité sont issus des opérations réellement enregistrées."}
       />
 
       <FederationFinancePreview
@@ -1221,9 +1237,6 @@ function LockedFeatureHeader({
             {description}
           </p>
         </div>
-        <span className="w-fit shrink-0 rounded-full bg-[#F2C94C] px-4 py-2 text-[10px] font-black uppercase tracking-[0.13em] text-[#19352E]">
-          Consultation uniquement
-        </span>
       </div>
     </section>
   );

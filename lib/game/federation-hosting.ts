@@ -162,16 +162,6 @@ export function calculateFederationRaceReturn({
   starterCount: number;
   officeLevel: number;
 }): { money: number; prestige: number; kind: "money" | "mixed" } {
-  const stageValue =
-    categoryCode === "elite"
-      ? 14_000
-      : categoryCode === "world"
-        ? 10_000
-        : categoryCode === "continental"
-          ? 7_000
-          : categoryCode === "national"
-            ? 4_000
-            : 2_500;
   const prestigePerStage =
     categoryCode === "elite"
       ? 10
@@ -180,11 +170,11 @@ export function calculateFederationRaceReturn({
         : categoryCode === "continental"
           ? 3
           : 0;
-  const fillMultiplier = 0.55 + Math.min(1, Math.max(0, starterCount) / 160) * 0.45;
+  const fillRate = Math.min(1, Math.max(0, starterCount) / 160);
   const officeMultiplier = 1 + Math.max(0, Math.min(5, officeLevel)) * 0.05;
   const stages = Math.max(0, Math.trunc(completedStageCount));
   const money = Math.round(
-    (stages * stageValue * fillMultiplier * officeMultiplier) / 1_000,
+    (stages * (5_000 + 12_000 * fillRate) * officeMultiplier) / 1_000,
   ) * 1_000;
   const prestige = stages * prestigePerStage;
   return {

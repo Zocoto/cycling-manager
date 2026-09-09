@@ -25,8 +25,6 @@ export type FederationFinancePreview = {
   objectiveBonus: number;
   donations: number;
   totalRevenue: number;
-  reserveEnvelope: number;
-  infrastructureEnvelope: number;
   solidarityEnvelope: number;
   courseFillRate: number;
 };
@@ -104,8 +102,6 @@ export function calculateFederationFinancePreview(
     objectiveBonus,
     donations,
     totalRevenue,
-    reserveEnvelope: roundToNearest(totalRevenue * 0.5, 5_000),
-    infrastructureEnvelope: roundToNearest(totalRevenue * 0.4, 5_000),
     solidarityEnvelope: roundToNearest(totalRevenue * 0.1, 5_000),
     courseFillRate,
   };

@@ -172,7 +172,6 @@ export default async function FederationPage({
     selectedTab === "finances"
       ? getFederationObjectiveMetrics({
           countryId: country.entity_id,
-          countryCode: country.country_code,
           seasonId: snapshot.season.id,
           gameYear: snapshot.season.gameYear,
           currentMemberTeamCount: country.team_count ?? 0,
