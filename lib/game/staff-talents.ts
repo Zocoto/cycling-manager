@@ -1,5 +1,6 @@
 import {
   TRAINER_SPECIALTY_LABELS,
+  getPhysiotherapistRiderCapacity,
   isTrainerSpecialty,
   normalizeStaffLevel,
   type StaffRole,
@@ -17,6 +18,8 @@ export const STAFF_TALENTS_BY_ROLE = {
     "physio_race_recovery",
     "physio_training_recovery",
     "physio_injury_prevention",
+    "physio_rider_capacity",
+    "physio_fatigue_recovery",
   ],
   mechanic: [
     "mechanic_incident_time",
@@ -52,7 +55,12 @@ export const STAFF_TALENTS_BY_ROLE = {
     "trainer_cobbles",
     "trainer_endurance",
   ],
-  race_preparer: ["preparer_duration", "preparer_quality", "preparer_capacity"],
+  race_preparer: [
+    "preparer_duration",
+    "preparer_quality",
+    "preparer_capacity",
+    "preparer_reconnaissance_cost",
+  ],
   nutritionist: [
     "nutrition_daily_form",
     "nutrition_supplement_cost",
@@ -65,7 +73,12 @@ export const STAFF_TALENTS_BY_ROLE = {
     "doctor_care_cost",
     "doctor_injury_form_loss",
   ],
-  research_engineer: ["research_time", "research_cost", "research_success"],
+  research_engineer: [
+    "research_time",
+    "research_cost",
+    "research_success",
+    "research_setback_protection",
+  ],
   educator: [
     "educator_training_time",
     "educator_training_cost",
@@ -107,6 +120,20 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Prévention des blessures",
     description: (level) =>
       `−${percentage(level, 3)} % de risque de blessure en cas de chute`,
+  },
+  physio_rider_capacity: {
+    role: "physiotherapist",
+    label: "Suivi élargi",
+    description: (level) => {
+      const bonus = getPhysiotherapistTalentRiderCapacityBonus(level);
+      return `+${bonus} coureur${bonus > 1 ? "s" : ""} suivi${bonus > 1 ? "s" : ""}`;
+    },
+  },
+  physio_fatigue_recovery: {
+    role: "physiotherapist",
+    label: "Spécialiste de la fatigue",
+    description: (level) =>
+      `−${getPhysiotherapistFatigueRecoveryHours(level)} h sur une blessure de fatigue pour les coureurs suivis`,
   },
   mechanic_incident_time: {
     role: "mechanic",
@@ -241,6 +268,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Groupe élargi",
     description: () => "Peut préparer 2 coureurs supplémentaires au même prix",
   },
+  preparer_reconnaissance_cost: {
+    role: "race_preparer",
+    label: "Logistique négociée",
+    description: (level) =>
+      `−${percentage(level, 4)} % sur le coût des reconnaissances`,
+  },
   nutrition_daily_form: {
     role: "nutritionist",
     label: "Suivi quotidien",
@@ -306,6 +339,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Validation expérimentale",
     description: (level) =>
       `+${percentage(level, 3)} points sur la probabilité de réussite R&D`,
+  },
+  research_setback_protection: {
+    role: "research_engineer",
+    label: "Maîtrise des revers",
+    description: () =>
+      "Une recherche R&D infructueuse produit un résultat neutre plutôt qu’un malus de −1",
   },
   educator_training_time: {
     role: "educator",
@@ -375,6 +414,28 @@ export function getScoutAcademyTrainingBonusPercentage(
   return (
     normalizeStaffLevel(level) *
     SCOUT_ACADEMY_TRAINING_PERCENTAGE_PER_LEVEL
+  );
+}
+
+export function getPhysiotherapistTalentRiderCapacityBonus(
+  level: number,
+): number {
+  return normalizeStaffLevel(level) >= 4 ? 2 : 1;
+}
+
+export function getPhysiotherapistFatigueRecoveryHours(level: number): number {
+  return Math.min(30, normalizeStaffLevel(level) * 6);
+}
+
+export function getPhysiotherapistEffectiveRiderCapacity(
+  level: number,
+  hasCapacityTalent: boolean,
+): number {
+  return (
+    getPhysiotherapistRiderCapacity(level) +
+    (hasCapacityTalent
+      ? getPhysiotherapistTalentRiderCapacityBonus(level)
+      : 0)
   );
 }
 

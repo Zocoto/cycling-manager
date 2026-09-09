@@ -4,7 +4,9 @@ import {
   RACE_RECONNAISSANCE_BASE_BONUS,
   RACE_RECONNAISSANCE_DURATION_DAYS,
   canTeamRecognizeRace,
+  getAdjustedRaceReconnaissanceCost,
   getRacePreparerBonusPercentage,
+  getRacePreparerReconnaissanceCostReductionPercentage,
   getRaceReconnaissanceBonus,
   getRaceReconnaissanceCost,
 } from "@/lib/game/race-reconnaissance";
@@ -24,6 +26,24 @@ describe("race reconnaissance", () => {
     ).toEqual([5, 10, 15, 20, 25]);
     expect(getRaceReconnaissanceBonus(1)).toBe(2.1);
     expect(getRaceReconnaissanceBonus(5)).toBe(2.5);
+  });
+
+  it("réduit le coût de quatre pour cent par niveau avec Logistique négociée", () => {
+    expect(
+      getRacePreparerReconnaissanceCostReductionPercentage(3, true),
+    ).toBe(12);
+    expect(
+      getRacePreparerReconnaissanceCostReductionPercentage(5, true),
+    ).toBe(20);
+    expect(
+      getRacePreparerReconnaissanceCostReductionPercentage(5, false),
+    ).toBe(0);
+    expect(
+      getAdjustedRaceReconnaissanceCost({
+        baseCost: 20_000,
+        reductionPercentage: 20,
+      }),
+    ).toBe(16_000);
   });
 
   it("makes elite reconnaissance more expensive than lower categories", () => {

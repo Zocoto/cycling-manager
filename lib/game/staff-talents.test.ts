@@ -4,6 +4,9 @@ import {
   STAFF_TALENT_DEFINITIONS,
   describeStaffTalent,
   getArchitectBuildingEfficiencyBonusPercentage,
+  getPhysiotherapistEffectiveRiderCapacity,
+  getPhysiotherapistFatigueRecoveryHours,
+  getPhysiotherapistTalentRiderCapacityBonus,
   getScoutAcademyTrainingBonusPercentage,
   getScoutTalentBonuses,
   getStaffTalentCodes,
@@ -182,6 +185,31 @@ describe("staff talents", () => {
     expect(
       describeStaffTalent("nutrition_supplement_effectiveness", 5),
     ).toContain("supplémentaire sur chaque complément");
+  });
+
+  it("calcule les deux nouveaux effets des kinés avec leurs plafonds", () => {
+    expect(getPhysiotherapistTalentRiderCapacityBonus(3)).toBe(1);
+    expect(getPhysiotherapistTalentRiderCapacityBonus(4)).toBe(2);
+    expect(getPhysiotherapistEffectiveRiderCapacity(3, false)).toBe(6);
+    expect(getPhysiotherapistEffectiveRiderCapacity(3, true)).toBe(7);
+    expect(getPhysiotherapistEffectiveRiderCapacity(5, true)).toBe(14);
+    expect(getPhysiotherapistFatigueRecoveryHours(1)).toBe(6);
+    expect(getPhysiotherapistFatigueRecoveryHours(5)).toBe(30);
+  });
+
+  it("ajoute les quatre affixes opérationnels aux bons métiers", () => {
+    expect(getStaffTalentCodes("physiotherapist")).toEqual(
+      expect.arrayContaining([
+        "physio_rider_capacity",
+        "physio_fatigue_recovery",
+      ]),
+    );
+    expect(getStaffTalentCodes("race_preparer")).toContain(
+      "preparer_reconnaissance_cost",
+    );
+    expect(getStaffTalentCodes("research_engineer")).toContain(
+      "research_setback_protection",
+    );
   });
 
   it("propose au community manager le développement de la popularité et des fans", () => {

@@ -10,6 +10,7 @@ import {
 import { CampInterruptionSubmitButton } from "@/components/game/camp-interruption-submit-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { RaceProfileType } from "@/lib/game/race-calendar";
+import { getAdjustedRaceReconnaissanceCost } from "@/lib/game/race-reconnaissance";
 import {
   findRiderUnavailability,
   getRecognitionDateCandidates,
@@ -127,7 +128,13 @@ export function RaceReconnaissancePlanner({
   const effectiveStartDayNumber = selectedDateCandidate?.dayNumber ?? null;
   const effectiveEndDayNumber = selectedDateCandidate?.endDayNumber ?? null;
   const resultingBonus = selectedPreparer?.resultingBonus ?? 2;
-  const canAfford = !selectedStage || overview.balance >= selectedStage.cost;
+  const selectedCost = selectedStage
+    ? getAdjustedRaceReconnaissanceCost({
+        baseCost: selectedStage.cost,
+        reductionPercentage: selectedPreparer?.costReductionPercentage ?? 0,
+      })
+    : 0;
+  const canAfford = !selectedStage || overview.balance >= selectedCost;
   const canSubmit =
     selectedRiderIds.length > 0 &&
     selectedRiderIds.length <= riderCapacity &&
@@ -287,6 +294,9 @@ export function RaceReconnaissancePlanner({
                     {formatBonus(preparer.resultingBonus)} ·{" "}
                     {preparer.durationDays} j · {preparer.riderCapacity}{" "}
                     coureurs
+                    {preparer.costReductionPercentage > 0
+                      ? ` · −${preparer.costReductionPercentage}% coût`
+                      : ""}
                     {preparer.nationalityAffinity
                       ? " · affinité nationale"
                       : ""}
@@ -548,7 +558,12 @@ export function RaceReconnaissancePlanner({
                   })}{" "}
                   km · bonus +{formatBonus(resultingBonus)} sur les 13
                   statistiques · coût{" "}
-                  {formatMoney(selectedStage.cost, overview.currency)}
+                  {formatMoney(selectedCost, overview.currency)}
+                  {(selectedPreparer?.costReductionPercentage ?? 0) > 0 ? (
+                    <span className="ml-1 text-[#278B70]">
+                      (−{selectedPreparer?.costReductionPercentage} %)
+                    </span>
+                  ) : null}
                 </p>
                 {!canAfford ? (
                   <p className="mt-1 text-xs font-black text-[#A13F37]">

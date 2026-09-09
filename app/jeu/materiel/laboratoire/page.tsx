@@ -353,10 +353,11 @@ export default async function EquipmentLaboratoryPage({
                     {project.ratingKey ?? "Statistique"}
                   </p>
                   <span
-                    className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${project.outcome === "improvement" ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-900"}`}
+                    className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${project.outcome === "setback" && project.ratingDelta === 0 ? "bg-amber-100 text-amber-900" : project.outcome === "improvement" ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-900"}`}
                   >
-                    {(project.ratingDelta ?? 0) > 0 ? "+" : ""}
-                    {project.ratingDelta ?? 0}
+                    {project.outcome === "setback" && project.ratingDelta === 0
+                      ? "Revers neutralisé · 0"
+                      : `${(project.ratingDelta ?? 0) > 0 ? "+" : ""}${project.ratingDelta ?? 0}`}
                   </span>
                 </article>
               ))}

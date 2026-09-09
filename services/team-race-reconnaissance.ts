@@ -3,6 +3,7 @@ import "server-only";
 import {
   canTeamRecognizeRace,
   getRacePreparerBonusPercentage,
+  getRacePreparerReconnaissanceCostReductionPercentage,
   getRaceReconnaissanceCost,
 } from "@/lib/game/race-reconnaissance";
 import {
@@ -175,6 +176,7 @@ export type RacePreparerOption = {
   level: number;
   efficiencyPercentage: number;
   resultingBonus: number;
+  costReductionPercentage: number;
   riderCapacity: number;
   durationDays: number;
   nationalityAffinity: boolean;
@@ -623,6 +625,11 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           resultingBonus: Number(
             (2 * (1 + efficiencyPercentage / 100)).toFixed(2),
           ),
+          costReductionPercentage:
+            getRacePreparerReconnaissanceCostReductionPercentage(
+              member.level,
+              talents.has("preparer_reconnaissance_cost"),
+            ),
           riderCapacity: 3 + (talents.has("preparer_capacity") ? 2 : 0),
           durationDays: talents.has("preparer_duration") ? 1 : 2,
           nationalityAffinity,

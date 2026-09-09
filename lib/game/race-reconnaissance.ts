@@ -53,6 +53,38 @@ export function getRacePreparerBonusPercentage(level: number) {
   return safeLevel * 5;
 }
 
+export function getRacePreparerReconnaissanceCostReductionPercentage(
+  level: number,
+  hasNegotiatedLogistics: boolean,
+) {
+  if (!hasNegotiatedLogistics) return 0;
+
+  const safeLevel = Math.min(
+    5,
+    Math.max(0, Math.floor(Number.isFinite(level) ? level : 0)),
+  );
+  return safeLevel * 4;
+}
+
+export function getAdjustedRaceReconnaissanceCost({
+  baseCost,
+  reductionPercentage,
+}: {
+  baseCost: number;
+  reductionPercentage: number;
+}) {
+  const safeBaseCost = Math.max(0, Number.isFinite(baseCost) ? baseCost : 0);
+  const safeReduction = Math.min(
+    100,
+    Math.max(
+      0,
+      Number.isFinite(reductionPercentage) ? reductionPercentage : 0,
+    ),
+  );
+
+  return Math.round(safeBaseCost * (1 - safeReduction / 100) * 100) / 100;
+}
+
 export function getRaceReconnaissanceBonus(level?: number | null) {
   const preparerBonusPercentage = getRacePreparerBonusPercentage(level ?? 0);
 

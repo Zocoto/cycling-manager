@@ -16,7 +16,7 @@ import {
   RIDER_PRIMARY_RATING_KEYS,
   RIDER_RATING_AXES,
 } from "@/lib/game/rider-profile";
-import { getPhysiotherapistRiderCapacity } from "@/lib/game/staff";
+import { getPhysiotherapistEffectiveRiderCapacity } from "@/lib/game/staff-talents";
 import type {
   TeamHealthRider,
   TeamMedicalStaffMember,
@@ -36,6 +36,16 @@ export function PhysiotherapistAssignmentMatrix({
   const initialAssignments = useMemo(
     () => createInitialAssignments(riders, physiotherapists),
     [riders, physiotherapists],
+  );
+  const capacityByContractId = useMemo(
+    () =>
+      new Map(
+        physiotherapists.map((physio) => [
+          physio.contractId,
+          getEffectiveCapacity(physio),
+        ]),
+      ),
+    [physiotherapists],
   );
   const [assignments, setAssignments] =
     useState<PhysiotherapistAssignment>(initialAssignments);
@@ -105,9 +115,9 @@ export function PhysiotherapistAssignmentMatrix({
                 </legend>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {physiotherapists.map((physio) => {
-                    const capacity = getPhysiotherapistRiderCapacity(
-                      physio.level,
-                    );
+                    const capacity = capacityByContractId.get(
+                      physio.contractId,
+                    )!;
                     const assignedCount = countPhysiotherapistAssignments(
                       assignments,
                       physio.contractId,
@@ -181,7 +191,7 @@ export function PhysiotherapistAssignmentMatrix({
                 </span>
               </th>
               {physiotherapists.map((physio) => {
-                const capacity = getPhysiotherapistRiderCapacity(physio.level);
+                const capacity = capacityByContractId.get(physio.contractId)!;
                 const assignedCount = countPhysiotherapistAssignments(
                   assignments,
                   physio.contractId,
@@ -242,9 +252,9 @@ export function PhysiotherapistAssignmentMatrix({
                     <RiderSummary rider={rider} jersey={jersey} />
                   </th>
                   {physiotherapists.map((physio) => {
-                    const capacity = getPhysiotherapistRiderCapacity(
-                      physio.level,
-                    );
+                    const capacity = capacityByContractId.get(
+                      physio.contractId,
+                    )!;
                     const checked = assignedContractId === physio.contractId;
                     const capacityReached =
                       !checked &&
@@ -451,6 +461,13 @@ function createInitialAssignments(
         physio.assignedRiderIds.includes(rider.id),
       )?.contractId ?? null,
     ]),
+  );
+}
+
+function getEffectiveCapacity(physio: TeamMedicalStaffMember) {
+  return getPhysiotherapistEffectiveRiderCapacity(
+    physio.level,
+    physio.talents.some((talent) => talent.code === "physio_rider_capacity"),
   );
 }
 

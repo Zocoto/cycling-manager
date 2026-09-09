@@ -33,10 +33,8 @@ import {
 } from "@/lib/game/health-center";
 import { getHealthCenterErrorMessage } from "@/lib/game/health-center-errors";
 import type { TeamRiderSeasonPlanning } from "@/lib/game/rider-season-planning";
-import {
-  getNutritionistDailyCapacity,
-  getPhysiotherapistRiderCapacity,
-} from "@/lib/game/staff";
+import { getNutritionistDailyCapacity } from "@/lib/game/staff";
+import { getPhysiotherapistEffectiveRiderCapacity } from "@/lib/game/staff-talents";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -498,6 +496,14 @@ function InjuryCard({
             </p>
           ) : null}
 
+          {rider.injury.physiotherapistRecoveryHoursReduced > 0 ? (
+            <p className="mt-3 rounded-xl bg-[#F1EAF9] px-4 py-3 text-sm font-bold text-[#684390]">
+              Kiné spécialiste de la fatigue ·{" "}
+              {rider.injury.physiotherapistRecoveryHoursReduced} h de repos
+              évitées
+            </p>
+          ) : null}
+
           {treatment ? (
             <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
               Protocole appliqué · {getProtocolName(overview, treatment.protocolCode)}
@@ -516,8 +522,9 @@ function InjuryCard({
               </p>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#702E2E]">
                 Cette blessure survient lorsque la forme devait passer sous zéro.
-                Sa durée est fixée à trois jours : le médecin et les protocoles ne
-                peuvent pas la raccourcir.
+                Sa durée de base est fixée à trois jours. Seul un kiné spécialiste
+                de la fatigue déjà affecté au coureur peut la raccourcir ; le
+                médecin et les protocoles restent sans effet.
               </p>
             </div>
           ) : (
@@ -1102,8 +1109,11 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
             <h3 className="text-xl font-black text-[#183F37]">Kinés</h3>
             {physiotherapists.length > 0 ? (
               physiotherapists.map((physiotherapist) => {
-                const capacity = getPhysiotherapistRiderCapacity(
+                const capacity = getPhysiotherapistEffectiveRiderCapacity(
                   physiotherapist.level,
+                  physiotherapist.talents.some(
+                    (talent) => talent.code === "physio_rider_capacity",
+                  ),
                 );
 
                 return (
