@@ -172,6 +172,22 @@ describe("health center rules", () => {
     ).toBe(false);
   });
 
+  it("affiche le prix et l'efficacité réellement calculés par le serveur", () => {
+    expect(
+      getNutritionInterventionOutcome({
+        code: "recovery_snack",
+        nutritionistLevel: 3,
+        additionalFormBonus: 1,
+        effectivePrice: 398.75,
+      }),
+    ).toEqual({
+      formGain: 5,
+      price: 398.75,
+      discountPct: 20.3,
+      isUnlocked: true,
+    });
+  });
+
   it("répartit le bonus passif du nutritionniste sans perdre les fractions", () => {
     expect(
       Array.from({ length: 5 }, (_, index) =>

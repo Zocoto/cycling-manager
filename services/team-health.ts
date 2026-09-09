@@ -141,6 +141,18 @@ type NutritionInterventionRow = {
   form_after: number;
   applied_at: string;
 };
+type NutritionistEffectiveQuote = {
+  contractId: string;
+  dailyCapacity: number;
+  additionalFormBonus: number;
+  prices: Record<NutritionInterventionCode, number>;
+};
+type ProtocolEffectiveQuote = {
+  code: MedicalProtocolCode;
+  price: number;
+  durationReductionPct: number;
+  formLossPerDay: number;
+};
 
 export type RiderMedicalInjury = {
   id: string;
@@ -209,6 +221,12 @@ export type TeamMedicalStaffMember = {
   role: "doctor" | "physiotherapist" | "nutritionist";
   level: number;
   assignedRiderIds: string[];
+  dailyNutritionCapacity: number | null;
+  nutritionAdditionalFormBonus: number;
+  nutritionInterventionPrices: Record<
+    NutritionInterventionCode,
+    number
+  > | null;
   talents: Array<{
     slot: number;
     code: StaffTalentCode;
@@ -307,7 +325,41 @@ export async function getCurrentTeamHealthOverview(
   assertQuery(protocolsResult.error, "les protocoles médicaux");
   const teamSeason = teamSeasonResult.data;
   if (!teamSeason) return null;
-  const medicalStaff = await loadMedicalStaff(teamSeason.team_id);
+  const [baseMedicalStaff, effectiveQuotesResult] = await Promise.all([
+    loadMedicalStaff(teamSeason.team_id),
+    admin.rpc("get_team_medical_staff_effective_quotes", {
+      p_team_id: teamSeason.team_id,
+      p_team_season_id: teamSeason.id,
+    }),
+  ]);
+  assertQuery(
+    effectiveQuotesResult.error,
+    "les effets du staff médical",
+  );
+  const effectiveQuotes = normalizeMedicalEffectiveQuotes(
+    effectiveQuotesResult.data,
+  );
+  const nutritionistQuoteByContractId = new Map(
+    effectiveQuotes.nutritionists.map((quote) => [quote.contractId, quote]),
+  );
+  const protocolQuoteByCode = new Map(
+    effectiveQuotes.protocols.map((quote) => [quote.code, quote]),
+  );
+  const medicalStaff = baseMedicalStaff.map((member) => {
+    const quote = nutritionistQuoteByContractId.get(member.contractId);
+    return quote
+      ? {
+          ...member,
+          dailyNutritionCapacity: quote.dailyCapacity,
+          nutritionAdditionalFormBonus: quote.additionalFormBonus,
+          nutritionInterventionPrices: quote.prices,
+        }
+      : member;
+  });
+  const protocols = mapProtocols(
+    protocolsResult.data ?? [],
+    protocolQuoteByCode,
+  );
 
   const riderIds = (contractsResult.data ?? []).map((row) => row.rider_id);
   if (riderIds.length === 0) {
@@ -320,7 +372,7 @@ export async function getCurrentTeamHealthOverview(
       balance: toNumber(teamSeason.cash_balance),
       currency: teamSeason.currency,
       riders: [],
-      protocols: mapProtocols(protocolsResult.data ?? []),
+      protocols,
       medicalStaff,
       nutritionInterventionsToday: [],
     };
@@ -476,7 +528,7 @@ export async function getCurrentTeamHealthOverview(
     currentDayNumber: season.current_day_number ?? 1,
     balance: toNumber(teamSeason.cash_balance),
     currency: teamSeason.currency,
-    protocols: mapProtocols(protocolsResult.data ?? []),
+    protocols,
     medicalStaff,
     nutritionInterventionsToday: (nutritionInterventionsResult.data ?? []).map(
       (intervention) => ({
@@ -674,6 +726,9 @@ async function loadMedicalStaff(
             role: member.role,
             level: member.level,
             assignedRiderIds: riderIdsByContract.get(contract.id) ?? [],
+            dailyNutritionCapacity: null,
+            nutritionAdditionalFormBonus: 0,
+            nutritionInterventionPrices: null,
             talents,
           } satisfies TeamMedicalStaffMember,
         ]
@@ -690,15 +745,105 @@ export function getInjuryLabel(diagnosisCode: string) {
   return "Blessure en cours";
 }
 
-function mapProtocols(rows: ProtocolRow[]): TeamMedicalProtocol[] {
-  return rows.map((protocol) => ({
-    code: protocol.code,
-    name: protocol.name,
-    description: protocol.description,
-    price: toNumber(protocol.price),
-    durationReductionPct: protocol.duration_reduction_pct,
-    formLossPerDay: protocol.form_loss_per_day,
-  }));
+function mapProtocols(
+  rows: ProtocolRow[],
+  effectiveQuoteByCode: Map<MedicalProtocolCode, ProtocolEffectiveQuote>,
+): TeamMedicalProtocol[] {
+  return rows.map((protocol) => {
+    const effective = effectiveQuoteByCode.get(protocol.code);
+    return {
+      code: protocol.code,
+      name: protocol.name,
+      description: protocol.description,
+      price: effective?.price ?? toNumber(protocol.price),
+      durationReductionPct:
+        effective?.durationReductionPct ?? protocol.duration_reduction_pct,
+      formLossPerDay:
+        effective?.formLossPerDay ?? protocol.form_loss_per_day,
+    };
+  });
+}
+
+function normalizeMedicalEffectiveQuotes(value: unknown): {
+  nutritionists: NutritionistEffectiveQuote[];
+  protocols: ProtocolEffectiveQuote[];
+} {
+  if (!value || typeof value !== "object") {
+    return { nutritionists: [], protocols: [] };
+  }
+  const payload = value as Record<string, unknown>;
+  const nutritionists = Array.isArray(payload.nutritionists)
+    ? payload.nutritionists.flatMap(normalizeNutritionistQuote)
+    : [];
+  const protocols = Array.isArray(payload.protocols)
+    ? payload.protocols.flatMap(normalizeProtocolQuote)
+    : [];
+  return { nutritionists, protocols };
+}
+
+function normalizeNutritionistQuote(
+  value: unknown,
+): NutritionistEffectiveQuote[] {
+  if (!value || typeof value !== "object") return [];
+  const row = value as Record<string, unknown>;
+  const prices = row.prices;
+  if (!prices || typeof prices !== "object") return [];
+  const priceRecord = prices as Record<string, unknown>;
+  const contractId = String(row.contractId ?? "");
+  const dailyCapacity = Number(row.dailyCapacity);
+  const additionalFormBonus = Number(row.additionalFormBonus);
+  const normalizedPrices = {
+    recovery_snack: Number(priceRecord.recovery_snack),
+    tailored_plan: Number(priceRecord.tailored_plan),
+    elite_recharge: Number(priceRecord.elite_recharge),
+  };
+  if (
+    !contractId ||
+    !Number.isFinite(dailyCapacity) ||
+    !Number.isFinite(additionalFormBonus) ||
+    Object.values(normalizedPrices).some((price) => !Number.isFinite(price))
+  ) {
+    return [];
+  }
+  return [
+    {
+      contractId,
+      dailyCapacity,
+      additionalFormBonus,
+      prices: normalizedPrices,
+    },
+  ];
+}
+
+function normalizeProtocolQuote(value: unknown): ProtocolEffectiveQuote[] {
+  if (!value || typeof value !== "object") return [];
+  const row = value as Record<string, unknown>;
+  const code = String(row.code);
+  if (!isMedicalProtocolCode(code)) return [];
+  const price = Number(row.price);
+  const durationReductionPct = Number(row.durationReductionPct);
+  const formLossPerDay = Number(row.formLossPerDay);
+  if (
+    !Number.isFinite(price) ||
+    !Number.isFinite(durationReductionPct) ||
+    !Number.isFinite(formLossPerDay)
+  ) {
+    return [];
+  }
+  return [
+    {
+      code,
+      price,
+      durationReductionPct,
+      formLossPerDay,
+    },
+  ];
+}
+
+function isMedicalProtocolCode(value: string): value is MedicalProtocolCode {
+  return ["accelerated_recovery", "form_preservation", "complete_care"].includes(
+    value,
+  );
 }
 
 function toNumber(value: number | string | null | undefined) {

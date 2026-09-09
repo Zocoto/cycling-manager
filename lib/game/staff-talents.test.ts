@@ -49,6 +49,12 @@ describe("staff talents", () => {
     }
   });
 
+  it("retire Maintenance raisonnée du pool actif des architectes", () => {
+    expect(getStaffTalentCodes("architect")).not.toContain(
+      "architect_maintenance_cost",
+    );
+  });
+
   it("never gives a new trainer the same domain as the main specialty", () => {
     for (let roll = 0; roll < 30; roll += 1) {
       expect(

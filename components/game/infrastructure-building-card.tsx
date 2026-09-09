@@ -60,6 +60,8 @@ export function InfrastructureBuildingCard({
         baseDurationDays: nextLevel.durationDays,
         architectLevel: architect?.level,
         architectSpecialty: architect?.specialty,
+        costReductionPercentage: architect?.costReductionPercentage,
+        durationReductionPercentage: architect?.durationReductionPercentage,
       })
     : null;
   const maximumLevel = definition.levels.at(-1)?.level ?? 0;

@@ -14,6 +14,8 @@ export type NutritionistInterventionOption = {
   name: string;
   level: number;
   remainingCapacity: number;
+  additionalFormBonus?: number;
+  interventionPrices?: Partial<Record<NutritionInterventionCode, number>> | null;
 };
 
 const INTERVENTION_CODES = Object.keys(
@@ -54,6 +56,9 @@ export function NutritionInterventionControls({
     ? getNutritionInterventionOutcome({
         code: interventionCode,
         nutritionistLevel: selectedNutritionist.level,
+        additionalFormBonus: selectedNutritionist.additionalFormBonus,
+        effectivePrice:
+          selectedNutritionist.interventionPrices?.[interventionCode],
       })
     : null;
   const actualFormGain = outcome

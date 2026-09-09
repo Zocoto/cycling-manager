@@ -88,6 +88,12 @@ export type InfrastructureArchitect = {
   buildingEfficiencyBonusPercentage: number;
 };
 
+type ArchitectEffectiveQuoteRow = {
+  contractId: string;
+  costReductionPercentage: number;
+  durationReductionPercentage: number;
+};
+
 export type InternationalCenterOwner = {
   id: string;
   qualityLevel: number;
@@ -192,6 +198,7 @@ export async function getTeamInfrastructureOverview(
     specializationsResult,
     projectsResult,
     contractsResult,
+    architectQuotesResult,
     countriesResult,
     centersResult,
     teamSeasonsResult,
@@ -231,6 +238,9 @@ export async function getTeamInfrastructureOverview(
       .eq("team_id", context.teamId)
       .eq("status", "active")
       .returns<Array<{ id: string; staff_member_id: string }>>(),
+    admin.rpc("get_team_architect_effective_quotes", {
+      p_team_id: context.teamId,
+    }),
     admin
       .from("countries")
       .select("id, name, iso_alpha2, is_active")
@@ -277,6 +287,7 @@ export async function getTeamInfrastructureOverview(
     [specializationsResult, "les spécialisations de l’équipe"],
     [projectsResult, "les chantiers"],
     [contractsResult, "les architectes"],
+    [architectQuotesResult, "les devis effectifs des architectes"],
     [countriesResult, "les pays"],
     [centersResult, "les centres internationaux"],
     [teamSeasonsResult, "les équipes propriétaires"],
@@ -287,6 +298,11 @@ export async function getTeamInfrastructureOverview(
   }
 
   const contracts = contractsResult.data ?? [];
+  const architectQuoteByContractId = new Map(
+    normalizeArchitectEffectiveQuotes(architectQuotesResult.data).map(
+      (quote) => [quote.contractId, quote],
+    ),
+  );
   const memberIds = contracts.map((contract) => contract.staff_member_id);
   const membersResult = memberIds.length
     ? await admin
@@ -354,6 +370,7 @@ export async function getTeamInfrastructureOverview(
         ? rawSpecialty
         : "balanced";
       const bonuses = getArchitectConstructionBonuses(member.level, specialty);
+      const effectiveBonuses = architectQuoteByContractId.get(contract.id);
       const talentCodes = new Set(
         (talentsByArchitectMemberId.get(member.id) ?? []).map(
           (talent) => talent.talent_code,
@@ -375,7 +392,12 @@ export async function getTeamInfrastructureOverview(
           )
             ? getArchitectBuildingEfficiencyBonusPercentage(member.level)
             : 0,
-          ...bonuses,
+          costReductionPercentage:
+            effectiveBonuses?.costReductionPercentage ??
+            bonuses.costReductionPercentage,
+          durationReductionPercentage:
+            effectiveBonuses?.durationReductionPercentage ??
+            bonuses.durationReductionPercentage,
         },
       ];
     },
@@ -565,6 +587,8 @@ export function quoteConstruction({
     baseDurationDays,
     architectLevel: architect?.level,
     architectSpecialty: architect?.specialty,
+    costReductionPercentage: architect?.costReductionPercentage,
+    durationReductionPercentage: architect?.durationReductionPercentage,
   });
 }
 
@@ -682,6 +706,37 @@ function groupBy<T>(rows: T[], key: (row: T) => string) {
     grouped.set(key(row), [...(grouped.get(key(row)) ?? []), row]);
   }
   return grouped;
+}
+
+function normalizeArchitectEffectiveQuotes(
+  value: unknown,
+): ArchitectEffectiveQuoteRow[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const row = entry as Record<string, unknown>;
+    const contractId = String(row.contractId ?? "");
+    const costReductionPercentage = Number(row.costReductionPercentage);
+    const durationReductionPercentage = Number(
+      row.durationReductionPercentage,
+    );
+    if (
+      !contractId ||
+      !Number.isFinite(costReductionPercentage) ||
+      !Number.isFinite(durationReductionPercentage)
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        contractId,
+        costReductionPercentage,
+        durationReductionPercentage,
+      },
+    ];
+  });
 }
 
 function toNumber(value: unknown) {

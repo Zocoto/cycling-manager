@@ -27,7 +27,6 @@ export const STAFF_TALENTS_BY_ROLE = {
   architect: [
     "architect_construction_time",
     "architect_construction_cost",
-    "architect_maintenance_cost",
     "architect_building_efficiency",
     "architect_parallel_construction",
   ],
@@ -145,12 +144,6 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Achats optimisés",
     description: (level) =>
       `−${percentage(level, 2)} % supplémentaire sur les coûts de construction`,
-  },
-  architect_maintenance_cost: {
-    role: "architect",
-    label: "Maintenance raisonnée",
-    description: (level) =>
-      `−${percentage(level, 2)} % sur les futurs coûts de maintenance des bâtiments livrés`,
   },
   architect_building_efficiency: {
     role: "architect",
@@ -306,7 +299,7 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     role: "research_engineer",
     label: "Optimisation des ressources",
     description: (level) =>
-      `−${percentage(level, 5)} % sur la durée de chaque recherche R&D`,
+      `−${percentage(level, 5)} % sur le coût de chaque recherche R&D`,
   },
   research_success: {
     role: "research_engineer",

@@ -78,6 +78,9 @@ export function InternationalYouthCenterMap({
         baseDurationDays: nextLevel.durationDays,
         architectLevel: selectedArchitect?.level,
         architectSpecialty: selectedArchitect?.specialty,
+        costReductionPercentage: selectedArchitect?.costReductionPercentage,
+        durationReductionPercentage:
+          selectedArchitect?.durationReductionPercentage,
       })
     : null;
   const currentTeamCenter = selected.centers.find(

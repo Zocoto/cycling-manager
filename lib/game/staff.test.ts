@@ -134,6 +134,24 @@ describe("staff economy", () => {
     });
   });
 
+  it("utilise les réductions effectives du serveur dans le devis affiché", () => {
+    expect(
+      calculateConstructionWithArchitect({
+        baseCost: 100_000,
+        baseDurationDays: 20,
+        architectLevel: 2,
+        architectSpecialty: "balanced",
+        costReductionPercentage: 12,
+        durationReductionPercentage: 15,
+      }),
+    ).toEqual({
+      cost: 88_000,
+      durationDays: 17,
+      costReductionPercentage: 12,
+      durationReductionPercentage: 15,
+    });
+  });
+
   it("improves youth potential and initial ratings with scout level", () => {
     expect(getScoutYouthBonuses(1)).toEqual({
       scoutingEfficiencyPercentage: 5,

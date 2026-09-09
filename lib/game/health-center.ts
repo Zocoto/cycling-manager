@@ -131,17 +131,34 @@ export function orderNutritionRidersByForm<
 export function getNutritionInterventionOutcome({
   code,
   nutritionistLevel,
+  additionalFormBonus = 0,
+  effectivePrice,
 }: {
   code: NutritionInterventionCode;
   nutritionistLevel: number;
+  additionalFormBonus?: number;
+  effectivePrice?: number | null;
 }) {
   const intervention = NUTRITION_INTERVENTIONS[code];
   const level = clamp(Math.trunc(nutritionistLevel), 1, 5);
-  const discountPct = level * 5;
+  const fallbackPrice = Math.round(
+    intervention.basePrice * (1 - level * 5 / 100),
+  );
+  const price =
+    effectivePrice !== null &&
+    effectivePrice !== undefined &&
+    Number.isFinite(effectivePrice)
+      ? Math.round(Math.max(0, effectivePrice) * 100) / 100
+      : fallbackPrice;
+  const discountPct =
+    Math.round((1 - price / intervention.basePrice) * 1_000) / 10;
 
   return {
-    formGain: intervention.baseFormGain + Math.floor((level - 1) / 2),
-    price: Math.round(intervention.basePrice * (1 - discountPct / 100)),
+    formGain:
+      intervention.baseFormGain +
+      Math.floor((level - 1) / 2) +
+      Math.max(0, Math.trunc(additionalFormBonus)),
+    price,
     discountPct,
     isUnlocked: level >= intervention.minimumNutritionistLevel,
   };

@@ -54,6 +54,8 @@ export function DataRoomConstructionCard({
         baseDurationDays: nextLevel.durationDays,
         architectLevel: architect?.level,
         architectSpecialty: architect?.specialty,
+        costReductionPercentage: architect?.costReductionPercentage,
+        durationReductionPercentage: architect?.durationReductionPercentage,
       })
     : null;
   const requiredDirectorLevel = nextLevel

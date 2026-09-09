@@ -767,18 +767,23 @@ function NutritionPanel({
   const availableNutritionist = nutritionists.find(
     (member) =>
       (usageByContract.get(member.contractId) ?? 0) <
-      getNutritionistDailyCapacity(member.level),
+      (member.dailyNutritionCapacity ??
+        getNutritionistDailyCapacity(member.level)),
   );
   const referenceNutritionist = availableNutritionist ?? nutritionists[0];
   const nutritionistOptions = nutritionists.map((nutritionist) => {
     const used = usageByContract.get(nutritionist.contractId) ?? 0;
-    const capacity = getNutritionistDailyCapacity(nutritionist.level);
+    const capacity =
+      nutritionist.dailyNutritionCapacity ??
+      getNutritionistDailyCapacity(nutritionist.level);
 
     return {
       contractId: nutritionist.contractId,
       name: `${nutritionist.firstName} ${nutritionist.lastName}`,
       level: nutritionist.level,
       remainingCapacity: Math.max(0, capacity - used),
+      additionalFormBonus: nutritionist.nutritionAdditionalFormBonus,
+      interventionPrices: nutritionist.nutritionInterventionPrices,
     };
   });
   const nutritionRiders = orderNutritionRidersByForm(overview.riders);
@@ -821,6 +826,10 @@ function NutritionPanel({
             const outcome = getNutritionInterventionOutcome({
               code,
               nutritionistLevel: referenceNutritionist?.level ?? 1,
+              additionalFormBonus:
+                referenceNutritionist?.nutritionAdditionalFormBonus ?? 0,
+              effectivePrice:
+                referenceNutritionist?.nutritionInterventionPrices?.[code],
             });
             return (
               <article
@@ -868,7 +877,9 @@ function NutritionPanel({
           <div className="mt-5 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {nutritionists.map((nutritionist) => {
               const used = usageByContract.get(nutritionist.contractId) ?? 0;
-              const capacity = getNutritionistDailyCapacity(nutritionist.level);
+              const capacity =
+                nutritionist.dailyNutritionCapacity ??
+                getNutritionistDailyCapacity(nutritionist.level);
               return (
                 <article
                   key={nutritionist.contractId}

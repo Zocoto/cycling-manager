@@ -9,11 +9,11 @@ const migration = readFileSync(
     "supabase/migrations/20260827070000_add_scout_academy_training_talent.sql",
   ),
   "utf8",
-).toLowerCase();
+).replaceAll("\r\n", "\n").toLowerCase();
 const service = readFileSync(
   resolve(process.cwd(), "services/youth-development.ts"),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 describe("scout academy training talent migration", () => {
   it("enregistre le talent et mémorise son bonus sans requête par séance", () => {

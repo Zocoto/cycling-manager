@@ -322,11 +322,15 @@ export function calculateConstructionWithArchitect({
   baseDurationDays,
   architectLevel,
   architectSpecialty = "balanced",
+  costReductionPercentage,
+  durationReductionPercentage,
 }: {
   baseCost: number;
   baseDurationDays: number;
   architectLevel?: number | null;
   architectSpecialty?: ArchitectSpecialty | null;
+  costReductionPercentage?: number | null;
+  durationReductionPercentage?: number | null;
 }): {
   cost: number;
   durationDays: number;
@@ -338,7 +342,7 @@ export function calculateConstructionWithArchitect({
     architectLevel !== undefined &&
     Number.isFinite(architectLevel) &&
     architectLevel > 0;
-  const bonuses = hasArchitect
+  const baseBonuses = hasArchitect
     ? getArchitectConstructionBonuses(
         architectLevel,
         architectSpecialty ?? "balanced",
@@ -347,6 +351,16 @@ export function calculateConstructionWithArchitect({
         costReductionPercentage: 0,
         durationReductionPercentage: 0,
       };
+  const bonuses = {
+    costReductionPercentage: normalizeConstructionReduction(
+      costReductionPercentage,
+      baseBonuses.costReductionPercentage,
+    ),
+    durationReductionPercentage: normalizeConstructionReduction(
+      durationReductionPercentage,
+      baseBonuses.durationReductionPercentage,
+    ),
+  };
   const safeCost = Math.max(0, Number.isFinite(baseCost) ? baseCost : 0);
   const safeDurationDays = Math.max(
     1,
@@ -363,6 +377,16 @@ export function calculateConstructionWithArchitect({
     ),
     ...bonuses,
   };
+}
+
+function normalizeConstructionReduction(
+  value: number | null | undefined,
+  fallback: number,
+) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.min(45, Math.max(0, Math.round(value)));
 }
 
 export function getStaffEffectPercentage(

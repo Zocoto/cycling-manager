@@ -22,6 +22,8 @@ export type NutritionistInterventionOption = {
   name: string;
   level: number;
   remainingCapacity: number;
+  additionalFormBonus?: number;
+  interventionPrices?: Partial<Record<NutritionInterventionCode, number>> | null;
 };
 
 export function canReserveNutritionistForDraft({
@@ -141,6 +143,9 @@ export function NutritionInterventionsEditor({
           getNutritionInterventionOutcome({
             code: draft.interventionCode,
             nutritionistLevel: nutritionist.level,
+            additionalFormBonus: nutritionist.additionalFormBonus,
+            effectivePrice:
+              nutritionist.interventionPrices?.[draft.interventionCode],
           }).price
         );
       }, 0),
@@ -287,6 +292,9 @@ export function NutritionInterventionFields({
       ? getNutritionInterventionOutcome({
           code: draft.interventionCode,
           nutritionistLevel: selectedNutritionist.level,
+          additionalFormBonus: selectedNutritionist.additionalFormBonus,
+          effectivePrice:
+            selectedNutritionist.interventionPrices?.[draft.interventionCode],
         })
       : null;
   const actualFormGain = outcome
