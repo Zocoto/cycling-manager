@@ -324,6 +324,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   );
 
   const days = daysResult.data ?? [];
+  const conditionDayIds = days
+    .filter((day) => day.day_number <= currentDayNumber)
+    .map((day) => day.id);
   const riderIds = (contractsResult.data ?? []).map(
     (contract) => contract.rider_id,
   );
@@ -367,11 +370,12 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .in("rider_id", riderIds)
           .returns<RiderAgeRow[]>()
       : emptyResult<RiderAgeRow>(),
-    riderIds.length
+    riderIds.length && conditionDayIds.length
       ? admin
           .from("rider_condition_states")
           .select("rider_id, season_day_id, form, updated_at")
           .in("rider_id", riderIds)
+          .in("season_day_id", conditionDayIds)
           .returns<ConditionRow[]>()
       : emptyResult<ConditionRow>(),
     riderIds.length

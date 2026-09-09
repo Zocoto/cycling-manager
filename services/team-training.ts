@@ -279,6 +279,10 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(staffContractsResult.error, "les contrats des entraîneurs");
 
   const days = daysResult.data ?? [];
+  const currentDayNumber = season.current_day_number ?? 1;
+  const conditionDayIds = days
+    .filter((day) => day.day_number <= currentDayNumber)
+    .map((day) => day.id);
   const riderIds = (contractsResult.data ?? []).map((contract) => contract.rider_id);
   const staffContracts = staffContractsResult.data ?? [];
   const staffMemberIds = staffContracts.map((contract) => contract.staff_member_id);
@@ -318,11 +322,12 @@ export async function getCurrentTeamTrainingOverview(
             .in("rider_id", riderIds)
             .returns<RatingRow[]>()
         : Promise.resolve({ data: [] as RatingRow[], error: null }),
-      riderIds.length
+      riderIds.length && conditionDayIds.length
         ? admin
             .from("rider_condition_states")
             .select("rider_id, season_day_id, form, updated_at")
             .in("rider_id", riderIds)
+            .in("season_day_id", conditionDayIds)
             .returns<ConditionRow[]>()
         : Promise.resolve({ data: [] as ConditionRow[], error: null }),
       riderIds.length
@@ -454,7 +459,6 @@ export async function getCurrentTeamTrainingOverview(
       .filter((ability) => ability.ability_code === "first_in_class")
       .map((ability) => ability.rider_id),
   );
-  const currentDayNumber = season.current_day_number ?? 1;
   const dayById = new Map(days.map((day) => [day.id, day]));
   const dayNumberById = new Map(
     days.map((day) => [day.id, day.day_number]),
@@ -493,7 +497,6 @@ export async function getCurrentTeamTrainingOverview(
   const conditionByRiderId = latestConditions(
     conditionsResult.data ?? [],
     dayById,
-    season.id,
   );
   const staffMemberById = new Map(
     (staffMembersResult.data ?? []).map((member) => [member.id, member]),
@@ -851,12 +854,11 @@ function firstByKey<T>(rows: T[], key: (row: T) => string): Map<string, T> {
 function latestConditions(
   rows: ConditionRow[],
   dayById: Map<string, DayRow>,
-  seasonId: string,
 ) {
   const result = new Map<string, ConditionRow>();
   for (const row of rows) {
     const day = dayById.get(row.season_day_id);
-    if (!day || seasonId.length === 0) continue;
+    if (!day) continue;
     const current = result.get(row.rider_id);
     const currentDay = current ? dayById.get(current.season_day_id)?.day_number ?? 0 : 0;
     if (
