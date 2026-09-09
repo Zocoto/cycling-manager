@@ -44,4 +44,19 @@ describe("team profile mobile layout", () => {
     expect(historyDisclosureBlock).toContain("getPublicTeamProfileHistory(teamId)");
     expect(teamProfilePage).toContain("<ProfileDisclosureSkeleton");
   });
+
+  it("affiche le nombre de victoires de chaque saison dans l’historique", () => {
+    expect(teamProfilePage).toContain(
+      '<th className="px-4 py-4 text-center">Victoires</th>',
+    );
+    expect(teamProfilePage).toContain(
+      "entry.victoryCount > 0",
+    );
+    expect(teamProfilePage).toContain(
+      "{entry.victoryCount}",
+    );
+    expect(teamProfilePage).toContain(
+      "en ${entry.seasonName}",
+    );
+  });
 });

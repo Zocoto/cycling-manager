@@ -605,6 +605,7 @@ function TeamSeasonHistory({
                 <th className="px-6 py-4">Saison</th>
                 <th className="px-5 py-4">Équipe de l’époque</th>
                 <th className="px-5 py-4">Palmarès principal</th>
+                <th className="px-4 py-4 text-center">Victoires</th>
                 <th className="px-4 py-4 text-center">Points</th>
                 <th className="px-6 py-4 text-center">Classement</th>
                 <th className="px-6 py-4 text-center">Division</th>
@@ -651,6 +652,19 @@ function TeamSeasonHistory({
                       highlights={entry.highlights}
                       victoryCount={entry.victoryCount}
                     />
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <span
+                      aria-label={`${entry.victoryCount} victoire${entry.victoryCount === 1 ? "" : "s"} en ${entry.seasonName}`}
+                      className={`inline-flex min-w-14 items-center justify-center gap-1.5 rounded-full border px-3 py-2 font-black ${
+                        entry.victoryCount > 0
+                          ? "border-[#D5B13E]/35 bg-[#FFF7D6] text-[#85620F]"
+                          : "border-[var(--team-line)] bg-[var(--team-soft)] text-[var(--team-muted)]"
+                      }`}
+                    >
+                      <span aria-hidden="true">★</span>
+                      {entry.victoryCount}
+                    </span>
                   </td>
                   <td className="px-4 py-4 text-center font-black text-[var(--team-muted)]">
                     {entry.points}
