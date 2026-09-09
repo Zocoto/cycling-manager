@@ -14,6 +14,7 @@ import {
   isItalianGrandTourGazetteDay,
   isSpanishGrandTourGazetteDay,
 } from "@/lib/game/cyclogazette";
+import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-season-quiz";
 import type {
   CyclogazetteCommunity,
   CyclogazetteEdition,
@@ -70,7 +71,7 @@ type SpanishVueltaBrief = {
   copy: string;
 };
 
-type CyclogazetteTheme = "classic" | "giro" | "tour" | "vuelta";
+type CyclogazetteTheme = "classic" | "giro" | "tour" | "vuelta" | "gala";
 
 const ITALIAN_GAZETTA_INCIDENTS: readonly ItalianGazettaIncident[] = [
   {
@@ -205,12 +206,14 @@ export function CyclogazetteNewspaper({
   community,
   interviewReactions,
   seasonOpeningAwards,
+  seasonQuizSection,
   gamesSection,
 }: {
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
   interviewReactions?: CyclogazetteInterviewReactionStates;
   seasonOpeningAwards?: ReactNode;
+  seasonQuizSection?: ReactNode;
   gamesSection?: ReactNode;
 }) {
   const { locale } = useLocale();
@@ -250,16 +253,26 @@ export function CyclogazetteNewspaper({
   const isSpanishGrandTourEdition = isSpanishGrandTourGazetteDay(
     edition.dayNumber,
   );
+  const isSeasonTwoGalaEdition = isCyclogazetteSeasonTwoGalaEdition({
+    gameYear: Math.ceil(edition.issueNumber / 28),
+    dayNumber: edition.dayNumber,
+  });
   const isSportsDailyEdition =
     isFrenchGrandTourEdition || isSpanishGrandTourEdition;
-  const gazetteTheme: CyclogazetteTheme = isItalianGrandTourEdition
+  const gazetteTheme: CyclogazetteTheme = isSeasonTwoGalaEdition
+    ? "gala"
+    : isItalianGrandTourEdition
     ? "giro"
     : isFrenchGrandTourEdition
       ? "tour"
       : isSpanishGrandTourEdition
         ? "vuelta"
         : "classic";
-  const newspaperName = isItalianGrandTourEdition
+  const newspaperName = isSeasonTwoGalaEdition
+    ? isEnglish
+      ? "The Cyclogazette Gala"
+      : "La Cyclogazette Gala"
+    : isItalianGrandTourEdition
     ? "Cyclo Gazetta"
     : isSpanishGrandTourEdition
       ? "CICLO MARCA"
@@ -296,7 +309,13 @@ export function CyclogazetteNewspaper({
       className="relative mx-auto max-w-[1380px] overflow-hidden border border-[var(--gazette-rule)]/40 bg-[var(--gazette-paper)] text-[var(--gazette-ink)] shadow-[0_35px_100px_rgba(20,20,20,0.25)]"
       style={newspaperStyle}
     >
-      {isItalianGrandTourEdition ? (
+      {isSeasonTwoGalaEdition ? (
+        <div
+          aria-hidden="true"
+          data-gazette-gala-lights="true"
+          className="h-2 bg-[linear-gradient(90deg,#5D4616,#F2D88D,#8C6922,#F2D88D,#5D4616)]"
+        />
+      ) : isItalianGrandTourEdition ? (
         <div
           aria-hidden="true"
           data-gazetta-tricolore="true"
@@ -334,7 +353,11 @@ export function CyclogazetteNewspaper({
       <header className="border-b-4 border-double border-[var(--gazette-ink)] px-5 pb-4 pt-5 sm:px-8 sm:pt-7">
         <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[var(--gazette-ink)]/45 py-2 text-[9px] font-black uppercase tracking-[0.2em] sm:text-[10px]">
           <span>
-            {isItalianGrandTourEdition
+            {isSeasonTwoGalaEdition
+              ? isEnglish
+                ? "Special edition · Gala night"
+                : "Édition spéciale · Soirée de gala"
+              : isItalianGrandTourEdition
               ? "Edizione rosa · Il giornale del Giro"
               : isFrenchGrandTourEdition
                 ? isEnglish
@@ -355,7 +378,11 @@ export function CyclogazetteNewspaper({
         </div>
         <div className="grid items-end gap-3 py-4 sm:grid-cols-[1fr_auto_1fr]">
           <p className="hidden text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gazette-muted)] sm:block">
-            {isFrenchGrandTourEdition
+            {isSeasonTwoGalaEdition
+              ? isEnglish
+                ? "Awards · Season quiz · Final races"
+                : "Trophées · Quiz de la saison · Dernières courses"
+              : isFrenchGrandTourEdition
               ? isEnglish
                 ? "The Tour · Exclusive · Live"
                 : "Le Tour · Exclusif · Direct"
@@ -381,12 +408,16 @@ export function CyclogazetteNewspaper({
                 : "font-serif text-5xl tracking-[-0.055em] sm:text-7xl lg:text-8xl"
             }`}
           >
-            {isSportsDailyEdition
+            {isSeasonTwoGalaEdition
+              ? newspaperName.toUpperCase()
+              : isSportsDailyEdition
               ? newspaperName.toUpperCase()
               : newspaperName}
           </h1>
           <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)] sm:text-right">
-            {isItalianGrandTourEdition
+            {isSeasonTwoGalaEdition
+              ? `${isEnglish ? "Gala issue" : "Numéro de gala"} · N° ${edition.issueNumber}`
+              : isItalianGrandTourEdition
               ? `Edizione rosa · N° ${edition.issueNumber}`
               : isFrenchGrandTourEdition
                 ? `${isEnglish ? "Tour issue" : "Numéro du Tour"} · N° ${edition.issueNumber}`
@@ -426,6 +457,8 @@ export function CyclogazetteNewspaper({
       ) : null}
 
       {seasonOpeningAwards}
+
+      {seasonQuizSection}
 
       <main className="border-b border-[var(--gazette-rule)]/35 p-5 sm:p-8">
         <section>
@@ -1006,6 +1039,27 @@ function getSpanishVueltaBriefs(issueNumber: number, isEnglish: boolean) {
 function getCyclogazetteThemeStyle(theme: CyclogazetteTheme) {
   const editorialFont = "var(--font-geist-" + "s" + "ans)";
   const newspaperFont = "Georgia,'Times New Roman',serif";
+
+  if (theme === "gala") {
+    return {
+      "--gazette-paper": "#080C16",
+      "--gazette-feature": "rgba(17, 24, 39, 0.94)",
+      "--gazette-card": "rgba(16, 23, 38, 0.94)",
+      "--gazette-card-soft": "rgba(20, 28, 46, 0.9)",
+      "--gazette-aside": "rgba(214, 180, 90, 0.09)",
+      "--gazette-details": "rgba(14, 21, 35, 0.97)",
+      "--gazette-input": "#111827",
+      "--gazette-ink": "#F8F2DF",
+      "--gazette-body": "#DDD6C6",
+      "--gazette-muted": "#AEB4C2",
+      "--gazette-rule": "#D6B45A",
+      "--gazette-accent": "#E8CB78",
+      "--gazette-secondary": "#7086B5",
+      "--font-serif": newspaperFont,
+      backgroundImage:
+        "radial-gradient(circle at 50% -8%,rgba(230,196,104,.18),transparent 25%),radial-gradient(circle at 8% 20%,rgba(84,102,153,.12),transparent 28%),radial-gradient(circle at 92% 20%,rgba(84,102,153,.12),transparent 28%),repeating-linear-gradient(120deg,transparent 0,transparent 46px,rgba(214,180,90,.02) 47px,transparent 48px)",
+    } as CSSProperties;
+  }
 
   if (theme === "vuelta") {
     return {

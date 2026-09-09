@@ -151,6 +151,28 @@ describe("CyclogazetteNewspaper", () => {
     );
   });
 
+  it("habille l’édition 56 en soirée de gala et place awards puis quiz avant la Une", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 56, dayNumber: 28 }}
+        seasonOpeningAwards={<aside>Les cinq lauréats</aside>}
+        seasonQuizSection={<aside>Le grand quiz de la saison 2</aside>}
+      />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="gala"');
+    expect(markup).toContain('data-gazette-gala-lights="true"');
+    expect(markup).toContain("Édition spéciale · Soirée de gala");
+    expect(markup).toContain("LA CYCLOGAZETTE GALA");
+    expect(markup).toContain("--gazette-paper:#080C16");
+    expect(markup.indexOf("Les cinq lauréats")).toBeLessThan(
+      markup.indexOf("Le grand quiz de la saison 2"),
+    );
+    expect(markup.indexOf("Le grand quiz de la saison 2")).toBeLessThan(
+      markup.indexOf("Les vainqueurs des étapes"),
+    );
+  });
+
   it("met la course et le vainqueur en Une avec le maillot de son équipe", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper edition={edition} />,

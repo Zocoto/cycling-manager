@@ -59,6 +59,8 @@
     { "path": "/api/cron/national-championship-settlements/road-summer", "schedule": "33 16 * * *" },
     { "path": "/api/cron/national-championship-settlements/road-winter", "schedule": "33 17 * * *" },
     { "path": "/api/cron/cyclogazette/summer", "schedule": "1 18 * * *" },
-    { "path": "/api/cron/cyclogazette/winter", "schedule": "1 19 * * *" }
+    { "path": "/api/cron/cyclogazette/summer-retry", "schedule": "11,21,31,41,51 18 * * *" },
+    { "path": "/api/cron/cyclogazette/winter", "schedule": "1 19 * * *" },
+    { "path": "/api/cron/cyclogazette/winter-retry", "schedule": "11,21,31,41,51 19 * * *" }
   ]
 }

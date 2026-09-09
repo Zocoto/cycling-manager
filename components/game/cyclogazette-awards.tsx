@@ -40,14 +40,14 @@ export function CyclogazetteAwards({
   mode = "archive",
 }: {
   awards: SeasonAward[];
-  mode?: "archive" | "day-one";
+  mode?: "archive" | "day-one" | "gala";
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const groups = groupAwardsBySeason(awards);
 
   if (groups.length === 0) {
-    return mode === "day-one" ? null : (
+    return mode === "day-one" || mode === "gala" ? null : (
       <section className="mx-auto max-w-[1380px] border border-[#8B7956]/40 bg-[#F4EBD2] px-6 py-16 text-center shadow-[0_30px_80px_rgba(45,34,20,0.18)]">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">
           {isEnglish ? "The jury is deliberating" : "Le jury délibère"}
@@ -58,6 +58,50 @@ export function CyclogazetteAwards({
         <p className="mx-auto mt-4 max-w-xl font-serif text-base italic text-[#695D43]">
           {isEnglish ? "The honours will be published here after the first completed season." : "Les distinctions seront publiées ici dès la première saison terminée."}
         </p>
+      </section>
+    );
+  }
+
+  if (mode === "gala") {
+    const latest = groups[0];
+    return (
+      <section
+        data-gazette-gala-awards="true"
+        className="relative overflow-hidden border-b-4 border-double border-[#D6B45A] bg-[#090D18] px-5 py-8 text-[#F8F2DF] sm:px-8 sm:py-10"
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-12%,rgba(230,196,104,.32),transparent_31%),radial-gradient(circle_at_5%_70%,rgba(72,91,143,.2),transparent_28%),radial-gradient(circle_at_95%_70%,rgba(72,91,143,.2),transparent_28%)]"
+        />
+        <div className="relative text-center">
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#D6B45A]">
+            {isEnglish ? "Season 2 gala night" : "Soirée de gala · Saison 2"}
+          </p>
+          <h2 className="mt-2 font-serif text-4xl font-black tracking-[-0.04em] sm:text-6xl">
+            {isEnglish ? "The season’s five laureates" : "Les cinq lauréats de la saison"}
+          </h2>
+          <p className="mx-auto mt-3 max-w-3xl font-serif text-sm italic leading-6 text-[#D9D2C0]">
+            {isEnglish
+              ? "The lights come up on the riders, team and Sporting Director who shaped the second campaign."
+              : "Les projecteurs s’allument sur les coureurs, l’équipe et le Directeur Sportif qui ont marqué cette deuxième campagne."}
+          </p>
+          <span className="mt-4 inline-flex border border-[#D6B45A]/60 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#E8CB78]">
+            {latest.seasonName}
+          </span>
+        </div>
+        <div className="relative mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {latest.awards.map((award) => (
+            <AwardCard key={award.id} award={award} gala />
+          ))}
+        </div>
+        <div className="relative mt-6 text-center">
+          <Link
+            href="/jeu/gazette?onglet=awards"
+            className="inline-flex border-b border-[#D6B45A] pb-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#E8CB78]"
+          >
+            {isEnglish ? "Browse the complete roll of honour →" : "Retrouver le palmarès complet →"}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -129,7 +173,15 @@ export function CyclogazetteAwards({
   );
 }
 
-function AwardCard({ award, compact = false }: { award: SeasonAward; compact?: boolean }) {
+function AwardCard({
+  award,
+  compact = false,
+  gala = false,
+}: {
+  award: SeasonAward;
+  compact?: boolean;
+  gala?: boolean;
+}) {
   const { locale } = useLocale();
   const copy = AWARD_COPY[award.key][locale];
   const href = award.riderId
@@ -137,20 +189,20 @@ function AwardCard({ award, compact = false }: { award: SeasonAward; compact?: b
     : award.teamId
       ? `/jeu/equipes/${award.teamId}`
       : null;
-  const recipient = <span className={`${compact ? "text-sm" : "text-lg"} font-black text-[#2F2618]`}>{award.recipientName}</span>;
+  const recipient = <span className={`${compact ? "text-sm" : "text-lg"} font-black ${gala ? "text-[#FFF8E5]" : "text-[#2F2618]"}`}>{award.recipientName}</span>;
 
   return (
-    <article className={`border border-[#806C45]/35 bg-[#FFF9E7] ${compact ? "p-3" : "p-5"}`}>
+    <article className={`border ${gala ? "border-[#D6B45A]/45 bg-[#111827]/92 shadow-[0_18px_42px_rgba(0,0,0,.28)]" : "border-[#806C45]/35 bg-[#FFF9E7]"} ${compact ? "p-3" : "p-5"}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[8px] font-black uppercase tracking-[0.14em] text-[#A12742]">{copy.title}</p>
+          <p className={`text-[8px] font-black uppercase tracking-[0.14em] ${gala ? "text-[#E8CB78]" : "text-[#A12742]"}`}>{copy.title}</p>
           <div className="mt-1 truncate">{href ? <Link href={href} className="hover:underline">{recipient}</Link> : recipient}</div>
         </div>
         <span aria-hidden="true" className={`${compact ? "text-xl" : "text-2xl"} font-black text-[#9A711F]`}>{AWARD_COPY[award.key].symbol}</span>
       </div>
-      {!compact ? <p className="mt-3 font-serif text-xs italic leading-5 text-[#695D43]">{copy.description}</p> : null}
-      {award.teamName && award.teamName !== award.recipientName ? <p className="mt-1 truncate text-[9px] font-bold text-[#806C45]">{award.teamName}</p> : null}
-      {award.statValue !== null && award.statLabel ? <p className={`${compact ? "mt-2 text-[9px]" : "mt-4 border-t border-[#806C45]/25 pt-3 text-xs"} font-black uppercase tracking-[0.1em] text-[#9A711F]`}>{award.statValue.toLocaleString(locale === "en" ? "en-GB" : "fr-FR")} {award.statLabel}</p> : null}
+      {!compact ? <p className={`mt-3 font-serif text-xs italic leading-5 ${gala ? "text-[#C8C4BA]" : "text-[#695D43]"}`}>{copy.description}</p> : null}
+      {award.teamName && award.teamName !== award.recipientName ? <p className={`mt-1 truncate text-[9px] font-bold ${gala ? "text-[#AEB4C2]" : "text-[#806C45]"}`}>{award.teamName}</p> : null}
+      {award.statValue !== null && award.statLabel ? <p className={`${compact ? "mt-2 text-[9px]" : `mt-4 border-t ${gala ? "border-[#D6B45A]/25" : "border-[#806C45]/25"} pt-3 text-xs`} font-black uppercase tracking-[0.1em] ${gala ? "text-[#E8CB78]" : "text-[#9A711F]"}`}>{award.statValue.toLocaleString(locale === "en" ? "en-GB" : "fr-FR")} {award.statLabel}</p> : null}
     </article>
   );
 }

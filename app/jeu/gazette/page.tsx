@@ -7,11 +7,16 @@ import { CyclogazetteGamesSidebar } from "@/components/game/cyclogazette-games-s
 import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper";
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
 import { CyclogazetteRivalries } from "@/components/game/cyclogazette-rivalries";
+import { CyclogazetteSeasonQuiz } from "@/components/game/cyclogazette-season-quiz";
 import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-section-navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
-import { selectCyclogazetteOpeningAwards } from "@/lib/game/cyclogazette-awards";
+import {
+  selectCyclogazetteGalaAwards,
+  selectCyclogazetteOpeningAwards,
+} from "@/lib/game/cyclogazette-awards";
 import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
+import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-season-quiz";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -21,6 +26,7 @@ import {
   getLatestCyclogazetteEdition,
 } from "@/services/cyclogazette";
 import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
+import { getCyclogazetteSeasonQuizOverview } from "@/services/cyclogazette-season-quiz";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getSeasonAwards } from "@/services/season-awards";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
@@ -85,6 +91,16 @@ export default async function CyclogazettePage({
       : Promise.resolve(null),
   ]);
   const edition = requestedEdition ?? latestEdition;
+  const isSeasonTwoGalaEdition = edition
+    ? isCyclogazetteSeasonTwoGalaEdition({
+        gameYear: Math.ceil(edition.issueNumber / 28),
+        dayNumber: edition.dayNumber,
+      })
+    : false;
+  const resolvedAwards =
+    isSeasonTwoGalaEdition && !awards.some((award) => award.gameYear === 2)
+      ? await getSeasonAwards(supabase)
+      : awards;
   const previousIssueNumber = edition
     ? archive
         .flatMap((season) => season.editions)
@@ -92,7 +108,7 @@ export default async function CyclogazettePage({
         .sort((left, right) => right.issueNumber - left.issueNumber)[0]
         ?.issueNumber ?? null
     : null;
-  const [community, gamesOverview] =
+  const [community, gamesOverview, seasonQuizOverview] =
     edition && latestEdition
       ? await Promise.all([
           getCyclogazetteCommunity(
@@ -106,20 +122,30 @@ export default async function CyclogazettePage({
             latestEditionId: latestEdition.id,
             previousIssueNumber,
           }),
+          getCyclogazetteSeasonQuizOverview({
+            supabase,
+            edition,
+            latestEditionId: latestEdition.id,
+          }),
         ])
-      : [null, null];
+      : [null, null, null];
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
   );
   const openingAwards = selectCyclogazetteOpeningAwards(
     edition,
     archive,
-    awards,
+    resolvedAwards,
+  );
+  const galaAwards = selectCyclogazetteGalaAwards(
+    edition,
+    archive,
+    resolvedAwards,
   );
 
   return (
     <main
-      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
+      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isSeasonTwoGalaEdition ? "bg-[#050812]" : activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
     >
       <GameHeader
         simulatorEmail={user.email}
@@ -156,11 +182,18 @@ export default async function CyclogazettePage({
                   community={community ?? undefined}
                   interviewReactions={community?.interviewReactions}
                   seasonOpeningAwards={
-                    openingAwards.length > 0 ? (
+                    galaAwards.length > 0 ? (
+                      <CyclogazetteAwards awards={galaAwards} mode="gala" />
+                    ) : openingAwards.length > 0 ? (
                       <CyclogazetteAwards
                         awards={openingAwards}
                         mode="day-one"
                       />
+                    ) : null
+                  }
+                  seasonQuizSection={
+                    seasonQuizOverview ? (
+                      <CyclogazetteSeasonQuiz overview={seasonQuizOverview} />
                     ) : null
                   }
                   gamesSection={

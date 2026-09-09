@@ -202,6 +202,36 @@ export async function publishCyclogazetteEdition(
     };
   }
 
+  const isSeasonTwoGala = season.game_year === 2 && dayNumber === 28;
+  if (isSeasonTwoGala) {
+    const preparationResult = await admin.rpc(
+      "prepare_cyclogazette_season_gala",
+      { p_season_id: season.id },
+    );
+    if (preparationResult.error) {
+      throw new Error(
+        `Impossible de préparer l’édition de gala : ${preparationResult.error.message}`,
+      );
+    }
+    const preparation =
+      preparationResult.data && typeof preparationResult.data === "object"
+        ? (preparationResult.data as {
+            ready?: unknown;
+            reason?: unknown;
+            pendingStages?: unknown;
+            pendingEditions?: unknown;
+            awardCount?: unknown;
+          })
+        : {};
+    if (preparation.ready !== true) {
+      return {
+        status: "skipped",
+        reason: `Édition de gala différée (${String(preparation.reason ?? "préparation incomplète")}; ${Number(preparation.pendingStages) || 0} étape(s), ${Number(preparation.pendingEditions) || 0} course(s) en attente; ${Number(preparation.awardCount) || 0}/5 awards).`,
+        edition: null,
+      };
+    }
+  }
+
   const [
     allNews,
     submittedReactions,
@@ -294,7 +324,9 @@ export async function publishCyclogazetteEdition(
   };
   const publishedAt = now.toISOString();
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
-  const subtitle = createSubtitle(content, dayNumber);
+  const subtitle = isSeasonTwoGala
+    ? "Les lauréats de la saison 2 sous les projecteurs — et 100 000 € à décrocher dans le grand quiz"
+    : createSubtitle(content, dayNumber);
 
   const inserted = await admin
     .from("cyclogazette_editions")
@@ -302,7 +334,9 @@ export async function publishCyclogazetteEdition(
       season_id: season.id,
       season_day_id: seasonDay.id,
       issue_number: issueNumber,
-      title: "La Cyclogazette",
+      title: isSeasonTwoGala
+        ? "La Cyclogazette — Soirée de gala"
+        : "La Cyclogazette",
       subtitle,
       issue_date: seasonDay.calendar_date,
       content,

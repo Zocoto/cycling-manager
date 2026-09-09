@@ -7,9 +7,14 @@ import {
   isCyclogazetteGameAnswerCorrect,
   isCyclogazetteGameType,
 } from "@/lib/game/cyclogazette-games";
+import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-season-quiz";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  getCyclogazetteSeasonQuizCorrectOptionIds,
+  validateAndScoreCyclogazetteSeasonQuiz,
+} from "@/services/cyclogazette-season-quiz";
 
 export type CyclogazetteGameActionState = {
   result: "idle" | "success" | "failure";
@@ -20,6 +25,15 @@ export type CyclogazetteGameActionState = {
 export type CyclogazettePollActionState = {
   result: "idle" | "success" | "failure";
   optionId: string | null;
+};
+
+export type CyclogazetteSeasonQuizActionState = {
+  result: "idle" | "success" | "failure" | "incomplete";
+  correctAnswers: number;
+  rewardCash: number;
+  answers: Record<string, string>;
+  correctOptionIds: Record<string, string>;
+  alreadyCompleted: boolean;
 };
 
 export async function publishMediaCenterArticleAction(formData: FormData) {
@@ -137,6 +151,101 @@ export async function validateCyclogazetteGameAction(
   };
 }
 
+export async function validateCyclogazetteSeasonQuizAction(
+  _previousState: CyclogazetteSeasonQuizActionState,
+  formData: FormData,
+): Promise<CyclogazetteSeasonQuizActionState> {
+  const editionId = String(formData.get("editionId") ?? "").trim();
+  const scored = validateAndScoreCyclogazetteSeasonQuiz(formData);
+  if (!isUuid(editionId) || !scored) return quizFailureState("incomplete");
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await getAuthenticatedUser(supabase);
+  if (authenticationError || !user) return quizFailureState("failure");
+
+  const admin = createSupabaseAdminClient();
+  const [editionResult, latestEditionResult] = await Promise.all([
+    admin
+      .from("cyclogazette_editions")
+      .select("id, seasons(game_year), season_days(day_number)")
+      .eq("id", editionId)
+      .maybeSingle<{
+        id: string;
+        seasons: { game_year: number } | null;
+        season_days: { day_number: number } | null;
+      }>(),
+    admin
+      .from("cyclogazette_editions")
+      .select("id")
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>(),
+  ]);
+  const edition = editionResult.data;
+  if (
+    editionResult.error ||
+    latestEditionResult.error ||
+    !edition ||
+    latestEditionResult.data?.id !== edition.id ||
+    !isCyclogazetteSeasonTwoGalaEdition({
+      gameYear: Number(edition.seasons?.game_year),
+      dayNumber: Number(edition.season_days?.day_number),
+    })
+  ) {
+    return quizFailureState("failure");
+  }
+
+  const completionResult = await admin.rpc(
+    "complete_cyclogazette_season_quiz_for_user",
+    {
+      p_auth_user_id: user.id,
+      p_edition_id: editionId,
+      p_correct_answers: scored.correctAnswers,
+      p_answers: scored.answers,
+    },
+  );
+  if (completionResult.error) {
+    console.error(
+      "Impossible d’enregistrer le quiz de fin de saison :",
+      completionResult.error,
+    );
+    return quizFailureState("failure");
+  }
+
+  const payload =
+    completionResult.data && typeof completionResult.data === "object"
+      ? (completionResult.data as {
+          status?: unknown;
+          correctAnswers?: unknown;
+          rewardCash?: unknown;
+          answers?: unknown;
+        })
+      : {};
+  const alreadyCompleted = payload.status === "already-completed";
+  const answers =
+    payload.answers && typeof payload.answers === "object"
+      ? (payload.answers as Record<string, string>)
+      : scored.answers;
+
+  revalidatePath("/jeu/gazette");
+  revalidatePath("/jeu/finances");
+
+  return {
+    result: "success",
+    correctAnswers: Math.max(
+      0,
+      Math.min(10, Math.trunc(Number(payload.correctAnswers) || 0)),
+    ),
+    rewardCash: Math.max(0, Number(payload.rewardCash) || 0),
+    answers,
+    correctOptionIds: getCyclogazetteSeasonQuizCorrectOptionIds(),
+    alreadyCompleted,
+  };
+}
+
 export async function voteCyclogazettePollAction(
   _previousState: CyclogazettePollActionState,
   formData: FormData,
@@ -180,6 +289,19 @@ export async function voteCyclogazettePollAction(
 
 function failureState(): CyclogazetteGameActionState {
   return { result: "failure", rewardCash: 0, trophyUnlocked: false };
+}
+
+function quizFailureState(
+  result: "failure" | "incomplete",
+): CyclogazetteSeasonQuizActionState {
+  return {
+    result,
+    correctAnswers: 0,
+    rewardCash: 0,
+    answers: {},
+    correctOptionIds: {},
+    alreadyCompleted: false,
+  };
 }
 
 function isUuid(value: string) {

@@ -32,3 +32,18 @@ export function selectCyclogazetteOpeningAwards<T extends { gameYear: number }>(
     ? []
     : awards.filter((award) => award.gameYear === previousGameYear);
 }
+
+export function selectCyclogazetteGalaAwards<T extends { gameYear: number }>(
+  edition: GazetteEditionReference | null,
+  archive: GazetteArchiveSeasonReference[],
+  awards: T[],
+) {
+  if (!edition || edition.dayNumber !== 28) return [];
+
+  const editionSeason = archive.find((season) =>
+    season.editions.some((entry) => entry.id === edition.id),
+  );
+  if (!editionSeason || editionSeason.gameYear !== 2) return [];
+
+  return awards.filter((award) => award.gameYear === editionSeason.gameYear);
+}
