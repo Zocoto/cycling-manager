@@ -46,6 +46,7 @@ import {
   type RaceWeather,
   type RiderClimateProfile,
 } from "./race-weather";
+import type { FederalMedicalNetworkEffects } from "./federation-infrastructure-effects";
 import {
   evolveBreakawayMomentum,
   getContextualBreakawayGapCeiling,
@@ -231,6 +232,7 @@ export type RiderSimulationInput = {
   indoorTrackSpecialization?: IndoorTrackSpecialization | null;
   windTunnelSpecialization?: WindTunnelSpecialization | null;
   welcomeCenterSpecialization?: WelcomeCenterSpecialization | null;
+  federalMedicalNetworkEffects?: FederalMedicalNetworkEffects | null;
   teamRegistrationCountryCode?: string | null;
   infrastructureEnergyCostReductionPercentage?: number;
 };
@@ -6390,7 +6392,12 @@ function maybeCreateCrashMedicalResult(
   const outcome = resolveCrashMedicalOutcome({
     random,
     injuryRiskReductionPct:
-      state.rider.equipmentEffects?.injuryRiskReductionPct ?? 0,
+      (state.rider.equipmentEffects?.injuryRiskReductionPct ?? 0) +
+      (state.rider.federalMedicalNetworkEffects
+        ?.injuryRiskReductionPercentage ?? 0),
+    moderateInjuryAbandonmentRiskReductionPct:
+      state.rider.federalMedicalNetworkEffects
+        ?.moderateInjuryAbandonmentRiskReductionPercentage ?? 0,
   });
 
   if (!outcome) return null;

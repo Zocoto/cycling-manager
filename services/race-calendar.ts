@@ -78,7 +78,12 @@ import {
   type WindTunnelSpecialization,
 } from "@/lib/game/race-infrastructure-specializations";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
-import { getFederationInfrastructureEffectPercentage } from "@/lib/game/federation-infrastructure-effects";
+import {
+  getFederalMedicalNetworkEffects,
+  getFederationInfrastructureEffectPercentage,
+  isFederalMedicalNetworkSpecializationCode,
+  type FederalMedicalNetworkEffects,
+} from "@/lib/game/federation-infrastructure-effects";
 import {
   chunkValues,
   collectChunkedPaginatedRows,
@@ -135,6 +140,16 @@ type TeamRaceInfrastructureSpecializationRow = {
 type TeamSeasonCountryRow = {
   team_id: string;
   registration_country_id: string;
+};
+
+type FederationMedicalNetworkInfrastructureRow = {
+  country_id: string;
+  level: number;
+};
+
+type FederationMedicalNetworkSpecializationRow = {
+  country_id: string;
+  active_specialization_code: string | null;
 };
 
 type SeasonRow = {
@@ -938,12 +953,18 @@ export async function getActiveSeasonRaceCalendar(
       });
   const raceInfrastructureSpecializationsPromise =
     includeSimulationEnhancements
-      ? loadRaceInfrastructureSpecializations(raceDataAdmin, engagedTeamIds)
+      ? loadRaceInfrastructureSpecializations(
+          raceDataAdmin,
+          season.id,
+          season.game_year,
+          engagedTeamIds,
+        )
       : Promise.resolve<RaceInfrastructureSpecializations>({
           weatherCenter: new Map(),
           indoorTrack: new Map(),
           windTunnel: new Map(),
           welcomeCenter: new Map(),
+          federalMedicalNetwork: new Map(),
         });
   const teamRegistrationCountryCodesPromise = includeSimulationEnhancements
     ? loadTeamRegistrationCountryCodes(
@@ -2194,6 +2215,7 @@ type RaceInfrastructureSpecializations = {
   indoorTrack: Map<string, IndoorTrackSpecialization>;
   windTunnel: Map<string, WindTunnelSpecialization>;
   welcomeCenter: Map<string, WelcomeCenterSpecialization>;
+  federalMedicalNetwork: Map<string, FederalMedicalNetworkEffects>;
 };
 
 const RACE_INFRASTRUCTURE_CODES = [
@@ -2205,6 +2227,8 @@ const RACE_INFRASTRUCTURE_CODES = [
 
 async function loadRaceInfrastructureSpecializations(
   admin: SupabaseAdminClient,
+  seasonId: string,
+  gameYear: number,
   teamIds: string[],
 ): Promise<RaceInfrastructureSpecializations> {
   const result: RaceInfrastructureSpecializations = {
@@ -2212,6 +2236,7 @@ async function loadRaceInfrastructureSpecializations(
     indoorTrack: new Map(),
     windTunnel: new Map(),
     welcomeCenter: new Map(),
+    federalMedicalNetwork: new Map(),
   };
   if (!teamIds.length) return result;
 
@@ -2291,6 +2316,77 @@ async function loadRaceInfrastructureSpecializations(
         infrastructureLevel: level,
       });
     }
+  }
+
+  if (gameYear < 3) return result;
+
+  const teamSeasonsResult = await admin
+    .from("team_seasons")
+    .select("team_id, registration_country_id")
+    .eq("season_id", seasonId)
+    .in("team_id", teamIds)
+    .returns<TeamSeasonCountryRow[]>();
+  assertQuerySucceeded(
+    teamSeasonsResult.error,
+    "les fédérations d’affiliation des équipes engagées",
+  );
+  const countryIds = unique(
+    (teamSeasonsResult.data ?? []).map((row) => row.registration_country_id),
+  );
+  if (!countryIds.length) return result;
+
+  const [medicalNetworksResult, federalSpecializationsResult] =
+    await Promise.all([
+      admin
+        .from("national_federation_infrastructures")
+        .select("country_id, level")
+        .eq("infrastructure_code", "federal_medical_network")
+        .in("country_id", countryIds)
+        .gte("level", 3)
+        .returns<FederationMedicalNetworkInfrastructureRow[]>(),
+      admin
+        .from("national_federation_infrastructure_specializations")
+        .select("country_id, active_specialization_code")
+        .eq("infrastructure_code", "federal_medical_network")
+        .in("country_id", countryIds)
+        .returns<FederationMedicalNetworkSpecializationRow[]>(),
+    ]);
+  assertQuerySucceeded(
+    medicalNetworksResult.error,
+    "les Réseaux médicaux fédéraux",
+  );
+  assertQuerySucceeded(
+    federalSpecializationsResult.error,
+    "les orientations des Réseaux médicaux fédéraux",
+  );
+  const medicalLevelByCountryId = new Map(
+    (medicalNetworksResult.data ?? []).map((row) => [
+      row.country_id,
+      Number(row.level),
+    ]),
+  );
+  const medicalSpecializationByCountryId = new Map(
+    (federalSpecializationsResult.data ?? []).map((row) => [
+      row.country_id,
+      row.active_specialization_code,
+    ]),
+  );
+  for (const teamSeason of teamSeasonsResult.data ?? []) {
+    const level =
+      medicalLevelByCountryId.get(teamSeason.registration_country_id) ?? 0;
+    const specializationCode = medicalSpecializationByCountryId.get(
+      teamSeason.registration_country_id,
+    );
+    if (
+      level < 3 ||
+      !isFederalMedicalNetworkSpecializationCode(specializationCode)
+    ) {
+      continue;
+    }
+    result.federalMedicalNetwork.set(
+      teamSeason.team_id,
+      getFederalMedicalNetworkEffects({ level, specializationCode }),
+    );
   }
 
   return result;
@@ -2694,6 +2790,10 @@ function groupCalendarEngagedRiders(
               null,
             welcomeCenterSpecialization:
               raceInfrastructureSpecializations.welcomeCenter.get(
+                row.team_id,
+              ) ?? null,
+            federalMedicalNetworkEffects:
+              raceInfrastructureSpecializations.federalMedicalNetwork.get(
                 row.team_id,
               ) ?? null,
             teamRegistrationCountryCode:

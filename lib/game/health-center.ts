@@ -191,11 +191,13 @@ const BASE_CRASH_INJURY_CHANCE = 0.2;
 export function resolveCrashMedicalOutcome({
   random,
   injuryRiskReductionPct = 0,
+  moderateInjuryAbandonmentRiskReductionPct = 0,
 }: {
   random: () => number;
   injuryRiskReductionPct?: number;
+  moderateInjuryAbandonmentRiskReductionPct?: number;
 }): RaceMedicalOutcome | null {
-  const protection = clamp(injuryRiskReductionPct, 0, 45) / 100;
+  const protection = clamp(injuryRiskReductionPct, 0, 50) / 100;
   const injuryChance = BASE_CRASH_INJURY_CHANCE * (1 - protection);
 
   if (random() >= injuryChance) return null;
@@ -208,6 +210,10 @@ export function resolveCrashMedicalOutcome({
         ? "wrist_fracture"
         : "clavicle_fracture";
   const diagnosis = RIDER_INJURY_DIAGNOSES[diagnosisCode];
+  const abandonmentProtection =
+    diagnosis.severity === "moderate"
+      ? clamp(moderateInjuryAbandonmentRiskReductionPct, 0, 50) / 100
+      : 0;
 
   return {
     diagnosisCode,
@@ -215,7 +221,8 @@ export function resolveCrashMedicalOutcome({
     recoveryHours: diagnosis.recoveryHours,
     recoveryDays: diagnosis.recoveryHours / 24,
     severity: diagnosis.severity,
-    causesAbandonment: random() < diagnosis.abandonmentChance,
+    causesAbandonment:
+      random() < diagnosis.abandonmentChance * (1 - abandonmentProtection),
   };
 }
 

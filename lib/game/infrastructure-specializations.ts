@@ -200,9 +200,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "federal_medical_network", buildingName: "Réseau médical fédéral", domain: "Santé · Coordination médicale", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "emergency_network", name: "Urgence coordonnée", identity: "Améliorer la prise en charge immédiate en course.", primaryEffect: "−8 % de risque d’aggravation après une blessure légère.", secondaryEffect: "−4 % de coût des interventions urgentes.", guardrail: "Durée standard de rééducation inchangée." }),
-      option({ code: "rehab_network", name: "Réseau de rééducation", identity: "Réduire le temps passé loin de la compétition.", primaryEffect: "−6 % supplémentaires sur la durée des blessures modérées.", secondaryEffect: "−4 % de perte de forme pendant l’arrêt.", guardrail: "N’agit pas sur la fréquence des blessures." }),
-      option({ code: "prevention_network", name: "Observatoire des charges", identity: "Détecter les calendriers à risque.", primaryEffect: "−5 % de fatigue cumulée des coureurs nationaux très sollicités.", secondaryEffect: "+4 % d’efficacité des jours de repos prescrits.", guardrail: "Aucun effet après une blessure déjà déclarée." }),
+      option({ code: "emergency_network", name: "Urgence coordonnée", identity: "Améliorer la prise en charge immédiate en course.", primaryEffect: "Jusqu’à −8 % de risque d’abandon après une blessure modérée en course.", secondaryEffect: "Jusqu’à −4 % sur le coût des protocoles de soin.", guardrail: "" }),
+      option({ code: "rehab_network", name: "Réseau de rééducation", identity: "Réduire le temps passé loin de la compétition.", primaryEffect: "Jusqu’à −6 % supplémentaires sur la durée des blessures modérées.", secondaryEffect: "Jusqu’à −4 % de perte de forme pendant une blessure.", guardrail: "" }),
+      option({ code: "prevention_network", name: "Médecine préventive", identity: "Prévenir les blessures et mieux récupérer entre deux efforts.", primaryEffect: "Jusqu’à −5 % de risque qu’une chute provoque une blessure.", secondaryEffect: "Jusqu’à +4 % de forme récupérée lors d’un vrai jour de repos.", guardrail: "" }),
     ],
   },
   {

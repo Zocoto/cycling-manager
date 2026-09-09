@@ -10,6 +10,7 @@ import {
   calculateFederationConstructionPreview,
 } from "@/lib/game/federation-infrastructures";
 import {
+  getFederalMedicalNetworkEffects,
   getFederalScoutReportPrecisionBonusPercentage,
   getFederalStaffAcademyDurationReductionPercentage,
   getFederalStaffInstituteBonusPercentage,
@@ -55,6 +56,13 @@ const staffInstituteSpecializationMigration = readFileSync(
   join(
     process.cwd(),
     "supabase/migrations/20260908210000_activate_federal_staff_institute_specializations.sql",
+  ),
+  "utf8",
+);
+const medicalNetworkSpecializationMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260909110000_activate_federal_medical_network_specializations.sql",
   ),
   "utf8",
 );
@@ -287,6 +295,45 @@ describe("federation infrastructures", () => {
       "apply_federal_staff_to_equipment_rnd",
     ]) {
       expect(staffInstituteSpecializationMigration).toContain(marker);
+    }
+  });
+
+  it("applique les trois orientations médicales aux soins et à la course", () => {
+    expect(
+      getFederalMedicalNetworkEffects({
+        level: 3,
+        specializationCode: "emergency_network",
+      }),
+    ).toMatchObject({
+      moderateInjuryAbandonmentRiskReductionPercentage: 4.8,
+      medicalProtocolCostReductionPercentage: 2.4,
+    });
+    expect(
+      getFederalMedicalNetworkEffects({
+        level: 4,
+        specializationCode: "rehab_network",
+      }),
+    ).toMatchObject({
+      moderateInjuryRecoveryReductionPercentage: 4.8,
+      injuryFormLossReductionPercentage: 3.2,
+    });
+    expect(
+      getFederalMedicalNetworkEffects({
+        level: 5,
+        specializationCode: "prevention_network",
+      }),
+    ).toMatchObject({
+      injuryRiskReductionPercentage: 5,
+      restFormGainPercentage: 4,
+    });
+    for (const marker of [
+      "get_team_federal_medical_specialization_power",
+      "federal_specialization_recovery_hours_reduced",
+      "get_team_medical_protocol_form_loss",
+      "apply_federal_medical_rest_recovery",
+      "new.diagnosis_code = 'fatigue_exhaustion'",
+    ]) {
+      expect(medicalNetworkSpecializationMigration).toContain(marker);
     }
   });
 });

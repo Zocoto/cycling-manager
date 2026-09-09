@@ -18,6 +18,20 @@ export type FederalStaffInstituteSpecializationCode =
   | "scout_school"
   | "medical_school";
 
+export type FederalMedicalNetworkSpecializationCode =
+  | "emergency_network"
+  | "rehab_network"
+  | "prevention_network";
+
+export type FederalMedicalNetworkEffects = {
+  injuryRiskReductionPercentage: number;
+  moderateInjuryAbandonmentRiskReductionPercentage: number;
+  medicalProtocolCostReductionPercentage: number;
+  moderateInjuryRecoveryReductionPercentage: number;
+  injuryFormLossReductionPercentage: number;
+  restFormGainPercentage: number;
+};
+
 export const NATIONAL_DETECTION_NETWORK_ATYPICAL_STYLE_BONUS_PERCENTAGE = 2;
 
 export type NationalDetectionNetworkEffects = {
@@ -149,6 +163,55 @@ export function isFederalStaffInstituteSpecializationCode(
     value === "scout_school" ||
     value === "medical_school"
   );
+}
+
+export function isFederalMedicalNetworkSpecializationCode(
+  value: unknown,
+): value is FederalMedicalNetworkSpecializationCode {
+  return (
+    value === "emergency_network" ||
+    value === "rehab_network" ||
+    value === "prevention_network"
+  );
+}
+
+export function getFederalMedicalNetworkEffects({
+  level,
+  specializationCode,
+}: {
+  level: number;
+  specializationCode: FederalMedicalNetworkSpecializationCode | null;
+}): FederalMedicalNetworkEffects {
+  const power =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizeFederationInfrastructureLevel(level),
+      "federal_medical_network",
+    ) / 100;
+  const applies = (code: FederalMedicalNetworkSpecializationCode) =>
+    specializationCode === code && power > 0;
+  const scaled = (maximum: number) =>
+    Math.round(maximum * power * 10) / 10;
+
+  return {
+    injuryRiskReductionPercentage: applies("prevention_network")
+      ? scaled(5)
+      : 0,
+    moderateInjuryAbandonmentRiskReductionPercentage: applies(
+      "emergency_network",
+    )
+      ? scaled(8)
+      : 0,
+    medicalProtocolCostReductionPercentage: applies("emergency_network")
+      ? scaled(4)
+      : 0,
+    moderateInjuryRecoveryReductionPercentage: applies("rehab_network")
+      ? scaled(6)
+      : 0,
+    injuryFormLossReductionPercentage: applies("rehab_network")
+      ? scaled(4)
+      : 0,
+    restFormGainPercentage: applies("prevention_network") ? scaled(4) : 0,
+  };
 }
 
 export function getFederalStaffInstituteSpecializationBonusPercentage({

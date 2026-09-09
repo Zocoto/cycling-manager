@@ -127,9 +127,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     name: "Réseau médical fédéral",
     domain: "Santé · Coordination médicale",
     summary:
-      "Coordonne les protocoles de soin des équipes affiliées sans rendre les blessures moins probables.",
-    principle:
-      "Le réseau réduit uniquement la durée de récupération, avec un avantage maximal de 5 %.",
+      "Réduit la convalescence des blessures soignables pour tous les coureurs des équipes affiliées. Les blessures de fatigue restent fixées à trois jours.",
+    principle: "",
     illustration: {
       src: "/images/infrastructure/cryotherapy-center.webp",
       alt: "Réseau médical et centre de récupération de la fédération",
@@ -138,11 +137,11 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       costs: [1_100_000, 2_000_000, 3_200_000, 4_800_000, 7_000_000],
       durations: [7, 10, 14, 18, 23],
       effects: [
-        "−1 % sur la durée des blessures des coureurs affiliés.",
-        "−2 % sur la durée des blessures des coureurs affiliés.",
-        "−3 % sur la durée des blessures des coureurs affiliés.",
-        "−4 % sur la durée des blessures des coureurs affiliés.",
-        "−5 % au maximum, sans effet sur la fréquence des blessures.",
+        "−1 % sur la durée des blessures soignables des coureurs affiliés.",
+        "−2 % sur la durée des blessures soignables des coureurs affiliés.",
+        "−3 % sur la durée des blessures soignables des coureurs affiliés.",
+        "−4 % sur la durée des blessures soignables des coureurs affiliés.",
+        "−5 % sur la durée des blessures soignables des coureurs affiliés.",
       ],
     }),
   },

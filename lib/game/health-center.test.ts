@@ -57,6 +57,29 @@ describe("resolveCrashMedicalOutcome", () => {
       })
     ).toBeNull();
   });
+
+  it("réduit le risque d’abandon sur une blessure modérée", () => {
+    expect(
+      resolveCrashMedicalOutcome({
+        random: sequence(0, 0.2, 0.29),
+      })?.causesAbandonment,
+    ).toBe(true);
+    expect(
+      resolveCrashMedicalOutcome({
+        random: sequence(0, 0.2, 0.29),
+        moderateInjuryAbandonmentRiskReductionPct: 8,
+      })?.causesAbandonment,
+    ).toBe(false);
+  });
+
+  it("ne réduit pas l’abandon obligatoire d’une blessure grave", () => {
+    expect(
+      resolveCrashMedicalOutcome({
+        random: sequence(0, 0.9, 0.99),
+        moderateInjuryAbandonmentRiskReductionPct: 50,
+      })?.causesAbandonment,
+    ).toBe(true);
+  });
 });
 
 describe("health center rules", () => {
