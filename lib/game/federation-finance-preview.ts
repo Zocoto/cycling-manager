@@ -46,6 +46,22 @@ const OBJECTIVE_BONUS_RATES: Record<FederationObjectiveLevel, number> = {
   gold: 0.1,
 };
 
+export function getFederationObjectiveLevel(
+  completedObjectiveCount: number,
+): FederationObjectiveLevel {
+  const completed = clampInteger(completedObjectiveCount, 0, 5);
+  if (completed >= 5) return "gold";
+  if (completed >= 3) return "silver";
+  if (completed >= 1) return "bronze";
+  return "none";
+}
+
+export function getFederationObjectiveBonusPercentage(
+  level: FederationObjectiveLevel,
+): number {
+  return OBJECTIVE_BONUS_RATES[level] * 100;
+}
+
 export function calculateFederationFinancePreview(
   rawInput: FederationFinancePreviewInput,
 ): FederationFinancePreview {

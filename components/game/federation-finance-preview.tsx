@@ -8,7 +8,11 @@ import {
 } from "@/app/jeu/federations/finance-actions";
 
 import { initialFederationFinanceActionState } from "@/lib/game/federation-action-states";
-import { calculateFederationFinancePreview } from "@/lib/game/federation-finance-preview";
+import {
+  calculateFederationFinancePreview,
+  getFederationObjectiveBonusPercentage,
+  getFederationObjectiveLevel,
+} from "@/lib/game/federation-finance-preview";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
 import type { FederationTreasuryState } from "@/services/federation-treasury";
 
@@ -19,6 +23,7 @@ type Props = {
   countryCode: string;
   gameYear: number;
   treasuryState: FederationTreasuryState | null;
+  completedObjectiveCount: number;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -40,6 +45,7 @@ export function FederationFinancePreview({
   countryCode,
   gameYear,
   treasuryState,
+  completedObjectiveCount,
 }: Props) {
   const projectedRaceDays = Math.min(
     40,
@@ -53,6 +59,13 @@ export function FederationFinancePreview({
           ),
         ),
   );
+  const objectiveLevel =
+    treasuryState?.account?.objectiveLevel ??
+    getFederationObjectiveLevel(completedObjectiveCount);
+  const objectiveCount =
+    treasuryState?.account?.objectiveCompletedCount ?? completedObjectiveCount;
+  const objectiveBonusPercentage =
+    getFederationObjectiveBonusPercentage(objectiveLevel);
   const projection = useMemo(
     () =>
       calculateFederationFinancePreview({
@@ -61,12 +74,13 @@ export function FederationFinancePreview({
         raceDays: projectedRaceDays,
         averageStarters: baseline.averageStarters,
         donations: 0,
-        objectiveLevel: "none",
+        objectiveLevel,
       }),
     [
       baseline.averageStarters,
       initialDivision,
       initialNationRank,
+      objectiveLevel,
       projectedRaceDays,
     ],
   );
@@ -86,6 +100,7 @@ export function FederationFinancePreview({
   );
   const solidarityCommitment = eligibleTeams.length * solidarityAmount;
   const hasTreasuryAccount = Boolean(treasuryState?.account);
+  const settledOpening = treasuryState?.account?.openingBreakdown ?? null;
   const availableBalance =
     treasuryState?.account?.balance ?? projection.solidarityEnvelope;
   const solidarityLimit = hasTreasuryAccount
@@ -101,6 +116,28 @@ export function FederationFinancePreview({
   const overBudget = solidarityCommitment > availableSolidarity;
   const isActive = gameYear >= 3;
   const solidarityCapReached = isActive && solidarityRemaining <= 0;
+  const sourceGameYear =
+    treasuryState?.account?.sourceGameYear ?? baseline.gameYear;
+  const targetGameYear = sourceGameYear + 1;
+  const objectiveBonus =
+    treasuryState?.account?.objectiveBonus ?? projection.objectiveBonus;
+  const openingCommonGrant = settledOpening?.commonGrant ?? projection.commonGrant;
+  const openingUciGrant = settledOpening?.uciGrant ?? projection.uciGrant;
+  const openingNationsCupGrant =
+    settledOpening?.nationsCupGrant ?? projection.nationsCupGrant;
+  const openingRaceRevenue =
+    settledOpening?.raceRevenue ?? projection.raceRevenue;
+  const openingRaceDays =
+    settledOpening?.completedRaceDays ?? projectedRaceDays;
+  const openingAverageStarters =
+    settledOpening?.averageStarters ?? baseline.averageStarters;
+  const openingFillRate = Math.min(1, openingAverageStarters / 160);
+  const openingNationRank =
+    treasuryState?.account?.uciRank ?? initialNationRank;
+  const openingDivision =
+    treasuryState?.account?.nationsCupDivision ?? initialDivision;
+  const envelopeBase =
+    treasuryState?.account?.openingBalance ?? projection.totalRevenue;
 
   return (
     <div className="space-y-7">
@@ -109,10 +146,14 @@ export function FederationFinancePreview({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
-                {isActive ? "Trésorerie fédérale" : "Projection officielle Saison 3"}
+                {isActive
+                  ? "Trésorerie fédérale"
+                  : `Projection officielle Saison ${targetGameYear}`}
               </p>
               <span className="rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#FFE790]">
-                {baseline.seasonName} · situation J{baseline.observedThroughDay}
+                {hasTreasuryAccount
+                  ? `Ouverture issue de la Saison ${sourceGameYear}`
+                  : `${baseline.seasonName} · situation J${baseline.observedThroughDay}`}
               </span>
             </div>
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
@@ -121,12 +162,12 @@ export function FederationFinancePreview({
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
               {isActive
                 ? "Solde disponible après les dons, investissements et versements déjà enregistrés."
-                : `Budget d’ouverture calculé depuis le classement UCI et l’activité réellement observée en S${baseline.gameYear}. Aucun don ni objectif futur n’est ajouté artificiellement.`}
+                : `Budget d’ouverture calculé depuis le classement UCI, les courses et les objectifs réellement terminés en S${sourceGameYear}. Aucun don ni objectif futur n’est ajouté artificiellement.`}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
-            <Envelope label="Réserve" value={projection.reserveEnvelope} ratio="50 %" />
-            <Envelope label="Bâtiments" value={projection.infrastructureEnvelope} ratio="40 %" />
+            <Envelope label="Réserve" value={roundEnvelope(envelopeBase, 0.5)} ratio="50 %" />
+            <Envelope label="Bâtiments" value={roundEnvelope(envelopeBase, 0.4)} ratio="40 %" />
             <Envelope label="Solidarité" value={solidarityLimit} ratio="10 % max." />
           </div>
         </div>
@@ -134,19 +175,25 @@ export function FederationFinancePreview({
         <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--federation-secondary)]">
-              Retour réel de la Saison {baseline.gameYear}
+              Retour réel de la Saison {sourceGameYear}
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <Metric label="Classement UCI" value={`#${initialNationRank}`} />
-              <Metric label="Nations Cup" value={`Division ${initialDivision}`} />
-              <Metric label="Jours disputés" value={`${baseline.completedRaceDays}`} />
-              <Metric label="Épreuves terminées" value={`${baseline.completedRaceEditions}`} />
-              <Metric label="Engagements équipes" value={`${baseline.acceptedTeamEntries}`} />
-              <Metric label="Partants moyens" value={`${baseline.averageStarters}`} />
+              <Metric label="Classement UCI" value={`#${openingNationRank}`} />
+              <Metric label="Nations Cup" value={`Division ${openingDivision}`} />
+              <Metric label="Jours rémunérés" value={`${openingRaceDays}`} />
+              <Metric label="Partants moyens" value={`${openingAverageStarters}`} />
+              <Metric label="Objectifs validés" value={`${objectiveCount}/5`} />
+              <Metric label="Palier objectifs" value={formatObjectiveLevel(objectiveLevel)} />
             </div>
-            <p className="mt-4 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
-              Le rythme constaté projette <strong className="text-[#183F37]">{projectedRaceDays} journées rémunératrices</strong> sur une saison complète.
-            </p>
+            {hasTreasuryAccount ? (
+              <p className="mt-4 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
+                Ces valeurs ont été figées à J1 de la Saison {targetGameYear} à partir du bilan définitif de la Saison {sourceGameYear}.
+              </p>
+            ) : (
+              <p className="mt-4 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
+                Le rythme constaté projette <strong className="text-[#183F37]">{projectedRaceDays} journées rémunératrices</strong> sur une saison complète.
+              </p>
+            )}
             {baseline.source === "unavailable" ? (
               <p className="mt-3 rounded-xl border border-[#C75348]/25 bg-[#FFF2F0] px-4 py-3 text-xs font-bold text-[#9D3E37]">
                 Les données de course sont momentanément indisponibles : seules
@@ -157,20 +204,24 @@ export function FederationFinancePreview({
 
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--federation-secondary)]">
-              Composition de l’ouverture S3
+              Composition de l’ouverture S{targetGameYear}
             </p>
             <dl className="mt-5 divide-y divide-[#315B3E]/10 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9]">
-              <FinanceLine label="Socle commun" detail="Base de chaque fédération active" value={projection.commonGrant} />
-              <FinanceLine label="Dotation UCI" detail={`Rang #${initialNationRank} de la saison en cours`} value={projection.uciGrant} />
-              <FinanceLine label="Nations Cup" detail={`Départ projeté en Division ${initialDivision}`} value={projection.nationsCupGrant} />
-              <FinanceLine label="Courses du pays" detail={`${projectedRaceDays} jours · ${Math.round(projection.courseFillRate * 100)} % de remplissage`} value={projection.raceRevenue} />
-              <FinanceLine label="Objectifs fédéraux S3" detail="Comptés uniquement après réalisation" value={0} />
+              <FinanceLine label="Socle commun" detail="Base de chaque fédération active" value={openingCommonGrant} />
+              <FinanceLine label="Dotation UCI" detail={`Rang #${openingNationRank} en S${sourceGameYear}`} value={openingUciGrant} />
+              <FinanceLine label="Nations Cup" detail={`Division ${openingDivision} issue de la S${sourceGameYear}`} value={openingNationsCupGrant} />
+              <FinanceLine label="Courses du pays" detail={`${openingRaceDays} jours · ${Math.round(openingFillRate * 100)} % de remplissage`} value={openingRaceRevenue} />
+              <FinanceLine
+                label={`Objectifs fédéraux S${sourceGameYear}`}
+                detail={`${objectiveCount}/5 validés · palier ${formatObjectiveLevel(objectiveLevel)} à +${objectiveBonusPercentage} %`}
+                value={objectiveBonus}
+              />
               <FinanceLine label="Dons des équipes" detail="Aucun don présumé" value={0} />
             </dl>
             <p className="mt-4 rounded-2xl border border-[#D5AC18]/25 bg-[#FFF9DE] p-4 text-xs font-bold leading-5 text-[#75631C]">
-              Le calcul est lancé uniquement à l’ouverture de cette rubrique,
-              jamais pendant une simulation. Les montants seront figés au
-              passage en S3.
+              {hasTreasuryAccount
+                ? `La composition de l’ouverture S${targetGameYear} est définitive et reste séparée des mouvements enregistrés ensuite.`
+                : `Cette projection évolue avec les résultats de la Saison ${sourceGameYear}. Le budget sera calculé et crédité automatiquement à J1 de la Saison ${targetGameYear}.`}
             </p>
           </div>
         </div>
@@ -318,6 +369,17 @@ function formatCategory(category: string) {
     hosting: "Organisation",
   };
   return labels[category] ?? category;
+}
+
+function formatObjectiveLevel(level: "none" | "bronze" | "silver" | "gold") {
+  if (level === "gold") return "or";
+  if (level === "silver") return "argent";
+  if (level === "bronze") return "bronze";
+  return "non atteint";
+}
+
+function roundEnvelope(value: number, ratio: number): number {
+  return Math.round((value * ratio) / 5_000) * 5_000;
 }
 
 function Metric({ label, value, small = false }: { label: string; value: string; small?: boolean }) {

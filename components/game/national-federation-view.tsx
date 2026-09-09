@@ -77,6 +77,7 @@ type NationalFederationViewProps = {
   treasuryState: FederationTreasuryState | null;
   infrastructureState: FederationInfrastructureState | null;
   objectiveMetrics?: FederationObjectiveMetrics | null;
+  completedObjectiveCount?: number;
   memberTeamJerseys?: Record<string, FederationTeamJerseyArtwork>;
   sponsorCoverage?: FederationSponsorCoverage | null;
   amateurAffiliationState?: AmateurTeamAffiliationState | null;
@@ -150,6 +151,7 @@ export function NationalFederationView({
   treasuryState,
   infrastructureState,
   objectiveMetrics = null,
+  completedObjectiveCount = 0,
   memberTeamJerseys = {},
   sponsorCoverage = null,
   amateurAffiliationState = null,
@@ -293,6 +295,7 @@ export function NationalFederationView({
             countryCode={country.code}
             gameYear={snapshot.season.gameYear}
             treasuryState={treasuryState}
+            completedObjectiveCount={completedObjectiveCount}
           />
         ) : selectedTab === "races" ? (
           coursesState ? (
@@ -767,6 +770,7 @@ function FinancesPanel({
   countryCode,
   gameYear,
   treasuryState,
+  completedObjectiveCount,
 }: {
   nationRank: number;
   division: 1 | 2 | 3 | 4;
@@ -774,6 +778,7 @@ function FinancesPanel({
   countryCode: string;
   gameYear: number;
   treasuryState: FederationTreasuryState | null;
+  completedObjectiveCount: number;
 }) {
   if (!baseline) {
     return (
@@ -798,6 +803,7 @@ function FinancesPanel({
         countryCode={countryCode}
         gameYear={gameYear}
         treasuryState={treasuryState}
+        completedObjectiveCount={completedObjectiveCount}
       />
     </div>
   );

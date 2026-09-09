@@ -101,6 +101,8 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("60 %");
     expect(markup).toContain("Nation reconnue");
     expect(markup).toContain("Classements UCI · 10 saisons");
+    expect(markup).toContain("Prestige d’organisation · 5 saisons");
+    expect(markup).toContain("jusqu’à 15");
     expect(markup).toContain("Nations Cup juniors");
     expect(markup).toContain("Six candidatures");
     expect(markup).toContain("Coût si retenu");

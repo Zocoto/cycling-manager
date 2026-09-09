@@ -1,8 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateFederationFinancePreview } from "./federation-finance-preview";
+import {
+  calculateFederationFinancePreview,
+  getFederationObjectiveLevel,
+} from "./federation-finance-preview";
 
 describe("calculateFederationFinancePreview", () => {
+  it.each([
+    [0, "none"],
+    [1, "bronze"],
+    [2, "bronze"],
+    [3, "silver"],
+    [4, "silver"],
+    [5, "gold"],
+  ] as const)("maps %i completed objectives to %s", (count, expected) => {
+    expect(getFederationObjectiveLevel(count)).toBe(expected);
+  });
+
   it("rewards rank, Nations Cup division and real race participation", () => {
     const leadingNation = calculateFederationFinancePreview({
       nationRank: 1,

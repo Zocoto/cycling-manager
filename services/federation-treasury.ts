@@ -19,6 +19,17 @@ export type FederationTreasuryState = {
     sourceGameYear: number;
     uciRank: number;
     nationsCupDivision: number;
+    objectiveLevel: "none" | "bronze" | "silver" | "gold";
+    objectiveCompletedCount: number;
+    objectiveBonus: number;
+    openingBreakdown: {
+      commonGrant: number;
+      uciGrant: number;
+      nationsCupGrant: number;
+      raceRevenue: number;
+      completedRaceDays: number;
+      averageStarters: number;
+    } | null;
   } | null;
   canDonate: boolean;
   canManageSolidarity: boolean;
@@ -36,6 +47,9 @@ type AccountRow = {
   source_game_year: number;
   uci_rank: number;
   nations_cup_division: number;
+  objective_level: "none" | "bronze" | "silver" | "gold";
+  objective_completed_count: number;
+  objective_bonus: number | string;
 };
 type TransactionRow = {
   id: string;
@@ -44,6 +58,9 @@ type TransactionRow = {
   category: string;
   description: string;
   created_at: string;
+};
+type OpeningTransactionRow = {
+  metadata: unknown;
 };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
@@ -76,7 +93,7 @@ export async function getFederationTreasuryState({
       admin
         .from("national_federation_accounts")
         .select(
-          "id, opening_balance, balance, source_game_year, uci_rank, nations_cup_division",
+          "id, opening_balance, balance, source_game_year, uci_rank, nations_cup_division, objective_level, objective_completed_count, objective_bonus",
         )
         .eq("country_id", countryId)
         .eq("season_id", seasonId)
@@ -106,7 +123,7 @@ export async function getFederationTreasuryState({
     if (!account) {
       return { ...empty, canDonate: gameYear >= 3 && Boolean(viewerTeamId) };
     }
-    const [transactionsResult, solidarityResult] = await Promise.all([
+    const [transactionsResult, solidarityResult, openingTransactionResult] = await Promise.all([
       admin
         .from("national_federation_transactions")
         .select("id, day_number, amount, category, description, created_at")
@@ -119,9 +136,16 @@ export async function getFederationTreasuryState({
         .select("total_amount")
         .eq("account_id", account.id)
         .returns<SolidarityPlanRow[]>(),
+      admin
+        .from("national_federation_transactions")
+        .select("metadata")
+        .eq("account_id", account.id)
+        .eq("category", "opening_grant")
+        .maybeSingle<OpeningTransactionRow>(),
     ]);
     if (transactionsResult.error) throw transactionsResult.error;
     if (solidarityResult.error) throw solidarityResult.error;
+    if (openingTransactionResult.error) throw openingTransactionResult.error;
 
     const viewerDirectorId = assignmentResult.data?.sporting_director_id ?? null;
     const solidarityLimit = Number(account.opening_balance) * 0.1;
@@ -137,6 +161,12 @@ export async function getFederationTreasuryState({
         sourceGameYear: account.source_game_year,
         uciRank: account.uci_rank,
         nationsCupDivision: account.nations_cup_division,
+        objectiveLevel: account.objective_level,
+        objectiveCompletedCount: account.objective_completed_count,
+        objectiveBonus: Number(account.objective_bonus),
+        openingBreakdown: parseOpeningBreakdown(
+          openingTransactionResult.data?.metadata,
+        ),
       },
       canDonate: gameYear >= 3 && Boolean(viewerTeamId),
       canManageSolidarity:
@@ -160,4 +190,42 @@ export async function getFederationTreasuryState({
     console.error("Impossible de charger la trésorerie fédérale :", error);
     return empty;
   }
+}
+
+function parseOpeningBreakdown(
+  value: unknown,
+): NonNullable<
+  NonNullable<FederationTreasuryState["account"]>["openingBreakdown"]
+> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const metadata = value as Record<string, unknown>;
+  const commonGrant = finiteNumber(metadata.commonGrant);
+  const uciGrant = finiteNumber(metadata.uciGrant);
+  const nationsCupGrant = finiteNumber(metadata.nationsCupGrant);
+  const raceRevenue = finiteNumber(metadata.raceRevenue);
+  const completedRaceDays = finiteNumber(metadata.completedRaceDays);
+  const averageStarters = finiteNumber(metadata.averageStarters);
+  if (
+    commonGrant == null ||
+    uciGrant == null ||
+    nationsCupGrant == null ||
+    raceRevenue == null ||
+    completedRaceDays == null ||
+    averageStarters == null
+  ) {
+    return null;
+  }
+  return {
+    commonGrant,
+    uciGrant,
+    nationsCupGrant,
+    raceRevenue,
+    completedRaceDays,
+    averageStarters,
+  };
+}
+
+function finiteNumber(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }

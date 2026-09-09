@@ -114,7 +114,9 @@ export default async function FederationPage({
           return [];
         })
       : Promise.resolve([]),
-    selectedTab === "overview" || selectedTab === "races"
+    selectedTab === "overview" ||
+    selectedTab === "races" ||
+    selectedTab === "finances"
       ? getFederationInternationalResults(country.entity_id)
       : Promise.resolve(null),
     selectedTab === "governance"
@@ -165,7 +167,9 @@ export default async function FederationPage({
             : null,
         })
       : Promise.resolve(null),
-    selectedTab === "overview" || selectedTab === "races"
+    selectedTab === "overview" ||
+    selectedTab === "races" ||
+    selectedTab === "finances"
       ? getFederationObjectiveMetrics({
           countryId: country.entity_id,
           countryCode: country.country_code,
@@ -205,6 +209,24 @@ export default async function FederationPage({
       : Promise.resolve(null),
   ]);
 
+  const completedFederationObjectiveCount = objectiveMetrics
+    ? buildFederationObjectives({
+        gameYear: Math.max(
+          FEDERATION_MANAGEMENT_START_GAME_YEAR,
+          snapshot.season.gameYear,
+        ),
+        nationRank: nationRanking?.rank ?? null,
+        referenceMemberTeamCount: objectiveMetrics.referenceMemberTeamCount,
+        currentMemberTeamCount: country.team_count ?? 0,
+        naturalizationCount: objectiveMetrics.naturalizationCount,
+        manuallySubmittedSelectionCount:
+          objectiveMetrics.manuallySubmittedSelectionCount,
+        nationsCupRank: objectiveMetrics.nationsCupRank,
+        worldRank: internationalResults?.world?.rank ?? null,
+        continentalRank: internationalResults?.continental?.rank ?? null,
+      }).filter((objective) => objective.completed).length
+    : 0;
+
   const federationRaceCreationState =
     selectedTab === "races"
       ? await getFederationRaceCreationState({
@@ -215,23 +237,7 @@ export default async function FederationPage({
             ? snapshot.viewer.teamId
             : null,
           nationRank: nationRanking?.rank ?? null,
-          completedObjectiveCount: buildFederationObjectives({
-            gameYear: Math.max(
-              FEDERATION_MANAGEMENT_START_GAME_YEAR,
-              snapshot.season.gameYear,
-            ),
-            nationRank: nationRanking?.rank ?? null,
-            referenceMemberTeamCount:
-              objectiveMetrics?.referenceMemberTeamCount ??
-              (country.team_count ?? 0),
-            currentMemberTeamCount: country.team_count ?? 0,
-            naturalizationCount: objectiveMetrics?.naturalizationCount ?? 0,
-            manuallySubmittedSelectionCount:
-              objectiveMetrics?.manuallySubmittedSelectionCount ?? 0,
-            nationsCupRank: objectiveMetrics?.nationsCupRank ?? null,
-            worldRank: internationalResults?.world?.rank ?? null,
-            continentalRank: internationalResults?.continental?.rank ?? null,
-          }).filter((objective) => objective.completed).length,
+          completedObjectiveCount: completedFederationObjectiveCount,
         })
       : null;
 
@@ -278,6 +284,7 @@ export default async function FederationPage({
           treasuryState={treasuryState}
           infrastructureState={infrastructureState}
           objectiveMetrics={objectiveMetrics}
+          completedObjectiveCount={completedFederationObjectiveCount}
           memberTeamJerseys={memberTeamJerseys}
           sponsorCoverage={sponsorCoverage}
           amateurAffiliationState={amateurAffiliationState}

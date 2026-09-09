@@ -40,7 +40,7 @@ export async function getFederationObjectiveMetrics({
   try {
     const admin = createSupabaseAdminClient();
     const referenceSeason =
-      gameYear < 3
+      gameYear <= 1
         ? { data: { id: seasonId } as SeasonRow, error: null }
         : await admin
             .from("seasons")

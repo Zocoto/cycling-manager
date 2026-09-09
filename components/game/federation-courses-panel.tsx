@@ -93,7 +93,8 @@ export function FederationCoursesPanel({
             Le coût affiché est garanti au dépôt mais débité uniquement si le
             pays est retenu. Après la compétition, les recettes dépendent de
             l’affluence réelle, elle-même liée au taux de participation et à la
-            renommée du pays hôte.
+            renommée du pays hôte. Le prestige annoncé est crédité à la clôture
+            de l’événement.
           </div>
 
           {actionState.message ? (
@@ -130,7 +131,7 @@ export function FederationCoursesPanel({
                     </h3>
                   </div>
                   <span className="rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black text-[#4A3A00]">
-                    +{opportunity.prestigeGain} prestige
+                    +{opportunity.prestigeGain} prestige d’orga.
                   </span>
                 </div>
 
@@ -190,7 +191,7 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
     { label: "Classements UCI · 10 saisons", value: state.renown.breakdown.uciHistory, maximum: 600 },
     { label: "Palmarès des équipes", value: state.renown.breakdown.teamLegacy, maximum: 180 },
     { label: "Palmarès des coureurs", value: state.renown.breakdown.riderLegacy, maximum: 170 },
-    { label: "Héritage d’organisation", value: state.renown.breakdown.hostingLegacy, maximum: 50 },
+    { label: "Prestige d’organisation · 5 saisons", value: state.renown.breakdown.hostingLegacy, maximum: 100 },
   ];
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[var(--federation-secondary)]/30 bg-[linear-gradient(135deg,var(--federation-primary)_0%,var(--federation-secondary)_100%)] p-6 text-white shadow-[0_20px_55px_rgba(19,60,46,0.18)] sm:p-8">
@@ -207,7 +208,10 @@ function RenownPanel({ state }: { state: FederationCoursesState }) {
           <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[#D6E9E2]">
             Cette valeur conserve la mémoire sportive du pays : résultats
             récents, grandes équipes, podiums de ses coureurs et compétitions
-            internationales déjà accueillies.
+            accueillies. Le prestige d’organisation cumule les cinq dernières
+            saisons, jusqu’à 100 points. À son maximum, il apporte jusqu’à 15
+            points aux candidatures internationales et environ 5 % d’affluence
+            de référence supplémentaire.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -288,9 +292,15 @@ function CountryRacePortfolio({ state }: { state: FederationCoursesState }) {
                 </p>
                 <p className="text-sm font-black text-[var(--federation-secondary)]">
                   {moneyFormatter.format(race.moneyGain)}
-                  {race.gainKind === "mixed" ? ` + ${race.prestigeGain} prestige` : " · gain financier"}
+                  {race.gainKind === "mixed" ? ` + ${race.prestigeGain} prestige d’orga.` : " · gain financier"}
                 </p>
               </div>
+
+              {race.gainKind === "mixed" ? (
+                <p className="mt-2 text-[11px] font-bold text-[#789087]">
+                  Crédité dans la renommée fédérale une fois l’épreuve terminée.
+                </p>
+              ) : null}
 
               <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
