@@ -150,9 +150,8 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     name: "Laboratoire technique national",
     domain: "Chrono · Matériel · Collectif",
     summary:
-      "Mutualise l’aérodynamisme et la préparation collective, particulièrement pour le contre-la-montre par équipes.",
-    principle:
-      "Le bonus est situationnel et réservé aux sélections nationales, jamais aux résultats ordinaires des clubs.",
+      "Améliore les notes Contre-la-montre et Prologue des sélections lors des épreuves chronométrées mondiales et continentales.",
+    principle: "",
     illustration: {
       src: "/images/infrastructure/wind-tunnel.webp",
       alt: "Laboratoire aérodynamique de la sélection nationale",
@@ -161,11 +160,11 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       costs: [1_500_000, 2_700_000, 4_400_000, 6_500_000, 9_300_000],
       durations: [9, 14, 19, 25, 32],
       effects: [
-        "+0,2 % sur la préparation chrono des sélections.",
-        "+0,4 % sur la préparation chrono des sélections.",
-        "+0,6 % et premiers protocoles collectifs CLM.",
-        "+0,8 % sur les épreuves chronométrées internationales.",
-        "+1 % au maximum, priorité au CLM par équipes.",
+        "+0,2 % sur les notes CLM et Prologue de la sélection en chrono international.",
+        "+0,4 % sur les notes CLM et Prologue de la sélection en chrono international.",
+        "+0,6 % sur les notes CLM et Prologue de la sélection en chrono international.",
+        "+0,8 % sur les notes CLM et Prologue de la sélection en chrono international.",
+        "+1 % sur les notes CLM et Prologue de la sélection en chrono international.",
       ],
     }),
   },

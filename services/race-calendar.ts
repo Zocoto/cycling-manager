@@ -82,7 +82,9 @@ import {
   getFederalMedicalNetworkEffects,
   getFederationInfrastructureEffectPercentage,
   isFederalMedicalNetworkSpecializationCode,
+  isNationalTechnicalLaboratorySpecializationCode,
   type FederalMedicalNetworkEffects,
+  type NationalTechnicalLaboratorySpecialization,
 } from "@/lib/game/federation-infrastructure-effects";
 import {
   chunkValues,
@@ -148,6 +150,16 @@ type FederationMedicalNetworkInfrastructureRow = {
 };
 
 type FederationMedicalNetworkSpecializationRow = {
+  country_id: string;
+  active_specialization_code: string | null;
+};
+
+type FederationTechnicalLaboratoryInfrastructureRow = {
+  country_id: string;
+  level: number;
+};
+
+type FederationTechnicalLaboratorySpecializationRow = {
   country_id: string;
   active_specialization_code: string | null;
 };
@@ -965,6 +977,7 @@ export async function getActiveSeasonRaceCalendar(
           windTunnel: new Map(),
           welcomeCenter: new Map(),
           federalMedicalNetwork: new Map(),
+          federalTechnicalLaboratory: new Map(),
         });
   const teamRegistrationCountryCodesPromise = includeSimulationEnhancements
     ? loadTeamRegistrationCountryCodes(
@@ -1342,20 +1355,36 @@ export async function getActiveSeasonRaceCalendar(
       : emptyResult<CountryRow>();
 
   assertQuerySucceeded(countriesResult.error, "les pays des courses");
-  const federationInfrastructureResult = countryIds.length
-    ? await raceDataAdmin
-        .from("national_federation_infrastructures")
-        .select("country_id, infrastructure_code, level")
-        .in("country_id", countryIds)
-        .in("infrastructure_code", [
-          "national_technical_laboratory",
-          "home_advantage_program",
+  const [federationInfrastructureResult, federationSpecializationResult] =
+    countryIds.length
+      ? await Promise.all([
+          raceDataAdmin
+            .from("national_federation_infrastructures")
+            .select("country_id, infrastructure_code, level")
+            .in("country_id", countryIds)
+            .in("infrastructure_code", [
+              "national_technical_laboratory",
+              "home_advantage_program",
+            ])
+            .returns<FederationInfrastructureLevelRow[]>(),
+          raceDataAdmin
+            .from("national_federation_infrastructure_specializations")
+            .select("country_id, active_specialization_code")
+            .eq("infrastructure_code", "national_technical_laboratory")
+            .in("country_id", countryIds)
+            .returns<FederationTechnicalLaboratorySpecializationRow[]>(),
         ])
-        .returns<FederationInfrastructureLevelRow[]>()
-    : emptyResult<FederationInfrastructureLevelRow>();
+      : [
+          emptyResult<FederationInfrastructureLevelRow>(),
+          emptyResult<FederationTechnicalLaboratorySpecializationRow>(),
+        ];
   assertQuerySucceeded(
     federationInfrastructureResult.error,
     "les bonus fédéraux de course",
+  );
+  assertQuerySucceeded(
+    federationSpecializationResult.error,
+    "les orientations techniques des sélections",
   );
 
   const dayById = new Map(dayRows.map((day) => [day.id, day]));
@@ -1370,6 +1399,15 @@ export async function getActiveSeasonRaceCalendar(
     (federationInfrastructureResult.data ?? []).map((infrastructure) => [
       `${infrastructure.country_id}:${infrastructure.infrastructure_code}`,
       Number(infrastructure.level),
+    ]),
+  );
+  const technicalLaboratorySpecializationByCountryId = new Map(
+    (season.game_year >= 3
+      ? (federationSpecializationResult.data ?? [])
+      : []
+    ).map((specialization) => [
+      specialization.country_id,
+      specialization.active_specialization_code,
     ]),
   );
   const stagesByEditionId = groupStages(
@@ -1419,6 +1457,7 @@ export async function getActiveSeasonRaceCalendar(
     teamSponsorVisuals,
     welcomeCenterLocalRaceContext,
     federationInfrastructureLevelByCountryAndCode,
+    technicalLaboratorySpecializationByCountryId,
     raceInfrastructureSpecializations,
     teamRegistrationCountryCodes,
     fanClubRaceBoosts,
@@ -2216,6 +2255,10 @@ type RaceInfrastructureSpecializations = {
   windTunnel: Map<string, WindTunnelSpecialization>;
   welcomeCenter: Map<string, WelcomeCenterSpecialization>;
   federalMedicalNetwork: Map<string, FederalMedicalNetworkEffects>;
+  federalTechnicalLaboratory: Map<
+    string,
+    NationalTechnicalLaboratorySpecialization
+  >;
 };
 
 const RACE_INFRASTRUCTURE_CODES = [
@@ -2237,6 +2280,7 @@ async function loadRaceInfrastructureSpecializations(
     windTunnel: new Map(),
     welcomeCenter: new Map(),
     federalMedicalNetwork: new Map(),
+    federalTechnicalLaboratory: new Map(),
   };
   if (!teamIds.length) return result;
 
@@ -2335,7 +2379,12 @@ async function loadRaceInfrastructureSpecializations(
   );
   if (!countryIds.length) return result;
 
-  const [medicalNetworksResult, federalSpecializationsResult] =
+  const [
+    medicalNetworksResult,
+    federalMedicalSpecializationsResult,
+    technicalLaboratoriesResult,
+    federalTechnicalSpecializationsResult,
+  ] =
     await Promise.all([
       admin
         .from("national_federation_infrastructures")
@@ -2350,14 +2399,35 @@ async function loadRaceInfrastructureSpecializations(
         .eq("infrastructure_code", "federal_medical_network")
         .in("country_id", countryIds)
         .returns<FederationMedicalNetworkSpecializationRow[]>(),
+      admin
+        .from("national_federation_infrastructures")
+        .select("country_id, level")
+        .eq("infrastructure_code", "national_technical_laboratory")
+        .in("country_id", countryIds)
+        .gte("level", 3)
+        .returns<FederationTechnicalLaboratoryInfrastructureRow[]>(),
+      admin
+        .from("national_federation_infrastructure_specializations")
+        .select("country_id, active_specialization_code")
+        .eq("infrastructure_code", "national_technical_laboratory")
+        .in("country_id", countryIds)
+        .returns<FederationTechnicalLaboratorySpecializationRow[]>(),
     ]);
   assertQuerySucceeded(
     medicalNetworksResult.error,
     "les Réseaux médicaux fédéraux",
   );
   assertQuerySucceeded(
-    federalSpecializationsResult.error,
+    federalMedicalSpecializationsResult.error,
     "les orientations des Réseaux médicaux fédéraux",
+  );
+  assertQuerySucceeded(
+    technicalLaboratoriesResult.error,
+    "les Laboratoires techniques nationaux",
+  );
+  assertQuerySucceeded(
+    federalTechnicalSpecializationsResult.error,
+    "les orientations des Laboratoires techniques nationaux",
   );
   const medicalLevelByCountryId = new Map(
     (medicalNetworksResult.data ?? []).map((row) => [
@@ -2366,27 +2436,61 @@ async function loadRaceInfrastructureSpecializations(
     ]),
   );
   const medicalSpecializationByCountryId = new Map(
-    (federalSpecializationsResult.data ?? []).map((row) => [
+    (federalMedicalSpecializationsResult.data ?? []).map((row) => [
+      row.country_id,
+      row.active_specialization_code,
+    ]),
+  );
+  const technicalLaboratoryLevelByCountryId = new Map(
+    (technicalLaboratoriesResult.data ?? []).map((row) => [
+      row.country_id,
+      Number(row.level),
+    ]),
+  );
+  const technicalSpecializationByCountryId = new Map(
+    (federalTechnicalSpecializationsResult.data ?? []).map((row) => [
       row.country_id,
       row.active_specialization_code,
     ]),
   );
   for (const teamSeason of teamSeasonsResult.data ?? []) {
-    const level =
+    const medicalLevel =
       medicalLevelByCountryId.get(teamSeason.registration_country_id) ?? 0;
-    const specializationCode = medicalSpecializationByCountryId.get(
+    const medicalSpecializationCode = medicalSpecializationByCountryId.get(
       teamSeason.registration_country_id,
     );
     if (
-      level < 3 ||
-      !isFederalMedicalNetworkSpecializationCode(specializationCode)
+      medicalLevel >= 3 &&
+      isFederalMedicalNetworkSpecializationCode(medicalSpecializationCode)
     ) {
-      continue;
+      result.federalMedicalNetwork.set(
+        teamSeason.team_id,
+        getFederalMedicalNetworkEffects({
+          level: medicalLevel,
+          specializationCode: medicalSpecializationCode,
+        }),
+      );
     }
-    result.federalMedicalNetwork.set(
-      teamSeason.team_id,
-      getFederalMedicalNetworkEffects({ level, specializationCode }),
-    );
+
+    const technicalLevel =
+      technicalLaboratoryLevelByCountryId.get(
+        teamSeason.registration_country_id,
+      ) ?? 0;
+    const technicalSpecializationCode =
+      technicalSpecializationByCountryId.get(
+        teamSeason.registration_country_id,
+      );
+    if (
+      technicalLevel >= 3 &&
+      isNationalTechnicalLaboratorySpecializationCode(
+        technicalSpecializationCode,
+      )
+    ) {
+      result.federalTechnicalLaboratory.set(teamSeason.team_id, {
+        code: technicalSpecializationCode,
+        infrastructureLevel: technicalLevel,
+      });
+    }
   }
 
   return result;
@@ -2618,6 +2722,10 @@ function groupCalendarEngagedRiders(
   teamSponsorVisuals: Map<string, RaceTeamSponsorVisual>,
   welcomeCenterLocalRaceContext: WelcomeCenterLocalRaceContext,
   federationInfrastructureLevelByCountryAndCode: ReadonlyMap<string, number>,
+  technicalLaboratorySpecializationByCountryId: ReadonlyMap<
+    string,
+    string | null
+  >,
   raceInfrastructureSpecializations: RaceInfrastructureSpecializations,
   teamRegistrationCountryCodes: ReadonlyMap<string, string>,
   fanClubRaceBoosts: ReadonlyMap<string, FanClubRaceBoost>,
@@ -2706,6 +2814,31 @@ function groupCalendarEngagedRiders(
     const equipmentEffectsByStageId = equipmentByEditionRider.get(
       row.race_edition_id + ":" + row.rider_id,
     );
+    const nationalTechnicalLaboratoryLevel =
+      usesNationalWorldModel && riderMetadata
+        ? (federationInfrastructureLevelByCountryAndCode.get(
+            `${riderMetadata.country_id}:national_technical_laboratory`,
+          ) ?? 0)
+        : 0;
+    const nationalTechnicalLaboratoryCode = riderMetadata
+      ? technicalLaboratorySpecializationByCountryId.get(
+          riderMetadata.country_id,
+        )
+      : null;
+    const nationalTechnicalLaboratorySpecialization =
+      usesNationalWorldModel
+        ? nationalTechnicalLaboratoryLevel >= 3 &&
+          isNationalTechnicalLaboratorySpecializationCode(
+            nationalTechnicalLaboratoryCode,
+          )
+          ? {
+              code: nationalTechnicalLaboratoryCode,
+              infrastructureLevel: nationalTechnicalLaboratoryLevel,
+            }
+          : null
+        : (raceInfrastructureSpecializations.federalTechnicalLaboratory.get(
+            row.team_id,
+          ) ?? null);
     riders.push({
       id: row.rider_id,
       name: `${row.rider_first_name} ${row.rider_last_name}`,
@@ -2773,6 +2906,7 @@ function groupCalendarEngagedRiders(
       })),
       equipmentEffects,
       ...(equipmentEffectsByStageId ? { equipmentEffectsByStageId } : {}),
+      nationalTechnicalLaboratorySpecialization,
       mechanicalIncidentTimeReductionPct:
         teamStaffEffects?.incidentTimeReductionPercentage ?? 0,
       ...(usesNationalWorldModel

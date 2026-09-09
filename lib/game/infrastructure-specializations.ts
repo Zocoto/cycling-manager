@@ -208,9 +208,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "national_technical_laboratory", buildingName: "Laboratoire technique national", domain: "Chrono · Matériel · Collectif", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "individual_tt", name: "Chrono individuel", identity: "Optimiser la position de chaque leader national.", primaryEffect: "+1 % d’exécution en chrono individuel international.", secondaryEffect: "+4 % de précision des recommandations aérodynamiques.", guardrail: "Aucun bonus en contre-la-montre par équipes." }),
-      option({ code: "national_ttt", name: "Collectif chronométré", identity: "Faire de la sélection une unité aérodynamique.", primaryEffect: "+1 % d’exécution en chrono par équipes international.", secondaryEffect: "−5 % d’écart de rendement entre les relais.", guardrail: "Aucun bonus sur les chronos individuels." }),
-      option({ code: "equipment_standards", name: "Standards matériels", identity: "Diffuser des gains modestes à toutes les disciplines.", primaryEffect: "+0,4 % d’exécution sur les épreuves internationales équipées.", secondaryEffect: "−5 % d’usure du matériel de sélection.", guardrail: "Plafond sportif inférieur aux spécialisations chrono." }),
+      option({ code: "individual_tt", name: "Chrono individuel", identity: "Optimiser la position et l’effort de chaque leader national.", primaryEffect: "Jusqu’à +1 % de performance en CLM individuel et Prologue international.", secondaryEffect: "Jusqu’à −3 % de dépense énergétique pendant ces chronos.", guardrail: "" }),
+      option({ code: "national_ttt", name: "Collectif chronométré", identity: "Diffuser un protocole collectif aux équipes affiliées.", primaryEffect: "Jusqu’à +1 % de performance pour les équipes affiliées en CLM par équipes.", secondaryEffect: "Les meilleurs rouleurs prennent jusqu’à 5 % de relais supplémentaires sans surcoût énergétique.", guardrail: "" }),
+      option({ code: "equipment_standards", name: "Standards matériels", identity: "Fiabiliser le matériel de la sélection dans toutes les disciplines.", primaryEffect: "Jusqu’à +0,4 % de performance pour la sélection sur les épreuves internationales.", secondaryEffect: "Jusqu’à −5 % de temps perdu lors d’une crevaison.", guardrail: "" }),
     ],
   },
   {

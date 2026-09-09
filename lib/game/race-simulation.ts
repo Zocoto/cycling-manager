@@ -46,7 +46,11 @@ import {
   type RaceWeather,
   type RiderClimateProfile,
 } from "./race-weather";
-import type { FederalMedicalNetworkEffects } from "./federation-infrastructure-effects";
+import {
+  getNationalTechnicalLaboratoryEffects,
+  type FederalMedicalNetworkEffects,
+  type NationalTechnicalLaboratorySpecialization,
+} from "./federation-infrastructure-effects";
 import {
   evolveBreakawayMomentum,
   getContextualBreakawayGapCeiling,
@@ -233,6 +237,10 @@ export type RiderSimulationInput = {
   windTunnelSpecialization?: WindTunnelSpecialization | null;
   welcomeCenterSpecialization?: WelcomeCenterSpecialization | null;
   federalMedicalNetworkEffects?: FederalMedicalNetworkEffects | null;
+  nationalTechnicalLaboratorySpecialization?:
+    | NationalTechnicalLaboratorySpecialization
+    | null;
+  federalTechnicalLaboratoryRelayAllowancePercentage?: number;
   teamRegistrationCountryCode?: string | null;
   infrastructureEnergyCostReductionPercentage?: number;
 };
@@ -981,7 +989,8 @@ export function simulateRaceStageResultsOnly(
             rider.form -
               applyWeatherCenterEnergyCostReduction(
                 distanceKm / 6,
-                rider.weatherCenterEnergyCostReductionPercentage ?? 0,
+                (rider.weatherCenterEnergyCostReductionPercentage ?? 0) +
+                  (rider.infrastructureEnergyCostReductionPercentage ?? 0),
               ),
             5,
             100,
@@ -1050,9 +1059,22 @@ function normalizeStageSimulationInput(
           input.stageType,
           rider.nationalTechnicalLabBonus,
         );
+        const nationalTechnicalLaboratoryEffects =
+          getNationalTechnicalLaboratoryEffects({
+            specialization:
+              rider.nationalTechnicalLaboratorySpecialization,
+            stageType: input.stageType,
+            isNationalSelection:
+              rider.nationalTechnicalLabBonus !== undefined,
+          });
+        const federalSpecializationAdjustedRatings =
+          applyPercentageToAllRatings(
+            federationAdjustedRatings,
+            nationalTechnicalLaboratoryEffects.performanceBonusPercentage,
+          );
         const equipmentAdjustedRatings = rider.equipmentEffects
           ? applyEquipmentRatingBonuses(
-              federationAdjustedRatings,
+              federalSpecializationAdjustedRatings,
               rider.equipmentEffects,
               {
                 isTimeTrial:
@@ -1061,7 +1083,7 @@ function normalizeStageSimulationInput(
                   input.stageType === "prologue",
               },
             )
-          : federationAdjustedRatings;
+          : federalSpecializationAdjustedRatings;
         const climateProfile =
           rider.climateProfile ??
           getRiderClimateProfile({
@@ -1092,7 +1114,8 @@ function normalizeStageSimulationInput(
             rider,
             stageType: input.stageType,
             weather,
-          });
+          }) +
+          nationalTechnicalLaboratoryEffects.energyCostReductionPercentage;
 
         return {
           ...rider,
@@ -1100,6 +1123,13 @@ function normalizeStageSimulationInput(
           weatherCenterEnergyCostReductionPercentage:
             weatherCenterEffects.energyCostReductionPercentage,
           infrastructureEnergyCostReductionPercentage,
+          federalTechnicalLaboratoryRelayAllowancePercentage:
+            nationalTechnicalLaboratoryEffects.strongRiderRelayAllowancePercentage,
+          mechanicalIncidentTimeReductionPct: Math.min(
+            80,
+            Math.max(0, rider.mechanicalIncidentTimeReductionPct ?? 0) +
+              nationalTechnicalLaboratoryEffects.mechanicalIncidentTimeReductionPercentage,
+          ),
           localRaceBonus:
             input.raceCountryCode &&
             ((rider.countryCode &&
@@ -3629,12 +3659,19 @@ function simulateTeamTimeTrial(
         const effort = TIME_TRIAL_EFFORT_EFFECTS[plan.effortMode];
         const normalizedRelayShare = relayShares[rider.id];
         const windTunnel = rider.windTunnelSpecialization;
-        const freeRelayAllowance =
-          windTunnel?.code === "team_aero" &&
+        const hasAboveAverageTimeTrialRating =
           (timeTrialRatingByRiderId.get(rider.id) ?? 0) >=
-            averageTeamTimeTrialRating
-            ? 1 + getSpecializationScaledPercentage(windTunnel, 4) / 100
-            : 1;
+          averageTeamTimeTrialRating;
+        const windTunnelRelayAllowance =
+          windTunnel?.code === "team_aero" &&
+          hasAboveAverageTimeTrialRating
+            ? getSpecializationScaledPercentage(windTunnel, 4)
+            : 0;
+        const federalRelayAllowance = hasAboveAverageTimeTrialRating
+          ? (rider.federalTechnicalLaboratoryRelayAllowancePercentage ?? 0)
+          : 0;
+        const freeRelayAllowance =
+          1 + (windTunnelRelayAllowance + federalRelayAllowance) / 100;
         const energyChargedRelayShare =
           normalizedRelayShare > equalRelayShare
             ? normalizedRelayShare / freeRelayAllowance

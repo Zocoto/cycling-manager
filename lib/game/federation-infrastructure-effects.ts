@@ -23,6 +23,23 @@ export type FederalMedicalNetworkSpecializationCode =
   | "rehab_network"
   | "prevention_network";
 
+export type NationalTechnicalLaboratorySpecializationCode =
+  | "individual_tt"
+  | "national_ttt"
+  | "equipment_standards";
+
+export type NationalTechnicalLaboratorySpecialization = {
+  code: NationalTechnicalLaboratorySpecializationCode;
+  infrastructureLevel: number;
+};
+
+export type NationalTechnicalLaboratoryEffects = {
+  performanceBonusPercentage: number;
+  energyCostReductionPercentage: number;
+  strongRiderRelayAllowancePercentage: number;
+  mechanicalIncidentTimeReductionPercentage: number;
+};
+
 export type FederalMedicalNetworkEffects = {
   injuryRiskReductionPercentage: number;
   moderateInjuryAbandonmentRiskReductionPercentage: number;
@@ -211,6 +228,72 @@ export function getFederalMedicalNetworkEffects({
       ? scaled(4)
       : 0,
     restFormGainPercentage: applies("prevention_network") ? scaled(4) : 0,
+  };
+}
+
+export function isNationalTechnicalLaboratorySpecializationCode(
+  value: unknown,
+): value is NationalTechnicalLaboratorySpecializationCode {
+  return (
+    value === "individual_tt" ||
+    value === "national_ttt" ||
+    value === "equipment_standards"
+  );
+}
+
+export function getNationalTechnicalLaboratoryEffects({
+  specialization,
+  stageType,
+  isNationalSelection,
+}: {
+  specialization: NationalTechnicalLaboratorySpecialization | null | undefined;
+  stageType:
+    | "road"
+    | "individual_time_trial"
+    | "team_time_trial"
+    | "prologue";
+  isNationalSelection: boolean;
+}): NationalTechnicalLaboratoryEffects {
+  const power = specialization
+    ? getInfrastructureSpecializationPowerPercentage(
+        normalizeFederationInfrastructureLevel(
+          specialization.infrastructureLevel,
+        ),
+        "national_technical_laboratory",
+      ) / 100
+    : 0;
+  const scaled = (maximum: number) =>
+    Math.round(maximum * power * 10) / 10;
+  const soloTimeTrial =
+    stageType === "individual_time_trial" || stageType === "prologue";
+  const individualTimeTrialApplies =
+    isNationalSelection &&
+    soloTimeTrial &&
+    specialization?.code === "individual_tt";
+  const affiliatedTeamTimeTrialApplies =
+    !isNationalSelection &&
+    stageType === "team_time_trial" &&
+    specialization?.code === "national_ttt";
+  const equipmentStandardsApply =
+    isNationalSelection && specialization?.code === "equipment_standards";
+
+  return {
+    performanceBonusPercentage: individualTimeTrialApplies
+      ? scaled(1)
+      : affiliatedTeamTimeTrialApplies
+        ? scaled(1)
+        : equipmentStandardsApply
+          ? scaled(0.4)
+          : 0,
+    energyCostReductionPercentage: individualTimeTrialApplies
+      ? scaled(3)
+      : 0,
+    strongRiderRelayAllowancePercentage: affiliatedTeamTimeTrialApplies
+      ? scaled(5)
+      : 0,
+    mechanicalIncidentTimeReductionPercentage: equipmentStandardsApply
+      ? scaled(5)
+      : 0,
   };
 }
 

@@ -14,6 +14,7 @@ import {
   getFederalScoutReportPrecisionBonusPercentage,
   getFederalStaffAcademyDurationReductionPercentage,
   getFederalStaffInstituteBonusPercentage,
+  getNationalTechnicalLaboratoryEffects,
   getNationalDetectionNetworkEffects,
 } from "@/lib/game/federation-infrastructure-effects";
 
@@ -68,6 +69,14 @@ const medicalNetworkSpecializationMigration = readFileSync(
 );
 const youthDevelopmentService = readFileSync(
   join(process.cwd(), "services/youth-development.ts"),
+  "utf8",
+);
+const raceSimulation = readFileSync(
+  join(process.cwd(), "lib/game/race-simulation.ts"),
+  "utf8",
+);
+const raceCalendarService = readFileSync(
+  join(process.cwd(), "services/race-calendar.ts"),
   "utf8",
 );
 
@@ -335,5 +344,56 @@ describe("federation infrastructures", () => {
     ]) {
       expect(medicalNetworkSpecializationMigration).toContain(marker);
     }
+  });
+
+  it("branche les trois orientations du Laboratoire technique sur le moteur", () => {
+    expect(
+      getNationalTechnicalLaboratoryEffects({
+        specialization: {
+          code: "individual_tt",
+          infrastructureLevel: 3,
+        },
+        stageType: "individual_time_trial",
+        isNationalSelection: true,
+      }),
+    ).toMatchObject({
+      performanceBonusPercentage: 0.6,
+      energyCostReductionPercentage: 1.8,
+    });
+    expect(
+      getNationalTechnicalLaboratoryEffects({
+        specialization: {
+          code: "national_ttt",
+          infrastructureLevel: 4,
+        },
+        stageType: "team_time_trial",
+        isNationalSelection: false,
+      }),
+    ).toMatchObject({
+      performanceBonusPercentage: 0.8,
+      strongRiderRelayAllowancePercentage: 4,
+    });
+    expect(
+      getNationalTechnicalLaboratoryEffects({
+        specialization: {
+          code: "equipment_standards",
+          infrastructureLevel: 5,
+        },
+        stageType: "road",
+        isNationalSelection: true,
+      }),
+    ).toMatchObject({
+      performanceBonusPercentage: 0.4,
+      mechanicalIncidentTimeReductionPercentage: 5,
+    });
+    expect(raceSimulation).toContain(
+      "federalTechnicalLaboratoryRelayAllowancePercentage",
+    );
+    expect(raceSimulation).toContain(
+      "nationalTechnicalLaboratoryEffects.mechanicalIncidentTimeReductionPercentage",
+    );
+    expect(raceCalendarService).toContain(
+      "federalTechnicalLaboratory.set(teamSeason.team_id",
+    );
   });
 });
