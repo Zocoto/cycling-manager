@@ -175,9 +175,9 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     name: "Bureau d’organisation",
     domain: "Courses · Revenus territoriaux",
     summary:
-      "Professionnalise l’accueil des épreuves du pays et augmente la faible part reversée à la fédération.",
+      "Professionnalise l’accueil des épreuves du pays, développe les recettes et ouvre le marché national à de nouveaux partenaires.",
     principle:
-      "Les recettes restent dépendantes du nombre réel de partants et le bâtiment n’autorise aucune course Élite.",
+      "Les recettes restent dépendantes du nombre réel de partants. Au niveau 5, la fédération peut lancer une prospection sponsor par saison.",
     illustration: {
       src: "/images/infrastructure/media-center.webp",
       alt: "Bureau organisant les courses cyclistes du pays",
@@ -190,7 +190,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
         "+10 % sur ces recettes et dossiers d’accueil mieux préparés.",
         "+15 % sur ces recettes et candidatures internationales ouvertes.",
         "+20 % sur ces recettes et coûts d’accueil mieux maîtrisés.",
-        "+25 % au maximum sur les recettes des courses du pays.",
+        "+25 % sur les recettes et une prospection de sponsor national par saison.",
       ],
     }),
   },

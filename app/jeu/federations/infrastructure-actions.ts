@@ -107,6 +107,32 @@ export async function startFederationSchoolCyclingPlanAction(
   };
 }
 
+export async function requestFederationSponsorCreationAction(
+  _previousState: FederationInfrastructureActionState,
+  formData: FormData,
+): Promise<FederationInfrastructureActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  if (!countryCode.success) {
+    return failure("La fédération transmise est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const result = await supabase.rpc(
+    "request_national_federation_sponsor_creation",
+    {
+      p_country_code: countryCode.data,
+    },
+  );
+  if (result.error) return failure(result.error.message);
+
+  revalidate(countryCode.data);
+  return {
+    status: "success",
+    message:
+      "La prospection est lancée. Le nouveau sponsor apparaît dans la file de création.",
+  };
+}
+
 export async function startFederationInfrastructureProjectAction(
   _previousState: FederationInfrastructureActionState,
   formData: FormData,

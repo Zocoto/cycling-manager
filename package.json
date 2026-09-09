@@ -17,6 +17,7 @@
     "equipment:assets": "node scripts/optimize-equipment-assets.mjs",
     "sponsors:validate": "tsx scripts/validate-sponsors.ts",
     "sponsors:validate:strict": "tsx scripts/validate-sponsors.ts --strict-assets",
+    "sponsors:jobs": "tsx scripts/manage-federation-sponsor-jobs.ts",
     "sponsors:sync": "tsx scripts/sync-sponsors.ts",
     "race:calibrate": "tsx scripts/calibrate-race-simulation.ts"
   },

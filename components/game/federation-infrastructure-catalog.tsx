@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 
 import {
   contributeArchitectToFederationProjectAction,
+  requestFederationSponsorCreationAction,
   startFederationSchoolCyclingPlanAction,
   startFederationInfrastructureProjectAction,
   updateFederationProjectPriorityAction,
@@ -151,11 +152,201 @@ export function FederationInfrastructureCatalog({
                 infrastructureState={infrastructureState}
               />
             ) : null}
+            {definition.code === "race_organization_office" ? (
+              <FederationSponsorCreationProgram
+                countryCode={countryCode}
+                managementLocked={managementLocked}
+                officeLevel={currentLevel}
+                infrastructureState={infrastructureState}
+              />
+            ) : null}
           </div>
         );
       })}
     </div>
   );
+}
+
+function FederationSponsorCreationProgram({
+  countryCode,
+  managementLocked,
+  officeLevel,
+  infrastructureState,
+}: {
+  countryCode: string;
+  managementLocked: boolean;
+  officeLevel: number;
+  infrastructureState: FederationInfrastructureState | null;
+}) {
+  const [actionState, action, pending] = useActionState(
+    requestFederationSponsorCreationAction,
+    initialFederationInfrastructureActionState,
+  );
+  const jobs = infrastructureState?.sponsorCreationJobs ?? [];
+  const currentGameYear = infrastructureState?.gameYear ?? 2;
+  const currentJob =
+    jobs.find((job) => job.gameYear === currentGameYear) ?? null;
+  const isUnlocked = officeLevel >= 5;
+  const canSubmit =
+    isUnlocked &&
+    !managementLocked &&
+    Boolean(infrastructureState?.canLaunch) &&
+    !currentJob;
+
+  return (
+    <section className="overflow-hidden rounded-[1.9rem] border border-[#D5AC18]/35 bg-[#FFFDF4] shadow-[0_16px_44px_rgba(19,60,46,0.08)]">
+      <div className="grid gap-6 bg-[linear-gradient(135deg,#173F36_0%,#176951_72%,#9A7620_150%)] p-6 text-white sm:p-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#FFE897]">
+            Attractivité économique · avantage exceptionnel
+          </p>
+          <h3 className="mt-2 text-2xl font-black sm:text-3xl">
+            Appel à un nouveau partenaire
+          </h3>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
+            Le Bureau d’organisation ouvre le pays à un nouveau sponsor du
+            cyclisme professionnel. Une seule prospection peut être lancée par
+            saison et le partenaire créé rejoint définitivement le catalogue
+            national.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 lg:max-w-72 lg:justify-end">
+          <SponsorProgramMetric label="Prérequis" value="Niveau 5" />
+          <SponsorProgramMetric label="Fréquence" value="1 par saison" />
+          <SponsorProgramMetric label="Effet" value="Sponsor permanent" />
+        </div>
+      </div>
+
+      <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(300px,0.28fr)]">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#176951]">
+            File de création
+          </p>
+          {jobs.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {jobs.map((job) => {
+                const presentation = SPONSOR_JOB_PRESENTATIONS[job.status];
+                return (
+                  <li
+                    key={job.id}
+                    className="grid gap-3 rounded-xl border border-[#315B3E]/10 bg-white p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`grid h-9 w-9 place-items-center rounded-full text-sm font-black ${presentation.markerClassName}`}
+                    >
+                      {presentation.marker}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+                        Saison {job.gameYear} · {presentation.label}
+                      </span>
+                      <span className="mt-1 block truncate text-sm font-black text-[#183F37]">
+                        {job.sponsorName ?? presentation.detail}
+                      </span>
+                    </span>
+                    <span className="text-[10px] font-bold text-[#60756E]">
+                      {formatSponsorJobDate(job.completedAt ?? job.requestedAt)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="mt-3 rounded-xl border border-dashed border-[#315B3E]/20 bg-white/70 p-5 text-sm font-semibold leading-6 text-[#60756E]">
+              Aucune prospection n’a encore été lancée. Une fois la demande
+              créée, son avancement sera visible ici jusqu’à la publication du
+              sponsor.
+            </div>
+          )}
+        </div>
+
+        <form action={action} className="h-fit rounded-2xl border border-[#D5AC18]/30 bg-white p-5">
+          <input type="hidden" name="countryCode" value={countryCode} />
+          <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#806114]">
+            Campagne Saison {currentGameYear}
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
+            La demande alimente l’atelier de création. Le sponsor publié sera
+            disponible pour les prochaines campagnes de sponsoring, sans être
+            attribué automatiquement à une équipe.
+          </p>
+          <button
+            type="submit"
+            disabled={!canSubmit || pending}
+            className="mt-5 min-h-11 w-full rounded-xl bg-[#F2C94C] px-4 text-sm font-black text-[#183F37] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-[#D5D6CE] disabled:text-[#6F7773]"
+          >
+            {pending
+              ? "Transmission…"
+              : currentJob
+                ? "Prospection déjà utilisée"
+                : "Lancer la prospection"}
+          </button>
+          {!isUnlocked ? (
+            <PlanBlockReason>
+              Bureau d’organisation niveau 5 requis.
+            </PlanBlockReason>
+          ) : managementLocked ? (
+            <PlanBlockReason>Programme disponible à partir de la Saison 3.</PlanBlockReason>
+          ) : !infrastructureState?.canLaunch ? (
+            <PlanBlockReason>Décision réservée au président élu.</PlanBlockReason>
+          ) : currentJob ? (
+            <p className="mt-3 text-xs font-bold leading-5 text-[#176951]">
+              Le quota de cette saison est consommé, quelle que soit l’étape
+              actuelle de la création.
+            </p>
+          ) : null}
+          <ActionFeedback state={actionState} />
+        </form>
+      </div>
+    </section>
+  );
+}
+
+const SPONSOR_JOB_PRESENTATIONS = {
+  pending: {
+    label: "À produire",
+    detail: "Demande ajoutée à la liste de travail",
+    marker: "1",
+    markerClassName: "bg-[#FFF4C7] text-[#806114]",
+  },
+  in_progress: {
+    label: "Création en cours",
+    detail: "Identité, logo et maillots en préparation",
+    marker: "2",
+    markerClassName: "bg-[#DCEAF7] text-[#245A88]",
+  },
+  completed: {
+    label: "Publié",
+    detail: "Sponsor ajouté au catalogue national",
+    marker: "✓",
+    markerClassName: "bg-[#DDF3E7] text-[#176951]",
+  },
+  failed: {
+    label: "À reprendre",
+    detail: "La création sera relancée dans le même job",
+    marker: "!",
+    markerClassName: "bg-[#FCE4E0] text-[#9D3E37]",
+  },
+} as const;
+
+function SponsorProgramMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-28 rounded-xl border border-white/15 bg-white/10 px-3 py-3 backdrop-blur-sm">
+      <p className="text-[9px] font-black uppercase tracking-[0.11em] text-[#BFD0C9]">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function formatSponsorJobDate(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function FederationSchoolCyclingPlan({

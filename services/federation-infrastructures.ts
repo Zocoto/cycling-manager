@@ -63,6 +63,25 @@ export type FederationInfrastructureState = {
     Record<FederationInfrastructureCode, InfrastructureSpecializationSelection>
   >;
   schoolCyclingPlan: FederationSchoolCyclingPlanState | null;
+  sponsorCreationJobs: FederationSponsorCreationJob[];
+};
+
+export type FederationSponsorCreationJobStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed";
+
+export type FederationSponsorCreationJob = {
+  id: string;
+  gameYear: number;
+  status: FederationSponsorCreationJobStatus;
+  sponsorCatalogKey: string | null;
+  sponsorName: string | null;
+  failureReason: string | null;
+  requestedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 };
 
 export type FederationSchoolCyclingPlanState = {
@@ -129,6 +148,17 @@ type SchoolCyclingPlanRow = {
   completes_game_day_index: number;
   status: "deploying" | "active";
 };
+type SponsorCreationJobRow = {
+  id: string;
+  requested_game_year: number;
+  status: string;
+  sponsor_catalog_key: string | null;
+  sponsor_name: string | null;
+  failure_reason: string | null;
+  requested_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+};
 
 const infrastructureCodeSet = new Set<string>(
   FEDERATION_INFRASTRUCTURE_CODES,
@@ -158,6 +188,7 @@ export async function getFederationInfrastructureState({
     balance: null,
     specializations: {},
     schoolCyclingPlan: null,
+    sponsorCreationJobs: [],
   };
 
   try {
@@ -187,6 +218,7 @@ export async function getFederationInfrastructureState({
       account,
       contracts,
       schoolCyclingPlan,
+      sponsorCreationJobs,
     ] = await Promise.all([
         admin
           .from("national_federation_infrastructures")
@@ -249,6 +281,15 @@ export async function getFederationInfrastructureState({
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle<SchoolCyclingPlanRow>(),
+        admin
+          .from("national_federation_sponsor_creation_jobs")
+          .select(
+            "id, requested_game_year, status, sponsor_catalog_key, sponsor_name, failure_reason, requested_at, started_at, completed_at",
+          )
+          .eq("country_id", countryId)
+          .order("requested_at", { ascending: false })
+          .limit(6)
+          .returns<SponsorCreationJobRow[]>(),
       ]);
 
     for (const [result, label] of [
@@ -260,6 +301,7 @@ export async function getFederationInfrastructureState({
       [account, "la trésorerie fédérale"],
       [contracts, "les architectes du club"],
       [schoolCyclingPlan, "le Plan vélo scolaire"],
+      [sponsorCreationJobs, "les prospections de sponsors"],
     ] as const) {
       if (result.error) {
         throw new Error(`${label} : ${result.error.message}`);
@@ -546,11 +588,40 @@ export async function getFederationInfrastructureState({
             }),
           }
         : null,
+      sponsorCreationJobs: (sponsorCreationJobs.data ?? []).flatMap(
+        (job): FederationSponsorCreationJob[] => {
+          if (!isSponsorCreationJobStatus(job.status)) return [];
+          return [
+            {
+              id: job.id,
+              gameYear: job.requested_game_year,
+              status: job.status,
+              sponsorCatalogKey: job.sponsor_catalog_key,
+              sponsorName: job.sponsor_name,
+              failureReason: job.failure_reason,
+              requestedAt: job.requested_at,
+              startedAt: job.started_at,
+              completedAt: job.completed_at,
+            },
+          ];
+        },
+      ),
     };
   } catch (error) {
     console.error("Impossible de charger les infrastructures fédérales :", error);
     return empty;
   }
+}
+
+function isSponsorCreationJobStatus(
+  value: string,
+): value is FederationSponsorCreationJobStatus {
+  return (
+    value === "pending" ||
+    value === "in_progress" ||
+    value === "completed" ||
+    value === "failed"
+  );
 }
 
 function isPriority(value: string): value is FederationConstructionPriority {
