@@ -197,7 +197,7 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
     name: "Bureau fédéral d’intégration",
     domain: "International · Naturalisation",
     summary:
-      "Crée un parcours commun de naturalisation pour les coureurs durablement installés dans les équipes affiliées.",
+      "Crée un parcours commun de naturalisation pour les coureurs durablement installés et peut accompagner les encadrants des équipes affiliées.",
     principle:
       "Le meilleur bonus entre la fédération et le Centre d’accueil de l’équipe s’applique : ils ne se cumulent jamais.",
     illustration: {
@@ -208,11 +208,11 @@ export const FEDERATION_INFRASTRUCTURE_DEFINITIONS: FederationInfrastructureDefi
       costs: [1_200_000, 2_200_000, 3_500_000, 5_300_000, 7_600_000],
       durations: [9, 14, 19, 24, 30],
       effects: [
-        "−4 % sur le délai commun de naturalisation.",
-        "−8 % sur le délai commun de naturalisation.",
-        "−12 % sur le délai commun de naturalisation.",
-        "−16 % sur le délai commun de naturalisation.",
-        "−20 % au maximum, sans cumul avec un meilleur bonus d’équipe.",
+        "−10 % sur le délai fédéral : 76 jours pour un pro, 26 pour un junior.",
+        "−20 % : 68 jours pour un pro, 23 pour un junior.",
+        "−30 % : 59 jours pour un pro, 20 pour un junior.",
+        "−40 % : 51 jours pour un pro, 17 pour un junior.",
+        "−50 % : 42 jours pour un pro, 14 pour un junior.",
       ],
     }),
   },

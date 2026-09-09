@@ -6,11 +6,14 @@ import {
   type BonusBreakdown,
 } from "@/lib/game/bonus-breakdown";
 import {
+  applyNaturalizationDelayReduction,
   getBestNaturalizationRequiredDays,
+  getFederalIntegrationOfficeEffects,
   getFederalScoutReportPrecisionBonusPercentage,
   getFederalStaffInstituteBonusPercentage,
   getFederationInfrastructureEffectPercentage,
   getNationalDetectionNetworkEffects,
+  isFederalIntegrationOfficeSpecializationCode,
   isFederalStaffInstituteSpecializationCode,
 } from "@/lib/game/federation-infrastructure-effects";
 import { getSchoolCyclingPlanTransferPoints } from "@/lib/game/federation-school-cycling-plan";
@@ -107,7 +110,9 @@ type Context = {
   registrationCountryId: string;
   welcomeCenterLevel: number;
   welcomeCenterEfficiencyBonusPercentage: number;
+  welcomeCenterSpecializationCode: string | null;
   federalIntegrationLevel: number;
+  federalIntegrationSpecializationCode: string | null;
 };
 
 type TeamSpecializationState = {
@@ -997,14 +1002,31 @@ async function loadOverview(admin: AdminClient, context: Context) {
         code: country?.iso_alpha2 ?? "--",
       },
       requiredDays: getBestNaturalizationRequiredDays({
-        teamRequiredDays: Math.ceil(
-          [28, 21, 14, 7, 3, 0][
-            Math.max(0, Math.min(5, context.welcomeCenterLevel))
-          ] /
-            (1 + context.welcomeCenterEfficiencyBonusPercentage / 100),
+        teamRequiredDays: applyNaturalizationDelayReduction(
+          Math.ceil(
+            [28, 21, 14, 7, 3, 0][
+              Math.max(0, Math.min(5, context.welcomeCenterLevel))
+            ] /
+              (1 + context.welcomeCenterEfficiencyBonusPercentage / 100),
+          ),
+          context.welcomeCenterSpecializationCode === "youth_gateway"
+            ? 5 *
+                (getInfrastructureSpecializationPowerPercentage(
+                  context.welcomeCenterLevel,
+                  "international_welcome_center",
+                ) /
+                  100)
+            : 0,
         ),
         federalIntegrationLevel: context.federalIntegrationLevel,
         baseDays: 28,
+        federalSpecializationCode:
+          isFederalIntegrationOfficeSpecializationCode(
+            context.federalIntegrationSpecializationCode,
+          )
+            ? context.federalIntegrationSpecializationCode
+            : null,
+        naturalizationLevel: "youth",
       }),
       targetCountry: {
         id: targetCountry.id,
@@ -1344,7 +1366,12 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     country.id !== teamSeasonResult.data?.registration_country_id
       ? 4 * welcomeCenterSpecialization.power
       : 0;
-  const [federalStaffInstituteResult, federalStaffSpecializationResult] =
+  const [
+    federalStaffInstituteResult,
+    federalStaffSpecializationResult,
+    federalIntegrationResult,
+    federalIntegrationSpecializationResult,
+  ] =
     teamSeasonResult.data
       ? await Promise.all([
           admin
@@ -1359,8 +1386,22 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
             .eq("country_id", teamSeasonResult.data.registration_country_id)
             .eq("infrastructure_code", "federal_staff_institute")
             .maybeSingle<{ active_specialization_code: string | null }>(),
+          admin
+            .from("national_federation_infrastructures")
+            .select("level")
+            .eq("country_id", teamSeasonResult.data.registration_country_id)
+            .eq("infrastructure_code", "federal_integration_office")
+            .maybeSingle<{ level: number }>(),
+          admin
+            .from("national_federation_infrastructure_specializations")
+            .select("active_specialization_code")
+            .eq("country_id", teamSeasonResult.data.registration_country_id)
+            .eq("infrastructure_code", "federal_integration_office")
+            .maybeSingle<{ active_specialization_code: string | null }>(),
         ])
       : [
+          { data: null, error: null },
+          { data: null, error: null },
           { data: null, error: null },
           { data: null, error: null },
         ];
@@ -1372,6 +1413,28 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     federalStaffSpecializationResult.error,
     "l’orientation de l’Institut fédéral du staff",
   );
+  assertQuery(
+    federalIntegrationResult.error,
+    "le Bureau fédéral d’intégration",
+  );
+  assertQuery(
+    federalIntegrationSpecializationResult.error,
+    "l’orientation du Bureau fédéral d’intégration",
+  );
+  const rawFederalIntegrationSpecializationCode =
+    federalIntegrationSpecializationResult.data?.active_specialization_code;
+  const federalIntegrationEffects = getFederalIntegrationOfficeEffects({
+    level: Number(federalIntegrationResult.data?.level ?? 0),
+    specializationCode: isFederalIntegrationOfficeSpecializationCode(
+      rawFederalIntegrationSpecializationCode,
+    )
+      ? rawFederalIntegrationSpecializationCode
+      : null,
+  });
+  const federalIntegrationTuitionReductionPercentage =
+    country.id !== teamSeasonResult.data?.registration_country_id
+      ? federalIntegrationEffects.foreignYouthTuitionReductionPercentage
+      : 0;
   const talentCodes = (talentsResult.data ?? []).flatMap((talent) =>
     isStaffTalentForRole(talent.talent_code, "scout")
       ? [talent.talent_code]
@@ -1601,7 +1664,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
             federalStaffMultiplier *
             100,
         ) / 100,
-      federal_tuition_reduction_percentage: 0,
+      federal_tuition_reduction_percentage:
+        federalIntegrationTuitionReductionPercentage,
       scout_tuition_reduction_percentage:
         Math.round(scoutTuitionReductionPercentage * 100) / 100,
       data_room_tuition_reduction_percentage:
@@ -1623,7 +1687,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
           (costs.tuitionPerSeason *
             (1 - scoutTuitionReductionPercentage / 100) *
             (1 - dataRoomTuitionReductionPercentage / 100) *
-            (1 - welcomeCenterTuitionReductionPercentage / 100)) /
+            (1 - welcomeCenterTuitionReductionPercentage / 100) *
+            (1 - federalIntegrationTuitionReductionPercentage / 100)) /
             500,
         ) * 500,
       ),
@@ -2069,7 +2134,11 @@ async function loadContext(
     }>();
   assertQuery(seasonResult.error, "la saison active");
   if (!seasonResult.data) return null;
-  const [teamSeasonResult, welcomeCenterResult] = await Promise.all([
+  const [
+    teamSeasonResult,
+    welcomeCenterResult,
+    welcomeCenterSpecializationResult,
+  ] = await Promise.all([
     admin
       .from("team_seasons")
       .select(
@@ -2093,19 +2162,42 @@ async function loadContext(
         level: number;
         efficiency_bonus_percentage: number | string;
       }>(),
+    admin
+      .from("team_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("team_id", assignmentResult.data.team_id)
+      .eq("infrastructure_code", "international_welcome_center")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
   ]);
   assertQuery(teamSeasonResult.error, "l’équipe de la saison");
   assertQuery(welcomeCenterResult.error, "le Centre d’accueil international");
+  assertQuery(
+    welcomeCenterSpecializationResult.error,
+    "l’orientation du Centre d’accueil international",
+  );
   if (!teamSeasonResult.data) return null;
-  const federalIntegrationResult = await admin
-    .from("national_federation_infrastructures")
-    .select("level")
-    .eq("country_id", teamSeasonResult.data.registration_country_id)
-    .eq("infrastructure_code", "federal_integration_office")
-    .maybeSingle<{ level: number }>();
+  const [federalIntegrationResult, federalIntegrationSpecializationResult] =
+    await Promise.all([
+      admin
+        .from("national_federation_infrastructures")
+        .select("level")
+        .eq("country_id", teamSeasonResult.data.registration_country_id)
+        .eq("infrastructure_code", "federal_integration_office")
+        .maybeSingle<{ level: number }>(),
+      admin
+        .from("national_federation_infrastructure_specializations")
+        .select("active_specialization_code")
+        .eq("country_id", teamSeasonResult.data.registration_country_id)
+        .eq("infrastructure_code", "federal_integration_office")
+        .maybeSingle<{ active_specialization_code: string | null }>(),
+    ]);
   assertQuery(
     federalIntegrationResult.error,
     "le Bureau fédéral d’intégration",
+  );
+  assertQuery(
+    federalIntegrationSpecializationResult.error,
+    "l’orientation du Bureau fédéral d’intégration",
   );
   return {
     teamId: assignmentResult.data.team_id,
@@ -2122,7 +2214,13 @@ async function loadContext(
     welcomeCenterEfficiencyBonusPercentage: Number(
       welcomeCenterResult.data?.efficiency_bonus_percentage ?? 0,
     ),
+    welcomeCenterSpecializationCode:
+      welcomeCenterSpecializationResult.data?.active_specialization_code ??
+      null,
     federalIntegrationLevel: Number(federalIntegrationResult.data?.level ?? 0),
+    federalIntegrationSpecializationCode:
+      federalIntegrationSpecializationResult.data
+        ?.active_specialization_code ?? null,
   };
 }
 
@@ -2178,9 +2276,9 @@ function toCandidate(
       },
       {
         key: "federal-regional-academies",
-        label: "Aide fédérale historique",
+        label: "Aide fédérale à la formation",
         percentage: -toNumber(row.federal_tuition_reduction_percentage),
-        detail: "Réduction conservée sur les anciens contrats de formation",
+        detail: "Réduction fédérale attachée à ce contrat de formation",
       },
       {
         key: "data-room-talent-network",

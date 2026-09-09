@@ -14,6 +14,10 @@ import {
   type ArchitectSpecialty,
 } from "@/lib/game/infrastructure";
 import {
+  getFederalIntegrationOfficeEffects,
+  isFederalIntegrationOfficeSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
+import {
   STAFF_DAILY_ROLE_DISTRIBUTION,
   STAFF_LEVEL_WEIGHT_TOTAL,
   TRAINER_SPECIALTIES,
@@ -196,6 +200,8 @@ export type TeamStaffOverview = {
   countries: Array<{ name: string; code: string }>;
   staffNaturalization: {
     welcomeCenterLevel: number;
+    federalIntegrationLevel: number;
+    federalQuotaBonus: number;
     limit: number;
     used: number;
     remaining: number;
@@ -236,6 +242,8 @@ export async function getTeamStaffOverview(
     staffAcademyResult,
     welcomeCenterResult,
     welcomeCenterSpecializationResult,
+    federalIntegrationResult,
+    federalIntegrationSpecializationResult,
     staffNaturalizationsResult,
   ] = await Promise.all([
     admin
@@ -289,6 +297,18 @@ export async function getTeamStaffOverview(
       .eq("infrastructure_code", "international_welcome_center")
       .maybeSingle<{ active_specialization_code: string | null }>(),
     admin
+      .from("national_federation_infrastructures")
+      .select("level")
+      .eq("country_id", context.teamSeason.registration_country_id)
+      .eq("infrastructure_code", "federal_integration_office")
+      .maybeSingle<{ level: number }>(),
+    admin
+      .from("national_federation_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("country_id", context.teamSeason.registration_country_id)
+      .eq("infrastructure_code", "federal_integration_office")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
+    admin
       .from("staff_naturalizations")
       .select("id", { count: "exact", head: true })
       .eq("team_id", context.teamSeason.team_id)
@@ -305,6 +325,14 @@ export async function getTeamStaffOverview(
   assertQuery(
     welcomeCenterSpecializationResult.error,
     "l’orientation du Centre d’accueil international",
+  );
+  assertQuery(
+    federalIntegrationResult.error,
+    "le Bureau fédéral d’intégration",
+  );
+  assertQuery(
+    federalIntegrationSpecializationResult.error,
+    "l’orientation du Bureau fédéral d’intégration",
   );
   assertQuery(
     staffNaturalizationsResult.error,
@@ -376,12 +404,26 @@ export async function getTeamStaffOverview(
     throw new Error("Le pays d’inscription de l’équipe est introuvable.");
   }
   const welcomeCenterLevel = Number(welcomeCenterResult.data?.level ?? 0);
+  const rawFederalIntegrationSpecializationCode =
+    federalIntegrationSpecializationResult.data?.active_specialization_code;
+  const federalIntegrationLevel = Number(
+    federalIntegrationResult.data?.level ?? 0,
+  );
+  const federalIntegrationEffects = getFederalIntegrationOfficeEffects({
+    level: federalIntegrationLevel,
+    specializationCode: isFederalIntegrationOfficeSpecializationCode(
+      rawFederalIntegrationSpecializationCode,
+    )
+      ? rawFederalIntegrationSpecializationCode
+      : null,
+  });
   const staffNaturalizationLimit =
     getStaffNaturalizationSeasonLimit(welcomeCenterLevel) +
     (welcomeCenterSpecializationResult.data
       ?.active_specialization_code === "administrative_path"
       ? 1
-      : 0);
+      : 0) +
+    federalIntegrationEffects.staffNaturalizationSeasonBonus;
   const staffNaturalizationUsed = staffNaturalizationsResult.count ?? 0;
   const balance = toNumber(context.teamSeason.cash_balance);
   const projectedBudget = (transactionsResult.data ?? []).reduce(
@@ -505,6 +547,9 @@ export async function getTeamStaffOverview(
     })),
     staffNaturalization: {
       welcomeCenterLevel,
+      federalIntegrationLevel,
+      federalQuotaBonus:
+        federalIntegrationEffects.staffNaturalizationSeasonBonus,
       limit: staffNaturalizationLimit,
       used: staffNaturalizationUsed,
       remaining: Math.max(

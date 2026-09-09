@@ -33,6 +33,19 @@ export type RaceOrganizationOfficeSpecializationCode =
   | "dense_calendar"
   | "national_pipeline";
 
+export type FederalIntegrationOfficeSpecializationCode =
+  | "professional_path"
+  | "youth_gateway"
+  | "technical_passport";
+
+export type FederalIntegrationOfficeEffects = {
+  naturalizationDelayReductionPercentage: number;
+  professionalAdditionalReductionPercentage: number;
+  youthAdditionalReductionPercentage: number;
+  foreignYouthTuitionReductionPercentage: number;
+  staffNaturalizationSeasonBonus: number;
+};
+
 export type RaceOrganizationOfficeEffects = {
   raceRevenueBonusPercentage: number;
   canCreateNationalRace: boolean;
@@ -83,7 +96,7 @@ export const FEDERATION_INFRASTRUCTURE_EFFECT_PER_LEVEL = {
   federal_medical_network: 1,
   national_technical_laboratory: 0.2,
   race_organization_office: 5,
-  federal_integration_office: 4,
+  federal_integration_office: 10,
   home_advantage_program: 0.2,
 } as const satisfies Record<FederationInfrastructureCode, number>;
 
@@ -490,31 +503,112 @@ export function getFederalScoutReportPrecisionBonusPercentage({
 export function getFederationNaturalizationRequiredDays({
   level,
   baseDays,
+  specializationCode = null,
+  naturalizationLevel = "professional",
 }: {
   level: number;
   baseDays: number;
+  specializationCode?: FederalIntegrationOfficeSpecializationCode | null;
+  naturalizationLevel?: "professional" | "youth";
 }): number {
-  const reduction = getFederationInfrastructureEffectPercentage(
-    "federal_integration_office",
+  const effects = getFederalIntegrationOfficeEffects({
     level,
+    specializationCode,
+  });
+  const federalBaseDays = Math.max(
+    0,
+    Math.ceil(
+      baseDays *
+        (1 - effects.naturalizationDelayReductionPercentage / 100),
+    ),
   );
-  return Math.max(0, Math.ceil(baseDays * (1 - reduction / 100)));
+  return applyNaturalizationDelayReduction(
+    federalBaseDays,
+    naturalizationLevel === "professional"
+      ? effects.professionalAdditionalReductionPercentage
+      : effects.youthAdditionalReductionPercentage,
+  );
 }
 
 export function getBestNaturalizationRequiredDays({
   teamRequiredDays,
   federalIntegrationLevel,
   baseDays,
+  federalSpecializationCode = null,
+  naturalizationLevel = "professional",
 }: {
   teamRequiredDays: number;
   federalIntegrationLevel: number;
   baseDays: number;
+  federalSpecializationCode?: FederalIntegrationOfficeSpecializationCode | null;
+  naturalizationLevel?: "professional" | "youth";
 }): number {
   return Math.min(
     Math.max(0, Math.trunc(teamRequiredDays)),
     getFederationNaturalizationRequiredDays({
       level: federalIntegrationLevel,
       baseDays,
+      specializationCode: federalSpecializationCode,
+      naturalizationLevel,
     }),
+  );
+}
+
+export function isFederalIntegrationOfficeSpecializationCode(
+  value: unknown,
+): value is FederalIntegrationOfficeSpecializationCode {
+  return (
+    value === "professional_path" ||
+    value === "youth_gateway" ||
+    value === "technical_passport"
+  );
+}
+
+export function getFederalIntegrationOfficeEffects({
+  level,
+  specializationCode,
+}: {
+  level: number;
+  specializationCode: FederalIntegrationOfficeSpecializationCode | null;
+}): FederalIntegrationOfficeEffects {
+  const normalizedLevel = normalizeFederationInfrastructureLevel(level);
+  const power =
+    getInfrastructureSpecializationPowerPercentage(
+      normalizedLevel,
+      "federal_integration_office",
+    ) / 100;
+  const scaled = (maximum: number) =>
+    Math.round(maximum * power * 10) / 10;
+
+  return {
+    naturalizationDelayReductionPercentage:
+      getFederationInfrastructureEffectPercentage(
+        "federal_integration_office",
+        normalizedLevel,
+      ),
+    professionalAdditionalReductionPercentage:
+      specializationCode === "professional_path" ? scaled(10) : 0,
+    youthAdditionalReductionPercentage:
+      specializationCode === "youth_gateway" ? scaled(10) : 0,
+    foreignYouthTuitionReductionPercentage:
+      specializationCode === "youth_gateway" ? scaled(5) : 0,
+    staffNaturalizationSeasonBonus:
+      specializationCode === "technical_passport" && power > 0
+        ? normalizedLevel >= 5
+          ? 2
+          : 1
+        : 0,
+  };
+}
+
+export function applyNaturalizationDelayReduction(
+  requiredDays: number,
+  reductionPercentage: number,
+): number {
+  const days = Math.max(0, Math.trunc(requiredDays));
+  if (days === 0 || reductionPercentage <= 0) return days;
+  return Math.max(
+    0,
+    days - Math.max(1, Math.round((days * reductionPercentage) / 100)),
   );
 }

@@ -224,9 +224,9 @@ export const FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly Infras
   {
     buildingCode: "federal_integration_office", buildingName: "Bureau fédéral d’intégration", domain: "International · Naturalisation", scope: "federation", unlockRule: "Vote de spécialisation au niveau 3",
     options: [
-      option({ code: "fast_track", name: "Guichet accéléré", identity: "Réduire le délai des dossiers les plus solides.", primaryEffect: "−5 % supplémentaires sur le délai de naturalisation fédéral.", secondaryEffect: "−5 % de risque d’interruption administrative.", guardrail: "Ne se cumule pas avec un meilleur Centre d’accueil d’équipe." }),
-      option({ code: "diaspora_network", name: "Réseau diaspora", identity: "Maintenir un lien avec les talents formés à l’étranger.", primaryEffect: "+8 % de couverture de détection des coureurs éligibles par ascendance.", secondaryEffect: "+5 % de précision sur leur disponibilité internationale.", guardrail: "N’accélère pas les dossiers de naturalisation." }),
-      option({ code: "integration_program", name: "Programme d’intégration", identity: "Privilégier la stabilité sportive après l’arrivée.", primaryEffect: "+5 % de stabilité de forme la première saison suivant la naturalisation.", secondaryEffect: "+4 % d’affinité avec le staff national.", guardrail: "Le délai administratif reste inchangé." }),
+      option({ code: "professional_path", name: "Parcours professionnel", identity: "Renforcer rapidement le vivier de la sélection senior.", primaryEffect: "−6 %, −8 % puis −10 % supplémentaires sur le délai fédéral des professionnels.", guardrail: "" }),
+      option({ code: "youth_gateway", name: "Passerelle jeunes", identity: "Faciliter l’installation durable des jeunes talents étrangers.", primaryEffect: "−6 %, −8 % puis −10 % supplémentaires sur le délai fédéral des juniors.", secondaryEffect: "−3 %, −4 % puis −5 % sur leurs frais de formation dans les équipes affiliées.", guardrail: "" }),
+      option({ code: "technical_passport", name: "Passeport technique", identity: "Aider les clubs à intégrer durablement leurs encadrants étrangers.", primaryEffect: "+1 naturalisation de staff par équipe affiliée et par saison, puis +2 au niveau 5.", secondaryEffect: "Accessible même sans Centre d’accueil d’équipe et cumulable avec ses quotas.", guardrail: "" }),
     ],
   },
   {

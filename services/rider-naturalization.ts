@@ -5,7 +5,12 @@ import {
   evaluateNaturalizationEligibility,
   type NaturalizationEligibility,
 } from "@/lib/game/naturalization";
-import { getBestNaturalizationRequiredDays } from "@/lib/game/federation-infrastructure-effects";
+import {
+  applyNaturalizationDelayReduction,
+  getBestNaturalizationRequiredDays,
+  isFederalIntegrationOfficeSpecializationCode,
+} from "@/lib/game/federation-infrastructure-effects";
+import { getInfrastructureSpecializationPowerPercentage } from "@/lib/game/infrastructure-specializations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type CountryRow = {
@@ -69,6 +74,7 @@ export async function getProfessionalRiderNaturalizationEligibility({
     teamSeasonResult,
     titleResult,
     welcomeCenterResult,
+    welcomeCenterSpecializationResult,
   ] = await Promise.all([
     admin
       .from("riders")
@@ -102,17 +108,31 @@ export async function getProfessionalRiderNaturalizationEligibility({
         level: number;
         efficiency_bonus_percentage: number | string;
       }>(),
+    admin
+      .from("team_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("team_id", teamId)
+      .eq("infrastructure_code", "international_welcome_center")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
   ]);
   assertQuery(riderResult.error, "le coureur");
   assertQuery(contractResult.error, "le contrat actuel du coureur");
   assertQuery(teamSeasonResult.error, "la nationalité actuelle de l'équipe");
   assertQuery(titleResult.error, "le palmarès national du coureur");
+  assertQuery(
+    welcomeCenterSpecializationResult.error,
+    "l’orientation du Centre d’accueil international",
+  );
   if (!riderResult.data || !contractResult.data || !teamSeasonResult.data) {
     return null;
   }
 
   const targetCountryId = teamSeasonResult.data.registration_country_id;
-  const [progressResult, federalIntegrationResult] = await Promise.all([
+  const [
+    progressResult,
+    federalIntegrationResult,
+    federalIntegrationSpecializationResult,
+  ] = await Promise.all([
     admin
       .from("rider_naturalization_country_progress")
       .select(
@@ -127,6 +147,12 @@ export async function getProfessionalRiderNaturalizationEligibility({
       .eq("country_id", targetCountryId)
       .eq("infrastructure_code", "federal_integration_office")
       .maybeSingle<{ level: number }>(),
+    admin
+      .from("national_federation_infrastructure_specializations")
+      .select("active_specialization_code")
+      .eq("country_id", targetCountryId)
+      .eq("infrastructure_code", "federal_integration_office")
+      .maybeSingle<{ active_specialization_code: string | null }>(),
   ]);
   assertQuery(
     progressResult.error,
@@ -135,6 +161,10 @@ export async function getProfessionalRiderNaturalizationEligibility({
   assertQuery(
     federalIntegrationResult.error,
     "le Bureau fédéral d’intégration",
+  );
+  assertQuery(
+    federalIntegrationSpecializationResult.error,
+    "l’orientation du Bureau fédéral d’intégration",
   );
 
   let elapsedDays = progressResult.data?.accumulated_days ?? 0;
@@ -180,6 +210,33 @@ export async function getProfessionalRiderNaturalizationEligibility({
   const targetCountry = countryById.get(targetCountryId);
   if (!currentCountry || !targetCountry) return null;
 
+  const welcomeCenterLevel = Math.max(
+    0,
+    Math.min(5, Number(welcomeCenterResult.data?.level ?? 0)),
+  );
+  const welcomeCenterBaseDays = Math.ceil(
+    [84, 70, 56, 42, 28, 14][welcomeCenterLevel] /
+      (1 +
+        Number(welcomeCenterResult.data?.efficiency_bonus_percentage ?? 0) /
+          100),
+  );
+  const welcomeCenterSpecializationPower =
+    welcomeCenterSpecializationResult.data?.active_specialization_code ===
+    "administrative_path"
+      ? getInfrastructureSpecializationPowerPercentage(
+          welcomeCenterLevel,
+          "international_welcome_center",
+        ) / 100
+      : 0;
+  const federalSpecializationCode =
+    isFederalIntegrationOfficeSpecializationCode(
+      federalIntegrationSpecializationResult.data
+        ?.active_specialization_code,
+    )
+      ? federalIntegrationSpecializationResult.data
+          .active_specialization_code
+      : null;
+
   return evaluateNaturalizationEligibility({
     level: "professional",
     elapsedDays,
@@ -189,23 +246,16 @@ export async function getProfessionalRiderNaturalizationEligibility({
     requiredDays:
       progressResult.data?.required_days_override ??
       getBestNaturalizationRequiredDays({
-        teamRequiredDays: Math.ceil(
-          [84, 70, 56, 42, 28, 14][
-            Math.max(
-              0,
-              Math.min(5, Number(welcomeCenterResult.data?.level ?? 0)),
-            )
-          ] /
-            (1 +
-              Number(
-                welcomeCenterResult.data?.efficiency_bonus_percentage ?? 0,
-              ) /
-                100),
+        teamRequiredDays: applyNaturalizationDelayReduction(
+          welcomeCenterBaseDays,
+          5 * welcomeCenterSpecializationPower,
         ),
         federalIntegrationLevel: Number(
           federalIntegrationResult.data?.level ?? 0,
         ),
         baseDays: 84,
+        federalSpecializationCode,
+        naturalizationLevel: "professional",
       }),
   });
 }

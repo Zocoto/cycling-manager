@@ -497,12 +497,16 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
               value={
                 overview.staffNaturalization.limit > 0
                   ? `${overview.staffNaturalization.used}/${overview.staffNaturalization.limit} cette saison`
-                  : "Centre requis"
+                  : "Infrastructure requise"
               }
             />
           </div>
           <p className="mt-4 text-xs font-bold leading-5 text-[#60756E]">
-            Centre d’accueil international · niveau {overview.staffNaturalization.welcomeCenterLevel}/5 · {overview.staffNaturalization.remaining} naturalisation{overview.staffNaturalization.remaining > 1 ? "s" : ""} encore disponible{overview.staffNaturalization.remaining > 1 ? "s" : ""} vers {overview.staffNaturalization.targetCountryName}.
+            Centre d’accueil · niveau {overview.staffNaturalization.welcomeCenterLevel}/5
+            {overview.staffNaturalization.federalQuotaBonus > 0
+              ? ` · Passeport technique fédéral +${overview.staffNaturalization.federalQuotaBonus}`
+              : ""}
+            {" · "}{overview.staffNaturalization.remaining} naturalisation{overview.staffNaturalization.remaining > 1 ? "s" : ""} encore disponible{overview.staffNaturalization.remaining > 1 ? "s" : ""} vers {overview.staffNaturalization.targetCountryName}.
           </p>
         </article>
 
@@ -703,7 +707,7 @@ function StaffNaturalizationPanel({
   if (naturalization.limit === 0) {
     return (
       <p className="mt-4 rounded-2xl border border-[#315B3E]/12 bg-[#F6F8F6] px-4 py-3 text-xs font-bold leading-5 text-[#60756E]">
-        Construisez le Centre d’accueil international niveau 1 pour naturaliser un membre du staff par saison.
+        Construisez le Centre d’accueil international ou bénéficiez du Passeport technique de votre fédération pour naturaliser ce membre du staff.
       </p>
     );
   }
@@ -719,7 +723,7 @@ function StaffNaturalizationPanel({
   return member.contractId ? (
     <div className="mt-4 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-4">
       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#71580A]">
-        Centre d’accueil · {naturalization.remaining}/{naturalization.limit} disponible{naturalization.remaining > 1 ? "s" : ""}
+        Naturalisation · {naturalization.remaining}/{naturalization.limit} disponible{naturalization.remaining > 1 ? "s" : ""}
       </p>
       <p className="mt-2 text-xs font-semibold leading-5 text-[#7B6B37]">
         La naturalisation est immédiate et consomme une place du quota de la saison.

@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  applyNaturalizationDelayReduction,
   getBestNaturalizationRequiredDays,
+  getFederalIntegrationOfficeEffects,
   getFederationInfrastructureEffectPercentage,
   getFederationNaturalizationRequiredDays,
   getNationalPerformanceCenterSpecializationBonusPercentage,
@@ -38,14 +40,41 @@ describe("federation infrastructure effects", () => {
   it("retient le meilleur délai de naturalisation sans cumuler", () => {
     expect(
       getFederationNaturalizationRequiredDays({ level: 5, baseDays: 84 }),
-    ).toBe(68);
+    ).toBe(42);
     expect(
       getBestNaturalizationRequiredDays({
         teamRequiredDays: 56,
         federalIntegrationLevel: 5,
         baseDays: 84,
       }),
-    ).toBe(56);
+    ).toBe(42);
+  });
+
+  it("spécialise séparément les pros, les juniors et le staff", () => {
+    expect(
+      getFederationNaturalizationRequiredDays({
+        level: 3,
+        baseDays: 84,
+        specializationCode: "professional_path",
+        naturalizationLevel: "professional",
+      }),
+    ).toBe(55);
+    expect(
+      getFederalIntegrationOfficeEffects({
+        level: 4,
+        specializationCode: "youth_gateway",
+      }),
+    ).toMatchObject({
+      youthAdditionalReductionPercentage: 8,
+      foreignYouthTuitionReductionPercentage: 4,
+    });
+    expect(
+      getFederalIntegrationOfficeEffects({
+        level: 5,
+        specializationCode: "technical_passport",
+      }).staffNaturalizationSeasonBonus,
+    ).toBe(2);
+    expect(applyNaturalizationDelayReduction(14, 10)).toBe(13);
   });
 
   it("cible les trois orientations du Centre national selon leur niveau", () => {
