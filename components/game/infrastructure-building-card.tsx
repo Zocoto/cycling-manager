@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/actions";
+import { InfrastructureArchitectSelect } from "@/components/game/infrastructure-architect-select";
 import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
 import { InfrastructureSubmitButton } from "@/components/game/infrastructure-submit-button";
 import type {
@@ -149,43 +150,17 @@ export function InfrastructureBuildingCard({
               {nextLevel.effect}
             </p>
 
-            <label className="mt-4 block">
-              <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
-                Architecte (optionnel)
-              </span>
-              <select
-                name="architectContractId"
+            <div className="mt-4">
+              <InfrastructureArchitectSelect
+                id={`architect-${definition.code}`}
                 value={architectContractId}
-                onChange={(event) =>
-                  setArchitectContractId(event.target.value)
+                onValueChange={setArchitectContractId}
+                architects={constructionOptions.eligibleArchitects}
+                canStartWithoutArchitect={
+                  constructionOptions.canStartWithoutArchitect
                 }
-                className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
-              >
-                <option
-                  value=""
-                  disabled={!constructionOptions.canStartWithoutArchitect}
-                >
-                  {constructionOptions.canStartWithoutArchitect
-                    ? "Sans architecte"
-                    : "Choisir l’architecte « Double chantier »"}
-                </option>
-                {constructionOptions.eligibleArchitects.map((candidate) => (
-                  <option
-                    key={candidate.contractId}
-                    value={candidate.contractId}
-                  >
-                    {candidate.firstName} {candidate.lastName} · N
-                    {candidate.level} · {candidate.specialtyLabel}
-                    {candidate.hasParallelConstructionTalent
-                      ? " · Double chantier"
-                      : ""}
-                    {candidate.buildingEfficiencyBonusPercentage > 0
-                      ? ` · Bâtiment +${candidate.buildingEfficiencyBonusPercentage} %`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
 
             <div className="mt-4 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-4">
               <dl className="grid grid-cols-2 gap-3">

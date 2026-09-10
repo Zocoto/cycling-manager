@@ -2,18 +2,37 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { InfrastructureBuildingCard } from "./infrastructure-building-card";
-import { TEAM_INFRASTRUCTURE_DEFINITIONS } from "@/lib/game/infrastructure";
+import {
+  TEAM_INFRASTRUCTURE_DEFINITIONS,
+  getTeamInfrastructureCodesByStartingCost,
+} from "@/lib/game/infrastructure";
+import type { InfrastructureArchitect } from "@/services/team-infrastructures";
 
 const definition = TEAM_INFRASTRUCTURE_DEFINITIONS.training_center;
 const nextLevel = definition.levels[0];
+const architect: InfrastructureArchitect = {
+  contractId: "11111111-1111-4111-8111-111111111111",
+  firstName: "Louise",
+  lastName: "Martin",
+  level: 3,
+  specialty: "balanced",
+  specialtyLabel: "Équilibré",
+  hasParallelConstructionTalent: false,
+  buildingEfficiencyBonusPercentage: 0,
+  costReductionPercentage: 12,
+  durationReductionPercentage: 12,
+};
 
-function renderCard(balance = nextLevel.cost) {
+function renderCard(
+  balance = nextLevel.cost,
+  architects: InfrastructureArchitect[] = [],
+) {
   return renderToStaticMarkup(
     <InfrastructureBuildingCard
       definition={definition}
       currentLevel={0}
       nextLevel={nextLevel}
-      architects={[]}
+      architects={architects}
       activeProjects={[]}
       directorLevel={10}
       balance={balance}
@@ -43,6 +62,33 @@ describe("InfrastructureBuildingCard", () => {
 
     expect(markup).toContain("Tr\u00e9sorerie insuffisante.");
     expect(submitButton).toMatch(/\sdisabled(?:=""|(?=[\s>]))/);
+  });
+
+  it("offers the team architect on every standard building card", () => {
+    const standardCodes = getTeamInfrastructureCodesByStartingCost().filter(
+      (code) => code !== "recruitment_data_room" && code !== "staff_academy",
+    );
+
+    for (const code of standardCodes) {
+      const standardDefinition = TEAM_INFRASTRUCTURE_DEFINITIONS[code];
+      const standardNextLevel = standardDefinition.levels[0]!;
+      const markup = renderToStaticMarkup(
+        <InfrastructureBuildingCard
+          definition={standardDefinition}
+          currentLevel={0}
+          nextLevel={standardNextLevel}
+          architects={[architect]}
+          activeProjects={[]}
+          directorLevel={50}
+          balance={10_000_000}
+          currency="EUR"
+        />,
+      );
+
+      expect(markup, code).toContain(`data-architect-selector="architect-${code}"`);
+      expect(markup, code).toContain("Louise Martin");
+      expect(markup, code).toContain(`value="${architect.contractId}"`);
+    }
   });
 
   it("blocks a level 2 upgrade until the manager reaches level 20", () => {
