@@ -18,6 +18,11 @@ const ROLE_GUIDE_ENTRIES = [
     detail:
       "Cumule les deux comportements : protection pendant l’étape, puis priorité au train et au sprint final. Recommandé pour le meilleur sprinteur sur le plat.",
   },
+  {
+    label: "Coureur protégé",
+    detail:
+      "Conserve ses forces et ne se sacrifie pas pour le leader. Il reçoit une protection plus légère, sans bonus de leader ni priorité de sprinteur.",
+  },
 ] as const;
 
 export function RaceRoleGuide({ tone }: RaceRoleGuideProps) {

@@ -148,7 +148,8 @@ export function evolveBreakawayCooperation({
             ? 0.045
             : candidate.role === "leader" ||
                 candidate.role === "sprinter" ||
-                candidate.role === "leader_sprinter"
+                candidate.role === "leader_sprinter" ||
+                candidate.role === "protected_rider"
               ? -0.07
               : 0;
 

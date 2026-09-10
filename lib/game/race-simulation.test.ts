@@ -1222,6 +1222,163 @@ describe("simulateRaceStage", () => {
     ).toBeLessThan(resultByRiderId.get(protectedLeader.id)!.energyAfter);
   });
 
+  it("préserve un coureur protégé pendant que ses équipiers imposent le rythme", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 37);
+    const protectedTeamId = "protected-card-team";
+    const protectedCard = {
+      ...createSelectionTestRider("protected-card", {
+        hills: 72,
+        mountain: 69,
+        endurance: 72,
+        resistance: 72,
+      }),
+      teamId: protectedTeamId,
+      role: "protected_rider" as const,
+    };
+    const leader = {
+      ...createSelectionTestRider("protected-card-leader", {
+        hills: 73,
+        mountain: 70,
+        endurance: 73,
+        resistance: 73,
+      }),
+      teamId: protectedTeamId,
+      role: "leader" as const,
+    };
+    const helpers = Array.from({ length: 4 }, (_, index) => ({
+      ...createSelectionTestRider(`protected-card-helper-${index}`, {
+        hills: 71,
+        mountain: 68,
+        endurance: 72,
+        resistance: 72,
+      }),
+      teamId: protectedTeamId,
+      role: "domestique" as const,
+    }));
+    const rivals = Array.from({ length: 18 }, (_, index) => ({
+      ...createSelectionTestRider(`protected-card-rival-${index}`, {
+        hills: 68 + (index % 3),
+        mountain: 67 + (index % 3),
+        endurance: 70,
+        resistance: 70,
+      }),
+      role: "leader" as const,
+    }));
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 8 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 18,
+        terrain: index % 2 === 0 ? ("flat" as const) : ("climb" as const),
+        averageGradientPct: index % 2 === 0 ? 0 : 6.5,
+        surface: "asphalt" as const,
+        prime: null,
+      }),
+    );
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "protected-card-energy-test",
+      profileType: "hilly",
+      segments,
+      riders: [leader, protectedCard, ...helpers, ...rivals],
+      teamStrategies: [
+        {
+          teamId: protectedTeamId,
+          objective: "general_classification",
+          collectivePosture: "aggressive",
+          breakawayPolicy: "avoid",
+          chasePolicy: "protect_lead",
+          lieutenantRiderId: helpers[0].id,
+          dangerPacerRiderId: helpers[1].id,
+          protectorRiderId: helpers[2].id,
+          breakawayRiderId: null,
+          attackOrders: [],
+        },
+      ],
+    });
+    const resultByRiderId = new Map(
+      result.results.map((row) => [row.riderId, row]),
+    );
+
+    expect(result.resolvedRiders.find((rider) => rider.id === protectedCard.id))
+      .toMatchObject({ role: "protected_rider" });
+    expect(resultByRiderId.get(protectedCard.id)!.energyAfter).toBeGreaterThan(
+      Math.min(
+        ...helpers.map(
+          (helper) => resultByRiderId.get(helper.id)!.energyAfter,
+        ),
+      ),
+    );
+  });
+
+  it("réserve les missions tactiques aux équipiers non protégés", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 38);
+    const teamId = "protected-mission-team";
+    const protectedCard = {
+      ...createSelectionTestRider("protected-mission-card", {}),
+      teamId,
+      role: "protected_rider" as const,
+    };
+    const leader = {
+      ...createSelectionTestRider("protected-mission-leader", {}),
+      teamId,
+      role: "leader" as const,
+    };
+
+    expect(() =>
+      simulateRaceStage({
+        ...baseInput,
+        id: "protected-mission-validation-test",
+        riders: [leader, protectedCard],
+        teamStrategies: [
+          {
+            teamId,
+            objective: "stage_win",
+            collectivePosture: "balanced",
+            breakawayPolicy: "avoid",
+            chasePolicy: "dangerous_breakaway",
+            lieutenantRiderId: protectedCard.id,
+            dangerPacerRiderId: null,
+            protectorRiderId: null,
+            breakawayRiderId: null,
+            attackOrders: [],
+          },
+        ],
+      }),
+    ).toThrow("missions tactiques doivent être confiées à des équipiers");
+  });
+
+  it("évite les triplés artificiels sans brider une supériorité individuelle exceptionnelle", () => {
+    const getOpeningTeamStreak = (
+      simulation: ReturnType<typeof simulateRaceStage>,
+    ) => {
+      const teamIdByRiderId = new Map(
+        simulation.resolvedRiders.map((rider) => [rider.id, rider.teamId]),
+      );
+      const ranked = simulation.results
+        .filter((result) => result.rank !== null)
+        .sort((first, second) => first.rank! - second.rank!);
+      const leadingTeamId = teamIdByRiderId.get(ranked[0]!.riderId);
+      return ranked.findIndex(
+        (result) => teamIdByRiderId.get(result.riderId) !== leadingTeamId,
+      );
+    };
+
+    const balancedStreaks = Array.from({ length: 24 }, (_, index) =>
+      getOpeningTeamStreak(
+        simulateRaceStage(createCollectiveFinishInput(index + 1, false)),
+      ),
+    );
+    const exceptionalStreaks = Array.from({ length: 24 }, (_, index) =>
+      getOpeningTeamStreak(
+        simulateRaceStage(createCollectiveFinishInput(index + 101, true)),
+      ),
+    );
+
+    expect(Math.max(...balancedStreaks)).toBeLessThanOrEqual(2);
+    expect(exceptionalStreaks.some((streak) => streak >= 3)).toBe(true);
+  });
+
   it("fait attendre les protecteurs lorsqu’un leader est distancé", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const teamId = "leader-recovery-team";
@@ -2736,7 +2893,7 @@ describe("simulateRaceStage", () => {
     expect(injuredFinisher.injury?.recoveryHours).toBeGreaterThanOrEqual(72);
     expect(
       stage!.timeline.some((snapshot) =>
-        snapshot.commentary.some((line) => line.includes("repart diminué")),
+        snapshot.commentary.some((line) => line.includes("blessure")),
       ),
     ).toBe(true);
   });
@@ -3054,6 +3211,88 @@ function createBalancedMountainFavoritesInput(
   };
 }
 
+function createCollectiveFinishInput(
+  seed: number,
+  exceptionalTeam: boolean,
+): Parameters<typeof simulateRaceStage>[0] {
+  const teamCount = 5;
+  const ridersPerTeam = 6;
+  const riders = Array.from({ length: teamCount }, (_, teamIndex) =>
+    Array.from({ length: ridersPerTeam }, (_, riderIndex) => {
+      const isTargetTeam = teamIndex === 0;
+      const baseRating = isTargetTeam
+        ? exceptionalTeam
+          ? 98
+          : 72
+        : exceptionalTeam
+          ? 68
+          : 71;
+      const role =
+        riderIndex === 0
+          ? ("leader_sprinter" as const)
+          : riderIndex === 1
+            ? ("protected_rider" as const)
+            : ("domestique" as const);
+
+      return {
+        ...createSelectionTestRider(
+          `collective-${teamIndex}-${riderIndex}`,
+          {
+            flat: baseRating,
+            hills: baseRating - 4,
+            sprint: baseRating + (riderIndex === 0 ? 5 : 0),
+            acceleration: baseRating + (riderIndex <= 1 ? 3 : 0),
+            endurance: baseRating,
+            resistance: baseRating,
+            breakaway: 45,
+          },
+        ),
+        teamId: `collective-team-${teamIndex}`,
+        teamName: `Collective team ${teamIndex}`,
+        form: 78,
+        role,
+      };
+    }),
+  ).flat();
+  const segments: RaceStageSegment[] = Array.from(
+    { length: 8 },
+    (_, index) => ({
+      segmentNumber: index + 1,
+      distanceKm: 20,
+      terrain: "flat" as const,
+      averageGradientPct: 0,
+      surface: "asphalt" as const,
+      prime: null,
+    }),
+  );
+
+  return {
+    id: `collective-finish-${seed}-${
+      exceptionalTeam ? "exceptional" : "balanced"
+    }`,
+    name: "Arrivée collective contrôlée",
+    stageType: "road",
+    profileType: "flat",
+    raceCountryCode: "BE",
+    isStageRace: false,
+    seed,
+    riders,
+    segments,
+    teamStrategies: Array.from({ length: teamCount }, (_, teamIndex) => ({
+      teamId: `collective-team-${teamIndex}`,
+      objective: "stage_win" as const,
+      collectivePosture: "balanced" as const,
+      breakawayPolicy: "avoid" as const,
+      chasePolicy: "dangerous_breakaway" as const,
+      lieutenantRiderId: null,
+      dangerPacerRiderId: null,
+      protectorRiderId: null,
+      breakawayRiderId: null,
+      attackOrders: [],
+    })),
+  };
+}
+
 describe("assignAutomaticRaceRoles", () => {
   it("désigne le meilleur sprinteur comme leader / sprinteur sur le plat", () => {
     const input = createDemoSimulationInput("sprint-littoral", 1);
@@ -3158,5 +3397,18 @@ describe("assignAutomaticRaceRoles", () => {
         input.segments,
       ),
     ).toThrow("un seul sprinteur");
+  });
+
+  it("refuse deux coureurs protégés dans la même équipe", () => {
+    const input = createDemoSimulationInput("collines-ardennes", 1);
+    const teamRiders = input.riders.slice(0, 2).map((rider) => ({
+      ...rider,
+      teamId: "protected-role-team",
+      role: "protected_rider" as const,
+    }));
+
+    expect(() =>
+      assignAutomaticRaceRoles(teamRiders, input.segments),
+    ).toThrow("un seul coureur protégé");
   });
 });

@@ -13,6 +13,7 @@ import {
 import { isRosterSelectionValid } from "@/lib/game/race-calendar";
 import type { RiderClimateProfile } from "@/lib/game/race-weather";
 import {
+  isRaceProtectedRiderRole,
   isRaceSprinterRole,
   RACE_ROLES,
   RACE_ROLE_LABELS,
@@ -68,6 +69,9 @@ export function RaceRosterSelector({
   const uniqueRolesAreValid =
     selectedIds.filter(
       (riderId) => (roles[riderId] ?? "auto") === "leader",
+    ).length <= 1 &&
+    selectedIds.filter((riderId) =>
+      isRaceProtectedRiderRole(roles[riderId] ?? "auto"),
     ).length <= 1 &&
     selectedIds.filter((riderId) =>
       isRaceSprinterRole(roles[riderId] ?? "auto"),
@@ -263,6 +267,9 @@ export function RaceRosterSelector({
                               if (role === "leader") {
                                 return selectedRole === "leader";
                               }
+                              if (role === "protected_rider") {
+                                return selectedRole === "protected_rider";
+                              }
                               return (
                                 isRaceSprinterRole(role) &&
                                 isRaceSprinterRole(selectedRole)
@@ -369,6 +376,11 @@ function CriteriumRoleGuide({
       label: "Leader / sprinteur",
       detail:
         "Cumule la protection du leader et tous les avantages du sprinteur ; l’IA le choisit pour le meilleur sprinteur sur le plat.",
+    },
+    {
+      label: "Coureur protégé",
+      detail:
+        "Préserve ses chances sans travailler pour le leader. Il reçoit un abri plus léger et peut jouer sa propre carte dans le final.",
     },
     {
       label: "Poisson pilote",

@@ -32,6 +32,7 @@ import {
 } from "@/lib/game/rider-profile";
 import {
   isRaceLeaderRole,
+  isRaceProtectedRiderRole,
   isRaceSprinterRole,
   RACE_ROLES,
   RACE_ROLE_LABELS,
@@ -397,6 +398,7 @@ function StagePreparationForm({
     isPreparationAvailable;
   const hasUniqueRoles =
     Object.values(roles).filter((role) => role === "leader").length <= 1 &&
+    Object.values(roles).filter(isRaceProtectedRiderRole).length <= 1 &&
     Object.values(roles).filter(isRaceSprinterRole).length <= 1;
   const assignedMissionIds = Object.values(missions).filter(Boolean);
   const unavailableMissionIds = [
@@ -404,7 +406,11 @@ function StagePreparationForm({
     ...riders
       .filter((rider) => {
         const role = roles[rider.riderId];
-        return isRaceLeaderRole(role) || isRaceSprinterRole(role);
+        return (
+          isRaceLeaderRole(role) ||
+          isRaceSprinterRole(role) ||
+          isRaceProtectedRiderRole(role)
+        );
       })
       .map((rider) => rider.riderId),
   ];
@@ -554,6 +560,9 @@ function StagePreparationForm({
                           if (!selectedRole) return false;
                           if (candidateRole === "leader") {
                             return selectedRole === "leader";
+                          }
+                          if (candidateRole === "protected_rider") {
+                            return selectedRole === "protected_rider";
                           }
                           return (
                             isRaceSprinterRole(candidateRole) &&

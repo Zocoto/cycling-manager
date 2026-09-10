@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-targeted-fan-support-v22";
+  "2026.09-collective-sacrifice-v23";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

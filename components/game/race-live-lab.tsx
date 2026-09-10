@@ -1790,6 +1790,7 @@ function getVisibleRiderIds({
   const rolePriority: Record<RiderSimulationInput["role"], number> = {
     leader_sprinter: 6,
     leader: 5,
+    protected_rider: 4,
     sprinter: 4,
     free_agent: 3,
     mountain_classification: 3,
