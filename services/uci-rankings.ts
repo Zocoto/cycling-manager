@@ -10,6 +10,7 @@ import {
   type AmateurJerseyConfig,
 } from "@/lib/amateur-team";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
 import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
 import {
@@ -176,23 +177,35 @@ async function loadUciRankings(): Promise<UciRankings | null> {
           .eq("status", "active")
           .returns<AssignmentRow[]>()
       : Promise.resolve({ data: [] as AssignmentRow[], error: null }),
-    riderIds.length
-      ? supabase
+    collectChunkedPaginatedRows<RiderRow, { message: string }, string>({
+      values: riderIds,
+      fetchPage: async (riderIdChunk, from, to) => {
+        const result = await supabase
           .from("riders")
           .select(
             "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed"
           )
-          .in("id", riderIds)
-          .returns<RiderRow[]>()
-      : Promise.resolve({ data: [] as RiderRow[], error: null }),
-    riderIds.length
-      ? supabase
+          .in("id", riderIdChunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RiderRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<ContractRow, { message: string }, string>({
+      values: riderIds,
+      fetchPage: async (riderIdChunk, from, to) => {
+        const result = await supabase
           .from("rider_contracts")
           .select("rider_id, team_id")
-          .in("rider_id", riderIds)
+          .in("rider_id", riderIdChunk)
           .eq("status", "active")
-          .returns<ContractRow[]>()
-      : Promise.resolve({ data: [] as ContractRow[], error: null }),
+          .order("rider_id", { ascending: true })
+          .range(from, to)
+          .returns<ContractRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
     divisionIds.length
       ? supabase
           .from("divisions")
@@ -219,14 +232,20 @@ async function loadUciRankings(): Promise<UciRankings | null> {
           .order("created_at", { ascending: false })
           .returns<SponsorContractRow[]>()
       : Promise.resolve({ data: [] as SponsorContractRow[], error: null }),
-    riderIds.length
-      ? supabase
+    collectChunkedPaginatedRows<RiderAgeRow, { message: string }, string>({
+      values: riderIds,
+      fetchPage: async (riderIdChunk, from, to) => {
+        const result = await supabase
           .from("rider_season_ratings")
           .select("rider_id, age")
           .eq("season_id", season.id)
-          .in("rider_id", riderIds)
-          .returns<RiderAgeRow[]>()
-      : Promise.resolve({ data: [] as RiderAgeRow[], error: null }),
+          .in("rider_id", riderIdChunk)
+          .order("rider_id", { ascending: true })
+          .range(from, to)
+          .returns<RiderAgeRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
   ]);
 
   assertQuery(assignmentsResult.error, "les Directeurs Sportifs classés");
