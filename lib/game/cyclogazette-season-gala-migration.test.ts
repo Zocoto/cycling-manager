@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const resilienceMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260910203000_ignore_terminal_editions_in_cyclogazette_gala.sql",
+  ),
+  "utf8",
+);
 
 describe("Cyclogazette S2 gala migration", () => {
   it("waits for every race and stage before freezing all five awards", () => {
@@ -21,6 +28,15 @@ describe("Cyclogazette S2 gala migration", () => {
       "pending_edition.status not in (''completed'', ''cancelled'')",
     );
     expect(migration).toContain("'ready', v_award_count = 5");
+  });
+
+  it("does not let stale child stages block an already terminal edition", () => {
+    expect(resilienceMigration).toContain(
+      "edition.status not in ('completed', 'cancelled')",
+    );
+    expect(resilienceMigration).toContain(
+      "stage.status not in ('completed', 'cancelled')",
+    );
   });
 
   it("stores one attempt and credits the team atomically", () => {

@@ -84,6 +84,7 @@ export async function GET(
     targetedEditions: settlement.targetedEditions,
     eligibleEditions: settlement.eligibleEditions,
     deferredEditions: settlement.deferredEditions,
+    cancelledUnviableEditions: settlement.cancelledUnviableEditions,
     skippedUnviableEditions: settlement.skippedUnviableEditions,
     pack: settlement.pack,
     packCount: settlement.packCount,

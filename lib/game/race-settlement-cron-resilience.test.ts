@@ -82,6 +82,11 @@ describe("race settlement cron resilience", () => {
     expect(runner).toContain("includeEngagedRiders: false");
     expect(runner).toContain("isRaceEditionSettlementCandidate");
     expect(runner).toContain("hasMinimumRaceEditionField");
+    expect(runner).toContain("cancelUnviableRaceEditions");
+    expect(runner).toContain('update({ status: "cancelled" })');
+    expect(runner).toContain('from("stages")');
+    expect(runner).toContain('from("race_editions")');
+    expect(route).toContain("cancelledUnviableEditions");
     expect(runner.indexOf("hasMinimumRaceEditionField(edition)")).toBeLessThan(
       runner.indexOf("selectRaceJobPack({"),
     );

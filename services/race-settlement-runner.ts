@@ -44,6 +44,7 @@ export async function settleDueStandardRaceResults({
       targetedEditions: 0,
       eligibleEditions: 0,
       deferredEditions: 0,
+      cancelledUnviableEditions: 0,
       skippedUnviableEditions: 0,
       pack: raceSlug ? 1 : packIndex + 1,
       packCount: raceSlug ? 1 : packCount,
@@ -69,6 +70,15 @@ export async function settleDueStandardRaceResults({
           now,
         ),
     );
+  const unviableCandidateEditions = temporalCandidateEditions.filter(
+    (edition) =>
+      !repairableCompletedEditionIds.has(edition.id) &&
+      !hasMinimumRaceEditionField(edition),
+  );
+  const cancelledUnviableEditions = await cancelUnviableRaceEditions({
+    admin,
+    editions: unviableCandidateEditions,
+  });
   const candidateEditions = temporalCandidateEditions.filter(
     (edition) =>
       repairableCompletedEditionIds.has(edition.id) ||
@@ -127,7 +137,7 @@ export async function settleDueStandardRaceResults({
       });
   const targetEditionIds = jobPack.items.map((edition) => edition.id);
   const skippedUnviableEditions =
-    temporalCandidateEditions.length - candidateEditions.length;
+    unviableCandidateEditions.length - cancelledUnviableEditions;
 
   if (targetEditionIds.length === 0) {
     return {
@@ -135,6 +145,7 @@ export async function settleDueStandardRaceResults({
       targetedEditions: 0,
       eligibleEditions: jobPack.eligibleItems,
       deferredEditions: jobPack.deferredItems,
+      cancelledUnviableEditions,
       skippedUnviableEditions,
       pack: raceSlug ? 1 : packIndex + 1,
       packCount: raceSlug ? 1 : packCount,
@@ -167,6 +178,7 @@ export async function settleDueStandardRaceResults({
       targetedEditions: 0,
       eligibleEditions: jobPack.eligibleItems,
       deferredEditions: jobPack.deferredItems,
+      cancelledUnviableEditions,
       skippedUnviableEditions,
       pack: raceSlug ? 1 : packIndex + 1,
       packCount: raceSlug ? 1 : packCount,
@@ -196,11 +208,73 @@ export async function settleDueStandardRaceResults({
     targetedEditions: claimedEditionIds.length,
     eligibleEditions: jobPack.eligibleItems,
     deferredEditions: jobPack.deferredItems,
+    cancelledUnviableEditions,
     skippedUnviableEditions,
     pack: raceSlug ? 1 : packIndex + 1,
     packCount: raceSlug ? 1 : packCount,
     ...settlement,
   };
+}
+
+async function cancelUnviableRaceEditions({
+  admin,
+  editions,
+}: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
+  editions: NonNullable<
+    Awaited<ReturnType<typeof getActiveSeasonRaceCalendar>>
+  >["editions"];
+}) {
+  if (editions.length === 0) return 0;
+
+  const editionIds = editions.map((edition) => edition.id);
+  const unfinishedStageIds = editions.flatMap((edition) =>
+    edition.stages
+      .filter(
+        (stage) =>
+          stage.status !== "completed" && stage.status !== "cancelled",
+      )
+      .map((stage) => stage.id),
+  );
+
+  if (unfinishedStageIds.length > 0) {
+    const stageUpdate = await admin
+      .from("stages")
+      .update({ status: "cancelled" })
+      .in("id", unfinishedStageIds)
+      .in("status", ["planned", "in_progress"]);
+    if (stageUpdate.error) {
+      throw new Error(
+        `Impossible d’annuler les étapes sans partants : ${stageUpdate.error.message}`,
+      );
+    }
+  }
+
+  const editionUpdate = await admin
+    .from("race_editions")
+    .update({ status: "cancelled" })
+    .in("id", editionIds)
+    .in("status", [
+      "planned",
+      "registration_open",
+      "registration_closed",
+      "in_progress",
+    ])
+    .select("id")
+    .returns<Array<{ id: string }>>();
+  if (editionUpdate.error) {
+    throw new Error(
+      `Impossible d’annuler les courses sans partants : ${editionUpdate.error.message}`,
+    );
+  }
+
+  const cancelledEditionIds = (editionUpdate.data ?? []).map((row) => row.id);
+  if (cancelledEditionIds.length > 0) {
+    console.info("unviable_race_editions_cancelled", {
+      editionIds: cancelledEditionIds,
+    });
+  }
+  return cancelledEditionIds.length;
 }
 
 function getEditionQueueTimestamp(
