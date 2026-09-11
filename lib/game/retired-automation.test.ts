@@ -24,25 +24,26 @@ describe("retired alpha automations", () => {
     expect(migration).toContain("revoke execute on function public.complete_alpha_bot_cycle");
   });
 
-  it("keeps the historical retirement explicit before the later scoped restart", () => {
+  it("removes the one-shot runtime and both recurring schedules", () => {
     const vercelConfig = readFileSync(path.join(root, "vercel.json"), "utf8");
-    const restartMigration = readFileSync(
+    const stopMigration = readFileSync(
       path.join(
         root,
         "supabase",
         "migrations",
-        "20260911100000_activate_managed_teams_for_s3_first_half.sql",
+        "20260911113000_finish_managed_team_one_shot.sql",
       ),
       "utf8",
     );
 
     expect(
       existsSync(path.join(root, "app", "api", "cron", "alpha-bots", "[slot]", "route.ts")),
-    ).toBe(true);
-    expect(vercelConfig).toContain("/api/cron/alpha-bots/morning");
-    expect(vercelConfig).toContain("/api/cron/alpha-bots/evening");
-    expect(restartMigration).toContain("automation_end_day_number = 14");
-    expect(restartMigration).toContain("season.game_year = 3");
+    ).toBe(false);
+    expect(vercelConfig).not.toContain("/api/cron/alpha-bots/");
+    expect(stopMigration).toContain("enabled = false");
+    expect(stopMigration).toContain("automation_season_id = null");
+    expect(stopMigration).toContain("delete from public.alpha_bot_managers");
+    expect(stopMigration).toContain("from service_role");
   });
 
   it("removes player tracking from the application and revokes its RPCs", () => {
