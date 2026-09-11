@@ -77,7 +77,7 @@ describe("consolidateFederationCalendarEditions", () => {
     });
   });
 
-  it("regroupe les dix CC pros sans absorber les championnats juniors", () => {
+  it("regroupe les CC pros et juniors dans une seule entrée internationale", () => {
     const professionalEditions = Array.from({ length: 10 }, (_, index) => {
       const edition = createEdition(
         `continental-${index + 1}`,
@@ -97,19 +97,19 @@ describe("consolidateFederationCalendarEditions", () => {
       juniorEdition,
     ]);
 
-    expect(consolidated).toHaveLength(2);
+    expect(consolidated).toHaveLength(1);
     expect(consolidated[0]).toMatchObject({
       name: "Championnats continentaux",
       countryName: "International",
       countryCode: "UN",
+      isJuniorChampionship: false,
       calendarHref:
         "/jeu/championnats-internationaux#championnats-continentaux",
       calendarGroup: {
         kind: "continental_championships",
-        editionCount: 10,
+        editionCount: 11,
       },
     });
-    expect(consolidated[1]).toBe(juniorEdition);
   });
 });
 

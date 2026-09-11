@@ -72,6 +72,7 @@ describe("federation junior championship registrations", () => {
       "ensure_automatic_federation_junior_lineups",
     );
     expect(raceCalendar).toContain('"nations_cup_junior"');
+    expect(raceCalendar).toContain('? "nations_cup"');
   });
 
   it("merges federation riders into the official deterministic result", () => {

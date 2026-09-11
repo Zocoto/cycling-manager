@@ -1808,9 +1808,11 @@ async function loadJuniorChampionshipCalendarEditions(
           : "Continental junior",
       prestigeRank: isWorld ? 2 : 3,
       raceFormat: edition.race_format,
-      competitionType: isWorld
-        ? "world_championship"
-        : "continental_championship",
+      competitionType: isNationsCup
+        ? "nations_cup"
+        : isWorld
+          ? "world_championship"
+          : "continental_championship",
       isJuniorChampionship: true,
       calendarHref: `/jeu/resultats-juniors/${encodeURIComponent(edition.slug)}`,
       registrationClosesAt: null,

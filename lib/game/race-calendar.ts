@@ -84,9 +84,15 @@ export function isInternationalChampionshipEdition(
 }
 
 export function isProfessionalNationsCupEdition(
-  edition: Pick<RaceCalendarEdition, "competitionType">,
+  edition: Pick<
+    RaceCalendarEdition,
+    "competitionType" | "isJuniorChampionship"
+  >,
 ): boolean {
-  return edition.competitionType === "nations_cup";
+  return (
+    edition.competitionType === "nations_cup" &&
+    edition.isJuniorChampionship !== true
+  );
 }
 
 export function isFederationSelectionEdition(
@@ -94,7 +100,7 @@ export function isFederationSelectionEdition(
 ): boolean {
   return (
     isInternationalChampionshipEdition(edition) ||
-    isProfessionalNationsCupEdition(edition)
+    edition.competitionType === "nations_cup"
   );
 }
 
@@ -201,11 +207,10 @@ const FEDERATION_CALENDAR_GROUPS: FederationCalendarGroupConfiguration[] = [
     name: "Championnats continentaux",
     shortName: "CC",
     href: "/jeu/championnats-internationaux#championnats-continentaux",
-    profileLabel: "Route & CLM · 5 continents",
-    locationLabel: "International",
+    profileLabel: "Route & CLM · 5 continents · Pros & juniors",
+    locationLabel: "Pros & juniors",
     matches: (edition) =>
-      edition.competitionType === "continental_championship" &&
-      edition.isJuniorChampionship !== true,
+      edition.competitionType === "continental_championship",
   },
   {
     kind: "nations_cup",
@@ -301,6 +306,7 @@ function createFederationCalendarGroup(
         : "planned",
     raceFormat: "one_day",
     calendarHref: configuration.href,
+    isJuniorChampionship: false,
     calendarGroup: {
       kind: configuration.kind,
       editionCount: sourceEditions.length,

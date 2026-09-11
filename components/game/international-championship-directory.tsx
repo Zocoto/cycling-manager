@@ -196,6 +196,7 @@ function InternationalChampionshipCard({
   edition: RaceCalendarEdition;
 }) {
   const isWorld = edition.competitionType === "world_championship";
+  const isJunior = edition.isJuniorChampionship === true;
 
   return (
     <article
@@ -213,7 +214,13 @@ function InternationalChampionshipCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-[#0B302B] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white">
-                {isWorld ? "CM" : "CC"}
+                {isWorld
+                  ? isJunior
+                    ? "CM junior"
+                    : "CM"
+                  : isJunior
+                    ? "CC junior"
+                    : "CC"}
               </span>
               <span className="rounded-full bg-[#EEF5F1] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#315B3E]">
                 {formatEditionSchedule(edition)}
@@ -264,20 +271,32 @@ function InternationalChampionshipCard({
           ))}
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {isJunior ? (
           <Link
-            href={getInternationalChampionshipDetailsHref(edition.slug)}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-xs font-black uppercase tracking-[0.1em] text-[#176951] transition hover:bg-[#EEF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+            href={
+              edition.calendarHref ??
+              `/jeu/resultats-juniors/${encodeURIComponent(edition.slug)}`
+            }
+            className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
           >
-            Voir les détails
+            Voir les résultats juniors
           </Link>
-          <Link
-            href={getInternationalChampionshipStartlistHref(edition.slug)}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-          >
-            Voir la startlist
-          </Link>
-        </div>
+        ) : (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <Link
+              href={getInternationalChampionshipDetailsHref(edition.slug)}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-xs font-black uppercase tracking-[0.1em] text-[#176951] transition hover:bg-[#EEF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+            >
+              Voir les détails
+            </Link>
+            <Link
+              href={getInternationalChampionshipStartlistHref(edition.slug)}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+            >
+              Voir la startlist
+            </Link>
+          </div>
+        )}
       </div>
     </article>
   );

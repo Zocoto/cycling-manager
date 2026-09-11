@@ -31,6 +31,7 @@ export default async function InternationalChampionshipsPage() {
       includeEngagedRiders: false,
       includeEngagedCounts: true,
       includeIneligibleRegionalRaces: true,
+      includeJuniorChampionships: true,
     }),
   ]);
 

@@ -323,7 +323,7 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("Ouvrir les 5 épreuves");
   });
 
-  it("affiche une seule entrée pour les dix championnats continentaux pros", () => {
+  it("affiche une seule entrée pour les championnats continentaux pros et juniors", () => {
     const continentalEditions = Array.from({ length: 10 }, (_, index) => {
       const edition = createEdition({
         id: `continental-${index + 1}`,
@@ -339,9 +339,33 @@ describe("SeasonCalendar", () => {
       edition.registrationPolicy = "closed";
       return edition;
     });
+    const juniorContinentalEditions = Array.from(
+      { length: 10 },
+      (_, index) => {
+        const edition = createEdition({
+          id: `continental-junior-${index + 1}`,
+          name: `CC junior ${index + 1}`,
+          categoryCode: "continental",
+          countryCode: index % 2 === 0 ? "MA" : "CA",
+          dayNumber: 15,
+          daySlot: index % 2 === 0 ? "early" : "late",
+          registrationClosesAt: "2026-08-14T12:00:00Z",
+          accepted: false,
+          competitionType: "continental_championship",
+        });
+        edition.isJuniorChampionship = true;
+        edition.calendarHref = `/jeu/resultats-juniors/${edition.slug}`;
+        edition.registrationPolicy = "closed";
+        return edition;
+      },
+    );
+    const allContinentalEditions = [
+      ...continentalEditions,
+      ...juniorContinentalEditions,
+    ];
 
     const visibleEditions = getVisibleCalendarRaceEditions({
-      editions: continentalEditions,
+      editions: allContinentalEditions,
       currentDayNumber: 10,
       showPast: false,
     });
@@ -351,7 +375,7 @@ describe("SeasonCalendar", () => {
       name: "Championnats continentaux",
       calendarGroup: {
         kind: "continental_championships",
-        editionCount: 10,
+        editionCount: 20,
       },
     });
 
@@ -382,7 +406,7 @@ describe("SeasonCalendar", () => {
               href: "/jeu/selections-internationales",
             },
           ],
-          editions: continentalEditions,
+          editions: allContinentalEditions,
         }}
         reputationPoints={0}
         nowIso="2026-08-10T08:00:00Z"
@@ -390,8 +414,9 @@ describe("SeasonCalendar", () => {
     );
 
     expect(markup).toContain("Championnats continentaux");
-    expect(markup).toContain("10 épreuves");
+    expect(markup).toContain("20 épreuves");
     expect(markup).not.toContain("CC 1");
+    expect(markup).not.toContain("CC junior 1");
     expect(markup).not.toContain("Ancien repère CC");
     expect(markup).toContain(
       'href="/jeu/championnats-internationaux#championnats-continentaux"',

@@ -65,6 +65,8 @@ describe("annuaire des championnats internationaux", () => {
     expect(directorySource).toContain("Voir la startlist");
     expect(directorySource).toContain('role="tablist"');
     expect(directorySource).toContain('"championnats-continentaux"');
+    expect(directorySource).toContain("Voir les résultats juniors");
+    expect(pageSource).toContain("includeJuniorChampionships: true");
     expect(pageSource).toContain("Voir mes convocations");
   });
 
