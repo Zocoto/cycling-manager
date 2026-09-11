@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
+import { repairCurrentConsumableRollover } from "@/services/season-rollover-consumables";
 
 export const maxDuration = 300;
 
@@ -45,6 +46,31 @@ export async function GET(request: Request) {
     results.push(taskResult);
     const log = taskResult.ok ? console.info : console.error;
     log("game_maintenance_fallback_task", taskResult);
+
+    if (task === "settle_due_season_rollovers" && taskResult.ok) {
+      const startedAt = Date.now();
+      try {
+        const repair = await repairCurrentConsumableRollover(admin);
+        const repairResult = {
+          task: "repair_consumable_rollovers",
+          ok: true,
+          error: null,
+          durationMs: Date.now() - startedAt,
+          repair,
+        };
+        results.push(repairResult);
+        console.info("game_maintenance_consumable_rollover_repair", repairResult);
+      } catch (error) {
+        const repairResult = {
+          task: "repair_consumable_rollovers",
+          ok: false,
+          error: error instanceof Error ? error.message : "Erreur inconnue",
+          durationMs: Date.now() - startedAt,
+        };
+        results.push(repairResult);
+        console.error("game_maintenance_consumable_rollover_repair", repairResult);
+      }
+    }
   }
   const failedTasks = results.filter((result) => !result.ok);
 
