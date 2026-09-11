@@ -15,6 +15,7 @@ import {
   type AlphaBotProfile,
   type AlphaBotSlot,
 } from "@/lib/game/alpha-bots";
+import { getPhysiotherapistRiderCapacity } from "@/lib/game/staff";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
@@ -502,7 +503,20 @@ async function manageHealth(context: ActionContext) {
       (left, right) =>
         right.fatigue - left.fatigue || left.form - right.form,
     )
-    .slice(0, Math.min(5, overview.riders.length))
+    .slice(
+      0,
+      Math.min(
+        getPhysiotherapistRiderCapacity(physiotherapist.level) +
+          (physiotherapist.talents.some(
+            (talent) => talent.code === "physio_rider_capacity",
+          )
+            ? physiotherapist.level >= 4
+              ? 2
+              : 1
+            : 0),
+        overview.riders.length,
+      ),
+    )
     .map((rider) => rider.id);
   const current = [...physiotherapist.assignedRiderIds].sort().join(",");
   const desired = [...protectedRiders].sort().join(",");
@@ -578,7 +592,7 @@ async function manageRaceRegistration(context: ActionContext) {
 }
 
 async function manageFormCamp(context: ActionContext) {
-  if (context.slot !== "morning" || context.currentDayNumber >= 14) {
+  if (context.currentDayNumber >= 14) {
     return null;
   }
   const overview = await getCurrentTeamHealthOverview(context.authUserId);
@@ -593,18 +607,21 @@ async function manageFormCamp(context: ActionContext) {
   const candidates = [...overview.riders]
     .filter((rider) => !rider.injury && !rider.formCamp && rider.form < 70)
     .sort((left, right) => left.form - right.form);
-  const startDay = context.currentDayNumber + 1;
-  const endDay = Math.min(startDay + 1, 14);
-
-  for (const rider of candidates) {
-    const result = await context.client.rpc("book_current_team_form_camps", {
-      p_rider_ids: [rider.id],
-      p_camp_type: "classic",
-      p_start_day_number: startDay,
-      p_end_day_number: endDay,
-    });
-    if (!result.error) {
-      return `Stage classique programmé pour ${rider.firstName} ${rider.lastName}, J${startDay}–J${endDay}.`;
+  for (
+    let startDay = context.currentDayNumber + 1;
+    startDay <= 14;
+    startDay += 1
+  ) {
+    for (const rider of candidates) {
+      const result = await context.client.rpc("book_current_team_form_camps", {
+        p_rider_ids: [rider.id],
+        p_camp_type: "classic",
+        p_start_day_number: startDay,
+        p_end_day_number: startDay,
+      });
+      if (!result.error) {
+        return `Stage classique programmé pour ${rider.firstName} ${rider.lastName} en J${startDay}.`;
+      }
     }
   }
   return null;
