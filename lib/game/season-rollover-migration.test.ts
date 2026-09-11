@@ -18,6 +18,13 @@ const vercelConfig = readFileSync(
   resolve(process.cwd(), "vercel.json"),
   "utf8",
 );
+const timeoutRecoveryMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260911073000_raise_season_rollover_timeout_and_settle_s3.sql",
+  ),
+  "utf8",
+).replaceAll("\r\n", "\n");
 
 describe("atomic season rollover", () => {
   it("is locked, audited, idempotent, and service-role only", () => {
@@ -78,5 +85,24 @@ describe("atomic season rollover", () => {
     expect(maintenanceRoute).not.toContain("settle_due_staff_academy_trainings");
     expect(maintenanceRoute).not.toContain("settle_due_training_sessions");
     expect(vercelConfig).toContain('"schedule": "5 23 * * *"');
+  });
+
+  it("gives only the rollover a longer API budget and recovers S3 atomically", () => {
+    expect(timeoutRecoveryMigration).toContain(
+      "and rider.status not in (''retired'', ''suspended'')",
+    );
+    expect(timeoutRecoveryMigration).toContain("v_occurrences <> 1");
+    expect(timeoutRecoveryMigration).toContain(
+      "alter function public.rollover_game_season(uuid, boolean)\n  set statement_timeout = '60s'",
+    );
+    expect(timeoutRecoveryMigration).toContain(
+      "alter function public.settle_due_season_rollovers()\n  set statement_timeout = '60s'",
+    );
+    expect(timeoutRecoveryMigration).toContain("set local statement_timeout = '5min'");
+    expect(timeoutRecoveryMigration).toContain(
+      "select public.settle_due_season_rollovers()",
+    );
+    expect(timeoutRecoveryMigration).not.toContain("alter role ");
+    expect(timeoutRecoveryMigration).not.toContain("alter database ");
   });
 });
