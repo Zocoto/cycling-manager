@@ -1460,7 +1460,9 @@ export async function getActiveSeasonRaceCalendar(
               raceById.get(edition.race_id)?.competition_type ===
                 "world_championship" ||
               raceById.get(edition.race_id)?.competition_type ===
-                "continental_championship",
+                "continental_championship" ||
+              raceById.get(edition.race_id)?.competition_type ===
+                "nations_cup",
           )
           .map((edition) => edition.id)
       : [],

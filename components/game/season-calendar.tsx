@@ -17,7 +17,9 @@ import {
   getEditionDayRange,
   getGrandTourCalendarAccent,
   getRegistrationAvailability,
+  isFederationSelectionEdition,
   isInternationalChampionshipEdition,
+  isProfessionalNationsCupEdition,
   isRaceEditionAvailableToCurrentTeam,
   isRaceEditionPast,
   isRaceRegistrationClosed,
@@ -78,7 +80,7 @@ export function SeasonCalendar({
             });
 
             return (
-              isInternationalChampionshipEdition(edition) ||
+              isFederationSelectionEdition(edition) ||
               (showPast && isPast) ||
               isRaceEditionAvailableToCurrentTeam({
                 edition,
@@ -111,7 +113,7 @@ export function SeasonCalendar({
       calendar.editions.filter(
         (edition) =>
           (edition.competitionType === "standard" ||
-            isInternationalChampionshipEdition(edition)) &&
+            isFederationSelectionEdition(edition)) &&
           isRaceEditionPast({
             edition,
             currentDayNumber: calendar.currentDayNumber,
@@ -591,13 +593,17 @@ function RaceCalendarList({
           const isPast = range.endDay < currentDayNumber;
           const isInternationalChampionship =
             isInternationalChampionshipEdition(edition);
+          const isProfessionalNationsCup =
+            isProfessionalNationsCupEdition(edition);
+          const isFederationSelection =
+            isFederationSelectionEdition(edition);
           const registrationClosed =
-            !isInternationalChampionship && isRaceRegistrationClosed({
+            !isFederationSelection && isRaceRegistrationClosed({
               edition,
               currentDayNumber,
               now: new Date(nowIso),
             });
-          const status = isInternationalChampionship
+          const status = isFederationSelection
             ? {
                 label: `${edition.engagedRiderCount} sélectionné${edition.engagedRiderCount > 1 ? "s" : ""}`,
                 tone: "success" as const,
@@ -620,6 +626,9 @@ function RaceCalendarList({
               data-grand-tour-accent={grandTourAccent?.key}
               data-international-championship={
                 isInternationalChampionship ? "true" : undefined
+              }
+              data-federation-selection={
+                isFederationSelection ? "true" : undefined
               }
               title={
                 registrationClosed
@@ -681,7 +690,7 @@ function RaceCalendarList({
                   {edition.engagedRiderCount} engagé{edition.engagedRiderCount > 1 ? "s" : ""}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-[#789087]">
-                  {edition.isJuniorChampionship
+                  {isFederationSelection
                     ? `${edition.minimumRosterSize}–${edition.maximumRosterSize} par nation`
                     : `${edition.minimumRosterSize}–${edition.maximumRosterSize} par équipe`}
                 </p>
@@ -695,6 +704,8 @@ function RaceCalendarList({
               >
                 {edition.isJuniorChampionship
                   ? "Résultats juniors"
+                  : isProfessionalNationsCup
+                    ? "Voir la Nations Cup"
                   : isInternationalChampionship
                   ? "Voir les CC & CM"
                   : registration?.status === "accepted"
@@ -834,7 +845,7 @@ export function getVisibleCalendarRaceEditions({
   return editions.filter(
     (edition) =>
       (edition.competitionType === "standard" ||
-        isInternationalChampionshipEdition(edition)) &&
+        isFederationSelectionEdition(edition)) &&
       (showPast || !isRaceEditionPast({ edition, currentDayNumber })),
   );
 }
@@ -845,6 +856,10 @@ export function getCalendarEditionHref(
 ) {
   if (edition.calendarHref) {
     return edition.calendarHref;
+  }
+
+  if (isProfessionalNationsCupEdition(edition)) {
+    return "/jeu/nations-cup";
   }
 
   if (isInternationalChampionshipEdition(edition)) {
@@ -1008,8 +1023,10 @@ function DesktopCalendarWeek({
                   : null;
               const isInternationalChampionship =
                 isInternationalChampionshipEdition(segment.edition);
+              const isFederationSelection =
+                isFederationSelectionEdition(segment.edition);
               const registrationClosed =
-                !isInternationalChampionship && isRaceRegistrationClosed({
+                !isFederationSelection && isRaceRegistrationClosed({
                   edition: segment.edition,
                   currentDayNumber,
                   now: new Date(nowIso),
@@ -1035,6 +1052,9 @@ function DesktopCalendarWeek({
                   data-grand-tour-accent={grandTourAccent?.key}
                   data-international-championship={
                     isInternationalChampionship ? "true" : undefined
+                  }
+                  data-federation-selection={
+                    isFederationSelection ? "true" : undefined
                   }
                   title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
                   className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
@@ -1176,7 +1196,7 @@ function DesktopCalendarWeek({
                         {hiddenSegments.map((segment) => {
                           const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
                           const registrationClosed =
-                            !isInternationalChampionshipEdition(
+                            !isFederationSelectionEdition(
                               segment.edition,
                             ) && isRaceRegistrationClosed({
                               edition:
@@ -1312,8 +1332,10 @@ function MobileCalendarDay({
               .daySlot !== stage.daySlot;
           const isInternationalChampionship =
             isInternationalChampionshipEdition(edition);
+          const isFederationSelection =
+            isFederationSelectionEdition(edition);
           const registrationClosed =
-            !isInternationalChampionship && isRaceRegistrationClosed({
+            !isFederationSelection && isRaceRegistrationClosed({
               edition,
               currentDayNumber,
               now: new Date(nowIso),
@@ -1346,6 +1368,9 @@ function MobileCalendarDay({
               data-grand-tour-accent={grandTourAccent?.key}
               data-international-championship={
                 isInternationalChampionship ? "true" : undefined
+              }
+              data-federation-selection={
+                isFederationSelection ? "true" : undefined
               }
               title={
                 registrationClosed
@@ -1432,6 +1457,7 @@ function MobileCalendarDay({
 
 function getCalendarEditionActionLabel(edition: RaceCalendarEdition) {
   if (edition.isJuniorChampionship) return "Résultats juniors";
+  if (isProfessionalNationsCupEdition(edition)) return "Voir la Nations Cup";
   if (isInternationalChampionshipEdition(edition)) return "Voir les CC & CM";
   return "Ouvrir la course";
 }

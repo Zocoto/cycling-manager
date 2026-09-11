@@ -245,6 +245,80 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("Voir les CC &amp; CM");
   });
 
+  it("affiche les cinq épreuves professionnelles de Nations Cup dans le calendrier", () => {
+    const nationsCupEditions = [
+      ["nations-cup-montagne", "Nations Cup · Montagne"],
+      ["nations-cup-vallons", "Nations Cup · Vallons"],
+      ["nations-cup-sprint", "Nations Cup · Sprint"],
+      ["nations-cup-paves", "Nations Cup · Pavés"],
+      ["nations-cup-contre-la-montre", "Nations Cup · Contre-la-montre"],
+    ].map(([id, name]) => {
+      const edition = createEdition({
+        id,
+        name,
+        categoryCode: "world",
+        countryCode: "CH",
+        dayNumber: 24,
+        daySlot: "late",
+        registrationClosesAt: "2026-08-23T16:00:00Z",
+        accepted: false,
+        competitionType: "nations_cup",
+      });
+      edition.registrationPolicy = "closed";
+      edition.minimumRosterSize = 1;
+      edition.maximumRosterSize = 1;
+      edition.engagedRiderCount = 32;
+      return edition;
+    });
+
+    expect(
+      getVisibleCalendarRaceEditions({
+        editions: nationsCupEditions,
+        currentDayNumber: 20,
+        showPast: false,
+      }),
+    ).toEqual(nationsCupEditions);
+
+    for (const edition of nationsCupEditions) {
+      expect(getCalendarEditionHref(edition, 20)).toBe("/jeu/nations-cup");
+    }
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={{
+          seasonId: "season-nations-cup",
+          seasonName: "Saison 3",
+          gameYear: 3,
+          startsOn: "2026-08-01",
+          endsOn: "2026-08-28",
+          currentDayNumber: 20,
+          days: Array.from({ length: 28 }, (_, index) => ({
+            id: `day-${index + 1}`,
+            dayNumber: index + 1,
+            calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+              .toISOString()
+              .slice(0, 10),
+            label: null,
+          })),
+          events: [],
+          editions: nationsCupEditions,
+        }}
+        reputationPoints={0}
+        nowIso="2026-08-20T08:00:00Z"
+      />,
+    );
+
+    for (const edition of nationsCupEditions) {
+      expect(markup).toContain(edition.name);
+      expect(markup).not.toContain(`${edition.name} · Inscriptions closes`);
+    }
+    expect(markup.match(/data-federation-selection="true"/g)).toHaveLength(
+      nationsCupEditions.length * 2,
+    );
+    expect(markup).toContain('href="/jeu/nations-cup"');
+    expect(markup).toContain("Voir la Nations Cup");
+  });
+
   it("ouvre un championnat junior directement sur son classement officiel", () => {
     const juniorChampionship = createEdition({
       id: "mondial-junior-route",

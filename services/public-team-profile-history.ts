@@ -793,6 +793,7 @@ function normalizeCompetitionType(value: string): RaceCompetitionType {
     "national_time_trial",
     "continental_championship",
     "world_championship",
+    "nations_cup",
   ];
 
   return validTypes.includes(value as RaceCompetitionType)

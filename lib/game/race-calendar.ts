@@ -71,7 +71,8 @@ export type RaceCompetitionType =
   | "national_road"
   | "national_time_trial"
   | "continental_championship"
-  | "world_championship";
+  | "world_championship"
+  | "nations_cup";
 
 export function isInternationalChampionshipEdition(
   edition: Pick<RaceCalendarEdition, "competitionType">,
@@ -79,6 +80,21 @@ export function isInternationalChampionshipEdition(
   return (
     edition.competitionType === "continental_championship" ||
     edition.competitionType === "world_championship"
+  );
+}
+
+export function isProfessionalNationsCupEdition(
+  edition: Pick<RaceCalendarEdition, "competitionType">,
+): boolean {
+  return edition.competitionType === "nations_cup";
+}
+
+export function isFederationSelectionEdition(
+  edition: Pick<RaceCalendarEdition, "competitionType">,
+): boolean {
+  return (
+    isInternationalChampionshipEdition(edition) ||
+    isProfessionalNationsCupEdition(edition)
   );
 }
 
