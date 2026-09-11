@@ -24,13 +24,25 @@ describe("retired alpha automations", () => {
     expect(migration).toContain("revoke execute on function public.complete_alpha_bot_cycle");
   });
 
-  it("removes the bot cron runtime and both schedules", () => {
+  it("keeps the historical retirement explicit before the later scoped restart", () => {
     const vercelConfig = readFileSync(path.join(root, "vercel.json"), "utf8");
+    const restartMigration = readFileSync(
+      path.join(
+        root,
+        "supabase",
+        "migrations",
+        "20260911100000_activate_managed_teams_for_s3_first_half.sql",
+      ),
+      "utf8",
+    );
 
     expect(
       existsSync(path.join(root, "app", "api", "cron", "alpha-bots", "[slot]", "route.ts")),
-    ).toBe(false);
-    expect(vercelConfig).not.toContain("/api/cron/alpha-bots/");
+    ).toBe(true);
+    expect(vercelConfig).toContain("/api/cron/alpha-bots/morning");
+    expect(vercelConfig).toContain("/api/cron/alpha-bots/evening");
+    expect(restartMigration).toContain("automation_end_day_number = 14");
+    expect(restartMigration).toContain("season.game_year = 3");
   });
 
   it("removes player tracking from the application and revokes its RPCs", () => {
