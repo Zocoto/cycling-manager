@@ -128,7 +128,7 @@ export function buildRaceRoster(
 
   return selected.map((rider, index) => ({
     riderId: rider.riderId,
-    role: chooseRaceRole(profileType, index),
+    role: chooseRaceRole(profileType, edition.raceFormat, index),
   }));
 }
 
@@ -314,6 +314,7 @@ function scoreRaceRider(
 
 function chooseRaceRole(
   profileType: RaceProfileType,
+  raceFormat: RaceCalendarEdition["raceFormat"],
   index: number,
 ): RaceRole {
   if (index === 0) {
@@ -327,7 +328,11 @@ function chooseRaceRole(
   ) {
     return "leadout";
   }
-  if (index === 1 && profileType === "mountain") {
+  if (
+    index === 1 &&
+    profileType === "mountain" &&
+    raceFormat === "stage_race"
+  ) {
     return "mountain_classification";
   }
   return index <= 2 ? "free_agent" : "domestique";

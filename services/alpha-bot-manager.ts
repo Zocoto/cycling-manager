@@ -169,10 +169,10 @@ async function runManagerCycle(
     await recordAction(actions, "training", () => manageTraining(context));
     await recordAction(actions, "equipment", () => manageEquipment(context));
     await recordAction(actions, "health", () => manageHealth(context));
+    await recordAction(actions, "form_camp", () => manageFormCamp(context));
     await recordAction(actions, "races", () =>
       manageRaceRegistration(context),
     );
-    await recordAction(actions, "form_camp", () => manageFormCamp(context));
 
     await finishCycle(admin, cycleId, "completed", actions);
     return {

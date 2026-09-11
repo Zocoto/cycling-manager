@@ -5,9 +5,12 @@ import { describe, expect, it } from "vitest";
 import {
   ALPHA_BOT_AUTOMATION_END_DAY,
   ALPHA_BOT_PROFILES,
+  buildRaceRoster,
   buildAlphaBotCycleKey,
   isSharedMarketItemAssignedToBot,
 } from "./alpha-bots";
+import type { RaceCalendarEdition } from "./race-calendar";
+import type { RaceRosterOption } from "@/services/race-calendar";
 
 const migration = readFileSync(
   resolve(
@@ -61,5 +64,45 @@ describe("managed teams first-half automation", () => {
     expect(migration).toContain(
       "grant execute on function public.claim_alpha_bot_cycle",
     );
+  });
+
+  it("never assigns a mountain-classification role on a one-day race", () => {
+    const edition = {
+      raceFormat: "one_day",
+      competitionType: "standard",
+      minimumRosterSize: 2,
+      maximumRosterSize: 2,
+      stages: [{ profileType: "mountain" }],
+    } as RaceCalendarEdition;
+    const riders = [
+      {
+        riderId: "rider-a",
+        isAvailable: true,
+        countryCode: "FR",
+        mountain: 80,
+        hills: 70,
+        flat: 60,
+        timeTrial: 60,
+        cobbles: 55,
+        sprint: 50,
+      },
+      {
+        riderId: "rider-b",
+        isAvailable: true,
+        countryCode: "FR",
+        mountain: 75,
+        hills: 68,
+        flat: 58,
+        timeTrial: 55,
+        cobbles: 52,
+        sprint: 48,
+      },
+    ] as RaceRosterOption[];
+
+    expect(
+      buildRaceRoster(ALPHA_BOT_PROFILES[0], edition, riders).map(
+        (rider) => rider.role,
+      ),
+    ).toEqual(["leader", "free_agent"]);
   });
 });
