@@ -25,6 +25,13 @@ const timeoutRecoveryMigration = readFileSync(
   ),
   "utf8",
 ).replaceAll("\r\n", "\n");
+const databaseCronMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260911074500_schedule_database_season_rollover.sql",
+  ),
+  "utf8",
+).replaceAll("\r\n", "\n");
 
 describe("atomic season rollover", () => {
   it("is locked, audited, idempotent, and service-role only", () => {
@@ -104,5 +111,19 @@ describe("atomic season rollover", () => {
     );
     expect(timeoutRecoveryMigration).not.toContain("alter role ");
     expect(timeoutRecoveryMigration).not.toContain("alter database ");
+  });
+
+  it("runs future long rollovers inside Postgres before the HTTP fallback", () => {
+    expect(databaseCronMigration).toContain(
+      "create extension if not exists pg_cron with schema pg_catalog",
+    );
+    expect(databaseCronMigration).toContain("'daily-season-rollover'");
+    expect(databaseCronMigration).toContain("'0 23 * * *'");
+    expect(databaseCronMigration).toContain(
+      "$job$select public.settle_due_season_rollovers();$job$",
+    );
+    expect(databaseCronMigration.match(/set statement_timeout = '5min'/g)).toHaveLength(2);
+    expect(databaseCronMigration).not.toContain("alter role ");
+    expect(databaseCronMigration).not.toContain("alter database ");
   });
 });
