@@ -112,6 +112,7 @@ export async function validateCyclogazetteGameAction(
       issueNumber: Number(editionResult.data.issue_number),
       gameType: gameTypeValue,
       answer,
+      variationKey: editionResult.data.id,
     })
   ) {
     return failureState();

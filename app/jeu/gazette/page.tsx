@@ -101,12 +101,12 @@ export default async function CyclogazettePage({
     isSeasonTwoGalaEdition && !awards.some((award) => award.gameYear === 2)
       ? await getSeasonAwards(supabase)
       : awards;
-  const previousIssueNumber = edition
+  const previousEdition = edition
     ? archive
         .flatMap((season) => season.editions)
         .filter((entry) => entry.issueNumber < edition.issueNumber)
         .sort((left, right) => right.issueNumber - left.issueNumber)[0]
-        ?.issueNumber ?? null
+        ?? null
     : null;
   const [community, gamesOverview, seasonQuizOverview] =
     edition && latestEdition
@@ -120,7 +120,8 @@ export default async function CyclogazettePage({
             supabase,
             edition,
             latestEditionId: latestEdition.id,
-            previousIssueNumber,
+            previousIssueNumber: previousEdition?.issueNumber ?? null,
+            previousEditionId: previousEdition?.id ?? null,
           }),
           getCyclogazetteSeasonQuizOverview({
             supabase,
