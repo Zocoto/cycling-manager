@@ -267,6 +267,14 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Available once the forecast is published",
   "Condition favorite": "Preferred conditions",
   "Condition difficile": "Difficult conditions",
+  "Parcours de l’épreuve": "Race course",
+  "Parcours en attente de publication": "Course awaiting publication",
+  "Relief non précisé": "Terrain not specified",
+  "Plat · Sprint": "Flat · Sprint",
+  "Montagneux": "Mountainous",
+  "Voir la course →": "View race →",
+  "La composition des listes est verrouillée en mode automatique. Les parcours restent consultables.":
+    "Lineup editing is locked in automatic mode. Courses remain available to view.",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

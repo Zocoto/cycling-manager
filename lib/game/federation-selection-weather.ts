@@ -1,4 +1,5 @@
-import type { RaceProfileType } from "./race-calendar";
+import type { RaceProfileType, RaceStageType } from "./race-calendar";
+import type { RaceStageSegment } from "./race-profiles";
 import {
   getRaceStageWeatherSeed,
   getRaceWeather,
@@ -13,6 +14,21 @@ export type FederationSelectionForecast = {
   isVisible: boolean;
   isOfficialCourse: boolean;
   weather: RaceWeather | null;
+  course?: FederationSelectionCourse | null;
+};
+
+export type FederationSelectionCourse = {
+  raceEditionId: string;
+  stageId: string;
+  stageName: string;
+  stageType: RaceStageType;
+  profileType: RaceProfileType;
+  countryCode: string;
+  countryName: string;
+  distanceKm: number;
+  dayNumber: number;
+  segments: RaceStageSegment[];
+  href: string;
 };
 
 export type FederationSelectionWeatherSlot = {
@@ -29,6 +45,7 @@ export type FederationSelectionOfficialStage = {
   stageId: string;
   countryCode: string;
   profileType: RaceProfileType;
+  course?: FederationSelectionCourse;
 };
 
 export function getFederationSelectionForecast({
@@ -44,9 +61,10 @@ export function getFederationSelectionForecast({
   currentDayNumber: number;
   officialStage?: FederationSelectionOfficialStage | null;
 }): FederationSelectionForecast {
+  const eventDayNumber = officialStage?.course?.dayNumber ?? slot.dayNumber;
   const revealDayNumber = Math.max(
     1,
-    slot.dayNumber - getFederationSelectionCallUpLeadDays(slot),
+    eventDayNumber - getFederationSelectionCallUpLeadDays(slot),
   );
   const isVisible =
     currentGameYear === gameYear && currentDayNumber >= revealDayNumber;
@@ -57,10 +75,11 @@ export function getFederationSelectionForecast({
   return {
     slotKey: slot.slotKey,
     gameYear,
-    eventDayNumber: slot.dayNumber,
+    eventDayNumber,
     revealDayNumber,
     isVisible,
     isOfficialCourse: Boolean(officialStage),
+    course: officialStage?.course ?? null,
     weather: isVisible
       ? getRaceWeather(
           getRaceStageWeatherSeed({

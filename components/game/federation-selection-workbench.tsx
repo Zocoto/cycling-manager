@@ -3,6 +3,11 @@
 import { useActionState, useMemo, useState } from "react";
 
 import {
+  FederationSelectionCoursePreview,
+  getFederationCourseProfileLabel,
+} from "@/components/game/federation-selection-course";
+
+import {
   publishFederationPreselectionAction,
   respondFederationPreselectionAction,
   saveFederationPreselectionAction,
@@ -39,7 +44,6 @@ type SelectionSlot = {
   label: string;
   competition: string;
   category: FederationSelectionRider["category"];
-  profile: string;
   hostName: string;
   hostCode: string;
   day: number;
@@ -48,20 +52,20 @@ type SelectionSlot = {
 };
 
 const SELECTION_SLOTS: SelectionSlot[] = [
-  { id: "cc-pro-road", label: "CC Pros · Route", competition: "Championnats continentaux", category: "professional", profile: "Route", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 8 },
-  { id: "cc-pro-itt", label: "CC Pros · CLM", competition: "Championnats continentaux", category: "professional", profile: "Chrono", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
-  { id: "cc-junior-road", label: "CC Juniors · Route", competition: "Championnats continentaux juniors", category: "junior", profile: "Route", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 6 },
-  { id: "cc-junior-itt", label: "CC Juniors · CLM", competition: "Championnats continentaux juniors", category: "junior", profile: "Chrono", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
-  { id: "nc-mountain", label: "Nations Cup · Montagne", competition: "Nations Cup", category: "professional", profile: "Montagne", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Montagne" },
-  { id: "nc-hills", label: "Nations Cup · Vallons", competition: "Nations Cup", category: "professional", profile: "Vallons", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Vallons" },
-  { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", category: "professional", profile: "Sprint", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
-  { id: "nc-cobbles", label: "Nations Cup · Pavés", competition: "Nations Cup", category: "professional", profile: "Pavés", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Pavés" },
-  { id: "nc-time-trial", label: "Nations Cup · Chrono", competition: "Nations Cup", category: "professional", profile: "CLM individuel en S3", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Chrono" },
-  { id: "nc-junior-road", label: "Nations Cup Juniors · Route", competition: "Nations Cup juniors", category: "junior", profile: "Route", hostName: "Suisse", hostCode: "ch", day: 24, limit: 6 },
-  { id: "world-pro-road", label: "Mondiaux Pros · Route", competition: "Championnats du monde", category: "professional", profile: "Route", hostName: "Canada", hostCode: "ca", day: 26, limit: 8 },
-  { id: "world-pro-itt", label: "Mondiaux Pros · CLM", competition: "Championnats du monde", category: "professional", profile: "Chrono", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
-  { id: "world-junior-road", label: "Mondiaux Juniors · Route", competition: "Championnats du monde juniors", category: "junior", profile: "Route", hostName: "Canada", hostCode: "ca", day: 26, limit: 6 },
-  { id: "world-junior-itt", label: "Mondiaux Juniors · CLM", competition: "Championnats du monde juniors", category: "junior", profile: "Chrono", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
+  { id: "cc-pro-road", label: "CC Pros · Route", competition: "Championnats continentaux", category: "professional", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 8 },
+  { id: "cc-pro-itt", label: "CC Pros · CLM", competition: "Championnats continentaux", category: "professional", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
+  { id: "cc-junior-road", label: "CC Juniors · Route", competition: "Championnats continentaux juniors", category: "junior", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 6 },
+  { id: "cc-junior-itt", label: "CC Juniors · CLM", competition: "Championnats continentaux juniors", category: "junior", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
+  { id: "nc-mountain", label: "Nations Cup · Montagne", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Montagne" },
+  { id: "nc-hills", label: "Nations Cup · Vallons", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Vallons" },
+  { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
+  { id: "nc-cobbles", label: "Nations Cup · Pavés", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Pavés" },
+  { id: "nc-time-trial", label: "Nations Cup · Chrono", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Chrono" },
+  { id: "nc-junior-road", label: "Nations Cup Juniors · Route", competition: "Nations Cup juniors", category: "junior", hostName: "Suisse", hostCode: "ch", day: 24, limit: 6 },
+  { id: "world-pro-road", label: "Mondiaux Pros · Route", competition: "Championnats du monde", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 8 },
+  { id: "world-pro-itt", label: "Mondiaux Pros · CLM", competition: "Championnats du monde", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
+  { id: "world-junior-road", label: "Mondiaux Juniors · Route", competition: "Championnats du monde juniors", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 6 },
+  { id: "world-junior-itt", label: "Mondiaux Juniors · CLM", competition: "Championnats du monde juniors", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
 ];
 
 const PRIMARY_RATING_COLUMNS = [
@@ -121,7 +125,16 @@ export function FederationSelectionWorkbench({
   const competitionHost = hostingEventType
     ? selectionState?.competitionHosts[hostingEventType]
     : null;
-  const slot = competitionHost
+  const forecast = selectionState?.forecasts[baseSlot.id] ?? null;
+  const course = forecast?.course ?? null;
+  const slot = course
+    ? {
+        ...baseSlot,
+        hostName: course.countryName,
+        hostCode: course.countryCode.toLowerCase(),
+        day: course.dayNumber,
+      }
+    : competitionHost
     ? {
         ...baseSlot,
         hostName: competitionHost.countryName,
@@ -130,7 +143,6 @@ export function FederationSelectionWorkbench({
     : baseSlot;
   const selected = selectedBySlot[slot.id] ?? [];
   const storedSelection = selectionState?.selections[slot.id] ?? null;
-  const forecast = selectionState?.forecasts[slot.id] ?? null;
   const publishedWeather = forecast?.weather ?? null;
   const canManage = gameYear >= 3 && selectionState?.canManage === true;
   const availableTeams = useMemo(
@@ -214,10 +226,6 @@ export function FederationSelectionWorkbench({
         />
       ) : null}
 
-      <fieldset
-        disabled={automaticSelection}
-        className={`space-y-6 transition ${automaticSelection ? "opacity-55 grayscale-[35%]" : ""}`}
-      >
       <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
           <div>
@@ -255,7 +263,9 @@ export function FederationSelectionWorkbench({
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-accent)]">J{slot.day} · Pays hôte : {slot.hostName}</p>
               <h3 className="mt-1 text-xl font-black">{slot.label}</h3>
-              <p className="mt-1 text-xs font-semibold text-[#D6DFD2]">Profil : {slot.profile}</p>
+              <p className="mt-1 text-xs font-semibold text-[#D6DFD2]">
+                {course ? <>Profil : {getFederationCourseProfileLabel(course)}</> : "Parcours en attente de publication"}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-stretch justify-end gap-3">
@@ -270,6 +280,12 @@ export function FederationSelectionWorkbench({
           </div>
         </div>
 
+        {course ? <FederationSelectionCoursePreview course={course} /> : null}
+
+        <fieldset
+          disabled={automaticSelection}
+          className={`min-w-0 transition ${automaticSelection ? "opacity-55 grayscale-[35%]" : ""}`}
+        >
         <div className="grid gap-3 border-b border-[#315B3E]/10 p-5 sm:grid-cols-2 lg:grid-cols-5">
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Nationalité verrouillée</span><span className="mt-2 flex min-h-11 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#EEF3F1] px-3 text-sm font-black text-[#183F37]"><span className={`fi fi-${countryCode.toLowerCase()}`} />{countryName}</span></label>
           <label><span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Recherche</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Coureur ou équipe" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[var(--federation-secondary)]" /></label>
@@ -341,11 +357,11 @@ export function FederationSelectionWorkbench({
             {publishState.message || saveState.message}
           </p>
         ) : null}
+        </fieldset>
       </section>
-      </fieldset>
       {automaticSelection ? (
         <p className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-sm font-bold text-[#526B62]">
-          L’atelier est verrouillé tant que la sélection automatique est active.
+          La composition des listes est verrouillée en mode automatique. Les parcours restent consultables.
         </p>
       ) : null}
     </div>
