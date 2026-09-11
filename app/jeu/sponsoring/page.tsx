@@ -17,8 +17,10 @@ import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosoph
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
+  getSponsorContractHistoryForAuthUser,
   getSponsoringStateForAuthUser,
   type PersistedSponsorContract,
+  type SponsorContractHistory,
   type SponsorContractObjective,
   type SponsoringState,
 } from "../../../services/sponsoring-workflow";
@@ -75,12 +77,20 @@ export default async function SponsoringPage({
 
   let sponsoringError: string | null = null;
 
+  let sponsorHistory: SponsorContractHistory[] = [];
+
   try {
     sponsoringState = await getSponsoringStateForAuthUser(user.id);
   } catch (error) {
     console.error("Impossible de récupérer l’état du sponsoring :", error);
 
     sponsoringError = getErrorMessage(error);
+  }
+
+  try {
+    sponsorHistory = await getSponsorContractHistoryForAuthUser(user.id);
+  } catch (error) {
+    console.error("Impossible de récupérer l’historique sponsor :", error);
   }
 
   const availableOfferCount =
@@ -196,6 +206,10 @@ export default async function SponsoringPage({
 
                 <FutureSponsoringSection state={sponsoringState.future} />
               </>
+            ) : null}
+
+            {sponsorHistory.length > 0 ? (
+              <SponsorContractHistorySection history={sponsorHistory} />
             ) : null}
 
           </div>
@@ -1056,6 +1070,79 @@ function TerminatedSponsorSection({
   );
 }
 
+function SponsorContractHistorySection({
+  history,
+}: {
+  history: SponsorContractHistory[];
+}) {
+  return (
+    <section className="mt-8">
+      <details className="group overflow-hidden rounded-2xl border border-[#315B3E]/10 bg-white/70 shadow-[0_12px_30px_rgba(19,60,46,0.04)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 sm:px-6 [&::-webkit-details-marker]:hidden">
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#72847E]">
+              Archives
+            </p>
+            <h2 className="mt-1 text-base font-black text-[#294B42]">
+              Satisfactions sponsors passées
+            </h2>
+          </div>
+          <span className="rounded-full border border-[#315B3E]/10 bg-white px-3 py-1 text-xs font-bold text-[#72847E] transition group-open:bg-[#F1F7F4]">
+            {history.length} contrat{history.length > 1 ? "s" : ""}
+          </span>
+        </summary>
+
+        <div className="border-t border-[#315B3E]/10 px-5 py-4 sm:px-6">
+          <div className="grid gap-2 lg:grid-cols-2">
+            {history.map((entry) => (
+              <article
+                key={entry.id}
+                className="rounded-xl border border-[#315B3E]/10 bg-white/80 px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-[#294B42]">
+                      {entry.sponsor.name}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-semibold text-[#84938E]">
+                      {entry.startSeasonName} · {entry.status === "completed" ? "Contrat clôturé" : "Contrat terminé"}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-lg font-black text-[#294B42]">
+                      {Math.round(entry.satisfactionScore)}
+                      <span className="text-xs font-bold text-[#84938E]">/100</span>
+                    </p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#84938E]">
+                      Satisfaction finale
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-bold text-[#60756E]">
+                  <span>
+                    Renouvellement : {formatSignedPercentage(entry.renewalBudgetAdjustmentPercent)}
+                  </span>
+                  {entry.objectiveReputationPenalty > 0 ? (
+                    <span className="text-[#B5473B]">
+                      Réputation : -{entry.objectiveReputationPenalty} pts
+                    </span>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <p className="mt-3 text-[11px] font-semibold leading-5 text-[#84938E]">
+            La satisfaction finale a servi à calculer les conditions de renouvellement du sponsor.
+          </p>
+        </div>
+      </details>
+    </section>
+  );
+}
+
 function ContractObjectivesSection({
   contract,
 }: {
@@ -1857,6 +1944,12 @@ function formatMoney(value: number, currencyCode = "EUR"): string {
     currency: currencyCode,
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatSignedPercentage(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  if (rounded === 0) return "0 %";
+  return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("fr-FR")} %`;
 }
 
 function formatDuration(value: number): string {

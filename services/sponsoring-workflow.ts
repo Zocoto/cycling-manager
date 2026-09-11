@@ -95,6 +95,22 @@ export type PersistedSponsorContract = {
   objectives: SponsorContractObjective[];
 };
 
+export type SponsorContractHistory = {
+  id: string;
+  sponsor: Sponsor;
+  startSeasonName: string;
+  startGameYear: number;
+  endGameYear: number;
+  budgetPerSeason: number;
+  currencyCode: string;
+  status: "completed" | "terminated";
+  satisfactionScore: number;
+  renewalBudgetAdjustmentPercent: number;
+  objectiveReputationPenalty: number;
+  completedAt: string | null;
+  terminatedAt: string | null;
+};
+
 export type FutureSponsoringState =
   | {
       kind: "locked";
@@ -233,8 +249,27 @@ type SponsorContractRow = {
   satisfaction_score: number;
 };
 
+type SponsorContractHistoryRow = {
+  id: string;
+  sponsor_id: string;
+  start_season_id: string;
+  budget_per_season: number | string;
+  currency_code: string;
+  contract_duration_seasons: number;
+  status: "completed" | "terminated";
+  satisfaction_score: number;
+  renewal_budget_adjustment_percent: number | string;
+  objective_reputation_penalty: number | string;
+  completed_at: string | null;
+  terminated_at: string | null;
+};
+
 type SponsorRegistryRow = {
   catalog_key: string;
+};
+
+type SponsorHistorySponsorRow = SponsorRegistryRow & {
+  id: string;
 };
 
 type SponsorObjectiveProgressRow = {
@@ -413,6 +448,138 @@ export async function getSponsoringStateForAuthUser(
       currentReputation: sportingDirector.reputation_points,
     }),
   };
+}
+
+export async function getSponsorContractHistoryForAuthUser(
+  authUserId: string,
+): Promise<SponsorContractHistory[]> {
+  const normalizedAuthUserId = authUserId.trim();
+
+  if (!normalizedAuthUserId) return [];
+
+  const supabase = createSupabaseAdminClient();
+  const { data: sportingDirector, error: sportingDirectorError } = await supabase
+    .from("sporting_directors")
+    .select("id")
+    .eq("auth_user_id", normalizedAuthUserId)
+    .eq("status", "active")
+    .maybeSingle<{ id: string }>();
+
+  if (sportingDirectorError) {
+    throw new Error(
+      `Impossible de retrouver le Directeur Sportif pour l’historique sponsor : ${sportingDirectorError.message}`,
+    );
+  }
+
+  if (!sportingDirector) return [];
+
+  const teamId = await resolveCurrentTeamId({
+    supabase,
+    sportingDirectorId: sportingDirector.id,
+  });
+
+  if (!teamId) return [];
+
+  const { data: contractRows, error: contractError } = await supabase
+    .from("team_sponsor_contracts")
+    .select(
+      `
+        id,
+        sponsor_id,
+        start_season_id,
+        budget_per_season,
+        currency_code,
+        contract_duration_seasons,
+        status,
+        satisfaction_score,
+        renewal_budget_adjustment_percent,
+        objective_reputation_penalty,
+        completed_at,
+        terminated_at
+      `,
+    )
+    .eq("team_id", teamId)
+    .eq("role", "principal")
+    .in("status", ["completed", "terminated"])
+    .order("completed_at", { ascending: false, nullsFirst: false })
+    .order("terminated_at", { ascending: false, nullsFirst: false })
+    .returns<SponsorContractHistoryRow[]>();
+
+  if (contractError) {
+    throw new Error(
+      `Impossible de charger l’historique des sponsors : ${contractError.message}`,
+    );
+  }
+
+  if (!contractRows || contractRows.length === 0) return [];
+
+  const sponsorIds = [...new Set(contractRows.map((row) => row.sponsor_id))];
+  const seasonIds = [...new Set(contractRows.map((row) => row.start_season_id))];
+  const [{ data: sponsorRows, error: sponsorError }, { data: seasonRows, error: seasonError }] =
+    await Promise.all([
+      supabase
+        .from("sponsors")
+        .select("id, catalog_key")
+        .in("id", sponsorIds)
+        .returns<SponsorHistorySponsorRow[]>(),
+      supabase
+        .from("seasons")
+        .select("id, game_year, name")
+        .in("id", seasonIds)
+        .returns<SeasonRow[]>(),
+    ]);
+
+  if (sponsorError) {
+    throw new Error(
+      `Impossible de charger les sponsors archivés : ${sponsorError.message}`,
+    );
+  }
+
+  if (seasonError) {
+    throw new Error(
+      `Impossible de charger les saisons des contrats archivés : ${seasonError.message}`,
+    );
+  }
+
+  const sponsorCatalogKeyById = new Map(
+    (sponsorRows ?? []).map((row) => [row.id, row.catalog_key]),
+  );
+  const seasonById = new Map(
+    (seasonRows ?? []).map((row) => [row.id, row]),
+  );
+
+  return contractRows.flatMap((row) => {
+    const season = seasonById.get(row.start_season_id);
+    const sponsorCatalogKey = sponsorCatalogKeyById.get(row.sponsor_id);
+    const sponsor = SPONSORS.find(
+      (catalogSponsor) => catalogSponsor.id === sponsorCatalogKey,
+    );
+
+    if (!season || !sponsor) return [];
+
+    return [
+      {
+        id: row.id,
+        sponsor,
+        startSeasonName: season.name,
+        startGameYear: season.game_year,
+        endGameYear:
+          season.game_year + Number(row.contract_duration_seasons) - 1,
+        budgetPerSeason: Number(row.budget_per_season),
+        currencyCode: row.currency_code,
+        status: row.status,
+        satisfactionScore: Number(row.satisfaction_score ?? 0),
+        renewalBudgetAdjustmentPercent: Number(
+          row.renewal_budget_adjustment_percent ?? 0,
+        ),
+        objectiveReputationPenalty: Number(
+          row.objective_reputation_penalty ?? 0,
+        ),
+        completedAt: row.completed_at,
+        terminatedAt: row.terminated_at,
+      },
+    ];
+  });
 }
 
 async function resolveFutureSponsoringState({
