@@ -778,11 +778,11 @@ function hydrateSponsorObjective(
     );
   }
 
-  if (!objectiveRow.is_provisional) {
-    throw new Error(
-      `L’objectif ${objectiveRow.id} n’est pas un objectif provisoire de l’EPIC 5.`
-    );
-  }
+  // `is_provisional` describes the objective's lifecycle, not whether it can
+  // be displayed by the sponsoring page. Annual rollover promotes the
+  // current season's objectives to active/non-provisional rows before the
+  // DS opens the page. Rejecting those rows here made the whole sponsorship
+  // space unavailable after a season switch (notably for continuing deals).
 
   const renewalBonusPercent = Number(
     objectiveRow.renewal_bonus_percent
@@ -823,7 +823,7 @@ function hydrateSponsorObjective(
     evaluationDayNumber: null,
     renewalBonusPercent,
     satisfactionPoints,
-    isProvisional: true,
+    isProvisional: objectiveRow.is_provisional,
     targetDetails:
       objectiveRow.target_details,
     status: objectiveRow.status,

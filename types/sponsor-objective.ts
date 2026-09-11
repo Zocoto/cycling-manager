@@ -140,7 +140,8 @@ export type GeneratedSponsorObjective = {
 };
 
 export type PersistedSponsorObjective =
-  GeneratedSponsorObjective & {
+  Omit<GeneratedSponsorObjective, "isProvisional"> & {
     id: string;
     status: SponsorObjectiveStatus;
+    isProvisional: boolean;
   };
