@@ -404,6 +404,7 @@ export function SeasonCalendar({
               calendar.currentDayNumber
             }
             nowIso={nowIso}
+            divisionCode={divisionCode}
             dayByNumber={dayByNumber}
             eventsByDay={eventsByDay}
           />
@@ -447,6 +448,7 @@ export function SeasonCalendar({
                 calendar.currentDayNumber
               }
               nowIso={nowIso}
+              divisionCode={divisionCode}
               events={
                 eventsByDay.get(day.dayNumber) ??
                 []
@@ -915,12 +917,14 @@ function DesktopCalendarWeek({
   week,
   currentDayNumber,
   nowIso,
+  divisionCode,
   dayByNumber,
   eventsByDay,
 }: {
   week: CalendarWeek;
   currentDayNumber: number;
   nowIso: string;
+  divisionCode?: string | null;
   dayByNumber: Map<
     number,
     SeasonRaceCalendar["days"][number]
@@ -1307,6 +1311,7 @@ function MobileCalendarDay({
   isPast,
   currentDayNumber,
   nowIso,
+  divisionCode,
   events,
   entries,
 }: {
@@ -1316,6 +1321,7 @@ function MobileCalendarDay({
   isPast: boolean;
   currentDayNumber: number;
   nowIso: string;
+  divisionCode?: string | null;
   events: SeasonRaceCalendar["events"];
   entries: Array<{
     edition: RaceCalendarEdition;
