@@ -465,6 +465,7 @@ export function SeasonCalendar({
           currentDayNumber={calendar.currentDayNumber}
           reputationPoints={reputationPoints}
           nowIso={nowIso}
+          divisionCode={divisionCode}
         />
       )}
 
@@ -525,12 +526,14 @@ function RaceCalendarList({
   currentDayNumber,
   reputationPoints,
   nowIso,
+  divisionCode,
 }: {
   editions: RaceCalendarEdition[];
   days: SeasonRaceCalendar["days"];
   currentDayNumber: number;
   reputationPoints: number;
   nowIso: string;
+  divisionCode?: string | null;
 }) {
   const dayByNumber = new Map(days.map((day) => [day.dayNumber, day]));
   const orderedEditions = [...editions].sort((left, right) => {
