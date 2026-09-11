@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "@/components/ui/app-link";
+import { useSyncExternalStore } from "react";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_DAY_SLOT_CONFIG,
@@ -46,41 +49,115 @@ export function InternationalChampionshipDirectory({
     <div className="space-y-9">
       {groups.map((group) =>
         group.editions.length > 0 ? (
-          <section key={group.key} aria-labelledby={`${group.key}-title`}>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
-                  {group.eyebrow}
-                </p>
-                <h2
-                  id={`${group.key}-title`}
-                  className="mt-2 text-2xl font-black text-[#0B302B] sm:text-3xl"
-                >
-                  {group.title}
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-                  {group.description}
-                </p>
-              </div>
-              <span className="rounded-full bg-[#D7EEE8] px-4 py-2 text-xs font-black text-[#176951]">
-                {group.editions.length} épreuve
-                {group.editions.length > 1 ? "s" : ""}
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-5 xl:grid-cols-2">
-              {group.editions.map((edition) => (
-                <InternationalChampionshipCard
-                  key={edition.id}
-                  edition={edition}
-                />
-              ))}
-            </div>
-          </section>
+          <InternationalChampionshipGroupSection
+            key={group.key}
+            group={group}
+          />
         ) : null,
       )}
     </div>
   );
+}
+
+function InternationalChampionshipGroupSection({
+  group,
+}: {
+  group: InternationalChampionshipGroup;
+}) {
+  const selectedSlug = useSyncExternalStore(
+    subscribeToLocationHash,
+    getLocationHash,
+    getServerLocationHash,
+  );
+  const selectedEdition =
+    group.editions.find((edition) => edition.slug === selectedSlug) ??
+    group.editions[0];
+  const sectionId =
+    group.key === "continental_championship"
+      ? "championnats-continentaux"
+      : "championnats-du-monde";
+
+  if (!selectedEdition) return null;
+
+  return (
+    <section
+      id={sectionId}
+      className="scroll-mt-24"
+      aria-labelledby={`${group.key}-title`}
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
+            {group.eyebrow}
+          </p>
+          <h2
+            id={`${group.key}-title`}
+            className="mt-2 text-2xl font-black text-[#0B302B] sm:text-3xl"
+          >
+            {group.title}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
+            {group.description}
+          </p>
+        </div>
+        <span className="rounded-full bg-[#D7EEE8] px-4 py-2 text-xs font-black text-[#176951]">
+          {group.editions.length} épreuve
+          {group.editions.length > 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div
+        className="mt-5 flex gap-2 overflow-x-auto pb-2"
+        role="tablist"
+        aria-label={`Épreuves · ${group.title}`}
+      >
+        {group.editions.map((edition) => {
+          const selected = edition.id === selectedEdition.id;
+          return (
+            <button
+              key={edition.id}
+              type="button"
+              id={`championship-tab-${edition.id}`}
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`championship-panel-${group.key}`}
+              onClick={() => {
+                window.location.hash = edition.slug;
+              }}
+              className={`min-h-10 shrink-0 rounded-full border px-4 py-2 text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
+                selected
+                  ? "border-[#176951] bg-[#176951] text-white"
+                  : "border-[#315B3E]/15 bg-white text-[#315B3E] hover:border-[#176951]/45"
+              }`}
+            >
+              {edition.shortName ?? edition.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        id={`championship-panel-${group.key}`}
+        role="tabpanel"
+        aria-labelledby={`championship-tab-${selectedEdition.id}`}
+      >
+        <InternationalChampionshipCard edition={selectedEdition} />
+      </div>
+    </section>
+  );
+}
+
+function subscribeToLocationHash(onStoreChange: () => void) {
+  window.addEventListener("hashchange", onStoreChange);
+  return () => window.removeEventListener("hashchange", onStoreChange);
+}
+
+function getLocationHash() {
+  return decodeURIComponent(window.location.hash.slice(1));
+}
+
+function getServerLocationHash() {
+  return "";
 }
 
 export function buildInternationalChampionshipGroups(

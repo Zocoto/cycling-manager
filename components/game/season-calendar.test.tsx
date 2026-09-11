@@ -245,7 +245,7 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("Voir les CC &amp; CM");
   });
 
-  it("affiche les cinq épreuves professionnelles de Nations Cup dans le calendrier", () => {
+  it("affiche une seule entrée Nations Cup ouvrant les cinq épreuves", () => {
     const nationsCupEditions = [
       ["nations-cup-montagne", "Nations Cup · Montagne"],
       ["nations-cup-vallons", "Nations Cup · Vallons"],
@@ -271,13 +271,20 @@ describe("SeasonCalendar", () => {
       return edition;
     });
 
-    expect(
-      getVisibleCalendarRaceEditions({
-        editions: nationsCupEditions,
-        currentDayNumber: 20,
-        showPast: false,
-      }),
-    ).toEqual(nationsCupEditions);
+    const visibleEditions = getVisibleCalendarRaceEditions({
+      editions: nationsCupEditions,
+      currentDayNumber: 20,
+      showPast: false,
+    });
+
+    expect(visibleEditions).toHaveLength(1);
+    expect(visibleEditions[0]).toMatchObject({
+      name: "Nations Cup",
+      calendarGroup: {
+        kind: "nations_cup",
+        editionCount: 5,
+      },
+    });
 
     for (const edition of nationsCupEditions) {
       expect(getCalendarEditionHref(edition, 20)).toBe("/jeu/nations-cup");
@@ -308,15 +315,87 @@ describe("SeasonCalendar", () => {
       />,
     );
 
-    for (const edition of nationsCupEditions) {
-      expect(markup).toContain(edition.name);
-      expect(markup).not.toContain(`${edition.name} · Inscriptions closes`);
-    }
-    expect(markup.match(/data-federation-selection="true"/g)).toHaveLength(
-      nationsCupEditions.length * 2,
-    );
+    expect(markup).toContain("Nations Cup");
+    expect(markup).toContain("5 épreuves");
+    expect(markup).not.toContain("Nations Cup · Montagne");
+    expect(markup.match(/data-federation-selection="true"/g)).toHaveLength(2);
     expect(markup).toContain('href="/jeu/nations-cup"');
-    expect(markup).toContain("Voir la Nations Cup");
+    expect(markup).toContain("Ouvrir les 5 épreuves");
+  });
+
+  it("affiche une seule entrée pour les dix championnats continentaux pros", () => {
+    const continentalEditions = Array.from({ length: 10 }, (_, index) => {
+      const edition = createEdition({
+        id: `continental-${index + 1}`,
+        name: `CC ${index + 1}`,
+        categoryCode: "world",
+        countryCode: index % 2 === 0 ? "FR" : "JP",
+        dayNumber: 15,
+        daySlot: index % 2 === 0 ? "early" : "late",
+        registrationClosesAt: "2026-08-14T12:00:00Z",
+        accepted: false,
+        competitionType: "continental_championship",
+      });
+      edition.registrationPolicy = "closed";
+      return edition;
+    });
+
+    const visibleEditions = getVisibleCalendarRaceEditions({
+      editions: continentalEditions,
+      currentDayNumber: 10,
+      showPast: false,
+    });
+
+    expect(visibleEditions).toHaveLength(1);
+    expect(visibleEditions[0]).toMatchObject({
+      name: "Championnats continentaux",
+      calendarGroup: {
+        kind: "continental_championships",
+        editionCount: 10,
+      },
+    });
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={{
+          seasonId: "season-cc",
+          seasonName: "Saison 3",
+          gameYear: 3,
+          startsOn: "2026-08-01",
+          endsOn: "2026-08-28",
+          currentDayNumber: 10,
+          days: Array.from({ length: 28 }, (_, index) => ({
+            id: `day-${index + 1}`,
+            dayNumber: index + 1,
+            calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+              .toISOString()
+              .slice(0, 10),
+            label: null,
+          })),
+          events: [
+            {
+              id: "legacy-cc-event",
+              dayNumber: 15,
+              eventType: "continental_championships",
+              title: "Ancien repère CC",
+              description: null,
+              href: "/jeu/selections-internationales",
+            },
+          ],
+          editions: continentalEditions,
+        }}
+        reputationPoints={0}
+        nowIso="2026-08-10T08:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain("Championnats continentaux");
+    expect(markup).toContain("10 épreuves");
+    expect(markup).not.toContain("CC 1");
+    expect(markup).not.toContain("Ancien repère CC");
+    expect(markup).toContain(
+      'href="/jeu/championnats-internationaux#championnats-continentaux"',
+    );
   });
 
   it("ouvre un championnat junior directement sur son classement officiel", () => {

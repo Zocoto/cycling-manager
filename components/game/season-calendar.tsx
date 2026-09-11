@@ -14,6 +14,7 @@ import {
   RACE_PROFILE_LABELS,
   buildCalendarWeeks,
   compareRaceDaySlots,
+  consolidateFederationCalendarEditions,
   getEditionDayRange,
   getGrandTourCalendarAccent,
   getRegistrationAvailability,
@@ -169,8 +170,18 @@ export function SeasonCalendar({
       number,
       SeasonRaceCalendar["events"]
     >();
+    const hasConsolidatedContinentalChampionships = scopeEditions.some(
+      (edition) =>
+        edition.calendarGroup?.kind === "continental_championships",
+    );
 
     for (const event of calendar.events) {
+      if (
+        hasConsolidatedContinentalChampionships &&
+        event.eventType === "continental_championships"
+      ) {
+        continue;
+      }
       const dayEvents =
         groupedEvents.get(event.dayNumber) ?? [];
       dayEvents.push(event);
@@ -181,7 +192,7 @@ export function SeasonCalendar({
     }
 
     return groupedEvents;
-  }, [calendar.events]);
+  }, [calendar.events, scopeEditions]);
 
   function toggleCategory(
     categoryCode: RaceCategoryCode
@@ -604,7 +615,12 @@ function RaceCalendarList({
               now: new Date(nowIso),
             });
           const status = isFederationSelection
-            ? {
+            ? edition.calendarGroup
+              ? {
+                  label: "Épreuves regroupées",
+                  tone: "success" as const,
+                }
+              : {
                 label: `${edition.engagedRiderCount} sélectionné${edition.engagedRiderCount > 1 ? "s" : ""}`,
                 tone: "success" as const,
               }
@@ -669,28 +685,43 @@ function RaceCalendarList({
                   </span>
                   {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#789087]">
-                    {edition.raceFormat === "stage_race" ? `${edition.stages.length} étapes` : "Un jour"}
+                    {edition.calendarGroup
+                      ? `${edition.calendarGroup.editionCount} épreuves`
+                      : edition.raceFormat === "stage_race"
+                        ? `${edition.stages.length} étapes`
+                        : "Un jour"}
                   </span>
                 </div>
                 <h3 className="mt-2 truncate text-base font-black text-[#0B302B]">{edition.name}</h3>
-                <p className="mt-1 text-xs font-semibold text-[#688176]">{edition.countryName}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-black text-[#183F37]">
-                  {firstStage ? RACE_PROFILE_LABELS[firstStage.profileType] : "À définir"}
-                </p>
-                <p className="mt-1 text-[11px] font-semibold text-[#789087]">
-                  {totalDistance.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} km
+                <p className="mt-1 text-xs font-semibold text-[#688176]">
+                  {edition.calendarGroup?.locationLabel ?? edition.countryName}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs font-black text-[#183F37]">
-                  {edition.engagedRiderCount} engagé{edition.engagedRiderCount > 1 ? "s" : ""}
+                  {edition.calendarGroup?.profileLabel ??
+                    (firstStage
+                      ? RACE_PROFILE_LABELS[firstStage.profileType]
+                      : "À définir")}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-[#789087]">
-                  {isFederationSelection
+                  {edition.calendarGroup
+                    ? "Une seule entrée calendrier"
+                    : `${totalDistance.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} km`}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-black text-[#183F37]">
+                  {edition.calendarGroup
+                    ? `${edition.calendarGroup.editionCount} épreuves`
+                    : `${edition.engagedRiderCount} engagé${edition.engagedRiderCount > 1 ? "s" : ""}`}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-[#789087]">
+                  {edition.calendarGroup
+                    ? "Sélections nationales"
+                    : isFederationSelection
                     ? `${edition.minimumRosterSize}–${edition.maximumRosterSize} par nation`
                     : `${edition.minimumRosterSize}–${edition.maximumRosterSize} par équipe`}
                 </p>
@@ -704,6 +735,8 @@ function RaceCalendarList({
               >
                 {edition.isJuniorChampionship
                   ? "Résultats juniors"
+                  : edition.calendarGroup
+                    ? "Ouvrir les épreuves"
                   : isProfessionalNationsCup
                     ? "Voir la Nations Cup"
                   : isInternationalChampionship
@@ -842,11 +875,13 @@ export function getVisibleCalendarRaceEditions({
   currentDayNumber: number;
   showPast: boolean;
 }) {
-  return editions.filter(
-    (edition) =>
-      (edition.competitionType === "standard" ||
-        isFederationSelectionEdition(edition)) &&
-      (showPast || !isRaceEditionPast({ edition, currentDayNumber })),
+  return consolidateFederationCalendarEditions(
+    editions.filter(
+      (edition) =>
+        (edition.competitionType === "standard" ||
+          isFederationSelectionEdition(edition)) &&
+        (showPast || !isRaceEditionPast({ edition, currentDayNumber })),
+    ),
   );
 }
 
@@ -1412,24 +1447,9 @@ function MobileCalendarDay({
                   {edition.name}
                 </span>
                 <span className="mt-0.5 block truncate text-[11px] font-semibold opacity-85">
-                  {edition.raceFormat ===
-                  "stage_race"
-                    ? `Étape ${stage.stageNumber} · `
-                    : ""}
-                  {slotConfig.shortLabel}
-                  {" · "}
-                  {
-                    RACE_PROFILE_LABELS[
-                      stage.profileType
-                    ]
-                  }
-                  {" · "}
-                  {stage.distanceKm.toLocaleString(
-                    "fr-FR",
-                    {
-                      maximumFractionDigits: 0,
-                    }
-                  )} km
+                  {edition.calendarGroup
+                    ? `${edition.calendarGroup.editionCount} épreuves · ${edition.calendarGroup.profileLabel}`
+                    : `${edition.raceFormat === "stage_race" ? `Étape ${stage.stageNumber} · ` : ""}${slotConfig.shortLabel} · ${RACE_PROFILE_LABELS[stage.profileType]} · ${stage.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} km`}
                 </span>
               </span>
 
@@ -1457,6 +1477,7 @@ function MobileCalendarDay({
 
 function getCalendarEditionActionLabel(edition: RaceCalendarEdition) {
   if (edition.isJuniorChampionship) return "Résultats juniors";
+  if (edition.calendarGroup) return `Ouvrir les ${edition.calendarGroup.editionCount} épreuves`;
   if (isProfessionalNationsCupEdition(edition)) return "Voir la Nations Cup";
   if (isInternationalChampionshipEdition(edition)) return "Voir les CC & CM";
   return "Ouvrir la course";

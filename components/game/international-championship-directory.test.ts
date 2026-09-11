@@ -63,6 +63,8 @@ describe("annuaire des championnats internationaux", () => {
     );
     expect(directorySource).toContain("Voir les détails");
     expect(directorySource).toContain("Voir la startlist");
+    expect(directorySource).toContain('role="tablist"');
+    expect(directorySource).toContain('"championnats-continentaux"');
     expect(pageSource).toContain("Voir mes convocations");
   });
 

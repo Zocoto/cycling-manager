@@ -158,6 +158,12 @@ export type RaceCalendarEdition = {
   competitionType: RaceCompetitionType;
   isJuniorChampionship?: boolean;
   calendarHref?: string;
+  calendarGroup?: {
+    kind: "nations_cup" | "continental_championships";
+    editionCount: number;
+    profileLabel: string;
+    locationLabel: string;
+  };
   isGrandTour?: boolean;
   isSponsorObjective?: boolean;
   federationHomeAdvantageBonus?: number;
@@ -178,6 +184,188 @@ export type RaceCalendarEdition = {
   } | null;
   stages: RaceCalendarStage[];
 };
+
+type FederationCalendarGroupConfiguration = {
+  kind: NonNullable<RaceCalendarEdition["calendarGroup"]>["kind"];
+  name: string;
+  shortName: string;
+  href: string;
+  profileLabel: string;
+  locationLabel: string;
+  matches: (edition: RaceCalendarEdition) => boolean;
+};
+
+const FEDERATION_CALENDAR_GROUPS: FederationCalendarGroupConfiguration[] = [
+  {
+    kind: "continental_championships",
+    name: "Championnats continentaux",
+    shortName: "CC",
+    href: "/jeu/championnats-internationaux#championnats-continentaux",
+    profileLabel: "Route & CLM · 5 continents",
+    locationLabel: "International",
+    matches: (edition) =>
+      edition.competitionType === "continental_championship" &&
+      edition.isJuniorChampionship !== true,
+  },
+  {
+    kind: "nations_cup",
+    name: "Nations Cup",
+    shortName: "Nations Cup",
+    href: "/jeu/nations-cup",
+    profileLabel: "Montagne · Vallons · Sprint · Pavés · CLM",
+    locationLabel: "5 épreuves",
+    matches: (edition) =>
+      edition.competitionType === "nations_cup" &&
+      edition.isJuniorChampionship !== true,
+  },
+];
+
+/**
+ * Condense les blocs fédéraux professionnels dans le calendrier uniquement.
+ * Les éditions sources restent intactes pour les simulations, sélections et
+ * résultats ; la tuile synthétique ne sert qu'à ouvrir leur page commune.
+ */
+export function consolidateFederationCalendarEditions(
+  editions: readonly RaceCalendarEdition[],
+): RaceCalendarEdition[] {
+  const groupedEditionIds = new Set<string>();
+  const groupedEditions = FEDERATION_CALENDAR_GROUPS.flatMap(
+    (configuration): RaceCalendarEdition[] => {
+      const sourceEditions = editions
+        .filter(configuration.matches)
+        .sort(compareCalendarEditionsBySchedule);
+      if (sourceEditions.length === 0) return [];
+
+      for (const edition of sourceEditions) groupedEditionIds.add(edition.id);
+
+      return [createFederationCalendarGroup(sourceEditions, configuration)];
+    },
+  );
+
+  return [
+    ...editions.filter((edition) => !groupedEditionIds.has(edition.id)),
+    ...groupedEditions,
+  ].sort(compareCalendarEditionsBySchedule);
+}
+
+function createFederationCalendarGroup(
+  sourceEditions: RaceCalendarEdition[],
+  configuration: FederationCalendarGroupConfiguration,
+): RaceCalendarEdition {
+  const representative = sourceEditions[0]!;
+  const sourceStages = sourceEditions
+    .flatMap((edition) => edition.stages)
+    .sort(
+      (left, right) =>
+        left.dayNumber - right.dayNumber ||
+        compareRaceDaySlots(left.daySlot, right.daySlot) ||
+        left.stageNumber - right.stageNumber,
+    );
+  const representativeStage = sourceStages[0]!;
+  const firstDayNumber = Math.min(
+    ...sourceStages.map((stage) => stage.dayNumber),
+  );
+  const firstDayStages = sourceStages.filter(
+    (stage) => stage.dayNumber === firstDayNumber,
+  );
+  const firstSlot = firstDayStages.some((stage) => stage.daySlot === "early")
+    ? "early"
+    : "late";
+  const allCompleted = sourceEditions.every(
+    (edition) => edition.status === "completed",
+  );
+  const anyInProgress = sourceEditions.some(
+    (edition) => edition.status === "in_progress",
+  );
+
+  return {
+    ...representative,
+    id: `calendar-group:${configuration.kind}:${firstDayNumber}`,
+    raceId: `calendar-group:${configuration.kind}`,
+    slug: configuration.kind,
+    name: configuration.name,
+    shortName: configuration.shortName,
+    countryName:
+      configuration.kind === "continental_championships"
+        ? "International"
+        : representative.countryName,
+    countryCode:
+      configuration.kind === "continental_championships"
+        ? "UN"
+        : representative.countryCode,
+    categoryName: configuration.name,
+    status: allCompleted
+      ? "completed"
+      : anyInProgress
+        ? "in_progress"
+        : "planned",
+    raceFormat: "one_day",
+    calendarHref: configuration.href,
+    calendarGroup: {
+      kind: configuration.kind,
+      editionCount: sourceEditions.length,
+      profileLabel: configuration.profileLabel,
+      locationLabel: configuration.locationLabel,
+    },
+    registrationClosesAt: null,
+    wildcardClosesAt: null,
+    withdrawalClosesAt: null,
+    registrationPolicy: "closed",
+    minimumReputation: 0,
+    fieldLimit: null,
+    minimumRosterSize: Math.min(
+      ...sourceEditions.map((edition) => edition.minimumRosterSize),
+    ),
+    maximumRosterSize: Math.max(
+      ...sourceEditions.map((edition) => edition.maximumRosterSize),
+    ),
+    engagedRiderCount: sourceEditions.reduce(
+      (total, edition) => total + edition.engagedRiderCount,
+      0,
+    ),
+    engagedRiders: [],
+    currentTeamRegistration: null,
+    stages: [
+      {
+        ...representativeStage,
+        id: `calendar-group-stage:${configuration.kind}:${firstDayNumber}`,
+        dayNumber: firstDayNumber,
+        stageNumber: 1,
+        name: configuration.name,
+        stageType: "road",
+        status: allCompleted
+          ? "completed"
+          : anyInProgress
+            ? "in_progress"
+            : "planned",
+        profileType: "mixed",
+        distanceKm: sourceStages.reduce(
+          (total, stage) => total + stage.distanceKm,
+          0,
+        ),
+        daySlot: firstSlot,
+        departureAt: null,
+        segments: [],
+      },
+    ],
+  };
+}
+
+function compareCalendarEditionsBySchedule(
+  left: RaceCalendarEdition,
+  right: RaceCalendarEdition,
+) {
+  const leftStage = left.stages[0];
+  const rightStage = right.stages[0];
+  if (!leftStage || !rightStage) return left.name.localeCompare(right.name, "fr");
+
+  return (
+    leftStage.dayNumber - rightStage.dayNumber ||
+    compareRaceDaySlots(leftStage.daySlot, rightStage.daySlot) ||
+    left.prestigeRank - right.prestigeRank ||
+    left.name.localeCompare(right.name, "fr")
+  );
+}
 
 export type GrandTourCalendarAccent = {
   key: "italy" | "france" | "spain";

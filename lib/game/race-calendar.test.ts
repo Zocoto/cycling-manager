@@ -4,6 +4,7 @@ import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
   buildCalendarWeeks,
+  consolidateFederationCalendarEditions,
   consolidateNationalChampionshipEvents,
   getEditionDayRange,
   getEffectiveSeasonDay,
@@ -49,6 +50,66 @@ describe("consolidateNationalChampionshipEvents", () => {
         href: "/jeu/championnats-nationaux",
       }),
     ]);
+  });
+});
+
+describe("consolidateFederationCalendarEditions", () => {
+  it("remplace les cinq courses de Nations Cup par une entrée unique en J24", () => {
+    const editions = Array.from({ length: 5 }, (_, index) => {
+      const edition = createEdition(`nations-cup-${index + 1}`, [24], "late");
+      edition.competitionType = "nations_cup";
+      edition.countryCode = "CH";
+      edition.countryName = "Suisse";
+      return edition;
+    });
+
+    const consolidated = consolidateFederationCalendarEditions(editions);
+
+    expect(consolidated).toHaveLength(1);
+    expect(consolidated[0]).toMatchObject({
+      name: "Nations Cup",
+      calendarHref: "/jeu/nations-cup",
+      calendarGroup: {
+        kind: "nations_cup",
+        editionCount: 5,
+      },
+      stages: [expect.objectContaining({ dayNumber: 24, daySlot: "late" })],
+    });
+  });
+
+  it("regroupe les dix CC pros sans absorber les championnats juniors", () => {
+    const professionalEditions = Array.from({ length: 10 }, (_, index) => {
+      const edition = createEdition(
+        `continental-${index + 1}`,
+        [15],
+        index % 2 === 0 ? "early" : "late",
+      );
+      edition.competitionType = "continental_championship";
+      return edition;
+    });
+    const juniorEdition = createEdition("continental-junior", [22], "late");
+    juniorEdition.competitionType = "continental_championship";
+    juniorEdition.isJuniorChampionship = true;
+    juniorEdition.calendarHref = "/jeu/resultats-juniors/continental-junior";
+
+    const consolidated = consolidateFederationCalendarEditions([
+      ...professionalEditions,
+      juniorEdition,
+    ]);
+
+    expect(consolidated).toHaveLength(2);
+    expect(consolidated[0]).toMatchObject({
+      name: "Championnats continentaux",
+      countryName: "International",
+      countryCode: "UN",
+      calendarHref:
+        "/jeu/championnats-internationaux#championnats-continentaux",
+      calendarGroup: {
+        kind: "continental_championships",
+        editionCount: 10,
+      },
+    });
+    expect(consolidated[1]).toBe(juniorEdition);
   });
 });
 

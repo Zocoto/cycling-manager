@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
 import { SvgCountryFlag } from "@/components/game/svg-country-flag";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -65,23 +66,7 @@ export default async function NationsCupPage() {
           </section>
         ) : (
           <>
-            <section className="mt-7 grid gap-3 sm:grid-cols-5">
-              {overview.events.map((event) => (
-                <Link
-                  key={event.id}
-                  href={`/jeu/courses/${event.slug}`}
-                  className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_10px_25px_rgba(19,60,46,0.06)] transition hover:-translate-y-0.5 hover:border-[#278B70]/40"
-                >
-                  <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#278B70]">
-                    {formatProfile(event.profileType)}
-                  </p>
-                  <p className="mt-2 font-black text-[#183F37]">{event.name}</p>
-                  <p className="mt-2 text-xs font-bold text-[#789087]">
-                    {event.status === "completed" ? "Résultats officiels" : "Départ J24 à 18 h"} →
-                  </p>
-                </Link>
-              ))}
-            </section>
+            <NationsCupEventTabs events={overview.events} />
 
             <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
               <div className="border-b border-[#315B3E]/10 px-6 py-5 sm:px-8">
@@ -144,15 +129,4 @@ export default async function NationsCupPage() {
       </section>
     </main>
   );
-}
-
-function formatProfile(profileType: string): string {
-  const labels: Record<string, string> = {
-    mountain: "Montagne",
-    hilly: "Vallons",
-    sprint: "Sprint",
-    cobbles: "Pavés",
-    time_trial: "Contre-la-montre",
-  };
-  return labels[profileType] ?? "Profil mixte";
 }
