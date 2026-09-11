@@ -93,6 +93,23 @@ const gamePillarsEn = [
 
 const productNews = [
   {
+    category: "Saison 3",
+    title: "La Saison 3 donne le pouvoir aux fédérations",
+    description:
+      "La nouvelle saison est lancée. Les Directeurs Sportifs rejoignent leur fédération nationale pour élire leur président, gérer une trésorerie commune, développer des infrastructures et composer les sélections qui défendront leur pays.",
+    dateTime: "2026-09-11",
+    dateLabel: "11 septembre 2026",
+    accent: "leader",
+    href: "/jeu/federation",
+    linkLabel: "Prendre place dans ma fédération",
+    image: "/images/announcements/saison-3-federations.webp",
+    imageAlt:
+      "Un peloton rejoint un siège fédéral au lever du jour dans un paysage de montagne",
+    visualLabel: "Nouvelle ère",
+    visualValue: "S3",
+    visualStatus: "Fédérations ouvertes",
+  },
+  {
     category: "Communauté",
     title: "Le parrainage passe à la vitesse supérieure",
     description:
@@ -178,6 +195,23 @@ const productNews = [
 ] as const;
 
 const productNewsEn = [
+  {
+    category: "Season 3",
+    title: "Season 3 puts federations in charge",
+    description:
+      "The new season is live. Sports Directors join their national federation to elect a president, manage shared finances, develop infrastructure and shape the selections that will represent their country.",
+    dateTime: "2026-09-11",
+    dateLabel: "11 September 2026",
+    accent: "leader",
+    href: "/jeu/federation",
+    linkLabel: "Enter my federation",
+    image: "/images/announcements/saison-3-federations.webp",
+    imageAlt:
+      "A cycling peloton approaches a federation headquarters at sunrise in the mountains",
+    visualLabel: "A new era",
+    visualValue: "S3",
+    visualStatus: "Federations are open",
+  },
   {
     category: "Community",
     title: "Referral rewards shift up a gear",
