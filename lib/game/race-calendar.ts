@@ -191,6 +191,34 @@ export type RaceCalendarEdition = {
   stages: RaceCalendarStage[];
 };
 
+/**
+ * Elite races have two independent cutoffs: the normal registration cutoff
+ * for Elite teams and the earlier Wild Card cutoff for non-Elite teams.
+ * Callers that know the team's division should pass it explicitly; generic
+ * calendar views keep the Wild Card cutoff so that an amateur team cannot
+ * miss its application window.
+ */
+export function getRaceRegistrationDeadline({
+  edition,
+  divisionCode,
+}: {
+  edition: Pick<
+    RaceCalendarEdition,
+    "categoryCode" | "competitionType" | "registrationClosesAt" | "wildcardClosesAt"
+  >;
+  divisionCode?: string | null;
+}) {
+  if (
+    edition.categoryCode === "elite" &&
+    edition.competitionType === "standard" &&
+    divisionCode !== "elite"
+  ) {
+    return edition.wildcardClosesAt;
+  }
+
+  return edition.registrationClosesAt;
+}
+
 type FederationCalendarGroupConfiguration = {
   kind: NonNullable<RaceCalendarEdition["calendarGroup"]>["kind"];
   name: string;
@@ -759,10 +787,12 @@ export function getRegistrationAvailability({
 export function isRaceRegistrationClosed({
   edition,
   currentDayNumber,
+  divisionCode,
   now = new Date(),
 }: {
   edition: RaceCalendarEdition;
   currentDayNumber: number;
+  divisionCode?: string | null;
   now?: Date;
 }) {
   if (
@@ -778,10 +808,7 @@ export function isRaceRegistrationClosed({
     return true;
   }
 
-  const closesAt =
-    edition.categoryCode === "elite"
-      ? edition.wildcardClosesAt
-      : edition.registrationClosesAt;
+  const closesAt = getRaceRegistrationDeadline({ edition, divisionCode });
 
   return Boolean(closesAt && Date.parse(closesAt) <= now.getTime());
 }

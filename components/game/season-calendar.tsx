@@ -17,6 +17,7 @@ import {
   consolidateFederationCalendarEditions,
   getEditionDayRange,
   getGrandTourCalendarAccent,
+  getRaceRegistrationDeadline,
   getRegistrationAvailability,
   isFederationSelectionEdition,
   isInternationalChampionshipEdition,
@@ -47,6 +48,7 @@ type SeasonCalendarProps = {
   calendar: SeasonRaceCalendar;
   reputationPoints: number;
   nowIso: string;
+  divisionCode?: string | null;
 };
 
 type CalendarScope = "team" | "all";
@@ -56,6 +58,7 @@ export function SeasonCalendar({
   calendar,
   reputationPoints,
   nowIso,
+  divisionCode,
 }: SeasonCalendarProps) {
   const [scope, setScope] =
     useState<CalendarScope>("team");
@@ -593,9 +596,7 @@ function RaceCalendarList({
           const registration = edition.currentTeamRegistration;
           const availability = getRegistrationAvailability({
             policy: edition.registrationPolicy,
-            closesAt: edition.categoryCode === "elite"
-              ? edition.wildcardClosesAt
-              : edition.registrationClosesAt,
+            closesAt: getRaceRegistrationDeadline({ edition, divisionCode }),
             minimumReputation: edition.minimumReputation,
             reputationPoints,
             now: new Date(nowIso),
@@ -612,6 +613,7 @@ function RaceCalendarList({
             !isFederationSelection && isRaceRegistrationClosed({
               edition,
               currentDayNumber,
+              divisionCode,
               now: new Date(nowIso),
             });
           const status = isFederationSelection
@@ -1064,6 +1066,7 @@ function DesktopCalendarWeek({
                 !isFederationSelection && isRaceRegistrationClosed({
                   edition: segment.edition,
                   currentDayNumber,
+                  divisionCode,
                   now: new Date(nowIso),
                 });
               const editionIsPast = isRaceEditionPast({
@@ -1237,6 +1240,7 @@ function DesktopCalendarWeek({
                               edition:
                                 segment.edition,
                               currentDayNumber,
+                              divisionCode,
                               now: new Date(
                                 nowIso
                               ),
@@ -1373,6 +1377,7 @@ function MobileCalendarDay({
             !isFederationSelection && isRaceRegistrationClosed({
               edition,
               currentDayNumber,
+              divisionCode,
               now: new Date(nowIso),
             });
           const editionIsPast = isRaceEditionPast({

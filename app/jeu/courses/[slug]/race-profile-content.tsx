@@ -22,6 +22,7 @@ import {
   RACE_PROFILE_LABELS,
   RACE_STAGE_TYPE_LABELS,
   getEditionDayRange,
+  getRaceRegistrationDeadline,
   getRegistrationAvailability,
   isInternationalChampionshipEdition,
   isUnderfilledRaceRosterCorrectionOpen,
@@ -665,9 +666,10 @@ export async function RaceProfileContent({
                     <DefinitionRow
                       label="Clôture"
                       value={formatDeparture(
-                        edition.categoryCode === "elite"
-                          ? edition.wildcardClosesAt
-                          : edition.registrationClosesAt,
+                        getRaceRegistrationDeadline({
+                          edition,
+                          divisionCode: raceUserContext.divisionCode,
+                        }),
                       )}
                     />
                     <DefinitionRow
@@ -749,9 +751,10 @@ function RegistrationPanel({
     edition.competitionType === "standard" && edition.categoryCode === "elite";
   const isEliteTeam = context.divisionCode === "elite";
   const isWildcardRequest = isEliteRace && !isEliteTeam;
-  const registrationDeadline = isEliteRace
-    ? edition.wildcardClosesAt
-    : edition.registrationClosesAt;
+  const registrationDeadline = getRaceRegistrationDeadline({
+    edition,
+    divisionCode: context.divisionCode,
+  });
   const raceStageStatuses = edition.stages.map(
     (stage) => getStageLiveState(stage).status,
   );

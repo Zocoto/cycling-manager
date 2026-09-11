@@ -18,6 +18,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
 
 export const metadata: Metadata = {
   title: "Calendrier des courses",
@@ -58,6 +59,7 @@ export default async function RaceCalendarPage({
     headerData,
     calendarResult,
     reputationResult,
+    teamDivision,
     criteriumProgress,
   ] = await Promise.all([
       getGameHeaderData(supabase, user.id),
@@ -78,6 +80,7 @@ export default async function RaceCalendarPage({
         .select("reputation_points")
         .eq("auth_user_id", user.id)
         .maybeSingle<SportingDirectorReputation>(),
+      getCurrentTeamDivisionForAuthUser(user.id),
       getAuthenticatedTutorialProgress(
         supabase,
         CRITERIUM_DISCOVERY_KEY,
@@ -302,6 +305,7 @@ export default async function RaceCalendarPage({
                       ?.reputation_points ?? 0
                   }
                   nowIso={new Date().toISOString()}
+                  divisionCode={teamDivision?.code ?? "amateur"}
                 />
               </div>
             ) : (
