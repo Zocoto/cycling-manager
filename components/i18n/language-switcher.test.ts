@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("LanguageSwitcher integration", () => {
-  it("is visible in both the public and game headers", () => {
+  it("is visible in the public header and the authenticated user menu", () => {
     const publicHeader = readFileSync(
       resolve(process.cwd(), "components/layout/public-header.tsx"),
       "utf8",
@@ -12,9 +12,15 @@ describe("LanguageSwitcher integration", () => {
       resolve(process.cwd(), "components/game/game-header.tsx"),
       "utf8",
     );
+    const userMenu = readFileSync(
+      resolve(process.cwd(), "components/game/game-user-menu.tsx"),
+      "utf8",
+    );
 
     expect(publicHeader).toContain("<LanguageSwitcher compact />");
-    expect(gameHeader).toContain("<LanguageSwitcher compact />");
+    expect(gameHeader).not.toContain("<LanguageSwitcher compact />");
+    expect(gameHeader).toContain("<GameUserMenu");
+    expect(userMenu).toContain("<LanguageSwitcher compact />");
   });
 
   it("keeps the public sign-up action visible on narrow mobile screens", () => {

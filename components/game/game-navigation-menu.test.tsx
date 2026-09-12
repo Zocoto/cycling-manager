@@ -21,6 +21,15 @@ describe("GameNavigationMenu", () => {
     expect(markup).toContain('href="/jeu/parrainage">Parrainage');
   });
 
+  it("affiche toujours le Fan-club et retire les doublons du menu utilisateur", () => {
+    const markup = renderToStaticMarkup(<GameNavigationMenu />);
+
+    expect(markup).toContain('href="/jeu/fan-club"');
+    expect(markup).toContain("Fan-club &amp; boutique");
+    expect(markup).not.toContain('href="/jeu/directeur-sportif"');
+    expect(markup).not.toContain('href="/guide"');
+  });
+
   it("affiche l’entrée fédération correspondant au pays du sponsor", () => {
     const belgianMarkup = renderToStaticMarkup(
       <GameNavigationMenu federationCountryCode="BE" />,

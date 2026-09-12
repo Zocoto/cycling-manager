@@ -7,7 +7,13 @@ type Availability = "checking" | "ready" | "unsupported";
 const PUSH_PREFERENCE_KEY = "cyclo-stratege:push-notifications";
 let pushActivationPromise: Promise<void> | null = null;
 
-export function PushNotificationControl() {
+export function PushNotificationControl({
+  variant = "icon",
+  isEnglish = false,
+}: {
+  variant?: "icon" | "menu";
+  isEnglish?: boolean;
+} = {}) {
   const panelId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [availability, setAvailability] = useState<Availability>("checking");
@@ -172,6 +178,121 @@ export function PushNotificationControl() {
   const buttonLabel = isEnabled
     ? "Notifications activées"
     : "Configurer les notifications";
+
+  if (variant === "menu") {
+    const statusLabel =
+      availability === "checking"
+        ? isEnglish
+          ? "Checking…"
+          : "Vérification…"
+        : availability === "unsupported"
+          ? isEnglish
+            ? "Unavailable"
+            : "Indisponibles"
+          : isEnabled
+            ? isEnglish
+              ? "Enabled"
+              : "Activées"
+            : isEnglish
+              ? "Disabled"
+              : "Désactivées";
+    const toggleLabel = isEnabled
+      ? isEnglish
+        ? "Disable notifications on this device"
+        : "Désactiver les notifications sur cet appareil"
+      : isEnglish
+        ? "Enable notifications on this device"
+        : "Activer les notifications sur cet appareil";
+
+    return (
+      <div
+        data-user-menu-notifications="true"
+        className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3"
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+              isEnabled
+                ? "bg-[#176951] text-[#C8F3DD]"
+                : "bg-[#1B463C] text-[#9BE0CA]"
+            }`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 8.3a5 5 0 0 1 10 0c0 5 2 5.2 2 5.2H3s2-.2 2-5.2Z" />
+              <path d="M8 16h4" />
+            </svg>
+            {isEnabled ? (
+              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-[#176951] bg-[#F2C94C]" />
+            ) : null}
+          </span>
+
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black">
+              {isEnglish ? "Notifications" : "Notifications"}
+            </span>
+            <span className="mt-0.5 block text-[10px] font-semibold text-[#B9CBC4]">
+              {isEnglish
+                ? "Important alerts on this device"
+                : "Alertes importantes sur cet appareil"}
+            </span>
+          </span>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isEnabled}
+            aria-label={toggleLabel}
+            title={toggleLabel}
+            disabled={isBusy || availability !== "ready"}
+            onClick={() => void (isEnabled
+              ? disableNotifications()
+              : enableNotifications())}
+            className="group inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border border-white/12 bg-black/20 py-1 pl-2.5 pr-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-wait disabled:opacity-60"
+          >
+            <span>{isBusy ? (isEnglish ? "Updating…" : "Mise à jour…") : statusLabel}</span>
+            <span
+              aria-hidden="true"
+              className={`relative h-5 w-9 rounded-full transition ${
+                isEnabled ? "bg-[#42B99A]" : "bg-[#6F827B]"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition ${
+                  isEnabled ? "left-[1.125rem]" : "left-0.5"
+                }`}
+              />
+            </span>
+          </button>
+        </div>
+
+        {availability === "unsupported" ? (
+          <p className="mt-2 text-[10px] font-semibold leading-4 text-[#F2B8BD]">
+            {isEnglish
+              ? "Push notifications are not supported by this browser or device."
+              : "Les notifications push ne sont pas prises en charge sur ce navigateur ou cet appareil."}
+          </p>
+        ) : null}
+
+        {message ? (
+          <p
+            aria-live="polite"
+            className="mt-2 text-[10px] font-semibold leading-4 text-[#B9CBC4]"
+          >
+            {message}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="relative shrink-0">
