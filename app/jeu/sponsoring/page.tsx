@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
+import { SponsorBudgetHistoryChart } from "@/components/game/sponsor-budget-history-chart";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
@@ -213,6 +214,12 @@ export default async function SponsoringPage({
             ) : null}
 
           </div>
+
+          {!sponsoringError &&
+          sponsoringState &&
+          sponsoringState.kind !== "onboarding" ? (
+            <SponsorBudgetHistoryChart points={sponsoringState.budgetHistory} />
+          ) : null}
         </div>
       </section>
     </main>
