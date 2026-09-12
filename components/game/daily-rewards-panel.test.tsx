@@ -22,6 +22,14 @@ describe("DailyRewardsPanel", () => {
     expect(markup).toContain("Niv. 8");
     expect(markup).toContain("cadeau de niveau 10");
     expect(markup).toContain("même après une ou plusieurs");
+    expect(markup).toContain('data-daily-reward-cycle-gauge="true"');
+    expect(markup).toContain('aria-valuenow="4"');
+    expect(markup).toContain("3 cadeaux obtenus sur 40");
+    expect(markup).toContain("Ultime · Niv. 10");
+    expect(markup.match(/data-cycle-day=/g)).toHaveLength(40);
+    expect(markup).toContain('data-cycle-day="3" data-cycle-state="reached"');
+    expect(markup).toContain('data-cycle-day="4" data-cycle-state="current"');
+    expect(markup).not.toContain('title="J1 · cadeau récupéré"');
     expect(markup).not.toContain("le remet au jour 1");
   });
 

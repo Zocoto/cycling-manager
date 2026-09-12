@@ -4,10 +4,20 @@ import {
 import { DailyRewardRedemptionForm } from "@/components/game/daily-reward-redemption-form";
 import {
   DAILY_REWARD_CYCLE_LENGTH,
+  getDailyRewardImportance,
   groupDailyRewardInventoryItems,
   type DailyRewardInventoryItem,
   type DailyRewardOverview,
 } from "@/lib/game/daily-rewards";
+
+const DAILY_REWARD_FINAL_MILESTONES = [
+  { day: 28, importance: 7 },
+  { day: 32, importance: 8 },
+  { day: 36, importance: 9 },
+  { day: 40, importance: 10 },
+] as const;
+
+const DAILY_REWARD_GRADUATIONS = [1, 5, 10, 15, 20, 25, 30, 35, 40] as const;
 
 export function DailyRewardsPanel({
   overview,
@@ -74,65 +84,11 @@ export function DailyRewardsPanel({
         </div>
 
         <div className="p-5 sm:p-8">
-          <div className="grid grid-cols-7 gap-2 sm:grid-cols-14 lg:grid-cols-28">
-            {Array.from({ length: overview.seasonLength }, (_, index) => {
-              const day = index + 1;
-              const claimed = overview.claimedSeasonDays.includes(day);
-              const current = day === overview.currentDayNumber;
-              return (
-                <div
-                  key={day}
-                  title={`J${day} · ${
-                    claimed
-                      ? "cadeau récupéré"
-                      : current
-                        ? "jour actuel"
-                        : "jour de saison"
-                  }`}
-                  className={`relative flex aspect-square min-w-0 items-center justify-center rounded-lg border text-[10px] font-black sm:text-xs ${
-                    claimed
-                      ? "border-[#176951] bg-[#176951] text-white"
-                      : current
-                        ? "border-[#D6A600] bg-[#FFF4B8] text-[#6A5200] ring-2 ring-[#F2C94C]/30"
-                        : "border-[#315B3E]/12 bg-[#F3F7F5] text-[#789087]"
-                  }`}
-                >
-                  {claimed ? "✓" : day}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {[
-              { day: 28, importance: 7 },
-              { day: 32, importance: 8 },
-              { day: 36, importance: 9 },
-              { day: 40, importance: 10 },
-            ].map((milestone) => {
-              const reached = claimedCycleDay >= milestone.day;
-              const next = overview.prospectiveStreakDay === milestone.day;
-              return (
-                <div
-                  key={milestone.day}
-                  className={`rounded-xl border px-3 py-2 text-center ${
-                    reached
-                      ? "border-[#176951] bg-[#EAF5F3] text-[#176951]"
-                      : next
-                        ? "border-[#D6A600] bg-[#FFF9DB] text-[#715700]"
-                        : "border-[#315B3E]/12 bg-[#F7FAF8] text-[#789087]"
-                  }`}
-                >
-                  <p className="text-xs font-black">
-                    Niv. {milestone.importance}
-                  </p>
-                  <p className="text-[10px] font-bold">
-                    Cadeau {milestone.day}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+          <DailyRewardCycleGauge
+            claimedCycleDay={claimedCycleDay}
+            displayedCycleDay={displayedCycleDay}
+            availableToday={overview.availableToday}
+          />
 
           {overview.availableToday ? (
             <div className="mt-7 rounded-[1.6rem] border border-[#D6A600]/28 bg-[#FFF9DB] p-5 sm:p-6">
@@ -237,6 +193,157 @@ export function DailyRewardsPanel({
       </section>
     </div>
   );
+}
+
+function DailyRewardCycleGauge({
+  claimedCycleDay,
+  displayedCycleDay,
+  availableToday,
+}: {
+  claimedCycleDay: number;
+  displayedCycleDay: number;
+  availableToday: boolean;
+}) {
+  const normalizedClaimedDay = Math.min(
+    DAILY_REWARD_CYCLE_LENGTH,
+    Math.max(0, claimedCycleDay),
+  );
+  const normalizedDisplayedDay = Math.min(
+    DAILY_REWARD_CYCLE_LENGTH,
+    Math.max(1, displayedCycleDay),
+  );
+
+  return (
+    <div
+      data-daily-reward-cycle-gauge="true"
+      className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] px-4 py-4 sm:px-6"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            Progression du cycle
+          </p>
+          <p className="mt-1 text-sm font-bold text-[#60756E]">
+            {normalizedClaimedDay} cadeau
+            {normalizedClaimedDay === 1 ? "" : "x"} obtenu
+            {normalizedClaimedDay === 1 ? "" : "s"} sur 40
+          </p>
+        </div>
+        <span className="rounded-full border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-1.5 text-xs font-black text-[#715700]">
+          {availableToday ? "À ouvrir" : "Position"} · cadeau{" "}
+          {normalizedDisplayedDay}
+        </span>
+      </div>
+
+      <div
+        role="progressbar"
+        aria-label="Progression vers le cadeau quotidien ultime"
+        aria-valuemin={1}
+        aria-valuemax={DAILY_REWARD_CYCLE_LENGTH}
+        aria-valuenow={normalizedDisplayedDay}
+        aria-valuetext={`Cadeau ${normalizedDisplayedDay} sur ${DAILY_REWARD_CYCLE_LENGTH}`}
+        className="relative mt-4 pb-7 pt-8"
+      >
+        {DAILY_REWARD_FINAL_MILESTONES.map((milestone) => {
+          const reached = normalizedClaimedDay >= milestone.day;
+          const next = normalizedDisplayedDay === milestone.day;
+          const position = getDailyRewardGaugePosition(milestone.day);
+          const edgeAlignment =
+            milestone.day === DAILY_REWARD_CYCLE_LENGTH
+              ? "translateX(-100%)"
+              : "translateX(-50%)";
+
+          return (
+            <span
+              key={milestone.day}
+              title={`Cadeau ${milestone.day} · niveau ${milestone.importance}`}
+              className={`absolute top-0 whitespace-nowrap rounded-full px-1.5 py-1 text-[8px] font-black uppercase tracking-[0.06em] sm:px-2 sm:text-[9px] ${
+                reached
+                  ? "bg-[#176951] text-white"
+                  : next
+                    ? "bg-[#F2C94C] text-[#403200] ring-2 ring-[#F2C94C]/25"
+                    : milestone.importance === 10
+                      ? "bg-[#FFF1B8] text-[#80640C]"
+                      : "bg-[#E8EFEB] text-[#60756E]"
+              }`}
+              style={{ left: `${position}%`, transform: edgeAlignment }}
+            >
+              {milestone.importance === 10 ? "Ultime · " : ""}Niv. {milestone.importance}
+            </span>
+          );
+        })}
+
+        <div
+          className="grid h-4 items-stretch gap-px sm:gap-0.5"
+          style={{
+            gridTemplateColumns: `repeat(${DAILY_REWARD_CYCLE_LENGTH}, minmax(0, 1fr))`,
+          }}
+        >
+          {Array.from({ length: DAILY_REWARD_CYCLE_LENGTH }, (_, index) => {
+            const day = index + 1;
+            const reached = day <= normalizedClaimedDay;
+            const current = day === normalizedDisplayedDay;
+            const finalMilestone = DAILY_REWARD_FINAL_MILESTONES.some(
+              (milestone) => milestone.day === day,
+            );
+            const state = current
+              ? reached
+                ? "current-reached"
+                : "current"
+              : reached
+                ? "reached"
+                : "upcoming";
+
+            return (
+              <span
+                key={day}
+                data-cycle-day={day}
+                data-cycle-state={state}
+                title={`Cadeau ${day} · niveau ${getDailyRewardImportance(day)}`}
+                className={`min-w-0 rounded-[2px] ${
+                  current
+                    ? "bg-[#F2C94C] ring-2 ring-[#D6A600]/40 ring-offset-1"
+                    : reached
+                      ? "bg-[#176951]"
+                      : finalMilestone
+                        ? "bg-[#B5C8C0]"
+                        : "bg-[#DCE6E1]"
+                }`}
+              />
+            );
+          })}
+        </div>
+
+        {DAILY_REWARD_GRADUATIONS.map((day) => {
+          const position = getDailyRewardGaugePosition(day);
+          const edgeAlignment =
+            day === 1
+              ? "translateX(0)"
+              : day === DAILY_REWARD_CYCLE_LENGTH
+                ? "translateX(-100%)"
+                : "translateX(-50%)";
+
+          return (
+            <span
+              key={day}
+              className={`absolute bottom-0 text-[9px] font-bold ${
+                day === DAILY_REWARD_CYCLE_LENGTH
+                  ? "text-[#80640C]"
+                  : "text-[#789087]"
+              }`}
+              style={{ left: `${position}%`, transform: edgeAlignment }}
+            >
+              {day}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function getDailyRewardGaugePosition(day: number) {
+  return ((day - 1) / (DAILY_REWARD_CYCLE_LENGTH - 1)) * 100;
 }
 
 function InventoryRewardCard({
