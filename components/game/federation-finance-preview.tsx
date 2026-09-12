@@ -95,10 +95,24 @@ export function FederationFinancePreview({
     executeFederationSolidarityAction,
     initialFederationFinanceActionState,
   );
-  const eligibleTeams = baseline.teamProfiles.filter(
-    (team) => team.reputationPoints <= reputationThreshold,
+  const eligibleTeams = baseline.teamProfiles
+    .filter(
+      (team) =>
+        team.teamId !== treasuryState?.presidentTeamId &&
+        team.reputationPoints <= reputationThreshold &&
+        (team.solidarityReceived ?? 0) < 100_000,
+    )
+    .map((team) => ({
+      ...team,
+      grantAmount: Math.min(
+        solidarityAmount,
+        Math.max(0, 100_000 - (team.solidarityReceived ?? 0)),
+      ),
+    }));
+  const solidarityCommitment = eligibleTeams.reduce(
+    (total, team) => total + team.grantAmount,
+    0,
   );
-  const solidarityCommitment = eligibleTeams.length * solidarityAmount;
   const hasTreasuryAccount = Boolean(treasuryState?.account);
   const settledOpening = treasuryState?.account?.openingBreakdown ?? null;
   const availableBalance =
@@ -116,6 +130,7 @@ export function FederationFinancePreview({
   const overBudget = solidarityCommitment > availableSolidarity;
   const isActive = gameYear >= 3;
   const solidarityCapReached = isActive && solidarityRemaining <= 0;
+  const noEligibleTeam = isActive && eligibleTeams.length === 0;
   const sourceGameYear =
     treasuryState?.account?.sourceGameYear ?? baseline.gameYear;
   const targetGameYear = sourceGameYear + 1;
@@ -227,13 +242,14 @@ export function FederationFinancePreview({
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">Fonds de solidarité · Plafond saisonnier</p>
           <h3 className="mt-2 text-2xl font-black text-[#183F37]">Deux jauges, une dépense toujours couverte</h3>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
-            Les équipes affiliées sous le seuil de réputation reçoivent le même
-            montant. Sur la saison, les versements cumulés sont plafonnés à 10 %
-            du budget d’ouverture de la fédération.
+            Les autres équipes affiliées sous le seuil de réputation peuvent
+            recevoir jusqu’à 100 000 € chacune sur la saison. L’équipe du
+            président est toujours exclue. Les versements cumulés restent aussi
+            plafonnés à 10 % du budget d’ouverture de la fédération.
           </p>
           <div className="mt-6 space-y-6">
             <RangeControl label="Réputation maximale éligible" value={reputationThreshold} display={`${reputationThreshold} points`} min={0} max={500} step={10} onChange={setReputationThreshold} />
-            <RangeControl label="Montant par bénéficiaire" value={solidarityAmount} display={money.format(solidarityAmount)} min={25_000} max={500_000} step={25_000} onChange={setSolidarityAmount} />
+            <RangeControl label="Montant par bénéficiaire" value={solidarityAmount} display={money.format(solidarityAmount)} min={25_000} max={100_000} step={25_000} onChange={setSolidarityAmount} />
           </div>
           <div className={`mt-6 rounded-2xl border p-5 ${overBudget ? "border-[#C75348]/30 bg-[#FFF2F0]" : "border-[var(--federation-secondary)]/25 bg-[#E8F7F1]"}`}>
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -244,16 +260,18 @@ export function FederationFinancePreview({
             <p className={`mt-4 text-xs font-black leading-5 ${overBudget ? "text-[#9D3E37]" : "text-[var(--federation-secondary)]"}`}>
               {overBudget
                 ? `Validation impossible : il manque ${money.format(solidarityCommitment - availableSolidarity)} sur l’enveloppe autorisée.`
-                : `${money.format(solidarityDistributed)} déjà versés sur un plafond saisonnier de ${money.format(solidarityLimit)}.`}
+                : `${money.format(solidarityDistributed)} déjà versés sur un plafond fédéral de ${money.format(solidarityLimit)} · maximum 100 000 € cumulés par équipe.`}
             </p>
             {isActive && treasuryState?.canManageSolidarity ? (
               <form action={solidarityAction}>
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="reputationThreshold" value={reputationThreshold} />
                 <input type="hidden" name="amountPerTeam" value={solidarityAmount} />
-                <button type="submit" disabled={overBudget || solidarityPending || solidarityCapReached} className="mt-4 min-h-11 w-full rounded-xl bg-[var(--federation-primary)] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                <button type="submit" disabled={overBudget || solidarityPending || solidarityCapReached || noEligibleTeam} className="mt-4 min-h-11 w-full rounded-xl bg-[var(--federation-primary)] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
                   {solidarityCapReached
                     ? "Plafond saisonnier atteint"
+                    : noEligibleTeam
+                      ? "Aucune autre équipe éligible"
                     : solidarityPending
                       ? "Versement…"
                       : overBudget
