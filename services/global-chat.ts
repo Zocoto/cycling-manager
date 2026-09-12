@@ -3,7 +3,10 @@ import "server-only";
 import {
   GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
   GLOBAL_CHAT_MESSAGE_PAGE_SIZE,
+  GLOBAL_CHAT_SEARCH_MIN_LENGTH,
+  GLOBAL_CHAT_SEARCH_RESULT_LIMIT,
   getGlobalChatHistoryStart,
+  normalizeGlobalChatSearchQuery,
   type GlobalChatCursor,
   type GlobalChatMessageReactionEmoji,
   type GlobalChatPreviewType,
@@ -233,6 +236,10 @@ export type GlobalChatMessagePage = {
   nextCursor: GlobalChatCursor | null;
 };
 
+type GlobalChatSearchMessageIdRow = {
+  message_id: string;
+};
+
 export async function getGlobalChatOverview(
   supabase: SupabaseServerClient,
 ): Promise<{
@@ -382,6 +389,68 @@ export async function getGlobalChatMessagePage(
           }
         : null,
   };
+}
+
+export async function searchGlobalChatMessages(
+  supabase: SupabaseServerClient,
+  searchQuery: string,
+): Promise<GlobalChatMessage[]> {
+  const query = normalizeGlobalChatSearchQuery(searchQuery);
+  if (query.length < GLOBAL_CHAT_SEARCH_MIN_LENGTH) return [];
+
+  const messageIdsResult = await supabase.rpc(
+    "search_current_global_chat_message_ids",
+    {
+      p_query: query,
+      p_limit: GLOBAL_CHAT_SEARCH_RESULT_LIMIT,
+    },
+  );
+  if (messageIdsResult.error) {
+    throw new Error(
+      `Impossible de rechercher dans le chat : ${messageIdsResult.error.message}`,
+    );
+  }
+
+  const messageIds = (
+    (messageIdsResult.data as GlobalChatSearchMessageIdRow[] | null) ?? []
+  ).map((row) => row.message_id);
+  if (messageIds.length === 0) return [];
+
+  const messagesResult = await supabase
+    .from("global_chat_messages")
+    .select(GLOBAL_CHAT_MESSAGE_SELECT)
+    .in("id", messageIds);
+  if (messagesResult.error) {
+    throw new Error(
+      `Impossible de charger les résultats du chat : ${messagesResult.error.message}`,
+    );
+  }
+
+  const rows =
+    (messagesResult.data as unknown as GlobalChatMessageRow[] | null) ?? [];
+  const rowsById = new Map(rows.map((row) => [row.id, row]));
+  const orderedRows = messageIds
+    .map((messageId) => rowsById.get(messageId))
+    .filter((row): row is GlobalChatMessageRow => Boolean(row))
+    .reverse();
+  const [reactionsByMessageId, profilesByDirectorId] = await Promise.all([
+    getReactionsByMessageId(
+      supabase,
+      orderedRows.map((row) => row.id),
+    ),
+    getProfilesByDirectorId(
+      supabase,
+      orderedRows.map((row) => row.sporting_director_id),
+    ),
+  ]);
+
+  return orderedRows.map((row) =>
+    mapGlobalChatMessage(
+      row,
+      reactionsByMessageId.get(row.id) ?? [],
+      profilesByDirectorId.get(row.sporting_director_id),
+    ),
+  );
 }
 
 export function mapGlobalChatMessage(

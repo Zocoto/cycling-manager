@@ -65,11 +65,21 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("message.replyTo");
   });
 
-  it("adds useful local views and loads the federation only on demand", () => {
+  it("adds useful catch-up views and loads the federation only on demand", () => {
+    expect(chat).toContain('"unread"');
+    expect(chat).toContain("À rattraper");
     expect(chat).toContain('["races", "Courses"]');
     expect(chat).toContain('["mentions", "Mes mentions"]');
     expect(chat).toContain("normalizeChatSearchQuery");
     expect(chat).toContain("hasOpenedFederation");
     expect(chat).toContain("FederationMessagingPanel");
+  });
+
+  it("searches the complete retained history only after a short debounce", () => {
+    expect(chat).toContain("/jeu/chat/recherche");
+    expect(chat).toContain("GLOBAL_CHAT_SEARCH_MIN_LENGTH");
+    expect(chat).toContain("280");
+    expect(chat).toContain("Recherche dans les 30 derniers jours");
+    expect(chat).toContain("AbortController");
   });
 });

@@ -12,7 +12,7 @@ describe("mobile game navigation", () => {
   it("offre cinq destinations majeures accessibles au pouce", () => {
     for (const href of [
       '"/jeu"',
-      '"/jeu/chat"',
+      '"/jeu/effectif"',
       '"/jeu/calendrier"',
       '"/jeu/transferts"',
     ]) {
@@ -21,8 +21,8 @@ describe("mobile game navigation", () => {
 
     expect(source).toContain("grid-cols-5");
     expect(source).toContain("sm:hidden");
-    expect(source).toContain("hasUnreadChat");
-    expect(source).toContain("directUnreadCount");
+    expect(source).toContain('["Effectif", "/jeu/effectif", "riders"]');
+    expect(source).not.toContain('["Chat", "/jeu/chat", "chat"]');
   });
 
   it("ouvre un centre de course dédié aux trois moments du parcours", () => {

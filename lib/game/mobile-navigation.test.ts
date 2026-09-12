@@ -32,10 +32,7 @@ describe("mobile navigation overflow", () => {
     expect(groups).toEqual([
       {
         label: "Sportif",
-        links: [
-          ["Effectif", "/jeu/effectif"],
-          ["Classements", "/jeu/classements"],
-        ],
+        links: [["Classements", "/jeu/classements"]],
       },
     ]);
   });

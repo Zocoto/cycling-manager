@@ -190,9 +190,7 @@ export function GameHeader({
             <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
           </HeaderIconMenuItem>
 
-          <span className="hidden sm:contents">
-            <GlobalChatShortcut chatIsOpen={chatIsOpen} />
-          </span>
+          <GlobalChatShortcut chatIsOpen={chatIsOpen} floatingOnMobile />
 
           {canAccessRaceSimulator(simulatorEmail) ? (
             <span className="hidden sm:contents">

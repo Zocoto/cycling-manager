@@ -6,6 +6,9 @@ export const GLOBAL_CHAT_MESSAGE_PAGE_SIZE = 30;
 export const GLOBAL_CHAT_HISTORY_DAYS = 30;
 export const GLOBAL_CHAT_MENTION_MAX_RECIPIENTS = 5;
 export const GLOBAL_CHAT_MENTION_SEARCH_MIN_LENGTH = 1;
+export const GLOBAL_CHAT_SEARCH_MIN_LENGTH = 2;
+export const GLOBAL_CHAT_SEARCH_MAX_LENGTH = 80;
+export const GLOBAL_CHAT_SEARCH_RESULT_LIMIT = 30;
 
 export const GLOBAL_CHAT_EMOJIS = [
   "😀",
@@ -257,6 +260,13 @@ export function getGlobalChatHistoryStart(now = new Date()) {
   return new Date(
     now.getTime() - GLOBAL_CHAT_HISTORY_DAYS * 24 * 60 * 60 * 1_000,
   ).toISOString();
+}
+
+export function normalizeGlobalChatSearchQuery(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, GLOBAL_CHAT_SEARCH_MAX_LENGTH);
 }
 
 export function isGlobalChatCursor(value: unknown): value is GlobalChatCursor {

@@ -35,12 +35,9 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain('className="hidden sm:contents"');
   });
 
-  it("laisse le chat au dock mobile et conserve son raccourci sur desktop", () => {
+  it("restaure la bulle de chat mobile et conserve son raccourci sur desktop", () => {
     expect(headerSource).toContain("<GlobalChatShortcut");
-    expect(headerSource).toMatch(
-      /<span className="hidden sm:contents">\r?\n\s*<GlobalChatShortcut/,
-    );
-    expect(headerSource).not.toContain("floatingOnMobile");
+    expect(headerSource).toContain("floatingOnMobile");
   });
 
   it("place une recherche compacte entre la ligne principale et les raccourcis sur mobile", () => {

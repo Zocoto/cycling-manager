@@ -8,6 +8,7 @@ import {
   hasForbiddenGlobalChatLink,
   isGlobalChatCursor,
   normalizeGlobalChatMessage,
+  normalizeGlobalChatSearchQuery,
   stripGlobalChatCyclingReactionTokens,
 } from "@/lib/game/global-chat";
 
@@ -142,6 +143,13 @@ describe("global chat messages", () => {
     expect(
       getGlobalChatHistoryStart(new Date("2026-07-29T12:00:00.000Z")),
     ).toBe("2026-06-29T12:00:00.000Z");
+  });
+
+  it("normalizes and caps full-history search queries", () => {
+    expect(normalizeGlobalChatSearchQuery("  Tour   d’Italie  ")).toBe(
+      "Tour d’Italie",
+    );
+    expect(normalizeGlobalChatSearchQuery("x".repeat(120))).toHaveLength(80);
   });
 
   it("accepts only a complete timestamp and UUID pagination cursor", () => {

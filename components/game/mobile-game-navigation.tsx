@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { useLocale } from "@/components/i18n/locale-provider";
-import { useGameHeaderIndicators } from "@/components/game/game-header-indicators-provider";
 import {
   NAVIGATION_GROUPS_EN,
   NAVIGATION_GROUPS_FR,
@@ -15,13 +14,13 @@ import { getMobileMoreNavigationGroups } from "@/lib/game/mobile-navigation";
 
 const PRIMARY_LINKS_FR = [
   ["Bureau", "/jeu", "home"],
-  ["Chat", "/jeu/chat", "chat"],
+  ["Effectif", "/jeu/effectif", "riders"],
   ["Transferts", "/jeu/transferts", "transfer"],
 ] as const;
 
 const PRIMARY_LINKS_EN = [
   ["Office", "/jeu", "home"],
-  ["Chat", "/jeu/chat", "chat"],
+  ["Roster", "/jeu/effectif", "riders"],
   ["Transfers", "/jeu/transferts", "transfer"],
 ] as const;
 
@@ -93,7 +92,6 @@ export function MobileGameNavigation({
   federationCountryCode?: string | null;
 }) {
   const { locale } = useLocale();
-  const indicators = useGameHeaderIndicators();
   const isEnglish = locale === "en";
   const pathname = usePathname();
   const panelId = useId();
@@ -118,12 +116,6 @@ export function MobileGameNavigation({
   const racesActive = COURSE_PATH_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
   );
-  const hasUnreadChat = Boolean(
-    indicators?.hasUnreadGlobalChat ||
-      (indicators?.directMessageUnreadCount ?? 0) > 0,
-  );
-  const directUnreadCount = indicators?.directMessageUnreadCount ?? 0;
-
   useEffect(() => {
     if (!openPanel) return;
 
@@ -424,20 +416,6 @@ export function MobileGameNavigation({
                 <span className="absolute inset-x-auto top-0 h-0.5 w-5 rounded-full bg-[#F2C94C]" />
               ) : null}
               <MobileNavigationIcon icon={icon} />
-              {href === "/jeu/chat" && hasUnreadChat ? (
-                <span
-                  aria-label={
-                    directUnreadCount > 0
-                      ? `${directUnreadCount} message privé non lu`
-                      : isEnglish
-                        ? "Unread chat messages"
-                        : "Nouveaux messages dans le chat"
-                  }
-                  className="absolute right-[22%] top-1 grid min-h-4 min-w-4 place-items-center rounded-full border border-[#071A17] bg-[#EF5B65] px-1 text-[8px] font-black leading-none text-white"
-                >
-                  {directUnreadCount > 0 ? Math.min(99, directUnreadCount) : ""}
-                </span>
-              ) : null}
               <span className="max-w-full truncate px-1">{label}</span>
             </Link>
           );
@@ -547,7 +525,7 @@ function CourseNavigationIcon({
 function MobileNavigationIcon({
   icon,
 }: {
-  icon: "home" | "riders" | "calendar" | "transfer" | "chat" | "menu";
+  icon: "home" | "riders" | "calendar" | "transfer" | "menu";
 }) {
   const commonProps = {
     "aria-hidden": true,
@@ -574,10 +552,6 @@ function MobileNavigationIcon({
 
   if (icon === "transfer") {
     return <svg {...commonProps}><path d="M4 7h14m0 0-3-3m3 3-3 3M20 17H6m0 0 3 3m-3-3 3-3" /></svg>;
-  }
-
-  if (icon === "chat") {
-    return <svg {...commonProps}><path d="M4 4h16v11H9l-5 4V4Z" /><path d="M8 9h.01M12 9h.01M16 9h.01" /></svg>;
   }
 
   return <svg {...commonProps}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;

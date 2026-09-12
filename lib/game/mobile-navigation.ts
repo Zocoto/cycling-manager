@@ -5,6 +5,7 @@ export type MobileNavigationGroup = {
 
 export const MOBILE_VISIBLE_DESTINATIONS = new Set([
   "/jeu",
+  "/jeu/effectif",
   "/jeu/transferts",
   "/jeu/calendrier",
   "/jeu/preparation-course",

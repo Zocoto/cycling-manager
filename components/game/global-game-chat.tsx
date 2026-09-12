@@ -10,6 +10,8 @@ import {
   useRef,
   useState,
   useTransition,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 
 import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
@@ -34,7 +36,10 @@ import {
   GLOBAL_CHAT_MENTION_MAX_RECIPIENTS,
   GLOBAL_CHAT_MENTION_SEARCH_MIN_LENGTH,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
+  GLOBAL_CHAT_SEARCH_MAX_LENGTH,
+  GLOBAL_CHAT_SEARCH_MIN_LENGTH,
   hasForbiddenGlobalChatLink,
+  normalizeGlobalChatSearchQuery,
   normalizeGlobalChatMessage,
   splitGlobalChatMessageContent,
   stripGlobalChatCyclingReactionTokens,
@@ -93,9 +98,14 @@ const FederationMessagingPanel = dynamic(
 );
 
 type ChatMode = "global" | "direct" | "federation";
-type GlobalChatView = "all" | "races" | "mentions";
+type GlobalChatView = "all" | "unread" | "races" | "mentions";
 
 const GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6;
+
+type GlobalChatHistorySearch = {
+  query: string;
+  messages: GlobalChatMessage[];
+};
 
 type ChatMessageTranslationState = {
   targetLocale: "fr" | "en";
@@ -131,12 +141,38 @@ export function GlobalGameChat({
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
+  const [historySearch, setHistorySearch] =
+    useState<GlobalChatHistorySearch | null>(null);
+  const [isSearchingHistory, setIsSearchingHistory] = useState(false);
+  const [historySearchError, setHistorySearchError] = useState<string | null>(
+    null,
+  );
+  const updateReactionMessages = useCallback<
+    Dispatch<SetStateAction<GlobalChatMessage[]>>
+  >((update) => {
+    setMessages(update);
+    setHistorySearch((current) =>
+      current
+        ? {
+            ...current,
+            messages:
+              typeof update === "function"
+                ? update(current.messages)
+                : update,
+          }
+        : current,
+    );
+  }, []);
   const {
     pendingReactionKey,
     isReactionPending,
     reactionError,
     toggleMessageReaction,
-  } = useGlobalChatReactions({ supabase, identity, setMessages });
+  } = useGlobalChatReactions({
+    supabase,
+    identity,
+    setMessages: updateReactionMessages,
+  });
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [olderCursor, setOlderCursor] = useState(initialCursor);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -262,10 +298,28 @@ export function GlobalGameChat({
   );
   const firstInitialUnreadMessageId = initialUnreadMessageIds[0] ?? null;
   const initialUnreadMessageCount = initialUnreadMessageIds.length;
+  const initialUnreadMessageIdSet = useMemo(
+    () => new Set(initialUnreadMessageIds),
+    [initialUnreadMessageIds],
+  );
+  const normalizedHistorySearchQuery = normalizeGlobalChatSearchQuery(
+    searchQuery,
+  );
+  const matchingHistorySearch =
+    historySearch?.query === normalizedHistorySearchQuery
+      ? historySearch
+      : null;
+  const searchableMessages = matchingHistorySearch?.messages ?? messages;
   const filteredMessages = useMemo(
     () => {
       const normalizedQuery = normalizeChatSearchQuery(searchQuery);
-      return messages.filter((message) => {
+      return searchableMessages.filter((message) => {
+        if (
+          globalView === "unread" &&
+          !initialUnreadMessageIdSet.has(message.id)
+        ) {
+          return false;
+        }
         if (globalView === "races" && !message.raceContext) return false;
         if (
           globalView === "mentions" &&
@@ -285,7 +339,13 @@ export function GlobalGameChat({
         );
       });
     },
-    [globalView, identity.username, messages, searchQuery],
+    [
+      globalView,
+      identity.username,
+      initialUnreadMessageIdSet,
+      searchQuery,
+      searchableMessages,
+    ],
   );
   const compactHistoryStartIndex = useMemo(() => {
     if (firstInitialUnreadMessageId) {
@@ -332,6 +392,66 @@ export function GlobalGameChat({
     }, 180);
     return () => window.clearTimeout(timer);
   }, [draft, draftHydrated, identity.sportingDirectorId]);
+
+  useEffect(() => {
+    if (
+      !searchOpen ||
+      normalizedHistorySearchQuery.length < GLOBAL_CHAT_SEARCH_MIN_LENGTH
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setIsSearchingHistory(true);
+      setHistorySearchError(null);
+      try {
+        const parameters = new URLSearchParams({
+          q: normalizedHistorySearchQuery,
+        });
+        const response = await fetch(`/jeu/chat/recherche?${parameters}`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        const result = (await response.json()) as {
+          query?: string;
+          messages?: GlobalChatMessage[];
+          error?: string;
+        };
+        if (!response.ok || !result.query || !Array.isArray(result.messages)) {
+          throw new Error(
+            result.error ?? "La recherche dans le chat est indisponible.",
+          );
+        }
+
+        setHistorySearch({
+          query: result.query,
+          messages: result.messages,
+        });
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            const viewport = viewportRef.current;
+            if (viewport) viewport.scrollTop = viewport.scrollHeight;
+          });
+        });
+      } catch (searchError) {
+        if (controller.signal.aborted) return;
+        setHistorySearchError(
+          searchError instanceof Error
+            ? searchError.message
+            : "La recherche dans le chat est indisponible.",
+        );
+      } finally {
+        if (!controller.signal.aborted) setIsSearchingHistory(false);
+      }
+    }, 280);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [normalizedHistorySearchQuery, searchOpen]);
 
   useEffect(() => {
     activeModeRef.current = activeMode;
@@ -642,6 +762,24 @@ export function GlobalGameChat({
   }, [identity, supabase]);
 
   const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
+
+  function updateHistorySearchQuery(value: string) {
+    const normalizedQuery = normalizeGlobalChatSearchQuery(value);
+    setSearchQuery(value.slice(0, GLOBAL_CHAT_SEARCH_MAX_LENGTH));
+    if (normalizedQuery.length >= GLOBAL_CHAT_SEARCH_MIN_LENGTH) return;
+
+    setHistorySearch(null);
+    setHistorySearchError(null);
+    setIsSearchingHistory(false);
+  }
+
+  function closeHistorySearch() {
+    setSearchQuery("");
+    setSearchOpen(false);
+    setHistorySearch(null);
+    setHistorySearchError(null);
+    setIsSearchingHistory(false);
+  }
 
   function handleGlobalViewportScroll() {
     const viewport = viewportRef.current;
@@ -1054,13 +1192,15 @@ export function GlobalGameChat({
             </h2>
             <button
               type="button"
-              onClick={() => setSearchOpen((current) => !current)}
+              onClick={() =>
+                searchOpen ? closeHistorySearch() : setSearchOpen(true)
+              }
               className={`grid h-8 w-8 place-items-center rounded-full text-sm font-black transition ${
                 searchOpen
                   ? "bg-[#176951] text-white"
                   : "bg-[#EAF7F1] text-[#176951] hover:bg-[#D7EFE3]"
               }`}
-              aria-label="Rechercher dans les messages chargés"
+              aria-label="Rechercher dans l’historique du chat"
               aria-expanded={searchOpen}
             >
              ⌕
@@ -1085,6 +1225,14 @@ export function GlobalGameChat({
             {(
               [
                 ["all", "Tous"],
+                ...(initialUnreadMessageCount > 0
+                  ? ([
+                      [
+                        "unread",
+                        `À rattraper · ${initialUnreadMessageCount}`,
+                      ],
+                    ] as const)
+                  : []),
                 ["races", "Courses"],
                 ["mentions", "Mes mentions"],
               ] as const
@@ -1108,29 +1256,48 @@ export function GlobalGameChat({
           {searchOpen ? (
             <div className="mt-2 flex items-center gap-2">
               <label htmlFor="global-chat-search" className="sr-only">
-                Rechercher dans les messages chargés
+                Rechercher dans l’historique du chat
               </label>
               <input
                 id="global-chat-search"
                 type="search"
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                maxLength={GLOBAL_CHAT_SEARCH_MAX_LENGTH}
+                onChange={(event) =>
+                  updateHistorySearchQuery(event.target.value)
+                }
                 autoFocus
                 placeholder="Message, DS, équipe ou course…"
                 className="h-10 min-w-0 flex-1 rounded-xl border border-[#315B3E]/15 bg-[#F7FBF9] px-3 text-base font-semibold text-[#0B302B] outline-none focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15 sm:text-sm"
               />
               <button
                 type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchOpen(false);
-                }}
+                onClick={closeHistorySearch}
                 className="grid h-9 w-9 place-items-center rounded-full bg-[#F0F6F3] font-black text-[#60756E]"
                 aria-label="Fermer la recherche"
               >
                 ×
               </button>
             </div>
+          ) : null}
+          {searchOpen ? (
+            <p
+              className={`mt-1.5 text-[9px] font-bold ${
+                historySearchError ? "text-red-700" : "text-[#789087]"
+              }`}
+              aria-live="polite"
+            >
+              {normalizedHistorySearchQuery.length <
+              GLOBAL_CHAT_SEARCH_MIN_LENGTH
+                ? "Recherche sur 30 jours · saisissez au moins 2 caractères"
+                : isSearchingHistory
+                  ? "Recherche dans les 30 derniers jours…"
+                  : historySearchError
+                    ? historySearchError
+                    : matchingHistorySearch
+                      ? `${matchingHistorySearch.messages.length} résultat${matchingHistorySearch.messages.length > 1 ? "s" : ""} dans les 30 derniers jours`
+                      : "Recherche sur 30 jours"}
+            </p>
           ) : null}
         </header>
 
