@@ -13,15 +13,18 @@ const tutorialLauncherSource = readFileSync(
 );
 
 describe("game header responsive layout", () => {
-  it("présente les raccourcis essentiels dans un rail mobile nommé", () => {
+  it("regroupe tous les raccourcis du header sur une seule ligne mobile", () => {
+    expect(headerSource).toContain('data-mobile-header-action-row="true"');
     expect(headerSource).toContain('data-mobile-header-shortcuts="true"');
-    expect(headerSource).toContain("grid-cols-2");
+    expect(headerSource).toContain(
+      'className="order-1 ml-auto flex shrink-0 items-center gap-1.5 sm:contents"',
+    );
+    expect(headerSource).not.toContain("grid-cols-2");
+    expect(headerSource).not.toContain("w-[calc(100%+1.5rem)]");
+    expect(headerSource).not.toContain("HeaderIconMenuItem");
     expect(headerSource).not.toContain('label={isEnglish ? "Alerts" : "Alertes"}');
     expect(tutorialLauncherSource).toContain('"Open the tutorial centre"');
     expect(tutorialLauncherSource).toContain('"Ouvrir le centre des didacticiels"');
-    expect(headerSource).toContain(
-      "text-[0.52rem] font-extrabold leading-none",
-    );
     expect(headerSource).toContain("lg:flex-nowrap");
   });
 
@@ -40,7 +43,7 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain("floatingOnMobile");
   });
 
-  it("place une recherche compacte entre la ligne principale et les raccourcis sur mobile", () => {
+  it("place la recherche sous la ligne unique des actions sur mobile", () => {
     const mobileActionsPosition = headerSource.indexOf(
       'data-mobile-header-primary-actions="true"',
     );
@@ -60,6 +63,9 @@ describe("game header responsive layout", () => {
     expect(userMenuPosition).toBeGreaterThan(mobileActionsPosition);
     expect(logoutPosition).toBeGreaterThan(userMenuPosition);
     expect(headerSource).toContain("order-2 w-full min-w-0");
+    expect(headerSource).toContain(
+      'className={`${compactMobile ? "hidden sm:flex" : "flex"} items-center gap-1',
+    );
   });
 
   it("renders the shortcuts directly without a secondary actions menu", () => {

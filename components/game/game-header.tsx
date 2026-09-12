@@ -145,26 +145,66 @@ export function GameHeader({
         </div>
 
         <div
-          data-mobile-header-shortcuts="true"
-          className={`${compactMobile ? "hidden sm:flex" : "grid sm:flex"} order-3 -mx-3 w-[calc(100%+1.5rem)] grid-cols-2 items-center justify-items-center gap-1 border-t border-white/10 px-3 pb-0.5 pt-1.5 sm:mx-0 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0`}
+          data-mobile-header-action-row="true"
+          className="order-1 ml-auto flex shrink-0 items-center gap-1.5 sm:contents"
         >
-          <span className="hidden sm:contents">
-            <HeaderMenuLink
-              href="/jeu/equipe"
-              label={sponsor?.shortName ?? (isEnglish ? "My team" : "Mon équipe")}
-              description={isEnglish ? "Roster and identity" : "Effectif et identité"}
-            >
-              {sponsor ? (
-                <SponsorLogoMark
-                  src={sponsor.logoPath}
-                  alt={isEnglish ? `${sponsor.name} logo` : `Logo de ${sponsor.name}`}
-                  sponsorName={sponsor.name}
-                  primaryColor={sponsor.colors.primary}
-                  backgroundColor={sponsor.colors.background}
-                  textColor={sponsor.colors.text}
-                  className="h-6 w-7 rounded-md p-0.5"
-                />
-              ) : (
+          <div
+            data-mobile-header-shortcuts="true"
+            className={`${compactMobile ? "hidden sm:flex" : "flex"} items-center gap-1 sm:order-3 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:border-t sm:border-white/10 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0`}
+          >
+            <span className="hidden sm:contents">
+              <HeaderMenuLink
+                href="/jeu/equipe"
+                label={sponsor?.shortName ?? (isEnglish ? "My team" : "Mon équipe")}
+                description={isEnglish ? "Roster and identity" : "Effectif et identité"}
+              >
+                {sponsor ? (
+                  <SponsorLogoMark
+                    src={sponsor.logoPath}
+                    alt={isEnglish ? `${sponsor.name} logo` : `Logo de ${sponsor.name}`}
+                    sponsorName={sponsor.name}
+                    primaryColor={sponsor.colors.primary}
+                    backgroundColor={sponsor.colors.background}
+                    textColor={sponsor.colors.text}
+                    className="h-6 w-7 rounded-md p-0.5"
+                  />
+                ) : (
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    className="h-5 w-5"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="7" cy="7" r="2.5" />
+                    <circle cx="14" cy="8" r="2" />
+                    <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
+                  </svg>
+                )}
+              </HeaderMenuLink>
+            </span>
+
+            <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
+
+            <GlobalChatShortcut chatIsOpen={chatIsOpen} floatingOnMobile />
+
+            {canAccessRaceSimulator(simulatorEmail) ? (
+              <span className="hidden sm:contents">
+                <RaceSimulatorShortcut isEnglish={isEnglish} />
+              </span>
+            ) : null}
+
+            <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
+
+            <span className="hidden sm:contents">
+              <HeaderMenuLink
+                href="/jeu/parrainage"
+                label={isEnglish ? "Referral programme" : "Parrainage"}
+                description={isEnglish ? "Level 5 to 7 items" : "Objets niv. 5 à 7"}
+              >
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 20 20"
@@ -175,68 +215,23 @@ export function GameHeader({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <circle cx="7" cy="7" r="2.5" />
+                  <circle cx="6.5" cy="7" r="2.5" />
                   <circle cx="14" cy="8" r="2" />
-                  <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
+                  <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
+                  <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
                 </svg>
-              )}
-            </HeaderMenuLink>
-          </span>
-
-          <HeaderIconMenuItem
-            label={isEnglish ? "Messages" : "Messages"}
-            description={isEnglish ? "Sports director inbox" : "Boîte mail du DS"}
-          >
-            <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
-          </HeaderIconMenuItem>
-
-          <GlobalChatShortcut chatIsOpen={chatIsOpen} floatingOnMobile />
-
-          {canAccessRaceSimulator(simulatorEmail) ? (
-            <span className="hidden sm:contents">
-              <RaceSimulatorShortcut isEnglish={isEnglish} />
+              </HeaderMenuLink>
             </span>
-          ) : null}
+          </div>
 
-          <HeaderIconMenuItem
-            label={isEnglish ? "Gazette" : "Gazette"}
-            description={isEnglish ? "Peloton news" : "Actualités du peloton"}
+          <div
+            data-mobile-header-primary-actions="true"
+            className="flex min-w-0 shrink-0 items-center gap-1 sm:ml-auto sm:gap-2 lg:ml-0"
           >
-            <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
-          </HeaderIconMenuItem>
-
-          <span className="hidden sm:contents">
-            <HeaderMenuLink
-              href="/jeu/parrainage"
-              label={isEnglish ? "Referral programme" : "Parrainage"}
-              description={isEnglish ? "Level 5 to 7 items" : "Objets niv. 5 à 7"}
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="h-5 w-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="6.5" cy="7" r="2.5" />
-                <circle cx="14" cy="8" r="2" />
-                <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
-                <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
-              </svg>
-            </HeaderMenuLink>
-          </span>
-        </div>
-
-        <div
-          data-mobile-header-primary-actions="true"
-          className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 lg:ml-0"
-        >
-          <MobilePageRefreshControl isEnglish={isEnglish} />
-          <GameUserMenu displayName={displayName} />
-          <LogoutButton isEnglish={isEnglish} />
+            <MobilePageRefreshControl isEnglish={isEnglish} />
+            <GameUserMenu displayName={displayName} />
+            <LogoutButton isEnglish={isEnglish} />
+          </div>
         </div>
       </div>
       </header>
@@ -391,32 +386,6 @@ function HeaderMenuLink({
     >
       {children}
     </Link>
-  );
-}
-
-function HeaderIconMenuItem({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      title={`${label} · ${description}`}
-      data-mobile-header-shortcut={label}
-      className="flex min-w-0 flex-col items-center justify-center gap-0.5 sm:contents"
-    >
-      {children}
-      <span
-        aria-hidden="true"
-        className="max-w-full truncate text-[0.52rem] font-extrabold leading-none tracking-[0.02em] text-[#B9CBC4] sm:hidden"
-      >
-        {label}
-      </span>
-    </div>
   );
 }
 
