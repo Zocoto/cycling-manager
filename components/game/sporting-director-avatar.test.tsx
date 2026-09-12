@@ -6,6 +6,7 @@ import {
   AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
+  EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   encodeSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
@@ -123,6 +124,23 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-outfit="poker-chips"');
     expect(markup).toContain("#D7A928");
+  });
+
+  it("renders the official sash unlocked by a federation presidency", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar
+        avatarKey={avatarKey}
+        label="Avatar El Presidente"
+      />,
+    );
+
+    expect(markup).toContain('data-avatar-outfit="el-presidente"');
+    expect(markup).toContain("#D7A928");
+    expect(markup).toContain("#176951");
   });
 
   it("renders the Cernes skin unlocked by a night auction", () => {

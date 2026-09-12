@@ -23,6 +23,7 @@ import {
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
+  EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
   decodeCustomSportingDirectorAvatar,
@@ -179,6 +180,7 @@ describe("sporting director avatar editor", () => {
     expect(avatar.outfit).not.toBe(SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(AMBULANCIER_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY);
+    expect(avatar.outfit).not.toBe(EL_PRESIDENTE_AVATAR_OUTFIT_KEY);
     expect(avatar.cheekStyle).not.toBe(NIGHT_AUCTION_AVATAR_CHEEK_KEY);
   });
 
@@ -214,5 +216,16 @@ describe("sporting director avatar editor", () => {
     });
 
     expect(decodeCustomSportingDirectorAvatar(key)?.outfit).toBe(outfit);
+  });
+
+  it("round-trips the exclusive El Presidente outfit", () => {
+    const key = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
+    });
+
+    expect(decodeCustomSportingDirectorAvatar(key)?.outfit).toBe(
+      EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
+    );
   });
 });

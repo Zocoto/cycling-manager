@@ -17,6 +17,7 @@ import {
   AVATAR_NOSE_SHAPES,
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
+  EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
@@ -44,6 +45,7 @@ type SportingDirectorAvatarEditorProps = {
   emergencyDoctorOutfitUnlocked?: boolean;
   inveteratePlayerOutfitUnlocked?: boolean;
   nightAuctionSkinUnlocked?: boolean;
+  elPresidenteOutfitUnlocked?: boolean;
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -73,6 +75,7 @@ export function SportingDirectorAvatarEditor({
   emergencyDoctorOutfitUnlocked = false,
   inveteratePlayerOutfitUnlocked = false,
   nightAuctionSkinUnlocked = false,
+  elPresidenteOutfitUnlocked = false,
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -99,6 +102,7 @@ export function SportingDirectorAvatarEditor({
     inveteratePlayerOutfitUnlocked
       ? null
       : INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
+    elPresidenteOutfitUnlocked ? null : EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
   ].filter((key): key is string => key !== null);
 
   function updateField<K extends keyof SportingDirectorAvatarConfig>(
@@ -280,6 +284,9 @@ export function SportingDirectorAvatarEditor({
                     inveteratePlayerOutfitUnlocked
                       ? "Les piles de jetons récompensent vos dix jours parfaits dans les jeux de La Cyclogazette."
                       : "Les piles de jetons sont liées à un trophée caché de La Cyclogazette.",
+                    elPresidenteOutfitUnlocked
+                      ? "La tenue El Presidente récompense votre prise de fonction à la tête d’une fédération."
+                      : "La tenue El Presidente se débloque en devenant président d’une fédération.",
                   ].join(" ")}
                   field="outfit"
                   value={config.outfit}
