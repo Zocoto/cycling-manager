@@ -160,12 +160,6 @@ export default async function SponsoringPage({
             <SponsoringErrorMessage message={sponsoringError} />
           ) : null}
 
-          {!sponsoringError &&
-          sponsoringState &&
-          sponsoringState.kind !== "onboarding" ? (
-            <SponsorBudgetHistoryChart points={sponsoringState.budgetHistory} />
-          ) : null}
-
           <div data-tutorial-id="sponsoring-overview">
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
@@ -206,6 +200,12 @@ export default async function SponsoringPage({
             ) : null}
 
           </div>
+
+          {!sponsoringError &&
+          sponsoringState &&
+          sponsoringState.kind !== "onboarding" ? (
+            <SponsorBudgetHistoryChart points={sponsoringState.budgetHistory} />
+          ) : null}
         </div>
       </section>
     </main>
