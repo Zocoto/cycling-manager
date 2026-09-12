@@ -33,6 +33,7 @@ export type FederationTreasuryState = {
   } | null;
   canDonate: boolean;
   canManageSolidarity: boolean;
+  presidentTeamId: string | null;
   solidarityLimit: number;
   solidarityDistributed: number;
   solidarityRemaining: number;
@@ -81,6 +82,7 @@ export async function getFederationTreasuryState({
     account: null,
     canDonate: false,
     canManageSolidarity: false,
+    presidentTeamId: null,
     solidarityLimit: 0,
     solidarityDistributed: 0,
     solidarityRemaining: 0,
@@ -148,6 +150,10 @@ export async function getFederationTreasuryState({
     if (openingTransactionResult.error) throw openingTransactionResult.error;
 
     const viewerDirectorId = assignmentResult.data?.sporting_director_id ?? null;
+    const canManageSolidarity =
+      gameYear >= 3 &&
+      Boolean(viewerDirectorId) &&
+      viewerDirectorId === termResult.data?.president_director_id;
     const solidarityLimit = Number(account.opening_balance) * 0.1;
     const solidarityDistributed = (solidarityResult.data ?? []).reduce(
       (total, plan) => total + Number(plan.total_amount),
@@ -169,10 +175,8 @@ export async function getFederationTreasuryState({
         ),
       },
       canDonate: gameYear >= 3 && Boolean(viewerTeamId),
-      canManageSolidarity:
-        gameYear >= 3 &&
-        Boolean(viewerDirectorId) &&
-        viewerDirectorId === termResult.data?.president_director_id,
+      canManageSolidarity,
+      presidentTeamId: canManageSolidarity ? viewerTeamId : null,
       solidarityLimit,
       solidarityDistributed,
       solidarityRemaining: Math.max(0, solidarityLimit - solidarityDistributed),

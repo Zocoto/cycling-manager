@@ -8,6 +8,7 @@ export type FederationFinanceTeamProfile = {
   teamId: string;
   teamName: string;
   reputationPoints: number;
+  solidarityReceived: number;
 };
 
 export type FederationFinanceBaseline = {
@@ -33,6 +34,11 @@ type AssignmentRow = {
 type DirectorRow = {
   id: string;
   reputation_points: number | string;
+};
+type TeamSeasonRow = { id: string; team_id: string };
+type TeamFinanceTransactionRow = {
+  team_season_id: string;
+  amount: number | string;
 };
 
 const getCachedFederationFinanceBaseline = unstable_cache(
@@ -75,7 +81,7 @@ async function loadFederationFinanceBaseline({
     if (raceResult.error) throw raceResult.error;
     const raceIds = (raceResult.data ?? []).map((race) => race.id);
     const [teamProfiles, raceActivity] = await Promise.all([
-      getFederationTeamProfiles(admin, teams),
+      getFederationTeamProfiles(admin, teams, season.id),
       raceIds.length > 0
         ? getFederationRaceActivity(admin, season.id, raceIds)
         : Promise.resolve({
@@ -186,34 +192,63 @@ async function getFederationRaceActivity(
 async function getFederationTeamProfiles(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   teams: Array<{ id: string; name: string }>,
+  seasonId: string,
 ): Promise<FederationFinanceTeamProfile[]> {
   if (teams.length === 0) return [];
 
-  const assignmentsResult = await admin
-    .from("team_manager_assignments")
-    .select("team_id, sporting_director_id")
-    .in(
-      "team_id",
-      teams.map((team) => team.id),
-    )
-    .eq("status", "active")
-    .returns<AssignmentRow[]>();
+  const teamIds = teams.map((team) => team.id);
+  const [assignmentsResult, teamSeasonsResult] = await Promise.all([
+    admin
+      .from("team_manager_assignments")
+      .select("team_id, sporting_director_id")
+      .in("team_id", teamIds)
+      .eq("role", "general_manager")
+      .eq("status", "active")
+      .returns<AssignmentRow[]>(),
+    admin
+      .from("team_seasons")
+      .select("id, team_id")
+      .eq("season_id", seasonId)
+      .in("team_id", teamIds)
+      .in("status", ["planned", "active"])
+      .returns<TeamSeasonRow[]>(),
+  ]);
 
   if (assignmentsResult.error) throw assignmentsResult.error;
+  if (teamSeasonsResult.error) throw teamSeasonsResult.error;
   const assignments = assignmentsResult.data ?? [];
+  const teamSeasons = teamSeasonsResult.data ?? [];
   const directorIds = [...
     new Set(assignments.map((assignment) => assignment.sporting_director_id)),
   ];
-  const directorsResult =
+  const [directorsResult, solidarityResult] = await Promise.all([
     directorIds.length > 0
-      ? await admin
+      ? admin
           .from("sporting_directors")
           .select("id, reputation_points")
           .in("id", directorIds)
           .returns<DirectorRow[]>()
-      : { data: [] as DirectorRow[], error: null };
+      : Promise.resolve({ data: [] as DirectorRow[], error: null }),
+    teamSeasons.length > 0
+      ? admin
+          .from("team_finance_transactions")
+          .select("team_season_id, amount")
+          .in(
+            "team_season_id",
+            teamSeasons.map((teamSeason) => teamSeason.id),
+          )
+          .eq("status", "posted")
+          .gt("amount", 0)
+          .like("source_reference", "federation-solidarity:%")
+          .returns<TeamFinanceTransactionRow[]>()
+      : Promise.resolve({
+          data: [] as TeamFinanceTransactionRow[],
+          error: null,
+        }),
+  ]);
 
   if (directorsResult.error) throw directorsResult.error;
+  if (solidarityResult.error) throw solidarityResult.error;
   const reputationByDirectorId = new Map(
     (directorsResult.data ?? []).map((director) => [
       director.id,
@@ -223,6 +258,18 @@ async function getFederationTeamProfiles(
   const assignmentByTeamId = new Map(
     assignments.map((assignment) => [assignment.team_id, assignment]),
   );
+  const teamIdBySeasonId = new Map(
+    teamSeasons.map((teamSeason) => [teamSeason.id, teamSeason.team_id]),
+  );
+  const solidarityByTeamId = new Map<string, number>();
+  for (const transaction of solidarityResult.data ?? []) {
+    const teamId = teamIdBySeasonId.get(transaction.team_season_id);
+    if (!teamId) continue;
+    solidarityByTeamId.set(
+      teamId,
+      (solidarityByTeamId.get(teamId) ?? 0) + Number(transaction.amount),
+    );
+  }
 
   return teams.map((team) => {
     const assignment = assignmentByTeamId.get(team.id);
@@ -232,6 +279,7 @@ async function getFederationTeamProfiles(
       reputationPoints: assignment
         ? reputationByDirectorId.get(assignment.sporting_director_id) ?? 0
         : 0,
+      solidarityReceived: solidarityByTeamId.get(team.id) ?? 0,
     };
   });
 }
@@ -257,6 +305,7 @@ function createFallbackBaseline(
       teamId: team.id,
       teamName: team.name,
       reputationPoints: 0,
+      solidarityReceived: 0,
     })),
   };
 }

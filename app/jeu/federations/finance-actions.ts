@@ -13,7 +13,7 @@ export type FederationFinanceActionState = {
 const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
 const donationSchema = z.coerce.number().min(25_000).max(5_000_000);
 const thresholdSchema = z.coerce.number().int().min(0).max(500);
-const solidarityAmountSchema = z.coerce.number().min(0).max(500_000);
+const solidarityAmountSchema = z.coerce.number().min(25_000).max(100_000);
 
 export async function donateToFederationAction(
   _previousState: FederationFinanceActionState,
