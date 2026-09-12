@@ -90,4 +90,15 @@ describe("navigation vers les fiches de course", () => {
     expect(content).toContain("getActiveSeasonRaceCalendar(supabase, new Date(), {");
     expect(content).toContain("raceSlug: slug");
   });
+
+  it("conserve une fiche consultable pour une course régionale inéligible", () => {
+    const content = readProjectFile(
+      "app/jeu/courses/[slug]/race-profile-content.tsx",
+    );
+
+    expect(content).toContain("includeIneligibleRegionalRaces: true");
+    expect(content).toContain(
+      "Cette course est réservée aux équipes amateures de son continent.",
+    );
+  });
 });

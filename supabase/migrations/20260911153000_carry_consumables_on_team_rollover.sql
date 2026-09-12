@@ -124,3 +124,7 @@ comment on function public.carry_team_consumables_on_rollover() is
   'Conserve les consommables génériques et récompenses encore valides lors du changement de saison.';
 
 commit;
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main

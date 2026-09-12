@@ -17,6 +17,13 @@ const resilienceMigration = readFileSync(
   ),
   "utf8",
 );
+const rolloverRepairMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260911130000_repair_cyclogazette_s2_quiz_rollover_rewards.sql",
+  ),
+  "utf8",
+);
 
 describe("Cyclogazette S2 gala migration", () => {
   it("waits for every race and stage before freezing all five awards", () => {
@@ -53,6 +60,24 @@ describe("Cyclogazette S2 gala migration", () => {
   it("does not expose the trusted completion RPC to browsers", () => {
     expect(migration).toMatch(
       /from public, anon, authenticated;\r?\ngrant execute on function public\.complete_cyclogazette_season_quiz_for_user/,
+    );
+  });
+
+  it("credits the active season when the S2 quiz is answered after rollover", () => {
+    expect(rolloverRepairMigration).toContain(
+      "team_season.season_id = active_season.id",
+    );
+    expect(rolloverRepairMigration).toContain(
+      "team_season.status = 'active'",
+    );
+    expect(rolloverRepairMigration).toContain(
+      "v_target_season.starts_on::timestamp at time zone 'Europe/Paris'",
+    );
+    expect(rolloverRepairMigration).toContain(
+      "cyclogazette-season-quiz:' || v_attempt.id::text",
+    );
+    expect(rolloverRepairMigration).toContain(
+      "set team_season_id = v_target_team.id",
     );
   });
 });

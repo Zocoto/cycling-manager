@@ -77,11 +77,13 @@ export async function getCyclogazetteGamesOverview({
   edition,
   latestEditionId,
   previousIssueNumber,
+  previousEditionId,
 }: {
   supabase: SupabaseClient;
   edition: CyclogazetteEdition;
   latestEditionId: string;
   previousIssueNumber: number | null;
+  previousEditionId: string | null;
 }): Promise<CyclogazetteGamesOverview> {
   const [summaryResult, rewardResult] = await Promise.all([
     supabase.rpc("get_cyclogazette_game_summary", {
@@ -108,10 +110,13 @@ export async function getCyclogazetteGamesOverview({
   return {
     editionId: edition.id,
     issueNumber: edition.issueNumber,
-    games: getCyclogazetteDailyGames(edition.issueNumber),
+    games: getCyclogazetteDailyGames(edition.issueNumber, edition.id),
     previousSolutions:
       previousIssueNumber && previousIssueNumber > 0
-        ? getCyclogazetteGameSolutions(previousIssueNumber)
+        ? getCyclogazetteGameSolutions(
+            previousIssueNumber,
+            previousEditionId ?? undefined,
+          )
         : null,
     isPlayable: edition.id === latestEditionId,
     viewerCompletedGames: summary.viewerCompletedGames,

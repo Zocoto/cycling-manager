@@ -1027,15 +1027,7 @@ function getEligibleSponsorObjectiveRaces({
   const uniqueCandidates = new Map<string, SponsorObjectiveRaceCandidate>();
 
   for (const candidate of raceCandidates) {
-    if (
-      candidate.registrationPolicy !== "open" ||
-      candidate.minimumReputation === null ||
-      normalizedReputation < candidate.minimumReputation ||
-      !isRaceCategoryUnlockedForSponsorObjectives(
-        candidate.categoryCode,
-        normalizedReputation,
-      )
-    ) {
+    if (!isSponsorObjectiveRaceCandidateEligible(candidate, normalizedReputation)) {
       continue;
     }
 
@@ -1045,6 +1037,24 @@ function getEligibleSponsorObjectiveRaces({
   }
 
   return [...uniqueCandidates.values()];
+}
+
+export function isSponsorObjectiveRaceCandidateEligible(
+  candidate: SponsorObjectiveRaceCandidate,
+  teamReputationPoints: number,
+): boolean {
+  const normalizedReputation = Math.max(0, Math.floor(teamReputationPoints));
+
+  return (
+    candidate.categoryCode !== "regional" &&
+    candidate.registrationPolicy === "open" &&
+    candidate.minimumReputation !== null &&
+    normalizedReputation >= candidate.minimumReputation &&
+    isRaceCategoryUnlockedForSponsorObjectives(
+      candidate.categoryCode,
+      normalizedReputation,
+    )
+  );
 }
 
 export function isRaceCategoryUnlockedForSponsorObjectives(

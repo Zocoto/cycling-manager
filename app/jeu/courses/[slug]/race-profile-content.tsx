@@ -22,6 +22,7 @@ import {
   RACE_PROFILE_LABELS,
   RACE_STAGE_TYPE_LABELS,
   getEditionDayRange,
+  getRaceRegistrationDeadline,
   getRegistrationAvailability,
   isInternationalChampionshipEdition,
   isUnderfilledRaceRosterCorrectionOpen,
@@ -110,13 +111,34 @@ export async function RaceProfileContent({
     redirect("/connexion");
   }
 
-  const [headerData, calendar, weatherCenterLevel] = await Promise.all([
+  const [headerData, eligibleCalendar, weatherCenterLevel] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, new Date(), {
       raceSlug: slug,
     }),
     getCurrentTeamWeatherCenterLevel(user.id),
   ]);
+  let calendar = eligibleCalendar;
+  let isRegionalAccessDenied = false;
+
+  if (!calendar?.editions.some((candidate) => candidate.slug === slug)) {
+    const completeCalendar = await getActiveSeasonRaceCalendar(
+      supabase,
+      new Date(),
+      {
+        raceSlug: slug,
+        includeIneligibleRegionalRaces: true,
+      },
+    );
+    const inaccessibleEdition = completeCalendar?.editions.find(
+      (candidate) => candidate.slug === slug,
+    );
+
+    if (inaccessibleEdition?.categoryCode === "regional") {
+      calendar = completeCalendar;
+      isRegionalAccessDenied = true;
+    }
+  }
   const edition = calendar?.editions.find(
     (candidate) => candidate.slug === slug,
   );
@@ -619,6 +641,7 @@ export async function RaceProfileContent({
                     riders={rosterOptions}
                     rosterError={rosterError}
                     riderJersey={riderJersey}
+                    isRegionalAccessDenied={isRegionalAccessDenied}
                   />
                   {!isInternationalChampionship && raceUserContext.registration?.status === "accepted" ? (
                     <div className="mt-3">
@@ -665,9 +688,10 @@ export async function RaceProfileContent({
                     <DefinitionRow
                       label="Clôture"
                       value={formatDeparture(
-                        edition.categoryCode === "elite"
-                          ? edition.wildcardClosesAt
-                          : edition.registrationClosesAt,
+                        getRaceRegistrationDeadline({
+                          edition,
+                          divisionCode: raceUserContext.divisionCode,
+                        }),
                       )}
                     />
                     <DefinitionRow
@@ -735,6 +759,7 @@ function RegistrationPanel({
   riders,
   rosterError,
   riderJersey,
+  isRegionalAccessDenied,
 }: {
   edition: RaceCalendarEdition;
   currentDayNumber: number;
@@ -743,15 +768,17 @@ function RegistrationPanel({
   riders: RaceRosterOption[];
   rosterError: string | null;
   riderJersey: RiderJerseyAppearance;
+  isRegionalAccessDenied: boolean;
 }) {
   const registration = context.registration;
   const isEliteRace =
     edition.competitionType === "standard" && edition.categoryCode === "elite";
   const isEliteTeam = context.divisionCode === "elite";
   const isWildcardRequest = isEliteRace && !isEliteTeam;
-  const registrationDeadline = isEliteRace
-    ? edition.wildcardClosesAt
-    : edition.registrationClosesAt;
+  const registrationDeadline = getRaceRegistrationDeadline({
+    edition,
+    divisionCode: context.divisionCode,
+  });
   const raceStageStatuses = edition.stages.map(
     (stage) => getStageLiveState(stage).status,
   );
@@ -839,6 +866,25 @@ function RegistrationPanel({
             slug={edition.slug}
             availability={raceExperience}
           />
+        ) : null}
+      </section>
+    );
+  }
+
+  if (isRegionalAccessDenied) {
+    return (
+      <section className="rounded-2xl border border-[#F2C94C]/35 bg-[#0B302B] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
+          Course régionale
+        </p>
+        <h2 className="mt-3 text-xl font-black">Inscription non accessible</h2>
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
+          Cette course est réservée aux équipes amateures de son continent.
+          Vous pouvez consulter son parcours, sa startlist et ses résultats,
+          mais votre équipe ne peut pas s’y inscrire.
+        </p>
+        {raceExperience ? (
+          <RaceExperienceLink slug={edition.slug} availability={raceExperience} />
         ) : null}
       </section>
     );

@@ -9,6 +9,7 @@ import {
   getEditionDayRange,
   getEffectiveSeasonDay,
   getGrandTourCalendarAccent,
+  getRaceRegistrationDeadline,
   getRaceCategoryReputationThreshold,
   getRegistrationAvailability,
   getSeasonHalfDayIndex,
@@ -355,6 +356,37 @@ describe("getRegistrationAvailability", () => {
 });
 
 describe("isRaceRegistrationClosed", () => {
+  it("laisse les équipes Elite inscrites jusqu’à la clôture Elite, après la clôture des wildcards", () => {
+    const edition = createEdition("elite-grand-tour", [2]);
+    edition.categoryCode = "elite";
+    edition.registrationPolicy = "open";
+    edition.registrationClosesAt = "2026-09-12T06:00:00Z";
+    edition.wildcardClosesAt = "2026-09-11T12:00:00Z";
+
+    expect(
+      getRaceRegistrationDeadline({ edition, divisionCode: "elite" }),
+    ).toBe("2026-09-12T06:00:00Z");
+    expect(
+      getRaceRegistrationDeadline({ edition, divisionCode: "amateur" }),
+    ).toBe("2026-09-11T12:00:00Z");
+    expect(
+      isRaceRegistrationClosed({
+        edition,
+        currentDayNumber: 1,
+        divisionCode: "elite",
+        now: new Date("2026-09-11T13:00:00Z"),
+      }),
+    ).toBe(false);
+    expect(
+      isRaceRegistrationClosed({
+        edition,
+        currentDayNumber: 1,
+        divisionCode: "amateur",
+        now: new Date("2026-09-11T13:00:00Z"),
+      }),
+    ).toBe(true);
+  });
+
   it("hachure une course révolue même si sa politique n’est pas encore finalisée", () => {
     const edition = createEdition(
       "course-revolue",

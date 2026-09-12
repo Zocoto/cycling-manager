@@ -63,6 +63,39 @@ describe("Cyclogazette daily games", () => {
     expect(signatures.size).toBeGreaterThanOrEqual(50);
   });
 
+  it("rerolls the crossword per Gazette edition while staying deterministic", () => {
+    const issueNumber = 84;
+    const editionKey = "edition-a";
+    const rerollKey = "edition-b";
+    const first = getCyclogazetteDailyGames(issueNumber, editionKey);
+    const same = getCyclogazetteDailyGames(issueNumber, editionKey);
+    const rerolled = getCyclogazetteDailyGames(issueNumber, rerollKey);
+    const firstSolution = getCyclogazetteGameSolutions(issueNumber, editionKey);
+    const rerolledSolution = getCyclogazetteGameSolutions(issueNumber, rerollKey);
+
+    expect(first).toEqual(same);
+    expect(first.crossword).not.toEqual(rerolled.crossword);
+    expect(firstSolution.crosswordRows).not.toEqual(
+      rerolledSolution.crosswordRows,
+    );
+    expect(
+      isCyclogazetteGameAnswerCorrect({
+        issueNumber,
+        gameType: "crossword",
+        answer: rerolledSolution.crosswordRows.join(""),
+        variationKey: rerollKey,
+      }),
+    ).toBe(true);
+    expect(
+      isCyclogazetteGameAnswerCorrect({
+        issueNumber,
+        gameType: "crossword",
+        answer: firstSolution.crosswordRows.join(""),
+        variationKey: rerollKey,
+      }),
+    ).toBe(false);
+  });
+
   it("accepte indifféremment les lettres accentuées ou non", () => {
     const issueNumber = Array.from({ length: 84 }, (_, index) => index + 1).find(
       (candidate) =>

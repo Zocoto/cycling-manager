@@ -549,7 +549,7 @@ describe("generateProvisionalSponsorObjectives", () => {
     ).toBe("prestige");
   });
 
-  it("écarte les courses fermées ou trop prestigieuses pour l’équipe", () => {
+  it("écarte les courses fermées, régionales ou trop prestigieuses pour l’équipe sponsorisée", () => {
     const selectedRaces = selectSponsorObjectiveRaces({
       sponsorCountryCode: "FR",
       teamReputationPoints: 30,
@@ -565,6 +565,9 @@ describe("generateProvisionalSponsorObjectives", () => {
         createRace("pending", "Course sur critères", "FR", {
           registrationPolicy: "criteria_pending",
           minimumReputation: null,
+        }),
+        createRace("regional", "Course régionale amateur", "FR", {
+          categoryCode: "regional",
         }),
       ],
     });

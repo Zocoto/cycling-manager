@@ -11,7 +11,7 @@ const migration = readFileSync(
     import.meta.url,
   ),
   "utf8",
-);
+).replaceAll("\r", "");
 const workflow = readFileSync(
   new URL("../../services/sponsoring-workflow.ts", import.meta.url),
   "utf8",

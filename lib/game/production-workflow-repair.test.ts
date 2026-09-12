@@ -22,6 +22,18 @@ describe("production workflow repair guards", () => {
     );
   });
 
+  it("accepts objectives promoted by the annual rollover", () => {
+    expect(sponsorObjectivesSource).toContain(
+      "isProvisional: objectiveRow.is_provisional",
+    );
+    expect(sponsorObjectivesSource).toContain(
+      "Annual rollover promotes the",
+    );
+    expect(sponsorObjectivesSource).not.toContain(
+      "n’est pas un objectif provisoire de l’EPIC 5",
+    );
+  });
+
   it("sanitizes stale tactical references before official simulation", () => {
     expect(simulationInputSource).toContain("sanitizeCalendarTeamStrategies");
     expect(simulationInputSource).toContain(

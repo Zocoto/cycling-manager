@@ -705,10 +705,15 @@ const DIFFICULTIES: readonly CyclogazetteGameDifficulty[] = [
 
 export function getCyclogazetteDailyGames(
   issueNumber: number,
+  variationKey?: string,
 ): CyclogazetteDailyGames {
   const normalizedIssueNumber = normalizeIssueNumber(issueNumber);
+  const normalizedVariationKey = normalizeVariationKey(variationKey);
   const sudoku = createSudokuPuzzle(normalizedIssueNumber);
-  const crossword = createCrosswordPuzzle(normalizedIssueNumber);
+  const crossword = createCrosswordPuzzle(
+    normalizedIssueNumber,
+    normalizedVariationKey,
+  );
 
   return {
     issueNumber: normalizedIssueNumber,
@@ -725,10 +730,15 @@ export function getCyclogazetteDailyGames(
 
 export function getCyclogazetteGameSolutions(
   issueNumber: number,
+  variationKey?: string,
 ): CyclogazetteGameSolutions {
   const normalizedIssueNumber = normalizeIssueNumber(issueNumber);
+  const normalizedVariationKey = normalizeVariationKey(variationKey);
   const sudoku = createSudokuPuzzle(normalizedIssueNumber);
-  const crossword = createCrosswordPuzzle(normalizedIssueNumber);
+  const crossword = createCrosswordPuzzle(
+    normalizedIssueNumber,
+    normalizedVariationKey,
+  );
 
   return {
     issueNumber: normalizedIssueNumber,
@@ -741,19 +751,22 @@ export function isCyclogazetteGameAnswerCorrect({
   issueNumber,
   gameType,
   answer,
+  variationKey,
 }: {
   issueNumber: number;
   gameType: CyclogazetteGameType;
   answer: string;
+  variationKey?: string;
 }) {
   const normalizedIssueNumber = normalizeIssueNumber(issueNumber);
+  const normalizedVariationKey = normalizeVariationKey(variationKey);
   if (gameType === "sudoku") {
     return normalizeSudokuAnswer(answer) === createSudokuPuzzle(normalizedIssueNumber).solution;
   }
 
   return (
     normalizeCrosswordAnswer(answer) ===
-    createCrosswordPuzzle(normalizedIssueNumber).solution
+    createCrosswordPuzzle(normalizedIssueNumber, normalizedVariationKey).solution
   );
 }
 
@@ -797,17 +810,25 @@ function createSudokuLineOrder(random: () => number) {
   );
 }
 
-function createCrosswordPuzzle(issueNumber: number): PrivateCrosswordPuzzle {
+function createCrosswordPuzzle(
+  issueNumber: number,
+  variationKey = "",
+): PrivateCrosswordPuzzle {
+  const variationSeed = hashVariationKey(variationKey);
   const difficulty = getDifficulty(issueNumber, 1);
   if (issueNumber >= DIVERSE_CROSSWORDS_FROM_ISSUE) {
     const targetCount =
       difficulty === "facile" ? 15 : difficulty === "moyen" ? 16 : 17;
-    const wordPool = getDiverseCrosswordWordPool(issueNumber);
+    const wordPool = getDiverseCrosswordWordPool(issueNumber, variationSeed);
     let best: PlacedCrosswordWord[] = [];
 
     for (let attempt = 0; attempt < 16; attempt += 1) {
       const random = createSeededRandom(
-        issueNumber * 15485863 + attempt * 32452843 + 49999,
+        createCrosswordSeed(
+          issueNumber,
+          variationSeed,
+          attempt * 32452843 + 49999,
+        ),
       );
       const candidate = placeCrosswordWords(
         shuffle([...wordPool], random),
@@ -824,12 +845,16 @@ function createCrosswordPuzzle(issueNumber: number): PrivateCrosswordPuzzle {
   if (issueNumber < 45) {
     const targetCount =
       difficulty === "facile" ? 6 : difficulty === "moyen" ? 7 : 8;
-    const wordPool = getCrosswordWordPool(issueNumber);
+    const wordPool = getCrosswordWordPool(issueNumber, variationSeed);
     let best: PlacedCrosswordWord[] = [];
 
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const random = createSeededRandom(
-        issueNumber * 15485863 + attempt * 32452843 + 49999,
+        createCrosswordSeed(
+          issueNumber,
+          variationSeed,
+          attempt * 32452843 + 49999,
+        ),
       );
       const candidate = placeCrosswordWords(
         shuffle([...wordPool], random),
@@ -843,13 +868,15 @@ function createCrosswordPuzzle(issueNumber: number): PrivateCrosswordPuzzle {
     return buildCrosswordPuzzle(best, difficulty);
   }
 
-  const templateOffset = issueNumber - 45;
+  const templateOffset = issueNumber - 45 + variationSeed;
   const template =
     CONNECTED_CROSSWORD_TEMPLATES[
       templateOffset % CONNECTED_CROSSWORD_TEMPLATES.length
     ];
   if (!template) {
-    const random = createSeededRandom(issueNumber * 15485863 + 49999);
+    const random = createSeededRandom(
+      createCrosswordSeed(issueNumber, variationSeed, 49999),
+    );
     const squares = shuffle([...DENSE_CROSSWORD_SQUARES], random).slice(0, 4);
     return buildDenseCrosswordPuzzle(squares, difficulty);
   }
@@ -1070,12 +1097,13 @@ function readCrosswordCell(
     : rows[moving][fixed];
 }
 
-function getCrosswordWordPool(issueNumber: number) {
+function getCrosswordWordPool(issueNumber: number, variationSeed = 0) {
   if (issueNumber < GENERAL_CROSSWORDS_FROM_ISSUE) {
     return CYCLING_CROSSWORD_WORDS;
   }
 
-  const cyclingOffset = issueNumber % CYCLING_CROSSWORD_WORDS.length;
+  const cyclingOffset =
+    (issueNumber + variationSeed) % CYCLING_CROSSWORD_WORDS.length;
   const cyclingTouches = Array.from({ length: 8 }, (_, index) =>
     CYCLING_CROSSWORD_WORDS[
       (cyclingOffset + index * 5) % CYCLING_CROSSWORD_WORDS.length
@@ -1085,9 +1113,9 @@ function getCrosswordWordPool(issueNumber: number) {
   return [...GENERAL_CROSSWORD_WORDS, ...cyclingTouches];
 }
 
-function getDiverseCrosswordWordPool(issueNumber: number) {
+function getDiverseCrosswordWordPool(issueNumber: number, variationSeed = 0) {
   const cohort =
-    (issueNumber - DIVERSE_CROSSWORDS_FROM_ISSUE) %
+    (issueNumber - DIVERSE_CROSSWORDS_FROM_ISSUE + variationSeed) %
     CROSSWORD_VOCABULARY_COHORTS;
   const vocabulary = [
     ...GENERAL_CROSSWORD_WORDS,
@@ -1372,6 +1400,37 @@ function getDifficulty(issueNumber: number, offset: number) {
 
 function normalizeIssueNumber(value: number) {
   return Number.isInteger(value) && value > 0 ? value : 1;
+}
+
+function normalizeVariationKey(value: string | undefined) {
+  return typeof value === "string" ? value.trim().slice(0, 200) : "";
+}
+
+function hashVariationKey(value: string) {
+  if (!value) return 0;
+
+  let hash = 2166136261;
+  for (const character of value) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) || 1;
+}
+
+function createCrosswordSeed(
+  issueNumber: number,
+  variationSeed: number,
+  salt: number,
+) {
+  if (variationSeed === 0) {
+    return issueNumber * 15485863 + salt;
+  }
+
+  return (
+    Math.imul(issueNumber, 15485863) +
+    Math.imul(variationSeed, 2654435761) +
+    salt
+  );
 }
 
 function normalizeSudokuAnswer(value: string) {

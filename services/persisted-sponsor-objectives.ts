@@ -3,6 +3,7 @@ import "server-only";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   generateProvisionalSponsorObjectives,
+  isSponsorObjectiveRaceCandidateEligible,
   selectSponsorObjectiveRaces,
   shouldSponsorRequestRiderRecruitment,
   type SponsorObjectiveRaceCandidate,
@@ -778,11 +779,11 @@ function hydrateSponsorObjective(
     );
   }
 
-  if (!objectiveRow.is_provisional) {
-    throw new Error(
-      `L’objectif ${objectiveRow.id} n’est pas un objectif provisoire de l’EPIC 5.`
-    );
-  }
+  // `is_provisional` describes the objective's lifecycle, not whether it can
+  // be displayed by the sponsoring page. Annual rollover promotes the
+  // current season's objectives to active/non-provisional rows before the
+  // DS opens the page. Rejecting those rows here made the whole sponsorship
+  // space unavailable after a season switch (notably for continuing deals).
 
   const renewalBonusPercent = Number(
     objectiveRow.renewal_bonus_percent
@@ -823,7 +824,7 @@ function hydrateSponsorObjective(
     evaluationDayNumber: null,
     renewalBonusPercent,
     satisfactionPoints,
-    isProvisional: true,
+    isProvisional: objectiveRow.is_provisional,
     targetDetails:
       objectiveRow.target_details,
     status: objectiveRow.status,
@@ -1347,15 +1348,22 @@ async function repairLegacyRaceObjectives({
     count: raceObjectiveRows.length,
     random,
   });
-  const existingCandidateByRaceId = new Map(
-    raceCandidates.map((candidate) => [candidate.raceId, candidate])
+  const eligibleCandidateByRaceId = new Map(
+    raceCandidates
+      .filter((candidate) =>
+        isSponsorObjectiveRaceCandidateEligible(
+          candidate,
+          teamReputationPoints,
+        )
+      )
+      .map((candidate) => [candidate.raceId, candidate])
   );
   const retainedRaceIds = new Set(
     raceObjectiveRows.flatMap((objective) => {
       const details = objective.target_details;
 
       return details.kind === "race_result" &&
-        existingCandidateByRaceId.has(details.raceId)
+        eligibleCandidateByRaceId.has(details.raceId)
         ? [details.raceId]
         : [];
     })
@@ -1369,7 +1377,7 @@ async function repairLegacyRaceObjectives({
     const details = objective.target_details;
     const isAlreadyLinked =
       details.kind === "race_result" &&
-      existingCandidateByRaceId.has(details.raceId);
+      eligibleCandidateByRaceId.has(details.raceId);
 
     if (isAlreadyLinked) {
       continue;

@@ -26,7 +26,7 @@ export async function changeAmateurTeamNationalAffiliationAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Confirmez le changement de nationalité sportive.",
+      message: "Confirmez la naturalisation de l’équipe et de l’entraîneur.",
     };
   }
 
@@ -44,23 +44,25 @@ export async function changeAmateurTeamNationalAffiliationAction(
     { p_country_id: parsed.data.countryId },
   );
   if (result.error) {
-    console.error("Échec du changement de nationalité sportive :", {
+    console.error("Échec de la naturalisation de la structure amateure :", {
       code: result.error.code,
       message: result.error.message,
     });
     return {
       status: "error",
       message:
-        result.error.message || "Le changement de nationalité n’a pas abouti.",
+        result.error.message || "La naturalisation n’a pas abouti.",
     };
   }
 
   const payload = result.data as { countryName?: string } | null;
   revalidatePath("/jeu/federations/[codePays]", "page");
   revalidatePath("/jeu/sponsoring");
+  revalidatePath("/jeu/directeur-sportif");
+  revalidatePath("/jeu/equipe");
   refresh();
   return {
     status: "success",
-    message: `Nationalité sportive adoptée${payload?.countryName ? ` : ${payload.countryName}` : ""}. Elle sera prise en compte dans les prochaines affinités sponsors.`,
+    message: `Naturalisation finalisée${payload?.countryName ? ` : ${payload.countryName}` : ""}. Votre équipe amateure et votre profil d’entraîneur sont désormais alignés avec la fédération. La nouvelle nationalité de l’équipe sera prise en compte dans les prochaines affinités sponsors.`,
   };
 }
