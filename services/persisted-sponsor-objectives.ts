@@ -3,6 +3,7 @@ import "server-only";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   generateProvisionalSponsorObjectives,
+  isSponsorObjectiveRaceCandidateEligible,
   selectSponsorObjectiveRaces,
   shouldSponsorRequestRiderRecruitment,
   type SponsorObjectiveRaceCandidate,
@@ -1347,15 +1348,22 @@ async function repairLegacyRaceObjectives({
     count: raceObjectiveRows.length,
     random,
   });
-  const existingCandidateByRaceId = new Map(
-    raceCandidates.map((candidate) => [candidate.raceId, candidate])
+  const eligibleCandidateByRaceId = new Map(
+    raceCandidates
+      .filter((candidate) =>
+        isSponsorObjectiveRaceCandidateEligible(
+          candidate,
+          teamReputationPoints,
+        )
+      )
+      .map((candidate) => [candidate.raceId, candidate])
   );
   const retainedRaceIds = new Set(
     raceObjectiveRows.flatMap((objective) => {
       const details = objective.target_details;
 
       return details.kind === "race_result" &&
-        existingCandidateByRaceId.has(details.raceId)
+        eligibleCandidateByRaceId.has(details.raceId)
         ? [details.raceId]
         : [];
     })
@@ -1369,7 +1377,7 @@ async function repairLegacyRaceObjectives({
     const details = objective.target_details;
     const isAlreadyLinked =
       details.kind === "race_result" &&
-      existingCandidateByRaceId.has(details.raceId);
+      eligibleCandidateByRaceId.has(details.raceId);
 
     if (isAlreadyLinked) {
       continue;
