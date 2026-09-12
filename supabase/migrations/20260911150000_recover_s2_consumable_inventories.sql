@@ -143,7 +143,3 @@ comment on table public.season_rollover_item_recoveries is
   'Journal idempotent de la restauration des consommables oubliés lors d’un rollover.';
 
 commit;
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/main
