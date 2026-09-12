@@ -22,6 +22,12 @@ describe("global chat mobile refresh", () => {
     expect(header).toContain('compactMobile ? "hidden sm:block"');
   });
 
+  it("borne le chat desktop dans une fenêtre avec son propre défilement", () => {
+    expect(chat).toContain("sm:h-[clamp(30rem,72dvh,42rem)]");
+    expect(chat).toContain("sm:max-h-[calc(100dvh-8rem)]");
+    expect(chat).toContain("min-h-0 flex-1 space-y-3 overflow-y-auto");
+  });
+
   it("keeps online directors in a secondary mobile sheet", () => {
     expect(chat).toContain("showOnlineDirectors");
     expect(chat).toContain('aria-label="Directeurs Sportifs en ligne"');
@@ -41,6 +47,22 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("viewportNearBottomRef.current");
     expect(chat).toContain("pendingLiveMessageCount");
     expect(chat).toContain("scrollToLatestMessages");
+  });
+
+  it("replie les messages déjà lus et conserve seulement un contexte récent", () => {
+    expect(chat).toContain("GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6");
+    expect(chat).toContain("compactHistoryStartIndex");
+    expect(chat).toContain("timelineMessages.map");
+    expect(chat).toContain('data-chat-collapsed-history="true"');
+    expect(chat).toContain("Historique replié");
+    expect(chat).toContain("revealAndFocusChatMessage");
+  });
+
+  it("conserve les réponses et réactions déjà présentes", () => {
+    expect(chat).toContain("useGlobalChatReactions");
+    expect(chat).toContain("GlobalChatMessageReactions");
+    expect(chat).toContain("onReply={beginReply}");
+    expect(chat).toContain("message.replyTo");
   });
 
   it("adds useful local views and loads the federation only on demand", () => {

@@ -95,6 +95,8 @@ const FederationMessagingPanel = dynamic(
 type ChatMode = "global" | "direct" | "federation";
 type GlobalChatView = "all" | "races" | "mentions";
 
+const GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6;
+
 type ChatMessageTranslationState = {
   targetLocale: "fr" | "en";
   status: "loading" | "loaded" | "error";
@@ -171,6 +173,7 @@ export function GlobalGameChat({
   const [globalView, setGlobalView] = useState<GlobalChatView>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showReadHistory, setShowReadHistory] = useState(false);
   const [pendingLiveMessageCount, setPendingLiveMessageCount] = useState(0);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [draft, setDraft] = useState("");
@@ -284,6 +287,29 @@ export function GlobalGameChat({
     },
     [globalView, identity.username, messages, searchQuery],
   );
+  const compactHistoryStartIndex = useMemo(() => {
+    if (firstInitialUnreadMessageId) {
+      const firstUnreadIndex = messages.findIndex(
+        (message) => message.id === firstInitialUnreadMessageId,
+      );
+      if (firstUnreadIndex >= 0) return firstUnreadIndex;
+    }
+
+    return Math.max(
+      messages.length - GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT,
+      0,
+    );
+  }, [firstInitialUnreadMessageId, messages]);
+  const historyContextIsActive =
+    globalView !== "all" || searchQuery.trim().length > 0;
+  const shouldCollapseReadHistory =
+    !showReadHistory && !historyContextIsActive && compactHistoryStartIndex > 0;
+  const collapsedHistoryMessageCount = shouldCollapseReadHistory
+    ? compactHistoryStartIndex
+    : 0;
+  const timelineMessages = shouldCollapseReadHistory
+    ? filteredMessages.slice(compactHistoryStartIndex)
+    : filteredMessages;
 
   useEffect(() => {
     const savedDraft = window.localStorage.getItem(
@@ -650,6 +676,40 @@ export function GlobalGameChat({
     }
   }
 
+  function revealReadHistory() {
+    const firstVisibleMessageId = timelineMessages[0]?.id ?? null;
+    setShowReadHistory(true);
+    if (!firstVisibleMessageId) return;
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        focusChatMessage(firstVisibleMessageId, "start");
+      });
+    });
+  }
+
+  function hideReadHistory() {
+    setShowReadHistory(false);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (firstInitialUnreadMessageId) {
+          focusChatMessage(firstInitialUnreadMessageId, "start");
+          return;
+        }
+        scrollToLatestMessages();
+      });
+    });
+  }
+
+  function revealAndFocusChatMessage(messageId: string) {
+    setGlobalView("all");
+    setSearchQuery("");
+    setShowReadHistory(true);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => focusChatMessage(messageId));
+    });
+  }
+
   async function loadOlderMessages() {
     if (!olderCursor || isLoadingOlder) return;
 
@@ -966,7 +1026,7 @@ export function GlobalGameChat({
   return (
     <div
       data-chat-hub="true"
-      className="flex h-[calc(100dvh-var(--game-mobile-navigation-clearance)-4rem)] min-h-[30rem] flex-col overflow-hidden border-y border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] sm:h-[calc(100dvh-8.5rem)] sm:min-h-[34rem] sm:rounded-[2rem] sm:border"
+      className="flex h-[calc(100dvh-var(--game-mobile-navigation-clearance)-4rem)] min-h-0 flex-col overflow-hidden border-y border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] sm:h-[clamp(30rem,72dvh,42rem)] sm:max-h-[calc(100dvh-8rem)] sm:rounded-[2rem] sm:border"
     >
       <ChatModeTabs
         activeMode={activeMode}
@@ -1078,7 +1138,7 @@ export function GlobalGameChat({
           <button
             type="button"
             onClick={() => {
-              focusChatMessage(mentionAlert.messageId);
+              revealAndFocusChatMessage(mentionAlert.messageId);
               setMentionAlert(null);
             }}
             className="flex items-center justify-between gap-3 border-b border-[#F2C94C]/45 bg-[#FFF7D6] px-5 py-2.5 text-left text-[11px] font-black text-[#5B4700] sm:px-7"
@@ -1098,18 +1158,50 @@ export function GlobalGameChat({
           aria-live="polite"
           aria-relevant="additions"
         >
-          {hasMore && olderCursor ? (
-            <div className="pb-1 text-center">
-              <button
-                type="button"
-                onClick={() => void loadOlderMessages()}
-                disabled={isLoadingOlder}
-                className="rounded-full border border-[#176951]/15 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#176951] shadow-sm transition hover:bg-[#EAF7F1] disabled:cursor-wait disabled:opacity-60"
-              >
-                {isLoadingOlder ? "Chargement…" : "↑ Messages précédents"}
-              </button>
+          {collapsedHistoryMessageCount > 0 ||
+          (showReadHistory && !historyContextIsActive) ||
+          (hasMore && olderCursor) ? (
+            <div
+              className="flex flex-wrap items-center justify-center gap-1.5 pb-1 text-center"
+              data-chat-history-controls="true"
+            >
+              {collapsedHistoryMessageCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={revealReadHistory}
+                  className="rounded-full border border-[#176951]/15 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#176951] shadow-sm transition hover:bg-[#EAF7F1]"
+                  data-chat-collapsed-history="true"
+                >
+                  ↑ Historique replié · {collapsedHistoryMessageCount} message
+                  {collapsedHistoryMessageCount > 1 ? "s" : ""}
+                </button>
+              ) : null}
+              {showReadHistory &&
+              !historyContextIsActive &&
+              compactHistoryStartIndex > 0 ? (
+                <button
+                  type="button"
+                  onClick={hideReadHistory}
+                  className="rounded-full border border-[#176951]/15 bg-[#EAF7F1] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#176951] transition hover:bg-[#DDF3E7]"
+                >
+                  Replier l’historique
+                </button>
+              ) : null}
+              {collapsedHistoryMessageCount === 0 && hasMore && olderCursor ? (
+                <button
+                  type="button"
+                  onClick={() => void loadOlderMessages()}
+                  disabled={isLoadingOlder}
+                  className="rounded-full border border-[#176951]/15 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#176951] shadow-sm transition hover:bg-[#EAF7F1] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isLoadingOlder ? "Chargement…" : "↑ Messages précédents"}
+                </button>
+              ) : null}
               {historyError ? (
-                <p role="alert" className="mt-1 text-[10px] font-bold text-red-700">
+                <p
+                  role="alert"
+                  className="w-full text-[10px] font-bold text-red-700"
+                >
                   {historyError}
                 </p>
               ) : null}
@@ -1128,7 +1220,7 @@ export function GlobalGameChat({
             </div>
           ) : null}
 
-          {filteredMessages.map((message) => {
+          {timelineMessages.map((message) => {
             const onlineAuthor = onlineDirectors.find(
               (director) =>
                 director.sportingDirectorId === message.sportingDirectorId,
@@ -1153,50 +1245,51 @@ export function GlobalGameChat({
                     <span className="h-px flex-1 bg-[#EF5B65]/30" />
                   </div>
                 ) : null}
-              <ChatMessage
-                message={message}
-                avatarKey={
-                  message.authorAvatarKey ??
-                  onlineAuthor?.avatarKey ??
-                  (isCurrentDirector ? identity.avatarKey : null)
-                }
-                avatarFrameKey={
-                  message.authorAvatarFrameKey ??
-                  onlineAuthor?.avatarFrameKey ??
-                  (isCurrentDirector ? identity.avatarFrameKey : null)
-                }
-                authorCountry={
-                  message.authorCountry ?? onlineAuthor?.country ?? null
-                }
-                isCurrentDirector={isCurrentDirector}
-                isMentioned={globalChatMessageMentionsUsername(
-                  message.message,
-                  identity.username,
-                )}
-                currentDirectorId={identity.sportingDirectorId}
-                pendingReactionKey={pendingReactionKey}
-                reactionsDisabled={isReactionPending}
-                canEdit={
-                  isCurrentDirector &&
-                  canEditChatMessage(message.createdAt, editClockMs)
-                }
-                isEditing={editingMessageId === message.id}
-                editingDraft={editingDraft}
-                editingError={editingError}
-                isEditPending={isEditing}
-                translation={messageTranslations[message.id] ?? null}
-                translationEnabled={translationEnabled}
-                onReply={beginReply}
-                onReaction={toggleMessageReaction}
-                onDirectMessage={beginDirectMessage}
-                onBeginEdit={beginMessageEdit}
-                onEditingDraftChange={setEditingDraft}
-                onCancelEdit={cancelMessageEdit}
-                onSubmitEdit={submitMessageEdit}
-                onToggleTranslation={() =>
-                  void toggleMessageTranslation(message)
-                }
-              />
+                <ChatMessage
+                  message={message}
+                  avatarKey={
+                    message.authorAvatarKey ??
+                    onlineAuthor?.avatarKey ??
+                    (isCurrentDirector ? identity.avatarKey : null)
+                  }
+                  avatarFrameKey={
+                    message.authorAvatarFrameKey ??
+                    onlineAuthor?.avatarFrameKey ??
+                    (isCurrentDirector ? identity.avatarFrameKey : null)
+                  }
+                  authorCountry={
+                    message.authorCountry ?? onlineAuthor?.country ?? null
+                  }
+                  isCurrentDirector={isCurrentDirector}
+                  isMentioned={globalChatMessageMentionsUsername(
+                    message.message,
+                    identity.username,
+                  )}
+                  currentDirectorId={identity.sportingDirectorId}
+                  pendingReactionKey={pendingReactionKey}
+                  reactionsDisabled={isReactionPending}
+                  canEdit={
+                    isCurrentDirector &&
+                    canEditChatMessage(message.createdAt, editClockMs)
+                  }
+                  isEditing={editingMessageId === message.id}
+                  editingDraft={editingDraft}
+                  editingError={editingError}
+                  isEditPending={isEditing}
+                  translation={messageTranslations[message.id] ?? null}
+                  translationEnabled={translationEnabled}
+                  onReply={beginReply}
+                  onReaction={toggleMessageReaction}
+                  onFocusMessage={revealAndFocusChatMessage}
+                  onDirectMessage={beginDirectMessage}
+                  onBeginEdit={beginMessageEdit}
+                  onEditingDraftChange={setEditingDraft}
+                  onCancelEdit={cancelMessageEdit}
+                  onSubmitEdit={submitMessageEdit}
+                  onToggleTranslation={() =>
+                    void toggleMessageTranslation(message)
+                  }
+                />
               </Fragment>
             );
           })}
@@ -1481,6 +1574,7 @@ function ChatMessage({
   translationEnabled,
   onReply,
   onReaction,
+  onFocusMessage,
   onDirectMessage,
   onBeginEdit,
   onEditingDraftChange,
@@ -1508,6 +1602,7 @@ function ChatMessage({
   onReaction: React.ComponentProps<
     typeof GlobalChatMessageReactions
   >["onReaction"];
+  onFocusMessage: (messageId: string) => void;
   onDirectMessage: (recipientId: string) => void;
   onBeginEdit: (message: GlobalChatMessage) => void;
   onEditingDraftChange: (value: string) => void;
@@ -1632,7 +1727,7 @@ function ChatMessage({
             disabled={!message.replyTo.messageId}
             onClick={() =>
               message.replyTo?.messageId
-                ? focusChatMessage(message.replyTo.messageId)
+                ? onFocusMessage(message.replyTo.messageId)
                 : undefined
             }
             className={`mt-2 block w-full rounded-lg border-l-2 px-3 py-2 text-left transition ${
@@ -2274,10 +2369,13 @@ function readRealtimeJerseyPattern(
   return patterns.find((pattern) => pattern === value) ?? "solid";
 }
 
-function focusChatMessage(messageId: string) {
+function focusChatMessage(
+  messageId: string,
+  block: ScrollLogicalPosition = "center",
+) {
   document
     .getElementById(`global-chat-message-${messageId}`)
-    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    ?.scrollIntoView({ behavior: "smooth", block });
 }
 
 function getMessageExcerpt(message: string) {
