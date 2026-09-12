@@ -59,6 +59,7 @@ describe("modern feature career objectives", () => {
       "switchback",
       "poker-chips",
       "midnight-auction",
+      "presidential-seal",
     ]);
   });
 });

@@ -9,6 +9,7 @@ const variants: AchievementTrophyVisualVariant[] = [
   "panorama",
   "apparatus",
   "regalia",
+  "presidential-seal",
   "switchback",
   "poker-chips",
   "midnight-auction",
@@ -22,7 +23,7 @@ const palette = {
 };
 
 describe("AchievementTrophyMark", () => {
-  it("renders seven simple flat SVG identities without raster artwork or gradients", () => {
+  it("renders eight simple flat SVG identities without raster artwork or gradients", () => {
     const markup = variants
       .map((variant) =>
         renderToStaticMarkup(
@@ -37,5 +38,6 @@ describe("AchievementTrophyMark", () => {
 
     expect(markup).not.toContain("<image");
     expect(markup).not.toContain("Gradient");
+    expect(markup).toContain('data-achievement-symbol="presidential-seal"');
   });
 });

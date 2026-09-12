@@ -5,6 +5,7 @@ export type AchievementTrophyVisualVariant =
   | "panorama"
   | "apparatus"
   | "regalia"
+  | "presidential-seal"
   | "switchback"
   | "poker-chips"
   | "midnight-auction";
@@ -143,7 +144,7 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "Décerné dès la prise de fonction à la présidence d’une fédération. Débloque la tenue officielle El Presidente dans l’éditeur d’avatar et reste acquis pour toute la carrière.",
     href: "/jeu/directeur-sportif#el-presidente-avatar-outfit",
-    visualVariant: "regalia" satisfies AchievementTrophyVisualVariant,
+    visualVariant: "presidential-seal" satisfies AchievementTrophyVisualVariant,
     palette: {
       primary: "#D7A928",
       secondary: "#FFF4C9",

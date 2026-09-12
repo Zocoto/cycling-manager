@@ -203,6 +203,49 @@ function TrophySymbol({
     );
   }
 
+  if (variant === "presidential-seal") {
+    return (
+      <g data-achievement-symbol="presidential-seal">
+        <circle
+          cx="90"
+          cy="78"
+          r="46"
+          fill="#163F3B"
+          stroke={palette.secondary}
+          strokeWidth="3"
+        />
+        <circle
+          cx="90"
+          cy="78"
+          r="34"
+          fill={palette.accent}
+          stroke={palette.primary}
+          strokeWidth="4"
+        />
+        <path
+          d="M68 93V68h44v25M63 97h54M73 68l17-12 17 12M78 75v13M90 75v13M102 75v13"
+          stroke={palette.secondary}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M55 78c0 22 12 38 27 46M125 78c0 22-12 38-27 46"
+          stroke={palette.primary}
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+        <path
+          d="m58 91-8 2m12 8-8 5m14 4-7 7M122 91l8 2m-12 8 8 5m-14 4 7 7"
+          stroke={palette.secondary}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <circle cx="90" cy="43" r="6" fill={palette.primary} />
+      </g>
+    );
+  }
+
   if (variant === "poker-chips") {
     return (
       <g data-achievement-symbol="poker-chips">

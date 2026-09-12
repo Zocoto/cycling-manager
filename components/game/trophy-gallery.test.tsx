@@ -117,6 +117,32 @@ describe("TrophyGallery", () => {
     expect(markup).not.toContain("Récompense débloquée");
   });
 
+  it("renders the earned El Presidente trophy with its dedicated seal", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+          specialAwards: [
+            {
+              id: "el-presidente-award",
+              trophyKey: "el_presidente",
+              availableAt: "2026-09-12T12:00:00.000Z",
+              claimedAt: "2026-09-12T12:00:00.000Z",
+              href: "/jeu/directeur-sportif#el-presidente-avatar-outfit",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain("El Presidente");
+    expect(markup).toContain('data-trophy-status="earned"');
+    expect(markup).toContain('data-achievement-trophy-mark="presidential-seal"');
+    expect(markup).toContain("tenue officielle El Presidente");
+  });
+
   it("resserre les compteurs sur téléphone pour garder les libellés lisibles", () => {
     const markup = renderToStaticMarkup(
       <TrophyGallery

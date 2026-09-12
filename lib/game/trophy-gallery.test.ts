@@ -482,4 +482,31 @@ describe("buildTrophyGallery", () => {
       ),
     ).toBe(false);
   });
+
+  it("adds the El Presidente trophy once the presidency award is claimed", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "el-presidente-award",
+          trophyKey: "el_presidente",
+          availableAt: "2026-09-12T12:00:00.000Z",
+          claimedAt: "2026-09-12T12:00:00.000Z",
+          href: "/jeu/directeur-sportif#el-presidente-avatar-outfit",
+        },
+      ],
+    });
+
+    expect(gallery.trophies[0]).toMatchObject({
+      kind: "achievement",
+      title: "El Presidente",
+      visualVariant: "presidential-seal",
+      href: "/jeu/directeur-sportif#el-presidente-avatar-outfit",
+    });
+    expect(gallery.trophies[0]?.description).toContain(
+      "tenue officielle El Presidente",
+    );
+  });
 });
