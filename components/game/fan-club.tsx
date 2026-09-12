@@ -822,13 +822,13 @@ function StorePanel({
         <Heading
           eyebrow="Ventes réalisées"
           title="Aperçu des dernières ventes"
-          detail="Le rapport complet regroupe le CR du jour et l’historique des journées précédentes."
+          detail="Le rapport complet regroupe le CR du jour et les journées précédentes de la saison en cours."
           action={
             <Link
               href="/jeu/fan-club/rapport-ventes"
               className="inline-flex min-h-10 items-center rounded-xl bg-[var(--fan-soft)] px-3 text-xs font-black text-[var(--fan-primary)]"
             >
-              Consulter l’historique →
+              Consulter la saison →
             </Link>
           }
         />

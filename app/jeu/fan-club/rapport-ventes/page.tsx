@@ -16,7 +16,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 export const metadata: Metadata = {
   title: "Rapport des ventes du Fan Club",
   description:
-    "Consultez le compte rendu quotidien et l’historique des ventes de la boutique du club.",
+    "Consultez les comptes rendus quotidiens des ventes de la saison en cours.",
 };
 
 const integerFormatter = new Intl.NumberFormat("fr-FR");
@@ -103,8 +103,8 @@ export default async function FanClubSalesReportPage() {
           </h1>
           <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-white/80 sm:text-base">
             Chaque CR est produit automatiquement à heure fixe, même si le DS
-            ne consulte pas le magasin. Les journées sont conservées ci-dessous
-            de la plus récente à la plus ancienne.
+            ne consulte pas le magasin. Seules les journées de la saison en
+            cours sont conservées, de la plus récente à la plus ancienne.
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
             <ReportMetric
@@ -124,7 +124,7 @@ export default async function FanClubSalesReportPage() {
               }
             />
             <ReportMetric
-              label="Recettes historisées"
+              label="Recettes de la saison"
               value={currencyFormatter.format(report.totalRevenue)}
             />
           </div>
@@ -167,7 +167,7 @@ function DailyReportCard({
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--fan-line)] bg-[var(--fan-soft)] px-5 py-5 sm:px-7">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--fan-secondary)]">
-            {isToday ? "CR du jour" : "Archive quotidienne"}
+            {isToday ? "CR du jour" : "Journée précédente"}
           </p>
           <h2 className="mt-1 text-xl font-black text-[var(--fan-ink)]">
             {report.seasonName} · J{report.dayNumber}
