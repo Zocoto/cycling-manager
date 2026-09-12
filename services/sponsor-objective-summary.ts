@@ -15,6 +15,8 @@ type SponsorObjectiveWeightRow = {
 
 type SponsorContractSatisfactionRow = {
   satisfaction_score: number;
+  start_season_id: string;
+  objective_season_id: string | null;
 };
 
 export async function getSponsorObjectiveSummary(contractId: string) {
@@ -24,30 +26,30 @@ export async function getSponsorObjectiveSummary(contractId: string) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const [progressResult, contractResult] = await Promise.all([
-    supabase
-      .from("objective_progress")
-      .select("sponsor_objective_id, status")
-      .eq("team_sponsor_contract_id", normalizedContractId)
-      .returns<ObjectiveProgressRow[]>(),
-    supabase
-      .from("team_sponsor_contracts")
-      .select("satisfaction_score")
-      .eq("id", normalizedContractId)
-      .maybeSingle<SponsorContractSatisfactionRow>(),
-  ]);
-
-  const { data, error } = progressResult;
-
-  if (error) {
-    throw new Error(
-      `Impossible de charger le résumé des objectifs sponsor : ${error.message}`,
-    );
-  }
+  const contractResult = await supabase
+    .from("team_sponsor_contracts")
+    .select("satisfaction_score, start_season_id, objective_season_id")
+    .eq("id", normalizedContractId)
+    .maybeSingle<SponsorContractSatisfactionRow>();
 
   if (contractResult.error) {
     throw new Error(
       `Impossible de charger la satisfaction sponsor : ${contractResult.error.message}`,
+    );
+  }
+  if (!contractResult.data) return summarizeSponsorObjectives([]);
+
+  const objectiveSeasonId =
+    contractResult.data.objective_season_id ?? contractResult.data.start_season_id;
+  const { data, error } = await supabase
+    .from("objective_progress")
+    .select("sponsor_objective_id, status")
+    .eq("team_sponsor_contract_id", normalizedContractId)
+    .eq("season_id", objectiveSeasonId)
+    .returns<ObjectiveProgressRow[]>();
+  if (error) {
+    throw new Error(
+      `Impossible de charger le résumé des objectifs sponsor : ${error.message}`,
     );
   }
 

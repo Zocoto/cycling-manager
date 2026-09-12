@@ -346,4 +346,3 @@ comment on function public.prepare_annual_sponsor_objective_offers(uuid) is
 select public.repair_due_annual_sponsor_objectives();
 notify pgrst, 'reload schema';
 commit;
-
