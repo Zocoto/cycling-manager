@@ -1,6 +1,28 @@
 import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
 import type { PostRaceInterviewAnswer } from "@/lib/game/post-race-interview";
 import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
+import type {
+  PreRaceAmbition,
+  PreRaceIntent,
+} from "@/lib/game/pre-race-press";
+
+export type CyclogazettePreRacePressConference = {
+  conferenceId: string;
+  directorName: string;
+  directorAvatarKey: string | null;
+  teamId: string;
+  teamName: string;
+  raceName: string;
+  leaderRiderId: string;
+  leaderName: string;
+  ambition: PreRaceAmbition;
+  raceIntent: PreRaceIntent;
+  publicStatement: string;
+  status: "published" | "settled";
+  targetMet: boolean | null;
+  leaderFinalRank: number | null;
+  reputationDelta: number | null;
+};
 
 export type CyclogazetteReaction = {
   interviewId: string;
@@ -78,6 +100,7 @@ export type CyclogazetteContent = {
   raceHighlights: PublicGameNewsItem[];
   mercatoStories: PublicGameNewsItem[];
   reactions: CyclogazetteReaction[];
+  preRacePressConferences?: CyclogazettePreRacePressConference[];
   tourSummaries?: CyclogazetteTourSummary[];
   mediaArticles?: CyclogazetteMediaArticle[];
   featureStories?: CyclogazetteFeatureStory[];

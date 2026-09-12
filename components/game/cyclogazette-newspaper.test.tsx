@@ -125,6 +125,26 @@ const edition: CyclogazetteEdition = {
         ],
       },
     ],
+    preRacePressConferences: [
+      {
+        conferenceId: "conference-1",
+        directorName: "Roger Letesteur",
+        directorAvatarKey: null,
+        teamId: "team-1",
+        teamName: "Veloria Mobilités",
+        raceName: "Circuit de Mazurie",
+        leaderRiderId: "rider-1",
+        leaderName: "Timo Willems",
+        ambition: "victory",
+        raceIntent: "sprint",
+        publicStatement:
+          "Nous venons pour gagner et toute l’équipe croit en Timo.",
+        status: "settled",
+        targetMet: true,
+        leaderFinalRank: 1,
+        reputationDelta: 8,
+      },
+    ],
   },
 };
 
@@ -219,6 +239,23 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup.match(/data-reaction-sentiment="negative"/g)).toHaveLength(
       12,
     );
+  });
+
+  it("publie les conférences d’avant-course dans l’édition du soir", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper edition={edition} />,
+    );
+
+    expect(markup).toContain('data-pre-race-press="true"');
+    expect(markup).toContain('data-pre-race-conference="conference-1"');
+    expect(markup).toContain("Avant le départ");
+    expect(markup).toContain("Les DS annoncent la couleur");
+    expect(markup).toContain(
+      "Nous venons pour gagner et toute l’équipe croit en Timo.",
+    );
+    expect(markup).toContain("La victoire · Miser sur le final");
+    expect(markup).toContain("Promesse tenue");
+    expect(markup).toContain("/jeu/coureurs/rider-1");
   });
 
   it("devient Cyclo Gazetta sur papier rose de J2 à J7", () => {

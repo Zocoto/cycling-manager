@@ -19,9 +19,14 @@ import type {
   CyclogazetteCommunity,
   CyclogazetteEdition,
   CyclogazetteFeatureStory,
+  CyclogazettePreRacePressConference,
   CyclogazetteReaction,
   CyclogazetteTourSummary,
 } from "@/lib/game/cyclogazette";
+import {
+  PRE_RACE_AMBITION_DETAILS,
+  PRE_RACE_INTENT_LABELS,
+} from "@/lib/game/pre-race-press";
 import {
   applyCyclogazetteInterviewReactionState,
   CYCLOGAZETTE_INTERVIEW_REACTION_DEFINITIONS,
@@ -224,6 +229,7 @@ export function CyclogazetteNewspaper({
     raceHighlights,
     mercatoStories,
     reactions,
+    preRacePressConferences = [],
     tourSummaries = [],
     mediaArticles = [],
     featureStories = [],
@@ -522,6 +528,36 @@ export function CyclogazetteNewspaper({
                   item={item}
                   showRaceEvent
                   balancedCard
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {preRacePressConferences.length > 0 ? (
+          <section
+            data-pre-race-press="true"
+            className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5"
+          >
+            <SectionTitle
+              eyebrow={isEnglish ? "Before the start" : "Avant le départ"}
+              title={
+                isEnglish
+                  ? "The SDs declare their intentions"
+                  : "Les DS annoncent la couleur"
+              }
+              sportsDaily={isSportsDailyEdition}
+            />
+            <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
+              {isEnglish
+                ? "Ambitions, leaders and tactical promises: the statements made before today's races enter the public record."
+                : "Ambitions, leaders et promesses tactiques : les déclarations faites avant les courses du jour entrent dans la chronique du peloton."}
+            </p>
+            <div className="mt-4 flex flex-wrap items-stretch gap-4">
+              {preRacePressConferences.map((conference) => (
+                <PreRacePressCard
+                  key={conference.conferenceId}
+                  conference={conference}
                 />
               ))}
             </div>
@@ -1490,6 +1526,121 @@ function InterviewReactionCard({
           {reactionError}
         </p>
       ) : null}
+    </article>
+  );
+}
+
+function PreRacePressCard({
+  conference,
+}: {
+  conference: CyclogazettePreRacePressConference;
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  const ambition = PRE_RACE_AMBITION_DETAILS[conference.ambition];
+  const ambitionLabel = isEnglish
+    ? {
+        victory: "Victory",
+        podium: "Podium",
+        top_10: "Top 10",
+        visibility: "A prominent finish",
+      }[conference.ambition]
+    : ambition.label;
+  const intentLabel = isEnglish
+    ? {
+        control: "Control the race",
+        attack: "Race on the attack",
+        sprint: "Target the finale",
+        development: "Develop the team",
+      }[conference.raceIntent]
+    : PRE_RACE_INTENT_LABELS[conference.raceIntent];
+  const resultLabel = conference.targetMet
+    ? isEnglish
+      ? "Promise kept"
+      : "Promesse tenue"
+    : isEnglish
+      ? "Target missed"
+      : "Objectif manqué";
+  const leaderRank = conference.leaderFinalRank
+    ? isEnglish
+      ? `#${conference.leaderFinalRank}`
+      : conference.leaderFinalRank === 1
+        ? "1er"
+        : `${conference.leaderFinalRank}e`
+    : null;
+
+  return (
+    <article
+      data-pre-race-conference={conference.conferenceId}
+      className="min-w-0 flex-[1_1_360px] border-2 border-[var(--gazette-ink)] bg-[var(--gazette-card)] p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--gazette-rule)]/35 pb-3">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)]">
+            {conference.raceName}
+          </p>
+          <p className="mt-1 text-xs font-black">
+            {ambitionLabel} · {intentLabel}
+          </p>
+        </div>
+        {conference.status === "settled" ? (
+          <span
+            className={`border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${
+              conference.targetMet
+                ? "border-emerald-700/40 text-emerald-800"
+                : "border-[var(--gazette-accent)]/40 text-[var(--gazette-accent)]"
+            }`}
+          >
+            {resultLabel}
+          </span>
+        ) : null}
+      </div>
+      <blockquote className="relative mt-4">
+        <span
+          aria-hidden="true"
+          className="absolute -left-1 -top-2 font-serif text-5xl leading-none text-[var(--gazette-accent)]/25"
+        >
+          “
+        </span>
+        <p
+          data-i18n-skip
+          className="relative pl-4 font-serif text-base font-bold leading-6"
+        >
+          {conference.publicStatement}
+        </p>
+      </blockquote>
+      <footer className="mt-4 flex items-center gap-3">
+        <SportingDirectorAvatar
+          avatarKey={conference.directorAvatarKey}
+          size="small"
+          label={
+            isEnglish
+              ? `Portrait of ${conference.directorName}`
+              : `Portrait de ${conference.directorName}`
+          }
+        />
+        <div className="min-w-0">
+          <p className="text-xs font-black">{conference.directorName}</p>
+          <Link
+            href={`/jeu/equipes/${conference.teamId}`}
+            className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gazette-accent)] hover:underline"
+          >
+            {conference.teamName}
+          </Link>
+          <p className="text-[10px] text-[var(--gazette-muted)]">
+            {isEnglish ? "Leader:" : "Leader :"}{" "}
+            <Link
+              href={`/jeu/coureurs/${conference.leaderRiderId}`}
+              className="font-bold hover:underline"
+            >
+              {conference.leaderName}
+            </Link>
+            {leaderRank
+              ? ` · ${isEnglish ? "finished" : "classé"} ${leaderRank}`
+              : ""}
+          </p>
+        </div>
+      </footer>
     </article>
   );
 }

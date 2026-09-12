@@ -7,6 +7,7 @@ import {
   type CyclogazetteCommunity,
   type CyclogazetteContent,
   type CyclogazetteEdition,
+  type CyclogazettePreRacePressConference,
   type CyclogazetteReaction,
   type CyclogazetteTourSummary,
   formatCyclogazetteStageLabel,
@@ -16,6 +17,12 @@ import {
   selectLatestCyclogazetteTourSummaries,
   sortCyclogazetteStoriesByPrestige,
 } from "@/lib/game/cyclogazette";
+import {
+  isPreRaceAmbition,
+  isPreRaceIntent,
+  type PreRaceAmbition,
+  type PreRaceIntent,
+} from "@/lib/game/pre-race-press";
 import {
   isCyclogazetteInterviewReactionEmoji,
   type CyclogazetteAnswerReactionSummary,
@@ -51,6 +58,27 @@ type InterviewRow = {
   closing_note: string | null;
   submitted_at: string | null;
 };
+
+type PreRaceStageRow = { race_edition_id: string };
+type PreRacePressRow = {
+  id: string;
+  race_edition_id: string;
+  team_id: string;
+  sporting_director_id: string;
+  leader_rider_id: string;
+  race_name: string;
+  team_name: string;
+  director_name: string;
+  leader_name: string;
+  ambition: string;
+  race_intent: string;
+  public_statement: string;
+  status: "published" | "settled" | "cancelled";
+  target_met: boolean | null;
+  leader_final_rank: number | null;
+  reputation_delta: number | null;
+};
+type PreRaceDirectorRow = { id: string; avatar_key: string | null };
 
 type MediaArticleRow = {
   id: string;
@@ -235,12 +263,14 @@ export async function publishCyclogazetteEdition(
   const [
     allNews,
     submittedReactions,
+    preRacePressConferences,
     tourSummaries,
     mediaArticlesResult,
     featureStories,
   ] = await Promise.all([
       getCyclogazetteNewsItems(),
       loadDailyReactions(seasonDay.calendar_date),
+      loadDailyPreRacePress(admin, seasonDay.id),
       loadDailyTourSummaries(admin, seasonDay.id),
       admin
         .from("media_center_articles")
@@ -318,6 +348,7 @@ export async function publishCyclogazetteEdition(
     raceHighlights: raceHighlights.filter((item) => item.id !== lead?.id),
     mercatoStories: mercatoStories.filter((item) => item.id !== lead?.id),
     reactions,
+    preRacePressConferences,
     tourSummaries,
     mediaArticles,
     featureStories,
@@ -547,6 +578,95 @@ async function loadDailyReactions(
   }
 
   return reactions;
+}
+
+async function loadDailyPreRacePress(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  seasonDayId: string,
+): Promise<CyclogazettePreRacePressConference[]> {
+  const stagesResult = await admin
+    .from("stages")
+    .select("race_edition_id")
+    .eq("season_day_id", seasonDayId)
+    .eq("stage_number", 1)
+    .returns<PreRaceStageRow[]>();
+  if (stagesResult.error) {
+    console.error(
+      "Conférences d’avant-course indisponibles pour La Cyclogazette :",
+      stagesResult.error,
+    );
+    return [];
+  }
+
+  const editionIds = [
+    ...new Set((stagesResult.data ?? []).map((stage) => stage.race_edition_id)),
+  ];
+  if (editionIds.length === 0) return [];
+
+  const conferencesResult = await admin
+    .from("pre_race_press_conferences")
+    .select(
+      "id,race_edition_id,team_id,sporting_director_id,leader_rider_id,race_name,team_name,director_name,leader_name,ambition,race_intent,public_statement,status,target_met,leader_final_rank,reputation_delta",
+    )
+    .in("race_edition_id", editionIds)
+    .neq("status", "cancelled")
+    .order("submitted_at", { ascending: true })
+    .returns<PreRacePressRow[]>();
+  if (conferencesResult.error) {
+    console.error(
+      "Conférences d’avant-course non chargées dans La Cyclogazette :",
+      conferencesResult.error,
+    );
+    return [];
+  }
+
+  const rows = (conferencesResult.data ?? []).filter(
+    (
+      conference,
+    ): conference is PreRacePressRow & {
+      ambition: PreRaceAmbition;
+      race_intent: PreRaceIntent;
+      status: "published" | "settled";
+    } =>
+      isPreRaceAmbition(conference.ambition) &&
+      isPreRaceIntent(conference.race_intent) &&
+      conference.status !== "cancelled",
+  );
+  const directorIds = [
+    ...new Set(rows.map((conference) => conference.sporting_director_id)),
+  ];
+  const directorsResult = directorIds.length
+    ? await admin
+        .from("sporting_directors")
+        .select("id,avatar_key")
+        .in("id", directorIds)
+        .returns<PreRaceDirectorRow[]>()
+    : { data: [] as PreRaceDirectorRow[] };
+  const avatarByDirectorId = new Map(
+    (directorsResult.data ?? []).map((director) => [
+      director.id,
+      director.avatar_key,
+    ]),
+  );
+
+  return rows.map((conference) => ({
+    conferenceId: conference.id,
+    directorName: conference.director_name,
+    directorAvatarKey:
+      avatarByDirectorId.get(conference.sporting_director_id) ?? null,
+    teamId: conference.team_id,
+    teamName: conference.team_name,
+    raceName: conference.race_name,
+    leaderRiderId: conference.leader_rider_id,
+    leaderName: conference.leader_name,
+    ambition: conference.ambition,
+    raceIntent: conference.race_intent,
+    publicStatement: conference.public_statement,
+    status: conference.status,
+    targetMet: conference.target_met,
+    leaderFinalRank: conference.leader_final_rank,
+    reputationDelta: conference.reputation_delta,
+  }));
 }
 
 function completeEditorialReactions(
@@ -880,6 +1000,8 @@ function createSubtitle(content: CyclogazetteContent, dayNumber: number) {
     return content.lead.title;
   }
   if (content.mercatoStories.length > 0) return "Le mercato anime le peloton";
+  if ((content.preRacePressConferences?.length ?? 0) > 0)
+    return "Les directeurs sportifs annoncent la couleur";
   if (content.reactions.length > 0)
     return "Les directeurs sportifs prennent la parole";
   if (content.featureStories?.[0]) return content.featureStories[0].title;
@@ -947,6 +1069,11 @@ function normalizeGazetteContent(value: unknown): CyclogazetteContent {
   const featureStories = Array.isArray(content.featureStories)
     ? content.featureStories
     : [];
+  const preRacePressConferences = Array.isArray(
+    content.preRacePressConferences,
+  )
+    ? content.preRacePressConferences
+    : [];
 
   return {
     lead: content.lead ?? null,
@@ -956,6 +1083,7 @@ function normalizeGazetteContent(value: unknown): CyclogazetteContent {
       ? content.mercatoStories
       : [],
     reactions,
+    preRacePressConferences,
     tourSummaries,
     mediaArticles,
     featureStories,
