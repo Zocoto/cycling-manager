@@ -27,6 +27,18 @@ export type FederationChatOverview = {
   hasMore: boolean;
 };
 
+export type FederationChatContext = {
+  countryId: string;
+  countryCode: string;
+  countryName: string;
+  sportingDirectorId: string;
+  teamId: string;
+};
+
+export type FederationChatHubPayload = FederationChatOverview & {
+  context: FederationChatContext;
+};
+
 export function mapFederationChatMessage(
   row: FederationChatMessageRow,
 ): FederationChatMessage {

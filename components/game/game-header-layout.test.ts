@@ -37,8 +37,8 @@ describe("game header responsive layout", () => {
 
   it("laisse le chat au dock mobile et conserve son raccourci sur desktop", () => {
     expect(headerSource).toContain("<GlobalChatShortcut");
-    expect(headerSource).toContain(
-      '<span className="hidden sm:contents">\n            <GlobalChatShortcut',
+    expect(headerSource).toMatch(
+      /<span className="hidden sm:contents">\r?\n\s*<GlobalChatShortcut/,
     );
     expect(headerSource).not.toContain("floatingOnMobile");
   });

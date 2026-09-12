@@ -31,6 +31,7 @@ type GameHeaderProps = {
   chatIsOpen?: boolean;
   gazetteIsOpen?: boolean;
   mailboxIsOpen?: boolean;
+  compactMobile?: boolean;
 };
 
 const DEFAULT_HEADER_COLORS = {
@@ -48,6 +49,7 @@ export function GameHeader({
   chatIsOpen = false,
   gazetteIsOpen = false,
   mailboxIsOpen = false,
+  compactMobile = false,
 }: GameHeaderProps) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -132,7 +134,7 @@ export function GameHeader({
 
         <div
           data-global-header-search="true"
-          className="order-2 w-full min-w-0 xl:order-none xl:flex-1"
+          className={`${compactMobile ? "hidden sm:block" : "block"} order-2 w-full min-w-0 xl:order-none xl:flex-1`}
         >
           <GameHeaderSearch
             id="game-global-search"
@@ -144,7 +146,7 @@ export function GameHeader({
 
         <div
           data-mobile-header-shortcuts="true"
-          className="order-3 -mx-3 grid w-[calc(100%+1.5rem)] grid-cols-2 items-center justify-items-center gap-1 border-t border-white/10 px-3 pb-0.5 pt-1.5 sm:mx-0 sm:ml-auto sm:flex sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0"
+          className={`${compactMobile ? "hidden sm:flex" : "grid sm:flex"} order-3 -mx-3 w-[calc(100%+1.5rem)] grid-cols-2 items-center justify-items-center gap-1 border-t border-white/10 px-3 pb-0.5 pt-1.5 sm:mx-0 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0`}
         >
           <span className="hidden sm:contents">
             <HeaderMenuLink

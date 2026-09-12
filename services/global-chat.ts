@@ -241,14 +241,17 @@ export async function getGlobalChatOverview(
   messages: GlobalChatMessage[];
   hasMore: boolean;
   nextCursor: GlobalChatCursor | null;
+  lastReadAt: string | null;
 }> {
-  const [identityResult, onlineDirectorsResult, messagePage] = await Promise.all([
-    supabase.rpc("get_current_global_chat_identity_v2"),
-    supabase.rpc("get_online_global_chat_directors_v2"),
-    getGlobalChatMessagePage(supabase, {
-      limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
-    }),
-  ]);
+  const [identityResult, onlineDirectorsResult, readReceiptResult, messagePage] =
+    await Promise.all([
+      supabase.rpc("get_current_global_chat_identity_v2"),
+      supabase.rpc("get_online_global_chat_directors_v2"),
+      supabase.rpc("get_current_global_chat_last_read_at"),
+      getGlobalChatMessagePage(supabase, {
+        limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
+      }),
+    ]);
 
   if (identityResult.error) {
     throw new Error(
@@ -284,8 +287,19 @@ export async function getGlobalChatOverview(
     );
   }
 
+  if (readReceiptResult.error) {
+    console.error(
+      "Global chat read position unavailable; opening on the latest messages.",
+      readReceiptResult.error,
+    );
+  }
+
   return {
     identity,
+    lastReadAt:
+      !readReceiptResult.error && typeof readReceiptResult.data === "string"
+        ? readReceiptResult.data
+        : null,
     onlineDirectors: mergeGlobalChatOnlineDirectors({
       currentDirector: identity,
       recentDirectors: onlineDirectorsResult.error

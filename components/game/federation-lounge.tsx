@@ -19,6 +19,7 @@ export function FederationLounge({
   currentTeamId,
   initialMessages,
   initialHasMore,
+  embedded = false,
 }: {
   countryId: string;
   countryCode: string;
@@ -26,6 +27,7 @@ export function FederationLounge({
   currentTeamId: string;
   initialMessages: FederationChatMessage[];
   initialHasMore: boolean;
+  embedded?: boolean;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [messages, setMessages] = useState(initialMessages);
@@ -137,7 +139,14 @@ export function FederationLounge({
   }
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+    <section
+      className={
+        embedded
+          ? "flex h-full min-h-0 flex-col overflow-hidden bg-white"
+          : "overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]"
+      }
+      data-federation-chat-embedded={embedded || undefined}
+    >
       <header className="flex flex-col gap-4 bg-[var(--federation-primary)] px-6 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
@@ -156,7 +165,11 @@ export function FederationLounge({
 
       <div
         ref={viewportRef}
-        className="h-[min(58dvh,38rem)] space-y-3 overflow-y-auto overscroll-contain bg-[#F3F8F5] p-4 sm:p-6"
+        className={
+          embedded
+            ? "min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[#F3F8F5] p-4 sm:p-6"
+            : "h-[min(58dvh,38rem)] space-y-3 overflow-y-auto overscroll-contain bg-[#F3F8F5] p-4 sm:p-6"
+        }
       >
         {hasMore ? (
           <div className="text-center">
@@ -175,7 +188,7 @@ export function FederationLounge({
           <div className="mx-auto max-w-md rounded-2xl border border-dashed border-[#315B3E]/20 bg-white px-6 py-10 text-center">
             <p className="font-black text-[#183F37]">Le salon est ouvert</p>
             <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-              Lancez le premier échange entre Directeurs Sportifs belges.
+              Lancez le premier échange entre Directeurs Sportifs de {countryName}.
             </p>
           </div>
         ) : (

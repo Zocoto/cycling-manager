@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
+  Fragment,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -30,7 +31,6 @@ import {
   extractGlobalChatPreviewReference,
   getGlobalChatMentionQuery,
   globalChatMessageMentionsUsername,
-  GLOBAL_CHAT_HISTORY_DAYS,
   GLOBAL_CHAT_MENTION_MAX_RECIPIENTS,
   GLOBAL_CHAT_MENTION_SEARCH_MIN_LENGTH,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
@@ -78,6 +78,23 @@ const DirectMessagingPanel = dynamic(
   },
 );
 
+const FederationMessagingPanel = dynamic(
+  () =>
+    import("@/components/game/federation-messaging-panel").then(
+      (module) => module.FederationMessagingPanel,
+    ),
+  {
+    loading: () => (
+      <div className="grid min-h-0 flex-1 place-items-center bg-[#F3F8F5] text-xs font-black text-[#60756E]">
+        Ouverture du vestiaire fédéral…
+      </div>
+    ),
+  },
+);
+
+type ChatMode = "global" | "direct" | "federation";
+type GlobalChatView = "all" | "races" | "mentions";
+
 type ChatMessageTranslationState = {
   targetLocale: "fr" | "en";
   status: "loading" | "loaded" | "error";
@@ -93,6 +110,7 @@ export function GlobalGameChat({
   initialMessages,
   initialHasMore,
   initialCursor,
+  initialLastReadAt = null,
   initialDirectRecipientId = null,
   initialDirectUnreadCount = 0,
   translationEnabled = false,
@@ -102,6 +120,7 @@ export function GlobalGameChat({
   initialMessages: GlobalChatMessage[];
   initialHasMore: boolean;
   initialCursor: GlobalChatCursor | null;
+  initialLastReadAt?: string | null;
   initialDirectRecipientId?: string | null;
   initialDirectUnreadCount?: number;
   translationEnabled?: boolean;
@@ -134,12 +153,13 @@ export function GlobalGameChat({
       }),
     [identity, realtimeOnlineDirectors, recentOnlineDirectors],
   );
-  const [activeMode, setActiveMode] = useState<"global" | "direct">(
+  const [activeMode, setActiveMode] = useState<ChatMode>(
     initialDirectRecipientId ? "direct" : "global",
   );
   const [hasOpenedDirect, setHasOpenedDirect] = useState(
     Boolean(initialDirectRecipientId),
   );
+  const [hasOpenedFederation, setHasOpenedFederation] = useState(false);
   const [showOnlineDirectors, setShowOnlineDirectors] = useState(false);
   const [requestedDirectRecipientId, setRequestedDirectRecipientId] =
     useState<string | null>(initialDirectRecipientId);
@@ -148,6 +168,11 @@ export function GlobalGameChat({
   );
   const [hasUnreadGlobalWhilePrivate, setHasUnreadGlobalWhilePrivate] =
     useState(false);
+  const [globalView, setGlobalView] = useState<GlobalChatView>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [pendingLiveMessageCount, setPendingLiveMessageCount] = useState(0);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [draft, setDraft] = useState("");
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [selectedMentions, setSelectedMentions] = useState<
@@ -186,12 +211,79 @@ export function GlobalGameChat({
     scrollTop: number;
   } | null>(null);
   const activeModeRef = useRef(activeMode);
+  const viewportNearBottomRef = useRef(false);
+  const forceScrollToLatestRef = useRef(false);
+  const lastAcknowledgedReadAtRef = useRef(initialLastReadAt);
+  const pendingReadRequestAtRef = useRef<string | null>(null);
 
   const latestDisplayedMessage = messages.at(-1) ?? null;
   const latestDisplayedMessageAt = latestDisplayedMessage?.createdAt ?? null;
   const latestDisplayedMessageId = latestDisplayedMessage?.id ?? null;
   const oldestDisplayedMessageId = messages[0]?.id ?? null;
   const mentionSearchText = mentionQuery?.query.trim() ?? "";
+  const acknowledgeLatestMessages = useCallback(() => {
+    if (
+      !latestDisplayedMessageAt ||
+      pendingReadRequestAtRef.current === latestDisplayedMessageAt ||
+      (lastAcknowledgedReadAtRef.current !== null &&
+        lastAcknowledgedReadAtRef.current >= latestDisplayedMessageAt)
+    ) {
+      return;
+    }
+
+    pendingReadRequestAtRef.current = latestDisplayedMessageAt;
+    void markGlobalChatMessagesAsRead(
+      supabase,
+      latestDisplayedMessageAt,
+    ).then((success) => {
+      if (success) {
+        lastAcknowledgedReadAtRef.current = latestDisplayedMessageAt;
+      }
+      if (pendingReadRequestAtRef.current === latestDisplayedMessageAt) {
+        pendingReadRequestAtRef.current = null;
+      }
+    });
+  }, [latestDisplayedMessageAt, supabase]);
+  const initialUnreadMessageIds = useMemo(
+    () =>
+      initialLastReadAt
+        ? initialMessages
+            .filter(
+              (message) =>
+                message.sportingDirectorId !== identity.sportingDirectorId &&
+                message.createdAt > initialLastReadAt,
+            )
+            .map((message) => message.id)
+        : [],
+    [identity.sportingDirectorId, initialLastReadAt, initialMessages],
+  );
+  const firstInitialUnreadMessageId = initialUnreadMessageIds[0] ?? null;
+  const initialUnreadMessageCount = initialUnreadMessageIds.length;
+  const filteredMessages = useMemo(
+    () => {
+      const normalizedQuery = normalizeChatSearchQuery(searchQuery);
+      return messages.filter((message) => {
+        if (globalView === "races" && !message.raceContext) return false;
+        if (
+          globalView === "mentions" &&
+          !globalChatMessageMentionsUsername(message.message, identity.username)
+        ) {
+          return false;
+        }
+
+        if (!normalizedQuery) return true;
+        return [
+          message.message,
+          message.authorDisplayName,
+          message.teamDisplayName,
+          message.raceContext?.label ?? "",
+        ].some((value) =>
+          normalizeChatSearchQuery(value).includes(normalizedQuery),
+        );
+      });
+    },
+    [globalView, identity.username, messages, searchQuery],
+  );
 
   useEffect(() => {
     const savedDraft = window.localStorage.getItem(
@@ -247,22 +339,24 @@ export function GlobalGameChat({
     if (
       activeMode !== "global" ||
       document.visibilityState !== "visible" ||
-      !latestDisplayedMessageAt
+      !latestDisplayedMessageAt ||
+      !viewportNearBottomRef.current
     ) {
       return;
     }
 
-    void markGlobalChatMessagesAsRead(supabase, latestDisplayedMessageAt);
-  }, [activeMode, latestDisplayedMessageAt, supabase]);
+    acknowledgeLatestMessages();
+  }, [acknowledgeLatestMessages, activeMode, latestDisplayedMessageAt]);
 
   useEffect(() => {
     function markVisibleMessagesAsRead() {
       if (
         activeMode === "global" &&
         document.visibilityState === "visible" &&
-        latestDisplayedMessageAt
+        latestDisplayedMessageAt &&
+        viewportNearBottomRef.current
       ) {
-        void markGlobalChatMessagesAsRead(supabase, latestDisplayedMessageAt);
+        acknowledgeLatestMessages();
       }
     }
 
@@ -276,7 +370,7 @@ export function GlobalGameChat({
         markVisibleMessagesAsRead,
       );
     };
-  }, [activeMode, latestDisplayedMessageAt, supabase]);
+  }, [acknowledgeLatestMessages, activeMode, latestDisplayedMessageAt]);
 
   useEffect(() => {
     let active = true;
@@ -327,17 +421,43 @@ export function GlobalGameChat({
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const viewport = viewportRef.current;
-      if (!viewport) return;
+      if (!viewport || activeMode !== "global") return;
 
-      viewport.scrollTo({
-        top: viewport.scrollHeight,
-        behavior: positionedRef.current ? "smooth" : "auto",
-      });
+      if (!positionedRef.current && firstInitialUnreadMessageId) {
+        document
+          .getElementById(`global-chat-message-${firstInitialUnreadMessageId}`)
+          ?.scrollIntoView({ block: "start" });
+      } else if (
+        !positionedRef.current ||
+        viewportNearBottomRef.current ||
+        forceScrollToLatestRef.current
+      ) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: positionedRef.current ? "smooth" : "auto",
+        });
+        viewportNearBottomRef.current = true;
+        setShowJumpToLatest(false);
+        setPendingLiveMessageCount(0);
+        if (
+          latestDisplayedMessageAt &&
+          document.visibilityState === "visible"
+        ) {
+          acknowledgeLatestMessages();
+        }
+      }
+      forceScrollToLatestRef.current = false;
       positionedRef.current = true;
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [latestDisplayedMessageId]);
+  }, [
+    activeMode,
+    firstInitialUnreadMessageId,
+    latestDisplayedMessageAt,
+    latestDisplayedMessageId,
+    acknowledgeLatestMessages,
+  ]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -455,10 +575,19 @@ export function GlobalGameChat({
           }
           if (
             payload.eventType === "INSERT" &&
-            activeModeRef.current === "direct" &&
+            activeModeRef.current !== "global" &&
             message.sportingDirectorId !== identity.sportingDirectorId
           ) {
             setHasUnreadGlobalWhilePrivate(true);
+          }
+          if (
+            payload.eventType === "INSERT" &&
+            activeModeRef.current === "global" &&
+            !viewportNearBottomRef.current &&
+            message.sportingDirectorId !== identity.sportingDirectorId
+          ) {
+            setPendingLiveMessageCount((current) => current + 1);
+            setShowJumpToLatest(true);
           }
           setMessages((current) => upsertRealtimeMessage(current, message));
         },
@@ -487,6 +616,39 @@ export function GlobalGameChat({
   }, [identity, supabase]);
 
   const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
+
+  function handleGlobalViewportScroll() {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const nearBottom =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 96;
+    viewportNearBottomRef.current = nearBottom;
+    setShowJumpToLatest(!nearBottom);
+
+    if (
+      nearBottom &&
+      activeModeRef.current === "global" &&
+      document.visibilityState === "visible"
+    ) {
+      setPendingLiveMessageCount(0);
+      if (latestDisplayedMessageAt) {
+        acknowledgeLatestMessages();
+      }
+    }
+  }
+
+  function scrollToLatestMessages() {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    viewportNearBottomRef.current = true;
+    setShowJumpToLatest(false);
+    setPendingLiveMessageCount(0);
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+    if (latestDisplayedMessageAt) {
+      acknowledgeLatestMessages();
+    }
+  }
 
   async function loadOlderMessages() {
     if (!olderCursor || isLoadingOlder) return;
@@ -700,8 +862,9 @@ export function GlobalGameChat({
     setActiveMode("direct");
   }, []);
 
-  const changeMode = useCallback((mode: "global" | "direct") => {
+  const changeMode = useCallback((mode: ChatMode) => {
     if (mode === "direct") setHasOpenedDirect(true);
+    if (mode === "federation") setHasOpenedFederation(true);
     setActiveMode(mode);
     if (mode === "global") setHasUnreadGlobalWhilePrivate(false);
   }, []);
@@ -735,6 +898,7 @@ export function GlobalGameChat({
           replyTo?.id ?? null,
           mentionedDirectorIds,
         );
+        forceScrollToLatestRef.current = true;
         setMessages((current) => appendUniqueMessage(current, savedMessage));
         setDraft("");
         setReplyTo(null);
@@ -802,7 +966,7 @@ export function GlobalGameChat({
   return (
     <div
       data-chat-hub="true"
-      className="flex h-[calc(100dvh-var(--game-mobile-navigation-clearance)-7.75rem)] min-h-[30rem] flex-col overflow-hidden border-y border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] sm:h-auto sm:rounded-[2rem] sm:border"
+      className="flex h-[calc(100dvh-var(--game-mobile-navigation-clearance)-4rem)] min-h-[30rem] flex-col overflow-hidden border-y border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] sm:h-[calc(100dvh-8.5rem)] sm:min-h-[34rem] sm:rounded-[2rem] sm:border"
     >
       <ChatModeTabs
         activeMode={activeMode}
@@ -814,29 +978,37 @@ export function GlobalGameChat({
       <div
         className={
           activeMode === "global"
-            ? "grid min-h-0 flex-1 lg:h-[46rem] lg:grid-cols-[minmax(0,1fr)_19rem]"
+            ? "grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_19rem]"
             : "hidden"
         }
       >
-      <section className="flex h-full min-h-0 min-w-0 flex-col bg-[#F7FBF9]">
-        <header className="border-b border-[#315B3E]/12 bg-white px-5 py-4 sm:px-7">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-                <span
-                  aria-hidden="true"
-                  className="h-2 w-2 animate-pulse rounded-full bg-[#42B99A]"
-                />
-                Discussion en direct
-              </p>
-              <h2 className="mt-1 text-xl font-black text-[#0B302B]">
-                Le peloton parle
-              </h2>
-            </div>
+      <section className="relative flex h-full min-h-0 min-w-0 flex-col bg-[#F7FBF9]">
+        <header className="shrink-0 border-b border-[#315B3E]/12 bg-white px-4 py-2.5 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="h-2 w-2 animate-pulse rounded-full bg-[#42B99A]"
+            />
+            <h2 className="min-w-0 flex-1 truncate text-base font-black text-[#0B302B] sm:text-lg">
+              Le peloton parle
+            </h2>
+            <button
+              type="button"
+              onClick={() => setSearchOpen((current) => !current)}
+              className={`grid h-8 w-8 place-items-center rounded-full text-sm font-black transition ${
+                searchOpen
+                  ? "bg-[#176951] text-white"
+                  : "bg-[#EAF7F1] text-[#176951] hover:bg-[#D7EFE3]"
+              }`}
+              aria-label="Rechercher dans les messages chargés"
+              aria-expanded={searchOpen}
+            >
+             ⌕
+            </button>
             <button
               type="button"
               onClick={() => setShowOnlineDirectors(true)}
-              className="rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951] transition hover:bg-[#D7EFE3] lg:hidden"
+              className="rounded-full bg-[#E4F4EC] px-2.5 py-1.5 text-[9px] font-black text-[#176951] transition hover:bg-[#D7EFE3] lg:hidden"
               aria-label="Voir les Directeurs Sportifs en ligne"
             >
               {onlineDirectors.length} en ligne
@@ -845,6 +1017,61 @@ export function GlobalGameChat({
               {onlineDirectors.length} en ligne
             </span>
           </div>
+
+          <div
+            className="mt-2 flex items-center gap-1.5 overflow-x-auto"
+            data-mobile-scroll-rail="true"
+          >
+            {(
+              [
+                ["all", "Tous"],
+                ["races", "Courses"],
+                ["mentions", "Mes mentions"],
+              ] as const
+            ).map(([view, label]) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => setGlobalView(view)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                  globalView === view
+                    ? "bg-[#0B302B] text-white"
+                    : "bg-[#F0F6F3] text-[#60756E] hover:bg-[#E4F4EC] hover:text-[#176951]"
+                }`}
+                aria-pressed={globalView === view}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {searchOpen ? (
+            <div className="mt-2 flex items-center gap-2">
+              <label htmlFor="global-chat-search" className="sr-only">
+                Rechercher dans les messages chargés
+              </label>
+              <input
+                id="global-chat-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                autoFocus
+                placeholder="Message, DS, équipe ou course…"
+                className="h-10 min-w-0 flex-1 rounded-xl border border-[#315B3E]/15 bg-[#F7FBF9] px-3 text-base font-semibold text-[#0B302B] outline-none focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15 sm:text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchOpen(false);
+                }}
+                className="grid h-9 w-9 place-items-center rounded-full bg-[#F0F6F3] font-black text-[#60756E]"
+                aria-label="Fermer la recherche"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
         </header>
 
         {mentionAlert ? (
@@ -866,33 +1093,23 @@ export function GlobalGameChat({
 
         <div
           ref={viewportRef}
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-7"
+          onScroll={handleGlobalViewportScroll}
+          className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 sm:px-7 sm:py-4"
           aria-live="polite"
           aria-relevant="additions"
         >
-          {messages.length > 0 ? (
-            <div className="flex flex-col items-center gap-2 pb-1 text-center">
-              {hasMore && olderCursor ? (
-                <button
-                  type="button"
-                  onClick={() => void loadOlderMessages()}
-                  disabled={isLoadingOlder}
-                  className="rounded-full border border-[#176951]/20 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951] shadow-sm transition hover:border-[#176951]/45 hover:bg-[#EAF7F1] disabled:cursor-wait disabled:opacity-60"
-                >
-                  {isLoadingOlder
-                    ? "Chargement…"
-                    : "Afficher les messages précédents"}
-                </button>
-              ) : (
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#789087]">
-                  Début de l’historique visible
-                </p>
-              )}
-              <p className="text-[9px] font-semibold text-[#8AA097]">
-                Historique limité aux {GLOBAL_CHAT_HISTORY_DAYS} derniers jours
-              </p>
+          {hasMore && olderCursor ? (
+            <div className="pb-1 text-center">
+              <button
+                type="button"
+                onClick={() => void loadOlderMessages()}
+                disabled={isLoadingOlder}
+                className="rounded-full border border-[#176951]/15 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#176951] shadow-sm transition hover:bg-[#EAF7F1] disabled:cursor-wait disabled:opacity-60"
+              >
+                {isLoadingOlder ? "Chargement…" : "↑ Messages précédents"}
+              </button>
               {historyError ? (
-                <p role="alert" className="text-[10px] font-bold text-red-700">
+                <p role="alert" className="mt-1 text-[10px] font-bold text-red-700">
                   {historyError}
                 </p>
               ) : null}
@@ -900,8 +1117,18 @@ export function GlobalGameChat({
           ) : null}
 
           {messages.length === 0 ? <EmptyChat /> : null}
+          {messages.length > 0 && filteredMessages.length === 0 ? (
+            <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-[#315B3E]/18 bg-white px-5 py-8 text-center">
+              <p className="text-sm font-black text-[#183F37]">
+                Aucun message dans cette vue
+              </p>
+              <p className="mt-1 text-xs font-semibold text-[#60756E]">
+                Modifiez le filtre ou la recherche pour retrouver la discussion.
+              </p>
+            </div>
+          ) : null}
 
-          {messages.map((message) => {
+          {filteredMessages.map((message) => {
             const onlineAuthor = onlineDirectors.find(
               (director) =>
                 director.sportingDirectorId === message.sportingDirectorId,
@@ -909,8 +1136,24 @@ export function GlobalGameChat({
             const isCurrentDirector =
               message.sportingDirectorId === identity.sportingDirectorId;
             return (
+              <Fragment key={message.id}>
+                {globalView === "all" &&
+                !searchQuery.trim() &&
+                message.id === firstInitialUnreadMessageId ? (
+                  <div
+                    className="flex items-center gap-3 py-1"
+                    data-chat-unread-divider="true"
+                  >
+                    <span className="h-px flex-1 bg-[#EF5B65]/30" />
+                    <span className="rounded-full bg-[#FFE6E8] px-3 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#B9343F]">
+                      {initialUnreadMessageCount} nouveau
+                      {initialUnreadMessageCount > 1 ? "x" : ""} message
+                      {initialUnreadMessageCount > 1 ? "s" : ""}
+                    </span>
+                    <span className="h-px flex-1 bg-[#EF5B65]/30" />
+                  </div>
+                ) : null}
               <ChatMessage
-                key={message.id}
                 message={message}
                 avatarKey={
                   message.authorAvatarKey ??
@@ -954,13 +1197,28 @@ export function GlobalGameChat({
                   void toggleMessageTranslation(message)
                 }
               />
+              </Fragment>
             );
           })}
         </div>
 
+        {showJumpToLatest ? (
+          <div className="pointer-events-none relative z-20 h-0">
+            <button
+              type="button"
+              onClick={scrollToLatestMessages}
+              className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0B302B] px-4 py-2 text-[10px] font-black text-white shadow-[0_10px_30px_rgba(7,26,23,0.3)] transition hover:bg-[#176951]"
+            >
+              ↓ {pendingLiveMessageCount > 0
+                ? `${pendingLiveMessageCount} nouveau${pendingLiveMessageCount > 1 ? "x" : ""}`
+                : "Messages récents"}
+            </button>
+          </div>
+        ) : null}
+
         <form
           onSubmit={submitMessage}
-          className="border-t border-[#315B3E]/12 bg-white p-4 sm:px-7"
+          className="shrink-0 border-t border-[#315B3E]/12 bg-white p-3 sm:px-6"
         >
           <label htmlFor="global-chat-message" className="sr-only">
             Votre message
@@ -1041,7 +1299,7 @@ export function GlobalGameChat({
             <textarea
               ref={textareaRef}
               id="global-chat-message"
-              rows={2}
+              rows={1}
               value={draft}
               onChange={updateDraftAndMentionSearch}
               onKeyDown={(event) => {
@@ -1070,14 +1328,14 @@ export function GlobalGameChat({
                 }
               }}
               placeholder="Écrivez au peloton ou partagez une fiche équipe/coureur…"
-              className="min-h-[3.25rem] min-w-0 flex-1 resize-none rounded-xl border border-[#315B3E]/20 bg-[#F7FBF9] px-4 py-3 text-sm font-semibold leading-6 text-[#0B302B] outline-none transition focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15"
+              className="min-h-12 min-w-0 flex-1 resize-none rounded-xl border border-[#315B3E]/20 bg-[#F7FBF9] px-4 py-3 text-base font-semibold leading-6 text-[#0B302B] outline-none transition focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15 sm:text-sm"
             />
             <button
               type="submit"
               disabled={
                 isPending || draft.trim().length === 0
               }
-              className="grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
             >
               {isPending ? (
@@ -1100,7 +1358,7 @@ export function GlobalGameChat({
             <p className="ml-auto shrink-0 text-[9px] font-bold text-[#789087]">
               Entrée pour envoyer · {draft.length}/{draftLimit}
             </p>
-            <p className="w-full text-[9px] font-semibold text-[#789087]">
+            <p className="hidden w-full text-[9px] font-semibold text-[#789087] sm:block">
               Tapez @ pour notifier un membre · liens autorisés : fiches
               coureurs, équipes et DS Cyclo Stratège
             </p>
@@ -1126,6 +1384,9 @@ export function GlobalGameChat({
           onUnreadCountChange={setDirectUnreadCount}
         />
       ) : null}
+      {hasOpenedFederation ? (
+        <FederationMessagingPanel active={activeMode === "federation"} />
+      ) : null}
     </div>
   );
 }
@@ -1136,10 +1397,10 @@ function ChatModeTabs({
   hasUnreadGlobal,
   onModeChange,
 }: {
-  activeMode: "global" | "direct";
+  activeMode: ChatMode;
   directUnreadCount: number;
   hasUnreadGlobal: boolean;
-  onModeChange: (mode: "global" | "direct") => void;
+  onModeChange: (mode: ChatMode) => void;
 }) {
   return (
     <div
@@ -1181,8 +1442,21 @@ function ChatModeTabs({
           </span>
         ) : null}
       </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeMode === "federation"}
+        onClick={() => onModeChange("federation")}
+        className={`rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+          activeMode === "federation"
+            ? "bg-[#176951] text-white shadow-sm"
+            : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
+        }`}
+      >
+        Fédération
+      </button>
       <p className="ml-auto hidden text-[10px] font-semibold text-[#789087] sm:block">
-        Historique privé chargé à la demande
+        Les salons secondaires sont chargés à la demande
       </p>
     </div>
   );
@@ -1729,6 +2003,7 @@ async function markGlobalChatMessagesAsRead(
   if (!error) {
     notifyGlobalChatMessagesRead();
   }
+  return !error;
 }
 
 function readRealtimeMessage(
@@ -1888,6 +2163,14 @@ function readRealtimeMessage(
 
 function getGlobalChatDraftStorageKey(sportingDirectorId: string) {
   return `cyclostratege:chat:draft:global:${sportingDirectorId}`;
+}
+
+function normalizeChatSearchQuery(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLocaleLowerCase("fr-FR");
 }
 
 function readRealtimePreview(

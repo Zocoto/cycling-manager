@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { GlobalGameChat } from "@/components/game/global-game-chat";
 import { isUuid } from "@/lib/game/direct-messages";
@@ -59,23 +58,21 @@ export default async function GlobalChatPage({
         sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
         maxWidth="wide"
         chatIsOpen
+        compactMobile
       />
 
       <section
-        className="mx-auto max-w-[1500px] px-0 py-0 sm:px-8 sm:py-12"
+        className="mx-auto max-w-[1500px] px-0 py-0 sm:px-6 sm:py-4"
         data-chat-shell="true"
       >
-        <div className="hidden sm:block">
-          <BackToOfficeLink />
-        </div>
-
-        <div className="sm:mt-5" data-chat-page="true">
+        <div data-chat-page="true">
           <GlobalGameChat
             identity={chat.identity}
             initialOnlineDirectors={chat.onlineDirectors}
             initialMessages={chat.messages}
             initialHasMore={chat.hasMore}
             initialCursor={chat.nextCursor}
+            initialLastReadAt={chat.lastReadAt}
             initialDirectRecipientId={initialDirectRecipientId}
             initialDirectUnreadCount={directUnreadCount}
             translationEnabled={isChatTranslationConfigured()}

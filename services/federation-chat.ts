@@ -3,6 +3,7 @@ import "server-only";
 import {
   FEDERATION_CHAT_PAGE_SIZE,
   mapFederationChatMessage,
+  type FederationChatContext,
   type FederationChatMessageRow,
   type FederationChatOverview,
 } from "@/lib/game/federation-chat";
@@ -22,6 +23,39 @@ const FEDERATION_CHAT_SELECT = [
   "message",
   "created_at",
 ].join(", ");
+
+type FederationChatContextRow = {
+  country_id: string;
+  country_code: string;
+  country_name: string;
+  sporting_director_id: string;
+  team_id: string;
+};
+
+export async function getCurrentFederationChatContext(
+  supabase: SupabaseServerClient,
+): Promise<FederationChatContext | null> {
+  const result = await supabase
+    .rpc("get_current_chat_federation_context")
+    .maybeSingle();
+
+  if (result.error) {
+    throw new Error(
+      `Impossible d’identifier votre fédération : ${result.error.message}`,
+    );
+  }
+
+  const row = result.data as FederationChatContextRow | null;
+  if (!row) return null;
+
+  return {
+    countryId: row.country_id,
+    countryCode: row.country_code,
+    countryName: row.country_name,
+    sportingDirectorId: row.sporting_director_id,
+    teamId: row.team_id,
+  };
+}
 
 export async function getFederationChatOverview(
   supabase: SupabaseServerClient,

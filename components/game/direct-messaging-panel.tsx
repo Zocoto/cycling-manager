@@ -726,7 +726,7 @@ export function DirectMessagingPanel({
     <div
       className={
         active
-          ? "grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden lg:h-[46rem] lg:flex-none lg:grid-cols-[20rem_minmax(0,1fr)]"
+          ? "grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[20rem_minmax(0,1fr)]"
           : "hidden"
       }
     >

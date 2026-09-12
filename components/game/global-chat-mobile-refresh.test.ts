@@ -7,6 +7,10 @@ const chat = readFileSync(
   "utf8",
 );
 const page = readFileSync(join(process.cwd(), "app/jeu/chat/page.tsx"), "utf8");
+const header = readFileSync(
+  join(process.cwd(), "components/game/game-header.tsx"),
+  "utf8",
+);
 
 describe("global chat mobile refresh", () => {
   it("uses the chat route as a mobile app-like full-height surface", () => {
@@ -14,6 +18,8 @@ describe("global chat mobile refresh", () => {
     expect(page).toContain('data-chat-page="true"');
     expect(chat).toContain('data-chat-hub="true"');
     expect(chat).toContain("--game-mobile-navigation-clearance");
+    expect(page).toContain("compactMobile");
+    expect(header).toContain('compactMobile ? "hidden sm:block"');
   });
 
   it("keeps online directors in a secondary mobile sheet", () => {
@@ -26,5 +32,22 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("data-chat-race-context={message.raceContext.raceEditionId}");
     expect(chat).toContain("message.raceContext.href");
     expect(chat).toContain("message.raceContext.label");
+  });
+
+  it("opens on missed messages without forcing readers back to the bottom", () => {
+    expect(page).toContain("initialLastReadAt={chat.lastReadAt}");
+    expect(chat).toContain('data-chat-unread-divider="true"');
+    expect(chat).toContain("firstInitialUnreadMessageId");
+    expect(chat).toContain("viewportNearBottomRef.current");
+    expect(chat).toContain("pendingLiveMessageCount");
+    expect(chat).toContain("scrollToLatestMessages");
+  });
+
+  it("adds useful local views and loads the federation only on demand", () => {
+    expect(chat).toContain('["races", "Courses"]');
+    expect(chat).toContain('["mentions", "Mes mentions"]');
+    expect(chat).toContain("normalizeChatSearchQuery");
+    expect(chat).toContain("hasOpenedFederation");
+    expect(chat).toContain("FederationMessagingPanel");
   });
 });
