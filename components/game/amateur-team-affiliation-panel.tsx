@@ -24,39 +24,33 @@ export function AmateurTeamAffiliationPanel({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--federation-secondary)]">
-            Nationalité de l’équipe
+            Nationalité de l’équipe et de l’entraîneur
           </p>
           <h2 className="mt-1.5 text-xl font-black text-[#183F37]">
-            Ancrer votre équipe amateur dans la fédération
+            Ancrer votre structure amateure dans la fédération
           </h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-            Alignez durablement la nationalité sportive de votre équipe amateur
-            sur celle de la fédération. Elle contribue à déterminer les sponsors
-            qui vous contacteront en fin de saison.
+            Alignez en une seule démarche la nationalité sportive de votre
+            équipe amateure et de votre profil d’entraîneur sur celle de la
+            fédération. La nationalité de l’équipe contribue à déterminer les
+            sponsors qui vous contacteront en fin de saison.
           </p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-[#183F37]">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#315B3E]/12 bg-white px-3 py-1.5">
-              <span className="text-[9px] uppercase tracking-[0.1em] text-[#789087]">
-                Actuelle
-              </span>
-              <span
-                className={`fi fi-${state.currentCountryCode.toLowerCase()}`}
-              />
-              {state.currentCountryName}
-            </span>
-            <span aria-hidden="true" className="text-[#789087]">
-              →
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-[var(--federation-soft)] px-3 py-1.5 text-[var(--federation-primary)]">
-              <span className="text-[9px] uppercase tracking-[0.1em] opacity-65">
-                Fédération
-              </span>
-              <span
-                className={`fi fi-${state.federationCountryCode.toLowerCase()}`}
-              />
-              {state.federationCountryName}
-            </span>
+          <div className="mt-4 grid gap-2 text-xs font-black text-[#183F37] sm:grid-cols-2">
+            <NationalityRoute
+              label="Équipe amateure"
+              currentCountryCode={state.teamCountryCode}
+              currentCountryName={state.teamCountryName}
+              federationCountryCode={state.federationCountryCode}
+              federationCountryName={state.federationCountryName}
+            />
+            <NationalityRoute
+              label="Entraîneur"
+              currentCountryCode={state.trainerCountryCode}
+              currentCountryName={state.trainerCountryName}
+              federationCountryCode={state.federationCountryCode}
+              federationCountryName={state.federationCountryName}
+            />
           </div>
 
           <p className="mt-3 text-xs font-semibold leading-5 text-[#789087]">
@@ -98,17 +92,70 @@ export function AmateurTeamAffiliationPanel({
               disabled={!state.canChange || pending}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--federation-secondary)]"
             />
-            Je confirme l’adoption de la nationalité sportive&nbsp;: {state.federationCountryName}.
+            Je confirme l’adoption de la nationalité sportive de l’équipe
+            amateure et de l’entraîneur&nbsp;: {state.federationCountryName}.
           </label>
           <button
             type="submit"
             disabled={!state.canChange || !confirmed || pending}
             className="mt-3 min-h-11 w-full rounded-xl bg-[var(--federation-secondary)] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {pending ? "Changement…" : "Confirmer le changement"}
+            {pending ? "Naturalisation…" : "Naturaliser la structure"}
           </button>
         </form>
       </div>
     </section>
+  );
+}
+
+function NationalityRoute({
+  label,
+  currentCountryCode,
+  currentCountryName,
+  federationCountryCode,
+  federationCountryName,
+}: {
+  label: string;
+  currentCountryCode: string | null;
+  currentCountryName: string;
+  federationCountryCode: string;
+  federationCountryName: string;
+}) {
+  const alreadyAligned = currentCountryCode === federationCountryCode;
+
+  return (
+    <div
+      className={`rounded-xl border p-3 ${
+        alreadyAligned
+          ? "border-[var(--federation-secondary)]/25 bg-[var(--federation-soft)]/70"
+          : "border-[#315B3E]/12 bg-white"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[9px] uppercase tracking-[0.12em] text-[#789087]">
+          {label}
+        </span>
+        {alreadyAligned ? (
+          <span className="text-[9px] uppercase tracking-[0.1em] text-[var(--federation-primary)]">
+            Déjà aligné
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#315B3E]/12 bg-white px-3 py-1.5">
+          {currentCountryCode ? (
+            <span className={`fi fi-${currentCountryCode.toLowerCase()}`} />
+          ) : null}
+          {currentCountryName}
+        </span>
+        <span aria-hidden="true" className="text-[#789087]">
+          →
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--federation-soft)] px-3 py-1.5 text-[var(--federation-primary)]">
+          <span className={`fi fi-${federationCountryCode.toLowerCase()}`} />
+          {federationCountryName}
+        </span>
+      </div>
+    </div>
   );
 }

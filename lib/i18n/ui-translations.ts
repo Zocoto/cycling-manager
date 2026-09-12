@@ -219,20 +219,34 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Réunir trois membres actifs du staff ayant la nationalité de l’équipe, définie par son sponsor. Récompense : un Insigne d’expertise.":
     "Employ three active staff members with the team nationality set by its sponsor. Reward: one Expertise Badge.",
   "Nationalité de l’équipe": "Team nationality",
+  "Nationalité de l’équipe et de l’entraîneur":
+    "Team and coach nationality",
   "Actuelle": "Current",
   "Fédération": "Federation",
+  "Équipe amateure": "Amateur team",
+  "Entraîneur": "Coach",
+  "Déjà aligné": "Already aligned",
+  "Non renseignée": "Not provided",
   "Ancrer votre équipe amateur dans la fédération":
     "Root your amateur team in the federation",
-  "Alignez durablement la nationalité sportive de votre équipe amateur sur celle de la fédération. Elle contribue à déterminer les sponsors qui vous contacteront en fin de saison.":
-    "Permanently align your amateur team’s sporting nationality with the federation. It helps determine which sponsors will contact you at the end of the season.",
+  "Ancrer votre structure amateure dans la fédération":
+    "Root your amateur structure in the federation",
+  "Alignez en une seule démarche la nationalité sportive de votre équipe amateure et de votre profil d’entraîneur sur celle de la fédération. La nationalité de l’équipe contribue à déterminer les sponsors qui vous contacteront en fin de saison.":
+    "In one step, align the sporting nationality of your amateur team and coach profile with the federation. The team nationality helps determine which sponsors will contact you at the end of the season.",
   "Une saison complète dans cette fédération est requise. Les coureurs et les contrats en cours restent inchangés.":
     "One full season in this federation is required. Riders and current contracts remain unchanged.",
   "Je confirme l’adoption de la nationalité sportive :":
     "I confirm the adoption of the following sporting nationality:",
+  "Je confirme l’adoption de la nationalité sportive de l’équipe amateure et de l’entraîneur :":
+    "I confirm that the amateur team and coach will adopt this sporting nationality:",
   "Confirmer le changement": "Confirm the change",
   "Changement…": "Changing…",
+  "Naturaliser la structure": "Naturalise the organisation",
+  "Naturalisation…": "Naturalising…",
   "Votre équipe porte déjà la nationalité sportive de cette fédération.":
     "Your team already holds this federation’s sporting nationality.",
+  "Votre équipe amateure et votre entraîneur portent déjà la nationalité sportive de cette fédération.":
+    "Your amateur team and coach already hold this federation’s sporting nationality.",
   "Ce changement sera disponible en Saison":
     "This change will become available in Season",
   "si votre équipe reste affiliée à cette fédération.":
@@ -241,8 +255,17 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "The nationality change has already been used this season.",
   "Confirmez le changement de nationalité sportive.":
     "Confirm the sporting nationality change.",
+  "Confirmez la naturalisation de l’équipe et de l’entraîneur.":
+    "Confirm the naturalisation of the team and coach.",
   "Le changement de nationalité n’a pas abouti.":
     "The nationality change could not be completed.",
+  "La naturalisation n’a pas abouti.":
+    "The naturalisation could not be completed.",
+  "Naturalisation finalisée": "Naturalisation completed",
+  "Votre équipe amateure et votre profil d’entraîneur sont désormais alignés avec la fédération.":
+    "Your amateur team and coach profile are now aligned with the federation.",
+  "La nouvelle nationalité de l’équipe sera prise en compte dans les prochaines affinités sponsors.":
+    "The team’s new nationality will be reflected in future sponsor affinities.",
   "Nationalité sportive adoptée": "Sporting nationality adopted",
   "Elle sera prise en compte dans les prochaines affinités sponsors.":
     "It will be reflected in future sponsor affinities.",
