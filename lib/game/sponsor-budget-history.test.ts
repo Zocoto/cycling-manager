@@ -13,10 +13,26 @@ describe("buildSponsorBudgetHistory", () => {
   it("conserve chaque saison jouée, valorise l’amateur à zéro et utilise le budget annuel archivé", () => {
     const result = buildSponsorBudgetHistory({
       teamSeasons: [
-        { seasonId: "s1", displayName: "Vélo Club Horizon" },
-        { seasonId: "s2", displayName: "Atlas Horizon" },
-        { seasonId: "s3", displayName: "Atlas Horizon Pro" },
-        { seasonId: "s4", displayName: "Atlas Horizon Pro" },
+        {
+          seasonId: "s1",
+          displayName: "Vélo Club Horizon",
+          operatingBudget: 0,
+        },
+        {
+          seasonId: "s2",
+          displayName: "Atlas Horizon",
+          operatingBudget: 2_700_000,
+        },
+        {
+          seasonId: "s3",
+          displayName: "Atlas Horizon Pro",
+          operatingBudget: 3_200_000,
+        },
+        {
+          seasonId: "s4",
+          displayName: "Atlas Horizon Pro",
+          operatingBudget: 3_200_000,
+        },
       ],
       seasons,
       contracts: [
@@ -71,7 +87,13 @@ describe("buildSponsorBudgetHistory", () => {
 
   it("privilégie le contrat actif lorsqu’un ancien contrat terminé couvre la même saison", () => {
     const result = buildSponsorBudgetHistory({
-      teamSeasons: [{ seasonId: "s3", displayName: "Nouvelle Équipe" }],
+      teamSeasons: [
+        {
+          seasonId: "s3",
+          displayName: "Nouvelle Équipe",
+          operatingBudget: 4_000_000,
+        },
+      ],
       seasons,
       contracts: [
         {
@@ -100,5 +122,42 @@ describe("buildSponsorBudgetHistory", () => {
     });
 
     expect(result[0]?.budgetPerSeason).toBe(4_000_000);
+  });
+
+  it("utilise le budget figé de la saison si l’archive annuelle manque", () => {
+    const result = buildSponsorBudgetHistory({
+      teamSeasons: [
+        {
+          seasonId: "s2",
+          displayName: "Abbaye du Lion",
+          operatingBudget: 670_000,
+        },
+        {
+          seasonId: "s3",
+          displayName: "Abbaye du Lion",
+          operatingBudget: 696_800,
+        },
+      ],
+      seasons,
+      contracts: [
+        {
+          id: "contract-abbaye",
+          sponsorId: "sponsor-abbaye",
+          startSeasonId: "s2",
+          endSeasonId: "s3",
+          budgetPerSeason: 696_800,
+          currencyCode: "EUR",
+          status: "active",
+          createdAt: "2026-09-01T10:00:00.000Z",
+        },
+      ],
+      annualBudgets: [],
+      sponsors: [],
+    });
+
+    expect(result.map((point) => point.budgetPerSeason)).toEqual([
+      670_000,
+      696_800,
+    ]);
   });
 });

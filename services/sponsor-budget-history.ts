@@ -10,6 +10,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 type TeamSeasonRow = {
   season_id: string;
   display_name: string;
+  operating_budget: number | string;
 };
 
 type SponsorContractRow = {
@@ -54,7 +55,7 @@ export async function getSponsorBudgetHistoryForTeam(
   const [teamSeasonsResult, contractsResult] = await Promise.all([
     supabase
       .from("team_seasons")
-      .select("season_id, display_name")
+      .select("season_id, display_name, operating_budget")
       .eq("team_id", normalizedTeamId)
       .neq("status", "withdrawn")
       .returns<TeamSeasonRow[]>(),
@@ -126,6 +127,7 @@ export async function getSponsorBudgetHistoryForTeam(
     teamSeasons: teamSeasons.map((teamSeason) => ({
       seasonId: teamSeason.season_id,
       displayName: teamSeason.display_name,
+      operatingBudget: Number(teamSeason.operating_budget),
     })),
     seasons: (seasonsResult.data ?? []).map((season) => ({
       id: season.id,

@@ -21,6 +21,7 @@ export type SponsorBudgetHistoryPoint = {
 export type SponsorBudgetHistoryTeamSeason = {
   seasonId: string;
   displayName: string;
+  operatingBudget: number;
 };
 
 export type SponsorBudgetHistorySeason = {
@@ -100,7 +101,11 @@ export function buildSponsorBudgetHistory({
         ? annualBudgetByContractAndSeason.get(`${contract.id}:${season.id}`)
         : undefined;
       const budgetPerSeason = normalizeBudget(
-        archivedBudget ?? contract?.budgetPerSeason ?? 0,
+        archivedBudget ??
+          (contract
+            ? normalizeBudget(teamSeason.operatingBudget) ||
+              contract.budgetPerSeason
+            : 0),
       );
 
       return [
