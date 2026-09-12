@@ -7,17 +7,14 @@ import {
 } from "./global-chat-media-picker";
 
 describe("global chat media picker", () => {
-  it("exposes compact emoji and cycling reaction controls", () => {
+  it("exposes a compact emoji picker without the unused GIF control", () => {
     const markup = renderToStaticMarkup(
-      <GlobalChatMediaPicker
-        onEmojiSelect={() => undefined}
-        onReactionSelect={() => undefined}
-      />,
+      <GlobalChatMediaPicker onEmojiSelect={() => undefined} />,
     );
 
     expect(markup).toContain("Ajouter un émoji");
-    expect(markup).toContain("Ajouter un GIF cycliste");
-    expect(markup).toContain("GIF");
+    expect(markup).not.toContain("Ajouter un GIF cycliste");
+    expect(markup).not.toContain(">GIF<");
   });
 
   it("renders a local animated cycling sticker", () => {

@@ -10,12 +10,20 @@ const panel = readFileSync(
 describe("direct messaging mobile layout", () => {
   it("cantonne la grille et le fil privé à la largeur du téléphone", () => {
     expect(panel).toContain(
-      "min-w-0 max-w-full grid-cols-[minmax(0,1fr)] overflow-hidden",
+      "min-h-0 min-w-0 max-w-full flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden",
     );
     expect(panel).toContain(
       "w-full min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto",
     );
     expect(panel).toContain('className={`flex min-w-0 ${');
+  });
+
+  it("affiche sur mobile soit la liste soit le fil avec un retour explicite", () => {
+    expect(panel).toContain('activeConversation ? "hidden" : "flex"');
+    expect(panel).toContain('activeConversation ? "flex" : "hidden"');
+    expect(panel).toContain('aria-label="Retour aux conversations"');
+    expect(panel).toContain("getDirectMessageDraftStorageKey");
+    expect(panel).toContain("window.localStorage.setItem");
   });
 
   it("fait tenir les bulles et les textes longs sans rognage", () => {

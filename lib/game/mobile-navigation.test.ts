@@ -35,7 +35,10 @@ describe("mobile navigation overflow", () => {
       },
       {
         label: "Sportif",
-        links: [["Classements", "/jeu/classements"]],
+        links: [
+          ["Effectif", "/jeu/effectif"],
+          ["Classements", "/jeu/classements"],
+        ],
       },
     ]);
   });

@@ -61,10 +61,15 @@ export default async function GlobalChatPage({
         chatIsOpen
       />
 
-      <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
-        <BackToOfficeLink />
+      <section
+        className="mx-auto max-w-[1500px] px-0 py-0 sm:px-8 sm:py-12"
+        data-chat-shell="true"
+      >
+        <div className="hidden sm:block">
+          <BackToOfficeLink />
+        </div>
 
-        <div className="mt-5">
+        <div className="sm:mt-5" data-chat-page="true">
           <GlobalGameChat
             identity={chat.identity}
             initialOnlineDirectors={chat.onlineDirectors}

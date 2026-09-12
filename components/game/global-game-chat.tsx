@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
@@ -10,7 +11,6 @@ import {
   useTransition,
 } from "react";
 
-import { DirectMessagingPanel } from "@/components/game/direct-messaging-panel";
 import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
@@ -25,7 +25,6 @@ import {
 } from "@/components/game/global-chat-media-picker";
 import Link from "@/components/ui/app-link";
 import {
-  buildGlobalChatMessage,
   expandGlobalChatEmoticons,
   extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
@@ -35,15 +34,11 @@ import {
   GLOBAL_CHAT_MENTION_MAX_RECIPIENTS,
   GLOBAL_CHAT_MENTION_SEARCH_MIN_LENGTH,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
-  GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS,
-  isGlobalChatMessageReactionEmoji,
   hasForbiddenGlobalChatLink,
   normalizeGlobalChatMessage,
   splitGlobalChatMessageContent,
   stripGlobalChatCyclingReactionTokens,
   type GlobalChatCursor,
-  type GlobalChatCyclingReactionKey,
-  type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -67,8 +62,21 @@ import type {
   GlobalChatMessagePage,
   GlobalChatMessageRow,
   GlobalChatPreview,
-  GlobalChatReactionRow,
 } from "@/services/global-chat";
+
+const DirectMessagingPanel = dynamic(
+  () =>
+    import("@/components/game/direct-messaging-panel").then(
+      (module) => module.DirectMessagingPanel,
+    ),
+  {
+    loading: () => (
+      <div className="grid h-full min-h-[28rem] place-items-center bg-[#F7FBF9] text-xs font-black text-[#60756E]">
+        Ouverture des conversations…
+      </div>
+    ),
+  },
+);
 
 type ChatMessageTranslationState = {
   targetLocale: "fr" | "en";
@@ -129,6 +137,10 @@ export function GlobalGameChat({
   const [activeMode, setActiveMode] = useState<"global" | "direct">(
     initialDirectRecipientId ? "direct" : "global",
   );
+  const [hasOpenedDirect, setHasOpenedDirect] = useState(
+    Boolean(initialDirectRecipientId),
+  );
+  const [showOnlineDirectors, setShowOnlineDirectors] = useState(false);
   const [requestedDirectRecipientId, setRequestedDirectRecipientId] =
     useState<string | null>(initialDirectRecipientId);
   const [directUnreadCount, setDirectUnreadCount] = useState(
@@ -137,6 +149,7 @@ export function GlobalGameChat({
   const [hasUnreadGlobalWhilePrivate, setHasUnreadGlobalWhilePrivate] =
     useState(false);
   const [draft, setDraft] = useState("");
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [selectedMentions, setSelectedMentions] = useState<
     GlobalChatMentionRecipient[]
   >([]);
@@ -156,8 +169,6 @@ export function GlobalGameChat({
   >({});
 
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
-  const [selectedReaction, setSelectedReaction] =
-    useState<GlobalChatCyclingReactionKey | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(
     null,
   );
@@ -183,8 +194,46 @@ export function GlobalGameChat({
   const mentionSearchText = mentionQuery?.query.trim() ?? "";
 
   useEffect(() => {
+    const savedDraft = window.localStorage.getItem(
+      getGlobalChatDraftStorageKey(identity.sportingDirectorId),
+    );
+    if (savedDraft) {
+      setDraft(savedDraft.slice(0, GLOBAL_CHAT_MESSAGE_MAX_LENGTH));
+    }
+    setDraftHydrated(true);
+  }, [identity.sportingDirectorId]);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const timer = window.setTimeout(() => {
+      const storageKey = getGlobalChatDraftStorageKey(
+        identity.sportingDirectorId,
+      );
+      if (draft.trim()) window.localStorage.setItem(storageKey, draft);
+      else window.localStorage.removeItem(storageKey);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [draft, draftHydrated, identity.sportingDirectorId]);
+
+  useEffect(() => {
     activeModeRef.current = activeMode;
   }, [activeMode]);
+
+  useEffect(() => {
+    if (!showOnlineDirectors) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowOnlineDirectors(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [showOnlineDirectors]);
 
   useEffect(() => {
     const timer = window.setInterval(
@@ -437,7 +486,7 @@ export function GlobalGameChat({
     };
   }, [identity, supabase]);
 
-  const draftLimit = getGlobalChatDraftLimit(selectedReaction);
+  const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
 
   async function loadOlderMessages() {
     if (!olderCursor || isLoadingOlder) return;
@@ -573,11 +622,6 @@ export function GlobalGameChat({
     });
   }
 
-  function selectReaction(reaction: GlobalChatCyclingReactionKey) {
-    setSelectedReaction(reaction);
-    setDraft((current) => current.slice(0, getGlobalChatDraftLimit(reaction)));
-  }
-
   function beginReply(message: GlobalChatMessage) {
     setReplyTo(message);
     window.requestAnimationFrame(() => textareaRef.current?.focus());
@@ -652,10 +696,12 @@ export function GlobalGameChat({
 
   const beginDirectMessage = useCallback((recipientId: string) => {
     setRequestedDirectRecipientId(recipientId);
+    setHasOpenedDirect(true);
     setActiveMode("direct");
   }, []);
 
   const changeMode = useCallback((mode: "global" | "direct") => {
+    if (mode === "direct") setHasOpenedDirect(true);
     setActiveMode(mode);
     if (mode === "global") setHasUnreadGlobalWhilePrivate(false);
   }, []);
@@ -666,10 +712,7 @@ export function GlobalGameChat({
 
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = buildGlobalChatMessage({
-      text: draft,
-      reactionKey: selectedReaction,
-    });
+    const message = normalizeGlobalChatMessage(draft);
     if (!message || isPending) return;
     if (hasForbiddenGlobalChatLink(message)) {
       setError(
@@ -695,7 +738,6 @@ export function GlobalGameChat({
         setMessages((current) => appendUniqueMessage(current, savedMessage));
         setDraft("");
         setReplyTo(null);
-        setSelectedReaction(null);
         setSelectedMentions([]);
         setMentionQuery(null);
         setMentionResults([]);
@@ -758,7 +800,10 @@ export function GlobalGameChat({
   }
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)]">
+    <div
+      data-chat-hub="true"
+      className="flex h-[calc(100dvh-var(--game-mobile-navigation-clearance)-7.75rem)] min-h-[30rem] flex-col overflow-hidden border-y border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] sm:h-auto sm:rounded-[2rem] sm:border"
+    >
       <ChatModeTabs
         activeMode={activeMode}
         directUnreadCount={directUnreadCount}
@@ -769,11 +814,11 @@ export function GlobalGameChat({
       <div
         className={
           activeMode === "global"
-            ? "grid lg:h-[46rem] lg:grid-cols-[minmax(0,1fr)_19rem]"
+            ? "grid min-h-0 flex-1 lg:h-[46rem] lg:grid-cols-[minmax(0,1fr)_19rem]"
             : "hidden"
         }
       >
-      <section className="flex h-[min(42rem,calc(100dvh-6rem))] min-h-[34rem] min-w-0 flex-col bg-[#F7FBF9] lg:h-auto lg:min-h-0">
+      <section className="flex h-full min-h-0 min-w-0 flex-col bg-[#F7FBF9]">
         <header className="border-b border-[#315B3E]/12 bg-white px-5 py-4 sm:px-7">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -788,7 +833,15 @@ export function GlobalGameChat({
                 Le peloton parle
               </h2>
             </div>
-            <span className="rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951]">
+            <button
+              type="button"
+              onClick={() => setShowOnlineDirectors(true)}
+              className="rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951] transition hover:bg-[#D7EFE3] lg:hidden"
+              aria-label="Voir les Directeurs Sportifs en ligne"
+            >
+              {onlineDirectors.length} en ligne
+            </button>
+            <span className="hidden rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951] lg:inline-flex">
               {onlineDirectors.length} en ligne
             </span>
           </div>
@@ -935,28 +988,6 @@ export function GlobalGameChat({
               </button>
             </div>
           ) : null}
-          {selectedReaction ? (
-            <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/15 bg-[#F3F8F6] p-2">
-              <span className="h-14 w-14 shrink-0">
-                <CyclingReactionSticker
-                  reactionKey={selectedReaction}
-                  compact
-                  decorative
-                />
-              </span>
-              <p className="min-w-0 flex-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]">
-                Réaction cycliste sélectionnée
-              </p>
-              <button
-                type="button"
-                onClick={() => setSelectedReaction(null)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-[#60756E] shadow-sm hover:text-red-700"
-                aria-label="Retirer la réaction"
-              >
-                ×
-              </button>
-            </div>
-          ) : null}
           {mentionQuery &&
           mentionSearchText.length >=
             GLOBAL_CHAT_MENTION_SEARCH_MIN_LENGTH ? (
@@ -1044,7 +1075,7 @@ export function GlobalGameChat({
             <button
               type="submit"
               disabled={
-                isPending || (!selectedReaction && draft.trim().length === 0)
+                isPending || draft.trim().length === 0
               }
               className="grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
@@ -1059,7 +1090,6 @@ export function GlobalGameChat({
           <div className="mt-2 flex min-h-9 flex-wrap items-center gap-2">
             <GlobalChatMediaPicker
               onEmojiSelect={appendEmoji}
-              onReactionSelect={selectReaction}
             />
             <p
               role="alert"
@@ -1082,16 +1112,20 @@ export function GlobalGameChat({
         directors={onlineDirectors}
         currentDirectorId={identity.sportingDirectorId}
         onDirectMessage={beginDirectMessage}
+        mobileOpen={showOnlineDirectors}
+        onClose={() => setShowOnlineDirectors(false)}
       />
       </div>
 
-      <DirectMessagingPanel
-        identity={identity}
-        active={activeMode === "direct"}
-        requestedRecipientId={requestedDirectRecipientId}
-        onRequestedRecipientHandled={acknowledgeDirectRecipient}
-        onUnreadCountChange={setDirectUnreadCount}
-      />
+      {hasOpenedDirect ? (
+        <DirectMessagingPanel
+          identity={identity}
+          active={activeMode === "direct"}
+          requestedRecipientId={requestedDirectRecipientId}
+          onRequestedRecipientHandled={acknowledgeDirectRecipient}
+          onUnreadCountChange={setDirectUnreadCount}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1109,7 +1143,7 @@ function ChatModeTabs({
 }) {
   return (
     <div
-      className="flex items-center gap-2 border-b border-[#315B3E]/12 bg-white px-4 py-3 sm:px-6"
+      className="flex shrink-0 items-center gap-2 border-b border-[#315B3E]/12 bg-white/95 px-4 py-3 backdrop-blur sm:px-6"
       role="tablist"
       aria-label="Type de discussion"
     >
@@ -1300,6 +1334,24 @@ function ChatMessage({
           </span>
         </div>
 
+        {message.raceContext ? (
+          <Link
+            href={message.raceContext.href}
+            data-chat-race-context={message.raceContext.raceEditionId}
+            className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] transition ${
+              isCurrentDirector
+                ? "border-white/15 bg-white/10 text-[#F7DA73] hover:bg-white/15"
+                : "border-[#42B99A]/25 bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
+            }`}
+          >
+            <span aria-hidden="true">◉</span>
+            <span className="truncate">
+              {isCurrentDirector ? "Vous" : message.authorDisplayName} sur «{" "}
+              {message.raceContext.label} »
+            </span>
+          </Link>
+        ) : null}
+
         {message.replyTo ? (
           <button
             type="button"
@@ -1459,134 +1511,97 @@ function ChatMessage({
   );
 }
 
-function ChatMessageActions({
-  message,
-  isCurrentDirector,
-  currentDirectorId,
-  pendingReactionKey,
-  reactionsDisabled,
-  onReply,
-  onReaction,
-}: {
-  message: GlobalChatMessage;
-  isCurrentDirector: boolean;
-  currentDirectorId: string;
-  pendingReactionKey: string | null;
-  reactionsDisabled: boolean;
-  onReply: (message: GlobalChatMessage) => void;
-  onReaction: (
-    messageId: string,
-    emoji: GlobalChatMessageReactionEmoji,
-  ) => void;
-}) {
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const actionClass = isCurrentDirector
-    ? "border-white/15 bg-white/10 text-white/75 hover:bg-white/20 hover:text-white"
-    : "border-[#176951]/15 bg-[#F3F8F6] text-[#60756E] hover:border-[#176951]/35 hover:text-[#176951]";
-
-  return (
-    <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
-      {message.reactions.map((reaction) => {
-        const isActive =
-          reaction.sportingDirectorIds.includes(currentDirectorId);
-        const reactionKey = `${message.id}:${reaction.emoji}`;
-        return (
-          <button
-            key={reaction.emoji}
-            type="button"
-            disabled={reactionsDisabled && pendingReactionKey === reactionKey}
-            onClick={() => onReaction(message.id, reaction.emoji)}
-            className={`inline-flex h-7 items-center gap-1 rounded-full border px-2 text-xs font-black transition ${
-              isActive
-                ? "border-[#F2C94C] bg-[#FFF4C4] text-[#493A00]"
-                : actionClass
-            } disabled:opacity-50`}
-            aria-pressed={isActive}
-            aria-label={`${reaction.emoji}, ${reaction.sportingDirectorIds.length} réaction${reaction.sportingDirectorIds.length > 1 ? "s" : ""}`}
-          >
-            <span aria-hidden="true">{reaction.emoji}</span>
-            <span>{reaction.sportingDirectorIds.length}</span>
-          </button>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={() => onReply(message)}
-        className={`inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-black transition ${actionClass}`}
-        aria-label={`Répondre à ${message.authorDisplayName}`}
-      >
-        <span aria-hidden="true">↩</span>
-        Répondre
-      </button>
-      <button
-        type="button"
-        onClick={() => setIsPickerOpen((current) => !current)}
-        className={`grid h-7 w-7 place-items-center rounded-full border text-sm transition ${actionClass}`}
-        aria-label="Ajouter une réaction"
-        aria-expanded={isPickerOpen}
-      >
-        ☺
-      </button>
-
-      {isPickerOpen ? (
-        <div
-          className={`absolute bottom-9 z-30 grid grid-cols-6 gap-1 rounded-xl border p-2 shadow-xl ${
-            isCurrentDirector
-              ? "right-0 border-white/15 bg-[#0B302B]"
-              : "left-0 border-[#176951]/15 bg-white"
-          }`}
-          role="group"
-          aria-label="Réactions au message"
-        >
-          {GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS.map((emoji) => {
-            const reactionKey = `${message.id}:${emoji}`;
-            return (
-              <button
-                key={emoji}
-                type="button"
-                disabled={
-                  reactionsDisabled && pendingReactionKey === reactionKey
-                }
-                onClick={() => {
-                  onReaction(message.id, emoji);
-                  setIsPickerOpen(false);
-                }}
-                className="grid h-8 w-8 place-items-center rounded-lg text-lg transition hover:bg-[#DDF3E7] disabled:opacity-50"
-                aria-label={`Réagir avec ${emoji}`}
-              >
-                {emoji}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 function OnlineDirectors({
   directors,
   currentDirectorId,
   onDirectMessage,
+  mobileOpen,
+  onClose,
 }: {
   directors: GlobalChatOnlineDirector[];
   currentDirectorId: string;
   onDirectMessage: (recipientId: string) => void;
+  mobileOpen: boolean;
+  onClose: () => void;
 }) {
   return (
-    <aside className="border-t border-[#315B3E]/12 bg-[#071A17] text-white lg:border-l lg:border-t-0">
+    <>
+      {mobileOpen ? (
+        <div
+          className="fixed inset-0 z-[70] bg-[#03110E]/55 backdrop-blur-sm lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Directeurs Sportifs en ligne"
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute inset-0 h-full w-full cursor-default"
+            aria-label="Fermer les présences"
+          />
+          <aside className="absolute inset-x-0 bottom-0 max-h-[72dvh] overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]">
+            <OnlineDirectorsContent
+              directors={directors}
+              currentDirectorId={currentDirectorId}
+              onDirectMessage={(recipientId) => {
+                onClose();
+                onDirectMessage(recipientId);
+              }}
+              onClose={onClose}
+            />
+          </aside>
+        </div>
+      ) : null}
+      <aside className="hidden border-l border-[#315B3E]/12 bg-[#071A17] text-white lg:block">
+        <OnlineDirectorsContent
+          directors={directors}
+          currentDirectorId={currentDirectorId}
+          onDirectMessage={onDirectMessage}
+        />
+      </aside>
+    </>
+  );
+}
+
+function OnlineDirectorsContent({
+  directors,
+  currentDirectorId,
+  onDirectMessage,
+  onClose,
+}: {
+  directors: GlobalChatOnlineDirector[];
+  currentDirectorId: string;
+  onDirectMessage: (recipientId: string) => void;
+  onClose?: () => void;
+}) {
+  return (
+    <>
       <header className="border-b border-white/10 px-5 py-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#72D4B7]">
-          Présences
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#72D4B7]">
+              Présences
+            </p>
         <h2 className="mt-1 text-lg font-black">DS en ligne</h2>
+          </div>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-lg font-black text-white"
+              aria-label="Fermer"
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
         <p className="mt-1 text-xs font-semibold leading-5 text-[#AFC6BB]">
           Actifs dans le jeu ces {GLOBAL_CHAT_ONLINE_WINDOW_MINUTES} dernières
           minutes. Cliquez sur un nom pour consulter son équipe.
         </p>
       </header>
 
-      <div className="grid max-h-72 gap-1 overflow-y-auto p-3 lg:max-h-[35rem]">
+      <div className="grid max-h-[54dvh] gap-1 overflow-y-auto p-3 lg:max-h-[35rem]">
         {directors.map((director) => {
           const isCurrent = director.sportingDirectorId === currentDirectorId;
           return (
@@ -1640,7 +1655,7 @@ function OnlineDirectors({
           );
         })}
       </div>
-    </aside>
+    </>
   );
 }
 
@@ -1692,72 +1707,6 @@ function upsertRealtimeMessage(
   );
 }
 
-function updateMessageReaction(
-  messages: GlobalChatMessage[],
-  row: GlobalChatReactionRow,
-  active: boolean,
-) {
-  return messages.map((message) => {
-    if (message.id !== row.message_id) return message;
-
-    const existing = message.reactions.find(
-      (reaction) => reaction.emoji === row.emoji,
-    );
-    if (active) {
-      if (existing?.sportingDirectorIds.includes(row.sporting_director_id)) {
-        return message;
-      }
-      if (existing) {
-        return {
-          ...message,
-          reactions: message.reactions.map((reaction) =>
-            reaction.emoji === row.emoji
-              ? {
-                  ...reaction,
-                  sportingDirectorIds: [
-                    ...reaction.sportingDirectorIds,
-                    row.sporting_director_id,
-                  ],
-                }
-              : reaction,
-          ),
-        };
-      }
-      return {
-        ...message,
-        reactions: [
-          ...message.reactions,
-          {
-            emoji: row.emoji,
-            sportingDirectorIds: [row.sporting_director_id],
-          },
-        ],
-      };
-    }
-
-    if (!existing) return message;
-    const remainingDirectorIds = existing.sportingDirectorIds.filter(
-      (directorId) => directorId !== row.sporting_director_id,
-    );
-    return {
-      ...message,
-      reactions:
-        remainingDirectorIds.length > 0
-          ? message.reactions.map((reaction) =>
-              reaction.emoji === row.emoji
-                ? {
-                    ...reaction,
-                    sportingDirectorIds: remainingDirectorIds,
-                  }
-                : reaction,
-            )
-          : message.reactions.filter(
-              (reaction) => reaction.emoji !== row.emoji,
-            ),
-    };
-  });
-}
-
 function prependUniqueMessages(
   messages: GlobalChatMessage[],
   olderMessages: GlobalChatMessage[],
@@ -1767,15 +1716,6 @@ function prependUniqueMessages(
     ...olderMessages.filter((message) => !knownIds.has(message.id)),
     ...messages,
   ];
-}
-
-function getGlobalChatDraftLimit(
-  reactionKey: GlobalChatCyclingReactionKey | null,
-) {
-  const reactionPrefix = reactionKey
-    ? `[cycling-reaction:${reactionKey}] `
-    : "";
-  return GLOBAL_CHAT_MESSAGE_MAX_LENGTH - reactionPrefix.length;
 }
 
 async function markGlobalChatMessagesAsRead(
@@ -1895,6 +1835,18 @@ function readRealtimeMessage(
     created_at: value.created_at,
     edited_at:
       typeof value.edited_at === "string" ? value.edited_at : null,
+    source_race_edition_id:
+      typeof value.source_race_edition_id === "string"
+        ? value.source_race_edition_id
+        : null,
+    source_stage_id:
+      typeof value.source_stage_id === "string"
+        ? value.source_stage_id
+        : null,
+    source_label:
+      typeof value.source_label === "string" ? value.source_label : null,
+    source_href:
+      typeof value.source_href === "string" ? value.source_href : null,
   };
 
   return {
@@ -1919,7 +1871,23 @@ function readRealtimeMessage(
     reactions: [],
     createdAt: row.created_at,
     editedAt: row.edited_at,
+    raceContext:
+      row.source_race_edition_id &&
+      row.source_stage_id &&
+      row.source_label &&
+      row.source_href?.startsWith("/jeu/resultats/")
+        ? {
+            raceEditionId: row.source_race_edition_id,
+            stageId: row.source_stage_id,
+            label: row.source_label,
+            href: row.source_href,
+          }
+        : null,
   };
+}
+
+function getGlobalChatDraftStorageKey(sportingDirectorId: string) {
+  return `cyclostratege:chat:draft:global:${sportingDirectorId}`;
 }
 
 function readRealtimePreview(
@@ -2021,33 +1989,6 @@ function readRealtimeJerseyPattern(
     "pinstripes",
   ];
   return patterns.find((pattern) => pattern === value) ?? "solid";
-}
-
-function readRealtimeReaction(
-  value: Record<string, unknown>,
-): GlobalChatReactionRow | null {
-  if (
-    typeof value.message_id !== "string" ||
-    typeof value.sporting_director_id !== "string" ||
-    !isGlobalChatMessageReactionEmoji(value.emoji)
-  ) {
-    return null;
-  }
-
-  return {
-    message_id: value.message_id,
-    sporting_director_id: value.sporting_director_id,
-    reactor_display_name:
-      typeof value.reactor_display_name === "string"
-        ? value.reactor_display_name
-        : null,
-    team_id: typeof value.team_id === "string" ? value.team_id : null,
-    team_display_name:
-      typeof value.team_display_name === "string"
-        ? value.team_display_name
-        : null,
-    emoji: value.emoji,
-  };
 }
 
 function focusChatMessage(messageId: string) {

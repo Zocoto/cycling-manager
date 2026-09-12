@@ -56,19 +56,19 @@ export function RaceLiveChat({
 
   useEffect(() => {
     const channel = supabase
-      .channel(`race-live-chat:${raceEditionId}`)
+      .channel(`race-context-global-chat:${raceEditionId}`)
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
-          table: "race_live_messages",
-          filter: `race_edition_id=eq.${raceEditionId}`,
+          table: "global_chat_messages",
+          filter: `source_race_edition_id=eq.${raceEditionId}`,
         },
         (payload: {
           new: Record<string, unknown>;
         }) => {
-          const message = readRealtimeMessage(payload.new);
+          const message = readRealtimeGlobalMessage(payload.new);
           if (!message) return;
 
           setMessages((current) =>
@@ -110,6 +110,7 @@ export function RaceLiveChat({
   return (
     <aside
       data-race-live-chat="persistent"
+      data-race-chat-centralized="true"
       data-race-chat-room={raceEditionId}
       aria-label={
         mode === "live"
@@ -133,12 +134,12 @@ export function RaceLiveChat({
               {mode === "live" ? "En direct" : "Replay"}
             </p>
             <h2 className="mt-2 text-lg font-black">
-              Chat des Directeurs Sportifs
+              Le peloton réagit
             </h2>
             <p className="mt-1 text-xs font-semibold leading-5 text-[#AFC6BB]">
               {mode === "live"
-                ? "Réagissez ensemble à tous les mouvements de la course."
-                : "Les réactions de la course, visibles au fil du replay."}
+                ? "Vos messages rejoignent aussi le chat général avec le contexte de la course."
+                : "Les réactions restent visibles ici et dans le chat général."}
             </p>
           </div>
           <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-black text-[#D9E7E0]">
@@ -272,13 +273,13 @@ function appendUniqueMessage(
   return [...messages, message].slice(-60);
 }
 
-function readRealtimeMessage(
-  value: Record<string, unknown>
+function readRealtimeGlobalMessage(
+  value: Record<string, unknown>,
 ): RaceLiveMessage | null {
   if (
     typeof value.id !== "string" ||
-    typeof value.stage_id !== "string" ||
-    typeof value.race_edition_id !== "string" ||
+    typeof value.source_stage_id !== "string" ||
+    typeof value.source_race_edition_id !== "string" ||
     typeof value.sporting_director_id !== "string" ||
     typeof value.author_display_name !== "string" ||
     typeof value.message !== "string" ||
@@ -289,8 +290,8 @@ function readRealtimeMessage(
 
   return {
     id: value.id,
-    stageId: value.stage_id,
-    raceEditionId: value.race_edition_id,
+    stageId: value.source_stage_id,
+    raceEditionId: value.source_race_edition_id,
     sportingDirectorId: value.sporting_director_id,
     authorDisplayName: value.author_display_name,
     message: value.message,

@@ -26,6 +26,10 @@
     padding-left: 1rem !important;
   }
 
+  .game-shell main > section[data-chat-shell="true"] {
+    padding: 0 !important;
+  }
+
   .game-shell :where(button, a, summary, input, select, textarea) {
     touch-action: manipulation;
   }

@@ -86,6 +86,12 @@ export type GlobalChatMessage = {
   reactions: GlobalChatMessageReaction[];
   createdAt: string;
   editedAt: string | null;
+  raceContext?: {
+    raceEditionId: string;
+    stageId: string;
+    label: string;
+    href: string;
+  } | null;
 };
 
 export type GlobalChatIdentity = GlobalChatOnlineDirector;
@@ -130,6 +136,10 @@ export type GlobalChatMessageRow = {
   reply_to_message_excerpt: string | null;
   created_at: string;
   edited_at: string | null;
+  source_race_edition_id: string | null;
+  source_stage_id: string | null;
+  source_label: string | null;
+  source_href: string | null;
 };
 
 export type GlobalChatReactionRow = {
@@ -211,6 +221,10 @@ const GLOBAL_CHAT_MESSAGE_SELECT = [
   "reply_to_message_excerpt",
   "created_at",
   "edited_at",
+  "source_race_edition_id",
+  "source_stage_id",
+  "source_label",
+  "source_href",
 ].join(", ");
 
 export type GlobalChatMessagePage = {
@@ -376,6 +390,7 @@ export function mapGlobalChatMessage(
     reactions,
     createdAt: row.created_at,
     editedAt: row.edited_at,
+    raceContext: mapGlobalChatRaceContext(row),
   };
 }
 
@@ -512,6 +527,26 @@ function mapGlobalChatReply(row: GlobalChatMessageRow): GlobalChatReply | null {
     messageId: row.reply_to_message_id,
     authorDisplayName: row.reply_to_author_display_name,
     excerpt: row.reply_to_message_excerpt,
+  };
+}
+
+function mapGlobalChatRaceContext(
+  row: GlobalChatMessageRow,
+): GlobalChatMessage["raceContext"] {
+  if (
+    !row.source_race_edition_id ||
+    !row.source_stage_id ||
+    !row.source_label?.trim() ||
+    !row.source_href?.startsWith("/jeu/resultats/")
+  ) {
+    return null;
+  }
+
+  return {
+    raceEditionId: row.source_race_edition_id,
+    stageId: row.source_stage_id,
+    label: row.source_label,
+    href: row.source_href,
   };
 }
 

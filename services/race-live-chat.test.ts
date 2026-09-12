@@ -2,35 +2,28 @@ import { describe, expect, it, vi } from "vitest";
 
 import { getRaceLiveMessages } from "./race-live-chat";
 
-describe("getRaceLiveMessages", () => {
-  it("charge un seul salon pour toutes les etapes d une edition", async () => {
-    const query = {
-      from: vi.fn(),
-      select: vi.fn(),
-      eq: vi.fn(),
-      order: vi.fn(),
-      limit: vi.fn(),
-      returns: vi.fn(),
-    };
+function createQuery(result: { data: unknown[]; error: null }) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
+    returns: vi.fn(),
+  };
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.order.mockReturnValue(query);
+  query.limit.mockReturnValue(query);
+  query.returns.mockResolvedValue(result);
+  return query;
+}
 
-    query.from.mockReturnValue(query);
-    query.select.mockReturnValue(query);
-    query.eq.mockReturnValue(query);
-    query.order.mockReturnValue(query);
-    query.limit.mockReturnValue(query);
-    query.returns.mockResolvedValue({
+describe("getRaceLiveMessages", () => {
+  it("fusionne l historique du salon de course avec le fil general centralise", async () => {
+    const legacyQuery = createQuery({
       data: [
         {
-          id: "message-stage-2",
-          stage_id: "stage-2",
-          race_edition_id: "edition-1",
-          sporting_director_id: "director-2",
-          author_display_name: "Camille Martin",
-          message: "On se retrouve pour la deuxieme etape.",
-          created_at: "2026-07-30T10:01:00.000Z",
-        },
-        {
-          id: "message-stage-1",
+          id: "legacy-message",
           stage_id: "stage-1",
           race_edition_id: "edition-1",
           sporting_director_id: "director-1",
@@ -41,24 +34,41 @@ describe("getRaceLiveMessages", () => {
       ],
       error: null,
     });
+    const globalQuery = createQuery({
+      data: [
+        {
+          id: "global-message",
+          source_stage_id: "stage-2",
+          source_race_edition_id: "edition-1",
+          sporting_director_id: "director-2",
+          author_display_name: "Camille Martin",
+          message: "On se retrouve pour la deuxième étape.",
+          created_at: "2026-07-30T10:01:00.000Z",
+        },
+      ],
+      error: null,
+    });
+    const supabase = {
+      from: vi.fn((table: string) =>
+        table === "race_live_messages" ? legacyQuery : globalQuery,
+      ),
+    };
 
     const messages = await getRaceLiveMessages(
-      query as never,
+      supabase as never,
       "edition-1",
     );
 
-    expect(query.eq).toHaveBeenCalledWith(
-      "race_edition_id",
+    expect(supabase.from).toHaveBeenCalledWith("race_live_messages");
+    expect(supabase.from).toHaveBeenCalledWith("global_chat_messages");
+    expect(legacyQuery.eq).toHaveBeenCalledWith("race_edition_id", "edition-1");
+    expect(globalQuery.eq).toHaveBeenCalledWith(
+      "source_race_edition_id",
       "edition-1",
     );
     expect(messages.map((message) => message.stageId)).toEqual([
       "stage-1",
       "stage-2",
     ]);
-    expect(
-      messages.every(
-        (message) => message.raceEditionId === "edition-1",
-      ),
-    ).toBe(true);
   });
 });

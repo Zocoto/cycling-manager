@@ -81,6 +81,9 @@ export function DirectMessagingPanel({
   const [isLoadingOlderConversations, setIsLoadingOlderConversations] =
     useState(false);
   const [draft, setDraft] = useState("");
+  const [draftConversationId, setDraftConversationId] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<
@@ -130,6 +133,20 @@ export function DirectMessagingPanel({
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
+
+  useEffect(() => {
+    if (!draftConversationId) return;
+
+    const storageKey = getDirectMessageDraftStorageKey(
+      identity.sportingDirectorId,
+      draftConversationId,
+    );
+    if (draft) {
+      window.localStorage.setItem(storageKey, draft);
+    } else {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, [draft, draftConversationId, identity.sportingDirectorId]);
 
   useEffect(() => {
     const timer = window.setInterval(
@@ -235,7 +252,13 @@ export function DirectMessagingPanel({
   const loadConversationMessages = useCallback(
     async (conversationId: string) => {
       const requestVersion = ++messageRequestVersionRef.current;
+      const draftStorageKey = getDirectMessageDraftStorageKey(
+        identity.sportingDirectorId,
+        conversationId,
+      );
       setActiveConversationId(conversationId);
+      setDraft(window.localStorage.getItem(draftStorageKey) ?? "");
+      setDraftConversationId(conversationId);
       setLoadedConversationId(null);
       setMessages([]);
       setMessageCursor(null);
@@ -284,7 +307,7 @@ export function DirectMessagingPanel({
         }
       }
     },
-    [scheduleConversationRead],
+    [identity.sportingDirectorId, scheduleConversationRead],
   );
 
   const openRecipient = useCallback(
@@ -703,11 +726,15 @@ export function DirectMessagingPanel({
     <div
       className={
         active
-          ? "grid min-h-[34rem] min-w-0 max-w-full grid-cols-[minmax(0,1fr)] overflow-hidden lg:h-[46rem] lg:grid-cols-[20rem_minmax(0,1fr)]"
+          ? "grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-[minmax(0,1fr)] overflow-hidden lg:h-[46rem] lg:flex-none lg:grid-cols-[20rem_minmax(0,1fr)]"
           : "hidden"
       }
     >
-      <aside className="min-w-0 border-b border-[#315B3E]/12 bg-[#071A17] text-white lg:border-b-0 lg:border-r">
+      <aside
+        className={`min-h-0 min-w-0 flex-col border-b border-[#315B3E]/12 bg-[#071A17] text-white lg:flex lg:border-b-0 lg:border-r ${
+          activeConversation ? "hidden" : "flex"
+        }`}
+      >
         <header className="border-b border-white/10 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -795,7 +822,7 @@ export function DirectMessagingPanel({
           ) : null}
         </header>
 
-        <div className="max-h-72 overflow-y-auto p-2 lg:max-h-[37rem]">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {isLoadingOverview && !overviewLoaded ? (
             <p className="px-3 py-8 text-center text-xs font-semibold text-[#AFC6BB]">
               Chargement des conversations…
@@ -861,10 +888,22 @@ export function DirectMessagingPanel({
         </div>
       </aside>
 
-      <section className="flex min-h-[34rem] min-w-0 flex-col bg-[#F7FBF9] lg:min-h-0">
+      <section
+        className={`min-h-0 min-w-0 flex-col bg-[#F7FBF9] lg:flex ${
+          activeConversation ? "flex" : "hidden"
+        }`}
+      >
         {activeConversation ? (
           <>
             <header className="flex min-h-[4.75rem] min-w-0 items-center gap-3 border-b border-[#315B3E]/12 bg-white px-4 py-3 sm:px-7">
+              <button
+                type="button"
+                onClick={() => setActiveConversationId(null)}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#EAF7F1] text-lg font-black text-[#176951] transition hover:bg-[#DDF3E7] lg:hidden"
+                aria-label="Retour aux conversations"
+              >
+                ←
+              </button>
               <Avatar
                 name={activeConversation.counterpartDisplayName}
                 avatarKey={activeConversation.counterpartAvatarKey}
@@ -1145,6 +1184,13 @@ export function DirectMessagingPanel({
       </section>
     </div>
   );
+}
+
+function getDirectMessageDraftStorageKey(
+  directorId: string,
+  conversationId: string,
+) {
+  return `cyclostratege:chat:draft:direct:${directorId}:${conversationId}`;
 }
 
 function Avatar({

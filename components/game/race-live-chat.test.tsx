@@ -53,9 +53,11 @@ describe("RaceLiveChat", () => {
     expect(markup).toContain('tabindex="0"');
 
     expect(markup).toContain('data-race-live-chat="persistent"');
+    expect(markup).toContain('data-race-chat-centralized="true"');
     expect(markup).toContain('data-race-chat-room="edition-1"');
     expect(markup).toContain('aria-label="Chat du replay"');
-    expect(markup).toContain("Chat des Directeurs Sportifs");
+    expect(markup).toContain("Le peloton réagit");
+    expect(markup).toContain("dans le chat général");
     expect(markup).toContain("Camille Martin");
     expect(markup).toContain("L’échappée commence à prendre le large.");
     expect(markup).toContain("Mon leader reste bien placé.");

@@ -145,7 +145,7 @@ export function GameHeader({
 
         <div
           data-mobile-header-shortcuts="true"
-          className="order-3 -mx-3 grid w-[calc(100%+1.5rem)] grid-cols-4 items-center justify-items-center gap-1 border-t border-white/10 pb-0.5 pl-3 pr-[4.35rem] pt-1.5 sm:mx-0 sm:ml-auto sm:flex sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0"
+          className="order-3 -mx-3 grid w-[calc(100%+1.5rem)] grid-cols-3 items-center justify-items-center gap-1 border-t border-white/10 px-3 pb-0.5 pt-1.5 sm:mx-0 sm:ml-auto sm:flex sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0"
         >
           <span className="hidden sm:contents">
             <HeaderMenuLink
@@ -220,10 +220,9 @@ export function GameHeader({
             <PushNotificationControl />
           </HeaderIconMenuItem>
 
-          <GlobalChatShortcut
-            chatIsOpen={chatIsOpen}
-            floatingOnMobile
-          />
+          <span className="hidden sm:contents">
+            <GlobalChatShortcut chatIsOpen={chatIsOpen} />
+          </span>
 
           {canAccessRaceSimulator(simulatorEmail) ? (
             <span className="hidden sm:contents">

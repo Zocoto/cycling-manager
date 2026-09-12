@@ -15,7 +15,7 @@ const tutorialLauncherSource = readFileSync(
 describe("game header responsive layout", () => {
   it("présente les raccourcis essentiels dans un rail mobile nommé", () => {
     expect(headerSource).toContain('data-mobile-header-shortcuts="true"');
-    expect(headerSource).toContain("grid-cols-4");
+    expect(headerSource).toContain("grid-cols-3");
     expect(headerSource).toContain('label={isEnglish ? "Alerts" : "Alertes"}');
     expect(tutorialLauncherSource).toContain('"Open the tutorial centre"');
     expect(tutorialLauncherSource).toContain('"Ouvrir le centre des didacticiels"');
@@ -35,9 +35,12 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain('className="hidden sm:contents"');
   });
 
-  it("sort le chat du rail mobile sous la forme d’une bulle", () => {
+  it("laisse le chat au dock mobile et conserve son raccourci sur desktop", () => {
     expect(headerSource).toContain("<GlobalChatShortcut");
-    expect(headerSource).toContain("floatingOnMobile");
+    expect(headerSource).toContain(
+      '<span className="hidden sm:contents">\n            <GlobalChatShortcut',
+    );
+    expect(headerSource).not.toContain("floatingOnMobile");
   });
 
   it("place une recherche compacte entre la ligne principale et les raccourcis sur mobile", () => {
