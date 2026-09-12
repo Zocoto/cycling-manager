@@ -1,4 +1,5 @@
 import "server-only";
+import type { FederationSelectionSchedule } from "@/lib/game/federation-callups";
 
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
@@ -9,6 +10,8 @@ export type FederationStoredSelection = {
   status: "draft" | "pending_confirmation" | "finalized";
   revision: number;
   riderIds: string[];
+  confirmedRiderIds?: string[];
+  responses?: Record<string, MemberRow["response_status"]>;
 };
 
 export type FederationPendingConfirmation = {
@@ -24,6 +27,7 @@ export type FederationSelectionState = {
     Record<FederationHostingEventType, { countryCode: string; countryName: string }>
   >;
   forecasts: Record<string, FederationSelectionForecast>;
+  schedules?: Record<string, FederationSelectionSchedule>;
   selections: Record<string, FederationStoredSelection>;
   pendingConfirmations: FederationPendingConfirmation[];
 };
@@ -69,13 +73,14 @@ export async function getFederationSelectionState({
     automaticSelection: true,
     competitionHosts: {},
     forecasts: {},
+    schedules: {},
     selections: {},
     pendingConfirmations: [],
   };
 
   try {
     const admin = createSupabaseAdminClient();
-    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult] = await Promise.all([
+    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult, scheduleResult] = await Promise.all([
       admin
         .from("national_federation_selection_lists")
         .select("id, slot_key, status, revision")
@@ -110,6 +115,8 @@ export async function getFederationSelectionState({
         .eq("target_game_year", gameYear)
         .in("status", ["scheduled", "settled"])
         .returns<HostingAwardRow[]>(),
+      admin.rpc("get_national_federation_selection_schedule", { p_country_id: countryId, p_season_id: seasonId })
+        .select("*").returns<FederationSelectionSchedule[]>(),
     ]);
 
     if (listsResult.error) throw listsResult.error;
@@ -117,6 +124,8 @@ export async function getFederationSelectionState({
     if (termResult.error) throw termResult.error;
     if (preferenceResult.error) throw preferenceResult.error;
     if (hostsResult.error) throw hostsResult.error;
+    if (scheduleResult.error) throw scheduleResult.error;
+    const schedules = Object.fromEntries((Array.isArray(scheduleResult.data) ? scheduleResult.data : []).map((schedule) => [schedule.slot_key, schedule]));
 
     const lists = listsResult.data ?? [];
     const listIds = lists.map((list) => list.id);
@@ -152,6 +161,10 @@ export async function getFederationSelectionState({
         {
           status: list.status,
           revision: list.revision,
+          confirmedRiderIds: members.filter((member) => member.selection_list_id === list.id && member.response_status === "confirmed")
+            .map((member) => member.professional_rider_id ?? member.junior_rider_id).filter((id): id is string => Boolean(id)),
+          responses: Object.fromEntries(members.filter((member) => member.selection_list_id === list.id)
+            .map((member) => [member.professional_rider_id ?? member.junior_rider_id, member.response_status])),
           riderIds: members
             .filter((member) => member.selection_list_id === list.id)
             .map(
@@ -207,6 +220,7 @@ export async function getFederationSelectionState({
         preferenceResult.data?.automatic_selection ?? true,
       competitionHosts,
       forecasts,
+      schedules,
       selections,
       pendingConfirmations: viewerTeamId
         ? members.flatMap((member): FederationPendingConfirmation[] => {
@@ -216,6 +230,7 @@ export async function getFederationSelectionState({
             if (
               !list ||
               !riderId ||
+              !schedules[list.slot_key]?.is_open ||
               member.owner_team_id !== viewerTeamId ||
               member.response_status !== "pending"
             ) {

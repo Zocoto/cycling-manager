@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 
 import { answerInternationalSelectionsAction } from "./actions";
 import { GameHeader } from "@/components/game/game-header";
+import { FederationCallupCard } from "@/components/game/federation-callup-card";
+import { splitFederationCallups, type FederationCallup } from "@/lib/game/federation-callups";
 import { InternationalSelectionSubmitButton } from "@/components/game/international-selection-submit-button";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -86,17 +88,21 @@ export default async function InternationalSelectionsPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, selections] = await Promise.all([
+  const [headerData, selections, federationResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentDirectorInternationalSelections({
       authUserId: user.id,
       processDue: false,
     }),
+    supabase.rpc("get_current_director_federation_callups").select("*").returns<FederationCallup[]>(),
   ]);
+
+  if (federationResult.error) console.error("Chargement des convocations fédérales :", federationResult.error.message);
+  const federation = splitFederationCallups(Array.isArray(federationResult.data) ? federationResult.data : []);
 
   const { pendingSelections, historicalSelections } =
     splitDirectorInternationalSelections(selections);
-  const pendingCount = pendingSelections.length;
+  const pendingCount = pendingSelections.length + federation.pending.length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
 
@@ -126,15 +132,15 @@ export default async function InternationalSelectionsPage({
           <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#F2C94C]">
-                Équipes nationales · Décision à H‑24
+                Équipes nationales · Convocations
               </p>
               <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
                 Sélections internationales
               </h1>
               <p className="mt-4 text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
-                Les 20 meilleures nations sont figées à H‑24, puis leurs huit
-                meilleurs coureurs valides sont appelés. Une sélection vaut
-                accord par défaut tant que vous ne la refusez pas.
+                Répondez dès la publication des convocations par le président.
+                Une participation confirmée ne peut plus être retirée de sa liste.
+                Les sélections automatiques sont publiées à l’échéance prévue pour chaque compétition.
               </p>
             </div>
             <div className="grid gap-3">
@@ -171,7 +177,9 @@ export default async function InternationalSelectionsPage({
         ) : null}
 
         <section className="mt-7 space-y-6">
-          {pendingCount > 0 ? (
+          {federationResult.error ? <FeedbackBanner tone="error">Les convocations fédérales n’ont pas pu être chargées. Veuillez réessayer.</FeedbackBanner> : null}
+          {federation.pending.map((callup) => <FederationCallupCard key={callup.member_id} callup={callup} />)}
+          {pendingSelections.length > 0 ? (
             <form
               action={answerInternationalSelectionsAction}
               className="space-y-5"
@@ -185,8 +193,8 @@ export default async function InternationalSelectionsPage({
               <div className="sticky bottom-4 z-20 rounded-2xl border border-[#315B3E]/15 bg-white/95 p-4 shadow-[0_18px_55px_rgba(19,60,46,0.2)] backdrop-blur sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-5">
                 <div>
                   <p className="text-sm font-black text-[#183F37]">
-                    Arbitrage groupé · {pendingCount} convocation
-                    {pendingCount > 1 ? "s" : ""} en attente
+                    Arbitrage groupé · {pendingSelections.length} convocation
+                    {pendingSelections.length > 1 ? "s" : ""} en attente
                   </p>
                   <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
                     Répondez à une ou plusieurs fiches. Les convocations
@@ -203,18 +211,25 @@ export default async function InternationalSelectionsPage({
                 </div>
               </div>
             </form>
-          ) : (
+          ) : pendingCount === 0 && !federationResult.error ? (
             <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center shadow-[0_16px_45px_rgba(19,60,46,0.06)]">
               <p className="text-xl font-black text-[#183F37]">
                 Aucune convocation en attente
               </p>
               <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#60756E]">
-                {historicalSelections.length > 0
+                {historicalSelections.length + federation.history.length > 0
                   ? "Toutes les convocations reçues ont déjà été traitées. Vous pouvez retrouver leur détail dans l’historique ci-dessous."
-                  : "Les convocations apparaîtront ici dès que le classement sera figé, exactement 24 heures avant un championnat continental ou mondial."}
+                  : "Les convocations apparaîtront ici dès leur publication par la fédération, même en début de saison. En mode automatique, elles seront publiées à l’échéance de chaque compétition."}
               </p>
             </div>
-          )}
+          ) : null}
+
+          {federation.history.length > 0 ? (
+            <details className="rounded-[2rem] border border-[#315B3E]/15 bg-white p-6">
+              <summary className="cursor-pointer font-black text-[#183F37]">Convocations fédérales traitées ou clôturées · {federation.history.length}</summary>
+              <div className="mt-5 space-y-4">{federation.history.map((callup) => <FederationCallupCard key={callup.member_id} callup={callup} />)}</div>
+            </details>
+          ) : null}
 
           {historicalSelections.length > 0 ? (
             <details className="group overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">

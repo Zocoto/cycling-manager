@@ -6,16 +6,22 @@ export function InternationalSelectionSubmitButton({
   children,
   pendingLabel,
   variant,
+  name,
+  value,
 }: {
   children: React.ReactNode;
   pendingLabel: string;
   variant: "confirm" | "decline";
+  name?: string;
+  value?: string;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
+      name={name}
+      value={value}
       disabled={pending}
       className={
         variant === "confirm"

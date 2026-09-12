@@ -19,6 +19,7 @@ import {
 } from "@/components/game/rider-climate-profile-card";
 
 import { initialFederationSelectionActionState } from "@/lib/game/federation-action-states";
+import { formatFederationSelectionDeadline } from "@/lib/game/federation-callups";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
 import {
@@ -110,6 +111,12 @@ export function FederationSelectionWorkbench({
         ]),
       ),
   );
+  const [selectionSnapshot, setSelectionSnapshot] = useState(selectionState?.selections);
+  if (selectionSnapshot !== selectionState?.selections) {
+    setSelectionSnapshot(selectionState?.selections);
+    setSelectedBySlot(Object.fromEntries(Object.entries(selectionState?.selections ?? {}).map(([key, value]) => [key, value.riderIds])));
+    setAutomaticSelection(selectionState?.automaticSelection ?? true);
+  }
   const [saveState, saveAction, savePending] = useActionState(
     saveFederationPreselectionAction,
     initialFederationSelectionActionState,
@@ -141,8 +148,11 @@ export function FederationSelectionWorkbench({
         hostCode: competitionHost.countryCode.toLowerCase(),
       }
     : baseSlot;
-  const selected = selectedBySlot[slot.id] ?? [];
   const storedSelection = selectionState?.selections[slot.id] ?? null;
+  const confirmedRiderIds = storedSelection?.confirmedRiderIds ?? [];
+  const selected = [...new Set([...(selectedBySlot[slot.id] ?? storedSelection?.riderIds ?? []), ...confirmedRiderIds])];
+  const schedule = selectionState?.schedules?.[slot.id];
+  const deadlineOpen = schedule?.is_open === true;
   const publishedWeather = forecast?.weather ?? null;
   const canManage = gameYear >= 3 && selectionState?.canManage === true;
   const availableTeams = useMemo(
@@ -188,8 +198,12 @@ export function FederationSelectionWorkbench({
   }
 
   function toggleRider(riderId: string) {
+    if (!canManage || !deadlineOpen || automaticSelection || confirmedRiderIds.includes(riderId)) return;
+    if (slot.nationsCupProfile && Object.entries(selectionState?.selections ?? {}).some(
+      ([key, selection]) => key !== slot.id && key.startsWith("nc-") && selection.confirmedRiderIds?.includes(riderId),
+    )) return;
     setSelectedBySlot((current) => {
-      const currentSlot = current[slot.id] ?? [];
+      const currentSlot = selected;
       if (currentSlot.includes(riderId)) {
         return { ...current, [slot.id]: currentSlot.filter((id) => id !== riderId) };
       }
@@ -282,6 +296,11 @@ export function FederationSelectionWorkbench({
 
         {course ? <FederationSelectionCoursePreview course={course} /> : null}
 
+        <p className="border-b border-[#315B3E]/10 bg-[#F2F8F5] px-5 py-4 text-xs font-bold leading-5 text-[#526B62]">
+          {deadlineOpen ? `Modifications possibles jusqu’au ${formatFederationSelectionDeadline(schedule.closes_at)} (heure de Paris).` : schedule?.closes_at ? "Date limite dépassée : les convocations sont verrouillées." : "Les modifications seront disponibles lorsque le calendrier sera confirmé."}
+          {" "}Un coureur confirmé par son DS reste sélectionné et ne peut plus être retiré.
+        </p>
+
         <fieldset
           disabled={automaticSelection}
           className={`min-w-0 transition ${automaticSelection ? "opacity-55 grayscale-[35%]" : ""}`}
@@ -310,12 +329,17 @@ export function FederationSelectionWorkbench({
             <tbody className="divide-y divide-[#315B3E]/10">
               {filteredRiders.map((rider) => {
                 const isSelected = selected.includes(rider.id);
+                const isConfirmed = confirmedRiderIds.includes(rider.id);
+                const response = storedSelection?.responses?.[rider.id];
+                const confirmedElsewhere = Boolean(slot.nationsCupProfile && Object.entries(selectionState?.selections ?? {}).some(
+                  ([key, selection]) => key !== slot.id && key.startsWith("nc-") && selection.confirmedRiderIds?.includes(rider.id),
+                ));
                 const limitReached = !isSelected && selected.length >= slot.limit;
                 const climateProfile = getRiderClimateProfile({ riderId: rider.id, countryCode });
                 const weatherAdjustment = publishedWeather ? getRaceClimatePerformanceAdjustment(climateProfile, publishedWeather) : 0;
                 const selectedSortValue = getFederationSelectionSortValue(rider, { key: sortKey, countryCode, weather: publishedWeather });
                 const showSecondarySortValue = !["overall", "weatherAffinity", ...PRIMARY_RATING_COLUMNS.map((column) => column.key)].includes(sortKey);
-                return <tr key={rider.id} className={isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p>{showSecondarySortValue ? <p className="mt-2 inline-flex rounded-full bg-[#FFF5C8] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#745B00]">{getFederationSelectionSortLabel(sortKey)} · {formatRating(selectedSortValue)}</p> : null}</td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{PRIMARY_RATING_COLUMNS.map((column) => <td key={column.key} className={`px-2 py-4 text-center font-black ${sortKey === column.key ? "bg-[#FFF9DE] text-[#745B00]" : "text-[#183F37]"}`}>{formatRating(rider.ratings[column.key])}</td>)}<td className={`px-3 py-4 text-center text-base font-black ${sortKey === "overall" ? "bg-[#FFF9DE] text-[#745B00]" : "text-[var(--federation-secondary)]"}`}>{formatRating(rider.overall)}</td><td className={`min-w-48 px-3 py-4 ${sortKey === "weatherAffinity" ? "bg-[#FFF9DE]" : ""}`}><RiderClimateAffinities profile={climateProfile} adjustment={publishedWeather && rider.category === "professional" && forecast?.isOfficialCourse ? weatherAdjustment : null} /></td><td className="px-5 py-4 text-xs font-bold text-[#806300]">À confirmer par le DS</td></tr>;
+                return <tr key={rider.id} className={isConfirmed ? "bg-[#EEF3F1] text-[#60756E]" : isSelected ? "bg-[#E8F7F1]" : "bg-white"}><td className="px-5 py-4"><input type="checkbox" checked={isSelected} disabled={!canManage || !deadlineOpen || isConfirmed || confirmedElsewhere || limitReached} onChange={() => toggleRider(rider.id)} aria-label={`Sélectionner ${rider.name}`} className="h-5 w-5 accent-[var(--federation-secondary)]" /></td><td className="px-3 py-4"><p className="font-black text-[#183F37]">{rider.name}</p><p className="mt-1 text-xs font-semibold text-[#60756E]">{rider.age} ans · {rider.category === "junior" ? "Junior" : "Pro"}</p>{showSecondarySortValue ? <p className="mt-2 inline-flex rounded-full bg-[#FFF5C8] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#745B00]">{getFederationSelectionSortLabel(sortKey)} · {formatRating(selectedSortValue)}</p> : null}</td><td className="max-w-56 px-3 py-4 text-sm font-bold text-[#526B62]"><p>{rider.teamName}</p>{rider.juniorAffiliation ? <span className="mt-1 inline-flex rounded-full bg-[#EEF3F1] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#315B3E]">{rider.juniorAffiliation === "development_team" ? "DevTeam" : "École de cyclisme"}</span> : null}</td><td className="px-3 py-4"><span className="rounded-full bg-[#EEF3F1] px-3 py-1 text-xs font-black text-[#315B3E]">{rider.profile}</span></td>{PRIMARY_RATING_COLUMNS.map((column) => <td key={column.key} className={`px-2 py-4 text-center font-black ${sortKey === column.key ? "bg-[#FFF9DE] text-[#745B00]" : "text-[#183F37]"}`}>{formatRating(rider.ratings[column.key])}</td>)}<td className={`px-3 py-4 text-center text-base font-black ${sortKey === "overall" ? "bg-[#FFF9DE] text-[#745B00]" : "text-[var(--federation-secondary)]"}`}>{formatRating(rider.overall)}</td><td className={`min-w-48 px-3 py-4 ${sortKey === "weatherAffinity" ? "bg-[#FFF9DE]" : ""}`}><RiderClimateAffinities profile={climateProfile} adjustment={publishedWeather && rider.category === "professional" && forecast?.isOfficialCourse ? weatherAdjustment : null} /></td><td className="px-5 py-4 text-xs font-bold text-[#806300]">{isConfirmed ? "Participation confirmée · verrouillée" : confirmedElsewhere ? "Confirmé sur un autre profil" : response === "pending" ? "Réponse du DS attendue" : response === "declined" ? "Refusé par le DS" : isSelected ? "Brouillon · non envoyé" : "—"}</td></tr>;
               })}
             </tbody>
           </table>
@@ -334,14 +358,14 @@ export function FederationSelectionWorkbench({
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
                 <input type="hidden" name="riderIds" value={JSON.stringify(selected)} />
-                <button type="submit" disabled={savePending} className="min-h-11 rounded-xl border border-[var(--federation-secondary)]/25 bg-white px-5 text-sm font-black text-[var(--federation-secondary)] disabled:cursor-wait disabled:opacity-60">
+                <button type="submit" disabled={savePending || !deadlineOpen} className="min-h-11 rounded-xl border border-[var(--federation-secondary)]/25 bg-white px-5 text-sm font-black text-[var(--federation-secondary)] disabled:cursor-wait disabled:opacity-60">
                   {savePending ? "Enregistrement…" : "Enregistrer le brouillon"}
                 </button>
               </form>
               <form action={publishAction}>
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
-                <button type="submit" disabled={publishPending || !storedSelection} className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                <button type="submit" disabled={publishPending || !storedSelection || !deadlineOpen} className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
                   {publishPending ? "Envoi…" : "Soumettre aux DS"}
                 </button>
               </form>
