@@ -58,6 +58,7 @@ describe("mobile game navigation", () => {
     expect(source).not.toContain("Autres rubriques");
     expect(source).not.toContain("Uniquement les destinations non affichées ailleurs.");
     expect(source).toContain('data-mobile-more-destination={href}');
+    expect(source).toContain("getMobileMoreNavigationGroups");
     expect(source).toContain("max-h-[min(72dvh,42rem)]");
     expect(source).toContain("overflow-y-auto overscroll-contain");
   });

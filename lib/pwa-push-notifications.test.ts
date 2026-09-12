@@ -28,7 +28,11 @@ describe("installed app push notifications", () => {
     expect(control).toContain("ensurePushSubscription(registration)");
     expect(control).toContain("Activer sur cet appareil");
     expect(control).toContain("entre 22 h et 8 h, heure de Paris");
-    expect(header).toContain("<PushNotificationControl />");
+    expect(header).not.toContain("<PushNotificationControl");
+    expect(header).toContain("<GameUserMenu");
+    expect(read("components/game/game-user-menu.tsx")).toContain(
+      '<PushNotificationControl variant="menu" isEnglish={isEnglish} />',
+    );
   });
 
   it("opens the contextual page carried by each notification", () => {

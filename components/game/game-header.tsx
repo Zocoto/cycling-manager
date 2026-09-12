@@ -10,11 +10,10 @@ import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
+import { GameUserMenu } from "@/components/game/game-user-menu";
 import { MobileGameNavigation } from "@/components/game/mobile-game-navigation";
 import { MobilePageRefreshControl } from "@/components/game/mobile-page-refresh-control";
-import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
-import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "@/components/ui/wheel-logo";
 import {
@@ -145,7 +144,7 @@ export function GameHeader({
 
         <div
           data-mobile-header-shortcuts="true"
-          className="order-3 -mx-3 grid w-[calc(100%+1.5rem)] grid-cols-3 items-center justify-items-center gap-1 border-t border-white/10 px-3 pb-0.5 pt-1.5 sm:mx-0 sm:ml-auto sm:flex sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0"
+          className="order-3 -mx-3 grid w-[calc(100%+1.5rem)] grid-cols-2 items-center justify-items-center gap-1 border-t border-white/10 px-3 pb-0.5 pt-1.5 sm:mx-0 sm:ml-auto sm:flex sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0"
         >
           <span className="hidden sm:contents">
             <HeaderMenuLink
@@ -182,42 +181,11 @@ export function GameHeader({
             </HeaderMenuLink>
           </span>
 
-          {displayName ? (
-            <span className="hidden sm:contents">
-              <HeaderMenuLink
-                href="/jeu/directeur-sportif"
-                label={displayName}
-                description={isEnglish ? "Sports director profile" : "Profil du DS"}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  className="h-5 w-5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="10" cy="6.5" r="3" />
-                  <path d="M4.5 16c.5-3.3 2.3-5 5.5-5s5 1.7 5.5 5" />
-                </svg>
-              </HeaderMenuLink>
-            </span>
-          ) : null}
-
           <HeaderIconMenuItem
             label={isEnglish ? "Messages" : "Messages"}
             description={isEnglish ? "Sports director inbox" : "Boîte mail du DS"}
           >
             <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
-          </HeaderIconMenuItem>
-
-          <HeaderIconMenuItem
-            label={isEnglish ? "Alerts" : "Alertes"}
-            description={isEnglish ? "Push notifications" : "Notifications push"}
-          >
-            <PushNotificationControl />
           </HeaderIconMenuItem>
 
           <span className="hidden sm:contents">
@@ -236,28 +204,6 @@ export function GameHeader({
           >
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
           </HeaderIconMenuItem>
-
-          <span className="hidden sm:contents">
-            <HeaderMenuLink
-              href="/guide"
-              label={isEnglish ? "Game guide" : "Guide du jeu"}
-              description={isEnglish ? "Rules and tips" : "Règles et conseils"}
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="h-5 w-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
-                <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
-              </svg>
-            </HeaderMenuLink>
-          </span>
 
           <span className="hidden sm:contents">
             <HeaderMenuLink
@@ -289,7 +235,7 @@ export function GameHeader({
           className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 lg:ml-0"
         >
           <MobilePageRefreshControl isEnglish={isEnglish} />
-          <LanguageSwitcher compact />
+          <GameUserMenu displayName={displayName} />
           <LogoutButton isEnglish={isEnglish} />
         </div>
       </div>

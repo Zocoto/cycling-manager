@@ -9,7 +9,6 @@ export const NAVIGATION_GROUPS_FR = [
     label: "Essentiel",
     links: [
       ["Bureau du DS", "/jeu"],
-      ["Mon profil de DS", "/jeu/directeur-sportif"],
       ["Mon équipe", "/jeu/equipe"],
       ["Objectifs et trophées", "/jeu/objectifs"],
     ],
@@ -40,6 +39,7 @@ export const NAVIGATION_GROUPS_FR = [
       ["Équipementiers", "/jeu/materiel/equipementier"],
       ["Inventaire", "/jeu/inventaire"],
       ["Maillot", "/jeu/maillot"],
+      ["Fan-club & boutique", "/jeu/fan-club"],
     ],
   },
   {
@@ -48,7 +48,6 @@ export const NAVIGATION_GROUPS_FR = [
       ["Chat du peloton", "/jeu/chat"],
       ["Recherche globale", "/jeu/recherche"],
       ["Parrainage", "/jeu/parrainage"],
-      ["Guide du jeu", "/guide"],
     ],
   },
 ] as const;
@@ -58,7 +57,6 @@ export const NAVIGATION_GROUPS_EN = [
     label: "Essentials",
     links: [
       ["Sports director office", "/jeu"],
-      ["My SD profile", "/jeu/directeur-sportif"],
       ["My team", "/jeu/equipe"],
       ["Objectives and trophies", "/jeu/objectifs"],
     ],
@@ -89,6 +87,7 @@ export const NAVIGATION_GROUPS_EN = [
       ["Suppliers", "/jeu/materiel/equipementier"],
       ["Inventory", "/jeu/inventaire"],
       ["Jersey", "/jeu/maillot"],
+      ["Fan club & shop", "/jeu/fan-club"],
     ],
   },
   {
@@ -97,7 +96,6 @@ export const NAVIGATION_GROUPS_EN = [
       ["Peloton chat", "/jeu/chat"],
       ["Global search", "/jeu/recherche"],
       ["Referral programme", "/jeu/parrainage"],
-      ["Game guide", "/guide"],
     ],
   },
 ] as const;

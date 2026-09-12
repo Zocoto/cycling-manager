@@ -13,6 +13,8 @@ export const MOBILE_VISIBLE_DESTINATIONS = new Set([
   "/jeu/chat",
   "/jeu/gazette",
   "/jeu/recherche",
+  "/jeu/directeur-sportif",
+  "/guide",
 ]);
 
 export function getMobileMoreNavigationGroups(

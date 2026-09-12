@@ -43,11 +43,11 @@ describe("mobile page refresh control", () => {
       "utf8",
     );
     const refreshPosition = header.indexOf("<MobilePageRefreshControl");
-    const languagePosition = header.indexOf("<LanguageSwitcher compact />");
+    const userMenuPosition = header.indexOf("<GameUserMenu");
     const logoutPosition = header.indexOf("<LogoutButton isEnglish={isEnglish} />");
 
     expect(refreshPosition).toBeGreaterThan(0);
-    expect(languagePosition).toBeGreaterThan(refreshPosition);
-    expect(logoutPosition).toBeGreaterThan(languagePosition);
+    expect(userMenuPosition).toBeGreaterThan(refreshPosition);
+    expect(logoutPosition).toBeGreaterThan(userMenuPosition);
   });
 });
