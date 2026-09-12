@@ -214,4 +214,22 @@ describe("Fan Club de production", () => {
     expect(markup).toContain("Rapport des ventes");
     expect(markup).toContain("Acheter du stock");
   });
+
+  it("place le panneau d’approvisionnement sous son bouton", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "components/game/fan-club.tsx"),
+      "utf8",
+    );
+    const purchaseButtonIndex = source.indexOf(">Acheter du stock</button>");
+    const purchasePanelIndex = source.indexOf(
+      "{purchaseOpen && selectedProduct ? (",
+    );
+    const inventoryGridIndex = source.indexOf(
+      'className="mt-6 grid gap-4 lg:grid-cols-2"',
+    );
+
+    expect(purchaseButtonIndex).toBeGreaterThan(-1);
+    expect(purchasePanelIndex).toBeGreaterThan(purchaseButtonIndex);
+    expect(inventoryGridIndex).toBeGreaterThan(purchasePanelIndex);
+  });
 });

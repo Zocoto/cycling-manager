@@ -672,6 +672,79 @@ function StorePanel({
             <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[var(--fan-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--fan-secondary)]">Acheter du stock</button>
           </div>
         </div>
+        {purchaseOpen && selectedProduct ? (
+          <section
+            aria-live="polite"
+            className="mt-5 rounded-[1.35rem] border border-[var(--fan-line)] bg-[var(--fan-soft)] p-4 sm:p-5"
+          >
+            <Heading
+              eyebrow="Approvisionnement"
+              title="Acheter des articles"
+              detail="Seuls les articles actuellement disponibles dans votre magasin sont proposés."
+            />
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {products.map((product) => {
+                const wholesaleHistory = wholesaleHistoryByProduct.get(product.id) ?? [];
+                const wholesalePrices = wholesaleHistory.map((quote) => quote.unitCost);
+                const trend = getWholesaleTrendPercent(product, wholesalePrices);
+                const currentWholesalePrice = getCurrentWholesalePrice(
+                  product,
+                  wholesalePrices,
+                );
+                return (
+                  <button
+                    key={product.id} type="button" aria-pressed={product.id === selectedProduct.id}
+                    onClick={() => setProductId(product.id)}
+                    className={[
+                      "rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)]",
+                      product.id === selectedProduct.id ? "border-[var(--fan-accent)] bg-[var(--fan-surface)] ring-2 ring-[var(--fan-accent)]" : "border-[var(--fan-line)] bg-[var(--fan-surface)] hover:border-[var(--fan-secondary)]",
+                    ].join(" ")}
+                  >
+                    <StoreProductVisual productId={product.id} sponsorIdentity={sponsorIdentity} compact />
+                    <span className="block font-black text-[var(--fan-ink)]">{product.name}</span>
+                    <span className="mt-3 block text-lg font-black text-[var(--fan-secondary)]">{decimalEuroFormatter.format(currentWholesalePrice)}</span>
+                    <span className={[
+                      "mt-1 block text-xs font-black",
+                      trend >= 0 ? "text-[var(--fan-primary)]" : "text-[#B34A42]",
+                    ].join(" ")}>{trend >= 0 ? "+" : ""}{trend.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % sur 7 jours</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.5fr)]">
+              <div className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-secondary)]">Cours des sept derniers jours</p>
+                <h3 className="mt-1 text-xl font-black text-[var(--fan-ink)]">{selectedProduct.name}</h3>
+                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">
+                  Cours mondial actualisé à chaque nouvelle journée de jeu.
+                  {management.shopSpecialization?.code === "limited_editions"
+                    ? " Les prix affichés incluent la remise de votre orientation Commerce opportuniste."
+                    : " Il est identique pour toutes les équipes."}
+                </p>
+                <PriceCourse
+                  product={selectedProduct}
+                  history={selectedWholesaleHistory}
+                />
+              </div>
+              <aside className="rounded-2xl bg-[var(--fan-primary)] p-5 text-white">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">Bon de commande</p>
+                <label className="mt-4 block">
+                  <span className="text-xs font-black text-[#D6DFD2]">Quantité</span>
+                  <input type="number" min={1} max={Math.max(1, capacityLeft)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.floor(Number(event.target.value))))} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 font-black text-white outline-none focus:border-[var(--fan-accent)]" />
+                </label>
+                <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
+                  <PreviewLine label="Prix unitaire" value={decimalEuroFormatter.format(getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices))} />
+                  <PreviewLine label="Total" value={decimalEuroFormatter.format(quantity * getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices))} />
+                </dl>
+                <button
+                  type="button" disabled={isPending || capacityLeft <= 0 || quantity > capacityLeft}
+                  onClick={() => execute(() => purchaseFanClubStockAction({ productId: selectedProduct.id, quantity }))}
+                  className="mt-5 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:opacity-45"
+                >{isPending ? "Enregistrement…" : "Acheter ce stock"}</button>
+              </aside>
+            </div>
+          </section>
+        ) : null}
         {management.eligibleCollectorProductIds.length > 0 ? (
           <div className="mt-5 rounded-2xl border border-[var(--fan-accent)] bg-[var(--fan-soft)] px-4 py-3 text-sm font-bold leading-6 text-[var(--fan-ink)]">
             <strong className="text-[var(--fan-primary)]">Victoire en Grand Tour :</strong>{" "}
@@ -746,77 +819,6 @@ function StorePanel({
         </div>
         <StatusMessage message={feedback} />
       </Surface>
-
-      {purchaseOpen && selectedProduct ? (
-        <Surface ariaLive>
-          <Heading
-            eyebrow="Approvisionnement"
-            title="Acheter des articles"
-            detail="Seuls les articles actuellement disponibles dans votre magasin sont proposés."
-          />
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {products.map((product) => {
-              const wholesaleHistory = wholesaleHistoryByProduct.get(product.id) ?? [];
-              const wholesalePrices = wholesaleHistory.map((quote) => quote.unitCost);
-              const trend = getWholesaleTrendPercent(product, wholesalePrices);
-              const currentWholesalePrice = getCurrentWholesalePrice(
-                product,
-                wholesalePrices,
-              );
-              return (
-                <button
-                  key={product.id} type="button" aria-pressed={product.id === selectedProduct.id}
-                  onClick={() => setProductId(product.id)}
-                  className={[
-                    "rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)]",
-                    product.id === selectedProduct.id ? "border-[var(--fan-accent)] bg-[var(--fan-soft)] ring-2 ring-[var(--fan-accent)]" : "border-[var(--fan-line)] bg-[var(--fan-surface)] hover:border-[var(--fan-secondary)]",
-                  ].join(" ")}
-                >
-                  <StoreProductVisual productId={product.id} sponsorIdentity={sponsorIdentity} compact />
-                  <span className="block font-black text-[var(--fan-ink)]">{product.name}</span>
-                  <span className="mt-3 block text-lg font-black text-[var(--fan-secondary)]">{decimalEuroFormatter.format(currentWholesalePrice)}</span>
-                  <span className={[
-                    "mt-1 block text-xs font-black",
-                    trend >= 0 ? "text-[var(--fan-primary)]" : "text-[#B34A42]",
-                  ].join(" ")}>{trend >= 0 ? "+" : ""}{trend.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % sur 7 jours</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.5fr)]">
-            <div className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-secondary)]">Cours des sept derniers jours</p>
-              <h3 className="mt-1 text-xl font-black text-[var(--fan-ink)]">{selectedProduct.name}</h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">
-                Cours mondial actualisé à chaque nouvelle journée de jeu.
-                {management.shopSpecialization?.code === "limited_editions"
-                  ? " Les prix affichés incluent la remise de votre orientation Commerce opportuniste."
-                  : " Il est identique pour toutes les équipes."}
-              </p>
-              <PriceCourse
-                product={selectedProduct}
-                history={selectedWholesaleHistory}
-              />
-            </div>
-            <aside className="rounded-2xl bg-[var(--fan-primary)] p-5 text-white">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">Bon de commande</p>
-              <label className="mt-4 block">
-                <span className="text-xs font-black text-[#D6DFD2]">Quantité</span>
-                <input type="number" min={1} max={Math.max(1, capacityLeft)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.floor(Number(event.target.value))))} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 font-black text-white outline-none focus:border-[var(--fan-accent)]" />
-              </label>
-              <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
-                <PreviewLine label="Prix unitaire" value={decimalEuroFormatter.format(getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices))} />
-                <PreviewLine label="Total" value={decimalEuroFormatter.format(quantity * getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices))} />
-              </dl>
-              <button
-                type="button" disabled={isPending || capacityLeft <= 0 || quantity > capacityLeft}
-                onClick={() => execute(() => purchaseFanClubStockAction({ productId: selectedProduct.id, quantity }))}
-                className="mt-5 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:opacity-45"
-              >{isPending ? "Enregistrement…" : "Acheter ce stock"}</button>
-            </aside>
-          </div>
-        </Surface>
-      ) : null}
 
       <Surface>
         <Heading
