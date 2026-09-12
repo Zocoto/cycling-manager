@@ -29,6 +29,7 @@ type SportingDirectorProfileFormProps = {
   emergencyDoctorOutfitUnlocked?: boolean;
   inveteratePlayerOutfitUnlocked?: boolean;
   nightAuctionSkinUnlocked?: boolean;
+  elPresidenteOutfitUnlocked?: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -56,6 +57,7 @@ export function SportingDirectorProfileForm({
   emergencyDoctorOutfitUnlocked = false,
   inveteratePlayerOutfitUnlocked = false,
   nightAuctionSkinUnlocked = false,
+  elPresidenteOutfitUnlocked = false,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -538,6 +540,25 @@ export function SportingDirectorProfileForm({
           </section>
         ) : null}
 
+        {elPresidenteOutfitUnlocked ? (
+          <section
+            id="el-presidente-avatar-outfit"
+            className="scroll-mt-28 rounded-xl border border-[#D7A928]/45 bg-[linear-gradient(135deg,rgba(255,244,201,0.82),rgba(215,240,230,0.72))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#80640C]">
+              Présidence fédérale
+            </p>
+            <h3 className="mt-2 text-base font-black text-[#173F37]">
+              Tenue El Presidente débloquée
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#48665F]">
+              Votre prise de fonction débloque cette tenue officielle avec
+              écharpe et médaille. Elle reste disponible durant toute votre
+              carrière dans l’onglet Style de l’éditeur d’avatar.
+            </p>
+          </section>
+        ) : null}
+
         {ambulancierOutfitUnlocked || emergencyDoctorOutfitUnlocked ? (
           <section
             id="medical-avatar-outfits"
@@ -745,6 +766,7 @@ export function SportingDirectorProfileForm({
                 inveteratePlayerOutfitUnlocked
               }
               nightAuctionSkinUnlocked={nightAuctionSkinUnlocked}
+              elPresidenteOutfitUnlocked={elPresidenteOutfitUnlocked}
             />
           </div>
         </div>

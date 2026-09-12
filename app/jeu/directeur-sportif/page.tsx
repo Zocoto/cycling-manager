@@ -16,6 +16,7 @@ import { DeleteSportingDirectorAccount } from "../../../components/game/delete-s
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../../components/game/sporting-director-avatar";
 import {
+  EL_PRESIDENTE_TROPHY_KEY,
   INVETERATE_PLAYER_TROPHY_KEY,
   NIGHT_AUCTION_TROPHY_KEY,
 } from "@/lib/game/achievement-trophies";
@@ -192,6 +193,7 @@ export default async function SportingDirectorProfilePage() {
             EMERGENCY_DOCTOR_TROPHY_KEY,
             INVETERATE_PLAYER_TROPHY_KEY,
             NIGHT_AUCTION_TROPHY_KEY,
+            EL_PRESIDENTE_TROPHY_KEY,
           ])
           .not("claimed_at", "is", null)
           .returns<Array<{ trophy_key: string }>>(),
@@ -250,6 +252,9 @@ export default async function SportingDirectorProfilePage() {
   );
   const hasNightAuctionTrophy = careerTrophyKeys.has(
     NIGHT_AUCTION_TROPHY_KEY,
+  );
+  const hasElPresidenteTrophy = careerTrophyKeys.has(
+    EL_PRESIDENTE_TROPHY_KEY,
   );
   const hasSponsorAmbassadorTrophy = Boolean(
     sponsorAmbassadorTrophyResult.data,
@@ -391,6 +396,7 @@ export default async function SportingDirectorProfilePage() {
                       hasInveteratePlayerTrophy
                     }
                     nightAuctionSkinUnlocked={hasNightAuctionTrophy}
+                    elPresidenteOutfitUnlocked={hasElPresidenteTrophy}
                   />
                 </div>
               </article>

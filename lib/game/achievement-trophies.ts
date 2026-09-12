@@ -11,6 +11,7 @@ export type AchievementTrophyVisualVariant =
 
 export const INVETERATE_PLAYER_TROPHY_KEY = "joueur_inveter";
 export const NIGHT_AUCTION_TROPHY_KEY = "jusqu_au_bout_de_la_nuit";
+export const EL_PRESIDENTE_TROPHY_KEY = "el_presidente";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   atlas_peloton: {
@@ -131,6 +132,23 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
       secondary: "#E9ECFF",
       accent: "#E0A84B",
       glow: "rgba(123, 143, 209, 0.42)",
+    } satisfies TrophyPalette,
+  },
+  [EL_PRESIDENTE_TROPHY_KEY]: {
+    objectiveKey: null,
+    title: "El Presidente",
+    competitionName: "Présidence fédérale",
+    seasonName: "Carrière",
+    inscription: "Élu pour servir le cyclisme national",
+    description:
+      "Décerné dès la prise de fonction à la présidence d’une fédération. Débloque la tenue officielle El Presidente dans l’éditeur d’avatar et reste acquis pour toute la carrière.",
+    href: "/jeu/directeur-sportif#el-presidente-avatar-outfit",
+    visualVariant: "regalia" satisfies AchievementTrophyVisualVariant,
+    palette: {
+      primary: "#D7A928",
+      secondary: "#FFF4C9",
+      accent: "#176951",
+      glow: "rgba(215, 169, 40, 0.42)",
     } satisfies TrophyPalette,
   },
 } as const;

@@ -5,6 +5,7 @@ import {
 import {
   AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
+  EL_PRESIDENTE_AVATAR_OUTFIT_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
@@ -104,6 +105,9 @@ export function SportingDirectorAvatar({
         ) : null}
         {avatar.outfit === INVETERATE_PLAYER_AVATAR_OUTFIT_KEY ? (
           <AvatarPokerChipsOutfit />
+        ) : null}
+        {avatar.outfit === EL_PRESIDENTE_AVATAR_OUTFIT_KEY ? (
+          <AvatarElPresidenteOutfit />
         ) : null}
 
         <AvatarEars avatar={avatar} skin={skin.color} shadow={skin.shadow} />
@@ -310,6 +314,25 @@ function AvatarPokerChipsOutfit() {
       </g>
       <circle cx="82" cy="91" r="5" fill="#684DA0" stroke="#FFF4D6" strokeWidth="1.2" />
       <path d="M82 87v8M78 91h8" stroke="#FFF4D6" strokeWidth="1" />
+    </g>
+  );
+}
+
+function AvatarElPresidenteOutfit() {
+  return (
+    <g data-avatar-outfit="el-presidente">
+      <path d="M22 120c2-15 8-27 19-38l19 25 19-25c11 11 17 23 19 38H22Z" fill="#172A3A" />
+      <path d="m41 82 19 25-11 8-17-26 9-7Zm38 0-19 25 11 8 17-26-9-7Z" fill="#243E52" />
+      <path d="m55 86 5 6 5-6-2 12-3 5-3-5-2-12Z" fill="#8F233A" />
+      <path d="M40 84 80 120H66L32 91l8-7Z" fill="#F7F1D2" stroke="#D7A928" strokeWidth="1.4" />
+      <path d="M43 88 77 119H69L38 93l5-5Z" fill="#176951" />
+      <g transform="translate(75 111)">
+        <circle r="7" fill="#D7A928" stroke="#FFF4C9" strokeWidth="1.6" />
+        <circle r="3.7" fill="#176951" />
+        <path d="M0-2.5v5M-2.5 0h5" stroke="#FFF4C9" strokeWidth="1.1" strokeLinecap="round" />
+      </g>
+      <path d="M83 91h7" stroke="#D7A928" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="86.5" cy="91" r="1.4" fill="#FFF4C9" />
     </g>
   );
 }
