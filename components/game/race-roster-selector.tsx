@@ -213,7 +213,7 @@ export function RaceRosterSelector({
         </span>
       </div>
 
-      <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-black/15 p-2.5 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-black/15 p-2.5">
         <label
           htmlFor="race-roster-sort"
           className="flex min-h-10 min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3"
@@ -262,7 +262,7 @@ export function RaceRosterSelector({
         </button>
 
         <label
-          className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 text-[11px] font-bold transition sm:col-span-2 lg:col-span-1 ${
+          className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 text-[11px] font-bold transition ${
             conflictingRiderCount > 0
               ? "cursor-pointer border-amber-200/20 bg-amber-200/5 text-amber-100 hover:border-amber-200/35"
               : "cursor-not-allowed border-white/5 bg-white/[0.03] text-[#71897C]"
