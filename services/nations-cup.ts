@@ -24,6 +24,8 @@ export type NationsCupStanding = {
   overallRank: number;
   divisionRank: number;
   groupRank: number;
+  projectedDivision: number;
+  movementZone: "promotion" | "relegation" | "safe";
   eventRanks: Record<string, number | null>;
 };
 
@@ -55,6 +57,8 @@ type StandingRow = {
   overall_rank: number;
   division_rank: number;
   group_rank: number;
+  projected_division: number;
+  movement_zone: "promotion" | "relegation" | "safe";
 };
 type RaceRow = { id: string; slug: string; name: string };
 type EditionRow = { id: string; race_id: string; status: string };
@@ -79,7 +83,7 @@ export async function getNationsCupOverview(): Promise<NationsCupOverview | null
   if (!season) return null;
 
   const [standingsResult, racesResult] = await Promise.all([
-    admin.rpc("get_national_federation_nations_cup_standings", {
+    admin.rpc("get_national_federation_nations_cup_movement_projection", {
       p_season_id: season.id,
     }),
     admin
@@ -198,6 +202,8 @@ export async function getNationsCupOverview(): Promise<NationsCupOverview | null
       overallRank: standing.overall_rank,
       divisionRank: standing.division_rank,
       groupRank: standing.group_rank,
+      projectedDivision: standing.projected_division,
+      movementZone: standing.movement_zone,
       eventRanks: eventRankByCountry.get(standing.country_id) ?? {},
     }),
   );

@@ -19,6 +19,10 @@ const nationsCupPage = readFileSync(
   join(process.cwd(), "app/jeu/nations-cup/page.tsx"),
   "utf8",
 );
+const nationsCupStandings = readFileSync(
+  join(process.cwd(), "components/game/nations-cup-standings.tsx"),
+  "utf8",
+);
 
 describe("federation pages", () => {
   it("resolves the current team federation from its sporting nationality", () => {
@@ -52,10 +56,11 @@ describe("federation pages", () => {
   });
 
   it("routes Nations Cup standings to public nation pages", () => {
-    expect(nationsCupPage).toContain(
+    expect(nationsCupPage).toContain("<NationsCupStandings");
+    expect(nationsCupStandings).toContain(
       "href={`/jeu/nations/${standing.countryCode.toLowerCase()}`}",
     );
-    expect(nationsCupPage).not.toContain(
+    expect(nationsCupStandings).not.toContain(
       "href={`/jeu/federations/${standing.countryCode.toLowerCase()}`}",
     );
   });

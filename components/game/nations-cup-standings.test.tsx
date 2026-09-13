@@ -25,7 +25,9 @@ describe("NationsCupStandings", () => {
       <NationsCupStandings events={events} standings={standings} />,
     );
 
-    expect(markup.match(/role="tab"/g)).toHaveLength(4);
+    expect(markup.match(/role="tab"/g)).toHaveLength(7);
+    expect(markup.indexOf("Général")).toBeLessThan(markup.indexOf("Sprint"));
+    expect(markup).toContain("détermine seul les montées et descentes");
     expect(markup).toContain("Division 1");
     expect(markup).toContain("Division 4");
     expect(markup).toContain("France");
@@ -43,6 +45,25 @@ describe("NationsCupStandings", () => {
     const groupB = getNationsCupDivisionView(standings, 2, "B");
     expect(groupB.visibleStandings.map((standing) => standing.countryName)).toEqual([
       "Pays-Bas",
+    ]);
+  });
+
+  it("isole chaque sous-classement d’épreuve", () => {
+    const withResults = standings.map((item, index) => ({
+      ...item,
+      eventRanks: {
+        "nations-cup-sprint": index < 2 ? index + 1 : null,
+      },
+    }));
+
+    const sprintDivisionTwo = getNationsCupDivisionView(
+      withResults,
+      2,
+      "A",
+      "nations-cup-sprint",
+    );
+    expect(sprintDivisionTwo.visibleStandings.map((standing) => standing.countryName)).toEqual([
+      "Belgique",
     ]);
   });
 });
@@ -64,9 +85,12 @@ function standing(
     division,
     groupCode,
     points: 0,
+    eventsCount: 0,
     overallRank,
     divisionRank,
     groupRank,
+    projectedDivision: division,
+    movementZone: "safe" as const,
     eventRanks: {},
   };
 }

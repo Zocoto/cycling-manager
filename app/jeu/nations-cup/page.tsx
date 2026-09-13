@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { NationsCupAutoRefresh } from "@/components/game/nations-cup-auto-refresh";
 import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
 import { NationsCupStandings } from "@/components/game/nations-cup-standings";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -63,6 +64,12 @@ export default async function NationsCupPage() {
           </section>
         ) : (
           <>
+            <NationsCupAutoRefresh
+              enabled={
+                overview.currentDayNumber >= 24
+                && overview.events.some((event) => event.status !== "completed")
+              }
+            />
             <NationsCupEventTabs events={overview.events} />
             <NationsCupStandings
               events={overview.events}
