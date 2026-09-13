@@ -14,11 +14,15 @@ describe("GameNavigationMenu", () => {
     expect(markup).not.toContain("Simulateur de course");
   });
 
-  it("conserve un accès permanent au parrainage dans le menu principal", () => {
+  it("réserve le parrainage au menu utilisateur", () => {
     const markup = renderToStaticMarkup(<GameNavigationMenu />);
+    const headerSource = readFileSync(
+      resolve(process.cwd(), "components/game/game-header.tsx"),
+      "utf8",
+    );
 
-    expect(markup).toContain('href="/jeu/parrainage"');
-    expect(markup).toContain('href="/jeu/parrainage">Parrainage');
+    expect(markup).not.toContain('href="/jeu/parrainage"');
+    expect(headerSource).not.toContain('href="/jeu/parrainage"');
   });
 
   it("affiche toujours le Fan-club et retire les doublons du menu utilisateur", () => {

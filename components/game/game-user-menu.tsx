@@ -130,6 +130,17 @@ export function GameUserMenu({ displayName }: { displayName?: string }) {
             icon={<UserSilhouetteIcon className="h-5 w-5" />}
           />
 
+          <UserMenuLink
+            href="/jeu/parrainage"
+            label={isEnglish ? "Referral programme" : "Parrainage"}
+            description={
+              isEnglish
+                ? "Invite managers and unlock your rewards"
+                : "Invitez des DS et débloquez vos récompenses"
+            }
+            icon={<ReferralIcon />}
+          />
+
           <PushNotificationControl variant="menu" isEnglish={isEnglish} />
 
           <UserMenuLink
@@ -239,6 +250,26 @@ function GuideIcon() {
     >
       <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
       <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
+    </svg>
+  );
+}
+
+function ReferralIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-5 w-5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="6.5" cy="7" r="2.5" />
+      <circle cx="14" cy="8" r="2" />
+      <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
+      <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
     </svg>
   );
 }

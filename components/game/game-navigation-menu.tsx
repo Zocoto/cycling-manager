@@ -47,7 +47,6 @@ export const NAVIGATION_GROUPS_FR = [
     links: [
       ["Chat du peloton", "/jeu/chat"],
       ["Recherche globale", "/jeu/recherche"],
-      ["Parrainage", "/jeu/parrainage"],
     ],
   },
 ] as const;
@@ -95,7 +94,6 @@ export const NAVIGATION_GROUPS_EN = [
     links: [
       ["Peloton chat", "/jeu/chat"],
       ["Global search", "/jeu/recherche"],
-      ["Referral programme", "/jeu/parrainage"],
     ],
   },
 ] as const;

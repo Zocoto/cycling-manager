@@ -18,6 +18,9 @@ describe("GameUserMenu", () => {
     expect(markup).toContain('aria-haspopup="dialog"');
     expect(markup).toContain("Paul Leblanc");
     expect(markup).toContain('href="/jeu/directeur-sportif"');
+    expect(markup).toContain('href="/jeu/parrainage"');
+    expect(markup).toContain("Parrainage");
+    expect(markup).toContain("Invitez des DS et débloquez vos récompenses");
     expect(markup).toContain('data-user-menu-notifications="true"');
     expect(markup).toContain('role="switch"');
     expect(markup).toContain('href="/guide"');
