@@ -63,7 +63,7 @@ describe("Cyclogazette daily games", () => {
     expect(signatures.size).toBeGreaterThanOrEqual(50);
   });
 
-  it("rerolls the crossword per Gazette edition while staying deterministic", () => {
+  it("keeps one stable crossword per issue even if the edition identifier changes", () => {
     const issueNumber = 84;
     const editionKey = "edition-a";
     const rerollKey = "edition-b";
@@ -74,8 +74,8 @@ describe("Cyclogazette daily games", () => {
     const rerolledSolution = getCyclogazetteGameSolutions(issueNumber, rerollKey);
 
     expect(first).toEqual(same);
-    expect(first.crossword).not.toEqual(rerolled.crossword);
-    expect(firstSolution.crosswordRows).not.toEqual(
+    expect(first.crossword).toEqual(rerolled.crossword);
+    expect(firstSolution.crosswordRows).toEqual(
       rerolledSolution.crosswordRows,
     );
     expect(
@@ -93,7 +93,7 @@ describe("Cyclogazette daily games", () => {
         answer: firstSolution.crosswordRows.join(""),
         variationKey: rerollKey,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("accepte indifféremment les lettres accentuées ou non", () => {
@@ -144,34 +144,32 @@ describe("Cyclogazette daily games", () => {
     }
   });
 
-  it("renouvelle fortement le vocabulaire à partir de la saison 3", () => {
-    const answersByIssue = new Map<number, Set<string>>();
-    const vocabulary = new Set<string>();
+  it("sert à partir de la saison 3 une banque de vraies grilles compactes et quotidiennes", () => {
+    const signatures = new Set<string>();
 
-    for (let issueNumber = 57; issueNumber <= 140; issueNumber += 1) {
+    for (let issueNumber = 57; issueNumber <= 2_056; issueNumber += 1) {
       const crossword = getCyclogazetteDailyGames(issueNumber).crossword;
       const solutionRows =
         getCyclogazetteGameSolutions(issueNumber).crosswordRows;
-      const answers = extractCrosswordAnswers(crossword, solutionRows);
 
-      expect(crossword.entries.length).toBeGreaterThanOrEqual(15);
-      expect(crossword.entries.length).toBeLessThanOrEqual(17);
-      expect(answers.size).toBe(crossword.entries.length);
-      expect(isConnectedCrossword(solutionRows)).toBe(true);
+      expect(crossword.rows).toBe(9);
+      expect(crossword.columns).toBe(9);
+      expect(crossword.cells).toHaveLength(64);
+      expect(crossword.entries).toHaveLength(32);
+      expect(crossword.entries.every((entry) => entry.length === 4)).toBe(true);
+      expect(crossword.difficulty).not.toBe("difficile");
+      expect(solutionRows).toHaveLength(9);
+      expect(solutionRows[4]).toBe("#########");
+      expect(
+        solutionRows.every((row, rowIndex) =>
+          rowIndex === 4 ? true : row[4] === "#",
+        ),
+      ).toBe(true);
 
-      for (let previousIssue = issueNumber - 9; previousIssue < issueNumber; previousIssue += 1) {
-        const previousAnswers = answersByIssue.get(previousIssue);
-        if (!previousAnswers) continue;
-        expect([...answers].filter((answer) => previousAnswers.has(answer))).toEqual(
-          [],
-        );
-      }
-
-      answers.forEach((answer) => vocabulary.add(answer));
-      answersByIssue.set(issueNumber, answers);
+      signatures.add(solutionRows.join(""));
     }
 
-    expect(vocabulary.size).toBeGreaterThanOrEqual(300);
+    expect(signatures.size).toBe(2_000);
   });
 });
 
@@ -196,19 +194,4 @@ function isConnectedCrossword(rows: string[]) {
   }
 
   return seen.size === rows.join("").replaceAll("#", "").length;
-}
-
-function extractCrosswordAnswers(
-  crossword: ReturnType<typeof getCyclogazetteDailyGames>["crossword"],
-  solutionRows: string[],
-) {
-  return new Set(
-    crossword.entries.map((entry) =>
-      Array.from({ length: entry.length }, (_, index) =>
-        entry.direction === "horizontal"
-          ? solutionRows[entry.row][entry.column + index]
-          : solutionRows[entry.row + index][entry.column],
-      ).join(""),
-    ),
-  );
 }

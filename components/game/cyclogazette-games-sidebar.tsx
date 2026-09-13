@@ -328,7 +328,7 @@ function CrosswordGame({
     [openCells, puzzle.columns, puzzle.rows],
   );
   const [draft, setDraft] = useCyclogazetteGameDraft(
-    `cyclogazette:${editionId}:crossword`,
+    `cyclogazette:${editionId}:crossword:v2`,
     initialDraft,
   );
   const values = useMemo(
