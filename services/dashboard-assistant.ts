@@ -117,6 +117,14 @@ export async function getCurrentDashboardAssistantSummary(
     directorAuctionCount: row.director_auction_count,
     nextAuctionCloseAt: row.next_auction_close_at,
     pendingSelectionCount: row.pending_selection_count,
+    federationSelectionReminderCount:
+      assistantPayload.federationSelectionReminderCount,
+    federationSelectionReminderNextLabel:
+      assistantPayload.federationSelectionReminderNextLabel,
+    federationSelectionReminderNextClosesAt:
+      assistantPayload.federationSelectionReminderNextClosesAt,
+    federationSelectionReminderCountryCode:
+      assistantPayload.federationSelectionReminderCountryCode,
     pendingDirectOfferCount: row.pending_direct_offer_count,
     contractRenewalCount: row.contract_renewal_count,
     youthAlertCount: row.youth_alert_count,
@@ -156,6 +164,10 @@ function normalizeAssistantPayload(value: unknown): {
   availableScoutCount: number;
   juniorManualTrainingDueCount: number;
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
+  federationSelectionReminderCount: number;
+  federationSelectionReminderNextLabel: string | null;
+  federationSelectionReminderNextClosesAt: string | null;
+  federationSelectionReminderCountryCode: string | null;
   nextSeasonRosterProjectedCount: number;
   nextSeasonRosterOverflowCount: number;
   equipmentPartnerSignatureAvailable: boolean;
@@ -170,6 +182,10 @@ function normalizeAssistantPayload(value: unknown): {
       availableScoutCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
+      federationSelectionReminderCount: 0,
+      federationSelectionReminderNextLabel: null,
+      federationSelectionReminderNextClosesAt: null,
+      federationSelectionReminderCountryCode: null,
       nextSeasonRosterProjectedCount: 0,
       nextSeasonRosterOverflowCount: 0,
       equipmentPartnerSignatureAvailable: false,
@@ -186,6 +202,10 @@ function normalizeAssistantPayload(value: unknown): {
       availableScoutCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
+      federationSelectionReminderCount: 0,
+      federationSelectionReminderNextLabel: null,
+      federationSelectionReminderNextClosesAt: null,
+      federationSelectionReminderCountryCode: null,
       nextSeasonRosterProjectedCount: 0,
       nextSeasonRosterOverflowCount: 0,
       equipmentPartnerSignatureAvailable: false,
@@ -206,6 +226,11 @@ function normalizeAssistantPayload(value: unknown): {
     typeof payload.developmentTeamSetup === "object"
       ? (payload.developmentTeamSetup as Record<string, unknown>)
       : {};
+  const federationSelectionReminder =
+    payload.federationSelectionReminder &&
+    typeof payload.federationSelectionReminder === "object"
+      ? (payload.federationSelectionReminder as Record<string, unknown>)
+      : {};
   return {
     riderRecruitmentMatchCount: normalizeCount(
       payload.riderRecruitmentMatchCount,
@@ -222,6 +247,18 @@ function normalizeAssistantPayload(value: unknown): {
       payload.juniorManualTrainingSlot === "manual_pm"
         ? payload.juniorManualTrainingSlot
         : null,
+    federationSelectionReminderCount: normalizeCount(
+      federationSelectionReminder.count,
+    ),
+    federationSelectionReminderNextLabel: normalizeOptionalString(
+      federationSelectionReminder.nextLabel,
+    ),
+    federationSelectionReminderNextClosesAt: normalizeOptionalString(
+      federationSelectionReminder.nextClosesAt,
+    ),
+    federationSelectionReminderCountryCode: normalizeCountryCode(
+      federationSelectionReminder.countryCode,
+    ),
     nextSeasonRosterProjectedCount: normalizeCount(
       rosterProjection.projectedCount,
     ),
@@ -247,6 +284,15 @@ function normalizeCount(value: unknown): number {
 function normalizeAmount(value: unknown): number {
   const amount = Number(value);
   return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeCountryCode(value: unknown): string | null {
+  const countryCode = normalizeOptionalString(value)?.toUpperCase() ?? null;
+  return countryCode && /^[A-Z]{2}$/.test(countryCode) ? countryCode : null;
 }
 
 function normalizeJournalItems(value: unknown): DashboardJournalItem[] {

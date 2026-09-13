@@ -304,6 +304,12 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Afficher les messages issus des courses": "Show messages from race chats",
   "Voir les Directeurs Sportifs en ligne": "View online Sporting Directors",
   "Directeurs Sportifs en ligne": "Online Sporting Directors",
+  "convocation fédérale à finaliser": "federation call-up to finalise",
+  "convocations fédérales à finaliser": "federation call-ups to finalise",
+  "Une liste nationale reste à publier": "A national team list still needs to be published",
+  "Prochaine :": "Next:",
+  "échéance": "deadline",
+  "à confirmer": "to be confirmed",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

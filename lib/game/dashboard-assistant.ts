@@ -41,6 +41,10 @@ export type DashboardAssistantSnapshot = {
   directorAuctionCount: number;
   nextAuctionCloseAt: string | null;
   pendingSelectionCount: number;
+  federationSelectionReminderCount: number;
+  federationSelectionReminderNextLabel: string | null;
+  federationSelectionReminderNextClosesAt: string | null;
+  federationSelectionReminderCountryCode: string | null;
   pendingDirectOfferCount: number;
   contractRenewalCount: number;
   youthAlertCount: number;
@@ -100,6 +104,7 @@ const ALERT_PRIORITY = [
   "low-reputation-registrations",
   "untreated-injuries",
   "junior-manual-training",
+  "federation-selection-reminder",
   "pending-selections",
   "pending-direct-offers",
   "sponsor-signature",
@@ -219,6 +224,31 @@ export function buildDashboardAssistantLines({
       title: pluralize(snapshot.pendingSelectionCount, "sélection à confirmer", "sélections à confirmer"),
       detail: "Une décision du DS est attendue.",
       href: "/jeu/selections-internationales",
+    });
+  }
+
+  if (
+    snapshot.federationSelectionReminderCount > 0 &&
+    snapshot.federationSelectionReminderCountryCode
+  ) {
+    const deadline = formatFederationSelectionReminderDeadline(
+      snapshot.federationSelectionReminderNextClosesAt,
+    );
+    const nextSelection = snapshot.federationSelectionReminderNextLabel
+      ? `Prochaine : ${snapshot.federationSelectionReminderNextLabel}`
+      : "Une liste nationale reste à publier";
+
+    alerts.push({
+      id: "federation-selection-reminder",
+      tone: "alert",
+      metric: String(snapshot.federationSelectionReminderCount),
+      title: pluralize(
+        snapshot.federationSelectionReminderCount,
+        "convocation fédérale à finaliser",
+        "convocations fédérales à finaliser",
+      ),
+      detail: `${nextSelection} · échéance ${deadline}.`,
+      href: `/jeu/federations/${snapshot.federationSelectionReminderCountryCode.toLowerCase()}?onglet=selections`,
     });
   }
 
@@ -538,6 +568,22 @@ export function formatDashboardAssistantDate(value: string): string {
   }).format(new Date(`${value}T12:00:00Z`));
 
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+export function formatFederationSelectionReminderDeadline(
+  value: string | null,
+): string {
+  if (!value) return "à confirmer";
+  const deadline = new Date(value);
+  if (Number.isNaN(deadline.getTime())) return "à confirmer";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).format(deadline);
 }
 
 export function getDashboardRaceRosterAlerts(

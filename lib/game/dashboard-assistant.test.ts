@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
+  formatFederationSelectionReminderDeadline,
   getDashboardLowReputationRegistrationAlerts,
   getDashboardRaceRosterAlerts,
   type DashboardAssistantSnapshot,
@@ -35,6 +36,10 @@ const snapshot: DashboardAssistantSnapshot = {
   directorAuctionCount: 2,
   nextAuctionCloseAt: "2026-08-28T16:30:00.000Z",
   pendingSelectionCount: 1,
+  federationSelectionReminderCount: 0,
+  federationSelectionReminderNextLabel: null,
+  federationSelectionReminderNextClosesAt: null,
+  federationSelectionReminderCountryCode: null,
   pendingDirectOfferCount: 2,
   contractRenewalCount: 3,
   youthAlertCount: 1,
@@ -199,6 +204,44 @@ describe("dashboard DS assistant", () => {
         href: "/jeu/centre-de-formation?onglet=development&dev=effectif",
       }),
     ]);
+  });
+
+  it("alerts a federation president when manual call-ups approach their deadline", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+        federationSelectionReminderCount: 2,
+        federationSelectionReminderNextLabel: "CC Pros · Route",
+        federationSelectionReminderNextClosesAt:
+          "2026-09-15T12:00:00.000Z",
+        federationSelectionReminderCountryCode: "MU",
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "federation-selection-reminder",
+        metric: "2",
+        title: "convocations fédérales à finaliser",
+        detail: expect.stringContaining("CC Pros · Route"),
+        href: "/jeu/federations/mu?onglet=selections",
+      }),
+    ]);
+    expect(groups.alerts[0]?.detail).toContain("15 septembre");
   });
 
   it("alerts on an empty shop and links the daily sales report", () => {
@@ -411,6 +454,14 @@ describe("dashboard DS assistant", () => {
     expect(formatDashboardAssistantDate("2026-08-28")).toBe(
       "Vendredi 28 août",
     );
+  });
+
+  it("formats federation selection deadlines in Paris time", () => {
+    expect(
+      formatFederationSelectionReminderDeadline(
+        "2026-09-15T12:00:00.000Z",
+      ),
+    ).toBe("15 septembre à 14:00");
   });
 
   it("targets the closest invalid start-list, then the highest category and stable order", () => {
