@@ -3304,6 +3304,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       input.segments,
       getLargestContendingRoadGroupSize(states),
     );
+  const preserveFinalRoadGroups =
+    groupSprintFinish || shouldPreserveFinalRoadGroupTimes(input.segments);
   const finishScores = getRoadFinishScores(
     states,
     input.segments,
@@ -3312,7 +3314,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     random,
     finalCommentary,
   );
-  const groupSprintFinishTimes = groupSprintFinish
+  const fixedRoadGroupFinishTimes = preserveFinalRoadGroups
     ? buildFlatGroupFinishTimes({
         groups: timeline.at(-1)?.groups ?? [],
         elapsedTimeByRiderId: new Map(
@@ -3334,7 +3336,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         input.segments,
         input.profileType,
         groupSprintFinish,
-        groupSprintFinishTimes.get(state.rider.id),
+        fixedRoadGroupFinishTimes.get(state.rider.id),
       ),
       energyAfter: round(state.energy, 1),
     }));
@@ -7174,14 +7176,13 @@ function getRoadFinishTime(
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
   groupSprintFinish: boolean,
-  fixedGroupSprintTimeSeconds?: number,
+  fixedGroupFinishTimeSeconds?: number,
 ) {
   if (
-    groupSprintFinish &&
-    fixedGroupSprintTimeSeconds !== undefined &&
-    Number.isFinite(fixedGroupSprintTimeSeconds)
+    fixedGroupFinishTimeSeconds !== undefined &&
+    Number.isFinite(fixedGroupFinishTimeSeconds)
   ) {
-    return fixedGroupSprintTimeSeconds;
+    return fixedGroupFinishTimeSeconds;
   }
 
   const ownScore = scores.get(state.rider.id) ?? 0;
@@ -7224,6 +7225,18 @@ function getRoadFinishTime(
         : 0.72;
   const finishGap = Math.max(0, bestScore - ownScore) * finishScale;
   return state.elapsedTimeSeconds + finishGap;
+}
+
+/**
+ * Une descente finale ne crée pas spontanément des minutes d'écart entre des
+ * coureurs qui l'abordent encore dans le même groupe. Les éventuelles
+ * cassures doivent être produites par la chronologie (attaque, incident ou
+ * groupe déjà distancé), puis conservées au classement.
+ */
+export function shouldPreserveFinalRoadGroupTimes(
+  segments: RaceStageSegment[],
+) {
+  return segments.at(-1)?.terrain === "descent";
 }
 
 /**

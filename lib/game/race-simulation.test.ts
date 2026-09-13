@@ -29,6 +29,7 @@ import {
   reduceMechanicalIncidentTimeLoss,
   resolveCaughtBreakawayElapsedTime,
   selectStageAttackPlan,
+  shouldPreserveFinalRoadGroupTimes,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -731,6 +732,36 @@ describe("simulateRaceStage", () => {
         });
       }
     }
+  });
+
+  it("conserve le même temps aux coureurs groupés après une descente finale", () => {
+    const input = createBalancedMountainFavoritesInput(17);
+    input.id = "mountain-stage-ending-with-a-descent";
+    input.segments = input.segments.map((segment, index, segments) =>
+      index === segments.length - 1
+        ? {
+            ...segment,
+            terrain: "descent",
+            averageGradientPct: -7,
+          }
+        : segment,
+    );
+
+    expect(shouldPreserveFinalRoadGroupTimes(input.segments)).toBe(true);
+
+    const simulation = simulateRaceStage(input);
+    const summitLeadingGroup = simulation.timeline
+      .at(-2)
+      ?.groups.find((group) => group.gapToLeaderSeconds === 0);
+    expect(summitLeadingGroup?.riderIds.length).toBeGreaterThan(2);
+
+    const resultByRiderId = new Map(
+      simulation.results.map((result) => [result.riderId, result]),
+    );
+    const finishTimes = summitLeadingGroup!.riderIds.map(
+      (riderId) => resultByRiderId.get(riderId)?.elapsedTimeSeconds,
+    );
+    expect(new Set(finishTimes).size).toBe(1);
   });
 
   it("commence avec un peloton groupé avant de laisser partir l’échappée", () => {
