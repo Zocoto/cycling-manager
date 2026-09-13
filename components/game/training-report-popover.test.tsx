@@ -5,7 +5,7 @@ import { TRAINING_STAT_CODES } from "@/lib/game/training";
 import { TrainingReportPopover } from "./training-report-popover";
 
 describe("TrainingReportPopover", () => {
-  it("propose la dernière séance et le cumul de saison dans le même rapport", () => {
+  it("garde le rapport détaillé hors du HTML tant que le panneau reste fermé", () => {
     const markup = renderToStaticMarkup(
       <TrainingReportPopover
         report={{
@@ -25,6 +25,7 @@ describe("TrainingReportPopover", () => {
           bonusBreakdownByStat: {
             mountain: {
               totalPercentage: 26.6,
+              calculation: "stacked",
               items: [
                 {
                   key: "trainer",
@@ -64,14 +65,9 @@ describe("TrainingReportPopover", () => {
     );
 
     expect(markup).toContain("Rapports");
-    expect(markup).toContain("Dernière séance");
     expect(markup).toContain("Saison");
-    expect(markup).toContain("Bilan J1");
-    expect(markup).toContain("J1 60");
-    expect(markup).toContain("Travail +2,350");
-    expect(markup).toContain('data-layout="inline"');
-    expect(markup).toContain("Détail du bonus · +26,6 %");
-    expect(markup).toContain("Spécialité de l’entraîneur");
+    expect(markup).not.toContain("Bilan J1");
+    expect(markup).not.toContain('data-layout="inline"');
     expect(markup).not.toContain("absolute right-0 z-50");
   });
 });

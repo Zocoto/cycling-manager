@@ -33,7 +33,7 @@ export function ArchivedRiderProfileView({
       <GameHeader
         simulatorEmail={simulatorEmail}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
 

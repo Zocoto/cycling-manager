@@ -25,8 +25,8 @@ const currentDirector: GlobalChatOnlineDirector = {
 
 describe("global game presence", () => {
   it("uses lightweight heartbeat, cross-tab throttle and chat refresh cadences", () => {
-    expect(GAME_PRESENCE_HEARTBEAT_INTERVAL_MS).toBe(90_000);
-    expect(GAME_PRESENCE_CROSS_TAB_THROTTLE_MS).toBe(60_000);
+    expect(GAME_PRESENCE_HEARTBEAT_INTERVAL_MS).toBe(300_000);
+    expect(GAME_PRESENCE_CROSS_TAB_THROTTLE_MS).toBe(240_000);
     expect(GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS).toBe(45_000);
     expect(GLOBAL_CHAT_ONLINE_WINDOW_MINUTES).toBe(15);
   });
@@ -36,10 +36,10 @@ describe("global game presence", () => {
       shouldRecordGamePresence({ lastRecordedAt: null, now: 100_000 }),
     ).toBe(true);
     expect(
-      shouldRecordGamePresence({ lastRecordedAt: 50_000, now: 100_000 }),
+      shouldRecordGamePresence({ lastRecordedAt: 50_000, now: 250_000 }),
     ).toBe(false);
     expect(
-      shouldRecordGamePresence({ lastRecordedAt: 40_000, now: 100_000 }),
+      shouldRecordGamePresence({ lastRecordedAt: 10_000, now: 250_000 }),
     ).toBe(true);
   });
 

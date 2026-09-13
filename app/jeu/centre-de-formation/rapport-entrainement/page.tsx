@@ -38,7 +38,7 @@ export default async function JuniorTrainingReportPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
       <section className="mx-auto max-w-[1250px] px-5 py-8 sm:px-8 sm:py-11">

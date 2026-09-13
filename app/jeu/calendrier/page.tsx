@@ -66,6 +66,8 @@ export default async function RaceCalendarPage({
       getActiveSeasonRaceCalendar(supabase, new Date(), {
         includeEngagedRiders: false,
         includeJuniorChampionships: true,
+        includeSimulationEnhancements: false,
+        includeStageSegments: false,
       })
         .then((calendar) => ({
           calendar,
@@ -154,10 +156,7 @@ export default async function RaceCalendarPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={
-          headerData.teamSponsorIdentity
-            ?.sponsor ?? null
-        }
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
 

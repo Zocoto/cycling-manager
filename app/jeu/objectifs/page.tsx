@@ -195,7 +195,7 @@ export default async function ObjectivesPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
 

@@ -3,6 +3,7 @@ import "server-only";
 import { SPONSORS } from "@/data/sponsors";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TeamSponsorIdentity } from "@/services/team-sponsor-identity";
+import type { GameHeaderSponsorVisual } from "@/components/game/game-header";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -23,6 +24,7 @@ type GameHeaderSnapshot = {
 export type GameHeaderData = {
   displayName: string | undefined;
   teamSponsorIdentity: TeamSponsorIdentity | null;
+  teamSponsorVisual: GameHeaderSponsorVisual | null;
   teamId: string | null;
 };
 
@@ -44,9 +46,20 @@ export async function getGameHeaderData(
     );
   }
 
+  const teamSponsorIdentity = toTeamSponsorIdentity(data);
+
   return {
     displayName: data?.display_name ?? undefined,
-    teamSponsorIdentity: toTeamSponsorIdentity(data),
+    teamSponsorIdentity,
+    teamSponsorVisual: teamSponsorIdentity
+      ? {
+          name: teamSponsorIdentity.sponsor.name,
+          shortName: teamSponsorIdentity.sponsor.shortName,
+          countryCode: teamSponsorIdentity.sponsor.countryCode,
+          logoPath: teamSponsorIdentity.sponsor.logoPath,
+          colors: teamSponsorIdentity.sponsor.colors,
+        }
+      : null,
     teamId: data?.team_id ?? null,
   };
 }

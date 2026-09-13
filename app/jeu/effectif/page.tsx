@@ -32,11 +32,8 @@ import {
 } from "../../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getAuthenticatedUser } from "../../../lib/supabase/authenticated-user";
-import { getTeamAmateurIdentityForAuthUser } from "../../../services/team-amateur-identity";
-import {
-  getActiveTeamSponsorIdentityForAuthUser,
-  type TeamSponsorIdentity,
-} from "../../../services/team-sponsor-identity";
+import { getTeamAmateurIdentity } from "../../../services/team-amateur-identity";
+import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getRiderSportingProfile,
   type RiderRatingImportance,
@@ -246,11 +243,8 @@ export default async function TeamRosterPage({
     redirect("/connexion");
   }
 
-  const sponsorIdentityPromise: Promise<{
-    identity: TeamSponsorIdentity | null;
-    error: string | null;
-  }> = getActiveTeamSponsorIdentityForAuthUser(user.id)
-    .then((identity) => ({ identity, error: null }))
+  const headerDataPromise = getGameHeaderData(supabase, user.id)
+    .then((data) => ({ data, error: null }))
     .catch((error: unknown) => {
       console.error(
         "Impossible de récupérer l’identité commerciale de l’équipe :",
@@ -258,20 +252,24 @@ export default async function TeamRosterPage({
       );
 
       return {
-        identity: null,
+        data: {
+          displayName: undefined,
+          teamSponsorIdentity: null,
+          teamSponsorVisual: null,
+          teamId: null,
+        },
         error: getErrorMessage(error),
       };
     });
-
   const [
+    headerDataResult,
     rosterResult,
     planningOverview,
     contractOverview,
-    sponsorIdentityResult,
-    teamAmateurIdentity,
     healthOverview,
     rosterTutorialProgress,
   ] = await Promise.all([
+    headerDataPromise,
     supabase.rpc("get_current_team_roster_with_potential"),
     activeView === "planning"
       ? getCurrentTeamRiderSeasonPlanning({
@@ -293,14 +291,6 @@ export default async function TeamRosterPage({
           return null;
         })
       : Promise.resolve(null),
-    sponsorIdentityPromise,
-    getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
-      console.error(
-        "Impossible de récupérer l’identité amateur de l’équipe :",
-        error,
-      );
-      return null;
-    }),
     getCurrentTeamHealthOverview(user.id).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer les indisponibilités médicales :",
@@ -319,8 +309,21 @@ export default async function TeamRosterPage({
     ),
   ]);
 
-  const teamSponsorIdentity = sponsorIdentityResult.identity;
-  const teamSponsorIdentityError = sponsorIdentityResult.error;
+  const teamSponsorIdentity = headerDataResult.data.teamSponsorIdentity;
+  const teamSponsorIdentityError = headerDataResult.error;
+  const teamAmateurIdentity =
+    !teamSponsorIdentity && headerDataResult.data.teamId
+      ? await getTeamAmateurIdentity(headerDataResult.data.teamId).catch(
+          (error: unknown) => {
+            console.error(
+              "Impossible de récupérer l’identité amateur de l’équipe :",
+              error,
+            );
+            return null;
+          },
+        )
+      : null;
+
   const healthByRiderId = new Map(
     (healthOverview?.riders ?? []).map((rider) => [
       rider.id,
@@ -451,7 +454,8 @@ export default async function TeamRosterPage({
 
       <GameHeader
         simulatorEmail={user.email}
-        sponsor={teamSponsorIdentity?.sponsor ?? null}
+        displayName={headerDataResult.data.displayName}
+        sponsor={headerDataResult.data.teamSponsorVisual}
         maxWidth="wide"
       />
 

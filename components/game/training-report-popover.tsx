@@ -56,6 +56,7 @@ export function TrainingReportPopover({
   tutorialTargetId?: string;
 }) {
   const [activeView, setActiveView] = useState<ReportView>("latest");
+  const [hasLoadedPanel, setHasLoadedPanel] = useState(false);
   const rawId = useId();
   const panelId = `training-report-${rawId.replace(/:/g, "")}`;
 
@@ -71,7 +72,15 @@ export function TrainingReportPopover({
   }
 
   return (
-    <details data-tutorial-id={tutorialTargetId} className="group relative">
+    <details
+      data-tutorial-id={tutorialTargetId}
+      className="group relative"
+      onMouseEnter={() => setHasLoadedPanel(true)}
+      onFocusCapture={() => setHasLoadedPanel(true)}
+      onToggle={(event) => {
+        if (event.currentTarget.open) setHasLoadedPanel(true);
+      }}
+    >
       <summary className="flex min-h-11 cursor-pointer list-none flex-col items-center justify-center rounded-xl border border-[#176951]/20 bg-[#EAF5F3] px-3 text-center text-xs font-black text-[#176951] transition hover:bg-[#DDF1EA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]">
         <span>Rapports</span>
         <span className="mt-0.5 text-[9px] uppercase tracking-[0.11em] text-[#60756E]">
@@ -79,6 +88,7 @@ export function TrainingReportPopover({
         </span>
       </summary>
 
+      {hasLoadedPanel ? (
       <div className="invisible absolute right-0 z-30 mt-2 max-h-[min(75vh,680px)] w-[min(440px,calc(100vw-2.5rem))] translate-y-1 overflow-y-auto overscroll-contain rounded-2xl border border-[#315B3E]/15 bg-[#071A17] p-5 text-white opacity-0 shadow-2xl transition group-open:visible group-open:translate-y-0 group-open:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
         <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-5 border-b border-white/10 bg-[#071A17] px-5 pb-4 pt-5">
           <div
@@ -109,6 +119,7 @@ export function TrainingReportPopover({
           <SeasonTrainingReport report={seasonReport} />
         </div>
       </div>
+      ) : null}
     </details>
   );
 }

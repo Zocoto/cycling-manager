@@ -5,6 +5,11 @@ import Link from "@/components/ui/app-link";
 
 import type { Sponsor } from "@/types/sponsor";
 
+export type GameHeaderSponsorVisual = Pick<
+  Sponsor,
+  "name" | "shortName" | "countryCode" | "logoPath" | "colors"
+>;
+
 import { logoutAccount } from "@/app/jeu/actions";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
@@ -24,7 +29,7 @@ import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
 
 type GameHeaderProps = {
   displayName?: string;
-  sponsor?: Sponsor | null;
+  sponsor?: GameHeaderSponsorVisual | null;
   maxWidth?: "standard" | "wide";
   searchQuery?: string;
   simulatorEmail?: string | null;

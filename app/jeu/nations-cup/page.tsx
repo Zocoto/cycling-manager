@@ -35,7 +35,7 @@ export default async function NationsCupPage() {
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
       <section className="mx-auto max-w-[1500px] px-5 py-9 sm:px-8 sm:py-12">

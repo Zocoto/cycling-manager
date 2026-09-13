@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { loadTeamRiderProgression } from "@/app/jeu/entrainement/progression-actions";
+
 import {
   ProgressionSeasonFilters,
   ProgressionStatFilters,
@@ -20,12 +22,14 @@ export type ProgressionRosterRider = {
 
 export function TeamProgressionModal({
   riders,
-  histories,
+  currentSeasonId,
+  initialHistories = [],
   initiallyOpen = false,
   initialRiderId,
 }: {
   riders: readonly ProgressionRosterRider[];
-  histories: readonly RiderProgressionHistory[];
+  currentSeasonId: string;
+  initialHistories?: readonly RiderProgressionHistory[];
   initiallyOpen?: boolean;
   initialRiderId?: string;
 }) {
@@ -40,6 +44,17 @@ export function TeamProgressionModal({
     resolvedInitialRiderId,
   );
   const [selectedSeasonIds, setSelectedSeasonIds] = useState<string[]>([]);
+  const [histories, setHistories] = useState(initialHistories);
+  const [loadingRiderId, setLoadingRiderId] = useState<string | null>(() =>
+    initiallyOpen &&
+    resolvedInitialRiderId &&
+    !initialHistories.some(
+      (history) => history.riderId === resolvedInitialRiderId,
+    )
+      ? resolvedInitialRiderId
+      : null,
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { selectedStats, setSelectedStats } = useProgressionSelection();
   const historyByRiderId = useMemo(
     () => new Map(histories.map((history) => [history.riderId, history])),
@@ -54,6 +69,49 @@ export function TeamProgressionModal({
     (season) =>
       season.isCurrent || selectedSeasonIds.includes(season.seasonId),
   );
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !selectedRider ||
+      selectedHistory ||
+      loadingRiderId !== selectedRider.id
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void loadTeamRiderProgression(selectedRider.id, currentSeasonId)
+      .then((history) => {
+        if (isCancelled) return;
+        setHistories((current) => [
+          ...current.filter((item) => item.riderId !== history.riderId),
+          history,
+        ]);
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) return;
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger la progression.",
+        );
+      })
+      .finally(() => {
+        if (!isCancelled) setLoadingRiderId(null);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    currentSeasonId,
+    isOpen,
+    loadingRiderId,
+    selectedHistory,
+    selectedRider,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,13 +132,21 @@ export function TeamProgressionModal({
   const chooseRider = (riderId: string) => {
     setSelectedRiderId(riderId);
     setSelectedSeasonIds([]);
+    setLoadError(null);
+    setLoadingRiderId(historyByRiderId.has(riderId) ? null : riderId);
   };
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true);
+          setLoadError(null);
+          if (selectedRider && !selectedHistory) {
+            setLoadingRiderId(selectedRider.id);
+          }
+        }}
         className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-white/10 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
       >
         <TrendIcon />
@@ -208,10 +274,38 @@ export function TeamProgressionModal({
                   </div>
 
                   <div className="mt-5">
-                    <RiderProgressionChart
-                      seasons={visibleSeasons}
-                      selectedStats={selectedStats}
-                    />
+                    {loadingRiderId === selectedRider?.id ? (
+                      <div
+                        role="status"
+                        className="grid min-h-80 place-items-center rounded-2xl border border-dashed border-[#315B3E]/18 bg-[#F7FAF8] text-sm font-black text-[#60756E]"
+                      >
+                        Chargement de la progression…
+                      </div>
+                    ) : loadError ? (
+                      <div
+                        role="alert"
+                        className="rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]"
+                      >
+                        <p>{loadError}</p>
+                        {selectedRider ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLoadError(null);
+                              setLoadingRiderId(selectedRider.id);
+                            }}
+                            className="mt-3 rounded-lg border border-[#8A2F2F]/25 bg-white px-3 py-2 text-xs font-black uppercase tracking-wide transition hover:bg-[#FFF8F6]"
+                          >
+                            Réessayer
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <RiderProgressionChart
+                        seasons={visibleSeasons}
+                        selectedStats={selectedStats}
+                      />
+                    )}
                   </div>
                 </section>
               </div>

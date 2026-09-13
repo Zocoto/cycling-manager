@@ -79,7 +79,7 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
 

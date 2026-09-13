@@ -60,7 +60,7 @@ export default async function EquipmentLaboratoryPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">

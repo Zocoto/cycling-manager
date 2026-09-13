@@ -72,7 +72,7 @@ export default async function UciRankingsPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
       <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">

@@ -53,19 +53,24 @@ export async function GET(
   // Une reprise manuelle ciblée doit rester strictement cantonnée à la course
   // demandée. Les maintenances globales continuent de tourner sur les appels
   // planifiés, dépourvus du paramètre `race`.
+  const shouldRetryInternationalSelections =
+    slot.endsWith("-recovery") && now.getUTCMinutes() === 15;
   const internationalSelections = requestedRaceSlug
     ? ({
         ok: true,
         value: { skipped: "targeted_race_settlement" },
         error: null,
       } as const)
-    : jobPack.packIndex === 0
+    : jobPack.packIndex === 0 &&
+        (!slot.endsWith("-recovery") || shouldRetryInternationalSelections)
       ? await runPreSettlementTask("sélections internationales", () =>
           processDueInternationalChampionshipSelections(now),
         )
       : ({
           ok: true,
-          value: { skipped: "secondary_job_pack" },
+          value: slot.endsWith("-recovery")
+            ? { skipped: "international_selection_retry_throttled" }
+            : { skipped: "secondary_job_pack" },
           error: null,
         } as const);
   const preSettlementDurationMs = Date.now() - preSettlementStartedAt;

@@ -44,11 +44,9 @@ import {
   getCurrentTeamTrainingOverview,
   type TeamTrainingRider,
 } from "@/services/team-training";
-import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
-import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
+import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getCurrentTeamRaceReconnaissanceOverview } from "@/services/team-race-reconnaissance";
 import { getCurrentTeamRiderPreparationOverview } from "@/services/team-rider-preparation";
-import { getRiderProgressionHistories } from "@/services/rider-progression";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
   TRAINING_RECONNAISSANCE_TUTORIAL_ROUTE,
@@ -96,16 +94,12 @@ export default async function TrainingPage({
   const [
     overview,
     headerData,
-    amateurIdentity,
-    sponsorIdentity,
     reconnaissanceOverview,
     preparationOverview,
     trainingTutorialProgress,
   ] = await Promise.all([
     getCurrentTeamTrainingOverview(user.id),
     getGameHeaderData(supabase, user.id),
-    getTeamAmateurIdentityForAuthUser(user.id),
-    getActiveTeamSponsorIdentityForAuthUser(user.id),
     activeTab === "reconnaissance"
       ? getCurrentTeamRaceReconnaissanceOverview(user.id)
       : Promise.resolve(null),
@@ -131,13 +125,11 @@ export default async function TrainingPage({
     redirect("/jeu");
   }
 
-  const progressionHistories =
-    activeTab === "training"
-      ? await getRiderProgressionHistories({
-          riderIds: overview.riders.map((rider) => rider.id),
-          currentSeasonId: overview.seasonId,
-        })
-      : [];
+  const sponsorIdentity = headerData.teamSponsorIdentity;
+  const amateurIdentity =
+    !sponsorIdentity && headerData.teamId
+      ? await getTeamAmateurIdentity(headerData.teamId)
+      : null;
 
   const jersey: RiderJerseyAppearance = sponsorIdentity
     ? createSponsoredRiderJersey({
@@ -169,7 +161,7 @@ export default async function TrainingPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={headerData.teamSponsorVisual}
         maxWidth="wide"
       />
 
@@ -258,7 +250,7 @@ export default async function TrainingPage({
                         countryCode: rider.countryCode,
                         age: rider.age,
                       }))}
-                      histories={progressionHistories}
+                      currentSeasonId={overview.seasonId}
                       initiallyOpen={query.progression === "1"}
                       initialRiderId={query.coureur}
                     />

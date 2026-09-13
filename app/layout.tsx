@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { appConfig } from "../lib/app-config";
 import { ScrollToTop } from "../components/layout/scroll-to-top";
 import { LocaleProvider } from "../components/i18n/locale-provider";
+import { WebVitalsReporter } from "../components/monitoring/web-vitals-reporter";
 import { getRequestLocale } from "../lib/i18n/server";
 
 import "./globals.css";
@@ -144,6 +145,7 @@ export default async function RootLayout({
           <ScrollToTop />
           {children}
         </LocaleProvider>
+        <WebVitalsReporter />
         <SpeedInsights />
       </body>
     </html>

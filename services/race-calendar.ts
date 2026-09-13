@@ -466,6 +466,11 @@ type ActiveSeasonCalendarLoadOptions = {
   includeIneligibleRegionalRaces?: boolean;
   includeJuniorChampionships?: boolean;
   /**
+   * Les profils détaillés ne sont pas affichés dans la grille du calendrier.
+   * Les pages de course et le simulateur les conservent par défaut.
+   */
+  includeStageSegments?: boolean;
+  /**
    * Les bonus de simulation sont inutiles lorsqu'un scénario officiel est
    * déjà verrouillé et que le service ne fait que l'homologuer. Les ignorer
    * dans ce cas empêche une fonctionnalité périphérique (staff, supporters,
@@ -753,6 +758,7 @@ export async function getActiveSeasonRaceCalendar(
     !includeEngagedRiders && options.includeEngagedCounts !== false;
   const includeSimulationEnhancements =
     options.includeSimulationEnhancements !== false;
+  const includeStageSegments = options.includeStageSegments !== false;
 
   const fetchEditionsPage = async (
     from: number,
@@ -1145,8 +1151,10 @@ export async function getActiveSeasonRaceCalendar(
     stageStrategiesResult,
     stageTacticalBriefingsResult,
   ] = await Promise.all([
-    loadStageSegments(stageIds),
-    stageIds.length > 0
+    includeStageSegments
+      ? loadStageSegments(stageIds)
+      : Promise.resolve(emptyResult<StageSegmentRow>()),
+    stageIds.length > 0 && includeSimulationEnhancements
       ? collectChunkedPaginatedRows<
           StageReconnaissanceRow,
           { message: string },
@@ -1367,7 +1375,7 @@ export async function getActiveSeasonRaceCalendar(
 
   assertQuerySucceeded(countriesResult.error, "les pays des courses");
   const [federationInfrastructureResult, federationSpecializationResult] =
-    countryIds.length
+    countryIds.length && includeSimulationEnhancements
       ? await Promise.all([
           raceDataAdmin
             .from("national_federation_infrastructures")
@@ -1448,6 +1456,7 @@ export async function getActiveSeasonRaceCalendar(
     segmentRows,
     reconnaissanceBonusesByStageId,
     season.game_year,
+    includeStageSegments,
   );
   const registrationByEditionId = new Map(
     ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
@@ -3036,6 +3045,7 @@ function groupStages(
   segmentRows: StageSegmentRow[],
   reconnaissanceBonusesByStageId: Map<string, Record<string, number>>,
   gameYear: number,
+  includeStageSegments = true,
 ) {
   const stagesByEditionId = new Map<string, RaceCalendarStage[]>();
   const segmentsByStageId = new Map<string, StageSegmentRow[]>();
@@ -3074,15 +3084,17 @@ function groupStages(
       },
     );
     const distanceKm = Number(row.distance_km);
-    const segments = ensureCompleteRaceSegments({
-      segments: loadedSegments,
-      distanceKm,
-      profileType: row.profile_type,
-      seed: row.id,
-      includeTourPrimes: loadedSegments.some(
-        (segment) => segment.prime !== null,
-      ),
-    });
+    const segments = includeStageSegments
+      ? ensureCompleteRaceSegments({
+          segments: loadedSegments,
+          distanceKm,
+          profileType: row.profile_type,
+          seed: row.id,
+          includeTourPrimes: loadedSegments.some(
+            (segment) => segment.prime !== null,
+          ),
+        })
+      : [];
     const stage: RaceCalendarStage = {
       id: row.id,
       dayNumber: day.day_number,

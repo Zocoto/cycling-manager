@@ -179,7 +179,14 @@ export function GameHeaderIndicatorsProvider({
             schema: "public",
             table: "global_chat_messages",
           },
-          () => scheduleRefresh(),
+          (payload: { new: Record<string, unknown> }) => {
+            const senderId = payload.new.sporting_director_id;
+            if (senderId === row?.current_sporting_director_id) return;
+            setIndicators((current) => ({
+              ...current,
+              hasUnreadGlobalChat: true,
+            }));
+          },
         )
         .on(
           "postgres_changes",
@@ -188,7 +195,12 @@ export function GameHeaderIndicatorsProvider({
             schema: "public",
             table: "cyclogazette_editions",
           },
-          () => scheduleRefresh(),
+          () => {
+            setIndicators((current) => ({
+              ...current,
+              hasUnreadCyclogazette: true,
+            }));
+          },
         );
 
       if (row?.current_sporting_director_id) {
@@ -196,7 +208,24 @@ export function GameHeaderIndicatorsProvider({
           .on(
             "postgres_changes",
             {
-              event: "*",
+              event: "INSERT",
+              schema: "public",
+              table: "sporting_director_messages",
+              filter: `sporting_director_id=eq.${row.current_sporting_director_id}`,
+            },
+            (payload: { new: Record<string, unknown> }) => {
+              const message = payload.new;
+              if (message.read_at || message.archived_at) return;
+              setIndicators((current) => ({
+                ...current,
+                mailboxUnreadCount: current.mailboxUnreadCount + 1,
+              }));
+            },
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
               schema: "public",
               table: "sporting_director_messages",
               filter: `sporting_director_id=eq.${row.current_sporting_director_id}`,
