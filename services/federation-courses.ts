@@ -5,8 +5,8 @@ import {
   calculateFederationRaceReturn,
   FEDERATION_HOSTING_APPLICATION_CLOSE_DAY,
   FEDERATION_HOSTING_DECISION_DAY,
-  FEDERATION_HOSTING_EVENTS,
   getFederationHostingEvent,
+  getFederationHostingEventsForGameYear,
   getFederationRenownLabel,
   type FederationHostingEventType,
   type FederationHostingRiderCategory,
@@ -238,6 +238,7 @@ export async function getFederationCoursesState({
   viewerTeamId: string | null;
 }): Promise<FederationCoursesState> {
   const targetGameYear = gameYear + 1;
+  const hostingEvents = getFederationHostingEventsForGameYear(targetGameYear);
   const fallback: FederationCoursesState = {
     portfolio: [],
     renown: emptyRenown(gameYear),
@@ -576,7 +577,7 @@ export async function getFederationCoursesState({
       .filter((candidate) => candidate.countryId === countryId && candidate.status === "pending")
       .reduce((total, candidate) => total + candidate.hostingCost, 0);
     const relevantEventKeys = new Set(
-      FEDERATION_HOSTING_EVENTS.map((event) =>
+      hostingEvents.map((event) =>
         getHostingEventKey(event.type, continentCode),
       ),
     );
@@ -586,7 +587,7 @@ export async function getFederationCoursesState({
     const awardByEventKey = new Map(
       (awardsResult.data ?? []).map((award) => [award.event_key, award]),
     );
-    const opportunities = FEDERATION_HOSTING_EVENTS.map(
+    const opportunities = hostingEvents.map(
       (event): FederationHostingOpportunity => {
         const eventKey = getHostingEventKey(event.type, continentCode);
         const candidacy =

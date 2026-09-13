@@ -50,7 +50,7 @@ describe("federation course portfolio and hosting migration", () => {
     expect(migration).toContain(
       "ensure_development_race_calendar(v_target_season_id)",
     );
-    expect(service).toContain("FEDERATION_HOSTING_EVENTS.map");
+    expect(service).toContain("getFederationHostingEventsForGameYear");
   });
 
   it("settles attendance revenue and exposes the host on that edition only", () => {

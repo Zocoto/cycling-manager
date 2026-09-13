@@ -108,6 +108,9 @@ describe("FederationSelectionWorkbench hosting", () => {
 
     expect(markup).toContain("Pays hôte : Allemagne");
     expect(markup).toContain("fi-de");
+    expect(markup).toContain("Jeux quadriennaux · Montagne");
+    expect(markup).toContain("Nations Cup Juniors · Route");
+    expect(markup).not.toContain("Nations Cup · Montagne");
   });
 
   it("shows statistical sorting, rider affinities and federation weather", () => {

@@ -5,16 +5,25 @@ import {
   calculateFederationHostingSelectionScore,
   calculateFederationRaceReturn,
   FEDERATION_HOSTING_EVENTS,
+  getFederationHostingEventsForGameYear,
   getFederationRenownLabel,
 } from "@/lib/game/federation-hosting";
 
 describe("federation hosting", () => {
-  it("offers separate CM, CC and Nations Cup candidacies for pros and juniors", () => {
-    expect(FEDERATION_HOSTING_EVENTS).toHaveLength(6);
-    expect(FEDERATION_HOSTING_EVENTS.map((event) => event.type)).toEqual([
+  it("replaces only the professional Nations Cup in quadriennial seasons", () => {
+    expect(FEDERATION_HOSTING_EVENTS).toHaveLength(7);
+    expect(getFederationHostingEventsForGameYear(3).map((event) => event.type)).toEqual([
       "world_championship_pro",
       "continental_championship_pro",
       "nations_cup_pro",
+      "world_championship_junior",
+      "continental_championship_junior",
+      "nations_cup_junior",
+    ]);
+    expect(getFederationHostingEventsForGameYear(4).map((event) => event.type)).toEqual([
+      "world_championship_pro",
+      "continental_championship_pro",
+      "quadrennial_games_pro",
       "world_championship_junior",
       "continental_championship_junior",
       "nations_cup_junior",

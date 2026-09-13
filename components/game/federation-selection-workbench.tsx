@@ -69,6 +69,20 @@ const SELECTION_SLOTS: SelectionSlot[] = [
   { id: "world-junior-itt", label: "Mondiaux Juniors · CLM", competition: "Championnats du monde juniors", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
 ];
 
+function getFederationSelectionSlots(gameYear: number): SelectionSlot[] {
+  if (gameYear % 4 !== 0) return SELECTION_SLOTS;
+
+  return SELECTION_SLOTS.map((slot) =>
+    slot.category === "professional" && slot.competition === "Nations Cup"
+      ? {
+          ...slot,
+          label: slot.label.replace("Nations Cup", "Jeux quadriennaux"),
+          competition: "Jeux quadriennaux",
+        }
+      : slot,
+  );
+}
+
 const PRIMARY_RATING_COLUMNS = [
   { key: "mountain", label: "MO" },
   { key: "hills", label: "VAL" },
@@ -91,7 +105,11 @@ export function FederationSelectionWorkbench({
   gameYear: number;
   selectionState: FederationSelectionState | null;
 }) {
-  const [slotId, setSlotId] = useState(SELECTION_SLOTS[0].id);
+  const selectionSlots = useMemo(
+    () => getFederationSelectionSlots(gameYear),
+    [gameYear],
+  );
+  const [slotId, setSlotId] = useState(selectionSlots[0].id);
   const [query, setQuery] = useState("");
   const [team, setTeam] = useState("all");
   const [profile, setProfile] = useState("all");
@@ -126,9 +144,9 @@ export function FederationSelectionWorkbench({
     initialFederationSelectionActionState,
   );
   const baseSlot =
-    SELECTION_SLOTS.find((candidate) => candidate.id === slotId) ??
-    SELECTION_SLOTS[0];
-  const hostingEventType = getSlotHostingEventType(baseSlot.id);
+    selectionSlots.find((candidate) => candidate.id === slotId) ??
+    selectionSlots[0];
+  const hostingEventType = getSlotHostingEventType(baseSlot.id, gameYear);
   const competitionHost = hostingEventType
     ? selectionState?.competitionHosts[hostingEventType]
     : null;
@@ -237,6 +255,7 @@ export function FederationSelectionWorkbench({
           countryCode={countryCode}
           confirmations={selectionState.pendingConfirmations}
           riders={riders}
+          gameYear={gameYear}
         />
       ) : null}
 
@@ -254,15 +273,15 @@ export function FederationSelectionWorkbench({
           <label>
             <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">Épreuve à préparer</span>
             <select value={slot.id} onChange={(event) => changeSlot(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[var(--federation-secondary)]">
-              {SELECTION_SLOTS.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.label}</option>)}
+              {selectionSlots.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.label}</option>)}
             </select>
           </label>
         </div>
       </section>
 
-      {slot.competition === "Nations Cup" ? (
-        <nav aria-label="Profils de la Nations Cup" className="grid grid-cols-2 gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 sm:grid-cols-5">
-          {SELECTION_SLOTS.filter((candidate) => candidate.competition === "Nations Cup").map((candidate) => (
+      {slot.nationsCupProfile ? (
+        <nav aria-label={`Profils ${slot.competition}`} className="grid grid-cols-2 gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 sm:grid-cols-5">
+          {selectionSlots.filter((candidate) => candidate.competition === slot.competition).map((candidate) => (
             <button key={candidate.id} type="button" onClick={() => changeSlot(candidate.id)} className={`rounded-xl px-3 py-3 text-xs font-black transition ${candidate.id === slot.id ? "bg-[var(--federation-primary)] text-white" : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"}`}>
               {candidate.nationsCupProfile}
             </button>
@@ -349,8 +368,8 @@ export function FederationSelectionWorkbench({
         <div className="flex flex-col gap-4 border-t border-[#315B3E]/10 bg-[#F8FBF9] p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
             Les juniors sont gérés ici : les DS n’auront plus d’inscription
-            directe depuis leur DevTeam. Un coureur Nations Cup ne peut être
-            retenu que sur un seul profil.
+            directe depuis leur DevTeam. Un coureur {slot.competition === "Jeux quadriennaux" ? "des Jeux quadriennaux" : "Nations Cup"} ne peut
+            être retenu que sur un seul profil.
           </p>
           {canManage ? (
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -394,6 +413,7 @@ export function FederationSelectionWorkbench({
 
 function getSlotHostingEventType(
   slotId: string,
+  gameYear: number,
 ): FederationHostingEventType | null {
   if (slotId.startsWith("cc-pro-")) return "continental_championship_pro";
   if (slotId.startsWith("cc-junior-"))
@@ -402,7 +422,10 @@ function getSlotHostingEventType(
   if (slotId.startsWith("world-junior-"))
     return "world_championship_junior";
   if (slotId === "nc-junior-road") return "nations_cup_junior";
-  if (slotId.startsWith("nc-")) return "nations_cup_pro";
+  if (slotId.startsWith("nc-"))
+    return gameYear % 4 === 0
+      ? "quadrennial_games_pro"
+      : "nations_cup_pro";
   return null;
 }
 
@@ -595,13 +618,17 @@ function PendingConfirmationPanel({
   countryCode,
   confirmations,
   riders,
+  gameYear,
 }: {
   countryCode: string;
   confirmations: FederationSelectionState["pendingConfirmations"];
   riders: FederationSelectionRider[];
+  gameYear: number;
 }) {
   const riderById = new Map(riders.map((rider) => [rider.id, rider]));
-  const slotById = new Map(SELECTION_SLOTS.map((slot) => [slot.id, slot]));
+  const slotById = new Map(
+    getFederationSelectionSlots(gameYear).map((slot) => [slot.id, slot]),
+  );
 
   return (
     <section className="rounded-[2rem] border border-[#D5AC18]/35 bg-[#FFF9DE] p-6 shadow-[0_14px_36px_rgba(100,75,0,0.08)] sm:p-8">

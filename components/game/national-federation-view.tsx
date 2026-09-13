@@ -607,6 +607,7 @@ function SelectionsPanel({
   riders: FederationSelectionRider[];
   selectionState: FederationSelectionState | null;
 }) {
+  const isQuadriennialSeason = snapshot.season.gameYear % 4 === 0;
   const events = [
     {
       day: 15,
@@ -615,8 +616,10 @@ function SelectionsPanel({
     },
     {
       day: 24,
-      name: "Nations Cup",
-      detail: "Cinq courses réelles · classement de division et de groupe",
+      name: isQuadriennialSeason ? "Jeux quadriennaux" : "Nations Cup",
+      detail: isQuadriennialSeason
+        ? "Programme professionnel exceptionnel à la place de la Nations Cup"
+        : "Cinq courses réelles · classement de division et de groupe",
     },
     {
       day: 24,

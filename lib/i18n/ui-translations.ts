@@ -3,6 +3,14 @@ import generatedCatalog from "@/lib/i18n/generated-fr-en.json";
 const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "EN": "EN",
   "FR": "FR",
+  "Jeux quadriennaux professionnels": "Professional Quadrennial Games",
+  "JQ Pro": "QG Pro",
+  "Six candidatures : CM et CC pros/juniors, JQ pros et Nations Cup juniors":
+    "Six bids: professional/junior Worlds and Continental Championships, professional Quadrennial Games and junior Nations Cup",
+  "Programme professionnel exceptionnel à la place de la Nations Cup":
+    "Special professional programme replacing the Nations Cup",
+  "Le classement cumulé du programme professionnel quadriennal de J24 est retenu.":
+    "The cumulative standings from the J24 professional Quadrennial Games programme apply.",
   "Annulé": "Cancelled",
   "Aucun coureur actif n’est présent dans l’effectif.":
     "There are no active riders in the roster.",

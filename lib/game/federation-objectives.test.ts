@@ -34,7 +34,7 @@ describe("federation objectives", () => {
     expect(objectives[4].currentLabel).toBe("5 événements");
   });
 
-  it("keeps the Nations Cup objective in quadriennial seasons", () => {
+  it("switches the professional objective to the quadriennial programme", () => {
     const objective = buildFederationObjectives({
       gameYear: 4,
       nationRank: null,
@@ -47,8 +47,8 @@ describe("federation objectives", () => {
       continentalRank: null,
     })[2];
 
-    expect(objective.title).toContain("Nations Cup");
-    expect(objective.title).not.toContain("Jeux quadriennaux");
+    expect(objective.title).toContain("Jeux quadriennaux");
+    expect(objective.title).not.toContain("Nations Cup");
     expect(objective.progressPercentage).toBe(0);
   });
 });

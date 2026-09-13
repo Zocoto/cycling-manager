@@ -136,7 +136,7 @@ export async function getFederationSelectionForecasts({
     riderCategory: row.rider_category,
     profileLabel: row.profile_label,
     hostCountryCode:
-      hostCountryCodeByEventType[getSlotEventType(row)] ??
+      hostCountryCodeByEventType[getSlotEventType(row, targetGameYear)] ??
       row.host_country_code,
     dayNumber: row.day_number,
   })) satisfies FederationSelectionWeatherSlot[];
@@ -519,7 +519,7 @@ function profileLabelToExactProfile(profileLabel: string): RaceProfileType {
   }[profileLabel] as RaceProfileType;
 }
 
-function getSlotEventType(slot: SelectionSlotRow) {
+function getSlotEventType(slot: SelectionSlotRow, gameYear: number) {
   if (slot.competition_code === "continental_championship")
     return "continental_championship_pro";
   if (slot.competition_code === "continental_championship_junior")
@@ -530,5 +530,7 @@ function getSlotEventType(slot: SelectionSlotRow) {
     return "world_championship_junior";
   if (slot.competition_code === "nations_cup_junior")
     return "nations_cup_junior";
-  return "nations_cup_pro";
+  return gameYear % 4 === 0
+    ? "quadrennial_games_pro"
+    : "nations_cup_pro";
 }

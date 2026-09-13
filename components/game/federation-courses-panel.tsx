@@ -51,6 +51,7 @@ export function FederationCoursesPanel({
     submitFederationHostingCandidacyAction,
     initialFederationGovernanceActionState,
   );
+  const isQuadriennialTarget = state.hosting.targetGameYear % 4 === 0;
 
   return (
     <div className="space-y-7">
@@ -64,7 +65,9 @@ export function FederationCoursesPanel({
               Accueil international · Saison {state.hosting.targetGameYear}
             </p>
             <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-              Six candidatures : CM, CC et Nations Cup pros et juniors
+              {isQuadriennialTarget
+                ? "Six candidatures : CM et CC pros/juniors, JQ pros et Nations Cup juniors"
+                : "Six candidatures : CM, CC et Nations Cup pros et juniors"}
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6E9E2]">
               Dépôt jusqu’à J{state.hosting.applicationCloseDay}, attribution

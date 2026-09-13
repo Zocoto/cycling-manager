@@ -33,6 +33,7 @@ export function buildFederationObjectives(
   );
   const rankTarget = getInternationalRankTarget(input.nationRank);
   const championshipRank = bestRank(input.worldRank, input.continentalRank);
+  const quadriennial = input.gameYear % 4 === 0;
 
   return [
     countObjective({
@@ -56,10 +57,11 @@ export function buildFederationObjectives(
     }),
     rankObjective({
       id: "international",
-      eyebrow: "Nations Cup",
-      title: `Atteindre le top ${rankTarget} à la Nations Cup`,
-      detail:
-        "Le classement cumulé des cinq épreuves professionnelles de J24 est retenu.",
+      eyebrow: quadriennial ? "Jeux quadriennaux" : "Nations Cup",
+      title: `Atteindre le top ${rankTarget} ${quadriennial ? "aux Jeux quadriennaux" : "à la Nations Cup"}`,
+      detail: quadriennial
+        ? "Le classement cumulé du programme professionnel quadriennal de J24 est retenu."
+        : "Le classement cumulé des cinq épreuves professionnelles de J24 est retenu.",
       currentRank: input.nationsCupRank,
       targetRank: rankTarget,
     }),

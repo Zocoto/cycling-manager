@@ -63,6 +63,22 @@ const state: FederationCoursesState = {
     candidacies: [],
     opportunities: [
       {
+        eventType: "quadrennial_games_pro",
+        riderCategory: "professional",
+        eventKey: "quadrennial_games_pro",
+        label: "Jeux quadriennaux professionnels",
+        shortLabel: "JQ Pro",
+        hostingCost: 2_400_000,
+        prestigeGain: 45,
+        projectedAttendance: 180_000,
+        projectedGrossRevenue: 3_060_000,
+        projectedNetReturn: 660_000,
+        candidacy: null,
+        selectedHostName: null,
+        canApply: true,
+        unavailableReason: null,
+      },
+      {
         eventType: "nations_cup_junior",
         riderCategory: "junior",
         eventKey: "nations_cup_junior",
@@ -105,6 +121,8 @@ describe("FederationCoursesPanel", () => {
     expect(markup).toContain("Prestige d’organisation · 5 saisons");
     expect(markup).toContain("jusqu’à 15");
     expect(markup).toContain("Nations Cup juniors");
+    expect(markup).toContain("Jeux quadriennaux professionnels");
+    expect(markup).not.toContain("Nations Cup professionnelle");
     expect(markup).toContain("Six candidatures");
     expect(markup).toContain("Coût si retenu");
     expect(markup).toContain("Déposer la candidature");

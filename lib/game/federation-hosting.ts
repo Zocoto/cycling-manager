@@ -33,6 +33,16 @@ export const FEDERATION_HOSTING_EVENTS = [
     prestigeGain: 45,
   },
   {
+    type: "quadrennial_games_pro",
+    riderCategory: "professional",
+    label: "Jeux quadriennaux professionnels",
+    shortLabel: "JQ Pro",
+    hostingCost: 2_400_000,
+    baseAttendance: 180_000,
+    revenuePerAttendee: 17,
+    prestigeGain: 45,
+  },
+  {
     type: "world_championship_junior",
     riderCategory: "junior",
     label: "Championnats du monde juniors",
@@ -87,6 +97,15 @@ export function getFederationHostingEvent(
   type: FederationHostingEventType,
 ) {
   return FEDERATION_HOSTING_EVENTS.find((event) => event.type === type)!;
+}
+
+export function getFederationHostingEventsForGameYear(gameYear: number) {
+  const isQuadriennial = Math.max(1, Math.trunc(gameYear)) % 4 === 0;
+  return FEDERATION_HOSTING_EVENTS.filter((event) =>
+    isQuadriennial
+      ? event.type !== "nations_cup_pro"
+      : event.type !== "quadrennial_games_pro",
+  );
 }
 
 export function calculateFederationHostingSelectionScore({
