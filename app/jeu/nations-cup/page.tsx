@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
-import { SvgCountryFlag } from "@/components/game/svg-country-flag";
+import { NationsCupStandings } from "@/components/game/nations-cup-standings";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -16,8 +15,6 @@ export const metadata: Metadata = {
   description:
     "Classement général, divisions, groupes et résultats des cinq épreuves de la Nations Cup.",
 };
-
-const numberFormatter = new Intl.NumberFormat("fr-FR");
 
 export default async function NationsCupPage() {
   const supabase = await createSupabaseServerClient();
@@ -67,63 +64,10 @@ export default async function NationsCupPage() {
         ) : (
           <>
             <NationsCupEventTabs events={overview.events} />
-
-            <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
-              <div className="border-b border-[#315B3E]/10 px-6 py-5 sm:px-8">
-                <h2 className="text-2xl font-black text-[#183F37]">Classement général</h2>
-                <p className="mt-2 text-sm font-semibold text-[#60756E]">
-                  Classement global et rang réel dans la division et le groupe attribués en début de saison.
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-[1000px] w-full border-collapse text-sm">
-                  <thead className="bg-[#F2F8F5] text-[10px] font-black uppercase tracking-[0.11em] text-[#60756E]">
-                    <tr>
-                      <th className="px-4 py-3 text-center">#</th>
-                      <th className="px-4 py-3 text-left">Nation</th>
-                      <th className="px-4 py-3 text-center">Div./groupe</th>
-                      {overview.events.map((event) => (
-                        <th key={event.id} className="px-3 py-3 text-center">{event.name}</th>
-                      ))}
-                      <th className="px-4 py-3 text-center">Points</th>
-                      <th className="px-4 py-3 text-center">Rang div.</th>
-                      <th className="px-4 py-3 text-center">Rang groupe</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#315B3E]/10">
-                    {overview.standings.map((standing) => (
-                      <tr key={standing.countryId} className="hover:bg-[#F8FBF9]">
-                        <td className="px-4 py-3 text-center text-lg font-black text-[#183F37]">{standing.overallRank}</td>
-                        <td className="px-4 py-3">
-                          <Link href={`/jeu/nations/${standing.countryCode.toLowerCase()}`} className="flex items-center gap-3 font-black text-[#183F37] hover:text-[#278B70]">
-                            <span className="grid h-8 w-11 place-items-center overflow-hidden rounded-md border border-[#315B3E]/12 bg-white">
-                              <svg viewBox="0 0 44 32" className="h-full w-full" aria-hidden="true">
-                                <SvgCountryFlag countryCode={standing.countryCode} x={0} y={0} width={44} height={32} />
-                              </svg>
-                            </span>
-                            <span>{standing.countryName}</span>
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-center font-black text-[#60756E]">
-                          D{standing.division}{standing.groupCode ? standing.groupCode : ""}
-                        </td>
-                        {overview.events.map((event) => {
-                          const rank = standing.eventRanks[event.slug];
-                          return (
-                            <td key={event.id} className="px-3 py-3 text-center font-bold text-[#183F37]">
-                              {rank == null ? "—" : `#${rank}`}
-                            </td>
-                          );
-                        })}
-                        <td className="px-4 py-3 text-center text-lg font-black text-[#176951]">{numberFormatter.format(standing.points)}</td>
-                        <td className="px-4 py-3 text-center font-black">#{standing.divisionRank}</td>
-                        <td className="px-4 py-3 text-center font-black">{standing.groupCode ? `#${standing.groupRank}` : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <NationsCupStandings
+              events={overview.events}
+              standings={overview.standings}
+            />
           </>
         )}
       </section>
