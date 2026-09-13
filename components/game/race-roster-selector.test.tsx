@@ -10,6 +10,7 @@ import {
   RaceRosterSelector,
   formatRosterForm,
   getRosterFormClasses,
+  sortAndFilterRaceRosterOptions,
 } from "./race-roster-selector";
 
 const rider = {
@@ -27,6 +28,7 @@ const rider = {
   timeTrial: 66,
   cobbles: 63,
   sprint: 61,
+  breakaway: 73,
   form: 87.5,
   climateProfile: { strength: "sun", weakness: "rain" },
   isSelected: false,
@@ -51,11 +53,78 @@ describe("RaceRosterSelector", () => {
 
     expect(markup).toContain("Forme 87,5/100");
     expect(markup).toContain("MON 78 · VAL 76 · PLA 69");
-    expect(markup).toContain("CLM 66 · PAV 63 · SPR 61");
+    expect(markup).toContain("CLM 66 · PAV 63 · SPR 61 · BAR 73");
+    expect(markup).toContain("Trier par");
+    expect(markup).toContain("Baroudeur (BAR)");
+    expect(markup).toContain("Masquer les coureurs déjà engagés");
     expect(markup).toContain("+ Soleil");
     expect(markup).toContain("− Pluie");
     expect(markup).toContain("bonus de 1,5 point");
     expect(markup).toContain("malus de 1,25 point");
+  });
+
+  it("trie les coureurs par statistique dans les deux sens", () => {
+    const strongerClimber = {
+      ...rider,
+      riderId: "00000000-0000-4000-8000-000000000002",
+      firstName: "Lina",
+      lastName: "Durand",
+      mountain: 84,
+      breakaway: 65,
+    } satisfies RaceRosterOption;
+
+    expect(
+      sortAndFilterRaceRosterOptions({
+        riders: [rider, strongerClimber],
+        sortKey: "mountain",
+        sortDirection: "descending",
+        hideConflicting: false,
+      }).map((option) => option.riderId),
+    ).toEqual([strongerClimber.riderId, rider.riderId]);
+
+    expect(
+      sortAndFilterRaceRosterOptions({
+        riders: [rider, strongerClimber],
+        sortKey: "breakaway",
+        sortDirection: "ascending",
+        hideConflicting: false,
+      }).map((option) => option.riderId),
+    ).toEqual([strongerClimber.riderId, rider.riderId]);
+  });
+
+  it("masque les conflits sans faire disparaître un coureur déjà sélectionné", () => {
+    const conflictingRider = {
+      ...rider,
+      riderId: "00000000-0000-4000-8000-000000000003",
+      firstName: "Noah",
+      lastName: "Bernard",
+      isAvailable: false,
+      conflict: {
+        raceSlug: "course-concurrente",
+        raceName: "Course concurrente",
+        startDay: 12,
+        endDay: 14,
+      },
+    } satisfies RaceRosterOption;
+
+    expect(
+      sortAndFilterRaceRosterOptions({
+        riders: [conflictingRider, rider],
+        sortKey: "roster",
+        sortDirection: "descending",
+        hideConflicting: true,
+      }).map((option) => option.riderId),
+    ).toEqual([rider.riderId]);
+
+    expect(
+      sortAndFilterRaceRosterOptions({
+        riders: [conflictingRider, rider],
+        sortKey: "roster",
+        sortDirection: "descending",
+        hideConflicting: true,
+        selectedRiderIds: new Set([conflictingRider.riderId]),
+      }).map((option) => option.riderId),
+    ).toEqual([conflictingRider.riderId, rider.riderId]);
   });
 
   it("borne l’affichage et distingue visuellement les niveaux de forme", () => {
@@ -84,5 +153,23 @@ describe("RaceRosterSelector", () => {
     expect(migration).toContain("coalesce(latest_condition.form, 75::numeric)");
     expect(service).toContain("form: Number(rider.current_form)");
     expect(service).toContain("climateProfile: getRiderClimateProfile({");
+  });
+
+  it("expose la note baroudeur dans les options d’inscription", () => {
+    const migration = readFileSync(
+      join(
+        process.cwd(),
+        "supabase/migrations/20260913100000_expose_breakaway_in_race_roster_options.sql",
+      ),
+      "utf8",
+    );
+    const service = readFileSync(
+      join(process.cwd(), "services/race-calendar.ts"),
+      "utf8",
+    );
+
+    expect(migration).toContain("breakaway integer");
+    expect(migration).toContain("coalesce(rating.breakaway, 50)::integer");
+    expect(service).toContain("breakaway: rider.breakaway");
   });
 });

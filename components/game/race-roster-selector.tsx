@@ -39,6 +39,88 @@ type RaceRosterSelectorProps = {
   };
 };
 
+export type RaceRosterSortKey =
+  | "roster"
+  | "form"
+  | "mountain"
+  | "hills"
+  | "flat"
+  | "timeTrial"
+  | "cobbles"
+  | "sprint"
+  | "breakaway";
+
+export type RaceRosterSortDirection = "descending" | "ascending";
+
+const RACE_ROSTER_SORT_OPTIONS: ReadonlyArray<{
+  value: RaceRosterSortKey;
+  label: string;
+}> = [
+  { value: "roster", label: "Ordre de l’effectif" },
+  { value: "form", label: "Forme" },
+  { value: "mountain", label: "Montagne (MON)" },
+  { value: "hills", label: "Vallons (VAL)" },
+  { value: "flat", label: "Plaine (PLA)" },
+  { value: "timeTrial", label: "Contre-la-montre (CLM)" },
+  { value: "cobbles", label: "Pavés (PAV)" },
+  { value: "sprint", label: "Sprint (SPR)" },
+  { value: "breakaway", label: "Baroudeur (BAR)" },
+];
+
+const RACE_ROSTER_SORT_ACCESSORS: Record<
+  Exclude<RaceRosterSortKey, "roster">,
+  (rider: RaceRosterOption) => number
+> = {
+  form: (rider) => rider.form,
+  mountain: (rider) => rider.mountain,
+  hills: (rider) => rider.hills,
+  flat: (rider) => rider.flat,
+  timeTrial: (rider) => rider.timeTrial,
+  cobbles: (rider) => rider.cobbles,
+  sprint: (rider) => rider.sprint,
+  breakaway: (rider) => rider.breakaway,
+};
+
+export function sortAndFilterRaceRosterOptions({
+  riders,
+  sortKey,
+  sortDirection,
+  hideConflicting,
+  selectedRiderIds = new Set<string>(),
+}: {
+  riders: readonly RaceRosterOption[];
+  sortKey: RaceRosterSortKey;
+  sortDirection: RaceRosterSortDirection;
+  hideConflicting: boolean;
+  selectedRiderIds?: ReadonlySet<string>;
+}): RaceRosterOption[] {
+  const visibleRiders = riders
+    .map((rider, originalIndex) => ({ rider, originalIndex }))
+    .filter(
+      ({ rider }) =>
+        !hideConflicting ||
+        !rider.conflict ||
+        selectedRiderIds.has(rider.riderId),
+    );
+
+  if (sortKey === "roster") {
+    return visibleRiders.map(({ rider }) => rider);
+  }
+
+  const getSortValue = RACE_ROSTER_SORT_ACCESSORS[sortKey];
+  const directionMultiplier = sortDirection === "descending" ? -1 : 1;
+
+  return visibleRiders
+    .sort((left, right) => {
+      const ratingDifference =
+        (getSortValue(left.rider) - getSortValue(right.rider)) *
+        directionMultiplier;
+
+      return ratingDifference || left.originalIndex - right.originalIndex;
+    })
+    .map(({ rider }) => rider);
+}
+
 export function RaceRosterSelector({
   riders,
   minimum,
@@ -60,7 +142,29 @@ export function RaceRosterSelector({
   );
   const [selectedIds, setSelectedIds] = useState<string[]>(initiallySelectedIds);
   const [roles, setRoles] = useState<Record<string, RaceRole>>({});
+  const [sortKey, setSortKey] = useState<RaceRosterSortKey>("roster");
+  const [sortDirection, setSortDirection] =
+    useState<RaceRosterSortDirection>("descending");
+  const [hideConflicting, setHideConflicting] = useState(false);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const conflictingRiderCount = useMemo(
+    () =>
+      riders.filter(
+        (rider) => rider.conflict && !selectedSet.has(rider.riderId),
+      ).length,
+    [riders, selectedSet],
+  );
+  const visibleRiders = useMemo(
+    () =>
+      sortAndFilterRaceRosterOptions({
+        riders,
+        sortKey,
+        sortDirection,
+        hideConflicting,
+        selectedRiderIds: selectedSet,
+      }),
+    [hideConflicting, riders, selectedSet, sortDirection, sortKey],
+  );
   const rosterSizeIsValid = isRosterSelectionValid({
     selectedCount: selectedIds.length,
     minimum,
@@ -109,11 +213,83 @@ export function RaceRosterSelector({
         </span>
       </div>
 
+      <div className="mt-3 grid gap-2 rounded-xl border border-white/10 bg-black/15 p-2.5 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <label
+          htmlFor="race-roster-sort"
+          className="flex min-h-10 min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3"
+        >
+          <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-[#9FB5A8]">
+            Trier par
+          </span>
+          <select
+            id="race-roster-sort"
+            value={sortKey}
+            onChange={(event) =>
+              setSortKey(event.target.value as RaceRosterSortKey)
+            }
+            className="min-w-0 flex-1 bg-transparent py-2 text-xs font-bold text-white outline-none"
+          >
+            {RACE_ROSTER_SORT_OPTIONS.map((option) => (
+              <option
+                key={option.value}
+                value={option.value}
+                className="bg-[#102A25] text-white"
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          disabled={sortKey === "roster"}
+          onClick={() =>
+            setSortDirection((current) =>
+              current === "descending" ? "ascending" : "descending",
+            )
+          }
+          aria-label={
+            sortDirection === "descending"
+              ? "Afficher les notes les plus faibles d’abord"
+              : "Afficher les meilleures notes d’abord"
+          }
+          className="min-h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-[11px] font-black text-[#D6DFD2] transition hover:border-white/25 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {sortDirection === "descending"
+            ? "↓ Meilleurs d’abord"
+            : "↑ Plus faibles d’abord"}
+        </button>
+
+        <label
+          className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 text-[11px] font-bold transition sm:col-span-2 lg:col-span-1 ${
+            conflictingRiderCount > 0
+              ? "cursor-pointer border-amber-200/20 bg-amber-200/5 text-amber-100 hover:border-amber-200/35"
+              : "cursor-not-allowed border-white/5 bg-white/[0.03] text-[#71897C]"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={hideConflicting}
+            disabled={conflictingRiderCount === 0}
+            onChange={(event) => setHideConflicting(event.target.checked)}
+            className="h-4 w-4 shrink-0 accent-amber-300"
+          />
+          <span>
+            Masquer les coureurs déjà engagés
+            {conflictingRiderCount > 0 ? ` (${conflictingRiderCount})` : ""}
+          </span>
+        </label>
+      </div>
+
       <div
         data-tutorial-id={tutorialIds?.roleAssignment}
       >
-        <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
-          {riders.map((rider) => {
+        <div
+          id="race-roster-list"
+          className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1"
+        >
+          {visibleRiders.map((rider) => {
           const isSelected = selectedSet.has(rider.riderId);
           const isLockedSelection =
             lockInitiallySelected && initiallySelectedSet.has(rider.riderId);
@@ -179,7 +355,7 @@ export function RaceRosterSelector({
                       <RiderWeatherAffinities profile={rider.climateProfile} />
                     </span>
                     <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
-                      {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint}
+                      {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint} · BAR {rider.breakaway}
                     </span>
                   </span>
                 </label>
@@ -291,6 +467,21 @@ export function RaceRosterSelector({
             </div>
           );
           })}
+
+          {visibleRiders.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-6 text-center">
+              <p className="text-xs font-bold text-[#BFD1C6]">
+                Tous les coureurs sont déjà engagés sur une autre course.
+              </p>
+              <button
+                type="button"
+                onClick={() => setHideConflicting(false)}
+                className="mt-3 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-[11px] font-black text-white transition hover:bg-white/10"
+              >
+                Réafficher l’effectif
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <RaceRoleGuide tone="dark" />

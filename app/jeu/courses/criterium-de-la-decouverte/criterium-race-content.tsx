@@ -56,6 +56,7 @@ type TutorialRosterRow = {
   time_trial: number;
   cobbles: number;
   sprint: number;
+  breakaway: number;
 };
 
 export async function CriteriumDiscoveryRaceContent({
@@ -153,6 +154,7 @@ export async function CriteriumDiscoveryRaceContent({
       timeTrial: Number(rider.time_trial),
       cobbles: Number(rider.cobbles),
       sprint: Number(rider.sprint),
+      breakaway: Number(rider.breakaway),
       form: health?.form ?? 75,
       climateProfile: getRiderClimateProfile({
         riderId: rider.rider_id,

@@ -548,6 +548,7 @@ export type RaceRosterOption = {
   timeTrial: number;
   cobbles: number;
   sprint: number;
+  breakaway: number;
   form: number;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
@@ -651,6 +652,7 @@ type RaceRosterOptionRow = {
   time_trial: number;
   cobbles: number;
   sprint: number;
+  breakaway: number;
   current_form: number | string;
   is_selected: boolean;
   is_available: boolean;
@@ -1950,6 +1952,7 @@ export async function getCurrentTeamRaceRosterOptions(
     timeTrial: rider.time_trial,
     cobbles: rider.cobbles,
     sprint: rider.sprint,
+    breakaway: rider.breakaway,
     form: Number(rider.current_form),
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
