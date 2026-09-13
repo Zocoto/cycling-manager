@@ -101,6 +101,8 @@ type ChatMode = "global" | "direct" | "federation";
 type GlobalChatView = "all" | "unread" | "races" | "mentions";
 
 const GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6;
+const GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX =
+  "cyclostratege:chat:hide-race-messages";
 
 type GlobalChatHistorySearch = {
   query: string;
@@ -207,6 +209,7 @@ export function GlobalGameChat({
   const [hasUnreadGlobalWhilePrivate, setHasUnreadGlobalWhilePrivate] =
     useState(false);
   const [globalView, setGlobalView] = useState<GlobalChatView>("all");
+  const [hideRaceMessages, setHideRaceMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [showReadHistory, setShowReadHistory] = useState(false);
@@ -252,6 +255,7 @@ export function GlobalGameChat({
   const activeModeRef = useRef(activeMode);
   const viewportNearBottomRef = useRef(false);
   const forceScrollToLatestRef = useRef(false);
+  const hideRaceMessagesRef = useRef(false);
   const lastAcknowledgedReadAtRef = useRef(initialLastReadAt);
   const pendingReadRequestAtRef = useRef<string | null>(null);
 
@@ -283,7 +287,7 @@ export function GlobalGameChat({
       }
     });
   }, [latestDisplayedMessageAt, supabase]);
-  const initialUnreadMessageIds = useMemo(
+  const initialUnreadMessages = useMemo(
     () =>
       initialLastReadAt
         ? initialMessages
@@ -292,9 +296,15 @@ export function GlobalGameChat({
                 message.sportingDirectorId !== identity.sportingDirectorId &&
                 message.createdAt > initialLastReadAt,
             )
-            .map((message) => message.id)
         : [],
     [identity.sportingDirectorId, initialLastReadAt, initialMessages],
+  );
+  const initialUnreadMessageIds = useMemo(
+    () =>
+      initialUnreadMessages
+        .filter((message) => !hideRaceMessages || !message.raceContext)
+        .map((message) => message.id),
+    [hideRaceMessages, initialUnreadMessages],
   );
   const firstInitialUnreadMessageId = initialUnreadMessageIds[0] ?? null;
   const initialUnreadMessageCount = initialUnreadMessageIds.length;
@@ -314,6 +324,7 @@ export function GlobalGameChat({
     () => {
       const normalizedQuery = normalizeChatSearchQuery(searchQuery);
       return searchableMessages.filter((message) => {
+        if (hideRaceMessages && message.raceContext) return false;
         if (
           globalView === "unread" &&
           !initialUnreadMessageIdSet.has(message.id)
@@ -341,6 +352,7 @@ export function GlobalGameChat({
     },
     [
       globalView,
+      hideRaceMessages,
       identity.username,
       initialUnreadMessageIdSet,
       searchQuery,
@@ -361,7 +373,9 @@ export function GlobalGameChat({
     );
   }, [firstInitialUnreadMessageId, messages]);
   const historyContextIsActive =
-    globalView !== "all" || searchQuery.trim().length > 0;
+    globalView !== "all" ||
+    hideRaceMessages ||
+    searchQuery.trim().length > 0;
   const shouldCollapseReadHistory =
     !showReadHistory && !historyContextIsActive && compactHistoryStartIndex > 0;
   const collapsedHistoryMessageCount = shouldCollapseReadHistory
@@ -370,6 +384,14 @@ export function GlobalGameChat({
   const timelineMessages = shouldCollapseReadHistory
     ? filteredMessages.slice(compactHistoryStartIndex)
     : filteredMessages;
+
+  useEffect(() => {
+    const savedPreference = readGlobalChatRaceVisibilityPreference(
+      identity.sportingDirectorId,
+    );
+    hideRaceMessagesRef.current = savedPreference;
+    setHideRaceMessages(savedPreference);
+  }, [identity.sportingDirectorId]);
 
   useEffect(() => {
     const savedDraft = window.localStorage.getItem(
@@ -701,6 +723,8 @@ export function GlobalGameChat({
 
           const message = readRealtimeMessage(payload.new);
           if (!message) return;
+          const raceMessageIsHidden =
+            hideRaceMessagesRef.current && Boolean(message.raceContext);
           if (payload.eventType === "UPDATE") {
             setMessageTranslations((current) =>
               omitMessageTranslation(current, message.id),
@@ -708,6 +732,7 @@ export function GlobalGameChat({
           }
           if (
             payload.eventType === "INSERT" &&
+            !raceMessageIsHidden &&
             message.sportingDirectorId !== identity.sportingDirectorId &&
             globalChatMessageMentionsUsername(
               message.message,
@@ -721,6 +746,7 @@ export function GlobalGameChat({
           }
           if (
             payload.eventType === "INSERT" &&
+            !raceMessageIsHidden &&
             activeModeRef.current !== "global" &&
             message.sportingDirectorId !== identity.sportingDirectorId
           ) {
@@ -728,6 +754,7 @@ export function GlobalGameChat({
           }
           if (
             payload.eventType === "INSERT" &&
+            !raceMessageIsHidden &&
             activeModeRef.current === "global" &&
             !viewportNearBottomRef.current &&
             message.sportingDirectorId !== identity.sportingDirectorId
@@ -779,6 +806,17 @@ export function GlobalGameChat({
     setHistorySearch(null);
     setHistorySearchError(null);
     setIsSearchingHistory(false);
+  }
+
+  function toggleRaceMessagesVisibility() {
+    const nextValue = !hideRaceMessages;
+    hideRaceMessagesRef.current = nextValue;
+    setHideRaceMessages(nextValue);
+    saveGlobalChatRaceVisibilityPreference(
+      identity.sportingDirectorId,
+      nextValue,
+    );
+    if (nextValue && globalView === "races") setGlobalView("all");
   }
 
   function handleGlobalViewportScroll() {
@@ -1170,7 +1208,9 @@ export function GlobalGameChat({
         activeMode={activeMode}
         directUnreadCount={directUnreadCount}
         hasUnreadGlobal={hasUnreadGlobalWhilePrivate}
+        onlineDirectorCount={onlineDirectors.length}
         onModeChange={changeMode}
+        onShowOnlineDirectors={() => setShowOnlineDirectors(true)}
       />
 
       <div
@@ -1205,14 +1245,6 @@ export function GlobalGameChat({
             >
              ⌕
             </button>
-            <button
-              type="button"
-              onClick={() => setShowOnlineDirectors(true)}
-              className="rounded-full bg-[#E4F4EC] px-2.5 py-1.5 text-[9px] font-black text-[#176951] transition hover:bg-[#D7EFE3] lg:hidden"
-              aria-label="Voir les Directeurs Sportifs en ligne"
-            >
-              {onlineDirectors.length} en ligne
-            </button>
             <span className="hidden rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951] lg:inline-flex">
               {onlineDirectors.length} en ligne
             </span>
@@ -1233,7 +1265,9 @@ export function GlobalGameChat({
                       ],
                     ] as const)
                   : []),
-                ["races", "Courses"],
+                ...(hideRaceMessages
+                  ? []
+                  : ([["races", "Courses"]] as const)),
                 ["mentions", "Mes mentions"],
               ] as const
             ).map(([view, label]) => (
@@ -1251,6 +1285,23 @@ export function GlobalGameChat({
                 {label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={toggleRaceMessagesVisibility}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-black transition ${
+                hideRaceMessages
+                  ? "border-[#F2C94C] bg-[#FFF7D6] text-[#5B4700]"
+                  : "border-[#315B3E]/15 bg-white text-[#60756E] hover:border-[#176951]/30 hover:text-[#176951]"
+              }`}
+              aria-label={
+                hideRaceMessages
+                  ? "Afficher les messages issus des courses"
+                  : "Masquer les messages issus des courses"
+              }
+              aria-pressed={hideRaceMessages}
+            >
+              {hideRaceMessages ? "Courses masquées" : "Masquer les courses"}
+            </button>
           </div>
 
           {searchOpen ? (
@@ -1397,6 +1448,7 @@ export function GlobalGameChat({
             return (
               <Fragment key={message.id}>
                 {globalView === "all" &&
+                !hideRaceMessages &&
                 !searchQuery.trim() &&
                 message.id === firstInitialUnreadMessageId ? (
                   <div
@@ -1626,14 +1678,20 @@ export function GlobalGameChat({
         </form>
       </section>
 
-      <OnlineDirectors
+      <OnlineDirectorsDesktop
         directors={onlineDirectors}
         currentDirectorId={identity.sportingDirectorId}
         onDirectMessage={beginDirectMessage}
-        mobileOpen={showOnlineDirectors}
-        onClose={() => setShowOnlineDirectors(false)}
       />
       </div>
+
+      <OnlineDirectorsMobileDialog
+        directors={onlineDirectors}
+        currentDirectorId={identity.sportingDirectorId}
+        onDirectMessage={beginDirectMessage}
+        open={showOnlineDirectors}
+        onClose={() => setShowOnlineDirectors(false)}
+      />
 
       {hasOpenedDirect ? (
         <DirectMessagingPanel
@@ -1655,67 +1713,88 @@ function ChatModeTabs({
   activeMode,
   directUnreadCount,
   hasUnreadGlobal,
+  onlineDirectorCount,
   onModeChange,
+  onShowOnlineDirectors,
 }: {
   activeMode: ChatMode;
   directUnreadCount: number;
   hasUnreadGlobal: boolean;
+  onlineDirectorCount: number;
   onModeChange: (mode: ChatMode) => void;
+  onShowOnlineDirectors: () => void;
 }) {
   return (
     <div
       className="flex shrink-0 items-center gap-2 border-b border-[#315B3E]/12 bg-white/95 px-4 py-3 backdrop-blur sm:px-6"
-      role="tablist"
-      aria-label="Type de discussion"
     >
+      <div
+        className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto"
+        role="tablist"
+        aria-label="Type de discussion"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeMode === "global"}
+          onClick={() => onModeChange("global")}
+          className={`relative shrink-0 rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+            activeMode === "global"
+              ? "bg-[#176951] text-white shadow-sm"
+              : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
+          }`}
+        >
+          Général
+          {hasUnreadGlobal && activeMode !== "global" ? (
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#EF5B65]" />
+          ) : null}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeMode === "direct"}
+          onClick={() => onModeChange("direct")}
+          className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+            activeMode === "direct"
+              ? "bg-[#176951] text-white shadow-sm"
+              : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
+          }`}
+        >
+          Privés
+          {directUnreadCount > 0 ? (
+            <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[#EF5B65] px-1 text-[9px] font-black text-white">
+              {Math.min(99, directUnreadCount)}
+            </span>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeMode === "federation"}
+          onClick={() => onModeChange("federation")}
+          className={`shrink-0 rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+            activeMode === "federation"
+              ? "bg-[#176951] text-white shadow-sm"
+              : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
+          }`}
+        >
+          Fédération
+        </button>
+      </div>
       <button
         type="button"
-        role="tab"
-        aria-selected={activeMode === "global"}
-        onClick={() => onModeChange("global")}
-        className={`relative rounded-xl px-4 py-2 text-xs font-black transition ${
-          activeMode === "global"
-            ? "bg-[#176951] text-white shadow-sm"
-            : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
-        }`}
+        onClick={onShowOnlineDirectors}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#0B302B] px-3 py-2 text-[10px] font-black text-white shadow-sm transition hover:bg-[#176951] lg:hidden"
+        aria-label="Voir les Directeurs Sportifs en ligne"
       >
-        Général
-        {hasUnreadGlobal && activeMode !== "global" ? (
-          <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#EF5B65]" />
-        ) : null}
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 rounded-full bg-[#42B99A]"
+        />
+        {onlineDirectorCount}
+        <span>en ligne</span>
       </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={activeMode === "direct"}
-        onClick={() => onModeChange("direct")}
-        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition ${
-          activeMode === "direct"
-            ? "bg-[#176951] text-white shadow-sm"
-            : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
-        }`}
-      >
-        Privés
-        {directUnreadCount > 0 ? (
-          <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[#EF5B65] px-1 text-[9px] font-black text-white">
-            {Math.min(99, directUnreadCount)}
-          </span>
-        ) : null}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={activeMode === "federation"}
-        onClick={() => onModeChange("federation")}
-        className={`rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
-          activeMode === "federation"
-            ? "bg-[#176951] text-white shadow-sm"
-            : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
-        }`}
-      >
-        Fédération
-      </button>
-      <p className="ml-auto hidden text-[10px] font-semibold text-[#789087] sm:block">
+      <p className="ml-auto hidden text-[10px] font-semibold text-[#789087] xl:block">
         Les salons secondaires sont chargés à la demande
       </p>
     </div>
@@ -2047,55 +2126,66 @@ function ChatMessage({
   );
 }
 
-function OnlineDirectors({
+function OnlineDirectorsDesktop({
   directors,
   currentDirectorId,
   onDirectMessage,
-  mobileOpen,
+}: {
+  directors: GlobalChatOnlineDirector[];
+  currentDirectorId: string;
+  onDirectMessage: (recipientId: string) => void;
+}) {
+  return (
+    <aside className="hidden border-l border-[#315B3E]/12 bg-[#071A17] text-white lg:block">
+      <OnlineDirectorsContent
+        directors={directors}
+        currentDirectorId={currentDirectorId}
+        onDirectMessage={onDirectMessage}
+      />
+    </aside>
+  );
+}
+
+function OnlineDirectorsMobileDialog({
+  directors,
+  currentDirectorId,
+  onDirectMessage,
+  open,
   onClose,
 }: {
   directors: GlobalChatOnlineDirector[];
   currentDirectorId: string;
   onDirectMessage: (recipientId: string) => void;
-  mobileOpen: boolean;
+  open: boolean;
   onClose: () => void;
 }) {
+  if (!open) return null;
+
   return (
-    <>
-      {mobileOpen ? (
-        <div
-          className="fixed inset-0 z-[70] bg-[#03110E]/55 backdrop-blur-sm lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Directeurs Sportifs en ligne"
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute inset-0 h-full w-full cursor-default"
-            aria-label="Fermer les présences"
-          />
-          <aside className="absolute inset-x-0 bottom-0 max-h-[72dvh] overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]">
-            <OnlineDirectorsContent
-              directors={directors}
-              currentDirectorId={currentDirectorId}
-              onDirectMessage={(recipientId) => {
-                onClose();
-                onDirectMessage(recipientId);
-              }}
-              onClose={onClose}
-            />
-          </aside>
-        </div>
-      ) : null}
-      <aside className="hidden border-l border-[#315B3E]/12 bg-[#071A17] text-white lg:block">
+    <div
+      className="fixed inset-0 z-[70] bg-[#03110E]/55 backdrop-blur-sm lg:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Directeurs Sportifs en ligne"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default"
+        aria-label="Fermer les présences"
+      />
+      <aside className="absolute inset-x-0 bottom-0 max-h-[72dvh] overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]">
         <OnlineDirectorsContent
           directors={directors}
           currentDirectorId={currentDirectorId}
-          onDirectMessage={onDirectMessage}
+          onDirectMessage={(recipientId) => {
+            onClose();
+            onDirectMessage(recipientId);
+          }}
+          onClose={onClose}
         />
       </aside>
-    </>
+    </div>
   );
 }
 
@@ -2425,6 +2515,38 @@ function readRealtimeMessage(
 
 function getGlobalChatDraftStorageKey(sportingDirectorId: string) {
   return `cyclostratege:chat:draft:global:${sportingDirectorId}`;
+}
+
+function getGlobalChatRaceVisibilityStorageKey(sportingDirectorId: string) {
+  return `${GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX}:${sportingDirectorId}`;
+}
+
+function readGlobalChatRaceVisibilityPreference(
+  sportingDirectorId: string,
+) {
+  try {
+    return (
+      window.localStorage.getItem(
+        getGlobalChatRaceVisibilityStorageKey(sportingDirectorId),
+      ) === "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function saveGlobalChatRaceVisibilityPreference(
+  sportingDirectorId: string,
+  hideRaceMessages: boolean,
+) {
+  try {
+    window.localStorage.setItem(
+      getGlobalChatRaceVisibilityStorageKey(sportingDirectorId),
+      String(hideRaceMessages),
+    );
+  } catch {
+    // Le filtre reste actif pour la session même si le stockage est indisponible.
+  }
 }
 
 function normalizeChatSearchQuery(value: string) {

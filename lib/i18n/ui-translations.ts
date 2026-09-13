@@ -298,6 +298,12 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Voir la course →": "View race →",
   "La composition des listes est verrouillée en mode automatique. Les parcours restent consultables.":
     "Lineup editing is locked in automatic mode. Courses remain available to view.",
+  "Masquer les courses": "Hide race chats",
+  "Courses masquées": "Race chats hidden",
+  "Masquer les messages issus des courses": "Hide messages from race chats",
+  "Afficher les messages issus des courses": "Show messages from race chats",
+  "Voir les Directeurs Sportifs en ligne": "View online Sporting Directors",
+  "Directeurs Sportifs en ligne": "Online Sporting Directors",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

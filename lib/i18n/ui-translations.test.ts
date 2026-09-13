@@ -16,6 +16,10 @@ describe("French to English UI catalog", () => {
       "Trier par": "Sort by",
       "Météo fédérale · sans centre météo":
         "Federation weather · no weather centre required",
+      "Masquer les courses": "Hide race chats",
+      "Courses masquées": "Race chats hidden",
+      "Voir les Directeurs Sportifs en ligne":
+        "View online Sporting Directors",
     });
   });
 

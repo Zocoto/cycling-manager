@@ -32,6 +32,24 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("showOnlineDirectors");
     expect(chat).toContain('aria-label="Directeurs Sportifs en ligne"');
     expect(chat).toContain("max-h-[72dvh]");
+    expect(chat).toContain("onlineDirectorCount={onlineDirectors.length}");
+    expect(chat.indexOf('aria-label="Voir les Directeurs Sportifs en ligne"')).toBeGreaterThan(
+      chat.indexOf("function ChatModeTabs"),
+    );
+    expect(chat).toContain("<OnlineDirectorsDesktop");
+    expect(chat).toContain("<OnlineDirectorsMobileDialog");
+    expect(chat.indexOf("<OnlineDirectorsMobileDialog")).toBeGreaterThan(
+      chat.indexOf("<OnlineDirectorsDesktop"),
+    );
+  });
+
+  it("lets each director persistently hide race conversations from the main feed", () => {
+    expect(chat).toContain("GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX");
+    expect(chat).toContain("hideRaceMessages && message.raceContext");
+    expect(chat).toContain("Masquer les courses");
+    expect(chat).toContain("Courses masquées");
+    expect(chat).toContain("saveGlobalChatRaceVisibilityPreference");
+    expect(chat).toContain("!raceMessageIsHidden");
   });
 
   it("renders the race origin in the shared global feed", () => {
