@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateNationRiderOverall,
   rankNationRiders,
+  rankNationRidersByMetric,
   type NationRiderRatings,
 } from "./nation-rider-ranking";
 
@@ -47,5 +48,34 @@ describe("nation rider ranking", () => {
 
     expect(ranked.map((rider) => rider.overall)).toEqual([81, 76, 72, 69, 64]);
     expect(ranked[0]?.teamId).toBeNull();
+  });
+
+  it("classe sur une statistique principale puis départage à la moyenne", () => {
+    const ranked = rankNationRidersByMetric(
+      [
+        {
+          firstName: "Léa",
+          lastName: "Martin",
+          ratings: { ...ratings(70), mountain: 82 },
+        },
+        {
+          firstName: "Inès",
+          lastName: "Bernard",
+          ratings: { ...ratings(65), mountain: 91 },
+        },
+        {
+          firstName: "Maya",
+          lastName: "Petit",
+          ratings: { ...ratings(76), mountain: 82 },
+        },
+      ],
+      "mountain",
+    );
+
+    expect(ranked.map((rider) => rider.firstName)).toEqual([
+      "Inès",
+      "Maya",
+      "Léa",
+    ]);
   });
 });

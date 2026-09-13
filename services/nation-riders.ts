@@ -15,13 +15,14 @@ export type NationRiderSummary = {
   avatarSeed: number | string | null;
   age: number;
   overall: number;
+  ratings: NationRiderRatings;
   teamId: string | null;
   teamName: string | null;
 };
 
 export type NationRiderOverview = {
   totalCount: number;
-  topRiders: NationRiderSummary[];
+  riders: NationRiderSummary[];
 };
 
 type RiderRow = {
@@ -63,10 +64,9 @@ type TeamSeasonRow = {
 
 export async function getNationRiderOverview(
   countryId: string,
-  limit = 5,
 ): Promise<NationRiderOverview> {
   const normalizedCountryId = countryId.trim();
-  if (!normalizedCountryId) return { totalCount: 0, topRiders: [] };
+  if (!normalizedCountryId) return { totalCount: 0, riders: [] };
 
   const supabase = createSupabaseAdminClient();
   const [activeSeasonResult, ridersResult] = await Promise.all([
@@ -90,8 +90,8 @@ export async function getNationRiderOverview(
   const riderRows = ridersResult.data ?? [];
   const totalCount = riderRows.length;
   const activeSeason = activeSeasonResult.data;
-  if (!activeSeason || riderRows.length === 0 || limit <= 0) {
-    return { totalCount, topRiders: [] };
+  if (!activeSeason || riderRows.length === 0) {
+    return { totalCount, riders: [] };
   }
 
   const { data: ratings, error: ratingsError } = await supabase
@@ -129,17 +129,17 @@ export async function getNationRiderOverview(
         },
       ];
     }),
-    limit,
+    riderRows.length,
   );
 
-  if (rankedRiders.length === 0) return { totalCount, topRiders: [] };
+  if (rankedRiders.length === 0) return { totalCount, riders: [] };
 
-  const topRiderIds = rankedRiders.map((rider) => rider.id);
+  const riderIds = rankedRiders.map((rider) => rider.id);
   const { data: contracts, error: contractsError } = await supabase
     .from("rider_contracts")
     .select("rider_id, team_id")
     .eq("status", "active")
-    .in("rider_id", topRiderIds)
+    .in("rider_id", riderIds)
     .returns<ContractRow[]>();
 
   assertNationRiderQuery(contractsError, "les équipes actuelles des coureurs");
@@ -165,7 +165,7 @@ export async function getNationRiderOverview(
 
   return {
     totalCount,
-    topRiders: rankedRiders.map((rider) => {
+    riders: rankedRiders.map((rider) => {
       const teamId = teamIdByRiderId.get(rider.id) ?? null;
       return {
         id: rider.id,
@@ -176,6 +176,7 @@ export async function getNationRiderOverview(
         avatarSeed: rider.avatarSeed,
         age: rider.age,
         overall: rider.overall,
+        ratings: rider.ratings,
         teamId,
         teamName: teamId ? (teamNameById.get(teamId) ?? null) : null,
       };

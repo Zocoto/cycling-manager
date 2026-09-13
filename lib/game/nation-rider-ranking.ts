@@ -20,6 +20,19 @@ type NationRiderCandidate = {
   ratings: NationRiderRatings;
 };
 
+export const NATION_RIDER_PRIMARY_RATING_KEYS = [
+  "mountain",
+  "hills",
+  "flat",
+  "timeTrial",
+  "cobbles",
+  "sprint",
+] as const satisfies ReadonlyArray<keyof NationRiderRatings>;
+
+export type NationRiderRankingMetric =
+  | "overall"
+  | (typeof NATION_RIDER_PRIMARY_RATING_KEYS)[number];
+
 const ratingKeys = [
   "mountain",
   "hills",
@@ -47,16 +60,39 @@ export function rankNationRiders<T extends NationRiderCandidate>(
   riders: readonly T[],
   limit = 5,
 ): Array<T & { overall: number }> {
+  return rankNationRidersByMetric(riders, "overall").slice(
+    0,
+    Math.max(0, limit),
+  );
+}
+
+export function rankNationRidersByMetric<T extends NationRiderCandidate>(
+  riders: readonly T[],
+  metric: NationRiderRankingMetric,
+): Array<T & { overall: number }> {
   return riders
-    .map((rider) => ({
-      ...rider,
-      overall: calculateNationRiderOverall(rider.ratings),
+    .map((rider, originalIndex) => ({
+      rider: {
+        ...rider,
+        overall: calculateNationRiderOverall(rider.ratings),
+      },
+      originalIndex,
     }))
-    .sort(
-      (left, right) =>
+    .sort((leftEntry, rightEntry) => {
+      const left = leftEntry.rider;
+      const right = rightEntry.rider;
+      const metricDifference =
+        metric === "overall"
+          ? right.overall - left.overall
+          : right.ratings[metric] - left.ratings[metric];
+
+      return (
+        metricDifference ||
         right.overall - left.overall ||
         left.lastName.localeCompare(right.lastName, "fr") ||
-        left.firstName.localeCompare(right.firstName, "fr"),
-    )
-    .slice(0, Math.max(0, limit));
+        left.firstName.localeCompare(right.firstName, "fr") ||
+        leftEntry.originalIndex - rightEntry.originalIndex
+      );
+    })
+    .map(({ rider }) => rider);
 }
