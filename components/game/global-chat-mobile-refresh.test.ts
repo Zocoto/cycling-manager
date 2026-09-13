@@ -67,6 +67,12 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("scrollToLatestMessages");
   });
 
+  it("considers the global feed read as soon as the visible chat page is loaded", () => {
+    expect(chat).toMatch(
+      /document\.visibilityState !== "visible" \|\|\s*!latestDisplayedMessageAt[\s\S]*?acknowledgeLatestMessages\(\);/,
+    );
+  });
+
   it("replie les messages déjà lus et conserve seulement un contexte récent", () => {
     expect(chat).toContain("GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6");
     expect(chat).toContain("compactHistoryStartIndex");

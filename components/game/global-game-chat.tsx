@@ -505,24 +505,20 @@ export function GlobalGameChat({
 
   useEffect(() => {
     if (
-      activeMode !== "global" ||
       document.visibilityState !== "visible" ||
-      !latestDisplayedMessageAt ||
-      !viewportNearBottomRef.current
+      !latestDisplayedMessageAt
     ) {
       return;
     }
 
     acknowledgeLatestMessages();
-  }, [acknowledgeLatestMessages, activeMode, latestDisplayedMessageAt]);
+  }, [acknowledgeLatestMessages, latestDisplayedMessageAt]);
 
   useEffect(() => {
     function markVisibleMessagesAsRead() {
       if (
-        activeMode === "global" &&
         document.visibilityState === "visible" &&
-        latestDisplayedMessageAt &&
-        viewportNearBottomRef.current
+        latestDisplayedMessageAt
       ) {
         acknowledgeLatestMessages();
       }
@@ -538,7 +534,7 @@ export function GlobalGameChat({
         markVisibleMessagesAsRead,
       );
     };
-  }, [acknowledgeLatestMessages, activeMode, latestDisplayedMessageAt]);
+  }, [acknowledgeLatestMessages, latestDisplayedMessageAt]);
 
   useEffect(() => {
     let active = true;
@@ -607,12 +603,6 @@ export function GlobalGameChat({
         viewportNearBottomRef.current = true;
         setShowJumpToLatest(false);
         setPendingLiveMessageCount(0);
-        if (
-          latestDisplayedMessageAt &&
-          document.visibilityState === "visible"
-        ) {
-          acknowledgeLatestMessages();
-        }
       }
       forceScrollToLatestRef.current = false;
       positionedRef.current = true;
@@ -624,7 +614,6 @@ export function GlobalGameChat({
     firstInitialUnreadMessageId,
     latestDisplayedMessageAt,
     latestDisplayedMessageId,
-    acknowledgeLatestMessages,
   ]);
 
   useLayoutEffect(() => {
@@ -834,9 +823,6 @@ export function GlobalGameChat({
       document.visibilityState === "visible"
     ) {
       setPendingLiveMessageCount(0);
-      if (latestDisplayedMessageAt) {
-        acknowledgeLatestMessages();
-      }
     }
   }
 
@@ -847,9 +833,6 @@ export function GlobalGameChat({
     setShowJumpToLatest(false);
     setPendingLiveMessageCount(0);
     viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
-    if (latestDisplayedMessageAt) {
-      acknowledgeLatestMessages();
-    }
   }
 
   function revealReadHistory() {
