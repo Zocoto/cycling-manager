@@ -56,6 +56,8 @@ export type DashboardAssistantSnapshot = {
   sponsorJerseyChangeAvailable: boolean;
   sponsorTargetSeasonName: string | null;
   equipmentPartnerSignatureAvailable: boolean;
+  developmentTeamSetupRequired: boolean;
+  developmentTeamSetupCurrentDayNumber: number;
   fanClubShopLevel: number;
   fanClubStockCount: number;
   fanClubSalesProcessedToday: boolean;
@@ -94,6 +96,7 @@ export type DashboardRaceRegistrationAlert = {
 
 const ALERT_PRIORITY = [
   "race-roster-alerts",
+  "development-team-setup",
   "low-reputation-registrations",
   "untreated-injuries",
   "junior-manual-training",
@@ -129,6 +132,20 @@ export function buildDashboardAssistantLines({
   cashBalance: number | null;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
   const alerts: DashboardAssistantLine[] = [];
+
+  if (snapshot.developmentTeamSetupRequired) {
+    alerts.push({
+      id: "development-team-setup",
+      tone: "alert",
+      metric: "J7",
+      title: "Effectif DevTeam à composer",
+      detail:
+        snapshot.developmentTeamSetupCurrentDayNumber === 7
+          ? "Dernier jour : enregistrez au moins un junior avant la fermeture ce soir."
+          : `J${snapshot.developmentTeamSetupCurrentDayNumber} en cours · composition possible jusqu’à la fin de J7.`,
+      href: "/jeu/centre-de-formation?onglet=development&dev=effectif",
+    });
+  }
 
   if (snapshot.untreatedInjuryCount > 0) {
     alerts.push({

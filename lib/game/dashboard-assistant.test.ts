@@ -50,6 +50,8 @@ const snapshot: DashboardAssistantSnapshot = {
   sponsorJerseyChangeAvailable: false,
   sponsorTargetSeasonName: null,
   equipmentPartnerSignatureAvailable: false,
+  developmentTeamSetupRequired: false,
+  developmentTeamSetupCurrentDayNumber: 0,
   fanClubShopLevel: 0,
   fanClubStockCount: 0,
   fanClubSalesProcessedToday: false,
@@ -162,6 +164,40 @@ describe("dashboard DS assistant", () => {
 
     expect(groups.alerts).toEqual([
       expect.objectContaining({ id: "all-clear", tone: "success", href: null }),
+    ]);
+  });
+
+  it("reminds the DS to compose the DevTeam only while the J1-J7 window is open", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+        developmentTeamSetupRequired: true,
+        developmentTeamSetupCurrentDayNumber: 7,
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "development-team-setup",
+        metric: "J7",
+        title: "Effectif DevTeam à composer",
+        detail: expect.stringContaining("Dernier jour"),
+        href: "/jeu/centre-de-formation?onglet=development&dev=effectif",
+      }),
     ]);
   });
 

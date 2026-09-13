@@ -25,6 +25,7 @@ import {
 import { DevelopmentTeamBuilder } from "./development-team-builder";
 import { DevelopmentTeamJerseyEditor } from "./development-team-jersey-editor";
 import { DevelopmentTeamRosterEditor } from "./development-team-roster-editor";
+import { DevelopmentRiderVisibleProfile } from "./development-rider-visible-profile";
 import { RiderAvatar } from "./rider-avatar";
 
 export type DevelopmentTeamView =
@@ -346,29 +347,21 @@ function RaceRegistrationCard({
           </summary>
           <form action={registerDevelopmentRaceAction} className="border-t border-[#315B3E]/8 p-4 sm:p-5">
             <input type="hidden" name="raceEditionId" value={race.id} />
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 lg:grid-cols-2">
               {eligibleRiders.map((rider) => (
-                <label key={rider.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-white p-3">
+                <label key={rider.id} className="relative block cursor-pointer rounded-2xl border border-[#315B3E]/12 bg-white p-4 transition hover:border-[#176951]/45">
                   <input
                     type="checkbox"
                     name="riderIds"
                     value={rider.id}
                     defaultChecked={selectedIds.has(rider.id)}
-                    className="h-4 w-4 accent-[#176951]"
+                    className="absolute right-4 top-4 z-10 h-5 w-5 accent-[#176951]"
                   />
-                  <RiderAvatar
-                    riderId={rider.id}
-                    profileKey={rider.profileKey}
-                    seed={rider.avatarSeed}
-                    age={rider.age}
+                  <DevelopmentRiderVisibleProfile
+                    rider={rider}
                     jersey={getDevelopmentRiderJersey(rider, overview.team!.jersey)}
-                    label={`${rider.firstName} ${rider.lastName}`}
-                    className="h-10 w-10"
+                    avatarClassName="h-12 w-12"
                   />
-                  <span className="min-w-0">
-                    <span className="block truncate text-xs font-black text-[#183F37]">{rider.firstName} {rider.lastName}</span>
-                    <span className="text-[9px] font-bold text-[#60756E]">{rider.sportingProfile}</span>
-                  </span>
                 </label>
               ))}
             </div>

@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import { updateDevelopmentTeamRosterAction } from "@/app/jeu/centre-de-formation/development-actions";
 import type { DevelopmentRider } from "@/services/development-team";
 
-import { RiderAvatar } from "./rider-avatar";
+import { DevelopmentRiderSelectionCard } from "./development-rider-selection-card";
 
 const MAXIMUM_ROSTER_SIZE = 11;
 
@@ -58,58 +58,19 @@ export function DevelopmentTeamRosterEditor({
           </span>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
           {riders.map((rider) => {
             const selected = selectedIds.has(rider.id);
             const disabled =
               !selected && selectedIds.size >= MAXIMUM_ROSTER_SIZE;
             return (
-              <label
+              <DevelopmentRiderSelectionCard
                 key={rider.id}
-                className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition ${
-                  selected
-                    ? "border-[#176951] bg-[#E5F4ED] shadow-[inset_0_0_0_1px_#176951]"
-                    : disabled
-                      ? "cursor-not-allowed border-[#315B3E]/8 bg-[#F4F7F5] opacity-55"
-                      : "border-[#315B3E]/12 bg-white hover:border-[#176951]/45"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  name="riderIds"
-                  value={rider.id}
-                  checked={selected}
-                  disabled={disabled}
-                  onChange={() => toggleRider(rider.id)}
-                  className="sr-only"
-                />
-                <RiderAvatar
-                  riderId={rider.id}
-                  profileKey={rider.profileKey}
-                  seed={rider.avatarSeed}
-                  age={rider.age}
-                  label={`${rider.firstName} ${rider.lastName}`}
-                  className="h-12 w-12 shrink-0 border-2 border-white"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-black text-[#183F37]">
-                    {rider.firstName} {rider.lastName}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] font-bold text-[#60756E]">
-                    {rider.countryCode} · {rider.age} ans · {rider.sportingProfile}
-                  </span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-black ${
-                    selected
-                      ? "bg-[#176951] text-white"
-                      : "border border-[#315B3E]/20 bg-white text-transparent"
-                  }`}
-                >
-                  ✓
-                </span>
-              </label>
+                rider={rider}
+                selected={selected}
+                disabled={disabled}
+                onToggle={() => toggleRider(rider.id)}
+              />
             );
           })}
         </div>

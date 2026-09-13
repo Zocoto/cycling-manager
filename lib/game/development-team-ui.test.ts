@@ -15,6 +15,14 @@ const builder = readFileSync(
   join(process.cwd(), "components/game/development-team-builder.tsx"),
   "utf8",
 );
+const rosterEditor = readFileSync(
+  join(process.cwd(), "components/game/development-team-roster-editor.tsx"),
+  "utf8",
+);
+const riderProfile = readFileSync(
+  join(process.cwd(), "components/game/development-rider-visible-profile.tsx"),
+  "utf8",
+);
 const riderPage = readFileSync(
   join(
     process.cwd(),
@@ -35,9 +43,19 @@ describe("Development Team UI", () => {
 
   it("permet la composition de l’effectif et le dessin du maillot", () => {
     expect(builder).toContain("MAXIMUM_ROSTER_SIZE = 11");
-    expect(builder).toContain('name="riderIds"');
+    expect(builder).toContain("DevelopmentRiderSelectionCard");
+    expect(rosterEditor).toContain("DevelopmentRiderSelectionCard");
     expect(builder).toContain("AMATEUR_JERSEY_PATTERNS.map");
     expect(builder).toContain("Fonder l’équipe de développement");
+  });
+
+  it("montre toutes les notes, le potentiel et le talent lors du choix", () => {
+    expect(panel).toContain("DevelopmentRiderVisibleProfile");
+    expect(riderProfile).toContain("RIDER_RATING_AXES.map");
+    expect(riderProfile).toContain("rider.ratings[axis.key]");
+    expect(riderProfile).toContain("PotentialStars");
+    expect(riderProfile).toContain("Talent natif");
+    expect(riderProfile).toContain("nativeSpecialAbility.effect");
   });
 
   it("expose le calendrier, les inscriptions et les résultats bruts", () => {

@@ -136,6 +136,10 @@ export async function getCurrentDashboardAssistantSummary(
     sponsorTargetSeasonName: sponsoringAlert?.target_season_name ?? null,
     equipmentPartnerSignatureAvailable:
       assistantPayload.equipmentPartnerSignatureAvailable,
+    developmentTeamSetupRequired:
+      assistantPayload.developmentTeamSetupRequired,
+    developmentTeamSetupCurrentDayNumber:
+      assistantPayload.developmentTeamSetupCurrentDayNumber,
     fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
     fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
     fanClubSalesProcessedToday:
@@ -155,6 +159,8 @@ function normalizeAssistantPayload(value: unknown): {
   nextSeasonRosterProjectedCount: number;
   nextSeasonRosterOverflowCount: number;
   equipmentPartnerSignatureAvailable: boolean;
+  developmentTeamSetupRequired: boolean;
+  developmentTeamSetupCurrentDayNumber: number;
   journalItems: DashboardJournalItem[];
 } {
   if (Array.isArray(value)) {
@@ -167,6 +173,8 @@ function normalizeAssistantPayload(value: unknown): {
       nextSeasonRosterProjectedCount: 0,
       nextSeasonRosterOverflowCount: 0,
       equipmentPartnerSignatureAvailable: false,
+      developmentTeamSetupRequired: false,
+      developmentTeamSetupCurrentDayNumber: 0,
       journalItems: normalizeJournalItems(value),
     };
   }
@@ -181,6 +189,8 @@ function normalizeAssistantPayload(value: unknown): {
       nextSeasonRosterProjectedCount: 0,
       nextSeasonRosterOverflowCount: 0,
       equipmentPartnerSignatureAvailable: false,
+      developmentTeamSetupRequired: false,
+      developmentTeamSetupCurrentDayNumber: 0,
       journalItems: [],
     };
   }
@@ -190,6 +200,11 @@ function normalizeAssistantPayload(value: unknown): {
     payload.nextSeasonRosterProjection &&
     typeof payload.nextSeasonRosterProjection === "object"
       ? (payload.nextSeasonRosterProjection as Record<string, unknown>)
+      : {};
+  const developmentTeamSetup =
+    payload.developmentTeamSetup &&
+    typeof payload.developmentTeamSetup === "object"
+      ? (payload.developmentTeamSetup as Record<string, unknown>)
       : {};
   return {
     riderRecruitmentMatchCount: normalizeCount(
@@ -215,6 +230,10 @@ function normalizeAssistantPayload(value: unknown): {
     ),
     equipmentPartnerSignatureAvailable:
       payload.equipmentPartnerSignatureAvailable === true,
+    developmentTeamSetupRequired: developmentTeamSetup.required === true,
+    developmentTeamSetupCurrentDayNumber: normalizeCount(
+      developmentTeamSetup.currentDayNumber,
+    ),
     journalItems: normalizeJournalItems(payload.items),
   };
 }
