@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   FEDERATION_MANAGEMENT_START_GAME_YEAR,
+  canAccessNationalFederationManagement,
   getFederationDivisionPreview,
   getFederationManagementPhase,
   getInternationalAcademyImpact,
@@ -24,6 +25,13 @@ describe("national federations", () => {
     expect(parseNationalFederationTab(["lounge", "overview"])).toBe("lounge");
     expect(parseNationalFederationTab("unknown")).toBe("overview");
     expect(parseNationalFederationTab(undefined)).toBe("overview");
+  });
+
+  it("reserves federation management to teams from that federation", () => {
+    expect(canAccessNationalFederationManagement("fr", "FR")).toBe(true);
+    expect(canAccessNationalFederationManagement("BE", "FR")).toBe(false);
+    expect(canAccessNationalFederationManagement(null, "FR")).toBe(false);
+    expect(canAccessNationalFederationManagement("FRA", "FR")).toBe(false);
   });
 
   it("previews divisions from the previous UCI rank", () => {

@@ -8,6 +8,7 @@ import Link from "@/components/ui/app-link";
 import { buildFederationObjectives } from "@/lib/game/federation-objectives";
 import {
   FEDERATION_MANAGEMENT_START_GAME_YEAR,
+  canAccessNationalFederationManagement,
   parseNationalFederationTab,
 } from "@/lib/game/national-federations";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -28,7 +29,10 @@ import { getFederationSponsorCoverage } from "@/services/federation-sponsors";
 import { getFederationTreasuryState } from "@/services/federation-treasury";
 import { getFederationTeamJerseyArtworks } from "@/services/federation-team-jerseys";
 import { getNationalFederationJersey } from "@/services/national-federation-jerseys";
-import { getNationalFederationSnapshot } from "@/services/national-federations";
+import {
+  getCurrentTeamFederationCountryCode,
+  getNationalFederationSnapshot,
+} from "@/services/national-federations";
 import { getPublicCountryDirectory } from "@/services/public-directory";
 import { getNationRankingEntry } from "@/services/uci-rankings";
 
@@ -56,21 +60,36 @@ export default async function FederationPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [directory, headerData, nationRanking] = await Promise.all([
+  const [directory, headerData] = await Promise.all([
     getPublicCountryDirectory(supabase, codePays),
     getGameHeaderData(supabase, user.id),
-    getNationRankingEntry(codePays),
   ]);
 
   if (!directory) notFound();
 
   const country = directory.country;
+  const viewerFederationCountryCode = headerData.teamId
+    ? await getCurrentTeamFederationCountryCode(headerData.teamId)
+    : null;
+
+  if (
+    !canAccessNationalFederationManagement(
+      viewerFederationCountryCode,
+      country.country_code,
+    )
+  ) {
+    redirect(`/jeu/nations/${country.country_code.toLowerCase()}`);
+  }
+
   const selectedTab = parseNationalFederationTab(query.onglet);
-  const snapshot = await getNationalFederationSnapshot({
-    countryId: country.entity_id,
-    countryCode: country.country_code,
-    viewerTeamId: headerData.teamId,
-  });
+  const [nationRanking, snapshot] = await Promise.all([
+    getNationRankingEntry(country.country_code),
+    getNationalFederationSnapshot({
+      countryId: country.entity_id,
+      countryCode: country.country_code,
+      viewerTeamId: headerData.teamId,
+    }),
+  ]);
   const [
     publishedJersey,
     federationChat,

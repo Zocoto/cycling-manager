@@ -15,6 +15,10 @@ const nationPage = readFileSync(
   join(process.cwd(), "app/jeu/nations/[codePays]/page.tsx"),
   "utf8",
 );
+const nationsCupPage = readFileSync(
+  join(process.cwd(), "app/jeu/nations-cup/page.tsx"),
+  "utf8",
+);
 
 describe("federation pages", () => {
   it("resolves the current team federation from its sporting nationality", () => {
@@ -26,17 +30,37 @@ describe("federation pages", () => {
     );
   });
 
-  it("opens the visible federation entry point for every nation", () => {
-    expect(nationPage).toContain("Découvrir la fédération");
+  it("only exposes the federation management entry point on the viewer's own nation", () => {
+    expect(nationPage).toContain("getCurrentTeamFederationCountryCode");
+    expect(nationPage).toContain("canAccessNationalFederationManagement");
+    expect(nationPage).toContain("canAccessFederationManagement ? (");
+    expect(nationPage).toContain("Accéder à ma fédération");
     expect(nationPage).toContain(
       "href={`/jeu/federations/${country.country_code.toLowerCase()}`}",
     );
-    expect(nationPage).not.toContain(
-      'country.country_code.toUpperCase() === "BE"',
+  });
+
+  it("redirects foreign federation management URLs before loading management data", () => {
+    expect(federationPage).toContain("getCurrentTeamFederationCountryCode");
+    expect(federationPage).toContain("canAccessNationalFederationManagement");
+    expect(federationPage).toContain(
+      "redirect(`/jeu/nations/${country.country_code.toLowerCase()}`)",
+    );
+    expect(federationPage.indexOf("redirect(`/jeu/nations/")).toBeLessThan(
+      federationPage.indexOf("getNationalFederationSnapshot({"),
     );
   });
 
-  it("loads one compact read-only snapshot for the selected nation", () => {
+  it("routes Nations Cup standings to public nation pages", () => {
+    expect(nationsCupPage).toContain(
+      "href={`/jeu/nations/${standing.countryCode.toLowerCase()}`}",
+    );
+    expect(nationsCupPage).not.toContain(
+      "href={`/jeu/federations/${standing.countryCode.toLowerCase()}`}",
+    );
+  });
+
+  it("loads the federation snapshot only for an authorized member", () => {
     expect(federationPage).toContain("getNationalFederationSnapshot");
     expect(federationPage).toContain("NationalFederationView");
     expect(federationPage).not.toContain("action=");

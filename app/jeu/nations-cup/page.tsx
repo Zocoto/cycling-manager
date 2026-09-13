@@ -95,7 +95,7 @@ export default async function NationsCupPage() {
                       <tr key={standing.countryId} className="hover:bg-[#F8FBF9]">
                         <td className="px-4 py-3 text-center text-lg font-black text-[#183F37]">{standing.overallRank}</td>
                         <td className="px-4 py-3">
-                          <Link href={`/jeu/federations/${standing.countryCode.toLowerCase()}`} className="flex items-center gap-3 font-black text-[#183F37] hover:text-[#176951]">
+                          <Link href={`/jeu/nations/${standing.countryCode.toLowerCase()}`} className="flex items-center gap-3 font-black text-[#183F37] hover:text-[#278B70]">
                             <span className="grid h-8 w-11 place-items-center overflow-hidden rounded-md border border-[#315B3E]/12 bg-white">
                               <svg viewBox="0 0 44 32" className="h-full w-full" aria-hidden="true">
                                 <SvgCountryFlag countryCode={standing.countryCode} x={0} y={0} width={44} height={32} />

@@ -47,6 +47,20 @@ export function isFederationManagementSeason(gameYear: number): boolean {
   return gameYear >= FEDERATION_MANAGEMENT_START_GAME_YEAR;
 }
 
+export function canAccessNationalFederationManagement(
+  viewerCountryCode: string | null | undefined,
+  requestedCountryCode: string | null | undefined,
+): boolean {
+  const viewerCode = viewerCountryCode?.trim().toUpperCase() ?? "";
+  const requestedCode = requestedCountryCode?.trim().toUpperCase() ?? "";
+
+  return (
+    /^[A-Z]{2}$/.test(viewerCode) &&
+    /^[A-Z]{2}$/.test(requestedCode) &&
+    viewerCode === requestedCode
+  );
+}
+
 export function getFederationDivisionPreview(
   nationRank: number | null,
 ): FederationDivisionPreview {

@@ -8,6 +8,7 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
+import { canAccessNationalFederationManagement } from "@/lib/game/national-federations";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
 import {
   createAmateurRiderJersey,
@@ -19,6 +20,7 @@ import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getCurrentTeamFederationCountryCode } from "@/services/national-federations";
 import {
   getNationRiderOverview,
   type NationRiderSummary,
@@ -67,6 +69,14 @@ export default async function PublicCountryPage({
   }
 
   const { country, members } = directory;
+  const viewerFederationCountryCode = headerData.teamId
+    ? await getCurrentTeamFederationCountryCode(headerData.teamId)
+    : null;
+  const canAccessFederationManagement =
+    canAccessNationalFederationManagement(
+      viewerFederationCountryCode,
+      country.country_code,
+    );
   const { topRiders, totalCount: riderCount } =
     await getNationRiderOverview(country.entity_id);
   const riderJerseysByTeamId = await getNationRiderJerseys(topRiders);
@@ -110,12 +120,14 @@ export default async function PublicCountryPage({
                 <p className="mt-3 font-semibold uppercase tracking-[0.18em] text-[#F2C94C]">
                   {country.country_code}
                 </p>
-                <Link
-                  href={`/jeu/federations/${country.country_code.toLowerCase()}`}
-                  className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#19352E] shadow-md transition hover:-translate-y-0.5 hover:bg-[#FFE27A] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                >
-                  Découvrir la fédération →
-                </Link>
+                {canAccessFederationManagement ? (
+                  <Link
+                    href={`/jeu/federations/${country.country_code.toLowerCase()}`}
+                    className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#19352E] shadow-md transition hover:-translate-y-0.5 hover:bg-[#FFE27A] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    Accéder à ma fédération →
+                  </Link>
+                ) : null}
               </div>
 
               <div className="space-y-3">
