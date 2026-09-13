@@ -230,7 +230,8 @@ function CompactRiderAvatar({
   const faceRadiusX = Math.max(18, Math.min(25, design.faceWidth / 2));
   const faceRadiusY = Math.max(23, Math.min(29, design.faceHeight / 2));
   const eyeDistance = Math.max(7, Math.min(11, design.eyeSpacing / 2));
-  const hasVisibleHair = design.hairStyle !== "shaved";
+  const hasVisibleHair =
+    design.hairStyle !== "shaved" && design.hairStyle !== "bald";
 
   return (
     <span
@@ -757,39 +758,65 @@ function Ears({
   const widthScale: Record<RiderAvatarDesign["earStyle"], number> = {
     angular: 1,
     attached: 0.82,
+    cupped: 1.12,
+    flat: 0.78,
+    "high-set": 0.98,
+    "large-lobed": 1.18,
     lobed: 1.02,
+    "low-set": 1.02,
     long: 0.94,
     pointed: 0.96,
     prominent: 1.28,
     rounded: 1,
     small: 0.72,
     tapered: 0.9,
+    uneven: 1.06,
     wide: 1.38,
   };
   const heightScale: Record<RiderAvatarDesign["earStyle"], number> = {
     angular: 1,
     attached: 0.92,
+    cupped: 1.12,
+    flat: 0.9,
+    "high-set": 0.98,
+    "large-lobed": 1.32,
     lobed: 1.16,
+    "low-set": 1.04,
     long: 1.4,
     pointed: 1.14,
     prominent: 1.08,
     rounded: 1,
     small: 0.76,
     tapered: 1.12,
+    uneven: 1.08,
     wide: 0.96,
   };
   const placementScale =
-    design.earStyle === "attached"
+    design.earStyle === "attached" || design.earStyle === "flat"
       ? 0.08
-      : design.earStyle === "prominent" || design.earStyle === "wide"
+      : design.earStyle === "prominent" ||
+          design.earStyle === "wide" ||
+          design.earStyle === "cupped"
         ? 0.58
         : 0.34;
-  const width = design.earWidth * widthScale[design.earStyle];
+  const width =
+    design.version === 3
+      ? Math.min(6, design.earWidth * widthScale[design.earStyle])
+      : design.earWidth * widthScale[design.earStyle];
   const height = design.earHeight * heightScale[design.earStyle];
 
   return (
     <g>
       {([-1, 1] as const).map((direction) => {
+        const verticalOffset =
+          design.earStyle === "high-set"
+            ? -2.1
+            : design.earStyle === "low-set"
+              ? 2.1
+              : design.earStyle === "uneven"
+                ? direction * 1.35
+                : 0;
+        const earY = y + verticalOffset;
         const earX =
           centerX + direction * (design.faceWidth / 2 + width * placementScale);
         const innerX = earX - direction * width * 0.72;
@@ -801,8 +828,8 @@ function Ears({
               <path
                 d={
                   design.version === 1
-                    ? `M ${innerX} ${y - height * 0.45} L ${outerX} ${y - height * 0.25} L ${outerX - direction * width * 0.08} ${y + height * 0.32} Q ${earX} ${y + height * 0.58} ${innerX} ${y + height * 0.38} Z`
-                    : `M ${innerX} ${y - height * 0.43} Q ${outerX - direction * width * 0.12} ${y - height * 0.43} ${outerX} ${y - height * 0.2} L ${outerX - direction * width * 0.14} ${y + height * 0.28} Q ${earX} ${y + height * 0.55} ${innerX} ${y + height * 0.36} Z`
+                    ? `M ${innerX} ${earY - height * 0.45} L ${outerX} ${earY - height * 0.25} L ${outerX - direction * width * 0.08} ${earY + height * 0.32} Q ${earX} ${earY + height * 0.58} ${innerX} ${earY + height * 0.38} Z`
+                    : `M ${innerX} ${earY - height * 0.43} Q ${outerX - direction * width * 0.12} ${earY - height * 0.43} ${outerX} ${earY - height * 0.2} L ${outerX - direction * width * 0.14} ${earY + height * 0.28} Q ${earX} ${earY + height * 0.55} ${innerX} ${earY + height * 0.36} Z`
                 }
                 fill={design.skinTone}
                 stroke={design.skinShadow}
@@ -812,16 +839,17 @@ function Ears({
               <path
                 d={
                   design.earStyle === "pointed"
-                    ? `M ${innerX} ${y - height * 0.42} Q ${earX} ${y - height * 0.5} ${outerX} ${y - height * 0.2} Q ${outerX - direction * width * 0.18} ${y + height * 0.4} ${innerX} ${y + height * 0.36} Z`
-                    : `M ${innerX} ${y - height * 0.42} Q ${outerX} ${y - height * 0.3} ${outerX - direction * width * 0.2} ${y + height * 0.08} Q ${earX} ${y + height * 0.62} ${innerX} ${y + height * 0.34} Z`
+                    ? `M ${innerX} ${earY - height * 0.42} Q ${earX} ${earY - height * 0.5} ${outerX} ${earY - height * 0.2} Q ${outerX - direction * width * 0.18} ${earY + height * 0.4} ${innerX} ${earY + height * 0.36} Z`
+                    : `M ${innerX} ${earY - height * 0.42} Q ${outerX} ${earY - height * 0.3} ${outerX - direction * width * 0.2} ${earY + height * 0.08} Q ${earX} ${earY + height * 0.62} ${innerX} ${earY + height * 0.34} Z`
                 }
                 fill={design.skinTone}
                 stroke={design.skinShadow}
                 strokeWidth="0.7"
               />
-            ) : design.earStyle === "lobed" ? (
+            ) : design.earStyle === "lobed" ||
+              design.earStyle === "large-lobed" ? (
               <path
-                d={`M ${innerX} ${y - height * 0.42} Q ${outerX} ${y - height * 0.35} ${outerX} ${y + height * 0.12} Q ${outerX - direction * width * 0.08} ${y + height * 0.5} ${earX} ${y + height * 0.54} Q ${innerX} ${y + height * 0.38} ${innerX} ${y - height * 0.42} Z`}
+                d={`M ${innerX} ${earY - height * 0.42} Q ${outerX} ${earY - height * 0.35} ${outerX} ${earY + height * 0.12} Q ${outerX - direction * width * 0.08} ${earY + height * 0.5} ${earX} ${earY + height * 0.54} Q ${innerX} ${earY + height * 0.38} ${innerX} ${earY - height * 0.42} Z`}
                 fill={design.skinTone}
                 stroke={design.skinShadow}
                 strokeWidth="0.7"
@@ -829,7 +857,7 @@ function Ears({
             ) : (
               <ellipse
                 cx={earX}
-                cy={y}
+                cy={earY}
                 rx={width}
                 ry={height / 2}
                 fill={design.skinTone}
@@ -838,7 +866,7 @@ function Ears({
               />
             )}
             <path
-              d={`M ${outerX - direction * width * 0.18} ${y - height * 0.12} q ${-direction * width * 0.76} ${-height * 0.2} ${-direction * width * 0.2} ${height * 0.42}`}
+              d={`M ${outerX - direction * width * 0.18} ${earY - height * 0.12} q ${-direction * width * 0.76} ${-height * 0.2} ${-direction * width * 0.2} ${height * 0.42}`}
               fill="none"
               stroke={design.skinShadow}
               strokeWidth="0.65"
@@ -871,6 +899,138 @@ function Hair({
   let detail: ReactNode = null;
 
   switch (design.hairStyle) {
+    case "bald":
+      return null;
+    case "receding":
+      return (
+        <g data-avatar-hair-style="receding" fill={color}>
+          <path
+            d={`M 33 ${faceTop + 10} Q 33 ${faceTop - 2} 40 ${faceTop - 4} Q 38 ${faceTop + 2} 42 ${faceTop + 6} Q 37 ${faceTop + 4} 33 ${faceTop + 10} Z`}
+          />
+          <path
+            d={`M 63 ${faceTop + 10} Q 63 ${faceTop - 2} 56 ${faceTop - 4} Q 58 ${faceTop + 2} 54 ${faceTop + 6} Q 59 ${faceTop + 4} 63 ${faceTop + 10} Z`}
+          />
+          <path
+            d={`M 40 ${faceTop - 4} Q 48 ${faceTop - 7} 56 ${faceTop - 4}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="1"
+          />
+        </g>
+      );
+    case "balding":
+      return (
+        <g data-avatar-hair-style="balding">
+          <path
+            d={`M 33 ${faceTop + 10} Q 32 ${faceTop + 1} 39 ${faceTop - 2} M 63 ${faceTop + 10} Q 64 ${faceTop + 1} 57 ${faceTop - 2}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="4.2"
+            strokeLinecap="round"
+          />
+          <path
+            d={`M 43 ${faceTop - 2} q 5 -2 10 0`}
+            fill="none"
+            stroke={color}
+            strokeWidth="0.75"
+            strokeDasharray="0.8 1.5"
+            opacity="0.65"
+          />
+        </g>
+      );
+    case "big-afro":
+      detail = (
+        <g data-avatar-hair-style="big-afro" fill={color} stroke={highlight} strokeWidth="0.55">
+          {[27, 33, 39, 45, 51, 57, 63, 69].map((x, index) => (
+            <circle key={x} cx={x} cy={faceTop - 3 - (index % 2) * 2} r="6.6" />
+          ))}
+          {[31, 38, 45, 52, 59, 66].map((x, index) => (
+            <circle key={`big-afro-${x}`} cx={x} cy={faceTop - 10 - (index % 2)} r="6.2" />
+          ))}
+          {[38, 45, 52, 59].map((x) => (
+            <circle key={`big-afro-top-${x}`} cx={x} cy={faceTop - 15} r="5.5" />
+          ))}
+        </g>
+      );
+      break;
+    case "high-top":
+      detail = (
+        <g data-avatar-hair-style="high-top">
+          <path
+            d={`M 35 ${faceTop + 4} L 36 ${faceTop - 8} Q 48 ${faceTop - 12} 60 ${faceTop - 8} L 61 ${faceTop + 4} Z`}
+            fill={color}
+            stroke={highlight}
+            strokeWidth="0.7"
+            strokeLinejoin="round"
+          />
+          <path
+            d={`M 39 ${faceTop - 6} Q 48 ${faceTop - 9} 57 ${faceTop - 6}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="0.85"
+            opacity="0.65"
+          />
+        </g>
+      );
+      break;
+    case "crew-cut":
+      detail = (
+        <g data-avatar-hair-style="crew-cut" stroke={highlight} strokeLinecap="round">
+          {[37, 41, 45, 49, 53, 57, 61].map((x, index) => (
+            <path
+              key={x}
+              d={`M ${x} ${faceTop + 2} l ${index % 2 ? -0.6 : 0.6} -4.2`}
+              strokeWidth="1"
+            />
+          ))}
+        </g>
+      );
+      break;
+    case "widows-peak":
+      detail = (
+        <g data-avatar-hair-style="widows-peak">
+          <path
+            d={`M 34 ${faceTop + 5} Q 39 ${faceTop - 4} 46 ${faceTop - 2} L 48 ${faceTop + 5} L 50 ${faceTop - 2} Q 58 ${faceTop - 4} 63 ${faceTop + 5}`}
+            fill={color}
+            stroke={highlight}
+            strokeWidth="0.8"
+          />
+        </g>
+      );
+      break;
+    case "shoulder-length":
+      detail = (
+        <g data-avatar-hair-style="shoulder-length" fill={color} stroke={highlight} strokeWidth="0.65">
+          <path d={`M 35 ${faceTop - 2} Q 27 ${faceTop + 14} 30 ${faceTop + 49} Q 35 ${faceTop + 43} 37 ${faceTop + 20} Z`} />
+          <path d={`M 61 ${faceTop - 2} Q 69 ${faceTop + 14} 66 ${faceTop + 49} Q 61 ${faceTop + 43} 59 ${faceTop + 20} Z`} />
+        </g>
+      );
+      break;
+    case "long-waves":
+      detail = (
+        <g data-avatar-hair-style="long-waves" fill="none" stroke={color} strokeWidth="3.8" strokeLinecap="round">
+          <path d={`M 35 ${faceTop} Q 28 ${faceTop + 10} 34 ${faceTop + 20} T 32 ${faceTop + 43}`} />
+          <path d={`M 61 ${faceTop} Q 68 ${faceTop + 10} 62 ${faceTop + 20} T 64 ${faceTop + 43}`} />
+          <path d={`M 39 ${faceTop - 2} Q 47 ${faceTop - 7} 58 ${faceTop - 2}`} stroke={highlight} strokeWidth="1.1" />
+        </g>
+      );
+      break;
+    case "shoulder-curls":
+      detail = (
+        <g data-avatar-hair-style="shoulder-curls" fill={color} stroke={highlight} strokeWidth="0.35">
+          {[-1, 1].flatMap((direction) =>
+            [0, 1, 2, 3, 4].map((index) => (
+              <circle
+                key={`${direction}-${index}`}
+                cx={48 + direction * (14.5 + (index % 2) * 2)}
+                cy={faceTop + 4 + index * 7.6}
+                r="4.5"
+              />
+            )),
+          )}
+        </g>
+      );
+      break;
     case "afro":
       detail = (
         <g fill={color} stroke={highlight} strokeWidth="0.5">
@@ -1158,18 +1318,35 @@ function Brows({
 }) {
   const browWidth =
     design.eyeWidth +
-    (design.browStyle === "heavy" ? 2.4 : design.browStyle === "soft" ? 1 : 1.6);
+    (design.browStyle === "heavy" || design.browStyle === "bushy"
+      ? 2.4
+      : design.browStyle === "soft" || design.browStyle === "thin"
+        ? 1
+        : 1.6);
   const strokeWidth =
-    design.browStyle === "heavy" ? 2.35 : design.browStyle === "soft" ? 1.25 : 1.65;
+    design.browStyle === "heavy" || design.browStyle === "bushy"
+      ? 2.35
+      : design.browStyle === "soft"
+        ? 1.25
+        : design.browStyle === "thin"
+          ? 0.8
+          : 1.65;
   const archHeight =
     design.browStyle === "arched"
       ? -2.4
+      : design.browStyle === "rounded"
+        ? -2.8
       : design.browStyle === "straight"
         ? -0.1
-        : design.browStyle === "low-angled"
+        : design.browStyle === "low-angled" || design.browStyle === "furrowed"
           ? 0.8
           : -1.2;
-  const outerOffset = design.browStyle === "low-angled" ? 1.1 : 0.5;
+  const outerOffset =
+    design.browStyle === "low-angled"
+      ? 1.1
+      : design.browStyle === "furrowed"
+        ? -0.8
+        : 0.5;
 
   return (
     <g
@@ -1201,12 +1378,17 @@ function Eye({
 }) {
   const heightByStyle: Record<RiderAvatarDesign["eyeStyle"], number> = {
     almond: 2.2,
+    crescent: 1.2,
     deep: 2.05,
+    droopy: 2.2,
     downturned: 2.15,
+    "heavy-lidded": 1.7,
     hooded: 1.8,
     large: 3.25,
+    laughing: 1.15,
     monolid: 1.55,
     narrow: 1.45,
+    piercing: 1.25,
     prominent: 2.95,
     round: 2.75,
     sharp: 1.9,
@@ -1215,6 +1397,7 @@ function Eye({
     soft: 2.3,
     squinting: 1.05,
     upturned: 2.05,
+    "wide-open": 3.55,
   };
   const eyeHeight = heightByStyle[design.eyeStyle];
   const styleTilt =
@@ -1226,14 +1409,44 @@ function Eye({
   const tilt = (design.eyeTilt + styleTilt) * direction;
   const leftX = x - design.eyeWidth / 2;
   const rightX = x + design.eyeWidth / 2;
+
+  if (design.eyeStyle === "laughing" || design.eyeStyle === "crescent") {
+    const curveDepth = design.eyeStyle === "laughing" ? 2.45 : 1.8;
+
+    return (
+      <g data-avatar-eye-style={design.eyeStyle}>
+        <path
+          d={`M ${leftX} ${y + tilt / 2} Q ${x} ${y - curveDepth} ${rightX} ${y - tilt / 2}`}
+          fill="none"
+          stroke={design.skinShadow}
+          strokeWidth={design.eyeStyle === "laughing" ? 1.25 : 1}
+          strokeLinecap="round"
+        />
+        {design.eyeStyle === "laughing" ? (
+          <path
+            d={`M ${leftX + 0.8} ${y + 1.3} Q ${x} ${y + 2.1} ${rightX - 0.8} ${y + 1.3}`}
+            fill="none"
+            stroke={design.skinShadow}
+            strokeWidth="0.55"
+            opacity="0.45"
+          />
+        ) : null}
+      </g>
+    );
+  }
+
   const eyePath =
-    design.eyeStyle === "sharp"
+    design.eyeStyle === "sharp" || design.eyeStyle === "piercing"
       ? `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight * 0.85} ${rightX} ${y - tilt / 2} L ${x + design.eyeWidth * 0.18} ${y + eyeHeight * 0.78} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`
-      : design.eyeStyle === "sleepy"
+      : design.eyeStyle === "sleepy" || design.eyeStyle === "heavy-lidded"
         ? `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight * 0.35} ${rightX} ${y - tilt / 2} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`
+        : design.eyeStyle === "droopy"
+          ? `M ${leftX} ${y - 0.5 + tilt / 2} Q ${x} ${y - eyeHeight * 0.72} ${rightX} ${y + 0.8 - tilt / 2} Q ${x} ${y + eyeHeight * 1.15} ${leftX} ${y - 0.5 + tilt / 2} Z`
         : `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight} ${rightX} ${y - tilt / 2} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`;
   const irisScale =
-    design.eyeStyle === "prominent" || design.eyeStyle === "large"
+    design.eyeStyle === "prominent" ||
+    design.eyeStyle === "large" ||
+    design.eyeStyle === "wide-open"
       ? 0.83
       : design.eyeStyle === "round"
         ? 0.76
@@ -1257,7 +1470,9 @@ function Eye({
       design.eyeStyle === "hooded" ||
       design.eyeStyle === "monolid" ||
       design.eyeStyle === "sleepy" ||
-      design.eyeStyle === "squinting" ? (
+      design.eyeStyle === "squinting" ||
+      design.eyeStyle === "heavy-lidded" ||
+      design.eyeStyle === "droopy" ? (
         <path
           d={
             design.eyeStyle === "monolid" || design.eyeStyle === "squinting"
@@ -1311,48 +1526,84 @@ function Nose({
     broad: 1.22,
     button: 0.88,
     compact: 0.92,
+    crooked: 1,
+    drooping: 1.04,
+    eagle: 1.08,
     fine: 0.66,
     flared: 1.38,
     flat: 1.2,
     hooked: 0.92,
     long: 0.9,
+    massive: 1.52,
+    minimal: 0.54,
+    petite: 0.68,
+    potato: 1.48,
+    roman: 1.06,
     rounded: 1.08,
     snub: 1.02,
     straight: 1,
     tapered: 0.82,
+    upturned: 0.9,
     "wide-bridge": 1.3,
   };
   const halfWidth = (design.noseWidth * widthFactor[design.noseStyle]) / 2;
   const bridgeOffset =
     design.noseStyle === "angular"
       ? 1.15
-      : design.noseStyle === "aquiline" || design.noseStyle === "hooked"
+      : design.noseStyle === "aquiline" ||
+          design.noseStyle === "hooked" ||
+          design.noseStyle === "roman" ||
+          design.noseStyle === "eagle" ||
+          design.noseStyle === "drooping"
         ? 1.35
         : design.noseStyle === "tapered"
           ? 0.45
           : 0.8;
   const bridgePath =
-    design.noseStyle === "aquiline" || design.noseStyle === "hooked"
-      ? `M ${centerX - bridgeOffset} ${topY} C ${centerX - 2.2} ${topY + (bottomY - topY) * 0.42}, ${centerX - 0.2} ${bottomY - 2.2}, ${centerX - halfWidth} ${bottomY - (design.noseStyle === "hooked" ? -0.5 : 0.8)}`
-      : design.noseStyle === "button" || design.noseStyle === "snub"
+    design.noseStyle === "aquiline" ||
+    design.noseStyle === "hooked" ||
+    design.noseStyle === "roman" ||
+    design.noseStyle === "eagle" ||
+    design.noseStyle === "drooping"
+      ? `M ${centerX - bridgeOffset} ${topY} C ${centerX - (design.noseStyle === "roman" ? 2.7 : 2.2)} ${topY + (bottomY - topY) * 0.42}, ${centerX - 0.2} ${bottomY - 2.2}, ${centerX - halfWidth} ${bottomY - (["hooked", "eagle", "drooping"].includes(design.noseStyle) ? -0.5 : 0.8)}`
+      : design.noseStyle === "crooked"
+        ? `M ${centerX - 0.7} ${topY} C ${centerX + 1.8} ${topY + (bottomY - topY) * 0.3}, ${centerX - 2.2} ${topY + (bottomY - topY) * 0.7}, ${centerX - halfWidth} ${bottomY - 0.7}`
+      : design.noseStyle === "button" ||
+          design.noseStyle === "snub" ||
+          design.noseStyle === "petite" ||
+          design.noseStyle === "upturned"
         ? `M ${centerX - bridgeOffset * 0.7} ${topY + 1} Q ${centerX - 0.5} ${bottomY - 2.2} ${centerX - halfWidth} ${bottomY - 0.7}`
+        : design.noseStyle === "minimal"
+          ? `M ${centerX - 0.25} ${topY + 2.5} Q ${centerX - 0.4} ${bottomY - 0.6} ${centerX - halfWidth} ${bottomY}`
         : design.noseStyle === "flat"
           ? `M ${centerX - bridgeOffset * 0.55} ${topY + 1.2} Q ${centerX - 0.3} ${bottomY - 1.5} ${centerX - halfWidth} ${bottomY - 0.5}`
         : `M ${centerX - bridgeOffset} ${topY} Q ${centerX - bridgeOffset - 0.6} ${topY + (bottomY - topY) * 0.55} ${centerX - halfWidth} ${bottomY - 1}`;
   const basePath =
     design.noseStyle === "angular"
       ? `M ${centerX - halfWidth} ${bottomY - 1} L ${centerX} ${bottomY + 0.9} L ${centerX + halfWidth} ${bottomY - 1}`
-      : design.noseStyle === "snub" || design.noseStyle === "flat"
+      : design.noseStyle === "snub" ||
+          design.noseStyle === "flat" ||
+          design.noseStyle === "upturned" ||
+          design.noseStyle === "minimal"
         ? `M ${centerX - halfWidth} ${bottomY} Q ${centerX} ${bottomY - 0.8} ${centerX + halfWidth} ${bottomY}`
-        : design.noseStyle === "bulbous"
+        : design.noseStyle === "bulbous" ||
+            design.noseStyle === "potato" ||
+            design.noseStyle === "massive"
           ? `M ${centerX - halfWidth} ${bottomY - 0.6} Q ${centerX - halfWidth * 0.6} ${bottomY + 1.5} ${centerX} ${bottomY + 1.6} Q ${centerX + halfWidth * 0.6} ${bottomY + 1.5} ${centerX + halfWidth} ${bottomY - 0.6}`
         : `M ${centerX - halfWidth} ${bottomY - 1} Q ${centerX - halfWidth - 1} ${bottomY + 0.5} ${centerX} ${bottomY + 1} Q ${centerX + halfWidth + 1} ${bottomY + 0.5} ${centerX + halfWidth} ${bottomY - 1}`;
-  const showsNostrils = ["broad", "bulbous", "button", "flared", "flat", "rounded", "snub", "wide-bridge"].includes(
+  const showsNostrils = ["broad", "bulbous", "button", "flared", "flat", "massive", "potato", "rounded", "snub", "upturned", "wide-bridge"].includes(
     design.noseStyle,
   );
 
   return (
-    <g fill="none" stroke={design.skinShadow} strokeLinecap="round">
+    <g
+      data-avatar-nose-style={
+        design.version === 3 ? design.noseStyle : undefined
+      }
+      fill="none"
+      stroke={design.skinShadow}
+      strokeLinecap="round"
+    >
       <path d={bridgePath} strokeWidth="0.75" opacity="0.7" />
       <path d={basePath} strokeWidth="0.85" />
       {showsNostrils ? (
@@ -1373,7 +1624,12 @@ function Nose({
           />
         </>
       ) : null}
-      {design.noseStyle === "aquiline" || design.noseStyle === "hooked" || design.noseStyle === "long" ? (
+      {design.noseStyle === "aquiline" ||
+      design.noseStyle === "hooked" ||
+      design.noseStyle === "long" ||
+      design.noseStyle === "roman" ||
+      design.noseStyle === "eagle" ||
+      design.noseStyle === "drooping" ? (
         <path
           d={`M ${centerX + 0.8} ${topY + 1.4} Q ${centerX + 1.6} ${(topY + bottomY) / 2} ${centerX + halfWidth * 0.55} ${bottomY - 1.2}`}
           stroke={design.skinHighlight}
@@ -1396,7 +1652,10 @@ function Mouth({
   const y = layout.mouthY;
   const widthFactor: Record<RiderAvatarDesign["mouthStyle"], number> = {
     balanced: 1,
+    "big-grin": 1.28,
     bowed: 0.98,
+    clenched: 1.08,
+    "crooked-smile": 1.08,
     defined: 0.94,
     downturned: 0.96,
     flat: 1,
@@ -1406,15 +1665,22 @@ function Mouth({
     narrow: 0.82,
     open: 0.94,
     "open-smile": 1.12,
+    plush: 1.08,
     pursed: 0.68,
+    rictus: 1.12,
     smile: 1.08,
     smirk: 1.02,
     soft: 0.95,
+    "thin-lips": 0.92,
+    underbite: 1.02,
     wide: 1.15,
   };
   const fullnessByStyle: Record<RiderAvatarDesign["mouthStyle"], number> = {
     balanced: 1.15,
+    "big-grin": 2.3,
     bowed: 1.5,
+    clenched: 0.8,
+    "crooked-smile": 1.1,
     defined: 1.05,
     downturned: 1.05,
     flat: 0.8,
@@ -1424,18 +1690,27 @@ function Mouth({
     narrow: 1,
     open: 2.1,
     "open-smile": 2.15,
+    plush: 2.65,
     pursed: 1.4,
+    rictus: 0.9,
     smile: 1.15,
     smirk: 1.05,
     soft: 1.55,
+    "thin-lips": 0.42,
+    underbite: 1.35,
     wide: 1,
   };
   const halfWidth = (design.mouthWidth * widthFactor[design.mouthStyle]) / 2;
   const fullness = fullnessByStyle[design.mouthStyle];
   const expressionCurve =
-    design.mouthStyle === "smile" || design.mouthStyle === "open-smile"
+    design.mouthStyle === "smile" ||
+    design.mouthStyle === "open-smile" ||
+    design.mouthStyle === "big-grin" ||
+    design.mouthStyle === "crooked-smile"
       ? 1.8
-      : design.mouthStyle === "downturned" || design.mouthStyle === "grimace"
+      : design.mouthStyle === "downturned" ||
+          design.mouthStyle === "grimace" ||
+          design.mouthStyle === "rictus"
         ? -1.8
         : design.mouthStyle === "flat"
           ? 0
@@ -1443,11 +1718,20 @@ function Mouth({
   const cupidDepth = design.mouthStyle === "bowed" ? 0.95 : 0.2;
   const lipColor = shiftForLip(
     design.skinShadow,
-    design.mouthStyle === "full" ? 12 : 5,
+    design.mouthStyle === "full" || design.mouthStyle === "plush" ? 12 : 5,
   );
 
-  if (design.mouthStyle === "open" || design.mouthStyle === "open-smile") {
-    const openingHeight = design.mouthStyle === "open-smile" ? 3.1 : 3.8;
+  if (
+    design.mouthStyle === "open" ||
+    design.mouthStyle === "open-smile" ||
+    design.mouthStyle === "big-grin"
+  ) {
+    const openingHeight =
+      design.mouthStyle === "big-grin"
+        ? 4.2
+        : design.mouthStyle === "open-smile"
+          ? 3.1
+          : 3.8;
 
     return (
       <g>
@@ -1477,9 +1761,13 @@ function Mouth({
     );
   }
 
-  if (design.mouthStyle === "gritted") {
+  if (design.mouthStyle === "gritted" || design.mouthStyle === "clenched") {
     return (
-      <g>
+      <g
+        data-avatar-mouth-style={
+          design.version === 3 ? design.mouthStyle : undefined
+        }
+      >
         <path
           d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y - 1.3} ${centerX + halfWidth} ${y} Q ${centerX} ${y + 2.2} ${centerX - halfWidth} ${y} Z`}
           fill="#F3EEE5"
@@ -1491,6 +1779,15 @@ function Mouth({
           stroke={design.skinShadow}
           strokeWidth="0.45"
         />
+        {design.mouthStyle === "clenched" ? (
+          <path
+            d={`M ${centerX - halfWidth * 0.72} ${y + 2.8} Q ${centerX} ${y + 4.1} ${centerX + halfWidth * 0.72} ${y + 2.8}`}
+            fill="none"
+            stroke={design.skinShadow}
+            strokeWidth="0.75"
+            opacity="0.6"
+          />
+        ) : null}
       </g>
     );
   }
@@ -1507,6 +1804,26 @@ function Mouth({
     );
   }
 
+  if (design.mouthStyle === "crooked-smile") {
+    return (
+      <g data-avatar-mouth-style="crooked-smile">
+        <path
+          d={`M ${centerX - halfWidth} ${y + 1.5} Q ${centerX} ${y + 0.7} ${centerX + halfWidth} ${y - 1.2}`}
+          fill="none"
+          stroke={lipColor}
+          strokeWidth="1.45"
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${centerX + halfWidth * 0.58} ${y - 0.4} q 1.2 -0.8 1.8 0.2`}
+          fill="none"
+          stroke={design.skinShadow}
+          strokeWidth="0.55"
+        />
+      </g>
+    );
+  }
+
   if (design.mouthStyle === "pursed") {
     return (
       <path
@@ -1515,6 +1832,38 @@ function Mouth({
         stroke={design.skinShadow}
         strokeWidth="0.45"
       />
+    );
+  }
+
+  if (design.mouthStyle === "rictus") {
+    return (
+      <g data-avatar-mouth-style="rictus">
+        <path
+          d={`M ${centerX - halfWidth} ${y - 1} L ${centerX - halfWidth * 0.66} ${y + 1.2} Q ${centerX} ${y - 0.2} ${centerX + halfWidth * 0.66} ${y + 1.2} L ${centerX + halfWidth} ${y - 1}`}
+          fill="none"
+          stroke={lipColor}
+          strokeWidth="1.35"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    );
+  }
+
+  if (design.mouthStyle === "underbite") {
+    return (
+      <g data-avatar-mouth-style="underbite">
+        <path
+          d={`M ${centerX - halfWidth * 0.88} ${y - 0.4} Q ${centerX} ${y - 1.2} ${centerX + halfWidth * 0.88} ${y - 0.4}`}
+          fill="none"
+          stroke={lipColor}
+          strokeWidth="0.85"
+        />
+        <path
+          d={`M ${centerX - halfWidth} ${y + 0.5} Q ${centerX} ${y + 2.6} ${centerX + halfWidth} ${y + 0.5} Q ${centerX} ${y + 1.2} ${centerX - halfWidth} ${y + 0.5} Z`}
+          fill={lipColor}
+        />
+      </g>
     );
   }
 
@@ -1711,6 +2060,42 @@ function FaceMarks({ design }: { design: RiderAvatarDesign }) {
         strokeLinecap="round"
         opacity="0.55"
       />
+    );
+  }
+
+  if (design.faceMark === "beauty-mark") {
+    return <circle cx="57.5" cy="51" r="0.7" fill="#4C3129" opacity="0.72" />;
+  }
+
+  if (design.faceMark === "birthmark") {
+    return (
+      <path
+        d="M 36 46 q 2.2 -2.3 4.7 -0.4 q 1.1 2.4 -1.7 4 q -3 0.5 -3 -3.6 Z"
+        fill={design.skinShadow}
+        opacity="0.22"
+      />
+    );
+  }
+
+  if (design.faceMark === "cleft-chin") {
+    return (
+      <path
+        d="M 46.6 61.5 Q 48 60.7 49.4 61.5"
+        fill="none"
+        stroke={design.skinShadow}
+        strokeWidth="0.7"
+        strokeLinecap="round"
+        opacity="0.58"
+      />
+    );
+  }
+
+  if (design.faceMark === "dimples") {
+    return (
+      <g fill="none" stroke={design.skinShadow} strokeWidth="0.65" opacity="0.48">
+        <path d="M 38.5 55.5 q 1.2 1.1 0 2.2" />
+        <path d="M 57.5 55.5 q -1.2 1.1 0 2.2" />
+      </g>
     );
   }
 

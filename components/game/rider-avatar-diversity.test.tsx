@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { createRiderAvatarDesign } from "@/lib/rider-avatar";
+import {
+  createRiderAvatarDesign,
+  createThirdGenerationRiderAvatarSeed,
+} from "@/lib/rider-avatar";
 
 import { RiderAvatar } from "./rider-avatar";
 
@@ -84,7 +87,43 @@ describe("rendu des portraits coureurs enrichis", () => {
     expect(markup).toContain('data-avatar-render-mode="compact"');
     expect(markup.match(/<(path|circle|ellipse|rect)\b/g)?.length).toBeLessThan(20);
   });
+
+  it("rend les traits expressifs et les silhouettes capillaires de la v3", () => {
+    const longHairSeed = findV3Seed(
+      (design) => design.hairStyle === "shoulder-length",
+    );
+    const laughingSeed = findV3Seed(
+      (design) => design.eyeStyle === "laughing",
+    );
+    const rictusSeed = findV3Seed(
+      (design) => design.mouthStyle === "rictus",
+    );
+    const eagleNoseSeed = findV3Seed(
+      (design) => design.noseStyle === "eagle",
+    );
+
+    const longHairMarkup = renderV3Avatar(longHairSeed, "long-hair-v3");
+    const laughingMarkup = renderV3Avatar(laughingSeed, "laughing-v3");
+    const rictusMarkup = renderV3Avatar(rictusSeed, "rictus-v3");
+    const eagleNoseMarkup = renderV3Avatar(eagleNoseSeed, "eagle-nose-v3");
+
+    expect(longHairMarkup).toContain('data-avatar-hair-style="shoulder-length"');
+    expect(laughingMarkup).toContain('data-avatar-eye-style="laughing"');
+    expect(rictusMarkup).toContain('data-avatar-mouth-style="rictus"');
+    expect(eagleNoseMarkup).toContain('data-avatar-nose-style="eagle"');
+  });
 });
+
+function renderV3Avatar(seed: string, riderId: string) {
+  return renderToStaticMarkup(
+    <RiderAvatar
+      profileKey="europe_west"
+      seed={seed}
+      riderId={riderId}
+      age={24}
+    />,
+  );
+}
 
 function findSeed(
   predicate: (design: ReturnType<typeof createRiderAvatarDesign>) => boolean,
@@ -99,4 +138,21 @@ function findSeed(
   }
 
   throw new Error("Aucune graine de test compatible trouvée.");
+}
+
+function findV3Seed(
+  predicate: (design: ReturnType<typeof createRiderAvatarDesign>) => boolean,
+) {
+  for (let identitySeed = 1; identitySeed <= 100_000; identitySeed += 1) {
+    const seed = createThirdGenerationRiderAvatarSeed(identitySeed);
+    const design = createRiderAvatarDesign({
+      profileKey: "europe_west",
+      seed,
+      age: 24,
+    });
+
+    if (predicate(design)) return seed;
+  }
+
+  throw new Error("Aucune graine v3 de test compatible trouvée.");
 }

@@ -50,6 +50,7 @@ import {
   type YouthRatings,
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
+import { createThirdGenerationRiderAvatarSeed } from "@/lib/rider-avatar";
 import {
   getSpecialAbilityDefinition,
   type SpecialAbilityDefinition,
@@ -1654,7 +1655,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       // Youth candidates are portraits in their own right. Negative seeds opt
       // only newly generated reports into avatar v2; existing candidates keep
       // their already visible positive-seed face.
-      avatar_seed: `-${identity.avatar_seed}`,
+      avatar_seed: createThirdGenerationRiderAvatarSeed(identity.avatar_seed),
       ...ratingsToRow(ratings),
       signing_fee: costs.signingFee,
       scout_training_bonus_percentage:

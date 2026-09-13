@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createThirdGenerationRiderAvatarSeed,
   createRiderAvatarDesign,
   getRiderAvatarFeatureLayout,
   isExpandedRiderAvatarSeed,
+  isThirdGenerationRiderAvatarSeed,
   RIDER_AVATAR_PROFILE_KEYS,
 } from "./rider-avatar";
 
@@ -272,6 +274,181 @@ describe("générateur de portraits coureurs", () => {
     expect(
       createRiderAvatarDesign({ profileKey: "europe_west", seed: 42 }).version,
     ).toBe(1);
+  });
+
+  it("conserve strictement un portrait v2 après l'ajout de la v3", () => {
+    expect(
+      createRiderAvatarDesign({
+        profileKey: "north_america",
+        seed: -42,
+        age: 24,
+      }),
+    ).toEqual({
+      version: 2,
+      profileKey: "north_america",
+      profileGroup: "mixed",
+      seed: "-42",
+      skinTone: "#794933",
+      skinShadow: "#60301A",
+      skinHighlight: "#8B5B45",
+      hairColor: "#35241B",
+      hairHighlight: "#4D3C33",
+      eyeColor: "#4C3929",
+      rightEyeColor: "#78828B",
+      backgroundColor: "#E1EBE8",
+      hairStyle: "curly",
+      eyeStyle: "small",
+      noseStyle: "hooked",
+      mouthStyle: "smirk",
+      facialHairStyle: "clean",
+      gazeStyle: "centered",
+      browStyle: "heavy",
+      faceMark: "none",
+      faceShape: "tapered",
+      earStyle: "small",
+      faceWidth: 33.879999999999995,
+      faceHeight: 46,
+      jawWidth: 21.4,
+      foreheadWidth: 27.62,
+      cheekboneWidth: 27.16,
+      chinWidth: 10.82,
+      eyeSpacing: 17.84,
+      eyeWidth: 7.869999999999999,
+      eyeTilt: 0,
+      eyeY: 41.66,
+      eyeAsymmetry: -0.24,
+      browY: 36.160000000000004,
+      noseWidth: 5.23,
+      noseLength: 9.9,
+      mouthWidth: 14.030000000000001,
+      mouthCurve: 0,
+      mouthYOffset: -0.54,
+      earHeight: 10.61,
+      earWidth: 5.65,
+      neckWidth: 14.4,
+      ageLineOpacity: 0,
+      agingStage: "adult",
+      geometrySignature: "8-10-12-4-8-8-4-4-5-9-4-3-8-1-4-9-7-6-1-0",
+    });
+  });
+
+  it("réserve la v3 aux graines du nouvel espace de création", () => {
+    const firstV3Seed = createThirdGenerationRiderAvatarSeed(1);
+
+    expect(firstV3Seed).toBe("-1000000000001");
+    expect(isExpandedRiderAvatarSeed(firstV3Seed)).toBe(true);
+    expect(isThirdGenerationRiderAvatarSeed(firstV3Seed)).toBe(true);
+    expect(isThirdGenerationRiderAvatarSeed(-42)).toBe(false);
+    expect(isThirdGenerationRiderAvatarSeed("-1000000000000")).toBe(false);
+    expect(
+      createRiderAvatarDesign({ profileKey: "europe_west", seed: firstV3Seed })
+        .version,
+    ).toBe(3);
+  });
+
+  it("déploie toutes les nouvelles familles visuelles sans uniformiser les profils", () => {
+    const newHairStyles = new Set([
+      "bald",
+      "balding",
+      "big-afro",
+      "crew-cut",
+      "high-top",
+      "long-waves",
+      "receding",
+      "shoulder-curls",
+      "shoulder-length",
+      "widows-peak",
+    ]);
+    const newEyeStyles = new Set([
+      "crescent",
+      "droopy",
+      "heavy-lidded",
+      "laughing",
+      "piercing",
+      "wide-open",
+    ]);
+    const newNoseStyles = new Set([
+      "crooked",
+      "drooping",
+      "eagle",
+      "massive",
+      "minimal",
+      "petite",
+      "potato",
+      "roman",
+      "upturned",
+    ]);
+    const newMouthStyles = new Set([
+      "big-grin",
+      "clenched",
+      "crooked-smile",
+      "plush",
+      "rictus",
+      "thin-lips",
+      "underbite",
+    ]);
+    const newFaceShapes = new Set([
+      "gaunt",
+      "inverted-triangle",
+      "pear",
+      "rectangular",
+      "soft-round",
+      "strong-jaw",
+      "wide-cheek",
+    ]);
+    const newEarStyles = new Set([
+      "cupped",
+      "flat",
+      "high-set",
+      "large-lobed",
+      "low-set",
+      "uneven",
+    ]);
+    const seenHairStyles = new Set<string>();
+    const seenEyeStyles = new Set<string>();
+    const seenNoseStyles = new Set<string>();
+    const seenMouthStyles = new Set<string>();
+    const seenFaceShapes = new Set<string>();
+    const seenEarStyles = new Set<string>();
+    const seenSkinTonesByProfile = new Map<string, Set<string>>();
+    const seenEyeColors = new Set<string>();
+
+    for (let identitySeed = 1; identitySeed <= 32_000; identitySeed += 1) {
+      const profileKey =
+        identitySeed % 3 === 0
+          ? "central_africa"
+          : identitySeed % 3 === 1
+            ? "europe_west"
+            : "east_asia";
+      const design = createRiderAvatarDesign({
+        profileKey,
+        seed: createThirdGenerationRiderAvatarSeed(identitySeed),
+        age: 24,
+      });
+
+      seenHairStyles.add(design.hairStyle);
+      seenEyeStyles.add(design.eyeStyle);
+      seenNoseStyles.add(design.noseStyle);
+      seenMouthStyles.add(design.mouthStyle);
+      seenFaceShapes.add(design.faceShape);
+      seenEarStyles.add(design.earStyle);
+      seenEyeColors.add(design.eyeColor);
+      const skinTones = seenSkinTonesByProfile.get(profileKey) ?? new Set<string>();
+      skinTones.add(design.skinTone);
+      seenSkinTonesByProfile.set(profileKey, skinTones);
+    }
+
+    for (const style of newHairStyles) expect(seenHairStyles).toContain(style);
+    for (const style of newEyeStyles) expect(seenEyeStyles).toContain(style);
+    for (const style of newNoseStyles) expect(seenNoseStyles).toContain(style);
+    for (const style of newMouthStyles) expect(seenMouthStyles).toContain(style);
+    for (const shape of newFaceShapes) expect(seenFaceShapes).toContain(shape);
+    for (const style of newEarStyles) expect(seenEarStyles).toContain(style);
+    for (const skinTones of seenSkinTonesByProfile.values()) {
+      expect(skinTones.size).toBeGreaterThanOrEqual(14);
+    }
+    expect(seenEyeColors).toContain("#4E7D70");
+    expect(seenEyeColors).toContain("#3D6F88");
   });
 
   it("prend en charge les 22 profils géographiques de la base", () => {
