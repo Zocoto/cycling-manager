@@ -3,6 +3,7 @@ import { getSponsorMinimumReputation } from "@/lib/game/sponsor-prestige";
 
 import { AFRICAN_SPONSORS } from "./africa";
 import { ACTIVE_TEAM_COUNTRY_BATCH_01_SPONSORS } from "./active-team-country-batch-01";
+import { ARGENTINA_MAURITIUS_EXPANSION_SPONSORS } from "./argentina-mauritius-expansion";
 import { AUSTRIA_NORTH_KOREA_EXPANSION_SPONSORS } from "./austria-north-korea-expansion";
 import { AUTOMOTIVE_SPONSORS } from "./automotive";
 import { BALTIC_SPONSORS } from "./baltics";
@@ -45,6 +46,7 @@ import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
 const RAW_SPONSORS = [
   ...ACTIVE_TEAM_COUNTRY_BATCH_01_SPONSORS,
+  ...ARGENTINA_MAURITIUS_EXPANSION_SPONSORS,
   ...AUSTRIA_NORTH_KOREA_EXPANSION_SPONSORS,
   ...BAHAMIAN_SPONSORS,
   ...FRENCH_SPONSORS,
