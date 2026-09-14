@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   hasDynamicTutorialRouteSegment,
+  materializeTutorialRoute,
   matchesTutorialRoute,
   resolveTutorialProgressRoute,
 } from "@/lib/tutorial/routes";
@@ -52,6 +53,28 @@ describe("tutorial routes", () => {
         preserveSavedRoute: true,
       }),
     ).toBe("/jeu/coureurs/[identifiant]");
+    expect(
+      resolveTutorialProgressRoute({
+        routePattern: "/jeu/coureurs/[identifiant]",
+        savedRoute: "/jeu/coureurs/[identifiant]",
+        preserveSavedRoute: true,
+      }),
+    ).toBe("/jeu/coureurs/[identifiant]");
+  });
+
+  it("remplace un segment dynamique par un identifiant réel et sûr", () => {
+    expect(
+      materializeTutorialRoute({
+        routePattern: "/jeu/coureurs/[identifiant]",
+        segmentValues: { identifiant: "abc-123" },
+      }),
+    ).toBe("/jeu/coureurs/abc-123");
+    expect(
+      materializeTutorialRoute({
+        routePattern: "/jeu/coureurs/[identifiant]",
+        segmentValues: {},
+      }),
+    ).toBeNull();
   });
 
   it("distingue les onglets portés par les paramètres d’URL", () => {

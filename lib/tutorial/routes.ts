@@ -51,6 +51,43 @@ export function hasDynamicTutorialRouteSegment(route: string): boolean {
   );
 }
 
+export function materializeTutorialRoute({
+  routePattern,
+  segmentValues,
+}: {
+  routePattern: string;
+  segmentValues: Readonly<Record<string, string | null | undefined>>;
+}): string | null {
+  const parsed = parseTutorialRoute(routePattern);
+
+  if (!parsed) {
+    return null;
+  }
+
+  const materializedSegments: string[] = [];
+
+  for (const segment of parsed.segments) {
+    if (!DYNAMIC_SEGMENT_PATTERN.test(segment)) {
+      materializedSegments.push(segment);
+      continue;
+    }
+
+    const key = segment.slice(1, -1);
+    const value = segmentValues[key]?.trim();
+
+    if (!value) {
+      return null;
+    }
+
+    materializedSegments.push(encodeURIComponent(value));
+  }
+
+  const pathname = `/${materializedSegments.join("/")}`;
+  const search = new URLSearchParams(parsed.searchEntries).toString();
+
+  return search ? `${pathname}?${search}` : pathname;
+}
+
 export function resolveTutorialProgressRoute({
   routePattern,
   savedRoute,
@@ -62,6 +99,7 @@ export function resolveTutorialProgressRoute({
 }): string {
   return preserveSavedRoute &&
     savedRoute &&
+    !hasDynamicTutorialRouteSegment(savedRoute) &&
     matchesTutorialRoute(routePattern, savedRoute)
     ? savedRoute
     : routePattern;

@@ -16,9 +16,15 @@ import {
 import { EQUIPMENT_TUTORIAL_KEY } from "@/lib/tutorial/equipment";
 import { getAuthenticatedTutorialOnboardingState } from "@/lib/tutorial/onboarding-state";
 import {
+  hasDynamicTutorialRouteSegment,
+  materializeTutorialRoute,
   matchesTutorialRoute,
   resolveTutorialProgressRoute,
 } from "@/lib/tutorial/routes";
+import {
+  ROSTER_TUTORIAL_KEY,
+  ROSTER_TUTORIAL_RIDER_ROUTE,
+} from "@/lib/tutorial/roster";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   TutorialDefinition,
@@ -86,6 +92,8 @@ type TutorialActionFailure = {
 
 type TutorialActionResult = TutorialActionSuccess | TutorialActionFailure;
 
+type TutorialRosterRow = { rider_id: string };
+
 function actionFailure(error: unknown): TutorialActionFailure {
   if (error instanceof Error) {
     return {
@@ -132,6 +140,53 @@ function requireTutorialStep(
   }
 
   return step;
+}
+
+async function resolveTutorialStepRouteForDirector({
+  supabase,
+  definition,
+  step,
+  route,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  definition: TutorialDefinition;
+  step: TutorialStep;
+  route: string;
+}): Promise<string> {
+  if (!hasDynamicTutorialRouteSegment(route)) {
+    return route;
+  }
+
+  if (
+    definition.key !== ROSTER_TUTORIAL_KEY ||
+    step.route !== ROSTER_TUTORIAL_RIDER_ROUTE
+  ) {
+    throw new Error(
+      `La route dynamique de l’étape « ${step.key} » ne peut pas être résolue.`,
+    );
+  }
+
+  const { data, error } = await supabase.rpc("get_current_team_roster");
+
+  if (error) {
+    throw new Error(
+      `Impossible de retrouver un coureur pour reprendre le didacticiel : ${error.message}`,
+    );
+  }
+
+  const riderId = ((data ?? []) as TutorialRosterRow[])[0]?.rider_id;
+  const resolvedRoute = materializeTutorialRoute({
+    routePattern: step.route,
+    segmentValues: { identifiant: riderId },
+  });
+
+  if (!resolvedRoute) {
+    throw new Error(
+      "Ajoutez au moins un coureur à votre effectif avant de poursuivre ce didacticiel.",
+    );
+  }
+
+  return resolvedRoute;
 }
 
 async function requireTutorialStepRequirement({
@@ -465,12 +520,18 @@ export async function startTutorialAction(
       startingStep: requestedStep,
       progress,
     });
-    const selectedRoute = resolveTutorialProgressRoute({
+    let selectedRoute = resolveTutorialProgressRoute({
       routePattern: selectedStep.route,
       savedRoute: progress.current_route,
       preserveSavedRoute:
         !parsed.restartFromBeginning &&
         progress.current_step_key === selectedStep.key,
+    });
+    selectedRoute = await resolveTutorialStepRouteForDirector({
+      supabase,
+      definition,
+      step: selectedStep,
+      route: selectedRoute,
     });
 
     await requireTutorialStepRequirement({
@@ -618,8 +679,14 @@ export async function setTutorialStepAction(
       startingStep: requestedStep,
       progress,
     });
-    const stepRoute =
+    let stepRoute =
       step.key === requestedStep.key ? parsed.route : step.route;
+    stepRoute = await resolveTutorialStepRouteForDirector({
+      supabase,
+      definition,
+      step,
+      route: stepRoute,
+    });
 
     await requireTutorialStepRequirement({
       supabase,
