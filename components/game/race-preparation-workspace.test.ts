@@ -47,4 +47,11 @@ describe("race preparation individual missions", () => {
     );
     expect(source).toContain("RACE_TACTICAL_DOCTRINES_ENABLED ? (");
   });
+
+  it("verrouille le leader déclaré pendant tout un tour", () => {
+    expect(source).toContain('rider.generalRole === "leader"');
+    expect(source).toContain("lockedLeaderRiderId: lockedTourLeaderRiderId");
+    expect(source).toContain("Leader du tour · verrouillé");
+    expect(source).toContain("Le leader annoncé à l’inscription reste leader");
+  });
 });

@@ -124,7 +124,7 @@ describe("createCalendarSimulationInput", () => {
     });
   });
 
-  it("applique le rôle propre à l'étape sans modifier le rôle général", () => {
+  it("applique les rôles d'étape sans démettre le leader déclaré du tour", () => {
     const riders = [
       { ...createRider("rider-a", "team-a"), role: "domestique" as const },
       { ...createRider("rider-b", "team-a"), role: "leader" as const },
@@ -147,7 +147,7 @@ describe("createCalendarSimulationInput", () => {
 
     expect(input.riders.map((rider) => [rider.id, rider.role])).toEqual([
       ["rider-a", "sprinter"],
-      ["rider-b", "leadout"],
+      ["rider-b", "leader"],
     ]);
     expect(riders.map((rider) => rider.role)).toEqual(["domestique", "leader"]);
   });

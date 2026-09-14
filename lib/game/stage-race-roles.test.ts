@@ -13,6 +13,28 @@ describe("resolveStageRaceRole", () => {
     ).toBe("leader");
   });
 
+  it("keeps the declared tour leader in charge on every stage", () => {
+    expect(
+      resolveStageRaceRole({
+        riderId: "leader",
+        generalRole: "leader",
+        roleOverrides: { leader: "leadout" },
+        lockedLeaderRiderId: "leader",
+      }),
+    ).toBe("leader");
+  });
+
+  it("reserves the leader role for the declared tour leader", () => {
+    expect(
+      resolveStageRaceRole({
+        riderId: "teammate",
+        generalRole: "domestique",
+        roleOverrides: { teammate: "leader" },
+        lockedLeaderRiderId: "leader",
+      }),
+    ).toBe("domestique");
+  });
+
   it("falls back to the general tour role", () => {
     expect(
       resolveStageRaceRole({

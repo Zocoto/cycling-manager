@@ -147,6 +147,13 @@ export function createCalendarSimulationInput({
   const sourceRiders = [
     ...new Map(rawSourceRiders.map((rider) => [rider.id, rider])).values(),
   ];
+  const tourLeaderByTeamId = new Map(
+    edition.raceFormat === "stage_race"
+      ? sourceRiders
+          .filter((rider) => rider.role === "leader")
+          .map((rider) => [rider.teamId, rider.id] as const)
+      : [],
+  );
   const sanitizedTeamStrategies = sanitizeCalendarTeamStrategies({
     stage,
     sourceRiders,
@@ -178,6 +185,7 @@ export function createCalendarSimulationInput({
           riderId: rider.id,
           generalRole: rider.role,
           roleOverrides: stage.riderRoleOverrides,
+          lockedLeaderRiderId: tourLeaderByTeamId.get(rider.teamId),
         }),
         ...(raceDuty ? { raceDuty } : {}),
         specialAbility: specialAbilities[0] ?? null,

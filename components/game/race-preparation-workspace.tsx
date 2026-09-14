@@ -24,6 +24,7 @@ import {
   isTimeTrialPreparationStage,
 } from "@/lib/game/race-preparation";
 import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
+import { resolveStageRaceRole } from "@/lib/game/stage-race-roles";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
   RIDER_RATING_AXES,
@@ -357,11 +358,23 @@ function StagePreparationForm({
   equipmentSaveStatus: string | null;
   initiallyOpen: boolean;
 }) {
+  const lockedTourLeaderRiderId =
+    edition.raceFormat === "stage_race"
+      ? (riders.find((rider) => rider.generalRole === "leader")?.riderId ??
+        null)
+      : null;
   const [roles, setRoles] = useState<Record<string, RaceRole>>(() =>
     Object.fromEntries(
       riders.map((rider) => [
         rider.riderId,
-        rider.stageRoles[stage.id] ?? rider.generalRole,
+        resolveStageRaceRole({
+          riderId: rider.riderId,
+          generalRole: rider.generalRole,
+          roleOverrides: rider.stageRoles[stage.id]
+            ? { [rider.riderId]: rider.stageRoles[stage.id] }
+            : undefined,
+          lockedLeaderRiderId: lockedTourLeaderRiderId,
+        }),
       ]),
     ),
   );
@@ -520,12 +533,18 @@ function StagePreparationForm({
             <SectionTitle
               eyebrow="Hiérarchie"
               title="Rôles en course"
-              description="Le rôle de l’inscription reste le défaut ; l’étape peut le remplacer jusqu’à son départ."
+              description={
+                lockedTourLeaderRiderId
+                  ? "Le leader annoncé à l’inscription reste leader pendant tout le tour. Les autres rôles peuvent évoluer jusqu’au départ de l’étape."
+                  : "Le rôle de l’inscription reste le défaut ; l’étape peut le remplacer jusqu’à son départ."
+              }
             />
             <RaceRoleGuide tone="light" />
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {riders.map((rider) => {
                 const role = roles[rider.riderId] ?? rider.generalRole;
+                const isLockedTourLeader =
+                  rider.riderId === lockedTourLeaderRiderId;
                 return (
                   <label
                     key={rider.riderId}
@@ -537,11 +556,23 @@ function StagePreparationForm({
                     <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-[#789487]">
                       Général · {RACE_ROLE_LABELS[rider.generalRole]}
                     </span>
+                    {isLockedTourLeader ? (
+                      <span className="mt-1 inline-flex rounded-full bg-[#278B70]/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#176951]">
+                        Leader du tour · verrouillé
+                      </span>
+                    ) : null}
                     <RiderRatingsGrid ratings={rider.ratings} />
+                    {isLockedTourLeader ? (
+                      <input
+                        type="hidden"
+                        name="stageRoles"
+                        value={`${rider.riderId}:leader`}
+                      />
+                    ) : null}
                     <select
                       name="stageRoles"
                       value={`${rider.riderId}:${role}`}
-                      disabled={!isEditable}
+                      disabled={!isEditable || isLockedTourLeader}
                       onChange={(event) => {
                         const nextRole = event.target.value
                           .split(":")
@@ -569,11 +600,15 @@ function StagePreparationForm({
                             isRaceSprinterRole(selectedRole)
                           );
                         });
+                        const isReservedTourLeaderRole =
+                          candidateRole === "leader" &&
+                          Boolean(lockedTourLeaderRiderId) &&
+                          !isLockedTourLeader;
                         return (
                           <option
                             key={candidateRole}
                             value={`${rider.riderId}:${candidateRole}`}
-                            disabled={isTaken}
+                            disabled={isTaken || isReservedTourLeaderRole}
                           >
                             {RACE_ROLE_LABELS[candidateRole]}
                           </option>
