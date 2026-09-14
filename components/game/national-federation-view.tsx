@@ -607,32 +607,6 @@ function SelectionsPanel({
   riders: FederationSelectionRider[];
   selectionState: FederationSelectionState | null;
 }) {
-  const isQuadriennialSeason = snapshot.season.gameYear % 4 === 0;
-  const events = [
-    {
-      day: 15,
-      name: "Championnats continentaux",
-      detail: "Sélection nationale · route et contre-la-montre",
-    },
-    {
-      day: 24,
-      name: isQuadriennialSeason ? "Jeux quadriennaux" : "Nations Cup",
-      detail: isQuadriennialSeason
-        ? "Programme professionnel exceptionnel à la place de la Nations Cup"
-        : "Cinq courses réelles · classement de division et de groupe",
-    },
-    {
-      day: 24,
-      name: "Nations Cup juniors",
-      detail: "Sélection fédérale · 6 juniors issus des écoles ou DevTeams",
-    },
-    {
-      day: 26,
-      name: "Championnats du monde",
-      detail: "Sélection nationale · route et contre-la-montre",
-    },
-  ];
-
   return (
     <div className="space-y-7">
       <LockedFeatureHeader
@@ -642,34 +616,6 @@ function SelectionsPanel({
           ? "Dès J1, le président préparera ses listes. Chaque équipe validera uniquement ses propres coureurs et toute place laissée vacante sera complétée automatiquement avant le départ."
           : "Le président compose les listes, chaque équipe valide ses propres coureurs et toute place laissée vacante est complétée automatiquement avant le départ."}
       />
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        {events.map((event) => (
-          <article
-            key={event.day}
-            className="relative overflow-hidden rounded-[1.65rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_14px_36px_rgba(19,60,46,0.07)]"
-          >
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#2D74DA,#F2C94C,#C75348,#42B99A,#8D60C7)]"
-            />
-            <div className="flex items-start justify-between gap-4">
-              <span className="rounded-xl bg-[var(--federation-primary)] px-3 py-2 text-sm font-black text-white">
-                J{event.day}
-              </span>
-              <StatusPill>
-                {snapshot.season.gameYear < 3 ? "Gestion verrouillée" : "Calendrier officiel"}
-              </StatusPill>
-            </div>
-            <h3 className="mt-5 text-xl font-black text-[#183F37]">
-              {event.name}
-            </h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-              {event.detail}
-            </p>
-          </article>
-        ))}
-      </section>
 
       <FederationSelectionWorkbench
         countryCode={country.code}
@@ -1294,14 +1240,6 @@ function JournalEntry({
         </p>
       </div>
     </li>
-  );
-}
-
-function StatusPill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="w-fit rounded-full border border-[#315B3E]/12 bg-[#EEF3F1] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">
-      {children}
-    </span>
   );
 }
 

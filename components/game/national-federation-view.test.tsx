@@ -171,7 +171,7 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Championnats du monde");
     expect(markup).toContain("Nationalité verrouillée");
     expect(markup).toContain("Enregistrer en S3");
-    expect(markup).toContain("confirmée par chaque DS");
+    expect(markup).toContain("Chaque équipe validera uniquement ses propres coureurs");
     expect(markup).not.toContain("<form");
   });
 

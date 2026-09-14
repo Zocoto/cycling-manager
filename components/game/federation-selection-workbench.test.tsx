@@ -59,7 +59,7 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain("Disponible J15");
     // Navigation and read-only profiles must remain usable in automatic mode.
     const lockedChoices = markup.indexOf("<fieldset disabled");
-    expect(lockedChoices).toBeGreaterThan(markup.indexOf("Épreuve à préparer"));
+    expect(lockedChoices).toBeGreaterThan(markup.indexOf("Sous-épreuves"));
     expect(lockedChoices).toBeGreaterThan(markup.indexOf("</svg>"));
     expect(lockedChoices).toBeGreaterThan(markup.indexOf("Voir la course"));
   });
@@ -108,9 +108,53 @@ describe("FederationSelectionWorkbench hosting", () => {
 
     expect(markup).toContain("Pays hôte : Allemagne");
     expect(markup).toContain("fi-de");
-    expect(markup).toContain("Jeux quadriennaux · Montagne");
-    expect(markup).toContain("Nations Cup Juniors · Route");
+    expect(markup).toContain("Jeux quadriennaux");
+    expect(markup).toContain("Nations Cup juniors");
     expect(markup).not.toContain("Nations Cup · Montagne");
+  });
+
+  it("uses six competition tiles as navigation and summarizes selection maturity", () => {
+    const roadRiderIds = Array.from({ length: 8 }, (_, index) => `road-${index}`);
+    const timeTrialRiderIds = Array.from({ length: 2 }, (_, index) => `itt-${index}`);
+    const confirmedSelection = (riderIds: string[]) => ({
+      status: "finalized" as const,
+      revision: 1,
+      riderIds,
+      confirmedRiderIds: riderIds,
+      responses: Object.fromEntries(
+        riderIds.map((riderId) => [riderId, "confirmed" as const]),
+      ),
+    });
+    const markup = renderToStaticMarkup(
+      <FederationSelectionWorkbench
+        countryCode="FR"
+        countryName="France"
+        riders={[]}
+        gameYear={3}
+        selectionState={{
+          canManage: true,
+          automaticSelection: false,
+          competitionHosts: {},
+          forecasts: {},
+          selections: {
+            "cc-pro-road": confirmedSelection(roadRiderIds),
+            "cc-pro-itt": confirmedSelection(timeTrialRiderIds),
+          },
+          pendingConfirmations: [],
+        }}
+      />,
+    );
+
+    expect(markup.match(/data-selection-competition=/g)).toHaveLength(6);
+    expect(markup).toContain(
+      "Championnats continentaux : 10 convocations envoyées, 10 confirmées, 0 en attente, sélection finalisée",
+    );
+    expect(markup).toContain("Sélection finalisée");
+    expect(markup).toContain("Sous-épreuves");
+    expect(markup).toContain("En ligne");
+    expect(markup).toContain("Contre-la-montre");
+    expect(markup).not.toContain("Construire les listes dès J1");
+    expect(markup).not.toContain("Épreuve à préparer");
   });
 
   it("shows statistical sorting, rider affinities and federation weather", () => {

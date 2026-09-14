@@ -40,10 +40,20 @@ import {
 import type { FederationSelectionRider } from "@/services/federation-selection-pool";
 import type { FederationSelectionState } from "@/services/federation-selections";
 
+type SelectionCompetitionId =
+  | "continental-pro"
+  | "continental-junior"
+  | "nations-pro"
+  | "nations-junior"
+  | "world-pro"
+  | "world-junior";
+
 type SelectionSlot = {
   id: string;
   label: string;
   competition: string;
+  competitionId: SelectionCompetitionId;
+  subRaceLabel: string;
   category: FederationSelectionRider["category"];
   hostName: string;
   hostCode: string;
@@ -53,21 +63,43 @@ type SelectionSlot = {
 };
 
 const SELECTION_SLOTS: SelectionSlot[] = [
-  { id: "cc-pro-road", label: "CC Pros · Route", competition: "Championnats continentaux", category: "professional", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 8 },
-  { id: "cc-pro-itt", label: "CC Pros · CLM", competition: "Championnats continentaux", category: "professional", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
-  { id: "cc-junior-road", label: "CC Juniors · Route", competition: "Championnats continentaux juniors", category: "junior", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 6 },
-  { id: "cc-junior-itt", label: "CC Juniors · CLM", competition: "Championnats continentaux juniors", category: "junior", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
-  { id: "nc-mountain", label: "Nations Cup · Montagne", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Montagne" },
-  { id: "nc-hills", label: "Nations Cup · Vallons", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Vallons" },
-  { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
-  { id: "nc-cobbles", label: "Nations Cup · Pavés", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Pavés" },
-  { id: "nc-time-trial", label: "Nations Cup · Chrono", competition: "Nations Cup", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Chrono" },
-  { id: "nc-junior-road", label: "Nations Cup Juniors · Route", competition: "Nations Cup juniors", category: "junior", hostName: "Suisse", hostCode: "ch", day: 24, limit: 6 },
-  { id: "world-pro-road", label: "Mondiaux Pros · Route", competition: "Championnats du monde", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 8 },
-  { id: "world-pro-itt", label: "Mondiaux Pros · CLM", competition: "Championnats du monde", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
-  { id: "world-junior-road", label: "Mondiaux Juniors · Route", competition: "Championnats du monde juniors", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 6 },
-  { id: "world-junior-itt", label: "Mondiaux Juniors · CLM", competition: "Championnats du monde juniors", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
+  { id: "cc-pro-road", label: "CC Pros · Route", competition: "Championnats continentaux", competitionId: "continental-pro", subRaceLabel: "En ligne", category: "professional", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 8 },
+  { id: "cc-pro-itt", label: "CC Pros · CLM", competition: "Championnats continentaux", competitionId: "continental-pro", subRaceLabel: "Contre-la-montre", category: "professional", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
+  { id: "cc-junior-road", label: "CC Juniors · Route", competition: "Championnats continentaux juniors", competitionId: "continental-junior", subRaceLabel: "En ligne", category: "junior", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 6 },
+  { id: "cc-junior-itt", label: "CC Juniors · CLM", competition: "Championnats continentaux juniors", competitionId: "continental-junior", subRaceLabel: "Contre-la-montre", category: "junior", hostName: "Pays-Bas", hostCode: "nl", day: 15, limit: 2 },
+  { id: "nc-mountain", label: "Nations Cup · Montagne", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Montagne", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Montagne" },
+  { id: "nc-hills", label: "Nations Cup · Vallons", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Vallons", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Vallons" },
+  { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Sprint", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
+  { id: "nc-cobbles", label: "Nations Cup · Pavés", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Pavés", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Pavés" },
+  { id: "nc-time-trial", label: "Nations Cup · Chrono", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Chrono", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Chrono" },
+  { id: "nc-junior-road", label: "Nations Cup Juniors · Route", competition: "Nations Cup juniors", competitionId: "nations-junior", subRaceLabel: "En ligne", category: "junior", hostName: "Suisse", hostCode: "ch", day: 24, limit: 6 },
+  { id: "world-pro-road", label: "Mondiaux Pros · Route", competition: "Championnats du monde", competitionId: "world-pro", subRaceLabel: "En ligne", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 8 },
+  { id: "world-pro-itt", label: "Mondiaux Pros · CLM", competition: "Championnats du monde", competitionId: "world-pro", subRaceLabel: "Contre-la-montre", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
+  { id: "world-junior-road", label: "Mondiaux Juniors · Route", competition: "Championnats du monde juniors", competitionId: "world-junior", subRaceLabel: "En ligne", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 6 },
+  { id: "world-junior-itt", label: "Mondiaux Juniors · CLM", competition: "Championnats du monde juniors", competitionId: "world-junior", subRaceLabel: "Contre-la-montre", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
 ];
+
+type SelectionCompetition = {
+  id: SelectionCompetitionId;
+  day: number;
+  name: string;
+  detail: string;
+};
+
+function getFederationSelectionCompetitions(
+  gameYear: number,
+): SelectionCompetition[] {
+  const quadriennialSeason = gameYear % 4 === 0;
+
+  return [
+    { id: "continental-pro", day: 15, name: "Championnats continentaux", detail: "Professionnels · en ligne et contre-la-montre" },
+    { id: "continental-junior", day: 15, name: "Championnats continentaux juniors", detail: "Juniors · en ligne et contre-la-montre" },
+    { id: "nations-pro", day: 24, name: quadriennialSeason ? "Jeux quadriennaux" : "Nations Cup", detail: quadriennialSeason ? "Cinq épreuves professionnelles exceptionnelles" : "Cinq épreuves · classement de division et de groupe" },
+    { id: "nations-junior", day: 24, name: "Nations Cup juniors", detail: "Sélection fédérale · 6 juniors issus des écoles ou DevTeams" },
+    { id: "world-pro", day: 26, name: "Championnats du monde", detail: "Professionnels · en ligne et contre-la-montre" },
+    { id: "world-junior", day: 26, name: "Championnats du monde juniors", detail: "Juniors · en ligne et contre-la-montre" },
+  ];
+}
 
 function getFederationSelectionSlots(gameYear: number): SelectionSlot[] {
   if (gameYear % 4 !== 0) return SELECTION_SLOTS;
@@ -80,6 +112,60 @@ function getFederationSelectionSlots(gameYear: number): SelectionSlot[] {
           competition: "Jeux quadriennaux",
         }
       : slot,
+  );
+}
+
+type SelectionCompetitionProgress = {
+  sent: number;
+  confirmed: number;
+  pending: number;
+  isComplete: boolean;
+};
+
+function getSelectionCompetitionProgress({
+  competitionId,
+  slots,
+  selections,
+}: {
+  competitionId: SelectionCompetitionId;
+  slots: SelectionSlot[];
+  selections: FederationSelectionState["selections"];
+}): SelectionCompetitionProgress {
+  const competitionSlots = slots.filter(
+    (candidate) => candidate.competitionId === competitionId,
+  );
+
+  return competitionSlots.reduce<SelectionCompetitionProgress>(
+    (progress, candidate) => {
+      const selection = selections[candidate.id];
+      if (!selection) {
+        return { ...progress, isComplete: false };
+      }
+
+      const responses = Object.values(selection.responses ?? {});
+      const confirmed = selection.confirmedRiderIds?.length ??
+        responses.filter((response) => response === "confirmed").length;
+      const sent = responses.length > 0
+        ? responses.filter((response) => response !== "draft").length
+        : selection.status === "draft"
+          ? 0
+          : selection.riderIds.length;
+      const pending = responses.length > 0
+        ? responses.filter((response) => response === "pending").length
+        : Math.max(0, sent - confirmed);
+      const slotComplete =
+        selection.status === "finalized" &&
+        confirmed >= candidate.limit &&
+        pending === 0;
+
+      return {
+        sent: progress.sent + sent,
+        confirmed: progress.confirmed + confirmed,
+        pending: progress.pending + pending,
+        isComplete: progress.isComplete && slotComplete,
+      };
+    },
+    { sent: 0, confirmed: 0, pending: 0, isComplete: true },
   );
 }
 
@@ -107,6 +193,10 @@ export function FederationSelectionWorkbench({
 }) {
   const selectionSlots = useMemo(
     () => getFederationSelectionSlots(gameYear),
+    [gameYear],
+  );
+  const competitions = useMemo(
+    () => getFederationSelectionCompetitions(gameYear),
     [gameYear],
   );
   const [slotId, setSlotId] = useState(selectionSlots[0].id);
@@ -166,6 +256,23 @@ export function FederationSelectionWorkbench({
         hostCode: competitionHost.countryCode.toLowerCase(),
       }
     : baseSlot;
+  const activeCompetition =
+    competitions.find(
+      (competition) => competition.id === slot.competitionId,
+    ) ?? competitions[0];
+  const competitionSlots = selectionSlots.filter(
+    (candidate) => candidate.competitionId === slot.competitionId,
+  );
+  const competitionProgress = Object.fromEntries(
+    competitions.map((competition) => [
+      competition.id,
+      getSelectionCompetitionProgress({
+        competitionId: competition.id,
+        slots: selectionSlots,
+        selections: selectionState?.selections ?? {},
+      }),
+    ]),
+  ) as Record<SelectionCompetitionId, SelectionCompetitionProgress>;
   const storedSelection = selectionState?.selections[slot.id] ?? null;
   const confirmedRiderIds = storedSelection?.confirmedRiderIds ?? [];
   const selected = [...new Set([...(selectedBySlot[slot.id] ?? storedSelection?.riderIds ?? []), ...confirmedRiderIds])];
@@ -215,6 +322,13 @@ export function FederationSelectionWorkbench({
     setSortDirection("descending");
   }
 
+  function changeCompetition(nextCompetitionId: SelectionCompetitionId) {
+    const firstSlot = selectionSlots.find(
+      (candidate) => candidate.competitionId === nextCompetitionId,
+    );
+    if (firstSlot) changeSlot(firstSlot.id);
+  }
+
   function toggleRider(riderId: string) {
     if (!canManage || !deadlineOpen || automaticSelection || confirmedRiderIds.includes(riderId)) return;
     if (slot.nationsCupProfile && Object.entries(selectionState?.selections ?? {}).some(
@@ -241,6 +355,110 @@ export function FederationSelectionWorkbench({
 
   return (
     <div className="space-y-6">
+      <section
+        aria-label="Compétitions internationales"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {competitions.map((competition) => {
+          const progress = competitionProgress[competition.id];
+          const isActive = competition.id === activeCompetition.id;
+          const maturityLabel = `${competition.name} : ${progress.sent} convocations envoyées, ${progress.confirmed} confirmées, ${progress.pending} en attente${progress.isComplete ? ", sélection finalisée" : ""}`;
+
+          return (
+            <button
+              key={competition.id}
+              type="button"
+              data-selection-competition={competition.id}
+              aria-label={maturityLabel}
+              aria-pressed={isActive}
+              aria-controls="federation-selection-detail"
+              onClick={() => changeCompetition(competition.id)}
+              className={`group relative min-h-64 overflow-hidden rounded-[1.65rem] border bg-white p-6 text-left shadow-[0_14px_36px_rgba(19,60,46,0.07)] transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--federation-secondary)] ${
+                isActive
+                  ? "border-[var(--federation-secondary)] shadow-[0_18px_44px_rgba(19,60,46,0.14)]"
+                  : "border-[#315B3E]/12 hover:-translate-y-0.5 hover:border-[var(--federation-secondary)]/45"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#2D74DA,#F2C94C,#C75348,#42B99A,#8D60C7)]"
+              />
+              <span className="flex items-start justify-between gap-4">
+                <span className="rounded-xl bg-[var(--federation-primary)] px-3 py-2 text-sm font-black text-white">
+                  J{competition.day}
+                </span>
+                {progress.isComplete ? (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#DDF3E7] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]">
+                    <span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded-full bg-[#176951] text-xs text-white">✓</span>
+                    Sélection finalisée
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-[#315B3E]/12 bg-[#EEF3F1] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">
+                    {gameYear < 3 ? "Gestion verrouillée" : "Calendrier officiel"}
+                  </span>
+                )}
+              </span>
+              <span className="mt-5 block text-xl font-black text-[#183F37]">
+                {competition.name}
+              </span>
+              <span className="mt-2 block min-h-12 text-sm font-semibold leading-6 text-[#60756E]">
+                {competition.detail}
+              </span>
+              <span className="mt-5 grid grid-cols-3 gap-2 border-t border-[#315B3E]/10 pt-4">
+                <SelectionMaturityMetric value={progress.sent} label="Convocations envoyées" />
+                <SelectionMaturityMetric value={progress.confirmed} label="Convocations confirmées" tone="confirmed" />
+                <SelectionMaturityMetric value={progress.pending} label="Confirmations en attente" tone={progress.pending > 0 ? "pending" : "neutral"} />
+              </span>
+              <span className={`mt-4 flex items-center justify-end text-xs font-black ${isActive ? "text-[var(--federation-secondary)]" : "text-[#60756E] group-hover:text-[var(--federation-secondary)]"}`}>
+                {isActive ? "Compétition affichée" : "Préparer la sélection"} <span aria-hidden="true" className="ml-2">→</span>
+              </span>
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="rounded-[1.65rem] border border-[#315B3E]/12 bg-white p-4 shadow-[0_14px_36px_rgba(19,60,46,0.06)] sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="shrink-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--federation-secondary)]">
+              Sous-épreuves
+            </p>
+            <h2 className="mt-1 text-xl font-black text-[#183F37]">
+              {activeCompetition.name}
+            </h2>
+          </div>
+          <nav
+            aria-label={`Sous-épreuves ${activeCompetition.name}`}
+            className="flex min-w-0 gap-2 overflow-x-auto pb-1 lg:justify-end"
+          >
+            {competitionSlots.map((candidate) => {
+              const candidateSelection = selectionState?.selections[candidate.id];
+              const confirmedCount = candidateSelection?.confirmedRiderIds?.length ?? 0;
+              const isSelectedSlot = candidate.id === slot.id;
+
+              return (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  onClick={() => changeSlot(candidate.id)}
+                  aria-pressed={isSelectedSlot}
+                  className={`min-h-12 shrink-0 rounded-xl px-4 py-2 text-left text-xs font-black transition ${
+                    isSelectedSlot
+                      ? "bg-[var(--federation-primary)] text-white shadow-sm"
+                      : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"
+                  }`}
+                >
+                  <span className="block">{candidate.subRaceLabel}</span>
+                  <span className={`mt-1 block text-[9px] uppercase tracking-[0.1em] ${isSelectedSlot ? "text-[#D6DFD2]" : "text-[#70827B]"}`}>
+                    {confirmedCount}/{candidate.limit} confirmé{candidate.limit > 1 ? "s" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </section>
+
       <section className="rounded-[2rem] border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
         <SelectionAutomaticModeControl
           countryCode={countryCode}
@@ -259,37 +477,7 @@ export function FederationSelectionWorkbench({
         />
       ) : null}
 
-      <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">{gameYear < 3 ? "Atelier de présélection S3" : "Sélections officielles"}</p>
-            <h2 className="mt-2 text-3xl font-black text-[#183F37]">Construire les listes dès J1</h2>
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-              Le filtre de nationalité est verrouillé sur {countryName}. {gameYear < 3
-                ? "Les choix restent une simulation locale en S2 ; leur disponibilité sera confirmée par chaque DS via une alerte et un mail en S3."
-                : "Le président enregistre une liste, puis chaque DS concerné reçoit une alerte, un mail et une notification pour confirmer ses coureurs."}
-            </p>
-          </div>
-          <label>
-            <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">Épreuve à préparer</span>
-            <select value={slot.id} onChange={(event) => changeSlot(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 text-sm font-black text-[#183F37] outline-none focus:border-[var(--federation-secondary)]">
-              {selectionSlots.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.label}</option>)}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      {slot.nationsCupProfile ? (
-        <nav aria-label={`Profils ${slot.competition}`} className="grid grid-cols-2 gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 sm:grid-cols-5">
-          {selectionSlots.filter((candidate) => candidate.competition === slot.competition).map((candidate) => (
-            <button key={candidate.id} type="button" onClick={() => changeSlot(candidate.id)} className={`rounded-xl px-3 py-3 text-xs font-black transition ${candidate.id === slot.id ? "bg-[var(--federation-primary)] text-white" : "bg-[#F2F8F5] text-[#315B3E] hover:bg-[#E5F4ED]"}`}>
-              {candidate.nationsCupProfile}
-            </button>
-          ))}
-        </nav>
-      ) : null}
-
-      <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+      <section id="federation-selection-detail" className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
         <div className="grid gap-4 bg-[var(--federation-primary)] p-5 text-white sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="flex items-center gap-4">
             <span role="img" aria-label={`Pays hôte : ${slot.hostName}`} className={`fi fi-${slot.hostCode} text-4xl shadow-sm`} />
@@ -408,6 +596,32 @@ export function FederationSelectionWorkbench({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function SelectionMaturityMetric({
+  value,
+  label,
+  tone = "neutral",
+}: {
+  value: number;
+  label: string;
+  tone?: "neutral" | "confirmed" | "pending";
+}) {
+  const toneClass =
+    tone === "confirmed"
+      ? "text-[#176951]"
+      : tone === "pending"
+        ? "text-[#9A6A00]"
+        : "text-[#183F37]";
+
+  return (
+    <span className="min-w-0">
+      <span className={`block text-xl font-black ${toneClass}`}>{value}</span>
+      <span className="mt-0.5 block text-[9px] font-black uppercase leading-4 tracking-[0.08em] text-[#70827B]">
+        {label}
+      </span>
+    </span>
   );
 }
 
