@@ -95,6 +95,7 @@ export async function getRaceSimulatorCalendar(now = new Date()) {
 
   return getActiveSeasonRaceCalendar(admin, now, {
     includeIneligibleRegionalRaces: true,
+    includeNationsCupHeats: true,
   });
 }
 

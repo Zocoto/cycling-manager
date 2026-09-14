@@ -25,10 +25,8 @@ export default async function NationsCupPage() {
   } = await getAuthenticatedUser(supabase);
   if (error || !user) redirect("/connexion");
 
-  const [headerData, overview] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
-    getNationsCupOverview(),
-  ]);
+  const headerData = await getGameHeaderData(supabase, user.id);
+  const overview = await getNationsCupOverview({ teamId: headerData.teamId });
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">

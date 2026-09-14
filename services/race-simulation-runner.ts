@@ -8,6 +8,10 @@ import {
 } from "@/lib/game/race-job-packs";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { hasMinimumRaceEditionField } from "@/lib/game/race-results";
+import {
+  isSecondaryProfessionalNationsCupHeatSlug,
+  PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE,
+} from "@/lib/game/nations-cup-heats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { syncDueNationalFederationChampionshipLineups } from "@/services/international-championship-selections";
@@ -89,9 +93,10 @@ export async function precomputeDueOfficialRaceSimulations(
     admin,
     simulationClock,
     {
-    includeEngagedCounts: true,
-    includeEngagedRiders: false,
-    includeIneligibleRegionalRaces: true,
+      includeEngagedCounts: true,
+      includeEngagedRiders: false,
+      includeIneligibleRegionalRaces: true,
+      includeNationsCupHeats: true,
     },
   );
   const discoveryDurationMs = Date.now() - discoveryStartedAt;
@@ -173,7 +178,11 @@ export async function precomputeDueOfficialRaceSimulations(
     getId: (edition) => edition.id,
     packIndex,
     packCount,
-    limit: maxEditions,
+    limit: missingEditions.some((edition) =>
+      isSecondaryProfessionalNationsCupHeatSlug(edition.slug),
+    )
+      ? Math.max(maxEditions, PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE)
+      : maxEditions,
   });
   const targetedEditionIds = jobPack.items.map((edition) => edition.id);
 
@@ -196,8 +205,9 @@ export async function precomputeDueOfficialRaceSimulations(
     admin,
     simulationClock,
     {
-    includeIneligibleRegionalRaces: true,
-    raceEditionIds: targetedEditionIds,
+      includeIneligibleRegionalRaces: true,
+      includeNationsCupHeats: true,
+      raceEditionIds: targetedEditionIds,
     },
   );
   if (!simulationCalendar) {

@@ -10,6 +10,10 @@ import {
   selectRaceJobPack,
   type RaceJobPack,
 } from "@/lib/game/race-job-packs";
+import {
+  isSecondaryProfessionalNationsCupHeatSlug,
+  PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE,
+} from "@/lib/game/nations-cup-heats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import {
@@ -35,6 +39,7 @@ export async function settleDueStandardRaceResults({
     includeEngagedCounts: true,
     includeEngagedRiders: false,
     includeIneligibleRegionalRaces: true,
+    includeNationsCupHeats: true,
     raceSlug,
   });
 
@@ -133,7 +138,11 @@ export async function settleDueStandardRaceResults({
         getId: (edition) => edition.id,
         packIndex,
         packCount,
-        limit: maxEditions,
+        limit: candidateEditions.some((edition) =>
+          isSecondaryProfessionalNationsCupHeatSlug(edition.slug),
+        )
+          ? Math.max(maxEditions, PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE)
+          : maxEditions,
       });
   const targetEditionIds = jobPack.items.map((edition) => edition.id);
   const skippedUnviableEditions =
@@ -190,6 +199,7 @@ export async function settleDueStandardRaceResults({
 
   const settlementCalendar = await getActiveSeasonRaceCalendar(admin, now, {
     includeIneligibleRegionalRaces: true,
+    includeNationsCupHeats: true,
     includeSimulationEnhancements: false,
     raceEditionIds: claimedEditionIds,
   });

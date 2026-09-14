@@ -7,6 +7,7 @@ import Link from "@/components/ui/app-link";
 type NationsCupEventTab = {
   id: string;
   slug: string;
+  hrefSlug: string;
   name: string;
   profileType: string;
   status: string;
@@ -84,7 +85,7 @@ export function NationsCupEventTabs({
           </p>
         </div>
         <Link
-          href={`/jeu/courses/${selectedEvent.slug}`}
+          href={`/jeu/courses/${selectedEvent.hrefSlug}`}
           className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
         >
           {selectedEvent.status === "completed"

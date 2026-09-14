@@ -14,6 +14,7 @@ describe("NationsCupEventTabs", () => {
     ].map(([slug, name, profileType]) => ({
       id: slug,
       slug: `nations-cup-${slug}`,
+      hrefSlug: `nations-cup-${slug}`,
       name,
       profileType,
       status: "planned",

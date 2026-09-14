@@ -82,6 +82,8 @@ beforeEach(() => {
       { id: "ma", iso_alpha2: "MA", name: "Maroc", continent_code: "africa" },
     ],
     races: [], race_editions: [], stages: [], stage_segments: [],
+    national_federation_nations_cup_heats: [],
+    national_federation_nations_cup_assignments: [],
     development_race_editions: [], development_race_stages: [],
     season_days: [{ id: "j15", day_number: 15 }],
   };
@@ -117,19 +119,28 @@ describe("official federation selection courses", () => {
 
   it("matches all five professional Nations Cup disciplines and uses the calendar fallback seed", async () => {
     const profiles = [
-      ["Montagne", "mountain", "road"], ["Vallons", "hilly", "road"],
-      ["Sprint", "sprint", "road"], ["Pavés", "cobbles", "road"],
-      ["Chrono", "time_trial", "individual_time_trial"],
+      ["nc-mountain", "Montagne", "mountain", "road"],
+      ["nc-hills", "Vallons", "hilly", "road"],
+      ["nc-sprint", "Sprint", "sprint", "road"],
+      ["nc-cobbles", "Pavés", "cobbles", "road"],
+      ["nc-time-trial", "Chrono", "time_trial", "individual_time_trial"],
     ] as const;
-    for (const [label, profile, type] of profiles) {
-      database.rows.national_federation_selection_slots.push(slot(profile, "nations_cup", label));
+    database.rows.national_federation_nations_cup_assignments = [
+      { season_id: "s3", country_id: "nl", division: 2, group_code: "A" },
+    ];
+    for (const [slotKey, label, profile, type] of profiles) {
+      database.rows.national_federation_selection_slots.push(slot(slotKey, "nations_cup", label));
       proRace(profile, "nations_cup", null);
       stage(`${profile}-stage`, profile, profile, type);
+      database.rows.national_federation_nations_cup_heats.push({
+        season_id: "s3", slot_key: slotKey, division: 2, group_code: "A",
+        race_edition_id: `${profile}-edition`,
+      });
     }
     const forecasts = await load();
-    for (const [, profile, type] of profiles) {
-      expect(forecasts[profile].course).toMatchObject({ stageId: `${profile}-stage`, stageType: type });
-      expect(forecasts[profile].course?.segments).toEqual(buildRaceSegments({
+    for (const [slotKey, , profile, type] of profiles) {
+      expect(forecasts[slotKey].course).toMatchObject({ stageId: `${profile}-stage`, stageType: type });
+      expect(forecasts[slotKey].course?.segments).toEqual(buildRaceSegments({
         distanceKm: 20, profileType: profile, seed: `${profile}-stage`,
       }));
     }

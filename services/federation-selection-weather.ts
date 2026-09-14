@@ -26,6 +26,16 @@ type SelectionSlotRow = {
 };
 type SeasonRow = { id: string };
 type FederationCountryRow = { continent_code: string };
+type NationsCupAssignmentRow = {
+  division: number;
+  group_code: string | null;
+};
+type NationsCupHeatRow = {
+  slot_key: string;
+  division: number;
+  group_code: string | null;
+  race_edition_id: string;
+};
 type ProEditionRow = {
   id: string;
   race_id: string;
@@ -143,6 +153,7 @@ export async function getFederationSelectionForecasts({
   const officialStages = targetSeasonResult.data?.id
     ? await loadOfficialInternationalStages({
         seasonId: targetSeasonResult.data.id,
+        federationCountryId: countryId,
         federationContinentCode:
           countryResult.data?.continent_code ?? "world",
         slots,
@@ -165,15 +176,22 @@ export async function getFederationSelectionForecasts({
 
 async function loadOfficialInternationalStages({
   seasonId,
+  federationCountryId,
   federationContinentCode,
   slots,
 }: {
   seasonId: string;
+  federationCountryId: string;
   federationContinentCode: string;
   slots: FederationSelectionWeatherSlot[];
 }): Promise<Record<string, FederationSelectionOfficialStage>> {
   const admin = createSupabaseAdminClient();
-  const [racesResult, juniorEditionsResult] = await Promise.all([
+  const [
+    racesResult,
+    juniorEditionsResult,
+    nationsCupHeatsResult,
+    nationsCupAssignmentResult,
+  ] = await Promise.all([
     admin
       .from("races")
       .select("id, slug, race_format, country_id, competition_type, championship_continent_code")
@@ -198,9 +216,22 @@ async function loadOfficialInternationalStages({
       ])
       .neq("status", "cancelled")
       .returns<JuniorEditionRow[]>(),
+    admin
+      .from("national_federation_nations_cup_heats")
+      .select("slot_key, division, group_code, race_edition_id")
+      .eq("season_id", seasonId)
+      .returns<NationsCupHeatRow[]>(),
+    admin
+      .from("national_federation_nations_cup_assignments")
+      .select("division, group_code")
+      .eq("season_id", seasonId)
+      .eq("country_id", federationCountryId)
+      .maybeSingle<NationsCupAssignmentRow>(),
   ]);
   if (racesResult.error) throw racesResult.error;
   if (juniorEditionsResult.error) throw juniorEditionsResult.error;
+  if (nationsCupHeatsResult.error) throw nationsCupHeatsResult.error;
+  if (nationsCupAssignmentResult.error) throw nationsCupAssignmentResult.error;
 
   const races = (racesResult.data ?? []).filter(
     (race) => race.competition_type !== "continental_championship" ||
@@ -220,6 +251,15 @@ async function loadOfficialInternationalStages({
   });
   if (proEditionsResult.error) throw proEditionsResult.error;
   const proEditions = proEditionsResult.data ?? [];
+  const nationsCupEditionBySlot = new Map(
+    (nationsCupHeatsResult.data ?? [])
+      .filter(
+        (heat) =>
+          heat.division === nationsCupAssignmentResult.data?.division &&
+          heat.group_code === nationsCupAssignmentResult.data?.group_code,
+      )
+      .map((heat) => [heat.slot_key, heat.race_edition_id]),
+  );
   const juniorEditions = (juniorEditionsResult.data ?? []).filter(
     (edition) => !edition.competition_type.startsWith("continental_") ||
       edition.championship_continent_code === federationContinentCode,
@@ -361,6 +401,7 @@ async function loadOfficialInternationalStages({
               dayById,
               countryById,
               federationContinentCode,
+              nationsCupEditionBySlot,
               segmentsByStageId,
             });
       return stage ? [[slot.slotKey, stage]] : [];
@@ -376,6 +417,7 @@ function findProfessionalStage({
   dayById,
   countryById,
   federationContinentCode,
+  nationsCupEditionBySlot,
   segmentsByStageId,
 }: {
   slot: FederationSelectionWeatherSlot;
@@ -385,6 +427,7 @@ function findProfessionalStage({
   dayById: Map<string, number>;
   countryById: Map<string, CountryRow>;
   federationContinentCode: string;
+  nationsCupEditionBySlot: Map<string, string>;
   segmentsByStageId: Map<string, RaceStageSegment[]>;
 }): FederationSelectionOfficialStage | null {
   const candidates = stages.filter((stage) => {
@@ -395,6 +438,12 @@ function findProfessionalStage({
       : null;
     if (!edition || !race || !host) return false;
     if (race.competition_type !== slot.competitionCode) return false;
+    if (
+      slot.competitionCode === "nations_cup" &&
+      stage.race_edition_id !== nationsCupEditionBySlot.get(slot.slotKey)
+    ) {
+      return false;
+    }
     if (
       slot.competitionCode === "continental_championship" &&
       race.championship_continent_code !== federationContinentCode

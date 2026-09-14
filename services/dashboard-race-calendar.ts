@@ -14,6 +14,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
+import { isSecondaryProfessionalNationsCupHeatSlug } from "@/lib/game/nations-cup-heats";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -261,6 +262,12 @@ export async function getDashboardRaceCalendar(
     const stages = stagesByEditionId.get(edition.id) ?? [];
 
     if (!race || !category || !country || !isRaceCategoryCode(category.code)) {
+      return [];
+    }
+    if (
+      race.competition_type === "nations_cup" &&
+      isSecondaryProfessionalNationsCupHeatSlug(race.slug)
+    ) {
       return [];
     }
     if (

@@ -28,6 +28,7 @@ import {
 } from "@/lib/game/race-calendar";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import type { FanClubRaceBoost } from "@/lib/game/fan-club-race-boost";
+import { isSecondaryProfessionalNationsCupHeatSlug } from "@/lib/game/nations-cup-heats";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -465,6 +466,12 @@ type ActiveSeasonCalendarLoadOptions = {
   includeEngagedRiders?: boolean;
   includeIneligibleRegionalRaces?: boolean;
   includeJuniorChampionships?: boolean;
+  /**
+   * Les manches secondaires de Nations Cup sont chargées par les crons et
+   * leurs pages ciblées. La grille générale conserve une seule tuile par
+   * discipline afin de ne pas afficher quarante courses le même jour.
+   */
+  includeNationsCupHeats?: boolean;
   /**
    * Les profils détaillés ne sont pas affichés dans la grille du calendrier.
    * Les pages de course et le simulateur les conservent par défaut.
@@ -1519,6 +1526,15 @@ export async function getActiveSeasonRaceCalendar(
         !category ||
         !country ||
         !isRaceCategoryCode(category.code)
+      ) {
+        return null;
+      }
+
+      if (
+        !options.includeNationsCupHeats &&
+        !options.raceSlug &&
+        race.competition_type === "nations_cup" &&
+        isSecondaryProfessionalNationsCupHeatSlug(race.slug)
       ) {
         return null;
       }
