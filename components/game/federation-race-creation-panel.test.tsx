@@ -11,15 +11,25 @@ const eligibleState: FederationRaceCreationState = {
     completedObjectiveCount: 4,
     objectivePoints: 60,
     existingRaceCount: 4,
+    calendarPenaltyPerRace: 10,
     calendarPenalty: 40,
     total: 60,
     threshold: 60,
+    continentalThreshold: 60,
     eligible: true,
   },
   officeLevel: 1,
   viewerIsPresident: true,
+  viewerTeamId: "team-1",
   canCreate: true,
+  canVote: false,
+  canCancel: true,
   project: null,
+  managedRaces: [],
+  accountBalance: 2_000_000,
+  viewerReputation: 250,
+  targetGameYear: 5,
+  calendar: [],
 };
 
 describe("FederationRaceCreationPanel", () => {
@@ -32,7 +42,7 @@ describe("FederationRaceCreationPanel", () => {
       />,
     );
 
-    expect(markup).toContain("Homologuer la course");
+    expect(markup).toContain("Enregistrer le brouillon");
     expect(markup).toContain('name="name"');
     expect(markup).toContain('name="shortName"');
     expect(markup).toContain('name="blueprint"');
@@ -44,6 +54,8 @@ describe("FederationRaceCreationPanel", () => {
     expect(markup).not.toContain('value="world"');
     expect(markup).toContain("Ajouter un tronçon");
     expect(markup).toContain("Pente");
+    expect(markup).toContain("Calendrier territorial · Saison 5");
+    expect(markup).toContain("Maintenance annuelle");
   });
 
   it("replaces the form with the public next-season summary after homologation", () => {
@@ -65,6 +77,17 @@ describe("FederationRaceCreationPanel", () => {
             activationGameYear: 5,
             status: "scheduled",
             submittedAt: "2026-09-04T10:00:00.000Z",
+            voteClosesAt: null,
+            approvedAt: "2026-09-05T10:00:00.000Z",
+            cost: {
+              creationMoney: 900_000,
+              creationReputation: 50,
+              annualMaintenance: 300_000,
+            },
+            electorateCount: 2,
+            approveVotes: 2,
+            rejectVotes: 0,
+            viewerVote: "approve",
             stages: [
               {
                 name: "Classique des Ardennes",
@@ -88,6 +111,7 @@ describe("FederationRaceCreationPanel", () => {
     expect(markup).toContain("Course homologuée · Saison 5");
     expect(markup).toContain("Classique des Ardennes");
     expect(markup).toContain("165 km");
-    expect(markup).not.toContain("Homologuer la course");
+    expect(markup).not.toContain("Enregistrer le brouillon");
+    expect(markup).toContain("Annuler les prochaines éditions");
   });
 });

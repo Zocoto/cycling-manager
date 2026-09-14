@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const workflowMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260914100000_rebuild_federation_race_workflow.sql",
+  ),
+  "utf8",
+);
 const action = readFileSync(
   join(process.cwd(), "app/jeu/federations/governance-actions.ts"),
   "utf8",
@@ -44,10 +51,33 @@ describe("federation race workshop", () => {
 
   it("validates the same bounded blueprint in the action and exposes it in governance", () => {
     expect(action).toContain("raceBlueprintSchema");
-    expect(action).toContain("create_national_federation_race");
+    expect(action).toContain("save_national_federation_race_draft");
     expect(panel).toContain("Créer une course du pays");
     expect(panel).toContain("Homologation fédérale · active en Saison 4");
     expect(panel).toContain("Ajouter un tronçon");
     expect(panel).toContain("Bureau d’organisation");
+  });
+
+  it("uses a draft, a costly 24-hour member vote and an autonomous settlement", () => {
+    expect(workflowMigration).toContain("status in ('draft', 'voting', 'scheduled', 'active', 'rejected', 'cancelled')");
+    expect(workflowMigration).toContain("now() + interval '24 hours'");
+    expect(workflowMigration).toContain("creation_cost");
+    expect(workflowMigration).toContain("reputation_cost");
+    expect(workflowMigration).toContain("annual_maintenance_cost");
+    expect(workflowMigration).toContain("national_federation_race_electorate");
+    expect(workflowMigration).toContain("private.create_team_operational_message");
+    expect(workflowMigration).toContain("settle_due_national_federation_race_votes");
+    expect(workflowMigration).toContain("settle_due_national_federation_race_maintenance");
+  });
+
+  it("protects international dates and preserves approved races in future seasons", () => {
+    expect(workflowMigration).toContain("'national_road', 'national_time_trial', 'continental_championship'");
+    expect(workflowMigration).toContain("'world_championship', 'nations_cup'");
+    expect(workflowMigration).toContain("'nations_cup_junior'");
+    expect(workflowMigration).toContain("La vague de J% est déjà complète");
+    expect(workflowMigration).toContain("prevent_cancelled_federation_race_edition");
+    expect(workflowMigration).toContain("preserve_federation_race_stage_schedule");
+    expect(panel).toContain("Calendrier territorial");
+    expect(panel).toContain("Soumettre au vote pendant 24 h");
   });
 });

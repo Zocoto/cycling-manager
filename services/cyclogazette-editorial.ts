@@ -138,11 +138,24 @@ type RivalryEditionRow = {
   display_name: string;
 };
 
+type FederationRaceEditorialRow = {
+  id: string;
+  country_id: string;
+  name: string;
+  race_format: string;
+  category_code: string;
+  activation_game_year: number;
+  stage_blueprint: unknown;
+};
+
+type EditorialCountryRow = { id: string; name: string; iso_alpha2: string };
+
 export async function loadCyclogazetteFeatureStories(
   admin: AdminClient,
   context: EditorialContext,
 ): Promise<CyclogazetteFeatureStory[]> {
   const results = await Promise.allSettled([
+    loadFederationRaceStories(admin, context),
     loadRivalryStories(admin, context),
     loadStartlistPreviews(admin, context),
     loadDevelopmentStories(admin, context),
@@ -162,6 +175,57 @@ export async function loadCyclogazetteFeatureStories(
   }
 
   return stories;
+}
+
+async function loadFederationRaceStories(
+  admin: AdminClient,
+  context: EditorialContext,
+): Promise<CyclogazetteFeatureStory[]> {
+  const projectsResult = await admin
+    .from("national_federation_race_projects")
+    .select(
+      "id, country_id, name, race_format, category_code, activation_game_year, stage_blueprint",
+    )
+    .eq("submitted_season_id", context.seasonId)
+    .eq("gazette_day_number", context.dayNumber)
+    .in("status", ["scheduled", "active"])
+    .order("approved_at", { ascending: true })
+    .returns<FederationRaceEditorialRow[]>();
+  if (projectsResult.error || !(projectsResult.data ?? []).length) return [];
+
+  const countryIds = unique((projectsResult.data ?? []).map((project) => project.country_id));
+  const countriesResult = await admin
+    .from("countries")
+    .select("id, name, iso_alpha2")
+    .in("id", countryIds)
+    .returns<EditorialCountryRow[]>();
+  if (countriesResult.error) return [];
+  const countriesById = toMap(countriesResult.data ?? []);
+
+  return (projectsResult.data ?? []).flatMap((project): CyclogazetteFeatureStory[] => {
+    const country = countriesById.get(project.country_id);
+    if (!country) return [];
+    const stageCount = Array.isArray(project.stage_blueprint)
+      ? project.stage_blueprint.length
+      : 1;
+    const format = project.race_format === "stage_race"
+      ? `tour de ${stageCount} étapes`
+      : "classique";
+    const formatEn = project.race_format === "stage_race"
+      ? `${stageCount}-stage race`
+      : "one-day race";
+    return [{
+      id: `federation-race:${project.id}`,
+      kind: "federation_race",
+      kicker: "Calendrier · vote fédéral",
+      kickerEn: "Calendar · federation vote",
+      title: `${project.name} rejoint le calendrier`,
+      titleEn: `${project.name} joins the calendar`,
+      body: `Les membres de la fédération ${country.name} ont approuvé cette ${format} de rang ${project.category_code}. Première édition en Saison ${project.activation_game_year}, puis reconduction annuelle sous réserve de sa maintenance.`,
+      bodyEn: `${country.name}'s federation members approved this ${project.category_code} ${formatEn}. Its first edition will be held in Season ${project.activation_game_year}, then renewed annually subject to maintenance.`,
+      href: `/jeu/federations/${country.iso_alpha2.toLowerCase()}?onglet=races`,
+    }];
+  });
 }
 
 async function loadRivalryStories(

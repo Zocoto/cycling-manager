@@ -3,12 +3,16 @@
 import { useActionState, useState } from "react";
 
 import {
-  createFederationRaceAction,
+  cancelFederationRaceAction,
+  castFederationRaceVoteAction,
+  saveFederationRaceDraftAction,
+  submitFederationRaceVoteAction,
 } from "@/app/jeu/federations/governance-actions";
 import { initialFederationGovernanceActionState } from "@/lib/game/federation-action-states";
 import {
   FEDERATION_RACE_CATEGORY_OPTIONS,
   FEDERATION_RACE_CREATION_START_GAME_YEAR,
+  getFederationRaceCost,
   getFederationRaceScheduledSlot,
   getFederationRaceStageDistance,
   type FederationRaceCategoryCode,
@@ -20,7 +24,10 @@ import {
   type FederationRaceSurfaceType,
   type FederationRaceTerrainType,
 } from "@/lib/game/federation-race-creation";
-import type { FederationRaceCreationState } from "@/services/federation-race-creation";
+import type {
+  FederationRaceCalendarDay,
+  FederationRaceCreationState,
+} from "@/services/federation-race-creation";
 
 const fieldClassName =
   "min-h-11 w-full rounded-xl border border-[#315B3E]/18 bg-white px-3 text-sm font-bold text-[#183F37] outline-none transition focus:border-[var(--federation-secondary,#278B70)] disabled:cursor-not-allowed disabled:bg-[#EEF3F1]";
@@ -66,24 +73,52 @@ export function FederationRaceCreationPanel({
   gameYear: number;
   state: FederationRaceCreationState;
 }) {
+  const editableProject =
+    state.project && ["draft", "rejected"].includes(state.project.status)
+      ? state.project
+      : null;
   const [actionState, action, pending] = useActionState(
-    createFederationRaceAction,
+    saveFederationRaceDraftAction,
+    initialFederationGovernanceActionState,
+  );
+  const [submitState, submitAction, submitPending] = useActionState(
+    submitFederationRaceVoteAction,
+    initialFederationGovernanceActionState,
+  );
+  const [voteState, voteAction, votePending] = useActionState(
+    castFederationRaceVoteAction,
+    initialFederationGovernanceActionState,
+  );
+  const [cancelState, cancelAction, cancelPending] = useActionState(
+    cancelFederationRaceAction,
     initialFederationGovernanceActionState,
   );
   const [raceFormat, setRaceFormat] =
-    useState<FederationRaceFormat>("one_day");
+    useState<FederationRaceFormat>(editableProject?.raceFormat ?? "one_day");
   const [categoryCode, setCategoryCode] =
-    useState<FederationRaceCategoryCode>("national");
-  const [startDay, setStartDay] = useState(12);
+    useState<FederationRaceCategoryCode>(editableProject?.categoryCode ?? "national");
+  const [startDay, setStartDay] = useState(editableProject?.startDay ?? 12);
   const [startSlot, setStartSlot] =
-    useState<FederationRaceDaySlot>("early");
-  const [stages, setStages] = useState<FederationRaceStageBlueprint[]>([
-    createDefaultStage(1),
-  ]);
+    useState<FederationRaceDaySlot>(editableProject?.startSlot ?? "early");
+  const [stages, setStages] = useState<FederationRaceStageBlueprint[]>(
+    editableProject?.stages.length ? editableProject.stages : [createDefaultStage(1)],
+  );
   const selectedCategoryThreshold =
     categoryCode === "continental"
       ? state.score.continentalThreshold
       : state.score.threshold;
+  const cost = getFederationRaceCost({ categoryCode, stageCount: stages.length });
+  const scheduleAvailable = isScheduleAvailable(
+    state.calendar,
+    startDay,
+    startSlot,
+    stages.length,
+  );
+  const canAfford = Boolean(
+    editableProject &&
+      state.accountBalance >= editableProject.cost.creationMoney &&
+      state.viewerReputation >= editableProject.cost.creationReputation,
+  );
 
   const setFormat = (format: FederationRaceFormat) => {
     setRaceFormat(format);
@@ -138,9 +173,26 @@ export function FederationRaceCreationPanel({
       <div className="space-y-6 p-6 sm:p-8">
         <ScoreBreakdown state={state} gameYear={gameYear} />
 
-        {state.project ? (
-          <ScheduledProject project={state.project} />
+        {state.project?.status === "voting" ? (
+          <VotingProject
+            countryCode={countryCode}
+            project={state.project}
+            canVote={state.canVote}
+            action={voteAction}
+            actionState={voteState}
+            pending={votePending}
+          />
+        ) : state.project && ["scheduled", "active"].includes(state.project.status) ? (
+          <ScheduledProject
+            countryCode={countryCode}
+            project={state.project}
+            canCancel={state.canCancel}
+            action={cancelAction}
+            actionState={cancelState}
+            pending={cancelPending}
+          />
         ) : state.canCreate ? (
+          <>
           <form action={action} className="space-y-6">
             <input type="hidden" name="countryCode" value={countryCode} />
             <input
@@ -163,6 +215,7 @@ export function FederationRaceCreationPanel({
                   minLength={4}
                   maxLength={80}
                   placeholder="Tour des Flandres fédéral"
+                  defaultValue={editableProject?.name ?? ""}
                   required
                 />
               </Field>
@@ -173,6 +226,7 @@ export function FederationRaceCreationPanel({
                   minLength={2}
                   maxLength={12}
                   placeholder="TFF"
+                  defaultValue={editableProject?.shortName ?? ""}
                   required
                 />
               </Field>
@@ -194,6 +248,21 @@ export function FederationRaceCreationPanel({
                 </select>
               </Field>
             </div>
+
+            <NextSeasonCalendar
+              gameYear={state.targetGameYear}
+              calendar={state.calendar}
+              startDay={startDay}
+              startSlot={startSlot}
+              stageCount={stages.length}
+              onSelectDay={setStartDay}
+            />
+
+            <CostSummary
+              cost={cost}
+              accountBalance={state.accountBalance}
+              reputation={state.viewerReputation}
+            />
 
             <div className="grid gap-4 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Format">
@@ -293,14 +362,22 @@ export function FederationRaceCreationPanel({
               </div>
               <button
                 type="submit"
-                disabled={pending || state.score.total < selectedCategoryThreshold}
+                disabled={
+                  pending ||
+                  state.score.total < selectedCategoryThreshold ||
+                  !scheduleAvailable
+                }
                 className="min-h-12 rounded-xl bg-[var(--federation-primary,#123F36)] px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]"
               >
                 {pending
-                  ? "Homologation…"
+                  ? "Enregistrement…"
                   : state.score.total < selectedCategoryThreshold
                     ? `Indice ${selectedCategoryThreshold} requis pour ce rang`
-                    : "Homologuer la course"}
+                    : !scheduleAvailable
+                      ? "Créneau indisponible"
+                      : editableProject
+                        ? "Mettre à jour le brouillon"
+                        : "Enregistrer le brouillon"}
               </button>
             </div>
             <ActionFeedback
@@ -308,11 +385,212 @@ export function FederationRaceCreationPanel({
               message={actionState.message}
             />
           </form>
+          {editableProject ? (
+            <DraftSubmission
+              countryCode={countryCode}
+              project={editableProject}
+              canAfford={canAfford}
+              action={submitAction}
+              actionState={submitState}
+              pending={submitPending}
+            />
+          ) : null}
+          </>
         ) : (
           <LockedCreationNotice state={state} gameYear={gameYear} />
         )}
+
+        {state.managedRaces
+          .filter((project) => project.id !== state.project?.id)
+          .map((project) => (
+            <ScheduledProject
+              key={project.id}
+              countryCode={countryCode}
+              project={project}
+              canCancel={state.canCancel}
+              action={cancelAction}
+              actionState={cancelState}
+              pending={cancelPending}
+            />
+          ))}
       </div>
     </section>
+  );
+}
+
+function NextSeasonCalendar({
+  gameYear,
+  calendar,
+  startDay,
+  startSlot,
+  stageCount,
+  onSelectDay,
+}: {
+  gameYear: number;
+  calendar: FederationRaceCalendarDay[];
+  startDay: number;
+  startSlot: FederationRaceDaySlot;
+  stageCount: number;
+  onSelectDay: (day: number) => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[var(--federation-secondary,#278B70)]">
+            Calendrier territorial · Saison {gameYear}
+          </p>
+          <h3 className="mt-1 text-lg font-black text-[#183F37]">
+            Choisir un créneau cohérent
+          </h3>
+        </div>
+        <p className="text-xs font-bold text-[#60756E]">
+          CN · CC · CM · JQ · NC interdits · 2 courses maximum par vague
+        </p>
+      </div>
+      {calendar.length ? (
+        <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7 lg:grid-cols-14">
+          {calendar.map((day) => {
+            const slot = day[startSlot];
+            const selected = day.dayNumber === startDay;
+            return (
+              <button
+                key={day.dayNumber}
+                type="button"
+                onClick={() => onSelectDay(day.dayNumber)}
+                disabled={slot.unavailable}
+                title={day.forbiddenLabel ?? slot.labels.join(" · ")}
+                className={`min-h-16 rounded-xl border px-2 py-2 text-left transition ${
+                  selected
+                    ? "border-[var(--federation-primary,#123F36)] bg-[var(--federation-primary,#123F36)] text-white"
+                    : slot.unavailable
+                      ? "cursor-not-allowed border-[#C8D0CD] bg-[#E8ECEA] text-[#7D8985]"
+                      : "border-[#315B3E]/12 bg-white text-[#183F37] hover:border-[var(--federation-secondary,#278B70)]"
+                }`}
+              >
+                <span className="block text-xs font-black">J{day.dayNumber}</span>
+                <span className="mt-1 block text-[9px] font-bold leading-3">
+                  {day.forbiddenLabel ??
+                    (slot.existingRaceCount
+                      ? `${slot.existingRaceCount} course${slot.existingRaceCount > 1 ? "s" : ""}`
+                      : "Libre")}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-bold text-[#60756E]">
+          Le calendrier S{gameYear} est en cours de préparation. Le serveur vérifiera le créneau au moment de l’enregistrement.
+        </p>
+      )}
+      {!isScheduleAvailable(calendar, startDay, startSlot, stageCount) ? (
+        <p role="alert" className="mt-3 text-sm font-black text-[#A23D30]">
+          Au moins une étape tombe sur une journée protégée ou une vague déjà complète.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function CostSummary({
+  cost,
+  accountBalance,
+  reputation,
+}: {
+  cost: ReturnType<typeof getFederationRaceCost>;
+  accountBalance: number;
+  reputation: number;
+}) {
+  return (
+    <section className="grid gap-3 sm:grid-cols-3">
+      <CostCard label="Création ponctuelle" value={formatMoney(cost.creationMoney)} detail={`Solde fédéral : ${formatMoney(accountBalance)}`} insufficient={accountBalance < cost.creationMoney} />
+      <CostCard label="Engagement du président" value={`${cost.creationReputation} réputation`} detail={`Disponible : ${formatNumber(reputation)}`} insufficient={reputation < cost.creationReputation} />
+      <CostCard label="Maintenance annuelle" value={formatMoney(cost.annualMaintenance)} detail="Débitée dès la saison suivant l’ouverture" />
+    </section>
+  );
+}
+
+function CostCard({ label, value, detail, insufficient = false }: { label: string; value: string; detail: string; insufficient?: boolean }) {
+  return (
+    <article className={`rounded-2xl border p-4 ${insufficient ? "border-[#B54A3A]/30 bg-[#FBE9E5]" : "border-[#315B3E]/12 bg-[#F8FBF9]"}`}>
+      <p className="text-[10px] font-black uppercase tracking-[0.11em] text-[#60756E]">{label}</p>
+      <p className="mt-2 text-xl font-black text-[#183F37]">{value}</p>
+      <p className={`mt-1 text-xs font-bold ${insufficient ? "text-[#A23D30]" : "text-[#60756E]"}`}>{detail}</p>
+    </article>
+  );
+}
+
+function DraftSubmission({
+  countryCode,
+  project,
+  canAfford,
+  action,
+  actionState,
+  pending,
+}: {
+  countryCode: string;
+  project: NonNullable<FederationRaceCreationState["project"]>;
+  canAfford: boolean;
+  action: (payload: FormData) => void;
+  actionState: { status: "idle" | "success" | "error"; message: string };
+  pending: boolean;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#D5AC18]/30 bg-[#FFF9DE] p-5">
+      <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#806700]">
+        {project.status === "rejected" ? "Projet refusé · brouillon rouvert" : "Brouillon enregistré"}
+      </p>
+      <h3 className="mt-1 text-lg font-black text-[#3F360D]">Dernière validation avant consultation</h3>
+      <p className="mt-2 text-sm font-semibold leading-6 text-[#65571C]">
+        La soumission réserve {formatMoney(project.cost.creationMoney)} et {project.cost.creationReputation} points de réputation, puis ouvre un vote de 24 h. Ces ressources sont intégralement rendues si le projet est refusé.
+      </p>
+      <form action={action} className="mt-4 flex flex-wrap items-center gap-3">
+        <input type="hidden" name="countryCode" value={countryCode} />
+        <input type="hidden" name="projectId" value={project.id} />
+        <button type="submit" disabled={pending || !canAfford} className="min-h-11 rounded-xl bg-[#806700] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#A9A280]">
+          {pending ? "Ouverture du vote…" : canAfford ? "Soumettre au vote pendant 24 h" : "Ressources insuffisantes"}
+        </button>
+        <span className="text-xs font-bold text-[#65571C]">Le président vote automatiquement pour.</span>
+      </form>
+      <ActionFeedback status={actionState.status} message={actionState.message} />
+    </section>
+  );
+}
+
+function VotingProject({
+  countryCode,
+  project,
+  canVote,
+  action,
+  actionState,
+  pending,
+}: {
+  countryCode: string;
+  project: NonNullable<FederationRaceCreationState["project"]>;
+  canVote: boolean;
+  action: (payload: FormData) => void;
+  actionState: { status: "idle" | "success" | "error"; message: string };
+  pending: boolean;
+}) {
+  const cast = project.approveVotes + project.rejectVotes;
+  return (
+    <article className="rounded-2xl border border-[#4777B8]/25 bg-[#EDF4FC] p-5 sm:p-6">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#315F9B]">Vote fédéral en cours</p>
+      <h3 className="mt-2 text-2xl font-black text-[#183F37]">{project.name}</h3>
+      <p className="mt-2 text-sm font-semibold text-[#526C87]">
+        Clôture {project.voteClosesAt ? formatDateTime(project.voteClosesAt) : "dans 24 h"} · {cast}/{project.electorateCount} voix exprimées · {project.approveVotes} pour · {project.rejectVotes} contre.
+      </p>
+      {canVote ? (
+        <form action={action} className="mt-4 flex flex-wrap gap-3">
+          <input type="hidden" name="countryCode" value={countryCode} />
+          <input type="hidden" name="projectId" value={project.id} />
+          <button name="choice" value="approve" disabled={pending} className={`min-h-11 rounded-xl px-5 text-sm font-black ${project.viewerVote === "approve" ? "bg-[#176951] text-white" : "border border-[#176951]/25 bg-white text-[#176951]"}`}>Approuver</button>
+          <button name="choice" value="reject" disabled={pending} className={`min-h-11 rounded-xl px-5 text-sm font-black ${project.viewerVote === "reject" ? "bg-[#A23D30] text-white" : "border border-[#A23D30]/25 bg-white text-[#A23D30]"}`}>Refuser</button>
+        </form>
+      ) : null}
+      <ActionFeedback status={actionState.status} message={actionState.message} />
+    </article>
   );
 }
 
@@ -392,6 +670,11 @@ function LockedCreationNotice({
       label: `Indice au moins égal à ${state.score.threshold}`,
       complete: state.score.eligible,
     },
+    {
+      label: "Aucun projet définitivement engagé cette saison",
+      complete:
+        !state.project || ["draft", "rejected"].includes(state.project.status),
+    },
   ];
   return (
     <div className="rounded-2xl border border-[#D5AC18]/30 bg-[#FFF9DE] p-5">
@@ -413,9 +696,19 @@ function LockedCreationNotice({
 }
 
 function ScheduledProject({
+  countryCode,
   project,
+  canCancel,
+  action,
+  actionState,
+  pending,
 }: {
+  countryCode: string;
   project: NonNullable<FederationRaceCreationState["project"]>;
+  canCancel: boolean;
+  action: (payload: FormData) => void;
+  actionState: { status: "idle" | "success" | "error"; message: string };
+  pending: boolean;
 }) {
   const category = FEDERATION_RACE_CATEGORY_OPTIONS.find(
     (option) => option.code === project.categoryCode,
@@ -435,7 +728,7 @@ function ScheduledProject({
           </p>
         </div>
         <span className="rounded-full bg-[var(--federation-secondary,#176951)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white">
-          Programmée
+          {project.status === "active" ? "Permanente" : "Programmée"}
         </span>
       </div>
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -455,6 +748,21 @@ function ScheduledProject({
           );
         })}
       </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-[#315B3E]/10 pt-4">
+        <p className="text-xs font-bold text-[#60756E]">
+          Maintenance : {formatMoney(project.cost.annualMaintenance)} par saison. La course est reconduite automatiquement.
+        </p>
+        {canCancel ? (
+          <form action={action}>
+            <input type="hidden" name="countryCode" value={countryCode} />
+            <input type="hidden" name="projectId" value={project.id} />
+            <button type="submit" disabled={pending} className="min-h-10 rounded-xl border border-[#A23D30]/25 bg-white px-4 text-xs font-black text-[#A23D30] disabled:opacity-50">
+              {pending ? "Annulation…" : "Annuler les prochaines éditions"}
+            </button>
+          </form>
+        ) : null}
+      </div>
+      <ActionFeedback status={actionState.status} message={actionState.message} />
     </article>
   );
 }
@@ -762,4 +1070,39 @@ function createDefaultSegment(): FederationRaceStageBlueprint["segments"][number
 
 function formatDistance(distance: number): string {
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(distance)} km`;
+}
+
+function formatMoney(amount: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatNumber(amount: number): string {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(amount);
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
+}
+
+function isScheduleAvailable(
+  calendar: FederationRaceCalendarDay[],
+  startDay: number,
+  startSlot: FederationRaceDaySlot,
+  stageCount: number,
+): boolean {
+  if (!calendar.length) return true;
+  return Array.from({ length: stageCount }, (_, stageIndex) =>
+    getFederationRaceScheduledSlot({ startDay, startSlot, stageIndex }),
+  ).every((schedule) => {
+    const day = calendar.find((item) => item.dayNumber === schedule.dayNumber);
+    return Boolean(day && !day[schedule.daySlot].unavailable);
+  });
 }

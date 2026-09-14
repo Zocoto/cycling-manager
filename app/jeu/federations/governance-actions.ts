@@ -29,6 +29,8 @@ const raceShortNameSchema = z
   .min(2)
   .max(12)
   .regex(/^[\p{L}\p{N} -]+$/u);
+const federationRaceProjectIdSchema = z.string().uuid();
+const federationRaceVoteChoiceSchema = z.enum(["approve", "reject"]);
 
 const raceSegmentSchema = z
   .object({
@@ -228,7 +230,7 @@ export async function voteFederationPresidentAction(
   };
 }
 
-export async function createFederationRaceAction(
+export async function saveFederationRaceDraftAction(
   _previousState: FederationGovernanceActionState,
   formData: FormData,
 ): Promise<FederationGovernanceActionState> {
@@ -269,7 +271,7 @@ export async function createFederationRaceAction(
     return { status: "error", message: "Votre session a expiré." };
   }
 
-  const result = await supabase.rpc("create_national_federation_race", {
+  const result = await supabase.rpc("save_national_federation_race_draft", {
     p_country_code: countryCode.data,
     p_name: name.data.replace(/\s+/g, " "),
     p_short_name: shortName.data.replace(/\s+/g, " ").toUpperCase(),
@@ -280,25 +282,120 @@ export async function createFederationRaceAction(
     p_stage_blueprint: blueprint.data.stages,
   });
   if (result.error) {
-    console.error("Échec de création de course fédérale :", {
+    console.error("Échec d’enregistrement du brouillon de course :", {
       code: result.error.code,
       message: result.error.message,
     });
     return {
       status: "error",
       message:
-        result.error.message || "Le dossier de course n’a pas été enregistré.",
+        result.error.message || "Le brouillon de course n’a pas été enregistré.",
     };
   }
 
   revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
-  revalidatePath("/jeu/calendrier");
   refresh();
   return {
     status: "success",
-    message:
-      "La course est homologuée et programmée au calendrier de la saison suivante.",
+    message: "Le brouillon est enregistré. Il reste modifiable avant le vote.",
   };
+}
+
+export async function submitFederationRaceVoteAction(
+  _previousState: FederationGovernanceActionState,
+  formData: FormData,
+): Promise<FederationGovernanceActionState> {
+  return runFederationRaceProjectAction({
+    formData,
+    rpcName: "submit_national_federation_race_vote",
+    pendingMessage: "Le projet a été soumis aux membres pour 24 heures.",
+    errorFallback: "Le scrutin n’a pas pu être ouvert.",
+  });
+}
+
+export async function castFederationRaceVoteAction(
+  _previousState: FederationGovernanceActionState,
+  formData: FormData,
+): Promise<FederationGovernanceActionState> {
+  const choice = federationRaceVoteChoiceSchema.safeParse(
+    formData.get("choice"),
+  );
+  if (!choice.success) {
+    return { status: "error", message: "Ce choix de vote est invalide." };
+  }
+  return runFederationRaceProjectAction({
+    formData,
+    rpcName: "vote_national_federation_race",
+    extraParameters: { p_choice: choice.data },
+    pendingMessage: "Votre vote est enregistré et reste modifiable jusqu’à la clôture.",
+    errorFallback: "Votre vote n’a pas pu être enregistré.",
+  });
+}
+
+export async function cancelFederationRaceAction(
+  _previousState: FederationGovernanceActionState,
+  formData: FormData,
+): Promise<FederationGovernanceActionState> {
+  const result = await runFederationRaceProjectAction({
+    formData,
+    rpcName: "cancel_national_federation_race",
+    pendingMessage:
+      "La course est annulée pour les prochaines saisons. Les frais engagés ne sont pas remboursés.",
+    errorFallback: "La course n’a pas pu être annulée.",
+  });
+  if (result.status === "success") revalidatePath("/jeu/calendrier");
+  return result;
+}
+
+async function runFederationRaceProjectAction({
+  formData,
+  rpcName,
+  extraParameters = {},
+  pendingMessage,
+  errorFallback,
+}: {
+  formData: FormData;
+  rpcName:
+    | "submit_national_federation_race_vote"
+    | "vote_national_federation_race"
+    | "cancel_national_federation_race";
+  extraParameters?: Record<string, string>;
+  pendingMessage: string;
+  errorFallback: string;
+}): Promise<FederationGovernanceActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const projectId = federationRaceProjectIdSchema.safeParse(
+    formData.get("projectId"),
+  );
+  if (!countryCode.success || !projectId.success) {
+    return { status: "error", message: "Ce projet de course est invalide." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+  if (authenticationError || !user) {
+    return { status: "error", message: "Votre session a expiré." };
+  }
+
+  const result = await supabase.rpc(rpcName, {
+    p_country_code: countryCode.data,
+    p_project_id: projectId.data,
+    ...extraParameters,
+  });
+  if (result.error) {
+    console.error(`Échec de l’action ${rpcName} :`, {
+      code: result.error.code,
+      message: result.error.message,
+    });
+    return { status: "error", message: result.error.message || errorFallback };
+  }
+
+  revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
+  refresh();
+  return { status: "success", message: pendingMessage };
 }
 
 export async function submitFederationHostingCandidacyAction(

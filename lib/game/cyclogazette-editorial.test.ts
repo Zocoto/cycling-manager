@@ -27,11 +27,19 @@ describe("bouclage éditorial de La Cyclogazette", () => {
   });
 
   it("couvre rivalités, start-lists, DevTeams, rumeurs et convalescences", () => {
+    expect(editorialService).toContain('.from("national_federation_race_projects")');
     expect(editorialService).toContain('.from("team_rivalry_events")');
     expect(editorialService).toContain('.from("race_registrations")');
     expect(editorialService).toContain('.from("development_race_results")');
     expect(editorialService).toContain('.from("direct_transfer_offers")');
     expect(editorialService).toContain('.from("rider_injuries")');
+  });
+
+  it("clôture les votes fédéraux avant le bouclage du soir", () => {
+    expect(publicationService).toContain(
+      '"settle_due_national_federation_race_votes"',
+    );
+    expect(editorialService).toContain('kind: "federation_race"');
   });
 
   it("réserve le chargement du prestige étendu au bouclage quotidien", () => {

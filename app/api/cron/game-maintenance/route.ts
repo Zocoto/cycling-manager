@@ -22,6 +22,8 @@ const MAINTENANCE_TASKS = [
   "settle_due_national_federation_infrastructure_projects",
   "settle_due_national_federation_school_plans",
   "settle_due_national_federation_hosting_returns",
+  "settle_due_national_federation_race_votes",
+  "settle_due_national_federation_race_maintenance",
   "purge_expired_director_messages",
 ] as const;
 

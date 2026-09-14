@@ -210,6 +210,15 @@ export async function publishCyclogazetteEdition(
   }
   const seasonDay = dayResult.data;
 
+  const raceVotes = await admin.rpc(
+    "settle_due_national_federation_race_votes",
+  );
+  if (raceVotes.error) {
+    throw new Error(
+      `Impossible de clôturer les votes de courses fédérales : ${raceVotes.error.message}`,
+    );
+  }
+
   const existing = await admin
     .from("cyclogazette_editions")
     .select(

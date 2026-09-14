@@ -80,7 +80,8 @@ export type CyclogazetteFeatureKind =
   | "development"
   | "transfer_rumor"
   | "injury"
-  | "rivalry";
+  | "rivalry"
+  | "federation_race";
 
 export type CyclogazetteFeatureStory = {
   id: string;

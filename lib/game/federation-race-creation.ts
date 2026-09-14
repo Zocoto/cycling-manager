@@ -27,6 +27,49 @@ export type FederationRaceTerrainType = "flat" | "climb" | "descent";
 export type FederationRaceSurfaceType = "asphalt" | "cobbles";
 export type FederationRaceDaySlot = "early" | "late";
 
+export type FederationRaceCost = {
+  creationMoney: number;
+  creationReputation: number;
+  annualMaintenance: number;
+};
+
+const FEDERATION_RACE_CATEGORY_COSTS: Record<
+  FederationRaceCategoryCode,
+  {
+    creationMoney: number;
+    moneyPerExtraStage: number;
+    creationReputation: number;
+    reputationPerExtraStage: number;
+    annualMaintenance: number;
+    maintenancePerExtraStage: number;
+  }
+> = {
+  regional: {
+    creationMoney: 300_000,
+    moneyPerExtraStage: 75_000,
+    creationReputation: 20,
+    reputationPerExtraStage: 4,
+    annualMaintenance: 90_000,
+    maintenancePerExtraStage: 20_000,
+  },
+  national: {
+    creationMoney: 900_000,
+    moneyPerExtraStage: 250_000,
+    creationReputation: 50,
+    reputationPerExtraStage: 8,
+    annualMaintenance: 300_000,
+    maintenancePerExtraStage: 75_000,
+  },
+  continental: {
+    creationMoney: 3_000_000,
+    moneyPerExtraStage: 750_000,
+    creationReputation: 120,
+    reputationPerExtraStage: 15,
+    annualMaintenance: 1_000_000,
+    maintenancePerExtraStage: 250_000,
+  },
+};
+
 export type FederationRaceSegmentBlueprint = {
   distanceKm: number;
   terrainType: FederationRaceTerrainType;
@@ -100,6 +143,27 @@ export function getFederationRaceStageDistance(
     (total, segment) => total + segment.distanceKm,
     0,
   );
+}
+
+export function getFederationRaceCost({
+  categoryCode,
+  stageCount,
+}: {
+  categoryCode: FederationRaceCategoryCode;
+  stageCount: number;
+}): FederationRaceCost {
+  const category = FEDERATION_RACE_CATEGORY_COSTS[categoryCode];
+  const extraStages = Math.max(0, Math.min(7, Math.trunc(stageCount) - 1));
+  return {
+    creationMoney:
+      category.creationMoney + category.moneyPerExtraStage * extraStages,
+    creationReputation:
+      category.creationReputation +
+      category.reputationPerExtraStage * extraStages,
+    annualMaintenance:
+      category.annualMaintenance +
+      category.maintenancePerExtraStage * extraStages,
+  };
 }
 
 export function getFederationRaceScheduledSlot({

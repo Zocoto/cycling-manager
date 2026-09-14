@@ -92,6 +92,21 @@ export async function runGameMaintenanceTask(
         ...(isRecord(result.data) ? result.data : {}),
         youth_training: youthTraining,
       };
+    } else if (task === "infrastructure") {
+      // The infrastructure cadence runs every fifteen minutes. It provides a
+      // dependable close-to-real-time clock for 24-hour federation votes and
+      // annual race maintenance, independently from page visits.
+      const [raceVotes, raceMaintenance] = await Promise.all([
+        admin.rpc("settle_due_national_federation_race_votes"),
+        admin.rpc("settle_due_national_federation_race_maintenance"),
+      ]);
+      assertSettlement(raceVotes.error, "les votes de courses fédérales");
+      assertSettlement(raceMaintenance.error, "la maintenance des courses fédérales");
+      resolvedResult = {
+        ...(isRecord(result.data) ? result.data : {}),
+        federation_race_votes: raceVotes.data,
+        federation_race_maintenance: raceMaintenance.data,
+      };
     } else if (task === "elite-wildcards") {
       // Ce traitement reste hors des parcours interactifs : il profite du
       // passage de maintenance déjà planifié après les clôtures d'inscription.
