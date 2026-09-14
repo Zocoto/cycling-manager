@@ -53,8 +53,10 @@ describe("gestion de l’école de cyclisme", () => {
   });
 
   it("ne confond pas le filtre des 18 ans avec des entraînements modifiés", () => {
-    expect(academyPage).toContain("initialSettings={overview.academy");
+    expect(academyPage).toContain("initialSettings={trainableRiders");
     expect(academyPage).not.toContain("initialSettings={visibleRiders");
+    expect(academyPage).toContain("key={trainingEditorKey}");
+    expect(academyPage).toContain('rider.status !== "release_pending"');
   });
 
   it("reste dans le scouting après la signature d’un junior", () => {
@@ -83,8 +85,13 @@ describe("gestion de l’école de cyclisme", () => {
     );
     expect(bulkEditor).toContain("Valider les entraînements");
     expect(bulkEditor).toContain("JSON.stringify(changedSettings)");
+    expect(bulkEditor).toContain("YouthDismissalSelectionField");
+    expect(bulkEditor).toContain("Programmer ${count} départ");
     expect(academyActions).toContain(
       '"save_current_youth_training_settings_bulk"',
+    );
+    expect(academyActions).toContain(
+      '"dismiss_current_team_youth_riders_bulk"',
     );
   });
 });

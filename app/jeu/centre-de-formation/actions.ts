@@ -73,11 +73,13 @@ export async function signYouthCandidateAction(formData: FormData) {
 
 export async function saveYouthTrainingSettingsBulkAction(formData: FormData) {
   const settings = readYouthTrainingSettings(formData);
+  const preserveFinalYearFilter = readFinalYearFilter(formData);
   if (!settings?.length) {
     redirectWithMessage(
       "ecole",
       "erreur",
       "Les modifications d’entraînement junior sont invalides.",
+      preserveFinalYearFilter,
     );
   }
 
@@ -87,7 +89,12 @@ export async function saveYouthTrainingSettingsBulkAction(formData: FormData) {
     { p_changes: settings },
   );
   if (result.error) {
-    redirectWithMessage("ecole", "erreur", result.error.message);
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      result.error.message,
+      preserveFinalYearFilter,
+    );
   }
 
   const savedCount = Number(result.data ?? settings.length);
@@ -97,6 +104,7 @@ export async function saveYouthTrainingSettingsBulkAction(formData: FormData) {
     "ecole",
     "succes",
     `${safeCount} programmation${safeCount > 1 ? "s" : ""} enregistrée${safeCount > 1 ? "s" : ""} pour les prochaines séances.`,
+    preserveFinalYearFilter,
   );
 }
 
@@ -183,21 +191,43 @@ export async function completeYouthManualTrainingAction(input: {
 
 export async function recruitYouthRiderAction(formData: FormData) {
   const academyRiderId = readValue(formData, "academyRiderId");
-  if (!isUuid(academyRiderId)) redirectWithMessage("ecole", "erreur", "Le jeune transmis est invalide.");
+  const preserveFinalYearFilter = readFinalYearFilter(formData);
+  if (!isUuid(academyRiderId)) {
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      "Le jeune transmis est invalide.",
+      preserveFinalYearFilter,
+    );
+  }
   const supabase = await authenticatedClient();
   const result = await supabase.rpc("recruit_current_youth_rider", { p_academy_rider_id: academyRiderId });
-  if (result.error) redirectWithMessage("ecole", "erreur", result.error.message);
+  if (result.error) {
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      result.error.message,
+      preserveFinalYearFilter,
+    );
+  }
   revalidateCenter();
-  redirectWithMessage("ecole", "succes", `Recrutement validé : arrivée dans l’équipe première en ${result.data}.`);
+  redirectWithMessage(
+    "ecole",
+    "succes",
+    `Recrutement validé : arrivée dans l’équipe première en ${result.data}.`,
+    preserveFinalYearFilter,
+  );
 }
 
 export async function dismissYouthRiderAction(formData: FormData) {
   const academyRiderId = readValue(formData, "academyRiderId");
+  const preserveFinalYearFilter = readFinalYearFilter(formData);
   if (!isUuid(academyRiderId)) {
     redirectWithMessage(
       "ecole",
       "erreur",
       "Le junior transmis est invalide.",
+      preserveFinalYearFilter,
     );
   }
 
@@ -206,7 +236,12 @@ export async function dismissYouthRiderAction(formData: FormData) {
     p_academy_rider_id: academyRiderId,
   });
   if (result.error) {
-    redirectWithMessage("ecole", "erreur", result.error.message);
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      result.error.message,
+      preserveFinalYearFilter,
+    );
   }
 
   const release = readYouthDismissalResult(result.data);
@@ -219,6 +254,50 @@ export async function dismissYouthRiderAction(formData: FormData) {
     "ecole",
     "succes",
     `${release.riderName} reste dans l’école sans nouveaux frais ni entraînement et rejoindra les agents libres au passage en saison ${release.releaseGameYear}.`,
+    preserveFinalYearFilter,
+  );
+}
+
+export async function dismissYouthRidersBulkAction(formData: FormData) {
+  const academyRiderIds = readYouthDismissalIds(formData);
+  const preserveFinalYearFilter = readFinalYearFilter(formData);
+  if (!academyRiderIds?.length) {
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      "La sélection de juniors à libérer est invalide.",
+      preserveFinalYearFilter,
+    );
+  }
+
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc(
+    "dismiss_current_team_youth_riders_bulk",
+    { p_academy_rider_ids: academyRiderIds },
+  );
+  if (result.error) {
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      result.error.message,
+      preserveFinalYearFilter,
+    );
+  }
+
+  const dismissedCount = readDismissedYouthCount(
+    result.data,
+    academyRiderIds.length,
+  );
+  revalidateCenter();
+  revalidatePath(
+    "/jeu/centre-de-formation/development/[academyRiderId]",
+    "page",
+  );
+  redirectWithMessage(
+    "ecole",
+    "succes",
+    `${dismissedCount} départ${dismissedCount > 1 ? "s" : ""} programmé${dismissedCount > 1 ? "s" : ""} pour la fin de saison. Les juniors concernés restent visibles, sans nouveaux frais ni entraînement.`,
+    preserveFinalYearFilter,
   );
 }
 
@@ -291,13 +370,57 @@ function revalidateCenter() {
   revalidatePath("/jeu/finances");
 }
 
-function redirectWithMessage(tab: "scouting" | "ecole", key: "succes" | "erreur", message: string): never {
-  redirect(`${CENTER_PATH}?onglet=${tab}&${key}=${encodeURIComponent(message.slice(0, 280))}`);
+function redirectWithMessage(
+  tab: "scouting" | "ecole",
+  key: "succes" | "erreur",
+  message: string,
+  preserveFinalYearFilter = false,
+): never {
+  const ageFilter = preserveFinalYearFilter ? "&age=18" : "";
+  redirect(
+    `${CENTER_PATH}?onglet=${tab}${ageFilter}&${key}=${encodeURIComponent(message.slice(0, 280))}`,
+  );
 }
 
 function readValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function readFinalYearFilter(formData: FormData) {
+  return readValue(formData, "age") === "18";
+}
+
+function readYouthDismissalIds(formData: FormData): string[] | null {
+  const serialized = readValue(formData, "academyRiderIds");
+  if (!serialized || serialized.length > 1_000) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 20) {
+    return null;
+  }
+
+  const ids = parsed.map((value) =>
+    typeof value === "string" ? value.trim() : "",
+  );
+  if (ids.some((value) => !isUuid(value)) || new Set(ids).size !== ids.length) {
+    return null;
+  }
+  return ids;
+}
+
+function readDismissedYouthCount(data: unknown, fallback: number) {
+  const value =
+    data && typeof data === "object" && "dismissedCount" in data
+      ? Number(data.dismissedCount)
+      : Number.NaN;
+  return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
 function readYouthTrainingSettings(

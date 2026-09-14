@@ -17,6 +17,13 @@ const repairMigration = readFileSync(
   ),
   "utf8",
 );
+const bulkMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260914103000_bulk_youth_academy_dismissals.sql",
+  ),
+  "utf8",
+);
 const academyPage = readFileSync(
   join(process.cwd(), "app/jeu/centre-de-formation/page.tsx"),
   "utf8",
@@ -79,7 +86,8 @@ describe("renvoi d’un junior de l’école de cyclisme", () => {
   it("explique le départ différé et conserve le junior visible sans frais", () => {
     expect(academyPage).toContain("Programmer le départ");
     expect(academyPage).toContain("Fin de saison · sans frais");
-    expect(academyPage).toContain("required");
+    expect(academyPage).toContain("YouthDismissalSelectionField");
+    expect(academyPage).toContain("preserveFinalYearFilter");
     expect(academyPage).not.toContain("Payer et renvoyer");
     expect(academyPage).not.toContain("immédiatement agent libre");
     expect(youthService).toContain(
@@ -90,6 +98,12 @@ describe("renvoi d’un junior de l’école de cyclisme", () => {
     );
     expect(academyActions).toContain(
       'supabase.rpc("dismiss_current_team_youth_rider"',
+    );
+    expect(academyActions).toContain(
+      '"dismiss_current_team_youth_riders_bulk"',
+    );
+    expect(academyActions).toContain(
+      'const ageFilter = preserveFinalYearFilter ? "&age=18" : ""',
     );
     expect(academyActions).toContain("release.releaseGameYear");
     expect(academyActions).not.toContain('revalidatePath("/jeu/transferts")');
@@ -102,6 +116,22 @@ describe("renvoi d’un junior de l’école de cyclisme", () => {
     expect(migration).toContain("from public.youth_scouting_candidates as candidate");
     expect(migration).toContain("where candidate.status = 'signed'");
     expect(migration).toContain("where youth.status = ''promoted''");
+  });
+
+  it("regroupe plusieurs départs dans une seule transaction sécurisée", () => {
+    expect(bulkMigration).toContain(
+      "public.dismiss_current_team_youth_riders_bulk",
+    );
+    expect(bulkMigration).toContain(
+      "v_release := public.dismiss_current_team_youth_rider(v_academy_rider_id)",
+    );
+    expect(bulkMigration).toContain("v_requested_count > 20");
+    expect(bulkMigration).toContain(
+      "count(distinct selected.academy_rider_id)",
+    );
+    expect(bulkMigration).toContain(
+      "grant execute on function public.dismiss_current_team_youth_riders_bulk(uuid[])",
+    );
   });
 
   it("répare exactement les 13/10/3 cas explicitement autorisés", () => {

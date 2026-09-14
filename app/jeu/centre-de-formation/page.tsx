@@ -3,7 +3,6 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import {
-  dismissYouthRiderAction,
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
   recruitYouthRiderAction,
@@ -30,6 +29,7 @@ import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
 import {
+  YouthDismissalSelectionField,
   YouthTrainingBulkEditor,
   YouthTrainingSettingsFields,
 } from "@/components/game/youth-training-bulk-editor";
@@ -648,6 +648,15 @@ function AcademyTab({
       rider.promotionGameYear === overview.gameYear + 1,
   );
   const finalYearRiders = overview.academy.filter((rider) => rider.age === 18);
+  const trainableRiders = overview.academy.filter(
+    (rider) => rider.status !== "release_pending",
+  );
+  const trainingEditorKey = trainableRiders
+    .map(
+      (rider) =>
+        `${rider.id}:${rider.trainingPriority}:${rider.trainingModePreference}`,
+    )
+    .join("|");
   const visibleRiders =
     activeFilter === "final_year" ? finalYearRiders : overview.academy;
 
@@ -746,13 +755,13 @@ function AcademyTab({
           ) : null}
           {visibleRiders.length ? (
             <YouthTrainingBulkEditor
-              initialSettings={overview.academy
-                .filter((rider) => rider.status !== "release_pending")
-                .map((rider) => ({
-                  academyRiderId: rider.id,
-                  trainingPriority: rider.trainingPriority,
-                  trainingMode: rider.trainingModePreference,
-                }))}
+              key={trainingEditorKey}
+              preserveFinalYearFilter={activeFilter === "final_year"}
+              initialSettings={trainableRiders.map((rider) => ({
+                academyRiderId: rider.id,
+                trainingPriority: rider.trainingPriority,
+                trainingMode: rider.trainingModePreference,
+              }))}
             >
               <div className="space-y-3">
                 {visibleRiders.map((rider) => (
@@ -763,6 +772,7 @@ function AcademyTab({
                     currency={overview.currency}
                     canSchedulePromotion={overview.canScheduleYouthPromotion}
                     rosterLimit={overview.rosterLimit}
+                    preserveFinalYearFilter={activeFilter === "final_year"}
                   />
                 ))}
               </div>
@@ -956,12 +966,14 @@ function AcademyRiderCard({
   currency,
   canSchedulePromotion,
   rosterLimit,
+  preserveFinalYearFilter,
 }: {
   rider: AcademyYouth;
   gameYear: number;
   currency: string;
   canSchedulePromotion: boolean;
   rosterLimit: number;
+  preserveFinalYearFilter: boolean;
 }) {
   const releasePending = rider.status === "release_pending";
 
@@ -1086,6 +1098,9 @@ function AcademyRiderCard({
                       name="academyRiderId"
                       value={rider.id}
                     />
+                    {preserveFinalYearFilter ? (
+                      <input type="hidden" name="age" value="18" />
+                    ) : null}
                     <button className="w-full rounded-xl bg-[#F2C94C] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">
                       Recruter pour la saison {gameYear + 1}
                     </button>
@@ -1126,25 +1141,12 @@ function AcademyRiderCard({
                   Sa promotion déjà programmée en équipe première sera annulée.
                 </p>
               ) : null}
-              <form action={dismissYouthRiderAction} className="mt-3 space-y-3">
-                <input
-                  type="hidden"
-                  name="academyRiderId"
-                  value={rider.id}
+              <div className="mt-3">
+                <YouthDismissalSelectionField
+                  academyRiderId={rider.id}
+                  riderName={`${rider.firstName} ${rider.lastName}`}
                 />
-                <label className="flex items-start gap-3 rounded-xl border border-[#C94848]/15 bg-white px-3 py-3 text-[11px] font-bold leading-5 text-[#702E2E]">
-                  <input
-                    type="checkbox"
-                    required
-                    className="mt-0.5 h-4 w-4 accent-[#B54242]"
-                  />
-                  Je confirme l’arrêt de sa formation et sa libération à la fin
-                  de la saison.
-                </label>
-                <button className="min-h-11 w-full rounded-xl border border-[#C94848]/35 bg-[#FFF1F1] px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-[#A12E2E] transition hover:bg-[#FDE3E3]">
-                  Programmer le départ
-                </button>
-              </form>
+              </div>
             </div>
           </details>
           </div>
