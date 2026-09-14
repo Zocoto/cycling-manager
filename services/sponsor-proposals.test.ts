@@ -169,6 +169,37 @@ describe("generateSponsorProposals", () => {
     ]);
   });
 
+  it("peut réserver une offre au pays d'une école internationale", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "FR",
+      directorReputation: 100,
+      internationalSchoolAffinities: [
+        { countryCode: "JP", qualityLevel: 1 },
+      ],
+      random: () => 0.1,
+    });
+
+    expect(proposals).toHaveLength(3);
+    expect(
+      proposals.filter((proposal) => proposal.sponsor.countryCode === "JP"),
+    ).toHaveLength(1);
+  });
+
+  it("ne garantit pas le contact sponsor d'une école internationale", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "FR",
+      directorReputation: 100,
+      internationalSchoolAffinities: [
+        { countryCode: "JP", qualityLevel: 5 },
+      ],
+      random: () => 0.99,
+    });
+
+    expect(
+      proposals.some((proposal) => proposal.sponsor.countryCode === "JP"),
+    ).toBe(false);
+  });
+
   it("priorise les sponsors nationaux disponibles", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "FR",

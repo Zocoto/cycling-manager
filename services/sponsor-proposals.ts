@@ -1,9 +1,12 @@
 import { getNeighboringCountryCodes } from "@/data/country-neighbors";
 import { SPONSORS } from "@/data/sponsors";
 import {
+  getCombinedInternationalSchoolSponsorContactChance,
   normalizeFeaturedRiderSponsorAffinity,
+  normalizeInternationalSchoolSponsorAffinities,
   normalizeSponsorCountryCode,
   type FeaturedRiderSponsorAffinity,
+  type InternationalSchoolSponsorAffinity,
 } from "@/lib/game/sponsor-nationality-affinity";
 import {
   SPONSOR_PRESTIGE_REPUTATION_THRESHOLDS,
@@ -22,6 +25,7 @@ export interface GenerateSponsorProposalsOptions {
   leaderCountryCodes?: readonly string[];
   rosterMajorityCountryCode?: string | null;
   preferredSponsorIds?: readonly string[];
+  internationalSchoolAffinities?: readonly InternationalSchoolSponsorAffinity[];
   directorReputation: number;
   unavailableSponsorIds?: readonly string[];
   proposalCount?: number;
@@ -39,6 +43,7 @@ export function generateSponsorProposals({
   leaderCountryCodes = [],
   rosterMajorityCountryCode = null,
   preferredSponsorIds = [],
+  internationalSchoolAffinities = [],
   directorReputation,
   unavailableSponsorIds = [],
   proposalCount = DEFAULT_PROPOSAL_COUNT,
@@ -70,6 +75,9 @@ export function generateSponsorProposals({
   const majorityCountry = rosterMajorityCountryCode
     ? normalizeSponsorCountryCode(rosterMajorityCountryCode)
     : null;
+  const schoolAffinities = normalizeInternationalSchoolSponsorAffinities(
+    internationalSchoolAffinities,
+  ).filter((affinity) => affinity.countryCode !== primaryCountry);
   const affinityCountries = [
     primaryCountry,
     ...normalizedLeaderCountries,
@@ -124,6 +132,19 @@ export function generateSponsorProposals({
     eligibleSponsors.filter((sponsor) => preferredSponsorIdSet.has(sponsor.id)),
     random,
   );
+  const availableSchoolAffinities = schoolAffinities.flatMap((affinity) => {
+    const sponsors = eligibleSponsors.filter(
+      (sponsor) => sponsor.countryCode === affinity.countryCode,
+    );
+    return sponsors.length > 0 ? [{ affinity, sponsors }] : [];
+  });
+  const contactedSchool = selectInternationalSchoolContact({
+    schools: availableSchoolAffinities,
+    random,
+  });
+  const internationalSchoolSponsors = contactedSchool
+    ? shuffleSponsors(contactedSchool.sponsors, random)
+    : [];
   const affinitySponsorPools = uniqueAffinityCountries
     .filter((countryCode) => countryCode !== primaryCountry)
     .map((countryCode) =>
@@ -154,6 +175,7 @@ export function generateSponsorProposals({
   const selectedSponsors: Sponsor[] = [];
   const selectedSponsorIds = new Set<string>();
   const selectFromPool = (pool: readonly Sponsor[], maximum = Infinity) => {
+    if (maximum <= 0) return;
     let selectedFromPool = 0;
 
     for (const sponsor of pool) {
@@ -166,14 +188,20 @@ export function generateSponsorProposals({
     }
   };
 
+  const nationalPrioritySponsors =
+    nationalSponsors.length > 0 ? nationalSponsors : nationalBridgeSponsors;
   if (preferredSponsors.length > 0) {
-    selectFromPool(preferredSponsors, Math.floor(proposalCount / 2) + 1);
+    const reservedPrioritySlots =
+      Number(nationalPrioritySponsors.length > 0) +
+      Number(internationalSchoolSponsors.length > 0);
+    selectFromPool(
+      preferredSponsors,
+      Math.max(0, proposalCount - reservedPrioritySlots),
+    );
   }
 
-  selectFromPool(
-    nationalSponsors.length > 0 ? nationalSponsors : nationalBridgeSponsors,
-    1,
-  );
+  selectFromPool(nationalPrioritySponsors, 1);
+  selectFromPool(internationalSchoolSponsors, 1);
 
   for (const pool of affinitySponsorPools) {
     selectFromPool(pool, 1);
@@ -188,6 +216,40 @@ export function generateSponsorProposals({
   return selectedSponsors.map((sponsor) =>
     createSponsorProposal(sponsor, random)
   );
+}
+
+function selectInternationalSchoolContact({
+  schools,
+  random,
+}: {
+  schools: readonly {
+    affinity: InternationalSchoolSponsorAffinity;
+    sponsors: readonly Sponsor[];
+  }[];
+  random: () => number;
+}): {
+  affinity: InternationalSchoolSponsorAffinity;
+  sponsors: readonly Sponsor[];
+} | null {
+  if (schools.length === 0) return null;
+
+  const contactChance = getCombinedInternationalSchoolSponsorContactChance(
+    schools.map((school) => school.affinity),
+  );
+  if (random() >= contactChance) return null;
+
+  const totalWeight = schools.reduce(
+    (sum, school) => sum + school.affinity.qualityLevel,
+    0,
+  );
+  let targetWeight = random() * totalWeight;
+
+  for (const school of schools) {
+    targetWeight -= school.affinity.qualityLevel;
+    if (targetWeight < 0) return school;
+  }
+
+  return schools.at(-1) ?? null;
 }
 
 export function isSponsorEligibleForNationalBridgeOffer(

@@ -15,6 +15,7 @@ import {
 } from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
 import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
+import { getInternationalSchoolSponsorContactChance } from "@/lib/game/sponsor-nationality-affinity";
 import type {
   InfrastructureArchitect,
   InfrastructureCountry,
@@ -263,6 +264,14 @@ export function InternationalYouthCenterMap({
             label="Intensité du réseau"
             value={`${selected.networkEffects.networkStrengthPercentage} %`}
           />
+          <Metric
+            label="Contact sponsor"
+            value={
+              selected.currentTeamLevel > 0
+                ? `${Math.round(getInternationalSchoolSponsorContactChance(selected.currentTeamLevel) * 100)} %`
+                : "Non active"
+            }
+          />
         </dl>
 
         <p className="mt-3 text-[11px] font-semibold leading-5 text-[#60756E]">
@@ -358,7 +367,8 @@ export function InternationalYouthCenterMap({
                 Après livraison : +{projectedEffects.potentialBonusPercentage} % potentiel · +
                 {formatDecimal(projectedEffects.projectedPrimaryRatingBonus)} pt sur les notes clés · +
                 {projectedEffects.candidateCountBonus} candidat(s) · +
-                {formatDecimal(projectedEffects.specialAbilityBonusPercentage)} pt de capacité spéciale
+                {formatDecimal(projectedEffects.specialAbilityBonusPercentage)} pt de capacité spéciale · {" "}
+                {Math.round(getInternationalSchoolSponsorContactChance(nextLevel.level) * 100)} % de chance de contact sponsor
               </p>
             </div>
             <label className="block">

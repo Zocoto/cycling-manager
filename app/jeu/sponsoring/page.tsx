@@ -397,7 +397,10 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
       <p className="mt-6 text-sm leading-7 text-[#60756E]">
         Les objectifs sont reliés au calendrier réel et à la philosophie de
         chaque sponsor. Les courses du pays du sponsor sont prioritaires,
-        puis celles des pays voisins et enfin celles du même continent.
+        puis celles des pays voisins et enfin celles du même continent. Une
+        école de cyclisme internationale peut faire émerger au maximum une
+        offre de son pays dans le lot annuel, selon son niveau et sans contourner
+        le seuil de réputation du sponsor.
       </p>
     </>
   );

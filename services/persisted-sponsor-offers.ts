@@ -28,6 +28,7 @@ import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 const DEFAULT_PROPOSAL_COUNT = 3;
 const SPONSOR_OFFER_GENERATION_VERSION = 5;
 const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 6;
+const INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION = 9;
 
 export type SponsorOfferStatus =
   | "draft"
@@ -222,7 +223,9 @@ export async function getOrCreateSponsorOffersForAuthUser(
     seasonId: activeSeason.id,
   });
   const generationVersion =
-    countryAffinity.preferredSponsorIds.length > 0
+    countryAffinity.internationalSchoolAffinities.length > 0
+      ? INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION
+      : countryAffinity.preferredSponsorIds.length > 0
       ? PREFERRED_SPONSOR_OFFER_GENERATION_VERSION
       : SPONSOR_OFFER_GENERATION_VERSION;
 
@@ -277,6 +280,8 @@ export async function getOrCreateSponsorOffersForAuthUser(
       rosterMajorityCountryCode:
         countryAffinity.rosterMajorityCountryCode,
       preferredSponsorIds: countryAffinity.preferredSponsorIds,
+      internationalSchoolAffinities:
+        countryAffinity.internationalSchoolAffinities,
       directorReputation:
         sportingDirector.reputation_points,
       unavailableSponsorIds,

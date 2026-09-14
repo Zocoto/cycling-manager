@@ -884,8 +884,12 @@ function ProgressionSection() {
       <StrategyNote title="Sponsoring">
         Les offres apparaissent à partir de 30 points de réputation. Leur origine
         tient compte du pays de l’équipe, mais aussi des nationalités et du
-        niveau des coureurs. Entre J21 et J28, vous préparez le sponsor de la
-        saison suivante. Une rupture anticipée coûte 25 points de réputation.
+        niveau des coureurs. Une école de cyclisme internationale ajoute 30 à
+        70 % de chance, selon son niveau, de faire émerger au maximum une offre
+        de son pays dans le lot annuel. Plusieurs écoles se cumulent jusqu’à 85
+        %, sans contourner les seuils de réputation. Entre J21 et J28, vous
+        préparez le sponsor de la saison suivante. Une rupture anticipée coûte
+        25 points de réputation.
       </StrategyNote>
     </GuideSection>
   );

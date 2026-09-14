@@ -428,9 +428,11 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
               <p className="mt-2 text-sm font-semibold leading-6 text-[#7B6B37]">
                 Les écoles améliorent les notes initiales, le potentiel, le
                 nombre de candidats et la chance d’obtenir une capacité spéciale
-                lors des détections dans le pays. Toutes les étoiles se cumulent
-                sans limite d’écoles, avec des rendements décroissants pour que
-                les juniors exceptionnels restent rares.
+                lors des détections dans le pays. Une école construite permet
+                également à des sponsors de ce pays de contacter son équipe
+                propriétaire en fin de saison. Toutes les étoiles se cumulent sans
+                limite d’écoles, avec des rendements décroissants pour que les
+                juniors exceptionnels restent rares.
               </p>
             </div>
             <div data-tutorial-id="infrastructure-school-map">

@@ -36,6 +36,7 @@ const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
 const SPONSOR_OFFER_GENERATION_VERSION = 6;
 const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 7;
+const INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION = 9;
 
 export type FutureSponsorOfferMode =
   | "renewal"
@@ -250,7 +251,9 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     seasonId: activeSeason.id,
   });
   const generationVersion =
-    countryAffinity.preferredSponsorIds.length > 0
+    countryAffinity.internationalSchoolAffinities.length > 0
+      ? INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION
+      : countryAffinity.preferredSponsorIds.length > 0
       ? PREFERRED_SPONSOR_OFFER_GENERATION_VERSION
       : SPONSOR_OFFER_GENERATION_VERSION;
 
@@ -517,6 +520,8 @@ function createFutureProposals({
       rosterMajorityCountryCode:
         countryAffinity.rosterMajorityCountryCode,
       preferredSponsorIds: countryAffinity.preferredSponsorIds,
+      internationalSchoolAffinities:
+        countryAffinity.internationalSchoolAffinities,
       directorReputation,
       unavailableSponsorIds: [...unavailableSponsorIds],
       proposalCount: renewalIsEligible
@@ -550,6 +555,8 @@ function createFutureProposals({
     rosterMajorityCountryCode:
       countryAffinity.rosterMajorityCountryCode,
     preferredSponsorIds: countryAffinity.preferredSponsorIds,
+    internationalSchoolAffinities:
+      countryAffinity.internationalSchoolAffinities,
     directorReputation,
     unavailableSponsorIds: [...unavailableSponsorIds],
     proposalCount: DEFAULT_PROPOSAL_COUNT,

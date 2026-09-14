@@ -74,7 +74,7 @@ export const infrastructureTutorialDefinition = {
       targetId: "infrastructure-school-effect",
       title: "Les écoles améliorent les jeunes du pays",
       content:
-        "Chaque étoile de centre améliore les notes initiales, la chance de gagner une demi-étoile de potentiel, le nombre de candidats par mission selon des paliers, et la chance d’obtenir une capacité spéciale.\n\nToutes les écoles terminées dans le pays se cumulent sans limite. Les rendements deviennent progressivement plus faibles : le réseau augmente les chances de découvrir une exception, sans rendre tous les juniors surpuissants. Les rapports déjà générés ne sont jamais modifiés rétroactivement.",
+        "Chaque étoile de centre améliore les notes initiales, la chance de gagner une demi-étoile de potentiel, le nombre de candidats par mission selon des paliers, et la chance d’obtenir une capacité spéciale. Votre propre école ajoute aussi 30 à 70 % de chance, selon son niveau, qu’un sponsor de ce pays figure dans vos contacts de fin de saison.\n\nToutes les écoles terminées dans le pays se cumulent sans limite pour la détection. L’affinité sponsor reste personnelle, plafonnée à une offre par lot et à 85 % avec plusieurs écoles ; elle ne contourne jamais la réputation requise. Les rapports déjà générés ne sont jamais modifiés rétroactivement.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -94,7 +94,7 @@ export const infrastructureTutorialDefinition = {
       targetId: "infrastructure-school-map",
       title: "Concentrez ou diversifiez votre réseau",
       content:
-        "Renforcer un pays déjà développé améliore ses quatre bonus avec des rendements décroissants, tandis qu’ouvrir une école dans une nation peu couverte crée une nouvelle zone de détection améliorée.\n\nLes bonus appartiennent au pays, pas à l’équipe qui a payé : tous les DS profitent du réseau national lorsqu’ils y découvrent un jeune.",
+        "Renforcer un pays déjà développé améliore ses quatre bonus avec des rendements décroissants, tandis qu’ouvrir une école dans une nation peu couverte crée une nouvelle zone de détection améliorée.\n\nLes bonus de détection appartiennent au pays : tous les DS profitent du réseau national. En revanche, la possibilité d’être contacté par un sponsor de ce pays appartient uniquement à l’équipe qui y a construit son école.",
       placement: "top",
       highlightPadding: 8,
     },

@@ -620,7 +620,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "international-school-effect": {
         title: "Schools improve youth from their country",
         content:
-          "Each centre star improves starting attributes, the chance of gaining half a potential star, candidate count through tiers, and the chance of a special ability.\n\nAll completed schools in a country stack without limit. Diminishing returns increase the odds of finding an exceptional junior without making every prospect overpowered. Existing reports are never changed retroactively.",
+          "Each centre star improves starting attributes, the chance of gaining half a potential star, candidate count through tiers, and the chance of a special ability. Your own school also adds a 30% to 70% chance, depending on its level, that a sponsor from that country appears among your end-of-season contacts.\n\nAll completed schools in a country stack without limit for scouting. Sponsor affinity remains personal, is capped at one offer per set and at 85% with multiple schools, and never bypasses reputation requirements. Existing reports are never changed retroactively.",
       },
       "international-school-map": {
         title: "Choose the country before investing",
@@ -630,7 +630,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "international-school-strategy": {
         title: "Concentrate or diversify your network",
         content:
-          "Strengthening an established country improves all four bonuses with diminishing returns, while opening in an uncovered nation creates a new improved scouting area.\n\nThe bonuses belong to the country, not the paying team: every SD benefits from the national network when scouting there.",
+          "Strengthening an established country improves all four bonuses with diminishing returns, while opening in an uncovered nation creates a new improved scouting area.\n\nScouting bonuses belong to the country, so every SD benefits from the national network. However, the possibility of being contacted by a sponsor from that country belongs only to the team that built its school there.",
       },
       complete: {
         title: "Your infrastructure strategy is ready",

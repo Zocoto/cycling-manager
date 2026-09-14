@@ -35,6 +35,11 @@ type CountryRow = {
   iso_alpha2: string;
 };
 
+type InternationalYouthCenterRow = {
+  country_id: string;
+  quality_level: number;
+};
+
 const LEADER_COUNTRY_COUNT = 3;
 
 export async function loadTeamSponsorCountryAffinity({
@@ -46,7 +51,12 @@ export async function loadTeamSponsorCountryAffinity({
   teamId: string;
   seasonId: string;
 }): Promise<TeamSponsorCountryAffinity> {
-  const [teamResult, contractsResult, teamIdentitiesResult] = await Promise.all([
+  const [
+    teamResult,
+    contractsResult,
+    teamIdentitiesResult,
+    internationalSchoolsResult,
+  ] = await Promise.all([
     supabase
       .from("teams")
       .select("home_country_id")
@@ -63,6 +73,11 @@ export async function loadTeamSponsorCountryAffinity({
       .select("season_id, display_name, registration_country_id")
       .eq("team_id", teamId)
       .returns<TeamSeasonIdentityRow[]>(),
+    supabase
+      .from("international_youth_centers")
+      .select("country_id, quality_level")
+      .eq("team_id", teamId)
+      .returns<InternationalYouthCenterRow[]>(),
   ]);
 
   if (teamResult.error || !teamResult.data) {
@@ -83,6 +98,12 @@ export async function loadTeamSponsorCountryAffinity({
     );
   }
 
+  if (internationalSchoolsResult.error) {
+    throw new Error(
+      `Impossible de charger les écoles internationales pour le sponsoring : ${internationalSchoolsResult.error.message}`,
+    );
+  }
+
   const preferredSponsorIds = resolveRegionalSponsorPreference(
     (teamIdentitiesResult.data ?? []).map((teamSeason) =>
       teamSeason.display_name
@@ -96,33 +117,31 @@ export async function loadTeamSponsorCountryAffinity({
   const riderIds = [
     ...new Set((contractsResult.data ?? []).map((contract) => contract.rider_id)),
   ];
-  const countryIds = new Set<string>([primaryCountryId]);
-
-  if (riderIds.length === 0) {
-    return {
-      teamCountryCode: await loadCountryCode({
-        supabase,
-        countryId: primaryCountryId,
-      }),
-      leaderCountryCodes: [],
-      rosterMajorityCountryCode: null,
-      preferredSponsorIds,
-    };
-  }
-
-  const [ridersResult, summariesResult] = await Promise.all([
-    supabase
-      .from("riders")
-      .select("id, country_id")
-      .in("id", riderIds)
-      .returns<RiderRow[]>(),
-    supabase
-      .from("rider_season_summaries")
-      .select("rider_id, points")
-      .eq("season_id", seasonId)
-      .in("rider_id", riderIds)
-      .returns<RiderSeasonSummaryRow[]>(),
+  const internationalSchools = internationalSchoolsResult.data ?? [];
+  const countryIds = new Set<string>([
+    primaryCountryId,
+    ...internationalSchools.map((school) => school.country_id),
   ]);
+
+  const [ridersResult, summariesResult] =
+    riderIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from("riders")
+            .select("id, country_id")
+            .in("id", riderIds)
+            .returns<RiderRow[]>(),
+          supabase
+            .from("rider_season_summaries")
+            .select("rider_id, points")
+            .eq("season_id", seasonId)
+            .in("rider_id", riderIds)
+            .returns<RiderSeasonSummaryRow[]>(),
+        ])
+      : [
+          { data: [] as RiderRow[], error: null },
+          { data: [] as RiderSeasonSummaryRow[], error: null },
+        ];
 
   if (ridersResult.error) {
     throw new Error(
@@ -163,6 +182,15 @@ export async function loadTeamSponsorCountryAffinity({
   if (!teamCountryCode) {
     throw new Error("Le pays fondateur de l'équipe est introuvable.");
   }
+
+  const internationalSchoolAffinities = internationalSchools.flatMap(
+    (school) => {
+      const countryCode = countryCodeById.get(school.country_id);
+      return countryCode
+        ? [{ countryCode, qualityLevel: school.quality_level }]
+        : [];
+    },
+  );
 
   const countryCodeByRiderId = new Map(
     (ridersResult.data ?? []).flatMap((rider) => {
@@ -222,25 +250,6 @@ export async function loadTeamSponsorCountryAffinity({
     leaderCountryCodes,
     rosterMajorityCountryCode,
     preferredSponsorIds,
+    internationalSchoolAffinities,
   };
-}
-
-async function loadCountryCode({
-  supabase,
-  countryId,
-}: {
-  supabase: SupabaseAdminClient;
-  countryId: string;
-}): Promise<string> {
-  const { data, error } = await supabase
-    .from("countries")
-    .select("id, iso_alpha2")
-    .eq("id", countryId)
-    .maybeSingle<CountryRow>();
-
-  if (error || !data) {
-    throw new Error("Le pays fondateur de l'équipe est introuvable.");
-  }
-
-  return data.iso_alpha2.trim().toUpperCase();
 }
