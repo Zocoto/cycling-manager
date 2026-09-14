@@ -9,8 +9,11 @@ const source = readFileSync(
 );
 
 describe("federation objective metrics", () => {
-  it("compte les convocations manuelles sans créditer les listes automatiques", () => {
+  it("compte la preuve durable de soumission manuelle sans dépendre du mode courant", () => {
     expect(source).toContain(
+      '.not("manually_submitted_at", "is", null)',
+    );
+    expect(source).not.toContain(
       '.not("created_by_director_id", "is", null)',
     );
     expect(source).toContain(

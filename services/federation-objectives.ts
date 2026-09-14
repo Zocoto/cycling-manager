@@ -76,7 +76,7 @@ export async function getFederationObjectiveMetrics({
           .select("id", { count: "exact", head: true })
           .eq("country_id", countryId)
           .eq("season_id", seasonId)
-          .not("created_by_director_id", "is", null)
+          .not("manually_submitted_at", "is", null)
           .in("status", ["pending_confirmation", "finalized"]),
         admin.rpc("get_national_federation_nations_cup_standings", {
           p_season_id: seasonId,
