@@ -355,6 +355,24 @@ export function FederationSelectionWorkbench({
 
   return (
     <div className="space-y-6">
+      <section className="rounded-[2rem] border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
+        <SelectionAutomaticModeControl
+          countryCode={countryCode}
+          canManage={canManage}
+          checked={automaticSelection}
+          onChange={setAutomaticSelection}
+        />
+      </section>
+
+      {selectionState?.pendingConfirmations.length ? (
+        <PendingConfirmationPanel
+          countryCode={countryCode}
+          confirmations={selectionState.pendingConfirmations}
+          riders={riders}
+          gameYear={gameYear}
+        />
+      ) : null}
+
       <section
         aria-label="Compétitions internationales"
         className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
@@ -458,24 +476,6 @@ export function FederationSelectionWorkbench({
           </nav>
         </div>
       </section>
-
-      <section className="rounded-[2rem] border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
-        <SelectionAutomaticModeControl
-          countryCode={countryCode}
-          canManage={canManage}
-          checked={automaticSelection}
-          onChange={setAutomaticSelection}
-        />
-      </section>
-
-      {selectionState?.pendingConfirmations.length ? (
-        <PendingConfirmationPanel
-          countryCode={countryCode}
-          confirmations={selectionState.pendingConfirmations}
-          riders={riders}
-          gameYear={gameYear}
-        />
-      ) : null}
 
       <section id="federation-selection-detail" className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
         <div className="grid gap-4 bg-[var(--federation-primary)] p-5 text-white sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">

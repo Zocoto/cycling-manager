@@ -155,6 +155,12 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain("Contre-la-montre");
     expect(markup).not.toContain("Construire les listes dès J1");
     expect(markup).not.toContain("Épreuve à préparer");
+    expect(markup.indexOf("Sélection automatique")).toBeLessThan(
+      markup.indexOf('data-selection-competition="continental-pro"'),
+    );
+    expect(markup.indexOf("Sous-épreuves")).toBeLessThan(
+      markup.indexOf('id="federation-selection-detail"'),
+    );
   });
 
   it("shows statistical sorting, rider affinities and federation weather", () => {
