@@ -228,13 +228,83 @@ const GENERAL_CROSSWORD_WORDS: readonly CrosswordWord[] = [
   { answer: "VOYAGE", clue: "Déplacement vers une destination lointaine" },
   { answer: "ENIGME", clue: "Question qui demande de trouver une solution" },
   { answer: "SOURIRE", clue: "Expression joyeuse dessinée par la bouche" },
+  { answer: "ABRICOT", clue: "Fruit orangé au noyau lisse" },
+  { answer: "ACCUEIL", clue: "Manière de recevoir une personne" },
+  { answer: "ADRESSE", clue: "Indication d’un lieu ou habileté remarquable" },
+  { answer: "ANNEAUX", clue: "Cercles portés aux doigts ou autour de Saturne" },
+  { answer: "ARCHIVE", clue: "Document conservé pour mémoire" },
+  { answer: "BALANCE", clue: "Instrument servant à peser" },
+  { answer: "BATEAUX", clue: "Ils naviguent sur l’eau" },
+  { answer: "BOUQUET", clue: "Assemblage de fleurs" },
+  { answer: "BUREAUX", clue: "Meubles de travail ou locaux professionnels" },
+  { answer: "CABINET", clue: "Petite pièce de travail ou groupe de conseillers" },
+  { answer: "CAPITAL", clue: "Essentiel, ou relatif à une capitale" },
+  { answer: "CHANSON", clue: "Texte mis en musique pour être chanté" },
+  { answer: "CHEMISE", clue: "Vêtement boutonné couvrant le torse" },
+  { answer: "COURAGE", clue: "Force permettant d’affronter une difficulté" },
+  { answer: "CRAYONS", clue: "Outils de dessin et d’écriture" },
+  { answer: "CUISINE", clue: "Pièce où l’on prépare les repas" },
+  { answer: "DESSERT", clue: "Dernier plat souvent sucré" },
+  { answer: "DIAMANT", clue: "Pierre précieuse d’une grande dureté" },
+  { answer: "DRAPEAU", clue: "Étoffe portant les couleurs d’un pays" },
+  { answer: "FAMILLE", clue: "Ensemble de personnes unies par la parenté" },
+  { answer: "FENETRE", clue: "Ouverture vitrée pratiquée dans un mur" },
+  { answer: "HORIZON", clue: "Ligne où le ciel semble rejoindre la terre" },
+  { answer: "JOURNAL", clue: "Publication qui paraît régulièrement" },
+  { answer: "LECTURE", clue: "Action de parcourir un texte" },
+  { answer: "LUMIERE", clue: "Ce qui rend les objets visibles" },
+  { answer: "MACHINE", clue: "Ensemble mécanique conçu pour effectuer un travail" },
+  { answer: "MAGIQUE", clue: "Qui semble produit par un pouvoir surnaturel" },
+  { answer: "MANTEAU", clue: "Vêtement porté par-dessus les autres" },
+  { answer: "MESSAGE", clue: "Information transmise à quelqu’un" },
+  { answer: "OISEAUX", clue: "Animaux pourvus de plumes" },
+  { answer: "PASSAGE", clue: "Endroit ou action permettant de passer" },
+  { answer: "PEINTRE", clue: "Artiste qui travaille avec des couleurs" },
+  { answer: "PENDULE", clue: "Horloge ou masse qui oscille" },
+  { answer: "PLAFOND", clue: "Surface supérieure d’une pièce" },
+  { answer: "POISSON", clue: "Animal aquatique muni de nageoires" },
+  { answer: "PORTAIL", clue: "Grande porte marquant une entrée" },
+  { answer: "POTAGER", clue: "Jardin consacré aux légumes" },
+  { answer: "RECETTE", clue: "Instructions de cuisine ou somme encaissée" },
+  { answer: "ROYAUME", clue: "Territoire gouverné par un roi ou une reine" },
+  { answer: "SILENCE", clue: "Absence de bruit" },
+  { answer: "SOMMEIL", clue: "État naturel pendant lequel on dort" },
+  { answer: "TABLEAU", clue: "Œuvre peinte ou panneau présentant des données" },
+  { answer: "TEMPETE", clue: "Violente perturbation atmosphérique" },
+  { answer: "TERRAIN", clue: "Étendue de sol aux limites définies" },
+  { answer: "VILLAGE", clue: "Petite agglomération rurale" },
+  { answer: "AEROPORT", clue: "Lieu de départ et d’arrivée des avions" },
+  { answer: "AVENTURE", clue: "Expérience comportant imprévu et découverte" },
+  { answer: "BATIMENT", clue: "Construction destinée à abriter des activités" },
+  { answer: "BRACELET", clue: "Bijou porté autour du poignet" },
+  { answer: "CHOCOLAT", clue: "Aliment obtenu à partir du cacao" },
+  { answer: "COULEURS", clue: "Sensations produites par la lumière" },
+  { answer: "ELEPHANT", clue: "Grand mammifère à trompe" },
+  { answer: "ESCARGOT", clue: "Mollusque avançant avec sa coquille" },
+  { answer: "FESTIVAL", clue: "Série de manifestations artistiques" },
+  { answer: "HERITAGE", clue: "Ce qui est transmis par les générations précédentes" },
+  { answer: "HISTOIRE", clue: "Récit d’événements réels ou imaginaires" },
+  { answer: "LANTERNE", clue: "Lampe protégée par une enveloppe transparente" },
+  { answer: "PAPILLON", clue: "Insecte aux ailes souvent colorées" },
+  { answer: "PYRAMIDE", clue: "Monument à base large et sommet pointu" },
+  { answer: "QUESTION", clue: "Phrase formulée pour obtenir une réponse" },
+  { answer: "RENCONTRE", clue: "Fait de se trouver face à quelqu’un" },
+  { answer: "TERRASSE", clue: "Espace extérieur plat attenant à un bâtiment" },
+  { answer: "TRAVERSEE", clue: "Action de passer d’un côté à l’autre" },
+  { answer: "TRIANGLE", clue: "Figure géométrique à trois côtés" },
+  { answer: "VACANCES", clue: "Période consacrée au repos" },
+  { answer: "BOUTEILLE", clue: "Récipient allongé muni d’un goulot" },
+  { answer: "CARROUSEL", clue: "Manège tournant ou suite d’images" },
+  { answer: "DINOSAURE", clue: "Reptile ayant vécu aux temps préhistoriques" },
+  { answer: "ENVELOPPE", clue: "Pochette de papier destinée au courrier" },
+  { answer: "SPECTACLE", clue: "Représentation donnée devant un public" },
+  { answer: "SYMPHONIE", clue: "Grande composition écrite pour orchestre" },
+  { answer: "TELEPHONE", clue: "Appareil permettant de communiquer à distance" },
 ] as const;
 
 
 const GENERAL_CROSSWORDS_FROM_ISSUE = 47;
-const CURATED_CROSSWORD_BANK_FROM_ISSUE = 57;
-const CURATED_CROSSWORD_BANK_STEP = 7_919;
-const CURATED_CROSSWORD_BANK_OFFSET = 104_729;
+const LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE = 57;
 
 type DenseCrosswordSquare = readonly [string, string, string, string];
 
@@ -398,6 +468,180 @@ const CONNECTED_CROSSWORD_TEMPLATES: readonly ConnectedCrosswordTemplate[] = [
       "#ILE#GO#L",
     ],
   },
+  {
+    rows: [
+      "C#EN#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#SE#NIER", "N#INSENSE", "ET#D##FOI", "#ERE#GO#L",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LE#FOND#S", "E#J###E#E",
+      "C#AUTO#AN", "HONNEUR#T", "I#T##RATE", "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##TA", "AIME#T##U", "US#GERANT", "V#NI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EH##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "C#EN#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#NE#NIER", "N#INSENSE", "ET#D##FOI", "#ERE#HO#L",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LE#FOND#S", "E#J###E#E",
+      "C#AUTO#IN", "HONNEUR#T", "I#T##RATE", "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##LA", "AIME#T##U", "US#GERANT", "V#NI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EH##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "RAT#COMA#", "#CE#R#AMI", "#CALIBRE#", "ARME#AIL#", "HO#V#T#IN",
+      "#CLE#TROU", "#HORREUR#", "NET#O#DE#", "#ROTI#ERE",
+    ],
+  },
+  {
+    rows: [
+      "C#EN#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#NE#NIER", "N#INSENSE", "ET#D##FOI", "#ERE#GO#L",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LE#FOND#S", "E#D###E#E",
+      "C#AUTO#AN", "HONNEUR#T", "I#S##RATE", "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##TA", "AIME#T##U", "US#GERANT", "V#SI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EH##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "C#EN#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#SE#NIER", "N#INSENSE", "ET#D##FOI", "#ERE#GO#L",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##CA", "AIME#T##U", "US#GERANT", "V#NI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EN##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LE#FOND#S", "E#C###E#E",
+      "C#AUTO#IN", "HONNEUR#T", "I#O##RATE", "ROND#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##CA", "AIME#T##U", "US#GERANT", "V#SI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EH##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LA#FOND#S", "E#J###E#E",
+      "C#AUTO#IN", "HONNEUR#T", "I#T##RATE", "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##TA", "AIME#T##U", "US#GERANT", "V#SI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EN##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LA#FOND#S", "E#D###E#E",
+      "C#AUTO#AN", "HONNEUR#T", "I#S##RATE", "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LA#FOND#S", "E#C###E#E",
+      "C#AUTO#AN", "HONNEUR#T", "I#O##RATE", "ROND#STAR",
+    ],
+  },
+  {
+    rows: [
+      "C#ET#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#SE#NIER", "N#INSENSE", "EN#D##FOI", "#ILE#HO#L",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LA#FOND#S", "E#C###E#E",
+      "C#AUTO#IN", "HONNEUR#T", "I#O##RATE", "ROND#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##TA", "AIME#T##U", "US#GERANT", "V#NI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EN##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LE#FOND#S", "E#C###E#E",
+      "C#AUTO#AN", "HONNEUR#T", "I#O##RATE", "ROND#STAR",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##CA", "AIME#T##U", "US#GERANT", "V#NI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EH##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##CA", "AIME#T##U", "US#GERANT", "V#SI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EN##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LA#FOND#S", "E#J###E#E",
+      "C#AUTO#AN", "HONNEUR#T", "I#T##RATE", "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "C#EN#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#SE#NIER", "N#INSENSE", "ET#D##FOI", "#ERE#HO#L",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##LA", "AIME#T##U", "US#GERANT", "V#SI#OSER", "ET#S#U#TE",
+      "TEST#PA#M", "ALARME#CE", "G##E#AMEN", "EH##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "C#ET#AMI#", "ART##U#LA", "REALITE#P", "ACTE#OH#P", "VU#GYM#PA",
+      "A#SE#NIER", "N#INSENSE", "EN#D##FOI", "#ERE#GO#L",
+    ],
+  },
+  {
+    rows: [
+      "RIEN#TROP", "ELLE##O#R", "F#URGENCE", "LE#FOND#S", "E#D###E#E",
+      "C#AUTO#IN", "HONNEUR#T", "I#S##RATE", "REEL#STAR",
+    ],
+  },
 ] as const;
 
 const CONNECTED_CROSSWORD_CLUES: Readonly<Record<string, string>> = {
@@ -517,6 +761,17 @@ const CONNECTED_CROSSWORD_CLUES: Readonly<Record<string, string>> = {
   VU: "Aperçu avec les yeux",
 } as const;
 
+const CROSSWORD_CLUES: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(
+    [...CYCLING_CROSSWORD_WORDS, ...GENERAL_CROSSWORD_WORDS].map((word) => [
+      word.answer,
+      word.clue,
+    ]),
+  ),
+  ...DENSE_CROSSWORD_CLUES,
+  ...CONNECTED_CROSSWORD_CLUES,
+};
+
 const DIFFICULTIES: readonly CyclogazetteGameDifficulty[] = [
   "facile",
   "moyen",
@@ -635,10 +890,16 @@ function createCrosswordPuzzle(
   variationKey = "",
 ): PrivateCrosswordPuzzle {
   const variationSeed = hashVariationKey(variationKey);
-  if (issueNumber >= CURATED_CROSSWORD_BANK_FROM_ISSUE) {
-    return buildDenseCrosswordPuzzle(
-      selectCuratedCrosswordSquares(issueNumber),
-      getCuratedCrosswordDifficulty(issueNumber),
+  if (issueNumber >= LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE) {
+    const sequence = issueNumber - LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE;
+    const templateIndex =
+      (sequence * 13 + 7) % CONNECTED_CROSSWORD_TEMPLATES.length;
+    const transpose =
+      Math.floor(sequence / CONNECTED_CROSSWORD_TEMPLATES.length) % 2 === 1;
+    return buildConnectedCrosswordPuzzle(
+      CONNECTED_CROSSWORD_TEMPLATES[templateIndex],
+      getDifficulty(issueNumber, 1),
+      transpose,
     );
   }
 
@@ -816,8 +1077,7 @@ function buildConnectedCrosswordPuzzle(
           (_, index) =>
             readCrosswordCell(sourceRows, direction, fixed, start + index),
         ).join("");
-        const clue =
-          CONNECTED_CROSSWORD_CLUES[answer] ?? DENSE_CROSSWORD_CLUES[answer];
+        const clue = CROSSWORD_CLUES[answer];
         if (!clue) throw new Error(`Définition manquante pour ${answer}.`);
         placements.push({
           answer,
@@ -830,35 +1090,34 @@ function buildConnectedCrosswordPuzzle(
     }
   }
 
+  const numberByStart = new Map<string, number>();
+  const starts = [
+    ...new Set(placements.map((word) => `${word.row}:${word.column}`)),
+  ]
+    .map((key) => {
+      const [row, column] = key.split(":").map(Number);
+      return { key, row, column };
+    })
+    .sort((left, right) => left.row - right.row || left.column - right.column);
+  starts.forEach((start, index) => numberByStart.set(start.key, index + 1));
+
   const cells = sourceRows.flatMap<CyclogazetteCrosswordCell>(
     (rowValue, row) =>
       [...rowValue].flatMap((letter, column) => {
         if (letter === "#") return [];
-        const firstOpenColumn = [...rowValue].findIndex(
-          (value) => value !== "#",
-        );
-        const firstOpenRow = sourceRows.findIndex(
-          (value) => value[column] !== "#",
-        );
-        const number =
-          column === firstOpenColumn
-            ? row + 1
-            : row === firstOpenRow
-              ? column + 1
-              : null;
         return [
           {
             index: row * columns + column,
             row,
             column,
-            number,
+            number: numberByStart.get(`${row}:${column}`) ?? null,
           },
         ];
       }),
   );
   const entries = placements
     .map<CyclogazetteCrosswordEntry>((word) => ({
-      number: word.direction === "horizontal" ? word.row + 1 : word.column + 1,
+      number: numberByStart.get(`${word.row}:${word.column}`) ?? 0,
       direction: word.direction,
       row: word.row,
       column: word.column,
@@ -913,40 +1172,6 @@ function getCrosswordWordPool(issueNumber: number, variationSeed = 0) {
   );
 
   return [...GENERAL_CROSSWORD_WORDS, ...cyclingTouches];
-}
-
-function selectCuratedCrosswordSquares(issueNumber: number) {
-  // Chaque quartet ordonné correspond à une grille 9 × 9 déjà validée. Le pas,
-  // premier avec la taille de la banque, parcourt les 116 280 combinaisons sans
-  // répétition avant de boucler, sans recherche de placement à l'exécution.
-  const availableSquares = [...DENSE_CROSSWORD_SQUARES];
-  const permutationCount =
-    availableSquares.length *
-    (availableSquares.length - 1) *
-    (availableSquares.length - 2) *
-    (availableSquares.length - 3);
-  let sequence =
-    ((issueNumber - CURATED_CROSSWORD_BANK_FROM_ISSUE) *
-      CURATED_CROSSWORD_BANK_STEP +
-      CURATED_CROSSWORD_BANK_OFFSET) %
-    permutationCount;
-  const selected: DenseCrosswordSquare[] = [];
-
-  for (let position = 0; position < 4; position += 1) {
-    const choiceIndex = sequence % availableSquares.length;
-    sequence = Math.floor(sequence / availableSquares.length);
-    const [square] = availableSquares.splice(choiceIndex, 1);
-    if (!square) throw new Error("Banque de mots croisés incomplète.");
-    selected.push(square);
-  }
-
-  return selected;
-}
-
-function getCuratedCrosswordDifficulty(
-  issueNumber: number,
-): CyclogazetteGameDifficulty {
-  return issueNumber % 4 === 0 ? "moyen" : "facile";
 }
 
 function placeCrosswordWords(

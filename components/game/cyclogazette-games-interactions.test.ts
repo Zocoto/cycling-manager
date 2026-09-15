@@ -38,7 +38,9 @@ describe("interactions des jeux de La Cyclogazette", () => {
 
     const gameAction = actions.slice(
       actions.indexOf("export async function validateCyclogazetteGameAction"),
-      actions.indexOf("export async function voteCyclogazettePollAction"),
+      actions.indexOf(
+        "export async function validateCyclogazetteSeasonQuizAction",
+      ),
     );
     const pollAction = actions.slice(
       actions.indexOf("export async function voteCyclogazettePollAction"),

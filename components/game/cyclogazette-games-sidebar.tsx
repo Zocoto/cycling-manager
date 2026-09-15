@@ -328,7 +328,7 @@ function CrosswordGame({
     [openCells, puzzle.columns, puzzle.rows],
   );
   const [draft, setDraft] = useCyclogazetteGameDraft(
-    `cyclogazette:${editionId}:crossword:v2`,
+    `cyclogazette:${editionId}:crossword:v3`,
     initialDraft,
   );
   const values = useMemo(
@@ -372,7 +372,7 @@ function CrosswordGame({
       formAction={formAction}
     >
       <div
-        className="mx-auto grid w-full max-w-[310px] border-2 border-[#2E281D] bg-[#2E281D]"
+        className="mx-auto grid w-full max-w-[420px] border-2 border-[#2E281D] bg-[#2E281D]"
         style={{ gridTemplateColumns: `repeat(${puzzle.columns}, minmax(0, 1fr))` }}
         aria-label="Grille de mots croisés"
       >
@@ -387,7 +387,7 @@ function CrosswordGame({
               className="relative aspect-square min-w-0 border-b border-r border-[#7D6C49]/45 bg-[#FFFDF5]"
             >
               {cell.number ? (
-                <span className="pointer-events-none absolute left-px top-0 text-[6px] font-black leading-none text-[#655A43]">
+                <span className="pointer-events-none absolute left-0.5 top-0.5 text-[8px] font-black leading-none text-[#655A43]">
                   {cell.number}
                 </span>
               ) : null}
@@ -413,7 +413,7 @@ function CrosswordGame({
                       .join(""),
                   );
                 }}
-                className="h-full w-full min-w-0 bg-transparent pt-1 text-center font-serif text-[clamp(9px,2vw,14px)] font-black uppercase text-[#9B263D] outline-none focus:bg-[#FFF7D9] focus:ring-2 focus:ring-inset focus:ring-[#9B263D]"
+                className="h-full w-full min-w-0 bg-transparent pt-1 text-center font-serif text-[clamp(14px,3vw,22px)] font-black uppercase text-[#9B263D] outline-none focus:bg-[#FFF7D9] focus:ring-2 focus:ring-inset focus:ring-[#9B263D]"
               />
             </label>
           );

@@ -133,43 +133,54 @@ describe("Cyclogazette daily games", () => {
       expect(solutionRows.every((row) => row !== "#########")).toBe(true);
       expect(isConnectedCrossword(solutionRows)).toBe(true);
 
-      for (const direction of ["horizontal", "vertical"] as const) {
-        const lineNumbers = new Set(
-          crossword.entries
-            .filter((entry) => entry.direction === direction)
-            .map((entry) => entry.number),
-        );
-        expect(lineNumbers.size).toBeLessThanOrEqual(9);
+      const numberByStart = new Map<string, number>();
+      for (const entry of crossword.entries) {
+        const start = `${entry.row}:${entry.column}`;
+        const existingNumber = numberByStart.get(start);
+        if (existingNumber !== undefined) {
+          expect(entry.number).toBe(existingNumber);
+        } else {
+          expect([...numberByStart.values()]).not.toContain(entry.number);
+          numberByStart.set(start, entry.number);
+        }
       }
     }
   });
 
-  it("sert à partir de la saison 3 une banque de vraies grilles compactes et quotidiennes", () => {
+  it("sert à partir de la saison 3 une grande grille unique aux mots de tailles variées", () => {
     const signatures = new Set<string>();
 
-    for (let issueNumber = 57; issueNumber <= 2_056; issueNumber += 1) {
+    for (let issueNumber = 57; issueNumber <= 256; issueNumber += 1) {
       const crossword = getCyclogazetteDailyGames(issueNumber).crossword;
       const solutionRows =
         getCyclogazetteGameSolutions(issueNumber).crosswordRows;
 
       expect(crossword.rows).toBe(9);
       expect(crossword.columns).toBe(9);
-      expect(crossword.cells).toHaveLength(64);
-      expect(crossword.entries).toHaveLength(32);
-      expect(crossword.entries.every((entry) => entry.length === 4)).toBe(true);
-      expect(crossword.difficulty).not.toBe("difficile");
-      expect(solutionRows).toHaveLength(9);
-      expect(solutionRows[4]).toBe("#########");
+      expect(crossword.cells.length).toBeGreaterThanOrEqual(60);
+      expect(crossword.entries.length).toBeGreaterThanOrEqual(26);
       expect(
-        solutionRows.every((row, rowIndex) =>
-          rowIndex === 4 ? true : row[4] === "#",
+        new Set(crossword.entries.map((entry) => entry.length)).size,
+      ).toBeGreaterThanOrEqual(5);
+      expect(solutionRows.join("")).toContain("#");
+      expect(
+        solutionRows.every(
+          (row) => row !== "#".repeat(crossword.columns),
         ),
       ).toBe(true);
+      expect(isConnectedCrossword(solutionRows)).toBe(true);
+
+      const numberedStarts = new Set(
+        crossword.entries.map(
+          (entry) => `${entry.number}:${entry.row}:${entry.column}`,
+        ),
+      );
+      expect(numberedStarts.size).toBeGreaterThanOrEqual(20);
 
       signatures.add(solutionRows.join(""));
     }
 
-    expect(signatures.size).toBe(2_000);
+    expect(signatures.size).toBeGreaterThanOrEqual(60);
   });
 });
 
