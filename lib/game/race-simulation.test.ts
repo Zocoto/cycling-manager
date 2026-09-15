@@ -27,7 +27,10 @@ import {
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
   getRoadCrashRiskProfile,
+  getRoadFinishMode,
+  getReducedSprintFinishBaseScore,
   isFlatRunInGroupSprint,
+  isLikelyMassSprint,
   isMassGroupFinish,
   reduceMechanicalIncidentTimeLoss,
   resolveCaughtBreakawayElapsedTime,
@@ -76,6 +79,96 @@ describe("isFlatRunInGroupSprint", () => {
         30,
       ),
     ).toBe(false);
+  });
+});
+
+describe("qualification sportive du final", () => {
+  it("classe le final exact de l'étape 8 en sprint réduit malgré ses deux tronçons plats", () => {
+    const segments = createCorsaStageEightSegments();
+
+    expect(isLikelyMassSprint(segments)).toBe(false);
+    expect(getRoadFinishMode(segments, 20)).toBe("reduced_sprint");
+  });
+
+  it("conserve le sprint massif pour un parcours réellement plat et compact", () => {
+    const segments: RaceStageSegment[] = [1, 2, 3].map((segmentNumber) => ({
+      segmentNumber,
+      distanceKm: 20,
+      terrain: "flat",
+      averageGradientPct: 0,
+      surface: "asphalt",
+      prime: null,
+    }));
+
+    expect(isLikelyMassSprint(segments)).toBe(true);
+    expect(getRoadFinishMode(segments, 30)).toBe("mass_sprint");
+    expect(getRoadFinishMode(segments, 9)).toBe("mass_sprint");
+  });
+
+  it("tolère une courte rampe non sélective avant le sprint massif", () => {
+    const segments: RaceStageSegment[] = [
+      {
+        segmentNumber: 1,
+        distanceKm: 20,
+        terrain: "flat",
+        averageGradientPct: 0,
+        surface: "asphalt",
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 2,
+        terrain: "climb",
+        averageGradientPct: 4,
+        surface: "asphalt",
+        prime: null,
+      },
+      {
+        segmentNumber: 3,
+        distanceKm: 18,
+        terrain: "flat",
+        averageGradientPct: 0,
+        surface: "asphalt",
+        prime: null,
+      },
+    ];
+
+    expect(isLikelyMassSprint(segments)).toBe(true);
+  });
+
+  it("fait compter la difficulté récente et les réserves dans un sprint réduit", () => {
+    const segments = createCorsaStageEightSegments();
+    const papandreouLike = createSelectionTestRider("late-sprinter", {
+      flat: 63,
+      mountain: 40,
+      hills: 46,
+      sprint: 69,
+      acceleration: 68,
+      endurance: 54,
+      resistance: 54,
+    });
+    const hillyFinisher = createSelectionTestRider("hilly-finisher", {
+      flat: 65,
+      mountain: 75,
+      hills: 78,
+      sprint: 60,
+      acceleration: 74,
+      endurance: 75,
+      resistance: 75,
+    });
+
+    const lateSprinterScore = getReducedSprintFinishBaseScore({
+      rider: papandreouLike,
+      segments,
+      energy: 52,
+    });
+    const hillyFinisherScore = getReducedSprintFinishBaseScore({
+      rider: hillyFinisher,
+      segments,
+      energy: 65,
+    });
+
+    expect(hillyFinisherScore).toBeGreaterThan(lateSprinterScore);
   });
 });
 
@@ -991,6 +1084,44 @@ describe("simulateRaceStage", () => {
     });
   });
 
+  it("conserve l'écart réel d'un vainqueur revenu d'un groupe retardé", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("haute-montagne", 1),
+    );
+    const rankedFinisherIds = simulation.results
+      .filter((result) => result.status === "finished" && result.rank !== null)
+      .sort((first, second) => first.rank! - second.rank!)
+      .map((result) => result.riderId);
+    const officialWinnerId = rankedFinisherIds[0];
+    const entrySnapshot = simulation.timeline.at(-2)!;
+    entrySnapshot.groups = [
+      {
+        id: "leading-group",
+        label: "Groupe de tête",
+        type: "peloton",
+        riderIds: rankedFinisherIds.slice(1, 15),
+        gapToLeaderSeconds: 0,
+        averageEnergy: 60,
+      },
+      {
+        id: "late-winner-group",
+        label: "Groupe retardé",
+        type: "dropped",
+        riderIds: [officialWinnerId],
+        gapToLeaderSeconds: 19,
+        averageEnergy: 52,
+      },
+    ];
+
+    const scenario = getFinalBattleScenario(simulation);
+
+    expect(scenario.lateJoiners).toContainEqual({
+      riderId: officialWinnerId,
+      fromGroupLabel: "Groupe retardé",
+      gapToLeaderSeconds: 19,
+    });
+  });
+
   it("fait payer davantage d’énergie à une petite échappée", () => {
     const result = simulateRaceStage(
       createDemoSimulationInput("collines-ardennes", 7),
@@ -1632,6 +1763,13 @@ describe("simulateRaceStage", () => {
     );
 
     expect(successfulRecovery).toBeDefined();
+    expect(
+      successfulRecovery!.timeline.some((snapshot) =>
+        snapshot.commentary.some((line) =>
+          line.includes("recollent au peloton grâce au travail des équipiers"),
+        ),
+      ),
+    ).toBe(true);
     expect(failedRecovery).toBeDefined();
   });
 
@@ -3318,6 +3456,39 @@ function createShortPunchyRutaSegments(): RaceStageSegment[] {
     [3, "climb", 11],
     [4, "descent", -8.5],
     [10, "flat", 0],
+  ];
+
+  return definitions.map(
+    ([distanceKm, terrain, averageGradientPct], index) => ({
+      segmentNumber: index + 1,
+      distanceKm,
+      terrain,
+      averageGradientPct,
+      surface: "asphalt",
+      prime: null,
+    }),
+  );
+}
+
+function createCorsaStageEightSegments(): RaceStageSegment[] {
+  const definitions: Array<
+    [distanceKm: number, terrain: RaceStageSegment["terrain"], gradient: number]
+  > = [
+    [25, "flat", 0],
+    [10, "climb", 4.5],
+    [8, "descent", -4.4],
+    [20, "flat", 0],
+    [8, "climb", 6],
+    [7, "descent", -5.8],
+    [15, "flat", 0],
+    [6, "climb", 8.5],
+    [6, "descent", -8],
+    [12, "flat", 0],
+    [10, "climb", 5.5],
+    [8, "descent", -5.3],
+    [15, "flat", 0],
+    [5, "climb", 10],
+    [15, "flat", 0],
   ];
 
   return definitions.map(

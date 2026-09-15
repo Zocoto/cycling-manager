@@ -166,6 +166,119 @@ describe("race live visual timeline", () => {
     expect(rawVisualFrame.groups[2]?.gapToLeaderSeconds).toBe(272);
   });
 
+  it("interpole un recollage vers un groupe final renommé sans téléportation ni doublon", () => {
+    const leaderGroup = {
+      id: "peloton",
+      label: "Peloton",
+      type: "peloton" as const,
+      riderIds: ["leader", "stable-front"],
+      gapToLeaderSeconds: 0,
+      averageEnergy: 70,
+    };
+    const delayedGroup = {
+      id: "dropped-papandreou",
+      label: "Groupe retardé",
+      type: "dropped" as const,
+      riderIds: ["papandreou", "stable-delayed"],
+      gapToLeaderSeconds: 19,
+      averageEnergy: 52,
+    };
+    const finalLeaderGroup = {
+      id: "finish-group-1",
+      label: "Groupe de tête",
+      type: "peloton" as const,
+      riderIds: ["leader", "stable-front", "papandreou"],
+      gapToLeaderSeconds: 0,
+      averageEnergy: 57,
+    };
+    const finalDelayedGroup = {
+      id: "finish-group-2",
+      label: "Groupe retardé",
+      type: "dropped" as const,
+      riderIds: ["stable-delayed"],
+      gapToLeaderSeconds: 19,
+      averageEnergy: 48,
+    };
+    const timeline: RaceTimelineSnapshot[] = [
+      {
+        segmentNumber: 14,
+        completedDistanceKm: 155,
+        groups: [leaderGroup, delayedGroup],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+      {
+        segmentNumber: 15,
+        completedDistanceKm: 170,
+        groups: [finalLeaderGroup, finalDelayedGroup],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+    ];
+    const earlyFrame = {
+      segmentNumber: 15,
+      completedDistanceKm: 158,
+      sourceTimelineIndex: 1,
+      groups: [leaderGroup, delayedGroup],
+    };
+    const lateFrame = {
+      segmentNumber: 15,
+      completedDistanceKm: 167,
+      sourceTimelineIndex: 1,
+      groups: [leaderGroup, delayedGroup],
+    };
+    const staleFinishFrame = {
+      segmentNumber: 15,
+      completedDistanceKm: 170,
+      sourceTimelineIndex: 1,
+      groups: [leaderGroup, delayedGroup],
+    };
+
+    const frames = getRaceVisualTimeline(
+      buildSimulation({
+        timeline,
+        visualTimeline: [earlyFrame, lateFrame, staleFinishFrame],
+      }),
+    );
+
+    const papandreouEarly = frames[0]?.groups.find((group) =>
+      group.riderIds.includes("papandreou"),
+    );
+    const papandreouLate = frames[1]?.groups.find((group) =>
+      group.riderIds.includes("papandreou"),
+    );
+    expect(papandreouEarly?.type).toBe("chase");
+    expect(papandreouEarly?.gapToLeaderSeconds).toBeCloseTo(15.2);
+    expect(papandreouLate?.gapToLeaderSeconds).toBeCloseTo(3.8);
+
+    expect(
+      frames[0]?.groups.find((group) =>
+        group.riderIds.includes("stable-front"),
+      )?.gapToLeaderSeconds,
+    ).toBe(0);
+    expect(
+      frames[1]?.groups.find((group) =>
+        group.riderIds.includes("stable-delayed"),
+      )?.gapToLeaderSeconds,
+    ).toBe(19);
+
+    for (const frame of frames) {
+      const riderIds = frame.groups.flatMap((group) => group.riderIds);
+      expect(new Set(riderIds).size).toBe(riderIds.length);
+    }
+    expect(frames[2]?.groups).toEqual(timeline[1]?.groups);
+
+    // The normalizer must never rewrite the authored replay or official data.
+    expect(earlyFrame.groups[1]?.riderIds).toEqual([
+      "papandreou",
+      "stable-delayed",
+    ]);
+    expect(earlyFrame.groups[1]?.gapToLeaderSeconds).toBe(19);
+    expect(timeline[1]?.groups[0]?.id).toBe("finish-group-1");
+  });
+
   it("interpolates group gaps and tactical pressure without blending rider identities", () => {
     const frames = [
       {

@@ -2503,7 +2503,10 @@ function FinishBattleView({
           `${simulation.seed}:finish-rider:${result.riderId}`,
         );
         const entryPosition = getFinalGroupEntryPosition({
-          groupGapSeconds: entryGroup?.gapToLeaderSeconds ?? 0,
+          groupGapSeconds:
+            entryGroup?.gapToLeaderSeconds ??
+            lateJoiner?.gapToLeaderSeconds ??
+            0,
           riderIndex: formationIndex,
           groupSize: entryGroup?.riderIds.length ?? allFinalists.length,
         });

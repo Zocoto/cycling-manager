@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-crash-frequency-and-sprint-pileups-v26";
+  "2026.09-reduced-sprint-and-replay-continuity-v27";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

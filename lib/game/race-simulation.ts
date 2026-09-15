@@ -636,14 +636,20 @@ export function getFinalBattleScenario(
       (riderId) => contenderSet.has(riderId) && !entryLeaderSet.has(riderId),
     )
     .map((riderId) => {
-      const origin = eligibleEntryGroups.find((group) =>
-        group.riderIds.includes(riderId),
+      // Un coureur peut revenir d'un groupe typé `dropped` dans le dernier
+      // tronçon. Ces groupes ne participent pas à la sélection des prétendants,
+      // mais restent la source canonique de sa position à l'entrée du final.
+      const origin = entrySnapshot.groups.find(
+        (group) =>
+          group.type !== "time_trial" && group.riderIds.includes(riderId),
       );
 
       return {
         riderId,
         fromGroupLabel: origin?.label ?? "Groupe intercalé",
-        gapToLeaderSeconds: origin?.gapToLeaderSeconds ?? 0,
+        gapToLeaderSeconds: origin
+          ? Math.max(0, origin.gapToLeaderSeconds - leadingGap)
+          : 0,
       };
     });
 
@@ -681,9 +687,12 @@ type RiderState = {
   leaderRecoveryStatus?: "active" | "failed";
   supportingLeaderId?: string;
   collectiveWorkload?: number;
+  lateRecoveryEffortSeconds?: number;
   tacticalFinishBonus?: number;
   tacticalNoiseMultiplier?: number;
 };
+
+export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
@@ -3291,19 +3300,18 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   });
 
   const finalCommentary = timeline.at(-1)?.commentary ?? [];
-  const groupSprintFinish =
-    isLikelyMassSprint(input.segments) ||
-    isFlatRunInGroupSprint(
-      input.segments,
-      getLargestContendingRoadGroupSize(states),
-    );
+  const roadFinishMode = getRoadFinishMode(
+    input.segments,
+    getLargestContendingRoadGroupSize(states),
+  );
+  const groupSprintFinish = roadFinishMode !== "selective";
   const preserveFinalRoadGroups =
     groupSprintFinish || shouldPreserveFinalRoadGroupTimes(input.segments);
   const finishScores = getRoadFinishScores(
     states,
     input.segments,
     input.profileType,
-    groupSprintFinish,
+    roadFinishMode,
     random,
     finalCommentary,
   );
@@ -5406,11 +5414,15 @@ function resolveSupportedLeaderRecovery({
         (1 - Math.max(0, raceProgress - 0.8) * 0.35),
     );
     const remainingGapSeconds = Math.max(0, gapSeconds - recoveredSeconds);
+    const lateRaceEffortFactor = clamp((raceProgress - 0.7) / 0.3, 0, 1);
 
     for (const state of group) {
       state.group = "delayed";
       state.elapsedTimeSeconds = pelotonTime + remainingGapSeconds;
       state.lostTimeSeconds = remainingGapSeconds;
+      state.lateRecoveryEffortSeconds =
+        (state.lateRecoveryEffortSeconds ?? 0) +
+        recoveredSeconds * lateRaceEffortFactor;
     }
 
     if (remainingGapSeconds <= 3) {
@@ -5422,12 +5434,11 @@ function resolveSupportedLeaderRecovery({
         delete state.supportingLeaderId;
       }
       delete leader.leaderRecoveryStatus;
-      if (commentary.length < 4) {
-        commentary.push(
-          formatRiderList(group) +
-            " recollent au peloton grâce au travail des équipiers.",
-        );
-      }
+      const message =
+        formatRiderList(group) +
+        " recollent au peloton grâce au travail des équipiers.";
+      if (commentary.length >= 4) commentary[3] = message;
+      else commentary.push(message);
     } else if (
       segmentIndex === leader.groupSinceSegment + 1 &&
       commentary.length < 4
@@ -6908,12 +6919,14 @@ function getRoadFinishScores(
   states: Map<string, RiderState>,
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
-  groupSprintFinish: boolean,
+  finishMode: RoadFinishMode,
   random: () => number,
   commentary: string[],
 ) {
   const scores = new Map<string, number>();
-  const sprintFinish = groupSprintFinish;
+  const massSprintFinish = finishMode === "mass_sprint";
+  const reducedSprintFinish = finishMode === "reduced_sprint";
+  const compactSprintFinish = massSprintFinish || reducedSprintFinish;
   const peloton = getStatesInGroup(states, "peloton");
   const trainScores = getSprintTrainScores(peloton);
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
@@ -6930,7 +6943,7 @@ function getRoadFinishScores(
   const borrowedWheelByRiderId = new Map<string, RiderState>();
   const primaryFavorite = sprintContenders[0];
 
-  if (sprintFinish && primaryFavorite) {
+  if (compactSprintFinish && primaryFavorite) {
     for (const challenger of sprintContenders.slice(1)) {
       const trainRank = positionedTeams.indexOf(challenger.rider.teamId);
       const canFollowFavorite =
@@ -6990,7 +7003,7 @@ function getRoadFinishScores(
       if (state.group === "peloton") {
         finalAttackScores.push({ state, score });
       }
-    } else if (sprintFinish && state.group !== "abandoned") {
+    } else if (massSprintFinish && state.group !== "abandoned") {
       const trainRank = positionedTeams.indexOf(rider.teamId);
       const ownTrainBonus =
         trainRank === 0
@@ -7047,6 +7060,30 @@ function getRoadFinishScores(
             1.5,
           ) /
             100;
+      }
+    } else if (reducedSprintFinish && state.group !== "abandoned") {
+      const trainRank = positionedTeams.indexOf(rider.teamId);
+      const positioningBonus =
+        trainRank === 0 ? 2 : trainRank === 1 ? 1.2 : trainRank === 2 ? 0.5 : 0;
+      const roleBonus = isRaceSprinterRole(rider.role)
+        ? 1.5
+        : isRaceLeaderRole(rider.role)
+          ? 2
+          : rider.role === "leadout"
+            ? -2
+            : 0;
+      score =
+        getReducedSprintFinishBaseScore({
+          rider,
+          segments,
+          energy: state.energy,
+        }) +
+        getRaceDayBonus(rider) * 0.8 +
+        positioningBonus +
+        roleBonus;
+      scoreNoiseFactor = 0.65;
+      if (state.group === "peloton") {
+        finalAttackScores.push({ state, score });
       }
     } else if (profileType === "hilly") {
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 6 : 0;
@@ -7109,21 +7146,22 @@ function getRoadFinishScores(
     scores.set(
       rider.id,
       score -
-        (sprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) -
+        (massSprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) -
         getCollectiveWorkFinishPenalty({
           state,
           states,
           segments,
-          sprintFinish,
+          sprintFinish: compactSprintFinish,
         }) +
         random() *
           SCORE_NOISE *
           scoreNoiseFactor *
           (state.tacticalNoiseMultiplier ?? 1) +
-        state.raceDayExecutionBonus * (sprintFinish ? 0.7 : 1) +
+        state.raceDayExecutionBonus * (massSprintFinish ? 0.7 : 1) +
         state.decisiveAttackBonus -
         state.injuryPerformancePenalty +
         (state.tacticalFinishBonus ?? 0) -
+        Math.min(6, (state.lateRecoveryEffortSeconds ?? 0) * 0.18) -
         state.finalSprintCrashFinishPenalty,
     );
   }
@@ -7131,7 +7169,7 @@ function getRoadFinishScores(
   applyTeamFinishHierarchy({
     scores,
     states,
-    sprintFinish,
+    sprintFinish: compactSprintFinish,
   });
 
   const finalAttacker = finalAttackScores.sort(
@@ -7148,6 +7186,27 @@ function getRoadFinishScores(
   }
 
   return scores;
+}
+
+export function getReducedSprintFinishBaseScore({
+  rider,
+  segments,
+  energy,
+}: {
+  rider: RiderSimulationInput;
+  segments: RaceStageSegment[];
+  energy: number;
+}) {
+  const decisiveFinishRating = getDecisiveRoadFinishRating(rider, segments);
+  return (
+    rider.ratings.sprint * 0.36 +
+    rider.ratings.acceleration * 0.14 +
+    decisiveFinishRating * 0.22 +
+    rider.ratings.hills * 0.12 +
+    rider.ratings.resistance * 0.06 +
+    rider.ratings.endurance * 0.04 +
+    energy * 0.06
+  );
 }
 
 function applyTeamFinishHierarchy({
@@ -8774,13 +8833,62 @@ function getFrontTerrainRating(
   );
 }
 
-function isLikelyMassSprint(segments: RaceStageSegment[]) {
+/**
+ * Un final roulant ne suffit pas à faire disparaître la sélection produite par
+ * une difficulté proche de l'arrivée. En particulier, une côte raide placée
+ * avant le dernier plat conduit à un sprint réduit, pas à un sprint massif.
+ */
+export function isLikelyMassSprint(segments: RaceStageSegment[]) {
+  const finalSegment = segments.at(-1);
+  if (
+    !finalSegment ||
+    finalSegment.terrain !== "flat" ||
+    finalSegment.surface !== "asphalt"
+  ) {
+    return false;
+  }
+
+  let distanceAfterSegmentKm = 0;
+  const decisiveFinishWindowKm = 35;
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    const segment = segments[index];
+    if (distanceAfterSegmentKm >= decisiveFinishWindowKm) break;
+    const distanceInsideWindowKm = Math.min(
+      segment.distanceKm,
+      decisiveFinishWindowKm - distanceAfterSegmentKm,
+    );
+    const gradient = Math.max(0, segment.averageGradientPct);
+    const climbLoad = distanceInsideWindowKm * gradient;
+    const decisiveClimb =
+      segment.terrain === "climb" &&
+      distanceInsideWindowKm >= 3 &&
+      (gradient >= 8 ||
+        climbLoad >= 28 ||
+        (distanceInsideWindowKm >= 6 && gradient >= 5.5));
+    const decisiveCobbles =
+      segment.surface === "cobbles" && distanceInsideWindowKm >= 4;
+    if (decisiveClimb || decisiveCobbles) return false;
+
+    distanceAfterSegmentKm += segment.distanceKm;
+  }
+
   const finalSegments = segments.slice(-3);
   return (
     finalSegments.length > 0 &&
     finalSegments.filter((segment) => segment.terrain === "flat").length >=
       Math.ceil(finalSegments.length * 0.66)
   );
+}
+
+export function getRoadFinishMode(
+  segments: RaceStageSegment[],
+  leadingGroupSize: number,
+): RoadFinishMode {
+  if (isLikelyMassSprint(segments)) return "mass_sprint";
+
+  return isFlatRunInGroupSprint(segments, leadingGroupSize)
+    ? "reduced_sprint"
+    : "selective";
 }
 
 export function isFlatRunInGroupSprint(

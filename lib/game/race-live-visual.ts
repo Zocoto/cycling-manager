@@ -34,7 +34,7 @@ function stabilizeRaceVisualFrame(
   if (!officialTo || !officialFrom) {
     return {
       ...frame,
-      groups: mergeNearbyDroppedVisualGroups(frame.groups),
+      groups: mergeNearbyDroppedVisualGroups(cloneRaceGroups(frame.groups)),
     };
   }
 
@@ -51,6 +51,19 @@ function stabilizeRaceVisualFrame(
               segmentDistanceKm,
           ),
         );
+
+  // The official snapshot is the sporting source of truth. In particular, the
+  // finish engine can rebuild every group under a `finish-group-*` id, so an
+  // authored frame at the line must not keep stale pre-finish memberships.
+  if (segmentProgress >= 1) {
+    return {
+      ...frame,
+      segmentNumber: officialTo.segmentNumber,
+      completedDistanceKm: officialTo.completedDistanceKm,
+      groups: cloneRaceGroups(officialTo.groups),
+    };
+  }
+
   const fromGroupById = new Map(
     officialFrom.groups.map((group) => [group.id, group]),
   );
@@ -61,10 +74,13 @@ function stabilizeRaceVisualFrame(
     .map((group) => {
       const fromGroup = fromGroupById.get(group.id);
       const toGroup = toGroupById.get(group.id);
-      if (!fromGroup || !toGroup) return group;
+      if (!fromGroup || !toGroup) {
+        return { ...group, riderIds: [...group.riderIds] };
+      }
 
       return {
         ...group,
+        riderIds: [...group.riderIds],
         gapToLeaderSeconds: interpolateNumber(
           fromGroup.gapToLeaderSeconds,
           toGroup.gapToLeaderSeconds,
@@ -92,10 +108,177 @@ function stabilizeRaceVisualFrame(
         first.id.localeCompare(second.id),
     );
 
+  const groupsWithContinuousMembership = interpolateRiderGroupTransitions({
+    groups: stabilizedGroups,
+    officialFrom,
+    officialTo,
+    segmentProgress,
+    sourceTimelineIndex: frame.sourceTimelineIndex,
+  });
+
   return {
     ...frame,
-    groups: mergeNearbyDroppedVisualGroups(stabilizedGroups),
+    groups: mergeNearbyDroppedVisualGroups(groupsWithContinuousMembership),
   };
+}
+
+type RiderGroupTransition = {
+  fromGroup: RaceGroupSnapshot;
+  toGroup: RaceGroupSnapshot;
+  riderIds: string[];
+};
+
+/**
+ * Keeps rider positions continuous when the official engine changes group ids
+ * or membership between two snapshots. Authored frames are produced before a
+ * few end-of-segment resolutions (catch, delayed-rider recovery, final group
+ * rebuild), so relying on group ids alone can otherwise leave a rider at +19 s
+ * until the line and make them instantly appear in the leading group.
+ */
+function interpolateRiderGroupTransitions({
+  groups,
+  officialFrom,
+  officialTo,
+  segmentProgress,
+  sourceTimelineIndex,
+}: {
+  groups: RaceGroupSnapshot[];
+  officialFrom: RaceTimelineSnapshot;
+  officialTo: RaceTimelineSnapshot;
+  segmentProgress: number;
+  sourceTimelineIndex: number;
+}): RaceGroupSnapshot[] {
+  const transitions = getRiderGroupTransitions(officialFrom, officialTo);
+  if (transitions.length === 0) {
+    return deduplicateRiderMembership(groups);
+  }
+
+  const transitioningRiderIds = new Set(
+    transitions.flatMap((transition) => transition.riderIds),
+  );
+  const groupsWithoutTransitioningRiders = groups
+    .map((group) => ({
+      ...group,
+      riderIds: group.riderIds.filter(
+        (riderId) => !transitioningRiderIds.has(riderId),
+      ),
+    }))
+    .filter((group) => group.riderIds.length > 0);
+
+  const transitionGroups = transitions.map((transition, transitionIndex) => {
+    const movingForward =
+      transition.toGroup.gapToLeaderSeconds <
+      transition.fromGroup.gapToLeaderSeconds;
+    const elapsedTimeSeconds =
+      transition.fromGroup.elapsedTimeSeconds === undefined ||
+      transition.toGroup.elapsedTimeSeconds === undefined
+        ? undefined
+        : interpolateNumber(
+            transition.fromGroup.elapsedTimeSeconds,
+            transition.toGroup.elapsedTimeSeconds,
+            segmentProgress,
+          );
+
+    return {
+      id: `visual-transition-${sourceTimelineIndex}-${transitionIndex}`,
+      label: movingForward ? "Groupe en poursuite" : "Groupe distancé",
+      type: movingForward ? ("chase" as const) : ("dropped" as const),
+      riderIds: [...transition.riderIds],
+      gapToLeaderSeconds: interpolateNumber(
+        transition.fromGroup.gapToLeaderSeconds,
+        transition.toGroup.gapToLeaderSeconds,
+        segmentProgress,
+      ),
+      averageEnergy: interpolateNumber(
+        transition.fromGroup.averageEnergy,
+        transition.toGroup.averageEnergy,
+        segmentProgress,
+      ),
+      ...(elapsedTimeSeconds === undefined ? {} : { elapsedTimeSeconds }),
+    } satisfies RaceGroupSnapshot;
+  });
+
+  return deduplicateRiderMembership([
+    ...groupsWithoutTransitioningRiders,
+    ...transitionGroups,
+  ]).sort(
+    (first, second) =>
+      first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+      first.id.localeCompare(second.id),
+  );
+}
+
+function getRiderGroupTransitions(
+  officialFrom: RaceTimelineSnapshot,
+  officialTo: RaceTimelineSnapshot,
+): RiderGroupTransition[] {
+  const fromGroupByRiderId = mapRidersToGroups(officialFrom.groups);
+  const toGroupByRiderId = mapRidersToGroups(officialTo.groups);
+  const transitionByGroups = new Map<string, RiderGroupTransition>();
+
+  for (const [riderId, fromGroup] of fromGroupByRiderId) {
+    const toGroup = toGroupByRiderId.get(riderId);
+    if (
+      !toGroup ||
+      fromGroup.id === toGroup.id ||
+      fromGroup.type === "time_trial" ||
+      toGroup.type === "time_trial" ||
+      Math.abs(
+        fromGroup.gapToLeaderSeconds - toGroup.gapToLeaderSeconds,
+      ) < 0.01
+    ) {
+      continue;
+    }
+
+    const key = `${fromGroup.id}\u0000${toGroup.id}`;
+    const existing = transitionByGroups.get(key);
+    if (existing) {
+      existing.riderIds.push(riderId);
+      continue;
+    }
+    transitionByGroups.set(key, {
+      fromGroup,
+      toGroup,
+      riderIds: [riderId],
+    });
+  }
+
+  return [...transitionByGroups.values()];
+}
+
+function mapRidersToGroups(groups: RaceGroupSnapshot[]) {
+  const groupByRiderId = new Map<string, RaceGroupSnapshot>();
+  for (const group of groups) {
+    for (const riderId of group.riderIds) {
+      if (!groupByRiderId.has(riderId)) {
+        groupByRiderId.set(riderId, group);
+      }
+    }
+  }
+  return groupByRiderId;
+}
+
+function deduplicateRiderMembership(
+  groups: RaceGroupSnapshot[],
+): RaceGroupSnapshot[] {
+  const seenRiderIds = new Set<string>();
+  return groups
+    .map((group) => ({
+      ...group,
+      riderIds: group.riderIds.filter((riderId) => {
+        if (seenRiderIds.has(riderId)) return false;
+        seenRiderIds.add(riderId);
+        return true;
+      }),
+    }))
+    .filter((group) => group.riderIds.length > 0);
+}
+
+function cloneRaceGroups(groups: RaceGroupSnapshot[]): RaceGroupSnapshot[] {
+  return groups.map((group) => ({
+    ...group,
+    riderIds: [...group.riderIds],
+  }));
 }
 
 function mergeNearbyDroppedVisualGroups(
