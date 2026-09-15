@@ -79,7 +79,9 @@ describe("S3 sponsor performance satisfaction", () => {
     expect(sponsorService).toContain('.from("sponsor_satisfaction_events")');
     expect(sponsorPage).toContain("Les résultats qui ont convaincu");
     expect(sponsorPage).toContain("contract.satisfactionEvents.map");
-    expect(summaryService).toContain('.select("satisfaction_score")');
+    expect(summaryService).toContain(
+      '.select("satisfaction_score, start_season_id, objective_season_id")',
+    );
     expect(summaryService).toContain(
       "satisfactionScore: persistedSatisfactionScore",
     );
