@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-summit-finish-continuity-v25";
+  "2026.09-crash-frequency-and-sprint-pileups-v26";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -259,9 +259,7 @@ export function getPersistedUnavailableRiderIdsAtStageDeparture({
     ...new Set(
       windows.flatMap((window) => {
         const startedTimestamp = Date.parse(window.startedAt);
-        const expectedRecoveryTimestamp = Date.parse(
-          window.expectedRecoveryAt,
-        );
+        const expectedRecoveryTimestamp = Date.parse(window.expectedRecoveryAt);
         const recoveredTimestamp = window.recoveredAt
           ? Date.parse(window.recoveredAt)
           : Number.POSITIVE_INFINITY;

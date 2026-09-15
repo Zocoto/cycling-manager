@@ -20,7 +20,7 @@ const officialSimulationMigration = readFileSync(
 describe("non-rétroactivité du moteur officiel", () => {
   it("attribue une nouvelle version uniquement aux prochaines simulations", () => {
     expect(OFFICIAL_RACE_ENGINE_VERSION).toBe(
-      "2026.09-summit-finish-continuity-v25",
+      "2026.09-crash-frequency-and-sprint-pileups-v26",
     );
     expect(officialSimulationService).toContain(
       "engineVersion: OFFICIAL_RACE_ENGINE_VERSION",
@@ -32,16 +32,12 @@ describe("non-rétroactivité du moteur officiel", () => {
     expect(officialSimulationService).not.toMatch(
       /\.from\("official_stage_simulations"\)\s*\.(?:delete|update|upsert)\(/,
     );
-    expect(officialSimulationService).not.toContain(
-      "recalcul automatique",
-    );
+    expect(officialSimulationService).not.toContain("recalcul automatique");
   });
 
   it("s'appuie sur l'unicité en base pour conserver le premier calcul officiel", () => {
     expect(officialSimulationMigration).toContain("stage_id uuid primary key");
-    expect(officialSimulationMigration).toContain(
-      "Scénario officiel immuable",
-    );
+    expect(officialSimulationMigration).toContain("Scénario officiel immuable");
     expect(officialSimulationService).toContain(
       'if (inserted.error?.code !== "23505")',
     );

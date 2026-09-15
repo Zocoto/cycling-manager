@@ -26,6 +26,7 @@ import {
   getStageGeneralClassificationInterest,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
+  getRoadCrashRiskProfile,
   isFlatRunInGroupSprint,
   isMassGroupFinish,
   reduceMechanicalIncidentTimeLoss,
@@ -729,10 +730,8 @@ describe("simulateRaceStage", () => {
       result.visualTimeline!.every(
         (frame, index, frames) =>
           index === 0 ||
-          (frame.completedDistanceKm >
-            frames[index - 1].completedDistanceKm &&
-            frame.completedDistanceKm -
-              frames[index - 1].completedDistanceKm <=
+          (frame.completedDistanceKm > frames[index - 1].completedDistanceKm &&
+            frame.completedDistanceKm - frames[index - 1].completedDistanceKm <=
               2),
       ),
     ).toBe(true);
@@ -755,9 +754,7 @@ describe("simulateRaceStage", () => {
         .map((item) => item.riderId);
 
       for (const frame of result.visualTimeline ?? []) {
-        const visibleRiderIds = frame.groups.flatMap(
-          (group) => group.riderIds,
-        );
+        const visibleRiderIds = frame.groups.flatMap((group) => group.riderIds);
         const visibleRiderIdSet = new Set(visibleRiderIds);
 
         expect(visibleRiderIdSet.size).toBe(visibleRiderIds.length);
@@ -1396,13 +1393,12 @@ describe("simulateRaceStage", () => {
       result.results.map((row) => [row.riderId, row]),
     );
 
-    expect(result.resolvedRiders.find((rider) => rider.id === protectedCard.id))
-      .toMatchObject({ role: "protected_rider" });
+    expect(
+      result.resolvedRiders.find((rider) => rider.id === protectedCard.id),
+    ).toMatchObject({ role: "protected_rider" });
     expect(resultByRiderId.get(protectedCard.id)!.energyAfter).toBeGreaterThan(
       Math.min(
-        ...helpers.map(
-          (helper) => resultByRiderId.get(helper.id)!.energyAfter,
-        ),
+        ...helpers.map((helper) => resultByRiderId.get(helper.id)!.energyAfter),
       ),
     );
   });
@@ -1861,8 +1857,8 @@ describe("simulateRaceStage", () => {
     const resultByRiderId = new Map(
       result.results.map((resultRow) => [resultRow.riderId, resultRow]),
     );
-    const compactGroupResults = compactLeadingGroupIds.map(
-      (riderId) => resultByRiderId.get(riderId)!,
+    const compactGroupResults = compactLeadingGroupIds.map((riderId) =>
+      resultByRiderId.get(riderId)!,
     );
 
     expect(compactLeadingGroupIds.length).toBeGreaterThanOrEqual(30);
@@ -2436,9 +2432,8 @@ describe("simulateRaceStage", () => {
         ?.localRaceBonus,
     ).toBe(3.6);
     expect(
-      result.resolvedRiders.find(
-        (rider) => rider.id === assimilatedLocal.id,
-      )?.localRaceBonus,
+      result.resolvedRiders.find((rider) => rider.id === assimilatedLocal.id)
+        ?.localRaceBonus,
     ).toBe(2);
   });
 
@@ -2511,7 +2506,10 @@ describe("simulateRaceStage", () => {
         code: "climate_lab",
         infrastructureLevel: 5,
       },
-      riders: [national, createSelectionTestRider("temoin-climat", { hills: 64 })],
+      riders: [
+        national,
+        createSelectionTestRider("temoin-climat", { hills: 64 }),
+      ],
     });
     const nationalResult = result.resolvedRiders.find(
       (rider) => rider.id === national.id,
@@ -2569,8 +2567,7 @@ describe("simulateRaceStage", () => {
       supportedResult.ratings.hills - witnessResult.ratings.hills,
     ).toBeCloseTo(1.2);
     expect(
-      supportedResult.ratings.acceleration -
-        witnessResult.ratings.acceleration,
+      supportedResult.ratings.acceleration - witnessResult.ratings.acceleration,
     ).toBeCloseTo(0.6);
   });
 
@@ -2718,10 +2715,97 @@ describe("simulateRaceStage", () => {
     expect(rider.ratings.hills).toBe(64);
   });
 
-  it("génère de manière déterministe crevaisons, bordures et chutes", () => {
-    const snapshots = Array.from({ length: 60 }, (_, index) =>
+  it("raréfie très fortement les chutes en montée", () => {
+    const input = createDemoSimulationInput("haute-montagne", 1);
+    const weather = {
+      ...input.weather!,
+      condition: "clear" as const,
+      rainIntensity: "none" as const,
+      isWet: false,
+    };
+    const flatRisk = getRoadCrashRiskProfile({
+      segment: { terrain: "flat", surface: "asphalt" },
+      weather,
+    });
+    const climbRisk = getRoadCrashRiskProfile({
+      segment: { terrain: "climb", surface: "asphalt" },
+      weather,
+    });
+    const flatTotal =
+      flatRisk.individualCrashProbability + flatRisk.massCrashProbability;
+    const climbTotal =
+      climbRisk.individualCrashProbability + climbRisk.massCrashProbability;
+
+    expect(flatTotal).toBeCloseTo(0.0135);
+    expect(climbTotal).toBeCloseTo(0.0003375);
+    expect(climbTotal).toBeLessThanOrEqual(flatTotal / 40);
+  });
+
+  it("réserve un risque collectif spécifique aux véritables sprints massifs", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 1);
+    const weather = {
+      ...input.weather!,
+      condition: "clear" as const,
+      rainIntensity: "none" as const,
+      isWet: false,
+    };
+    const smallGroup = getRoadCrashRiskProfile({
+      segment: { terrain: "flat", surface: "asphalt" },
+      weather,
+      finalMassSprint: true,
+      pelotonSize: 15,
+    });
+    const massSprint = getRoadCrashRiskProfile({
+      segment: { terrain: "flat", surface: "asphalt" },
+      weather,
+      finalMassSprint: true,
+      pelotonSize: 80,
+    });
+
+    expect(smallGroup.massCrashProbability).toBe(0);
+    expect(massSprint.individualCrashProbability).toBe(0);
+    expect(massSprint.massCrashProbability).toBeCloseTo(0.05);
+  });
+
+  it("matérialise une chute dans l'emballage final sans infliger de temps au général", () => {
+    const crashCase = Array.from({ length: 240 }, (_, index) =>
       simulateRaceStage(
-        createDemoSimulationInput("collines-ardennes", index + 1),
+        createDemoSimulationInput("sprint-littoral", index + 1),
+      ),
+    ).find((simulation) =>
+      simulation.timeline
+        .at(-1)
+        ?.incidents.some((incident) => incident.type === "crash_mass"),
+    );
+
+    expect(crashCase).toBeDefined();
+    const finalSnapshot = crashCase!.timeline.at(-1)!;
+    const crash = finalSnapshot.incidents.find(
+      (incident) => incident.type === "crash_mass",
+    )!;
+    const continuingResults = crash.riderIds.flatMap((riderId) => {
+      const result = crashCase!.results.find(
+        (candidate) => candidate.riderId === riderId,
+      );
+      return result?.status === "finished" ? [result] : [];
+    });
+
+    expect(finalSnapshot.commentary.join(" ")).toContain("emballage final");
+    expect(continuingResults.length).toBeGreaterThan(0);
+    expect(
+      continuingResults.every(
+        (result) => result.gapToWinnerSeconds === 0 && (result.rank ?? 0) > 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("génère de manière déterministe crevaisons, bordures et chutes", () => {
+    const snapshots = Array.from({ length: 120 }, (_, index) =>
+      simulateRaceStage(
+        createDemoSimulationInput(
+          index % 2 === 0 ? "collines-ardennes" : "sprint-littoral",
+          index + 1,
+        ),
       ),
     ).flatMap((simulation) => simulation.timeline);
     const incidentTypes = new Set(
@@ -3144,8 +3228,7 @@ describe("simulateRaceStage", () => {
       (winnerCounts.get("fav-2") ?? 0) +
       (winnerCounts.get("fav-3") ?? 0);
     const lowerFavoriteWins =
-      (winnerCounts.get("fav-4") ?? 0) +
-      (winnerCounts.get("fav-5") ?? 0);
+      (winnerCounts.get("fav-4") ?? 0) + (winnerCounts.get("fav-5") ?? 0);
     expect(leadingFavoriteWins).toBeGreaterThan(lowerFavoriteWins);
     expect(racesWithDecisiveFavoriteAttack).toBeGreaterThan(40);
     expect(racesWithDecisiveFavoriteAttack).toBeLessThan(115);
@@ -3237,14 +3320,16 @@ function createShortPunchyRutaSegments(): RaceStageSegment[] {
     [10, "flat", 0],
   ];
 
-  return definitions.map(([distanceKm, terrain, averageGradientPct], index) => ({
-    segmentNumber: index + 1,
-    distanceKm,
-    terrain,
-    averageGradientPct,
-    surface: "asphalt",
-    prime: null,
-  }));
+  return definitions.map(
+    ([distanceKm, terrain, averageGradientPct], index) => ({
+      segmentNumber: index + 1,
+      distanceKm,
+      terrain,
+      averageGradientPct,
+      surface: "asphalt",
+      prime: null,
+    }),
+  );
 }
 
 function createBalancedMountainFavoritesInput(
@@ -3331,18 +3416,15 @@ function createCollectiveFinishInput(
             : ("domestique" as const);
 
       return {
-        ...createSelectionTestRider(
-          `collective-${teamIndex}-${riderIndex}`,
-          {
-            flat: baseRating,
-            hills: baseRating - 4,
-            sprint: baseRating + (riderIndex === 0 ? 5 : 0),
-            acceleration: baseRating + (riderIndex <= 1 ? 3 : 0),
-            endurance: baseRating,
-            resistance: baseRating,
-            breakaway: 45,
-          },
-        ),
+        ...createSelectionTestRider(`collective-${teamIndex}-${riderIndex}`, {
+          flat: baseRating,
+          hills: baseRating - 4,
+          sprint: baseRating + (riderIndex === 0 ? 5 : 0),
+          acceleration: baseRating + (riderIndex <= 1 ? 3 : 0),
+          endurance: baseRating,
+          resistance: baseRating,
+          breakaway: 45,
+        }),
         teamId: `collective-team-${teamIndex}`,
         teamName: `Collective team ${teamIndex}`,
         form: 78,
@@ -3410,9 +3492,9 @@ describe("assignAutomaticRaceRoles", () => {
     expect(
       resolved.filter((rider) => rider.role === "leader_sprinter"),
     ).toHaveLength(1);
-    expect(
-      resolved.find((rider) => rider.role === "leader_sprinter")?.id,
-    ).toBe(expectedSprinter?.id);
+    expect(resolved.find((rider) => rider.role === "leader_sprinter")?.id).toBe(
+      expectedSprinter?.id,
+    );
   });
 
   it("réserve un rôle sobre au deuxième du général sur une étape plate", () => {
@@ -3503,8 +3585,8 @@ describe("assignAutomaticRaceRoles", () => {
       role: "protected_rider" as const,
     }));
 
-    expect(() =>
-      assignAutomaticRaceRoles(teamRiders, input.segments),
-    ).toThrow("un seul coureur protégé");
+    expect(() => assignAutomaticRaceRoles(teamRiders, input.segments)).toThrow(
+      "un seul coureur protégé",
+    );
   });
 });
