@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canCompleteRecognitionBeforeStage,
   getRecognitionDateCandidates,
+  getShortestRecognitionDurationDays,
   getUpcomingRecognitionDays,
   type RecognitionPlanningRider,
 } from "@/lib/game/race-reconnaissance-planning";
@@ -12,6 +14,36 @@ const seasonDays = Array.from({ length: 28 }, (_, index) => ({
 }));
 
 describe("race reconnaissance planning", () => {
+  it("exposes a J+2 race when an express one-day preparer is available", () => {
+    expect(getShortestRecognitionDurationDays([2, 1])).toBe(1);
+    expect(
+      canCompleteRecognitionBeforeStage({
+        currentDayNumber: 5,
+        stageDayNumber: 7,
+        durationDays: 1,
+      }),
+    ).toBe(true);
+    expect(
+      canCompleteRecognitionBeforeStage({
+        currentDayNumber: 5,
+        stageDayNumber: 7,
+        durationDays: 2,
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps the standard two-day duration without an express preparer", () => {
+    expect(getShortestRecognitionDurationDays([])).toBe(2);
+    expect(getShortestRecognitionDurationDays([2, 0, Number.NaN])).toBe(2);
+    expect(
+      canCompleteRecognitionBeforeStage({
+        currentDayNumber: 5,
+        stageDayNumber: 8,
+        durationDays: Number.NaN,
+      }),
+    ).toBe(true);
+  });
+
   it("keeps only future days in the planning calendar", () => {
     expect(
       getUpcomingRecognitionDays({

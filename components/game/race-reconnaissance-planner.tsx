@@ -320,7 +320,8 @@ export function RaceReconnaissancePlanner({
 
             <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
               Sélectionnez d’abord les coureurs. Leurs indisponibilités futures
-              seront croisées pour proposer un créneau commun de deux jours.
+              seront croisées pour proposer un créneau commun compatible avec
+              la durée du préparateur choisi.
             </p>
             <div className="mt-5 max-h-[540px] space-y-2 overflow-y-auto pr-1">
               {overview.riders.map((rider) => {
@@ -482,7 +483,8 @@ export function RaceReconnaissancePlanner({
               {selectedStage ? (              <div className="rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-4">
                 <label className="block">
                   <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
-                    Date des deux jours de préparation
+                    Date de la préparation · {reconnaissanceDurationDays} jour
+                    {reconnaissanceDurationDays > 1 ? "s" : ""}
                   </span>
                   <select
                     name="startDayNumber"

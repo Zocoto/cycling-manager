@@ -27,6 +27,33 @@ export type RecognitionPlanningSeasonDay = {
   calendarDate: string;
 };
 
+export function getShortestRecognitionDurationDays(
+  availableDurations: number[],
+) {
+  return availableDurations.reduce((shortestDuration, duration) => {
+    if (!Number.isInteger(duration) || duration < 1) return shortestDuration;
+    return Math.min(shortestDuration, duration);
+  }, RECOGNITION_CAMP_DURATION_DAYS);
+}
+
+export function canCompleteRecognitionBeforeStage({
+  currentDayNumber,
+  stageDayNumber,
+  durationDays = RECOGNITION_CAMP_DURATION_DAYS,
+}: {
+  currentDayNumber: number;
+  stageDayNumber: number;
+  durationDays?: number;
+}) {
+  const safeDurationDays =
+    Number.isFinite(durationDays) && durationDays >= 1
+      ? Math.floor(durationDays)
+      : RECOGNITION_CAMP_DURATION_DAYS;
+  const earliestEndDayNumber = currentDayNumber + safeDurationDays;
+
+  return earliestEndDayNumber < stageDayNumber;
+}
+
 export function getUpcomingRecognitionDays({
   seasonDays,
   currentDayNumber,

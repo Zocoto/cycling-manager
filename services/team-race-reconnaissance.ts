@@ -7,6 +7,10 @@ import {
   getRaceReconnaissanceCost,
 } from "@/lib/game/race-reconnaissance";
 import {
+  canCompleteRecognitionBeforeStage,
+  getShortestRecognitionDurationDays,
+} from "@/lib/game/race-reconnaissance-planning";
+import {
   isRaceCategoryCode,
   type RaceCategoryCode,
   type RaceFormat,
@@ -637,6 +641,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       ];
     })
     .sort((left, right) => right.level - left.level);
+  const shortestRecognitionDurationDays =
+    getShortestRecognitionDurationDays(
+      preparers.map((preparer) => preparer.durationDays),
+    );
 
   const stageDaysByEditionId = new Map<string, number[]>();
   for (const stage of stageRows) {
@@ -674,7 +682,11 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           context: regionalRaceContext,
         }) ||
         stage.status !== "planned" ||
-        day.day_number <= endDayNumber ||
+        !canCompleteRecognitionBeforeStage({
+          currentDayNumber,
+          stageDayNumber: day.day_number,
+          durationDays: shortestRecognitionDurationDays,
+        }) ||
         !canTeamRecognizeRace({
           registrationStatus,
           registrationPolicy: edition.registration_policy,

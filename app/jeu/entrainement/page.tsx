@@ -190,7 +190,7 @@ export default async function TrainingPage({
           {query.reconnaissance ? (
             <Alert tone="success">
               La reconnaissance est programmée. Les coureurs sélectionnés sont
-              désormais indisponibles pendant ses deux jours.
+              désormais indisponibles pendant toute sa durée.
             </Alert>
           ) : null}
           {query.interruption ? (
