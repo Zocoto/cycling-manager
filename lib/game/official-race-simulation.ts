@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-descent-finish-continuity-v24";
+  "2026.09-summit-finish-continuity-v25";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

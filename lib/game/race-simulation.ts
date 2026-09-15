@@ -3324,6 +3324,16 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         ),
       })
     : new Map<string, number>();
+  const roadGroupFinishTimeCaps = preserveFinalRoadGroups
+    ? new Map<string, number>()
+    : buildChronologyPreservingFinishTimeCaps({
+        groups: timeline.at(-1)?.groups ?? [],
+        elapsedTimeByRiderId: new Map(
+          [...states.values()]
+            .filter((state) => state.group !== "abandoned")
+            .map((state) => [state.rider.id, state.elapsedTimeSeconds]),
+        ),
+      });
   const rawResults = [...states.values()]
     .filter((state) => state.group !== "abandoned")
     .map((state) => ({
@@ -3337,6 +3347,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         input.profileType,
         groupSprintFinish,
         fixedRoadGroupFinishTimes.get(state.rider.id),
+        roadGroupFinishTimeCaps.get(state.rider.id),
       ),
       energyAfter: round(state.energy, 1),
     }));
@@ -7177,6 +7188,7 @@ function getRoadFinishTime(
   profileType: RaceProfileType,
   groupSprintFinish: boolean,
   fixedGroupFinishTimeSeconds?: number,
+  maximumFinishTimeSeconds?: number,
 ) {
   if (
     fixedGroupFinishTimeSeconds !== undefined &&
@@ -7224,7 +7236,14 @@ function getRoadFinishTime(
             : 0.72
         : 0.72;
   const finishGap = Math.max(0, bestScore - ownScore) * finishScale;
-  return state.elapsedTimeSeconds + finishGap;
+  const projectedFinishTime = state.elapsedTimeSeconds + finishGap;
+
+  return maximumFinishTimeSeconds === undefined
+    ? projectedFinishTime
+    : Math.max(
+        state.elapsedTimeSeconds,
+        Math.min(projectedFinishTime, maximumFinishTimeSeconds),
+      );
 }
 
 /**
@@ -7281,7 +7300,55 @@ export function buildFlatGroupFinishTimes({
   return finishTimes;
 }
 
-function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
+/**
+ * Empêche le classement final de renverser l'ordre des groupes déjà établi au
+ * terme du dernier tronçon. Le score d'arrivée peut encore départager et
+ * étirer un groupe, mais jamais envoyer l'un de ses membres derrière le groupe
+ * qui franchissait déjà la ligne après lui.
+ */
+export function buildChronologyPreservingFinishTimeCaps({
+  groups,
+  elapsedTimeByRiderId,
+}: {
+  groups: ReadonlyArray<Pick<RaceGroupSnapshot, "riderIds">>;
+  elapsedTimeByRiderId: ReadonlyMap<string, number>;
+}) {
+  const timedGroups = groups.flatMap((group) => {
+    const riderTimes = group.riderIds.flatMap((riderId) => {
+      const elapsedTimeSeconds = elapsedTimeByRiderId.get(riderId);
+      return elapsedTimeSeconds === undefined ? [] : [elapsedTimeSeconds];
+    });
+
+    return riderTimes.length === 0
+      ? []
+      : [
+          {
+            riderIds: group.riderIds,
+            firstElapsedTimeSeconds: Math.min(...riderTimes),
+          },
+        ];
+  });
+  const maximumFinishTimeByRiderId = new Map<string, number>();
+
+  for (let index = 0; index < timedGroups.length - 1; index += 1) {
+    const currentGroup = timedGroups[index];
+    const nextGroup = timedGroups[index + 1];
+    const maximumFinishTimeSeconds = Math.max(
+      currentGroup.firstElapsedTimeSeconds,
+      nextGroup.firstElapsedTimeSeconds - (SAME_TIME_MAX_GAP_SECONDS + 1),
+    );
+
+    for (const riderId of currentGroup.riderIds) {
+      if (elapsedTimeByRiderId.has(riderId)) {
+        maximumFinishTimeByRiderId.set(riderId, maximumFinishTimeSeconds);
+      }
+    }
+  }
+
+  return maximumFinishTimeByRiderId;
+}
+
+export function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
   let distanceKm = 0;
   let weightedGradient = 0;
   let segmentCount = 0;
@@ -7295,9 +7362,21 @@ function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
     segmentCount += 1;
   }
 
-  if (segmentCount < 2 || distanceKm <= 0) return 0;
+  if (distanceKm <= 0) return 0;
   const averageGradientPct = weightedGradient / distanceKm;
   const difficulty = distanceKm * averageGradientPct;
+  const isSubstantialSingleClimbFinish =
+    segmentCount === 1 &&
+    distanceKm >= 8 &&
+    averageGradientPct >= 6 &&
+    difficulty >= 60;
+
+  if (segmentCount === 1) {
+    return isSubstantialSingleClimbFinish
+      ? clamp(0.35 + (difficulty - 60) / 220, 0.35, 0.72)
+      : 0;
+  }
+
   if (difficulty < 100) return 0;
 
   return clamp(

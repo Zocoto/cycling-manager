@@ -6,6 +6,7 @@ import {
   applyStageTimeLimit,
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
+  buildChronologyPreservingFinishTimeCaps,
   buildFlatGroupFinishTimes,
   buildStageRaceStandings,
   getStageAttackParticipants,
@@ -15,6 +16,7 @@ import {
   getFinalBattleScenario,
   findDroppedRiderIdsCaughtByDelayedGroup,
   getHillyClimbSelectionRating,
+  getLongSummitFinishFactor,
   getControlledRaceDayExecutionSwing,
   getRaceInjuryInRaceImpact,
   decideLargeBreakawayStandoff,
@@ -73,6 +75,69 @@ describe("isFlatRunInGroupSprint", () => {
         30,
       ),
     ).toBe(false);
+  });
+});
+
+describe("arrivée au sommet et continuité chronologique", () => {
+  it("reconnaît l'ascension finale de l'étape 7 même en un seul tronçon", () => {
+    expect(
+      getLongSummitFinishFactor([
+        {
+          segmentNumber: 13,
+          distanceKm: 14,
+          terrain: "flat",
+          averageGradientPct: 0,
+          surface: "asphalt",
+          prime: null,
+        },
+        {
+          segmentNumber: 14,
+          distanceKm: 11,
+          terrain: "climb",
+          averageGradientPct: 8,
+          surface: "asphalt",
+          prime: null,
+        },
+      ]),
+    ).toBeGreaterThan(0);
+  });
+
+  it("ne transforme pas une courte bosse finale en longue arrivée au sommet", () => {
+    expect(
+      getLongSummitFinishFactor([
+        {
+          segmentNumber: 1,
+          distanceKm: 3,
+          terrain: "climb",
+          averageGradientPct: 6,
+          surface: "asphalt",
+          prime: null,
+        },
+      ]),
+    ).toBe(0);
+  });
+
+  it("empêche un groupe à quarante secondes de repasser devant au calcul final", () => {
+    const caps = buildChronologyPreservingFinishTimeCaps({
+      groups: [
+        { riderIds: ["chandler", "yash"] },
+        { riderIds: ["alex", "gervais"] },
+        { riderIds: ["gruppetto"] },
+      ],
+      elapsedTimeByRiderId: new Map([
+        ["chandler", 20_000],
+        ["yash", 20_000],
+        ["alex", 20_040],
+        ["gervais", 20_040],
+        ["gruppetto", 20_100],
+      ]),
+    });
+
+    expect(caps.get("chandler")).toBe(20_036);
+    expect(caps.get("yash")).toBe(20_036);
+    expect(caps.get("alex")).toBe(20_096);
+    expect(caps.get("gervais")).toBe(20_096);
+    expect(caps.has("gruppetto")).toBe(false);
   });
 });
 
