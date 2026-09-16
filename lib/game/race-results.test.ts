@@ -483,6 +483,70 @@ describe("normalizeOfficialResultGapsToLeader", () => {
 });
 
 describe("buildPersistedStageRaceStandings", () => {
+  it("aligne le classement des jeunes sur les temps bonifiés du général", () => {
+    const stages = [
+      [
+        {
+          ...coquinous,
+          rank: 2,
+          elapsedTimeMs: 3_600_000,
+          timeBonusSeconds: 0,
+          timePenaltySeconds: 0,
+          mountainPoints: 0,
+          sprintPoints: 0,
+        },
+        {
+          ...challengers,
+          rank: 1,
+          elapsedTimeMs: 3_605_000,
+          timeBonusSeconds: 10,
+          timePenaltySeconds: 0,
+          mountainPoints: 0,
+          sprintPoints: 0,
+        },
+      ],
+      [
+        {
+          ...coquinous,
+          rank: 1,
+          elapsedTimeMs: 3_700_000,
+          timeBonusSeconds: 0,
+          timePenaltySeconds: 2,
+          mountainPoints: 0,
+          sprintPoints: 0,
+        },
+        {
+          ...challengers,
+          rank: 2,
+          elapsedTimeMs: 3_700_000,
+          timeBonusSeconds: 3,
+          timePenaltySeconds: 0,
+          mountainPoints: 0,
+          sprintPoints: 0,
+        },
+      ],
+    ];
+    const general = buildPersistedGeneralClassification(stages);
+    const standings = buildPersistedStageRaceStandings(
+      stages,
+      new Map([
+        [coquinous.riderId, 22],
+        [challengers.riderId, 23],
+      ]),
+    );
+
+    expect(standings.youth).toEqual(
+      general.map((result) => ({
+        riderId: result.riderId,
+        elapsedTimeSeconds: (result.elapsedTimeMs ?? 0) / 1_000,
+      })),
+    );
+    expect(standings.youth).toEqual([
+      { riderId: challengers.riderId, elapsedTimeSeconds: 7_292 },
+      { riderId: coquinous.riderId, elapsedTimeSeconds: 7_302 },
+    ]);
+  });
+
   it("reconstruit les classements annexes depuis les résultats figés", () => {
     const stages = [
       [
