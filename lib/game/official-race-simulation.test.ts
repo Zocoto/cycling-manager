@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { RaceCalendarStage } from "./race-calendar";
 import {
+  buildOfficialStageRaceStandings,
   getPersistedStageResultUnavailableRiderIds,
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
@@ -24,6 +26,85 @@ function createResult(
     abandonment: null,
   };
 }
+
+describe("buildOfficialStageRaceStandings", () => {
+  it("utilise les bonifications du général officiel pour le moteur et les jeunes", () => {
+    const riders = [
+      {
+        id: "young",
+        name: "Jeune leader",
+        teamId: "team-young",
+        teamName: "Équipe jeunes",
+        age: 22,
+      },
+      {
+        id: "senior",
+        name: "Senior",
+        teamId: "team-senior",
+        teamName: "Équipe seniors",
+        age: 30,
+      },
+    ] as StageSimulationResult["resolvedRiders"];
+    const result = (
+      riderId: string,
+      rank: number,
+      elapsedTimeSeconds: number,
+    ): StageSimulationResult["results"][number] => ({
+      riderId,
+      rank,
+      status: "finished",
+      elapsedTimeSeconds,
+      gapToWinnerSeconds: 0,
+      energyAfter: 40,
+      injury: null,
+      abandonment: null,
+    });
+    const simulation = (
+      stageId: string,
+      results: StageSimulationResult["results"],
+    ): StageSimulationResult => ({
+      stageId,
+      seed: "fixed",
+      resolvedRiders: riders,
+      timeline: [],
+      results,
+      primes: [],
+      mountainPoints: {},
+      sprintPoints: {},
+    });
+    const road = { id: "road", stageType: "road" } as RaceCalendarStage;
+    const timeTrial = {
+      id: "time-trial",
+      stageType: "individual_time_trial",
+    } as RaceCalendarStage;
+
+    const standings = buildOfficialStageRaceStandings([
+      {
+        stage: road,
+        simulation: simulation("road", [
+          result("young", 1, 1_000),
+          result("senior", 2, 1_001),
+        ]),
+      },
+      {
+        stage: timeTrial,
+        simulation: simulation("time-trial", [
+          result("senior", 1, 999),
+          result("young", 2, 1_000),
+        ]),
+      },
+    ]);
+
+    expect(standings.general).toEqual([
+      { riderId: "young", elapsedTimeSeconds: 1_990 },
+      { riderId: "senior", elapsedTimeSeconds: 1_994 },
+    ]);
+    expect(standings.youth).toEqual([
+      { riderId: "young", elapsedTimeSeconds: 1_990 },
+    ]);
+    expect(standings.teams).toHaveLength(2);
+  });
+});
 
 describe("isUnavailableForFollowingStage", () => {
   it("keeps a classified rider in the stage race", () => {

@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
+  buildOfficialStageRaceStandings,
   getPersistedStageResultUnavailableRiderIds,
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
@@ -17,7 +18,6 @@ import {
 } from "@/lib/game/official-race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
-  buildStageRaceStandings,
   getMountainObjectiveRiderIdsByTeam,
   simulateRaceStage,
   type StageSimulationInput,
@@ -189,8 +189,13 @@ export async function ensureLockedOfficialRaceSimulations(
             const standingsBeforeStage =
               edition.raceFormat === "stage_race" &&
               editionSimulations.length > 0
-                ? buildStageRaceStandings(
-                    editionSimulations.map((locked) => locked.simulation),
+                ? buildOfficialStageRaceStandings(
+                    editionSimulations.map((locked) => ({
+                      stage: orderedStages.find(
+                        (candidate) => candidate.id === locked.stageId,
+                      )!,
+                      simulation: locked.simulation,
+                    })),
                   )
                 : null;
             const input = createCalendarSimulationInput({

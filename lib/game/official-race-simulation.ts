@@ -4,7 +4,9 @@ import type {
   RaceFormat,
 } from "./race-calendar";
 import { createCalendarSimulationInput } from "./race-simulation-demo";
+import { buildPersistedGeneralClassification } from "./race-results";
 import { removeOneDayRaceMountainPrimes } from "./race-profiles";
+import { calculateStageRaceTimeBonuses } from "./race-time-bonuses";
 import {
   assignStageRaceJerseys,
   getStageRaceJerseyByRiderId,
@@ -30,8 +32,77 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standingsBeforeStage: StageRaceStandings | null;
 };
 
+/**
+ * Le général utilisé par le moteur et le replay doit suivre les mêmes
+ * bonifications que le classement général officiellement persisté.
+ * Les points et le classement par équipes conservent leur calcul existant.
+ */
+export function buildOfficialStageRaceStandings(
+  runs: readonly Pick<OfficialStageSimulationRun, "stage" | "simulation">[],
+): StageRaceStandings {
+  const rawStandings = buildStageRaceStandings(
+    runs.map((run) => run.simulation),
+  );
+  const riderAgeById = new Map(
+    runs.flatMap((run) =>
+      run.simulation.resolvedRiders.map((rider) => [rider.id, rider.age] as const),
+    ),
+  );
+  const persistedStageResults = runs.map(({ stage, simulation }) => {
+    if (stage.id !== simulation.stageId) {
+      throw new Error(`Simulation et étape incohérentes : ${stage.id}.`);
+    }
+    const ridersById = new Map(
+      simulation.resolvedRiders.map((rider) => [rider.id, rider]),
+    );
+    const bonuses = calculateStageRaceTimeBonuses({
+      raceFormat: "stage_race",
+      stageType: stage.stageType,
+      simulation,
+    });
+    return simulation.results.map((result) => {
+      const rider = ridersById.get(result.riderId);
+      if (!rider) {
+        throw new Error(`Coureur absent de la simulation : ${result.riderId}.`);
+      }
+      return {
+        riderId: result.riderId,
+        riderName: rider.name,
+        teamId: rider.teamId,
+        teamName: rider.teamName,
+        rank: result.rank,
+        status: result.status,
+        elapsedTimeMs:
+          result.status === "finished"
+            ? result.elapsedTimeSeconds * 1_000
+            : null,
+        timeBonusSeconds: bonuses[result.riderId] ?? 0,
+        timePenaltySeconds: 0,
+        abandonmentReason: null,
+      };
+    });
+  });
+  const general = buildPersistedGeneralClassification(persistedStageResults)
+    .filter(
+      (result) =>
+        result.status === "finished" && result.elapsedTimeMs !== null,
+    )
+    .map((result) => ({
+      riderId: result.riderId,
+      elapsedTimeSeconds: Math.round((result.elapsedTimeMs ?? 0) / 1_000),
+    }));
+
+  return {
+    ...rawStandings,
+    general,
+    youth: general.filter(
+      (result) => (riderAgeById.get(result.riderId) ?? 99) < 25,
+    ),
+  };
+}
+
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-reduced-sprint-and-replay-continuity-v27";
+  "2026.09-bonus-aligned-gc-v28";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -380,7 +451,7 @@ export function simulateOfficialRaceEdition(
   for (const stage of orderedStages) {
     const standingsBeforeStage =
       edition.raceFormat === "stage_race" && runs.length > 0
-        ? buildStageRaceStandings(runs.map((run) => run.simulation))
+        ? buildOfficialStageRaceStandings(runs)
         : null;
     const baseInput = createCalendarSimulationInput({
       edition,
@@ -457,10 +528,13 @@ export function getOfficialStageSimulationContext({
       );
     const standingsBeforeStage =
       edition.raceFormat === "stage_race" && simulationsBeforeStage.length > 0
-        ? buildStageRaceStandings(
-            simulationsBeforeStage.map(
-              (lockedSimulation) => lockedSimulation.simulation,
-            ),
+        ? buildOfficialStageRaceStandings(
+            simulationsBeforeStage.map((lockedSimulation) => ({
+              stage: orderedStages.find(
+                (candidate) => candidate.id === lockedSimulation.stageId,
+              )!,
+              simulation: lockedSimulation.simulation,
+            })),
           )
         : null;
 
@@ -491,10 +565,13 @@ export function getOfficialStageSimulationContext({
       simulation: decoratedLockedSimulationData.simulation,
       standings:
         edition.raceFormat === "stage_race"
-          ? buildStageRaceStandings(
-              simulationsThroughStage.map(
-                (lockedSimulation) => lockedSimulation.simulation,
-              ),
+          ? buildOfficialStageRaceStandings(
+              simulationsThroughStage.map((lockedSimulation) => ({
+                stage: orderedStages.find(
+                  (candidate) => candidate.id === lockedSimulation.stageId,
+                )!,
+                simulation: lockedSimulation.simulation,
+              })),
             )
           : null,
       standingsBeforeStage,
@@ -513,9 +590,7 @@ export function getOfficialStageSimulationContext({
   const selectedRun = runs[selectedIndex];
   const standingsBeforeStage =
     edition.raceFormat === "stage_race" && selectedIndex > 0
-      ? buildStageRaceStandings(
-          runs.slice(0, selectedIndex).map((run) => run.simulation),
-        )
+      ? buildOfficialStageRaceStandings(runs.slice(0, selectedIndex))
       : null;
   const decoratedSelectedRun = decorateStageRaceJerseys({
     edition,
@@ -531,9 +606,7 @@ export function getOfficialStageSimulationContext({
     simulation: decoratedSelectedRun.simulation,
     standings:
       edition.raceFormat === "stage_race"
-        ? buildStageRaceStandings(
-            runs.slice(0, selectedIndex + 1).map((run) => run.simulation),
-          )
+        ? buildOfficialStageRaceStandings(runs.slice(0, selectedIndex + 1))
         : null,
     standingsBeforeStage,
   };

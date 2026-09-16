@@ -77,12 +77,12 @@ import {
   getRaceVisualMotionProfile,
 } from "@/lib/game/race-visual-motion";
 import {
+  buildOfficialStageRaceStandings,
   getOfficialStageSimulationContext,
   type LockedOfficialStageSimulation,
 } from "@/lib/game/official-race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import {
-  buildStageRaceStandings,
   getFinalBattleScenario,
   getLeadingFinishGroupRiderIds,
   isMassGroupFinish,
@@ -206,18 +206,23 @@ export function RaceLiveLab({
     const lockedByStageId = new Map(
       lockedSimulations.map((locked) => [locked.stageId, locked]),
     );
-    const previousSimulations = orderedStages
+    const previousRuns = orderedStages
       .slice(0, selectedIndex)
-      .map((candidate) => lockedByStageId.get(candidate.id)?.simulation)
+      .map((candidate) => {
+        const simulation = lockedByStageId.get(candidate.id)?.simulation;
+        return simulation ? { stage: candidate, simulation } : null;
+      })
       .filter(
-        (candidate): candidate is StageSimulationResult =>
-          candidate !== undefined,
+        (candidate): candidate is {
+          stage: RaceCalendarStage;
+          simulation: StageSimulationResult;
+        } => candidate !== null,
       );
-    if (previousSimulations.length === 0) return input;
+    if (previousRuns.length === 0) return input;
     return {
       ...input,
       generalClassification:
-        buildStageRaceStandings(previousSimulations).general,
+        buildOfficialStageRaceStandings(previousRuns).general,
     };
   }, [edition.raceFormat, edition.stages, input, lockedSimulations, stage.id]);
   const raceWeather =
