@@ -228,7 +228,9 @@ export function RaceStageProfile({
           ) : (
             <span>Aucune prime programmée sur ce parcours</span>
           )}
-          <span>Traits verticaux : tronçons de 10 km</span>
+          <span>D+ estimé : {Math.round(chart.totalAscentMeters).toLocaleString("fr-FR")} m</span>
+          {chart.summitFinish ? <span>Arrivée au sommet</span> : null}
+          <span>Traits verticaux : tronçons du parcours</span>
           {segments.some((segment) => segment.surface === "cobbles") ? <span className="text-[#9B8468]">▬ Secteur pavé</span> : null}
         </div>
       ) : null}
@@ -281,18 +283,23 @@ function buildProfileChart(segments: RaceStageSegment[], compact: boolean) {
   const totalDistance = segments.reduce((total, segment) => total + segment.distanceKm, 0);
   let distance = 0;
   let elevation = 0;
+  let totalAscentMeters = 0;
   const points = [{ distance: 0, elevation: 0 }];
 
   for (const segment of segments) {
     distance += segment.distanceKm;
-    elevation += segment.distanceKm * segment.averageGradientPct * 10;
+    const elevationChange = segment.distanceKm * segment.averageGradientPct * 10;
+    elevation += elevationChange;
+    totalAscentMeters += Math.max(0, elevationChange);
     points.push({ distance, elevation });
   }
 
   const elevations = points.map((point) => point.elevation);
-  const minimum = Math.min(...elevations);
-  const maximum = Math.max(...elevations);
-  const range = Math.max(120, maximum - minimum);
+  // Keep a common minimum relief scale: otherwise a handful of short hills
+  // fills the chart as much as a sustained high-mountain ascent.
+  const minimum = Math.min(0, ...elevations);
+  const maximum = Math.max(0, ...elevations);
+  const range = Math.max(1_800, maximum - minimum);
   const plotLeft = compact ? 20 : 28;
   const plotRight = compact ? 960 : 942;
   const x = (value: number) =>
@@ -317,6 +324,10 @@ function buildProfileChart(segments: RaceStageSegment[], compact: boolean) {
     viewHeight,
     baseline,
     totalDistance,
+    totalAscentMeters,
+    summitFinish:
+      segments.at(-1)?.terrain === "climb" &&
+      (points.at(-1)?.elevation ?? 0) >= maximum - 0.01,
     finishX: chartPoints.at(-1)?.x ?? plotRight,
     finishY: chartPoints.at(-1)?.y ?? baseline,
     segments: chartSegments,

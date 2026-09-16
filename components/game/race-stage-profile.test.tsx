@@ -44,6 +44,25 @@ describe("RaceStageProfile", () => {
     expect(markup).toContain("GPM");
   });
 
+  it("dessine une longue ascension nettement plus haute qu'une courte cote", () => {
+    const hilly = renderToStaticMarkup(
+      <RaceStageProfile segments={[
+        createTerrainSegment(1, 20, "flat", 0),
+        createTerrainSegment(2, 10, "climb", 5),
+      ]} />,
+    );
+    const mountain = renderToStaticMarkup(
+      <RaceStageProfile segments={[
+        createTerrainSegment(1, 20, "flat", 0),
+        createTerrainSegment(2, 40, "climb", 6.5),
+      ]} showLegend />,
+    );
+
+    expect(profileFinishY(mountain)).toBeLessThan(profileFinishY(hilly) - 20);
+    expect(mountain).toContain("Arrivée au sommet");
+    expect(mountain).toContain("2 600 m");
+  });
+
   it("affiche la météo connue dans le coin supérieur du profil", () => {
     const markup = renderToStaticMarkup(
       <RaceStageProfile
@@ -96,4 +115,27 @@ function createSegment(
     surface: "asphalt",
     prime,
   };
+}
+
+function createTerrainSegment(
+  segmentNumber: number,
+  distanceKm: number,
+  terrain: RaceStageSegment["terrain"],
+  averageGradientPct: number,
+): RaceStageSegment {
+  return {
+    segmentNumber,
+    distanceKm,
+    terrain,
+    averageGradientPct,
+    surface: "asphalt",
+    prime: null,
+  };
+}
+
+function profileFinishY(markup: string): number {
+  const linePath = markup.match(/<path d="([^"]+)" fill="none" stroke="#176951"/)?.[1];
+  const finishY = linePath?.match(/L [\d.]+ ([\d.]+)$/)?.[1];
+  if (!finishY) throw new Error("La ligne du profil est introuvable.");
+  return Number(finishY);
 }

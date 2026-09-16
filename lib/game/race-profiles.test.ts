@@ -173,6 +173,38 @@ describe("buildRaceSegments", () => {
     }
   );
 
+  it("distingue la montagne des vallons par des cols moins nombreux et plus longs", () => {
+    const mountain = buildRaceSegments({
+      distanceKm: 190,
+      profileType: "mountain",
+      seed: "alpes",
+    });
+    const hilly = buildRaceSegments({
+      distanceKm: 190,
+      profileType: "hilly",
+      seed: "alpes",
+    });
+    const climbDistances = (segments: typeof mountain) => {
+      const climbs: number[] = [];
+      let distance = 0;
+      for (const segment of segments) {
+        if (segment.terrain === "climb") distance += segment.distanceKm;
+        else if (distance > 0) {
+          climbs.push(distance);
+          distance = 0;
+        }
+      }
+      if (distance > 0) climbs.push(distance);
+      return climbs;
+    };
+    const mountainClimbs = climbDistances(mountain);
+    const hillyClimbs = climbDistances(hilly);
+
+    expect(mountainClimbs.length).toBeLessThan(hillyClimbs.length);
+    expect(Math.max(...mountainClimbs)).toBeGreaterThan(Math.max(...hillyClimbs));
+    expect(mountain.at(-1)?.terrain).toBe("climb");
+  });
+
   it("reclasse une étape plate terminée par une côte intense", () => {
     const segments = buildRaceSegments({
       distanceKm: 154,
