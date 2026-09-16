@@ -376,6 +376,23 @@ function validateContractDurationRange({
   }
 }
 
+function isCanonicalOrVersionedAssetPath(
+  actualPath: string,
+  canonicalPath: string
+): boolean {
+  if (actualPath === canonicalPath) {
+    return true;
+  }
+
+  const prefix = `${canonicalPath.slice(0, -5)}-v`;
+
+  return (
+    actualPath.startsWith(prefix) &&
+    actualPath.endsWith(".webp") &&
+    /^[1-9]\d*$/.test(actualPath.slice(prefix.length, -5))
+  );
+}
+
 function validateSponsorLogo({
   sponsor,
   messages,
@@ -389,11 +406,14 @@ function validateSponsorLogo({
     `/images/sponsors/${sponsor.id}/logo.webp`;
 
   if (
-    sponsor.logoPath !== expectedLogoPath
+    !isCanonicalOrVersionedAssetPath(
+      sponsor.logoPath,
+      expectedLogoPath
+    )
   ) {
     addError(
       messages,
-      `${sponsor.id} : logoPath doit être "${expectedLogoPath}".`
+      `${sponsor.id} : logoPath doit être "${expectedLogoPath}" ou une variante versionnée (-vN).`
     );
   }
 
@@ -487,12 +507,14 @@ function validateSponsorJerseys({
       `/images/sponsors/${sponsor.id}/jersey-${jersey.style}.webp`;
 
     if (
-      jersey.imagePath !==
-      expectedImagePath
+      !isCanonicalOrVersionedAssetPath(
+        jersey.imagePath,
+        expectedImagePath
+      )
     ) {
       addError(
         messages,
-        `${sponsor.id} : imagePath du maillot ${jersey.style} doit être "${expectedImagePath}".`
+        `${sponsor.id} : imagePath du maillot ${jersey.style} doit être "${expectedImagePath}" ou une variante versionnée (-vN).`
       );
     }
 
@@ -673,17 +695,13 @@ function getExpectedAssets(
 }> {
   return [
     {
-      publicPath:
-        `/images/sponsors/${sponsor.id}/logo.webp`,
+      publicPath: sponsor.logoPath,
       kind: "logo",
     },
-    ...REQUIRED_JERSEY_STYLES.map(
-      (style) => ({
-        publicPath:
-          `/images/sponsors/${sponsor.id}/jersey-${style}.webp`,
-        kind: "jersey" as const,
-      })
-    ),
+    ...sponsor.jerseys.map((jersey) => ({
+      publicPath: jersey.imagePath,
+      kind: "jersey" as const,
+    })),
   ];
 }
 

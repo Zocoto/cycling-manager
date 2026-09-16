@@ -224,28 +224,28 @@ export const DUTCH_SPONSORS = [
       max: 2,
     },
     logoPath:
-      "/images/sponsors/windmill-foods/logo.webp",
+      "/images/sponsors/windmill-foods/logo-v2.webp",
     jerseys: [
       {
         id: "windmill-foods-classic",
         name: "Tradition",
         style: "classic",
         imagePath:
-          "/images/sponsors/windmill-foods/jersey-classic.webp",
+          "/images/sponsors/windmill-foods/jersey-classic-v2.webp",
       },
       {
         id: "windmill-foods-modern",
         name: "Grands vents",
         style: "modern",
         imagePath:
-          "/images/sponsors/windmill-foods/jersey-modern.webp",
+          "/images/sponsors/windmill-foods/jersey-modern-v2.webp",
       },
       {
         id: "windmill-foods-bold",
         name: "Terres du Nord",
         style: "bold",
         imagePath:
-          "/images/sponsors/windmill-foods/jersey-bold.webp",
+          "/images/sponsors/windmill-foods/jersey-bold-v2.webp",
       },
     ],
     colors: {
