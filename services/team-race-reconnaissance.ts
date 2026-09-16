@@ -1,11 +1,14 @@
 import "server-only";
 
 import {
-  canTeamRecognizeRace,
   getRacePreparerBonusPercentage,
   getRacePreparerReconnaissanceCostReductionPercentage,
   getRaceReconnaissanceCost,
 } from "@/lib/game/race-reconnaissance";
+import {
+  getAcceptedRaceEntriesByRider,
+  type ReconnaissanceRaceEntry,
+} from "@/lib/game/race-reconnaissance-entries";
 import {
   canCompleteRecognitionBeforeStage,
   getShortestRecognitionDurationDays,
@@ -15,7 +18,6 @@ import {
   type RaceCategoryCode,
   type RaceFormat,
   type RaceProfileType,
-  type RegistrationPolicy,
 } from "@/lib/game/race-calendar";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -101,9 +103,6 @@ type EditionRow = {
   race_category_id: string;
   display_name: string;
   status: string;
-  registration_policy: RegistrationPolicy;
-  registration_closes_at: string | null;
-  minimum_reputation: number | null;
 };
 type RaceRow = {
   id: string;
@@ -130,6 +129,7 @@ type StageRow = {
 type RosterRow = {
   rider_id: string;
   race_registration_id: string;
+  status: string;
 };
 type RegistrationRow = {
   id: string;
@@ -166,6 +166,7 @@ export type RaceReconnaissanceRider = {
   avatarSeed: number | string | null;
   age: number;
   form: number;
+  registeredRaces: ReconnaissanceRaceEntry[];
   unavailabilities: Array<{
     startDayNumber: number;
     endDayNumber: number;
@@ -188,6 +189,7 @@ export type RacePreparerOption = {
 
 export type RaceReconnaissanceStage = {
   id: string;
+  raceEditionId: string;
   dayNumber: number;
   stageNumber: number;
   stageName: string;
@@ -255,7 +257,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
-  const { director, season, teamSeason } = context;
+  const { season, teamSeason } = context;
   const currentDayNumber = season.current_day_number ?? 1;
   const startDayNumber = currentDayNumber + 1;
   const endDayNumber = startDayNumber + 1;
@@ -265,6 +267,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     contractsResult,
     staffContractsResult,
     editionsResult,
+    registrationsResult,
     categoriesResult,
     missionsResult,
     activePrincipalSponsorsResult,
@@ -289,12 +292,15 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       .returns<StaffContractRow[]>(),
     admin
       .from("race_editions")
-      .select(
-        "id, race_id, race_category_id, display_name, status, registration_policy, registration_closes_at, minimum_reputation",
-      )
+      .select("id, race_id, race_category_id, display_name, status")
       .eq("season_id", season.id)
       .neq("status", "cancelled")
       .returns<EditionRow[]>(),
+    admin
+      .from("race_registrations")
+      .select("id, race_edition_id, status")
+      .eq("team_season_id", teamSeason.id)
+      .returns<RegistrationRow[]>(),
     admin
       .from("race_categories")
       .select("id, code, name")
@@ -322,6 +328,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   assertQuery(contractsResult.error, "les contrats des coureurs");
   assertQuery(staffContractsResult.error, "les contrats du staff");
   assertQuery(editionsResult.error, "les éditions de course");
+  assertQuery(registrationsResult.error, "les inscriptions en course");
   assertQuery(categoriesResult.error, "les catégories de course");
   assertQuery(missionsResult.error, "les missions de reconnaissance");
   assertQuery(
@@ -341,6 +348,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     (contract) => contract.staff_member_id,
   );
   const editions = editionsResult.data ?? [];
+  const registrations = registrationsResult.data ?? [];
+  const acceptedRegistrationIds = registrations
+    .filter((registration) => registration.status === "accepted")
+    .map((registration) => registration.id);
   const editionIds = editions.map((edition) => edition.id);
   const raceIds = [...new Set(editions.map((edition) => edition.race_id))];
   const missionRows = missionsResult.data ?? [];
@@ -357,7 +368,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     racesResult,
     stagesResult,
     participantsResult,
-    rostersResult,
+    rosters,
   ] = await Promise.all([
     riderIds.length
       ? admin
@@ -439,14 +450,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .in("reconnaissance_id", missionIds)
           .returns<ParticipantRow[]>()
       : emptyResult<ParticipantRow>(),
-    riderIds.length
-      ? admin
-          .from("race_rosters")
-          .select("rider_id, race_registration_id")
-          .in("rider_id", riderIds)
-          .in("status", ["selected", "confirmed"])
-          .returns<RosterRow[]>()
-      : emptyResult<RosterRow>(),
+    riderIds.length && acceptedRegistrationIds.length
+      ? loadSelectedRosters(admin, riderIds, acceptedRegistrationIds)
+      : Promise.resolve([] as RosterRow[]),
   ]);
 
   assertQuery(ridersResult.error, "les coureurs");
@@ -459,7 +465,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   assertQuery(racesResult.error, "les courses");
   assertQuery(stagesResult.error, "les étapes");
   assertQuery(participantsResult.error, "les participants aux reconnaissances");
-  assertQuery(rostersResult.error, "les engagements en course");
 
   const races = racesResult.data ?? [];
   const riderRows = ridersResult.data ?? [];
@@ -479,15 +484,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     : emptyResult<CountryRow>();
   assertQuery(countriesResult.error, "les pays");
 
-  const rosters = rostersResult.data ?? [];
-  const registrationsResult = await admin
-    .from("race_registrations")
-    .select("id, race_edition_id, status")
-    .eq("team_season_id", teamSeason.id)
-    .returns<RegistrationRow[]>();
-  assertQuery(registrationsResult.error, "les inscriptions en course");
-  const registrations = registrationsResult.data ?? [];
-
   const dayById = new Map(days.map((day) => [day.id, day]));
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
@@ -505,11 +501,28 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   const editionById = new Map(editions.map((edition) => [edition.id, edition]));
   const stageRows = stagesResult.data ?? [];
   const stageById = new Map(stageRows.map((stage) => [stage.id, stage]));
-  const registrationByEditionId = new Map(
-    registrations.map((registration) => [
-      registration.race_edition_id,
-      registration,
-    ]),
+  const stageDaysByEditionId = new Map<string, number[]>();
+  for (const stage of stageRows) {
+    if (stage.status === "cancelled") continue;
+    const dayNumber = dayById.get(stage.season_day_id)?.day_number;
+    if (!dayNumber) continue;
+    const editionDays = stageDaysByEditionId.get(stage.race_edition_id) ?? [];
+    editionDays.push(dayNumber);
+    stageDaysByEditionId.set(stage.race_edition_id, editionDays);
+  }
+  const registeredRacesByRiderId = getAcceptedRaceEntriesByRider({
+    registrations,
+    rosters,
+    editionNamesById: new Map(
+      editions.map((edition) => [edition.id, edition.display_name]),
+    ),
+    stageDaysByEditionId,
+    currentDayNumber,
+  });
+  const registeredEditionIds = new Set(
+    [...registeredRacesByRiderId.values()].flatMap((entries) =>
+      entries.map((entry) => entry.editionId),
+    ),
   );
   const latestConditionByRiderId = latestConditions(
     conditionsResult.data ?? [],
@@ -522,12 +535,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     endDayNumber,
   );
   const campsByRiderId = groupCampsByRider(campsResult.data ?? []);
-  const raceConflictsByRiderId = getRaceConflictsByRider(
-    rosters,
-    registrations,
-    stageRows,
-    dayById,
-  );
   const riderById = new Map(riderRows.map((rider) => [rider.id, rider]));
   const ageByRiderId = new Map(
     (riderAgesResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
@@ -576,10 +583,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
                   ? `Préparation en soufflerie J${camp.start_day_number}–J${camp.end_day_number}`
                   : `Stage de forme J${camp.start_day_number}–J${camp.end_day_number}`,
         })),
-        ...(raceConflictsByRiderId.get(rider.id) ?? []).map((conflict) => ({
-          startDayNumber: conflict.startDay,
-          endDayNumber: conflict.endDay,
-          reason: `Course engagée J${conflict.startDay}–J${conflict.endDay}`,
+        ...(registeredRacesByRiderId.get(rider.id) ?? []).map((entry) => ({
+          startDayNumber: entry.startDayNumber,
+          endDayNumber: entry.endDayNumber,
+          reason: `Course engagée J${entry.startDayNumber}–J${entry.endDayNumber}`,
         })),
       ];
 
@@ -593,6 +600,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         avatarSeed: rider.avatar_seed,
         age: ageByRiderId.get(rider.id) ?? 25,
         form: latestConditionByRiderId.get(rider.id)?.form ?? 75,
+        registeredRaces: registeredRacesByRiderId.get(rider.id) ?? [],
         unavailabilities,
       };
     })
@@ -646,15 +654,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       preparers.map((preparer) => preparer.durationDays),
     );
 
-  const stageDaysByEditionId = new Map<string, number[]>();
-  for (const stage of stageRows) {
-    const dayNumber = dayById.get(stage.season_day_id)?.day_number;
-    if (!dayNumber) continue;
-    const editionDays = stageDaysByEditionId.get(stage.race_edition_id) ?? [];
-    editionDays.push(dayNumber);
-    stageDaysByEditionId.set(stage.race_edition_id, editionDays);
-  }
-
   const stages = stageRows
     .flatMap((stage): RaceReconnaissanceStage[] => {
       const day = dayById.get(stage.season_day_id);
@@ -665,9 +664,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         : null;
       const country = race ? countryById.get(race.country_id) : null;
       const editionDays = stageDaysByEditionId.get(stage.race_edition_id) ?? [];
-      const registrationStatus = edition
-        ? (registrationByEditionId.get(edition.id)?.status ?? null)
-        : null;
       if (
         !day ||
         !edition ||
@@ -676,6 +672,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         !country ||
         editionDays.length === 0 ||
         !isRaceCategoryCode(category.code) ||
+        !registeredEditionIds.has(edition.id) ||
         !canTeamAccessRaceCategory({
           categoryCode: category.code,
           raceContinentCode: country.continent_code,
@@ -686,13 +683,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           currentDayNumber,
           stageDayNumber: day.day_number,
           durationDays: shortestRecognitionDurationDays,
-        }) ||
-        !canTeamRecognizeRace({
-          registrationStatus,
-          registrationPolicy: edition.registration_policy,
-          registrationClosesAt: edition.registration_closes_at,
-          minimumReputation: edition.minimum_reputation,
-          reputationPoints: Number(director.reputation_points),
         })
       ) {
         return [];
@@ -701,6 +691,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       return [
         {
           id: stage.id,
+          raceEditionId: edition.id,
           dayNumber: day.day_number,
           stageNumber: stage.stage_number,
           stageName: stage.name,
@@ -875,47 +866,27 @@ function activeInjuriesByRider(
   return result;
 }
 
-function getRaceConflictsByRider(
-  rosters: RosterRow[],
-  registrations: RegistrationRow[],
-  stages: StageRow[],
-  dayById: Map<string, DayRow>,
+async function loadSelectedRosters(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  riderIds: string[],
+  registrationIds: string[],
 ) {
-  const result = new Map<string, Array<{ startDay: number; endDay: number }>>();
-  const registrationById = new Map(
-    registrations.map((registration) => [registration.id, registration]),
-  );
-  const stageDaysByEdition = new Map<string, number[]>();
-  for (const stage of stages) {
-    const dayNumber = dayById.get(stage.season_day_id)?.day_number;
-    if (!dayNumber) continue;
-    const days = stageDaysByEdition.get(stage.race_edition_id) ?? [];
-    days.push(dayNumber);
-    stageDaysByEdition.set(stage.race_edition_id, days);
+  const rosters: RosterRow[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const result = await admin
+      .from("race_rosters")
+      .select("rider_id, race_registration_id, status")
+      .in("rider_id", riderIds)
+      .in("race_registration_id", registrationIds)
+      .in("status", ["selected", "confirmed"])
+      .order("id")
+      .range(offset, offset + 499)
+      .returns<RosterRow[]>();
+    assertQuery(result.error, "les engagements en course");
+    const page = result.data ?? [];
+    rosters.push(...page);
+    if (page.length < 500) return rosters;
   }
-
-  for (const roster of rosters) {
-    const registration = registrationById.get(roster.race_registration_id);
-    if (!registration || registration.status !== "accepted") continue;
-    const days = stageDaysByEdition.get(registration.race_edition_id) ?? [];
-    if (days.length === 0) continue;
-    const conflict = {
-      startDay: Math.min(...days),
-      endDay: Math.max(...days),
-    };
-    const conflicts = result.get(roster.rider_id) ?? [];
-    if (
-      !conflicts.some(
-        (candidate) =>
-          candidate.startDay === conflict.startDay &&
-          candidate.endDay === conflict.endDay,
-      )
-    ) {
-      conflicts.push(conflict);
-      result.set(roster.rider_id, conflicts);
-    }
-  }
-  return result;
 }
 
 function groupCampsByRider(rows: CampRow[]) {

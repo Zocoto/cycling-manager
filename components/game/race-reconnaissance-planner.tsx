@@ -11,6 +11,7 @@ import { CampInterruptionSubmitButton } from "@/components/game/camp-interruptio
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { RaceProfileType } from "@/lib/game/race-calendar";
 import { getAdjustedRaceReconnaissanceCost } from "@/lib/game/race-reconnaissance";
+import { isRaceEditionRegisteredForEveryRider } from "@/lib/game/race-reconnaissance-entries";
 import {
   findRiderUnavailability,
   getRecognitionDateCandidates,
@@ -104,12 +105,17 @@ export function RaceReconnaissancePlanner({
   ]);
   const visibleStages = useMemo(
     () =>
-      overview.stages.filter((stage) =>
-        dateCandidatesByStageId
-          .get(stage.id)
-          ?.some((candidate) => candidate.available),
+      overview.stages.filter(
+        (stage) =>
+          isRaceEditionRegisteredForEveryRider(
+            stage.raceEditionId,
+            selectedRiders,
+          ) &&
+          dateCandidatesByStageId
+            .get(stage.id)
+            ?.some((candidate) => candidate.available),
       ),
-    [dateCandidatesByStageId, overview.stages],
+    [dateCandidatesByStageId, overview.stages, selectedRiders],
   );
   const selectedStage = visibleStages.find(
     (stage) => stage.id === selectedStageId,
@@ -172,6 +178,13 @@ export function RaceReconnaissancePlanner({
       (candidate) => candidate.id === selectedStageId,
     );
     if (!stage) return;
+    if (
+      !isRaceEditionRegisteredForEveryRider(stage.raceEditionId, nextRiders)
+    ) {
+      setSelectedStageId("");
+      setSelectedStartDayNumber("");
+      return;
+    }
 
     const availableDates = getRecognitionDateCandidates({
       stage,
@@ -319,9 +332,9 @@ export function RaceReconnaissancePlanner({
             ) : null}
 
             <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
-              Sélectionnez d’abord les coureurs. Leurs indisponibilités futures
-              seront croisées pour proposer un créneau commun compatible avec
-              la durée du préparateur choisi.
+              Sélectionnez les coureurs inscrits à la même course. Seules leurs
+              courses communes et les périodes compatibles avec toute la
+              délégation seront proposées.
             </p>
             <div className="mt-5 max-h-[540px] space-y-2 overflow-y-auto pr-1">
               {overview.riders.map((rider) => {
@@ -363,8 +376,28 @@ export function RaceReconnaissancePlanner({
                       className="h-11 w-11"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-black text-[#183F37]">
-                        {rider.firstName} {rider.lastName}
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-sm font-black text-[#183F37]">
+                          {rider.firstName} {rider.lastName}
+                        </span>
+                        {rider.registeredRaces.length > 0 ? (
+                          rider.registeredRaces.map((entry) => (
+                            <span
+                              key={entry.editionId}
+                              title={`${entry.raceName} · J${entry.startDayNumber}${entry.endDayNumber === entry.startDayNumber ? "" : `–J${entry.endDayNumber}`}`}
+                              className="inline-flex max-w-40 items-center gap-1 rounded-full bg-[#E3F0EB] px-2 py-0.5 text-[10px] font-extrabold text-[#246B58]"
+                            >
+                              <span className="shrink-0">
+                                J{entry.startDayNumber}
+                              </span>
+                              <span className="truncate">{entry.raceName}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="rounded-full bg-[#EEF1EF] px-2 py-0.5 text-[10px] font-bold text-[#70817A]">
+                            Aucune course inscrite
+                          </span>
+                        )}
                       </span>
                       <span className="mt-0.5 block text-[11px] font-bold text-[#60756E]">
                         <span
@@ -400,8 +433,8 @@ export function RaceReconnaissancePlanner({
               </h3>
               <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
                 Une étape d’un tour coûte moins cher qu’une classique de même
-                catégorie. Seules les épreuves accessibles à votre équipe et
-                compatibles avec tous les coureurs sélectionnés sont affichées.
+                catégorie. Seules les courses où tous les coureurs sélectionnés
+                sont inscrits et disposent d’un créneau commun sont affichées.
               </p>
             </div>
 
@@ -526,8 +559,9 @@ export function RaceReconnaissancePlanner({
 
             {selectedRiderIds.length > 0 && visibleStages.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
-                Aucune épreuve future accessible à l’équipe ne possède encore un
-                créneau commun de deux jours pour tous les coureurs choisis.
+                Aucune course commune aux coureurs sélectionnés ne possède de
+                créneau de reconnaissance compatible. Vérifiez les inscriptions
+                affichées à côté de leurs noms.
               </p>
             ) : null}
 

@@ -76,6 +76,13 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Effectif": "Roster",
   "Effectif complet": "Full roster",
   "Enregistrer les inscriptions": "Save entries",
+  "Aucune course inscrite": "No race entries",
+  "Sélectionnez les coureurs inscrits à la même course. Seules leurs courses communes et les périodes compatibles avec toute la délégation seront proposées.":
+    "Select riders entered in the same race. Only shared races with a preparation window that works for the whole group will be shown.",
+  "Une étape d’un tour coûte moins cher qu’une classique de même catégorie. Seules les courses où tous les coureurs sélectionnés sont inscrits et disposent d’un créneau commun sont affichées.":
+    "A stage race reconnaissance costs less than a classic in the same category. Only races entered by every selected rider with a shared available window are shown.",
+  "Aucune course commune aux coureurs sélectionnés ne possède de créneau de reconnaissance compatible. Vérifiez les inscriptions affichées à côté de leurs noms.":
+    "The selected riders have no shared race with an available reconnaissance window. Check the entries beside their names.",
   "Entraînement": "Training",
   "Équipementier": "Equipment supplier",
   "Équipementiers": "Equipment suppliers",

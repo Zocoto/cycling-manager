@@ -392,12 +392,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "reconnaissance-riders": {
         title: "Start by selecting riders",
         content:
-          "Riders remain selectable even when unavailable today; the planner checks future races, injuries and camps.\n\nFor several riders, only eligible races with a common available period are kept. Respect the selected specialist's capacity.",
+          "Each rider's entered races appear next to their name. Riders remain selectable even when unavailable today; the planner checks future races, injuries and camps.\n\nFor several riders, only races they all entered with a common available period remain. Respect the selected specialist's capacity.",
       },
       "reconnaissance-race": {
         title: "Choose the actual target event",
         content:
-          "The calendar lists only future eligible races that all selected riders can prepare. Choose a stage of a tour or the relevant classic.\n\nFor that event only, participants receive the displayed bonus on all 13 race attributes, capped at 100.",
+          "The calendar lists only future races all selected riders are entered in and can prepare together. Choose a stage of a tour or the relevant classic.\n\nFor that event only, participants receive the displayed bonus on all 13 race attributes, capped at 100.",
       },
       "reconnaissance-dates": {
         title: "Reserve a common period before the race",

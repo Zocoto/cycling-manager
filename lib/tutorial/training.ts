@@ -135,7 +135,7 @@ export const trainingTutorialDefinition = {
       targetId: "reconnaissance-rider-selection",
       title: "Commencez par sélectionner les coureurs",
       content:
-        "Tous les coureurs restent sélectionnables même s’ils sont indisponibles aujourd’hui. Le planificateur croise ensuite leurs courses, blessures et stages futurs.\n\nAvec plusieurs coureurs, seules les épreuves autorisées pour l’équipe et possédant une période commune à toute la délégation sont conservées. Respectez aussi la capacité du préparateur choisi.",
+        "Les courses où chaque coureur est inscrit sont indiquées à côté de son nom. Tous restent sélectionnables même s’ils sont indisponibles aujourd’hui ; le planificateur croise ensuite courses, blessures et stages futurs.\n\nAvec plusieurs coureurs, seules leurs courses communes possédant une période compatible sont proposées. Respectez aussi la capacité du préparateur choisi.",
       placement: "right",
       highlightPadding: 8,
     },
@@ -145,7 +145,7 @@ export const trainingTutorialDefinition = {
       targetId: "reconnaissance-course-selection",
       title: "Choisissez l’épreuve réellement visée",
       content:
-        "Le calendrier n’affiche que les courses futures auxquelles votre équipe est autorisée à participer et que tous les coureurs sélectionnés peuvent préparer. Choisissez une étape précise d’un tour, ou la classique concernée.\n\nLors de cette seule épreuve, chaque participant au stage reçoit le bonus affiché sur ses 13 caractéristiques de course, dans la limite de 100. Le coût dépend de la catégorie et du format.",
+        "Le calendrier n’affiche que les courses futures auxquelles tous les coureurs choisis sont effectivement inscrits et qu’ils peuvent préparer ensemble. Choisissez une étape précise d’un tour, ou la classique concernée.\n\nLors de cette seule épreuve, chaque participant au stage reçoit le bonus affiché sur ses 13 caractéristiques de course, dans la limite de 100. Le coût dépend de la catégorie et du format.",
       placement: "left",
       highlightPadding: 8,
     },
