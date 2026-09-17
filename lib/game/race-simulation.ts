@@ -3325,16 +3325,6 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         ),
       })
     : new Map<string, number>();
-  const roadGroupFinishTimeCaps = preserveFinalRoadGroups
-    ? new Map<string, number>()
-    : buildChronologyPreservingFinishTimeCaps({
-        groups: timeline.at(-1)?.groups ?? [],
-        elapsedTimeByRiderId: new Map(
-          [...states.values()]
-            .filter((state) => state.group !== "abandoned")
-            .map((state) => [state.rider.id, state.elapsedTimeSeconds]),
-        ),
-      });
   const rawResults = [...states.values()]
     .filter((state) => state.group !== "abandoned")
     .map((state) => ({
@@ -3343,12 +3333,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       elapsedTimeSeconds: getRoadFinishTime(
         state,
         states,
-        finishScores,
-        input.segments,
-        input.profileType,
         groupSprintFinish,
         fixedRoadGroupFinishTimes.get(state.rider.id),
-        roadGroupFinishTimeCaps.get(state.rider.id),
       ),
       energyAfter: round(state.energy, 1),
     }));
@@ -7288,12 +7274,8 @@ function applyTeamFinishHierarchy({
 function getRoadFinishTime(
   state: RiderState,
   states: Map<string, RiderState>,
-  scores: Map<string, number>,
-  segments: RaceStageSegment[],
-  profileType: RaceProfileType,
   groupSprintFinish: boolean,
   fixedGroupFinishTimeSeconds?: number,
-  maximumFinishTimeSeconds?: number,
 ) {
   if (
     fixedGroupFinishTimeSeconds !== undefined &&
@@ -7302,16 +7284,6 @@ function getRoadFinishTime(
     return fixedGroupFinishTimeSeconds;
   }
 
-  const ownScore = scores.get(state.rider.id) ?? 0;
-  const longSummitFinishFactor = getLongSummitFinishFactor(segments);
-  const peers = [...states.values()]
-    .filter((peer) =>
-      longSummitFinishFactor > 0
-        ? peer.group !== "abandoned"
-        : peer.group === state.group,
-    )
-    .map((peer) => scores.get(peer.rider.id) ?? 0);
-  const bestScore = Math.max(...peers);
   const sprintFinish =
     groupSprintFinish &&
     (state.group === "peloton" ||
@@ -7330,25 +7302,10 @@ function getRoadFinishTime(
     );
   }
 
-  const finishScale =
-    longSummitFinishFactor > 0
-      ? 14 + longSummitFinishFactor * 5
-      : state.group === "peloton" || state.group === "breakaway"
-        ? profileType === "mountain"
-          ? 14
-          : profileType === "hilly"
-            ? 2.8
-            : 0.72
-        : 0.72;
-  const finishGap = Math.max(0, bestScore - ownScore) * finishScale;
-  const projectedFinishTime = state.elapsedTimeSeconds + finishGap;
-
-  return maximumFinishTimeSeconds === undefined
-    ? projectedFinishTime
-    : Math.max(
-        state.elapsedTimeSeconds,
-        Math.min(projectedFinishTime, maximumFinishTimeSeconds),
-      );
+  // Les tronçons, attaques et cassures ont déjà produit le temps réellement
+  // couru. Le score final départage uniquement les coureurs à temps égal :
+  // le convertir aussi en secondes compterait une deuxième fois la montée.
+  return state.elapsedTimeSeconds;
 }
 
 /**
@@ -7403,54 +7360,6 @@ export function buildFlatGroupFinishTimes({
   }
 
   return finishTimes;
-}
-
-/**
- * Empêche le classement final de renverser l'ordre des groupes déjà établi au
- * terme du dernier tronçon. Le score d'arrivée peut encore départager et
- * étirer un groupe, mais jamais envoyer l'un de ses membres derrière le groupe
- * qui franchissait déjà la ligne après lui.
- */
-export function buildChronologyPreservingFinishTimeCaps({
-  groups,
-  elapsedTimeByRiderId,
-}: {
-  groups: ReadonlyArray<Pick<RaceGroupSnapshot, "riderIds">>;
-  elapsedTimeByRiderId: ReadonlyMap<string, number>;
-}) {
-  const timedGroups = groups.flatMap((group) => {
-    const riderTimes = group.riderIds.flatMap((riderId) => {
-      const elapsedTimeSeconds = elapsedTimeByRiderId.get(riderId);
-      return elapsedTimeSeconds === undefined ? [] : [elapsedTimeSeconds];
-    });
-
-    return riderTimes.length === 0
-      ? []
-      : [
-          {
-            riderIds: group.riderIds,
-            firstElapsedTimeSeconds: Math.min(...riderTimes),
-          },
-        ];
-  });
-  const maximumFinishTimeByRiderId = new Map<string, number>();
-
-  for (let index = 0; index < timedGroups.length - 1; index += 1) {
-    const currentGroup = timedGroups[index];
-    const nextGroup = timedGroups[index + 1];
-    const maximumFinishTimeSeconds = Math.max(
-      currentGroup.firstElapsedTimeSeconds,
-      nextGroup.firstElapsedTimeSeconds - (SAME_TIME_MAX_GAP_SECONDS + 1),
-    );
-
-    for (const riderId of currentGroup.riderIds) {
-      if (elapsedTimeByRiderId.has(riderId)) {
-        maximumFinishTimeByRiderId.set(riderId, maximumFinishTimeSeconds);
-      }
-    }
-  }
-
-  return maximumFinishTimeByRiderId;
 }
 
 export function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
@@ -7587,7 +7496,7 @@ type ClassifiedStageResult = StageSimulationResult["results"][number] & {
   status: "finished";
 };
 
-function normalizeRoadFinishGroupTimes({
+export function normalizeRoadFinishGroupTimes({
   results,
 }: {
   results: StageSimulationResult["results"];
@@ -7618,12 +7527,12 @@ function splitFinishGroupByTime(finishers: ClassifiedStageResult[]) {
 
   for (const finisher of finishers) {
     const current = groups.at(-1);
-    const previous = current?.at(-1);
+    const groupLeader = current?.[0];
     if (
       !current ||
-      !previous ||
+      !groupLeader ||
       !areFinishersInSameTimeGroup(
-        previous.elapsedTimeSeconds,
+        groupLeader.elapsedTimeSeconds,
         finisher.elapsedTimeSeconds,
       )
     ) {

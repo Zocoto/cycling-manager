@@ -6,7 +6,6 @@ import {
   applyStageTimeLimit,
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
-  buildChronologyPreservingFinishTimeCaps,
   buildFlatGroupFinishTimes,
   buildStageRaceStandings,
   getStageAttackParticipants,
@@ -32,6 +31,7 @@ import {
   isFlatRunInGroupSprint,
   isLikelyMassSprint,
   isMassGroupFinish,
+  normalizeRoadFinishGroupTimes,
   reduceMechanicalIncidentTimeLoss,
   resolveCaughtBreakawayElapsedTime,
   selectStageAttackPlan,
@@ -170,6 +170,26 @@ describe("qualification sportive du final", () => {
 
     expect(hillyFinisherScore).toBeGreaterThan(lateSprinterScore);
   });
+
+  it("ne chaîne pas des écarts de trois secondes jusqu’à effacer un retard réel", () => {
+    const results = [100, 103, 106].map((elapsedTimeSeconds, index) => ({
+      riderId: `rider-${index}`,
+      rank: index + 1,
+      status: "finished" as const,
+      elapsedTimeSeconds,
+      gapToWinnerSeconds: elapsedTimeSeconds - 100,
+      energyAfter: 50,
+      injury: null,
+      abandonment: null,
+    }));
+
+    normalizeRoadFinishGroupTimes({ results });
+
+    expect(results.map((row) => row.elapsedTimeSeconds)).toEqual([
+      100, 100, 106,
+    ]);
+    expect(results.map((row) => row.gapToWinnerSeconds)).toEqual([0, 0, 6]);
+  });
 });
 
 describe("arrivée au sommet et continuité chronologique", () => {
@@ -211,27 +231,46 @@ describe("arrivée au sommet et continuité chronologique", () => {
     ).toBe(0);
   });
 
-  it("empêche un groupe à quarante secondes de repasser devant au calcul final", () => {
-    const caps = buildChronologyPreservingFinishTimeCaps({
-      groups: [
-        { riderIds: ["chandler", "yash"] },
-        { riderIds: ["alex", "gervais"] },
-        { riderIds: ["gruppetto"] },
+  it("départage les grimpeurs sans inventer de retard sur une montée restée groupée", () => {
+    const stronger = {
+      ...createSelectionTestRider("stronger", { mountain: 85, endurance: 70 }),
+      role: "leader" as const,
+    };
+    const weaker = {
+      ...createSelectionTestRider("weaker", { mountain: 65, endurance: 75 }),
+      role: "leader" as const,
+    };
+    const simulation = simulateRaceStage({
+      id: "summit-time-regression",
+      name: "Arrivée groupée au sommet",
+      stageType: "road",
+      profileType: "mountain",
+      isStageRace: false,
+      seed: 22,
+      riders: [stronger, weaker],
+      segments: [
+        {
+          segmentNumber: 1,
+          distanceKm: 18,
+          terrain: "climb",
+          averageGradientPct: 9,
+          surface: "asphalt",
+          prime: null,
+        },
       ],
-      elapsedTimeByRiderId: new Map([
-        ["chandler", 20_000],
-        ["yash", 20_000],
-        ["alex", 20_040],
-        ["gervais", 20_040],
-        ["gruppetto", 20_100],
-      ]),
     });
+    const strongerResult = simulation.results.find(
+      (row) => row.riderId === stronger.id,
+    )!;
+    const weakerResult = simulation.results.find(
+      (row) => row.riderId === weaker.id,
+    )!;
 
-    expect(caps.get("chandler")).toBe(20_036);
-    expect(caps.get("yash")).toBe(20_036);
-    expect(caps.get("alex")).toBe(20_096);
-    expect(caps.get("gervais")).toBe(20_096);
-    expect(caps.has("gruppetto")).toBe(false);
+    expect(strongerResult.rank).toBeLessThan(weakerResult.rank!);
+    expect(strongerResult.elapsedTimeSeconds).toBe(
+      weakerResult.elapsedTimeSeconds,
+    );
+    expect(weakerResult.gapToWinnerSeconds).toBe(0);
   });
 });
 
@@ -2252,7 +2291,7 @@ describe("simulateRaceStage", () => {
     expect(tiredPuncherRating).toBeCloseTo(freshPuncherRating, 5);
   });
 
-  it("fait céder tardivement un grimpeur peu puncheur sans lui infliger un gouffre", () => {
+  it("ne fabrique pas un retard pour un grimpeur resté au contact sur les bosses", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 37);
     const flat = (
       segmentNumber: number,
@@ -2327,10 +2366,9 @@ describe("simulateRaceStage", () => {
       (row) => row.riderId === climber.id,
     )!;
 
-    expect(firstDropIndex).toBeGreaterThan(1);
+    expect(firstDropIndex).toBe(-1);
     expect(climberResult.rank).not.toBe(1);
-    expect(climberResult.gapToWinnerSeconds).toBeGreaterThan(0);
-    expect(climberResult.gapToWinnerSeconds).toBeLessThan(240);
+    expect(climberResult.gapToWinnerSeconds).toBe(0);
 
     const loadAfterOneClimb = getNextHillyClimbLoad(0, climb(2), "hilly");
     expect(

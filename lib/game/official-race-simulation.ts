@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-bonus-aligned-gc-v28";
+  "2026.09-observed-finish-times-v29";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
