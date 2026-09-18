@@ -1197,7 +1197,11 @@ function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
       {tour.generalLeader ? (
         <p className="mt-3 border-y border-[var(--gazette-rule)]/35 py-2 text-sm">
           <span className="font-black">{isEnglish ? "Yellow jersey" : "Maillot jaune"} :</span>{" "}
-          {tour.generalLeader}
+          {tour.generalLeaderRiderId ? (
+            <Link href={`/jeu/coureurs/${tour.generalLeaderRiderId}`} className="font-bold underline decoration-[var(--gazette-rule)] underline-offset-2 hover:text-[var(--gazette-accent)]">
+              {tour.generalLeader}
+            </Link>
+          ) : tour.generalLeader}
         </p>
       ) : null}
       {tour.jerseys.length > 0 ? (
@@ -1205,7 +1209,11 @@ function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
           {tour.jerseys.map((jersey) => (
             <li key={`${jersey.label}:${jersey.holder}`}>
               <span className="font-black">{localizeJerseyLabel(jersey.label, isEnglish)} :</span>{" "}
-              {jersey.holder}
+              {jersey.riderId ? (
+                <Link href={`/jeu/coureurs/${jersey.riderId}`} className="underline decoration-[var(--gazette-rule)] underline-offset-2 hover:text-[var(--gazette-accent)]">
+                  {jersey.holder}
+                </Link>
+              ) : jersey.holder}
             </li>
           ))}
         </ul>

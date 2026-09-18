@@ -45,7 +45,8 @@ export type CyclogazetteTourSummary = {
   stageLabel: string;
   href: string;
   generalLeader: string | null;
-  jerseys: Array<{ label: string; holder: string }>;
+  generalLeaderRiderId?: string | null;
+  jerseys: Array<{ label: string; holder: string; riderId?: string }>;
 };
 
 export type CyclogazetteTourStageCandidate = {

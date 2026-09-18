@@ -796,6 +796,8 @@ async function loadDailyTourSummaries(
     const rider = rosterId ? riderByRoster.get(rosterId) : null;
     return rider ? `${rider.first_name} ${rider.last_name}` : null;
   };
+  const riderId = (rosterId: string | null) =>
+    (rosterId ? riderByRoster.get(rosterId)?.id : null) ?? null;
   const labels = {
     mountain: "Maillot à pois",
     sprint: "Maillot vert",
@@ -803,30 +805,32 @@ async function loadDailyTourSummaries(
     team: "Classement équipes",
   } as const;
 
-  return stages.map((stage) => ({
-    raceName: stage.race_editions!.display_name,
-    stageLabel: formatCyclogazetteStageLabel(
-      stage.race_editions!.display_name,
-      stage.name,
-    ),
-    href: `/jeu/resultats/${stage.race_editions!.races!.slug}/${stage.stage_number}`,
-    generalLeader: riderName(
-      (resultsResult.data ?? []).find(
-        (row) => row.race_edition_id === stage.race_edition_id,
-      )?.race_roster_id ?? null,
-    ),
-    jerseys: (secondaryResult.data ?? [])
-      .filter(
-        (row) =>
-          row.race_edition_id === stage.race_edition_id && row.race_roster_id,
-      )
-      .flatMap((row) => {
-        const holder = riderName(row.race_roster_id);
-        return holder
-          ? [{ label: labels[row.classification_type], holder }]
-          : [];
-      }),
-  }));
+  return stages.map((stage) => {
+    const leaderRosterId = (resultsResult.data ?? []).find(
+      (row) => row.race_edition_id === stage.race_edition_id,
+    )?.race_roster_id ?? null;
+    return {
+      raceName: stage.race_editions!.display_name,
+      stageLabel: formatCyclogazetteStageLabel(
+        stage.race_editions!.display_name,
+        stage.name,
+      ),
+      href: `/jeu/resultats/${stage.race_editions!.races!.slug}/${stage.stage_number}`,
+      generalLeader: riderName(leaderRosterId),
+      generalLeaderRiderId: riderId(leaderRosterId),
+      jerseys: (secondaryResult.data ?? [])
+        .filter(
+          (row) =>
+            row.race_edition_id === stage.race_edition_id && row.race_roster_id,
+        )
+        .flatMap((row) => {
+          const holder = riderName(row.race_roster_id);
+          return holder
+            ? [{ label: labels[row.classification_type], holder, riderId: riderId(row.race_roster_id) ?? undefined }]
+            : [];
+        }),
+    };
+  });
 }
 
 export async function getCyclogazetteCommunity(
