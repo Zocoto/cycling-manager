@@ -335,12 +335,11 @@ function ScoutingTab({
   const completedMissions = overview.missions.filter(
     (mission) => mission.status === "completed",
   );
-  const now = new Date();
   const archivedMissions = completedMissions.filter((mission) =>
-    isYouthScoutingMissionArchived(mission, now),
+    isYouthScoutingMissionArchived(mission),
   );
   const recentMissions = completedMissions.filter(
-    (mission) => !isYouthScoutingMissionArchived(mission, now),
+    (mission) => !isYouthScoutingMissionArchived(mission),
   );
   const displayedMissions = showReportHistory
     ? archivedMissions
@@ -433,8 +432,8 @@ function ScoutingTab({
             }
             description={
               showReportHistory
-                ? "Retrouvez les rapports traités : trois jours après consultation, ou dès que tous leurs jeunes ont été recrutés."
-                : "Un rapport rejoint l’historique trois jours après consultation, ou immédiatement si tous ses jeunes sont recrutés."
+                ? "Retrouvez les rapports consultés et ceux dont tous les jeunes ont été recrutés."
+                : "Marquez un rapport comme consulté pour le déplacer immédiatement dans l’historique."
             }
           />
           <Link
@@ -475,7 +474,7 @@ function ScoutingTab({
             }
             text={
               showReportHistory
-                ? "Les rapports consultés depuis trois jours et ceux dont tous les jeunes ont été recrutés apparaissent ici."
+                ? "Les rapports consultés et ceux dont tous les jeunes ont été recrutés apparaissent ici."
                 : "Lancez une mission de 3 à 7 jours : un rapport contiendra entre 1 et 4 jeunes."
             }
           />

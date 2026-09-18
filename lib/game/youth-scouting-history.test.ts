@@ -1,47 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  YOUTH_SCOUTING_REPORT_ARCHIVE_DELAY_MS,
-  isYouthScoutingMissionArchived,
-} from "@/lib/game/youth-scouting-history";
-
-const NOW = new Date("2026-07-29T12:00:00.000Z");
+import { isYouthScoutingMissionArchived } from "@/lib/game/youth-scouting-history";
 
 describe("isYouthScoutingMissionArchived", () => {
   it("conserve un rapport non consulté dans les rapports récents", () => {
     expect(
-      isYouthScoutingMissionArchived(
-        { status: "completed", viewedAt: null },
-        NOW,
-      ),
+      isYouthScoutingMissionArchived({ status: "completed", viewedAt: null }),
     ).toBe(false);
   });
 
-  it("conserve un rapport consulté depuis moins de trois jours", () => {
+  it("archive un rapport dès qu’il est marqué comme consulté", () => {
     expect(
-      isYouthScoutingMissionArchived(
-        {
-          status: "completed",
-          viewedAt: new Date(
-            NOW.getTime() - YOUTH_SCOUTING_REPORT_ARCHIVE_DELAY_MS + 1,
-          ).toISOString(),
-        },
-        NOW,
-      ),
-    ).toBe(false);
+      isYouthScoutingMissionArchived({
+        status: "completed",
+        viewedAt: "2026-07-29T12:00:00.000Z",
+      }),
+    ).toBe(true);
   });
 
-  it("archive un rapport exactement trois jours après sa consultation", () => {
+  it("archive aussi les rapports consultés avant ce changement", () => {
     expect(
-      isYouthScoutingMissionArchived(
-        {
-          status: "completed",
-          viewedAt: new Date(
-            NOW.getTime() - YOUTH_SCOUTING_REPORT_ARCHIVE_DELAY_MS,
-          ).toISOString(),
-        },
-        NOW,
-      ),
+      isYouthScoutingMissionArchived({
+        status: "completed",
+        viewedAt: "2026-07-01T12:00:00.000Z",
+      }),
     ).toBe(true);
   });
 
@@ -56,7 +38,6 @@ describe("isYouthScoutingMissionArchived", () => {
             { status: "signed" },
           ],
         },
-        NOW,
       ),
     ).toBe(true);
   });
@@ -72,7 +53,6 @@ describe("isYouthScoutingMissionArchived", () => {
             { status: "spotted" },
           ],
         },
-        NOW,
       ),
     ).toBe(false);
   });
@@ -85,7 +65,6 @@ describe("isYouthScoutingMissionArchived", () => {
           viewedAt: null,
           candidates: [],
         },
-        NOW,
       ),
     ).toBe(false);
   });
@@ -98,7 +77,6 @@ describe("isYouthScoutingMissionArchived", () => {
           viewedAt: null,
           candidates: [{ status: "signed" }],
         },
-        NOW,
       ),
     ).toBe(false);
   });
@@ -110,7 +88,6 @@ describe("isYouthScoutingMissionArchived", () => {
           status: "active",
           viewedAt: "2026-07-01T12:00:00.000Z",
         },
-        NOW,
       ),
     ).toBe(false);
   });
