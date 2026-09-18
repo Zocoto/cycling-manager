@@ -2557,6 +2557,43 @@ describe("simulateRaceStage", () => {
     expect(resolvedLocal.ratings).toEqual(local.ratings);
   });
 
+  it("applique +2 aux notes de course préférée sans changer les notes permanentes", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const rider = createSelectionTestRider("course-preferee", {
+      hills: 75,
+    });
+    const witness = createSelectionTestRider("sans-affinite", { hills: 75 });
+    const input = {
+      ...baseInput,
+      riders: [rider, witness],
+    };
+    const standard = simulateRaceStage(input);
+    const favorite = simulateRaceStage({
+      ...input,
+      riders: [{ ...rider, favoriteRaceBonus: 2 }, witness],
+    });
+    const standardRider = standard.resolvedRiders.find(
+      (candidate) => candidate.id === rider.id,
+    )!;
+    const favoriteRider = favorite.resolvedRiders.find(
+      (candidate) => candidate.id === rider.id,
+    )!;
+    const standardWitness = standard.resolvedRiders.find(
+      (candidate) => candidate.id === witness.id,
+    )!;
+    const favoriteWitness = favorite.resolvedRiders.find(
+      (candidate) => candidate.id === witness.id,
+    )!;
+
+    for (const key of Object.keys(rider.ratings) as Array<keyof typeof rider.ratings>) {
+      expect(favoriteRider.ratings[key]).toBe(
+        Math.min(100, standardRider.ratings[key] + 2),
+      );
+    }
+    expect(favoriteWitness.ratings).toEqual(standardWitness.ratings);
+    expect(rider.ratings.hills).toBe(75);
+  });
+
   it("accorde aussi le bonus local aux pays adjacents débloqués par le Centre d’accueil", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const rider = {

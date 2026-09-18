@@ -10,6 +10,7 @@ const MAINTENANCE_TASKS = [
   "settle_due_lightweight_junior_national_championships",
   "settle_due_development_races",
   "settle_due_season_rollovers",
+  "refresh_due_rider_favorite_races",
   "settle_due_federation_elections",
   "initialize_due_federation_presidencies",
   "settle_due_exceptional_federation_elections",

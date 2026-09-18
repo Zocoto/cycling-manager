@@ -26,6 +26,7 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderComparisonLauncher } from "@/components/game/rider-comparison-launcher";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
+import { RiderFavoriteRacesCard } from "@/components/game/rider-favorite-races-card";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
 import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { PotentialStars } from "@/components/game/potential-stars";
@@ -70,6 +71,7 @@ import {
   type PublicRiderProfile,
 } from "@/services/public-rider-profile";
 import { getCurrentTeamRiderSeasonPlanning } from "@/services/rider-season-planning";
+import { getRiderFavoriteRaces } from "@/services/rider-favorite-races";
 import { getProfessionalRiderNaturalizationEligibility } from "@/services/rider-naturalization";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
@@ -187,12 +189,23 @@ export default async function RiderProfilePage({
     );
   }
 
-  const [amateurIdentity, sponsorIdentity] = profile.currentTeam
-    ? await Promise.all([
-        getTeamAmateurIdentity(profile.currentTeam.id),
-        getActiveTeamSponsorIdentity(profile.currentTeam.id),
-      ])
-    : [null, null];
+  const [amateurIdentity, sponsorIdentity, favoriteRaces] = await Promise.all([
+    profile.currentTeam
+      ? getTeamAmateurIdentity(profile.currentTeam.id)
+      : Promise.resolve(null),
+    profile.currentTeam
+      ? getActiveTeamSponsorIdentity(profile.currentTeam.id)
+      : Promise.resolve(null),
+    profile.activeSeason
+      ? getRiderFavoriteRaces({
+          riderId: profile.id,
+          seasonId: profile.activeSeason.id,
+        }).catch((error: unknown) => {
+          console.error("Courses préférées indisponibles :", error);
+          return [];
+        })
+      : Promise.resolve([]),
+  ]);
   const activeWorldTitles = profile.worldTitles.filter(
     (title) => title.isActive,
   );
@@ -555,7 +568,11 @@ export default async function RiderProfilePage({
               />
             </div>
             <RiderClimateProfileCard profile={riderClimateProfile} />
-            <div data-tutorial-id="rider-profile-abilities">
+            <RiderFavoriteRacesCard races={favoriteRaces} />
+            <div
+              data-tutorial-id="rider-profile-abilities"
+              className={profile.medical ? "sm:col-span-2 xl:col-span-1" : ""}
+            >
               <SpecialAbilitiesCard abilities={profile.specialAbilities} />
             </div>
           </aside>

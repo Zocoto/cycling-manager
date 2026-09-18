@@ -18,6 +18,39 @@ import {
 } from "./stage-race-jerseys";
 
 describe("createCalendarSimulationInput", () => {
+  it("conserve le bonus de course préférée sur toutes les étapes d'un tour", () => {
+    const edition = createEdition({
+      slug: "tour-prefere",
+      riders: [
+        { ...createRider("favorite", "team-a"), favoriteRaceBonus: 2 },
+        createRider("other", "team-b"),
+      ],
+    });
+    edition.raceFormat = "stage_race";
+    edition.stages.push({
+      ...edition.stages[0],
+      id: "tour-prefere-stage-2",
+      dayNumber: 5,
+      stageNumber: 2,
+    });
+
+    for (const stage of edition.stages) {
+      const input = createCalendarSimulationInput({
+        edition,
+        stage,
+        seed: stage.id,
+      });
+      expect(
+        input.riders.find((rider) => rider.id === "favorite")
+          ?.favoriteRaceBonus,
+      ).toBe(2);
+      expect(
+        input.riders.find((rider) => rider.id === "other")
+          ?.favoriteRaceBonus,
+      ).toBeUndefined();
+    }
+  });
+
   it("transmet l’avantage fédéral du pays hôte au moteur", () => {
     const edition = createEdition({
       slug: "federal-home-bonus",

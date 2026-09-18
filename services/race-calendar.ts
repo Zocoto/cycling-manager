@@ -79,6 +79,7 @@ import {
   type WindTunnelSpecialization,
 } from "@/lib/game/race-infrastructure-specializations";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
+import { addFavoriteRaceBonusToRiders } from "@/lib/game/rider-favorite-races";
 import {
   getFederalMedicalNetworkEffects,
   getFederationInfrastructureEffectPercentage,
@@ -94,6 +95,7 @@ import {
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
+import { getFavoriteRaceRiderIdsByRace } from "@/services/rider-favorite-races";
 import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
 import {
   loadRaceStaffEffects,
@@ -893,6 +895,7 @@ export async function getActiveSeasonRaceCalendar(
 
   const editionRows = editionsResult.data ?? [];
   const editionIds = editionRows.map((edition) => edition.id);
+  const raceIds = unique(editionRows.map((edition) => edition.race_id));
   const sponsorObjectiveEditionIds = new Set(
     (
       (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []
@@ -1016,6 +1019,17 @@ export async function getActiveSeasonRaceCalendar(
         teamIds: engagedTeamIds,
       })
     : Promise.resolve(new Map<string, FanClubRaceBoost>());
+  const favoriteRaceRiderIdsPromise =
+    includeSimulationEnhancements && engagedRiderIds.length > 0
+      ? getFavoriteRaceRiderIdsByRace({
+          admin: raceDataAdmin,
+          seasonId: season.id,
+          raceIds,
+        }).catch((error: unknown) => {
+          console.error("Bonus de course préférée indisponible :", error);
+          return new Map<string, Set<string>>();
+        })
+      : Promise.resolve(new Map<string, Set<string>>());
   const riderContext = await loadRaceCalendarRiderContext({
     supabase,
     admin: raceDataAdmin,
@@ -1036,6 +1050,7 @@ export async function getActiveSeasonRaceCalendar(
     raceInfrastructureSpecializations,
     teamRegistrationCountryCodes,
     fanClubRaceBoosts,
+    favoriteRaceRiderIdsByRace,
   ] = await Promise.all([
     raceStaffEffectsPromise,
     teamSponsorVisualsPromise,
@@ -1043,11 +1058,11 @@ export async function getActiveSeasonRaceCalendar(
     raceInfrastructureSpecializationsPromise,
     teamRegistrationCountryCodesPromise,
     fanClubRaceBoostsPromise,
+    favoriteRaceRiderIdsPromise,
   ]);
 
   const dayRows = daysResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
-  const raceIds = unique(editionRows.map((edition) => edition.race_id));
   const categoryIds = unique(
     editionRows.map((edition) => edition.race_category_id),
   );
@@ -1611,7 +1626,10 @@ export async function getActiveSeasonRaceCalendar(
           engagedCountByEditionId.get(edition.id) ??
           engagedRidersByEditionId.get(edition.id)?.length ??
           0,
-        engagedRiders: engagedRidersByEditionId.get(edition.id) ?? [],
+        engagedRiders: addFavoriteRaceBonusToRiders(
+          engagedRidersByEditionId.get(edition.id) ?? [],
+          favoriteRaceRiderIdsByRace.get(race.id),
+        ),
         currentTeamRegistration: registrationByEditionId.has(edition.id)
           ? {
               status: registrationByEditionId.get(edition.id)!

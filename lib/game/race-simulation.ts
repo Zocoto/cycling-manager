@@ -105,6 +105,7 @@ import {
   type WindTunnelSpecialization,
 } from "./race-infrastructure-specializations";
 import { applyFanClubRaceRatingBoost } from "./fan-club-race-boost";
+import { applyFavoriteRaceRatingBonus } from "./rider-favorite-races";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -216,6 +217,7 @@ export type RiderSimulationInput = {
   countryCode?: string | null;
   climateProfile?: RiderClimateProfile;
   localRaceBonus?: number;
+  favoriteRaceBonus?: number;
   nationalTechnicalLabBonus?: number;
   localRaceCountryCodes?: string[];
   reconnaissanceBonus?: number;
@@ -1183,20 +1185,23 @@ function normalizeStageSimulationInput(
                     homeAdvantageEffects.localExecutionBonusPoints
                   : 0)
               : 0,
-          ratings: applyFanClubRaceRatingBoost({
-            ratings: applyRaceInfrastructurePerformanceBonuses({
-              ratings: weatherCenterAdjustedRatings,
-              rider,
+          ratings: applyFavoriteRaceRatingBonus(
+            applyFanClubRaceRatingBoost({
+              ratings: applyRaceInfrastructurePerformanceBonuses({
+                ratings: weatherCenterAdjustedRatings,
+                rider,
+                stageType: input.stageType,
+                raceCountryCode: input.raceCountryCode,
+              }),
+              ratingBoost:
+                (rider.fanClubSupport?.ratingBoost ?? 0) *
+                (1 +
+                  homeAdvantageEffects.fanClubBoostEffectivenessPercentage / 100),
+              profileType: input.profileType,
               stageType: input.stageType,
-              raceCountryCode: input.raceCountryCode,
             }),
-            ratingBoost:
-              (rider.fanClubSupport?.ratingBoost ?? 0) *
-              (1 +
-                homeAdvantageEffects.fanClubBoostEffectivenessPercentage / 100),
-            profileType: input.profileType,
-            stageType: input.stageType,
-          }),
+            rider.favoriteRaceBonus,
+          ),
         };
       }),
   };
