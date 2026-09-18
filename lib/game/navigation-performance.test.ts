@@ -38,7 +38,7 @@ describe("game navigation performance", () => {
 
   it("keeps ordinary links on a hook-free fast path", () => {
     expect(appLinkSource).toContain(
-      "if (!riderId && !raceTarget && !prefetchOnIntent)",
+      "if (!riderId && !raceTarget && !teamId && !prefetchOnIntent)",
     );
     expect(appLinkSource).toContain("<InteractiveAppLink");
   });
