@@ -167,6 +167,18 @@ describe("training progression", () => {
     ]);
   });
 
+  it("applies the intermediate professional progression tiers at their exact thresholds", () => {
+    expect(
+      [
+        69.999, 70, 74.999, 75, 79.999, 80, 84.999, 85, 89.999, 90,
+        94.999, 95, 100,
+      ].map(getRatingProgressFactor),
+    ).toEqual([
+      1, 0.65, 0.65, 0.5, 0.5, 0.35, 0.35, 0.25, 0.25, 0.15, 0.15, 0.05,
+      0.05,
+    ]);
+  });
+
   it("keeps the ideal above-60 progression near twelve points per season", () => {
     const daily = calculateDailyTrainingProgressMilli({
       intensity: 100,
@@ -229,8 +241,8 @@ describe("training progression", () => {
   });
 
   it("reproduit la trajectoire d’un ancien pic à 85 bien entraîné", () => {
-    expect(simulateVeteranMountainRating(85, 32, 36)).toBe(78);
-    expect(simulateVeteranMountainRating(85, 32, 40)).toBe(71);
+    expect(simulateVeteranMountainRating(85, 32, 36)).toBe(77);
+    expect(simulateVeteranMountainRating(85, 32, 40)).toBe(69);
   });
 });
 

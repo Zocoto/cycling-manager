@@ -385,9 +385,12 @@ export function getRatingProgressFactor(rating: number): number {
   if (rating < 50) return 1.8;
   if (rating < 60) return 1.35;
   if (rating < 70) return 1;
-  if (rating < 80) return 0.65;
-  if (rating < 90) return 0.35;
-  return 0.15;
+  if (rating < 75) return 0.65;
+  if (rating < 80) return 0.5;
+  if (rating < 85) return 0.35;
+  if (rating < 90) return 0.25;
+  if (rating < 95) return 0.15;
+  return 0.05;
 }
 
 export function getSeasonRatingGainCap(initialRating: number): number {
