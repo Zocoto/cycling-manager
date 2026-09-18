@@ -60,6 +60,7 @@ const snapshot: DashboardAssistantSnapshot = {
   developmentRaceRegistrationReminderCount: 0,
   developmentRaceRegistrationReminderNextName: null,
   developmentRaceRegistrationReminderNextEditionId: null,
+  constructionContext: null,
   fanClubShopLevel: 0,
   fanClubStockCount: 0,
   fanClubSalesProcessedToday: false,
@@ -242,6 +243,56 @@ describe("dashboard DS assistant", () => {
     expect(cleared.alerts).not.toContainEqual(
       expect.objectContaining({ id: "development-race-registration-reminder" }),
     );
+  });
+
+  it("alerts on a financeable first construction line and then a talented second line", () => {
+    const first = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        constructionContext: {
+          experiencePoints: 10_000,
+          balance: 10_000_000,
+          levels: {},
+          activeProjects: [],
+          architects: [],
+        },
+      },
+      rewardCount: 0,
+      cashBalance: 10_000_000,
+    });
+    expect(first.alerts[0]).toEqual(expect.objectContaining({
+      id: "infrastructure-construction",
+      metric: "L1",
+      title: "Bâtiment à construire",
+      href: expect.stringMatching(/\/jeu\/infrastructures\?onglet=batiments#batiment-/),
+    }));
+
+    const second = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        constructionContext: {
+          experiencePoints: 10_000,
+          balance: 10_000_000,
+          levels: {},
+          activeProjects: [{ code: "training_center", architectContractId: null }],
+          architects: [{
+            contractId: "parallel",
+            level: 3,
+            specialty: "balanced",
+            costReductionPercentage: 12,
+            hasParallelConstructionTalent: true,
+          }],
+        },
+      },
+      rewardCount: 0,
+      cashBalance: 10_000_000,
+    });
+    expect(second.alerts[0]).toEqual(expect.objectContaining({
+      id: "infrastructure-construction",
+      metric: "L2",
+      title: "Second chantier possible",
+      detail: expect.stringContaining("Double chantier"),
+    }));
   });
 
   it("counts multiple unfilled DevTeam races without multiplying assistant rows", () => {

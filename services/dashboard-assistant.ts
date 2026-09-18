@@ -4,6 +4,7 @@ import type {
   DashboardAssistantSnapshot,
   DashboardJournalItem,
 } from "@/lib/game/dashboard-assistant";
+import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -56,7 +57,7 @@ type FanClubAssistantSummaryRow = {
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardAssistantSnapshot | null> {
-  const [result, sponsoringAlertResult, fanClubResult] = await Promise.all([
+  const [result, sponsoringAlertResult, fanClubResult, constructionResult] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
       .maybeSingle<DashboardAssistantSummaryRow>(),
@@ -66,6 +67,7 @@ export async function getCurrentDashboardAssistantSummary(
     supabase
       .rpc("get_current_fan_club_assistant_summary")
       .maybeSingle<FanClubAssistantSummaryRow>(),
+    supabase.rpc("get_current_dashboard_construction_context"),
   ]);
 
   if (result.error) {
@@ -84,6 +86,13 @@ export async function getCurrentDashboardAssistantSummary(
     console.error(
       "Impossible de charger l’état de la boutique du Fan Club :",
       fanClubResult.error.message,
+    );
+  }
+
+  if (constructionResult.error) {
+    console.error(
+      "Impossible de charger les opportunités de construction :",
+      constructionResult.error.message,
     );
   }
 
@@ -154,6 +163,9 @@ export async function getCurrentDashboardAssistantSummary(
       assistantPayload.developmentRaceRegistrationReminderNextName,
     developmentRaceRegistrationReminderNextEditionId:
       assistantPayload.developmentRaceRegistrationReminderNextEditionId,
+    constructionContext: constructionResult.error
+      ? null
+      : parseDashboardConstructionContext(constructionResult.data),
     fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
     fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
     fanClubSalesProcessedToday:

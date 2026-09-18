@@ -315,6 +315,8 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                     return (
                       <div
                         key={code}
+                        id={`batiment-${code}`}
+                        className="scroll-mt-20"
                         data-building-code={code}
                         data-starting-cost={definition.levels[0]?.cost}
                         data-tutorial-id="infrastructure-data-room"
@@ -350,6 +352,8 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                     return (
                       <div
                         key={code}
+                        id={`batiment-${code}`}
+                        className="scroll-mt-20"
                         data-building-code={code}
                         data-starting-cost={definition.levels[0]?.cost}
                         data-tutorial-id="infrastructure-staff-academy"
@@ -374,6 +378,8 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                   return (
                     <div
                       key={code}
+                      id={`batiment-${code}`}
+                      className="scroll-mt-20"
                       data-building-code={code}
                       data-starting-cost={definition.levels[0]?.cost}
                     >

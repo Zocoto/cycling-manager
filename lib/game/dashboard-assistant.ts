@@ -5,6 +5,10 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
+import {
+  getDashboardConstructionOpportunity,
+  type DashboardConstructionContext,
+} from "@/lib/game/dashboard-construction-alert";
 
 export const DASHBOARD_ASSISTANT_ENABLED = true;
 
@@ -65,6 +69,7 @@ export type DashboardAssistantSnapshot = {
   developmentRaceRegistrationReminderCount: number;
   developmentRaceRegistrationReminderNextName: string | null;
   developmentRaceRegistrationReminderNextEditionId: string | null;
+  constructionContext: DashboardConstructionContext | null;
   fanClubShopLevel: number;
   fanClubStockCount: number;
   fanClubSalesProcessedToday: boolean;
@@ -105,6 +110,7 @@ const ALERT_PRIORITY = [
   "race-roster-alerts",
   "development-race-registration-reminder",
   "development-team-setup",
+  "infrastructure-construction",
   "low-reputation-registrations",
   "untreated-injuries",
   "junior-manual-training",
@@ -153,6 +159,25 @@ export function buildDashboardAssistantLines({
           ? "Dernier jour : enregistrez au moins un junior avant la fermeture ce soir."
           : `J${snapshot.developmentTeamSetupCurrentDayNumber} en cours · composition possible jusqu’à la fin de J7.`,
       href: "/jeu/centre-de-formation?onglet=development&dev=effectif",
+    });
+  }
+
+  const construction = getDashboardConstructionOpportunity(
+    snapshot.constructionContext,
+  );
+  if (construction) {
+    const secondLine = construction.slotNumber === 2;
+    alerts.push({
+      id: "infrastructure-construction",
+      tone: "alert",
+      metric: `L${construction.slotNumber}`,
+      title: secondLine
+        ? "Second chantier possible"
+        : "Bâtiment à construire",
+      detail: secondLine
+        ? `Le talent « Double chantier » ouvre une seconde ligne · ${construction.buildingName} peut être lancé.`
+        : `La file de construction est libre · ${construction.buildingName} peut être lancé.`,
+      href: construction.href,
     });
   }
 
