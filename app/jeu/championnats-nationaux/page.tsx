@@ -79,10 +79,10 @@ export default async function NationalChampionshipsPage({
             Retour aux inscriptions courses
           </Link>
           <Link
-            href="/jeu/resultats"
+            href="/jeu/championnats-nationaux/resultats"
             className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm"
           >
-            Voir les résultats
+            Résultats des CN
           </Link>
         </div>
 
@@ -120,6 +120,24 @@ export default async function NationalChampionshipsPage({
             </div>
           </div>
         </header>
+
+        <Link
+          href="/jeu/championnats-nationaux/resultats"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#176951]/20 bg-white px-5 py-4 shadow-sm transition hover:border-[#176951]/50 hover:shadow-md"
+        >
+          <span>
+            <span className="block text-sm font-black text-[#183F37]">
+              Classements des championnats nationaux
+            </span>
+            <span className="mt-1 block text-xs font-semibold text-[#60756E]">
+              Places de vos coureurs et classement complet de chaque pays, en
+              ligne comme en CLM.
+            </span>
+          </span>
+          <span className="text-sm font-black text-[#176951]">
+            Consulter →
+          </span>
+        </Link>
 
         {saved ? (
           <p className="mt-5 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">

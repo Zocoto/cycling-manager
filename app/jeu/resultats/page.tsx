@@ -105,7 +105,7 @@ export default async function RaceResultsPage({
       edition?.competitionType === "national_road" ||
       edition?.competitionType === "national_time_trial"
     ) {
-      redirect("/jeu/championnats-nationaux");
+      redirect("/jeu/championnats-nationaux/resultats");
     }
     if (edition?.raceFormat === "stage_race") {
       redirect(`/jeu/resultats/${edition.slug}`);
@@ -184,6 +184,13 @@ export default async function RaceResultsPage({
             ← Retour au calendrier
           </Link>
         </div>
+
+        <Link
+          href="/jeu/championnats-nationaux/resultats"
+          className="mt-6 inline-flex min-h-11 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:border-[#176951]/50 hover:shadow-md"
+        >
+          Classements des championnats nationaux →
+        </Link>
 
         <div className="mt-8">
           {calendar && spectatorCalendar ? (
