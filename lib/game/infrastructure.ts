@@ -61,21 +61,6 @@ export function applyInfrastructureEfficiencyBonus(
   return Math.round(safeValue * (1 + safeBonus / 100) * 100) / 100;
 }
 
-const INFRASTRUCTURE_UPGRADE_COST_RATIOS = [1, 0.6, 0.7, 0.8, 0.9] as const;
-
-export function getInfrastructureUpgradeCost(
-  levelOneCost: number,
-  targetLevel: number,
-): number {
-  const safeLevel = Math.max(1, Math.floor(targetLevel));
-  const ratio =
-    INFRASTRUCTURE_UPGRADE_COST_RATIOS[
-      Math.min(safeLevel, INFRASTRUCTURE_UPGRADE_COST_RATIOS.length) - 1
-    ]!;
-
-  return Math.round(levelOneCost * ratio);
-}
-
 export function getRequiredDirectorLevelForInfrastructureLevel(
   targetLevel: number,
 ): number {
@@ -189,14 +174,14 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       },
       {
         level: 2,
-        cost: 120_000,
+        cost: 350_000,
         durationDays: 14,
         effect:
           "5 notes exactes, 8 fourchettes resserrées et plus aucune note inconnue.",
       },
       {
         level: 3,
-        cost: 140_000,
+        cost: 550_000,
         durationDays: 21,
         effect:
           "7 notes exactes et 6 fourchettes très resserrées ; potentiel estimé à une demi-étoile près.",
@@ -323,7 +308,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     },
     levels: [10, 20, 30, 40, 50].map((bonus, index) => ({
       level: index + 1,
-      cost: [150_000, 90_000, 105_000, 120_000, 135_000][index]!,
+      cost: [150_000, 275_000, 450_000, 700_000, 1_000_000][index]!,
       durationDays: [6, 10, 15, 21, 28][index]!,
       effect: `−${bonus} % sur la perte de forme post-course, après application du kiné.`,
     })),
@@ -388,7 +373,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     },
     levels: [1, 3, 5, 8, 28].map((horizon, index) => ({
       level: index + 1,
-      cost: [50_000, 30_000, 35_000, 40_000, 45_000][index]!,
+      cost: [50_000, 90_000, 150_000, 230_000, 350_000][index]!,
       durationDays: [6, 10, 15, 21, 28][index]!,
       effect:
         horizon === 28
@@ -416,28 +401,28 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
       },
       {
         level: 2,
-        cost: 1_800_000,
+        cost: 3_900_000,
         durationDays: 18,
         effect:
           "Ajoute les recommandations de parcours, l’historique des débriefs et la Bordure offensive.",
       },
       {
         level: 3,
-        cost: 2_100_000,
+        cost: 5_100_000,
         durationDays: 24,
         effect:
           "Débloque Coureur satellite, Train de sprint et Tempo montagne.",
       },
       {
         level: 4,
-        cost: 2_400_000,
+        cost: 6_600_000,
         durationDays: 30,
         effect:
           "Autorise un plan de repli conditionnel ; une seule doctrine peut produire un effet.",
       },
       {
         level: 5,
-        cost: 2_700_000,
+        cost: 8_400_000,
         durationDays: 35,
         effect:
           "Affiche un diagnostic d’exécution enrichi, sans coefficient sportif supplémentaire.",
@@ -682,23 +667,10 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
   },
 };
 
-export const TEAM_INFRASTRUCTURE_DEFINITIONS = Object.fromEntries(
-  Object.entries(BASE_TEAM_INFRASTRUCTURE_DEFINITIONS).map(
-    ([code, definition]) => {
-      const levelOneCost = definition.levels[0]?.cost ?? 0;
-      return [
-        code,
-        {
-          ...definition,
-          levels: definition.levels.map((level) => ({
-            ...level,
-            cost: getInfrastructureUpgradeCost(levelOneCost, level.level),
-          })),
-        },
-      ];
-    },
-  ),
-) as unknown as Record<TeamInfrastructureCode, TeamInfrastructureDefinition>;
+// Each building has its own level-by-level price. A shared discount curve used
+// to overwrite these prices and made late upgrades cheaper than level one.
+export const TEAM_INFRASTRUCTURE_DEFINITIONS =
+  BASE_TEAM_INFRASTRUCTURE_DEFINITIONS;
 
 export function getTeamInfrastructureCodesByStartingCost() {
   return (
@@ -730,25 +702,25 @@ export const INTERNATIONAL_CENTER_LEVELS = [
   },
   {
     level: 2,
-    cost: getInfrastructureUpgradeCost(500_000, 2),
+    cost: 800_000,
     durationDays: 16,
     contributionStars: 2,
   },
   {
     level: 3,
-    cost: getInfrastructureUpgradeCost(500_000, 3),
+    cost: 1_200_000,
     durationDays: 22,
     contributionStars: 3,
   },
   {
     level: 4,
-    cost: getInfrastructureUpgradeCost(500_000, 4),
+    cost: 1_700_000,
     durationDays: 28,
     contributionStars: 4,
   },
   {
     level: 5,
-    cost: getInfrastructureUpgradeCost(500_000, 5),
+    cost: 2_300_000,
     durationDays: 35,
     contributionStars: 5,
   },

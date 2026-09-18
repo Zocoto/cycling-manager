@@ -1,9 +1,10 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import {
+  INTERNATIONAL_CENTER_LEVELS,
   TEAM_INFRASTRUCTURE_DEFINITIONS,
   applyInfrastructureEfficiencyBonus,
   applyInternationalCenterPotentialBonus,
@@ -76,12 +77,12 @@ describe("international cycling schools", () => {
 });
 
 describe("recruitment Data Room", () => {
-  it("reste accessible puis facture les améliorations selon le barème commun", () => {
+  it("reste accessible au premier niveau puis renchérit les améliorations", () => {
     expect(
       TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room.levels.map(
         (level) => level.cost,
       ),
-    ).toEqual([200_000, 120_000, 140_000]);
+    ).toEqual([200_000, 350_000, 550_000]);
   });
 
   it("progressively replaces unknown ratings with precise information", () => {
@@ -136,26 +137,26 @@ describe("team infrastructure buildings", () => {
     }
   });
 
-  it("garde le niveau 1 cher puis facture les améliorations moins cher", () => {
+  it("réserve les niveaux avancés du centre d'entraînement aux équipes établies", () => {
     const levels = TEAM_INFRASTRUCTURE_DEFINITIONS.training_center.levels;
 
     expect(levels.map((level) => level.cost)).toEqual([
-      100_000, 60_000, 70_000, 80_000, 90_000,
+      100_000, 250_000, 500_000, 900_000, 1_500_000,
     ]);
     expect(levels.at(-1)?.effect).toContain("+10 %");
   });
 
-  it("garde les centres météo et de cryothérapie accessibles à tous les niveaux", () => {
+  it("préserve une entrée abordable pour la météo et la cryothérapie", () => {
     expect(
       TEAM_INFRASTRUCTURE_DEFINITIONS.weather_center.levels.map(
         (level) => level.cost,
       ),
-    ).toEqual([50_000, 30_000, 35_000, 40_000, 45_000]);
+    ).toEqual([50_000, 90_000, 150_000, 230_000, 350_000]);
     expect(
       TEAM_INFRASTRUCTURE_DEFINITIONS.cryotherapy_center.levels.map(
         (level) => level.cost,
       ),
-    ).toEqual([150_000, 90_000, 105_000, 120_000, 135_000]);
+    ).toEqual([150_000, 275_000, 450_000, 700_000, 1_000_000]);
   });
 
   it("exige 10 niveaux de manager par niveau de bâtiment, plafonnés à 50", () => {
@@ -207,15 +208,67 @@ describe("team infrastructure buildings", () => {
       const costs = TEAM_INFRASTRUCTURE_DEFINITIONS[code].levels.map(
         (level) => level.cost,
       );
-      expect(costs.slice(1).every((cost) => cost < costs[0]!)).toBe(true);
-      expect(costs.slice(1)).toEqual(
-        [...costs.slice(1)].sort((left, right) => left - right),
-      );
+      expect(
+        costs.every((cost, index) => index === 0 || cost > costs[index - 1]!),
+      ).toBe(true);
     }
+    expect(INTERNATIONAL_CENTER_LEVELS.map((level) => level.cost)).toEqual([
+      500_000, 800_000, 1_200_000, 1_700_000, 2_300_000,
+    ]);
   });
 
   it("intègre l’efficacité de l’architecte dans la qualité partagée", () => {
     expect(applyInfrastructureEfficiencyBonus(5, 10)).toBe(5.5);
     expect(getInternationalCenterBonusPercentage(5.5)).toBe(5);
+  });
+});
+
+describe("infrastructure tariff parity", () => {
+  const migration = readFileSync(
+    join(
+      process.cwd(),
+      "supabase/migrations/20260919020000_progressive_team_infrastructure_costs.sql",
+    ),
+    "utf8",
+  );
+
+  it("uses the exact same prices in the database and the displayed catalogue", () => {
+    const schedules = new Map(
+      [
+        ...migration.matchAll(
+          /when '([a-z_]+)' then v_costs := array\[([\d, ]+)\];/g,
+        ),
+      ].map(
+        ([, code, prices]) =>
+          [
+            code,
+            prices!.split(",").map((price) => Number(price.trim())),
+          ] as const,
+      ),
+    );
+
+    for (const [code, definition] of Object.entries(
+      TEAM_INFRASTRUCTURE_DEFINITIONS,
+    )) {
+      expect(schedules.get(code)).toEqual(
+        definition.levels.map((level) => level.cost),
+      );
+    }
+    expect(schedules.get("international_youth_center")).toEqual(
+      INTERNATIONAL_CENTER_LEVELS.map((level) => level.cost),
+    );
+    expect(schedules.size).toBe(
+      Object.keys(TEAM_INFRASTRUCTURE_DEFINITIONS).length + 1,
+    );
+  });
+
+  it("quotes the new base price before architect discounts without rewriting existing projects", () => {
+    expect(migration).toContain(
+      "v_base_cost := public.get_team_infrastructure_base_cost(",
+    );
+    expect(migration).toContain("if p_architect_contract_id is not null then");
+    expect(migration).not.toMatch(
+      /update\s+public\.(?:infrastructure_projects|team_seasons)/i,
+    );
   });
 });
