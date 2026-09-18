@@ -17,7 +17,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
-  getCurrentTeamNationalChampionshipCountryCodes,
+  getCurrentTeamNationalChampionshipCountries,
   getNationalChampionshipDiscipline,
 } from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
@@ -94,13 +94,14 @@ export default async function RaceLivePage({
       competitionType: edition.competitionType,
     });
   if (nationalDiscipline) {
-    const relevantCountries =
-      await getCurrentTeamNationalChampionshipCountryCodes({
+    const enteredCountries =
+      await getCurrentTeamNationalChampionshipCountries({
         authUserId: user.id,
-        seasonId: calendar.seasonId,
-    });
-    if (!relevantCountries.includes(edition.countryCode)) {
-      redirect("/jeu/championnats-nationaux");
+        calendar,
+        discipline: nationalDiscipline,
+      });
+    if (!enteredCountries.some((country) => country.edition.id === edition.id)) {
+      redirect(`/jeu/resultats/championnats-nationaux/${nationalDiscipline}`);
     }
   }
 
@@ -249,17 +250,9 @@ export default async function RaceLivePage({
         })
       : null;
 
-  const archivedNationalChampionship =
-    Boolean(nationalDiscipline) &&
-    (stage.dayNumber < calendar.currentDayNumber ||
-      edition.status === "completed" ||
-      edition.status === "cancelled" ||
-      state.status === "finished" ||
-      state.status === "cancelled");
-  const backHref =
-    nationalDiscipline && !archivedNationalChampionship
-      ? "/jeu/championnats-nationaux"
-      : "/jeu/resultats";
+  const backHref = nationalDiscipline
+    ? `/jeu/resultats/championnats-nationaux/${nationalDiscipline}`
+    : "/jeu/resultats";
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -290,9 +283,7 @@ export default async function RaceLivePage({
             className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm"
           >
             ←{" "}
-            {isNationalChampionship && !archivedNationalChampionship
-              ? "Tous les CN concernés"
-              : "Toutes les courses"}
+            {isNationalChampionship ? "Championnats de la discipline" : "Toutes les courses"}
           </Link>
         </div>
 

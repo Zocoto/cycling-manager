@@ -20,14 +20,13 @@ export type NationalChampionshipRider = {
   firstName: string;
   lastName: string;
   rosterId: string;
-  status: "entered" | "withdrawn";
+  status: "entered" | "did_not_start";
   finalRank: number | null;
 };
 
 export type NationalChampionshipCountry = {
   countryName: string;
   countryCode: string;
-  eligibleRiderCount: number;
   enteredRiderCount: number;
   edition: RaceCalendarEdition;
   riders: NationalChampionshipRider[];
@@ -186,6 +185,50 @@ export async function getCurrentTeamNationalChampionshipCountryCodes({
   return (countries ?? [])
     .map((country) => country.iso_alpha2)
     .sort((left, right) => left.localeCompare(right));
+}
+
+export async function getCurrentTeamEnteredNationalChampionshipEditionIds({
+  authUserId,
+  calendar,
+}: {
+  authUserId: string;
+  calendar: SeasonRaceCalendar;
+}): Promise<string[]> {
+  const context = await getManagedTeamContext(authUserId, calendar.seasonId);
+  if (!context) return [];
+
+  const editionIds = calendar.editions
+    .filter((edition) => getNationalChampionshipDiscipline(edition.competitionType))
+    .map((edition) => edition.id);
+  if (editionIds.length === 0) return [];
+  const editionIdSet = new Set(editionIds);
+
+  const admin = createSupabaseAdminClient();
+  const { data: registrations, error: registrationError } = await admin
+    .from("race_registrations")
+    .select("id, race_edition_id")
+    .eq("team_season_id", context.teamSeasonId)
+    .returns<RegistrationRow[]>();
+  assertQuery(registrationError, "les inscriptions de l'équipe aux CN");
+  const nationalRegistrations = (registrations ?? []).filter((registration) =>
+    editionIdSet.has(registration.race_edition_id),
+  );
+  if (nationalRegistrations.length === 0) return [];
+
+  const { data: rosters, error: rosterError } = await admin
+    .from("race_rosters")
+    .select("race_registration_id")
+    .in("race_registration_id", nationalRegistrations.map((registration) => registration.id))
+    .in("status", ["selected", "confirmed", "did_not_start"])
+    .returns<Array<{ race_registration_id: string }>>();
+  assertQuery(rosterError, "les partants de l'équipe aux CN");
+
+  const enteredRegistrationIds = new Set(
+    (rosters ?? []).map((roster) => roster.race_registration_id),
+  );
+  return nationalRegistrations
+    .filter((registration) => enteredRegistrationIds.has(registration.id))
+    .map((registration) => registration.race_edition_id);
 }
 
 export async function getCurrentTeamNationalChampionshipSelectionMatrix({
@@ -398,48 +441,26 @@ export async function getCurrentTeamNationalChampionshipCountries({
   const context = await getManagedTeamContext(authUserId, calendar.seasonId);
   if (!context) return [];
 
-  const riders = await getCurrentTeamRiders(context.teamId);
-  if (riders.length === 0) return [];
-
-  const ridersById = new Map(riders.map((rider) => [rider.id, rider]));
-  const countsByCountryId = new Map<string, number>();
-  for (const rider of riders) {
-    countsByCountryId.set(
-      rider.country_id,
-      (countsByCountryId.get(rider.country_id) ?? 0) + 1,
-    );
-  }
-
-  const { data: countries, error: countriesError } = await admin
-    .from("countries")
-    .select("id, name, iso_alpha2")
-    .in("id", [...countsByCountryId.keys()])
-    .returns<Array<{ id: string; name: string; iso_alpha2: string }>>();
-  assertQuery(countriesError, "les pays de l’effectif");
-
-  const countryByCode = new Map(
-    (countries ?? []).map((country) => [country.iso_alpha2, country]),
-  );
   const competitionType = getNationalChampionshipCompetitionType(discipline);
   const relevantEditions = calendar.editions.filter(
-    (edition) =>
-      edition.competitionType === competitionType &&
-      countryByCode.has(edition.countryCode),
+    (edition) => edition.competitionType === competitionType,
   );
   const editionIds = relevantEditions.map((edition) => edition.id);
+  const editionIdSet = new Set(editionIds);
 
   const registrationsResult =
     editionIds.length > 0
       ? await admin
           .from("race_registrations")
           .select("id, race_edition_id")
-          .in("race_edition_id", editionIds)
           .eq("team_season_id", context.teamSeasonId)
           .returns<RegistrationRow[]>()
       : { data: [] as RegistrationRow[], error: null };
   assertQuery(registrationsResult.error, "les engagements automatiques aux CN");
 
-  const registrations = registrationsResult.data ?? [];
+  const registrations = (registrationsResult.data ?? []).filter(
+    (registration) => editionIdSet.has(registration.race_edition_id),
+  );
   const registrationById = new Map(
     registrations.map((registration) => [registration.id, registration]),
   );
@@ -450,12 +471,24 @@ export async function getCurrentTeamNationalChampionshipCountries({
           .from("race_rosters")
           .select("id, race_registration_id, rider_id, status")
           .in("race_registration_id", registrationIds)
+          .in("status", ["selected", "confirmed", "did_not_start"])
           .returns<RosterRow[]>()
       : { data: [] as RosterRow[], error: null };
   assertQuery(rostersResult.error, "les coureurs retenus aux CN");
 
-  const rosters = (rostersResult.data ?? []).filter((roster) =>
-    ridersById.has(roster.rider_id),
+  const rosters = rostersResult.data ?? [];
+  const riderIds = [...new Set(rosters.map((roster) => roster.rider_id))];
+  const ridersResult =
+    riderIds.length > 0
+      ? await admin
+          .from("riders")
+          .select("id, country_id, first_name, last_name")
+          .in("id", riderIds)
+          .returns<RiderRow[]>()
+      : { data: [] as RiderRow[], error: null };
+  assertQuery(ridersResult.error, "les coureurs engagés aux CN");
+  const ridersById = new Map(
+    (ridersResult.data ?? []).map((rider) => [rider.id, rider]),
   );
   const rosterIds = rosters.map((roster) => roster.id);
   const resultsResult =
@@ -483,10 +516,7 @@ export async function getCurrentTeamNationalChampionshipCountries({
       firstName: rider.first_name,
       lastName: rider.last_name,
       rosterId: roster.id,
-      status:
-        roster.status === "selected" || roster.status === "confirmed"
-          ? "entered"
-          : "withdrawn",
+      status: roster.status === "did_not_start" ? "did_not_start" : "entered",
       finalRank: resultByRosterId.get(roster.id)?.final_rank ?? null,
     });
     ridersByEditionId.set(registration.race_edition_id, entries);
@@ -494,7 +524,6 @@ export async function getCurrentTeamNationalChampionshipCountries({
 
   return relevantEditions
     .map((edition) => {
-      const country = countryByCode.get(edition.countryCode)!;
       const selectedRiders = (ridersByEditionId.get(edition.id) ?? []).sort(
         (left, right) =>
           (left.finalRank ?? Number.MAX_SAFE_INTEGER) -
@@ -504,17 +533,14 @@ export async function getCurrentTeamNationalChampionshipCountries({
       );
 
       return {
-        countryName: country.name,
-        countryCode: country.iso_alpha2,
-        eligibleRiderCount: countsByCountryId.get(country.id) ?? 0,
-        enteredRiderCount: selectedRiders.filter(
-          (rider) => rider.status === "entered",
-        ).length,
+        countryName: edition.countryName,
+        countryCode: edition.countryCode,
+        enteredRiderCount: selectedRiders.length,
         edition,
         riders: selectedRiders,
       };
     })
-    .filter((entry) => entry.eligibleRiderCount > 0)
+    .filter((entry) => entry.enteredRiderCount > 0)
     .sort((left, right) =>
       left.countryName.localeCompare(right.countryName, "fr"),
     );

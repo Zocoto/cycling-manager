@@ -36,8 +36,8 @@ export function NationalChampionshipResultsDirectory({
           Championnats nationaux
         </h2>
         <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#C1D3CA]">
-          Chaque discipline regroupe les classements des pays liés à votre
-          effectif. Les épreuves sans partant apparaissent comme annulées.
+          Choisissez une discipline, puis le pays où votre équipe était
+          engagée pour ouvrir son classement officiel.
         </p>
       </header>
 
@@ -70,7 +70,8 @@ export function NationalChampionshipGroupCard({
     >
       <span className="flex items-center justify-between gap-3">
         <span className="rounded-full bg-[#176951]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
-          J{group.dayNumber} · {group.editions.length} pays
+          J{group.dayNumber} · {group.editions.length} championnat
+          {group.editions.length > 1 ? "s" : ""}
         </span>
         <span
           className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
@@ -79,7 +80,7 @@ export function NationalChampionshipGroupCard({
               : "bg-[#FFF2C7] text-[#7A5B09]"
           }`}
         >
-          {allResolved ? "Journée résolue" : "Simulation automatique"}
+          {allResolved ? "Résultats disponibles" : "À venir"}
         </span>
       </span>
       <span className="mt-4 block text-xl font-black text-[#183F37]">
@@ -87,54 +88,16 @@ export function NationalChampionshipGroupCard({
       </span>
       <span className="mt-2 block text-sm font-semibold leading-6 text-[#60756E]">
         {allResolved
-          ? "Consultez directement chaque classement officiel disponible."
-          : "Tous les pays sont résolus ensemble ; aucun direct ni replay n’est généré."}
+          ? "Choisissez votre championnat pour consulter le classement officiel."
+          : "Les résultats seront publiés après la simulation, sans direct ni replay."}
       </span>
-      <div className="mt-4 space-y-2">
-        {[...group.editions]
-          .sort((left, right) =>
-            left.countryName.localeCompare(right.countryName, "fr"),
-          )
-          .map((edition) => {
-            const stage = edition.stages[0];
-            const label = (
-              <>
-                <span
-                  className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
-                  role="img"
-                  aria-label={`Drapeau ${edition.countryName}`}
-                />
-                <span className="min-w-0 flex-1 truncate">
-                  {edition.countryName}
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-wide">
-                  {edition.status === "cancelled"
-                    ? "Annulé"
-                    : edition.status === "completed"
-                      ? "Classement"
-                      : "À venir"}
-                </span>
-              </>
-            );
-
-            return edition.status === "completed" && stage ? (
-              <Link
-                key={edition.id}
-                href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
-                className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-white px-3 text-sm font-bold text-[#183F37] transition hover:border-[#278B70]/40 hover:text-[#176951]"
-              >
-                {label}
-              </Link>
-            ) : (
-              <div
-                key={edition.id}
-                className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-white/60 px-3 text-sm font-bold text-[#60756E]"
-              >
-                {label}
-              </div>
-            );
-          })}
-      </div>
+      <Link
+        href={`/jeu/resultats/championnats-nationaux/${group.discipline}`}
+        prefetch={false}
+        className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-4 text-sm font-black text-white transition hover:bg-[#0B302B]"
+      >
+        Choisir un championnat →
+      </Link>
     </article>
   );
 }
@@ -159,11 +122,7 @@ function isNationalChampionshipGroupPast(
   group: NationalChampionshipGroup,
   currentDayNumber: number,
 ) {
-  return (
-    group.dayNumber < currentDayNumber ||
-    (group.dayNumber === currentDayNumber &&
-      isNationalChampionshipGroupResolved(group))
-  );
+  return group.dayNumber < currentDayNumber;
 }
 
 function isNationalChampionshipGroupResolved(
@@ -177,7 +136,7 @@ function isNationalChampionshipGroupResolved(
 
 export function buildNationalChampionshipGroups(
   calendar: SeasonRaceCalendar,
-  countryCodes: Set<string>,
+  enteredEditionIds: Set<string>,
 ): NationalChampionshipGroup[] {
   const configurations = [
     {
@@ -196,7 +155,7 @@ export function buildNationalChampionshipGroups(
     const editions = calendar.editions.filter(
       (edition) =>
         edition.competitionType === configuration.competitionType &&
-        countryCodes.has(edition.countryCode.toUpperCase()),
+        enteredEditionIds.has(edition.id),
     );
     const dayNumber = Math.min(
       ...editions.flatMap((edition) =>

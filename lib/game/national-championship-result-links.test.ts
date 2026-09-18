@@ -30,7 +30,7 @@ describe("accès aux résultats des CN", () => {
     ).toBeNull();
   });
 
-  it("distingue classé, non classé, non engagé, à venir et annulé", () => {
+  it("distingue classé, non classé, non partant, à venir et annulé", () => {
     expect(
       getNationalChampionshipRiderResultLabel(
         { status: "entered", finalRank: 7 },
@@ -45,10 +45,10 @@ describe("accès aux résultats des CN", () => {
     ).toBe("Non classé");
     expect(
       getNationalChampionshipRiderResultLabel(
-        { status: "withdrawn", finalRank: null },
+        { status: "did_not_start", finalRank: null },
         "completed",
       ),
-    ).toBe("Non engagé");
+    ).toBe("Non partant");
     expect(
       getNationalChampionshipRiderResultLabel(
         { status: "entered", finalRank: null },

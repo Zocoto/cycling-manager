@@ -23,7 +23,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
-  getCurrentTeamNationalChampionshipCountryCodes,
+  getCurrentTeamEnteredNationalChampionshipEditionIds,
 } from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
@@ -105,7 +105,13 @@ export default async function RaceResultsPage({
       edition?.competitionType === "national_road" ||
       edition?.competitionType === "national_time_trial"
     ) {
-      redirect("/jeu/championnats-nationaux/resultats");
+      redirect(
+        `/jeu/resultats/championnats-nationaux/${
+          edition.competitionType === "national_road"
+            ? "route"
+            : "contre-la-montre"
+        }`,
+      );
     }
     if (edition?.raceFormat === "stage_race") {
       redirect(`/jeu/resultats/${edition.slug}`);
@@ -119,12 +125,12 @@ export default async function RaceResultsPage({
     }
   }
 
-  const nationalCountryCodes = calendar
-    ? await getCurrentTeamNationalChampionshipCountryCodes({
+  const enteredNationalEditionIds = calendar
+    ? await getCurrentTeamEnteredNationalChampionshipEditionIds({
         authUserId: user.id,
-        seasonId: calendar.seasonId,
+        calendar,
       }).catch((error: unknown) => {
-        console.error("Impossible de charger les nations CN du DS :", error);
+        console.error("Impossible de charger les engagements CN du DS :", error);
         return [];
       })
     : [];
@@ -142,7 +148,7 @@ export default async function RaceResultsPage({
   const nationalChampionshipGroups = calendar
     ? buildNationalChampionshipGroups(
         calendar,
-        new Set(nationalCountryCodes.map((code) => code.toUpperCase())),
+        new Set(enteredNationalEditionIds),
       )
     : [];
   const nationalChampionshipResults = calendar
@@ -184,13 +190,6 @@ export default async function RaceResultsPage({
             ← Retour au calendrier
           </Link>
         </div>
-
-        <Link
-          href="/jeu/championnats-nationaux/resultats"
-          className="mt-6 inline-flex min-h-11 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:border-[#176951]/50 hover:shadow-md"
-        >
-          Classements des championnats nationaux →
-        </Link>
 
         <div className="mt-8">
           {calendar && spectatorCalendar ? (

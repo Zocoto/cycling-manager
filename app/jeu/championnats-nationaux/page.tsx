@@ -79,10 +79,10 @@ export default async function NationalChampionshipsPage({
             Retour aux inscriptions courses
           </Link>
           <Link
-            href="/jeu/championnats-nationaux/resultats"
+            href="/jeu/resultats"
             className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm"
           >
-            Résultats des CN
+            Résultats / Live
           </Link>
         </div>
 
@@ -122,7 +122,7 @@ export default async function NationalChampionshipsPage({
         </header>
 
         <Link
-          href="/jeu/championnats-nationaux/resultats"
+          href="/jeu/resultats"
           className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#176951]/20 bg-white px-5 py-4 shadow-sm transition hover:border-[#176951]/50 hover:shadow-md"
         >
           <span>
@@ -130,8 +130,8 @@ export default async function NationalChampionshipsPage({
               Classements des championnats nationaux
             </span>
             <span className="mt-1 block text-xs font-semibold text-[#60756E]">
-              Places de vos coureurs et classement complet de chaque pays, en
-              ligne comme en CLM.
+              Dans Résultats / Live, choisissez la discipline puis le pays où
+              votre équipe était inscrite.
             </span>
           </span>
           <span className="text-sm font-black text-[#176951]">

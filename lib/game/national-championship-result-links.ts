@@ -15,11 +15,11 @@ export function getNationalChampionshipResultHref(
 }
 
 export function getNationalChampionshipRiderResultLabel(
-  rider: { status: "entered" | "withdrawn"; finalRank: number | null },
+  rider: { status: "entered" | "did_not_start"; finalRank: number | null },
   editionStatus: RaceCalendarEdition["status"],
 ): string {
   if (editionStatus === "cancelled") return "Annulé";
-  if (rider.status === "withdrawn") return "Non engagé";
+  if (rider.status === "did_not_start") return "Non partant";
   if (editionStatus !== "completed") return "En attente";
   return rider.finalRank !== null ? `${rider.finalRank}e` : "Non classé";
 }

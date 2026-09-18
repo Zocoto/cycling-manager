@@ -1,6 +1,9 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import {
+  NationalChampionshipGroupCard,
   buildNationalChampionshipGroups,
   splitNationalChampionshipGroupsForResults,
 } from "@/components/game/national-championship-results-directory";
@@ -69,7 +72,7 @@ function createEdition({
 }
 
 describe("annuaire central des résultats CN", () => {
-  it("crée une seule entrée par discipline et filtre les pays du DS", () => {
+  it("crée une seule entrée par discipline à partir des inscriptions réelles", () => {
     const calendar: SeasonRaceCalendar = {
       seasonId: "season-1",
       seasonName: "Saison 1",
@@ -109,7 +112,7 @@ describe("annuaire central des résultats CN", () => {
 
     const groups = buildNationalChampionshipGroups(
       calendar,
-      new Set(["FR", "BE"]),
+      new Set(["fr-tt", "be-tt", "fr-road"]),
     );
 
     expect(groups).toHaveLength(2);
@@ -125,6 +128,12 @@ describe("annuaire central des résultats CN", () => {
       "FR",
     ]);
     expect(groups.map((group) => group.dayNumber)).toEqual([8, 8]);
+    const timeTrialMarkup = renderToStaticMarkup(
+      createElement(NationalChampionshipGroupCard, { group: groups[0]! }),
+    );
+    expect(timeTrialMarkup).toContain(
+      'href="/jeu/resultats/championnats-nationaux/contre-la-montre"',
+    );
 
     const directoryGroups = splitNationalChampionshipGroupsForResults(
       groups,
@@ -134,7 +143,7 @@ describe("annuaire central des résultats CN", () => {
     expect(directoryGroups.past).toHaveLength(2);
   });
 
-  it("archive un CN dès sa résolution et conserve le CN en cours au premier plan", () => {
+  it("garde les deux tuiles à J8 puis les archive à partir de J9", () => {
     const edition = createEdition({
       id: "fr-road",
       countryCode: "FR",
@@ -155,10 +164,7 @@ describe("annuaire central des résultats CN", () => {
       events: [],
       editions: [edition],
     };
-    const groups = buildNationalChampionshipGroups(
-      calendar,
-      new Set(["FR"]),
-    );
+    const groups = buildNationalChampionshipGroups(calendar, new Set(["fr-road"]));
 
     expect(
       splitNationalChampionshipGroupsForResults(groups, 8),
@@ -169,6 +175,17 @@ describe("annuaire central des résultats CN", () => {
 
     expect(
       splitNationalChampionshipGroupsForResults(groups, 8),
+    ).toMatchObject({ current: [{ competitionType: "national_road" }], past: [] });
+    expect(
+      splitNationalChampionshipGroupsForResults(groups, 9),
     ).toMatchObject({ current: [], past: [{ competitionType: "national_road" }] });
+
+    const markup = renderToStaticMarkup(
+      createElement(NationalChampionshipGroupCard, { group: groups[0]! }),
+    );
+    expect(markup).toContain(
+      'href="/jeu/resultats/championnats-nationaux/route"',
+    );
+    expect(markup).not.toContain("/jeu/resultats/cn-fr-route/1");
   });
 });
