@@ -7,15 +7,19 @@ import {
 export type EquipmentRndSpecialty =
   | "research_time"
   | "research_cost"
-  | "research_success";
+  | "research_success"
+  | "research_exceptional_chance";
 
 export const EQUIPMENT_RND_SPECIALTIES = [
   "research_time",
   "research_cost",
   "research_success",
+  "research_exceptional_chance",
 ] as const satisfies readonly EquipmentRndSpecialty[];
 
 export const EQUIPMENT_RND_MAX_BONUS = 10;
+export const EQUIPMENT_RND_BASE_EXCEPTIONAL_CHANCE_PERCENTAGE = 1;
+export const EQUIPMENT_RND_EXCEPTIONAL_CHANCE_PER_ENGINEER_LEVEL = 0.5;
 export const EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH = 3;
 export const EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH = 60;
 
@@ -58,6 +62,19 @@ function getEngineerSpecialties(
     );
   }
   return engineer.specialty ? [engineer.specialty] : [];
+}
+
+export function getEquipmentRndExceptionalChancePercentage(
+  engineer?: EquipmentRndEngineer | null,
+): number {
+  return (
+    EQUIPMENT_RND_BASE_EXCEPTIONAL_CHANCE_PERCENTAGE +
+    (engineer &&
+    getEngineerSpecialties(engineer).includes("research_exceptional_chance")
+      ? Math.min(5, Math.max(1, Math.floor(engineer.level))) *
+        EQUIPMENT_RND_EXCEPTIONAL_CHANCE_PER_ENGINEER_LEVEL
+      : 0)
+  );
 }
 
 export function estimateEquipmentRndResearch(args: {
@@ -136,6 +153,8 @@ export function describeEquipmentRndEngineerEffects(
         return `−${engineer.level * 5} % sur la durée`;
       case "research_success":
         return `+${engineer.level * 3} points de réussite`;
+      case "research_exceptional_chance":
+        return `${getEquipmentRndExceptionalChancePercentage(engineer).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % de chance de prototype +3`;
     }
   });
 }

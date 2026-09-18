@@ -78,6 +78,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "research_cost",
     "research_success",
     "research_setback_protection",
+    "research_exceptional_chance",
   ],
   educator: [
     "educator_training_time",
@@ -345,6 +346,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Maîtrise des revers",
     description: () =>
       "Une recherche R&D infructueuse produit un résultat neutre plutôt qu’un malus de −1",
+  },
+  research_exceptional_chance: {
+    role: "research_engineer",
+    label: "Intuition de génie",
+    description: (level) =>
+      `+${(percentage(level, 0.5)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} point${normalizeStaffLevel(level) > 2 ? "s" : ""} de chance d’obtenir un prototype R&D à +3 (base : 1 % ; plafond du matériel : +10)`,
   },
   educator_training_time: {
     role: "educator",

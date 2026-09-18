@@ -6,6 +6,7 @@ import {
   estimateEquipmentRndResearch,
   getEquipmentRndBaseDurationDays,
   getEquipmentRndBonusTotal,
+  getEquipmentRndExceptionalChancePercentage,
   isEquipmentPrototypeNameValid,
   normalizeEquipmentPrototypeName,
   type EquipmentRndEngineer,
@@ -114,5 +115,30 @@ describe("equipment R&D engineer talents", () => {
       "−10 % sur la durée",
       "+6 points de réussite",
     ]);
+  });
+
+  it("keeps +3 exceptional prototypes rare and boosts them only with the dedicated affix", () => {
+    expect(getEquipmentRndExceptionalChancePercentage()).toBe(1);
+    expect(getEquipmentRndExceptionalChancePercentage(engineer())).toBe(1);
+    expect(
+      getEquipmentRndExceptionalChancePercentage(
+        engineer({ level: 1, specialties: ["research_exceptional_chance"] }),
+      ),
+    ).toBe(1.5);
+    expect(
+      getEquipmentRndExceptionalChancePercentage(
+        engineer({ level: 5, specialties: ["research_exceptional_chance"] }),
+      ),
+    ).toBe(3.5);
+    expect(
+      getEquipmentRndExceptionalChancePercentage(
+        engineer({ level: 7, specialties: ["research_exceptional_chance"] }),
+      ),
+    ).toBe(3.5);
+    expect(
+      describeEquipmentRndEngineerEffects(
+        engineer({ level: 5, specialties: ["research_exceptional_chance"] }),
+      ),
+    ).toEqual(["3,5 % de chance de prototype +3"]);
   });
 });

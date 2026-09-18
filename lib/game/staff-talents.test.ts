@@ -210,6 +210,12 @@ describe("staff talents", () => {
     expect(getStaffTalentCodes("research_engineer")).toContain(
       "research_setback_protection",
     );
+    expect(getStaffTalentCodes("research_engineer")).toContain(
+      "research_exceptional_chance",
+    );
+    expect(describeStaffTalent("research_exceptional_chance", 5)).toContain(
+      "+2,5 points de chance",
+    );
   });
 
   it("propose au community manager le développement de la popularité et des fans", () => {

@@ -85,7 +85,9 @@ export default async function EquipmentLaboratoryPage({
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
               Un exemplaire est consommé pour créer un prototype strictement
               réservé à votre équipe. L’expérience peut apporter un bonus inédit
-              de +1, exceptionnellement +2 à haut niveau, ou un malus de −1.
+              de +1, parfois +2 à haut niveau, et très rarement +3 si la pièce
+              peut accueillir trois points supplémentaires. Une recherche
+              infructueuse peut aussi produire un malus de −1.
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-xs font-black">
               <span className="rounded-full bg-white/10 px-3 py-2">
@@ -105,6 +107,9 @@ export default async function EquipmentLaboratoryPage({
               </span>
               <span className="rounded-full bg-white/10 px-3 py-2">
                 R&D gratuite
+              </span>
+              <span className="rounded-full bg-white/10 px-3 py-2">
+                Prototype +3 · 1 % de base
               </span>
               <span className="rounded-full bg-white/10 px-3 py-2">
                 Objet unique et équipable
@@ -282,7 +287,10 @@ export default async function EquipmentLaboratoryPage({
                     La même référence peut être recherchée plusieurs fois tant
                     qu’un exemplaire reste libre. Un prototype peut lui-même
                     repasser au laboratoire jusqu’au plafond de +10. La réussite
-                    part de {baseline?.successRate ?? 0} %.
+                    part de {baseline?.successRate ?? 0} %. Le prototype +3 a
+                    1 % de chance de base par recherche lancée quand il reste
+                    au moins trois points disponibles sous le plafond ; le
+                    talent Intuition de génie augmente cette chance.
                   </p>
                   <button className="w-full rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
                     Consommer la pièce et lancer gratuitement la R&D
@@ -355,7 +363,9 @@ export default async function EquipmentLaboratoryPage({
                   <span
                     className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${project.outcome === "setback" && project.ratingDelta === 0 ? "bg-amber-100 text-amber-900" : project.outcome === "improvement" ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-900"}`}
                   >
-                    {project.outcome === "setback" && project.ratingDelta === 0
+                    {project.ratingDelta === 3
+                      ? "Prototype exceptionnel · +3"
+                      : project.outcome === "setback" && project.ratingDelta === 0
                       ? "Revers neutralisé · 0"
                       : `${(project.ratingDelta ?? 0) > 0 ? "+" : ""}${project.ratingDelta ?? 0}`}
                   </span>
