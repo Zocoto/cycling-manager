@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   completeUnderfilledRaceRosterAction,
   registerRaceRosterAction,
+  updateRaceRosterAction,
   withdrawEliteWildcardRequestAction,
   withdrawRaceRosterAction,
 } from "./actions";
@@ -493,6 +494,12 @@ export async function RaceProfileContent({
               </div>
             ) : null}
 
+            {successMessage === "modifiee" ? (
+              <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
+                La composition a été mise à jour sans annuler l’inscription.
+              </div>
+            ) : null}
+
             {successMessage === "roles-mis-a-jour" ? (
               <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
                 Les rôles de cette étape ont bien été mis à jour.
@@ -642,6 +649,9 @@ export async function RaceProfileContent({
                     rosterError={rosterError}
                     riderJersey={riderJersey}
                     isRegionalAccessDenied={isRegionalAccessDenied}
+                    publishedLeaderRiderIds={pressConferences
+                      .filter((conference) => conference.isOwn && conference.status === "published")
+                      .map((conference) => conference.leaderRiderId)}
                   />
                   {!isInternationalChampionship && raceUserContext.registration?.status === "accepted" ? (
                     <div className="mt-3">
@@ -760,6 +770,7 @@ function RegistrationPanel({
   rosterError,
   riderJersey,
   isRegionalAccessDenied,
+  publishedLeaderRiderIds,
 }: {
   edition: RaceCalendarEdition;
   currentDayNumber: number;
@@ -769,6 +780,7 @@ function RegistrationPanel({
   rosterError: string | null;
   riderJersey: RiderJerseyAppearance;
   isRegionalAccessDenied: boolean;
+  publishedLeaderRiderIds: string[];
 }) {
   const registration = context.registration;
   const isEliteRace =
@@ -798,6 +810,14 @@ function RegistrationPanel({
     registration?.withdrawalClosesAt ?? edition.withdrawalClosesAt;
   const canWithdraw =
     hasConfirmedRoster && isBeforeRegistrationDeadline(withdrawalClosesAt);
+  const canEditRoster =
+    edition.competitionType === "standard" &&
+    hasConfirmedRoster &&
+    edition.status === "registration_open" &&
+    edition.registrationPolicy === "open" &&
+    isBeforeRegistrationDeadline(edition.registrationClosesAt) &&
+    canWithdraw &&
+    raceStageStatuses.every((status) => status === "scheduled");
   const canReactivate =
     registration?.status !== "withdrawn" ||
     isBeforeRegistrationDeadline(withdrawalClosesAt);
@@ -948,8 +968,10 @@ function RegistrationPanel({
         <h2 className="mt-3 text-xl font-black">Équipe inscrite</h2>
         <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
           Votre participation est acceptée avec {registration.rosterCount}{" "}
-          coureur{registration.rosterCount > 1 ? "s" : ""}. La composition est
-          désormais verrouillée.
+          coureur{registration.rosterCount > 1 ? "s" : ""}.{" "}
+          {canEditRoster
+            ? "Vous pouvez encore ajuster cet effectif sans annuler votre inscription."
+            : "La composition est désormais verrouillée."}
         </p>
         <span className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#9BE0BC]">
           Acceptée · {registration.rosterCount} engagé
@@ -959,7 +981,7 @@ function RegistrationPanel({
         {selectedRiders.length > 0 ? (
           <details className="group mt-4 rounded-xl border border-white/10 bg-white/5">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-black text-[#D6DFD2]">
-              <span>Composition verrouillée</span>
+              <span>Composition actuelle</span>
               <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-[#9BE0BC]">
                 {selectedRiders.length} coureurs
               </span>
@@ -990,6 +1012,43 @@ function RegistrationPanel({
                 </li>
               ))}
             </ul>
+          </details>
+        ) : null}
+
+        {canEditRoster && !contextError && !rosterError &&
+        selectedRiders.length === registration.rosterCount ? (
+          <details className="group mt-4 rounded-xl border border-emerald-300/25 bg-white/5">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-black text-[#9BE0BC]">
+              Modifier les coureurs engagés
+            </summary>
+            <div className="border-t border-white/10 px-4 pb-5 pt-2">
+              <p className="text-xs font-semibold leading-5 text-[#D6DFD2]">
+                Ajoutez ou retirez des coureurs avant le gel de la startlist.
+                L’inscription et les réglages des coureurs conservés ne changent pas.
+              </p>
+              <form action={updateRaceRosterAction}>
+                <input type="hidden" name="editionId" value={edition.id} />
+                <input type="hidden" name="slug" value={edition.slug} />
+                {selectedRiders.map((rider) => (
+                  <input
+                    key={rider.riderId}
+                    type="hidden"
+                    name="expectedRiderIds"
+                    value={rider.riderId}
+                  />
+                ))}
+                <RaceRosterSelector
+                  riders={riders}
+                  minimum={edition.minimumRosterSize}
+                  maximum={edition.maximumRosterSize}
+                  jersey={riderJersey}
+                  isStageRace={edition.raceFormat === "stage_race"}
+                  selectionOnly
+                  lockedRiderIds={publishedLeaderRiderIds}
+                  submitLabel="Enregistrer la composition"
+                />
+              </form>
+            </div>
           </details>
         ) : null}
 

@@ -63,6 +63,49 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain("malus de 1,25 point");
   });
 
+  it("prépare une modification de sélection sans réinitialiser les rôles conservés", () => {
+    const markup = renderToStaticMarkup(
+      <form>
+        <RaceRosterSelector
+          riders={[{ ...rider, isSelected: true, isAvailable: false }]}
+          minimum={1}
+          maximum={2}
+          jersey={FREE_AGENT_RIDER_JERSEY}
+          isStageRace={true}
+          selectionOnly
+          submitLabel="Enregistrer la composition"
+        />
+      </form>,
+    );
+
+    expect(markup).toContain('name="riderIds"');
+    expect(markup).toContain("checked");
+    expect(markup).not.toContain("Rôle en course");
+    expect(markup).toContain("Les coureurs conservés gardent leurs rôles");
+    expect(markup).toContain("disabled");
+  });
+
+  it("garde inscrit le leader annoncé en conférence même si sa case est verrouillée", () => {
+    const markup = renderToStaticMarkup(
+      <form>
+        <RaceRosterSelector
+          riders={[{ ...rider, isSelected: true }]}
+          minimum={1}
+          maximum={2}
+          jersey={FREE_AGENT_RIDER_JERSEY}
+          isStageRace={true}
+          selectionOnly
+          lockedRiderIds={[rider.riderId]}
+        />
+      </form>,
+    );
+
+    expect(markup).toContain("Leader annoncé en conférence");
+    expect(markup).toContain(
+      `type="hidden" name="riderIds" value="${rider.riderId}"`,
+    );
+  });
+
   it("trie les coureurs par statistique dans les deux sens", () => {
     const strongerClimber = {
       ...rider,

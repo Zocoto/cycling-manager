@@ -127,6 +127,52 @@ export async function registerRaceRosterAction(
   );
 }
 
+export async function updateRaceRosterAction(formData: FormData) {
+  const editionId = readFormValue(formData, "editionId");
+  const slug = readFormValue(formData, "slug");
+  const riderIds = formData.getAll("riderIds");
+  const expectedRiderIds = formData.getAll("expectedRiderIds");
+  const validRiderIds = riderIds.every(
+    (value): value is string => typeof value === "string" && isUuid(value),
+  );
+  const validExpectedIds = expectedRiderIds.every(
+    (value): value is string => typeof value === "string" && isUuid(value),
+  );
+
+  if (
+    !isUuid(editionId) ||
+    !isSlug(slug) ||
+    !validRiderIds ||
+    !validExpectedIds
+  ) {
+    redirectWithError(
+      isSlug(slug) ? `/jeu/courses/${slug}#inscription` : "/jeu/calendrier",
+      "La composition transmise est invalide.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc("update_current_team_race_roster", {
+    p_race_edition_id: editionId,
+    p_rider_ids: riderIds,
+    p_expected_rider_ids: expectedRiderIds,
+  });
+
+  if (error) {
+    redirectWithError(`/jeu/courses/${slug}#inscription`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  revalidatePath("/jeu/preparation-course");
+  redirect(`/jeu/courses/${slug}?inscription=modifiee#inscription`);
+}
+
 export async function saveRaceStageRolePlanAction(
   formData: FormData
 ) {
