@@ -37,7 +37,7 @@ describe("inscription obligatoire avant une reconnaissance", () => {
   });
 
   it("affiche les engagements des coureurs et filtre les courses communes", () => {
-    expect(service).toContain("getAcceptedRaceEntriesByRider({");
+    expect(service).toContain("getPreparatoryRaceEntriesByRider({");
     expect(service).toContain("registeredRaces: registeredRacesByRiderId.get(rider.id) ?? []");
     expect(service).toContain('!registeredEditionIds.has(edition.id)');
     expect(planner).toContain("rider.registeredRaces.map((entry)");

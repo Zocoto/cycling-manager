@@ -99,6 +99,7 @@ export type RacePreparationWorkspaceEdition = {
   categoryName: string;
   raceFormat: RaceFormat;
   competitionType: RaceCompetitionType;
+  pendingWildcard: boolean;
   stages: RaceCalendarStage[];
   plan: RacePreparationEditionPlan;
   equipmentPlanning: RaceEquipmentPlanningData | null;
@@ -237,6 +238,11 @@ export function RacePreparationWorkspace({
                 <span className="block text-sm font-black">
                   {edition.shortName ?? edition.name}
                 </span>
+                {edition.pendingWildcard ? (
+                  <span className="mt-1 block text-[10px] font-black uppercase tracking-wide text-[#9A6D13]">
+                    WildCard en attente
+                  </span>
+                ) : null}
                 <span className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-black tabular-nums text-[#315B3E]">
                     {dateRange}
@@ -281,6 +287,12 @@ export function RacePreparationWorkspace({
                 Les consignes sont figées au départ de chaque étape et intégrées
                 à son unique simulation officielle.
               </p>
+              {selectedEdition.pendingWildcard ? (
+                <p className="mt-3 max-w-3xl text-xs font-bold leading-5 text-[#F7DA72]">
+                  WildCard en attente : vous pouvez préparer la course dès
+                  maintenant. Les plans seront annulés si l’invitation est refusée.
+                </p>
+              ) : null}
             </div>
             <span
               className={`fi fi-${selectedEdition.countryCode.toLowerCase()} rounded-sm text-3xl shadow`}

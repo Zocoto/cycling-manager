@@ -3,11 +3,29 @@ export type ReconnaissanceRaceEntry = {
   raceName: string;
   startDayNumber: number;
   endDayNumber: number;
+  pendingWildcard?: boolean;
 };
 
-export function getAcceptedRaceEntriesByRider({
+export function isRaceEntryEligibleForPreparation(
+  registration: {
+    race_edition_id: string;
+    status: string;
+    entry_method: string;
+  },
+  eliteEditionIds: ReadonlySet<string>,
+) {
+  return (
+    registration.status === "accepted" ||
+    (registration.status === "pending" &&
+      registration.entry_method === "requested" &&
+      eliteEditionIds.has(registration.race_edition_id))
+  );
+}
+
+export function getPreparatoryRaceEntriesByRider({
   registrations,
   rosters,
+  eliteEditionIds,
   editionNamesById,
   stageDaysByEditionId,
   currentDayNumber,
@@ -16,19 +34,23 @@ export function getAcceptedRaceEntriesByRider({
     id: string;
     race_edition_id: string;
     status: string;
+    entry_method: string;
   }>;
   rosters: Array<{
     rider_id: string;
     race_registration_id: string;
     status: string;
   }>;
+  eliteEditionIds: ReadonlySet<string>;
   editionNamesById: Map<string, string>;
   stageDaysByEditionId: Map<string, number[]>;
   currentDayNumber: number;
 }) {
-  const acceptedById = new Map(
+  const preparatoryById = new Map(
     registrations
-      .filter((registration) => registration.status === "accepted")
+      .filter((registration) =>
+        isRaceEntryEligibleForPreparation(registration, eliteEditionIds),
+      )
       .map((registration) => [registration.id, registration]),
   );
   const entriesByRider = new Map<string, ReconnaissanceRaceEntry[]>();
@@ -37,7 +59,7 @@ export function getAcceptedRaceEntriesByRider({
     if (roster.status !== "selected" && roster.status !== "confirmed") {
       continue;
     }
-    const registration = acceptedById.get(roster.race_registration_id);
+    const registration = preparatoryById.get(roster.race_registration_id);
     if (!registration) continue;
     const editionId = registration.race_edition_id;
     const raceName = editionNamesById.get(editionId);
@@ -50,7 +72,13 @@ export function getAcceptedRaceEntriesByRider({
 
     const entries = entriesByRider.get(roster.rider_id) ?? [];
     if (entries.some((entry) => entry.editionId === editionId)) continue;
-    entries.push({ editionId, raceName, startDayNumber, endDayNumber });
+    entries.push({
+      editionId,
+      raceName,
+      startDayNumber,
+      endDayNumber,
+      pendingWildcard: registration.status === "pending",
+    });
     entriesByRider.set(roster.rider_id, entries);
   }
 

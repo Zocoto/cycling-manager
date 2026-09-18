@@ -384,13 +384,14 @@ export function RaceReconnaissancePlanner({
                           rider.registeredRaces.map((entry) => (
                             <span
                               key={entry.editionId}
-                              title={`${entry.raceName} · J${entry.startDayNumber}${entry.endDayNumber === entry.startDayNumber ? "" : `–J${entry.endDayNumber}`}`}
-                              className="inline-flex max-w-40 items-center gap-1 rounded-full bg-[#E3F0EB] px-2 py-0.5 text-[10px] font-extrabold text-[#246B58]"
+                              title={`${entry.raceName} · J${entry.startDayNumber}${entry.endDayNumber === entry.startDayNumber ? "" : `–J${entry.endDayNumber}`}${entry.pendingWildcard ? " · WildCard en attente" : ""}`}
+                              className={`inline-flex max-w-40 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${entry.pendingWildcard ? "bg-[#FFF2D2] text-[#875D13]" : "bg-[#E3F0EB] text-[#246B58]"}`}
                             >
                               <span className="shrink-0">
                                 J{entry.startDayNumber}
                               </span>
                               <span className="truncate">{entry.raceName}</span>
+                              {entry.pendingWildcard ? <span className="shrink-0">WC ?</span> : null}
                             </span>
                           ))
                         ) : (
@@ -601,6 +602,12 @@ export function RaceReconnaissancePlanner({
                     </span>
                   ) : null}
                 </p>
+                {selectedStage.pendingWildcard ? (
+                  <p className="mt-2 text-xs font-bold text-[#875D13]">
+                    WildCard en attente : si elle est refusée, la reconnaissance
+                    est annulée et ses frais restent à votre charge.
+                  </p>
+                ) : null}
                 {!canAfford ? (
                   <p className="mt-1 text-xs font-black text-[#A13F37]">
                     Trésorerie insuffisante.

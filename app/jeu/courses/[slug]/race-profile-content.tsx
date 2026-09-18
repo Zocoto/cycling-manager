@@ -1079,6 +1079,23 @@ function RegistrationPanel({
           </ul>
         ) : null}
 
+        {selectedRiders.length > 0 && hasScheduledStage ? (
+          <Link
+            href={`/jeu/preparation-course?course=${edition.slug}`}
+            className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-4 py-3 text-xs font-black text-[#F7DA73] transition hover:border-[#F2C94C] hover:bg-[#F2C94C]/20"
+          >
+            <span>Préparer la course avant la réponse WildCard</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
+        <p className="mt-3 text-xs font-semibold leading-5 text-[#E7E1C8]">
+          Vous pouvez aussi programmer une reconnaissance depuis les{" "}
+          <Link href="/jeu/entrainement?onglet=reconnaissance" className="underline underline-offset-2">
+            stages de reconnaissance
+          </Link>
+          . En cas de refus, elle est annulée sans remboursement des frais.
+        </p>
+
         {canWithdrawRequest ? (
           <form action={withdrawEliteWildcardRequestAction}>
             <input type="hidden" name="editionId" value={edition.id} />

@@ -131,6 +131,9 @@ export default async function RacePreparationPage({
       categoryName: edition.categoryName,
       raceFormat: edition.raceFormat,
       competitionType: edition.competitionType,
+      pendingWildcard:
+        edition.categoryCode === "elite" &&
+        edition.currentTeamRegistration?.status === "pending",
       stages: edition.stages,
       plan: plansByEditionId.get(edition.id)!,
       equipmentPlanning:

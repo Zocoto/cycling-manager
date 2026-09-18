@@ -6,7 +6,8 @@ import {
   getRaceReconnaissanceCost,
 } from "@/lib/game/race-reconnaissance";
 import {
-  getAcceptedRaceEntriesByRider,
+  getPreparatoryRaceEntriesByRider,
+  isRaceEntryEligibleForPreparation,
   type ReconnaissanceRaceEntry,
 } from "@/lib/game/race-reconnaissance-entries";
 import {
@@ -135,6 +136,7 @@ type RegistrationRow = {
   id: string;
   race_edition_id: string;
   status: string;
+  entry_method: string;
 };
 type ReconnaissanceRow = {
   id: string;
@@ -205,6 +207,7 @@ export type RaceReconnaissanceStage = {
   cost: number;
   editionStartDayNumber: number;
   editionEndDayNumber: number;
+  pendingWildcard: boolean;
 };
 
 export type RaceReconnaissanceMission = {
@@ -298,7 +301,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       .returns<EditionRow[]>(),
     admin
       .from("race_registrations")
-      .select("id, race_edition_id, status")
+      .select("id, race_edition_id, status, entry_method")
       .eq("team_season_id", teamSeason.id)
       .returns<RegistrationRow[]>(),
     admin
@@ -349,9 +352,31 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   );
   const editions = editionsResult.data ?? [];
   const registrations = registrationsResult.data ?? [];
-  const acceptedRegistrationIds = registrations
-    .filter((registration) => registration.status === "accepted")
-    .map((registration) => registration.id);
+  const categoryCodeById = new Map(
+    (categoriesResult.data ?? []).map((category) => [
+      category.id,
+      category.code,
+    ]),
+  );
+  const eliteEditionIds = new Set(
+    editions
+      .filter(
+        (edition) =>
+          categoryCodeById.get(edition.race_category_id) === "elite",
+      )
+      .map((edition) => edition.id),
+  );
+  const preparatoryRegistrations = registrations.filter((registration) =>
+    isRaceEntryEligibleForPreparation(registration, eliteEditionIds),
+  );
+  const preparatoryRegistrationIds = preparatoryRegistrations.map(
+    (registration) => registration.id,
+  );
+  const pendingWildcardEditionIds = new Set(
+    preparatoryRegistrations
+      .filter((registration) => registration.status === "pending")
+      .map((registration) => registration.race_edition_id),
+  );
   const editionIds = editions.map((edition) => edition.id);
   const raceIds = [...new Set(editions.map((edition) => edition.race_id))];
   const missionRows = missionsResult.data ?? [];
@@ -450,8 +475,8 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .in("reconnaissance_id", missionIds)
           .returns<ParticipantRow[]>()
       : emptyResult<ParticipantRow>(),
-    riderIds.length && acceptedRegistrationIds.length
-      ? loadSelectedRosters(admin, riderIds, acceptedRegistrationIds)
+    riderIds.length && preparatoryRegistrationIds.length
+      ? loadSelectedRosters(admin, riderIds, preparatoryRegistrationIds)
       : Promise.resolve([] as RosterRow[]),
   ]);
 
@@ -510,9 +535,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     editionDays.push(dayNumber);
     stageDaysByEditionId.set(stage.race_edition_id, editionDays);
   }
-  const registeredRacesByRiderId = getAcceptedRaceEntriesByRider({
+  const registeredRacesByRiderId = getPreparatoryRaceEntriesByRider({
     registrations,
     rosters,
+    eliteEditionIds,
     editionNamesById: new Map(
       editions.map((edition) => [edition.id, edition.display_name]),
     ),
@@ -710,6 +736,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           }),
           editionStartDayNumber: Math.min(...editionDays),
           editionEndDayNumber: Math.max(...editionDays),
+          pendingWildcard: pendingWildcardEditionIds.has(edition.id),
         },
       ];
     })
