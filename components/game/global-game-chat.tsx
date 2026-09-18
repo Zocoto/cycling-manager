@@ -1199,7 +1199,7 @@ export function GlobalGameChat({
       <div
         className={
           activeMode === "global"
-            ? "grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_19rem]"
+            ? "grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-[minmax(0,1fr)]"
             : "hidden"
         }
       >
@@ -2119,7 +2119,7 @@ function OnlineDirectorsDesktop({
   onDirectMessage: (recipientId: string) => void;
 }) {
   return (
-    <aside className="hidden border-l border-[#315B3E]/12 bg-[#071A17] text-white lg:block">
+    <aside className="hidden h-full min-h-0 flex-col overflow-hidden border-l border-[#315B3E]/12 bg-[#071A17] text-white lg:flex">
       <OnlineDirectorsContent
         directors={directors}
         currentDirectorId={currentDirectorId}
@@ -2157,7 +2157,7 @@ function OnlineDirectorsMobileDialog({
         className="absolute inset-0 h-full w-full cursor-default"
         aria-label="Fermer les présences"
       />
-      <aside className="absolute inset-x-0 bottom-0 max-h-[72dvh] overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]">
+      <aside className="absolute inset-x-0 bottom-0 flex max-h-[72dvh] min-h-0 flex-col overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]">
         <OnlineDirectorsContent
           directors={directors}
           currentDirectorId={currentDirectorId}
@@ -2185,13 +2185,13 @@ function OnlineDirectorsContent({
 }) {
   return (
     <>
-      <header className="border-b border-white/10 px-5 py-5">
+      <header className="shrink-0 border-b border-white/10 px-5 py-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#72D4B7]">
               Présences
             </p>
-        <h2 className="mt-1 text-lg font-black">DS en ligne</h2>
+            <h2 className="mt-1 text-lg font-black">DS en ligne</h2>
           </div>
           {onClose ? (
             <button
@@ -2208,15 +2208,25 @@ function OnlineDirectorsContent({
           Actifs dans le jeu ces {GLOBAL_CHAT_ONLINE_WINDOW_MINUTES} dernières
           minutes. Cliquez sur un nom pour consulter son équipe.
         </p>
+        {directors.length > 5 ? (
+          <p className="mt-2 text-[10px] font-bold text-[#72D4B7]">
+            Faites défiler pour voir les {directors.length} DS connectés.
+          </p>
+        ) : null}
       </header>
 
-      <div className="grid max-h-[54dvh] gap-1 overflow-y-auto p-3 lg:max-h-[35rem]">
+      <div
+        aria-label="Liste des Directeurs Sportifs en ligne"
+        className="flex min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain p-3 [scrollbar-width:thin] lg:flex-1"
+        role="region"
+        tabIndex={0}
+      >
         {directors.map((director) => {
           const isCurrent = director.sportingDirectorId === currentDirectorId;
           return (
             <div
               key={director.sportingDirectorId}
-              className="group flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/8"
+              className="group flex min-w-0 shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/8"
             >
               <Link
                 href={director.teamHref}

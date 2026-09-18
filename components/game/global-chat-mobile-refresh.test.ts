@@ -43,6 +43,17 @@ describe("global chat mobile refresh", () => {
     );
   });
 
+  it("lets the online director list scroll independently on desktop and mobile", () => {
+    expect(chat).toContain("lg:grid-rows-[minmax(0,1fr)]");
+    expect(chat).toContain('className="hidden h-full min-h-0 flex-col overflow-hidden');
+    expect(chat).toContain('className="absolute inset-x-0 bottom-0 flex max-h-[72dvh] min-h-0 flex-col');
+    expect(chat).toContain('aria-label="Liste des Directeurs Sportifs en ligne"');
+    expect(chat).toContain("Faites défiler pour voir les");
+    expect(chat).toContain("flex min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain");
+    expect(chat).toContain("lg:flex-1");
+    expect(chat).toContain("group flex min-w-0 shrink-0 items-center");
+  });
+
   it("lets each director persistently hide race conversations from the main feed", () => {
     expect(chat).toContain("GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX");
     expect(chat).toContain("hideRaceMessages && message.raceContext");
