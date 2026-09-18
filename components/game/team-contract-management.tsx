@@ -1,4 +1,5 @@
 import { renewAllTeamRiderContractsAction } from "@/app/jeu/effectif/actions";
+import { renewRiderContractAction } from "@/app/jeu/transferts/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import Link from "@/components/ui/app-link";
@@ -34,11 +35,11 @@ export function TeamContractManagement({
               Gestion contractuelle
             </h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Préparez la saison suivante en une seule opération. Les contrats
-              déjà sécurisés et les départs programmés restent inchangés.
+              Prolongez les contrats qui expirent cette saison, ou anticipez
+              une échéance à S+1 pour sécuriser un coureur jusqu’à S+2.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             <ContractMetric
               label="À prolonger"
               value={String(overview.eligibleCount)}
@@ -47,6 +48,10 @@ export function TeamContractManagement({
             <ContractMetric
               label="Sécurisés"
               value={String(overview.securedCount)}
+            />
+            <ContractMetric
+              label="S+2 possible"
+              value={String(overview.anticipatableCount)}
             />
             <ContractMetric
               label="Départs"
@@ -67,12 +72,12 @@ export function TeamContractManagement({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
-              Prolongation groupée
+              Prolongation groupée jusqu’à {overview.nextSeasonName}
             </p>
             <p className="mt-1 text-sm font-bold text-[#183F37]">
               {overview.eligibleCount > 0
                 ? `${formatRiderCount(overview.eligibleCount)} concerné${overview.eligibleCount > 1 ? "s" : ""} · ${formatMoney(overview.estimatedRenewalPayroll, overview.currency)} estimés pour ${overview.nextSeasonName}`
-                : "Aucun contrat n’arrive à échéance sans solution."}
+                : "Aucun contrat n’expire cette saison sans solution."}
             </p>
             <p className="mt-1 text-xs font-semibold text-[#60756E]">
               Le salaire définitif est recalculé au moment de la signature selon
@@ -97,7 +102,7 @@ export function TeamContractManagement({
 
       {overview.riders.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] border-collapse text-left">
+          <table className="w-full min-w-[1080px] border-collapse text-left">
             <thead className="bg-white">
               <tr className="border-b border-[#315B3E]/12 text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
                 <th className="px-5 py-3 sm:px-8">Coureur</th>
@@ -143,7 +148,10 @@ function ContractRiderRow({
   jersey: RiderJerseyAppearance;
   nextSeasonName: string;
 }) {
-  const status = getContractStatusPresentation(rider.status);
+  const status = getContractStatusPresentation(
+    rider.status,
+    rider.renewalOffers.length > 0,
+  );
 
   return (
     <tr className="bg-white transition hover:bg-[#F7FBF9]">
@@ -215,6 +223,41 @@ function ContractRiderRow({
         <p className="mt-2 max-w-52 text-pretty text-[10px] font-semibold leading-4 text-[#60756E] ml-auto">
           {status.detail}
         </p>
+        {rider.renewalOffers.length > 0 ? (
+          <div className="mt-3 flex flex-col items-end gap-2">
+            {rider.renewalOffers.map((offer) => (
+              <form
+                key={offer.targetEndSeasonYear}
+                action={renewRiderContractAction}
+                className="rounded-xl border border-[#42B99A]/25 bg-[#F3FAF6] p-2 text-right"
+              >
+                <input type="hidden" name="riderId" value={rider.id} />
+                <input
+                  type="hidden"
+                  name="targetEndSeasonYear"
+                  value={offer.targetEndSeasonYear}
+                />
+                <input
+                  type="hidden"
+                  name="returnPath"
+                  value="/jeu/effectif?vue=contrats"
+                />
+                <p className="mb-1.5 text-[10px] font-bold text-[#60756E]">
+                  {formatMoney(offer.salaryPerSeason, rider.nextCurrency)} / saison
+                  {offer.premiumPercent > 0
+                    ? ` · +${offer.premiumPercent} %`
+                    : ""}
+                </p>
+                <TransferSubmitButton
+                  pendingLabel="Prolongation…"
+                  tone="green"
+                >
+                  Jusqu’à fin de S{offer.targetEndSeasonYear}
+                </TransferSubmitButton>
+              </form>
+            ))}
+          </div>
+        ) : null}
       </td>
     </tr>
   );
@@ -243,7 +286,10 @@ function ContractMetric({
   );
 }
 
-function getContractStatusPresentation(status: TeamContractRiderStatus) {
+function getContractStatusPresentation(
+  status: TeamContractRiderStatus,
+  canExtendFurther: boolean,
+) {
   if (status === "eligible") {
     return {
       label: "À prolonger",
@@ -254,14 +300,18 @@ function getContractStatusPresentation(status: TeamContractRiderStatus) {
   if (status === "renewed") {
     return {
       label: "Déjà prolongé",
-      detail: "Le contrat de la saison suivante est signé.",
+      detail: canExtendFurther
+        ? "Vous pouvez encore sécuriser une saison supplémentaire."
+        : "Le contrat de la saison suivante est signé.",
       className: "border-[#42B99A]/30 bg-[#DDF3E7] text-[#176951]",
     };
   }
   if (status === "covered") {
     return {
       label: "Déjà couvert",
-      detail: "Le contrat actuel couvre encore la saison suivante.",
+      detail: canExtendFurther
+        ? "Vous pouvez anticiper l’échéance à S+1."
+        : "Le contrat actuel couvre encore la saison suivante.",
       className: "border-[#4E8FD3]/25 bg-[#E8F1FB] text-[#24578B]",
     };
   }

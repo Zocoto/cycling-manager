@@ -46,7 +46,7 @@ export const rosterTutorialDefinition = {
       mobileTargetId: "roster-view-tabs",
       title: "Centralisez le suivi dans l’onglet Contrats",
       content:
-        "La vue Effectif reste centrée sur les notes, la forme et le potentiel. L’onglet « Contrats » regroupe les salaires, les échéances et les décisions de prolongation sans surcharger le tableau sportif.\n\nAnticipez les fins de contrat : une prolongation sécurise le coureur pour la saison suivante, mais engage aussi le futur budget.",
+        "La vue Effectif reste centrée sur les notes, la forme et le potentiel. L’onglet « Contrats » regroupe les salaires, les échéances et les décisions de prolongation sans surcharger le tableau sportif.\n\nUn contrat finissant cette saison peut être prolongé jusqu’à S+1 ou S+2. Si l’échéance est déjà à S+1, vous pouvez anticiper S+2. Deux saisons garanties majorent le salaire futur de 25 %.",
       placement: "top",
       highlightPadding: 6,
     },
@@ -138,7 +138,7 @@ export const rosterTutorialDefinition = {
       targetId: "rider-profile-contract",
       title: "Gérez le contrat avant l’échéance",
       content:
-        "La fiche privée rappelle le salaire, le début et la fin du contrat. Lorsque la prolongation est disponible, elle indique la demande du coureur pour la saison suivante.\n\nRenouveler sécurise sa présence mais réserve une place et un budget futurs. Laisser expirer le contrat expose au départ du coureur : prenez la décision en fonction de son rôle, de son évolution et de vos finances.",
+        "La fiche privée rappelle le salaire, le début et la fin du contrat. Les prolongations disponibles indiquent leur échéance et le salaire annuel correspondant ; le salaire de la saison en cours reste inchangé.\n\nDeux saisons supplémentaires coûtent 25 % de plus par saison future. Une prolongation déjà signée jusqu’à S+1 peut encore être étendue jusqu’à S+2. Laisser expirer le contrat expose au départ du coureur.",
       placement: "left",
       highlightPadding: 8,
     },

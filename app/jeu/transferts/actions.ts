@@ -85,19 +85,27 @@ export async function signFreeAgentAction(formData: FormData) {
 
 export async function renewRiderContractAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
-  const returnPath = isUuid(riderId)
-    ? (buildRiderReturnPath(readValue(formData, "returnPath"), riderId) ??
-      `/jeu/coureurs/${riderId}`)
-    : sanitizeTransferMarketReturnPath(readValue(formData, "returnPath"));
+  const requestedReturnPath = readValue(formData, "returnPath");
+  const returnPath = requestedReturnPath === "/jeu/effectif?vue=contrats"
+    ? requestedReturnPath
+    : isUuid(riderId)
+      ? (buildRiderReturnPath(requestedReturnPath, riderId) ??
+        `/jeu/coureurs/${riderId}`)
+      : sanitizeTransferMarketReturnPath(requestedReturnPath);
   if (!isUuid(riderId)) redirectWithMessage(returnPath, "erreur", "Ce coureur est invalide.");
+  const targetEndSeasonYear = Number(readValue(formData, "targetEndSeasonYear"));
+  if (!Number.isInteger(targetEndSeasonYear) || targetEndSeasonYear < 1) {
+    redirectWithMessage(returnPath, "erreur", "L’échéance demandée est invalide.");
+  }
   const supabase = await authenticatedClient();
-  const { error } = await supabase.rpc("renew_current_team_rider", {
+  const { error } = await supabase.rpc("renew_current_team_rider_until", {
     p_rider_id: riderId,
+    p_target_end_game_year: targetEndSeasonYear,
   });
   if (error) redirectWithMessage(returnPath, "erreur", error.message);
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
-  redirectWithMessage(returnPath, "succes", "Le contrat est renouvelé pour la saison suivante.");
+  redirectWithMessage(returnPath, "succes", `Le contrat est prolongé jusqu’à fin de S${targetEndSeasonYear}.`);
 }
 
 export async function submitDirectTransferOfferAction(formData: FormData) {

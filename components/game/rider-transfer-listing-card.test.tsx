@@ -16,6 +16,7 @@ const management: RiderTransferManagement = {
   freeAgentWeeklySalary: null,
   freeAgentBlockedReason: null,
   canRenew: false,
+  renewalOptions: [],
   rosterSize: 22,
   rosterLimit: 35,
   rosterIsFull: false,

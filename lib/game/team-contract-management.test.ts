@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculateRiderRenewalSalary,
   canRenewCurrentTeamRiderContract,
+  getRiderRenewalPremiumPercent,
+  getRiderRenewalTargetYears,
   resolveEffectiveTeamContractEndYear,
   resolveTeamContractRiderStatus,
 } from "@/lib/game/team-contract-management";
@@ -9,6 +12,31 @@ import {
 const TEAM_ID = "team-a";
 
 describe("team contract management", () => {
+  it("offers S+1 or S+2 for an expiring deal, and only S+2 for a deal ending next season", () => {
+    expect(getRiderRenewalTargetYears({ effectiveContractEndYear: 3, currentSeasonYear: 3 })).toEqual([4, 5]);
+    expect(getRiderRenewalTargetYears({ effectiveContractEndYear: 4, currentSeasonYear: 3 })).toEqual([5]);
+    expect(getRiderRenewalTargetYears({ effectiveContractEndYear: 5, currentSeasonYear: 3 })).toEqual([]);
+  });
+
+  it("does not offer a term overlapping a future move to another team", () => {
+    expect(getRiderRenewalTargetYears({
+      effectiveContractEndYear: 3,
+      currentSeasonYear: 3,
+      blockingContracts: [{ startYear: 5, endYear: 5 }],
+    })).toEqual([4]);
+    expect(getRiderRenewalTargetYears({
+      effectiveContractEndYear: 4,
+      currentSeasonYear: 3,
+      blockingContracts: [{ startYear: 5, endYear: 5 }],
+    })).toEqual([]);
+  });
+
+  it("charges 25% for two extra seasons, including an upgrade of a planned one-season renewal", () => {
+    expect(getRiderRenewalPremiumPercent({ activeContractEndYear: 3, currentSeasonYear: 3, targetEndYear: 5 })).toBe(25);
+    expect(getRiderRenewalPremiumPercent({ activeContractEndYear: 4, currentSeasonYear: 3, targetEndYear: 5 })).toBe(0);
+    expect(calculateRiderRenewalSalary(18_500, 25)).toBe(23_125);
+  });
+
   it("marks an expiring contract without successor as eligible", () => {
     expect(
       resolveTeamContractRiderStatus({

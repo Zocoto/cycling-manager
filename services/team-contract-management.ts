@@ -2,6 +2,9 @@ import "server-only";
 
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
 import {
+  calculateRiderRenewalSalary,
+  getRiderRenewalPremiumPercent,
+  getRiderRenewalTargetYears,
   resolveEffectiveTeamContractEndYear,
   resolveTeamContractRiderStatus,
   type TeamContractRiderStatus,
@@ -25,6 +28,12 @@ export type TeamContractManagementRider = {
   nextSalary: number | null;
   nextCurrency: string;
   nextContractEndSeasonName: string | null;
+  renewalOffers: Array<{
+    targetEndSeasonYear: number;
+    startSeasonYear: number;
+    salaryPerSeason: number;
+    premiumPercent: number;
+  }>;
 };
 
 export type TeamContractManagementOverview = {
@@ -32,6 +41,7 @@ export type TeamContractManagementOverview = {
   nextSeasonName: string;
   riders: TeamContractManagementRider[];
   eligibleCount: number;
+  anticipatableCount: number;
   securedCount: number;
   leavingCount: number;
   estimatedRenewalPayroll: number;
@@ -56,6 +66,7 @@ type ContractRow = {
   salary_per_season: number | string;
   currency_code: string;
   status: "active" | "planned";
+  acquisition_type?: string | null;
 };
 type RiderRow = {
   id: string;
@@ -135,7 +146,7 @@ export async function getTeamContractManagementOverview(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, acquisition_type",
       )
       .eq("team_id", teamId)
       .eq("status", "active")
@@ -152,6 +163,7 @@ export async function getTeamContractManagementOverview(
       nextSeasonName: `Saison ${currentSeason.game_year + 1}`,
       riders: [],
       eligibleCount: 0,
+      anticipatableCount: 0,
       securedCount: 0,
       leavingCount: 0,
       estimatedRenewalPayroll: 0,
@@ -168,11 +180,13 @@ export async function getTeamContractManagementOverview(
     countriesResult,
     seasonsResult,
     performanceResult,
+    homegrownAbilitiesResult,
+    promotedAcademyRidersResult,
   ] = await Promise.all([
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, acquisition_type",
       )
       .in("rider_id", riderIds)
       .in("status", ["active", "planned"])
@@ -203,6 +217,19 @@ export async function getTeamContractManagementOverview(
         p_season_id: currentSeason.id,
       })
       .returns<SalaryPerformanceRow[]>(),
+    admin
+      .from("rider_special_abilities")
+      .select("rider_id")
+      .eq("ability_code", "homegrown")
+      .in("rider_id", riderIds)
+      .returns<Array<{ rider_id: string }>>(),
+    admin
+      .from("youth_academy_riders")
+      .select("promoted_rider_id")
+      .eq("team_id", teamId)
+      .eq("status", "promoted")
+      .in("promoted_rider_id", riderIds)
+      .returns<Array<{ promoted_rider_id: string }>>(),
   ]);
   assertQuery(contractsResult.error, "l’historique contractuel");
   assertQuery(ridersResult.error, "les coureurs");
@@ -210,6 +237,8 @@ export async function getTeamContractManagementOverview(
   assertQuery(countriesResult.error, "les nationalités");
   assertQuery(seasonsResult.error, "les saisons contractuelles");
   assertQuery(performanceResult.error, "les performances salariales");
+  assertQuery(homegrownAbilitiesResult.error, "les réductions Formé au club");
+  assertQuery(promotedAcademyRidersResult.error, "les clubs formateurs");
 
   const seasons = seasonsResult.data ?? [];
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
@@ -237,6 +266,14 @@ export async function getTeamContractManagementOverview(
         ? null
         : toNumber(performance.performance_percentile),
     ]),
+  );
+  const homegrownAbilityRiderIds = new Set(
+    (homegrownAbilitiesResult.data ?? []).map((row) => row.rider_id),
+  );
+  const promotedRiderIds = new Set(
+    (promotedAcademyRidersResult.data ?? []).map(
+      (row) => row.promoted_rider_id,
+    ),
   );
 
   const riders = activeContracts.flatMap((activeContract) => {
@@ -275,9 +312,6 @@ export async function getTeamContractManagementOverview(
       successorTeamId: successor?.team_id ?? null,
       successorContractEndYear: successorEndSeason?.game_year ?? null,
     });
-    const effectiveEndSeason = seasons.find(
-      (season) => season.game_year === effectiveEndYear,
-    );
     const overall = getOverall(rating);
     const estimatedSalary = calculateRiderSeasonSalary({
       overall,
@@ -285,13 +319,59 @@ export async function getTeamContractManagementOverview(
         performanceByRiderId.get(rider.id) ?? null,
     });
     const currentSalary = toNumber(activeContract.salary_per_season);
+    const estimatedNetSalary =
+      homegrownAbilityRiderIds.has(rider.id) && promotedRiderIds.has(rider.id)
+        ? Math.round(estimatedSalary * 50) / 100
+        : estimatedSalary;
+    const blockingContracts = (contractsByRiderId.get(rider.id) ?? [])
+      .filter(
+        (contract) =>
+          contract.id !== activeContract.id &&
+          (contract.id !== successor?.id ||
+            contract.team_id !== teamId ||
+            contract.status !== "planned" ||
+            contract.acquisition_type !== "renewal"),
+      )
+      .flatMap((contract) => {
+        const startYear = seasonById.get(contract.start_season_id)?.game_year;
+        const endYear = seasonById.get(contract.end_season_id)?.game_year;
+        return startYear !== undefined && endYear !== undefined
+          ? [{ startYear, endYear }]
+          : [];
+      });
+    const renewalOffers = getRiderRenewalTargetYears({
+      effectiveContractEndYear: effectiveEndYear,
+      currentSeasonYear: currentSeason.game_year,
+      blockingContracts,
+    }).map((targetEndSeasonYear) => {
+      const premiumPercent = getRiderRenewalPremiumPercent({
+        activeContractEndYear: activeEndYear,
+        currentSeasonYear: currentSeason.game_year,
+        targetEndYear: targetEndSeasonYear,
+      });
+      const baseSalary =
+        successor?.team_id === teamId &&
+        activeEndYear === currentSeason.game_year &&
+        targetEndSeasonYear === currentSeason.game_year + 2
+          ? toNumber(successor.salary_per_season)
+          : estimatedNetSalary;
+      return {
+        targetEndSeasonYear,
+        startSeasonYear: activeEndYear + 1,
+        salaryPerSeason: calculateRiderRenewalSalary(
+          baseSalary,
+          premiumPercent,
+        ),
+        premiumPercent,
+      };
+    });
     const nextSalary =
       status === "covered"
         ? currentSalary
         : status === "renewed"
           ? toNumber(successor?.salary_per_season)
           : status === "eligible"
-            ? estimatedSalary
+            ? estimatedNetSalary
             : null;
     const nextContractEndSeasonName =
       status === "covered"
@@ -317,12 +397,11 @@ export async function getTeamContractManagementOverview(
         currentSalary,
         currentCurrency: activeContract.currency_code || currency,
         currentContractEndSeasonName:
-          effectiveEndSeason?.name ??
-          activeEndSeason?.name ??
-          currentSeason.name,
+          activeEndSeason?.name ?? currentSeason.name,
         nextSalary,
         nextCurrency: successor?.currency_code || currency,
         nextContractEndSeasonName,
+        renewalOffers,
       } satisfies TeamContractManagementRider,
     ];
   });
@@ -339,6 +418,12 @@ export async function getTeamContractManagementOverview(
     nextSeasonName: nextSeason?.name ?? `Saison ${nextSeasonYear}`,
     riders,
     eligibleCount: riders.filter((rider) => rider.status === "eligible").length,
+    anticipatableCount: riders.filter((rider) =>
+      rider.renewalOffers.some(
+        (offer) =>
+          offer.targetEndSeasonYear === currentSeason.game_year + 2,
+      ),
+    ).length,
     securedCount: riders.filter(
       (rider) => rider.status === "renewed" || rider.status === "covered",
     ).length,

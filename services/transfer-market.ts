@@ -30,7 +30,9 @@ import {
   MAX_TEAM_ROSTER_SIZE,
 } from "@/lib/game/team-roster-capacity";
 import {
-  canRenewCurrentTeamRiderContract,
+  calculateRiderRenewalSalary,
+  getRiderRenewalPremiumPercent,
+  getRiderRenewalTargetYears,
   resolveEffectiveTeamContractEndYear,
 } from "@/lib/game/team-contract-management";
 import {
@@ -132,6 +134,7 @@ type ContractRow = {
   salary_per_season: number | string;
   transfer_locked_season_id: string | null;
   status: "active" | "planned";
+  acquisition_type?: string | null;
 };
 type FinanceRow = { amount: number | string };
 type DirectOfferRow = {
@@ -303,6 +306,12 @@ export type RiderTransferManagement = {
   freeAgentWeeklySalary: number | null;
   freeAgentBlockedReason: string | null;
   canRenew: boolean;
+  renewalOptions: Array<{
+    targetEndSeasonYear: number;
+    startSeasonYear: number;
+    salaryPerSeason: number;
+    premiumPercent: number;
+  }>;
   rosterSize: number;
   rosterLimit: number;
   rosterIsFull: boolean;
@@ -370,7 +379,7 @@ export async function getTransferMarketOverview(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type",
       )
       .eq("team_id", context.teamSeason.team_id)
       .in("status", ["active", "planned"])
@@ -788,7 +797,7 @@ export async function getRiderTransferManagement(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type",
       )
       .eq("rider_id", riderId)
       .in("status", ["active", "planned"])
@@ -882,27 +891,91 @@ export async function getRiderTransferManagement(
         successorContractEndYear: successorContractEndSeasonYear,
       })
     : null;
-  const canRenew = Boolean(
-    ownsRider &&
-    activeContract &&
-    activeContractEndSeasonYear !== null &&
-    canRenewCurrentTeamRiderContract({
-      currentContractEndYear: activeContractEndSeasonYear,
-      currentSeasonYear: context.season.game_year,
-      hasNextSeasonContract: Boolean(nextSeasonContract),
-    }),
-  );
   const nextSeasonId = [...seasonYears.entries()].find(
     ([, gameYear]) => gameYear === context.season.game_year + 1,
   )?.[0];
-  const [currentSalaryQuotes, renewalSalaryQuotes] = await Promise.all([
+  const [
+    currentSalaryQuotes,
+    renewalSalaryQuotes,
+    homegrownAbilityResult,
+    homegrownAcademyResult,
+  ] = await Promise.all([
     loadRiderSalaryQuotes(admin, [riderId], context.season.id),
     loadRiderSalaryQuotes(admin, [riderId], nextSeasonId ?? null),
+    admin
+      .from("rider_special_abilities")
+      .select("rider_id")
+      .eq("rider_id", riderId)
+      .eq("ability_code", "homegrown")
+      .limit(1)
+      .returns<Array<{ rider_id: string }>>(),
+    admin
+      .from("youth_academy_riders")
+      .select("id")
+      .eq("promoted_rider_id", riderId)
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("status", "promoted")
+      .limit(1)
+      .returns<Array<{ id: string }>>(),
   ]);
+  assertQuery(homegrownAbilityResult.error, "la réduction Formé au club");
+  assertQuery(homegrownAcademyResult.error, "le club formateur");
   const salary =
     currentSalaryQuotes.get(riderId) ?? calculateSalaryApproximation(overall);
   const renewalSalary =
     renewalSalaryQuotes.get(riderId) ?? calculateSalaryApproximation(overall);
+  const homegrownSalaryDiscount =
+    (homegrownAbilityResult.data?.length ?? 0) > 0 &&
+    (homegrownAcademyResult.data?.length ?? 0) > 0;
+  const quotedRenewalSalary = homegrownSalaryDiscount
+    ? Math.round(renewalSalary * 50) / 100
+    : renewalSalary;
+  const blockingContracts = contracts
+    .filter(
+      (contract) =>
+        contract.id !== activeContract?.id &&
+        (contract.id !== nextSeasonContract?.id ||
+          contract.team_id !== context.teamSeason.team_id ||
+          contract.status !== "planned" ||
+          contract.acquisition_type !== "renewal"),
+    )
+    .flatMap((contract) => {
+      const startYear = seasonYears.get(contract.start_season_id);
+      const endYear = seasonYears.get(contract.end_season_id);
+      return startYear !== undefined && endYear !== undefined
+        ? [{ startYear, endYear }]
+        : [];
+    });
+  const renewalOptions =
+    ownsRider && activeContractEndSeasonYear !== null && contractEndSeasonYear !== null
+      ? getRiderRenewalTargetYears({
+          effectiveContractEndYear: contractEndSeasonYear,
+          currentSeasonYear: context.season.game_year,
+          blockingContracts,
+        }).map((targetEndSeasonYear) => {
+          const premiumPercent = getRiderRenewalPremiumPercent({
+            activeContractEndYear: activeContractEndSeasonYear,
+            currentSeasonYear: context.season.game_year,
+            targetEndYear: targetEndSeasonYear,
+          });
+          const upgradedSalary =
+            nextSeasonContract?.team_id === context.teamSeason.team_id &&
+            activeContractEndSeasonYear === context.season.game_year &&
+            targetEndSeasonYear === context.season.game_year + 2
+              ? toNumber(nextSeasonContract.salary_per_season)
+              : quotedRenewalSalary;
+          return {
+            targetEndSeasonYear,
+            startSeasonYear: activeContractEndSeasonYear + 1,
+            salaryPerSeason: calculateRiderRenewalSalary(
+              upgradedSalary,
+              premiumPercent,
+            ),
+            premiumPercent,
+          };
+        })
+      : [];
+  const canRenew = renewalOptions.length > 0;
   const isFreeAgent =
     riderResult.data.status === "free_agent" && !activeContract;
   const availableBudget = Math.max(
@@ -968,7 +1041,8 @@ export async function getRiderTransferManagement(
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
     rosterIsFull,
     canRenew,
-    renewalSalary: ownsRider ? renewalSalary : null,
+    renewalOptions,
+    renewalSalary: ownsRider ? quotedRenewalSalary : null,
     contractEndSeasonYear,
     ownsRider,
     canListRider,

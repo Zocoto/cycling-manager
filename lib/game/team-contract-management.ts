@@ -4,6 +4,57 @@ export type TeamContractRiderStatus =
   | "covered"
   | "leaving";
 
+export const TWO_SEASON_RENEWAL_PREMIUM_PERCENT = 25;
+
+export function getRiderRenewalTargetYears({
+  effectiveContractEndYear,
+  currentSeasonYear,
+  blockingContracts = [],
+}: {
+  effectiveContractEndYear: number;
+  currentSeasonYear: number;
+  blockingContracts?: ReadonlyArray<{ startYear: number; endYear: number }>;
+}): number[] {
+  if (
+    effectiveContractEndYear < currentSeasonYear ||
+    effectiveContractEndYear > currentSeasonYear + 1
+  ) {
+    return [];
+  }
+
+  return [currentSeasonYear + 1, currentSeasonYear + 2].filter(
+    (targetYear) =>
+      targetYear > effectiveContractEndYear &&
+      !blockingContracts.some(
+        (contract) =>
+          contract.startYear <= targetYear &&
+          contract.endYear >= effectiveContractEndYear + 1,
+      ),
+  );
+}
+
+export function getRiderRenewalPremiumPercent({
+  activeContractEndYear,
+  currentSeasonYear,
+  targetEndYear,
+}: {
+  activeContractEndYear: number;
+  currentSeasonYear: number;
+  targetEndYear: number;
+}): number {
+  return activeContractEndYear === currentSeasonYear &&
+    targetEndYear === currentSeasonYear + 2
+    ? TWO_SEASON_RENEWAL_PREMIUM_PERCENT
+    : 0;
+}
+
+export function calculateRiderRenewalSalary(
+  baseSalary: number,
+  premiumPercent: number,
+): number {
+  return Math.round(baseSalary * (1 + premiumPercent / 100) * 100) / 100;
+}
+
 export function resolveTeamContractRiderStatus({
   currentContractEndYear,
   currentSeasonYear,

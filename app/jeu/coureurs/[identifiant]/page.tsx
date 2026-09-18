@@ -951,24 +951,45 @@ function ContractRenewalCard({
         <p className="mt-1 text-lg font-black text-[#3F3518]">{endLabel}</p>
       </div>
       {management.canRenew ? (
-        <form action={renewRiderContractAction} className="mt-4">
-          <p className="mb-4 text-sm font-semibold leading-6 text-[#7E7043]">
-            Prolongez d’une saison, jusqu’à fin de S{endSeasonYear! + 1}. La
-            limite est de trois saisons glissantes.
+        <div className="mt-4 space-y-3">
+          <p className="text-sm font-semibold leading-6 text-[#7E7043]">
+            Choisissez jusqu’à quelle saison sécuriser ce coureur. Le salaire
+            indiqué s’appliquera à partir de la prolongation, sans modifier
+            celui de la saison en cours.
           </p>
-          <input type="hidden" name="riderId" value={riderId} />
-          <input
-            type="hidden"
-            name="returnPath"
-            value={`/jeu/coureurs/${riderId}`}
-          />
-          <TransferSubmitButton pendingLabel="Prolongation…" tone="green">
-            Prolonger d’une saison
-          </TransferSubmitButton>
-        </form>
+          {management.renewalOptions.map((option) => (
+            <form
+              action={renewRiderContractAction}
+              key={option.targetEndSeasonYear}
+              className="rounded-xl border border-[#D6A93D]/25 bg-white/70 p-4"
+            >
+              <input type="hidden" name="riderId" value={riderId} />
+              <input
+                type="hidden"
+                name="targetEndSeasonYear"
+                value={option.targetEndSeasonYear}
+              />
+              <input
+                type="hidden"
+                name="returnPath"
+                value={`/jeu/coureurs/${riderId}`}
+              />
+              <p className="mb-3 text-xs font-bold text-[#7E7043]">
+                {formatMoney(option.salaryPerSeason, contract.currencyCode)} / saison
+                dès S{option.startSeasonYear}
+                {option.premiumPercent > 0
+                  ? ` · +${option.premiumPercent} % pour deux saisons garanties`
+                  : " · une saison supplémentaire"}
+              </p>
+              <TransferSubmitButton pendingLabel="Prolongation…" tone="green">
+                Prolonger jusqu’à fin de S{option.targetEndSeasonYear}
+              </TransferSubmitButton>
+            </form>
+          ))}
+        </div>
       ) : (
         <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
-          Le contrat est déjà sécurisé pour la saison suivante.
+          Aucune prolongation supplémentaire n’est possible pour le moment.
         </p>
       )}
     </article>
