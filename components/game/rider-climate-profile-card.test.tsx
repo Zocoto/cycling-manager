@@ -14,13 +14,13 @@ describe("RiderClimateProfileCard", () => {
     );
 
     expect(markup).toContain("Affinités météo");
-    expect(markup).toContain("Condition favorite");
+    expect(markup).toContain("Favorite");
     expect(markup).toContain("Pluie");
-    expect(markup).toContain("Condition difficile");
+    expect(markup).toContain("Difficile");
     expect(markup).toContain("Forte chaleur");
-    expect(markup).toContain("sm:grid-cols-2");
-    expect(markup).toContain("xl:grid-cols-1");
-    expect(markup).toContain("2xl:grid-cols-2");
+    expect(markup).toContain("grid-cols-2");
+    expect(markup).not.toContain("Rendement renforcé");
+    expect(markup).not.toContain("Rendement réduit");
   });
 
   it("est raccordé à la fiche coureur et au profil climatique du moteur", () => {

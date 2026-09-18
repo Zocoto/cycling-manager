@@ -20,6 +20,7 @@ describe("RiderConditionGauges", () => {
     );
 
     expect(markup).toContain('data-form-history-tooltip="touchable"');
+    expect(markup).toContain("Forme du jour");
     expect(markup).toContain("<summary");
     expect(markup).toContain("group-open/form-tooltip:visible");
     expect(markup).toContain("overflow-y-auto");

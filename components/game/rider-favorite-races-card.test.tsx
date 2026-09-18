@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { RiderFavoriteRacesCard } from "./rider-favorite-races-card";
 
 describe("RiderFavoriteRacesCard", () => {
-  it("shows three linked races and explains their affinities without overflow", () => {
+  it("shows three linked races without exposing affinity triggers", () => {
     const markup = renderToStaticMarkup(
       <RiderFavoriteRacesCard
         races={[
@@ -53,10 +53,17 @@ describe("RiderFavoriteRacesCard", () => {
 
     expect(markup).toContain("Courses préférées");
     expect(markup).toContain("+2 toutes stats");
+    expect(markup).not.toContain("Bonus actif sur ces courses uniquement");
     expect(markup).toContain("/jeu/courses/tour-des-grandes-ascensions");
     expect(markup).toContain("Pavés");
-    expect(markup).toContain("Son pays");
-    expect(markup).toContain("3 saisons disputées");
+    expect(markup).toContain("France");
+    expect(markup).not.toContain("Son pays");
+    expect(markup).not.toContain("Pays voisin");
+    expect(markup).not.toContain("Même continent");
+    expect(markup).not.toContain("Profil adapté");
+    expect(markup).not.toContain("saisons disputées");
+    expect(markup).not.toContain("victoire");
+    expect(markup).not.toContain("podium");
     expect(markup.match(/<li\b/g)).toHaveLength(3);
     expect(markup).toContain("min-w-0");
     expect(markup).toContain("break-words");

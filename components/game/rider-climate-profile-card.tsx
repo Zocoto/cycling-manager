@@ -20,33 +20,24 @@ export function RiderClimateProfileCard({
   return (
     <section
       aria-labelledby="rider-climate-profile-title"
-      className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"
+      className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]"
     >
-      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-        Affinités météo
-      </p>
       <h2
         id="rider-climate-profile-title"
-        className="mt-2 text-xl font-black text-[#183F37]"
+        className="text-lg font-black text-[#183F37]"
       >
-        Préférences climatiques
+        Affinités météo
       </h2>
-      <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-        Les conditions rencontrées en course peuvent renforcer ou réduire ses
-        performances.
-      </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <ClimateAffinity
           preference={profile.strength}
-          label="Condition favorite"
-          description="Rendement renforcé"
+          label="Favorite"
           tone="strength"
         />
         <ClimateAffinity
           preference={profile.weakness}
-          label="Condition difficile"
-          description="Rendement réduit"
+          label="Difficile"
           tone="weakness"
         />
       </div>
@@ -57,12 +48,10 @@ export function RiderClimateProfileCard({
 function ClimateAffinity({
   preference,
   label,
-  description,
   tone,
 }: {
   preference: RiderClimatePreference;
   label: string;
-  description: string;
   tone: "strength" | "weakness";
 }) {
   const palette =
@@ -72,24 +61,22 @@ function ClimateAffinity({
           icon: "bg-[#176951] text-white",
           eyebrow: "text-[#278B70]",
           title: "text-[#183F37]",
-          description: "text-[#48665F]",
         }
       : {
           container: "border-[#C94F4F]/20 bg-[#FFF0EE]",
           icon: "bg-[#8A2F2F] text-white",
           eyebrow: "text-[#B54242]",
           title: "text-[#702E2E]",
-          description: "text-[#8A5A55]",
         };
 
   return (
-    <div className={`rounded-xl border p-3.5 ${palette.container}`}>
-      <div className="flex items-center gap-3">
+    <div className={`min-w-0 rounded-xl border p-2.5 ${palette.container}`}>
+      <div className="flex min-w-0 items-center gap-2">
         <span
           aria-hidden="true"
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${palette.icon}`}
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${palette.icon}`}
         >
-          <RiderClimateIcon preference={preference} />
+          <RiderClimateIcon preference={preference} className="h-4 w-4" />
         </span>
         <div className="min-w-0">
           <p
@@ -97,14 +84,11 @@ function ClimateAffinity({
           >
             {label}
           </p>
-          <p className={`mt-1 text-sm font-black ${palette.title}`}>
+          <p className={`text-xs font-black ${palette.title}`}>
             {RIDER_CLIMATE_LABELS[preference]}
           </p>
         </div>
       </div>
-      <p className={`mt-2 text-[11px] font-bold ${palette.description}`}>
-        {description}
-      </p>
     </div>
   );
 }

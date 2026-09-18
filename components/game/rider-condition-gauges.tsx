@@ -16,16 +16,9 @@ export function RiderConditionGauges({
   events,
 }: RiderConditionGaugesProps) {
   return (
-    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-            État du coureur
-          </p>
-          <h2 className="mt-2 text-lg font-black text-[#183F37]">
-            Forme du coureur
-          </h2>
-        </div>
+    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-black text-[#183F37]">Forme du jour</h2>
         {dayNumber ? (
           <span className="rounded-full bg-[#EAF5F3] px-3 py-1 text-xs font-black text-[#176951]">
             J{dayNumber}
@@ -33,7 +26,7 @@ export function RiderConditionGauges({
         ) : null}
       </div>
 
-      <div className="mt-5">
+      <div className="mt-3">
         <Gauge
           label="Forme"
           value={form}

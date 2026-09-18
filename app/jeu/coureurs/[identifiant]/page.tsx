@@ -556,7 +556,7 @@ export default async function RiderProfilePage({
             )}
           </section>
 
-          <aside className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
+          <aside className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             {profile.medical ? (
               <RiderMedicalCard medical={profile.medical} />
             ) : null}
