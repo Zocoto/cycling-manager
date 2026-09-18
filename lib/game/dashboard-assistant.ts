@@ -62,6 +62,9 @@ export type DashboardAssistantSnapshot = {
   equipmentPartnerSignatureAvailable: boolean;
   developmentTeamSetupRequired: boolean;
   developmentTeamSetupCurrentDayNumber: number;
+  developmentRaceRegistrationReminderCount: number;
+  developmentRaceRegistrationReminderNextName: string | null;
+  developmentRaceRegistrationReminderNextEditionId: string | null;
   fanClubShopLevel: number;
   fanClubStockCount: number;
   fanClubSalesProcessedToday: boolean;
@@ -100,6 +103,7 @@ export type DashboardRaceRegistrationAlert = {
 
 const ALERT_PRIORITY = [
   "race-roster-alerts",
+  "development-race-registration-reminder",
   "development-team-setup",
   "low-reputation-registrations",
   "untreated-injuries",
@@ -149,6 +153,26 @@ export function buildDashboardAssistantLines({
           ? "Dernier jour : enregistrez au moins un junior avant la fermeture ce soir."
           : `J${snapshot.developmentTeamSetupCurrentDayNumber} en cours · composition possible jusqu’à la fin de J7.`,
       href: "/jeu/centre-de-formation?onglet=development&dev=effectif",
+    });
+  }
+
+  if (
+    snapshot.developmentRaceRegistrationReminderCount > 0 &&
+    snapshot.developmentRaceRegistrationReminderNextName &&
+    snapshot.developmentRaceRegistrationReminderNextEditionId
+  ) {
+    const count = snapshot.developmentRaceRegistrationReminderCount;
+    alerts.push({
+      id: "development-race-registration-reminder",
+      tone: "alert",
+      metric: String(count),
+      title: pluralize(
+        count,
+        "engagement DevTeam à préparer",
+        "engagements DevTeam à préparer",
+      ),
+      detail: `Demain : ${snapshot.developmentRaceRegistrationReminderNextName} · aucun junior engagé${count > 1 ? ` (${count} courses à composer)` : ""}.`,
+      href: `/jeu/centre-de-formation?onglet=development&dev=calendrier#dev-race-${snapshot.developmentRaceRegistrationReminderNextEditionId}`,
     });
   }
 

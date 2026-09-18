@@ -57,6 +57,9 @@ const snapshot: DashboardAssistantSnapshot = {
   equipmentPartnerSignatureAvailable: false,
   developmentTeamSetupRequired: false,
   developmentTeamSetupCurrentDayNumber: 0,
+  developmentRaceRegistrationReminderCount: 0,
+  developmentRaceRegistrationReminderNextName: null,
+  developmentRaceRegistrationReminderNextEditionId: null,
   fanClubShopLevel: 0,
   fanClubStockCount: 0,
   fanClubSalesProcessedToday: false,
@@ -202,6 +205,67 @@ describe("dashboard DS assistant", () => {
         title: "Effectif DevTeam à composer",
         detail: expect.stringContaining("Dernier jour"),
         href: "/jeu/centre-de-formation?onglet=development&dev=effectif",
+      }),
+    ]);
+  });
+
+  it("links a J+1 unfilled DevTeam race directly to its registration card", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        developmentRaceRegistrationReminderCount: 1,
+        developmentRaceRegistrationReminderNextName: "Classique des jeunes",
+        developmentRaceRegistrationReminderNextEditionId:
+          "9f74e52d-4358-4ccb-9752-932341232f53",
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts[0]).toEqual({
+      id: "development-race-registration-reminder",
+      tone: "alert",
+      metric: "1",
+      title: "engagement DevTeam à préparer",
+      detail: "Demain : Classique des jeunes · aucun junior engagé.",
+      href: "/jeu/centre-de-formation?onglet=development&dev=calendrier#dev-race-9f74e52d-4358-4ccb-9752-932341232f53",
+    });
+
+    const cleared = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        developmentRaceRegistrationReminderCount: 0,
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+    expect(cleared.alerts).not.toContainEqual(
+      expect.objectContaining({ id: "development-race-registration-reminder" }),
+    );
+  });
+
+  it("counts multiple unfilled DevTeam races without multiplying assistant rows", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        developmentRaceRegistrationReminderCount: 2,
+        developmentRaceRegistrationReminderNextName: "Avenir Classic",
+        developmentRaceRegistrationReminderNextEditionId:
+          "9f74e52d-4358-4ccb-9752-932341232f53",
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(
+      groups.alerts.filter(
+        (line) => line.id === "development-race-registration-reminder",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        metric: "2",
+        title: "engagements DevTeam à préparer",
+        detail: expect.stringContaining("2 courses à composer"),
       }),
     ]);
   });
@@ -602,6 +666,32 @@ describe("dashboard DS assistant", () => {
 
     expect(source).toMatch(
       /\.in\("status", \[\s*"planned",\s*"registration_open",\s*"registration_closed",\s*\]\)/,
+    );
+  });
+
+  it("queries only active DevTeams, tomorrow's manual races, and zero registered riders", () => {
+    const migration = readFileSync(
+      new URL(
+        "../../supabase/migrations/20260918230000_add_development_race_registration_dashboard_reminder.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain("development_team.status = 'active'");
+    expect(migration).toContain(
+      "edition.start_day_number = context.current_day_number + 1",
+    );
+    expect(migration).toContain("edition.status = 'planned'");
+    expect(migration).toContain("edition.selection_mode = 'manual'");
+    expect(migration).toContain(
+      "registration.development_team_id = development_team.id",
+    );
+    expect(migration).toContain("registration.race_edition_id = edition.id");
+    expect(migration).toContain("registration.status = 'registered'");
+    expect(migration).toContain("$previous$, E'\\r\\n', E'\\n'");
+    expect(migration).toMatch(
+      /not exists \([\s\S]*?development_race_registration_riders as selected/,
     );
   });
 

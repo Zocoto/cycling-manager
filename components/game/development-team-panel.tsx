@@ -303,7 +303,7 @@ function RaceRegistrationCard({
     isRiderEligibleForDevelopmentRace(rider, race),
   );
   return (
-    <article className="overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white shadow-sm">
+    <article id={`dev-race-${race.id}`} className="scroll-mt-20 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white shadow-sm">
       <div className="grid gap-4 p-4 lg:grid-cols-[100px_minmax(0,1fr)_auto] lg:items-center sm:p-5">
         <div className="rounded-xl bg-[#EAF5F3] px-3 py-3 text-center">
           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#60756E]">Jour</p>

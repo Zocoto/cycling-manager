@@ -148,6 +148,12 @@ export async function getCurrentDashboardAssistantSummary(
       assistantPayload.developmentTeamSetupRequired,
     developmentTeamSetupCurrentDayNumber:
       assistantPayload.developmentTeamSetupCurrentDayNumber,
+    developmentRaceRegistrationReminderCount:
+      assistantPayload.developmentRaceRegistrationReminderCount,
+    developmentRaceRegistrationReminderNextName:
+      assistantPayload.developmentRaceRegistrationReminderNextName,
+    developmentRaceRegistrationReminderNextEditionId:
+      assistantPayload.developmentRaceRegistrationReminderNextEditionId,
     fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
     fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
     fanClubSalesProcessedToday:
@@ -173,6 +179,9 @@ function normalizeAssistantPayload(value: unknown): {
   equipmentPartnerSignatureAvailable: boolean;
   developmentTeamSetupRequired: boolean;
   developmentTeamSetupCurrentDayNumber: number;
+  developmentRaceRegistrationReminderCount: number;
+  developmentRaceRegistrationReminderNextName: string | null;
+  developmentRaceRegistrationReminderNextEditionId: string | null;
   journalItems: DashboardJournalItem[];
 } {
   if (Array.isArray(value)) {
@@ -191,6 +200,9 @@ function normalizeAssistantPayload(value: unknown): {
       equipmentPartnerSignatureAvailable: false,
       developmentTeamSetupRequired: false,
       developmentTeamSetupCurrentDayNumber: 0,
+      developmentRaceRegistrationReminderCount: 0,
+      developmentRaceRegistrationReminderNextName: null,
+      developmentRaceRegistrationReminderNextEditionId: null,
       journalItems: normalizeJournalItems(value),
     };
   }
@@ -211,6 +223,9 @@ function normalizeAssistantPayload(value: unknown): {
       equipmentPartnerSignatureAvailable: false,
       developmentTeamSetupRequired: false,
       developmentTeamSetupCurrentDayNumber: 0,
+      developmentRaceRegistrationReminderCount: 0,
+      developmentRaceRegistrationReminderNextName: null,
+      developmentRaceRegistrationReminderNextEditionId: null,
       journalItems: [],
     };
   }
@@ -225,6 +240,11 @@ function normalizeAssistantPayload(value: unknown): {
     payload.developmentTeamSetup &&
     typeof payload.developmentTeamSetup === "object"
       ? (payload.developmentTeamSetup as Record<string, unknown>)
+      : {};
+  const developmentRaceRegistrationReminder =
+    payload.developmentRaceRegistrationReminder &&
+    typeof payload.developmentRaceRegistrationReminder === "object"
+      ? (payload.developmentRaceRegistrationReminder as Record<string, unknown>)
       : {};
   const federationSelectionReminder =
     payload.federationSelectionReminder &&
@@ -271,6 +291,15 @@ function normalizeAssistantPayload(value: unknown): {
     developmentTeamSetupCurrentDayNumber: normalizeCount(
       developmentTeamSetup.currentDayNumber,
     ),
+    developmentRaceRegistrationReminderCount: normalizeCount(
+      developmentRaceRegistrationReminder.count,
+    ),
+    developmentRaceRegistrationReminderNextName: normalizeOptionalString(
+      developmentRaceRegistrationReminder.nextName,
+    ),
+    developmentRaceRegistrationReminderNextEditionId: normalizeUuid(
+      developmentRaceRegistrationReminder.nextEditionId,
+    ),
     journalItems: normalizeJournalItems(payload.items),
   };
 }
@@ -293,6 +322,13 @@ function normalizeOptionalString(value: unknown): string | null {
 function normalizeCountryCode(value: unknown): string | null {
   const countryCode = normalizeOptionalString(value)?.toUpperCase() ?? null;
   return countryCode && /^[A-Z]{2}$/.test(countryCode) ? countryCode : null;
+}
+
+function normalizeUuid(value: unknown): string | null {
+  const id = normalizeOptionalString(value);
+  return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    ? id
+    : null;
 }
 
 function normalizeJournalItems(value: unknown): DashboardJournalItem[] {
