@@ -2035,6 +2035,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   const generalClassificationLeaderId = getGeneralClassificationLeaderId(
     input.generalClassification,
   );
+  const teamGeneralClassificationLeaderRiderIds =
+    getTeamGeneralClassificationLeaderRiderIds(
+      input.riders,
+      input.generalClassification,
+    );
   const plannedBreakawayIds = attackPlan.initialAttackIds;
   const totalDistanceKm = Math.max(
     1,
@@ -3129,6 +3134,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       segmentCount: input.segments.length,
       raceProgress: segmentEndProgress,
       protectedRiderId: generalClassificationLeaderId,
+      teamGeneralClassificationLeaderRiderIds,
       incidentRiderIds: new Set(
         incidents.flatMap((raceIncident) => raceIncident.riderIds),
       ),
@@ -4544,6 +4550,34 @@ export function getGeneralClassificationProtectedRiderIds(
   );
 }
 
+/** A GC place can protect tactics without making every close teammate a rescue leader. */
+export function getTeamGeneralClassificationLeaderRiderIds(
+  riders: RiderSimulationInput[],
+  generalClassification?: StageSimulationInput["generalClassification"],
+) {
+  const protectedRiderIds = getGeneralClassificationProtectedRiderIds(
+    generalClassification,
+  );
+  const teamIdByRiderId = new Map(
+    riders.map((rider) => [rider.id, rider.teamId]),
+  );
+  const selectedByTeamId = new Map<string, string>();
+
+  for (const entry of [...(generalClassification ?? [])].sort(
+    (first, second) =>
+      first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+      first.riderId.localeCompare(second.riderId),
+  )) {
+    if (!protectedRiderIds.has(entry.riderId)) continue;
+    const teamId = teamIdByRiderId.get(entry.riderId);
+    if (teamId && !selectedByTeamId.has(teamId)) {
+      selectedByTeamId.set(teamId, entry.riderId);
+    }
+  }
+
+  return new Set(selectedByTeamId.values());
+}
+
 export function getBreakawayGeneralClassificationThreat(
   breakawayRiderIds: string[],
   generalClassification:
@@ -5216,6 +5250,7 @@ function deployLeaderRecoverySupport({
   segmentCount,
   raceProgress,
   protectedRiderId,
+  teamGeneralClassificationLeaderRiderIds,
   incidentRiderIds,
   random,
   commentary,
@@ -5226,6 +5261,7 @@ function deployLeaderRecoverySupport({
   segmentCount: number;
   raceProgress: number;
   protectedRiderId: string | null;
+  teamGeneralClassificationLeaderRiderIds: Set<string>;
   incidentRiderIds: Set<string>;
   random: () => number;
   commentary: string[];
@@ -5238,7 +5274,8 @@ function deployLeaderRecoverySupport({
   const detachedLeaders = [...states.values()].filter(
     (state) =>
       (isRaceLeaderRole(state.rider.role) ||
-        state.rider.generalClassificationProtected === true ||
+        isRaceProtectedRiderRole(state.rider.role) ||
+        teamGeneralClassificationLeaderRiderIds.has(state.rider.id) ||
         state.rider.id === protectedRiderId) &&
       (state.group === "delayed" || state.group === "dropped") &&
       state.groupSinceSegment === segmentIndex &&
@@ -5262,6 +5299,7 @@ function deployLeaderRecoverySupport({
         return (
           candidate.rider.id !== leader.rider.id &&
           candidate.rider.teamId === leader.rider.teamId &&
+          !teamGeneralClassificationLeaderRiderIds.has(candidate.rider.id) &&
           candidate.energy >= 10 &&
           candidatePriority > 0 &&
           availableDuty &&
@@ -5663,7 +5701,12 @@ function dropStrugglingRiders({
         commentary.push(
           (state.collectiveWorkload ?? 0) >= 8
             ? `${state.rider.name} se relève après son travail pour l’équipe et bascule parmi les attardés.`
-            : `${state.rider.name} cède dans la difficulté après avoir épuisé ses réserves et bascule parmi les attardés.`,
+            : state.energy < minimumReserveToFollow ||
+                state.energy < ABSOLUTE_EXHAUSTION_ENERGY
+              ? `${state.rider.name} n’a plus les réserves pour suivre et bascule parmi les attardés.`
+              : segment.surface === "cobbles"
+                ? `${state.rider.name} perd le contact sur les pavés et bascule parmi les attardés.`
+                : `${state.rider.name} ne tient pas l’allure dans la montée et bascule parmi les attardés.`,
         );
       }
     } else if (exceptionallyHoldsOn && commentary.length < 4) {

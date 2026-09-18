@@ -11,6 +11,7 @@ import {
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
   getGeneralClassificationProtectedRiderIds,
+  getTeamGeneralClassificationLeaderRiderIds,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   findDroppedRiderIdsCaughtByDelayedGroup,
@@ -728,6 +729,28 @@ describe("simulateRaceStage", () => {
 
     expect(protectedPodium.has("second-at-seven-minutes")).toBe(true);
     expect(protectedClosePack.has("close-14")).toBe(true);
+  });
+
+  it("ne confond pas tous les équipiers proches au général avec des leaders à secourir", () => {
+    const riders = [
+      { ...createSelectionTestRider("team-a-leader", {}), teamId: "team-a" },
+      { ...createSelectionTestRider("team-a-second", {}), teamId: "team-a" },
+      { ...createSelectionTestRider("team-a-third", {}), teamId: "team-a" },
+      { ...createSelectionTestRider("team-b-leader", {}), teamId: "team-b" },
+      { ...createSelectionTestRider("team-b-second", {}), teamId: "team-b" },
+    ];
+    const generalClassification = [
+      { riderId: "team-a-second", elapsedTimeSeconds: 10_010 },
+      { riderId: "team-b-second", elapsedTimeSeconds: 10_012 },
+      { riderId: "team-a-leader", elapsedTimeSeconds: 10_000 },
+      { riderId: "team-a-third", elapsedTimeSeconds: 10_014 },
+      { riderId: "team-b-leader", elapsedTimeSeconds: 10_005 },
+    ];
+
+    expect(getGeneralClassificationProtectedRiderIds(generalClassification).size).toBe(5);
+    expect(
+      [...getTeamGeneralClassificationLeaderRiderIds(riders, generalClassification)].sort(),
+    ).toEqual(["team-a-leader", "team-b-leader"]);
   });
 
   it("interdit l’échappée automatique à un deuxième du général même ciblé comme baroudeur", () => {
@@ -1810,6 +1833,63 @@ describe("simulateRaceStage", () => {
       ),
     ).toBe(true);
     expect(failedRecovery).toBeDefined();
+  });
+
+  it("laisse les équipiers forts dans le peloton quand un domestique bien classé lâche sur les pavés", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const teamId = "bohemia-regression-team";
+    const team = Array.from({ length: 6 }, (_, index) => ({
+      ...createSelectionTestRider(`bohemia-rider-${index}`, {
+        cobbles: index === 1 ? 25 : 90,
+        flat: index === 1 ? 45 : 82,
+        endurance: 82,
+        resistance: 82,
+      }),
+      teamId,
+      teamName: "Bohemia regression team",
+      role: (index === 0 ? "leader" : "domestique") as "leader" | "domestique",
+      form: 95,
+    }));
+    const rivals = Array.from({ length: 10 }, (_, index) => ({
+      ...createSelectionTestRider(`bohemia-rival-${index}`, {
+        cobbles: 78,
+        flat: 78,
+        endurance: 78,
+        resistance: 78,
+      }),
+      teamId: `bohemia-rival-team-${index}`,
+      teamName: `Bohemia rival ${index}`,
+      role: "leader" as const,
+      form: 95,
+    }));
+    const riders = [...team, ...rivals];
+    const segments: RaceStageSegment[] = [
+      { segmentNumber: 1, distanceKm: 25, terrain: "flat", averageGradientPct: 0, surface: "asphalt", prime: null },
+      { segmentNumber: 2, distanceKm: 20, terrain: "flat", averageGradientPct: 0, surface: "cobbles", prime: null },
+      { segmentNumber: 3, distanceKm: 25, terrain: "flat", averageGradientPct: 0, surface: "asphalt", prime: null },
+    ];
+    const simulation = simulateRaceStage({
+      ...baseInput,
+      id: "bohemia-protected-domestique-regression",
+      seed: 7,
+      stageType: "road",
+      profileType: "cobbles",
+      isStageRace: true,
+      stageNumber: 4,
+      stageCount: 4,
+      segments,
+      riders,
+      generalClassification: riders.map((rider, index) => ({
+        riderId: rider.id,
+        elapsedTimeSeconds: 10_000 + index,
+      })),
+      teamStrategies: [],
+    });
+    const secondSegment = simulation.timeline.find((snapshot) => snapshot.segmentNumber === 2)!;
+    const peloton = secondSegment.groups.find((group) => group.type === "peloton")!;
+
+    expect(peloton.riderIds).not.toContain(team[1].id);
+    expect(team.filter((rider, index) => index !== 1 && peloton.riderIds.includes(rider.id))).toHaveLength(5);
   });
 
   it("favorise le retour collectif sans le rendre certain", () => {
