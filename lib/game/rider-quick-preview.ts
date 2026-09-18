@@ -5,6 +5,7 @@ export type RiderQuickPreview = {
   id: string;
   name: string;
   age: number | null;
+  potentialSteps: number | null;
   country: {
     name: string;
     code: string;

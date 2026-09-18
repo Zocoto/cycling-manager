@@ -207,6 +207,7 @@ export async function getRiderQuickPreview({
     id: rider.id,
     name: `${rider.first_name} ${rider.last_name}`.trim(),
     age: ratingResult.data?.age ?? null,
+    potentialSteps: mustUseScouting ? null : rider.potential_steps,
     country: {
       name: countryResult.data.name,
       code: countryResult.data.iso_alpha2,

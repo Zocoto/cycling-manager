@@ -491,6 +491,14 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       detail: row.detail,
       happenedAt: row.happened_at,
       href,
+      profileLinks: [
+        ...(rider && riderName
+          ? [{ label: riderName, href: `/jeu/coureurs/${rider.id}`, kind: "rider" as const }]
+          : []),
+        ...(row.featured_team_id && teamVisual
+          ? [{ label: teamVisual.name, href: `/jeu/equipes/${row.featured_team_id}`, kind: "team" as const }]
+          : []),
+      ],
       significance: "major" as const,
       raceCategoryCode: category?.code,
       prestigeRank: category?.prestige_rank,
@@ -658,6 +666,12 @@ async function loadRecentVictories(
           })),
         }),
         href,
+        profileLinks: [
+          { label: riderName, href: `/jeu/coureurs/${rider.id}`, kind: "rider" as const },
+          ...(teamSeason
+            ? [{ label: teamName, href: `/jeu/equipes/${teamSeason.team_id}`, kind: "team" as const }]
+            : []),
+        ],
         significance: "major" as const,
         raceCategoryCode: category?.code,
         prestigeRank: category?.prestige_rank,
@@ -769,6 +783,7 @@ async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {
       detail: "Un nouveau directeur sportif prend place sur la ligne de départ.",
       happenedAt: director.created_at,
       href: getSportingDirectorProfileHref(director.id),
+      ...(teamSeason ? { profileLinks: [{ label: teamSeason.display_name, href: `/jeu/equipes/${teamSeason.team_id}`, kind: "team" as const }] } : {}),
       visual: {
         person: {
           kind: "director" as const,
@@ -853,6 +868,10 @@ async function loadRecentRiderMovements(
         title: `${riderName} rejoint ${teamSeason.display_name}`,
         detail: getMovementDetail(contract.acquisition_type),
         happenedAt: contract.signed_at ?? contract.created_at,
+        profileLinks: [
+          { label: riderName, href: `/jeu/coureurs/${rider.id}`, kind: "rider" as const },
+          { label: teamSeason.display_name, href: `/jeu/equipes/${teamSeason.team_id}`, kind: "team" as const },
+        ],
         significance:
           contract.acquisition_type === "director_auction"
             ? ("major" as const)
@@ -951,6 +970,9 @@ async function loadRecentStaffMovements(
         title: `${memberName} signe chez ${teamSeason.display_name}`,
         detail: `${role.label} niveau ${member.level}, une nouvelle expertise rejoint l’équipe.`,
         happenedAt: contract.signed_at,
+        profileLinks: [
+          { label: teamSeason.display_name, href: `/jeu/equipes/${teamSeason.team_id}`, kind: "team" as const },
+        ],
         visual: {
           person: {
             kind: "staff" as const,
@@ -1023,6 +1045,9 @@ async function loadRecentSponsorSignatures(
         title: `${teamSeason.display_name} signe avec ${sponsor.name}`,
         detail: "Un nouveau sponsor principal rejoint le peloton.",
         happenedAt: contract.signed_at ?? contract.created_at,
+        profileLinks: [
+          { label: teamSeason.display_name, href: `/jeu/equipes/${teamSeason.team_id}`, kind: "team" as const },
+        ],
         significance: "major" as const,
         teamColors: sponsor.colors,
       },

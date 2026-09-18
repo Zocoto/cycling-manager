@@ -1267,6 +1267,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
               {isEnglish ? "Winning jersey" : "Maillot vainqueur"} · {team.name}
             </p>
           ) : null}
+          <NewsEntityLinks item={localizedItem} />
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-muted)]">
             {formatNewsTime(localizedItem.happenedAt, locale)} · {isEnglish ? "By the newsroom" : "Par la rédaction"}
           </p>
@@ -1309,6 +1310,7 @@ function WinnerCard({ item }: { item: PublicGameNewsItem }) {
       <p className="mt-3 text-sm font-medium leading-5 text-[var(--gazette-body)]">
         {localizedItem.detail}
       </p>
+      <NewsEntityLinks item={localizedItem} />
     </article>
   );
 }
@@ -1752,12 +1754,35 @@ function NewsBrief({
           <p className="mt-2 text-sm font-medium leading-5 text-[var(--gazette-body)]">
             {localizedItem.detail}
           </p>
+          <NewsEntityLinks item={localizedItem} />
           <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--gazette-muted)]">
             {formatNewsTime(localizedItem.happenedAt, locale)}
           </p>
         </div>
       </div>
     </article>
+  );
+}
+
+function NewsEntityLinks({ item }: { item: PublicGameNewsItem }) {
+  const { locale } = useLocale();
+  if (!item.profileLinks?.length) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-[var(--gazette-secondary)]">
+      {item.profileLinks.map((profile) => (
+        <Link
+          key={`${profile.kind}:${profile.href}`}
+          href={profile.href}
+          title={locale === "en" ? `Preview ${profile.label}` : `Aperçu de ${profile.label}`}
+          className="max-w-full truncate underline decoration-[var(--gazette-rule)] underline-offset-2 hover:text-[var(--gazette-accent)] focus-visible:outline-2"
+        >
+          {profile.kind === "rider"
+            ? locale === "en" ? "Rider" : "Coureur"
+            : locale === "en" ? "Team" : "Équipe"} · {profile.label} ↗
+        </Link>
+      ))}
+    </div>
   );
 }
 

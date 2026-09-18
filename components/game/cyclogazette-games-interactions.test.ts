@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { applyCyclogazettePollVote } from "@/services/cyclogazette-games";
+import { applyCyclogazettePollVote, normalizeCyclogazettePoll } from "@/services/cyclogazette-games";
 
 const sidebar = readFileSync(
   join(process.cwd(), "components/game/cyclogazette-games-sidebar.tsx"),
@@ -80,9 +80,10 @@ describe("interactions des jeux de La Cyclogazette", () => {
       {
         id: "poll-1",
         question: "Votre choix ?",
+        subjects: [],
         options: [
-          { id: "option-1", label: "A", votes: 2 },
-          { id: "option-2", label: "B", votes: 1 },
+          { id: "option-1", label: "A", href: null, votes: 2 },
+          { id: "option-2", label: "B", href: null, votes: 1 },
         ],
         totalVotes: 3,
         viewerOptionId: null,
@@ -93,8 +94,8 @@ describe("interactions des jeux de La Cyclogazette", () => {
     expect(poll.viewerOptionId).toBe("option-2");
     expect(poll.totalVotes).toBe(4);
     expect(poll.options).toEqual([
-      { id: "option-1", label: "A", votes: 2 },
-      { id: "option-2", label: "B", votes: 2 },
+      { id: "option-1", label: "A", href: null, votes: 2 },
+      { id: "option-2", label: "B", href: null, votes: 2 },
     ]);
   });
 
@@ -102,14 +103,36 @@ describe("interactions des jeux de La Cyclogazette", () => {
     const original = {
       id: "poll-1",
       question: "Votre choix ?",
+      subjects: [],
       options: [
-        { id: "option-1", label: "A", votes: 2 },
-        { id: "option-2", label: "B", votes: 1 },
+        { id: "option-1", label: "A", href: null, votes: 2 },
+        { id: "option-2", label: "B", href: null, votes: 1 },
       ],
       totalVotes: 3,
       viewerOptionId: "option-1",
     };
 
     expect(applyCyclogazettePollVote(original, "option-1")).toBe(original);
+  });
+
+  it("conserve les liens des fiches après un vote et écarte les URL externes", () => {
+    const poll = normalizeCyclogazettePoll({
+      id: "poll-2",
+      question: "Quelle équipe ?",
+      subjects: [
+        { label: "La course", href: "/jeu/courses/une-course" },
+        { label: "Site externe", href: "https://example.com" },
+      ],
+      options: [
+        { id: "option-1", label: "Équipe A", href: "/jeu/equipes/c779344f-23a3-4a95-8c37-40396a26d042", votes: 2 },
+        { id: "option-2", label: "Équipe B", href: "https://example.com", votes: 1 },
+      ],
+      totalVotes: 3,
+    });
+
+    expect(poll?.subjects).toEqual([{ label: "La course", href: "/jeu/courses/une-course" }]);
+    expect(poll?.options[1].href).toBeNull();
+    expect(poll && applyCyclogazettePollVote(poll, "option-1").options[0].href)
+      .toBe("/jeu/equipes/c779344f-23a3-4a95-8c37-40396a26d042");
   });
 });

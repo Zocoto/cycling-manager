@@ -15,6 +15,7 @@ import {
   type CyclogazettePollActionState,
 } from "@/app/jeu/gazette/actions";
 import { useLocale } from "@/components/i18n/locale-provider";
+import Link from "@/components/ui/app-link";
 import type {
   CyclogazetteCrosswordPuzzle,
   CyclogazetteGameDifficulty,
@@ -794,6 +795,15 @@ function DailyPoll({
       <h3 className="mt-3 font-serif text-lg font-black leading-6 text-[#2E281D]">
         {poll.question}
       </h3>
+      {poll.subjects.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-black text-[#176951]">
+          {poll.subjects.map((subject) => (
+            <Link key={`${subject.href}:${subject.label}`} href={subject.href} className="underline underline-offset-2 hover:text-[#9B263D]">
+              {subject.label} ↗
+            </Link>
+          ))}
+        </div>
+      ) : null}
 
       {showResults ? (
         <div className="mt-4 space-y-3">
@@ -807,7 +817,11 @@ function DailyPoll({
               <div key={option.id}>
                 <div className="flex items-end justify-between gap-3 text-[10px] font-bold">
                   <span className={selected ? "text-[#9B263D]" : "text-[#514833]"}>
-                    {option.label}
+                    {option.href ? (
+                      <Link href={option.href} className="underline underline-offset-2 hover:text-[#9B263D]">
+                        {option.label}
+                      </Link>
+                    ) : option.label}
                     {selected
                       ? isEnglish
                         ? " · Your choice"
@@ -846,16 +860,27 @@ function DailyPoll({
         <form action={formAction} className="mt-4 space-y-2">
           <input type="hidden" name="pollId" value={poll.id} />
           {poll.options.map((option) => (
-            <button
-              key={option.id}
-              type="submit"
-              name="optionId"
-              value={option.id}
-              disabled={pending}
-              className="block min-h-10 w-full border border-[#7D6C49]/45 bg-[#FFF9E9] px-3 py-2 text-left font-serif text-xs font-bold text-[#403829] transition hover:border-[#9B263D] hover:bg-[#F4DFD9] hover:text-[#7B1D31] disabled:cursor-wait disabled:opacity-55"
-            >
-              {option.label}
-            </button>
+            <div key={option.id} className="flex items-stretch gap-1.5">
+              <button
+                type="submit"
+                name="optionId"
+                value={option.id}
+                disabled={pending}
+                className="min-h-10 min-w-0 flex-1 border border-[#7D6C49]/45 bg-[#FFF9E9] px-3 py-2 text-left font-serif text-xs font-bold text-[#403829] transition hover:border-[#9B263D] hover:bg-[#F4DFD9] hover:text-[#7B1D31] disabled:cursor-wait disabled:opacity-55"
+              >
+                {option.label}
+              </button>
+              {option.href ? (
+                <Link
+                  href={option.href}
+                  aria-label={`Voir la fiche de ${option.label}`}
+                  title={`Voir la fiche de ${option.label}`}
+                  className="grid w-10 shrink-0 place-items-center border border-[#7D6C49]/45 bg-[#FFF9E9] text-[#176951] hover:border-[#176951]"
+                >
+                  ↗
+                </Link>
+              ) : null}
+            </div>
           ))}
           {state.result === "failure" ? (
             <p aria-live="polite" className="pt-1 text-center text-[10px] font-black text-[#9B263D]">

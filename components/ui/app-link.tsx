@@ -18,12 +18,15 @@ import {
 import {
   loadRacePreviewLink,
   loadRiderPreviewLink,
+  loadTeamPreviewLink,
   type RacePreviewLinkComponent,
   type RiderPreviewLinkComponent,
+  type TeamPreviewLinkComponent,
 } from "@/components/ui/lazy-preview-links";
 import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { getRaceQuickPreviewTargetFromHref } from "@/lib/game/race-quick-preview";
 import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
+import { getTeamIdFromProfileHref } from "@/lib/game/team-quick-preview";
 
 type AppLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
@@ -65,6 +68,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         : "";
   const riderId = getRiderIdFromProfileHref(hrefForIntent);
   const raceTarget = getRaceQuickPreviewTargetFromHref(hrefForIntent);
+  const teamId = getTeamIdFromProfileHref(hrefForIntent);
   const requiresDocumentNavigation =
     typeof href === "string" && isRaceRegistrationHref(href);
   const linkChildren = (
@@ -93,7 +97,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     );
   }
 
-  if (!riderId && !raceTarget && !prefetchOnIntent) {
+  if (!riderId && !raceTarget && !teamId && !prefetchOnIntent) {
     return (
       <NextLink
         ref={ref}
@@ -117,6 +121,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       prefetchOnIntent={prefetchOnIntent}
       riderId={riderId}
       raceTarget={raceTarget}
+      teamId={teamId}
       usesAnchor={usesAnchor}
       {...props}
     >
@@ -128,6 +133,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
 type InteractiveAppLinkProps = AppLinkProps & {
   riderId: ReturnType<typeof getRiderIdFromProfileHref>;
   raceTarget: ReturnType<typeof getRaceQuickPreviewTargetFromHref>;
+  teamId: ReturnType<typeof getTeamIdFromProfileHref>;
   usesAnchor: boolean;
 };
 
@@ -144,6 +150,7 @@ const InteractiveAppLink = forwardRef<
     prefetchOnIntent = false,
     riderId,
     raceTarget,
+    teamId,
     usesAnchor,
     onBlur,
     onFocus,
@@ -161,6 +168,8 @@ const InteractiveAppLink = forwardRef<
     useState<RiderPreviewLinkComponent | null>(null);
   const [RacePreviewLink, setRacePreviewLink] =
     useState<RacePreviewLinkComponent | null>(null);
+  const [TeamPreviewLink, setTeamPreviewLink] =
+    useState<TeamPreviewLinkComponent | null>(null);
   const resolvedPrefetch =
     prefetch !== undefined
       ? prefetch
@@ -190,7 +199,7 @@ const InteractiveAppLink = forwardRef<
   }
 
   function loadPreview() {
-    if (!riderId && !raceTarget) return;
+    if (!riderId && !raceTarget && !teamId) return;
 
     setPreviewIntentOpen(true);
 
@@ -198,12 +207,14 @@ const InteractiveAppLink = forwardRef<
       void loadRiderPreviewLink().then(setRiderPreviewLink);
     } else if (raceTarget && !RacePreviewLink) {
       void loadRacePreviewLink().then(setRacePreviewLink);
+    } else if (teamId && !TeamPreviewLink) {
+      void loadTeamPreviewLink().then(setTeamPreviewLink);
     }
   }
 
   function schedulePreview() {
     clearPreviewIntentTimer();
-    if (!riderId && !raceTarget) return;
+    if (!riderId && !raceTarget && !teamId) return;
 
     previewIntentTimerRef.current = window.setTimeout(() => {
       previewIntentTimerRef.current = null;
@@ -287,6 +298,23 @@ const InteractiveAppLink = forwardRef<
       >
         {linkChildren}
       </RacePreviewLink>
+    );
+  }
+
+  if (teamId && TeamPreviewLink) {
+    return (
+      <TeamPreviewLink
+        ref={ref}
+        teamId={teamId}
+        autoOpen={previewIntentOpen}
+        href={href}
+        prefetch={resolvedPrefetch}
+        scroll={scroll ?? usesAnchor}
+        {...props}
+        {...intentHandlers}
+      >
+        {linkChildren}
+      </TeamPreviewLink>
     );
   }
 

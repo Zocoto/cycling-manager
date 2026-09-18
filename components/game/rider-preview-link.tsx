@@ -16,6 +16,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
+import { getRiderPreview } from "@/lib/game/rider-preview-client";
 import type { RiderQuickPreview } from "@/lib/game/rider-quick-preview";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
@@ -33,13 +34,6 @@ type PreviewPosition = {
   top: number;
   width: number;
 };
-
-type PreviewRequest = {
-  expiresAt: number;
-  request: Promise<RiderQuickPreview>;
-};
-
-const previewRequests = new Map<string, PreviewRequest>();
 
 export const RiderPreviewLink = forwardRef<
   HTMLAnchorElement,
@@ -80,13 +74,12 @@ export const RiderPreviewLink = forwardRef<
   useEffect(() => {
     if (!autoOpen) return;
 
-    getPreview(riderId)
+    getRiderPreview(riderId)
       .then((loadedPreview) => {
         setPreview(loadedPreview);
         setLoadState("loaded");
       })
       .catch(() => {
-        previewRequests.delete(riderId);
         setLoadState("error");
       });
   }, [autoOpen, riderId]);
@@ -183,13 +176,12 @@ export const RiderPreviewLink = forwardRef<
     if (loadState === "loading" || loadState === "loaded") return;
 
     setLoadState("loading");
-    getPreview(riderId)
+    getRiderPreview(riderId)
       .then((loadedPreview) => {
         setPreview(loadedPreview);
         setLoadState("loaded");
       })
       .catch(() => {
-        previewRequests.delete(riderId);
         setLoadState("error");
       });
   }
@@ -484,33 +476,6 @@ function PreviewContent({
       </footer>
     </>
   );
-}
-
-function getPreview(riderId: string) {
-  const cached = previewRequests.get(riderId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.request;
-  }
-
-  if (cached) {
-    previewRequests.delete(riderId);
-  }
-
-  const request = fetch(`/api/riders/${encodeURIComponent(riderId)}/preview`, {
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-  }).then(async (response) => {
-    if (!response.ok) {
-      throw new Error(`Rider preview request failed with ${response.status}.`);
-    }
-
-    return (await response.json()) as RiderQuickPreview;
-  });
-  previewRequests.set(riderId, {
-    expiresAt: Date.now() + 30_000,
-    request,
-  });
-  return request;
 }
 
 function cancelTimer(ref: { current: number | null }) {

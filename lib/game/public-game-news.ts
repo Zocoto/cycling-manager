@@ -110,6 +110,7 @@ export type PublicGameNewsItem = {
   detail: string;
   happenedAt: string;
   href?: string;
+  profileLinks?: Array<{ label: string; href: string; kind: "rider" | "team" }>;
   significance?: "major" | "standard";
   raceCategoryCode?: string;
   prestigeRank?: number;

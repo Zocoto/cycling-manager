@@ -19,12 +19,19 @@ export type CyclogazetteGameCompleter = {
 export type CyclogazettePollOption = {
   id: string;
   label: string;
+  href: string | null;
   votes: number;
+};
+
+export type CyclogazettePollSubject = {
+  label: string;
+  href: string;
 };
 
 export type CyclogazettePollOverview = {
   id: string;
   question: string;
+  subjects: CyclogazettePollSubject[];
   options: CyclogazettePollOption[];
   totalVotes: number;
   viewerOptionId: string | null;
@@ -86,7 +93,7 @@ export async function getCyclogazetteGamesOverview({
   previousEditionId: string | null;
 }): Promise<CyclogazetteGamesOverview> {
   const [summaryResult, rewardResult] = await Promise.all([
-    supabase.rpc("get_cyclogazette_game_summary", {
+    supabase.rpc("get_cyclogazette_game_summary_v2", {
       p_edition_id: edition.id,
     }),
     supabase.rpc("get_current_team_media_game_reward"),
@@ -154,7 +161,7 @@ function normalizeGamesSummary(value: unknown) {
       })
     : [];
   const parsedTotal = Number(raw.totalCompleters);
-  const poll = normalizePoll(raw.poll);
+  const poll = normalizeCyclogazettePoll(raw.poll);
 
   return {
     viewerCompletedGames,
@@ -166,12 +173,13 @@ function normalizeGamesSummary(value: unknown) {
   };
 }
 
-function normalizePoll(value: unknown): CyclogazettePollOverview | null {
+export function normalizeCyclogazettePoll(value: unknown): CyclogazettePollOverview | null {
   if (!value || typeof value !== "object") return null;
   const poll = value as {
     id?: unknown;
     question?: unknown;
     options?: unknown;
+    subjects?: unknown;
     totalVotes?: unknown;
     viewerOptionId?: unknown;
   };
@@ -184,6 +192,7 @@ function normalizePoll(value: unknown): CyclogazettePollOverview | null {
         const option = value as {
           id?: unknown;
           label?: unknown;
+          href?: unknown;
           votes?: unknown;
         };
         const optionId = typeof option.id === "string" ? option.id.trim() : "";
@@ -195,12 +204,22 @@ function normalizePoll(value: unknown): CyclogazettePollOverview | null {
           {
             id: optionId,
             label,
+            href: readPollHref(option.href),
             votes: Number.isFinite(votes) ? Math.max(0, Math.trunc(votes)) : 0,
           },
         ];
       })
     : [];
   const totalVotes = Number(poll.totalVotes);
+  const subjects = Array.isArray(poll.subjects)
+    ? poll.subjects.flatMap<CyclogazettePollSubject>((value) => {
+        if (!value || typeof value !== "object") return [];
+        const subject = value as { label?: unknown; href?: unknown };
+        const label = typeof subject.label === "string" ? subject.label.trim() : "";
+        const href = readPollHref(subject.href);
+        return label && href ? [{ label, href }] : [];
+      })
+    : [];
   const viewerOptionId =
     typeof poll.viewerOptionId === "string" &&
     options.some((option) => option.id === poll.viewerOptionId)
@@ -211,6 +230,7 @@ function normalizePoll(value: unknown): CyclogazettePollOverview | null {
   return {
     id,
     question,
+    subjects,
     options,
     totalVotes: Number.isFinite(totalVotes)
       ? Math.max(
@@ -220,6 +240,13 @@ function normalizePoll(value: unknown): CyclogazettePollOverview | null {
       : options.reduce((total, option) => total + option.votes, 0),
     viewerOptionId,
   };
+}
+
+function readPollHref(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  return /^\/jeu\/(coureurs|equipes|courses)\/[a-z0-9-]+$/i.test(value)
+    ? value
+    : null;
 }
 
 function isGameType(value: unknown): value is CyclogazetteGameType {

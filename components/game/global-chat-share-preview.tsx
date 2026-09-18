@@ -2,10 +2,16 @@
 
 import dynamic from "next/dynamic";
 import NextLink from "next/link";
+import { useEffect, useRef, useState } from "react";
 
+import { PotentialStars } from "@/components/game/potential-stars";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import Link from "@/components/ui/app-link";
+import { getRiderPreview } from "@/lib/game/rider-preview-client";
+import type { RiderQuickPreview } from "@/lib/game/rider-quick-preview";
+import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
+import { formatScoutedNumericValue } from "@/lib/game/transfer-scouting";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { GlobalChatPreview } from "@/services/global-chat";
 
@@ -32,6 +38,43 @@ export function GlobalChatSharePreview({
 }: {
   preview: GlobalChatPreview;
 }) {
+  const cardRef = useRef<HTMLElement | null>(null);
+  const [riderDetails, setRiderDetails] = useState<RiderQuickPreview | null>(null);
+  const [riderDetailsUnavailable, setRiderDetailsUnavailable] = useState(false);
+
+  useEffect(() => {
+    if (preview.type !== "rider") return;
+    const card = cardRef.current;
+    if (!card) return;
+    let active = true;
+    const loadDetails = () => {
+      void getRiderPreview(preview.entityId)
+        .then((details) => {
+          if (active) setRiderDetails(details);
+        })
+        .catch(() => {
+          if (active) setRiderDetailsUnavailable(true);
+        });
+    };
+    if (typeof IntersectionObserver === "undefined") {
+      loadDetails();
+      return () => { active = false; };
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        loadDetails();
+      },
+      { rootMargin: "160px" },
+    );
+    observer.observe(card);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [preview.entityId, preview.type]);
+
   const theme = createTeamProfileTheme({
     primary: preview.palette.primaryColor,
     secondary: preview.palette.secondaryColor,
@@ -40,6 +83,7 @@ export function GlobalChatSharePreview({
 
   return (
     <section
+      ref={cardRef}
       data-chat-share-preview={preview.type}
       className="relative mt-3 overflow-hidden rounded-2xl border bg-white text-[#0B302B] shadow-[0_12px_30px_rgba(11,48,43,0.10)]"
       style={{
@@ -72,14 +116,19 @@ export function GlobalChatSharePreview({
           >
             <span data-i18n-skip>{preview.title}</span>
           </NextLink>
-          <p
-            data-i18n-skip
-            className="mt-0.5 truncate text-[10px] font-bold text-[#60756E]"
-          >
-            {preview.type === "rider" && !preview.teamId
-              ? "Agent libre"
-              : preview.subtitle}
-          </p>
+          {preview.type === "rider" && preview.teamId ? (
+            <Link
+              href={`/jeu/equipes/${preview.teamId}`}
+              data-i18n-skip
+              className="mt-0.5 block truncate text-[10px] font-bold text-[#60756E] underline decoration-[#60756E]/40 underline-offset-2 hover:text-[#176951]"
+            >
+              {preview.subtitle}
+            </Link>
+          ) : (
+            <p data-i18n-skip className="mt-0.5 truncate text-[10px] font-bold text-[#60756E]">
+              {preview.type === "rider" ? "Agent libre" : preview.subtitle}
+            </p>
+          )}
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {preview.country ? (
@@ -94,6 +143,16 @@ export function GlobalChatSharePreview({
             {preview.type === "rider" && preview.age ? (
               <span className="rounded-full border border-[#315B3E]/10 bg-white/85 px-2 py-1 text-[9px] font-black text-[#48665F] shadow-sm">
                 {preview.age} ans
+              </span>
+            ) : null}
+            {preview.type === "rider" && riderDetails?.potentialSteps != null ? (
+              <span className="rounded-full border border-[#315B3E]/10 bg-white/85 px-2 py-1 text-[9px] font-black text-[#48665F] shadow-sm">
+                Potentiel <PotentialStars potentialSteps={riderDetails.potentialSteps} compact />
+              </span>
+            ) : null}
+            {preview.type === "rider" && riderDetails?.potentialSteps == null && (riderDetails || riderDetailsUnavailable) ? (
+              <span className="rounded-full border border-[#315B3E]/10 bg-white/85 px-2 py-1 text-[9px] font-black text-[#60756E] shadow-sm">
+                Potentiel à découvrir
               </span>
             ) : null}
             {preview.type === "rider" && !preview.teamId ? (
@@ -117,7 +176,54 @@ export function GlobalChatSharePreview({
           →
         </NextLink>
       </div>
+      {preview.type === "rider" ? (
+        <RiderPrimaryRatings details={riderDetails} unavailable={riderDetailsUnavailable} />
+      ) : null}
     </section>
+  );
+}
+
+export function RiderPrimaryRatings({ details, unavailable }: { details: RiderQuickPreview | null; unavailable: boolean }) {
+  if (!details?.ratings) {
+    return (
+      <div className="border-t border-[#315B3E]/10 px-3.5 pb-3.5 pt-2.5 sm:px-4">
+        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">Notes primaires</p>
+        {details || unavailable ? (
+          <p className="text-[10px] font-bold text-[#60756E]">Notes indisponibles pour le moment · ouvrir la fiche du coureur</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6" aria-label="Chargement des notes primaires">
+            {RIDER_RATING_AXES.filter((axis) => axis.importance === "primary").map((axis) => (
+              <div key={axis.key} className="rounded-lg border border-[#315B3E]/10 bg-white/80 px-1.5 py-1.5 text-center">
+                <span className="block text-[9px] font-extrabold text-[#60756E]">{axis.shortLabel}</span>
+                <span className="block text-xs font-black text-[#A2B4AD]">…</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-[#315B3E]/10 px-3.5 pb-3.5 pt-2.5 sm:px-4">
+      <p className="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+        Notes primaires{details.ratingVisibility === "scouted" ? " · estimations" : ""}
+      </p>
+      <div data-chat-primary-ratings className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+        {RIDER_RATING_AXES.filter((axis) => axis.importance === "primary").map((axis) => (
+          <div
+            key={axis.key}
+            title={axis.label}
+            className="rounded-lg border border-[#315B3E]/10 bg-white/80 px-1.5 py-1.5 text-center"
+          >
+            <span className="block text-[9px] font-extrabold text-[#60756E]">{axis.shortLabel}</span>
+            <span className="block text-xs font-black text-[#183F37]">
+              {formatScoutedNumericValue(details.ratings![axis.key])}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
