@@ -19,5 +19,8 @@ describe("federation objective metrics", () => {
     expect(source).toContain(
       '.in("status", ["pending_confirmation", "finalized"])',
     );
+    expect(source).not.toContain("if (naturalizations.error) throw naturalizations.error");
+    expect(source).toContain("publishedSelections.error");
+    expect(source).toContain("publishedSelections.count ?? 0");
   });
 });

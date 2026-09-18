@@ -408,6 +408,7 @@ function OverviewPanel({
     snapshot.season.gameYear,
   );
   const objectives = buildFederationObjectives({
+    countryId: country.id,
     gameYear: objectiveGameYear,
     nationRank: nationRanking?.rank ?? null,
     referenceMemberTeamCount:
@@ -417,8 +418,18 @@ function OverviewPanel({
     manuallySubmittedSelectionCount:
       objectiveMetrics?.manuallySubmittedSelectionCount ?? 0,
     nationsCupRank: objectiveMetrics?.nationsCupRank ?? null,
+    nationsCupOverallRank: objectiveMetrics?.nationsCupOverallRank ?? null,
+    nationsCupDivision: objectiveMetrics?.nationsCupDivision ?? null,
+    nationsCupGroup: objectiveMetrics?.nationsCupGroup ?? null,
+    nationsCupPoolSize: objectiveMetrics?.nationsCupPoolSize ?? 0,
     worldRank: internationalResults?.world?.rank ?? null,
+    worldGameYear: internationalResults?.world?.gameYear ?? null,
     continentalRank: internationalResults?.continental?.rank ?? null,
+    continentalGameYear: internationalResults?.continental?.gameYear ?? null,
+    juniorChampionshipRank: objectiveMetrics?.juniorChampionshipRank ?? null,
+    cyclingSchoolCount: objectiveMetrics?.cyclingSchoolCount ?? 0,
+    teamUciRank: objectiveMetrics?.teamUciRank ?? null,
+    riderUciRank: objectiveMetrics?.riderUciRank ?? null,
   });
 
   return (

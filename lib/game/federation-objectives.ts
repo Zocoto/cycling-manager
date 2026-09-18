@@ -1,5 +1,6 @@
 export type FederationObjective = {
-  id: "members" | "naturalizations" | "international" | "championships" | "selections";
+  id: "members" | "naturalizations" | "international" | "championships" | "selections"
+    | "continental" | "junior_championships" | "cycling_school" | "team_uci" | "rider_uci";
   eyebrow: string;
   title: string;
   detail: string;
@@ -10,6 +11,7 @@ export type FederationObjective = {
 };
 
 export type FederationObjectiveInput = {
+  countryId: string;
   gameYear: number;
   nationRank: number | null;
   referenceMemberTeamCount: number;
@@ -17,9 +19,36 @@ export type FederationObjectiveInput = {
   naturalizationCount: number;
   manuallySubmittedSelectionCount: number;
   nationsCupRank: number | null;
+  nationsCupOverallRank: number | null;
+  nationsCupDivision: number | null;
+  nationsCupGroup: string | null;
+  nationsCupPoolSize: number;
   worldRank: number | null;
+  worldGameYear: number | null;
   continentalRank: number | null;
+  continentalGameYear: number | null;
+  juniorChampionshipRank: number | null;
+  cyclingSchoolCount: number;
+  teamUciRank: number | null;
+  riderUciRank: number | null;
 };
+
+const FUTURE_OBJECTIVE_VARIANTS = [
+  "naturalizations", "championships", "continental", "junior_championships",
+  "cycling_school", "team_uci", "rider_uci",
+] as const;
+
+export function getFederationSeasonObjectiveVariants(
+  countryId: string,
+  gameYear: number,
+): readonly [typeof FUTURE_OBJECTIVE_VARIANTS[number], typeof FUTURE_OBJECTIVE_VARIANTS[number]] {
+  const seed = Number.parseInt(countryId.slice(0, 2), 16) || 0;
+  const first = (seed + gameYear) % FUTURE_OBJECTIVE_VARIANTS.length;
+  return [
+    FUTURE_OBJECTIVE_VARIANTS[first],
+    FUTURE_OBJECTIVE_VARIANTS[(first + 3) % FUTURE_OBJECTIVE_VARIANTS.length],
+  ];
+}
 
 export function buildFederationObjectives(
   input: FederationObjectiveInput,
@@ -32,10 +61,16 @@ export function buildFederationObjectives(
     Math.max(1, Math.ceil(Math.max(1, input.referenceMemberTeamCount) / 4)),
   );
   const rankTarget = getInternationalRankTarget(input.nationRank);
-  const championshipRank = bestRank(input.worldRank, input.continentalRank);
+  const worldRank = input.worldGameYear === input.gameYear ? input.worldRank : null;
   const quadriennial = input.gameYear % 4 === 0;
+  const nationsCupTarget = Math.max(1, Math.min(5, Math.ceil(input.nationsCupPoolSize * 0.6)));
+  const nationsCupLocation = input.nationsCupDivision == null
+    ? "de la Nations Cup seniors"
+    : input.nationsCupGroup
+      ? `du groupe ${input.nationsCupGroup} (division ${input.nationsCupDivision}) de la Nations Cup seniors`
+      : `de la division ${input.nationsCupDivision} de la Nations Cup seniors`;
 
-  return [
+  const objectives: FederationObjective[] = [
     countObjective({
       id: "members",
       eyebrow: "Développement",
@@ -58,20 +93,22 @@ export function buildFederationObjectives(
     rankObjective({
       id: "international",
       eyebrow: quadriennial ? "Jeux quadriennaux" : "Nations Cup",
-      title: `Atteindre le top ${rankTarget} ${quadriennial ? "aux Jeux quadriennaux" : "à la Nations Cup"}`,
+      title: quadriennial
+        ? `Atteindre le top ${rankTarget} aux Jeux quadriennaux`
+        : `Atteindre le top ${nationsCupTarget} ${nationsCupLocation}`,
       detail: quadriennial
         ? "Le classement cumulé du programme professionnel quadriennal de J24 est retenu."
         : "Le classement cumulé des cinq épreuves professionnelles de J24 est retenu.",
-      currentRank: input.nationsCupRank,
-      targetRank: rankTarget,
+      currentRank: quadriennial ? input.nationsCupOverallRank : input.nationsCupRank,
+      targetRank: quadriennial ? rankTarget : nationsCupTarget,
     }),
     rankObjective({
       id: "championships",
-      eyebrow: "Grands championnats",
-      title: `Signer un top ${rankTarget} mondial ou continental`,
+      eyebrow: "Championnats du monde",
+      title: `Signer un top ${rankTarget} aux Championnats du monde`,
       detail:
-        "La meilleure performance individuelle enregistrée valide l’objectif.",
-      currentRank: championshipRank,
+        "Seule une performance individuelle des Mondiaux de la saison en cours valide l’objectif.",
+      currentRank: worldRank,
       targetRank: rankTarget,
     }),
     countObjective({
@@ -86,6 +123,68 @@ export function buildFederationObjectives(
       noun: "événements",
     }),
   ];
+
+  if (input.gameYear <= 3) return objectives;
+
+  const variants: Record<typeof FUTURE_OBJECTIVE_VARIANTS[number], FederationObjective> = {
+    naturalizations: objectives[1],
+    championships: objectives[3],
+    continental: rankObjective({
+      id: "continental",
+      eyebrow: "Championnats continentaux",
+      title: `Signer un top ${rankTarget} aux Championnats continentaux`,
+      detail: "Seuls les championnats continentaux de la saison en cours comptent.",
+      currentRank: input.continentalGameYear === input.gameYear ? input.continentalRank : null,
+      targetRank: rankTarget,
+    }),
+    junior_championships: rankObjective({
+      id: "junior_championships",
+      eyebrow: "Relève internationale",
+      title: `Signer un top ${rankTarget} aux CC ou CM juniors`,
+      detail: "La meilleure place junior des championnats continentaux ou mondiaux de cette saison compte.",
+      currentRank: input.juniorChampionshipRank,
+      targetRank: rankTarget,
+    }),
+    cycling_school: countObjective({
+      id: "cycling_school",
+      eyebrow: "Formation",
+      title: "Faire construire une école de cyclisme par une équipe affiliée",
+      detail: "Un centre de formation international achevé dans le pays pendant cette saison valide l’objectif.",
+      current: input.cyclingSchoolCount,
+      target: 1,
+      noun: "écoles",
+    }),
+    team_uci: rankObjective({
+      id: "team_uci",
+      eyebrow: "Classement UCI",
+      title: `Placer une équipe affiliée dans le top ${getTeamUciTarget(input.nationRank)} UCI`,
+      detail: "La meilleure place UCI d’une équipe affiliée pendant cette saison compte.",
+      currentRank: input.teamUciRank,
+      targetRank: getTeamUciTarget(input.nationRank),
+      emptyLabel: "Aucune équipe classée",
+    }),
+    rider_uci: rankObjective({
+      id: "rider_uci",
+      eyebrow: "Classement UCI",
+      title: `Placer un coureur national dans le top ${getRiderUciTarget(input.nationRank)} UCI`,
+      detail: "La meilleure place UCI individuelle d’un coureur national pendant cette saison compte.",
+      currentRank: input.riderUciRank,
+      targetRank: getRiderUciTarget(input.nationRank),
+      emptyLabel: "Aucun coureur classé",
+    }),
+  };
+  const [first, second] = getFederationSeasonObjectiveVariants(input.countryId, input.gameYear);
+  return [objectives[0], objectives[2], objectives[4], variants[first], variants[second]];
+}
+
+function getTeamUciTarget(nationRank: number | null): number {
+  return nationRank != null && nationRank <= 16 ? 20 : 35;
+}
+
+function getRiderUciTarget(nationRank: number | null): number {
+  if (nationRank != null && nationRank <= 16) return 50;
+  if (nationRank != null && nationRank <= 48) return 100;
+  return 200;
 }
 
 export function getFederationMemberTeamTarget(referenceCount: number): number {
@@ -131,7 +230,6 @@ function countObjective({
     completed,
   };
 }
-
 function rankObjective({
   id,
   eyebrow,
@@ -139,6 +237,7 @@ function rankObjective({
   detail,
   currentRank,
   targetRank,
+  emptyLabel = "Pas encore disputé",
 }: {
   id: FederationObjective["id"];
   eyebrow: string;
@@ -146,6 +245,7 @@ function rankObjective({
   detail: string;
   currentRank: number | null;
   targetRank: number;
+  emptyLabel?: string;
 }): FederationObjective {
   const completed = currentRank != null && currentRank <= targetRank;
   return {
@@ -153,7 +253,7 @@ function rankObjective({
     eyebrow,
     title,
     detail,
-    currentLabel: currentRank == null ? "Pas encore disputé" : `Meilleure place #${currentRank}`,
+    currentLabel: currentRank == null ? emptyLabel : `Meilleure place #${currentRank}`,
     targetLabel: `Top ${targetRank}`,
     progressPercentage:
       currentRank == null
@@ -163,9 +263,4 @@ function rankObjective({
           : Math.max(5, Math.min(99, Math.round((targetRank / currentRank) * 100))),
     completed,
   };
-}
-
-function bestRank(...ranks: Array<number | null>): number | null {
-  const available = ranks.filter((rank): rank is number => rank != null);
-  return available.length > 0 ? Math.min(...available) : null;
 }

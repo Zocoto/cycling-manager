@@ -131,7 +131,7 @@ describe("NationalFederationView", () => {
     );
     expect(markup).toContain("Objectifs fédéraux");
     expect(markup).toContain("Avoir 1 équipe dans la fédération");
-    expect(markup).toContain("1/5 validés");
+    expect(markup).toContain("0/5 validés");
     expect(markup).toContain("Derniers classements de la nation");
     expect(markup).toContain("Mondial sur route");
     expect(markup).not.toContain("Assistant fédéral");

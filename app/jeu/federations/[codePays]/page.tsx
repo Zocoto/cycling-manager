@@ -194,6 +194,8 @@ export default async function FederationPage({
           seasonId: snapshot.season.id,
           gameYear: snapshot.season.gameYear,
           currentMemberTeamCount: country.team_count ?? 0,
+          countryCode: country.country_code,
+          memberTeamIds: directory.members.teams.map((team) => team.entity_id),
         })
       : Promise.resolve(null),
     selectedTab === "overview"
@@ -228,7 +230,8 @@ export default async function FederationPage({
   ]);
 
   const completedFederationObjectiveCount = objectiveMetrics
-    ? buildFederationObjectives({
+      ? buildFederationObjectives({
+        countryId: country.entity_id,
         gameYear: Math.max(
           FEDERATION_MANAGEMENT_START_GAME_YEAR,
           snapshot.season.gameYear,
@@ -240,8 +243,18 @@ export default async function FederationPage({
         manuallySubmittedSelectionCount:
           objectiveMetrics.manuallySubmittedSelectionCount,
         nationsCupRank: objectiveMetrics.nationsCupRank,
+        nationsCupOverallRank: objectiveMetrics.nationsCupOverallRank,
+        nationsCupDivision: objectiveMetrics.nationsCupDivision,
+        nationsCupGroup: objectiveMetrics.nationsCupGroup,
+        nationsCupPoolSize: objectiveMetrics.nationsCupPoolSize,
         worldRank: internationalResults?.world?.rank ?? null,
+        worldGameYear: internationalResults?.world?.gameYear ?? null,
         continentalRank: internationalResults?.continental?.rank ?? null,
+        continentalGameYear: internationalResults?.continental?.gameYear ?? null,
+        juniorChampionshipRank: objectiveMetrics.juniorChampionshipRank,
+        cyclingSchoolCount: objectiveMetrics.cyclingSchoolCount,
+        teamUciRank: objectiveMetrics.teamUciRank,
+        riderUciRank: objectiveMetrics.riderUciRank,
       }).filter((objective) => objective.completed).length
     : 0;
 
