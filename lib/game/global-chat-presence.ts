@@ -9,6 +9,7 @@ export type GlobalChatOnlineDirector = {
   displayName: string;
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
+  rookieBadgeExpiresAt: string | null;
   country: {
     name: string;
     code: string;
@@ -28,6 +29,11 @@ type GlobalChatOnlineDirectorRow = {
   country_code?: unknown;
   team_id?: unknown;
   team_name?: unknown;
+};
+
+export type GlobalChatRookieStatusRow = {
+  sporting_director_id?: unknown;
+  badge_expires_at?: unknown;
 };
 
 export function shouldRecordGamePresence({
@@ -70,6 +76,7 @@ export function mapGlobalChatOnlineDirectorRows(
       avatarKey: row.avatar_key,
       avatarFrameKey:
         row.avatar_frame_key === "alpha_tester" ? row.avatar_frame_key : null,
+      rookieBadgeExpiresAt: null,
       country:
         typeof row.country_name === "string" &&
         typeof row.country_code === "string" &&
@@ -86,6 +93,29 @@ export function mapGlobalChatOnlineDirectorRows(
   }
 
   return directors;
+}
+
+export function applyGlobalChatRookieStatuses(
+  directors: readonly GlobalChatOnlineDirector[],
+  rows: readonly GlobalChatRookieStatusRow[],
+): GlobalChatOnlineDirector[] {
+  const expiryByDirectorId = new Map<string, string>();
+
+  for (const row of rows) {
+    if (
+      typeof row.sporting_director_id === "string" &&
+      typeof row.badge_expires_at === "string" &&
+      Number.isFinite(Date.parse(row.badge_expires_at))
+    ) {
+      expiryByDirectorId.set(row.sporting_director_id, row.badge_expires_at);
+    }
+  }
+
+  return directors.map((director) => ({
+    ...director,
+    rookieBadgeExpiresAt:
+      expiryByDirectorId.get(director.sportingDirectorId) ?? null,
+  }));
 }
 
 export function mergeGlobalChatOnlineDirectors({

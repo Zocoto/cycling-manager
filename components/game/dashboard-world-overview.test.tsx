@@ -111,6 +111,7 @@ function createRankings(): UciRankings {
         },
       },
     })),
+    rookies: [],
     riders: Array.from({ length: 10 }, (_, index) => ({
       rank: index + 1,
       riderId: `rider-${index + 1}`,
