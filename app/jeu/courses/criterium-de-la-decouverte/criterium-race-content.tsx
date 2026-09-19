@@ -161,6 +161,9 @@ export async function CriteriumDiscoveryRaceContent({
         countryCode: rider.country_iso_alpha2,
       }),
       isSelected: selectedIds.has(rider.rider_id),
+      currentRole:
+        run?.roster.find((entry) => entry.riderId === rider.rider_id)?.role ??
+        "auto",
       isAvailable: unavailability === null,
       unavailability,
       conflict: null,

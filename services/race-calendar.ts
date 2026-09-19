@@ -566,6 +566,7 @@ export type RaceRosterOption = {
   form: number;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
+  currentRole: RaceRole;
   isAvailable: boolean;
   unavailability: {
     type: "injury" | "form_camp" | "reconnaissance" | "race";
@@ -669,6 +670,7 @@ type RaceRosterOptionRow = {
   breakaway: number;
   current_form: number | string;
   is_selected: boolean;
+  current_race_role: RaceRole;
   is_available: boolean;
   unavailability_type:
     "injury" | "form_camp" | "reconnaissance" | "race" | null;
@@ -2002,6 +2004,7 @@ export async function getCurrentTeamRaceRosterOptions(
       countryCode: rider.country_iso_alpha2,
     }),
     isSelected: rider.is_selected,
+    currentRole: rider.current_race_role,
     isAvailable: rider.is_available,
     unavailability:
       rider.unavailability_type && rider.unavailability_label

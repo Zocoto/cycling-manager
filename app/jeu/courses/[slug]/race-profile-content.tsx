@@ -1023,19 +1023,26 @@ function RegistrationPanel({
             </summary>
             <div className="border-t border-white/10 px-4 pb-5 pt-2">
               <p className="text-xs font-semibold leading-5 text-[#D6DFD2]">
-                Ajoutez ou retirez des coureurs avant le gel de la startlist.
-                L’inscription et les réglages des coureurs conservés ne changent pas.
+                Ajoutez ou retirez des coureurs et réattribuez leurs rôles avant
+                le gel de la startlist. Les réglages propres à chaque étape
+                restent inchangés.
               </p>
               <form action={updateRaceRosterAction}>
                 <input type="hidden" name="editionId" value={edition.id} />
                 <input type="hidden" name="slug" value={edition.slug} />
                 {selectedRiders.map((rider) => (
-                  <input
-                    key={rider.riderId}
-                    type="hidden"
-                    name="expectedRiderIds"
-                    value={rider.riderId}
-                  />
+                  <span key={rider.riderId} className="hidden">
+                    <input
+                      type="hidden"
+                      name="expectedRiderIds"
+                      value={rider.riderId}
+                    />
+                    <input
+                      type="hidden"
+                      name="expectedRiderRoles"
+                      value={`${rider.riderId}:${rider.currentRole}`}
+                    />
+                  </span>
                 ))}
                 <RaceRosterSelector
                   riders={riders}
@@ -1044,8 +1051,9 @@ function RegistrationPanel({
                   jersey={riderJersey}
                   isStageRace={edition.raceFormat === "stage_race"}
                   selectionOnly
+                  allowRoleEditing
                   lockedRiderIds={publishedLeaderRiderIds}
-                  submitLabel="Enregistrer la composition"
+                  submitLabel="Enregistrer la composition et les rôles"
                 />
               </form>
             </div>

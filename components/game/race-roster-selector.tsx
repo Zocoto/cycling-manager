@@ -30,6 +30,7 @@ type RaceRosterSelectorProps = {
   isStageRace: boolean;
   lockInitiallySelected?: boolean;
   selectionOnly?: boolean;
+  allowRoleEditing?: boolean;
   lockedRiderIds?: readonly string[];
   submitLabel?: string;
   showRoleGuide?: boolean;
@@ -131,6 +132,7 @@ export function RaceRosterSelector({
   isStageRace,
   lockInitiallySelected = false,
   selectionOnly = false,
+  allowRoleEditing = false,
   lockedRiderIds = [],
   submitLabel,
   showRoleGuide = false,
@@ -149,7 +151,14 @@ export function RaceRosterSelector({
     [lockedRiderIds],
   );
   const [selectedIds, setSelectedIds] = useState<string[]>(initiallySelectedIds);
-  const [roles, setRoles] = useState<Record<string, RaceRole>>({});
+  const initialRoles = useMemo(
+    () =>
+      Object.fromEntries(
+        riders.map((rider) => [rider.riderId, rider.currentRole]),
+      ) as Record<string, RaceRole>,
+    [riders],
+  );
+  const [roles, setRoles] = useState<Record<string, RaceRole>>(initialRoles);
   const [sortKey, setSortKey] = useState<RaceRosterSortKey>("roster");
   const [sortDirection, setSortDirection] =
     useState<RaceRosterSortDirection>("descending");
@@ -191,6 +200,10 @@ export function RaceRosterSelector({
   const hasSelectionChanged =
     selectedIds.length !== initiallySelectedIds.length ||
     selectedIds.some((riderId) => !initiallySelectedSet.has(riderId));
+  const hasRoleChanged = selectedIds.some(
+    (riderId) =>
+      (roles[riderId] ?? "auto") !== (initialRoles[riderId] ?? "auto"),
+  );
   const addedCount = selectedIds.filter(
     (riderId) => !initiallySelectedSet.has(riderId),
   ).length;
@@ -199,7 +212,8 @@ export function RaceRosterSelector({
   ).length;
   const selectionIsValid =
     rosterSizeIsValid &&
-    (selectionOnly ? hasSelectionChanged : uniqueRolesAreValid);
+    uniqueRolesAreValid &&
+    (selectionOnly ? hasSelectionChanged || hasRoleChanged : true);
 
   function toggleRider(riderId: string) {
     if (lockInitiallySelected && initiallySelectedSet.has(riderId)) return;
@@ -442,7 +456,7 @@ export function RaceRosterSelector({
                 </p>
               ) : null}
 
-              {isSelected && !selectionOnly ? (
+              {isSelected && (!selectionOnly || allowRoleEditing) ? (
                 <div className="ml-7 mt-3 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
                   {isLockedSelection ? (
                     <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#BFD1C6]">
@@ -527,9 +541,10 @@ export function RaceRosterSelector({
       <div
         data-tutorial-id={tutorialIds?.submit}
       >
-        {selectionOnly && hasSelectionChanged ? (
+        {selectionOnly && (hasSelectionChanged || hasRoleChanged) ? (
           <p className="mt-4 text-center text-xs font-bold text-[#D6DFD2]" aria-live="polite">
             {addedCount} ajouté{addedCount > 1 ? "s" : ""} · {removedCount} retiré{removedCount > 1 ? "s" : ""}
+            {hasRoleChanged ? " · rôles modifiés" : ""}
           </p>
         ) : null}
         <SubmitRosterButton
@@ -540,7 +555,9 @@ export function RaceRosterSelector({
       </div>
       <p className="mt-3 text-center text-[11px] font-semibold leading-5 text-[#9FB5A8]">
         {selectionOnly
-          ? "Les coureurs conservés gardent leurs rôles et leurs préparations. Les nouveaux coureurs arrivent sans rôle attribué."
+          ? allowRoleEditing
+            ? "Les rôles choisis ici deviennent les rôles généraux de la course. Les réglages propres à chaque étape restent modifiables dans la préparation."
+            : "Les coureurs conservés gardent leurs rôles et leurs préparations. Les nouveaux coureurs arrivent sans rôle attribué."
           : lockInitiallySelected
           ? "Les coureurs toujours engagés restent verrouillés ; seuls les renforts nécessaires sont ajoutés."
           : "Après validation, la composition restera ajustable jusqu’au gel de la startlist."}

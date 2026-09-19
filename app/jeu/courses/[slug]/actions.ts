@@ -138,12 +138,28 @@ export async function updateRaceRosterAction(formData: FormData) {
   const validExpectedIds = expectedRiderIds.every(
     (value): value is string => typeof value === "string" && isUuid(value),
   );
+  const submittedRoles = readSubmittedRoles(formData);
+  const expectedRoles = readSubmittedRoles(formData, "expectedRiderRoles");
+  const roster = validRiderIds
+    ? riderIds.map((riderId) => ({
+        riderId,
+        role: submittedRoles.get(riderId),
+      }))
+    : [];
+  const expectedRoster = validExpectedIds
+    ? expectedRiderIds.map((riderId) => ({
+        riderId,
+        role: expectedRoles.get(riderId),
+      }))
+    : [];
 
   if (
     !isUuid(editionId) ||
     !isSlug(slug) ||
     !validRiderIds ||
-    !validExpectedIds
+    !validExpectedIds ||
+    roster.some((entry) => !entry.role) ||
+    expectedRoster.some((entry) => !entry.role)
   ) {
     redirectWithError(
       isSlug(slug) ? `/jeu/courses/${slug}#inscription` : "/jeu/calendrier",
@@ -158,11 +174,14 @@ export async function updateRaceRosterAction(formData: FormData) {
   } = await supabase.auth.getUser();
   if (authenticationError || !user) redirect("/connexion");
 
-  const { error } = await supabase.rpc("update_current_team_race_roster", {
-    p_race_edition_id: editionId,
-    p_rider_ids: riderIds,
-    p_expected_rider_ids: expectedRiderIds,
-  });
+  const { error } = await supabase.rpc(
+    "update_current_team_race_roster_with_roles",
+    {
+      p_race_edition_id: editionId,
+      p_roster: roster,
+      p_expected_roster: expectedRoster,
+    },
+  );
 
   if (error) {
     redirectWithError(`/jeu/courses/${slug}#inscription`, error.message);

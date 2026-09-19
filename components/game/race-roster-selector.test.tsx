@@ -32,6 +32,7 @@ const rider = {
   form: 87.5,
   climateProfile: { strength: "sun", weakness: "rain" },
   isSelected: false,
+  currentRole: "auto",
   isAvailable: true,
   unavailability: null,
   conflict: null,
@@ -63,16 +64,17 @@ describe("RaceRosterSelector", () => {
     expect(markup).toContain("malus de 1,25 point");
   });
 
-  it("prépare une modification de sélection sans réinitialiser les rôles conservés", () => {
+  it("permet de modifier la sélection et les rôles existants dans le même formulaire", () => {
     const markup = renderToStaticMarkup(
       <form>
         <RaceRosterSelector
-          riders={[{ ...rider, isSelected: true, isAvailable: false }]}
+          riders={[{ ...rider, isSelected: true, isAvailable: false, currentRole: "leader" }]}
           minimum={1}
           maximum={2}
           jersey={FREE_AGENT_RIDER_JERSEY}
           isStageRace={true}
           selectionOnly
+          allowRoleEditing
           submitLabel="Enregistrer la composition"
         />
       </form>,
@@ -80,8 +82,9 @@ describe("RaceRosterSelector", () => {
 
     expect(markup).toContain('name="riderIds"');
     expect(markup).toContain("checked");
-    expect(markup).not.toContain("Rôle en course");
-    expect(markup).toContain("Les coureurs conservés gardent leurs rôles");
+    expect(markup).toContain("Rôle en course");
+    expect(markup).toContain(`${rider.riderId}:leader`);
+    expect(markup).toContain("rôles généraux de la course");
     expect(markup).toContain("disabled");
   });
 
