@@ -3,16 +3,10 @@
 import { useState } from "react";
 
 import { appConfig } from "@/lib/app-config";
-import {
-  formatWelcomeOfferCash,
-  formatWelcomeOfferDeadline,
-  type PublicWelcomeOffer,
-} from "@/lib/marketing/welcome-offer";
 
 type ReferralShareControlsProps = {
   inviteUrl: string;
   code: string;
-  welcomeOffer?: PublicWelcomeOffer | null;
 };
 
 type ReferralShareDestination = "whatsapp" | "facebook" | "email";
@@ -23,10 +17,8 @@ export const REFERRAL_SHARE_TEXT =
 export function ReferralShareControls({
   inviteUrl,
   code,
-  welcomeOffer = null,
 }: ReferralShareControlsProps) {
   const absoluteInviteUrl = new URL(inviteUrl, appConfig.siteUrl).toString();
-  const shareText = buildReferralShareText(welcomeOffer);
   const [copiedTarget, setCopiedTarget] = useState<"link" | "message" | null>(
     null,
   );
@@ -37,7 +29,7 @@ export function ReferralShareControls({
 
   async function copyMessage() {
     await copyToClipboard(
-      `${shareText}\n\n${absoluteInviteUrl}`,
+      `${REFERRAL_SHARE_TEXT}\n\n${absoluteInviteUrl}`,
       "message",
     );
   }
@@ -56,7 +48,7 @@ export function ReferralShareControls({
       try {
         await navigator.share({
           title: "Rejoins-moi sur Cyclo Stratège",
-          text: shareText,
+          text: REFERRAL_SHARE_TEXT,
           url: absoluteInviteUrl,
         });
       } catch (error) {
@@ -109,25 +101,17 @@ export function ReferralShareControls({
 
       <div className="mt-3 flex flex-wrap gap-2">
         <ShareDestinationLink
-          href={buildReferralShareHref(
-            "whatsapp",
-            absoluteInviteUrl,
-            shareText,
-          )}
+          href={buildReferralShareHref("whatsapp", absoluteInviteUrl)}
           label="WhatsApp"
           shortLabel="WA"
         />
         <ShareDestinationLink
-          href={buildReferralShareHref(
-            "facebook",
-            absoluteInviteUrl,
-            shareText,
-          )}
+          href={buildReferralShareHref("facebook", absoluteInviteUrl)}
           label="Facebook"
           shortLabel="f"
         />
         <ShareDestinationLink
-          href={buildReferralShareHref("email", absoluteInviteUrl, shareText)}
+          href={buildReferralShareHref("email", absoluteInviteUrl)}
           label="E-mail"
           shortLabel="@"
           newTab={false}
@@ -183,10 +167,9 @@ function ShareDestinationLink({
 export function buildReferralShareHref(
   destination: ReferralShareDestination,
   inviteUrl: string,
-  message: string = REFERRAL_SHARE_TEXT,
 ): string {
   const encodedUrl = encodeURIComponent(inviteUrl);
-  const encodedMessage = encodeURIComponent(message);
+  const encodedMessage = encodeURIComponent(REFERRAL_SHARE_TEXT);
 
   if (destination === "whatsapp") {
     return `https://wa.me/?text=${encodedMessage}%20${encodedUrl}`;
@@ -198,24 +181,10 @@ export function buildReferralShareHref(
 
   const subject = encodeURIComponent("Rejoins-moi sur Cyclo Stratège");
   const body = encodeURIComponent(
-    `${message}\n\n${inviteUrl}`,
+    `${REFERRAL_SHARE_TEXT}\n\n${inviteUrl}`,
   );
 
   return `mailto:?subject=${subject}&body=${body}`;
-}
-
-export function buildReferralShareText(
-  welcomeOffer: PublicWelcomeOffer | null,
-) {
-  if (!welcomeOffer) return REFERRAL_SHARE_TEXT;
-
-  const totalCash = formatWelcomeOfferCash(
-    welcomeOffer.totalStartingCash,
-    "fr",
-  );
-  const deadline = formatWelcomeOfferDeadline(welcomeOffer.endsAt, "fr");
-
-  return `${REFERRAL_SHARE_TEXT} En ce moment, les nouveaux DS démarrent avec ${totalCash} et un scout niveau ${welcomeOffer.scoutLevel}. Offre valable jusqu’au ${deadline}.`;
 }
 
 function CopyIcon() {

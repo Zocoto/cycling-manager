@@ -4,21 +4,15 @@ import Link from "@/components/ui/app-link";
 
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
-import { appConfig } from "@/lib/app-config";
 import { WheelLogo } from "../ui/wheel-logo";
 
 export function PublicHeader() {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const navigationItems = [
-    { label: isEnglish ? "Home" : "Accueil", href: "/", external: false },
-    { label: "Guide", href: "/guide", external: false },
-    {
-      label: isEnglish ? "About" : "À propos",
-      href: "/a-propos",
-      external: false,
-    },
-    { label: "Discord", href: appConfig.discordUrl, external: true },
+    [isEnglish ? "Home" : "Accueil", "/"],
+    ["Guide", "/guide"],
+    [isEnglish ? "About" : "À propos", "/a-propos"],
   ] as const;
 
   return (
@@ -72,27 +66,15 @@ export function PublicHeader() {
           aria-label={isEnglish ? "Main navigation" : "Navigation principale"}
           className="hidden items-center gap-2 lg:flex"
         >
-          {navigationItems.map((item) =>
-            item.external ? (
-              <a
-                key={item.href}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-md px-4 py-2 text-sm font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-4 py-2 text-sm font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+          {navigationItems.map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-md px-4 py-2 text-sm font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -133,27 +115,15 @@ export function PublicHeader() {
           aria-label={isEnglish ? "Mobile navigation" : "Navigation mobile"}
           className="mx-auto flex max-w-375 items-center justify-center gap-1"
         >
-          {navigationItems.map((item) =>
-            item.external ? (
-              <a
-                key={item.href}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C]"
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C]"
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+          {navigationItems.map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C]"
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>

@@ -2,15 +2,12 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 
 import { RegistrationForm } from "../../../components/auth/registration-form";
-import { WelcomeOfferSpotlight } from "@/components/public/welcome-offer-spotlight";
-import { getRequestLocale } from "@/lib/i18n/server";
 import {
   readMarketingAttribution,
   type MarketingSearchParams,
 } from "../../../lib/marketing/attribution";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getPublicReferralInvitation } from "../../../services/referrals";
-import { getActivePublicWelcomeOffer } from "@/services/public-welcome-offer";
 
 export const metadata: Metadata = {
   title: "Inscription",
@@ -49,13 +46,9 @@ export default async function RegistrationPage({
     resolvedSearchParams,
   );
   const supabase = await createSupabaseServerClient();
-  const [invitation, welcomeOffer, locale] = await Promise.all([
-    referralCode
-      ? getPublicReferralInvitation(supabase, referralCode)
-      : Promise.resolve(null),
-    getActivePublicWelcomeOffer(),
-    getRequestLocale(),
-  ]);
+  const invitation = referralCode
+    ? await getPublicReferralInvitation(supabase, referralCode)
+    : null;
 
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
@@ -105,14 +98,6 @@ export default async function RegistrationPage({
             à bâtir un projet sportif capable de s’imposer sur les plus
             grandes routes.
           </p>
-
-          {welcomeOffer ? (
-            <WelcomeOfferSpotlight
-              offer={welcomeOffer}
-              locale={locale}
-              placement="registration"
-            />
-          ) : null}
 
           <ul className="mt-9 space-y-4">
             {benefits.map((benefit) => (

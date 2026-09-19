@@ -20,13 +20,6 @@ describe("page d’accueil publique", () => {
     expect(source).not.toContain("function FolderIcon");
   });
 
-  it("affiche dynamiquement le cadeau et l’appel communautaire", () => {
-    expect(source).toContain("getActivePublicWelcomeOffer");
-    expect(source).toContain("<WelcomeOfferSpotlight");
-    expect(source).toContain('placement="homepage"');
-    expect(source).toContain("<CommunityRecruitment");
-  });
-
   it("utilise une description de partage intemporelle", () => {
     expect(source).toContain(
       'import sharingImage from "../opengraph-image.png"',

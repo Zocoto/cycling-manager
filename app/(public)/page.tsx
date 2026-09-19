@@ -5,14 +5,10 @@ import Link from "@/components/ui/app-link";
 import sharingImage from "../opengraph-image.png";
 
 import { PublicGameNewsBoard } from "@/components/public/public-game-news-board";
-import { CommunityRecruitment } from "@/components/public/community-recruitment";
-import { WelcomeOfferSpotlight } from "@/components/public/welcome-offer-spotlight";
 import { InstallAppBanner } from "@/components/pwa/install-app-banner";
 import { getPublicGameNews } from "@/services/public-game-news";
-import { getActivePublicWelcomeOffer } from "@/services/public-welcome-offer";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
-import type { PublicWelcomeOffer } from "@/lib/marketing/welcome-offer";
 
 export const revalidate = 60;
 
@@ -303,29 +299,19 @@ const productNewsEn = [
 
 export default async function HomePage() {
   const locale = await getRequestLocale();
-  const [gameNews, welcomeOffer] = await Promise.all([
-    getPublicGameNews(),
-    getActivePublicWelcomeOffer(),
-  ]);
+  const gameNews = await getPublicGameNews();
 
   return (
     <>
       <InstallAppBanner />
-      <HeroSection locale={locale} welcomeOffer={welcomeOffer} />
+      <HeroSection locale={locale} />
       <PublicGameNewsBoard snapshot={gameNews} />
-      <CommunityRecruitment locale={locale} />
       <CareerSection locale={locale} />
     </>
   );
 }
 
-function HeroSection({
-  locale,
-  welcomeOffer,
-}: {
-  locale: AppLocale;
-  welcomeOffer: PublicWelcomeOffer | null;
-}) {
+function HeroSection({ locale }: { locale: AppLocale }) {
   const isEnglish = locale === "en";
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
@@ -370,14 +356,6 @@ function HeroSection({
             {isEnglish ? "the peloton." : "du peloton."}
           </span>
         </h1>
-
-        {welcomeOffer ? (
-          <WelcomeOfferSpotlight
-            offer={welcomeOffer}
-            locale={locale}
-            placement="homepage"
-          />
-        ) : null}
 
         <ProductNews locale={locale} />
       </div>
