@@ -2183,6 +2183,43 @@ function OnlineDirectorsContent({
   onDirectMessage: (recipientId: string) => void;
   onClose?: () => void;
 }) {
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const [scrollAvailability, setScrollAvailability] = useState({
+    up: false,
+    down: false,
+  });
+
+  const refreshScrollAvailability = useCallback(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return;
+
+    const maxScrollTop = viewport.scrollHeight - viewport.clientHeight;
+    setScrollAvailability({
+      up: viewport.scrollTop > 4,
+      down: maxScrollTop - viewport.scrollTop > 4,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return;
+
+    refreshScrollAvailability();
+    const resizeObserver = new ResizeObserver(refreshScrollAvailability);
+    resizeObserver.observe(viewport);
+    return () => resizeObserver.disconnect();
+  }, [directors.length, refreshScrollAvailability]);
+
+  const scrollOnlineDirectors = useCallback((direction: -1 | 1) => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return;
+
+    viewport.scrollBy({
+      top: direction * Math.max(144, viewport.clientHeight * 0.72),
+      behavior: "smooth",
+    });
+  }, []);
+
   return (
     <>
       <header className="shrink-0 border-b border-white/10 px-5 py-5">
@@ -2215,64 +2252,90 @@ function OnlineDirectorsContent({
         ) : null}
       </header>
 
-      <div
-        aria-label="Liste des Directeurs Sportifs en ligne"
-        className="flex min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain p-3 [scrollbar-width:thin] lg:flex-1"
-        role="region"
-        tabIndex={0}
-      >
-        {directors.map((director) => {
-          const isCurrent = director.sportingDirectorId === currentDirectorId;
-          return (
-            <div
-              key={director.sportingDirectorId}
-              className="group flex min-w-0 shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/8"
-            >
-              <Link
-                href={director.teamHref}
-                className="flex min-w-0 flex-1 items-center gap-3"
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        <div
+          ref={scrollViewportRef}
+          aria-label="Liste des Directeurs Sportifs en ligne"
+          className="flex min-h-0 flex-1 touch-pan-y flex-col gap-1 overflow-y-scroll overscroll-y-contain p-3 pr-5 [scrollbar-color:#72D4B7_#0B2521] [scrollbar-gutter:stable] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]"
+          data-online-directors-scroll="true"
+          onScroll={refreshScrollAvailability}
+          role="region"
+          tabIndex={0}
+        >
+          {directors.map((director) => {
+            const isCurrent = director.sportingDirectorId === currentDirectorId;
+            return (
+              <div
+                key={director.sportingDirectorId}
+                className="group flex min-w-0 shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/8"
               >
-                <span className="relative shrink-0">
-                  <SportingDirectorAvatar
-                    avatarKey={director.avatarKey}
-                    frameKey={director.avatarFrameKey}
-                    size="small"
-                    label={`Avatar de ${director.displayName}`}
-                  />
-                  <span
-                    aria-label="En ligne"
-                    className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#071A17] bg-[#42B99A]"
-                  />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="min-w-0 truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
-                      {isCurrent ? "Vous" : director.displayName}
-                    </span>
-                    <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#72D4B7]">
-                      Online
-                    </span>
-                  </span>
-                  <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#8FA99D]">
-                    {director.teamName}
-                  </span>
-                </span>
-              </Link>
-              {!isCurrent ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onDirectMessage(director.sportingDirectorId)
-                  }
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[9px] font-black text-[#72D4B7] transition hover:border-[#F2C94C]/40 hover:text-[#F2C94C]"
-                  aria-label={`Envoyer un message privé à ${director.displayName}`}
+                <Link
+                  href={director.teamHref}
+                  className="flex min-w-0 flex-1 items-center gap-3"
                 >
-                  MP
-                </button>
-              ) : null}
-            </div>
-          );
-        })}
+                  <span className="relative shrink-0">
+                    <SportingDirectorAvatar
+                      avatarKey={director.avatarKey}
+                      frameKey={director.avatarFrameKey}
+                      size="small"
+                      label={`Avatar de ${director.displayName}`}
+                    />
+                    <span
+                      aria-label="En ligne"
+                      className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#071A17] bg-[#42B99A]"
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
+                        {isCurrent ? "Vous" : director.displayName}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#72D4B7]">
+                        Online
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#8FA99D]">
+                      {director.teamName}
+                    </span>
+                  </span>
+                </Link>
+                {!isCurrent ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onDirectMessage(director.sportingDirectorId)
+                    }
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[9px] font-black text-[#72D4B7] transition hover:border-[#F2C94C]/40 hover:text-[#F2C94C]"
+                    aria-label={`Envoyer un message privé à ${director.displayName}`}
+                  >
+                    MP
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+
+        {scrollAvailability.up ? (
+          <button
+            type="button"
+            onClick={() => scrollOnlineDirectors(-1)}
+            className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full border border-white/15 bg-[#0B302B]/95 text-sm font-black text-[#72D4B7] shadow-lg backdrop-blur transition hover:text-[#F2C94C]"
+            aria-label="Voir les Directeurs Sportifs précédents"
+          >
+            ↑
+          </button>
+        ) : null}
+        {scrollAvailability.down ? (
+          <button
+            type="button"
+            onClick={() => scrollOnlineDirectors(1)}
+            className="absolute bottom-2 right-3 grid h-8 w-8 place-items-center rounded-full border border-white/15 bg-[#0B302B]/95 text-sm font-black text-[#72D4B7] shadow-lg backdrop-blur transition hover:text-[#F2C94C]"
+            aria-label="Voir les Directeurs Sportifs suivants"
+          >
+            ↓
+          </button>
+        ) : null}
       </div>
     </>
   );

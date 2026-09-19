@@ -49,8 +49,13 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain('className="absolute inset-x-0 bottom-0 flex max-h-[72dvh] min-h-0 flex-col');
     expect(chat).toContain('aria-label="Liste des Directeurs Sportifs en ligne"');
     expect(chat).toContain("Faites défiler pour voir les");
-    expect(chat).toContain("flex min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain");
-    expect(chat).toContain("lg:flex-1");
+    expect(chat).toContain('data-online-directors-scroll="true"');
+    expect(chat).toContain("touch-pan-y");
+    expect(chat).toContain("overflow-y-scroll");
+    expect(chat).toContain("[-webkit-overflow-scrolling:touch]");
+    expect(chat).toContain("scrollOnlineDirectors");
+    expect(chat).toContain("Voir les Directeurs Sportifs précédents");
+    expect(chat).toContain("Voir les Directeurs Sportifs suivants");
     expect(chat).toContain("group flex min-w-0 shrink-0 items-center");
   });
 
