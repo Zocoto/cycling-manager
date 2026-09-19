@@ -1,13 +1,15 @@
 import Link from "@/components/ui/app-link";
 
-import { registerDevelopmentRaceAction } from "@/app/jeu/centre-de-formation/development-actions";
 import type {
   DevelopmentRace,
-  DevelopmentRaceProfile,
   DevelopmentRaceResult,
   DevelopmentRider,
   DevelopmentTeamOverview,
 } from "@/services/development-team";
+import {
+  DEVELOPMENT_RACE_PROFILE_LABELS,
+  getDevelopmentMixedProfileDetail,
+} from "@/lib/game/development-race-profile";
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
@@ -25,7 +27,7 @@ import {
 import { DevelopmentTeamBuilder } from "./development-team-builder";
 import { DevelopmentTeamJerseyEditor } from "./development-team-jersey-editor";
 import { DevelopmentTeamRosterEditor } from "./development-team-roster-editor";
-import { DevelopmentRiderVisibleProfile } from "./development-rider-visible-profile";
+import { DevelopmentRaceSelectionForm } from "./development-race-selection-form";
 import { RiderAvatar } from "./rider-avatar";
 
 export type DevelopmentTeamView =
@@ -33,16 +35,6 @@ export type DevelopmentTeamView =
   | "calendrier"
   | "resultats"
   | "maillot";
-
-const PROFILE_LABELS: Record<DevelopmentRaceProfile, string> = {
-  flat: "Plaine",
-  sprint: "Sprint",
-  hilly: "Vallonné",
-  mountain: "Montagne",
-  cobbles: "Pavés",
-  time_trial: "Contre-la-montre",
-  mixed: "Mixte",
-};
 
 export function DevelopmentTeamPanel({
   overview,
@@ -302,6 +294,7 @@ function RaceRegistrationCard({
   const eligibleRiders = overview.roster.filter((rider) =>
     isRiderEligibleForDevelopmentRace(rider, race),
   );
+  const mixedProfileDetail = getDevelopmentMixedProfileDetail(race);
   return (
     <article id={`dev-race-${race.id}`} className="scroll-mt-20 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white shadow-sm">
       <div className="grid gap-4 p-4 lg:grid-cols-[100px_minmax(0,1fr)_auto] lg:items-center sm:p-5">
@@ -316,18 +309,25 @@ function RaceRegistrationCard({
             {race.isWorldChampionship ? <Badge tone="world">Mondial junior</Badge> : null}
             {race.competitionType.startsWith("national_") ? <Badge tone="national">CN junior</Badge> : null}
             {race.raceFormat === "stage_race" ? <Badge tone="tour">Mini-tour</Badge> : null}
-            <Badge tone="profile">{PROFILE_LABELS[race.profileType]}</Badge>
+            <Badge tone="profile">
+              {DEVELOPMENT_RACE_PROFILE_LABELS[race.profileType]}
+            </Badge>
           </div>
           <h3 className="mt-2 text-xl font-black text-[#183F37]">{race.name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#60756E]">
             <span className={`fi fi-${race.countryCode.toLowerCase()} mr-2 rounded-sm`} />
             {race.locationName} · {race.stages.length} étape{race.stages.length > 1 ? "s" : ""} · sélection {race.selectionMinimum}–{race.selectionMaximum}
           </p>
+          {mixedProfileDetail ? (
+            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.06em] text-[#176951]">
+              {mixedProfileDetail}
+            </p>
+          ) : null}
           {race.stages.length > 1 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {race.stages.map((stage) => (
                 <span key={stage.id} className="rounded-full bg-[#F4F7F5] px-2 py-1 text-[9px] font-bold text-[#60756E]">
-                  J{stage.dayNumber} · {PROFILE_LABELS[stage.profileType]} · {stage.distanceKm} km
+                  J{stage.dayNumber} · {DEVELOPMENT_RACE_PROFILE_LABELS[stage.profileType]} · {stage.distanceKm} km
                 </span>
               ))}
             </div>
@@ -345,35 +345,15 @@ function RaceRegistrationCard({
           <summary className="cursor-pointer px-5 py-3 text-xs font-black text-[#176951]">
             {race.registration ? "Modifier la sélection" : "Composer la sélection"}
           </summary>
-          <form action={registerDevelopmentRaceAction} className="border-t border-[#315B3E]/8 p-4 sm:p-5">
-            <input type="hidden" name="raceEditionId" value={race.id} />
-            <div className="grid gap-3 lg:grid-cols-2">
-              {eligibleRiders.map((rider) => (
-                <label key={rider.id} className="relative block cursor-pointer rounded-2xl border border-[#315B3E]/12 bg-white p-4 transition hover:border-[#176951]/45">
-                  <input
-                    type="checkbox"
-                    name="riderIds"
-                    value={rider.id}
-                    defaultChecked={selectedIds.has(rider.id)}
-                    className="absolute right-4 top-4 z-10 h-5 w-5 accent-[#176951]"
-                  />
-                  <DevelopmentRiderVisibleProfile
-                    rider={rider}
-                    jersey={getDevelopmentRiderJersey(rider, overview.team!.jersey)}
-                    avatarClassName="h-12 w-12"
-                  />
-                </label>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs font-semibold text-[#60756E]">
-                Entre {race.selectionMinimum} et {race.selectionMaximum} coureurs · clôture au début de J{race.startDayNumber}
-              </p>
-              <button type="submit" className="min-h-11 rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.08em] text-white">
-                Enregistrer l’engagement
-              </button>
-            </div>
-          </form>
+          <DevelopmentRaceSelectionForm
+            raceEditionId={race.id}
+            riders={eligibleRiders}
+            initialSelectedRiderIds={race.registration?.riderIds ?? []}
+            selectionMinimum={race.selectionMinimum}
+            selectionMaximum={race.selectionMaximum}
+            startDayNumber={race.startDayNumber}
+            teamJersey={overview.team!.jersey}
+          />
         </details>
       ) : race.registration ? (
         <div className="flex flex-wrap gap-2 border-t border-[#315B3E]/10 bg-[#FAFCFB] px-5 py-3">
@@ -466,7 +446,7 @@ function RaceResultsBlock({
           <div>
             <div className="flex flex-wrap gap-2">
               <Badge tone={race.isWorldChampionship || race.competitionType.startsWith("continental_") ? "world" : race.raceFormat === "stage_race" ? "tour" : "profile"}>
-                {race.isWorldChampionship ? "Mondial" : race.competitionType.startsWith("continental_") ? "CC junior" : race.raceFormat === "stage_race" ? "Mini-tour" : PROFILE_LABELS[race.profileType]}
+                {race.isWorldChampionship ? "Mondial" : race.competitionType.startsWith("continental_") ? "CC junior" : race.raceFormat === "stage_race" ? "Mini-tour" : DEVELOPMENT_RACE_PROFILE_LABELS[race.profileType]}
               </Badge>
               <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#789087]">
                 {race.status === "completed"
@@ -583,14 +563,39 @@ function CalendarPreview({ races }: { races: DevelopmentRace[] }) {
       <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} épreuves accessibles à la DevTeam. Les CM et CC sont gérés par les fédérations et restent consultables dans Résultats.`} />
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {races.map((race) => (
-          <div key={race.id} className="rounded-xl border border-[#315B3E]/10 bg-[#FAFCFB] p-3">
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#278B70]">J{race.startDayNumber}{race.endDayNumber !== race.startDayNumber ? `–${race.endDayNumber}` : ""}</p>
-            <p className="mt-1 text-xs font-black text-[#183F37]">{race.shortName}</p>
-            <p className="mt-1 text-[9px] font-bold text-[#789087]">{race.isWorldChampionship ? "Championnat du monde" : race.competitionType.startsWith("national_") ? "Championnat national" : race.raceFormat === "stage_race" ? `${race.stages.length} étapes · Mini-GT` : PROFILE_LABELS[race.profileType]}</p>
-          </div>
+          <CalendarPreviewRace key={race.id} race={race} />
         ))}
       </div>
     </section>
+  );
+}
+
+function CalendarPreviewRace({ race }: { race: DevelopmentRace }) {
+  const mixedProfileDetail = getDevelopmentMixedProfileDetail(race);
+  return (
+    <div className="rounded-xl border border-[#315B3E]/10 bg-[#FAFCFB] p-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#278B70]">
+        J{race.startDayNumber}
+        {race.endDayNumber !== race.startDayNumber
+          ? `–${race.endDayNumber}`
+          : ""}
+      </p>
+      <p className="mt-1 text-xs font-black text-[#183F37]">{race.shortName}</p>
+      <p className="mt-1 text-[9px] font-bold text-[#789087]">
+        {race.isWorldChampionship
+          ? "Championnat du monde"
+          : race.competitionType.startsWith("national_")
+            ? "Championnat national"
+            : race.raceFormat === "stage_race"
+              ? `${race.stages.length} étapes · Mini-GT`
+              : DEVELOPMENT_RACE_PROFILE_LABELS[race.profileType]}
+      </p>
+      {mixedProfileDetail ? (
+        <p className="mt-1 text-[8px] font-bold leading-4 text-[#176951]">
+          {mixedProfileDetail}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
