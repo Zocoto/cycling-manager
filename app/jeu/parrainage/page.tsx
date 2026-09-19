@@ -13,6 +13,7 @@ import { getPublicSiteUrl } from "@/lib/auth/public-site-url";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getActivePublicWelcomeOffer } from "@/services/public-welcome-offer";
 import { getCurrentReferralOverview } from "@/services/referrals";
 
 export const metadata: Metadata = {
@@ -29,9 +30,10 @@ export default async function ReferralPage() {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview] = await Promise.all([
+  const [headerData, overview, welcomeOffer] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentReferralOverview(supabase, getPublicSiteUrl() ?? ""),
+    getActivePublicWelcomeOffer(),
   ]);
 
   if (!overview) redirect("/jeu");
@@ -72,7 +74,11 @@ export default async function ReferralPage() {
               Partagez votre lien personnel. Dès qu’un filleul confirme son inscription, il compte dans votre progression et rapproche votre équipe d’objets de niveau 6 à 10, de primes de carrière et d’accessoires exclusifs.
             </p>
 
-            <ReferralShareControls inviteUrl={overview.inviteUrl} code={overview.code} />
+            <ReferralShareControls
+              inviteUrl={overview.inviteUrl}
+              code={overview.code}
+              welcomeOffer={welcomeOffer}
+            />
           </div>
         </header>
 
