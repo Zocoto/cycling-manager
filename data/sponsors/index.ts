@@ -12,6 +12,7 @@ import { BAHAMIAN_SPONSORS } from "./bahamas";
 import { BANKING_SPONSORS } from "./banking";
 import { BELGIAN_SPONSORS } from "./belgium";
 import { BRETON_SPONSORS } from "./brittany";
+import { BRITISH_EXPANSION_SPONSORS } from "./britain-expansion";
 import { CONFECTIONERY_SPONSORS } from "./confectionery";
 import { COUNTRY_EXPANSION_BATCH_01_SPONSORS } from "./country-expansion-batch-01";
 import { COUNTRY_EXPANSION_BATCH_02_SPONSORS } from "./country-expansion-batch-02";
@@ -51,6 +52,7 @@ const RAW_SPONSORS = [
   ...ARGENTINA_MAURITIUS_EXPANSION_SPONSORS,
   ...AUSTRIA_NORTH_KOREA_EXPANSION_SPONSORS,
   ...BAHAMIAN_SPONSORS,
+  ...BRITISH_EXPANSION_SPONSORS,
   ...FRENCH_SPONSORS,
   ...BRETON_SPONSORS,
   ...BELGIAN_SPONSORS,
