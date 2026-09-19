@@ -262,18 +262,14 @@ describe("generateSponsorProposals", () => {
 
   it("propose des sponsors de pays voisins sans sponsor national", () => {
     const proposals = generateSponsorProposals({
-      directorCountryCode: "LU",
+      directorCountryCode: "MC",
       directorReputation: 100,
     });
 
     expect(proposals).toHaveLength(3);
 
     expect(
-      proposals.every((proposal) =>
-        ["BE", "DE", "FR"].includes(
-          proposal.sponsor.countryCode
-        )
-      )
+      proposals.every((proposal) => proposal.sponsor.countryCode === "FR")
     ).toBe(true);
   });
 

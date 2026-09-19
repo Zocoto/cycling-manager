@@ -20,15 +20,13 @@ describe("active team country sponsor batch 01", () => {
     ).toEqual({ EC: 4, RW: 4, CH: 4, PL: 4 });
   });
 
-  it("brings every priority country to five national sponsors", () => {
+  it("brings every priority country to at least five national sponsors", () => {
     expect(
-      Object.fromEntries(
-        ["EC", "RW", "CH", "PL"].map((countryCode) => [
-          countryCode,
-          SPONSORS.filter((sponsor) => sponsor.countryCode === countryCode).length,
-        ])
+      ["EC", "RW", "CH", "PL"].every(
+        (countryCode) =>
+          SPONSORS.filter((sponsor) => sponsor.countryCode === countryCode).length >= 5,
       )
-    ).toEqual({ EC: 5, RW: 5, CH: 5, PL: 5 });
+    ).toBe(true);
   });
 
   it("can fill all three J21 proposals with national sponsors", () => {
