@@ -13,10 +13,19 @@ const termsPage = read("app/(public)/conditions-utilisation/page.tsx");
 const legalNoticePage = read("app/(public)/mentions-legales/page.tsx");
 const footer = read("components/layout/public-footer.tsx");
 const migration = read(
-  "supabase/migrations/20260829210000_record_registration_legal_acceptance.sql",
+  "supabase/migrations/20260901110000_record_registration_legal_acceptance.sql",
 );
 const serviceRoleGrantMigration = read(
   "supabase/migrations/20260830103500_grant_legal_acceptance_to_service_role.sql",
+);
+const marketingPreferenceMigration = read(
+  "supabase/migrations/20260919130000_create_marketing_email_preferences.sql",
+);
+const marketingPreferenceApi = read(
+  "app/api/account/marketing-email-preference/route.ts",
+);
+const marketingRecipientService = read(
+  "services/marketing-email-preferences.ts",
 );
 
 describe("information et acceptation légales à l’inscription", () => {
@@ -46,6 +55,59 @@ describe("information et acceptation légales à l’inscription", () => {
     );
     expect(registrationAction).toContain(
       "privacy_notice_version: legalConfig.privacyNoticeVersion",
+    );
+  });
+
+  it("propose un consentement marketing séparé, facultatif et non précoché", () => {
+    const controlStart = registrationForm.indexOf(
+      'name="marketingEmailConsent"',
+    );
+    const control = registrationForm.slice(
+      controlStart,
+      controlStart + 700,
+    );
+
+    expect(controlStart).toBeGreaterThan(-1);
+    expect(control).toContain('value="accepted"');
+    expect(control).not.toContain("required");
+    expect(control).not.toContain("defaultChecked");
+    expect(registrationForm).toContain("Ce choix est facultatif");
+    expect(registrationAction).toContain(
+      'getFormValue(formData, "marketingEmailConsent") === "accepted"',
+    );
+    expect(registrationAction).toContain(
+      "marketing_email_consent_version:",
+    );
+  });
+
+  it("conserve le consentement et le retrait sans autoriser les écritures directes", () => {
+    expect(marketingPreferenceMigration).toContain(
+      "user_marketing_email_preferences",
+    );
+    expect(marketingPreferenceMigration).toContain(
+      "user_marketing_email_preference_events",
+    );
+    expect(marketingPreferenceMigration).toContain(
+      "'legacy_default_opt_out'",
+    );
+    expect(marketingPreferenceMigration).toContain(
+      "revoke insert, update, delete",
+    );
+    expect(marketingPreferenceMigration).toContain(
+      "set_current_user_marketing_email_preference",
+    );
+    expect(marketingPreferenceApi).toContain(
+      "legalConfig.privacyNoticeVersion",
+    );
+  });
+
+  it("limite les campagnes aux adresses confirmées, consentantes et non automatisées", () => {
+    expect(marketingRecipientService).toContain('.eq("enabled", true)');
+    expect(marketingRecipientService).toContain("email_confirmed_at");
+    expect(marketingRecipientService).toContain("alpha_bot_managers");
+    expect(marketingRecipientService).toContain("unsubscribeUrl");
+    expect(marketingRecipientService).toContain(
+      "oneClickUnsubscribeUrl",
     );
   });
 

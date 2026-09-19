@@ -276,6 +276,29 @@ export function RegistrationForm({
           ))}
         </div>
 
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#7CCF9C]/25 bg-[#7CCF9C]/8 p-4 text-sm leading-6 text-[#D6DFD2] transition hover:border-[#7CCF9C]/50">
+          <input
+            type="checkbox"
+            name="marketingEmailConsent"
+            value="accepted"
+            disabled={pending || registrationSucceeded}
+            className="mt-1 h-4 w-4 shrink-0 accent-[#F2C94C]"
+          />
+          <span>
+            Je souhaite recevoir par e-mail les nouveautés importantes de
+            Cyclo Stratège. Ce choix est facultatif et modifiable à tout
+            moment depuis le menu utilisateur.{" "}
+            <Link
+              href="/confidentialite"
+              target="_blank"
+              className="font-extrabold text-[#F2C94C] underline decoration-[#F2C94C]/45 underline-offset-3 hover:text-[#FFD968]"
+            >
+              En savoir plus
+            </Link>
+            .
+          </span>
+        </label>
+
         <button
           type="submit"
           disabled={pending || registrationSucceeded}

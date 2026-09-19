@@ -22,6 +22,9 @@ describe("GameUserMenu", () => {
     expect(markup).toContain("Parrainage");
     expect(markup).toContain("Invitez des DS et débloquez vos récompenses");
     expect(markup).toContain('data-user-menu-notifications="true"');
+    expect(markup).toContain('data-user-menu-email-updates="true"');
+    expect(markup).toContain("E-mails d’actualité");
+    expect(markup).toContain("Nouveautés majeures de Cyclo Stratège");
     expect(markup).toContain('role="switch"');
     expect(markup).toContain('href="/guide"');
     expect(markup).toContain('target="_blank"');
