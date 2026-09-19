@@ -11,6 +11,16 @@ const migration = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 
+const hotfixMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260919185000_fix_welcome_boost_team_creation.sql",
+  ),
+  "utf8",
+)
+  .replace(/\r\n/g, "\n")
+  .toLowerCase();
+
 describe("weeklong new director welcome boost", () => {
   it("starts on migration application and expires for new registrations after seven days", () => {
     expect(migration).toContain("clock_timestamp() as started_at");
@@ -49,5 +59,22 @@ describe("weeklong new director welcome boost", () => {
     expect(migration).toContain(
       "scout_contract_id uuid unique references public.staff_contracts(id) on delete set null",
     );
+  });
+
+  it("does not query the retired rider-name relation after the hotfix", () => {
+    expect(hotfixMigration).not.toMatch(
+      /(?:from|join)\s+public\.rider_name_parts/,
+    );
+    expect(hotfixMigration).toContain("from public.rider_contracts as contract");
+    expect(hotfixMigration).toContain(
+      "join public.riders as rider on rider.id = contract.rider_id",
+    );
+  });
+
+  it("cannot roll back initial team creation when the optional gift fails", () => {
+    expect(hotfixMigration).toContain("exception\n    when others then");
+    expect(hotfixMigration).toContain("return new;");
+    expect(hotfixMigration).toContain("v_first_name := coalesce");
+    expect(hotfixMigration).toContain("v_last_name := coalesce");
   });
 });
