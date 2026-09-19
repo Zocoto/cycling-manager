@@ -1,5 +1,11 @@
 "use client";
 
+import { useActionState } from "react";
+
+import {
+  sendRivalryTauntAction,
+  type RivalryTauntActionState,
+} from "@/app/jeu/gazette/actions";
 import Link from "@/components/ui/app-link";
 import { useLocale } from "@/components/i18n/locale-provider";
 import type {
@@ -46,8 +52,8 @@ export function CyclogazetteRivalries({
           title={isEnglish ? "Why this rival?" : "Pourquoi ce rival ?"}
           body={
             isEnglish
-              ? "Two human teams next to each other in the sporting order are paired when the rivalry is created."
-              : "Deux équipes humaines voisines dans l’ordre sportif sont associées au moment de la création du duel."
+              ? "Teams are paired from the previous season's final UCI ranking. New teams are placed afterwards by arrival date."
+              : "Les équipes sont appariées selon le classement UCI final de la saison précédente. Les nouvelles équipes viennent ensuite, par date d’arrivée."
           }
         />
         <RuleBlock
@@ -55,8 +61,8 @@ export function CyclogazetteRivalries({
           title={isEnglish ? "How is a point scored?" : "Comment marque-t-on ?"}
           body={
             isEnglish
-              ? "On every common race, the team whose best classified rider finishes highest scores one point. An equal rank is recorded as a draw."
-              : "À chaque course commune, l’équipe dont le meilleur coureur classé termine le plus haut marque un point. Une même place vaut match nul."
+              ? "A common race is worth one point. If both directors trade a taunt beforehand, that next direct confrontation is worth two."
+              : "Une course commune vaut un point. Si les deux DS se lancent une pique, cette prochaine confrontation directe en vaut deux."
           }
         />
         <RuleBlock
@@ -64,8 +70,8 @@ export function CyclogazetteRivalries({
           title={isEnglish ? "What can be won?" : "Quels gains ?"}
           body={
             isEnglish
-              ? "At season end: +6 reputation for the winner and +2 for the opponent; a draw gives +4 to each director."
-              : "En fin de saison : +6 de réputation au vainqueur et +2 à son adversaire ; une égalité rapporte +4 à chaque DS."
+              ? "The winner earns +20 reputation and €200k to €300k depending on intensity. The opponent receives +5 and €50k; a contested draw gives +10 and €100k to €150k each."
+              : "Le vainqueur gagne +20 de réputation et 200 à 300 k€ selon l’intensité. Son adversaire reçoit +5 et 50 k€ ; une égalité disputée donne +10 et 100 à 150 k€ chacun."
           }
         />
       </section>
@@ -176,6 +182,8 @@ function RivalryDossier({
     : rivalry.intensity >= 15
       ? isEnglish ? "established" : "installée"
       : isEnglish ? "emerging" : "naissante";
+  const projectedReward = getProjectedReward(rivalry, own, opponent);
+  const momentum = getMomentum(rivalry, own.id, opponent.id, isEnglish);
 
   return (
     <article
@@ -215,12 +223,20 @@ function RivalryDossier({
             <p className="mt-2 font-serif text-sm font-semibold leading-5 text-[#514833]">
               {rivalry.pairingReason}
             </p>
-            {own.pairingRank && opponent.pairingRank ? (
+            {own.previousRank && opponent.previousRank ? (
               <p className="mt-2 text-[10px] font-bold text-[#776A50]">
-                {isEnglish ? "Pairing order" : "Ordre d’appariement"} : #{own.pairingRank} / #{opponent.pairingRank}
+                {isEnglish ? "Previous season" : "Saison précédente"} : #{own.previousRank} / #{opponent.previousRank}
               </p>
             ) : null}
           </div>
+
+          {!archive ? (
+            <RivalryChallengePanel
+              rivalry={rivalry}
+              ownTeamId={own.id}
+              isEnglish={isEnglish}
+            />
+          ) : null}
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Metric
@@ -230,8 +246,18 @@ function RivalryDossier({
             />
             <Metric
               label={isEnglish ? "Reputation" : "Réputation"}
-              value={formatOwnReward(rivalry, own, opponent)}
+              value={`+${projectedReward.reputation}`}
               detail={rivalry.status === "active" ? (isEnglish ? "projected" : "projection") : (isEnglish ? "awarded" : "attribuée")}
+            />
+            <Metric
+              label={isEnglish ? "Cash prize" : "Prime"}
+              value={formatCash(projectedReward.cash, isEnglish)}
+              detail={rivalry.status === "active" ? (isEnglish ? "projected" : "projection") : (isEnglish ? "awarded" : "attribuée")}
+            />
+            <Metric
+              label={isEnglish ? "Momentum" : "Dynamique"}
+              value={momentum.value}
+              detail={momentum.detail}
             />
           </div>
           <p className="mt-3 text-[10px] font-semibold leading-4 text-[#776A50]">
@@ -325,6 +351,158 @@ function Metric({
   );
 }
 
+const INITIAL_TAUNT_STATE: RivalryTauntActionState = {
+  result: "idle",
+  errorCode: null,
+};
+
+const TAUNT_OPTIONS = [
+  {
+    code: "scoreboard",
+    fr: "Regardez bien le score : la prochaine ligne sera encore pour nous.",
+    en: "Watch the score: the next line will belong to us again.",
+  },
+  {
+    code: "road",
+    fr: "La route départagera les discours. Préparez-vous à suivre.",
+    en: "The road will settle the talk. Be ready to follow.",
+  },
+  {
+    code: "pressure",
+    fr: "Cette rivalité commence à peser. De notre côté, elle nous porte.",
+    en: "This rivalry is starting to weigh. On our side, it drives us.",
+  },
+  {
+    code: "appointment",
+    fr: "Rendez-vous sur la prochaine course commune : nous ne laisserons aucun doute.",
+    en: "See you at the next common race: we will leave no doubt.",
+  },
+] as const;
+
+function RivalryChallengePanel({
+  rivalry,
+  ownTeamId,
+  isEnglish,
+}: {
+  rivalry: TeamRivalry;
+  ownTeamId: string;
+  isEnglish: boolean;
+}) {
+  const [state, formAction, pending] = useActionState(
+    sendRivalryTauntAction,
+    INITIAL_TAUNT_STATE,
+  );
+  const pendingTaunts = rivalry.taunts.filter((taunt) => !taunt.resolvedAt);
+  const ownPending = pendingTaunts.find(
+    (taunt) => taunt.senderTeamId === ownTeamId,
+  );
+  const rivalPending = pendingTaunts.find(
+    (taunt) => taunt.senderTeamId !== ownTeamId,
+  );
+  const stakesArmed = Boolean(ownPending && rivalPending);
+
+  return (
+    <section className="mt-4 border border-[#A12742]/35 bg-[#F7E8DF] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A12742]">
+            {isEnglish ? "Mind games" : "Guerre des mots"}
+          </p>
+          <h3 className="mt-1 font-serif text-lg font-black">
+            {stakesArmed
+              ? isEnglish ? "Next duel worth 2 points" : "Prochain duel à 2 points"
+              : rivalPending
+                ? isEnglish ? "Your rival is waiting" : "Votre rival attend une réponse"
+                : ownPending
+                  ? isEnglish ? "Challenge sent" : "Pique envoyée"
+                  : isEnglish ? "Raise the stakes" : "Faire monter les enjeux"}
+          </h3>
+        </div>
+        {stakesArmed ? (
+          <span className="bg-[#A12742] px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+            ×2
+          </span>
+        ) : null}
+      </div>
+
+      {rivalPending ? (
+        <blockquote className="mt-3 border-l-4 border-[#A12742] pl-3 font-serif text-sm font-semibold italic leading-5 text-[#514833]">
+          « {formatTauntQuote(rivalPending.code, rivalPending.quote, isEnglish)} »
+        </blockquote>
+      ) : null}
+
+      {!ownPending ? (
+        <form action={formAction} className="mt-4 space-y-3">
+          <input type="hidden" name="rivalryId" value={rivalry.id} />
+          <label className="block text-[9px] font-black uppercase tracking-[0.12em] text-[#695D43]" htmlFor={`taunt-${rivalry.id}`}>
+            {isEnglish ? "Choose a public statement" : "Choisir une déclaration publique"}
+          </label>
+          <select
+            id={`taunt-${rivalry.id}`}
+            name="tauntCode"
+            defaultValue="appointment"
+            className="w-full border border-[#8E7B55]/50 bg-[#FBF6E8] px-3 py-2 font-serif text-sm font-semibold"
+          >
+            {TAUNT_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>
+                {isEnglish ? option.en : option.fr}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full bg-[#234E3F] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#A12742] disabled:cursor-wait disabled:opacity-60"
+          >
+            {pending
+              ? isEnglish ? "Sending…" : "Envoi…"
+              : rivalPending
+                ? isEnglish ? "Reply and activate ×2" : "Répondre et activer le ×2"
+                : isEnglish ? "Send the challenge" : "Lancer la pique"}
+          </button>
+        </form>
+      ) : !stakesArmed ? (
+        <p className="mt-3 text-xs font-semibold leading-5 text-[#695D43]">
+          {isEnglish
+            ? "It adds 2 intensity points. The double-points stake activates only if your rival replies."
+            : "Elle ajoute 2 points d’intensité. Le duel à deux points ne s’active que si votre rival répond."}
+        </p>
+      ) : null}
+
+      {state.result === "success" ? (
+        <p aria-live="polite" className="mt-3 text-xs font-black text-[#234E3F]">
+          {isEnglish ? "Challenge published in the Gazette." : "Pique publiée dans la Gazette."}
+        </p>
+      ) : state.result === "failure" ? (
+        <p aria-live="polite" className="mt-3 text-xs font-black text-[#A12742]">
+          {state.errorCode === "pending"
+            ? isEnglish ? "Your previous challenge is still pending." : "Votre précédente pique est toujours active."
+            : isEnglish ? "The challenge could not be sent." : "La pique n’a pas pu être envoyée."}
+        </p>
+      ) : null}
+
+      {rivalry.taunts.length > 0 ? (
+        <div className="mt-4 border-t border-[#8E7B55]/35 pt-3">
+          <p className="text-[8px] font-black uppercase tracking-[0.14em] text-[#776A50]">
+            {isEnglish ? "Latest statements" : "Dernières déclarations"}
+          </p>
+          <ul className="mt-2 space-y-2">
+            {rivalry.taunts.slice(0, 3).map((taunt) => (
+              <li key={taunt.id} className="font-serif text-xs font-semibold leading-4 text-[#514833]">
+                <span className="font-black">
+                  {taunt.senderTeamId === ownTeamId
+                    ? isEnglish ? "You" : "Vous"
+                    : isEnglish ? "Rival" : "Rival"}
+                </span>{" "}— « {formatTauntQuote(taunt.code, taunt.quote, isEnglish)} »
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function RivalryEventLine({
   event,
   rivalry,
@@ -339,6 +517,7 @@ function RivalryEventLine({
   const ownRank = ownIsA ? event.teamARank : event.teamBRank;
   const rivalRank = ownIsA ? event.teamBRank : event.teamARank;
   const ownPoint = ownIsA ? event.teamAPoints : event.teamBPoints;
+  const rivalPoint = ownIsA ? event.teamBPoints : event.teamAPoints;
   const winner = event.winnerTeamId === rivalry.teamA.id
     ? rivalry.teamA.name
     : event.winnerTeamId === rivalry.teamB.id
@@ -352,8 +531,8 @@ function RivalryEventLine({
       ? `Draw: both teams' best rider finished ${formatRank(ownRank, true)}. No point is awarded.`
       : `Match nul : le meilleur coureur de chaque équipe termine ${formatRank(ownRank, false)}. Aucun point n’est attribué.`
     : isEnglish
-      ? `${winner} scores one point: its best rider finished ${formatRank(Math.min(ownRank, rivalRank), true)}, against ${formatRank(Math.max(ownRank, rivalRank), true)} for the rival.`
-      : `${winner} marque un point : son meilleur coureur termine ${formatRank(Math.min(ownRank, rivalRank), false)}, contre ${formatRank(Math.max(ownRank, rivalRank), false)} pour son rival.`;
+      ? `${winner} scores ${event.wasHeated ? "two points after the exchanged challenges" : "one point"}: its best rider finished ${formatRank(Math.min(ownRank, rivalRank), true)}, against ${formatRank(Math.max(ownRank, rivalRank), true)} for the rival.`
+      : `${winner} marque ${event.wasHeated ? "deux points après l’échange de piques" : "un point"} : son meilleur coureur termine ${formatRank(Math.min(ownRank, rivalRank), false)}, contre ${formatRank(Math.max(ownRank, rivalRank), false)} pour son rival.`;
 
   return (
     <li className="py-4">
@@ -368,8 +547,8 @@ function RivalryEventLine({
           {event.isDraw
             ? isEnglish ? "Draw" : "Nul"
             : ownPoint
-              ? isEnglish ? "+1 for you" : "+1 pour vous"
-              : isEnglish ? "+1 for the rival" : "+1 pour le rival"}
+              ? isEnglish ? `+${ownPoint} for you` : `+${ownPoint} pour vous`
+              : isEnglish ? `+${rivalPoint} for the rival` : `+${rivalPoint} pour le rival`}
         </span>
       </div>
       <p className="mt-2 font-serif text-xs font-semibold leading-5 text-[#514833]">
@@ -382,16 +561,80 @@ function RivalryEventLine({
   );
 }
 
-function formatOwnReward(
+function getProjectedReward(
   rivalry: TeamRivalry,
   own: TeamRivalry["teamA"],
   opponent: TeamRivalry["teamA"],
 ) {
   if (rivalry.status === "completed") {
-    return `${(own.reputationDelta ?? 0) >= 0 ? "+" : ""}${own.reputationDelta ?? 0}`;
+    return {
+      reputation: own.reputationDelta ?? 0,
+      cash: own.cashReward ?? 0,
+    };
   }
-  if (own.wins === opponent.wins) return "+4";
-  return own.wins > opponent.wins ? "+6" : "+2";
+  if (rivalry.sharedRaces === 0) {
+    return { reputation: 0, cash: 0 };
+  }
+  if (own.wins === opponent.wins) {
+    return {
+      reputation: 10,
+      cash: 100_000 + Math.min(50_000, rivalry.intensity * 2_500),
+    };
+  }
+  return own.wins > opponent.wins
+    ? {
+        reputation: 20,
+        cash: 200_000 + Math.min(100_000, rivalry.intensity * 5_000),
+      }
+    : { reputation: 5, cash: 50_000 };
+}
+
+function getMomentum(
+  rivalry: TeamRivalry,
+  ownTeamId: string,
+  opponentTeamId: string,
+  isEnglish: boolean,
+) {
+  const firstWinner = rivalry.events.find((event) => event.winnerTeamId)?.winnerTeamId;
+  if (!firstWinner) {
+    return {
+      value: "—",
+      detail: isEnglish ? "no streak" : "aucune série",
+    };
+  }
+  let streak = 0;
+  for (const event of rivalry.events) {
+    if (event.winnerTeamId !== firstWinner) break;
+    streak += 1;
+  }
+  const isOwn = firstWinner === ownTeamId;
+  const isRival = firstWinner === opponentTeamId;
+  return {
+    value: `${streak}`,
+    detail: isOwn
+      ? isEnglish ? "your streak" : "votre série"
+      : isRival
+        ? isEnglish ? "rival streak" : "série adverse"
+        : isEnglish ? "consecutive" : "consécutive(s)",
+  };
+}
+
+function formatCash(value: number, isEnglish: boolean) {
+  return new Intl.NumberFormat(isEnglish ? "en-GB" : "fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    notation: "compact",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatTauntQuote(
+  code: TeamRivalry["taunts"][number]["code"],
+  fallback: string,
+  isEnglish: boolean,
+) {
+  const option = TAUNT_OPTIONS.find((candidate) => candidate.code === code);
+  return option ? (isEnglish ? option.en : option.fr) : fallback;
 }
 
 function formatRank(rank: number, isEnglish: boolean) {

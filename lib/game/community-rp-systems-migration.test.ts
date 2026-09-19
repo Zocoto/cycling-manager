@@ -14,6 +14,10 @@ const rivalryGazetteMigration = readFileSync(
   "supabase/migrations/20260905190000_detail_team_rivalries_in_gazette.sql",
   "utf8",
 ).toLowerCase();
+const deeperRivalryMigration = readFileSync(
+  "supabase/migrations/20260919110000_deepen_team_rivalries.sql",
+  "utf8",
+).toLowerCase();
 const awardsMigration = readFileSync(
   "supabase/migrations/20260905153000_create_season_awards.sql",
   "utf8",
@@ -49,6 +53,21 @@ describe("community RP system migrations", () => {
     expect(rivalryGazetteMigration).toContain("without changing its score");
   });
 
+  it("apparie sur le classement S-1 et rend les piques réciproques compétitives", () => {
+    expect(deeperRivalryMigration).toContain("previous_team_season.final_rank");
+    expect(deeperRivalryMigration).toContain("team_season.created_at");
+    expect(deeperRivalryMigration).not.toContain(
+      "team_season.points desc, team_season.display_name",
+    );
+    expect(deeperRivalryMigration).toContain("create table public.team_rivalry_taunts");
+    expect(deeperRivalryMigration).toContain("v_team_a_has_taunt and v_team_b_has_taunt");
+    expect(deeperRivalryMigration).toContain("1 + v_stakes_bonus");
+    expect(deeperRivalryMigration).toContain("v_winner_cash := 200000");
+    expect(deeperRivalryMigration).toContain("v_team_a_requested_reputation");
+    expect(deeperRivalryMigration).toContain("opening_cash_balance");
+    expect(deeperRivalryMigration).toContain("next_team_season.status = 'planned'");
+  });
+
   it("freezes five awards after the season rankings are complete", () => {
     for (const key of [
       "rider_of_year",
@@ -69,6 +88,7 @@ describe("community RP system migrations", () => {
       pressMigration,
       rivalryMigration,
       rivalryGazetteMigration,
+      deeperRivalryMigration,
       awardsMigration,
     ]) {
       expect((migration.match(/\$\$/g)?.length ?? 0) % 2).toBe(0);

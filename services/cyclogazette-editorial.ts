@@ -124,12 +124,25 @@ type RivalryEditorialEventRow = {
   intensity_delta: number;
   team_a_score_after: number;
   team_b_score_after: number;
+  stakes_bonus: number;
+  was_heated: boolean;
   decided_at: string;
+};
+
+type RivalryEditorialTauntRow = {
+  id: string;
+  rivalry_id: string;
+  sender_team_id: string;
+  taunt_code: string;
+  quote: string;
+  created_at: string;
 };
 
 type RivalryEditorialRow = {
   id: string;
+  team_a_id: string;
   team_a_name: string;
+  team_b_id: string;
   team_b_name: string;
 };
 
@@ -157,6 +170,7 @@ export async function loadCyclogazetteFeatureStories(
   const results = await Promise.allSettled([
     loadFederationRaceStories(admin, context),
     loadRivalryStories(admin, context),
+    loadRivalryTauntStories(admin, context),
     loadStartlistPreviews(admin, context),
     loadDevelopmentStories(admin, context),
     loadTransferRumors(admin, context),
@@ -235,7 +249,7 @@ async function loadRivalryStories(
   const eventsResult = await admin
     .from("team_rivalry_events")
     .select(
-      "id, rivalry_id, race_edition_id, team_a_rank, team_b_rank, team_a_points, team_b_points, is_draw, intensity_delta, team_a_score_after, team_b_score_after, decided_at",
+      "id, rivalry_id, race_edition_id, team_a_rank, team_b_rank, team_a_points, team_b_points, is_draw, intensity_delta, team_a_score_after, team_b_score_after, stakes_bonus, was_heated, decided_at",
     )
     .eq("season_id", context.seasonId)
     .order("decided_at", { ascending: false })
@@ -249,7 +263,7 @@ async function loadRivalryStories(
   const [rivalriesResult, editionsResult] = await Promise.all([
     admin
       .from("team_rivalries")
-      .select("id, team_a_name, team_b_name")
+      .select("id, team_a_id, team_a_name, team_b_id, team_b_name")
       .in("id", unique(events.map((event) => event.rivalry_id)))
       .returns<RivalryEditorialRow[]>(),
     admin
@@ -268,22 +282,22 @@ async function loadRivalryStories(
     const edition = editionsById.get(event.race_edition_id);
     if (!rivalry || !edition) return [];
 
-    const winnerName = event.team_a_points === 1
+    const winnerName = event.team_a_points > 0
       ? rivalry.team_a_name
-      : event.team_b_points === 1
+      : event.team_b_points > 0
         ? rivalry.team_b_name
         : null;
-    const losingName = event.team_a_points === 1
+    const losingName = event.team_a_points > 0
       ? rivalry.team_b_name
       : rivalry.team_a_name;
     const winningRank = Math.min(event.team_a_rank, event.team_b_rank);
     const losingRank = Math.max(event.team_a_rank, event.team_b_rank);
     const title = event.is_draw
       ? `${rivalry.team_a_name} et ${rivalry.team_b_name} se neutralisent`
-      : `${winnerName} prend un point à ${losingName}`;
+      : `${winnerName} prend ${event.was_heated ? "deux points" : "un point"} à ${losingName}`;
     const titleEn = event.is_draw
       ? `${rivalry.team_a_name} and ${rivalry.team_b_name} cancel each other out`
-      : `${winnerName} takes a point from ${losingName}`;
+      : `${winnerName} takes ${event.was_heated ? "two points" : "one point"} from ${losingName}`;
     const resultFr = event.is_draw
       ? `Leurs meilleurs coureurs terminent au même rang : aucun point, un nul au registre.`
       : `Le meilleur coureur du vainqueur finit ${winningRank}${winningRank === 1 ? "er" : "e"}, contre ${losingRank}e pour son rival : voilà précisément pourquoi le point est attribué.`;
@@ -303,6 +317,68 @@ async function loadRivalryStories(
       href: "/jeu/gazette?onglet=rivalites",
     }];
   }).slice(0, 2);
+}
+
+async function loadRivalryTauntStories(
+  admin: AdminClient,
+  context: EditorialContext,
+): Promise<CyclogazetteFeatureStory[]> {
+  const tauntsResult = await admin
+    .from("team_rivalry_taunts")
+    .select("id, rivalry_id, sender_team_id, taunt_code, quote, created_at")
+    .eq("season_id", context.seasonId)
+    .order("created_at", { ascending: false })
+    .limit(20)
+    .returns<RivalryEditorialTauntRow[]>();
+  const taunts = (tauntsResult.data ?? []).filter(
+    (taunt) => getParisDateKey(taunt.created_at) === context.calendarDate,
+  );
+  if (tauntsResult.error || taunts.length === 0) return [];
+
+  const rivalriesResult = await admin
+    .from("team_rivalries")
+    .select("id, team_a_id, team_a_name, team_b_id, team_b_name")
+    .in("id", unique(taunts.map((taunt) => taunt.rivalry_id)))
+    .returns<RivalryEditorialRow[]>();
+  if (rivalriesResult.error) return [];
+  const rivalriesById = toMap(rivalriesResult.data ?? []);
+
+  return taunts.flatMap((taunt): CyclogazetteFeatureStory[] => {
+    const rivalry = rivalriesById.get(taunt.rivalry_id);
+    if (!rivalry) return [];
+    const senderName = taunt.sender_team_id === rivalry.team_a_id
+      ? rivalry.team_a_name
+      : taunt.sender_team_id === rivalry.team_b_id
+        ? rivalry.team_b_name
+        : null;
+    if (!senderName) return [];
+    const opponentName = taunt.sender_team_id === rivalry.team_a_id
+      ? rivalry.team_b_name
+      : rivalry.team_a_name;
+    const quoteEn = translateRivalryTaunt(taunt.taunt_code, taunt.quote);
+
+    return [{
+      id: `rivalry-taunt:${taunt.id}`,
+      kind: "rivalry",
+      kicker: "Rivalités · Déclaration",
+      kickerEn: "Rivalries · Statement",
+      title: `${senderName} provoque ${opponentName}`,
+      titleEn: `${senderName} challenges ${opponentName}`,
+      body: `« ${taunt.quote} » La tension monte : si ${opponentName} répond, leur prochaine course commune vaudra deux points.`,
+      bodyEn: `“${quoteEn}” The tension rises: if ${opponentName} replies, their next common race will be worth two points.`,
+      href: "/jeu/gazette?onglet=rivalites",
+    }];
+  }).slice(0, 2);
+}
+
+function translateRivalryTaunt(code: string, fallback: string) {
+  const translations: Record<string, string> = {
+    scoreboard: "Watch the score: the next line will belong to us again.",
+    road: "The road will settle the talk. Be ready to follow.",
+    pressure: "This rivalry is starting to weigh. On our side, it drives us.",
+    appointment: "See you at the next common race: we will leave no doubt.",
+  };
+  return translations[code] ?? fallback;
 }
 
 async function loadStartlistPreviews(

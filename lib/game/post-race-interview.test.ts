@@ -210,6 +210,34 @@ describe("questions après-course", () => {
     expect(question.text).toMatch(/3–2|Échappée Boréale|Jeanne Martin|4e/);
   });
 
+  it("consacre systématiquement la question finale à un duel de saison réel", () => {
+    const context: PostRaceInterviewContext = {
+      ...BASE_CONTEXT,
+      rivalry: {
+        kind: "season_rivalry",
+        teamId: "team-rival",
+        teamName: "Échappée Boréale",
+        directorName: "Jeanne Martin",
+        riderName: "Milo Hansen",
+        rivalRank: 4,
+        ownScore: 3,
+        rivalScore: 2,
+        pairingReason: "Classement final S2 : #3 et #4.",
+      },
+    };
+    const closingQuestions = Array.from({ length: 40 }, (_, index) =>
+      selectPostRaceInterviewQuestions(context, `season-rivalry-${index}`)[2],
+    );
+
+    expect(closingQuestions.every(({ category }) => category === "rivalry")).toBe(
+      true,
+    );
+    expect(
+      closingQuestions.some(({ id }) => id === "season-rivalry-stakes"),
+    ).toBe(true);
+    expect(closingQuestions.every(({ text }) => !text.includes("{{"))).toBe(true);
+  });
+
   it("emploie exclusivement le pool tactique dédié sur un CLM individuel", () => {
     const context: PostRaceInterviewContext = {
       ...BASE_CONTEXT,

@@ -793,7 +793,31 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] =
       id: "season-rivalry-origin",
       category: "rivalry",
       requires: "season_rivalry",
-      text: "Cette rivalité est née de votre proximité dans l’ordre sportif. Est-ce encore ce qui sépare le mieux {{teamName}} de {{rivalTeamName}} aujourd’hui ?",
+      text: "Cette rivalité est née de votre proximité au classement final de la saison précédente. Est-ce encore ce qui sépare le mieux {{teamName}} de {{rivalTeamName}} aujourd’hui ?",
+    },
+    {
+      id: "season-rivalry-stakes",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Les gains du duel de saison sont désormais conséquents. Le score {{rivalryScore}} change-t-il votre manière de programmer les prochaines courses communes avec {{rivalTeamName}} ?",
+    },
+    {
+      id: "season-rivalry-pressure",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Cette confrontation avec {{rivalTeamName}} prend de plus en plus de place dans La Cyclogazette. Cette exposition vous stimule-t-elle ou ajoute-t-elle une pression inutile ?",
+    },
+    {
+      id: "season-rivalry-message",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Après cette nouvelle manche, quel message souhaitez-vous adresser directement à {{rivalDirectorName}} ?",
+    },
+    {
+      id: "season-rivalry-priority",
+      category: "rivalry",
+      requires: "season_rivalry",
+      text: "Seriez-vous prêt à modifier un rôle ou une tactique uniquement pour prendre le dessus sur {{rivalTeamName}} lors de votre prochaine course commune ?",
     },
     {
       id: "rivalry-winner-team",
@@ -1020,7 +1044,11 @@ function shouldAskRivalryQuestion(
   seed: string,
 ) {
   if (!context.rivalry) return false;
-  const frequency = context.rivalry.kind === "opinion" ? 4 : 2;
+  const frequency = context.rivalry.kind === "season_rivalry"
+    ? 1
+    : context.rivalry.kind === "opinion"
+      ? 4
+      : 2;
   return seededIndex(`${seed}:rivalry`, frequency) === 0;
 }
 

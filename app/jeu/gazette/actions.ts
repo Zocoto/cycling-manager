@@ -36,6 +36,18 @@ export type CyclogazetteSeasonQuizActionState = {
   alreadyCompleted: boolean;
 };
 
+export type RivalryTauntActionState = {
+  result: "idle" | "success" | "failure";
+  errorCode: "invalid" | "pending" | "forbidden" | "unknown" | null;
+};
+
+const RIVALRY_TAUNT_CODES = new Set([
+  "scoreboard",
+  "road",
+  "pressure",
+  "appointment",
+]);
+
 export async function publishMediaCenterArticleAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -68,6 +80,45 @@ export async function publishMediaCenterArticleAction(formData: FormData) {
   revalidatePath("/jeu");
   revalidatePath("/jeu/profil");
   redirect("/jeu/gazette?article=propose");
+}
+
+export async function sendRivalryTauntAction(
+  _previousState: RivalryTauntActionState,
+  formData: FormData,
+): Promise<RivalryTauntActionState> {
+  const rivalryId = String(formData.get("rivalryId") ?? "").trim();
+  const tauntCode = String(formData.get("tauntCode") ?? "").trim();
+  if (!isUuid(rivalryId) || !RIVALRY_TAUNT_CODES.has(tauntCode)) {
+    return { result: "failure", errorCode: "invalid" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await getAuthenticatedUser(supabase);
+  if (authenticationError || !user) {
+    return { result: "failure", errorCode: "forbidden" };
+  }
+
+  const result = await supabase.rpc("send_current_team_rivalry_taunt", {
+    p_rivalry_id: rivalryId,
+    p_taunt_code: tauntCode,
+  });
+  if (result.error) {
+    const errorCode = result.error.message.includes("attend encore")
+      ? "pending"
+      : result.error.message.includes("appartient pas")
+        ? "forbidden"
+        : "unknown";
+    console.error("Impossible d’envoyer la pique de rivalité :", result.error);
+    return { result: "failure", errorCode };
+  }
+
+  revalidatePath("/jeu/gazette");
+  revalidatePath("/jeu/messagerie");
+  revalidatePath("/jeu");
+  return { result: "success", errorCode: null };
 }
 
 export async function validateCyclogazetteGameAction(

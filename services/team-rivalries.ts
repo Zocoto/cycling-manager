@@ -16,11 +16,13 @@ type RivalryRow = {
   team_a_director_name: string;
   team_a_wins: number;
   team_a_reputation_delta: number | null;
+  team_a_cash_reward: number | null;
   team_b_id: string;
   team_b_name: string;
   team_b_director_name: string;
   team_b_wins: number;
   team_b_reputation_delta: number | null;
+  team_b_cash_reward: number | null;
   draws: number;
   shared_races: number;
   intensity: number;
@@ -28,7 +30,10 @@ type RivalryRow = {
   pairing_reason: string;
   team_a_pairing_rank: number | null;
   team_b_pairing_rank: number | null;
+  team_a_previous_rank: number | null;
+  team_b_previous_rank: number | null;
   events: RivalryEventRow[] | null;
+  taunts: RivalryTauntRow[] | null;
   settled_at: string | null;
 };
 
@@ -48,10 +53,26 @@ type RivalryEventRow = {
   teamBScoreAfter: number;
   drawsAfter: number;
   intensityAfter: number;
+  stakesBonus: number;
+  wasHeated: boolean;
   decidedAt: string;
 };
 
+type RivalryTauntRow = {
+  id: string;
+  senderTeamId: string;
+  recipientTeamId: string;
+  code: "scoreboard" | "road" | "pressure" | "appointment";
+  quote: string;
+  intensityDelta: number;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedRaceEditionId: string | null;
+  bonusWinnerTeamId: string | null;
+};
+
 export type TeamRivalryEvent = RivalryEventRow;
+export type TeamRivalryTaunt = RivalryTauntRow;
 
 export type TeamRivalry = {
   id: string;
@@ -66,7 +87,9 @@ export type TeamRivalry = {
     directorName: string;
     wins: number;
     reputationDelta: number | null;
+    cashReward: number | null;
     pairingRank: number | null;
+    previousRank: number | null;
   };
   teamB: {
     id: string;
@@ -74,7 +97,9 @@ export type TeamRivalry = {
     directorName: string;
     wins: number;
     reputationDelta: number | null;
+    cashReward: number | null;
     pairingRank: number | null;
+    previousRank: number | null;
   };
   draws: number;
   sharedRaces: number;
@@ -82,6 +107,7 @@ export type TeamRivalry = {
   winnerTeamId: string | null;
   pairingReason: string;
   events: TeamRivalryEvent[];
+  taunts: TeamRivalryTaunt[];
   settledAt: string | null;
 };
 
@@ -103,7 +129,11 @@ export async function getCurrentTeamRivalries(
       directorName: row.team_a_director_name,
       wins: row.team_a_wins,
       reputationDelta: row.team_a_reputation_delta,
+      cashReward: row.team_a_cash_reward === null
+        ? null
+        : Number(row.team_a_cash_reward),
       pairingRank: row.team_a_pairing_rank,
+      previousRank: row.team_a_previous_rank,
     },
     teamB: {
       id: row.team_b_id,
@@ -111,7 +141,11 @@ export async function getCurrentTeamRivalries(
       directorName: row.team_b_director_name,
       wins: row.team_b_wins,
       reputationDelta: row.team_b_reputation_delta,
+      cashReward: row.team_b_cash_reward === null
+        ? null
+        : Number(row.team_b_cash_reward),
       pairingRank: row.team_b_pairing_rank,
+      previousRank: row.team_b_previous_rank,
     },
     draws: row.draws,
     sharedRaces: row.shared_races,
@@ -119,6 +153,7 @@ export async function getCurrentTeamRivalries(
     winnerTeamId: row.winner_team_id,
     pairingReason: row.pairing_reason,
     events: Array.isArray(row.events) ? row.events : [],
+    taunts: Array.isArray(row.taunts) ? row.taunts : [],
     settledAt: row.settled_at,
   }));
 }
