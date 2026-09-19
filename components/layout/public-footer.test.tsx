@@ -14,6 +14,9 @@ describe("PublicFooter", () => {
     const markup = renderToStaticMarkup(<PublicFooter />);
 
     expect(markup).toContain("https://discord.gg/EbupEFEQC8");
+    expect(markup).toContain("Discord Cyclo Stratège");
+    expect(markup).toContain("Rejoindre le serveur officiel");
+    expect(markup).toContain("Lien permanent");
     expect(markup).toContain("https://www.instagram.com/cyclostratege/");
     expect(markup).toContain("/images/social/discord-symbol.svg");
     expect(markup).toContain("/images/social/instagram-glyph.svg");

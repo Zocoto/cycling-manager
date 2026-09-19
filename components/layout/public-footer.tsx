@@ -110,17 +110,21 @@ export function PublicFooter() {
 
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#F2C94C]">
-              {isEnglish ? "Follow us" : "Nous suivre"}
+              {isEnglish ? "Community" : "Communauté"}
             </p>
 
             <div className="mt-4 flex flex-col gap-3">
               <SocialLink
                 href={appConfig.discordUrl}
-                label="Discord"
-                description={isEnglish ? "Join the community" : "Rejoindre la communauté"}
+                label="Discord Cyclo Stratège"
+                description={
+                  isEnglish ? "Join the official server" : "Rejoindre le serveur officiel"
+                }
+                badge={isEnglish ? "Permanent invite" : "Lien permanent"}
                 iconSrc="/images/social/discord-symbol.svg"
                 iconAlt=""
                 iconClassName="h-5 w-7"
+                featured
               />
               <SocialLink
                 href={appConfig.instagramUrl}
@@ -155,6 +159,8 @@ function SocialLink({
   iconSrc,
   iconAlt,
   iconClassName,
+  badge,
+  featured = false,
 }: {
   href: string;
   label: string;
@@ -162,6 +168,8 @@ function SocialLink({
   iconSrc: string;
   iconAlt: string;
   iconClassName: string;
+  badge?: string;
+  featured?: boolean;
 }) {
   return (
     <a
@@ -169,7 +177,11 @@ function SocialLink({
       target="_blank"
       rel="noreferrer"
       aria-label={`${label} — ${description}`}
-      className="group flex min-h-14 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition hover:-translate-y-0.5 hover:border-[#7CCF9C]/45 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C]"
+      className={`group relative flex min-h-14 items-center gap-3 overflow-hidden rounded-2xl border px-3 py-2.5 transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C] ${
+        featured
+          ? "border-[#7CCF9C]/35 bg-gradient-to-br from-[#7CCF9C]/15 to-white/[0.04] hover:border-[#7CCF9C]/65 hover:from-[#7CCF9C]/20"
+          : "border-white/10 bg-white/[0.04] hover:border-[#7CCF9C]/45 hover:bg-white/[0.075]"
+      }`}
     >
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/[0.08] shadow-inner">
         <Image
@@ -187,6 +199,11 @@ function SocialLink({
         <span className="mt-0.5 block truncate text-[11px] font-semibold text-[#AFC0B1]">
           {description}
         </span>
+        {badge ? (
+          <span className="mt-1.5 inline-flex rounded-full border border-[#7CCF9C]/25 bg-[#7CCF9C]/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#A9E2BB]">
+            {badge}
+          </span>
+        ) : null}
       </span>
       <span
         aria-hidden="true"
