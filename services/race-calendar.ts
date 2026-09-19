@@ -2848,19 +2848,17 @@ function groupCalendarEngagedRiders(
   >();
 
   for (const row of stageEquipmentRows) {
+    // Stage loadouts belong to the rider's club. National selections must not
+    // inherit them until federations have their own equipment system.
+    if (nationalInternationalEditionIds.has(row.race_edition_id)) continue;
+
     const key = row.race_edition_id + ":" + row.rider_id;
     const byStage = equipmentByEditionRider.get(key) ?? {};
-    const usesNationalWorldModel = nationalInternationalEditionIds.has(
-      row.race_edition_id,
-    );
     byStage[row.stage_id] = combineEquipmentEffectsWithStaff({
       values: Array.isArray(row.equipment_effects) ? row.equipment_effects : [],
-      teamStaffEffects: usesNationalWorldModel
-        ? undefined
-        : raceStaffEffects.byTeamId.get(row.team_id),
-      injuryPreventionPercentage: usesNationalWorldModel
-        ? 0
-        : (raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0),
+      teamStaffEffects: raceStaffEffects.byTeamId.get(row.team_id),
+      injuryPreventionPercentage:
+        raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
     });
     equipmentByEditionRider.set(key, byStage);
   }
@@ -2903,7 +2901,13 @@ function groupCalendarEngagedRiders(
       ? undefined
       : teamSponsorVisuals.get(row.team_id);
     const equipmentEffects = combineEquipmentEffectsWithStaff({
-      values: Array.isArray(row.equipment_effects) ? row.equipment_effects : [],
+      // Permanent equipment is owned by the club as well. An international
+      // selection therefore starts with neutral equipment effects.
+      values: usesNationalWorldModel
+        ? []
+        : Array.isArray(row.equipment_effects)
+          ? row.equipment_effects
+          : [],
       teamStaffEffects,
       injuryPreventionPercentage: usesNationalWorldModel
         ? 0
