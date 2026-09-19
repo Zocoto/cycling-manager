@@ -11,6 +11,7 @@ import {
   resolvePublicTeamName,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import { getDailyConditionHistoryLabel } from "@/lib/game/rider-form-history";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -1650,19 +1651,19 @@ async function getRecentFormEvents({
   assertQuery(nutrition.error, "l’historique des nutritionnistes");
 
   return [
-    ...(daily.data ?? []).map((effect) => ({
-      source: "daily" as const,
-      label:
-        effect.effect_type === "form_camp"
-          ? "Stage de remise en forme"
-          : effect.effect_type === "training"
-            ? "Repos après entraînement léger"
-            : effect.effect_type === "rest"
-              ? "Récupération quotidienne"
-              : "Évolution quotidienne",
-      delta: Number(effect.form_delta),
-      occurredAt: effect.applied_at,
-    })),
+    ...(daily.data ?? []).flatMap((effect) => {
+      const label = getDailyConditionHistoryLabel(effect.effect_type);
+      return label
+        ? [
+            {
+              source: "daily" as const,
+              label,
+              delta: Number(effect.form_delta),
+              occurredAt: effect.applied_at,
+            },
+          ]
+        : [];
+    }),
     ...(race.data ?? []).map((effect) => ({
       source: "race" as const,
       label: "Coût de l’étape ou de la classique",
