@@ -33,6 +33,7 @@ import { ENERGY_DRINK_BATCH_01_SPONSORS } from "./energy-drinks-batch-01";
 import { FAST_FOOD_SPONSORS } from "./fast-food";
 import { FRENCH_SPONSORS } from "./france";
 import { GREEK_SPONSORS } from "./greece";
+import { ITALIAN_BRANDS_EXPANSION_SPONSORS } from "./italian-brands-expansion";
 import { ITALIAN_SPONSORS } from "./italy";
 import { JAPANESE_SPONSORS } from "./japan";
 import { DUTCH_SPONSORS } from "./netherlands";
@@ -57,6 +58,7 @@ const RAW_SPONSORS = [
   ...BRETON_SPONSORS,
   ...BELGIAN_SPONSORS,
   ...DUTCH_SPONSORS,
+  ...ITALIAN_BRANDS_EXPANSION_SPONSORS,
   ...ITALIAN_SPONSORS,
   ...GREEK_SPONSORS,
   ...AFRICAN_SPONSORS,
