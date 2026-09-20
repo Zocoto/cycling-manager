@@ -298,12 +298,12 @@ async function verifyPersistedResults({
     "résultats corrigés de l'étape",
   );
   assert(stageRows.length === 177, "Résultats corrigés incomplets.");
-  const storedStageByRiderId = new Map<string, any>(
-    stageRows.map((row) => [
-      roster.riderByRosterId.get(row.race_roster_id),
-      row,
-    ]),
-  );
+  const storedStageByRiderId = new Map<string, any>();
+  for (const row of stageRows) {
+    const riderId = roster.riderByRosterId.get(row.race_roster_id);
+    assert(riderId, `Dossard inconnu dans les résultats : ${row.race_roster_id}.`);
+    storedStageByRiderId.set(riderId, row);
+  }
   const timeBonuses = calculateStageRaceTimeBonuses({
     raceFormat: "stage_race",
     stageType: stages[2].stage_type,
@@ -701,11 +701,15 @@ async function main() {
     "résultats sources de l'étape",
   );
   assert(currentStageRows.length === 177, "Résultats sources incomplets.");
-  const oldStageByRiderId = new Map(
-    oldClassifications[2].map((result: any) => [result.riderId, result]),
+  const oldStageByRiderId = new Map<string, any>(
+    oldClassifications[2].map(
+      (result: any) => [result.riderId, result] as const,
+    ),
   );
-  const newStageByRiderId = new Map(
-    newClassifications[2].map((result: any) => [result.riderId, result]),
+  const newStageByRiderId = new Map<string, any>(
+    newClassifications[2].map(
+      (result: any) => [result.riderId, result] as const,
+    ),
   );
   const stageRows = currentStageRows.map((row) => {
     const riderId = roster.riderByRosterId.get(row.race_roster_id);
