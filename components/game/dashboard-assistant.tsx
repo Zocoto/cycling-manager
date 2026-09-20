@@ -172,6 +172,7 @@ function WelcomeJourneyStepCard({ step }: { step: NewcomerJourneyStep }) {
     .filter((reward): reward is string => Boolean(reward))
     .join(" + ");
   const claimAction = claimNewcomerJourneyStepAction.bind(null, step.key);
+  const actionLabel = getWelcomeJourneyActionLabel(step.key);
 
   return (
     <article
@@ -204,22 +205,31 @@ function WelcomeJourneyStepCard({ step }: { step: NewcomerJourneyStep }) {
           <p className="mt-1 text-[9px] font-semibold leading-4 text-[#6B8179] sm:text-[10px]">
             {step.description}
           </p>
-          <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="mt-3 flex flex-col gap-2">
+            <Link
+              href={step.href}
+              prefetchOnIntent
+              className={`group inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-xl border px-3 text-center text-[10px] font-black transition sm:text-[11px] ${
+                step.completed
+                  ? "border-[#278B70]/20 bg-[#F3FAF7] text-[#176951] hover:border-[#278B70]/40 hover:bg-[#E7F6EF]"
+                  : "border-[#176951] bg-[#176951] text-white shadow-[0_6px_14px_rgba(23,105,81,0.18)] hover:bg-[#0F5843]"
+              }`}
+            >
+              {step.completed ? "Revoir la rubrique" : actionLabel}
+              <span
+                aria-hidden="true"
+                className="transition-transform group-hover:translate-x-0.5"
+              >
+                →
+              </span>
+            </Link>
             {step.claimed ? (
               <span className="text-[9px] font-black text-[#176951]">
                 Récompense récupérée
               </span>
-            ) : (
-              <Link
-                href={step.href}
-                prefetchOnIntent
-                className="text-[9px] font-black text-[#278B70] hover:underline"
-              >
-                {step.completed ? "Revoir la rubrique" : "Découvrir"} →
-              </Link>
-            )}
+            ) : null}
             {step.completed && !step.claimed ? (
-              <form action={claimAction}>
+              <form action={claimAction} className="self-end">
                 <NewcomerJourneyClaimButton />
               </form>
             ) : null}
@@ -228,6 +238,27 @@ function WelcomeJourneyStepCard({ step }: { step: NewcomerJourneyStep }) {
       </div>
     </article>
   );
+}
+
+function getWelcomeJourneyActionLabel(key: NewcomerJourneyStep["key"]) {
+  switch (key) {
+    case "claim_daily_reward":
+      return "Récupérer mon cadeau";
+    case "post_global_chat_message":
+      return "Ouvrir le chat";
+    case "configure_training":
+      return "Programmer l’entraînement";
+    case "recruit_staff_member":
+      return "Recruter un membre du staff";
+    case "place_auction_bid":
+      return "Voir les enchères";
+    case "register_for_race":
+      return "M’inscrire à une course";
+    case "prepare_race":
+      return "Préparer ma course";
+    case "follow_race_live":
+      return "Voir les courses en direct";
+  }
 }
 
 function formatWelcomeCash(value: number) {

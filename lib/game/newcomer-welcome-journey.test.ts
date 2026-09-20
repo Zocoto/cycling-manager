@@ -73,6 +73,22 @@ describe("newcomer welcome journey", () => {
     expect(migration).toContain("set completed_at = now()");
   });
 
+  it("guides every objective with a clear link to its gameplay page", () => {
+    expect(assistant).toContain("href={step.href}");
+    for (const actionLabel of [
+      "Récupérer mon cadeau",
+      "Ouvrir le chat",
+      "Programmer l’entraînement",
+      "Recruter un membre du staff",
+      "Voir les enchères",
+      "M’inscrire à une course",
+      "Préparer ma course",
+      "Voir les courses en direct",
+    ]) {
+      expect(assistant).toContain(actionLabel);
+    }
+  });
+
   it("grants modest idempotent rewards and the completion achievement", () => {
     expect(migration).toContain("unique (sporting_director_id)");
     expect(migration).toContain("'premiers_tours_de_roue'");
