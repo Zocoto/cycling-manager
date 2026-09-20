@@ -55,6 +55,8 @@ const snapshot: DashboardAssistantSnapshot = {
   sponsorJerseyChangeAvailable: false,
   sponsorTargetSeasonName: null,
   equipmentPartnerSignatureAvailable: false,
+  federationEquipmentSelectionRequired: false,
+  federationEquipmentCountryCode: null,
   developmentTeamSetupRequired: false,
   developmentTeamSetupCurrentDayNumber: 0,
   developmentRaceRegistrationReminderCount: 0,

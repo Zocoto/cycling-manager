@@ -11,6 +11,7 @@ import {
 } from "@/components/game/game-section-tabs";
 import { FederationFinancePreview } from "@/components/game/federation-finance-preview";
 import { FederationElectionPanel } from "@/components/game/federation-election-panel";
+import { FederationEquipmentPreparationPanel } from "@/components/game/federation-equipment-preparation-panel";
 import { FederationCoursesPanel } from "@/components/game/federation-courses-panel";
 import { FederationInfrastructureCatalog } from "@/components/game/federation-infrastructure-catalog";
 import { FederationLounge } from "@/components/game/federation-lounge";
@@ -37,6 +38,8 @@ import type {
   NationalFederationSnapshot,
 } from "@/services/national-federations";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
+import type { FederationEquipmentState } from "@/services/federation-equipment";
+import type { RacePreparationWorkspaceEdition } from "@/components/game/race-preparation-workspace";
 import type { FederationObjectiveMetrics } from "@/services/federation-objectives";
 import type { FederationCoursesState } from "@/services/federation-courses";
 import type { FederationRaceCreationState } from "@/services/federation-race-creation";
@@ -81,6 +84,14 @@ type NationalFederationViewProps = {
   memberTeamJerseys?: Record<string, FederationTeamJerseyArtwork>;
   sponsorCoverage?: FederationSponsorCoverage | null;
   amateurAffiliationState?: AmateurTeamAffiliationState | null;
+  equipmentState?: FederationEquipmentState | null;
+  federationPreparationEditions?: RacePreparationWorkspaceEdition[];
+  equipmentView?: "equipment" | "preparation";
+  equipmentErrorMessage?: string;
+  equipmentPreparationSaved?: boolean;
+  equipmentChoiceConfirmed?: boolean;
+  equipmentInitialSlug?: string;
+  nowIso?: string;
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -104,6 +115,11 @@ const TAB_CONTENT: Array<{
     id: "selections",
     label: "Sélections",
     description: "Compositions préparées dès J1",
+  },
+  {
+    id: "equipment",
+    label: "Équipement & préparation",
+    description: "Dotation et plans nationaux",
   },
   {
     id: "infrastructures",
@@ -155,6 +171,14 @@ export function NationalFederationView({
   memberTeamJerseys = {},
   sponsorCoverage = null,
   amateurAffiliationState = null,
+  equipmentState = null,
+  federationPreparationEditions = [],
+  equipmentView = "equipment",
+  equipmentErrorMessage,
+  equipmentPreparationSaved = false,
+  equipmentChoiceConfirmed = false,
+  equipmentInitialSlug,
+  nowIso = new Date().toISOString(),
 }: NationalFederationViewProps) {
   const phase = getFederationManagementPhase(snapshot.season.gameYear);
   const division = getFederationDivisionPreview(nationRanking?.rank ?? null);
@@ -251,7 +275,7 @@ export function NationalFederationView({
 
       <GameSectionTabs
         ariaLabel="Rubriques de la fédération"
-        columns={7}
+        columns={8}
         className="mt-7"
       >
         {TAB_CONTENT.map((tab) => (
@@ -287,6 +311,25 @@ export function NationalFederationView({
             riders={selectionRiders}
             selectionState={selectionState}
           />
+        ) : selectedTab === "equipment" ? (
+          equipmentState ? (
+            <FederationEquipmentPreparationPanel
+              countryCode={country.code}
+              gameYear={snapshot.season.gameYear}
+              selectedView={equipmentView}
+              equipmentState={equipmentState}
+              preparationEditions={federationPreparationEditions}
+              nowIso={nowIso}
+              initialSlug={equipmentInitialSlug}
+              errorMessage={equipmentErrorMessage}
+              saved={equipmentPreparationSaved}
+              choiceConfirmed={equipmentChoiceConfirmed}
+            />
+          ) : (
+            <EmptyState>
+              Les offres équipementier n’ont pas pu être chargées.
+            </EmptyState>
+          )
         ) : selectedTab === "infrastructures" ? (
           <InfrastructuresPanel
             countryCode={country.code}

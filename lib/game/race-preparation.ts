@@ -18,14 +18,16 @@ export function isTimeTrialPreparationStage(
 
 export function isRacePreparationStageAvailable({
   edition,
-  stage,
+  allowInternational = false,
 }: {
   edition: Pick<RaceCalendarEdition, "competitionType">;
   stage: Pick<RaceCalendarStage, "stageType">;
+  allowInternational?: boolean;
 }) {
-  return (
-    isTimeTrialPreparationStage(stage) ||
-    !isInternationalChampionshipEdition(edition)
+  return Boolean(
+    allowInternational ||
+      (!isInternationalChampionshipEdition(edition) &&
+        edition.competitionType !== "nations_cup"),
   );
 }
 
@@ -34,6 +36,7 @@ export function isRaceStagePreparationPending({
   stage,
   plan,
   scheduled,
+  allowInternational = false,
 }: {
   edition: Pick<RaceCalendarEdition, "competitionType">;
   stage: Pick<RaceCalendarStage, "stageType">;
@@ -41,8 +44,16 @@ export function isRaceStagePreparationPending({
     | { updatedAt: string | null; timeTrialUpdatedAt: string | null }
     | undefined;
   scheduled: boolean;
+  allowInternational?: boolean;
 }) {
-  if (!scheduled || !isRacePreparationStageAvailable({ edition, stage })) {
+  if (
+    !scheduled ||
+    !isRacePreparationStageAvailable({
+      edition,
+      stage,
+      allowInternational,
+    })
+  ) {
     return false;
   }
 

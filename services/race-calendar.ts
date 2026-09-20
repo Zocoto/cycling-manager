@@ -97,6 +97,7 @@ import {
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
 import { getFavoriteRaceRiderIdsByRace } from "@/services/rider-favorite-races";
 import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
+import { loadFederationEquipmentEffectsByCountry } from "@/services/federation-equipment";
 import {
   loadRaceStaffEffects,
   type RaceStaffEffects,
@@ -1508,6 +1509,13 @@ export async function getActiveSeasonRaceCalendar(
           riderCountryRows.map((rider) => rider.country_id),
         )
       : new Map();
+  const federationEquipmentEffectsByCountryId =
+    nationalInternationalEditionIds.size > 0 && includeSimulationEnhancements
+      ? await loadFederationEquipmentEffectsByCountry({
+          seasonId: season.id,
+          countryIds: riderCountryRows.map((rider) => rider.country_id),
+        })
+      : new Map<string, EquipmentEffects>();
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
     stageEquipmentEffectRows,
@@ -1528,6 +1536,7 @@ export async function getActiveSeasonRaceCalendar(
     raceInfrastructureSpecializations,
     teamRegistrationCountryCodes,
     fanClubRaceBoosts,
+    federationEquipmentEffectsByCountryId,
   );
 
   const editions = editionRows
@@ -1642,18 +1651,12 @@ export async function getActiveSeasonRaceCalendar(
           : null,
         stages: (stagesByEditionId.get(edition.id) ?? []).map((stage) => ({
           ...stage,
-          ...((season.game_year < 2 ||
-            (race.competition_type !== "world_championship" &&
-              race.competition_type !== "continental_championship")) &&
-          riderRoleOverridesByStageId.has(stage.id)
+          ...(riderRoleOverridesByStageId.has(stage.id)
             ? {
                 riderRoleOverrides: riderRoleOverridesByStageId.get(stage.id),
               }
             : {}),
-          ...((season.game_year < 2 ||
-            (race.competition_type !== "world_championship" &&
-              race.competition_type !== "continental_championship")) &&
-          teamStrategiesByStageId.has(stage.id)
+          ...(teamStrategiesByStageId.has(stage.id)
             ? {
                 teamStrategies: teamStrategiesByStageId.get(stage.id),
               }
@@ -2075,6 +2078,13 @@ export async function getCurrentTeamRacePreparation(
       `Impossible de charger la préparation des courses : ${error.message}`,
     );
   }
+
+  return parseRacePreparationRows(data);
+}
+
+export function parseRacePreparationRows(
+  data: unknown,
+): RacePreparationEditionPlan[] {
 
   const editionsById = new Map<string, RacePreparationEditionPlan>();
   const ridersByEditionId = new Map<
@@ -2827,6 +2837,7 @@ function groupCalendarEngagedRiders(
   raceInfrastructureSpecializations: RaceInfrastructureSpecializations,
   teamRegistrationCountryCodes: ReadonlyMap<string, string>,
   fanClubRaceBoosts: ReadonlyMap<string, FanClubRaceBoost>,
+  federationEquipmentEffectsByCountryId: ReadonlyMap<string, EquipmentEffects>,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -2848,8 +2859,8 @@ function groupCalendarEngagedRiders(
   >();
 
   for (const row of stageEquipmentRows) {
-    // Stage loadouts belong to the rider's club. National selections must not
-    // inherit them until federations have their own equipment system.
+    // Les montages par étape appartiennent au club. Le contrat national est
+    // appliqué séparément et ne peut jamais être remplacé coureur par coureur.
     if (nationalInternationalEditionIds.has(row.race_edition_id)) continue;
 
     const key = row.race_edition_id + ":" + row.rider_id;
@@ -2901,10 +2912,17 @@ function groupCalendarEngagedRiders(
       ? undefined
       : teamSponsorVisuals.get(row.team_id);
     const equipmentEffects = combineEquipmentEffectsWithStaff({
-      // Permanent equipment is owned by the club as well. An international
-      // selection therefore starts with neutral equipment effects.
+      // Une sélection internationale utilise exclusivement le contrat de sa
+      // fédération. Le matériel de club n'est jamais hérité ici.
       values: usesNationalWorldModel
-        ? []
+        ? riderMetadata &&
+          federationEquipmentEffectsByCountryId.has(riderMetadata.country_id)
+          ? [
+              federationEquipmentEffectsByCountryId.get(
+                riderMetadata.country_id,
+              ),
+            ]
+          : []
         : Array.isArray(row.equipment_effects)
           ? row.equipment_effects
           : [],

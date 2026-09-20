@@ -57,6 +57,11 @@ type FanClubAssistantSummaryRow = {
   today_revenue: number | string;
 };
 
+type FederationEquipmentAlertRow = {
+  selection_required: boolean;
+  country_code: string | null;
+};
+
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardAssistantSnapshot | null> {
@@ -66,6 +71,7 @@ export async function getCurrentDashboardAssistantSummary(
     fanClubResult,
     constructionResult,
     welcomeJourneyResult,
+    federationEquipmentAlertResult,
   ] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
@@ -78,6 +84,9 @@ export async function getCurrentDashboardAssistantSummary(
       .maybeSingle<FanClubAssistantSummaryRow>(),
     supabase.rpc("get_current_dashboard_construction_context"),
     supabase.rpc("get_current_newcomer_journey"),
+    supabase
+      .rpc("get_current_federation_equipment_alert")
+      .maybeSingle<FederationEquipmentAlertRow>(),
   ]);
 
   if (result.error) {
@@ -110,6 +119,13 @@ export async function getCurrentDashboardAssistantSummary(
     console.error(
       "Impossible de charger le parcours de bienvenue :",
       welcomeJourneyResult.error.message,
+    );
+  }
+
+  if (federationEquipmentAlertResult.error) {
+    console.error(
+      "Impossible de charger l’alerte équipementier fédérale :",
+      federationEquipmentAlertResult.error.message,
     );
   }
 
@@ -170,6 +186,15 @@ export async function getCurrentDashboardAssistantSummary(
     sponsorTargetSeasonName: sponsoringAlert?.target_season_name ?? null,
     equipmentPartnerSignatureAvailable:
       assistantPayload.equipmentPartnerSignatureAvailable,
+    federationEquipmentSelectionRequired:
+      !federationEquipmentAlertResult.error &&
+      federationEquipmentAlertResult.data?.selection_required === true,
+    federationEquipmentCountryCode:
+      federationEquipmentAlertResult.error
+        ? null
+        : normalizeCountryCode(
+            federationEquipmentAlertResult.data?.country_code,
+          ),
     developmentTeamSetupRequired:
       assistantPayload.developmentTeamSetupRequired,
     developmentTeamSetupCurrentDayNumber:

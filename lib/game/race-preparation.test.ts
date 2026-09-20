@@ -35,11 +35,18 @@ describe("race preparation stage eligibility", () => {
     "individual_time_trial",
     "team_time_trial",
     "prologue",
-  ] as const)("keeps individual preparation for %s", (stageType) => {
+  ] as const)("moves international %s preparation out of the club", (stageType) => {
     expect(
       isRacePreparationStageAvailable({
         edition: { competitionType: "world_championship" },
         stage: { stageType },
+      }),
+    ).toBe(false);
+    expect(
+      isRacePreparationStageAvailable({
+        edition: { competitionType: "world_championship" },
+        stage: { stageType },
+        allowInternational: true,
       }),
     ).toBe(true);
   });
@@ -60,7 +67,7 @@ describe("race preparation completion", () => {
     ).toBe(false);
   });
 
-  it("uses the dedicated timestamp for a time trial", () => {
+  it("uses the dedicated timestamp for a federation time trial", () => {
     expect(
       isRaceStagePreparationPending({
         edition: { competitionType: "world_championship" },
@@ -70,6 +77,7 @@ describe("race preparation completion", () => {
           timeTrialUpdatedAt: null,
         },
         scheduled: true,
+        allowInternational: true,
       }),
     ).toBe(true);
   });

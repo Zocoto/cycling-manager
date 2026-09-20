@@ -97,6 +97,8 @@ export type DashboardAssistantSnapshot = {
   sponsorJerseyChangeAvailable: boolean;
   sponsorTargetSeasonName: string | null;
   equipmentPartnerSignatureAvailable: boolean;
+  federationEquipmentSelectionRequired: boolean;
+  federationEquipmentCountryCode: string | null;
   developmentTeamSetupRequired: boolean;
   developmentTeamSetupCurrentDayNumber: number;
   developmentRaceRegistrationReminderCount: number;
@@ -388,6 +390,21 @@ export function buildDashboardAssistantLines({
       title: "Contrat équipementier disponible",
       detail: "Choisissez votre partenaire technique pour les deux prochaines saisons.",
       href: "/jeu/materiel/equipementier",
+    });
+  }
+
+  if (
+    snapshot.federationEquipmentSelectionRequired &&
+    snapshot.federationEquipmentCountryCode
+  ) {
+    alerts.push({
+      id: "federation-equipment-selection",
+      tone: "alert",
+      metric: "SAISON",
+      title: "Équipementier national à choisir",
+      detail:
+        "Votre sélection n’a encore aucune dotation. Le choix est définitif pour la saison et s’applique aux internationaux pros et juniors.",
+      href: `/jeu/federations/${snapshot.federationEquipmentCountryCode.toLowerCase()}?onglet=equipment`,
     });
   }
 

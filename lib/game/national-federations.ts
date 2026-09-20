@@ -5,6 +5,7 @@ export const FEDERATION_MANAGEMENT_START_GAME_YEAR = 3;
 export const NATIONAL_FEDERATION_TABS = [
   "overview",
   "selections",
+  "equipment",
   "infrastructures",
   "finances",
   "races",

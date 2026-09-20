@@ -119,6 +119,9 @@ type RacePreparationWorkspaceProps = {
   equipmentError: boolean;
   equipmentSaveStatus?: string;
   savedEquipmentStageId?: string;
+  mode?: "team" | "federation";
+  federationCountryCode?: string;
+  readOnly?: boolean;
 };
 
 const RACE_PREPARATION_RATING_ORDER: RiderRatingKey[] = [
@@ -160,7 +163,11 @@ export function RacePreparationWorkspace({
   equipmentError,
   equipmentSaveStatus,
   savedEquipmentStageId,
+  mode = "team",
+  federationCountryCode,
+  readOnly = false,
 }: RacePreparationWorkspaceProps) {
+  const isFederationMode = mode === "federation";
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const orderedEditions = useMemo(
     () => [...editions].sort(compareRacePreparationEditionsByDate),
@@ -193,6 +200,7 @@ export function RacePreparationWorkspace({
       stage,
       plan: selectedEdition.plan.stages[stage.id],
       scheduled: getStageLiveState(stage, now).status === "scheduled",
+      allowInternational: isFederationMode,
     }),
   )?.id;
   const nextEditableStageId =
@@ -205,7 +213,7 @@ export function RacePreparationWorkspace({
     <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
       <aside className="self-start rounded-3xl border border-[#315B3E]/15 bg-white p-4 shadow-[0_18px_45px_rgba(19,60,46,0.1)] xl:sticky xl:top-5">
         <p className="px-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#397A67]">
-          Courses engagées
+          {isFederationMode ? "Sélections engagées" : "Courses engagées"}
         </p>
         <div className="mt-3 space-y-2" role="list">
           {orderedEditions.map((edition) => {
@@ -219,6 +227,7 @@ export function RacePreparationWorkspace({
                 stage,
                 plan: edition.plan.stages[stage.id],
                 scheduled: true,
+                allowInternational: isFederationMode,
               }),
             ).length;
             const categoryStyle = RACE_CATEGORY_STYLE[edition.categoryCode];
@@ -284,8 +293,9 @@ export function RacePreparationWorkspace({
                 {selectedEdition.name}
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">
-                Les consignes sont figées au départ de chaque étape et intégrées
-                à son unique simulation officielle.
+                {isFederationMode
+                  ? "Le président fixe les rôles et les consignes de la sélection. L’équipement national choisi pour la saison reste imposé à tous les convoqués."
+                  : "Les consignes sont figées au départ de chaque étape et intégrées à son unique simulation officielle."}
               </p>
               {selectedEdition.pendingWildcard ? (
                 <p className="mt-3 max-w-3xl text-xs font-bold leading-5 text-[#F7DA72]">
@@ -327,6 +337,9 @@ export function RacePreparationWorkspace({
                 stage.id === nextEditableStageId ||
                 (!nextEditableStageId && stage.id === orderedStages[0]?.id)
               }
+              mode={mode}
+              federationCountryCode={federationCountryCode}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -352,6 +365,9 @@ function StagePreparationForm({
   equipmentError,
   equipmentSaveStatus,
   initiallyOpen,
+  mode,
+  federationCountryCode,
+  readOnly,
 }: {
   action: (formData: FormData) => Promise<void>;
   tacticalAction: (formData: FormData) => Promise<void>;
@@ -369,6 +385,9 @@ function StagePreparationForm({
   equipmentError: boolean;
   equipmentSaveStatus: string | null;
   initiallyOpen: boolean;
+  mode: "team" | "federation";
+  federationCountryCode?: string;
+  readOnly: boolean;
 }) {
   const lockedTourLeaderRiderId =
     edition.raceFormat === "stage_race"
@@ -416,8 +435,10 @@ function StagePreparationForm({
   const isPreparationAvailable = isRacePreparationStageAvailable({
     edition,
     stage,
+    allowInternational: mode === "federation",
   });
   const isEditable =
+    !readOnly &&
     liveState.status === "scheduled" &&
     !isTimeTrial &&
     isPreparationAvailable;
@@ -474,6 +495,9 @@ function StagePreparationForm({
         equipmentSaveStatus={equipmentSaveStatus}
         isOpen={isOpen}
         onToggle={setIsOpen}
+        showEquipment={mode === "team"}
+        federationCountryCode={federationCountryCode}
+        readOnly={readOnly}
       />
     );
   }
@@ -530,6 +554,9 @@ function StagePreparationForm({
       </div>
 
       <form action={action}>
+        {federationCountryCode ? (
+          <input type="hidden" name="countryCode" value={federationCountryCode} />
+        ) : null}
         <input type="hidden" name="editionId" value={edition.id} />
         <input type="hidden" name="stageId" value={stage.id} />
         <input type="hidden" name="stageNumber" value={stage.stageNumber} />
@@ -898,14 +925,16 @@ function StagePreparationForm({
         />
       ) : null}
 
-      <StageEquipmentSection
-        edition={edition}
-        stage={stage}
-        riders={riders}
-        planning={equipmentPlanning}
-        hasError={equipmentError}
-        saveStatus={equipmentSaveStatus}
-      />
+      {mode === "team" ? (
+        <StageEquipmentSection
+          edition={edition}
+          stage={stage}
+          riders={riders}
+          planning={equipmentPlanning}
+          hasError={equipmentError}
+          saveStatus={equipmentSaveStatus}
+        />
+      ) : null}
     </details>
   );
 }
@@ -1435,6 +1464,9 @@ function TimeTrialPreparationForm({
   equipmentSaveStatus,
   isOpen,
   onToggle,
+  showEquipment,
+  federationCountryCode,
+  readOnly,
 }: {
   action: (formData: FormData) => Promise<void>;
   edition: RacePreparationWorkspaceEdition;
@@ -1447,6 +1479,9 @@ function TimeTrialPreparationForm({
   equipmentSaveStatus: string | null;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
+  showEquipment: boolean;
+  federationCountryCode?: string;
+  readOnly: boolean;
 }) {
   const isTeamTimeTrial = stage.stageType === "team_time_trial";
   const defaultRelayShares = getDefaultTeamTimeTrialRelayShares(
@@ -1466,7 +1501,7 @@ function TimeTrialPreparationForm({
     ),
   );
   const liveState = getStageLiveState(stage, now);
-  const isEditable = liveState.status === "scheduled";
+  const isEditable = !readOnly && liveState.status === "scheduled";
   const relayTotal = riders.reduce(
     (total, rider) => total + (plans[rider.riderId]?.relaySharePct ?? 0),
     0,
@@ -1532,6 +1567,9 @@ function TimeTrialPreparationForm({
       </div>
 
       <form action={action}>
+        {federationCountryCode ? (
+          <input type="hidden" name="countryCode" value={federationCountryCode} />
+        ) : null}
         <input type="hidden" name="editionId" value={edition.id} />
         <input type="hidden" name="stageId" value={stage.id} />
         <input type="hidden" name="stageNumber" value={stage.stageNumber} />
@@ -1670,14 +1708,16 @@ function TimeTrialPreparationForm({
         </footer>
       </form>
 
-      <StageEquipmentSection
-        edition={edition}
-        stage={stage}
-        riders={riders}
-        planning={equipmentPlanning}
-        hasError={equipmentError}
-        saveStatus={equipmentSaveStatus}
-      />
+      {showEquipment ? (
+        <StageEquipmentSection
+          edition={edition}
+          stage={stage}
+          riders={riders}
+          planning={equipmentPlanning}
+          hasError={equipmentError}
+          saveStatus={equipmentSaveStatus}
+        />
+      ) : null}
     </details>
   );
 }

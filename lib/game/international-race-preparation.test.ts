@@ -15,9 +15,12 @@ const preparationTriggerMigration = read(
 const migration = read(
   "supabase/migrations/20260904022000_disable_international_road_team_preparation.sql",
 );
+const federationEquipmentMigration = read(
+  "supabase/migrations/20260920170000_create_federation_equipment_and_race_preparation.sql",
+);
 
 describe("international race preparation boundaries", () => {
-  it("removes international road races before rendering the preparation workspace", () => {
+  it("removes every international race from the club preparation workspace", () => {
     expect(preparationPage).toContain("isRacePreparationStageAvailable");
     expect(preparationPage).toContain("flatMap((edition)");
     expect(workspace).toContain("if (!isPreparationAvailable) return null");
@@ -52,7 +55,7 @@ describe("international race preparation boundaries", () => {
     );
   });
 
-  it("feeds rider time-trial plans to international simulations", () => {
+  it("feeds federation time-trial plans to international simulations", () => {
     const timeTrialPlanBlock = calendarService.slice(
       calendarService.indexOf("...(timeTrialPlansByStageId.has(stage.id)"),
       calendarService.indexOf("segments: removeOneDayRaceMountainPrimes"),
@@ -60,7 +63,12 @@ describe("international race preparation boundaries", () => {
 
     expect(timeTrialPlanBlock).toContain("timeTrialPlans:");
     expect(timeTrialPlanBlock).not.toContain("competition_type");
-    expect(migration).not.toContain("race_time_trial_rider_plans_reject");
+    expect(federationEquipmentMigration).toContain(
+      "save_national_federation_time_trial_preparation",
+    );
+    expect(federationEquipmentMigration).toContain(
+      "Ce contre-la-montre international est préparé par la sélection nationale.",
+    );
   });
 
   it("does not create dashboard reminders for disabled road plans", () => {

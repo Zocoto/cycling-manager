@@ -12,12 +12,15 @@ import {
   parseNationalFederationTab,
 } from "@/lib/game/national-federations";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
+import { getStageLiveState } from "@/lib/game/race-live";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getAmateurTeamAffiliationState } from "@/services/amateur-team-affiliation";
 import { getFederationChatOverview } from "@/services/federation-chat";
 import { getFederationCoursesState } from "@/services/federation-courses";
 import { getFederationFinanceBaseline } from "@/services/federation-finances";
+import { getFederationEquipmentState } from "@/services/federation-equipment";
+import { getCurrentFederationRacePreparation } from "@/services/federation-race-preparation";
 import { getFederationObjectiveMetrics } from "@/services/federation-objectives";
 import { getFederationRaceCreationState } from "@/services/federation-race-creation";
 import { getFederationGovernanceOverview } from "@/services/federation-governance";
@@ -35,6 +38,8 @@ import {
 } from "@/services/national-federations";
 import { getPublicCountryDirectory } from "@/services/public-directory";
 import { getNationRankingEntry } from "@/services/uci-rankings";
+import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import type { RacePreparationWorkspaceEdition } from "@/components/game/race-preparation-workspace";
 
 export const metadata: Metadata = {
   title: "Fédération nationale",
@@ -44,7 +49,14 @@ export const metadata: Metadata = {
 
 type FederationPageProps = {
   params: Promise<{ codePays: string }>;
-  searchParams: Promise<{ onglet?: string | string[] }>;
+  searchParams: Promise<{
+    onglet?: string | string[];
+    volet?: string | string[];
+    course?: string | string[];
+    erreur?: string | string[];
+    enregistrement?: string | string[];
+    choix?: string | string[];
+  }>;
 };
 
 export default async function FederationPage({
@@ -82,6 +94,11 @@ export default async function FederationPage({
   }
 
   const selectedTab = parseNationalFederationTab(query.onglet);
+  const equipmentView =
+    readSingleSearchParam(query.volet) === "preparation"
+      ? "preparation"
+      : "equipment";
+  const now = new Date();
   const [nationRanking, snapshot] = await Promise.all([
     getNationRankingEntry(country.country_code),
     getNationalFederationSnapshot({
@@ -272,6 +289,76 @@ export default async function FederationPage({
         })
       : null;
 
+  const equipmentState =
+    selectedTab === "equipment"
+      ? await getFederationEquipmentState({
+          countryId: country.entity_id,
+          seasonId: snapshot.season.id,
+          gameYear: snapshot.season.gameYear,
+          viewerTeamId: snapshot.viewer.teamId,
+        }).catch((error) => {
+          console.error(
+            "Impossible de charger les offres équipementier fédérales :",
+            error,
+          );
+          return null;
+        })
+      : null;
+
+  let federationPreparationEditions: RacePreparationWorkspaceEdition[] = [];
+  if (selectedTab === "equipment" && equipmentView === "preparation") {
+    const [calendarResult, preparationResult] = await Promise.all([
+      getActiveSeasonRaceCalendar(supabase, now, {
+        includeEngagedRiders: false,
+      }).catch((error) => {
+        console.error(
+          "Impossible de charger le calendrier des sélections :",
+          error,
+        );
+        return null;
+      }),
+      getCurrentFederationRacePreparation(
+        supabase,
+        country.country_code,
+      ).catch((error) => {
+        console.error(
+          "Impossible de charger les plans nationaux :",
+          error,
+        );
+        return [];
+      }),
+    ]);
+    const planByEditionId = new Map(
+      preparationResult.map((plan) => [plan.editionId, plan]),
+    );
+    federationPreparationEditions =
+      calendarResult?.editions.flatMap((edition) => {
+        const plan = planByEditionId.get(edition.id);
+        if (!plan) return [];
+        const stages = edition.stages.filter(
+          (stage) =>
+            Boolean(plan.stages[stage.id]) &&
+            getStageLiveState(stage, now).status === "scheduled",
+        );
+        if (stages.length === 0) return [];
+        return [{
+          id: edition.id,
+          slug: edition.slug,
+          name: edition.name,
+          shortName: edition.shortName,
+          countryCode: edition.countryCode,
+          categoryCode: edition.categoryCode,
+          categoryName: edition.categoryName,
+          raceFormat: edition.raceFormat,
+          competitionType: edition.competitionType,
+          pendingWildcard: false,
+          stages,
+          plan,
+          equipmentPlanning: null,
+        }];
+      }) ?? [];
+  }
+
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
@@ -319,8 +406,24 @@ export default async function FederationPage({
           memberTeamJerseys={memberTeamJerseys}
           sponsorCoverage={sponsorCoverage}
           amateurAffiliationState={amateurAffiliationState}
+          equipmentState={equipmentState}
+          federationPreparationEditions={federationPreparationEditions}
+          equipmentView={equipmentView}
+          equipmentErrorMessage={readSingleSearchParam(query.erreur)}
+          equipmentPreparationSaved={
+            readSingleSearchParam(query.enregistrement) === "confirme"
+          }
+          equipmentChoiceConfirmed={
+            readSingleSearchParam(query.choix) === "confirme"
+          }
+          equipmentInitialSlug={readSingleSearchParam(query.course)}
+          nowIso={now.toISOString()}
         />
       </section>
     </main>
   );
+}
+
+function readSingleSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
