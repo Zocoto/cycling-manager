@@ -96,6 +96,42 @@ describe("Cyclogazette daily games", () => {
     ).toBe(true);
   });
 
+  it("préserve les numéros publiés puis écarte les quasi-doublons récents", () => {
+    expect(getCyclogazetteGameSolutions(65).crosswordRows).toEqual([
+      "RIEN#TROP",
+      "ELLE##O#R",
+      "F#URGENCE",
+      "LE#FOND#S",
+      "E#J###E#E",
+      "C#AUTO#IN",
+      "HONNEUR#T",
+      "I#T##RATE",
+      "REEL#STAR",
+    ]);
+
+    const recentAnswerSets: Set<string>[] = [];
+    const recentAnswerSignatures: string[] = [];
+
+    for (let issueNumber = 64; issueNumber <= 180; issueNumber += 1) {
+      const answers = getCrosswordAnswers(issueNumber);
+      const answerSignature = [...answers].sort().join("|");
+
+      if (issueNumber >= 66) {
+        for (const recentAnswers of recentAnswerSets.slice(-2)) {
+          expect(getAnswerSetSimilarity(answers, recentAnswers)).toBeLessThan(
+            0.8,
+          );
+        }
+        expect(recentAnswerSignatures.slice(-28)).not.toContain(
+          answerSignature,
+        );
+      }
+
+      recentAnswerSets.push(answers);
+      recentAnswerSignatures.push(answerSignature);
+    }
+  });
+
   it("accepte indifféremment les lettres accentuées ou non", () => {
     const issueNumber = Array.from({ length: 84 }, (_, index) => index + 1).find(
       (candidate) =>
@@ -205,4 +241,28 @@ function isConnectedCrossword(rows: string[]) {
   }
 
   return seen.size === rows.join("").replaceAll("#", "").length;
+}
+
+function getCrosswordAnswers(issueNumber: number) {
+  const crossword = getCyclogazetteDailyGames(issueNumber).crossword;
+  const rows = getCyclogazetteGameSolutions(issueNumber).crosswordRows;
+
+  return new Set(
+    crossword.entries.map((entry) =>
+      Array.from({ length: entry.length }, (_, index) => {
+        const row =
+          entry.row + (entry.direction === "vertical" ? index : 0);
+        const column =
+          entry.column + (entry.direction === "horizontal" ? index : 0);
+        return rows[row][column];
+      }).join(""),
+    ),
+  );
+}
+
+function getAnswerSetSimilarity(left: Set<string>, right: Set<string>) {
+  const intersectionSize = [...left].filter((answer) =>
+    right.has(answer),
+  ).length;
+  return intersectionSize / (left.size + right.size - intersectionSize);
 }

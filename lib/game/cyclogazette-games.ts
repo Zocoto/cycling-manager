@@ -305,6 +305,10 @@ const GENERAL_CROSSWORD_WORDS: readonly CrosswordWord[] = [
 
 const GENERAL_CROSSWORDS_FROM_ISSUE = 47;
 const LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE = 57;
+// Keep every published grid stable: the diversified rotation starts with the
+// first unpublished issue after the report concerning issues 63 and 65.
+const DIVERSE_CONNECTED_CROSSWORDS_FROM_ISSUE = 66;
+const CROSSWORD_EXACT_CONTENT_COOLDOWN = 28;
 
 type DenseCrosswordSquare = readonly [string, string, string, string];
 
@@ -891,11 +895,10 @@ function createCrosswordPuzzle(
 ): PrivateCrosswordPuzzle {
   const variationSeed = hashVariationKey(variationKey);
   if (issueNumber >= LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE) {
-    const sequence = issueNumber - LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE;
-    const templateIndex =
-      (sequence * 13 + 7) % CONNECTED_CROSSWORD_TEMPLATES.length;
-    const transpose =
-      Math.floor(sequence / CONNECTED_CROSSWORD_TEMPLATES.length) % 2 === 1;
+    const { templateIndex, transpose } =
+      issueNumber >= DIVERSE_CONNECTED_CROSSWORDS_FROM_ISSUE
+        ? getDiverseConnectedCrosswordSelection(issueNumber)
+        : getLegacyConnectedCrosswordSelection(issueNumber);
     return buildConnectedCrosswordPuzzle(
       CONNECTED_CROSSWORD_TEMPLATES[templateIndex],
       getDifficulty(issueNumber, 1),
@@ -948,6 +951,230 @@ function createCrosswordPuzzle(
     Math.floor(templateOffset / CONNECTED_CROSSWORD_TEMPLATES.length) % 2 ===
     1;
   return buildConnectedCrosswordPuzzle(template, difficulty, transpose);
+}
+
+type ConnectedCrosswordSelection = {
+  templateIndex: number;
+  transpose: boolean;
+};
+
+const diverseConnectedCrosswordSelections: ConnectedCrosswordSelection[] = [];
+const connectedCrosswordAnswerCache = new WeakMap<
+  ConnectedCrosswordTemplate,
+  ReadonlySet<string>
+>();
+const connectedCrosswordPatternCache = new WeakMap<
+  ConnectedCrosswordTemplate,
+  string
+>();
+
+function getLegacyConnectedCrosswordSelection(
+  issueNumber: number,
+): ConnectedCrosswordSelection {
+  const sequence = issueNumber - LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE;
+  return {
+    templateIndex:
+      (sequence * 13 + 7) % CONNECTED_CROSSWORD_TEMPLATES.length,
+    transpose:
+      Math.floor(sequence / CONNECTED_CROSSWORD_TEMPLATES.length) % 2 === 1,
+  };
+}
+
+function getDiverseConnectedCrosswordSelection(
+  issueNumber: number,
+): ConnectedCrosswordSelection {
+  const targetIndex = issueNumber - DIVERSE_CONNECTED_CROSSWORDS_FROM_ISSUE;
+
+  while (diverseConnectedCrosswordSelections.length <= targetIndex) {
+    const nextIssueNumber =
+      DIVERSE_CONNECTED_CROSSWORDS_FROM_ISSUE +
+      diverseConnectedCrosswordSelections.length;
+    const history = getConnectedCrosswordSelectionHistory(nextIssueNumber);
+    const templateUsage = new Map<number, number>();
+    history.forEach(({ templateIndex }) =>
+      templateUsage.set(
+        templateIndex,
+        (templateUsage.get(templateIndex) ?? 0) + 1,
+      ),
+    );
+
+    const rankedCandidates = CONNECTED_CROSSWORD_TEMPLATES.map(
+      (_, templateIndex) => ({
+        templateIndex,
+        score: getConnectedCrosswordVarietyScore({
+          templateIndex,
+          issueNumber: nextIssueNumber,
+          history,
+          usageCount: templateUsage.get(templateIndex) ?? 0,
+        }),
+      }),
+    ).sort((left, right) => compareNumberTuples(left.score, right.score));
+
+    const templateIndex = rankedCandidates[0]?.templateIndex ?? 0;
+    diverseConnectedCrosswordSelections.push({
+      templateIndex,
+      transpose:
+        (nextIssueNumber + templateIndex + (templateUsage.get(templateIndex) ?? 0)) %
+          2 ===
+        1,
+    });
+  }
+
+  return diverseConnectedCrosswordSelections[targetIndex];
+}
+
+function getConnectedCrosswordSelectionHistory(issueNumber: number) {
+  const firstIssueNumber = Math.max(
+    LARGE_CONNECTED_CROSSWORDS_FROM_ISSUE,
+    issueNumber - CROSSWORD_EXACT_CONTENT_COOLDOWN,
+  );
+
+  return Array.from(
+    { length: issueNumber - firstIssueNumber },
+    (_, offset): ConnectedCrosswordSelection => {
+      const historyIssueNumber = firstIssueNumber + offset;
+      return historyIssueNumber < DIVERSE_CONNECTED_CROSSWORDS_FROM_ISSUE
+        ? getLegacyConnectedCrosswordSelection(historyIssueNumber)
+        : diverseConnectedCrosswordSelections[
+            historyIssueNumber - DIVERSE_CONNECTED_CROSSWORDS_FROM_ISSUE
+          ];
+    },
+  );
+}
+
+function getConnectedCrosswordVarietyScore({
+  templateIndex,
+  issueNumber,
+  history,
+  usageCount,
+}: {
+  templateIndex: number;
+  issueNumber: number;
+  history: ConnectedCrosswordSelection[];
+  usageCount: number;
+}) {
+  const recentTwo = history.slice(-2);
+  const recentEight = history.slice(-8);
+  const candidateTemplate = CONNECTED_CROSSWORD_TEMPLATES[templateIndex];
+  const candidatePattern = getConnectedCrosswordPattern(candidateTemplate);
+  const candidateAnswers = getConnectedCrosswordAnswers(candidateTemplate);
+  const hasSamePattern = (selection: ConnectedCrosswordSelection) =>
+    getConnectedCrosswordPattern(
+      CONNECTED_CROSSWORD_TEMPLATES[selection.templateIndex],
+    ) === candidatePattern;
+  const answerSimilarity = (selection: ConnectedCrosswordSelection) =>
+    getCrosswordAnswerSimilarity(
+      candidateAnswers,
+      getConnectedCrosswordAnswers(
+        CONNECTED_CROSSWORD_TEMPLATES[selection.templateIndex],
+      ),
+    );
+
+  // Sort priorities are deliberate: never repeat an answer set within a full
+  // season, then maximize short-term lexical and visual distance. The last
+  // rank only makes ties deterministic, so one issue always keeps one grid.
+  return [
+    history.some((selection) => answerSimilarity(selection) === 1) ? 1 : 0,
+    Math.max(0, ...recentTwo.map(answerSimilarity)),
+    recentTwo.some(hasSamePattern) ? 1 : 0,
+    recentEight.filter(hasSamePattern).length,
+    Math.max(0, ...recentEight.map(answerSimilarity)),
+    usageCount,
+    getStableCrosswordCandidateRank(issueNumber, templateIndex),
+  ];
+}
+
+function getConnectedCrosswordPattern(template: ConnectedCrosswordTemplate) {
+  const cachedPattern = connectedCrosswordPatternCache.get(template);
+  if (cachedPattern) return cachedPattern;
+
+  const directPattern = template.rows
+    .map((row) => row.replace(/[A-Z]/g, "."))
+    .join("");
+  const transposedPattern = transposeCrosswordRows(template.rows)
+    .map((row) => row.replace(/[A-Z]/g, "."))
+    .join("");
+  const pattern =
+    directPattern < transposedPattern ? directPattern : transposedPattern;
+  connectedCrosswordPatternCache.set(template, pattern);
+  return pattern;
+}
+
+function getConnectedCrosswordAnswers(template: ConnectedCrosswordTemplate) {
+  const cachedAnswers = connectedCrosswordAnswerCache.get(template);
+  if (cachedAnswers) return cachedAnswers;
+
+  const answers = new Set<string>();
+
+  for (const direction of ["horizontal", "vertical"] as const) {
+    const fixedLimit =
+      direction === "horizontal" ? template.rows.length : template.rows[0].length;
+    const movingLimit =
+      direction === "horizontal" ? template.rows[0].length : template.rows.length;
+    for (let fixed = 0; fixed < fixedLimit; fixed += 1) {
+      let moving = 0;
+      while (moving < movingLimit) {
+        while (
+          moving < movingLimit &&
+          readCrosswordCell(template.rows, direction, fixed, moving) === "#"
+        ) {
+          moving += 1;
+        }
+        const start = moving;
+        while (
+          moving < movingLimit &&
+          readCrosswordCell(template.rows, direction, fixed, moving) !== "#"
+        ) {
+          moving += 1;
+        }
+        if (moving - start < 2) continue;
+        answers.add(
+          Array.from(
+            { length: moving - start },
+            (_, index) =>
+              readCrosswordCell(
+                template.rows,
+                direction,
+                fixed,
+                start + index,
+              ),
+          ).join(""),
+        );
+      }
+    }
+  }
+
+  connectedCrosswordAnswerCache.set(template, answers);
+  return answers;
+}
+
+function getCrosswordAnswerSimilarity(
+  left: ReadonlySet<string>,
+  right: ReadonlySet<string>,
+) {
+  let intersectionSize = 0;
+  left.forEach((answer) => {
+    if (right.has(answer)) intersectionSize += 1;
+  });
+  return intersectionSize / (left.size + right.size - intersectionSize);
+}
+
+function getStableCrosswordCandidateRank(
+  issueNumber: number,
+  templateIndex: number,
+) {
+  return (
+    Math.imul(issueNumber + 1, 1_103_515_245) ^
+    Math.imul(templateIndex + 1, 12_345)
+  ) >>> 0;
+}
+
+function compareNumberTuples(left: number[], right: number[]) {
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
 }
 
 function buildDenseCrosswordPuzzle(
