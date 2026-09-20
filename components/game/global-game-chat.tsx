@@ -2184,7 +2184,10 @@ function OnlineDirectorsMobileDialog({
         className="absolute inset-0 h-full w-full cursor-default"
         aria-label="Fermer les présences"
       />
-      <aside className="absolute inset-x-0 bottom-0 flex max-h-[72dvh] min-h-0 flex-col overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]">
+      <aside
+        className="absolute inset-x-0 bottom-0 flex h-[min(78dvh,42rem)] max-h-[calc(100dvh-0.75rem)] min-h-0 flex-col overflow-hidden rounded-t-[2rem] bg-[#071A17] pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-20px_70px_rgba(3,17,14,0.45)]"
+        data-online-directors-mobile-sheet="true"
+      >
         <OnlineDirectorsContent
           directors={directors}
           currentDirectorId={currentDirectorId}
@@ -2313,19 +2316,19 @@ function OnlineDirectorsContent({
                     />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="min-w-0 truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
-                        {isCurrent ? "Vous" : director.displayName}
-                      </span>
+                    <span className="block truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
+                      {isCurrent ? "Vous" : director.displayName}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#8FA99D]">
+                      {director.teamName}
+                    </span>
+                    <span className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
                       {director.rookieBadgeExpiresAt ? (
                         <RookieBadge inverse />
                       ) : null}
                       <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#72D4B7]">
                         Online
                       </span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#8FA99D]">
-                      {director.teamName}
                     </span>
                   </span>
                 </Link>

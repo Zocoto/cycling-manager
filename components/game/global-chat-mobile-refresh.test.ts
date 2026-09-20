@@ -31,7 +31,9 @@ describe("global chat mobile refresh", () => {
   it("keeps online directors in a secondary mobile sheet", () => {
     expect(chat).toContain("showOnlineDirectors");
     expect(chat).toContain('aria-label="Directeurs Sportifs en ligne"');
-    expect(chat).toContain("max-h-[72dvh]");
+    expect(chat).toContain('data-online-directors-mobile-sheet="true"');
+    expect(chat).toContain("h-[min(78dvh,42rem)]");
+    expect(chat).toContain("max-h-[calc(100dvh-0.75rem)]");
     expect(chat).toContain("onlineDirectorCount={onlineDirectors.length}");
     expect(chat.indexOf('aria-label="Voir les Directeurs Sportifs en ligne"')).toBeGreaterThan(
       chat.indexOf("function ChatModeTabs"),
@@ -46,7 +48,7 @@ describe("global chat mobile refresh", () => {
   it("lets the online director list scroll independently on desktop and mobile", () => {
     expect(chat).toContain("lg:grid-rows-[minmax(0,1fr)]");
     expect(chat).toContain('className="hidden h-full min-h-0 flex-col overflow-hidden');
-    expect(chat).toContain('className="absolute inset-x-0 bottom-0 flex max-h-[72dvh] min-h-0 flex-col');
+    expect(chat).toContain('className="absolute inset-x-0 bottom-0 flex h-[min(78dvh,42rem)]');
     expect(chat).toContain('aria-label="Liste des Directeurs Sportifs en ligne"');
     expect(chat).toContain("Faites défiler pour voir les");
     expect(chat).toContain('data-online-directors-scroll="true"');
@@ -57,6 +59,7 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("Voir les Directeurs Sportifs précédents");
     expect(chat).toContain("Voir les Directeurs Sportifs suivants");
     expect(chat).toContain("group flex min-w-0 shrink-0 items-center");
+    expect(chat).toContain("mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5");
   });
 
   it("lets each director persistently hide race conversations from the main feed", () => {
