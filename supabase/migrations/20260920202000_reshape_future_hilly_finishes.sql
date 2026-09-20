@@ -3,6 +3,10 @@ begin;
 -- Preserve every started or locked race. Only future hilly road stages with a
 -- complete editable profile are reshaped. Three deterministic families out of
 -- four finish uphill; the fourth keeps a short flat run-in after the last hill.
+-- Legacy profiles sometimes split the final six kilometres into two three-km
+-- segments. In that case the run-in is capped at five kilometres so the
+-- decisive climb keeps at least one kilometre and the total distance stays
+-- strictly unchanged.
 create temporary table hilly_finish_targets on commit drop as
 with eligible as (
   select
@@ -211,7 +215,7 @@ begin
       not target.uphill_finish
       and (
         finish.terrain_type <> 'flat'
-        or finish.distance_km not between 6 and 10
+        or finish.distance_km not between 4 and 10
         or approach.terrain_type <> 'climb'
         or approach.average_gradient_pct < 6.2
       )

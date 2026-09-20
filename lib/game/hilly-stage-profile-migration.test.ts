@@ -26,7 +26,7 @@ describe("planned hilly finish reshaping", () => {
     expect(migration).toContain("else 6 + mod(eligible.shape_seed, 5)");
     expect(migration).toContain("finish_distance_km - previous_finish_distance_km");
     expect(migration).toContain("finish.distance_km not between 4 and 8");
-    expect(migration).toContain("finish.distance_km not between 6 and 10");
+    expect(migration).toContain("finish.distance_km not between 4 and 10");
   });
 
   it("moves the mountain prize to the rewritten decisive hill", () => {
