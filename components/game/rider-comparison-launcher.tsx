@@ -44,6 +44,7 @@ export function RiderComparisonLauncher({
 }) {
   const selectId = useId();
   const [isOpen, setIsOpen] = useState(false);
+  const [comparisonRiderId, setComparisonRiderId] = useState("");
   const inheritedOptions = useContext(RiderComparisonOptionsContext);
   const availableOptions = options ?? inheritedOptions;
   const candidates = useMemo(
@@ -51,19 +52,9 @@ export function RiderComparisonLauncher({
     [availableOptions, riderId],
   );
   const isDark = tone === "dark";
-
-  function openComparison(comparisonRiderId: string) {
-    if (!candidates.some((candidate) => candidate.id === comparisonRiderId)) {
-      return;
-    }
-
-    window.open(
-      `/jeu/coureurs/${encodeURIComponent(riderId)}/comparer/${encodeURIComponent(comparisonRiderId)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
-    setIsOpen(false);
-  }
+  const selectedCandidate = candidates.find(
+    (candidate) => candidate.id === comparisonRiderId,
+  );
 
   return (
     <div className={compact ? "w-full" : "w-full max-w-sm"}>
@@ -107,9 +98,8 @@ export function RiderComparisonLauncher({
           </label>
           <select
             id={`${selectId}-select`}
-            defaultValue=""
-            autoFocus
-            onChange={(event) => openComparison(event.target.value)}
+            value={comparisonRiderId}
+            onChange={(event) => setComparisonRiderId(event.target.value)}
             className="mt-2 min-h-11 w-full rounded-lg border border-[#315B3E]/20 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/25"
           >
             <option value="" disabled>
@@ -122,13 +112,45 @@ export function RiderComparisonLauncher({
               </option>
             ))}
           </select>
+          {selectedCandidate ? (
+            <a
+              href={`/jeu/coureurs/${encodeURIComponent(riderId)}/comparer/${encodeURIComponent(selectedCandidate.id)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={[
+                "mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-center text-xs font-black uppercase tracking-[0.08em] transition focus-visible:outline-none focus-visible:ring-2",
+                isDark
+                  ? "bg-[#F2C94C] text-[#102D28] hover:bg-[#F7D968] focus-visible:ring-white"
+                  : "bg-[#176951] text-white hover:bg-[#105942] focus-visible:ring-[#278B70]",
+              ].join(" ")}
+              aria-label={`Comparer ${riderName} avec ${selectedCandidate.firstName} ${selectedCandidate.lastName} dans un nouvel onglet`}
+            >
+              Ouvrir la comparaison
+              <span className="ml-2" aria-hidden="true">
+                ↗
+              </span>
+            </a>
+          ) : (
+            <span
+              aria-disabled="true"
+              className={[
+                "mt-3 inline-flex min-h-11 w-full cursor-not-allowed items-center justify-center rounded-lg border px-4 text-center text-xs font-black uppercase tracking-[0.08em] opacity-55",
+                isDark
+                  ? "border-white/15 bg-white/5 text-white"
+                  : "border-[#315B3E]/15 bg-[#F1F5F3] text-[#60756E]",
+              ].join(" ")}
+            >
+              Choisir un coureur
+            </span>
+          )}
           <p
             className={[
               "mt-2 text-[10px] font-semibold",
               isDark ? "text-[#BFD1C6]" : "text-[#60756E]",
             ].join(" ")}
           >
-            La comparaison s’ouvrira dans un nouvel onglet.
+            Sélectionnez un coureur puis ouvrez la comparaison. Sur iPhone en
+            mode app, elle peut s’ouvrir dans Safari.
           </p>
         </div>
       ) : null}

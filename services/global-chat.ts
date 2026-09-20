@@ -12,6 +12,7 @@ import {
   type GlobalChatPreviewType,
 } from "@/lib/game/global-chat";
 import {
+  applyGlobalChatRookieStatuses,
   mapGlobalChatOnlineDirectorRows,
   mergeGlobalChatOnlineDirectors,
   type GlobalChatOnlineDirector,
@@ -76,6 +77,7 @@ export type GlobalChatMessage = {
   sportingDirectorId: string;
   authorAvatarKey: string | null;
   authorAvatarFrameKey: "alpha_tester" | null;
+  rookieBadgeExpiresAt?: string | null;
   authorCountry: {
     name: string;
     code: string;
@@ -178,6 +180,7 @@ type GlobalChatDirectorProfileRow = {
 type GlobalChatDirectorProfile = {
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
+  rookieBadgeExpiresAt: string | null;
   country: {
     name: string;
     code: string;
@@ -192,6 +195,11 @@ type GlobalChatMentionRecipientRow = {
   avatar_frame_key: string | null;
   team_id: string;
   team_name: string;
+};
+
+type GlobalChatRookieStatusRow = {
+  sporting_director_id: string;
+  badge_expires_at: string;
 };
 
 const GLOBAL_CHAT_MESSAGE_SELECT = [
@@ -275,12 +283,13 @@ export async function getGlobalChatOverview(
     );
   }
 
-  const identity: GlobalChatIdentity = {
+  const baseIdentity: GlobalChatIdentity = {
     sportingDirectorId: identityRow.sporting_director_id,
     username: identityRow.username,
     displayName: identityRow.display_name,
     avatarKey: identityRow.avatar_key,
     avatarFrameKey: readAvatarFrameKey(identityRow.avatar_frame_key),
+    rookieBadgeExpiresAt: null,
     country: null,
     teamId: identityRow.team_id,
     teamName: identityRow.team_name,
@@ -301,6 +310,20 @@ export async function getGlobalChatOverview(
     );
   }
 
+  const recentDirectors = onlineDirectorsResult.error
+    ? []
+    : mapGlobalChatOnlineDirectorRows(
+        (onlineDirectorsResult.data as Record<string, unknown>[] | null) ?? [],
+      );
+  const rookieStatuses = await getRookieBadgeExpiryByDirectorId(supabase, [
+    baseIdentity.sportingDirectorId,
+    ...recentDirectors.map((director) => director.sportingDirectorId),
+  ]);
+  const [identity] = applyGlobalChatRookieStatuses(
+    [baseIdentity],
+    toRookieStatusRows(rookieStatuses),
+  );
+
   return {
     identity,
     lastReadAt:
@@ -309,12 +332,10 @@ export async function getGlobalChatOverview(
         : null,
     onlineDirectors: mergeGlobalChatOnlineDirectors({
       currentDirector: identity,
-      recentDirectors: onlineDirectorsResult.error
-        ? []
-        : mapGlobalChatOnlineDirectorRows(
-            (onlineDirectorsResult.data as Record<string, unknown>[] | null) ??
-              [],
-          ),
+      recentDirectors: applyGlobalChatRookieStatuses(
+        recentDirectors,
+        toRookieStatusRows(rookieStatuses),
+      ),
       realtimeDirectors: [],
     }),
     ...messagePage,
@@ -463,6 +484,7 @@ export function mapGlobalChatMessage(
     sportingDirectorId: row.sporting_director_id,
     authorAvatarKey: profile?.avatarKey ?? null,
     authorAvatarFrameKey: profile?.avatarFrameKey ?? null,
+    rookieBadgeExpiresAt: profile?.rookieBadgeExpiresAt ?? null,
     authorCountry: profile?.country ?? null,
     teamId: row.team_id,
     authorDisplayName: row.author_display_name,
@@ -516,10 +538,12 @@ async function getProfilesByDirectorId(
   const uniqueDirectorIds = [...new Set(directorIds)];
   if (uniqueDirectorIds.length === 0) return result;
 
-  const profilesResult = await supabase.rpc(
-    "get_global_chat_director_profiles",
-    { p_sporting_director_ids: uniqueDirectorIds },
-  );
+  const [profilesResult, rookieBadgeExpiryByDirectorId] = await Promise.all([
+    supabase.rpc("get_global_chat_director_profiles", {
+      p_sporting_director_ids: uniqueDirectorIds,
+    }),
+    getRookieBadgeExpiryByDirectorId(supabase, uniqueDirectorIds),
+  ]);
 
   if (profilesResult.error) {
     console.error(
@@ -546,11 +570,50 @@ async function getProfilesByDirectorId(
     result.set(row.sporting_director_id, {
       avatarKey: row.avatar_key,
       avatarFrameKey: readAvatarFrameKey(row.avatar_frame_key),
+      rookieBadgeExpiresAt:
+        rookieBadgeExpiryByDirectorId.get(row.sporting_director_id) ?? null,
       country: readCountry(row.country_name ?? null, row.country_code ?? null),
     });
   }
 
   return result;
+}
+
+async function getRookieBadgeExpiryByDirectorId(
+  supabase: SupabaseServerClient,
+  directorIds: string[],
+) {
+  const result = new Map<string, string>();
+  const uniqueDirectorIds = [...new Set(directorIds)].slice(0, 100);
+  if (uniqueDirectorIds.length === 0) return result;
+
+  const rookieResult = await supabase.rpc("get_global_chat_rookie_status", {
+    p_sporting_director_ids: uniqueDirectorIds,
+  });
+  if (rookieResult.error) {
+    console.error(
+      "Global chat rookie badges unavailable; continuing without badges.",
+      rookieResult.error,
+    );
+    return result;
+  }
+
+  for (const row of
+    (rookieResult.data as GlobalChatRookieStatusRow[] | null) ?? []) {
+    if (Number.isFinite(Date.parse(row.badge_expires_at))) {
+      result.set(row.sporting_director_id, row.badge_expires_at);
+    }
+  }
+  return result;
+}
+
+function toRookieStatusRows(expiryByDirectorId: Map<string, string>) {
+  return [...expiryByDirectorId].map(
+    ([sporting_director_id, badge_expires_at]) => ({
+      sporting_director_id,
+      badge_expires_at,
+    }),
+  );
 }
 
 async function getReactionsByMessageId(

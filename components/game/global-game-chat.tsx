@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
+import { RookieBadge } from "@/components/game/rookie-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
@@ -53,6 +54,7 @@ import {
 } from "@/lib/game/chat-translation";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import {
+  applyGlobalChatRookieStatuses,
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
   GLOBAL_CHAT_ONLINE_WINDOW_MINUTES,
   mapGlobalChatOnlineDirectorRows,
@@ -215,6 +217,9 @@ export function GlobalGameChat({
   const [showReadHistory, setShowReadHistory] = useState(false);
   const [pendingLiveMessageCount, setPendingLiveMessageCount] = useState(0);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [showRookieWelcome, setShowRookieWelcome] = useState(
+    Boolean(identity.rookieBadgeExpiresAt),
+  );
   const [draft, setDraft] = useState("");
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [selectedMentions, setSelectedMentions] = useState<
@@ -394,6 +399,18 @@ export function GlobalGameChat({
   }, [identity.sportingDirectorId]);
 
   useEffect(() => {
+    if (!identity.rookieBadgeExpiresAt) {
+      setShowRookieWelcome(false);
+      return;
+    }
+    setShowRookieWelcome(
+      window.localStorage.getItem(
+        getRookieWelcomeDismissedStorageKey(identity.sportingDirectorId),
+      ) !== "true",
+    );
+  }, [identity.rookieBadgeExpiresAt, identity.sportingDirectorId]);
+
+  useEffect(() => {
     const savedDraft = window.localStorage.getItem(
       getGlobalChatDraftStorageKey(identity.sportingDirectorId),
     );
@@ -554,10 +571,22 @@ export function GlobalGameChat({
       requestInFlight = false;
 
       if (!active || result.error) return;
-      setRecentOnlineDirectors(
-        mapGlobalChatOnlineDirectorRows(
-          (result.data as Record<string, unknown>[] | null) ?? [],
+      const directors = mapGlobalChatOnlineDirectorRows(
+        (result.data as Record<string, unknown>[] | null) ?? [],
+      );
+      const rookieResult = await supabase.rpc("get_global_chat_rookie_status", {
+        p_sporting_director_ids: directors.map(
+          (director) => director.sportingDirectorId,
         ),
+      });
+      if (!active) return;
+      setRecentOnlineDirectors(
+        rookieResult.error
+          ? directors
+          : applyGlobalChatRookieStatuses(
+              directors,
+              (rookieResult.data as Record<string, unknown>[] | null) ?? [],
+            ),
       );
     }
 
@@ -763,6 +792,7 @@ export function GlobalGameChat({
           username: identity.username,
           avatarKey: identity.avatarKey,
           avatarFrameKey: identity.avatarFrameKey,
+          rookieBadgeExpiresAt: identity.rookieBadgeExpiresAt,
           country: identity.country,
           teamId: identity.teamId,
           teamName: identity.teamName,
@@ -1001,6 +1031,22 @@ export function GlobalGameChat({
       const separator = current.length > 0 && !/\s$/.test(current) ? " " : "";
       return `${current}${separator}${emoji}`.slice(0, draftLimit);
     });
+  }
+
+  function startRookieConversation(message: string) {
+    setDraft(message.slice(0, draftLimit));
+    setMentionQuery(null);
+    setMentionResults([]);
+    setError(null);
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }
+
+  function dismissRookieWelcome() {
+    setShowRookieWelcome(false);
+    window.localStorage.setItem(
+      getRookieWelcomeDismissedStorageKey(identity.sportingDirectorId),
+      "true",
+    );
   }
 
   function beginReply(message: GlobalChatMessage) {
@@ -1352,6 +1398,14 @@ export function GlobalGameChat({
           </button>
         ) : null}
 
+        {showRookieWelcome && identity.rookieBadgeExpiresAt ? (
+          <RookieWelcomePrompt
+            teamName={identity.teamName}
+            onChoose={startRookieConversation}
+            onDismiss={dismissRookieWelcome}
+          />
+        ) : null}
+
         <div
           ref={viewportRef}
           onScroll={handleGlobalViewportScroll}
@@ -1461,6 +1515,13 @@ export function GlobalGameChat({
                   }
                   authorCountry={
                     message.authorCountry ?? onlineAuthor?.country ?? null
+                  }
+                  rookieBadgeExpiresAt={
+                    message.rookieBadgeExpiresAt ??
+                    onlineAuthor?.rookieBadgeExpiresAt ??
+                    (isCurrentDirector
+                      ? identity.rookieBadgeExpiresAt
+                      : null)
                   }
                   isCurrentDirector={isCurrentDirector}
                   isMentioned={globalChatMessageMentionsUsername(
@@ -1784,11 +1845,82 @@ function ChatModeTabs({
   );
 }
 
+function RookieWelcomePrompt({
+  teamName,
+  onChoose,
+  onDismiss,
+}: {
+  teamName: string;
+  onChoose: (message: string) => void;
+  onDismiss: () => void;
+}) {
+  const starters = [
+    {
+      label: "Présenter mon équipe",
+      message: `Salut le peloton 👋 Je débute avec ${teamName}. Mon objectif pour cette saison : …`,
+    },
+    {
+      label: "Question tactique",
+      message: "Je débute et j’aurais besoin d’un conseil tactique sur : …",
+    },
+    {
+      label: "Partager un objectif",
+      message: `Mon prochain objectif avec ${teamName} est … Quelle approche me conseillez-vous ?`,
+    },
+  ];
+
+  return (
+    <section className="shrink-0 border-b border-[#D9AC12]/25 bg-[linear-gradient(110deg,#FFF8D9,#F2F9F5)] px-4 py-3 sm:px-7">
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F2C94C] text-lg shadow-sm"
+        >
+          👋
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-black text-[#183F37]">
+              Bienvenue dans le peloton !
+            </p>
+            <RookieBadge />
+          </div>
+          <p className="mt-1 text-[11px] font-semibold leading-5 text-[#60756E]">
+            Présentez votre équipe, questionnez une tactique ou partagez votre
+            prochain objectif : les autres DS peuvent vous répondre directement.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {starters.map((starter) => (
+              <button
+                key={starter.label}
+                type="button"
+                onClick={() => onChoose(starter.message)}
+                className="rounded-full border border-[#176951]/18 bg-white px-3 py-1.5 text-[9px] font-black text-[#176951] shadow-sm transition hover:border-[#176951]/40 hover:bg-[#EAF7F1]"
+              >
+                {starter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-black text-[#789087] transition hover:bg-white hover:text-[#183F37]"
+          aria-label="Masquer le message de bienvenue"
+        >
+          ×
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function ChatMessage({
   message,
   avatarKey,
   avatarFrameKey,
   authorCountry,
+  rookieBadgeExpiresAt,
   isCurrentDirector,
   isMentioned,
   currentDirectorId,
@@ -1815,6 +1947,7 @@ function ChatMessage({
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
   authorCountry: { name: string; code: string } | null;
+  rookieBadgeExpiresAt: string | null;
   isCurrentDirector: boolean;
   isMentioned: boolean;
   currentDirectorId: string;
@@ -1877,6 +2010,9 @@ function ChatMessage({
             }`}
           >
             {isCurrentDirector ? "Vous" : message.authorDisplayName}
+            {rookieBadgeExpiresAt ? (
+              <RookieBadge inverse={isCurrentDirector} className="ml-1.5" />
+            ) : null}
             {!isCurrentDirector && authorCountry ? (
               <span
                 role="img"
@@ -2290,6 +2426,9 @@ function OnlineDirectorsContent({
                       <span className="min-w-0 truncate text-xs font-black text-[#EAF5F0] group-hover:text-[#F2C94C]">
                         {isCurrent ? "Vous" : director.displayName}
                       </span>
+                      {director.rookieBadgeExpiresAt ? (
+                        <RookieBadge inverse />
+                      ) : null}
                       <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#72D4B7]">
                         Online
                       </span>
@@ -2537,6 +2676,7 @@ function readRealtimeMessage(
     sportingDirectorId: row.sporting_director_id,
     authorAvatarKey: null,
     authorAvatarFrameKey: null,
+    rookieBadgeExpiresAt: null,
     authorCountry: null,
     teamId: row.team_id,
     authorDisplayName: row.author_display_name,
@@ -2571,6 +2711,10 @@ function readRealtimeMessage(
 
 function getGlobalChatDraftStorageKey(sportingDirectorId: string) {
   return `cyclostratege:chat:draft:global:${sportingDirectorId}`;
+}
+
+function getRookieWelcomeDismissedStorageKey(sportingDirectorId: string) {
+  return `cyclostratege:chat:rookie-welcome-dismissed:${sportingDirectorId}`;
 }
 
 function getGlobalChatRaceVisibilityStorageKey(sportingDirectorId: string) {
@@ -2764,6 +2908,8 @@ function isOnlineDirector(value: unknown): value is GlobalChatOnlineDirector {
     (director.avatarKey === null || typeof director.avatarKey === "string") &&
     (director.avatarFrameKey === null ||
       director.avatarFrameKey === "alpha_tester") &&
+    (director.rookieBadgeExpiresAt === null ||
+      typeof director.rookieBadgeExpiresAt === "string") &&
     isOnlineDirectorCountry(director.country) &&
     typeof director.teamId === "string" &&
     typeof director.teamName === "string" &&

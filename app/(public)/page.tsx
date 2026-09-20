@@ -6,6 +6,7 @@ import sharingImage from "../opengraph-image.png";
 
 import { PublicGameNewsBoard } from "@/components/public/public-game-news-board";
 import { InstallAppBanner } from "@/components/pwa/install-app-banner";
+import { appConfig } from "@/lib/app-config";
 import { getPublicGameNews } from "@/services/public-game-news";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -189,7 +190,7 @@ const productNews = [
     dateTime: "2026-07-26",
     dateLabel: "26 juillet 2026",
     accent: "mint",
-    href: "https://discord.gg/tz4EA3e2b",
+    href: appConfig.discordUrl,
     linkLabel: "Rejoindre le Discord",
   },
 ] as const;
@@ -292,7 +293,7 @@ const productNewsEn = [
     dateTime: "2026-07-26",
     dateLabel: "26 July 2026",
     accent: "mint",
-    href: "https://discord.gg/tz4EA3e2b",
+    href: appConfig.discordUrl,
     linkLabel: "Join Discord",
   },
 ] as const;

@@ -57,6 +57,10 @@ type SponsorContractRow = {
   created_at: string;
 };
 type SponsorRegistryRow = { id: string; catalog_key: string };
+type RookieTeamEligibilityRow = {
+  team_id: string;
+  sporting_director_id: string;
+};
 
 export type TeamRankingJerseyArtwork =
   | { kind: "sponsor"; imagePath: string }
@@ -73,6 +77,11 @@ export type TeamRankingEntry = {
   isProfessional: boolean;
   projectedDivision: TeamDivisionCode;
   jerseyArtwork: TeamRankingJerseyArtwork;
+};
+
+export type RookieTeamRankingEntry = Omit<TeamRankingEntry, "rank"> & {
+  rank: number;
+  overallRank: number;
 };
 
 export type RiderRankingEntry = {
@@ -102,6 +111,7 @@ export type UciRankings = {
   seasonId: string;
   seasonName: string;
   teams: TeamRankingEntry[];
+  rookies: RookieTeamRankingEntry[];
   riders: RiderRankingEntry[];
   nations: NationRankingEntry[];
 };
@@ -129,24 +139,32 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     return null;
   }
 
-  const [teamSeasonsResult, summariesResult] = await Promise.all([
-    supabase
-      .from("team_seasons")
-      .select("team_id, display_name, points, final_rank, division_id")
-      .eq("season_id", season.id)
-      .neq("status", "withdrawn")
-      .gt("points", 0)
-      .returns<TeamSeasonRow[]>(),
-    supabase
-      .from("rider_season_summaries")
-      .select("rider_id, points")
-      .eq("season_id", season.id)
-      .gt("points", 0)
-      .returns<RiderSummaryRow[]>(),
-  ]);
+  const [teamSeasonsResult, summariesResult, rookieEligibilityResult] =
+    await Promise.all([
+      supabase
+        .from("team_seasons")
+        .select("team_id, display_name, points, final_rank, division_id")
+        .eq("season_id", season.id)
+        .neq("status", "withdrawn")
+        .gt("points", 0)
+        .returns<TeamSeasonRow[]>(),
+      supabase
+        .from("rider_season_summaries")
+        .select("rider_id, points")
+        .eq("season_id", season.id)
+        .gt("points", 0)
+        .returns<RiderSummaryRow[]>(),
+      supabase.rpc("get_rookie_team_eligibility", {
+        p_season_id: season.id,
+      }),
+    ]);
 
   assertQuery(teamSeasonsResult.error, "les équipes classées");
   assertQuery(summariesResult.error, "les points des coureurs");
+  assertQuery(
+    rookieEligibilityResult.error,
+    "l’éligibilité au classement rookie",
+  );
 
   const teamSeasons = teamSeasonsResult.data ?? [];
   const teamIds = teamSeasons.map((team) => team.team_id);
@@ -363,6 +381,18 @@ async function loadUciRankings(): Promise<UciRankings | null> {
       } satisfies TeamRankingEntry;
     });
 
+  const rookieTeamIds = new Set(
+    ((rookieEligibilityResult.data as RookieTeamEligibilityRow[] | null) ?? [])
+      .map((row) => row.team_id),
+  );
+  const rookies = teams
+    .filter((team) => rookieTeamIds.has(team.teamId))
+    .map((team, index) => ({
+      ...team,
+      rank: index + 1,
+      overallRank: team.rank,
+    } satisfies RookieTeamRankingEntry));
+
   const riders = (ridersResult.data ?? [])
     .map((rider) => {
       const country = countryById.get(rider.country_id);
@@ -420,7 +450,14 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     )
     .map((nation, index) => ({ ...nation, rank: index + 1 }));
 
-  return { seasonId: season.id, seasonName: season.name, teams, riders, nations };
+  return {
+    seasonId: season.id,
+    seasonName: season.name,
+    teams,
+    rookies,
+    riders,
+    nations,
+  };
 }
 
 function resolveTeamRankingJerseyArtwork({

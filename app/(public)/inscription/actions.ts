@@ -77,6 +77,9 @@ export async function registerAccount(
     "legalAcceptance",
   );
 
+  const marketingEmailConsent =
+    getFormValue(formData, "marketingEmailConsent") === "accepted";
+
   const marketingAttribution =
     readMarketingAttributionFromFormData(formData);
 
@@ -125,6 +128,11 @@ export async function registerAccount(
         legal_acceptance: "accepted",
         terms_version: legalConfig.termsVersion,
         privacy_notice_version: legalConfig.privacyNoticeVersion,
+        marketing_email_consent: marketingEmailConsent
+          ? "accepted"
+          : "declined",
+        marketing_email_consent_version:
+          legalConfig.privacyNoticeVersion,
         ...(Object.keys(marketingAttribution).length > 0
           ? {
               marketing_attribution: marketingAttribution,

@@ -5,6 +5,7 @@ import {
   GAME_PRESENCE_HEARTBEAT_INTERVAL_MS,
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
   GLOBAL_CHAT_ONLINE_WINDOW_MINUTES,
+  applyGlobalChatRookieStatuses,
   mapGlobalChatOnlineDirectorRows,
   mergeGlobalChatOnlineDirectors,
   shouldRecordGamePresence,
@@ -17,6 +18,7 @@ const currentDirector: GlobalChatOnlineDirector = {
   displayName: "Zoé",
   avatarKey: "director_f_01",
   avatarFrameKey: null,
+  rookieBadgeExpiresAt: null,
   country: { name: "France", code: "FR" },
   teamId: "team-current",
   teamName: "Équipe actuelle",
@@ -71,6 +73,7 @@ describe("global game presence", () => {
         displayName: "Alice",
         avatarKey: "director_f_02",
         avatarFrameKey: null,
+        rookieBadgeExpiresAt: null,
         country: { name: "Belgique", code: "BE" },
         teamId: "team-1",
         teamName: "Les Rouleurs",
@@ -89,6 +92,7 @@ describe("global game presence", () => {
           displayName: "Bruno",
           avatarKey: null,
           avatarFrameKey: null,
+          rookieBadgeExpiresAt: null,
           country: null,
           teamId: "team-2",
           teamName: "Nom ancien",
@@ -103,6 +107,7 @@ describe("global game presence", () => {
           displayName: "Bruno",
           avatarKey: "director_m_01",
           avatarFrameKey: null,
+          rookieBadgeExpiresAt: null,
           country: null,
           teamId: "team-2",
           teamName: "Nom temps réel",
@@ -114,6 +119,7 @@ describe("global game presence", () => {
           displayName: "Alice",
           avatarKey: "director_f_02",
           avatarFrameKey: null,
+          rookieBadgeExpiresAt: null,
           country: null,
           teamId: "team-1",
           teamName: "Les Rouleurs",
@@ -129,5 +135,21 @@ describe("global game presence", () => {
     ]);
     expect(directors.find((director) => director.teamId === "team-2")?.teamName)
       .toBe("Nom temps réel");
+  });
+
+  it("adds an active three-week rookie badge without changing presence rows", () => {
+    expect(
+      applyGlobalChatRookieStatuses([currentDirector], [
+        {
+          sporting_director_id: currentDirector.sportingDirectorId,
+          badge_expires_at: "2026-10-01T12:00:00.000Z",
+        },
+      ]),
+    ).toEqual([
+      {
+        ...currentDirector,
+        rookieBadgeExpiresAt: "2026-10-01T12:00:00.000Z",
+      },
+    ]);
   });
 });

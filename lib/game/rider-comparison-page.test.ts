@@ -31,9 +31,12 @@ describe("rider comparison page", () => {
   it("launches a selected roster comparison in a new tab", () => {
     expect(launcher).toContain("Comparer à");
     expect(launcher).toContain("RiderComparisonOptionsContext");
-    expect(launcher).toContain('window.open(');
-    expect(launcher).toContain('"_blank"');
-    expect(launcher).toContain('"noopener,noreferrer"');
+    expect(launcher).not.toContain("window.open(");
+    expect(launcher).not.toContain("autoFocus");
+    expect(launcher).toContain('target="_blank"');
+    expect(launcher).toContain('rel="noopener noreferrer"');
+    expect(launcher).toContain("Ouvrir la comparaison");
+    expect(launcher).toContain("mode app");
     expect(profilePage).toContain("<RiderComparisonLauncher");
     expect(rosterPage).toContain("<RiderComparisonLauncher");
   });

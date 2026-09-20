@@ -3,6 +3,9 @@ import generatedCatalog from "@/lib/i18n/generated-fr-en.json";
 const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "EN": "EN",
   "FR": "FR",
+  "Je souhaite recevoir par e-mail les nouveautés importantes de Cyclo Stratège. Ce choix est facultatif et modifiable à tout moment depuis le menu utilisateur.":
+    "I would like to receive important Cyclo Stratège news by email. This is optional and can be changed at any time from the user menu.",
+  "En savoir plus": "Learn more",
   "Jeux quadriennaux professionnels": "Professional Quadrennial Games",
   "JQ Pro": "QG Pro",
   "Six candidatures : CM et CC pros/juniors, JQ pros et Nations Cup juniors":

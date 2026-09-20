@@ -39,6 +39,11 @@ const processingPurposes = [
     basis: "Exécution du service demandé. Aucun e-mail publicitaire n’est envoyé sur cette base.",
   },
   {
+    purpose: "Envoyer les actualités importantes de Cyclo Stratège",
+    data: "Adresse e-mail, préférence d’abonnement et historique strictement nécessaire pour prouver le choix et respecter un retrait.",
+    basis: "Votre consentement. Il est facultatif et peut être retiré à tout moment depuis le menu utilisateur ou le lien de désinscription de chaque e-mail.",
+  },
+  {
     purpose: "Comprendre l’origine des inscriptions et gérer le parrainage",
     data: "Code de parrainage et, lorsqu’ils sont présents dans le lien, paramètres de campagne UTM.",
     basis: "Intérêt légitime à mesurer l’efficacité des actions de communication et à attribuer les récompenses de parrainage.",
@@ -118,8 +123,9 @@ export default function PrivacyPage() {
             L’adresse e-mail, le mot de passe, le nom de directeur sportif et
             l’acceptation des conditions d’utilisation sont nécessaires pour
             créer un compte. Sans ces informations, l’inscription ne peut pas
-            aboutir. Les notifications push restent facultatives et peuvent
-            être désactivées à tout moment dans le navigateur.
+            aboutir. Les notifications push et les e-mails d’actualité restent
+            facultatifs. La préférence e-mail peut être modifiée à tout moment
+            dans le menu utilisateur, indépendamment des messages de service.
           </p>
           <p className="mt-4">
             Votre adresse e-mail n’est pas affichée aux autres membres. En
@@ -147,7 +153,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Brevo</strong> : acheminement des e-mails transactionnels
-              de confirmation et de service.
+              de confirmation et de service ainsi que, uniquement avec votre
+              consentement, des e-mails d’actualité.
             </li>
             <li>
               <strong>Google Gemini ou DeepL</strong> : traduction à la demande
@@ -188,6 +195,11 @@ export default function PrivacyPage() {
               le compte et supprimée lors de sa suppression.
             </li>
             <li>
+              La préférence relative aux e-mails d’actualité et l’historique
+              de ses modifications sont conservés avec le compte afin de
+              respecter votre choix et de pouvoir en établir la preuve.
+            </li>
+            <li>
               Les journaux nécessaires à la sécurité sont conservés pendant la
               durée proportionnée à la prévention, la détection et le traitement
               des incidents, puis supprimés ou agrégés.
@@ -206,7 +218,9 @@ export default function PrivacyPage() {
             rectification, d’effacement, de limitation, d’opposition et de
             portabilité. Lorsqu’un traitement repose sur votre consentement,
             vous pouvez le retirer à tout moment sans remettre en cause les
-            opérations antérieures.
+            opérations antérieures. Pour les e-mails d’actualité, ce retrait
+            est disponible dans le menu utilisateur et depuis le lien de
+            désinscription présent dans chaque message.
           </p>
           <p className="mt-4">
             Vous pouvez supprimer directement votre compte depuis votre profil

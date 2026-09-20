@@ -6,6 +6,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import Link from "@/components/ui/app-link";
+import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
 
 export function GameUserMenu({ displayName }: { displayName?: string }) {
   const { locale } = useLocale();
@@ -142,6 +143,11 @@ export function GameUserMenu({ displayName }: { displayName?: string }) {
           />
 
           <PushNotificationControl variant="menu" isEnglish={isEnglish} />
+
+          <MarketingEmailPreferenceControl
+            active={open}
+            isEnglish={isEnglish}
+          />
 
           <UserMenuLink
             href="/guide"

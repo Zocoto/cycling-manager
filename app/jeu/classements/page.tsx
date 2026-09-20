@@ -19,6 +19,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getUciRankings,
   type NationRankingEntry,
+  type RookieTeamRankingEntry,
   type RiderRankingEntry,
   type TeamRankingEntry,
 } from "@/services/uci-rankings";
@@ -33,7 +34,8 @@ export const metadata: Metadata = {
   description: "Classements des équipes, coureurs et nations de la saison.",
 };
 
-type RankingView = "equipes" | "individuel" | "nations";
+type RankingView = "equipes" | "individuel" | "nations" | "rookies";
+type JuniorRankingView = Exclude<RankingView, "rookies">;
 type RankingCircuit = "uci" | "juniors";
 
 export default async function UciRankingsPage({
@@ -46,10 +48,17 @@ export default async function UciRankingsPage({
   }>;
 }) {
   const query = await searchParams;
-  const rawView = Array.isArray(query.vue) ? query.vue[0] : query.vue;
-  const view: RankingView = isRankingView(rawView) ? rawView : "equipes";
   const rawCircuit = Array.isArray(query.circuit) ? query.circuit[0] : query.circuit;
   const circuit: RankingCircuit = rawCircuit === "juniors" ? "juniors" : "uci";
+  const rawView = Array.isArray(query.vue) ? query.vue[0] : query.vue;
+  const requestedView: RankingView = isRankingView(rawView)
+    ? rawView
+    : "equipes";
+  const view: RankingView =
+    circuit === "juniors" && requestedView === "rookies"
+      ? "equipes"
+      : requestedView;
+  const juniorView = view as JuniorRankingView;
   const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
   const page = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
   const supabase = await createSupabaseServerClient();
@@ -62,7 +71,9 @@ export default async function UciRankingsPage({
 
   const [headerData, rankingData] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    circuit === "juniors" ? getJuniorRankings(view, page) : getUciRankings(),
+    circuit === "juniors"
+      ? getJuniorRankings(juniorView, page)
+      : getUciRankings(),
   ]);
   const rankings = circuit === "uci" ? rankingData as Awaited<ReturnType<typeof getUciRankings>> : null;
   const juniorRankings = circuit === "juniors" ? rankingData as JuniorRankings | null : null;
@@ -113,7 +124,7 @@ export default async function UciRankingsPage({
 
         <GameSectionTabs
           ariaLabel="Vues du classement"
-          columns={3}
+          columns={circuit === "uci" ? 4 : 3}
           className="mt-3"
         >
           <GameSectionTabLink
@@ -134,17 +145,27 @@ export default async function UciRankingsPage({
             label="Nations"
             description="Points par pays"
           />
+          {circuit === "uci" ? (
+            <GameSectionTabLink
+              href="/jeu/classements?circuit=uci&vue=rookies"
+              active={view === "rookies"}
+              label="Rookies"
+              description="Nouveaux DS"
+            />
+          ) : null}
         </GameSectionTabs>
 
         <section className="mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
           {circuit === "juniors" ? (
-            <JuniorRankingContent rankings={juniorRankings} view={view} />
+            <JuniorRankingContent rankings={juniorRankings} view={juniorView} />
           ) : !rankings ? (
             <p className="px-6 py-10 text-center font-bold text-[#60756E]">Aucune saison active.</p>
           ) : view === "equipes" ? (
             <TeamsTable entries={rankings.teams} />
           ) : view === "individuel" ? (
             <RidersTable entries={rankings.riders} />
+          ) : view === "rookies" ? (
+            <RookieRanking entries={rankings.rookies} />
           ) : (
             <NationsTable entries={rankings.nations} />
           )}
@@ -157,6 +178,104 @@ export default async function UciRankingsPage({
         {circuit === "uci" && view === "equipes" ? <DivisionAdvantages /> : null}
       </section>
     </main>
+  );
+}
+
+function RookieRanking({ entries }: { entries: RookieTeamRankingEntry[] }) {
+  return (
+    <div>
+      <div className="border-b border-[#D9AC12]/25 bg-[linear-gradient(115deg,#FFF8D9,#F2F9F5)] px-5 py-5 sm:px-7">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8B6B00]">
+          Première saison complète
+        </p>
+        <h2 className="mt-1 text-xl font-black text-[#183F37]">
+          Le classement qui met les nouveaux DS en lumière
+        </h2>
+        <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
+          Sont éligibles les équipes qui n’ont pas encore terminé une saison
+          complète. Les points restent exactement ceux du classement UCI :
+          aucune mécanique sportive supplémentaire.
+        </p>
+        <div className="mt-4 grid gap-2 text-[11px] font-bold text-[#315B3E] sm:grid-cols-3">
+          <p className="rounded-xl border border-[#D9AC12]/25 bg-white/75 px-3 py-2">
+            🥇 1er · staff sur mesure, +1 potentiel et chantier −7 jours
+          </p>
+          <p className="rounded-xl border border-[#315B3E]/12 bg-white/75 px-3 py-2">
+            🥈 2e · +1 potentiel et chantier −2 jours
+          </p>
+          <p className="rounded-xl border border-[#315B3E]/12 bg-white/75 px-3 py-2">
+            🥉 3e · capacité spéciale Panache
+          </p>
+        </div>
+        <p className="mt-2 text-[9px] font-bold text-[#789087]">
+          Cadeaux remis automatiquement dans l’inventaire de la saison suivante.
+        </p>
+      </div>
+      {entries.length === 0 ? (
+        <p className="px-6 py-10 text-center font-bold text-[#60756E]">
+          Le classement rookie s’ouvrira dès les premiers points UCI d’un nouveau DS.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] border-collapse text-left">
+            <caption className="sr-only">Classement des meilleurs rookies</caption>
+            <TableHead
+              labels={["Rang rookie", "Équipe", "Directeur Sportif", "Rang UCI", "Points"]}
+            />
+            <tbody>
+              {entries.map((entry) => (
+                <tr
+                  key={entry.teamId}
+                  className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]"
+                >
+                  <RankCell rank={entry.rank} />
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <TeamRankingJersey
+                        teamId={entry.teamId}
+                        teamName={entry.teamName}
+                        jersey={entry.jerseyArtwork}
+                      />
+                      <div className="min-w-0">
+                        <Link
+                          href={`/jeu/equipes/${entry.teamId}`}
+                          className="font-black text-[#183F37] hover:text-[#278B70]"
+                        >
+                          {entry.teamName}
+                        </Link>
+                        <span className="mt-2 block">
+                          <TeamDivisionBadge
+                            division={entry.division}
+                            isProfessional={entry.isProfessional}
+                            compact
+                          />
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    {entry.directorUsername ? (
+                      <Link
+                        href={`/jeu/directeurs-sportifs/${encodeURIComponent(entry.directorUsername)}`}
+                        className="font-bold text-[#48665F] hover:text-[#278B70]"
+                      >
+                        {entry.directorName}
+                      </Link>
+                    ) : (
+                      <span className="text-[#83938D]">Poste vacant</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-center font-black text-[#60756E]">
+                    #{entry.overallRank}
+                  </td>
+                  <PointsCell points={entry.points} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -248,7 +367,7 @@ function NationsTable({ entries }: { entries: NationRankingEntry[] }) {
   );
 }
 
-function JuniorRankingContent({ rankings, view }: { rankings: JuniorRankings | null; view: RankingView }) {
+function JuniorRankingContent({ rankings, view }: { rankings: JuniorRankings | null; view: JuniorRankingView }) {
   if (!rankings) {
     return <p className="px-6 py-10 text-center font-bold text-[#60756E]">Aucune saison active.</p>;
   }
@@ -267,7 +386,7 @@ function JuniorRankingContent({ rankings, view }: { rankings: JuniorRankings | n
   return <JuniorTable entries={rankings.entries} view={view} />;
 }
 
-function JuniorTable({ entries, view }: { entries: JuniorRankingEntry[]; view: RankingView }) {
+function JuniorTable({ entries, view }: { entries: JuniorRankingEntry[]; view: JuniorRankingView }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left">
@@ -326,5 +445,5 @@ function DivisionAdvantages() {
 }
 
 function isRankingView(value: string | undefined): value is RankingView {
-  return value === "equipes" || value === "individuel" || value === "nations";
+  return value === "equipes" || value === "individuel" || value === "nations" || value === "rookies";
 }

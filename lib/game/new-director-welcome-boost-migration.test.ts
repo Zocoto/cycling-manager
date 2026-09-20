@@ -97,7 +97,6 @@ describe("weeklong new director welcome boost", () => {
     expect(hotfixMigration).toContain("v_first_name := coalesce");
     expect(hotfixMigration).toContain("v_last_name := coalesce");
   });
-
   it("waives only the gifted scout's first-season salary", () => {
     expect(salaryWaiverMigration).toContain(
       "add column if not exists salary_waived_season_id uuid",

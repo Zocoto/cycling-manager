@@ -11,7 +11,7 @@ export const appConfig = {
   siteUrl: configuredSiteUrl || "https://cyclostratege.fr",
   locale: "fr_FR",
   instagramUrl: "https://www.instagram.com/cyclostratege/",
-  discordUrl: "https://discord.gg/Zq9ecPYEF",
+  discordUrl: "https://discord.gg/EbupEFEQC8",
 } as const;
 export function getAbsoluteUrl(pathname = "/"): string {
   return new URL(pathname, appConfig.siteUrl).toString();
