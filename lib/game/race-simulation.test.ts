@@ -15,6 +15,7 @@ import {
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   findDroppedRiderIdsCaughtByDelayedGroup,
+  getDelayedRiderPursuitOutcome,
   getHillyClimbSelectionRating,
   getLongSummitFinishFactor,
   getControlledRaceDayExecutionSwing,
@@ -38,6 +39,7 @@ import {
   selectStageAttackPlan,
   shouldPreserveFinalRoadGroupTimes,
   simulateRaceStage,
+  splitElapsedRiderGroups,
   type RiderSimulationInput,
 } from "./race-simulation";
 import type { RaceStageSegment } from "./race-profiles";
@@ -327,6 +329,92 @@ describe("findDroppedRiderIdsCaughtByDelayedGroup", () => {
         ],
       }),
     ).toEqual([]);
+  });
+
+  it("ne transforme pas plusieurs groupes retardés distincts en un peloton moyen fictif", () => {
+    const delayedGroups = splitElapsedRiderGroups(
+      [
+        { riderId: "front-a", elapsedTimeSeconds: 100 },
+        { riderId: "back-a", elapsedTimeSeconds: 198 },
+        { riderId: "front-b", elapsedTimeSeconds: 102 },
+        { riderId: "back-b", elapsedTimeSeconds: 200 },
+      ],
+      3,
+    );
+
+    expect(
+      delayedGroups.map((group) => group.map((rider) => rider.riderId)),
+    ).toEqual([
+      ["front-a", "front-b"],
+      ["back-a", "back-b"],
+    ]);
+
+    const endTimes = [111, 159];
+    const caught = delayedGroups.flatMap((group, index) =>
+      findDroppedRiderIdsCaughtByDelayedGroup({
+        delayedGroupSize: group.length,
+        delayedGroupStartElapsedTimeSeconds:
+          group.reduce(
+            (total, rider) => total + rider.elapsedTimeSeconds,
+            0,
+          ) / group.length,
+        delayedGroupEndElapsedTimeSeconds: endTimes[index],
+        droppedRiders: [
+          {
+            riderId: "isolated-leader",
+            startElapsedTimeSeconds: 140,
+            endElapsedTimeSeconds: 145,
+          },
+        ],
+      }),
+    );
+
+    expect(caught).toEqual([]);
+  });
+});
+
+describe("getDelayedRiderPursuitOutcome", () => {
+  it("fait décrocher un groupe épuisé dans une ascension exigeante", () => {
+    const outcome = getDelayedRiderPursuitOutcome({
+      energy: 2,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      catchUpScore: 72,
+      gapSeconds: 45,
+      recoveryRoll: 0.8,
+    });
+
+    expect(outcome.shouldDrop).toBe(true);
+    expect(outcome.recoveredSeconds).toBe(0);
+    expect(outcome.additionalLossSeconds).toBeGreaterThan(0);
+  });
+
+  it("réserve les vrais retours en montagne aux poursuivants qui ont encore des réserves", () => {
+    const exhausted = getDelayedRiderPursuitOutcome({
+      energy: 12,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      catchUpScore: 72,
+      gapSeconds: 45,
+      recoveryRoll: 0.8,
+    });
+    const fresh = getDelayedRiderPursuitOutcome({
+      energy: 55,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      catchUpScore: 72,
+      gapSeconds: 45,
+      recoveryRoll: 0.8,
+    });
+
+    expect(exhausted.shouldDrop).toBe(false);
+    expect(exhausted.recoveredSeconds).toBeLessThan(1.5);
+    expect(fresh.recoveredSeconds).toBeGreaterThan(
+      exhausted.recoveredSeconds * 5,
+    );
   });
 });
 

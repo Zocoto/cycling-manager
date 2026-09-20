@@ -698,6 +698,7 @@ export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
+const DELAYED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
 const FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS = 16;
 const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
@@ -2228,15 +2229,18 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const chase = getStatesInGroup(states, "chase");
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
-    const delayedGroupAtSegmentStart =
-      delayed.length >= 2
-        ? {
-            riderIds: new Set(delayed.map((state) => state.rider.id)),
-            elapsedTimeSeconds: average(
-              delayed.map((state) => state.elapsedTimeSeconds),
-            ),
-          }
-        : null;
+    const delayedGroupsAtSegmentStart = splitElapsedRiderGroups(
+      delayed,
+      DELAYED_GROUP_MAX_GAP_SECONDS,
+    );
+    const delayedGroupSnapshotsAtSegmentStart = delayedGroupsAtSegmentStart
+      .filter((group) => group.length >= 2)
+      .map((group) => ({
+        riderIds: new Set(group.map((state) => state.rider.id)),
+        elapsedTimeSeconds: average(
+          group.map((state) => state.elapsedTimeSeconds),
+        ),
+      }));
     const droppedElapsedTimeAtSegmentStartByRiderId = new Map(
       dropped.map((state) => [state.rider.id, state.elapsedTimeSeconds]),
     );
@@ -3078,6 +3082,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       states,
       segment,
       segmentIndex,
+      profileType: input.profileType,
+      hillyClimbLoad,
       random,
       commentary,
     });
@@ -3085,7 +3091,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     mergeDroppedRidersCaughtByDelayedGroup({
       states,
       segmentIndex,
-      delayedGroupAtSegmentStart,
+      delayedGroupsAtSegmentStart: delayedGroupSnapshotsAtSegmentStart,
       droppedElapsedTimeAtSegmentStartByRiderId,
       commentary,
     });
@@ -5996,12 +6002,16 @@ function resolveDelayedRiders({
   states,
   segment,
   segmentIndex,
+  profileType,
+  hillyClimbLoad,
   random,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segment: RaceStageSegment;
   segmentIndex: number;
+  profileType: RaceProfileType;
+  hillyClimbLoad: number;
   random: () => number;
   commentary: string[];
 }) {
@@ -6018,6 +6028,15 @@ function resolveDelayedRiders({
   )) {
     if (state.groupSinceSegment >= segmentIndex) continue;
 
+    // Keep one deterministic roll per eligible delayed rider, including when
+    // exhaustion now prevents the pursuit, so unrelated race events retain
+    // the same seeded chronology across engine versions.
+    const recoveryRoll = random();
+    const selectionDifficulty = getSegmentSelectionDifficulty(
+      segment,
+      profileType,
+      hillyClimbLoad,
+    );
     const gapSeconds = Math.max(0, state.elapsedTimeSeconds - pelotonTime);
     const catchUpScore =
       getStateTerrainRating(state, segment) * 0.45 +
@@ -6025,16 +6044,33 @@ function resolveDelayedRiders({
       state.rider.ratings.acceleration * 0.15 +
       state.rider.ratings.resistance * 0.15 +
       state.energy * 0.1;
-    const recoveredSeconds = Math.min(
+    const pursuit = getDelayedRiderPursuitOutcome({
+      energy: state.energy,
+      selectionDifficulty,
+      terrain: segment.terrain,
+      surface: segment.surface,
+      catchUpScore,
       gapSeconds,
-      clamp(2 + (catchUpScore - 50) * 0.15 + random() * 4, 1, 12),
+      recoveryRoll,
+    });
+
+    if (pursuit.shouldDrop) {
+      state.group = "dropped";
+      state.groupSinceSegment = segmentIndex;
+      state.elapsedTimeSeconds += pursuit.additionalLossSeconds;
+      state.lostTimeSeconds += pursuit.additionalLossSeconds;
+      continue;
+    }
+
+    const remainingGapSeconds = Math.max(
+      0,
+      gapSeconds - pursuit.recoveredSeconds,
     );
-    const remainingGapSeconds = Math.max(0, gapSeconds - recoveredSeconds);
 
     state.elapsedTimeSeconds = pelotonTime + remainingGapSeconds;
     state.lostTimeSeconds = Math.max(
       0,
-      state.lostTimeSeconds - recoveredSeconds,
+      state.lostTimeSeconds - pursuit.recoveredSeconds,
     );
 
     if (remainingGapSeconds <= 3) {
@@ -6051,6 +6087,73 @@ function resolveDelayedRiders({
       `${formatRiderList(rejoined)} recollent au peloton apr\u00e8s leur poursuite.`,
     );
   }
+}
+
+export function getDelayedRiderPursuitOutcome({
+  energy,
+  selectionDifficulty,
+  terrain,
+  surface,
+  catchUpScore,
+  gapSeconds,
+  recoveryRoll,
+}: {
+  energy: number;
+  selectionDifficulty: number;
+  terrain: RaceStageSegment["terrain"];
+  surface: RaceStageSegment["surface"];
+  catchUpScore: number;
+  gapSeconds: number;
+  recoveryRoll: number;
+}) {
+  const selectiveTerrain = terrain === "climb" || surface === "cobbles";
+  const minimumPursuitEnergy = selectiveTerrain
+    ? ABSOLUTE_EXHAUSTION_ENERGY + selectionDifficulty * 4.5
+    : 2.5;
+
+  if (energy < minimumPursuitEnergy) {
+    return {
+      shouldDrop: true,
+      recoveredSeconds: 0,
+      additionalLossSeconds: clamp(
+        2 +
+          selectionDifficulty * 4 +
+          (minimumPursuitEnergy - energy) *
+            (terrain === "climb" ? 2.2 : 1.2),
+        2,
+        20,
+      ),
+    };
+  }
+
+  const energyFactor = clamp(
+    (energy - minimumPursuitEnergy) /
+      Math.max(1, 28 - minimumPursuitEnergy),
+    0,
+    1,
+  );
+  const terrainFactor =
+    terrain === "climb"
+      ? clamp(0.82 - selectionDifficulty * 0.35, 0.32, 0.72)
+      : surface === "cobbles"
+        ? clamp(0.9 - selectionDifficulty * 0.25, 0.5, 0.8)
+        : 1;
+  const recoveredSeconds = Math.min(
+    gapSeconds,
+    clamp(
+      2 + (catchUpScore - 50) * 0.15 + clamp(recoveryRoll, 0, 1) * 4,
+      0,
+      12,
+    ) *
+      energyFactor *
+      terrainFactor,
+  );
+
+  return {
+    shouldDrop: false,
+    recoveredSeconds,
+    additionalLossSeconds: 0,
+  };
 }
 
 export function findDroppedRiderIdsCaughtByDelayedGroup({
@@ -6082,82 +6185,83 @@ export function findDroppedRiderIdsCaughtByDelayedGroup({
 function mergeDroppedRidersCaughtByDelayedGroup({
   states,
   segmentIndex,
-  delayedGroupAtSegmentStart,
+  delayedGroupsAtSegmentStart,
   droppedElapsedTimeAtSegmentStartByRiderId,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segmentIndex: number;
-  delayedGroupAtSegmentStart: {
+  delayedGroupsAtSegmentStart: Array<{
     riderIds: Set<string>;
     elapsedTimeSeconds: number;
-  } | null;
+  }>;
   droppedElapsedTimeAtSegmentStartByRiderId: Map<string, number>;
   commentary: string[];
 }) {
-  if (!delayedGroupAtSegmentStart) return;
-
-  const delayedGroupAtSegmentEnd = [...delayedGroupAtSegmentStart.riderIds]
-    .map((riderId) => states.get(riderId))
-    .filter((state): state is RiderState =>
-      Boolean(state?.group === "delayed"),
-    );
-  if (delayedGroupAtSegmentEnd.length < 2) return;
-
-  const delayedGroupEndElapsedTimeSeconds = average(
-    delayedGroupAtSegmentEnd.map((state) => state.elapsedTimeSeconds),
-  );
-  const caughtRiderIds = findDroppedRiderIdsCaughtByDelayedGroup({
-    delayedGroupSize: delayedGroupAtSegmentEnd.length,
-    delayedGroupStartElapsedTimeSeconds:
-      delayedGroupAtSegmentStart.elapsedTimeSeconds,
-    delayedGroupEndElapsedTimeSeconds,
-    droppedRiders: [...droppedElapsedTimeAtSegmentStartByRiderId]
-      .map(([riderId, startElapsedTimeSeconds]) => {
-        const state = states.get(riderId);
-        return state?.group === "dropped"
-          ? {
-              riderId,
-              startElapsedTimeSeconds,
-              endElapsedTimeSeconds: state.elapsedTimeSeconds,
-            }
-          : null;
-      })
-      .filter(
-        (
-          rider,
-        ): rider is {
-          riderId: string;
-          startElapsedTimeSeconds: number;
-          endElapsedTimeSeconds: number;
-        } => rider !== null,
-      ),
-  });
-  if (caughtRiderIds.length === 0) return;
-
   const peloton = getStatesInGroup(states, "peloton");
-  const referenceTimeSeconds =
-    peloton.length > 0
-      ? average(peloton.map((state) => state.elapsedTimeSeconds))
-      : delayedGroupEndElapsedTimeSeconds;
-  const caughtStates = caughtRiderIds
-    .map((riderId) => states.get(riderId))
-    .filter((state): state is RiderState => Boolean(state));
+  const referenceTimeSeconds = peloton.length > 0
+    ? average(peloton.map((state) => state.elapsedTimeSeconds))
+    : null;
 
-  for (const state of caughtStates) {
-    state.group = "delayed";
-    state.groupSinceSegment = segmentIndex;
-    state.elapsedTimeSeconds = delayedGroupEndElapsedTimeSeconds;
-    state.lostTimeSeconds = Math.max(
-      0,
-      delayedGroupEndElapsedTimeSeconds - referenceTimeSeconds,
-    );
-  }
+  for (const delayedGroupAtSegmentStart of delayedGroupsAtSegmentStart) {
+    const delayedGroupAtSegmentEnd = [...delayedGroupAtSegmentStart.riderIds]
+      .map((riderId) => states.get(riderId))
+      .filter((state): state is RiderState =>
+        Boolean(state?.group === "delayed"),
+      );
+    if (delayedGroupAtSegmentEnd.length < 2) continue;
 
-  if (commentary.length < 4) {
-    commentary.push(
-      `${formatRiderList(caughtStates)} ${caughtStates.length > 1 ? "s’accrochent" : "s’accroche"} au groupe retardé qui vient de les reprendre.`,
+    const delayedGroupEndElapsedTimeSeconds = average(
+      delayedGroupAtSegmentEnd.map((state) => state.elapsedTimeSeconds),
     );
+    const caughtRiderIds = findDroppedRiderIdsCaughtByDelayedGroup({
+      delayedGroupSize: delayedGroupAtSegmentEnd.length,
+      delayedGroupStartElapsedTimeSeconds:
+        delayedGroupAtSegmentStart.elapsedTimeSeconds,
+      delayedGroupEndElapsedTimeSeconds,
+      droppedRiders: [...droppedElapsedTimeAtSegmentStartByRiderId]
+        .map(([riderId, startElapsedTimeSeconds]) => {
+          const state = states.get(riderId);
+          return state?.group === "dropped"
+            ? {
+                riderId,
+                startElapsedTimeSeconds,
+                endElapsedTimeSeconds: state.elapsedTimeSeconds,
+              }
+            : null;
+        })
+        .filter(
+          (
+            rider,
+          ): rider is {
+            riderId: string;
+            startElapsedTimeSeconds: number;
+            endElapsedTimeSeconds: number;
+          } => rider !== null,
+        ),
+    });
+    if (caughtRiderIds.length === 0) continue;
+
+    const caughtStates = caughtRiderIds
+      .map((riderId) => states.get(riderId))
+      .filter((state): state is RiderState => Boolean(state));
+
+    for (const state of caughtStates) {
+      state.group = "delayed";
+      state.groupSinceSegment = segmentIndex;
+      state.elapsedTimeSeconds = delayedGroupEndElapsedTimeSeconds;
+      state.lostTimeSeconds = Math.max(
+        0,
+        delayedGroupEndElapsedTimeSeconds -
+          (referenceTimeSeconds ?? delayedGroupEndElapsedTimeSeconds),
+      );
+    }
+
+    if (commentary.length < 4) {
+      commentary.push(
+        `${formatRiderList(caughtStates)} ${caughtStates.length > 1 ? "s’accrochent" : "s’accroche"} au groupe retardé qui vient de les reprendre.`,
+      );
+    }
   }
 }
 
@@ -8513,6 +8617,40 @@ function splitDroppedGroups(states: RiderState[]) {
       state.lostTimeSeconds -
         average(current.map((member) => member.lostTimeSeconds)) >
         45
+    ) {
+      groups.push([state]);
+    } else {
+      current.push(state);
+    }
+  }
+
+  return groups;
+}
+
+export function splitElapsedRiderGroups<
+  TState extends { elapsedTimeSeconds: number },
+>(
+  states: TState[],
+  maximumGapSeconds: number,
+) {
+  const ordered = states
+    .map((state, sourceIndex) => ({ state, sourceIndex }))
+    .sort(
+      (first, second) =>
+        first.state.elapsedTimeSeconds - second.state.elapsedTimeSeconds ||
+        first.sourceIndex - second.sourceIndex,
+    )
+    .map(({ state }) => state);
+  const groups: TState[][] = [];
+
+  for (const state of ordered) {
+    const current = groups.at(-1);
+    const groupLeader = current?.[0];
+    if (
+      !current ||
+      !groupLeader ||
+      state.elapsedTimeSeconds - groupLeader.elapsedTimeSeconds >
+        maximumGapSeconds
     ) {
       groups.push([state]);
     } else {
