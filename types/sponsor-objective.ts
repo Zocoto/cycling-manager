@@ -123,6 +123,16 @@ export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {
   sportingPhilosophy?: SponsorSportingPhilosophy;
   ambitionLevel?: SponsorObjectiveAmbitionLevel;
   objectiveDifficulty?: SponsorObjectiveDifficulty;
+  variationReason?: "history_rotation" | "new_leader_opportunity";
+  leaderRiderId?: string;
+  leaderRiderName?: string;
+  leaderDomain?:
+    | "cobbles"
+    | "hills"
+    | "sprints"
+    | "time_trials"
+    | "stage_races"
+    | "mountain";
 };
 
 export type GeneratedSponsorObjective = {

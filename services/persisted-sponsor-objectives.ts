@@ -8,6 +8,7 @@ import {
   shouldSponsorRequestRiderRecruitment,
   type SponsorObjectiveRaceCandidate,
   type SponsorObjectiveRiderCandidate,
+  type SponsorObjectiveTeamRiderCandidate,
 } from "@/services/sponsor-objectives";
 import {
   getRiderSportingProfile,
@@ -129,6 +130,19 @@ type SponsorObjectiveRaceCatalog = {
 
 type SeasonReferenceRow = {
   id: string;
+  game_year?: number;
+};
+
+type SponsorOfferIdentityRow = {
+  id: string;
+  sponsor_id: string;
+  sporting_director_id: string;
+  season_id: string;
+};
+
+type SponsorObjectiveHistoryRow = {
+  sponsor_offer_id: string;
+  target_details: SponsorObjectiveTargetDetails;
 };
 
 type RiderRow = {
@@ -158,6 +172,13 @@ type RiderSeasonRatingRow = {
 type RiderContractAvailabilityRow = {
   rider_id: string;
   team_id: string;
+  status: "planned" | "active";
+};
+
+type TeamRiderContractRow = {
+  rider_id: string;
+  start_season_id: string;
+  end_season_id: string;
   status: "planned" | "active";
 };
 
@@ -213,6 +234,21 @@ export async function ensureAndLoadSponsorObjectives({
       })
     : [];
 
+  const [objectiveHistoryByOfferId, teamRiderCandidates] = await Promise.all([
+    loadPreviousSponsorObjectivesByOffer({
+      supabase,
+      seasonId,
+      offerIds,
+    }),
+    teamId?.trim()
+      ? loadSponsorObjectiveTeamRiderCandidates({
+          supabase,
+          seasonId,
+          teamId: teamId.trim(),
+        })
+      : Promise.resolve([]),
+  ]);
+
   const existingObjectiveRows =
     await loadSponsorObjectiveRows(
       supabase,
@@ -262,6 +298,9 @@ export async function ensureAndLoadSponsorObjectives({
         relationshipYear: offer.relationshipYear ?? 1,
         objectiveDifficulty: offer.objectiveDifficulty ?? "balanced",
         riderCandidates,
+        teamRiderCandidates,
+        previousObjectives:
+          objectiveHistoryByOfferId.get(offer.offerId) ?? [],
         includeRiderRecruitmentObjective:
           offer.includeRiderRecruitmentObjective === true,
         teamReputationPoints,
@@ -1060,6 +1099,322 @@ async function loadSponsorObjectiveRaceCandidates({
     raceCandidates: [...candidatesByRaceId.values()],
     continentCodeByCountryCode,
   };
+}
+
+async function loadPreviousSponsorObjectivesByOffer({
+  supabase,
+  seasonId,
+  offerIds,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+  offerIds: readonly string[];
+}): Promise<Map<string, SponsorObjectiveTargetDetails[]>> {
+  const historyByOfferId = new Map<string, SponsorObjectiveTargetDetails[]>();
+  if (offerIds.length === 0) return historyByOfferId;
+
+  const { data: currentOfferRows, error: currentOffersError } = await supabase
+    .from("sponsor_offers")
+    .select("id, sponsor_id, sporting_director_id, season_id")
+    .in("id", [...offerIds])
+    .returns<SponsorOfferIdentityRow[]>();
+
+  if (currentOffersError) {
+    throw new Error(
+      `Impossible de charger l’identité des offres sponsor : ${currentOffersError.message}`,
+    );
+  }
+
+  const currentOffers = currentOfferRows ?? [];
+  if (currentOffers.length === 0) return historyByOfferId;
+
+  const { data: historicalOfferRows, error: historicalOffersError } =
+    await supabase
+      .from("sponsor_offers")
+      .select("id, sponsor_id, sporting_director_id, season_id")
+      .in("sponsor_id", [
+        ...new Set(currentOffers.map((offer) => offer.sponsor_id)),
+      ])
+      .in("sporting_director_id", [
+        ...new Set(currentOffers.map((offer) => offer.sporting_director_id)),
+      ])
+      .neq("season_id", seasonId)
+      .returns<SponsorOfferIdentityRow[]>();
+
+  if (historicalOffersError) {
+    throw new Error(
+      `Impossible de charger l’historique des offres sponsor : ${historicalOffersError.message}`,
+    );
+  }
+
+  const historicalOffers = historicalOfferRows ?? [];
+  if (historicalOffers.length === 0) return historyByOfferId;
+
+  const { data: historicalSeasonRows, error: historicalSeasonsError } =
+    await supabase
+      .from("seasons")
+      .select("id, game_year")
+      .in("id", [
+        ...new Set(historicalOffers.map((offer) => offer.season_id)),
+      ])
+      .returns<SeasonReferenceRow[]>();
+
+  if (historicalSeasonsError) {
+    throw new Error(
+      `Impossible de dater l’historique des objectifs sponsor : ${historicalSeasonsError.message}`,
+    );
+  }
+
+  const yearBySeasonId = new Map(
+    (historicalSeasonRows ?? []).map((season) => [
+      season.id,
+      Number(season.game_year),
+    ]),
+  );
+  const latestHistoricalOfferIdsByCurrentOfferId = new Map<string, string[]>();
+
+  for (const currentOffer of currentOffers) {
+    const matchingOffers = historicalOffers.filter(
+      (historicalOffer) =>
+        historicalOffer.sponsor_id === currentOffer.sponsor_id &&
+        historicalOffer.sporting_director_id ===
+          currentOffer.sporting_director_id,
+    );
+    const latestYear = matchingOffers.reduce(
+      (latest, historicalOffer) =>
+        Math.max(
+          latest,
+          yearBySeasonId.get(historicalOffer.season_id) ??
+            Number.NEGATIVE_INFINITY,
+        ),
+      Number.NEGATIVE_INFINITY,
+    );
+    latestHistoricalOfferIdsByCurrentOfferId.set(
+      currentOffer.id,
+      matchingOffers
+        .filter(
+          (historicalOffer) =>
+            yearBySeasonId.get(historicalOffer.season_id) === latestYear,
+        )
+        .map((historicalOffer) => historicalOffer.id),
+    );
+  }
+
+  const historicalOfferIds = [
+    ...new Set([...latestHistoricalOfferIdsByCurrentOfferId.values()].flat()),
+  ];
+  if (historicalOfferIds.length === 0) return historyByOfferId;
+
+  const objectiveRows: SponsorObjectiveHistoryRow[] = [];
+
+  for (const offerIdBatch of splitIntoBatches(
+    historicalOfferIds,
+    SPONSOR_OBJECTIVE_RELATION_BATCH_SIZE,
+  )) {
+    const { data, error } = await supabase
+      .from("sponsor_objectives")
+      .select("sponsor_offer_id, target_details")
+      .in("sponsor_offer_id", offerIdBatch)
+      .returns<SponsorObjectiveHistoryRow[]>();
+
+    if (error) {
+      throw new Error(
+        `Impossible de charger l’historique des objectifs sponsor : ${error.message}`,
+      );
+    }
+
+    objectiveRows.push(...(data ?? []));
+  }
+
+  const objectivesByHistoricalOfferId = new Map<
+    string,
+    SponsorObjectiveTargetDetails[]
+  >();
+
+  for (const objective of objectiveRows) {
+    const objectives =
+      objectivesByHistoricalOfferId.get(objective.sponsor_offer_id) ?? [];
+    objectives.push(objective.target_details);
+    objectivesByHistoricalOfferId.set(objective.sponsor_offer_id, objectives);
+  }
+
+  for (const currentOffer of currentOffers) {
+    const matchingHistoricalOfferIds =
+      latestHistoricalOfferIdsByCurrentOfferId.get(currentOffer.id) ?? [];
+    historyByOfferId.set(
+      currentOffer.id,
+      matchingHistoricalOfferIds.flatMap(
+        (historicalOfferId) =>
+          objectivesByHistoricalOfferId.get(historicalOfferId) ?? [],
+      ),
+    );
+  }
+
+  return historyByOfferId;
+}
+
+async function loadSponsorObjectiveTeamRiderCandidates({
+  supabase,
+  seasonId,
+  teamId,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+  teamId: string;
+}): Promise<SponsorObjectiveTeamRiderCandidate[]> {
+  const [targetSeasonResult, contractResult] = await Promise.all([
+    supabase
+      .from("seasons")
+      .select("id, game_year")
+      .eq("id", seasonId)
+      .maybeSingle<SeasonReferenceRow>(),
+    supabase
+      .from("rider_contracts")
+      .select("rider_id, start_season_id, end_season_id, status")
+      .eq("team_id", teamId)
+      .in("status", ["active", "planned"])
+      .returns<TeamRiderContractRow[]>(),
+  ]);
+
+  if (targetSeasonResult.error) {
+    throw new Error(
+      `Impossible de charger la saison des leaders sponsor : ${targetSeasonResult.error.message}`,
+    );
+  }
+  if (contractResult.error) {
+    throw new Error(
+      `Impossible de charger l’effectif des leaders sponsor : ${contractResult.error.message}`,
+    );
+  }
+
+  const targetSeason = targetSeasonResult.data;
+  const targetGameYear = Number(targetSeason?.game_year);
+  const contracts = contractResult.data ?? [];
+  if (!targetSeason || !Number.isFinite(targetGameYear) || contracts.length === 0) {
+    return [];
+  }
+
+  const referencedSeasonIds = [
+    ...new Set(
+      contracts.flatMap((contract) => [
+        contract.start_season_id,
+        contract.end_season_id,
+      ]),
+    ),
+  ];
+  const { data: seasonRows, error: seasonsError } = await supabase
+    .from("seasons")
+    .select("id, game_year")
+    .in("id", referencedSeasonIds)
+    .returns<SeasonReferenceRow[]>();
+
+  if (seasonsError) {
+    throw new Error(
+      `Impossible de dater les contrats des leaders sponsor : ${seasonsError.message}`,
+    );
+  }
+
+  const yearBySeasonId = new Map(
+    (seasonRows ?? []).map((season) => [season.id, Number(season.game_year)]),
+  );
+  const coveredContracts = contracts.filter((contract) => {
+    const startYear = yearBySeasonId.get(contract.start_season_id);
+    const endYear = yearBySeasonId.get(contract.end_season_id);
+    return startYear !== undefined && endYear !== undefined &&
+      startYear <= targetGameYear && targetGameYear <= endYear;
+  });
+  const riderIds = [...new Set(coveredContracts.map((contract) => contract.rider_id))];
+  if (riderIds.length === 0) return [];
+
+  const { data: riderRows, error: riderError } = await supabase
+    .from("riders")
+    .select("id, country_id, first_name, last_name")
+    .in("id", riderIds)
+    .returns<RiderRow[]>();
+
+  if (riderError) {
+    throw new Error(
+      `Impossible de charger les leaders potentiels du sponsor : ${riderError.message}`,
+    );
+  }
+
+  const riders = riderRows ?? [];
+  if (riders.length === 0) return [];
+
+  const countryIds = [...new Set(riders.map((rider) => rider.country_id))];
+  const [countryResult, targetRatings, activeSeasonResult] = await Promise.all([
+    supabase
+      .from("countries")
+      .select("id, iso_alpha2, continent_code")
+      .in("id", countryIds)
+      .returns<CountryRow[]>(),
+    loadRiderSeasonRatingRows({ supabase, seasonId, riderIds }),
+    supabase
+      .from("seasons")
+      .select("id")
+      .eq("status", "active")
+      .limit(1)
+      .returns<SeasonReferenceRow[]>(),
+  ]);
+
+  if (countryResult.error) {
+    throw new Error(
+      `Impossible de charger les nationalités des leaders sponsor : ${countryResult.error.message}`,
+    );
+  }
+  if (activeSeasonResult.error) {
+    throw new Error(
+      `Impossible de charger la saison de référence des leaders sponsor : ${activeSeasonResult.error.message}`,
+    );
+  }
+
+  const ratingsByRiderId = new Map(
+    targetRatings.map((ratings) => [ratings.rider_id, ratings]),
+  );
+  const activeSeasonId = activeSeasonResult.data?.[0]?.id;
+  const missingRiderIds = riderIds.filter(
+    (riderId) => !ratingsByRiderId.has(riderId),
+  );
+
+  if (missingRiderIds.length > 0 && activeSeasonId && activeSeasonId !== seasonId) {
+    const fallbackRatings = await loadRiderSeasonRatingRows({
+      supabase,
+      seasonId: activeSeasonId,
+      riderIds: missingRiderIds,
+    });
+    for (const ratings of fallbackRatings) {
+      ratingsByRiderId.set(ratings.rider_id, ratings);
+    }
+  }
+
+  const countryCodeById = new Map(
+    (countryResult.data ?? []).map((country) => [
+      country.id,
+      country.iso_alpha2.trim().toUpperCase(),
+    ]),
+  );
+  const contractByRiderId = new Map(
+    coveredContracts.map((contract) => [contract.rider_id, contract]),
+  );
+
+  return riders.flatMap((rider) => {
+    const ratingRow = ratingsByRiderId.get(rider.id);
+    const countryCode = countryCodeById.get(rider.country_id);
+    const contract = contractByRiderId.get(rider.id);
+    if (!ratingRow || !countryCode || !contract) return [];
+
+    const ratings = toRiderRatings(ratingRow);
+    return [{
+      riderId: rider.id,
+      riderName: `${rider.first_name} ${rider.last_name}`.trim(),
+      countryCode,
+      sportingProfile: getRiderSportingProfile(ratings),
+      overallRating: calculateNationRiderOverall(ratings),
+      ratings,
+      joinedForTargetSeason:
+        yearBySeasonId.get(contract.start_season_id) === targetGameYear,
+    }];
+  });
 }
 
 async function loadSponsorObjectiveRiderCandidates({

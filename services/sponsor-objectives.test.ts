@@ -8,10 +8,12 @@ import {
   resolveSponsorRecruitmentOverallRange,
   resolveSponsorObjectiveFocus,
   resolveSponsorObjectiveAmbitionLevel,
+  selectNewLeaderOpportunity,
   selectSponsorRecruitmentRider,
   selectSponsorObjectiveRaces,
   type SponsorObjectiveRaceCandidate,
   type SponsorObjectiveRiderCandidate,
+  type SponsorObjectiveTeamRiderCandidate,
 } from "./sponsor-objectives";
 import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 
@@ -147,7 +149,165 @@ function createRiderCandidate({
   };
 }
 
+function createTeamRiderCandidate({
+  joinedForTargetSeason,
+  ...options
+}: Parameters<typeof createRiderCandidate>[0] & {
+  joinedForTargetSeason: boolean;
+}): SponsorObjectiveTeamRiderCandidate {
+  return {
+    ...createRiderCandidate(options),
+    joinedForTargetSeason,
+  };
+}
+
 describe("generateProvisionalSponsorObjectives", () => {
+  it("évite les objectifs exacts de la saison précédente quand des alternatives existent", () => {
+    const commonOptions = {
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 3 as const,
+      sponsorCatalogKey: "montbrun-private",
+      sportingPhilosophy: "cobbled_classics" as const,
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    };
+    const firstSeason = generateProvisionalSponsorObjectives(commonOptions);
+    const secondSeason = generateProvisionalSponsorObjectives({
+      ...commonOptions,
+      previousObjectives: firstSeason.map((objective) => objective.targetDetails),
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    });
+    const firstRaceIds = new Set(firstSeason.flatMap((objective) =>
+      objective.targetDetails.kind === "race_result"
+        ? [objective.targetDetails.raceId]
+        : [],
+    ));
+    const secondRaceIds = new Set(secondSeason.flatMap((objective) =>
+      objective.targetDetails.kind === "race_result"
+        ? [objective.targetDetails.raceId]
+        : [],
+    ));
+    const newlySelectedRaceIds = [...secondRaceIds].filter(
+      (raceId) => !firstRaceIds.has(raceId),
+    );
+    const firstNationalityQuota = firstSeason.find(
+      (objective) => objective.targetDetails.kind === "nationality_quota",
+    );
+    const secondNationalityQuota = secondSeason.find(
+      (objective) => objective.targetDetails.kind === "nationality_quota",
+    );
+
+    expect(newlySelectedRaceIds.length).toBeGreaterThan(0);
+    expect(secondNationalityQuota?.targetDetails).not.toEqual(
+      firstNationalityQuota?.targetDetails,
+    );
+    expect(
+      secondSeason.every(
+        (objective) =>
+          objective.targetDetails.sportingPhilosophy === "cobbled_classics",
+      ),
+    ).toBe(true);
+    expect(
+      secondSeason.reduce(
+        (total, objective) => total + objective.satisfactionPoints,
+        0,
+      ),
+    ).toBe(100);
+  });
+
+  it("transforme l’arrivée d’un nouveau leader en opportunité compatible", () => {
+    const established = createTeamRiderCandidate({
+      riderId: "66666666-6666-4666-8666-666666666666",
+      riderName: "Leader historique",
+      overallRating: 61,
+      cobbles: 58,
+      joinedForTargetSeason: false,
+    });
+    const newLeader = createTeamRiderCandidate({
+      riderId: "77777777-7777-4777-8777-777777777777",
+      riderName: "Nouveau sprinteur",
+      sportingProfile: "Sprinteur",
+      overallRating: 72,
+      cobbles: 52,
+      joinedForTargetSeason: true,
+    });
+    newLeader.ratings = {
+      ...newLeader.ratings,
+      sprint: 84,
+      acceleration: 82,
+      flat: 78,
+      hills: 55,
+      mountain: 48,
+      timeTrial: 57,
+    };
+
+    expect(selectNewLeaderOpportunity([established, newLeader])).toMatchObject({
+      rider: { riderId: newLeader.riderId },
+      domain: "sprints",
+    });
+
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 3,
+      sponsorCatalogKey: "montbrun-private",
+      sportingPhilosophy: "cobbled_classics",
+      teamRiderCandidates: [established, newLeader],
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    });
+    const leaderObjective = objectives.find(
+      (objective) =>
+        objective.targetDetails.variationReason === "new_leader_opportunity",
+    );
+
+    expect(leaderObjective?.targetDetails).toMatchObject({
+      kind: "race_result",
+      leaderRiderId: newLeader.riderId,
+      leaderDomain: "sprints",
+    });
+    expect(leaderObjective?.description).toContain("Nouveau sprinteur");
+    expect(
+      objectives.some(
+        (objective) =>
+          objective.targetDetails.kind === "race_result" &&
+          objective.targetDetails.raceId === "race-fr-bretagne",
+      ),
+    ).toBe(true);
+  });
+
+  it("ne force pas la variété quand la philosophie ou le calendrier l’interdisent", () => {
+    const constrainedRaces = [
+      createRace("fr-tour", "Tour français", "FR", {
+        raceFormat: "stage_race",
+        profileTypes: ["hilly"],
+      }),
+      createRace("fr-classique", "Classique française", "FR", {
+        profileTypes: ["hilly"],
+      }),
+      createRace("be-classique", "Classique belge", "BE", {
+        profileTypes: ["hilly"],
+      }),
+    ];
+    const firstSeason = generateObjectivesFromRaces({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 2,
+      proposedBudget: 500_000,
+      teamReputationPoints: 200,
+      raceCandidates: constrainedRaces,
+      sportingPhilosophy: "ardennes_classics",
+      random: () => 0,
+    });
+
+    expect(() => generateObjectivesFromRaces({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 2,
+      proposedBudget: 500_000,
+      teamReputationPoints: 200,
+      raceCandidates: constrainedRaces,
+      sportingPhilosophy: "ardennes_classics",
+      previousObjectives: firstSeason.map((objective) => objective.targetDetails),
+      random: () => 0,
+    })).not.toThrow();
+  });
+
   it("réserve la cible de recrutement aux nouvelles offres des sponsors concernés", () => {
     const riderCandidates = [
       createRiderCandidate({
