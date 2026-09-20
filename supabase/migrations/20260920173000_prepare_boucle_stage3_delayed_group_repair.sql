@@ -297,7 +297,7 @@ begin
     'youthRows', (select count(*) from pg_temp.boucle_secondary_after where "classificationType" = 'youth'),
     'teamRows', (select count(*) from pg_temp.boucle_secondary_after where "classificationType" = 'team'),
     'attackRows', (select count(*) from pg_temp.boucle_attack_after)
-  ) || p_payload->'auditSummary';
+  ) || (p_payload->'auditSummary');
   update public.official_race_historical_corrections
   set after_summary = v_summary where correction_key = v_key;
   return v_summary;

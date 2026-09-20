@@ -9,6 +9,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const auditReconciliation = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260920174000_reconcile_boucle_stage3_repair_audit.sql",
+  ),
+  "utf8",
+);
 
 describe("guarded Boucle des Provinces stage 3 repair", () => {
   it("is scoped to the audited edition, stage, next stage and engine versions", () => {
@@ -39,5 +46,16 @@ describe("guarded Boucle des Provinces stage 3 repair", () => {
   it("is only executable by the service role", () => {
     expect(migration).toContain("from public, anon, authenticated");
     expect(migration).toContain("to service_role");
+  });
+
+  it("reconciles the applied audit summary without touching sporting data", () => {
+    expect(auditReconciliation).toContain("'status', 'applied'");
+    expect(auditReconciliation).toContain("'mountainRows'");
+    expect(auditReconciliation).toContain("'sprintRows'");
+    expect(auditReconciliation).toContain("'youthRows'");
+    expect(auditReconciliation).toContain("'teamRows'");
+    expect(auditReconciliation).toContain("after_summary->>'status' is null");
+    expect(auditReconciliation).not.toContain("update public.stage_results");
+    expect(auditReconciliation).not.toContain("update public.race_secondary_results");
   });
 });
