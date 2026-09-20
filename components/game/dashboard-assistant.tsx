@@ -1,10 +1,12 @@
 import Link from "@/components/ui/app-link";
+import { claimNewcomerJourneyStepAction } from "@/app/jeu/welcome-journey-actions";
 import {
   deleteDirectorMessageAction,
   deleteDirectorMessagesAction,
 } from "@/app/jeu/messagerie/actions";
 import { DashboardJournalDeleteButton } from "@/components/game/dashboard-journal-delete-button";
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
+import { NewcomerJourneyClaimButton } from "@/components/game/newcomer-journey-claim-button";
 import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
@@ -13,6 +15,8 @@ import {
   type DashboardRaceRosterAlert,
   type DashboardAssistantSnapshot,
   type DashboardJournalItem,
+  type NewcomerJourney,
+  type NewcomerJourneyStep,
 } from "@/lib/game/dashboard-assistant";
 
 export async function DashboardAssistant({
@@ -79,6 +83,10 @@ export async function DashboardAssistant({
         </div>
       </header>
 
+      {summary.welcomeJourney ? (
+        <WelcomeJourney journey={summary.welcomeJourney} />
+      ) : null}
+
       <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-[#315B3E]/12">
         <AssistantGroup
           label="Alertes"
@@ -94,6 +102,136 @@ export async function DashboardAssistant({
       <JournalSection items={summary.journalItems} />
     </section>
   );
+}
+
+function WelcomeJourney({ journey }: { journey: NewcomerJourney }) {
+  const progress = Math.round(
+    (journey.completedCount / Math.max(1, journey.totalCount)) * 100,
+  );
+
+  return (
+    <section
+      aria-labelledby="welcome-journey-title"
+      className="border-b border-[#315B3E]/12 bg-[linear-gradient(120deg,#F3FBF7_0%,#FFF9E2_100%)] px-3 py-3 sm:px-5 sm:py-4"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#278B70]">
+              Parcours de bienvenue
+            </p>
+            <span className="rounded-full bg-[#176951] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-white">
+              Chapitre {journey.wave}/{journey.totalWaves}
+            </span>
+          </div>
+          <h3
+            id="welcome-journey-title"
+            className="mt-1 text-sm font-black text-[#173D35] sm:text-base"
+          >
+            {journey.chapter}
+          </h3>
+          <p className="mt-0.5 text-[10px] font-semibold text-[#6B8179]">
+            Deux petits objectifs à accomplir à votre rythme. Le parcours reste
+            disponible jusqu’à sa complétion.
+          </p>
+        </div>
+        <div className="w-full sm:w-48">
+          <div className="mb-1 flex items-center justify-between text-[9px] font-black text-[#567068]">
+            <span>Progression</span>
+            <span>{journey.completedCount}/{journey.totalCount}</span>
+          </div>
+          <div
+            className="h-1.5 overflow-hidden rounded-full bg-[#D6E7DF]"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={journey.totalCount}
+            aria-valuenow={journey.completedCount}
+          >
+            <span
+              className="block h-full rounded-full bg-[linear-gradient(90deg,#278B70,#D9AC12)] transition-[width]"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {journey.steps.map((step) => (
+          <WelcomeJourneyStepCard key={step.key} step={step} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function WelcomeJourneyStepCard({ step }: { step: NewcomerJourneyStep }) {
+  const rewardLabel = [
+    step.rewardCash > 0 ? formatWelcomeCash(step.rewardCash) : null,
+    step.rewardExperience > 0 ? `${step.rewardExperience} XP` : null,
+  ]
+    .filter((reward): reward is string => Boolean(reward))
+    .join(" + ");
+  const claimAction = claimNewcomerJourneyStepAction.bind(null, step.key);
+
+  return (
+    <article
+      className={`rounded-2xl border p-3 shadow-[0_8px_20px_rgba(7,48,42,0.06)] ${
+        step.completed
+          ? "border-[#42B99A]/35 bg-white"
+          : "border-[#315B3E]/12 bg-white/75"
+      }`}
+    >
+      <div className="flex items-start gap-2.5">
+        <span
+          aria-hidden="true"
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-sm font-black ${
+            step.completed
+              ? "bg-[#DDF5EA] text-[#176951]"
+              : "bg-[#E8F1ED] text-[#547067]"
+          }`}
+        >
+          {step.completed ? "✓" : step.position}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <h4 className="text-[12px] font-black leading-4 text-[#173D35] sm:text-[13px]">
+              {step.title}
+            </h4>
+            <span className="rounded-full bg-[#FFF3BF] px-2 py-0.5 text-[8px] font-black text-[#755A00]">
+              {rewardLabel}
+            </span>
+          </div>
+          <p className="mt-1 text-[9px] font-semibold leading-4 text-[#6B8179] sm:text-[10px]">
+            {step.description}
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            {step.claimed ? (
+              <span className="text-[9px] font-black text-[#176951]">
+                Récompense récupérée
+              </span>
+            ) : (
+              <Link
+                href={step.href}
+                prefetchOnIntent
+                className="text-[9px] font-black text-[#278B70] hover:underline"
+              >
+                {step.completed ? "Revoir la rubrique" : "Découvrir"} →
+              </Link>
+            )}
+            {step.completed && !step.claimed ? (
+              <form action={claimAction}>
+                <NewcomerJourneyClaimButton />
+              </form>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function formatWelcomeCash(value: number) {
+  return `${Math.round(value).toLocaleString("fr-FR")} €`;
 }
 
 export function DashboardAssistantSkeleton() {

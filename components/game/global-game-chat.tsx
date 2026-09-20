@@ -217,9 +217,6 @@ export function GlobalGameChat({
   const [showReadHistory, setShowReadHistory] = useState(false);
   const [pendingLiveMessageCount, setPendingLiveMessageCount] = useState(0);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
-  const [showRookieWelcome, setShowRookieWelcome] = useState(
-    Boolean(identity.rookieBadgeExpiresAt),
-  );
   const [draft, setDraft] = useState("");
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [selectedMentions, setSelectedMentions] = useState<
@@ -397,18 +394,6 @@ export function GlobalGameChat({
     hideRaceMessagesRef.current = savedPreference;
     setHideRaceMessages(savedPreference);
   }, [identity.sportingDirectorId]);
-
-  useEffect(() => {
-    if (!identity.rookieBadgeExpiresAt) {
-      setShowRookieWelcome(false);
-      return;
-    }
-    setShowRookieWelcome(
-      window.localStorage.getItem(
-        getRookieWelcomeDismissedStorageKey(identity.sportingDirectorId),
-      ) !== "true",
-    );
-  }, [identity.rookieBadgeExpiresAt, identity.sportingDirectorId]);
 
   useEffect(() => {
     const savedDraft = window.localStorage.getItem(
@@ -1033,22 +1018,6 @@ export function GlobalGameChat({
     });
   }
 
-  function startRookieConversation(message: string) {
-    setDraft(message.slice(0, draftLimit));
-    setMentionQuery(null);
-    setMentionResults([]);
-    setError(null);
-    window.requestAnimationFrame(() => textareaRef.current?.focus());
-  }
-
-  function dismissRookieWelcome() {
-    setShowRookieWelcome(false);
-    window.localStorage.setItem(
-      getRookieWelcomeDismissedStorageKey(identity.sportingDirectorId),
-      "true",
-    );
-  }
-
   function beginReply(message: GlobalChatMessage) {
     setReplyTo(message);
     window.requestAnimationFrame(() => textareaRef.current?.focus());
@@ -1396,14 +1365,6 @@ export function GlobalGameChat({
             </span>
             <span aria-hidden="true">Voir ↓</span>
           </button>
-        ) : null}
-
-        {showRookieWelcome && identity.rookieBadgeExpiresAt ? (
-          <RookieWelcomePrompt
-            teamName={identity.teamName}
-            onChoose={startRookieConversation}
-            onDismiss={dismissRookieWelcome}
-          />
         ) : null}
 
         <div
@@ -1842,76 +1803,6 @@ function ChatModeTabs({
         Les salons secondaires sont chargés à la demande
       </p>
     </div>
-  );
-}
-
-function RookieWelcomePrompt({
-  teamName,
-  onChoose,
-  onDismiss,
-}: {
-  teamName: string;
-  onChoose: (message: string) => void;
-  onDismiss: () => void;
-}) {
-  const starters = [
-    {
-      label: "Présenter mon équipe",
-      message: `Salut le peloton 👋 Je débute avec ${teamName}. Mon objectif pour cette saison : …`,
-    },
-    {
-      label: "Question tactique",
-      message: "Je débute et j’aurais besoin d’un conseil tactique sur : …",
-    },
-    {
-      label: "Partager un objectif",
-      message: `Mon prochain objectif avec ${teamName} est … Quelle approche me conseillez-vous ?`,
-    },
-  ];
-
-  return (
-    <section className="shrink-0 border-b border-[#D9AC12]/25 bg-[linear-gradient(110deg,#FFF8D9,#F2F9F5)] px-4 py-3 sm:px-7">
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F2C94C] text-lg shadow-sm"
-        >
-          👋
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-black text-[#183F37]">
-              Bienvenue dans le peloton !
-            </p>
-            <RookieBadge />
-          </div>
-          <p className="mt-1 text-[11px] font-semibold leading-5 text-[#60756E]">
-            Présentez votre équipe, questionnez une tactique ou partagez votre
-            prochain objectif : les autres DS peuvent vous répondre directement.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {starters.map((starter) => (
-              <button
-                key={starter.label}
-                type="button"
-                onClick={() => onChoose(starter.message)}
-                className="rounded-full border border-[#176951]/18 bg-white px-3 py-1.5 text-[9px] font-black text-[#176951] shadow-sm transition hover:border-[#176951]/40 hover:bg-[#EAF7F1]"
-              >
-                {starter.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-black text-[#789087] transition hover:bg-white hover:text-[#183F37]"
-          aria-label="Masquer le message de bienvenue"
-        >
-          ×
-        </button>
-      </div>
-    </section>
   );
 }
 
@@ -2711,10 +2602,6 @@ function readRealtimeMessage(
 
 function getGlobalChatDraftStorageKey(sportingDirectorId: string) {
   return `cyclostratege:chat:draft:global:${sportingDirectorId}`;
-}
-
-function getRookieWelcomeDismissedStorageKey(sportingDirectorId: string) {
-  return `cyclostratege:chat:rookie-welcome-dismissed:${sportingDirectorId}`;
 }
 
 function getGlobalChatRaceVisibilityStorageKey(sportingDirectorId: string) {

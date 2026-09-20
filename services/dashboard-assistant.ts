@@ -3,6 +3,9 @@ import "server-only";
 import type {
   DashboardAssistantSnapshot,
   DashboardJournalItem,
+  NewcomerJourney,
+  NewcomerJourneyStep,
+  NewcomerJourneyStepKey,
 } from "@/lib/game/dashboard-assistant";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -57,7 +60,13 @@ type FanClubAssistantSummaryRow = {
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardAssistantSnapshot | null> {
-  const [result, sponsoringAlertResult, fanClubResult, constructionResult] = await Promise.all([
+  const [
+    result,
+    sponsoringAlertResult,
+    fanClubResult,
+    constructionResult,
+    welcomeJourneyResult,
+  ] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
       .maybeSingle<DashboardAssistantSummaryRow>(),
@@ -68,6 +77,7 @@ export async function getCurrentDashboardAssistantSummary(
       .rpc("get_current_fan_club_assistant_summary")
       .maybeSingle<FanClubAssistantSummaryRow>(),
     supabase.rpc("get_current_dashboard_construction_context"),
+    supabase.rpc("get_current_newcomer_journey"),
   ]);
 
   if (result.error) {
@@ -93,6 +103,13 @@ export async function getCurrentDashboardAssistantSummary(
     console.error(
       "Impossible de charger les opportunités de construction :",
       constructionResult.error.message,
+    );
+  }
+
+  if (welcomeJourneyResult.error) {
+    console.error(
+      "Impossible de charger le parcours de bienvenue :",
+      welcomeJourneyResult.error.message,
     );
   }
 
@@ -172,8 +189,85 @@ export async function getCurrentDashboardAssistantSummary(
       fanClubSummary?.sales_processed_today === true,
     fanClubTodayUnitsSold: normalizeCount(fanClubSummary?.today_units_sold),
     fanClubTodayRevenue: normalizeAmount(fanClubSummary?.today_revenue),
+    welcomeJourney: welcomeJourneyResult.error
+      ? null
+      : normalizeNewcomerJourney(welcomeJourneyResult.data),
     journalItems: assistantPayload.journalItems,
   };
+}
+
+const NEWCOMER_JOURNEY_STEP_KEYS = new Set<NewcomerJourneyStepKey>([
+  "claim_daily_reward",
+  "post_global_chat_message",
+  "configure_training",
+  "recruit_staff_member",
+  "place_auction_bid",
+  "register_for_race",
+  "prepare_race",
+  "follow_race_live",
+]);
+
+function normalizeNewcomerJourney(value: unknown): NewcomerJourney | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const journey = value as Record<string, unknown>;
+  const enrolledAt = normalizeOptionalString(journey.enrolledAt);
+  const chapter = normalizeOptionalString(journey.chapter);
+  const rawSteps = Array.isArray(journey.steps) ? journey.steps : [];
+  const steps = rawSteps.flatMap(normalizeNewcomerJourneyStep);
+
+  if (!enrolledAt || !chapter || steps.length !== 2) return null;
+
+  return {
+    enrolledAt,
+    chapter,
+    wave: clampInteger(journey.wave, 1, 4),
+    totalWaves: clampInteger(journey.totalWaves, 4, 4),
+    completedCount: clampInteger(journey.completedCount, 0, 8),
+    claimedCount: clampInteger(journey.claimedCount, 0, 8),
+    totalCount: clampInteger(journey.totalCount, 8, 8),
+    steps,
+  };
+}
+
+function normalizeNewcomerJourneyStep(
+  value: unknown,
+): NewcomerJourneyStep[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+
+  const step = value as Record<string, unknown>;
+  const key = normalizeOptionalString(step.key);
+  const title = normalizeOptionalString(step.title);
+  const description = normalizeOptionalString(step.description);
+  const href = normalizeOptionalString(step.href);
+
+  if (
+    !key ||
+    !NEWCOMER_JOURNEY_STEP_KEYS.has(key as NewcomerJourneyStepKey) ||
+    !title ||
+    !description ||
+    !href?.startsWith("/jeu")
+  ) {
+    return [];
+  }
+
+  return [{
+    key: key as NewcomerJourneyStepKey,
+    position: clampInteger(step.position, 1, 8),
+    title,
+    description,
+    href,
+    rewardCash: normalizeAmount(step.rewardCash),
+    rewardExperience: normalizeCount(step.rewardExperience),
+    completed: step.completed === true,
+    claimed: step.claimed === true,
+  }];
+}
+
+function clampInteger(value: unknown, minimum: number, maximum: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return minimum;
+  return Math.max(minimum, Math.min(maximum, Math.trunc(numeric)));
 }
 
 function normalizeAssistantPayload(value: unknown): {

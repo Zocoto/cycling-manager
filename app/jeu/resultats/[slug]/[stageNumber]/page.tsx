@@ -106,6 +106,18 @@ export default async function RaceLivePage({
   }
 
   const state = getStageLiveState(stage, now);
+  if (state.status === "live") {
+    const { error: welcomeJourneyLiveError } = await supabase.rpc(
+      "record_current_newcomer_live_visit",
+      { p_stage_id: stage.id },
+    );
+    if (welcomeJourneyLiveError) {
+      console.error(
+        "Impossible de valider le live dans le parcours de bienvenue :",
+        welcomeJourneyLiveError.message,
+      );
+    }
+  }
   const officialResults =
     state.status !== "finished"
       ? null

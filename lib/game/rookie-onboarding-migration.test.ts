@@ -65,12 +65,13 @@ describe("rookie onboarding and ranking", () => {
     expect(settlementFix).toContain("without a reversible audit trail");
   });
 
-  it("invites newcomers to introduce themselves and provides conversation starters", () => {
+  it("invites newcomers to introduce themselves without canned chat messages", () => {
     expect(migration).toContain("Bienvenue dans le peloton !");
     expect(migration).toContain("'Se présenter au peloton'");
-    expect(chat).toContain("Présenter mon équipe");
-    expect(chat).toContain("Question tactique");
-    expect(chat).toContain("Partager un objectif");
+    expect(chat).not.toContain("Salut le peloton");
+    expect(chat).not.toContain("Présenter mon équipe");
+    expect(chat).not.toContain("Question tactique");
+    expect(chat).not.toContain("Partager un objectif");
     expect(chat).toContain("<RookieBadge");
   });
 });

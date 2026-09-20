@@ -13,6 +13,7 @@ export type AchievementTrophyVisualVariant =
 export const INVETERATE_PLAYER_TROPHY_KEY = "joueur_inveter";
 export const NIGHT_AUCTION_TROPHY_KEY = "jusqu_au_bout_de_la_nuit";
 export const EL_PRESIDENTE_TROPHY_KEY = "el_presidente";
+export const NEWCOMER_JOURNEY_TROPHY_KEY = "premiers_tours_de_roue";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   atlas_peloton: {
@@ -150,6 +151,23 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
       secondary: "#FFF4C9",
       accent: "#176951",
       glow: "rgba(215, 169, 40, 0.42)",
+    } satisfies TrophyPalette,
+  },
+  [NEWCOMER_JOURNEY_TROPHY_KEY]: {
+    objectiveKey: null,
+    title: "Premiers tours de roue",
+    competitionName: "Parcours de bienvenue",
+    seasonName: "Carrière",
+    inscription: "Huit repères · Une carrière lancée",
+    description:
+      "Décerné aux nouveaux DS qui accomplissent les huit étapes de prise en main, de leur premier cadeau jusqu’au premier direct suivi.",
+    href: "/jeu/objectifs?onglet=trophees",
+    visualVariant: "panorama" satisfies AchievementTrophyVisualVariant,
+    palette: {
+      primary: "#42B99A",
+      secondary: "#E9FFF6",
+      accent: "#D9AC12",
+      glow: "rgba(66, 185, 154, 0.4)",
     } satisfies TrophyPalette,
   },
 } as const;

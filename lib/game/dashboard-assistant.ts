@@ -23,6 +23,39 @@ export type DashboardJournalItem = {
   read: boolean;
 };
 
+export type NewcomerJourneyStepKey =
+  | "claim_daily_reward"
+  | "post_global_chat_message"
+  | "configure_training"
+  | "recruit_staff_member"
+  | "place_auction_bid"
+  | "register_for_race"
+  | "prepare_race"
+  | "follow_race_live";
+
+export type NewcomerJourneyStep = {
+  key: NewcomerJourneyStepKey;
+  position: number;
+  title: string;
+  description: string;
+  href: string;
+  rewardCash: number;
+  rewardExperience: number;
+  completed: boolean;
+  claimed: boolean;
+};
+
+export type NewcomerJourney = {
+  enrolledAt: string;
+  chapter: string;
+  wave: number;
+  totalWaves: number;
+  completedCount: number;
+  claimedCount: number;
+  totalCount: number;
+  steps: NewcomerJourneyStep[];
+};
+
 export type DashboardAssistantSnapshot = {
   gameDate: string;
   minimumForm: number;
@@ -75,6 +108,7 @@ export type DashboardAssistantSnapshot = {
   fanClubSalesProcessedToday: boolean;
   fanClubTodayUnitsSold: number;
   fanClubTodayRevenue: number;
+  welcomeJourney?: NewcomerJourney | null;
   journalItems: DashboardJournalItem[];
 };
 
