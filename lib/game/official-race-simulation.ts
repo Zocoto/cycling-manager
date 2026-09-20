@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-delayed-group-energy-v31";
+  "2026.09-sustained-climb-selection-v32";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

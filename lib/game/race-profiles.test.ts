@@ -205,6 +205,38 @@ describe("buildRaceSegments", () => {
     expect(mountain.at(-1)?.terrain).toBe("climb");
   });
 
+  it("varie les finals vallonnés en privilégiant les arrivées pour puncheurs", () => {
+    const profiles = Array.from({ length: 24 }, (_, index) =>
+      buildRaceSegments({
+        distanceKm: 147 + (index % 7),
+        profileType: "hilly",
+        seed: `vallons-${index}`,
+      }),
+    );
+    const uphillFinishes = profiles.filter(
+      (segments) => segments.at(-1)?.terrain === "climb",
+    );
+    const flatRunIns = profiles.filter(
+      (segments) => segments.at(-1)?.terrain === "flat",
+    );
+
+    expect(uphillFinishes.length).toBeGreaterThanOrEqual(14);
+    expect(flatRunIns.length).toBeGreaterThanOrEqual(3);
+    for (const segments of uphillFinishes) {
+      expect(segments.at(-1)?.distanceKm).toBeGreaterThanOrEqual(4);
+      expect(segments.at(-1)?.distanceKm).toBeLessThanOrEqual(8);
+      expect(segments.at(-1)?.averageGradientPct).toBeGreaterThanOrEqual(6.2);
+    }
+    for (const segments of flatRunIns) {
+      expect(segments.at(-2)?.terrain).toBe("climb");
+      expect(segments.at(-1)?.distanceKm).toBeGreaterThanOrEqual(6);
+      expect(segments.at(-1)?.distanceKm).toBeLessThanOrEqual(10);
+    }
+    for (const [index, segments] of profiles.entries()) {
+      expect(getStageDistance(segments)).toBe(147 + (index % 7));
+    }
+  });
+
   it("reclasse une étape plate terminée par une côte intense", () => {
     const segments = buildRaceSegments({
       distanceKm: 154,

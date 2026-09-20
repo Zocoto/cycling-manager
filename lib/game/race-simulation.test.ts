@@ -275,6 +275,79 @@ describe("arrivée au sommet et continuité chronologique", () => {
     );
     expect(weakerResult.gapToWinnerSeconds).toBe(0);
   });
+
+  it("additionne les tronçons d'une longue ascension et écarte les non-grimpeurs", () => {
+    const eliteClimbers = [
+      createSelectionTestRider("elite-climber", {
+        mountain: 87,
+        hills: 83,
+        endurance: 71,
+        resistance: 70,
+      }),
+      createSelectionTestRider("close-climber", {
+        mountain: 84,
+        hills: 82,
+        endurance: 70,
+        resistance: 68,
+      }),
+    ];
+    const ordinaryRiders = Array.from({ length: 18 }, (_, index) =>
+      createSelectionTestRider(`ordinary-${index}`, {
+        mountain: 60,
+        hills: 60,
+        endurance: 68,
+        resistance: 68,
+      }),
+    );
+    const segment = (
+      segmentNumber: number,
+      distanceKm: number,
+      terrain: RaceStageSegment["terrain"],
+      averageGradientPct: number,
+    ): RaceStageSegment => ({
+      segmentNumber,
+      distanceKm,
+      terrain,
+      averageGradientPct,
+      surface: "asphalt",
+      prime: null,
+    });
+    const simulation = simulateRaceStage({
+      id: "sustained-mountain-selection",
+      name: "Longue arrivée au sommet",
+      stageType: "road",
+      profileType: "mountain",
+      isStageRace: true,
+      seed: 20260920,
+      riders: [...eliteClimbers, ...ordinaryRiders],
+      segments: [
+        segment(1, 55, "flat", 0),
+        segment(2, 30, "flat", 0),
+        segment(3, 5.5, "climb", 6.5),
+        segment(4, 10, "climb", 6.4),
+        segment(5, 10, "climb", 6.3),
+        segment(6, 4, "climb", 6.2),
+      ],
+    });
+    const resultByRiderId = new Map(
+      simulation.results.map((result) => [result.riderId, result]),
+    );
+    const eliteResults = eliteClimbers.map((rider) =>
+      resultByRiderId.get(rider.id)!,
+    );
+    const ordinaryResults = ordinaryRiders.map((rider) =>
+      resultByRiderId.get(rider.id)!,
+    );
+
+    expect(Math.max(...eliteResults.map((result) => result.gapToWinnerSeconds)))
+      .toBeLessThanOrEqual(15);
+    expect(
+      Math.min(...ordinaryResults.map((result) => result.gapToWinnerSeconds)),
+    ).toBeGreaterThan(30);
+    expect(getLeadingFinishGroupRiderIds(simulation).length).toBeLessThanOrEqual(
+      4,
+    );
+  });
 });
 
 describe("accumulateRaceGroupGapsFromLeader", () => {
@@ -1277,7 +1350,7 @@ describe("simulateRaceStage", () => {
       createDemoSimulationInput("collines-ardennes", 7),
     );
     const comparableSnapshot = result.timeline
-      .slice(2)
+      .slice(Math.floor(result.timeline.length * 0.3))
       .find(
         (snapshot) =>
           snapshot.groups.some((group) => group.type === "breakaway") &&

@@ -71,12 +71,17 @@ export function buildRaceSegments({
     profileType === "mountain"
       ? buildMountainTerrainPlan(segmentCount, random)
       : null;
+  const hillyTerrainPlan =
+    profileType === "hilly"
+      ? buildHillyTerrainPlan(segmentCount, random)
+      : null;
   const segments = Array.from({ length: segmentCount }, (_, index) => {
     const segmentNumber = index + 1;
     const remainingDistance = distanceKm - index * STANDARD_RACE_SEGMENT_KM;
     const distance = Math.min(STANDARD_RACE_SEGMENT_KM, remainingDistance);
     const terrain =
       mountainTerrainPlan?.[index] ??
+      hillyTerrainPlan?.[index] ??
       getTerrain(profileType, index, segmentCount, random);
     const surface = getSurface(profileType, index, segmentCount, random);
 
@@ -92,6 +97,8 @@ export function buildRaceSegments({
 
   if (profileType === "mountain") {
     ensureMountainSummitFinish(segments);
+  } else if (profileType === "hilly") {
+    shapeHillyFinish(segments, random);
   }
 
   if (includeTourPrimes) {
@@ -310,6 +317,73 @@ function buildMountainTerrainPlan(
   return terrain;
 }
 
+function buildHillyTerrainPlan(
+  segmentCount: number,
+  random: () => number
+): SegmentTerrain[] {
+  const rollingPattern: SegmentTerrain[] = [
+    "flat",
+    "climb",
+    "descent",
+    "flat",
+    "climb",
+    "descent",
+  ];
+  const terrain = Array.from(
+    { length: segmentCount },
+    (_, index) => rollingPattern[index % rollingPattern.length]
+  );
+  if (segmentCount === 0) return terrain;
+
+  // Most hilly races must offer a genuine puncher finish. The remainder keep
+  // a short run-in after the last hill, preserving tactical variety without
+  // turning every rolling stage into a bunch sprint.
+  const uphillFinish = segmentCount === 1 || random() < 0.72;
+  const finishIndex = segmentCount - 1;
+  terrain[finishIndex] = uphillFinish ? "climb" : "flat";
+  if (finishIndex > 0) {
+    terrain[finishIndex - 1] = uphillFinish ? "flat" : "climb";
+  }
+  if (finishIndex > 1 && terrain[finishIndex - 2] === "climb") {
+    terrain[finishIndex - 2] = "descent";
+  }
+
+  return terrain;
+}
+
+function shapeHillyFinish(
+  segments: RaceStageSegment[],
+  random: () => number
+) {
+  const finish = segments.at(-1);
+  if (!finish) return;
+
+  const approach = segments.at(-2);
+  if (approach) {
+    const targetFinishDistance = finish.terrain === "climb"
+      ? 4 + Math.floor(random() * 5)
+      : 6 + Math.floor(random() * 5);
+    const combinedDistance = approach.distanceKm + finish.distanceKm;
+    const adjustedFinishDistance = Math.min(
+      combinedDistance - 1,
+      Math.max(1, targetFinishDistance)
+    );
+    approach.distanceKm = round(combinedDistance - adjustedFinishDistance, 2);
+    finish.distanceKm = round(adjustedFinishDistance, 2);
+  }
+
+  const decisiveClimb = finish.terrain === "climb" ? finish : approach;
+  if (decisiveClimb?.terrain === "climb") {
+    decisiveClimb.averageGradientPct = round(6.2 + random() * 3.1, 1);
+  }
+  if (finish.terrain === "flat") {
+    finish.averageGradientPct = 0;
+  }
+  if (approach?.terrain === "flat") {
+    approach.averageGradientPct = 0;
+  }
+}
+
 function ensureMountainSummitFinish(segments: RaceStageSegment[]) {
   let finalClimbStart = segments.length - 1;
 
@@ -372,19 +446,6 @@ function getTerrain(
     }
 
     return "flat";
-  }
-
-  if (profileType === "hilly") {
-    const pattern: SegmentTerrain[] = [
-      "flat",
-      "climb",
-      "climb",
-      "descent",
-      "flat",
-      "climb",
-      "descent",
-    ];
-    return pattern[index % pattern.length];
   }
 
   if (profileType === "cobbles") {

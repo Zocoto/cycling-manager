@@ -501,7 +501,8 @@ function createExpectedSecondaryRows({
 
 async function main() {
   assert(
-    OFFICIAL_RACE_ENGINE_VERSION === "2026.09-delayed-group-energy-v31",
+    String(OFFICIAL_RACE_ENGINE_VERSION) ===
+      "2026.09-delayed-group-energy-v31",
     "La version du moteur a changé depuis la préparation de la correction.",
   );
   assert(

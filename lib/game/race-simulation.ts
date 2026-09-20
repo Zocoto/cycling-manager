@@ -5563,9 +5563,19 @@ function dropStrugglingRiders({
         hillyClimbLoad,
       ),
   );
+  const decisiveClimbProgress =
+    segment.terrain === "climb"
+      ? clamp((raceDistanceProgress - 0.68) / 0.32, 0, 1)
+      : 0;
+  const mountainPaceSetterShare =
+    profileType === "mountain"
+      ? 0.2 - decisiveClimbProgress * 0.12
+      : profileType === "hilly"
+        ? 0.2 - decisiveClimbProgress * 0.08
+        : 0.2;
   const frontRiders = ranked.slice(
     0,
-    Math.max(2, Math.ceil(ranked.length * 0.2)),
+    Math.max(2, Math.ceil(ranked.length * mountainPaceSetterShare)),
   );
   const frontTerrainRating = average(
     frontRiders.map((state) =>
@@ -5601,8 +5611,18 @@ function dropStrugglingRiders({
     (profileType === "mountain" ? 2.4 : profileType === "hilly" ? 1.4 : 0.8);
 
   for (const state of peloton) {
+    const lateClimbThresholdReduction =
+      segment.terrain === "climb" ? decisiveClimbProgress * 0.06 : 0;
+    const meaningfulDifficultyThreshold =
+      (profileType === "mountain"
+        ? 0.58
+        : profileType === "hilly"
+          ? 0.62
+          : 0.68) +
+      initialPelotonCohesion * 0.08 -
+      lateClimbThresholdReduction;
     const isMeaningfulDifficulty =
-      selectionDifficulty >= 0.68 + initialPelotonCohesion * 0.08 ||
+      selectionDifficulty >= meaningfulDifficultyThreshold ||
       state.energy < 8;
     if (!isMeaningfulDifficulty) continue;
 
@@ -8529,15 +8549,27 @@ export function getNextHillyClimbLoad(
   segment: RaceStageSegment,
   profileType: RaceProfileType,
 ) {
-  if (profileType !== "hilly") return 0;
+  if (profileType !== "hilly" && profileType !== "mountain") return 0;
 
   const gradient = Math.abs(segment.averageGradientPct);
   if (segment.terrain === "climb") {
-    const gradientFactor = gradient < 6 ? 0.55 + gradient / 12 : 0.38;
+    const gradientFactor =
+      profileType === "mountain"
+        ? clamp(0.72 + gradient / 20, 0.82, 1.28)
+        : gradient < 6
+          ? 0.55 + gradient / 12
+          : 0.38;
     return currentLoad + segment.distanceKm * gradientFactor;
   }
 
-  const recoveryPerKm = segment.terrain === "descent" ? 0.04 : 0.02;
+  const recoveryPerKm =
+    profileType === "mountain"
+      ? segment.terrain === "descent"
+        ? 0.1
+        : 0.04
+      : segment.terrain === "descent"
+        ? 0.04
+        : 0.02;
   return Math.max(0, currentLoad - segment.distanceKm * recoveryPerKm);
 }
 
@@ -8561,7 +8593,11 @@ function getSegmentSelectionDifficulty(
   const intrinsicDifficulty =
     (gradient / 8) * 0.55 + (Math.min(20, segment.distanceKm) / 20) * 0.45;
   const repetitionDifficulty =
-    profileType === "hilly" ? clamp((hillyClimbLoad - 12) / 35, 0, 0.55) : 0;
+    profileType === "hilly"
+      ? clamp((hillyClimbLoad - 12) / 35, 0, 0.55)
+      : profileType === "mountain"
+        ? clamp((hillyClimbLoad - 4) / 24, 0, 0.65)
+        : 0;
 
   return clamp(intrinsicDifficulty + repetitionDifficulty, 0, 1.4);
 }
