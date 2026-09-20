@@ -18,6 +18,10 @@ describe("French to English UI catalog", () => {
         "Federation weather · no weather centre required",
       "Masquer les courses": "Hide race chats",
       "Courses masquées": "Race chats hidden",
+      "Discussions de courses": "Race discussions",
+      "Affichées dans le chat général": "Shown in the general chat",
+      "Masquées du chat général": "Hidden from the general chat",
+      Réafficher: "Show again",
       "Voir les Directeurs Sportifs en ligne":
         "View online Sporting Directors",
     });

@@ -65,8 +65,11 @@ describe("global chat mobile refresh", () => {
   it("lets each director persistently hide race conversations from the main feed", () => {
     expect(chat).toContain("GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX");
     expect(chat).toContain("hideRaceMessages && message.raceContext");
-    expect(chat).toContain("Masquer les courses");
-    expect(chat).toContain("Courses masquées");
+    expect(chat).toContain('data-chat-race-visibility-control="true"');
+    expect(chat).toContain("Discussions de courses");
+    expect(chat).toContain("Affichées dans le chat général");
+    expect(chat).toContain("Masquées du chat général");
+    expect(chat).toContain('sm:min-w-[18rem]');
     expect(chat).toContain("saveGlobalChatRaceVisibilityPreference");
     expect(chat).toContain("!raceMessageIsHidden");
   });

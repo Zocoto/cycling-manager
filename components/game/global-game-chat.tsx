@@ -1248,49 +1248,52 @@ export function GlobalGameChat({
             </span>
           </div>
 
-          <div
-            className="mt-2 flex items-center gap-1.5 overflow-x-auto"
-            data-mobile-scroll-rail="true"
-          >
-            {(
-              [
-                ["all", "Tous"],
-                ...(initialUnreadMessageCount > 0
-                  ? ([
-                      [
-                        "unread",
-                        `À rattraper · ${initialUnreadMessageCount}`,
-                      ],
-                    ] as const)
-                  : []),
-                ...(hideRaceMessages
-                  ? []
-                  : ([["races", "Courses"]] as const)),
-                ["mentions", "Mes mentions"],
-              ] as const
-            ).map(([view, label]) => (
-              <button
-                key={view}
-                type="button"
-                onClick={() => setGlobalView(view)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black transition ${
-                  globalView === view
-                    ? "bg-[#0B302B] text-white"
-                    : "bg-[#F0F6F3] text-[#60756E] hover:bg-[#E4F4EC] hover:text-[#176951]"
-                }`}
-                aria-pressed={globalView === view}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div
+              className="order-2 flex min-w-0 items-center gap-1.5 overflow-x-auto sm:order-1 sm:flex-1"
+              data-mobile-scroll-rail="true"
+            >
+              {(
+                [
+                  ["all", "Tous"],
+                  ...(initialUnreadMessageCount > 0
+                    ? ([
+                        [
+                          "unread",
+                          `À rattraper · ${initialUnreadMessageCount}`,
+                        ],
+                      ] as const)
+                    : []),
+                  ...(hideRaceMessages
+                    ? []
+                    : ([["races", "Courses"]] as const)),
+                  ["mentions", "Mes mentions"],
+                ] as const
+              ).map(([view, label]) => (
+                <button
+                  key={view}
+                  type="button"
+                  onClick={() => setGlobalView(view)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                    globalView === view
+                      ? "bg-[#0B302B] text-white"
+                      : "bg-[#F0F6F3] text-[#60756E] hover:bg-[#E4F4EC] hover:text-[#176951]"
+                  }`}
+                  aria-pressed={globalView === view}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={toggleRaceMessagesVisibility}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-black transition ${
+              className={`group order-1 flex w-full shrink-0 items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]/30 sm:order-2 sm:w-auto sm:min-w-[18rem] ${
                 hideRaceMessages
-                  ? "border-[#F2C94C] bg-[#FFF7D6] text-[#5B4700]"
-                  : "border-[#315B3E]/15 bg-white text-[#60756E] hover:border-[#176951]/30 hover:text-[#176951]"
+                  ? "border-[#42B99A]/60 bg-[#EAF7F1] text-[#0B302B] hover:bg-[#DDF3E7]"
+                  : "border-[#DDBE46] bg-[#FFF8DB] text-[#0B302B] shadow-[0_3px_12px_rgba(149,116,0,0.12)] hover:bg-[#FFF2BD]"
               }`}
+              data-chat-race-visibility-control="true"
               aria-label={
                 hideRaceMessages
                   ? "Afficher les messages issus des courses"
@@ -1298,7 +1301,47 @@ export function GlobalGameChat({
               }
               aria-pressed={hideRaceMessages}
             >
-              {hideRaceMessages ? "Courses masquées" : "Masquer les courses"}
+              <span
+                aria-hidden="true"
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+                  hideRaceMessages
+                    ? "bg-[#176951] text-white"
+                    : "bg-[#F2C94C] text-[#0B302B]"
+                }`}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                  <circle cx="12" cy="12" r="2.5" />
+                  {hideRaceMessages ? <path d="m4 4 16 16" /> : null}
+                </svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-black leading-tight">
+                  Discussions de courses
+                </span>
+                <span className="mt-0.5 block text-[9px] font-bold leading-tight text-[#60756E]">
+                  {hideRaceMessages
+                    ? "Masquées du chat général"
+                    : "Affichées dans le chat général"}
+                </span>
+              </span>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.04em] ${
+                  hideRaceMessages
+                    ? "bg-white text-[#176951] shadow-sm"
+                    : "bg-[#0B302B] text-white"
+                }`}
+              >
+                {hideRaceMessages ? "Réafficher" : "Masquer"}
+              </span>
             </button>
           </div>
 
