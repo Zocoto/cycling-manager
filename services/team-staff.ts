@@ -127,6 +127,7 @@ type ContractRow = {
   id: string;
   staff_member_id: string;
   salary_per_season: number | string;
+  salary_waived_season_id: string | null;
   currency_code: string;
   signing_fee: number | string;
   signed_at: string;
@@ -163,6 +164,7 @@ export type TeamStaffMember = {
   nationalityAffinity: boolean;
   salaryPerSeason: number;
   salaryPerWeek: number;
+  salaryWaivedThisSeason?: boolean;
   signingFee: number;
   currency: string;
   signedAt: string | null;
@@ -254,7 +256,7 @@ export async function getTeamStaffOverview(
     admin
       .from("staff_contracts")
       .select(
-        "id, staff_member_id, salary_per_season, currency_code, signing_fee, signed_at",
+        "id, staff_member_id, salary_per_season, salary_waived_season_id, currency_code, signing_fee, signed_at",
       )
       .eq("team_id", context.teamSeason.team_id)
       .eq("status", "active")
@@ -500,6 +502,8 @@ export async function getTeamStaffOverview(
         country: countriesById.get(memberRow.country_id),
         contractId: contract.id,
         salaryPerSeason: toNumber(contract.salary_per_season),
+        salaryWaivedThisSeason:
+          contract.salary_waived_season_id === context.season.id,
         signingFee: toNumber(contract.signing_fee),
         currency: contract.currency_code,
         signedAt: contract.signed_at,
@@ -530,7 +534,11 @@ export async function getTeamStaffOverview(
     activeStaffCount,
     availableStaffSlots: Math.max(0, staffCapacity - activeStaffCount),
     activePayroll: contracts.reduce(
-      (total, contract) => total + toNumber(contract.salary_per_season),
+      (total, contract) =>
+        total +
+        (contract.salary_waived_season_id === context.season.id
+          ? 0
+          : toNumber(contract.salary_per_season)),
       0,
     ),
     marketDate,
@@ -812,6 +820,7 @@ function toStaffMember({
   country,
   contractId = null,
   salaryPerSeason,
+  salaryWaivedThisSeason = false,
   signingFee,
   currency,
   signedAt = null,
@@ -823,6 +832,7 @@ function toStaffMember({
   country: CountryRow | undefined;
   contractId?: string | null;
   salaryPerSeason: number;
+  salaryWaivedThisSeason?: boolean;
   signingFee: number;
   currency: string;
   signedAt?: string | null;
@@ -856,6 +866,9 @@ function toStaffMember({
       },
     ];
   });
+  const effectiveSalaryThisSeason = salaryWaivedThisSeason
+    ? 0
+    : salaryPerSeason;
 
   return {
     id: member.id,
@@ -880,16 +893,17 @@ function toStaffMember({
     nationalityAffinity:
       member.role !== "trainer" && country.id === teamCountryId,
     salaryPerSeason,
-    salaryPerWeek: calculateStaffWeeklySalary(salaryPerSeason),
+    salaryPerWeek: calculateStaffWeeklySalary(effectiveSalaryThisSeason),
+    salaryWaivedThisSeason,
     signingFee,
     currency,
     signedAt,
     remainingCurrentSeasonSalary: calculateRemainingStaffSalary(
-      salaryPerSeason,
+      effectiveSalaryThisSeason,
       currentDayNumber,
     ),
     dismissalCompensation: calculateStaffDismissalCompensation(
-      salaryPerSeason,
+      effectiveSalaryThisSeason,
       currentDayNumber,
     ),
   };

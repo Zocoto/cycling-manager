@@ -615,12 +615,24 @@ function TeamStaffCard({
       <StaffEffectBlock member={member} />
       <StaffTalentBlock member={member} />
       <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
+        {member.salaryWaivedThisSeason ? (
+          <p className="mb-2 inline-flex rounded-full bg-[#EAF8F2] px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#176951]">
+            Cadeau de bienvenue · salaire offert cette saison
+          </p>
+        ) : null}
         <p className="min-w-0 text-xs font-black text-[#183F37] [overflow-wrap:anywhere]">
           {formatMoney(member.salaryPerWeek, member.currency)} / semaine
         </p>
         <p className="mt-1 text-[10px] font-semibold text-[#60756E]">
-          Contrat actif depuis le {formatLongDate(member.signedAt)}
+          {member.salaryWaivedThisSeason
+            ? `Salaire normal de ${formatMoney(member.salaryPerSeason, member.currency)} / saison à partir de la saison suivante`
+            : `Contrat actif depuis le ${formatLongDate(member.signedAt)}`}
         </p>
+        {member.salaryWaivedThisSeason ? (
+          <p className="mt-1 text-[10px] font-semibold text-[#60756E]">
+            Contrat actif depuis le {formatLongDate(member.signedAt)}
+          </p>
+        ) : null}
       </div>
       <StaffNaturalizationPanel
         member={member}

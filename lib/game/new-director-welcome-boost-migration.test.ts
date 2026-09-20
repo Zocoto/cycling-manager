@@ -21,6 +21,26 @@ const hotfixMigration = readFileSync(
   .replace(/\r\n/g, "\n")
   .toLowerCase();
 
+const salaryWaiverMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260920133000_waive_welcome_scout_first_season_salary.sql",
+  ),
+  "utf8",
+)
+  .replace(/\r\n/g, "\n")
+  .toLowerCase();
+
+const teamStaffService = readFileSync(
+  resolve(process.cwd(), "services/team-staff.ts"),
+  "utf8",
+).replace(/\r\n/g, "\n");
+
+const staffPage = readFileSync(
+  resolve(process.cwd(), "app/jeu/staff/page.tsx"),
+  "utf8",
+).replace(/\r\n/g, "\n");
+
 describe("weeklong new director welcome boost", () => {
   it("starts on migration application and expires for new registrations after seven days", () => {
     expect(migration).toContain("clock_timestamp() as started_at");
@@ -76,5 +96,51 @@ describe("weeklong new director welcome boost", () => {
     expect(hotfixMigration).toContain("return new;");
     expect(hotfixMigration).toContain("v_first_name := coalesce");
     expect(hotfixMigration).toContain("v_last_name := coalesce");
+  });
+
+  it("waives only the gifted scout's first-season salary", () => {
+    expect(salaryWaiverMigration).toContain(
+      "add column if not exists salary_waived_season_id uuid",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "from private.new_director_welcome_grants as award",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "contract.id = award.scout_contract_id",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "if v_contract.salary_waived_season_id = v_team_season.season_id then",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "continue;\n    end if;\n\n    for v_installment in 1..4 loop",
+    );
+  });
+
+  it("repairs already granted gifts without rewriting posted finance history", () => {
+    expect(salaryWaiverMigration).toContain(
+      "set status = 'cancelled'",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "welcome-scout-salary-refund:",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "-transaction.amount",
+    );
+    expect(salaryWaiverMigration).toContain(
+      "on conflict (team_season_id, source_reference) do nothing",
+    );
+  });
+
+  it("keeps the waiver visible and out of the current payroll", () => {
+    expect(teamStaffService).toContain(
+      "contract.salary_waived_season_id === context.season.id",
+    );
+    expect(teamStaffService).toContain(
+      "const effectiveSalaryThisSeason = salaryWaivedThisSeason",
+    );
+    expect(staffPage).toContain(
+      "Cadeau de bienvenue · salaire offert cette saison",
+    );
+    expect(staffPage).toContain("à partir de la saison suivante");
   });
 });
