@@ -6,6 +6,10 @@ import {
   normalizeEquipmentEffects,
   type EquipmentEffects,
 } from "@/lib/game/equipment";
+import {
+  RIDER_RATING_AXES,
+  type RiderRatingKey,
+} from "@/lib/game/rider-profile";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationEquipmentItem = {
@@ -31,6 +35,14 @@ export type FederationEquipmentOffer = {
   items: FederationEquipmentItem[];
   ratingBonusTotal: number;
   coveredRatingCount: number;
+  ratingBonusSummary: Array<{
+    key: RiderRatingKey;
+    shortLabel: string;
+    label: string;
+    amount: number;
+    contextualAmount: number;
+  }>;
+  injuryRiskReductionPct: number;
 };
 
 export type FederationEquipmentContract = {
@@ -308,5 +320,17 @@ function summarizeFederationEquipmentItems(
   return {
     ratingBonusTotal: activeBonuses.reduce((total, value) => total + value, 0),
     coveredRatingCount: activeBonuses.length,
+    ratingBonusSummary: RIDER_RATING_AXES.flatMap((axis) => {
+      const amount = ratingTotals[axis.key] ?? 0;
+      if (amount <= 0) return [];
+      return [{
+        key: axis.key,
+        shortLabel: axis.shortLabel,
+        label: axis.label,
+        amount,
+        contextualAmount: effects.timeTrialRatingBonuses[axis.key] ?? 0,
+      }];
+    }),
+    injuryRiskReductionPct: effects.injuryRiskReductionPct,
   };
 }

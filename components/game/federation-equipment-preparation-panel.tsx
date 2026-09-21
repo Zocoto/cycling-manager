@@ -170,19 +170,22 @@ function EquipmentOffers({
               className={`overflow-hidden rounded-3xl border bg-white shadow-[0_14px_35px_rgba(19,60,46,0.08)] ${selected ? "border-[#278B70]/45 ring-2 ring-[#278B70]/15" : "border-[#315B3E]/14"}`}
             >
               <div
-                className="flex min-h-28 items-center justify-between gap-4 px-5 py-5 text-white sm:px-6"
+                className="min-h-28 px-5 py-5 text-white sm:px-6"
                 style={{ background: `linear-gradient(135deg, ${offer.supplier.primaryColor}, ${offer.supplier.secondaryColor})` }}
               >
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.17em] text-white/70">{offer.supplier.name}</p>
-                  <h3 className="mt-1 text-xl font-black">{offer.name}</h3>
-                  <p className="mt-2 text-lg font-black tabular-nums text-[#F7DA72]">{moneyFormatter.format(offer.seasonPrice)}</p>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.17em] text-white/70">{offer.supplier.name}</p>
+                    <h3 className="mt-1 text-xl font-black">{offer.name}</h3>
+                    <p className="mt-2 text-lg font-black tabular-nums text-[#F7DA72]">{moneyFormatter.format(offer.seasonPrice)}</p>
+                  </div>
+                  {offer.supplier.logoPath ? (
+                    <span className="relative h-16 w-36 shrink-0 rounded-xl bg-white/95 p-2 shadow-lg">
+                      <Image src={offer.supplier.logoPath} alt="" fill className="object-contain p-2" sizes="144px" />
+                    </span>
+                  ) : null}
                 </div>
-                {offer.supplier.logoPath ? (
-                  <span className="relative h-16 w-36 shrink-0 rounded-xl bg-white/95 p-2 shadow-lg">
-                    <Image src={offer.supplier.logoPath} alt="" fill className="object-contain p-2" sizes="144px" />
-                  </span>
-                ) : null}
+                <EquipmentOfferSummary offer={offer} />
               </div>
               <div className="p-5 sm:p-6">
                 <p className="min-h-10 text-xs font-semibold leading-5 text-[#66877C]">{offer.description}</p>
@@ -220,6 +223,51 @@ function EquipmentOffers({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function EquipmentOfferSummary({
+  offer,
+}: {
+  offer: FederationEquipmentState["offers"][number];
+}) {
+  const hasContextualBonus = offer.ratingBonusSummary.some(
+    (bonus) => bonus.contextualAmount > 0,
+  );
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/15 bg-black/15 px-3 py-3 backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/70">
+          Dotation cumulée
+        </p>
+        <p className="text-[9px] font-black uppercase tracking-wide text-[#F7DA72]">
+          +{offer.ratingBonusTotal} points · {offer.items.length} pièces
+        </p>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {offer.ratingBonusSummary.map((bonus) => (
+          <span
+            key={bonus.key}
+            title={`${bonus.label} : +${bonus.amount}${bonus.contextualAmount > 0 ? `, dont +${bonus.contextualAmount} uniquement en contre-la-montre` : ""}`}
+            className="rounded-full border border-white/15 bg-white/12 px-2 py-1 text-[9px] font-black tabular-nums text-white"
+          >
+            +{bonus.amount} {bonus.shortLabel}
+            {bonus.contextualAmount > 0 ? "*" : ""}
+          </span>
+        ))}
+        {offer.injuryRiskReductionPct > 0 ? (
+          <span className="rounded-full border border-[#9BE0BC]/25 bg-[#9BE0BC]/15 px-2 py-1 text-[9px] font-black tabular-nums text-[#D7FFE9]">
+            −{offer.injuryRiskReductionPct} % blessures
+          </span>
+        ) : null}
+      </div>
+      {hasContextualBonus ? (
+        <p className="mt-2 text-[9px] font-bold text-white/65">
+          * inclut un bonus actif uniquement pendant les contre-la-montre
+        </p>
+      ) : null}
     </div>
   );
 }

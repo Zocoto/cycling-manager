@@ -21,6 +21,9 @@ describe("federation equipment offer comparison", () => {
     expect(service).toContain("getEquipmentRatingBonusTotals(effects)");
     expect(service).toContain("ratingBonusTotal:");
     expect(service).toContain("coveredRatingCount:");
+    expect(service).toContain("ratingBonusSummary:");
+    expect(service).toContain("RIDER_RATING_AXES.flatMap");
+    expect(service).toContain("injuryRiskReductionPct:");
   });
 
   it("shows the depth and breadth of every offer", () => {
@@ -29,5 +32,9 @@ describe("federation equipment offer comparison", () => {
     expect(panel).toContain("offer.coveredRatingCount");
     expect(panel).toContain("points techniques");
     expect(panel).toContain("caractéristiques couvertes");
+    expect(panel).toContain("Dotation cumulée");
+    expect(panel).toContain("offer.ratingBonusSummary.map");
+    expect(panel).toContain("% blessures");
+    expect(panel).toContain("uniquement pendant les contre-la-montre");
   });
 });
