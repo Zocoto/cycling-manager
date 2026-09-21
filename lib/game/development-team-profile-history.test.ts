@@ -17,6 +17,7 @@ describe("Historique Development Team après promotion", () => {
     expect(profileService).toContain('.eq("promoted_rider_id", riderId)');
     expect(profileService).toContain('from("development_team_roster")');
     expect(profileService).toContain('from("development_race_results")');
+    expect(profileService).toContain("buildJuniorDevelopmentCareerHistory");
     expect(profileService).toContain('careerLevel: "junior" as const');
     expect(profileService).toContain("juniorPodiums");
   });
@@ -26,7 +27,7 @@ describe("Historique Development Team après promotion", () => {
     expect(professionalRiderPage).toContain("entry.juniorRaceCount");
     expect(professionalRiderPage).toContain("entry.juniorPodiums");
     expect(professionalRiderPage).toContain(
-      "`${entry.careerLevel}-${entry.seasonId}-${entry.teamId}`",
+      "`${entry.careerLevel}-${entry.seasonId}`",
     );
   });
 });

@@ -27,22 +27,35 @@ export type RiderCareerSeasonHistory = Omit<
 
 /**
  * Les récompenses sont ventilées par équipe en cas de transfert. Cette vue les
- * réunit à nouveau afin que la carrière conserve une seule ligne par saison.
+ * réunit à nouveau par saison et niveau de carrière : les passages junior et
+ * professionnel restent donc distincts lorsqu'ils ont lieu la même année.
  */
 export function groupRiderCareerHistoryBySeason(
   history: PublicRiderProfile["history"],
 ): RiderCareerSeasonHistory[] {
-  const entriesBySeason = new Map<string, RiderCareerHistoryEntry[]>();
+  const entriesBySeasonAndLevel = new Map<
+    string,
+    RiderCareerHistoryEntry[]
+  >();
 
   for (const entry of history) {
-    const entries = entriesBySeason.get(entry.seasonId) ?? [];
+    const key = `${entry.seasonId}:${entry.careerLevel}`;
+    const entries = entriesBySeasonAndLevel.get(key) ?? [];
     entries.push(entry);
-    entriesBySeason.set(entry.seasonId, entries);
+    entriesBySeasonAndLevel.set(key, entries);
   }
 
-  return [...entriesBySeason.values()]
+  return [...entriesBySeasonAndLevel.values()]
     .map((entries) => mergeSeasonEntries(entries))
-    .sort((left, right) => right.gameYear - left.gameYear);
+    .sort(
+      (left, right) =>
+        right.gameYear - left.gameYear ||
+        (left.careerLevel === right.careerLevel
+          ? 0
+          : left.careerLevel === "professional"
+            ? -1
+            : 1),
+    );
 }
 
 function mergeSeasonEntries(

@@ -24,10 +24,12 @@ export function SeasonPerformancesPopover({
   seasonName,
   gameYear,
   performances,
+  rankingKind = "uci",
 }: {
   seasonName: string;
   gameYear: number;
   performances: RiderNotablePerformance[];
+  rankingKind?: "uci" | "development";
 }) {
   const tooltipId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -171,7 +173,9 @@ export function SeasonPerformancesPopover({
             >
               <div className="border-b border-white/10 bg-white/[0.045] px-4 py-3">
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
-                  Résultats notables
+                  {rankingKind === "development"
+                    ? "Résultats Development Team"
+                    : "Résultats notables"}
                 </p>
                 <div className="mt-1 flex items-end justify-between gap-3">
                   <p className="font-black text-[#FFFDF4]">{seasonName}</p>
@@ -214,12 +218,16 @@ export function SeasonPerformancesPopover({
                 </ol>
               ) : (
                 <p className="px-5 py-6 text-center text-xs font-semibold leading-5 text-[#BFD1C6]">
-                  Aucune performance ayant rapporté des points UCI sur cette saison.
+                  {rankingKind === "development"
+                    ? "Aucun résultat junior enregistré sur cette saison."
+                    : "Aucune performance ayant rapporté des points UCI sur cette saison."}
                 </p>
               )}
 
               <p className="border-t border-white/10 px-4 py-2.5 text-[9px] font-semibold text-[#8FA99D]">
-                Classement établi selon les points UCI réellement gagnés.
+                {rankingKind === "development"
+                  ? "Classement établi selon les points du circuit junior réellement gagnés."
+                  : "Classement établi selon les points UCI réellement gagnés."}
               </p>
             </div>,
             document.body

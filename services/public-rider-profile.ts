@@ -30,6 +30,7 @@ import {
   type RiderNotablePerformance,
   type RiderSecondaryPerformance,
 } from "@/lib/game/rider-notable-performances";
+import { buildJuniorDevelopmentCareerHistory } from "@/lib/game/development-rider-career-history";
 import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
@@ -1322,33 +1323,54 @@ async function getJuniorDevelopmentHistory({
 }): Promise<PublicRiderProfile["history"]> {
   const academyRiderResult = await supabase
     .from("youth_academy_riders")
-    .select("id")
+    .select("id, team_id")
     .eq("promoted_rider_id", riderId)
-    .maybeSingle<{ id: string }>();
+    .maybeSingle<{ id: string; team_id: string }>();
   assertQuery(
     academyRiderResult.error,
     "le parcours junior du coureur professionnel",
   );
   if (!academyRiderResult.data) return [];
 
-  const rosterResult = await supabase
-    .from("development_team_roster")
-    .select("development_team_id")
-    .eq("academy_rider_id", academyRiderResult.data.id)
-    .returns<Array<{ development_team_id: string }>>();
+  const [rosterResult, resultsResult] = await Promise.all([
+    supabase
+      .from("development_team_roster")
+      .select("development_team_id")
+      .eq("academy_rider_id", academyRiderResult.data.id)
+      .returns<Array<{ development_team_id: string }>>(),
+    supabase
+      .from("development_race_results")
+      .select(
+        "race_edition_id, development_team_id, result_scope, rank, points",
+      )
+      .eq("academy_rider_id", academyRiderResult.data.id)
+      .returns<
+        Array<{
+          race_edition_id: string;
+          development_team_id: string | null;
+          result_scope: "stage" | "general";
+          rank: number;
+          points: number;
+        }>
+      >(),
+  ]);
   assertQuery(rosterResult.error, "les saisons Development Team du coureur");
-  const developmentTeamIds = [
-    ...new Set(
-      (rosterResult.data ?? []).map((row) => row.development_team_id),
-    ),
-  ];
-  if (!developmentTeamIds.length) return [];
+  assertQuery(resultsResult.error, "le bilan de courses junior du coureur");
 
-  const [teamsResult, resultsResult] = await Promise.all([
+  const rosterTeamIds = (rosterResult.data ?? []).map(
+    (row) => row.development_team_id,
+  );
+  const developmentResults = resultsResult.data ?? [];
+  const editionIds = [
+    ...new Set(developmentResults.map((result) => result.race_edition_id)),
+  ];
+  if (!rosterTeamIds.length && !editionIds.length) return [];
+
+  const [teamsResult, editionsResult] = await Promise.all([
     supabase
       .from("development_teams")
       .select("id, team_id, season_id, display_name")
-      .in("id", developmentTeamIds)
+      .eq("team_id", academyRiderResult.data.team_id)
       .returns<
         Array<{
           id: string;
@@ -1357,52 +1379,70 @@ async function getJuniorDevelopmentHistory({
           display_name: string;
         }>
       >(),
-    supabase
-      .from("development_race_results")
-      .select("development_team_id, rank")
-      .eq("academy_rider_id", academyRiderResult.data.id)
-      .eq("result_scope", "general")
-      .returns<
-        Array<{ development_team_id: string | null; rank: number }>
-      >(),
+    editionIds.length
+      ? supabase
+          .from("development_race_editions")
+          .select("id, season_id, name, race_format")
+          .in("id", editionIds)
+          .returns<
+            Array<{
+              id: string;
+              season_id: string;
+              name: string;
+              race_format: "one_day" | "stage_race";
+            }>
+          >()
+      : Promise.resolve({
+          data: [] as Array<{
+            id: string;
+            season_id: string;
+            name: string;
+            race_format: "one_day" | "stage_race";
+          }>,
+          error: null,
+        }),
   ]);
   assertQuery(teamsResult.error, "les identites Development Team du coureur");
-  assertQuery(resultsResult.error, "le bilan de courses junior du coureur");
+  assertQuery(editionsResult.error, "les épreuves Development Team du coureur");
 
-  const seasonById = new Map(seasons.map((season) => [season.id, season]));
-  const results = resultsResult.data ?? [];
-
-  return (teamsResult.data ?? []).flatMap((team) => {
-    const season = seasonById.get(team.season_id);
-    if (!season) return [];
-    const teamResults = results.filter(
-      (result) => result.development_team_id === team.id,
-    );
-
-    return [
-      {
-        seasonId: season.id,
-        seasonName: season.name,
-        gameYear: season.game_year,
-        teamId: team.team_id,
-        teamName: team.display_name,
-        transferFee: null,
-        currencyCode: "EUR",
-        joinedDayNumber: 1,
-        leftDayNumber: null,
-        victories: teamResults.filter((result) => result.rank === 1).length,
-        points: null,
-        uciRank: null,
-        nationalTitles: [],
-        worldTitles: [],
-        continentalTitles: [],
-        notablePerformances: [],
-        careerLevel: "junior" as const,
-        juniorRaceCount: teamResults.length,
-        juniorPodiums: teamResults.filter((result) => result.rank <= 3).length,
-      },
-    ];
-  });
+  return buildJuniorDevelopmentCareerHistory({
+    seasons: seasons.map((season) => ({
+      id: season.id,
+      name: season.name,
+      gameYear: season.game_year,
+    })),
+    teams: (teamsResult.data ?? []).map((team) => ({
+      id: team.id,
+      teamId: team.team_id,
+      seasonId: team.season_id,
+      displayName: team.display_name,
+    })),
+    rosterTeamIds,
+    editions: (editionsResult.data ?? []).map((edition) => ({
+      id: edition.id,
+      seasonId: edition.season_id,
+      name: edition.name,
+      raceFormat: edition.race_format,
+    })),
+    results: developmentResults.map((result) => ({
+      raceEditionId: result.race_edition_id,
+      developmentTeamId: result.development_team_id,
+      resultScope: result.result_scope,
+      rank: result.rank,
+      points: result.points,
+    })),
+  }).map((entry) => ({
+    ...entry,
+    transferFee: null,
+    currencyCode: "EUR",
+    joinedDayNumber: 1,
+    leftDayNumber: null,
+    uciRank: null,
+    nationalTitles: [],
+    worldTitles: [],
+    continentalTitles: [],
+    careerLevel: "junior" as const,
+  }));
 }
 
 export async function getPublicTeamRiders(

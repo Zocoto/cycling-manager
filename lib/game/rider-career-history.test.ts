@@ -121,4 +121,39 @@ describe("historique de carrière regroupé par saison", () => {
       uciRank: null,
     });
   });
+
+  it("sépare l’année junior de l’année professionnelle dans une même saison", () => {
+    const history = groupRiderCareerHistoryBySeason([
+      historyEntry({
+        teamId: "pro-team",
+        teamName: "Dodo Blue Finance",
+        joinedDayNumber: 26,
+        victories: 0,
+        points: 95,
+      }),
+      historyEntry({
+        teamId: "dev-team",
+        teamName: "Dodo Blue Finance Dev Team",
+        careerLevel: "junior",
+        juniorRaceCount: 9,
+        juniorPodiums: 5,
+        uciRank: null,
+        victories: 3,
+        points: 1_288,
+      }),
+    ]);
+
+    expect(history).toHaveLength(2);
+    expect(history.map((entry) => entry.careerLevel)).toEqual([
+      "professional",
+      "junior",
+    ]);
+    expect(history[0]).toMatchObject({ victories: 0, points: 95 });
+    expect(history[1]).toMatchObject({
+      victories: 3,
+      points: 1_288,
+      juniorRaceCount: 9,
+      juniorPodiums: 5,
+    });
+  });
 });

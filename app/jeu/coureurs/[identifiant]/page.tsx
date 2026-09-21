@@ -1431,7 +1431,7 @@ function CareerHistory({
           <div className="grid gap-3 border-t border-[#315B3E]/10 bg-[#F3F8F5] p-4 md:hidden">
             {seasons.map((entry) => (
               <article
-                key={entry.seasonId}
+                key={`${entry.careerLevel}-${entry.seasonId}`}
                 className="min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-sm"
               >
                 <div className="flex min-w-0 items-start justify-between gap-3">
@@ -1519,6 +1519,11 @@ function CareerHistory({
                       seasonName={entry.seasonName}
                       gameYear={entry.gameYear}
                       performances={entry.notablePerformances}
+                      rankingKind={
+                        entry.careerLevel === "junior"
+                          ? "development"
+                          : "uci"
+                      }
                     />
                   </div>
                 </div>
@@ -1542,7 +1547,7 @@ function CareerHistory({
               <tbody>
                 {seasons.map((entry) => (
                   <tr
-                    key={entry.seasonId}
+                    key={`${entry.careerLevel}-${entry.seasonId}`}
                     className="border-t border-[#315B3E]/10 text-sm"
                   >
                     <td className="px-6 py-4 font-black text-[#183F37]">
@@ -1594,6 +1599,11 @@ function CareerHistory({
                         seasonName={entry.seasonName}
                         gameYear={entry.gameYear}
                         performances={entry.notablePerformances}
+                        rankingKind={
+                          entry.careerLevel === "junior"
+                            ? "development"
+                            : "uci"
+                        }
                       />
                     </td>
                     {entry.careerLevel === "junior" ? (
