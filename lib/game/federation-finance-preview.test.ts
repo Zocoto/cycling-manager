@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateFederationFinancePreview,
   getFederationObjectiveLevel,
+  getFederationSolidarityEligibleTeams,
 } from "./federation-finance-preview";
 
 describe("calculateFederationFinancePreview", () => {
@@ -74,5 +75,61 @@ describe("calculateFederationFinancePreview", () => {
     expect(preview.solidarityEnvelope).toBe(
       Math.round((preview.totalRevenue * 0.1) / 5_000) * 5_000,
     );
+  });
+});
+
+describe("getFederationSolidarityEligibleTeams", () => {
+  it("allows the president team", () => {
+    expect(
+      getFederationSolidarityEligibleTeams({
+        teams: [
+          {
+            teamId: "solo-team",
+            teamName: "Solo Team",
+            reputationPoints: 75,
+            solidarityReceived: 0,
+          },
+        ],
+        reputationThreshold: 100,
+        amountPerTeam: 25_000,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        teamId: "solo-team",
+        grantAmount: 25_000,
+      }),
+    ]);
+  });
+
+  it("keeps the president eligible when another team is affiliated", () => {
+    const eligibleTeams = getFederationSolidarityEligibleTeams({
+      teams: [
+        {
+          teamId: "president-team",
+          teamName: "President Team",
+          reputationPoints: 50,
+          solidarityReceived: 0,
+        },
+        {
+          teamId: "member-team",
+          teamName: "Member Team",
+          reputationPoints: 80,
+          solidarityReceived: 90_000,
+        },
+      ],
+      reputationThreshold: 100,
+      amountPerTeam: 25_000,
+    });
+
+    expect(eligibleTeams).toEqual([
+      expect.objectContaining({
+        teamId: "president-team",
+        grantAmount: 25_000,
+      }),
+      expect.objectContaining({
+        teamId: "member-team",
+        grantAmount: 10_000,
+      }),
+    ]);
   });
 });

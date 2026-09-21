@@ -33,7 +33,6 @@ export type FederationTreasuryState = {
   } | null;
   canDonate: boolean;
   canManageSolidarity: boolean;
-  presidentTeamId: string | null;
   solidarityLimit: number;
   solidarityDistributed: number;
   solidarityRemaining: number;
@@ -82,7 +81,6 @@ export async function getFederationTreasuryState({
     account: null,
     canDonate: false,
     canManageSolidarity: false,
-    presidentTeamId: null,
     solidarityLimit: 0,
     solidarityDistributed: 0,
     solidarityRemaining: 0,
@@ -176,7 +174,6 @@ export async function getFederationTreasuryState({
       },
       canDonate: gameYear >= 3 && Boolean(viewerTeamId),
       canManageSolidarity,
-      presidentTeamId: canManageSolidarity ? viewerTeamId : null,
       solidarityLimit,
       solidarityDistributed,
       solidarityRemaining: Math.max(0, solidarityLimit - solidarityDistributed),

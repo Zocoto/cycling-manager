@@ -29,6 +29,17 @@ export type FederationFinancePreview = {
   courseFillRate: number;
 };
 
+export type FederationSolidarityTeam = {
+  teamId: string;
+  teamName: string;
+  reputationPoints: number;
+  solidarityReceived?: number;
+};
+
+export type FederationSolidarityEligibleTeam = FederationSolidarityTeam & {
+  grantAmount: number;
+};
+
 const ACTIVE_NATION_COUNT = 173;
 const COMMON_GRANT = 1_200_000;
 const NATIONS_CUP_GRANTS: Record<1 | 2 | 3 | 4, number> = {
@@ -105,6 +116,30 @@ export function calculateFederationFinancePreview(
     solidarityEnvelope: roundToNearest(totalRevenue * 0.1, 5_000),
     courseFillRate,
   };
+}
+
+export function getFederationSolidarityEligibleTeams({
+  teams,
+  reputationThreshold,
+  amountPerTeam,
+}: {
+  teams: FederationSolidarityTeam[];
+  reputationThreshold: number;
+  amountPerTeam: number;
+}): FederationSolidarityEligibleTeam[] {
+  return teams
+    .filter(
+      (team) =>
+        team.reputationPoints <= reputationThreshold &&
+        (team.solidarityReceived ?? 0) < 100_000,
+    )
+    .map((team) => ({
+      ...team,
+      grantAmount: Math.min(
+        amountPerTeam,
+        Math.max(0, 100_000 - (team.solidarityReceived ?? 0)),
+      ),
+    }));
 }
 
 function clampInteger(value: number, minimum: number, maximum: number): number {

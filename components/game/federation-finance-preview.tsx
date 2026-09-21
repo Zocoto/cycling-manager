@@ -12,6 +12,7 @@ import {
   calculateFederationFinancePreview,
   getFederationObjectiveBonusPercentage,
   getFederationObjectiveLevel,
+  getFederationSolidarityEligibleTeams,
 } from "@/lib/game/federation-finance-preview";
 import type { FederationFinanceBaseline } from "@/services/federation-finances";
 import type { FederationTreasuryState } from "@/services/federation-treasury";
@@ -95,20 +96,11 @@ export function FederationFinancePreview({
     executeFederationSolidarityAction,
     initialFederationFinanceActionState,
   );
-  const eligibleTeams = baseline.teamProfiles
-    .filter(
-      (team) =>
-        team.teamId !== treasuryState?.presidentTeamId &&
-        team.reputationPoints <= reputationThreshold &&
-        (team.solidarityReceived ?? 0) < 100_000,
-    )
-    .map((team) => ({
-      ...team,
-      grantAmount: Math.min(
-        solidarityAmount,
-        Math.max(0, 100_000 - (team.solidarityReceived ?? 0)),
-      ),
-    }));
+  const eligibleTeams = getFederationSolidarityEligibleTeams({
+    teams: baseline.teamProfiles,
+    reputationThreshold,
+    amountPerTeam: solidarityAmount,
+  });
   const solidarityCommitment = eligibleTeams.reduce(
     (total, team) => total + team.grantAmount,
     0,
@@ -242,10 +234,10 @@ export function FederationFinancePreview({
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-secondary)]">Fonds de solidarité · Plafond saisonnier</p>
           <h3 className="mt-2 text-2xl font-black text-[#183F37]">Deux jauges, une dépense toujours couverte</h3>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
-            Les autres équipes affiliées sous le seuil de réputation peuvent
-            recevoir jusqu’à 100 000 € chacune sur la saison. L’équipe du
-            président est toujours exclue. Les versements cumulés restent aussi
-            plafonnés à 10 % du budget d’ouverture de la fédération.
+            Les équipes affiliées sous le seuil de réputation peuvent recevoir
+            jusqu’à 100 000 € chacune sur la saison, y compris l’équipe du
+            président. Les versements cumulés restent plafonnés à 10 % du budget
+            d’ouverture de la fédération.
           </p>
           <div className="mt-6 space-y-6">
             <RangeControl label="Réputation maximale éligible" value={reputationThreshold} display={`${reputationThreshold} points`} min={0} max={500} step={10} onChange={setReputationThreshold} />
@@ -271,7 +263,7 @@ export function FederationFinancePreview({
                   {solidarityCapReached
                     ? "Plafond saisonnier atteint"
                     : noEligibleTeam
-                      ? "Aucune autre équipe éligible"
+                      ? "Aucune équipe éligible"
                     : solidarityPending
                       ? "Versement…"
                       : overBudget
