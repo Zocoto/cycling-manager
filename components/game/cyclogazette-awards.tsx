@@ -2,38 +2,12 @@
 
 import Link from "@/components/ui/app-link";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { SeasonAwardMedalMark } from "@/components/game/season-award-medal-mark";
+import {
+  SEASON_AWARD_PRESENTATION,
+  compareSeasonAwards,
+} from "@/lib/game/season-awards";
 import type { SeasonAward } from "@/services/season-awards";
-
-const AWARD_COPY: Record<
-  SeasonAward["key"],
-  { symbol: string; fr: { title: string; description: string }; en: { title: string; description: string } }
-> = {
-  rider_of_year: {
-    symbol: "★",
-    fr: { title: "Coureur de l’année", description: "La référence du peloton au classement individuel de la saison." },
-    en: { title: "Rider of the year", description: "The season’s leading rider in the individual ranking." },
-  },
-  team_of_year: {
-    symbol: "◆",
-    fr: { title: "Équipe de l’année", description: "Le collectif qui termine la saison au sommet du classement UCI." },
-    en: { title: "Team of the year", description: "The team that finishes the season at the top of the UCI ranking." },
-  },
-  serial_winner: {
-    symbol: "✦",
-    fr: { title: "Chasseur de bouquets", description: "Le coureur qui a levé les bras le plus souvent cette saison." },
-    en: { title: "Serial winner", description: "The rider who raised their arms most often this season." },
-  },
-  young_rider: {
-    symbol: "↗",
-    fr: { title: "Révélation de l’année", description: "Le meilleur coureur de 23 ans ou moins au classement individuel." },
-    en: { title: "Breakthrough rider", description: "The best rider aged 23 or under in the individual ranking." },
-  },
-  director_of_year: {
-    symbol: "♟",
-    fr: { title: "Directeur Sportif de l’année", description: "Le DS du meilleur collectif humain au terme de la saison." },
-    en: { title: "Sporting Director of the year", description: "The sporting director of the season’s best human-managed team." },
-  },
-};
 
 export function CyclogazetteAwards({
   awards,
@@ -78,7 +52,7 @@ export function CyclogazetteAwards({
             {isEnglish ? "Season 2 gala night" : "Soirée de gala · Saison 2"}
           </p>
           <h2 className="mt-2 font-serif text-4xl font-black tracking-[-0.04em] sm:text-6xl">
-            {isEnglish ? "The season’s five laureates" : "Les cinq lauréats de la saison"}
+            {isEnglish ? "The season’s laureates" : "Les lauréats de la saison"}
           </h2>
           <p className="mx-auto mt-3 max-w-3xl font-serif text-sm italic leading-6 text-[#D9D2C0]">
             {isEnglish
@@ -89,7 +63,7 @@ export function CyclogazetteAwards({
             {latest.seasonName}
           </span>
         </div>
-        <div className="relative mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="relative mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {latest.awards.map((award) => (
             <AwardCard key={award.id} award={award} gala />
           ))}
@@ -127,9 +101,9 @@ export function CyclogazetteAwards({
           </span>
         </div>
         <p className="mt-3 max-w-3xl font-serif text-sm italic leading-5 text-[#695D43]">
-          {isEnglish ? "Before the new peloton sets off, the Cyclogazette honours the five figures who shaped the previous campaign." : "Avant que le nouveau peloton ne s’élance, La Cyclogazette célèbre les cinq figures qui ont marqué la campagne précédente."}
+          {isEnglish ? "Before the new peloton sets off, the Cyclogazette honours those who shaped the previous campaign." : "Avant que le nouveau peloton ne s’élance, La Cyclogazette célèbre celles et ceux qui ont marqué la campagne précédente."}
         </p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {latest.awards.map((award) => <AwardCard key={award.id} award={award} compact />)}
         </div>
         <Link href="/jeu/gazette?onglet=awards" className="mt-5 inline-flex border-b border-[#A12742] pb-0.5 text-[10px] font-black uppercase tracking-[0.15em] text-[#A12742]">
@@ -149,7 +123,7 @@ export function CyclogazetteAwards({
           {isEnglish ? "Peloton Awards" : "Awards du peloton"}
         </h1>
         <p className="mx-auto mt-3 max-w-3xl font-serif text-sm italic leading-6 text-[#695D43]">
-          {isEnglish ? "Five season-ending honours for the riders, teams and sporting directors who wrote the year’s story." : "Cinq distinctions de fin de saison pour les coureurs, les équipes et les Directeurs Sportifs qui ont écrit l’année."}
+          {isEnglish ? "Season-ending honours for the riders, teams and sporting directors who wrote the year’s story." : "Les distinctions de fin de saison des coureurs, équipes et Directeurs Sportifs qui ont écrit l’année."}
         </p>
       </header>
 
@@ -183,12 +157,14 @@ function AwardCard({
   gala?: boolean;
 }) {
   const { locale } = useLocale();
-  const copy = AWARD_COPY[award.key][locale];
-  const href = award.riderId
-    ? `/jeu/coureurs/${award.riderId}`
-    : award.teamId
-      ? `/jeu/equipes/${award.teamId}`
-      : null;
+  const copy = SEASON_AWARD_PRESENTATION[award.key][locale];
+  const href = award.recipientType === "director" && award.sportingDirectorId
+    ? `/jeu/directeurs-sportifs/${award.sportingDirectorId}`
+    : award.riderId
+      ? `/jeu/coureurs/${award.riderId}`
+      : award.teamId
+        ? `/jeu/equipes/${award.teamId}`
+        : null;
   const recipient = <span className={`${compact ? "text-sm" : "text-lg"} font-black ${gala ? "text-[#FFF8E5]" : "text-[#2F2618]"}`}>{award.recipientName}</span>;
 
   return (
@@ -198,7 +174,10 @@ function AwardCard({
           <p className={`text-[8px] font-black uppercase tracking-[0.14em] ${gala ? "text-[#E8CB78]" : "text-[#A12742]"}`}>{copy.title}</p>
           <div className="mt-1 truncate">{href ? <Link href={href} className="hover:underline">{recipient}</Link> : recipient}</div>
         </div>
-        <span aria-hidden="true" className={`${compact ? "text-xl" : "text-2xl"} font-black text-[#9A711F]`}>{AWARD_COPY[award.key].symbol}</span>
+        <SeasonAwardMedalMark
+          awardKey={award.key}
+          className={compact ? "h-10 w-10" : "h-12 w-12"}
+        />
       </div>
       {!compact ? <p className={`mt-3 font-serif text-xs italic leading-5 ${gala ? "text-[#C8C4BA]" : "text-[#695D43]"}`}>{copy.description}</p> : null}
       {award.teamName && award.teamName !== award.recipientName ? <p className={`mt-1 truncate text-[9px] font-bold ${gala ? "text-[#AEB4C2]" : "text-[#806C45]"}`}>{award.teamName}</p> : null}
@@ -214,5 +193,10 @@ function groupAwardsBySeason(awards: SeasonAward[]) {
     group.awards.push(award);
     groups.set(award.seasonId, group);
   }
-  return [...groups.values()].sort((left, right) => right.gameYear - left.gameYear);
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      awards: [...group.awards].sort(compareSeasonAwards),
+    }))
+    .sort((left, right) => right.gameYear - left.gameYear);
 }

@@ -15,6 +15,7 @@ const award: SeasonAward = {
   description: "Le numéro un de la saison.",
   recipientType: "rider",
   riderId: "rider-1",
+  academyRiderId: null,
   teamId: "team-1",
   sportingDirectorId: null,
   recipientName: "Anaïs Martin",

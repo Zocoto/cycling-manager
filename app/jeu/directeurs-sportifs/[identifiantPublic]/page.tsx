@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
+import { DirectorSeasonAwardShelf } from "@/components/game/director-season-award-shelf";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
 import {
   ProfileDisclosure,
@@ -16,6 +17,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicSportingDirector } from "@/services/public-directory";
+import { getSportingDirectorSeasonAwards } from "@/services/season-awards";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import { getPublicSportingDirectorTrophyGallery } from "@/services/trophy-gallery";
 
@@ -66,9 +68,10 @@ export default async function PublicSportingDirectorPage({
     );
   }
 
-  const teamSponsorIdentity = profile.team_id
-    ? await getActiveTeamSponsorIdentity(profile.team_id)
-    : null;
+  const [teamSponsorIdentity, directorSeasonAwards] = await Promise.all([
+    profile.team_id ? getActiveTeamSponsorIdentity(profile.team_id) : null,
+    getSportingDirectorSeasonAwards(supabase, profile.entity_id),
+  ]);
 
   const countryHref = `/jeu/nations/${profile.country_code.toLowerCase()}`;
   const teamHref = profile.team_id
@@ -105,6 +108,7 @@ export default async function PublicSportingDirectorPage({
                 <h1 className="mt-2 truncate text-3xl font-black sm:text-4xl">
                   {profile.display_name}
                 </h1>
+                <DirectorSeasonAwardShelf awards={directorSeasonAwards} />
               </div>
 
               <div className="flex flex-col gap-2">

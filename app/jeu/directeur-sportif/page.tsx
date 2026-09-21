@@ -10,6 +10,10 @@ import {
 } from "@/lib/game/medical-trophies";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import {
+  DirectorSeasonAwardShelf,
+  type DirectorSeasonAward,
+} from "@/components/game/director-season-award-shelf";
 import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamCreationForm } from "../../../components/game/amateur-team-creation-form";
 import { DeleteSportingDirectorAccount } from "../../../components/game/delete-sporting-director-account";
@@ -28,6 +32,7 @@ import { DEFAULT_AMATEUR_JERSEY } from "../../../lib/amateur-team";
 import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getCurrentReferralOverview } from "../../../services/referrals";
+import { getSportingDirectorSeasonAwards } from "../../../services/season-awards";
 import {
   getTeamAmateurIdentityForAuthUser,
   type TeamAmateurIdentity,
@@ -260,6 +265,18 @@ export default async function SportingDirectorProfilePage() {
     sponsorAmbassadorTrophyResult.data,
   );
 
+  const directorSeasonAwards = sportingDirector
+    ? await getSportingDirectorSeasonAwards(supabase, sportingDirector.id).catch(
+        (error) => {
+          console.error(
+            "Impossible de charger les awards de fin de saison :",
+            error,
+          );
+          return [];
+        },
+      )
+    : [];
+
   if (
     profileResult.error ||
     !sportingDirector
@@ -466,6 +483,7 @@ export default async function SportingDirectorProfilePage() {
                     teamSponsorIdentity
                   }
                   teamAmateurIdentity={teamAmateurIdentity}
+                  seasonAwards={directorSeasonAwards}
                 />
               </div>
 
@@ -496,6 +514,7 @@ function ProfileSummaryCard({
   reputationPoints,
   teamSponsorIdentity,
   teamAmateurIdentity,
+  seasonAwards,
 }: {
   displayName: string;
   username: string;
@@ -509,6 +528,7 @@ function ProfileSummaryCard({
     TeamSponsorIdentity | null;
   teamAmateurIdentity:
     TeamAmateurIdentity | null;
+  seasonAwards: DirectorSeasonAward[];
 }) {
   return (
     <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_50px_rgba(7,26,23,0.18)] sm:p-8">
@@ -525,6 +545,7 @@ function ProfileSummaryCard({
           selectedCountry={selectedCountry}
           avatarKey={avatarKey}
           avatarFrameKey={avatarFrameKey}
+          seasonAwards={seasonAwards}
         />
 
         <div className="flex flex-col items-center justify-center gap-3">
@@ -558,6 +579,7 @@ function ProfileSummaryCard({
           selectedCountry={selectedCountry}
           avatarKey={avatarKey}
           avatarFrameKey={avatarFrameKey}
+          seasonAwards={seasonAwards}
         />
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -619,6 +641,7 @@ function SportingDirectorIdentity({
   selectedCountry,
   avatarKey,
   avatarFrameKey,
+  seasonAwards,
 }: {
   displayName: string;
   username: string;
@@ -627,6 +650,7 @@ function SportingDirectorIdentity({
   selectedCountry: CountryOption | null;
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
+  seasonAwards: DirectorSeasonAward[];
 }) {
   return (
     <div className="flex min-w-0 items-center gap-5">
@@ -690,6 +714,8 @@ function SportingDirectorIdentity({
             </span>
           )}
         </div>
+
+        <DirectorSeasonAwardShelf awards={seasonAwards} />
       </div>
     </div>
   );
