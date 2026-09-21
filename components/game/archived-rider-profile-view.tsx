@@ -9,6 +9,10 @@ import {
 } from "@/lib/rider-jersey";
 import type { GameHeaderData } from "@/services/game-header-data";
 import type { CareerPalmares } from "@/lib/game/career-palmares";
+import {
+  groupRiderCareerHistoryBySeason,
+  type RiderCareerTeamPeriod,
+} from "@/lib/game/rider-career-history";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 
 export function ArchivedRiderProfileView({
@@ -25,8 +29,8 @@ export function ArchivedRiderProfileView({
   if (!profile.archive) return null;
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-  const seasonsCount = new Set(profile.history.map((entry) => entry.seasonId))
-    .size;
+  const seasonHistory = groupRiderCareerHistoryBySeason(profile.history);
+  const seasonsCount = seasonHistory.length;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -132,11 +136,11 @@ export function ArchivedRiderProfileView({
             </h2>
           </div>
 
-          {profile.history.length ? (
+          {seasonHistory.length ? (
             <div className="grid gap-3 border-t border-[#315B3E]/10 p-5 lg:grid-cols-2">
-              {profile.history.map((entry) => (
+              {seasonHistory.map((entry) => (
                 <article
-                  key={`${entry.seasonId}-${entry.teamId}`}
+                  key={entry.seasonId}
                   className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -144,12 +148,7 @@ export function ArchivedRiderProfileView({
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-[#278B70]">
                         {entry.seasonName}
                       </p>
-                      <Link
-                        href={`/jeu/equipes/${entry.teamId}`}
-                        className="mt-2 inline-flex font-black text-[#183F37] underline decoration-[#176951]/25 underline-offset-4"
-                      >
-                        {entry.teamName} ↗
-                      </Link>
+                      <ArchivedTeamTimeline teams={entry.teams} />
                     </div>
                     <span className="rounded-full bg-[#E5F4ED] px-3 py-1 text-[10px] font-black text-[#176951]">
                       {entry.uciRank ? `UCI #${entry.uciRank}` : "Non classé"}
@@ -269,6 +268,63 @@ export function ArchivedRiderProfileView({
       </section>
     </main>
   );
+}
+
+function ArchivedTeamTimeline({ teams }: { teams: RiderCareerTeamPeriod[] }) {
+  return (
+    <div className="mt-2 grid gap-2">
+      {teams.map((team, index) => (
+        <div
+          key={team.teamId ?? `${team.teamName}-${index}`}
+          className="relative min-w-0 border-l-2 border-[#9ECDBD] pl-3"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-[#278B70]"
+          />
+          {team.teamId ? (
+            <Link
+              href={`/jeu/equipes/${team.teamId}`}
+              className="block break-words font-black text-[#183F37] underline decoration-[#176951]/25 underline-offset-4"
+            >
+              {team.teamName} ↗
+            </Link>
+          ) : (
+            <span className="block font-black text-[#60756E]">
+              {team.teamName}
+            </span>
+          )}
+          {formatArchivedCareerMovement(team) ? (
+            <p className="mt-0.5 text-xs font-bold leading-5 text-[#60756E]">
+              {formatArchivedCareerMovement(team)}
+            </p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatArchivedCareerMovement(entry: RiderCareerTeamPeriod) {
+  const details: string[] = [];
+  if (entry.transferFee !== null) {
+    details.push(
+      (entry.joinedDayNumber ?? 1) > 1
+        ? `Transfert J${entry.joinedDayNumber}`
+        : "Transfert en début de saison",
+      new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: entry.currencyCode,
+        maximumFractionDigits: 0,
+      }).format(entry.transferFee),
+    );
+  } else if ((entry.joinedDayNumber ?? 1) > 1) {
+    details.push(`Arrivée J${entry.joinedDayNumber}`);
+  }
+  if (entry.leftDayNumber !== null) {
+    details.push(`Départ J${entry.leftDayNumber}`);
+  }
+  return details.join(" · ");
 }
 
 function ArchiveMetric({ label, value }: { label: string; value: string }) {

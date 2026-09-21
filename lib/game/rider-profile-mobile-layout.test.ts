@@ -60,7 +60,7 @@ describe("mise en page mobile de la fiche coureur", () => {
       'className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"',
     );
     expect(riderPage).toContain(
-      '<aside className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">',
+      '<aside className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">',
     );
     expect(riderPage).toMatch(
       /data-tutorial-id="rider-profile-naturalization"[\s\S]*data-tutorial-id="rider-profile-contract"/,

@@ -45,6 +45,10 @@ import {
   getEquipmentRatingBonusTotals,
 } from "@/lib/game/equipment";
 import { getRiderExperience } from "@/lib/game/rider-experience";
+import {
+  groupRiderCareerHistoryBySeason,
+  type RiderCareerTeamPeriod,
+} from "@/lib/game/rider-career-history";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
 import {
@@ -1395,6 +1399,8 @@ function CareerHistory({
 }: {
   history: PublicRiderProfile["history"];
 }) {
+  const seasons = groupRiderCareerHistoryBySeason(history);
+
   return (
     <section className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
       <div className="px-6 py-6 sm:px-8">
@@ -1406,12 +1412,12 @@ function CareerHistory({
         </h2>
       </div>
 
-      {history.length > 0 ? (
+      {seasons.length > 0 ? (
         <>
           <div className="grid gap-3 border-t border-[#315B3E]/10 bg-[#F3F8F5] p-4 md:hidden">
-            {history.map((entry) => (
+            {seasons.map((entry) => (
               <article
-                key={`${entry.careerLevel}-${entry.seasonId}-${entry.teamId}`}
+                key={entry.seasonId}
                 className="min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-sm"
               >
                 <div className="flex min-w-0 items-start justify-between gap-3">
@@ -1426,25 +1432,10 @@ function CareerHistory({
                         </span>
                       ) : null}
                     </div>
-                    {entry.teamId ? (
-                      <Link
-                        href={`/jeu/equipes/${entry.teamId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 block break-words text-sm font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
-                      >
-                        {entry.teamName} <span aria-hidden="true">↗</span>
-                      </Link>
-                    ) : (
-                      <span className="mt-1 block text-sm font-black text-[#60756E]">
-                        {entry.teamName}
-                      </span>
-                    )}
-                    {formatCareerMovement(entry) ? (
-                      <p className="mt-1 text-xs font-bold text-[#60756E]">
-                        {formatCareerMovement(entry)}
-                      </p>
-                    ) : null}
+                    <CareerTeamTimeline
+                      teams={entry.teams}
+                      className="mt-2"
+                    />
                   </div>
                   <span className="shrink-0 rounded-full bg-[#EAF5F0] px-3 py-1 text-xs font-black text-[#176951]">
                     {entry.careerLevel === "junior"
@@ -1535,9 +1526,9 @@ function CareerHistory({
                 </tr>
               </thead>
               <tbody>
-                {history.map((entry) => (
+                {seasons.map((entry) => (
                   <tr
-                    key={`${entry.careerLevel}-${entry.seasonId}-${entry.teamId}`}
+                    key={entry.seasonId}
                     className="border-t border-[#315B3E]/10 text-sm"
                   >
                     <td className="px-6 py-4 font-black text-[#183F37]">
@@ -1549,25 +1540,7 @@ function CareerHistory({
                       ) : null}
                     </td>
                     <td className="px-5 py-4">
-                      {entry.teamId ? (
-                        <Link
-                          href={`/jeu/equipes/${entry.teamId}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
-                        >
-                          {entry.teamName} <span aria-hidden="true">↗</span>
-                        </Link>
-                      ) : (
-                        <span className="font-black text-[#60756E]">
-                          {entry.teamName}
-                        </span>
-                      )}
-                      {formatCareerMovement(entry) ? (
-                        <p className="mt-1 text-xs font-bold text-[#60756E]">
-                          {formatCareerMovement(entry)}
-                        </p>
-                      ) : null}
+                      <CareerTeamTimeline teams={entry.teams} />
                     </td>
                     <HistoryValue value={entry.victories} />
                     <HistoryValue value={entry.points} />
@@ -1645,23 +1618,63 @@ function HistoryValue({
   );
 }
 
-function formatCareerMovement(entry: {
-  transferFee: number | null;
-  currencyCode: string;
-  joinedDayNumber: number | null;
-  leftDayNumber: number | null;
+function CareerTeamTimeline({
+  teams,
+  className = "",
+}: {
+  teams: RiderCareerTeamPeriod[];
+  className?: string;
 }) {
+  return (
+    <div className={`grid gap-2 ${className}`}>
+      {teams.map((team, index) => (
+        <div
+          key={team.teamId ?? `${team.teamName}-${index}`}
+          className="relative min-w-0 border-l-2 border-[#9ECDBD] pl-3"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-[#278B70]"
+          />
+          {team.teamId ? (
+            <Link
+              href={`/jeu/equipes/${team.teamId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block break-words text-sm font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
+            >
+              {team.teamName} <span aria-hidden="true">↗</span>
+            </Link>
+          ) : (
+            <span className="block text-sm font-black text-[#60756E]">
+              {team.teamName}
+            </span>
+          )}
+          {formatCareerMovement(team) ? (
+            <p className="mt-0.5 text-xs font-bold leading-5 text-[#60756E]">
+              {formatCareerMovement(team)}
+            </p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatCareerMovement(entry: RiderCareerTeamPeriod) {
   const details: string[] = [];
   if (entry.transferFee !== null) {
     details.push(
-      `Transfert ${formatMoney(entry.transferFee, entry.currencyCode)}`,
+      (entry.joinedDayNumber ?? 1) > 1
+        ? `Transfert J${entry.joinedDayNumber}`
+        : "Transfert en début de saison",
+      formatMoney(entry.transferFee, entry.currencyCode),
     );
-  }
-  if ((entry.joinedDayNumber ?? 1) > 1) {
-    details.push(`arrivée J${entry.joinedDayNumber}`);
+  } else if ((entry.joinedDayNumber ?? 1) > 1) {
+    details.push(`Arrivée J${entry.joinedDayNumber}`);
   }
   if (entry.leftDayNumber !== null) {
-    details.push(`départ J${entry.leftDayNumber}`);
+    details.push(`Départ J${entry.leftDayNumber}`);
   }
   return details.join(" · ");
 }
