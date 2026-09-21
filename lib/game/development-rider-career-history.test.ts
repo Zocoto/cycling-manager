@@ -3,6 +3,33 @@ import { describe, expect, it } from "vitest";
 import { buildJuniorDevelopmentCareerHistory } from "./development-rider-career-history";
 
 describe("historique Development Team durable", () => {
+  it("conserve une année junior même sans aucun résultat de course", () => {
+    const history = buildJuniorDevelopmentCareerHistory({
+      seasons: [{ id: "season-3", name: "Saison 3", gameYear: 3 }],
+      teams: [
+        {
+          id: "dev-team",
+          teamId: "team",
+          seasonId: "season-3",
+          displayName: "Équipe Dev Team",
+        },
+      ],
+      membershipTeamIds: ["dev-team"],
+      editions: [],
+      results: [],
+    });
+
+    expect(history).toEqual([
+      expect.objectContaining({
+        seasonName: "Saison 3",
+        teamName: "Équipe Dev Team",
+        victories: 0,
+        points: 0,
+        juniorRaceCount: 0,
+      }),
+    ]);
+  });
+
   it("retrouve une saison depuis les résultats après suppression du roster", () => {
     const history = buildJuniorDevelopmentCareerHistory({
       seasons: [{ id: "season-2", name: "Saison 2", gameYear: 2 }],
@@ -14,7 +41,7 @@ describe("historique Development Team durable", () => {
           displayName: "Dodo Blue Finance Dev Team",
         },
       ],
-      rosterTeamIds: [],
+      membershipTeamIds: ["dodo-dev"],
       editions: [
         {
           id: "prix-releve",
@@ -78,7 +105,7 @@ describe("historique Development Team durable", () => {
           displayName: "Équipe Dev Team",
         },
       ],
-      rosterTeamIds: [],
+      membershipTeamIds: ["dev-team"],
       editions: [
         {
           id: "national-road",

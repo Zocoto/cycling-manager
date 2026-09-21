@@ -7,6 +7,7 @@ import {
 import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
+import { getRiderDevelopmentHistory } from "@/services/rider-development-history";
 import { parseContinentalChampionshipTitleType } from "@/services/rider-continental-championship-titles";
 
 type ArchiveRow = {
@@ -65,6 +66,12 @@ type ArchivedRewardRow = {
   description: string;
 };
 
+type SeasonLookupRow = {
+  id: string;
+  name: string;
+  game_year: number;
+};
+
 export async function getArchivedRiderProfile(
   riderId: string,
 ): Promise<PublicRiderProfile | null> {
@@ -81,7 +88,7 @@ export async function getArchivedRiderProfile(
   const archive = archiveResult.data;
   if (!archive) return null;
 
-  const [seasonsResult, contractsResult] = await Promise.all([
+  const [seasonsResult, contractsResult, seasonLookupResult] = await Promise.all([
     admin
       .from("rider_history_archive_seasons")
       .select(
@@ -97,6 +104,11 @@ export async function getArchivedRiderProfile(
       )
       .eq("rider_id", riderId)
       .returns<ContractHistoryRow[]>(),
+    admin
+      .from("seasons")
+      .select("id, name, game_year")
+      .order("game_year", { ascending: false })
+      .returns<SeasonLookupRow[]>(),
   ]);
   assertQuery(seasonsResult.error, "l’historique archivé du coureur");
 
@@ -104,6 +116,7 @@ export async function getArchivedRiderProfile(
     ? archive.retirement_reason
     : "no_team_and_no_race";
   assertQuery(contractsResult.error, "les mouvements archivés du coureur");
+  assertQuery(seasonLookupResult.error, "les saisons du parcours junior");
 
   const archivedSeasons = seasonsResult.data ?? [];
   const teamIds = [...new Set(archivedSeasons.map((season) => season.team_id))];
@@ -173,7 +186,7 @@ export async function getArchivedRiderProfile(
     achievementsBySeasonTeam.set(key, achievements);
   }
 
-  const history = archivedSeasons.map((season) => {
+  const professionalHistory: PublicRiderProfile["history"] = archivedSeasons.map((season) => {
     const startingContract = (contractsResult.data ?? []).find(
       (contract) =>
         contract.team_id === season.team_id &&
@@ -219,6 +232,23 @@ export async function getArchivedRiderProfile(
       juniorRaceCount: null,
       juniorPodiums: null,
     };
+  });
+  const juniorHistory = await getRiderDevelopmentHistory({
+    supabase: admin,
+    riderId,
+    seasons: (seasonLookupResult.data ?? []).map((season) => ({
+      id: season.id,
+      name: season.name,
+      gameYear: season.game_year,
+    })),
+  });
+  const history: PublicRiderProfile["history"] = [
+    ...professionalHistory,
+    ...juniorHistory,
+  ].sort((left, right) => {
+    if (left.gameYear !== right.gameYear) return right.gameYear - left.gameYear;
+    if (left.careerLevel === right.careerLevel) return 0;
+    return left.careerLevel === "professional" ? -1 : 1;
   });
 
   return {

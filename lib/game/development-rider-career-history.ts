@@ -52,13 +52,13 @@ export type JuniorDevelopmentCareerEntry = {
 export function buildJuniorDevelopmentCareerHistory({
   seasons,
   teams,
-  rosterTeamIds,
+  membershipTeamIds,
   editions,
   results,
 }: {
   seasons: DevelopmentCareerSeason[];
   teams: DevelopmentCareerTeam[];
-  rosterTeamIds: string[];
+  membershipTeamIds: string[];
   editions: DevelopmentCareerEdition[];
   results: DevelopmentCareerResult[];
 }): JuniorDevelopmentCareerEntry[] {
@@ -66,7 +66,7 @@ export function buildJuniorDevelopmentCareerHistory({
   const editionById = new Map(
     editions.map((edition) => [edition.id, edition]),
   );
-  const evidencedTeamIds = new Set(rosterTeamIds);
+  const evidencedTeamIds = new Set(membershipTeamIds);
   const evidencedSeasonIds = new Set<string>();
 
   for (const result of results) {

@@ -30,7 +30,6 @@ import {
   type RiderNotablePerformance,
   type RiderSecondaryPerformance,
 } from "@/lib/game/rider-notable-performances";
-import { buildJuniorDevelopmentCareerHistory } from "@/lib/game/development-rider-career-history";
 import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
@@ -40,6 +39,7 @@ import { parseContinentalChampionshipTitleType } from "@/services/rider-continen
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
+import { getRiderDevelopmentHistory } from "@/services/rider-development-history";
 
 export type RiderEquipmentSlot = EquipmentSlot;
 
@@ -588,10 +588,14 @@ export async function getPublicRiderProfile({
         teamId: currentContract.team_id,
       })
     : Promise.resolve(false);
-  const juniorDevelopmentHistoryPromise = getJuniorDevelopmentHistory({
+  const juniorDevelopmentHistoryPromise = getRiderDevelopmentHistory({
     supabase,
     riderId: rider.id,
-    seasons,
+    seasons: seasons.map((season) => ({
+      id: season.id,
+      name: season.name,
+      gameYear: season.game_year,
+    })),
   });
   const partnerEffectByItemIdPromise = getActivePartnerEffectByItemId({
     supabase,
@@ -1310,139 +1314,6 @@ async function getActivePartnerEffectByItemId({
   }
 
   return effectsByItemId;
-}
-
-async function getJuniorDevelopmentHistory({
-  supabase,
-  riderId,
-  seasons,
-}: {
-  supabase: ReturnType<typeof createSupabaseAdminClient>;
-  riderId: string;
-  seasons: SeasonRow[];
-}): Promise<PublicRiderProfile["history"]> {
-  const academyRiderResult = await supabase
-    .from("youth_academy_riders")
-    .select("id, team_id")
-    .eq("promoted_rider_id", riderId)
-    .maybeSingle<{ id: string; team_id: string }>();
-  assertQuery(
-    academyRiderResult.error,
-    "le parcours junior du coureur professionnel",
-  );
-  if (!academyRiderResult.data) return [];
-
-  const [rosterResult, resultsResult] = await Promise.all([
-    supabase
-      .from("development_team_roster")
-      .select("development_team_id")
-      .eq("academy_rider_id", academyRiderResult.data.id)
-      .returns<Array<{ development_team_id: string }>>(),
-    supabase
-      .from("development_race_results")
-      .select(
-        "race_edition_id, development_team_id, result_scope, rank, points",
-      )
-      .eq("academy_rider_id", academyRiderResult.data.id)
-      .returns<
-        Array<{
-          race_edition_id: string;
-          development_team_id: string | null;
-          result_scope: "stage" | "general";
-          rank: number;
-          points: number;
-        }>
-      >(),
-  ]);
-  assertQuery(rosterResult.error, "les saisons Development Team du coureur");
-  assertQuery(resultsResult.error, "le bilan de courses junior du coureur");
-
-  const rosterTeamIds = (rosterResult.data ?? []).map(
-    (row) => row.development_team_id,
-  );
-  const developmentResults = resultsResult.data ?? [];
-  const editionIds = [
-    ...new Set(developmentResults.map((result) => result.race_edition_id)),
-  ];
-  if (!rosterTeamIds.length && !editionIds.length) return [];
-
-  const [teamsResult, editionsResult] = await Promise.all([
-    supabase
-      .from("development_teams")
-      .select("id, team_id, season_id, display_name")
-      .eq("team_id", academyRiderResult.data.team_id)
-      .returns<
-        Array<{
-          id: string;
-          team_id: string;
-          season_id: string;
-          display_name: string;
-        }>
-      >(),
-    editionIds.length
-      ? supabase
-          .from("development_race_editions")
-          .select("id, season_id, name, race_format")
-          .in("id", editionIds)
-          .returns<
-            Array<{
-              id: string;
-              season_id: string;
-              name: string;
-              race_format: "one_day" | "stage_race";
-            }>
-          >()
-      : Promise.resolve({
-          data: [] as Array<{
-            id: string;
-            season_id: string;
-            name: string;
-            race_format: "one_day" | "stage_race";
-          }>,
-          error: null,
-        }),
-  ]);
-  assertQuery(teamsResult.error, "les identites Development Team du coureur");
-  assertQuery(editionsResult.error, "les épreuves Development Team du coureur");
-
-  return buildJuniorDevelopmentCareerHistory({
-    seasons: seasons.map((season) => ({
-      id: season.id,
-      name: season.name,
-      gameYear: season.game_year,
-    })),
-    teams: (teamsResult.data ?? []).map((team) => ({
-      id: team.id,
-      teamId: team.team_id,
-      seasonId: team.season_id,
-      displayName: team.display_name,
-    })),
-    rosterTeamIds,
-    editions: (editionsResult.data ?? []).map((edition) => ({
-      id: edition.id,
-      seasonId: edition.season_id,
-      name: edition.name,
-      raceFormat: edition.race_format,
-    })),
-    results: developmentResults.map((result) => ({
-      raceEditionId: result.race_edition_id,
-      developmentTeamId: result.development_team_id,
-      resultScope: result.result_scope,
-      rank: result.rank,
-      points: result.points,
-    })),
-  }).map((entry) => ({
-    ...entry,
-    transferFee: null,
-    currencyCode: "EUR",
-    joinedDayNumber: 1,
-    leftDayNumber: null,
-    uciRank: null,
-    nationalTitles: [],
-    worldTitles: [],
-    continentalTitles: [],
-    careerLevel: "junior" as const,
-  }));
 }
 
 export async function getPublicTeamRiders(

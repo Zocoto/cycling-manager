@@ -7,6 +7,14 @@ const profileService = readFileSync(
   join(process.cwd(), "services/public-rider-profile.ts"),
   "utf8",
 );
+const developmentHistoryService = readFileSync(
+  join(process.cwd(), "services/rider-development-history.ts"),
+  "utf8",
+);
+const archivedProfileService = readFileSync(
+  join(process.cwd(), "services/archived-rider-profile.ts"),
+  "utf8",
+);
 const professionalRiderPage = readFileSync(
   join(process.cwd(), "app/jeu/coureurs/[identifiant]/page.tsx"),
   "utf8",
@@ -14,12 +22,28 @@ const professionalRiderPage = readFileSync(
 
 describe("Historique Development Team après promotion", () => {
   it("rattache le junior promu à ses saisons de Development Team", () => {
-    expect(profileService).toContain('.eq("promoted_rider_id", riderId)');
-    expect(profileService).toContain('from("development_team_roster")');
-    expect(profileService).toContain('from("development_race_results")');
-    expect(profileService).toContain("buildJuniorDevelopmentCareerHistory");
-    expect(profileService).toContain('careerLevel: "junior" as const');
-    expect(profileService).toContain("juniorPodiums");
+    expect(profileService).toContain("getRiderDevelopmentHistory");
+    expect(developmentHistoryService).toContain(
+      '.eq("promoted_rider_id", riderId)',
+    );
+    expect(developmentHistoryService).toContain(
+      'from("rider_development_team_history")',
+    );
+    expect(developmentHistoryService).toContain(
+      'from("development_race_results")',
+    );
+    expect(developmentHistoryService).toContain(
+      "buildJuniorDevelopmentCareerHistory",
+    );
+    expect(developmentHistoryService).toContain(
+      'careerLevel: "junior" as const',
+    );
+    expect(developmentHistoryService).toContain("juniorPodiums");
+  });
+
+  it("conserve aussi ce parcours sur les fiches des coureurs archivés", () => {
+    expect(archivedProfileService).toContain("getRiderDevelopmentHistory");
+    expect(archivedProfileService).toContain("...juniorHistory");
   });
 
   it("distingue clairement les années juniors dans la fiche pro", () => {
