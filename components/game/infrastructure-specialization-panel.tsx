@@ -186,7 +186,16 @@ export function InfrastructureSpecializationPanel({
                     <Effect label="Effet secondaire" value={option.secondaryEffect} />
                   ) : null}
                 </dl>
-                <form action={action} className="mt-auto pt-4">
+                <form
+                  action={action}
+                  className="mt-auto pt-4"
+                  data-financial-expense={
+                    !isFederation && hasChoice
+                      ? selection.reorientationCost
+                      : 0
+                  }
+                  data-financial-label="cette réorientation"
+                >
                   <input type="hidden" name="infrastructureCode" value={proposal.buildingCode} />
                   <input type="hidden" name="specializationCode" value={option.code} />
                   {countryCode ? (

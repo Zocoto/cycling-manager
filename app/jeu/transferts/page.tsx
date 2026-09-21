@@ -656,7 +656,13 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
           </p>
         ) : null}
         {canBid ? (
-          <form action={placeTransferBidAction} className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+          <form
+            action={placeTransferBidAction}
+            className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-3"
+            data-financial-expense-field="amount"
+            data-financial-extra-expense={listing.salaryPerSeason}
+            data-financial-label={`l’enchère sur ${listing.rider.firstName} ${listing.rider.lastName}`}
+          >
             <input type="hidden" name="listingId" value={listing.id} /><input type="hidden" name="returnPath" value={returnPath} />
             <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">Votre offre<input name="amount" type="number" min={listing.minimumNextBid} step="100" required defaultValue={listing.minimumNextBid} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 px-3 text-sm font-black" /></label>
             <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid}>Enchérir</TransferSubmitButton></div>
@@ -743,7 +749,7 @@ function RiderSearchCard({ rider, currency, currentTeamId, rosterIsFull, returnP
       <div className="mt-4 rounded-xl bg-[#F3F8F6] px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">{isFreeAgent ? "Demande salariale" : "Salaire estimé après transfert"}</p><p className="mt-1 text-lg font-black text-[#183F37]">{formatMoney(Math.round(seasonSalary / 4), currency)} / semaine</p><p className="text-[10px] font-bold text-[#60756E]">{formatMoney(seasonSalary, currency)} par saison</p></div>
       {rider.hasChangedTeamThisSeason ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Ce coureur a déjà changé d’équipe cette saison · nouveau transfert impossible</p> : null}
       {isFreeAgent ? (
-        rider.hasChangedTeamThisSeason ? null : rosterIsFull ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · signature impossible</p> : <form action={signFreeAgentAction} className="mt-4 flex"><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>
+        rider.hasChangedTeamThisSeason ? null : rosterIsFull ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · signature impossible</p> : <form action={signFreeAgentAction} className="mt-4 flex" data-financial-expense={seasonSalary} data-financial-label={`la signature de ${rider.firstName} ${rider.lastName}`}><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>
       ) : (
         <Link href={`/jeu/coureurs/${rider.id}`} className="mt-4 flex min-h-11 items-center justify-center rounded-xl bg-[#0B302B] px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white transition hover:bg-[#176951]">
           {isOwnRider || rosterIsFull || rider.hasChangedTeamThisSeason ? "Voir la fiche" : "Voir et faire une offre"}

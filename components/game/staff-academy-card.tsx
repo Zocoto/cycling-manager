@@ -195,6 +195,8 @@ export function StaffAcademyCard({
           <form
             action={startInfrastructureProjectAction}
             className="mt-6 grid gap-5 rounded-2xl border border-[#315B3E]/12 bg-[#F6F8F6] p-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.62fr)]"
+            data-financial-expense={constructionQuote.cost}
+            data-financial-label="le chantier Académie des métiers"
           >
             <input
               type="hidden"
@@ -584,6 +586,8 @@ function TrainingOption({
     <form
       action={startStaffAcademyTrainingAction}
       className="flex flex-col rounded-2xl border border-[#315B3E]/12 bg-[#F6F8F6] p-5"
+      data-financial-expense={cost}
+      data-financial-label="ce stage de perfectionnement"
     >
       <input type="hidden" name="staffContractId" value={contractId} />
       <input type="hidden" name="improvementType" value={improvementType} />

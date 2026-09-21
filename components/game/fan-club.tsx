@@ -488,6 +488,8 @@ function TravelPanel({
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <ActionButton
                     disabled={isPending || !unlocked || totalCars >= fleetLimit}
+                    financialExpense={purchasePrice}
+                    financialLabel={`le car ${candidate.name}`}
                     onClick={() => execute(() => purchaseFanClubCarAction(candidate.id))}
                   >Acheter</ActionButton>
                   <ActionButton
@@ -583,6 +585,8 @@ function TravelPanel({
           <button
             type="button"
             disabled={isPending || !race || availableCars <= 0 || travelers <= 0}
+            data-financial-expense={cost}
+            data-financial-label="cet affrètement de supporters"
             onClick={() => race && execute(() => charterFanClubCarsAction({ raceId: race.id, modelId: model.id, carCount: cars }))}
             className="mt-6 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
           >{isPending ? "Enregistrement…" : "Confirmer l’affrètement"}</button>
@@ -738,6 +742,8 @@ function StorePanel({
                 </dl>
                 <button
                   type="button" disabled={isPending || capacityLeft <= 0 || quantity > capacityLeft}
+                  data-financial-expense={quantity * getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices)}
+                  data-financial-label={`le stock ${selectedProduct.name}`}
                   onClick={() => execute(() => purchaseFanClubStockAction({ productId: selectedProduct.id, quantity }))}
                   className="mt-5 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:opacity-45"
                 >{isPending ? "Enregistrement…" : "Acheter ce stock"}</button>
@@ -1017,8 +1023,8 @@ function Metric({ label, value }: { label: string; value: string }) {
 function PreviewLine({ label, value }: { label: string; value: string }) {
   return <div className="flex items-start justify-between gap-4 py-3"><dt className="font-bold text-[#BFD1C6]">{label}</dt><dd className="text-right font-black text-white">{value}</dd></div>;
 }
-function ActionButton({ children, disabled, secondary = false, onClick }: { children: React.ReactNode; disabled: boolean; secondary?: boolean; onClick: () => void }) {
-  return <button type="button" disabled={disabled} onClick={onClick} className={[
+function ActionButton({ children, disabled, secondary = false, financialExpense, financialLabel, onClick }: { children: React.ReactNode; disabled: boolean; secondary?: boolean; financialExpense?: number; financialLabel?: string; onClick: () => void }) {
+  return <button type="button" disabled={disabled} data-financial-expense={financialExpense} data-financial-label={financialLabel} onClick={onClick} className={[
     "min-h-10 rounded-xl px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45",
     secondary ? "border border-[var(--fan-line)] bg-white text-[var(--fan-primary)] hover:bg-[var(--fan-soft)]" : "bg-[var(--fan-primary)] text-white hover:bg-[var(--fan-secondary)]",
   ].join(" ")}>{children}</button>;

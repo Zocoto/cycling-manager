@@ -338,6 +338,8 @@ export function InternationalYouthCenterMap({
           <form
             action={startInfrastructureProjectAction}
             className="mt-5 space-y-4"
+            data-financial-expense={quote.cost}
+            data-financial-label={`le centre international en ${selected.name}`}
           >
             <input
               type="hidden"

@@ -215,7 +215,11 @@ export function NutritionInterventionsEditor({
 
   return (
     <NutritionEditorContext.Provider value={context}>
-      <form action={applyNutritionInterventionsAction}>
+      <form
+        action={applyNutritionInterventionsAction}
+        data-financial-expense={totalPrice}
+        data-financial-label="ces interventions nutritionnelles"
+      >
         <input
           type="hidden"
           name="interventions"

@@ -916,7 +916,12 @@ function FreeAgentSigningCard({
         </div>
       ) : null}
       {management.canSignFreeAgent ? (
-        <form action={signFreeAgentAction} className="mt-5">
+        <form
+          action={signFreeAgentAction}
+          className="mt-5"
+          data-financial-expense={management.freeAgentSalary ?? 0}
+          data-financial-label="la signature de ce coureur"
+        >
           <input type="hidden" name="riderId" value={riderId} />
           <input
             type="hidden"
@@ -1147,7 +1152,13 @@ function DirectTransferOfferCard({
           </p>
         </div>
       ) : management.canMakeDirectOffer ? (
-        <form action={submitDirectTransferOfferAction} className="mt-5">
+        <form
+          action={submitDirectTransferOfferAction}
+          className="mt-5"
+          data-financial-expense-field="amount"
+          data-financial-extra-expense={management.directOfferSalary ?? 0}
+          data-financial-label="cette offre de transfert"
+        >
           <input type="hidden" name="riderId" value={riderId} />
           <input
             type="hidden"

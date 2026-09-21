@@ -6,6 +6,7 @@ import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
 import { GameHeaderIndicatorsProvider } from "@/components/game/game-header-indicators-provider";
+import { FinancialRiskWarningProvider } from "@/components/game/financial-risk-warning-provider";
 import { GamePresenceHeartbeat } from "@/components/game/game-presence-heartbeat";
 import { GameRouteLoading } from "@/components/game/game-route-loading";
 import {
@@ -104,11 +105,13 @@ async function GameRuntime({ children }: { children: ReactNode }) {
   return (
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
       <GameHeaderIndicatorsProvider>
-        <GamePresenceHeartbeat />
-        <div className="game-shell">
-          {children}
-          <TutorialCenterLauncher />
-        </div>
+        <FinancialRiskWarningProvider>
+          <GamePresenceHeartbeat />
+          <div className="game-shell">
+            {children}
+            <TutorialCenterLauncher />
+          </div>
+        </FinancialRiskWarningProvider>
       </GameHeaderIndicatorsProvider>
     </TutorialProvider>
   );

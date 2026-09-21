@@ -437,7 +437,14 @@ function StaffMarketCard({
           />
         </div>
 
-        <form action={hireStaffMemberAction} className="mt-4">
+        <form
+          action={hireStaffMemberAction}
+          className="mt-4"
+          data-financial-expense={
+            member.signingFee + member.salaryPerSeason
+          }
+          data-financial-label={`le recrutement de ${member.firstName} ${member.lastName}`}
+        >
           <input type="hidden" name="listingId" value={listing.id} />
           <input type="hidden" name="returnPath" value={returnPath} />
           <StaffSubmitButton disabled={!listing.canHire}>

@@ -552,6 +552,8 @@ function InjuryCard({
                       key={protocol.code}
                       action={applyInjuryProtocolAction}
                       className="flex flex-col rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-4"
+                      data-financial-expense={protocol.price}
+                      data-financial-label={`le protocole ${protocol.name}`}
                     >
                       <input
                         type="hidden"

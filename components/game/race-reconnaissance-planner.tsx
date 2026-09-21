@@ -263,7 +263,11 @@ export function RaceReconnaissancePlanner({
         </div>
       </header>
 
-      <form action={bookRaceReconnaissanceAction}>
+      <form
+        action={bookRaceReconnaissanceAction}
+        data-financial-expense={selectedCost}
+        data-financial-label="ce stage de reconnaissance"
+      >
         <div className="grid gap-0 xl:grid-cols-[minmax(420px,0.82fr)_minmax(0,1.18fr)]">
           <div
             data-tutorial-id="reconnaissance-rider-selection"

@@ -136,6 +136,8 @@ export function InfrastructureBuildingCard({
           <form
             action={startInfrastructureProjectAction}
             className="flex flex-1 flex-col border-t border-[#315B3E]/10 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"
+            data-financial-expense={quote.cost}
+            data-financial-label={`le chantier ${definition.name}`}
           >
             <input
               type="hidden"

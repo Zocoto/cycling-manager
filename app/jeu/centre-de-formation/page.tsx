@@ -1508,7 +1508,11 @@ function CandidateCard({
           </div>
         </div>
         {candidate.status === "spotted" ? (
-          <form action={signYouthCandidateAction}>
+          <form
+            action={signYouthCandidateAction}
+            data-financial-expense={candidate.signingFee}
+            data-financial-label={`la signature de ${candidate.firstName} ${candidate.lastName}`}
+          >
             <input type="hidden" name="candidateId" value={candidate.id} />
             <button
               disabled={balance < candidate.signingFee}

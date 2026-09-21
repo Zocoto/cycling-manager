@@ -135,7 +135,12 @@ export function FormCampPlanner({
   }
 
   return (
-    <form action={bookFormCampsAction} className="pb-40 sm:pb-32">
+    <form
+      action={bookFormCampsAction}
+      className="pb-40 sm:pb-32"
+      data-financial-expense={totalPrice}
+      data-financial-label="ce stage de remise en forme"
+    >
       <input type="hidden" name="campType" value={campType} />
       <input
         type="hidden"

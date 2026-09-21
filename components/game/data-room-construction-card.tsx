@@ -126,6 +126,8 @@ export function DataRoomConstructionCard({
           <form
             action={startInfrastructureProjectAction}
             className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.6fr)]"
+            data-financial-expense={quote.cost}
+            data-financial-label="le chantier Data Room"
           >
             <input
               type="hidden"

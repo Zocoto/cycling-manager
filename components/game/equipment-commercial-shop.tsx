@@ -201,7 +201,12 @@ export function EquipmentCommercialShop({
             </div>
           </div>
 
-          <form action={formAction} className="flex shrink-0 gap-2">
+          <form
+            action={formAction}
+            className="flex shrink-0 gap-2"
+            data-financial-expense={totalPrice}
+            data-financial-label="le panier de matériel"
+          >
             <input
               type="hidden"
               name="cartLines"
