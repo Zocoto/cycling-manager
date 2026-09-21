@@ -1,6 +1,11 @@
 import "server-only";
 
-import { combineEquipmentEffects, normalizeEquipmentEffects, type EquipmentEffects } from "@/lib/game/equipment";
+import {
+  combineEquipmentEffects,
+  getEquipmentRatingBonusTotals,
+  normalizeEquipmentEffects,
+  type EquipmentEffects,
+} from "@/lib/game/equipment";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationEquipmentItem = {
@@ -24,6 +29,8 @@ export type FederationEquipmentOffer = {
     accentColor: string;
   };
   items: FederationEquipmentItem[];
+  ratingBonusTotal: number;
+  coveredRatingCount: number;
 };
 
 export type FederationEquipmentContract = {
@@ -179,6 +186,8 @@ export async function getFederationEquipmentState({
   const offers = (offersResult.data ?? []).flatMap((offer) => {
     const supplier = supplierByKey.get(offer.supplier_key);
     if (!supplier) return [];
+    const items = itemsByOffer.get(offer.offer_key) ?? [];
+    const summary = summarizeFederationEquipmentItems(items);
     return [{
       key: offer.offer_key,
       name: offer.name,
@@ -192,7 +201,8 @@ export async function getFederationEquipmentState({
         secondaryColor: supplier.secondary_color,
         accentColor: supplier.accent_color,
       },
-      items: itemsByOffer.get(offer.offer_key) ?? [],
+      items,
+      ...summary,
     }];
   });
 
@@ -281,5 +291,22 @@ function mapItem(item: OfferItemRow | ContractItemRow): FederationEquipmentItem 
     name: item.equipment_name,
     effectSummary: item.effect_summary,
     effectPayload: item.effect_payload,
+  };
+}
+
+function summarizeFederationEquipmentItems(
+  items: readonly FederationEquipmentItem[],
+) {
+  const effects = combineEquipmentEffects(
+    items.map((item) => normalizeEquipmentEffects(item.effectPayload)),
+  );
+  const ratingTotals = getEquipmentRatingBonusTotals(effects);
+  const activeBonuses = Object.values(ratingTotals).filter(
+    (value): value is number => Number.isFinite(value) && value > 0,
+  );
+
+  return {
+    ratingBonusTotal: activeBonuses.reduce((total, value) => total + value, 0),
+    coveredRatingCount: activeBonuses.length,
   };
 }

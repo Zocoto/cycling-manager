@@ -186,6 +186,17 @@ function EquipmentOffers({
               </div>
               <div className="p-5 sm:p-6">
                 <p className="min-h-10 text-xs font-semibold leading-5 text-[#66877C]">{offer.description}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-[#EAF5F0] px-3 py-1 text-[10px] font-black text-[#176951]">
+                    {offer.items.length} pièce{offer.items.length > 1 ? "s" : ""}
+                  </span>
+                  <span className="rounded-full bg-[#FFF4C7] px-3 py-1 text-[10px] font-black text-[#725500]">
+                    +{offer.ratingBonusTotal} points techniques
+                  </span>
+                  <span className="rounded-full bg-[#EEF3F8] px-3 py-1 text-[10px] font-black text-[#24455B]">
+                    {offer.coveredRatingCount} caractéristiques couvertes
+                  </span>
+                </div>
                 <EquipmentList items={offer.items} />
                 {!state.contract && state.canManage ? (
                   <form action={chooseFederationEquipmentOfferAction} className="mt-5">
