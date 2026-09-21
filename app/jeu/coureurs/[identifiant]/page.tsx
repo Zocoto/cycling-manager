@@ -49,6 +49,7 @@ import {
   groupRiderCareerHistoryBySeason,
   type RiderCareerTeamPeriod,
 } from "@/lib/game/rider-career-history";
+import { resolveFormerChampionshipBorder } from "@/lib/game/rider-championship-border";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
 import {
@@ -282,6 +283,7 @@ export default async function RiderProfilePage({
         ? getNationalChampionPalette(activeNationalTitle.countryCode)
         : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+  const formerChampionshipBorder = resolveFormerChampionshipBorder(profile);
   const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
     combineEquipmentEffects(
       Object.values(profile.equipment).flatMap((item) =>
@@ -389,6 +391,7 @@ export default async function RiderProfilePage({
                 riderId={profile.id}
                 age={profile.age ?? 25}
                 jersey={riderJersey}
+                championshipBorder={formerChampionshipBorder}
                 label={`Portrait généré de ${fullName}`}
                 className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
               />

@@ -10,6 +10,10 @@ import {
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
+import {
+  getRiderChampionshipBorderBackground,
+  type RiderChampionshipBorder,
+} from "@/lib/game/rider-championship-border";
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
 import { NationalJerseyDesignPattern } from "./national-jersey-design-artwork";
@@ -23,6 +27,7 @@ type RiderAvatarProps = {
   label?: string;
   className?: string;
   renderMode?: "detailed" | "compact";
+  championshipBorder?: RiderChampionshipBorder | null;
 };
 
 export function RiderAvatar({
@@ -34,6 +39,7 @@ export function RiderAvatar({
   label = "Portrait généré du coureur",
   className = "h-12 w-12",
   renderMode = "detailed",
+  championshipBorder = null,
 }: RiderAvatarProps) {
   const rawId = useId();
   const svgId = rawId.replace(/:/g, "");
@@ -53,6 +59,7 @@ export function RiderAvatar({
         jersey={resolvedJersey}
         label={label}
         className={className}
+        championshipBorder={championshipBorder}
       />
     );
   }
@@ -85,16 +92,20 @@ export function RiderAvatar({
 
   return (
     <span
+      data-championship-border={championshipBorder?.kind}
+      title={championshipBorder?.label}
       className={[
         "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:paint]",
         className,
       ].join(" ")}
+      style={getChampionshipBorderStyle(championshipBorder)}
     >
       <svg
         aria-label={label}
         role="img"
         viewBox="0 0 96 96"
         className="block h-full w-full overflow-hidden"
+        style={championshipBorder ? { borderRadius: "inherit" } : undefined}
       >
         <defs>
           <clipPath id={shoulderClipId}>
@@ -216,16 +227,31 @@ export function RiderAvatar({
   );
 }
 
+function getChampionshipBorderStyle(
+  championshipBorder: RiderChampionshipBorder | null,
+) {
+  if (!championshipBorder) return undefined;
+  return {
+    background: getRiderChampionshipBorderBackground(championshipBorder),
+    borderColor: "transparent",
+    boxShadow:
+      "0 0 0 1px rgba(255,255,255,0.7), 0 4px 14px rgba(8,42,42,0.18)",
+    padding: "3px",
+  };
+}
+
 function CompactRiderAvatar({
   design,
   jersey,
   label,
   className,
+  championshipBorder,
 }: {
   design: RiderAvatarDesign;
   jersey: RiderJerseyAppearance;
   label: string;
   className: string;
+  championshipBorder: RiderChampionshipBorder | null;
 }) {
   const faceRadiusX = Math.max(18, Math.min(25, design.faceWidth / 2));
   const faceRadiusY = Math.max(23, Math.min(29, design.faceHeight / 2));
@@ -236,16 +262,20 @@ function CompactRiderAvatar({
   return (
     <span
       data-avatar-render-mode="compact"
+      data-championship-border={championshipBorder?.kind}
+      title={championshipBorder?.label}
       className={[
         "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:strict]",
         className,
       ].join(" ")}
+      style={getChampionshipBorderStyle(championshipBorder)}
     >
       <svg
         aria-label={label}
         role="img"
         viewBox="0 0 96 96"
         className="block h-full w-full overflow-hidden"
+        style={championshipBorder ? { borderRadius: "inherit" } : undefined}
       >
         <rect width="96" height="96" fill={design.backgroundColor} />
         <circle cx="18" cy="17" r="15" fill="#FFFFFF" opacity="0.16" />

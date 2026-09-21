@@ -13,6 +13,7 @@ import {
   groupRiderCareerHistoryBySeason,
   type RiderCareerTeamPeriod,
 } from "@/lib/game/rider-career-history";
+import { resolveFormerChampionshipBorder } from "@/lib/game/rider-championship-border";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 
 export function ArchivedRiderProfileView({
@@ -31,6 +32,7 @@ export function ArchivedRiderProfileView({
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
   const seasonHistory = groupRiderCareerHistoryBySeason(profile.history);
   const seasonsCount = seasonHistory.length;
+  const formerChampionshipBorder = resolveFormerChampionshipBorder(profile);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -57,6 +59,7 @@ export function ArchivedRiderProfileView({
               riderId={profile.id}
               age={profile.archive.retirementAge ?? 35}
               jersey={FREE_AGENT_RIDER_JERSEY}
+              championshipBorder={formerChampionshipBorder}
               label={`Portrait historique de ${fullName}`}
               className="h-40 w-40 rounded-[2rem] border-white/20 grayscale-[20%] shadow-2xl sm:h-48 sm:w-48"
             />

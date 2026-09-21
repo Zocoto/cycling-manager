@@ -20,6 +20,7 @@ import {
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
+import { resolveFormerChampionshipBorder } from "@/lib/game/rider-championship-border";
 
 const BLUE = "#367FD3";
 const BLUE_SOFT = "#EAF4FF";
@@ -268,6 +269,7 @@ function RiderIdentityCard({
         riderId={profile.id}
         age={profile.age ?? 25}
         jersey={jersey}
+        championshipBorder={resolveFormerChampionshipBorder(profile)}
         label={`Portrait de ${name}`}
         className="h-24 w-24 border-4 sm:h-32 sm:w-32"
       />
