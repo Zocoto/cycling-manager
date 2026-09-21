@@ -19,6 +19,7 @@ const management: RiderTransferManagement = {
   renewalOptions: [],
   rosterSize: 22,
   rosterLimit: 35,
+  rosterYouthReserveSlots: 0,
   rosterIsFull: false,
   renewalSalary: 14_000,
   contractEndSeasonYear: 3,

@@ -9,7 +9,9 @@ import {
   resolveTeamContractRiderStatus,
   type TeamContractRiderStatus,
 } from "@/lib/game/team-contract-management";
+import { getRosterManagementRenewalDiscountPercent } from "@/lib/game/team-roster-capacity";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
 
 export type TeamContractManagementRider = {
   id: string;
@@ -67,6 +69,8 @@ type ContractRow = {
   currency_code: string;
   status: "active" | "planned";
   acquisition_type?: string | null;
+  homegrown_salary_before_discount?: number | string | null;
+  roster_management_salary_before_discount?: number | string | null;
 };
 type RiderRow = {
   id: string;
@@ -136,7 +140,7 @@ export async function getTeamContractManagementOverview(
 
   const teamId = assignmentResult.data.team_id;
   const currentSeason = seasonResult.data;
-  const [teamSeasonResult, activeContractsResult] = await Promise.all([
+  const [teamSeasonResult, activeContractsResult, rosterCapacity] = await Promise.all([
     admin
       .from("team_seasons")
       .select("currency")
@@ -146,11 +150,16 @@ export async function getTeamContractManagementOverview(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, acquisition_type",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, acquisition_type, homegrown_salary_before_discount, roster_management_salary_before_discount",
       )
       .eq("team_id", teamId)
       .eq("status", "active")
       .returns<ContractRow[]>(),
+    loadTeamRosterCapacitySummary({
+      admin,
+      teamId,
+      gameYear: currentSeason.game_year,
+    }),
   ]);
   assertQuery(teamSeasonResult.error, "la saison de l’équipe");
   assertQuery(activeContractsResult.error, "les contrats actifs");
@@ -186,7 +195,7 @@ export async function getTeamContractManagementOverview(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, acquisition_type",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, acquisition_type, homegrown_salary_before_discount, roster_management_salary_before_discount",
       )
       .in("rider_id", riderIds)
       .in("status", ["active", "planned"])
@@ -275,6 +284,10 @@ export async function getTeamContractManagementOverview(
       (row) => row.promoted_rider_id,
     ),
   );
+  const renewalDiscountPercent = getRosterManagementRenewalDiscountPercent({
+    buildingLevel: rosterCapacity.buildingLevel,
+    specialization: rosterCapacity.specialization,
+  });
 
   const riders = activeContracts.flatMap((activeContract) => {
     const rider = riderById.get(activeContract.rider_id);
@@ -319,10 +332,14 @@ export async function getTeamContractManagementOverview(
         performanceByRiderId.get(rider.id) ?? null,
     });
     const currentSalary = toNumber(activeContract.salary_per_season);
-    const estimatedNetSalary =
+    const estimatedSalaryAfterHomegrown =
       homegrownAbilityRiderIds.has(rider.id) && promotedRiderIds.has(rider.id)
         ? Math.round(estimatedSalary * 50) / 100
         : estimatedSalary;
+    const estimatedNetSalary = applyPercentageDiscount(
+      estimatedSalaryAfterHomegrown,
+      renewalDiscountPercent,
+    );
     const blockingContracts = (contractsByRiderId.get(rider.id) ?? [])
       .filter(
         (contract) =>
@@ -353,7 +370,16 @@ export async function getTeamContractManagementOverview(
         successor?.team_id === teamId &&
         activeEndYear === currentSeason.game_year &&
         targetEndSeasonYear === currentSeason.game_year + 2
-          ? toNumber(successor.salary_per_season)
+          ? applyPercentageDiscount(
+              homegrownAbilityRiderIds.has(rider.id) && promotedRiderIds.has(rider.id)
+                ? (toNullableNumber(
+                    successor.homegrown_salary_before_discount,
+                  ) ?? estimatedSalary) / 2
+                : toNullableNumber(
+                    successor.roster_management_salary_before_discount,
+                  ) ?? toNumber(successor.salary_per_season),
+              renewalDiscountPercent,
+            )
           : estimatedNetSalary;
       return {
         targetEndSeasonYear,
@@ -482,6 +508,16 @@ function statusOrder(status: TeamContractRiderStatus) {
 function toNumber(value: number | string | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toNullableNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function applyPercentageDiscount(value: number, percentage: number) {
+  return Math.round(value * (1 - percentage / 100) * 100) / 100;
 }
 
 function assertQuery(

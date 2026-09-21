@@ -432,7 +432,7 @@ describe("dashboard DS assistant", () => {
         id: "next-season-roster-overflow",
         metric: "3",
         title: "places de trop prévues à J1",
-        detail: expect.stringContaining("38/35"),
+        detail: expect.stringContaining("38 coureurs"),
         href: "/jeu/centre-de-formation?onglet=ecole",
       }),
     ]);

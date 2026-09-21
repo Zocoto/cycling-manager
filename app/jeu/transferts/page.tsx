@@ -195,6 +195,12 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
               <Metric label="Disponible" value={formatMoney(overview.availableBudget, overview.currency)} />
               <Metric label="Data Room" value={`Niveau ${overview.dataRoomLevel}/3`} />
               <Metric label="Effectif" value={`${overview.rosterSize} / ${overview.rosterLimit}`} />
+              {overview.rosterYouthReserveSlots > 0 ? (
+                <Metric
+                  label="Réserve jeunes"
+                  value={`+${overview.rosterYouthReserveSlots}`}
+                />
+              ) : null}
             </div>
           </div>
         </header>
@@ -557,7 +563,10 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
 
 function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, rosterIsFull, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; leaderSponsor: Sponsor | null; teamId: string; availableBudget: number; rosterIsFull: boolean; returnPath: string }) {
   const isFinished = listing.status !== "open";
-  const canBid = listing.status === "open" && listing.sellerTeamId !== teamId && !rosterIsFull;
+  const canBid =
+    listing.status === "open" &&
+    listing.sellerTeamId !== teamId &&
+    (!rosterIsFull || listing.isOwnTeamLeading);
   const bidCapacity = availableBudget + (listing.isOwnTeamLeading ? listing.currentBid ?? 0 : 0);
   const resultLabel =
     listing.status === "settled"
@@ -667,7 +676,7 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
             <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">Votre offre<input name="amount" type="number" min={listing.minimumNextBid} step="100" required defaultValue={listing.minimumNextBid} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 px-3 text-sm font-black" /></label>
             <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid}>Enchérir</TransferSubmitButton></div>
           </form>
-        ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : rosterIsFull && listing.status === "open" ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · 35 coureurs maximum</p> : null}
+        ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : rosterIsFull && listing.status === "open" ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Capacité de recrutement atteinte</p> : null}
         <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
       </div>
     </article>

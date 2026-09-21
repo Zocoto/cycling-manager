@@ -23,6 +23,7 @@ const expectedTeamDurations = {
   recruitment_data_room: [7, 14, 21],
   staff_academy: [10, 16, 22, 28, 35],
   training_center: [5, 9, 14, 20, 28],
+  roster_management_center: [7, 12, 18, 24, 30],
   indoor_track: [7, 11, 16, 22, 28],
   cryotherapy_center: [6, 10, 15, 21, 28],
   wind_tunnel: [9, 14, 20, 27, 35],

@@ -28,7 +28,6 @@ import {
   getInternationalCenterNetworkEffects,
 } from "@/lib/game/infrastructure";
 import { getInfrastructureSpecializationPowerPercentage } from "@/lib/game/infrastructure-specializations";
-import { MAX_TEAM_ROSTER_SIZE } from "@/lib/game/team-roster-capacity";
 import {
   calculateCountryWorldReputationFromUciRank,
   calculateYouthScoutingQuality,
@@ -94,6 +93,7 @@ import {
 } from "@/lib/rider-names/generate-rider-identities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -410,6 +410,7 @@ export type YouthDevelopmentOverview = {
   unreadCount: number;
   nextSeasonRosterCommitments: number;
   rosterLimit: number;
+  rosterYouthReserveSlots: number;
   canScheduleYouthPromotion: boolean;
   totalTuitionPerSeason: number;
   scoutingSupervision: ScoutingSupervisionStatus;
@@ -633,7 +634,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     contractsResult,
     missionsResult,
     academyResult,
-    rosterCapacityResult,
+    rosterCapacity,
     scoutingSupervisionResult,
   ] = await Promise.all([
     admin
@@ -665,9 +666,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
       .in("status", ["active", "recruited", "release_pending"])
       .order("signed_at", { ascending: true })
       .returns<AcademyRow[]>(),
-    admin.rpc("get_team_roster_commitment_count", {
-      p_team_id: context.teamId,
-      p_game_year: context.gameYear + 1,
+    loadTeamRosterCapacitySummary({
+      admin,
+      teamId: context.teamId,
+      gameYear: context.gameYear + 1,
     }),
     admin
       .from("daily_reward_active_effects")
@@ -684,7 +686,6 @@ async function loadOverview(admin: AdminClient, context: Context) {
     [contractsResult, "les contrats du staff"],
     [missionsResult, "les missions"],
     [academyResult, "l’école de cyclisme"],
-    [rosterCapacityResult, "la capacité du prochain effectif"],
     [scoutingSupervisionResult, "le bonus de supervision du scouting"],
   ] as const)
     assertQuery(result.error, label);
@@ -697,10 +698,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
     countries.map((country) => [country.id, country]),
   );
   const contracts = contractsResult.data ?? [];
-  const nextSeasonRosterCommitments = Number(rosterCapacityResult.data ?? 0);
+  const nextSeasonRosterCommitments = rosterCapacity.commitmentCount;
   // A promotion is a provisional choice until the J1 roster arbitration. It
-  // must remain schedulable even when 35 firm contracts are already recorded,
-  // otherwise the DS cannot prepare a later sale or contract adjustment.
+  // must remain schedulable even when the general roster capacity is already
+  // committed, otherwise the DS cannot use a youth reserve or prepare a sale.
   const canScheduleYouthPromotion = true;
   const staffIds = contracts.map((contract) => contract.staff_member_id);
   const memberResult = staffIds.length
@@ -1097,7 +1098,8 @@ async function loadOverview(admin: AdminClient, context: Context) {
     academy,
     unreadCount,
     nextSeasonRosterCommitments,
-    rosterLimit: MAX_TEAM_ROSTER_SIZE,
+    rosterLimit: rosterCapacity.totalLimit,
+    rosterYouthReserveSlots: rosterCapacity.youthReserveSlots,
     canScheduleYouthPromotion,
     totalTuitionPerSeason: academy.reduce(
       (sum, rider) =>

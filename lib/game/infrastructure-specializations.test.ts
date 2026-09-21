@@ -15,7 +15,7 @@ const root = process.cwd();
 
 describe("infrastructure specializations", () => {
   it("covers every standard team and federation building with three balanced choices", () => {
-    expect(TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(10);
+    expect(TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(11);
     expect(FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS).toHaveLength(8);
     expect(
       FEDERATION_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.some(
@@ -71,6 +71,12 @@ describe("infrastructure specializations", () => {
       getInfrastructureSpecializationProposal("team", "weather_center")
         ?.options[0].code,
     ).toBe("normal_weather");
+    expect(
+      getInfrastructureSpecializationProposal(
+        "team",
+        "roster_management_center",
+      )?.options.map((option) => option.code),
+    ).toEqual(["retention_cell", "rotation_management", "youth_pathway"]);
   });
 
   it("persists choices through authenticated, season-bounded RPCs", () => {

@@ -26,8 +26,7 @@ import {
   type RiderSportingProfile,
 } from "@/lib/game/rider-profile";
 import {
-  isTeamRosterAtCapacity,
-  MAX_TEAM_ROSTER_SIZE,
+  getRosterManagementRenewalDiscountPercent,
 } from "@/lib/game/team-roster-capacity";
 import {
   calculateRiderRenewalSalary,
@@ -42,6 +41,7 @@ import {
 } from "@/lib/game/transfer-scouting";
 import { selectWeightedRandomDistinct } from "@/lib/game/weighted-random-selection";
 import { loadFederationMarketNationalityWeights } from "@/services/federation-market-nationality";
+import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -135,6 +135,8 @@ type ContractRow = {
   transfer_locked_season_id: string | null;
   status: "active" | "planned";
   acquisition_type?: string | null;
+  homegrown_salary_before_discount?: number | string | null;
+  roster_management_salary_before_discount?: number | string | null;
 };
 type FinanceRow = { amount: number | string };
 type DirectOfferRow = {
@@ -260,6 +262,7 @@ export type TransferMarketOverview = {
   dataRoomLevel: number;
   rosterSize: number;
   rosterLimit: number;
+  rosterYouthReserveSlots: number;
   rosterIsFull: boolean;
   marketDate: string;
   nationalDayFeatures: Array<{
@@ -314,6 +317,7 @@ export type RiderTransferManagement = {
   }>;
   rosterSize: number;
   rosterLimit: number;
+  rosterYouthReserveSlots: number;
   rosterIsFull: boolean;
   renewalSalary: number | null;
   contractEndSeasonYear: number | null;
@@ -350,6 +354,19 @@ export async function getTransferMarketOverview(
 
   if (!context) return null;
 
+  const [currentRosterCapacity, nextRosterCapacity] = await Promise.all([
+    loadTeamRosterCapacitySummary({
+      admin,
+      teamId: context.teamSeason.team_id,
+      gameYear: context.season.game_year,
+    }),
+    loadTeamRosterCapacitySummary({
+      admin,
+      teamId: context.teamSeason.team_id,
+      gameYear: context.season.game_year + 1,
+    }),
+  ]);
+
   const marketDate = formatParisDate(new Date());
   const recentlyEndedCutoff = new Date(
     Date.now() - 36 * 60 * 60 * 1000,
@@ -379,7 +396,7 @@ export async function getTransferMarketOverview(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type, homegrown_salary_before_discount, roster_management_salary_before_discount",
       )
       .eq("team_id", context.teamSeason.team_id)
       .in("status", ["active", "planned"])
@@ -481,7 +498,9 @@ export async function getTransferMarketOverview(
   const rosterSize = new Set(
     activeContracts.map((contract) => contract.rider_id),
   ).size;
-  const rosterIsFull = isTeamRosterAtCapacity(rosterSize);
+  const rosterIsFull =
+    currentRosterCapacity.availableGeneralSlots <= 0 ||
+    nextRosterCapacity.availableGeneralSlots <= 0;
 
   const riderSearchRows = Array.isArray(riderSearchResult.data)
     ? (riderSearchResult.data as RiderSearchRow[])
@@ -689,7 +708,8 @@ export async function getTransferMarketOverview(
     ),
     auctionListings: mappedListings,
     rosterSize,
-    rosterLimit: MAX_TEAM_ROSTER_SIZE,
+    rosterLimit: currentRosterCapacity.baseLimit,
+    rosterYouthReserveSlots: currentRosterCapacity.youthReserveSlots,
     rosterIsFull,
     riderSearchResults,
     riderSearchTotal: toNumber(riderSearchRows[0]?.total_count),
@@ -771,6 +791,19 @@ export async function getRiderTransferManagement(
   const context = await loadCurrentContext(admin, authUserId);
   if (!context) return null;
 
+  const [currentRosterCapacity, nextRosterCapacity] = await Promise.all([
+    loadTeamRosterCapacitySummary({
+      admin,
+      teamId: context.teamSeason.team_id,
+      gameYear: context.season.game_year,
+    }),
+    loadTeamRosterCapacitySummary({
+      admin,
+      teamId: context.teamSeason.team_id,
+      gameYear: context.season.game_year + 1,
+    }),
+  ]);
+
   const [
     riderResult,
     ratingResult,
@@ -797,7 +830,7 @@ export async function getRiderTransferManagement(
     admin
       .from("rider_contracts")
       .select(
-        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type",
+        "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type, homegrown_salary_before_discount, roster_management_salary_before_discount",
       )
       .eq("rider_id", riderId)
       .in("status", ["active", "planned"])
@@ -855,7 +888,9 @@ export async function getRiderTransferManagement(
   const rosterSize = new Set(
     (teamContractsResult.data ?? []).map((contract) => contract.rider_id),
   ).size;
-  const rosterIsFull = isTeamRosterAtCapacity(rosterSize);
+  const rosterIsFull =
+    currentRosterCapacity.availableGeneralSlots <= 0 ||
+    nextRosterCapacity.availableGeneralSlots <= 0;
   const activeContract =
     contracts.find((contract) => contract.status === "active") ?? null;
   const ownsRider = activeContract?.team_id === context.teamSeason.team_id;
@@ -927,9 +962,17 @@ export async function getRiderTransferManagement(
   const homegrownSalaryDiscount =
     (homegrownAbilityResult.data?.length ?? 0) > 0 &&
     (homegrownAcademyResult.data?.length ?? 0) > 0;
-  const quotedRenewalSalary = homegrownSalaryDiscount
+  const quotedRenewalSalaryBeforeRosterDiscount = homegrownSalaryDiscount
     ? Math.round(renewalSalary * 50) / 100
     : renewalSalary;
+  const renewalDiscountPercent = getRosterManagementRenewalDiscountPercent({
+    buildingLevel: currentRosterCapacity.buildingLevel,
+    specialization: currentRosterCapacity.specialization,
+  });
+  const quotedRenewalSalary = applyPercentageDiscount(
+    quotedRenewalSalaryBeforeRosterDiscount,
+    renewalDiscountPercent,
+  );
   const blockingContracts = contracts
     .filter(
       (contract) =>
@@ -962,7 +1005,16 @@ export async function getRiderTransferManagement(
             nextSeasonContract?.team_id === context.teamSeason.team_id &&
             activeContractEndSeasonYear === context.season.game_year &&
             targetEndSeasonYear === context.season.game_year + 2
-              ? toNumber(nextSeasonContract.salary_per_season)
+              ? applyPercentageDiscount(
+                  homegrownSalaryDiscount
+                    ? (toNullableNumber(
+                        nextSeasonContract.homegrown_salary_before_discount,
+                      ) ?? renewalSalary) / 2
+                    : toNullableNumber(
+                        nextSeasonContract.roster_management_salary_before_discount,
+                      ) ?? toNumber(nextSeasonContract.salary_per_season),
+                  renewalDiscountPercent,
+                )
               : quotedRenewalSalary;
           return {
             targetEndSeasonYear,
@@ -1013,7 +1065,7 @@ export async function getRiderTransferManagement(
       : sourceContractLocked
         ? "Ce coureur a déjà changé d’équipe cette saison et ne peut pas être transféré une seconde fois."
         : rosterIsFull
-          ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
+          ? `La capacité de recrutement de votre effectif (${currentRosterCapacity.baseLimit} places) est atteinte.`
           : availableBudget < 500
             ? "Votre trésorerie disponible ne couvre pas l’offre minimale."
             : null
@@ -1034,11 +1086,12 @@ export async function getRiderTransferManagement(
         : hasChangedTeamThisSeason
           ? "Ce coureur a déjà changé d’équipe cette saison et ne peut pas en rejoindre une nouvelle."
           : rosterIsFull
-            ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
+            ? `La capacité de recrutement de votre effectif (${currentRosterCapacity.baseLimit} places) est atteinte.`
             : null
       : null,
     rosterSize,
-    rosterLimit: MAX_TEAM_ROSTER_SIZE,
+    rosterLimit: currentRosterCapacity.baseLimit,
+    rosterYouthReserveSlots: currentRosterCapacity.youthReserveSlots,
     rosterIsFull,
     canRenew,
     renewalOptions,
@@ -1565,6 +1618,16 @@ function shuffle<T>(values: T[]) {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toNullableNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function applyPercentageDiscount(value: number, percentage: number) {
+  return Math.round(value * (1 - percentage / 100) * 100) / 100;
 }
 
 function assertQuery(

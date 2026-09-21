@@ -488,6 +488,9 @@ export async function getTeamInfrastructureOverview(
     recruitment_data_room: getInfrastructureLevel("recruitment_data_room"),
     staff_academy: getInfrastructureLevel("staff_academy"),
     training_center: getInfrastructureLevel("training_center"),
+    roster_management_center: getInfrastructureLevel(
+      "roster_management_center",
+    ),
     indoor_track: getInfrastructureLevel("indoor_track"),
     cryotherapy_center: getInfrastructureLevel("cryotherapy_center"),
     wind_tunnel: getInfrastructureLevel("wind_tunnel"),

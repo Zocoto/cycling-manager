@@ -92,6 +92,18 @@ export async function runGameMaintenanceTask(
         ...(isRecord(result.data) ? result.data : {}),
         youth_training: youthTraining,
       };
+    } else if (task === "health") {
+      const rosterRotation = await admin.rpc(
+        "settle_due_roster_rotation_recovery",
+      );
+      assertSettlement(
+        rosterRotation.error,
+        "la récupération du Pôle de gestion sportive",
+      );
+      resolvedResult = {
+        ...(isRecord(result.data) ? result.data : {}),
+        roster_rotation: rosterRotation.data,
+      };
     } else if (task === "infrastructure") {
       // The infrastructure cadence runs every fifteen minutes. It provides a
       // dependable close-to-real-time clock for 24-hour federation votes and

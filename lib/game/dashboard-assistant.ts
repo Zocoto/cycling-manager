@@ -448,7 +448,7 @@ export function buildDashboardAssistantLines({
         "place de trop prévue à J1",
         "places de trop prévues à J1",
       ),
-      detail: `${snapshot.nextSeasonRosterProjectedCount}/35 coureurs sont engagés ou promus pour la saison suivante. Sans ajustement, les juniors aux moyennes les plus faibles rejoindront les agents libres.`,
+      detail: `${snapshot.nextSeasonRosterProjectedCount} coureurs sont engagés ou promus pour la saison suivante, au-delà de la capacité actuelle de l’équipe. Sans ajustement, les juniors aux moyennes les plus faibles rejoindront les agents libres.`,
       href: "/jeu/centre-de-formation?onglet=ecole",
     });
   }

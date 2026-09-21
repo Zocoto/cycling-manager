@@ -91,6 +91,7 @@ export type TeamInfrastructureCode =
   | "recruitment_data_room"
   | "staff_academy"
   | "training_center"
+  | "roster_management_center"
   | "indoor_track"
   | "cryotherapy_center"
   | "wind_tunnel"
@@ -245,6 +246,52 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         cost: 1_500_000,
         durationDays: 28,
         effect: "+10 % de progression à chaque entraînement professionnel.",
+      },
+    ],
+  },
+  roster_management_center: {
+    code: "roster_management_center",
+    name: "Pôle de gestion sportive",
+    domain: "Effectif · Contrats · Rotation",
+    summary:
+      "Élargit l’effectif professionnel et structure durablement le suivi des contrats, des rotations et des jeunes promus.",
+    illustration: {
+      src: "/images/infrastructure/roster-management-center.webp",
+      alt: "Pôle moderne de gestion sportive d’une équipe cycliste professionnelle",
+    },
+    levels: [
+      {
+        level: 1,
+        cost: 600_000,
+        durationDays: 7,
+        effect: "Effectif professionnel porté de 35 à 40 coureurs.",
+      },
+      {
+        level: 2,
+        cost: 1_100_000,
+        durationDays: 12,
+        effect: "Effectif professionnel porté à 45 coureurs.",
+      },
+      {
+        level: 3,
+        cost: 1_800_000,
+        durationDays: 18,
+        effect:
+          "Effectif professionnel porté à 50 coureurs et choix d’une orientation de gestion.",
+      },
+      {
+        level: 4,
+        cost: 2_800_000,
+        durationDays: 24,
+        effect:
+          "Effectif professionnel porté à 55 coureurs et orientation renforcée.",
+      },
+      {
+        level: 5,
+        cost: 4_200_000,
+        durationDays: 30,
+        effect:
+          "Effectif professionnel porté à 60 coureurs et orientation pleinement développée.",
       },
     ],
   },
@@ -837,6 +884,7 @@ export function isTeamInfrastructureCode(
     value === "recruitment_data_room" ||
     value === "staff_academy" ||
     value === "training_center" ||
+    value === "roster_management_center" ||
     value === "indoor_track" ||
     value === "cryotherapy_center" ||
     value === "wind_tunnel" ||

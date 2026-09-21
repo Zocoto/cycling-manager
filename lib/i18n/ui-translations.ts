@@ -3,6 +3,49 @@ import generatedCatalog from "@/lib/i18n/generated-fr-en.json";
 const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "EN": "EN",
   "FR": "FR",
+  "Pôle de gestion sportive": "Sporting operations centre",
+  "Effectif · Contrats · Rotation": "Roster · Contracts · Rotation",
+  "Élargit l’effectif professionnel et structure durablement le suivi des contrats, des rotations et des jeunes promus.":
+    "Expands the professional roster and provides long-term management for contracts, rotations and academy graduates.",
+  "Effectif professionnel porté de 35 à 40 coureurs.":
+    "Professional roster capacity increased from 35 to 40 riders.",
+  "Effectif professionnel porté à 45 coureurs.":
+    "Professional roster capacity increased to 45 riders.",
+  "Effectif professionnel porté à 50 coureurs et choix d’une orientation de gestion.":
+    "Professional roster capacity increased to 50 riders, with a management pathway to choose.",
+  "Effectif professionnel porté à 55 coureurs et orientation renforcée.":
+    "Professional roster capacity increased to 55 riders, with a stronger pathway effect.",
+  "Effectif professionnel porté à 60 coureurs et orientation pleinement développée.":
+    "Professional roster capacity increased to 60 riders, with the full pathway effect.",
+  "Cellule de fidélisation": "Retention unit",
+  "Sécuriser les cadres sans réduire artificiellement tous les salaires de l’équipe.":
+    "Secure key riders without artificially reducing every salary on the team.",
+  "−3 %, −4 % puis −5 % sur le salaire des futures prolongations.":
+    "−3%, −4%, then −5% on salaries for future contract renewals.",
+  "La réduction est enregistrée sur le nouveau contrat et reste visible dans la proposition.":
+    "The discount is recorded on the new contract and remains visible in the offer.",
+  "Les contrats déjà signés et les recrutements extérieurs ne sont jamais recalculés.":
+    "Existing contracts and external signings are never recalculated.",
+  "Gestion des rotations": "Rotation management",
+  "Rendre de la fraîcheur aux coureurs réellement laissés au repos.":
+    "Restore freshness to riders who have genuinely been rested.",
+  "Après 48 h sans course, les 3, 4 puis 5 coureurs les plus fatigués gagnent +1 forme.":
+    "After 48 hours without racing, the 3, 4, then 5 most fatigued riders gain +1 form.",
+  "La sélection est automatique et privilégie les formes les plus basses.":
+    "Selection is automatic and prioritises riders with the lowest form.",
+  "Un coureur à 100 de forme ou ayant couru pendant les deux jours concernés ne reçoit rien.":
+    "A rider at 100 form or who raced during either of the two days receives no bonus.",
+  "Passerelle espoirs": "Prospect pathway",
+  "Conserver davantage de talents formés par le club sans ouvrir ces places au marché.":
+    "Keep more club-trained talent without opening those roster places to the market.",
+  "+3, +4 puis +5 places réservées aux coureurs issus du Centre de formation.":
+    "+3, +4, then +5 places reserved for riders promoted from the youth academy.",
+  "Ces places complètent la capacité générale du bâtiment.":
+    "These places are added on top of the building’s general capacity.",
+  "Les enchères, agents libres et transferts externes ne peuvent jamais consommer ces places réservées.":
+    "Auctions, free agents and external transfers can never use these reserved places.",
+  "Réserve jeunes": "Academy reserve",
+  "Capacité de recrutement atteinte": "Recruitment capacity reached",
   "Je souhaite recevoir par e-mail les nouveautés importantes de Cyclo Stratège. Ce choix est facultatif et modifiable à tout moment depuis le menu utilisateur.":
     "I would like to receive important Cyclo Stratège news by email. This is optional and can be changed at any time from the user menu.",
   "En savoir plus": "Learn more",

@@ -115,6 +115,7 @@ describe("team infrastructure buildings", () => {
       "recruitment_data_room",
       "fan_club_headquarters",
       "wind_tunnel",
+      "roster_management_center",
       "media_center",
       "international_welcome_center",
       "research_lab",
@@ -180,6 +181,7 @@ describe("team infrastructure buildings", () => {
 
   it("enregistre les bâtiments de performance et leurs paliers complets", () => {
     expect(isTeamInfrastructureCode("training_center")).toBe(true);
+    expect(isTeamInfrastructureCode("roster_management_center")).toBe(true);
     expect(isTeamInfrastructureCode("indoor_track")).toBe(true);
     expect(isTeamInfrastructureCode("cryotherapy_center")).toBe(true);
     expect(isTeamInfrastructureCode("wind_tunnel")).toBe(true);
@@ -199,6 +201,9 @@ describe("team infrastructure buildings", () => {
       TEAM_INFRASTRUCTURE_DEFINITIONS.cryotherapy_center.levels,
     ).toHaveLength(5);
     expect(TEAM_INFRASTRUCTURE_DEFINITIONS.wind_tunnel.levels).toHaveLength(5);
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.roster_management_center.levels,
+    ).toHaveLength(5);
     // Kept only to decode historical projects and levels; no longer offered.
     expect(
       TEAM_INFRASTRUCTURE_DEFINITIONS.tactical_center.levels,
@@ -231,11 +236,18 @@ describe("infrastructure tariff parity", () => {
     ),
     "utf8",
   );
+  const rosterManagementMigration = readFileSync(
+    join(
+      process.cwd(),
+      "supabase/migrations/20260921120000_create_team_roster_management_center.sql",
+    ),
+    "utf8",
+  );
 
   it("uses the exact same prices in the database and the displayed catalogue", () => {
     const schedules = new Map(
       [
-        ...migration.matchAll(
+        ...`${migration}\n${rosterManagementMigration}`.matchAll(
           /when '([a-z_]+)' then v_costs := array\[([\d, ]+)\];/g,
         ),
       ].map(
