@@ -23,7 +23,7 @@ function buildEdition(
 describe("RaceRewardDetails", () => {
   it("reprend le bareme complet d'un grand tour Elite", () => {
     const markup = renderToStaticMarkup(
-      <RaceRewardDetails edition={buildEdition()} />
+      <RaceRewardDetails edition={buildEdition()} gameYear={3} />
     );
 
     expect(markup).toContain("Grand tour");
@@ -40,6 +40,7 @@ describe("RaceRewardDetails", () => {
   it("affiche le bareme specifique des championnats sans points UCI", () => {
     const markup = renderToStaticMarkup(
       <RaceRewardDetails
+        gameYear={3}
         edition={buildEdition({
           categoryCode: "national",
           categoryName: "Championnat national",
@@ -60,6 +61,7 @@ describe("RaceRewardDetails", () => {
   it("précise le règlement collectif lorsqu'un tour contient un TTT", () => {
     const markup = renderToStaticMarkup(
       <RaceRewardDetails
+        gameYear={3}
         edition={buildEdition({
           stages: [
             {
@@ -76,5 +78,25 @@ describe("RaceRewardDetails", () => {
     expect(markup).toContain(
       "la place et tous les gains du barème sont attribués une seule fois à l’équipe"
     );
+  });
+
+  it("affiche automatiquement le barème élargi lorsque la saison 4 commence", () => {
+    const markup = renderToStaticMarkup(
+      <RaceRewardDetails
+        gameYear={4}
+        edition={buildEdition({
+          categoryCode: "national",
+          categoryName: "Nationale",
+          raceFormat: "one_day",
+          stages: [],
+        })}
+      />,
+    );
+
+    expect(markup).toContain("11e–15e");
+    expect(markup).toContain("150 €");
+    expect(markup).toContain("8 XP");
+    expect(markup).toContain("16e–20e");
+    expect(markup).toContain("75 €");
   });
 });

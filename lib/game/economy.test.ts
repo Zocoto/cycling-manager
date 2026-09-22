@@ -121,6 +121,64 @@ describe("calculateRaceReward", () => {
       { type: "intermediate_sprint", count: 1, cashPrize: 250 },
     ]);
   });
+
+  it("conserve strictement le barème historique jusqu'à la fin de la S3", () => {
+    const seasonThree = calculateRaceReward({
+      gameYear: 3,
+      tier: "national",
+      scope: "one_day",
+      finalRank: 12,
+    });
+
+    expect(seasonThree).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
+  });
+
+  it("élargit en S4 les récompenses nationales sans distribuer de réputation", () => {
+    expect(
+      calculateRaceReward({
+        gameYear: 4,
+        tier: "national",
+        scope: "one_day",
+        finalRank: 20,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 5,
+      cashPrize: 75,
+      uciPoints: 1,
+    });
+    expect(
+      calculateRaceReward({
+        gameYear: 4,
+        tier: "national",
+        scope: "one_day",
+        finalRank: 21,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
+    expect(
+      calculateRaceReward({
+        gameYear: 4,
+        tier: "national",
+        scope: "tour",
+        finalRank: 30,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 5,
+      cashPrize: 50,
+      uciPoints: 1,
+    });
+  });
 });
 
 describe("calculateNationalChampionshipReward", () => {
@@ -134,6 +192,25 @@ describe("calculateNationalChampionshipReward", () => {
     expect(calculateNationalChampionshipReward({ finalRank: 2 }).reputation).toBe(0);
     expect(calculateNationalChampionshipReward({ finalRank: 3 }).reputation).toBe(0);
     expect(calculateNationalChampionshipReward({ finalRank: 8 })).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
+  });
+
+  it("rémunère le top 20 des championnats nationaux à partir de la S4", () => {
+    expect(
+      calculateNationalChampionshipReward({ gameYear: 4, finalRank: 20 }),
+    ).toEqual({
+      reputation: 0,
+      experience: 6,
+      cashPrize: 100,
+      uciPoints: 0,
+    });
+    expect(
+      calculateNationalChampionshipReward({ gameYear: 4, finalRank: 21 }),
+    ).toEqual({
       reputation: 0,
       experience: 0,
       cashPrize: 0,
@@ -179,6 +256,33 @@ describe("calculateStagePrize", () => {
     expect(calculateStagePrize({ tier: "national", finalRank: 6 })).toBe(0);
     expect(calculateStagePrize({ tier: "elite", finalRank: 11 })).toBe(0);
     expect(calculateStagePrize({ tier: "world", finalRank: null })).toBe(0);
+  });
+
+  it("élargit les primes d'étape et ajoute une XP mesurée uniquement en S4", () => {
+    expect(
+      calculateStageReward({
+        gameYear: 3,
+        tier: "national",
+        finalRank: 10,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
+    expect(
+      calculateStageReward({
+        gameYear: 4,
+        tier: "national",
+        finalRank: 10,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 2,
+      cashPrize: 125,
+      uciPoints: 2,
+    });
   });
 });
 

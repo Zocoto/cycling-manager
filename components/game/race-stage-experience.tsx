@@ -67,6 +67,7 @@ export type RaceStageEntry = {
 
 export function RaceStageExperience({
   entry,
+  gameYear,
   nowIso,
   officialResults,
   currentDirectorId,
@@ -77,6 +78,7 @@ export function RaceStageExperience({
   initialClassification,
 }: {
   entry: RaceStageEntry;
+  gameYear: number;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
   currentDirectorId: string;
@@ -382,6 +384,7 @@ export function RaceStageExperience({
           {view === "results" && officialResults ? (
             <RaceOfficialResults
               edition={entry.edition}
+              gameYear={gameYear}
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
               postRaceInterview={postRaceInterview}

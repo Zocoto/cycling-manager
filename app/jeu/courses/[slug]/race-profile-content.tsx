@@ -669,7 +669,11 @@ export async function RaceProfileContent({
                       />
                     </div>
                   ) : null}
-                  <RaceRewardDetails edition={edition} className="mt-3" />
+                  <RaceRewardDetails
+                    edition={edition}
+                    gameYear={calendar.gameYear}
+                    className="mt-3"
+                  />
                   {!isInternationalChampionship &&
                   raceUserContext.registration?.status === "accepted" ? (
                     <FanClubRaceBoostCard

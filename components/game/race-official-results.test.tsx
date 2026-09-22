@@ -78,6 +78,7 @@ function buildResults(
 it("n'affiche pas les favoris dans les resultats officiels", () => {
   const markup = renderToStaticMarkup(
     <RaceOfficialResults
+      gameYear={3}
       edition={edition}
       selectedStageId="stage-1"
       officialResults={buildResults("team-active")}
@@ -99,6 +100,7 @@ describe("RaceOfficialResults", () => {
 
     const markup = renderToStaticMarkup(
       <RaceOfficialResults
+        gameYear={3}
         edition={stageRaceEdition}
         selectedStageId="stage-1"
         officialResults={results}
@@ -124,6 +126,7 @@ describe("RaceOfficialResults", () => {
 
     const markup = renderToStaticMarkup(
       <RaceOfficialResults
+        gameYear={3}
         edition={stageRaceEdition}
         selectedStageId="stage-1"
         officialResults={results}
@@ -137,6 +140,7 @@ describe("RaceOfficialResults", () => {
   it("affiche le nom d'une équipe supprimée sans lien persistant", () => {
     const markup = renderToStaticMarkup(
       <RaceOfficialResults
+        gameYear={3}
         edition={edition}
         selectedStageId="stage-1"
         officialResults={buildResults(null)}
@@ -150,6 +154,7 @@ describe("RaceOfficialResults", () => {
   it("conserve le lien vers le profil d'une équipe active", () => {
     const markup = renderToStaticMarkup(
       <RaceOfficialResults
+        gameYear={3}
         edition={edition}
         selectedStageId="stage-1"
         officialResults={buildResults("team-active")}
@@ -162,6 +167,7 @@ describe("RaceOfficialResults", () => {
   it("presente les dotations sans deployer leur detail par defaut", () => {
     const markup = renderToStaticMarkup(
       <RaceOfficialResults
+        gameYear={3}
         edition={edition}
         selectedStageId="stage-1"
         officialResults={buildResults("team-active")}

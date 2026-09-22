@@ -11,11 +11,13 @@ import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 
 export function NationalChampionshipStageResults({
   edition,
+  gameYear,
   stage,
   nowIso,
   officialResults,
 }: {
   edition: RaceCalendarEdition;
+  gameYear: number;
   stage: RaceCalendarStage;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
@@ -67,6 +69,7 @@ export function NationalChampionshipStageResults({
       </div>
       <RaceOfficialResults
         edition={edition}
+        gameYear={gameYear}
         selectedStageId={stage.id}
         officialResults={officialResults}
         postRaceInterview={null}

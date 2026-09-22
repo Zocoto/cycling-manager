@@ -91,6 +91,45 @@ describe("CLM continentaux S2 et gains internationaux", () => {
     });
   });
 
+  it("élargit les grilles internationales au top 20 uniquement en S4", () => {
+    expect(
+      calculateInternationalChampionshipReward({
+        gameYear: 3,
+        competitionType: "continental_championship",
+        finalRank: 20,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
+    expect(
+      calculateInternationalChampionshipReward({
+        gameYear: 4,
+        competitionType: "continental_championship",
+        finalRank: 20,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 10,
+      cashPrize: 150,
+      uciPoints: 5,
+    });
+    expect(
+      calculateInternationalChampionshipReward({
+        gameYear: 4,
+        competitionType: "world_championship",
+        finalRank: 20,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 20,
+      cashPrize: 500,
+      uciPoints: 40,
+    });
+  });
+
   it("cree cinq CLM uniquement a partir de la S2, a 14 h avant la route", () => {
     expect(migration).toContain("v_season.game_year < 2");
     expect(migration).toContain("interval '14 hours'");

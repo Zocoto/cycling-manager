@@ -33,12 +33,14 @@ const CLASSIFICATION_LABELS: Record<ClassificationKey, string> = {
 
 export function RaceOfficialResults({
   edition,
+  gameYear,
   selectedStageId,
   officialResults,
   postRaceInterview = null,
   initialClassification,
 }: {
   edition: RaceCalendarEdition;
+  gameYear: number;
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
   postRaceInterview?: PostRaceInterviewSnapshot | null;
@@ -119,6 +121,7 @@ export function RaceOfficialResults({
         </div>
         <RaceRewardDetails
           edition={edition}
+          gameYear={gameYear}
           tone="dark"
           compact
           className="mt-5"

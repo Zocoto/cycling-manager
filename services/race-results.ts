@@ -579,6 +579,7 @@ async function settleEditionRaceResults({
   );
   await persistRaceClassification({
     admin,
+    gameYear: calendar.gameYear,
     edition,
     finalStage: orderedStages.at(-1)!,
     general,
@@ -1537,6 +1538,7 @@ async function persistSecondaryClassifications({
 
 async function persistRaceClassification({
   admin,
+  gameYear,
   edition,
   finalStage,
   general,
@@ -1546,6 +1548,7 @@ async function persistRaceClassification({
   rosterByRiderId,
 }: {
   admin: AdminClient;
+  gameYear: number;
   edition: RaceCalendarEdition;
   finalStage: RaceCalendarStage;
   general: OfficialRiderResult[];
@@ -1577,6 +1580,7 @@ async function persistRaceClassification({
   if (edition.raceFormat === "stage_race") {
     await persistStageRewards({
       admin,
+      gameYear,
       edition,
       finalStage,
       stageClassifications,
@@ -1621,6 +1625,7 @@ async function persistRaceClassification({
     const rewardBreakdown =
       edition.competitionType === "standard"
         ? calculateRaceRewardBreakdown({
+            gameYear,
             tier: edition.categoryCode,
             scope: getRewardScope(edition),
             finalRank: result.rank,
@@ -1635,10 +1640,14 @@ async function persistRaceClassification({
       (edition.competitionType === "continental_championship" ||
       edition.competitionType === "world_championship"
         ? calculateInternationalChampionshipReward({
+            gameYear,
             competitionType: edition.competitionType,
             finalRank: result.rank,
           })
-        : calculateNationalChampionshipReward({ finalRank: result.rank }));
+        : calculateNationalChampionshipReward({
+            gameYear,
+            finalRank: result.rank,
+          }));
     const roster = requireRoster(rosterByRiderId, result.riderId);
     if (roster.detectionTeamNumber !== null) {
       const individualUciPoints = rewardBreakdown
@@ -1776,12 +1785,14 @@ async function persistRaceClassification({
 
 async function persistStageRewards({
   admin,
+  gameYear,
   edition,
   finalStage,
   stageClassifications,
   rosterByRiderId,
 }: {
   admin: AdminClient;
+  gameYear: number;
   edition: RaceCalendarEdition;
   finalStage: RaceCalendarStage;
   stageClassifications: Array<{
@@ -1799,6 +1810,7 @@ async function persistStageRewards({
     ) {
       await persistTeamTimeTrialStageRewards({
         admin,
+        gameYear,
         edition,
         stage,
         finalStage,
@@ -1812,10 +1824,17 @@ async function persistStageRewards({
       if (result.status !== "finished") continue;
 
       const reward = calculateStageReward({
+        gameYear,
         tier: edition.categoryCode,
         finalRank: result.rank ?? 0,
       });
-      if (reward.cashPrize === 0 && reward.uciPoints === 0) continue;
+      if (
+        reward.experience === 0 &&
+        reward.cashPrize === 0 &&
+        reward.uciPoints === 0
+      ) {
+        continue;
+      }
 
       const roster = requireRoster(rosterByRiderId, result.riderId);
       const placement =
@@ -1870,7 +1889,7 @@ async function persistStageRewards({
         );
       }
 
-      if (reward.uciPoints > 0) {
+      if (reward.experience > 0 || reward.uciPoints > 0) {
         const { error: sportingError } = await admin.rpc(
           "apply_race_roster_competition_reward",
           {
@@ -1879,7 +1898,7 @@ async function persistStageRewards({
             p_race_roster_id: roster.rosterId,
             p_stage_id: stage.id,
             p_reputation_points: 0,
-            p_experience_points: 0,
+            p_experience_points: reward.experience,
             p_cash_prize: 0,
             p_uci_points: reward.uciPoints,
             p_is_victory: result.rank === 1,
@@ -1899,6 +1918,7 @@ async function persistStageRewards({
 
 async function persistTeamTimeTrialStageRewards({
   admin,
+  gameYear,
   edition,
   stage,
   finalStage,
@@ -1906,6 +1926,7 @@ async function persistTeamTimeTrialStageRewards({
   rosterByRiderId,
 }: {
   admin: AdminClient;
+  gameYear: number;
   edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   finalStage: RaceCalendarStage;
@@ -1931,6 +1952,7 @@ async function persistTeamTimeTrialStageRewards({
 
     const teamSeasonId = [...teamSeasonIds][0];
     const reward = calculateStageReward({
+      gameYear,
       tier: edition.categoryCode,
       finalRank: team.rank,
     });

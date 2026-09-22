@@ -268,6 +268,7 @@ export function RaceResultsDirectory({
             <RaceDirectoryCard
               key={edition.id}
               edition={edition}
+              gameYear={calendar.gameYear}
               stages={stages}
               now={now}
               selectedStageId={selectedStageId}
@@ -306,6 +307,7 @@ export function RaceResultsDirectory({
           <SelectedRaceExperience
             key={`${selectedEntry.stage.id}-${Boolean(officialResults[selectedEntry.edition.id]?.stages.some((stage) => stage.stageId === selectedEntry.stage.id))}`}
             entry={selectedEntry}
+            gameYear={calendar.gameYear}
             now={now}
             nowIso={nowIso}
             officialResults={officialResults[selectedEntry.edition.id] ?? null}
@@ -327,12 +329,14 @@ export function RaceResultsDirectory({
 
 function RaceDirectoryCard({
   edition,
+  gameYear,
   stages,
   now,
   selectedStageId,
   onSelect,
 }: {
   edition: RaceCalendarEdition;
+  gameYear: number;
   stages: RaceCalendarStage[];
   now: Date;
   selectedStageId: string | null;
@@ -359,6 +363,7 @@ function RaceDirectoryCard({
       </header>
       <RaceRewardDetails
         edition={edition}
+        gameYear={gameYear}
         compact
         className="mx-3 my-2 shadow-none"
       />
@@ -408,12 +413,14 @@ function RaceDirectoryCard({
 
 function SelectedRaceExperience({
   entry,
+  gameYear,
   now,
   nowIso,
   officialResults,
   lockedSimulations,
 }: {
   entry: StageEntry;
+  gameYear: number;
   now: Date;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
@@ -568,6 +575,7 @@ function SelectedRaceExperience({
       {view === "results" && officialResults ? (
         <RaceOfficialResults
           edition={entry.edition}
+          gameYear={gameYear}
           selectedStageId={entry.stage.id}
           officialResults={officialResults}
         />

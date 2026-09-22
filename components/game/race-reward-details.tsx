@@ -1,4 +1,5 @@
 import {
+  calculateInternationalChampionshipReward,
   calculateNationalChampionshipReward,
   calculateRaceReward,
   calculateStageReward,
@@ -25,16 +26,18 @@ type RewardRange = {
 
 export function RaceRewardDetails({
   edition,
+  gameYear,
   tone = "light",
   compact = false,
   className = "",
 }: {
   edition: RewardEdition;
+  gameYear: number;
   tone?: "light" | "dark";
   compact?: boolean;
   className?: string;
 }) {
-  const preview = buildRewardPreview(edition);
+  const preview = buildRewardPreview(edition, gameYear);
   const headline = preview.general[0];
   const isDark = tone === "dark";
 
@@ -250,15 +253,22 @@ function RewardSupplement({
   );
 }
 
-function buildRewardPreview(edition: RewardEdition) {
+function buildRewardPreview(edition: RewardEdition, gameYear: number) {
   if (edition.competitionType !== "standard") {
+    const getChampionshipReward = (rank: number) =>
+      edition.competitionType === "continental_championship" ||
+      edition.competitionType === "world_championship"
+        ? calculateInternationalChampionshipReward({
+            gameYear,
+            competitionType: edition.competitionType,
+            finalRank: rank,
+          })
+        : calculateNationalChampionshipReward({ gameYear, finalRank: rank });
+
     return {
       generalTitle: "Classement final",
       formatLabel: "Championnat",
-      general: groupRewardRanges(
-        (rank) => calculateNationalChampionshipReward({ finalRank: rank }),
-        10
-      ),
+      general: groupRewardRanges(getChampionshipReward, 20),
       stage: [] as RewardRange[],
       secondary: null,
       prime: null,
@@ -268,6 +278,7 @@ function buildRewardPreview(edition: RewardEdition) {
 
   const scope = getRewardScope(edition);
   const rewardInput = {
+    gameYear,
     tier: edition.categoryCode,
     scope,
   } as const;
@@ -292,6 +303,7 @@ function buildRewardPreview(edition: RewardEdition) {
         ? groupRewardRanges(
             (rank) =>
               calculateStageReward({
+                gameYear,
                 tier: edition.categoryCode,
                 finalRank: rank,
               }),

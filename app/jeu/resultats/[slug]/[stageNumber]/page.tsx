@@ -310,6 +310,7 @@ export default async function RaceLivePage({
         {isNationalChampionship ? (
           <NationalChampionshipStageResults
             edition={edition}
+            gameYear={calendar.gameYear}
             stage={stage}
             nowIso={now.toISOString()}
             officialResults={officialResults}
@@ -318,6 +319,7 @@ export default async function RaceLivePage({
           <RaceStageExperience
             key={replayRequested ? "replay" : "results"}
             entry={{ edition, stage }}
+            gameYear={calendar.gameYear}
             nowIso={now.toISOString()}
             officialResults={officialResults}
             currentDirectorId={directorResult.data!.id}
