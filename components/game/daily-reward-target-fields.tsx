@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import {
+  canReceiveDailyRewardRatingBoost,
+  getDailyRewardRatingMaximum,
   getRatingOptionsForOffer,
   requiresRiderTarget,
   type DailyRewardAbility,
@@ -34,6 +36,18 @@ export function DailyRewardTargetFields({
     (item.effectKind === "rating_boost" && !ratingKey) ||
     (item.effectKind === "special_ability" && !abilityCode);
   const context = getTargetContext(item, ratingKey, abilityCode);
+  const selectedRatingKey = readItemTargetRatingKey(ratingKey);
+  const ratingMaximum = getDailyRewardRatingMaximum(item);
+  const targetRiders =
+    item.effectKind === "rating_boost" && selectedRatingKey
+      ? riders.filter((rider) =>
+          canReceiveDailyRewardRatingBoost({
+            offer: item,
+            rider,
+            ratingKey: selectedRatingKey,
+          }),
+        )
+      : riders;
   const selectedAbility = abilities.find(
     (ability) => ability.code === abilityCode,
   );
@@ -42,23 +56,31 @@ export function DailyRewardTargetFields({
   return (
     <>
       {item.effectKind === "rating_boost" ? (
-        <SelectField
-          name="ratingKey"
-          label="Statistique"
-          required
-          value={ratingKey}
-          onChange={(value) => {
-            setRatingKey(value);
-            setRiderId("");
-          }}
-        >
-          <option value="">Choisir une statistique</option>
-          {ratingOptions.map((option) => (
-            <option key={option.databaseKey} value={option.databaseKey}>
-              {option.shortLabel} · {option.label}
-            </option>
-          ))}
-        </SelectField>
+        <>
+          <SelectField
+            name="ratingKey"
+            label="Statistique"
+            required
+            value={ratingKey}
+            onChange={(value) => {
+              setRatingKey(value);
+              setRiderId("");
+            }}
+          >
+            <option value="">Choisir une statistique</option>
+            {ratingOptions.map((option) => (
+              <option key={option.databaseKey} value={option.databaseKey}>
+                {option.shortLabel} · {option.label}
+              </option>
+            ))}
+          </SelectField>
+          {ratingMaximum !== null ? (
+            <p className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-2 text-[11px] font-bold leading-5 text-[#715700]">
+              Applicable uniquement si le bonus complet ne porte pas la
+              statistique au-delà de {ratingMaximum}.
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       {item.effectKind === "special_ability" ? (
@@ -115,17 +137,19 @@ export function DailyRewardTargetFields({
           onChange={setRiderId}
         >
           <option value="">
-            {riders.length === 0
+            {targetRiders.length === 0
               ? item.effectKind === "injury_care"
                 ? "Aucune blessure compatible"
-                : "Aucun coureur disponible"
+                : item.effectKind === "rating_boost" && selectedRatingKey
+                  ? "Aucun coureur compatible avec cette limite"
+                  : "Aucun coureur disponible"
               : riderSelectionDisabled
                 ? item.effectKind === "rating_boost"
                   ? "Choisir d’abord une statistique"
                   : "Choisir d’abord une capacité"
                 : "Choisir un coureur"}
           </option>
-          {riders.map((rider) => (
+          {targetRiders.map((rider) => (
             <option key={rider.id} value={rider.id}>
               {rider.name}
               {context ? ` · ${formatItemTargetValue(rider, context)}` : ""}

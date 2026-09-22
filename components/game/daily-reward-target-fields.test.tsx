@@ -62,6 +62,27 @@ describe("DailyRewardTargetFields", () => {
     expect(markup).toMatch(/name="riderId"[^>]*disabled=""/);
   });
 
+  it("explique le plafond de la Cellule haute performance", () => {
+    const item = buildItem("rating_boost");
+    item.key = "high-performance-cell";
+    item.payload = {
+      amount: 2,
+      statScope: "primary",
+      maximumRating: 80,
+    };
+    const markup = renderToStaticMarkup(
+      <DailyRewardTargetFields
+        item={item}
+        riders={[rider]}
+        abilities={[]}
+      />,
+    );
+
+    expect(markup).toContain(
+      "Applicable uniquement si le bonus complet ne porte pas la statistique au-delà de 80.",
+    );
+  });
+
   it("demande la capacité avant de comparer les coureurs", () => {
     const markup = renderToStaticMarkup(
       <DailyRewardTargetFields

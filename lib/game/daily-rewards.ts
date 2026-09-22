@@ -4,7 +4,10 @@ import {
   RIDER_SECONDARY_RATING_KEYS,
   type RiderRatingKey,
 } from "@/lib/game/rider-profile";
-import type { ItemTargetRider } from "@/lib/game/item-target-values";
+import type {
+  ItemTargetRatingKey,
+  ItemTargetRider,
+} from "@/lib/game/item-target-values";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 
 export const DAILY_REWARD_SEASON_LENGTH = 28;
@@ -162,6 +165,59 @@ export function getRatingOptionsForOffer(offer: DailyRewardOffer) {
   return DAILY_REWARD_RATING_OPTIONS;
 }
 
+export function getDailyRewardRatingMaximum(
+  offer: Pick<DailyRewardOffer, "effectKind" | "payload">,
+) {
+  if (offer.effectKind !== "rating_boost") return null;
+  const maximum = Number(offer.payload.maximumRating);
+  if (!Number.isFinite(maximum)) return null;
+  return Math.max(1, Math.min(100, Math.floor(maximum)));
+}
+
+export function canReceiveDailyRewardRatingBoost({
+  offer,
+  rider,
+  ratingKey,
+  quantity = 1,
+}: {
+  offer: Pick<DailyRewardOffer, "effectKind" | "payload">;
+  rider: DailyRewardRider;
+  ratingKey: keyof DailyRewardRider["ratings"];
+  quantity?: number;
+}) {
+  if (offer.effectKind !== "rating_boost") return true;
+  const maximum = getDailyRewardRatingMaximum(offer);
+  if (maximum === null) return true;
+  const amount = Math.max(
+    1,
+    Math.min(
+      2,
+      Math.floor(
+        Number.isFinite(Number(offer.payload.amount))
+          ? Number(offer.payload.amount)
+          : 1,
+      ),
+    ),
+  );
+  const safeQuantity = Math.max(1, Math.floor(quantity));
+  return rider.ratings[ratingKey] + amount * safeQuantity <= maximum;
+}
+
+export function hasDailyRewardRatingTarget(
+  offer: DailyRewardOffer,
+  riders: readonly DailyRewardRider[],
+) {
+  return getRatingOptionsForOffer(offer).some((option) =>
+    riders.some((rider) =>
+      canReceiveDailyRewardRatingBoost({
+        offer,
+        rider,
+        ratingKey: option.databaseKey,
+      }),
+    ),
+  );
+}
+
 export function requiresRiderTarget(kind: DailyRewardEffectKind) {
   return [
     "form_boost",
@@ -221,7 +277,7 @@ export function groupDailyRewardInventoryItems(
   );
 }
 
-export function toDatabaseRatingKey(key: RiderRatingKey) {
+export function toDatabaseRatingKey(key: RiderRatingKey): ItemTargetRatingKey {
   return key === "timeTrial" ? "time_trial" : key;
 }
 

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canReceiveDailyRewardRatingBoost,
   getDailyRewardImportance,
+  getDailyRewardRatingMaximum,
   getNextDailyRewardCycleDay,
   getRatingOptionsForOffer,
   groupDailyRewardInventoryItems,
   isStackableDailyReward,
   type DailyRewardInventoryItem,
   type DailyRewardOffer,
+  type DailyRewardRider,
 } from "@/lib/game/daily-rewards";
 
 describe("daily rewards", () => {
@@ -81,7 +84,72 @@ describe("daily rewards", () => {
     expect(isStackableDailyReward("special_ability")).toBe(false);
     expect(isStackableDailyReward("naturalization")).toBe(false);
   });
+
+  it("plafonne la Cellule haute performance à 80 sans tronquer son bonus", () => {
+    const offer = {
+      ...createRatingOffer("primary"),
+      key: "high-performance-cell",
+      payload: { amount: 2, statScope: "primary", maximumRating: 80 },
+    };
+    const rider = createTargetRider({ mountain: 78, hills: 79 });
+
+    expect(getDailyRewardRatingMaximum(offer)).toBe(80);
+    expect(
+      canReceiveDailyRewardRatingBoost({
+        offer,
+        rider,
+        ratingKey: "mountain",
+      }),
+    ).toBe(true);
+    expect(
+      canReceiveDailyRewardRatingBoost({
+        offer,
+        rider,
+        ratingKey: "hills",
+      }),
+    ).toBe(false);
+    expect(
+      canReceiveDailyRewardRatingBoost({
+        offer,
+        rider: createTargetRider({ mountain: 76 }),
+        ratingKey: "mountain",
+        quantity: 2,
+      }),
+    ).toBe(true);
+    expect(
+      canReceiveDailyRewardRatingBoost({
+        offer,
+        rider,
+        ratingKey: "mountain",
+        quantity: 2,
+      }),
+    ).toBe(false);
+  });
 });
+
+function createTargetRider(
+  ratings: Partial<DailyRewardRider["ratings"]>,
+) {
+  const defaults = Object.fromEntries(
+    [
+      "mountain", "hills", "flat", "time_trial", "cobbles", "sprint",
+      "acceleration", "downhill", "endurance", "resistance", "recovery",
+      "breakaway", "prologue",
+    ].map((key) => [key, 60]),
+  );
+  return {
+    id: "rider-1",
+    firstName: "Test",
+    lastName: "Rider",
+    name: "Test Rider",
+    countryName: "France",
+    form: 75,
+    experienceDays: 0,
+    potentialSteps: 4,
+    ratings: { ...defaults, ...ratings },
+    abilityCodes: [],
+  } as DailyRewardRider;
+}
 
 function createInventoryReward(
   id: string,

@@ -1,6 +1,8 @@
 import { redeemDailyRewardAction } from "@/app/jeu/objectifs/actions";
 import { DailyRewardTargetFields } from "@/components/game/daily-reward-target-fields";
 import {
+  getDailyRewardRatingMaximum,
+  hasDailyRewardRatingTarget,
   isStackableDailyReward,
   requiresRiderTarget,
   type DailyRewardAbility,
@@ -49,10 +51,16 @@ export function DailyRewardRedemptionForm({
       ? riders.filter(canReceiveInjuryCareItem)
       : riders;
   const needsRider = requiresRiderTarget(item.effectKind);
-  const stackable = isStackableDailyReward(item.effectKind);
+  const stackable =
+    isStackableDailyReward(item.effectKind) &&
+    getDailyRewardRatingMaximum(item) === null;
+  const hasCompatibleRatingTarget =
+    item.effectKind !== "rating_boost" ||
+    hasDailyRewardRatingTarget(item, targetRiders);
   const canUse =
     item.quantity > 0 &&
     (!needsRider || targetRiders.length > 0) &&
+    hasCompatibleRatingTarget &&
     (item.effectKind !== "wildcard" || eligibleRaces.length > 0) &&
     (item.effectKind !== "special_ability" || abilities.length > 0) &&
     (item.effectKind !== "instant_youth_promotion" ||
