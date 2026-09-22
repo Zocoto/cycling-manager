@@ -5,7 +5,7 @@ import type {
   StageSimulationResult,
 } from "@/lib/game/race-simulation";
 
-const ROAD_GROUP_VISUAL_MERGE_GAP_SECONDS = 20;
+const ROAD_GROUP_VISUAL_MERGE_GAP_SECONDS = 3;
 
 export function getRaceVisualTimeline(
   simulation: StageSimulationResult,

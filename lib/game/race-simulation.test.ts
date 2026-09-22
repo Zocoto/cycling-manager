@@ -16,6 +16,8 @@ import {
   getFinalBattleScenario,
   findDroppedRiderIdsCaughtByDelayedGroup,
   getDelayedRiderPursuitOutcome,
+  getDroppedGroupPursuitOutcome,
+  getElapsedGroupGapSeconds,
   getHillyClimbSelectionRating,
   getLongSummitFinishFactor,
   getControlledRaceDayExecutionSwing,
@@ -444,6 +446,22 @@ describe("findDroppedRiderIdsCaughtByDelayedGroup", () => {
 
     expect(caught).toEqual([]);
   });
+
+  it("conserve les écarts réels de plusieurs groupes au lieu de les moyenner", () => {
+    const groups = splitElapsedRiderGroups(
+      [
+        { riderId: "paiva", elapsedTimeSeconds: 1_042 },
+        { riderId: "solofo", elapsedTimeSeconds: 1_044 },
+        { riderId: "poursuivant-a", elapsedTimeSeconds: 1_101 },
+        { riderId: "poursuivant-b", elapsedTimeSeconds: 1_103 },
+      ],
+      3,
+    );
+
+    expect(
+      groups.map((group) => getElapsedGroupGapSeconds(group, 1_000)),
+    ).toEqual([43, 102]);
+  });
 });
 
 describe("getDelayedRiderPursuitOutcome", () => {
@@ -488,6 +506,69 @@ describe("getDelayedRiderPursuitOutcome", () => {
     expect(fresh.recoveredSeconds).toBeGreaterThan(
       exhausted.recoveredSeconds * 5,
     );
+  });
+});
+
+describe("getDroppedGroupPursuitOutcome", () => {
+  it("autorise un retour collectif mesuré sur le plat", () => {
+    const outcome = getDroppedGroupPursuitOutcome({
+      groupSize: 5,
+      groupTerrainRating: 72,
+      pelotonTerrainRating: 70,
+      averageEnergy: 45,
+      gapSeconds: 52,
+      segmentDistanceKm: 10,
+      terrain: "flat",
+      surface: "asphalt",
+      recoveryRoll: 0.5,
+    });
+
+    expect(outcome.recoveredSeconds).toBeGreaterThan(5);
+    expect(outcome.recoveredSeconds).toBeLessThanOrEqual(12);
+    expect(outcome.energyCost).toBeGreaterThan(0);
+  });
+
+  it("interdit les retours artificiels dans un col ou sur les pavés", () => {
+    const base = {
+      groupSize: 5,
+      groupTerrainRating: 80,
+      pelotonTerrainRating: 65,
+      averageEnergy: 55,
+      gapSeconds: 60,
+      segmentDistanceKm: 10,
+      recoveryRoll: 1,
+    };
+
+    expect(
+      getDroppedGroupPursuitOutcome({
+        ...base,
+        terrain: "climb",
+        surface: "asphalt",
+      }).recoveredSeconds,
+    ).toBe(0);
+    expect(
+      getDroppedGroupPursuitOutcome({
+        ...base,
+        terrain: "flat",
+        surface: "cobbles",
+      }).recoveredSeconds,
+    ).toBe(0);
+  });
+
+  it("ne fait pas revenir un groupe épuisé", () => {
+    expect(
+      getDroppedGroupPursuitOutcome({
+        groupSize: 8,
+        groupTerrainRating: 80,
+        pelotonTerrainRating: 65,
+        averageEnergy: 3,
+        gapSeconds: 60,
+        segmentDistanceKm: 10,
+        terrain: "flat",
+        surface: "asphalt",
+        recoveryRoll: 1,
+      }),
+    ).toEqual({ recoveredSeconds: 0, energyCost: 0 });
   });
 });
 

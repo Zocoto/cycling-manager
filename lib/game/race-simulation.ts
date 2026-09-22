@@ -699,6 +699,7 @@ export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
 const DELAYED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
+const DROPPED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
 const FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS = 16;
 const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
@@ -2233,6 +2234,16 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       delayed,
       DELAYED_GROUP_MAX_GAP_SECONDS,
     );
+    const droppedGroupsAtSegmentStart = splitElapsedRiderGroups(
+      dropped,
+      DROPPED_GROUP_MAX_GAP_SECONDS,
+    );
+    const delayedGroupByRiderId = indexRiderStateGroupsByRiderId(
+      delayedGroupsAtSegmentStart,
+    );
+    const droppedGroupByRiderId = indexRiderStateGroupsByRiderId(
+      droppedGroupsAtSegmentStart,
+    );
     const delayedGroupSnapshotsAtSegmentStart = delayedGroupsAtSegmentStart
       .filter((group) => group.length >= 2)
       .map((group) => ({
@@ -2248,10 +2259,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const fieldPaceStates =
       peloton.length > 0
         ? peloton
-        : delayed.length > 0
-          ? delayed
-          : dropped.length > 0
-            ? dropped
+        : delayedGroupsAtSegmentStart.length > 0
+          ? delayedGroupsAtSegmentStart[0]
+          : droppedGroupsAtSegmentStart.length > 0
+            ? droppedGroupsAtSegmentStart[0]
             : chase.length > 0
               ? chase
               : secondaryBreakaway.length > 0
@@ -2811,6 +2822,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         state.elapsedTimeSeconds += pelotonSeconds + extraLoss;
       }
 
+      const localDelayedGroup =
+        delayedGroupByRiderId.get(state.rider.id) ?? [state];
+      const localDroppedGroup =
+        droppedGroupByRiderId.get(state.rider.id) ?? [state];
+
       const groupSize =
         state.group === "breakaway"
           ? Math.max(1, breakaway.length)
@@ -2819,10 +2835,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             : state.group === "chase"
               ? Math.max(1, chase.length)
               : state.group === "delayed"
-                ? Math.max(1, delayed.length)
+                ? Math.max(1, localDelayedGroup.length)
                 : state.group === "peloton"
                   ? Math.max(1, peloton.length)
-                  : Math.max(1, dropped.length);
+                  : Math.max(1, localDroppedGroup.length);
       const groupPaceRating =
         state.group === "peloton"
           ? frontTerrainRating
@@ -2849,13 +2865,13 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
                   )
                 : state.group === "delayed"
                   ? getFrontTerrainRating(
-                      delayed,
+                      localDelayedGroup,
                       segment,
                       input.profileType,
                       hillyClimbLoad,
                     )
-                  : getStateSelectionTerrainRating(
-                      state,
+                  : getFrontTerrainRating(
+                      localDroppedGroup,
                       segment,
                       input.profileType,
                       hillyClimbLoad,
@@ -3085,6 +3101,16 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       profileType: input.profileType,
       hillyClimbLoad,
       random,
+      commentary,
+    });
+
+    resolveDroppedGroupPursuit({
+      states,
+      segment,
+      segmentIndex,
+      profileType: input.profileType,
+      hillyClimbLoad,
+      droppedGroupsAtSegmentStart,
       commentary,
     });
 
@@ -6176,6 +6202,189 @@ export function getDelayedRiderPursuitOutcome({
   };
 }
 
+export function getDroppedGroupPursuitOutcome({
+  groupSize,
+  groupTerrainRating,
+  pelotonTerrainRating,
+  averageEnergy,
+  gapSeconds,
+  segmentDistanceKm,
+  terrain,
+  surface,
+  recoveryRoll,
+}: {
+  groupSize: number;
+  groupTerrainRating: number;
+  pelotonTerrainRating: number;
+  averageEnergy: number;
+  gapSeconds: number;
+  segmentDistanceKm: number;
+  terrain: RaceStageSegment["terrain"];
+  surface: RaceStageSegment["surface"];
+  recoveryRoll: number;
+}) {
+  if (
+    groupSize < 2 ||
+    gapSeconds <= SAME_TIME_MAX_GAP_SECONDS ||
+    averageEnergy < 8 ||
+    terrain === "climb" ||
+    surface === "cobbles"
+  ) {
+    return { recoveredSeconds: 0, energyCost: 0 };
+  }
+
+  const cooperationBonus = Math.min(5.5, Math.log2(groupSize + 1) * 2.1);
+  const strengthDifference = groupTerrainRating - pelotonTerrainRating;
+  const energyBonus = clamp((averageEnergy - 18) * 0.08, -0.8, 3.2);
+  const terrainFactor = terrain === "descent" ? 1.16 : 1;
+  const distanceFactor = clamp(segmentDistanceKm / 10, 0.45, 1.5);
+  const largeGapFactor = clamp(
+    1 - Math.max(0, gapSeconds - 90) / 300,
+    0.35,
+    1,
+  );
+  const maximumRecoverySeconds = Math.max(
+    0,
+    gapSeconds - SAME_TIME_MAX_GAP_SECONDS,
+  );
+  const recoveredSeconds = Math.min(
+    maximumRecoverySeconds,
+    clamp(
+      1.5 +
+        cooperationBonus +
+        strengthDifference * 0.18 +
+        energyBonus +
+        clamp(recoveryRoll, 0, 1) * 2.2,
+      0,
+      12,
+    ) *
+      terrainFactor *
+      distanceFactor *
+      largeGapFactor,
+  );
+
+  return {
+    recoveredSeconds,
+    energyCost:
+      recoveredSeconds > 0
+        ? clamp(0.35 + recoveredSeconds * 0.09, 0.35, 1.75)
+        : 0,
+  };
+}
+
+function resolveDroppedGroupPursuit({
+  states,
+  segment,
+  segmentIndex,
+  profileType,
+  hillyClimbLoad,
+  droppedGroupsAtSegmentStart,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  profileType: RaceProfileType;
+  hillyClimbLoad: number;
+  droppedGroupsAtSegmentStart: RiderState[][];
+  commentary: string[];
+}) {
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+
+  const pelotonTimeSeconds = average(
+    peloton.map((state) => state.elapsedTimeSeconds),
+  );
+  const pelotonTerrainRating = getFrontTerrainRating(
+    peloton,
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
+  const rejoined: RiderState[] = [];
+
+  for (const startGroup of droppedGroupsAtSegmentStart) {
+    const remainingDroppedStates = startGroup.filter(
+      (state) => states.get(state.rider.id)?.group === "dropped",
+    );
+    const currentGroups = splitElapsedRiderGroups(
+      remainingDroppedStates,
+      DROPPED_GROUP_MAX_GAP_SECONDS,
+    );
+
+    for (const group of currentGroups) {
+      if (group.length < 2) continue;
+
+      const groupElapsedTimeSeconds = average(
+        group.map((state) => state.elapsedTimeSeconds),
+      );
+      const gapSeconds = Math.max(
+        0,
+        groupElapsedTimeSeconds - pelotonTimeSeconds,
+      );
+      const pursuit = getDroppedGroupPursuitOutcome({
+        groupSize: group.length,
+        groupTerrainRating: average(
+          group.map((state) =>
+            getStateSelectionTerrainRating(
+              state,
+              segment,
+              profileType,
+              hillyClimbLoad,
+            ),
+          ),
+        ),
+        pelotonTerrainRating,
+        averageEnergy: average(group.map((state) => state.energy)),
+        gapSeconds,
+        segmentDistanceKm: segment.distanceKm,
+        terrain: segment.terrain,
+        surface: segment.surface,
+        recoveryRoll:
+          hashSeed(
+            `${segmentIndex}:${group
+              .map((state) => state.rider.id)
+              .sort()
+              .join(":")}`,
+          ) / 0xffff_ffff,
+      });
+      if (pursuit.recoveredSeconds <= 0) continue;
+
+      const remainingGapSeconds = Math.max(
+        0,
+        gapSeconds - pursuit.recoveredSeconds,
+      );
+      for (const state of group) {
+        state.elapsedTimeSeconds = Math.max(
+          pelotonTimeSeconds,
+          state.elapsedTimeSeconds - pursuit.recoveredSeconds,
+        );
+        state.lostTimeSeconds = Math.max(
+          0,
+          state.elapsedTimeSeconds - pelotonTimeSeconds,
+        );
+        state.energy = Math.max(0, state.energy - pursuit.energyCost);
+      }
+
+      if (remainingGapSeconds <= SAME_TIME_MAX_GAP_SECONDS) {
+        for (const state of group) {
+          state.group = "peloton";
+          state.groupSinceSegment = segmentIndex;
+          state.elapsedTimeSeconds = pelotonTimeSeconds;
+          state.lostTimeSeconds = 0;
+        }
+        rejoined.push(...group);
+      }
+    }
+  }
+
+  if (rejoined.length > 0 && commentary.length < 4) {
+    commentary.push(
+      `${formatRiderList(rejoined)} recollent au peloton grâce à une poursuite collective bien organisée.`,
+    );
+  }
+}
+
 export function findDroppedRiderIdsCaughtByDelayedGroup({
   delayedGroupSize,
   delayedGroupStartElapsedTimeSeconds,
@@ -6654,6 +6863,23 @@ function maybeCreateRaceIncident({
       state.group = "chase";
     }
     state.groupSinceSegment = segmentIndex;
+  }
+
+  if (type === "crash_mass" && !finalMassSprint) {
+    const continuingStates = affected.filter(
+      (state) => state.group !== "abandoned",
+    );
+    const crashGroupElapsedTimeSeconds = Math.max(
+      ...continuingStates.map((state) => state.elapsedTimeSeconds),
+    );
+    const crashGroupLostTimeSeconds = Math.max(
+      ...continuingStates.map((state) => state.lostTimeSeconds),
+    );
+
+    for (const state of continuingStates) {
+      state.elapsedTimeSeconds = crashGroupElapsedTimeSeconds;
+      state.lostTimeSeconds = crashGroupLostTimeSeconds;
+    }
   }
 
   const affectedNames = formatRiderList(affected);
@@ -7805,6 +8031,19 @@ function buildRoadSnapshot({
   const groups: RaceGroupSnapshot[] = [];
   const hasBreakaway = breakaway.length > 0 && breakawayGapSeconds > 0;
   const projectedPeloton = hasBreakaway ? peloton : [...breakaway, ...peloton];
+  const fieldReferenceStates =
+    projectedPeloton.length > 0
+      ? projectedPeloton
+      : splitElapsedRiderGroups(
+          [...delayed, ...dropped],
+          SAME_TIME_MAX_GAP_SECONDS,
+        )[0] ?? [];
+  const fieldReferenceTimeSeconds = average(
+    fieldReferenceStates.map((state) => state.elapsedTimeSeconds),
+  );
+  const fieldGapToLeaderSeconds = hasBreakaway
+    ? Math.max(0, breakawayGapSeconds)
+    : 0;
 
   if (hasBreakaway) {
     groups.push(toGroupSnapshot("breakaway", "Échappée", breakaway, 0));
@@ -7849,36 +8088,40 @@ function buildRoadSnapshot({
   }
 
   if (delayed.length > 0) {
-    const pelotonTime = average(
-      peloton.map((state) => state.elapsedTimeSeconds),
-    );
-    const delayedGapBehindPeloton =
-      peloton.length > 0
-        ? average(delayed.map((state) => state.elapsedTimeSeconds)) -
-          pelotonTime
-        : average(delayed.map((state) => state.lostTimeSeconds));
     const crosswindRiderIds = new Set(
       incidents
         .filter((incident) => incident.type === "crosswind")
         .flatMap((incident) => incident.riderIds),
     );
-    const isCurrentCrosswindGroup = delayed.some((state) =>
-      crosswindRiderIds.has(state.rider.id),
-    );
+    splitElapsedRiderGroups(
+      delayed,
+      DELAYED_GROUP_MAX_GAP_SECONDS,
+    ).forEach((delayedGroup, index) => {
+      const isCurrentCrosswindGroup = delayedGroup.some((state) =>
+        crosswindRiderIds.has(state.rider.id),
+      );
+      const baseLabel = isCurrentCrosswindGroup
+        ? "Groupe pi\u00e9g\u00e9 par la bordure"
+        : "Groupe retard\u00e9";
 
-    groups.push(
-      toGroupSnapshot(
-        "dropped",
-        isCurrentCrosswindGroup
-          ? "Groupe pi\u00e9g\u00e9 par la bordure"
-          : "Groupe retard\u00e9",
-        delayed,
-        Math.round(
-          (hasBreakaway ? Math.max(0, breakawayGapSeconds) : 0) +
-            Math.max(1, delayedGapBehindPeloton),
+      groups.push(
+        toGroupSnapshot(
+          "dropped",
+          index === 0 ? baseLabel : `${baseLabel} ${index + 1}`,
+          delayedGroup,
+          Math.round(
+            fieldGapToLeaderSeconds +
+              Math.max(
+                1,
+                getElapsedGroupGapSeconds(
+                  delayedGroup,
+                  fieldReferenceTimeSeconds,
+                ),
+              ),
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   if (chase.length > 0 && !hasBreakaway) {
@@ -7911,16 +8154,21 @@ function buildRoadSnapshot({
   }
 
   if (dropped.length > 0) {
-    const baseGap = hasBreakaway ? Math.max(0, breakawayGapSeconds) : 0;
-    splitDroppedGroups(dropped).forEach((droppedGroup, index) => {
+    splitElapsedRiderGroups(
+      dropped,
+      DROPPED_GROUP_MAX_GAP_SECONDS,
+    ).forEach((droppedGroup, index) => {
       groups.push(
         toGroupSnapshot(
           "dropped",
           index === 0 ? "Groupe attardé" : `Groupe attardé ${index + 1}`,
           droppedGroup,
           Math.round(
-            baseGap +
-              average(droppedGroup.map((state) => state.lostTimeSeconds)),
+            fieldGapToLeaderSeconds +
+              getElapsedGroupGapSeconds(
+                droppedGroup,
+                fieldReferenceTimeSeconds,
+              ),
           ),
         ),
       );
@@ -8028,6 +8276,10 @@ function toGroupSnapshot(
     type,
     riderIds: states.map((state) => state.rider.id),
     gapToLeaderSeconds,
+    elapsedTimeSeconds: round(
+      average(states.map((state) => state.elapsedTimeSeconds)),
+      3,
+    ),
     averageEnergy: round(average(states.map((state) => state.energy)), 1),
   };
 }
@@ -8640,29 +8892,6 @@ function getStateSelectionTerrainRating(
   );
 }
 
-function splitDroppedGroups(states: RiderState[]) {
-  const ordered = [...states].sort(
-    (first, second) => first.lostTimeSeconds - second.lostTimeSeconds,
-  );
-  const groups: RiderState[][] = [];
-
-  for (const state of ordered) {
-    const current = groups.at(-1);
-    if (
-      !current ||
-      state.lostTimeSeconds -
-        average(current.map((member) => member.lostTimeSeconds)) >
-        45
-    ) {
-      groups.push([state]);
-    } else {
-      current.push(state);
-    }
-  }
-
-  return groups;
-}
-
 export function splitElapsedRiderGroups<
   TState extends { elapsedTimeSeconds: number },
 >(
@@ -8695,6 +8924,29 @@ export function splitElapsedRiderGroups<
   }
 
   return groups;
+}
+
+function indexRiderStateGroupsByRiderId(groups: RiderState[][]) {
+  const groupsByRiderId = new Map<string, RiderState[]>();
+
+  for (const group of groups) {
+    for (const state of group) {
+      groupsByRiderId.set(state.rider.id, group);
+    }
+  }
+
+  return groupsByRiderId;
+}
+
+export function getElapsedGroupGapSeconds(
+  states: Array<{ elapsedTimeSeconds: number }>,
+  referenceTimeSeconds: number,
+) {
+  return Math.max(
+    0,
+    average(states.map((state) => state.elapsedTimeSeconds)) -
+      referenceTimeSeconds,
+  );
 }
 
 function getDecisiveRoadFinishRating(

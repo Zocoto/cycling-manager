@@ -55,6 +55,54 @@ describe("race live visual timeline", () => {
     expect(frames.map((frame) => frame.completedDistanceKm)).toEqual([10, 20]);
   });
 
+  it("ne fusionne jamais deux groupes réellement séparés dans la vue live", () => {
+    const snapshot: RaceTimelineSnapshot = {
+      segmentNumber: 20,
+      completedDistanceKm: 200,
+      groups: [
+        {
+          id: "peloton",
+          label: "Peloton",
+          type: "peloton",
+          riderIds: ["leader"],
+          gapToLeaderSeconds: 0,
+          elapsedTimeSeconds: 10_000,
+          averageEnergy: 45,
+        },
+        {
+          id: "dropped-paiva-solofo",
+          label: "Groupe attardé",
+          type: "dropped",
+          riderIds: ["paiva", "solofo"],
+          gapToLeaderSeconds: 42,
+          elapsedTimeSeconds: 10_042,
+          averageEnergy: 18,
+        },
+        {
+          id: "dropped-pursuers",
+          label: "Groupe attardé 2",
+          type: "dropped",
+          riderIds: ["poursuivant-a", "poursuivant-b"],
+          gapToLeaderSeconds: 47,
+          elapsedTimeSeconds: 10_047,
+          averageEnergy: 16,
+        },
+      ],
+      incidents: [],
+      abandonments: [],
+      commentary: [],
+    };
+
+    const [frame] = getRaceVisualTimeline(
+      buildSimulation({ timeline: [snapshot] }),
+    );
+
+    expect(frame.groups).toHaveLength(3);
+    expect(frame.groups.map((group) => group.gapToLeaderSeconds)).toEqual([
+      0, 42, 47,
+    ]);
+  });
+
   it("interpolates high-frequency frames globally and inside an authored segment", () => {
     const frames = [
       { ...officialTimeline[0], sourceTimelineIndex: 0, completedDistanceKm: 2 },
