@@ -11,6 +11,7 @@ import {
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
   getGeneralClassificationProtectedRiderIds,
+  getGrupettoLossMultiplier,
   getTeamGeneralClassificationLeaderRiderIds,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
@@ -25,6 +26,10 @@ import {
   decideLargeBreakawayStandoff,
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
+  canLeaderFollowRecoveryPace,
+  canRiderStayInGrupetto,
+  getLeaderRecoveryHelperLimit,
+  getLeaderRecoveryTargetPriority,
   getLeaderRecoverySuccessChance,
   getStageGeneralClassificationInterest,
   getStageTimeLimitAllowanceSeconds,
@@ -406,6 +411,23 @@ describe("findDroppedRiderIdsCaughtByDelayedGroup", () => {
     ).toEqual([]);
   });
 
+  it("fusionne les groupes dès qu’ils se rejoignent dans la fenêtre de trois secondes", () => {
+    expect(
+      findDroppedRiderIdsCaughtByDelayedGroup({
+        delayedGroupSize: 4,
+        delayedGroupStartElapsedTimeSeconds: 280,
+        delayedGroupEndElapsedTimeSeconds: 216,
+        droppedRiders: [
+          {
+            riderId: "chandler",
+            startElapsedTimeSeconds: 211,
+            endElapsedTimeSeconds: 214,
+          },
+        ],
+      }),
+    ).toEqual(["chandler"]);
+  });
+
   it("ne transforme pas plusieurs groupes retardés distincts en un peloton moyen fictif", () => {
     const delayedGroups = splitElapsedRiderGroups(
       [
@@ -445,6 +467,38 @@ describe("findDroppedRiderIdsCaughtByDelayedGroup", () => {
     );
 
     expect(caught).toEqual([]);
+  });
+
+  it("détecte le sous-groupe qui rattrape un autre groupe après une scission", () => {
+    const endGroups = splitElapsedRiderGroups(
+      [
+        { riderId: "pursuer-fast-a", elapsedTimeSeconds: 199 },
+        { riderId: "pursuer-fast-b", elapsedTimeSeconds: 201 },
+        { riderId: "pursuer-slow-a", elapsedTimeSeconds: 350 },
+        { riderId: "pursuer-slow-b", elapsedTimeSeconds: 352 },
+      ],
+      3,
+    );
+    const caught = endGroups.flatMap((group) =>
+      findDroppedRiderIdsCaughtByDelayedGroup({
+        delayedGroupSize: group.length,
+        delayedGroupStartElapsedTimeSeconds: 280,
+        delayedGroupEndElapsedTimeSeconds:
+          group.reduce(
+            (total, rider) => total + rider.elapsedTimeSeconds,
+            0,
+          ) / group.length,
+        droppedRiders: [
+          {
+            riderId: "leader-ahead",
+            startElapsedTimeSeconds: 211,
+            endElapsedTimeSeconds: 214,
+          },
+        ],
+      }),
+    );
+
+    expect(caught).toEqual(["leader-ahead"]);
   });
 
   it("conserve les écarts réels de plusieurs groupes au lieu de les moyenner", () => {
@@ -802,6 +856,71 @@ describe("stage time limit", () => {
       ),
     ).toBe(false);
     expect(limited.sprintPoints[slowRider.riderId] ?? 0).toBe(0);
+  });
+});
+
+describe("grupetto dynamics", () => {
+  it("permet à un sprinteur frais de tenir le grupetto sans lui donner le rythme des meilleurs", () => {
+    expect(
+      canRiderStayInGrupetto({
+        riderTerrainRating: 46,
+        grupettoPaceRating: 54,
+        resistanceRating: 70,
+        enduranceRating: 72,
+        energy: 48,
+        form: 100,
+        selectionDifficulty: 1.1,
+      }),
+    ).toBe(true);
+    expect(
+      canRiderStayInGrupetto({
+        riderTerrainRating: 46,
+        grupettoPaceRating: 54,
+        resistanceRating: 70,
+        enduranceRating: 72,
+        energy: 1.5,
+        form: 100,
+        selectionDifficulty: 1.1,
+      }),
+    ).toBe(false);
+  });
+
+  it("réduit les pertes d’un vrai groupe sans transformer quatre isolés en peloton", () => {
+    expect(
+      getGrupettoLossMultiplier({
+        groupSize: 3,
+        terrain: "climb",
+        surface: "asphalt",
+        pacePressure: 1,
+      }),
+    ).toBe(1);
+    expect(
+      getGrupettoLossMultiplier({
+        groupSize: 12,
+        terrain: "climb",
+        surface: "asphalt",
+        pacePressure: 0.7,
+      }),
+    ).toBeLessThan(0.9);
+  });
+
+  it("fait apparaître un grupetto sur une étape de haute montagne", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("haute-montagne", 1),
+    );
+
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.groups.some((group) => group.label.startsWith("Grupetto")),
+      ),
+    ).toBe(true);
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.groups.some((group) =>
+          group.label.startsWith("Lâchés du grupetto"),
+        ),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -1912,8 +2031,8 @@ describe("simulateRaceStage", () => {
     const leader = {
       ...createSelectionTestRider("leader-to-rescue", {
         flat: 75,
-        mountain: 53,
-        hills: 58,
+        mountain: 72,
+        hills: 70,
         endurance: 68,
         resistance: 68,
       }),
@@ -2058,14 +2177,6 @@ describe("simulateRaceStage", () => {
           ),
         );
     });
-    const failedRecovery = simulations.find((simulation) =>
-      simulation.timeline.some((snapshot) =>
-        snapshot.commentary.some((line) =>
-          line.includes("ne parvient pas à réduire l’écart"),
-        ),
-      ),
-    );
-
     expect(successfulRecovery).toBeDefined();
     expect(
       successfulRecovery!.timeline.some((snapshot) =>
@@ -2074,7 +2185,180 @@ describe("simulateRaceStage", () => {
         ),
       ),
     ).toBe(true);
-    expect(failedRecovery).toBeDefined();
+  });
+
+  it("priorise le leader du général devant un coureur protégé lors d’une recomposition", () => {
+    const teamGcLeaderPriority = getLeaderRecoveryTargetPriority({
+      role: "leader",
+      isTeamGeneralClassificationLeader: true,
+      generalClassificationProtected: true,
+    });
+    const protectedRiderPriority = getLeaderRecoveryTargetPriority({
+      role: "protected_rider",
+    });
+
+    expect(teamGcLeaderPriority).toBeGreaterThan(protectedRiderPriority);
+    expect(
+      getLeaderRecoveryTargetPriority({
+        role: "leader_sprinter",
+        isOverallGeneralClassificationLeader: true,
+      }),
+    ).toBeGreaterThan(teamGcLeaderPriority);
+  });
+
+  it("répartit l’escorte entre deux coureurs protégés sans priver le leader", () => {
+    expect(
+      getLeaderRecoveryHelperLimit({
+        targetPriority: 1,
+        teammateTargetPriorities: [4],
+        availableHelperCount: 4,
+      }),
+    ).toBe(1);
+    expect(
+      getLeaderRecoveryHelperLimit({
+        targetPriority: 1,
+        teammateTargetPriorities: [1],
+        availableHelperCount: 4,
+      }),
+    ).toBe(1);
+    expect(
+      getLeaderRecoveryHelperLimit({
+        targetPriority: 4,
+        teammateTargetPriorities: [1],
+        availableHelperCount: 3,
+      }),
+    ).toBe(3);
+  });
+
+  it("ne permet pas à une escorte de porter un sprinteur trop faible ou sans forme dans une longue montée", () => {
+    const common = {
+      fieldTerrainRating: 85.8,
+      helperCount: 3,
+      selectionDifficulty: 1.4,
+      terrain: "climb" as const,
+      surface: "asphalt" as const,
+    };
+
+    expect(
+      canLeaderFollowRecoveryPace({
+        ...common,
+        leaderTerrainRating: 44.5,
+        leaderEnergy: 53,
+        leaderForm: 100,
+      }),
+    ).toBe(false);
+    expect(
+      canLeaderFollowRecoveryPace({
+        ...common,
+        leaderTerrainRating: 77.1,
+        leaderEnergy: 56,
+        leaderForm: 35,
+      }),
+    ).toBe(false);
+    expect(
+      canLeaderFollowRecoveryPace({
+        ...common,
+        leaderTerrainRating: 77.1,
+        leaderEnergy: 56,
+        leaderForm: 98,
+      }),
+    ).toBe(true);
+  });
+
+  it("laisse les équipiers auprès du leader quand le coureur protégé ne peut pas suivre en montagne", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const teamId = "mountain-rescue-priority-team";
+    const leader = {
+      ...createSelectionTestRider("mountain-priority-leader", {
+        mountain: 82,
+        hills: 62,
+        endurance: 68,
+        resistance: 68,
+      }),
+      teamId,
+      teamName: "Mountain rescue priority",
+      role: "leader" as const,
+      form: 98,
+    };
+    const protectedSprinter = {
+      ...createSelectionTestRider("mountain-priority-sprinter", {
+        mountain: 44,
+        hills: 46,
+        sprint: 78,
+        acceleration: 80,
+        endurance: 57,
+        resistance: 53,
+      }),
+      teamId,
+      teamName: "Mountain rescue priority",
+      role: "protected_rider" as const,
+      form: 100,
+    };
+    const helpers = Array.from({ length: 3 }, (_, index) => ({
+      ...createSelectionTestRider(`mountain-priority-helper-${index}`, {
+        mountain: 92 - index,
+        hills: 88 - index,
+        endurance: 78,
+        resistance: 76,
+      }),
+      teamId,
+      teamName: "Mountain rescue priority",
+      role: "domestique" as const,
+      form: 92,
+    }));
+    const rivals = Array.from({ length: 12 }, (_, index) => ({
+      ...createSelectionTestRider(`mountain-priority-rival-${index}`, {
+        mountain: 84 - (index % 3),
+        hills: 76,
+        endurance: 74,
+        resistance: 72,
+      }),
+      teamId: `mountain-priority-rival-team-${index}`,
+      teamName: `Mountain priority rival ${index}`,
+      role: "leader" as const,
+      form: 94,
+    }));
+    const riders = [leader, protectedSprinter, ...helpers, ...rivals];
+    const simulation = simulateRaceStage({
+      ...baseInput,
+      id: "mountain-protected-sprinter-regression",
+      seed: 91,
+      stageType: "road",
+      profileType: "mountain",
+      isStageRace: true,
+      stageNumber: 3,
+      stageCount: 5,
+      segments: [
+        { segmentNumber: 1, distanceKm: 12, terrain: "flat", averageGradientPct: 0, surface: "asphalt", prime: null },
+        { segmentNumber: 2, distanceKm: 20, terrain: "climb", averageGradientPct: 7.5, surface: "asphalt", prime: null },
+        { segmentNumber: 3, distanceKm: 15, terrain: "climb", averageGradientPct: 6.5, surface: "asphalt", prime: null },
+      ],
+      riders,
+      generalClassification: [
+        { riderId: leader.id, elapsedTimeSeconds: 10_000 },
+      ],
+      teamStrategies: [],
+    });
+    const refusal = simulation.timeline.find((snapshot) =>
+      snapshot.commentary.some((line) =>
+        line.includes("n’a pas les jambes pour soutenir un retour"),
+      ),
+    );
+
+    expect(refusal).toBeDefined();
+    const protectedGroup = refusal!.groups.find((group) =>
+      group.riderIds.includes(protectedSprinter.id),
+    );
+    const leaderGroup = refusal!.groups.find((group) =>
+      group.riderIds.includes(leader.id),
+    );
+    const helperIds = new Set(helpers.map((helper) => helper.id));
+    expect(
+      protectedGroup?.riderIds.filter((riderId) => helperIds.has(riderId)),
+    ).toHaveLength(1);
+    expect(
+      leaderGroup?.riderIds.filter((riderId) => helperIds.has(riderId)),
+    ).toHaveLength(2);
   });
 
   it("laisse les équipiers forts dans le peloton quand un domestique bien classé lâche sur les pavés", () => {

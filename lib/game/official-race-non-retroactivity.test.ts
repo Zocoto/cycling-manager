@@ -20,7 +20,7 @@ const officialSimulationMigration = readFileSync(
 describe("non-rétroactivité du moteur officiel", () => {
   it("attribue une nouvelle version uniquement aux prochaines simulations", () => {
     expect(OFFICIAL_RACE_ENGINE_VERSION).toBe(
-      "2026.09-real-pursuit-groups-v33",
+      "2026.09-real-pursuit-groups-v34",
     );
     expect(officialSimulationService).toContain(
       "engineVersion: OFFICIAL_RACE_ENGINE_VERSION",

@@ -686,8 +686,10 @@ type RiderState = {
     | "abandoned";
   groupSinceSegment: number;
   lostTimeSeconds: number;
-  leaderRecoveryStatus?: "active" | "failed";
+  leaderRecoveryStatus?: "active" | "failed" | "survival";
   supportingLeaderId?: string;
+  grupettoStatus?: "active" | "dropped";
+  grupettoPacePressure?: number;
   collectiveWorkload?: number;
   lateRecoveryEffortSeconds?: number;
   tacticalFinishBonus?: number;
@@ -2180,6 +2182,15 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       1,
     );
 
+    releaseUnviableLeaderRecoverySupport({
+      states,
+      segment,
+      segmentIndex,
+      profileType: input.profileType,
+      hillyClimbLoad,
+      commentary,
+    });
+
     if (
       !delayedAttackLaunched &&
       completedDistanceKm >= attackPlan.delayedAttackAtKm
@@ -2238,13 +2249,19 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       dropped,
       DROPPED_GROUP_MAX_GAP_SECONDS,
     );
+    const grupettoAtSegmentStart = dropped.filter(
+      (state) => state.grupettoStatus === "active",
+    );
     const delayedGroupByRiderId = indexRiderStateGroupsByRiderId(
       delayedGroupsAtSegmentStart,
     );
     const droppedGroupByRiderId = indexRiderStateGroupsByRiderId(
       droppedGroupsAtSegmentStart,
     );
-    const delayedGroupSnapshotsAtSegmentStart = delayedGroupsAtSegmentStart
+    const detachedGroupSnapshotsAtSegmentStart = [
+      ...delayedGroupsAtSegmentStart,
+      ...droppedGroupsAtSegmentStart,
+    ]
       .filter((group) => group.length >= 2)
       .map((group) => ({
         riderIds: new Set(group.map((state) => state.rider.id)),
@@ -2252,8 +2269,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           group.map((state) => state.elapsedTimeSeconds),
         ),
       }));
-    const droppedElapsedTimeAtSegmentStartByRiderId = new Map(
-      dropped.map((state) => [state.rider.id, state.elapsedTimeSeconds]),
+    const detachedElapsedTimeAtSegmentStartByRiderId = new Map(
+      [...delayed, ...dropped].map((state) => [
+        state.rider.id,
+        state.elapsedTimeSeconds,
+      ]),
     );
     const activeBreakawaySize = breakaway.length + secondaryBreakaway.length;
     const fieldPaceStates =
@@ -2810,14 +2830,29 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       } else if (state.group === "delayed") {
         state.elapsedTimeSeconds += pelotonSeconds;
       } else {
-        const extraLoss = getDroppedRiderLoss(
-          state,
-          segment,
-          frontTerrainRating,
-          input.profileType,
-          hillyClimbLoad,
-          random,
-        );
+        const survivalEscortFactor =
+          state.leaderRecoveryStatus === "survival" &&
+          getLeaderRecoveryHelpers(state, states).length > 0
+            ? 0.82
+            : 1;
+        const grupettoFactor =
+          state.grupettoStatus === "active"
+            ? getGrupettoLossMultiplier({
+                groupSize: grupettoAtSegmentStart.length,
+                terrain: segment.terrain,
+                surface: segment.surface,
+                pacePressure: state.grupettoPacePressure ?? 0.35,
+              })
+            : 1;
+        const extraLoss =
+          getDroppedRiderLoss(
+            state,
+            segment,
+            frontTerrainRating,
+            input.profileType,
+            hillyClimbLoad,
+            random,
+          ) * survivalEscortFactor * grupettoFactor;
         state.lostTimeSeconds += extraLoss;
         state.elapsedTimeSeconds += pelotonSeconds + extraLoss;
       }
@@ -3114,11 +3149,14 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       commentary,
     });
 
-    mergeDroppedRidersCaughtByDelayedGroup({
+    mergeDetachedGroupsAfterCatch({
       states,
+      segment,
       segmentIndex,
-      delayedGroupsAtSegmentStart: delayedGroupSnapshotsAtSegmentStart,
-      droppedElapsedTimeAtSegmentStartByRiderId,
+      profileType: input.profileType,
+      hillyClimbLoad,
+      detachedGroupsAtSegmentStart: detachedGroupSnapshotsAtSegmentStart,
+      detachedElapsedTimeAtSegmentStartByRiderId,
       commentary,
     });
 
@@ -3165,12 +3203,25 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       segmentIndex,
       segmentCount: input.segments.length,
       raceProgress: segmentEndProgress,
+      profileType: input.profileType,
+      hillyClimbLoad,
       protectedRiderId: generalClassificationLeaderId,
       teamGeneralClassificationLeaderRiderIds,
       incidentRiderIds: new Set(
         incidents.flatMap((raceIncident) => raceIncident.riderIds),
       ),
       random,
+      commentary,
+    });
+
+    organizeGrupetto({
+      states,
+      segment,
+      segmentIndex,
+      segmentCount: input.segments.length,
+      raceProgress: segmentEndProgress,
+      profileType: input.profileType,
+      hillyClimbLoad,
       commentary,
     });
 
@@ -5178,6 +5229,83 @@ function isProtectingTeamLeader({
   );
 }
 
+export function getLeaderRecoveryTargetPriority({
+  role,
+  isOverallGeneralClassificationLeader = false,
+  isTeamGeneralClassificationLeader = false,
+  generalClassificationProtected = false,
+}: {
+  role: RaceRole;
+  isOverallGeneralClassificationLeader?: boolean;
+  isTeamGeneralClassificationLeader?: boolean;
+  generalClassificationProtected?: boolean;
+}) {
+  if (isOverallGeneralClassificationLeader) return 5;
+  if (isTeamGeneralClassificationLeader) return 4;
+  if (generalClassificationProtected) return 3;
+  if (isRaceLeaderRole(role)) return 2;
+  if (isRaceProtectedRiderRole(role)) return 1;
+  return 0;
+}
+
+export function getLeaderRecoveryHelperLimit({
+  targetPriority,
+  teammateTargetPriorities,
+  availableHelperCount,
+}: {
+  targetPriority: number;
+  teammateTargetPriorities: number[];
+  availableHelperCount: number;
+}) {
+  const normalizedAvailable = Math.max(0, Math.floor(availableHelperCount));
+  if (normalizedAvailable === 0 || targetPriority <= 0) return 0;
+  const mustShareSupport = teammateTargetPriorities.some(
+    (priority) => priority >= targetPriority,
+  );
+  return Math.min(mustShareSupport ? 1 : 3, normalizedAvailable);
+}
+
+export function canLeaderFollowRecoveryPace({
+  leaderTerrainRating,
+  fieldTerrainRating,
+  leaderEnergy,
+  leaderForm,
+  helperCount,
+  selectionDifficulty,
+  terrain,
+  surface,
+}: {
+  leaderTerrainRating: number;
+  fieldTerrainRating: number;
+  leaderEnergy: number;
+  leaderForm: number;
+  helperCount: number;
+  selectionDifficulty: number;
+  terrain: RaceStageSegment["terrain"];
+  surface: RaceStageSegment["surface"];
+}) {
+  const isSelectiveTerrain = terrain === "climb" || surface === "cobbles";
+  if (!isSelectiveTerrain) return true;
+
+  const normalizedDifficulty = clamp(selectionDifficulty, 0, 1.4);
+  const minimumEnergy =
+    ABSOLUTE_EXHAUSTION_ENERGY + normalizedDifficulty * 3.5;
+  if (leaderEnergy < minimumEnergy) return false;
+  const minimumForm =
+    terrain === "climb"
+      ? 38 + normalizedDifficulty * 10
+      : 34 + normalizedDifficulty * 8;
+  if (leaderForm < minimumForm) return false;
+
+  const supportAllowance = Math.min(3, Math.max(0, helperCount)) * 0.75;
+  const maximumSustainableDeficit =
+    terrain === "climb"
+      ? clamp(14 - normalizedDifficulty * 2.5 + supportAllowance, 9, 14.5)
+      : clamp(15 - normalizedDifficulty * 1.5 + supportAllowance, 11, 16);
+
+  return fieldTerrainRating - leaderTerrainRating <= maximumSustainableDeficit;
+}
+
 export function getLeaderRecoverySuccessChance({
   helperCount,
   helperStrength,
@@ -5226,6 +5354,188 @@ function clearLeaderRecoveryAssignment(
   for (const helper of states.values()) {
     if (helper.supportingLeaderId === leader.rider.id) {
       delete helper.supportingLeaderId;
+    }
+  }
+}
+
+function getStateLeaderRecoveryTargetPriority({
+  state,
+  protectedRiderId,
+  teamGeneralClassificationLeaderRiderIds,
+}: {
+  state: RiderState;
+  protectedRiderId: string | null;
+  teamGeneralClassificationLeaderRiderIds: Set<string>;
+}) {
+  return getLeaderRecoveryTargetPriority({
+    role: state.rider.role,
+    isOverallGeneralClassificationLeader:
+      state.rider.id === protectedRiderId,
+    isTeamGeneralClassificationLeader:
+      teamGeneralClassificationLeaderRiderIds.has(state.rider.id),
+    generalClassificationProtected:
+      state.rider.generalClassificationProtected === true &&
+      (isRaceLeaderRole(state.rider.role) ||
+        isRaceProtectedRiderRole(state.rider.role)),
+  });
+}
+
+function rebalanceLeaderRecoveryAssignments({
+  states,
+  protectedRiderId,
+  teamGeneralClassificationLeaderRiderIds,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  protectedRiderId: string | null;
+  teamGeneralClassificationLeaderRiderIds: Set<string>;
+  commentary: string[];
+}) {
+  const transferTargetIds = new Set<string>();
+  const supportedLeaders = [...states.values()].filter(
+    (state) =>
+      state.leaderRecoveryStatus !== undefined &&
+      getLeaderRecoveryHelpers(state, states).length > 0,
+  );
+
+  for (const supportedLeader of supportedLeaders) {
+    const currentPriority = getStateLeaderRecoveryTargetPriority({
+      state: supportedLeader,
+      protectedRiderId,
+      teamGeneralClassificationLeaderRiderIds,
+    });
+    const replacement = [...states.values()]
+      .filter(
+        (candidate) =>
+          candidate.rider.teamId === supportedLeader.rider.teamId &&
+          candidate.rider.id !== supportedLeader.rider.id &&
+          candidate.leaderRecoveryStatus === undefined &&
+          (candidate.group === "delayed" || candidate.group === "dropped") &&
+          candidate.group === supportedLeader.group &&
+          areFinishersInSameTimeGroup(
+            candidate.elapsedTimeSeconds,
+            supportedLeader.elapsedTimeSeconds,
+          ) &&
+          getStateLeaderRecoveryTargetPriority({
+            state: candidate,
+            protectedRiderId,
+            teamGeneralClassificationLeaderRiderIds,
+          }) > currentPriority,
+      )
+      .sort(
+        (first, second) =>
+          getStateLeaderRecoveryTargetPriority({
+            state: second,
+            protectedRiderId,
+            teamGeneralClassificationLeaderRiderIds,
+          }) -
+            getStateLeaderRecoveryTargetPriority({
+              state: first,
+              protectedRiderId,
+              teamGeneralClassificationLeaderRiderIds,
+            }) || first.rider.id.localeCompare(second.rider.id),
+      )[0];
+    if (!replacement) continue;
+
+    clearLeaderRecoveryAssignment(supportedLeader, states);
+    transferTargetIds.add(replacement.rider.id);
+    if (commentary.length < 4) {
+      commentary.push(
+        `${supportedLeader.rider.teamName} réorganise son escorte autour de ${replacement.rider.name}, prioritaire pour le classement général.`,
+      );
+    }
+  }
+
+  return transferTargetIds;
+}
+
+function releaseUnviableLeaderRecoverySupport({
+  states,
+  segment,
+  segmentIndex,
+  profileType,
+  hillyClimbLoad,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  profileType: RaceProfileType;
+  hillyClimbLoad: number;
+  commentary: string[];
+}) {
+  if (segment.terrain !== "climb" && segment.surface !== "cobbles") return;
+
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+  const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
+  const fieldTerrainRating = getFrontTerrainRating(
+    peloton,
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
+  const selectionDifficulty = getSegmentSelectionDifficulty(
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
+  const supportedLeaders = [...states.values()].filter(
+    (state) => state.leaderRecoveryStatus === "active",
+  );
+
+  for (const leader of supportedLeaders) {
+    const helpers = getLeaderRecoveryHelpers(leader, states);
+    if (helpers.length === 0) continue;
+    const canFollow = canLeaderFollowRecoveryPace({
+      leaderTerrainRating: getStateSelectionTerrainRating(
+        leader,
+        segment,
+        profileType,
+        hillyClimbLoad,
+      ),
+      fieldTerrainRating,
+      leaderEnergy: leader.energy,
+      leaderForm: leader.rider.form,
+      helperCount: helpers.length,
+      selectionDifficulty,
+      terrain: segment.terrain,
+      surface: segment.surface,
+    });
+    if (canFollow) continue;
+
+    const survivalHelper = [...helpers].sort(
+      (first, second) =>
+        getLeaderRecoveryHelperPriority(first) -
+          getLeaderRecoveryHelperPriority(second) ||
+        getLeaderRecoveryHelperStrength(first, segment) -
+          getLeaderRecoveryHelperStrength(second, segment) ||
+        first.rider.id.localeCompare(second.rider.id),
+    )[0];
+    clearLeaderRecoveryAssignment(leader, states);
+    leader.group = "dropped";
+    leader.groupSinceSegment = segmentIndex;
+    leader.lostTimeSeconds = Math.max(
+      leader.lostTimeSeconds,
+      leader.elapsedTimeSeconds - pelotonTime,
+    );
+    for (const helper of helpers) {
+      const staysForSurvival = helper.rider.id === survivalHelper?.rider.id;
+      helper.group = staysForSurvival ? "dropped" : "delayed";
+      helper.groupSinceSegment = segmentIndex;
+      helper.lostTimeSeconds = Math.max(
+        0,
+        helper.elapsedTimeSeconds - pelotonTime,
+      );
+      if (staysForSurvival) {
+        helper.supportingLeaderId = leader.rider.id;
+      }
+    }
+    if (survivalHelper) leader.leaderRecoveryStatus = "survival";
+    if (commentary.length < 4) {
+      commentary.push(
+        `${leader.rider.name} ne peut plus soutenir le rythme de retour dans la difficulté ; ${survivalHelper?.rider.name ?? "un équipier"} reste à ses côtés tandis que le reste de l’escorte repart vers le leader.`,
+      );
     }
   }
 }
@@ -5281,6 +5591,8 @@ function deployLeaderRecoverySupport({
   segmentIndex,
   segmentCount,
   raceProgress,
+  profileType,
+  hillyClimbLoad,
   protectedRiderId,
   teamGeneralClassificationLeaderRiderIds,
   incidentRiderIds,
@@ -5292,6 +5604,8 @@ function deployLeaderRecoverySupport({
   segmentIndex: number;
   segmentCount: number;
   raceProgress: number;
+  profileType: RaceProfileType;
+  hillyClimbLoad: number;
   protectedRiderId: string | null;
   teamGeneralClassificationLeaderRiderIds: Set<string>;
   incidentRiderIds: Set<string>;
@@ -5303,19 +5617,52 @@ function deployLeaderRecoverySupport({
   const peloton = getStatesInGroup(states, "peloton");
   if (peloton.length === 0) return;
   const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
-  const detachedLeaders = [...states.values()].filter(
-    (state) =>
-      (isRaceLeaderRole(state.rider.role) ||
-        isRaceProtectedRiderRole(state.rider.role) ||
-        teamGeneralClassificationLeaderRiderIds.has(state.rider.id) ||
-        state.rider.id === protectedRiderId) &&
-      (state.group === "delayed" || state.group === "dropped") &&
-      state.groupSinceSegment === segmentIndex &&
-      state.leaderRecoveryStatus === undefined,
+  const transferTargetIds = rebalanceLeaderRecoveryAssignments({
+    states,
+    protectedRiderId,
+    teamGeneralClassificationLeaderRiderIds,
+    commentary,
+  });
+  const detachedLeaders = [...states.values()]
+    .filter(
+      (state) =>
+        getStateLeaderRecoveryTargetPriority({
+          state,
+          protectedRiderId,
+          teamGeneralClassificationLeaderRiderIds,
+        }) > 0 &&
+        (state.group === "delayed" || state.group === "dropped") &&
+        (state.groupSinceSegment === segmentIndex ||
+          transferTargetIds.has(state.rider.id)) &&
+        state.leaderRecoveryStatus === undefined,
+    )
+    .sort(
+      (first, second) =>
+        getStateLeaderRecoveryTargetPriority({
+          state: second,
+          protectedRiderId,
+          teamGeneralClassificationLeaderRiderIds,
+        }) -
+          getStateLeaderRecoveryTargetPriority({
+            state: first,
+            protectedRiderId,
+            teamGeneralClassificationLeaderRiderIds,
+          }) || first.rider.id.localeCompare(second.rider.id),
+    );
+  const fieldTerrainRating = getFrontTerrainRating(
+    peloton,
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
+  const selectionDifficulty = getSegmentSelectionDifficulty(
+    segment,
+    profileType,
+    hillyClimbLoad,
   );
 
   for (const leader of detachedLeaders) {
-    const helpers = [...states.values()]
+    const eligibleHelpers = [...states.values()]
       .filter((candidate) => {
         const candidatePriority = getLeaderRecoveryHelperPriority(candidate);
         const availableDuty =
@@ -5326,7 +5673,10 @@ function deployLeaderRecoverySupport({
         const canReachLeader =
           candidate.group === "peloton" ||
           (candidate.group === leader.group &&
-            candidate.groupSinceSegment === segmentIndex);
+            areFinishersInSameTimeGroup(
+              candidate.elapsedTimeSeconds,
+              leader.elapsedTimeSeconds,
+            ));
 
         return (
           candidate.rider.id !== leader.rider.id &&
@@ -5348,9 +5698,74 @@ function deployLeaderRecoverySupport({
           getLeaderRecoveryHelperStrength(second, segment) -
             getLeaderRecoveryHelperStrength(first, segment) ||
           first.rider.id.localeCompare(second.rider.id),
+      );
+    if (eligibleHelpers.length === 0) continue;
+
+    const targetPriority = getStateLeaderRecoveryTargetPriority({
+      state: leader,
+      protectedRiderId,
+      teamGeneralClassificationLeaderRiderIds,
+    });
+    const teammateTargetPriorities = [...states.values()]
+      .filter(
+        (candidate) =>
+          candidate.rider.id !== leader.rider.id &&
+          candidate.rider.teamId === leader.rider.teamId &&
+          candidate.group !== "abandoned",
       )
-      .slice(0, 3);
-    if (helpers.length === 0) continue;
+      .map((candidate) =>
+        getStateLeaderRecoveryTargetPriority({
+          state: candidate,
+          protectedRiderId,
+          teamGeneralClassificationLeaderRiderIds,
+        }),
+      )
+      .filter((priority) => priority > 0);
+    const helperLimit = getLeaderRecoveryHelperLimit({
+      targetPriority,
+      teammateTargetPriorities,
+      availableHelperCount: eligibleHelpers.length,
+    });
+    const helpers = eligibleHelpers.slice(0, helperLimit);
+    const recoveryRoll = random();
+    const canFollow = canLeaderFollowRecoveryPace({
+      leaderTerrainRating: getStateSelectionTerrainRating(
+        leader,
+        segment,
+        profileType,
+        hillyClimbLoad,
+      ),
+      fieldTerrainRating,
+      leaderEnergy: leader.energy,
+      leaderForm: leader.rider.form,
+      helperCount: helpers.length,
+      selectionDifficulty,
+      terrain: segment.terrain,
+      surface: segment.surface,
+    });
+    if (!canFollow) {
+      const survivalHelper = eligibleHelpers.at(-1)!;
+      const survivalGroupTime = Math.max(
+        leader.elapsedTimeSeconds,
+        survivalHelper.elapsedTimeSeconds,
+      );
+      const survivalGroupLostTime = Math.max(
+        leader.lostTimeSeconds,
+        survivalHelper.lostTimeSeconds,
+      );
+      leader.leaderRecoveryStatus = "survival";
+      leader.elapsedTimeSeconds = survivalGroupTime;
+      leader.lostTimeSeconds = survivalGroupLostTime;
+      survivalHelper.group = leader.group;
+      survivalHelper.groupSinceSegment = segmentIndex;
+      survivalHelper.elapsedTimeSeconds = survivalGroupTime;
+      survivalHelper.lostTimeSeconds = survivalGroupLostTime;
+      survivalHelper.supportingLeaderId = leader.rider.id;
+      const message = `${leader.rider.name} n’a pas les jambes pour soutenir un retour vers le peloton dans cette difficulté ; ${survivalHelper.rider.name} reste avec lui pour limiter les dégâts, les autres équipiers restent disponibles pour le leader.`;
+      if (commentary.length >= 4) commentary[3] = message;
+      else commentary.push(message);
+      continue;
+    }
 
     const groupTime = Math.max(
       leader.elapsedTimeSeconds,
@@ -5375,7 +5790,7 @@ function deployLeaderRecoverySupport({
     });
 
     leader.leaderRecoveryStatus =
-      random() < successChance ? "active" : "failed";
+      recoveryRoll < successChance ? "active" : "failed";
     leader.elapsedTimeSeconds = groupTime;
     leader.lostTimeSeconds = groupLostTime;
     for (const helper of helpers) {
@@ -5441,6 +5856,10 @@ function resolveSupportedLeaderRecovery({
       state.lostTimeSeconds = Math.max(state.lostTimeSeconds, gapSeconds);
     }
 
+    if (leader.leaderRecoveryStatus === "survival") {
+      continue;
+    }
+
     if (leader.leaderRecoveryStatus === "failed") {
       if (
         segmentIndex === leader.groupSinceSegment + 1 &&
@@ -5452,6 +5871,15 @@ function resolveSupportedLeaderRecovery({
             " ne parvient pas à réduire l’écart avec le peloton.",
         );
       }
+      for (const helper of helpers) {
+        helper.group = "delayed";
+        helper.groupSinceSegment = segmentIndex;
+        helper.lostTimeSeconds = Math.max(
+          0,
+          helper.elapsedTimeSeconds - pelotonTime,
+        );
+      }
+      clearLeaderRecoveryAssignment(leader, states);
       continue;
     }
 
@@ -6406,25 +6834,32 @@ export function findDroppedRiderIdsCaughtByDelayedGroup({
     .filter(
       (rider) =>
         delayedGroupStartElapsedTimeSeconds > rider.startElapsedTimeSeconds &&
-        delayedGroupEndElapsedTimeSeconds <= rider.endElapsedTimeSeconds,
+        delayedGroupEndElapsedTimeSeconds <=
+          rider.endElapsedTimeSeconds + SAME_TIME_MAX_GAP_SECONDS,
     )
     .map((rider) => rider.riderId);
 }
 
-function mergeDroppedRidersCaughtByDelayedGroup({
+function mergeDetachedGroupsAfterCatch({
   states,
+  segment,
   segmentIndex,
-  delayedGroupsAtSegmentStart,
-  droppedElapsedTimeAtSegmentStartByRiderId,
+  profileType,
+  hillyClimbLoad,
+  detachedGroupsAtSegmentStart,
+  detachedElapsedTimeAtSegmentStartByRiderId,
   commentary,
 }: {
   states: Map<string, RiderState>;
+  segment: RaceStageSegment;
   segmentIndex: number;
-  delayedGroupsAtSegmentStart: Array<{
+  profileType: RaceProfileType;
+  hillyClimbLoad: number;
+  detachedGroupsAtSegmentStart: Array<{
     riderIds: Set<string>;
     elapsedTimeSeconds: number;
   }>;
-  droppedElapsedTimeAtSegmentStartByRiderId: Map<string, number>;
+  detachedElapsedTimeAtSegmentStartByRiderId: Map<string, number>;
   commentary: string[];
 }) {
   const peloton = getStatesInGroup(states, "peloton");
@@ -6432,65 +6867,407 @@ function mergeDroppedRidersCaughtByDelayedGroup({
     ? average(peloton.map((state) => state.elapsedTimeSeconds))
     : null;
 
-  for (const delayedGroupAtSegmentStart of delayedGroupsAtSegmentStart) {
-    const delayedGroupAtSegmentEnd = [...delayedGroupAtSegmentStart.riderIds]
+  for (const detachedGroupAtSegmentStart of detachedGroupsAtSegmentStart) {
+    const detachedStatesAtSegmentEnd = [...detachedGroupAtSegmentStart.riderIds]
       .map((riderId) => states.get(riderId))
       .filter((state): state is RiderState =>
-        Boolean(state?.group === "delayed"),
+        Boolean(state?.group === "delayed" || state?.group === "dropped"),
       );
-    if (delayedGroupAtSegmentEnd.length < 2) continue;
+    const detachedGroupsAtSegmentEnd = splitElapsedRiderGroups(
+      detachedStatesAtSegmentEnd,
+      DROPPED_GROUP_MAX_GAP_SECONDS,
+    )
+      .filter((group) => group.length >= 2)
+      .sort(
+        (first, second) =>
+          average(first.map((state) => state.elapsedTimeSeconds)) -
+          average(second.map((state) => state.elapsedTimeSeconds)),
+      );
 
-    const delayedGroupEndElapsedTimeSeconds = average(
-      delayedGroupAtSegmentEnd.map((state) => state.elapsedTimeSeconds),
+    for (const detachedGroupAtSegmentEnd of detachedGroupsAtSegmentEnd) {
+      const detachedGroupEndElapsedTimeSeconds = average(
+        detachedGroupAtSegmentEnd.map((state) => state.elapsedTimeSeconds),
+      );
+      const caughtRiderIds = findDroppedRiderIdsCaughtByDelayedGroup({
+        delayedGroupSize: detachedGroupAtSegmentEnd.length,
+        delayedGroupStartElapsedTimeSeconds:
+          detachedGroupAtSegmentStart.elapsedTimeSeconds,
+        delayedGroupEndElapsedTimeSeconds: detachedGroupEndElapsedTimeSeconds,
+        droppedRiders: [...detachedElapsedTimeAtSegmentStartByRiderId]
+          .map(([riderId, startElapsedTimeSeconds]) => {
+            const state = states.get(riderId);
+            return state &&
+              !detachedGroupAtSegmentStart.riderIds.has(riderId) &&
+              (state.group === "delayed" || state.group === "dropped")
+              ? {
+                  riderId,
+                  startElapsedTimeSeconds,
+                  endElapsedTimeSeconds: state.elapsedTimeSeconds,
+                }
+              : null;
+          })
+          .filter(
+            (
+              rider,
+            ): rider is {
+              riderId: string;
+              startElapsedTimeSeconds: number;
+              endElapsedTimeSeconds: number;
+            } => rider !== null,
+          ),
+      });
+      if (caughtRiderIds.length === 0) continue;
+
+      const catchingGroupTerrainRating = getFrontTerrainRating(
+        detachedGroupAtSegmentEnd,
+        segment,
+        profileType,
+        hillyClimbLoad,
+      );
+      const selectionDifficulty = getSegmentSelectionDifficulty(
+        segment,
+        profileType,
+        hillyClimbLoad,
+      );
+      const physicallyAbleCaughtStates = caughtRiderIds
+        .map((riderId) => states.get(riderId))
+        .filter((state): state is RiderState => Boolean(state))
+        .filter((state) =>
+          canLeaderFollowRecoveryPace({
+            leaderTerrainRating: getStateSelectionTerrainRating(
+              state,
+              segment,
+              profileType,
+              hillyClimbLoad,
+            ),
+            fieldTerrainRating: catchingGroupTerrainRating,
+            leaderEnergy: state.energy,
+            leaderForm: state.rider.form,
+            helperCount: detachedGroupAtSegmentEnd.length,
+            selectionDifficulty,
+            terrain: segment.terrain,
+            surface: segment.surface,
+          }),
+        );
+      const physicallyAbleCaughtRiderIds = new Set(
+        physicallyAbleCaughtStates.map((state) => state.rider.id),
+      );
+      const caughtStates = physicallyAbleCaughtStates.filter(
+        (state) =>
+          !state.supportingLeaderId ||
+          physicallyAbleCaughtRiderIds.has(state.supportingLeaderId),
+      );
+      if (caughtStates.length === 0) continue;
+      const mergedStates = [...detachedGroupAtSegmentEnd, ...caughtStates];
+      const mergedGroupType = detachedGroupAtSegmentEnd.some(
+        (state) => state.group === "delayed",
+      )
+        ? "delayed"
+        : "dropped";
+
+      for (const state of mergedStates) {
+        state.group = mergedGroupType;
+        state.groupSinceSegment = segmentIndex;
+        state.elapsedTimeSeconds = detachedGroupEndElapsedTimeSeconds;
+        state.lostTimeSeconds = Math.max(
+          0,
+          detachedGroupEndElapsedTimeSeconds -
+            (referenceTimeSeconds ?? detachedGroupEndElapsedTimeSeconds),
+        );
+      }
+
+      if (commentary.length < 4) {
+        commentary.push(
+          `${formatRiderList(caughtStates)} ${caughtStates.length > 1 ? "s’intègrent" : "s’intègre"} au groupe retardé qui vient de les reprendre : les deux groupes fusionnent.`,
+        );
+      }
+    }
+  }
+}
+
+export function canRiderStayInGrupetto({
+  riderTerrainRating,
+  grupettoPaceRating,
+  resistanceRating,
+  enduranceRating,
+  energy,
+  form,
+  selectionDifficulty,
+}: {
+  riderTerrainRating: number;
+  grupettoPaceRating: number;
+  resistanceRating: number;
+  enduranceRating: number;
+  energy: number;
+  form: number;
+  selectionDifficulty: number;
+}) {
+  if (energy < 2.5) return false;
+
+  const staminaRating = resistanceRating * 0.55 + enduranceRating * 0.45;
+  const sustainableDeficit = clamp(
+    8.5 -
+      selectionDifficulty * 1.6 +
+      (staminaRating - 60) * 0.09 +
+      (form - 70) * 0.045 +
+      Math.min(40, energy) * 0.055,
+    5.5,
+    15,
+  );
+
+  return grupettoPaceRating - riderTerrainRating <= sustainableDeficit;
+}
+
+export function getGrupettoLossMultiplier({
+  groupSize,
+  terrain,
+  surface,
+  pacePressure,
+}: {
+  groupSize: number;
+  terrain: RaceStageSegment["terrain"];
+  surface: RaceStageSegment["surface"];
+  pacePressure: number;
+}) {
+  if (groupSize < 4) return 1;
+
+  const baseMultiplier =
+    terrain === "climb" ? 0.95 : surface === "cobbles" ? 0.94 : 0.9;
+  const cooperationGain = Math.min(0.09, Math.log2(groupSize) * 0.018);
+  const deadlineEffortGain = clamp(pacePressure, 0, 1) * 0.035;
+  return clamp(
+    baseMultiplier - cooperationGain - deadlineEffortGain,
+    0.8,
+    0.97,
+  );
+}
+
+function organizeGrupetto({
+  states,
+  segment,
+  segmentIndex,
+  segmentCount,
+  raceProgress,
+  profileType,
+  hillyClimbLoad,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  segmentCount: number;
+  raceProgress: number;
+  profileType: RaceProfileType;
+  hillyClimbLoad: number;
+  commentary: string[];
+}) {
+  for (const state of states.values()) {
+    if (
+      state.grupettoStatus === "active" &&
+      state.group !== "delayed" &&
+      state.group !== "dropped"
+    ) {
+      state.grupettoStatus = undefined;
+      state.grupettoPacePressure = undefined;
+    }
+  }
+
+  if (
+    segmentCount < 3 ||
+    raceProgress < 0.16 ||
+    (profileType !== "mountain" && profileType !== "mixed")
+  ) {
+    return;
+  }
+
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+  const pelotonTime = average(
+    peloton.map((state) => state.elapsedTimeSeconds),
+  );
+  const frontTerrainRating = getFrontTerrainRating(
+    peloton,
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
+  const selectionDifficulty = getSegmentSelectionDifficulty(
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
+  const minimumGapSeconds = profileType === "mountain" ? 75 : 105;
+  const detachedStates = [...states.values()].filter(
+    (state) =>
+      (state.group === "delayed" || state.group === "dropped") &&
+      state.elapsedTimeSeconds - pelotonTime >= minimumGapSeconds,
+  );
+  const existingMembers = detachedStates.filter(
+    (state) => state.grupettoStatus === "active",
+  );
+  const existingMemberIds = new Set(
+    existingMembers.map((state) => state.rider.id),
+  );
+  const candidateStates = detachedStates.filter((state) => {
+    if (state.grupettoStatus === "dropped") return false;
+    if (state.grupettoStatus === "active") return true;
+    const terrainRating = getStateSelectionTerrainRating(
+      state,
+      segment,
+      profileType,
+      hillyClimbLoad,
     );
-    const caughtRiderIds = findDroppedRiderIdsCaughtByDelayedGroup({
-      delayedGroupSize: delayedGroupAtSegmentEnd.length,
-      delayedGroupStartElapsedTimeSeconds:
-        delayedGroupAtSegmentStart.elapsedTimeSeconds,
-      delayedGroupEndElapsedTimeSeconds,
-      droppedRiders: [...droppedElapsedTimeAtSegmentStartByRiderId]
-        .map(([riderId, startElapsedTimeSeconds]) => {
-          const state = states.get(riderId);
-          return state?.group === "dropped"
-            ? {
-                riderId,
-                startElapsedTimeSeconds,
-                endElapsedTimeSeconds: state.elapsedTimeSeconds,
-              }
-            : null;
-        })
-        .filter(
-          (
-            rider,
-          ): rider is {
-            riderId: string;
-            startElapsedTimeSeconds: number;
-            endElapsedTimeSeconds: number;
-          } => rider !== null,
-        ),
-    });
-    if (caughtRiderIds.length === 0) continue;
+    const sprinterAllowance = isRaceSprinterRole(state.rider.role) ? 3.5 : 0;
+    return (
+      terrainRating + sprinterAllowance <= frontTerrainRating - 7 ||
+      state.energy < 16
+    );
+  });
+  const candidateIds = new Set(
+    candidateStates.map((state) => state.rider.id),
+  );
 
-    const caughtStates = caughtRiderIds
-      .map((riderId) => states.get(riderId))
-      .filter((state): state is RiderState => Boolean(state));
-
-    for (const state of caughtStates) {
-      state.group = "delayed";
-      state.groupSinceSegment = segmentIndex;
-      state.elapsedTimeSeconds = delayedGroupEndElapsedTimeSeconds;
-      state.lostTimeSeconds = Math.max(
-        0,
-        delayedGroupEndElapsedTimeSeconds -
-          (referenceTimeSeconds ?? delayedGroupEndElapsedTimeSeconds),
-      );
+  for (const helper of detachedStates) {
+    if (
+      helper.supportingLeaderId &&
+      candidateIds.has(helper.supportingLeaderId) &&
+      !candidateIds.has(helper.rider.id)
+    ) {
+      candidateStates.push(helper);
+      candidateIds.add(helper.rider.id);
     }
+  }
 
-    if (commentary.length < 4) {
-      commentary.push(
-        `${formatRiderList(caughtStates)} ${caughtStates.length > 1 ? "s’accrochent" : "s’accroche"} au groupe retardé qui vient de les reprendre.`,
-      );
+  const formationWindowSeconds = clamp(
+    28 + segment.distanceKm * 1.5,
+    38,
+    62,
+  );
+  const candidateGroups = splitElapsedRiderGroups(
+    candidateStates,
+    formationWindowSeconds,
+  ).sort((first, second) => {
+    const activeDifference =
+      second.filter((state) => existingMemberIds.has(state.rider.id)).length -
+      first.filter((state) => existingMemberIds.has(state.rider.id)).length;
+    if (activeDifference !== 0) return activeDifference;
+    if (second.length !== first.length) return second.length - first.length;
+    return (
+      average(second.map((state) => state.elapsedTimeSeconds)) -
+      average(first.map((state) => state.elapsedTimeSeconds))
+    );
+  });
+  const selectedGroup = candidateGroups[0] ?? [];
+  const minimumGroupSize = existingMembers.length > 0 ? 3 : 5;
+
+  if (selectedGroup.length < minimumGroupSize) {
+    for (const member of existingMembers) {
+      member.grupettoStatus = "dropped";
+      member.grupettoPacePressure = undefined;
     }
+    return;
+  }
+
+  const orderedTerrainRatings = selectedGroup
+    .map((state) =>
+      getStateSelectionTerrainRating(
+        state,
+        segment,
+        profileType,
+        hillyClimbLoad,
+      ),
+    )
+    .sort((first, second) => first - second);
+  const grupettoPaceRating =
+    orderedTerrainRatings[
+      Math.floor((orderedTerrainRatings.length - 1) * 0.68)
+    ] ?? frontTerrainRating;
+  const physicallyAbleStates = selectedGroup.filter((state) =>
+    canRiderStayInGrupetto({
+      riderTerrainRating: getStateSelectionTerrainRating(
+        state,
+        segment,
+        profileType,
+        hillyClimbLoad,
+      ),
+      grupettoPaceRating,
+      resistanceRating: state.rider.ratings.resistance,
+      enduranceRating: state.rider.ratings.endurance,
+      energy: state.energy,
+      form: state.rider.form,
+      selectionDifficulty,
+    }),
+  );
+  const physicallyAbleIds = new Set(
+    physicallyAbleStates.map((state) => state.rider.id),
+  );
+  const viableMembers = physicallyAbleStates.filter(
+    (state) =>
+      !state.supportingLeaderId ||
+      physicallyAbleIds.has(state.supportingLeaderId),
+  );
+  const viableMemberIds = new Set(
+    viableMembers.map((state) => state.rider.id),
+  );
+  const droppedMembers = existingMembers.filter(
+    (state) => !viableMemberIds.has(state.rider.id),
+  );
+
+  for (const member of droppedMembers) {
+    member.grupettoStatus = "dropped";
+    member.grupettoPacePressure = undefined;
+  }
+  if (viableMembers.length < minimumGroupSize) return;
+
+  const orderedTimes = viableMembers
+    .map((state) => state.elapsedTimeSeconds)
+    .sort((first, second) => first - second);
+  const slowestTime = orderedTimes.at(-1) ?? pelotonTime;
+  const fastestTime = orderedTimes[0] ?? slowestTime;
+  const cooperationRecoverySeconds =
+    existingMembers.length >= 3
+      ? Math.min(8, Math.max(0, slowestTime - fastestTime) * 0.35)
+      : 0;
+  const grupettoTime = slowestTime - cooperationRecoverySeconds;
+  const projectedWinnerTime = pelotonTime / Math.max(0.16, raceProgress);
+  const projectedAllowance = getStageTimeLimitAllowanceSeconds({
+    winnerElapsedTimeSeconds: projectedWinnerTime,
+    profileType,
+    stageType: "road",
+  });
+  const safeGapTarget = projectedAllowance * raceProgress * 0.9;
+  const grupettoGap = Math.max(0, grupettoTime - pelotonTime);
+  const pacePressure = clamp(
+    0.32 +
+      (grupettoGap - safeGapTarget) /
+        Math.max(120, safeGapTarget * 0.3),
+    0.2,
+    1,
+  );
+  const wasAlreadyFormed = existingMembers.length >= 3;
+
+  for (const member of viableMembers) {
+    const wasActive = member.grupettoStatus === "active";
+    member.group = "dropped";
+    member.groupSinceSegment = segmentIndex;
+    member.elapsedTimeSeconds = grupettoTime;
+    member.lostTimeSeconds = grupettoGap;
+    member.grupettoStatus = "active";
+    member.grupettoPacePressure = pacePressure;
+    if (wasActive) {
+      member.energy = Math.max(0, member.energy - (0.15 + pacePressure * 0.35));
+    }
+  }
+
+  if (!wasAlreadyFormed && commentary.length < 4) {
+    commentary.push(
+      `Un grupetto de ${viableMembers.length} coureurs se forme loin des meilleurs et règle son allure pour rester dans les délais.`,
+    );
+  }
+  if (droppedMembers.length > 0 && commentary.length < 4) {
+    commentary.push(
+      `${formatRiderList(droppedMembers)} ${droppedMembers.length > 1 ? "lâchent" : "lâche"} le grupetto et risquent désormais de terminer hors délais.`,
+    );
   }
 }
 
@@ -8026,8 +8803,32 @@ function buildRoadSnapshot({
   const secondaryBreakaway = getStatesInGroup(states, "breakaway_2");
   const chase = getStatesInGroup(states, "chase");
   const peloton = getStatesInGroup(states, "peloton");
-  const delayed = getStatesInGroup(states, "delayed");
-  const dropped = getStatesInGroup(states, "dropped");
+  const activeGrupetto = [...states.values()].filter(
+    (state) =>
+      state.grupettoStatus === "active" &&
+      (state.group === "delayed" || state.group === "dropped"),
+  );
+  const activeGrupettoRiderIds = new Set(
+    activeGrupetto.map((state) => state.rider.id),
+  );
+  const grupettoDropouts = [...states.values()].filter(
+    (state) =>
+      state.grupettoStatus === "dropped" &&
+      (state.group === "delayed" || state.group === "dropped"),
+  );
+  const grupettoDropoutRiderIds = new Set(
+    grupettoDropouts.map((state) => state.rider.id),
+  );
+  const delayed = getStatesInGroup(states, "delayed").filter(
+    (state) =>
+      !activeGrupettoRiderIds.has(state.rider.id) &&
+      !grupettoDropoutRiderIds.has(state.rider.id),
+  );
+  const dropped = getStatesInGroup(states, "dropped").filter(
+    (state) =>
+      !activeGrupettoRiderIds.has(state.rider.id) &&
+      !grupettoDropoutRiderIds.has(state.rider.id),
+  );
   const groups: RaceGroupSnapshot[] = [];
   const hasBreakaway = breakaway.length > 0 && breakawayGapSeconds > 0;
   const projectedPeloton = hasBreakaway ? peloton : [...breakaway, ...peloton];
@@ -8085,6 +8886,47 @@ function buildRoadSnapshot({
         hasBreakaway ? Math.max(0, Math.round(breakawayGapSeconds)) : 0,
       ),
     );
+  }
+
+  if (activeGrupetto.length > 0) {
+    groups.push(
+      toGroupSnapshot(
+        "dropped",
+        "Grupetto · course au délai",
+        activeGrupetto,
+        Math.round(
+          fieldGapToLeaderSeconds +
+            getElapsedGroupGapSeconds(
+              activeGrupetto,
+              fieldReferenceTimeSeconds,
+            ),
+        ),
+      ),
+    );
+  }
+
+  if (grupettoDropouts.length > 0) {
+    splitElapsedRiderGroups(
+      grupettoDropouts,
+      DROPPED_GROUP_MAX_GAP_SECONDS,
+    ).forEach((dropoutGroup, index) => {
+      groups.push(
+        toGroupSnapshot(
+          "dropped",
+          index === 0
+            ? "Lâchés du grupetto"
+            : `Lâchés du grupetto ${index + 1}`,
+          dropoutGroup,
+          Math.round(
+            fieldGapToLeaderSeconds +
+              getElapsedGroupGapSeconds(
+                dropoutGroup,
+                fieldReferenceTimeSeconds,
+              ),
+          ),
+        ),
+      );
+    });
   }
 
   if (delayed.length > 0) {
