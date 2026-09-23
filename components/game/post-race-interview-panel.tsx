@@ -251,9 +251,6 @@ function ZoneMixteEventCard({
                 <span className="mt-1 block text-[11px] font-semibold leading-4 text-[#6F6650]">
                   {choice.description}
                 </span>
-                <span className="mt-1.5 block text-[10px] font-black leading-4 text-[#176951]">
-                  {choice.impactPreview}
-                </span>
               </span>
             </span>
           </label>
@@ -280,7 +277,7 @@ function ZoneMixteEventCard({
                 Ne pas réagir
               </span>
               <span className="mt-1 block text-[11px] font-semibold text-[#6F6650]">
-                L’organisation gère la situation. Aucun effet.
+                L’organisation gère la situation.
               </span>
             </span>
           </span>
