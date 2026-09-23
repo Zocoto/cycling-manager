@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { useLocale } from "@/components/i18n/locale-provider";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import {
+  shouldOpenTutorialCenter,
+  TUTORIAL_CENTER_QUERY_PARAMETER,
+} from "@/lib/tutorial/tutorial-center-route";
 
 const loadTutorialCenterMenu = () =>
   import("@/components/tutorial/tutorial-center-menu").then(
@@ -19,11 +24,31 @@ const DeferredTutorialCenterMenu = dynamic(loadTutorialCenterMenu, {
 export function TutorialCenterLauncher() {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const openRequested = shouldOpenTutorialCenter(searchParams);
   const [activated, setActivated] = useState(false);
   const { activeTutorial, isPending, progressByTutorialKey } = useTutorial();
 
-  if (activated) {
-    return <DeferredTutorialCenterMenu initiallyOpen />;
+  const closeMenu = useCallback(() => {
+    setActivated(false);
+
+    if (!openRequested) return;
+
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    nextSearchParams.delete(TUTORIAL_CENTER_QUERY_PARAMETER);
+    const nextQuery = nextSearchParams.toString();
+
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }, [openRequested, pathname, router, searchParams]);
+
+  if (activated || openRequested) {
+    return (
+      <DeferredTutorialCenterMenu initiallyOpen onClose={closeMenu} />
+    );
   }
 
   const tutorialIsActive = Boolean(activeTutorial);

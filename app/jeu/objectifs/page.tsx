@@ -26,6 +26,7 @@ import {
 } from "@/lib/game/objectives";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { TUTORIAL_CENTER_ROUTE } from "@/lib/tutorial/tutorial-center-route";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
 import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
@@ -94,7 +95,10 @@ const groupLinks: Record<string, { href: string; label: string }> = {
   training: { href: "/jeu/entrainement", label: "Gérer l’entraînement" },
   reconnaissance: { href: "/jeu/entrainement", label: "Planifier un stage" },
   health: { href: "/jeu/centre-de-soin", label: "Voir le centre médical" },
-  tutorials: { href: "/jeu", label: "Ouvrir les didacticiels" },
+  tutorials: {
+    href: TUTORIAL_CENTER_ROUTE,
+    label: "Ouvrir le centre des didacticiels",
+  },
   infrastructures: {
     href: "/jeu/infrastructures",
     label: "Voir les infrastructures",
@@ -440,7 +444,13 @@ function ObjectiveCard({
 }) {
   const ready = objective.completed && !objective.claimedAt;
   const claimed = Boolean(objective.claimedAt);
-  const groupLink = groupLinks[objective.group];
+  // Cet objectif historique est encore rattaché au groupe `onboarding` en
+  // base. Son action doit néanmoins ouvrir le centre des didacticiels, pas le
+  // profil du Directeur Sportif associé au reste de l'onboarding.
+  const groupLink =
+    objective.key === "complete_tutorial"
+      ? groupLinks.tutorials
+      : groupLinks[objective.group];
   const trophyReward = getAchievementTrophyForObjective(objective.key);
   const longTermTier = getGameObjectiveLongTermTier(objective.key);
 

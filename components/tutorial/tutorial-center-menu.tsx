@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/app-link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
@@ -26,8 +26,12 @@ import { SPONSORING_TUTORIAL_KEY } from "@/lib/tutorial/sponsoring";
 import { getContextualTutorialKey } from "@/lib/tutorial/contextual-route";
 import type { TutorialProgressRow } from "@/types/tutorial";
 
-export function TutorialCenterMenu({ initiallyOpen = false }: {
+export function TutorialCenterMenu({
+  initiallyOpen = false,
+  onClose,
+}: {
   initiallyOpen?: boolean;
+  onClose?: () => void;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -148,6 +152,11 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     sponsoringProgress,
   ].filter((progress) => progress?.status === "completed").length;
 
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    onClose?.();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -162,7 +171,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
       const target = event.target;
 
       if (target instanceof Node && !rootRef.current?.contains(target)) {
-        setOpen(false);
+        closeMenu();
       }
     }
 
@@ -172,7 +181,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
       }
 
       event.preventDefault();
-      setOpen(false);
+      closeMenu();
       triggerRef.current?.focus();
     }
 
@@ -184,7 +193,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [closeMenu, open]);
 
   async function launchBaseTutorial() {
     const started = await startTutorial({
@@ -194,7 +203,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -206,7 +215,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -218,7 +227,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -230,7 +239,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -242,7 +251,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -254,7 +263,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -266,7 +275,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -278,7 +287,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -290,7 +299,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -302,7 +311,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -314,7 +323,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
 
@@ -328,7 +337,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     });
 
     if (started) {
-      setOpen(false);
+      closeMenu();
     }
   }
   return (
@@ -363,7 +372,12 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
         }
         disabled={disabled}
         onClick={() => {
-          setOpen((current) => !current);
+          if (open) {
+            closeMenu();
+            return;
+          }
+
+          setOpen(true);
         }}
         className="relative inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#FFFDF4]/90 bg-[#0B302B] text-sm font-extrabold text-[#FFFDF4] shadow-[0_14px_38px_rgba(7,26,23,0.36),0_0_0_3px_rgba(242,201,76,0.34)] transition hover:-translate-y-0.5 hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#D94B57]/55 disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -397,7 +411,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
           aria-label={isEnglish ? "Close the tutorial centre" : "Fermer le centre des didacticiels"}
           className="fixed inset-0 z-[130] bg-[#071A17]/45 backdrop-blur-[1px] sm:hidden"
           onClick={() => {
-            setOpen(false);
+            closeMenu();
             triggerRef.current?.focus();
           }}
         />
@@ -433,7 +447,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
                   aria-label={isEnglish ? "Close the tutorial centre" : "Fermer le centre des didacticiels"}
                   title={isEnglish ? "Close" : "Fermer"}
                   onClick={() => {
-                    setOpen(false);
+                    closeMenu();
                     triggerRef.current?.focus();
                   }}
                   className="grid h-8 w-8 place-items-center rounded-lg border border-[#315B3E]/15 bg-white/70 text-lg font-black leading-none text-[#315B3E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
