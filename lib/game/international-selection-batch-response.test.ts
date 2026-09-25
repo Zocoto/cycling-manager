@@ -48,7 +48,10 @@ describe("bulk international selection responses", () => {
   });
 
   it("keeps unanswered invitations pending and moves processed ones to history", () => {
-    expect(page).toContain("splitDirectorInternationalSelections(selections)");
+    expect(page).toContain("splitDirectorInternationalSelections(");
+    expect(page).toContain(
+      'audience === "professional" ? selections : []',
+    );
     expect(page).toContain("pendingSelections.map");
     expect(page).toContain("Historique des convocations");
     expect(page).toContain("historicalSelections.map");

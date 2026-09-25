@@ -38,6 +38,7 @@ export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
           </p>
           <form action={answerFederationCallupAction} className="mt-5 flex flex-wrap gap-3">
             <input type="hidden" name="memberId" value={callup.member_id} />
+            <input type="hidden" name="audience" value={callup.rider_category} />
             <InternationalSelectionSubmitButton variant="confirm" pendingLabel="Enregistrement…" name="decision" value="confirm">Confirmer la participation</InternationalSelectionSubmitButton>
             <InternationalSelectionSubmitButton variant="decline" pendingLabel="Enregistrement…" name="decision" value="decline">Refuser</InternationalSelectionSubmitButton>
           </form>

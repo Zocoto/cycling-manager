@@ -27,6 +27,10 @@ describe("federation call-up assistant integration", () => {
       'supabase.rpc("get_current_director_federation_callups")',
     );
     expect(selectionPage).toContain("<FederationCallupCard");
+    expect(selectionPage).toContain("filterFederationCallupsByCategory");
+    expect(selectionPage).toContain(
+      "/jeu/selections-internationales?categorie=junior",
+    );
   });
 
   it("lets the authenticated owner answer a published federation call-up", () => {
@@ -38,5 +42,6 @@ describe("federation call-up assistant integration", () => {
     );
     expect(migration).toContain("director.auth_user_id = (select auth.uid())");
     expect(migration).toContain("selection_list.published_at is not null");
+    expect(selectionActions).toContain('audience: z.enum(["professional", "junior"])');
   });
 });

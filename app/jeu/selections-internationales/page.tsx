@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { answerInternationalSelectionsAction } from "./actions";
 import { GameHeader } from "@/components/game/game-header";
 import { FederationCallupCard } from "@/components/game/federation-callup-card";
-import { splitFederationCallups, type FederationCallup } from "@/lib/game/federation-callups";
+import {
+  filterFederationCallupsByCategory,
+  splitFederationCallups,
+  type FederationCallup,
+} from "@/lib/game/federation-callups";
 import { InternationalSelectionSubmitButton } from "@/components/game/international-selection-submit-button";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,6 +35,7 @@ type InternationalSelectionsPageProps = {
   searchParams: Promise<{
     decision?: string | string[];
     erreur?: string | string[];
+    categorie?: string | string[];
   }>;
 };
 
@@ -88,6 +93,11 @@ export default async function InternationalSelectionsPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
+  const audience =
+    readSingleSearchParam(resolvedSearchParams.categorie) === "junior"
+      ? "junior"
+      : "professional";
+
   const [headerData, selections, federationResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentDirectorInternationalSelections({
@@ -98,10 +108,17 @@ export default async function InternationalSelectionsPage({
   ]);
 
   if (federationResult.error) console.error("Chargement des convocations fédérales :", federationResult.error.message);
-  const federation = splitFederationCallups(Array.isArray(federationResult.data) ? federationResult.data : []);
+  const federation = splitFederationCallups(
+    filterFederationCallupsByCategory(
+      Array.isArray(federationResult.data) ? federationResult.data : [],
+      audience,
+    ),
+  );
 
   const { pendingSelections, historicalSelections } =
-    splitDirectorInternationalSelections(selections);
+    splitDirectorInternationalSelections(
+      audience === "professional" ? selections : [],
+    );
   const pendingCount = pendingSelections.length + federation.pending.length;
   const decision = readSingleSearchParam(resolvedSearchParams.decision);
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
@@ -132,17 +149,15 @@ export default async function InternationalSelectionsPage({
           <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#F2C94C]">
-                Équipes nationales · Convocations
+                Équipes nationales · Convocations {audience === "junior" ? "juniors" : "pros"}
               </p>
               <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
-                Sélections internationales
+                Sélections internationales {audience === "junior" ? "juniors" : "professionnelles"}
               </h1>
               <p className="mt-4 text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
-                Répondez dès la publication des convocations par le président.
-                Une participation confirmée ne peut plus être retirée de sa liste.
-                Pour les CC et Mondiaux, les nations sont figées à J8 puis les
-                convocations automatiques sont envoyées aux DS. Sans réponse
-                explicite avant la clôture, le coureur n’est pas mobilisé.
+                {audience === "junior"
+                  ? "Répondez aux convocations des CM, CC et Nations Cup juniors sans les mélanger avec l’effectif professionnel. Une participation confirmée ne peut plus être retirée de la liste fédérale."
+                  : "Répondez aux convocations professionnelles dès leur publication. Une participation confirmée ne peut plus être retirée de la liste fédérale. Sans réponse explicite avant la clôture, le coureur n’est pas mobilisé."}
               </p>
             </div>
             <div className="grid gap-3">
@@ -150,7 +165,11 @@ export default async function InternationalSelectionsPage({
                 {pendingCount} décision{pendingCount > 1 ? "s" : ""} à traiter
               </span>
               <Link
-                href={INTERNATIONAL_CHAMPIONSHIPS_HREF}
+                href={
+                  audience === "junior"
+                    ? "/jeu/championnats-internationaux/juniors"
+                    : INTERNATIONAL_CHAMPIONSHIPS_HREF
+                }
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-sm font-black text-[#183F37] transition hover:bg-[#FFDB63]"
               >
                 Profils et startlists →
@@ -158,6 +177,32 @@ export default async function InternationalSelectionsPage({
             </div>
           </div>
         </header>
+
+        <nav
+          className="mt-5 grid gap-3 rounded-2xl border border-[#315B3E]/15 bg-white p-2 sm:grid-cols-2"
+          aria-label="Catégorie des sélections internationales"
+        >
+          <Link
+            href="/jeu/selections-internationales"
+            className={`rounded-xl px-4 py-3 text-center text-sm font-black transition ${
+              audience === "professional"
+                ? "bg-[#176951] text-white"
+                : "text-[#315B3E] hover:bg-[#EEF8F4]"
+            }`}
+          >
+            Convocations professionnelles
+          </Link>
+          <Link
+            href="/jeu/selections-internationales?categorie=junior"
+            className={`rounded-xl px-4 py-3 text-center text-sm font-black transition ${
+              audience === "junior"
+                ? "bg-[#176951] text-white"
+                : "text-[#315B3E] hover:bg-[#EEF8F4]"
+            }`}
+          >
+            Convocations juniors
+          </Link>
+        </nav>
 
         {decision === "confirmee" ? (
           <FeedbackBanner tone="success">

@@ -142,6 +142,7 @@ export function SeasonCalendar({
     () =>
       calendar.editions.filter(
         (edition) =>
+          edition.isJuniorChampionship !== true &&
           (edition.competitionType === "standard" ||
             isFederationSelectionEdition(edition)) &&
           isRaceEditionPast({
@@ -934,6 +935,7 @@ export function getVisibleCalendarRaceEditions({
   return consolidateFederationCalendarEditions(
     editions.filter(
       (edition) =>
+        edition.isJuniorChampionship !== true &&
         (edition.competitionType === "standard" ||
           isFederationSelectionEdition(edition)) &&
         (showPast || !isRaceEditionPast({ edition, currentDayNumber })),

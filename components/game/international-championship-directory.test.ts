@@ -17,6 +17,13 @@ const pageSource = readFileSync(
   new URL("../../app/jeu/championnats-internationaux/page.tsx", import.meta.url),
   "utf8",
 );
+const juniorPageSource = readFileSync(
+  new URL(
+    "../../app/jeu/championnats-internationaux/juniors/page.tsx",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const directorySource = readFileSync(
   new URL("./international-championship-directory.tsx", import.meta.url),
   "utf8",
@@ -54,6 +61,71 @@ describe("annuaire des championnats internationaux", () => {
     ]);
   });
 
+  it("sépare strictement les annuaires professionnels et juniors", () => {
+    const professionalWorld = createEdition(
+      "world-pro-road",
+      "world_championship",
+      27,
+      "late",
+    );
+    const juniorWorld = createEdition(
+      "world-junior-road",
+      "world_championship",
+      27,
+      "late",
+    );
+    juniorWorld.isJuniorChampionship = true;
+    const juniorContinental = createEdition(
+      "continental-junior-road",
+      "continental_championship",
+      22,
+      "late",
+    );
+    juniorContinental.isJuniorChampionship = true;
+    const juniorNationsCup = createEdition(
+      "nations-cup-juniors",
+      "nations_cup",
+      24,
+      "late",
+    );
+    juniorNationsCup.isJuniorChampionship = true;
+    const calendar = createCalendar([
+      professionalWorld,
+      juniorWorld,
+      juniorContinental,
+      juniorNationsCup,
+    ]);
+
+    const professionalGroups = buildInternationalChampionshipGroups(
+      calendar,
+      "professional",
+    );
+    const juniorGroups = buildInternationalChampionshipGroups(
+      calendar,
+      "junior",
+    );
+
+    expect(
+      professionalGroups.flatMap((group) =>
+        group.editions.map((edition) => edition.slug),
+      ),
+    ).toEqual(["world-pro-road"]);
+    expect(juniorGroups.map((group) => group.key)).toEqual([
+      "continental_championship",
+      "world_championship",
+      "nations_cup",
+    ]);
+    expect(
+      juniorGroups.flatMap((group) =>
+        group.editions.map((edition) => edition.slug),
+      ),
+    ).toEqual([
+      "continental-junior-road",
+      "world-junior-road",
+      "nations-cup-juniors",
+    ]);
+  });
+
   it("expose des liens distincts vers l'annuaire, les détails et la startlist", () => {
     expect(getInternationalChampionshipDirectoryHref("africa-tt")).toBe(
       "/jeu/championnats-internationaux#africa-tt",
@@ -66,7 +138,10 @@ describe("annuaire des championnats internationaux", () => {
     expect(directorySource).toContain('role="tablist"');
     expect(directorySource).toContain('"championnats-continentaux"');
     expect(directorySource).toContain("Voir les résultats juniors");
-    expect(pageSource).toContain("includeJuniorChampionships: true");
+    expect(pageSource).toContain("includeJuniorChampionships: false");
+    expect(pageSource).toContain('audience="professional"');
+    expect(juniorPageSource).toContain("includeJuniorChampionships: true");
+    expect(juniorPageSource).toContain('audience="junior"');
     expect(pageSource).toContain("Voir mes convocations");
   });
 

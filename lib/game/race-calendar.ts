@@ -242,10 +242,11 @@ const FEDERATION_CALENDAR_GROUPS: FederationCalendarGroupConfiguration[] = [
     name: "Championnats continentaux",
     shortName: "CC",
     href: "/jeu/championnats-internationaux#championnats-continentaux",
-    profileLabel: "Route & CLM · 5 continents · Pros & juniors",
-    locationLabel: "Pros & juniors",
+    profileLabel: "Route & CLM · 5 continents",
+    locationLabel: "Sélections professionnelles",
     matches: (edition) =>
-      edition.competitionType === "continental_championship",
+      edition.competitionType === "continental_championship" &&
+      edition.isJuniorChampionship !== true,
   },
   {
     kind: "nations_cup",
@@ -268,10 +269,13 @@ const FEDERATION_CALENDAR_GROUPS: FederationCalendarGroupConfiguration[] = [
 export function consolidateFederationCalendarEditions(
   editions: readonly RaceCalendarEdition[],
 ): RaceCalendarEdition[] {
+  const professionalEditions = editions.filter(
+    (edition) => edition.isJuniorChampionship !== true,
+  );
   const groupedEditionIds = new Set<string>();
   const groupedEditions = FEDERATION_CALENDAR_GROUPS.flatMap(
     (configuration): RaceCalendarEdition[] => {
-      const sourceEditions = editions
+      const sourceEditions = professionalEditions
         .filter(configuration.matches)
         .sort(compareCalendarEditionsBySchedule);
       if (sourceEditions.length === 0) return [];
@@ -283,7 +287,9 @@ export function consolidateFederationCalendarEditions(
   );
 
   return [
-    ...editions.filter((edition) => !groupedEditionIds.has(edition.id)),
+    ...professionalEditions.filter(
+      (edition) => !groupedEditionIds.has(edition.id),
+    ),
     ...groupedEditions,
   ].sort(compareCalendarEditionsBySchedule);
 }

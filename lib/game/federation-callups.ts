@@ -32,6 +32,13 @@ export function splitFederationCallups(callups: FederationCallup[]) {
     history: callups.filter((callup) => callup.response_status !== "pending" || !callup.can_respond),
   };
 }
+
+export function filterFederationCallupsByCategory(
+  callups: FederationCallup[],
+  category: FederationCallup["rider_category"],
+) {
+  return callups.filter((callup) => callup.rider_category === category);
+}
 export function formatFederationSelectionDeadline(value: string | null) {
   return value ? new Intl.DateTimeFormat("fr-FR", {
     timeZone: "Europe/Paris", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",

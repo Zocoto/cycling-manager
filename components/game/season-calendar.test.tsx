@@ -382,7 +382,7 @@ describe("SeasonCalendar", () => {
     );
   });
 
-  it("affiche une seule entrée pour les championnats continentaux pros et juniors", () => {
+  it("affiche une seule entrée pour les championnats continentaux pros sans les juniors", () => {
     const continentalEditions = Array.from({ length: 10 }, (_, index) => {
       const edition = createEdition({
         id: `continental-${index + 1}`,
@@ -434,7 +434,7 @@ describe("SeasonCalendar", () => {
       name: "Championnats continentaux",
       calendarGroup: {
         kind: "continental_championships",
-        editionCount: 20,
+        editionCount: 10,
       },
     });
 
@@ -473,7 +473,7 @@ describe("SeasonCalendar", () => {
     );
 
     expect(markup).toContain("Championnats continentaux");
-    expect(markup).toContain("20 épreuves");
+    expect(markup).toContain("10 épreuves");
     expect(markup).not.toContain("CC 1");
     expect(markup).not.toContain("CC junior 1");
     expect(markup).not.toContain("Ancien repère CC");
@@ -482,7 +482,7 @@ describe("SeasonCalendar", () => {
     );
   });
 
-  it("ouvre un championnat junior directement sur son classement officiel", () => {
+  it("retire CM, CC et Nations Cup juniors du calendrier professionnel", () => {
     const juniorChampionship = createEdition({
       id: "mondial-junior-route",
       name: "Championnat du monde junior — Route",
@@ -501,6 +501,27 @@ describe("SeasonCalendar", () => {
     juniorChampionship.minimumRosterSize = 1;
     juniorChampionship.maximumRosterSize = 6;
     juniorChampionship.currentTeamInternationalRiderCount = 1;
+    const juniorContinental = {
+      ...juniorChampionship,
+      id: "continental-junior-route",
+      raceId: "continental-junior-route",
+      slug: "continental-junior-route",
+      name: "Championnat continental junior — Route",
+      competitionType: "continental_championship" as const,
+    };
+    const juniorNationsCup = {
+      ...juniorChampionship,
+      id: "nations-cup-juniors",
+      raceId: "nations-cup-juniors",
+      slug: "nations-cup-juniors",
+      name: "Nations Cup juniors",
+      competitionType: "nations_cup" as const,
+    };
+    const juniorEditions = [
+      juniorChampionship,
+      juniorContinental,
+      juniorNationsCup,
+    ];
 
     expect(getCalendarEditionHref(juniorChampionship, 20)).toBe(
       "/jeu/resultats-juniors/mondial-junior-route",
@@ -524,22 +545,24 @@ describe("SeasonCalendar", () => {
             label: null,
           })),
           events: [],
-          editions: [juniorChampionship],
+          editions: juniorEditions,
         }}
         reputationPoints={0}
         nowIso="2026-08-20T08:00:00Z"
       />,
     );
 
-    expect(markup).toContain("Championnat du monde junior");
-    expect(markup).toContain("Résultats juniors");
-    expect(markup).toContain(
-      "/jeu/resultats-juniors/mondial-junior-route",
-    );
-    expect(markup).toContain("✓ 1");
-    expect(markup).toContain(
-      "1 coureur de votre équipe retenu en sélection nationale",
-    );
+    expect(markup).not.toContain("Championnat du monde junior");
+    expect(markup).not.toContain("Championnat continental junior");
+    expect(markup).not.toContain("Nations Cup juniors");
+    expect(markup).not.toContain("Résultats juniors");
+    expect(
+      getVisibleCalendarRaceEditions({
+        editions: juniorEditions,
+        currentDayNumber: 20,
+        showPast: false,
+      }),
+    ).toEqual([]);
   });
 
   it("retire les courses révolues du calendrier", () => {

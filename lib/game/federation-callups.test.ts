@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatFederationSelectionDeadline, splitFederationCallups, type FederationCallup } from "./federation-callups";
+import {
+  filterFederationCallupsByCategory,
+  formatFederationSelectionDeadline,
+  splitFederationCallups,
+  type FederationCallup,
+} from "./federation-callups";
 
 const callup: FederationCallup = {
   member_id: "member", country_code: "BE", country_name: "Belgique", slot_key: "cc-pro-road",
@@ -20,6 +25,24 @@ describe("federation call-ups", () => {
       { ...callup, response_status: "declined" as const },
     ];
     expect(splitFederationCallups(history)).toEqual({ pending: [], history });
+  });
+  it("keeps professional and junior invitations on separate pages", () => {
+    const junior = {
+      ...callup,
+      member_id: "junior-member",
+      rider_category: "junior" as const,
+      competition_label: "CM Juniors · Route",
+    };
+
+    expect(
+      filterFederationCallupsByCategory(
+        [callup, junior],
+        "professional",
+      ),
+    ).toEqual([callup]);
+    expect(
+      filterFederationCallupsByCategory([callup, junior], "junior"),
+    ).toEqual([junior]);
   });
   it("uses Paris time for deadlines, including winter time", () => {
     expect(formatFederationSelectionDeadline("2026-09-25T11:00:00Z")).toContain("13:00");

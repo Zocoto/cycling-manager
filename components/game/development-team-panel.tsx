@@ -270,9 +270,15 @@ function DevelopmentCalendar({ overview }: { overview: DevelopmentTeamOverview }
     <section>
       <SectionTitle
         eyebrow="Calendrier U19"
-        title="Dix rendez-vous, des résultats au fil des jours"
-        detail="Chaque étape d’un tour est publiée le jour où elle se dispute. Une sélection peut être remplacée jusqu’à la veille du départ."
+        title="Le programme complet de la relève"
+        detail="Les courses de club se composent ici ; les CM, CC et Nations Cup juniors relèvent des sélections fédérales. Chaque étape d’un tour est publiée le jour où elle se dispute."
       />
+      <Link
+        href="/jeu/championnats-internationaux/juniors"
+        className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-[#176951]/25 bg-white px-4 text-xs font-black uppercase tracking-[0.08em] text-[#176951] transition hover:bg-[#EEF8F4]"
+      >
+        Profils et sélections internationales juniors →
+      </Link>
       <div className="mt-4 space-y-3">
         {overview.races.map((race) => (
           <RaceRegistrationCard key={race.id} race={race} overview={overview} />
@@ -307,6 +313,7 @@ function RaceRegistrationCard({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {race.isWorldChampionship ? <Badge tone="world">Mondial junior</Badge> : null}
+            {race.competitionType.startsWith("continental_") ? <Badge tone="world">CC junior</Badge> : null}
             {race.competitionType === "nations_cup_junior" ? <Badge tone="world">Nations Cup juniors</Badge> : null}
             {race.competitionType.startsWith("national_") ? <Badge tone="national">CN junior</Badge> : null}
             {race.raceFormat === "stage_race" ? <Badge tone="tour">Mini-tour</Badge> : null}
@@ -315,7 +322,7 @@ function RaceRegistrationCard({
             </Badge>
           </div>
           <h3 className="mt-2 text-xl font-black text-[#183F37]">
-            {race.competitionType === "nations_cup_junior" ? (
+            {isJuniorFederationSelectionRace(race) ? (
               <Link href={`/jeu/resultats-juniors/${encodeURIComponent(race.slug)}`} className="transition hover:text-[#176951] hover:underline">
                 {race.name}
               </Link>
@@ -567,7 +574,7 @@ export function DevelopmentResultRiderLink({
 function CalendarPreview({ races }: { races: DevelopmentRace[] }) {
   return (
     <section className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-sm sm:p-6">
-      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} rendez-vous juniors. Les courses DevTeam se composent ici ; la Nations Cup juniors est signalée comme sélection fédérale.`} />
+      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} rendez-vous juniors. Les courses DevTeam se composent ici ; les CM, CC et Nations Cup juniors sont signalés comme sélections fédérales.`} />
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {races.map((race) => (
           <CalendarPreviewRace key={race.id} race={race} />
@@ -590,7 +597,9 @@ function CalendarPreviewRace({ race }: { race: DevelopmentRace }) {
       <p className="mt-1 text-xs font-black text-[#183F37]">{race.shortName}</p>
       <p className="mt-1 text-[9px] font-bold text-[#789087]">
         {race.isWorldChampionship
-          ? "Championnat du monde"
+          ? "Championnat du monde junior · sélection fédérale"
+          : race.competitionType.startsWith("continental_")
+            ? "Championnat continental junior · sélection fédérale"
           : race.competitionType === "nations_cup_junior"
             ? "Nations Cup juniors · sélection fédérale"
           : race.competitionType.startsWith("national_")
@@ -620,7 +629,7 @@ function RaceStatus({
   if (race.status === "completed") return <span className="rounded-full bg-[#E5F4ED] px-3 py-2 text-[10px] font-black uppercase text-[#176951]">Résultats publiés</span>;
   if (race.raceFormat === "stage_race" && currentDayNumber >= race.startDayNumber && currentDayNumber < race.endDayNumber) return <span className="rounded-full bg-[#E4ECFF] px-3 py-2 text-[10px] font-black uppercase text-[#234B9A]">Tour en cours</span>;
   if (currentDayNumber >= race.endDayNumber) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#60756E]">Résultats en cours</span>;
-  if (race.competitionType === "nations_cup_junior") return <span className="rounded-full bg-[#E6D9F5] px-3 py-2 text-[10px] font-black uppercase text-[#5A2D82]">Sélection fédérale</span>;
+  if (isJuniorFederationSelectionRace(race)) return <span className="rounded-full bg-[#E6D9F5] px-3 py-2 text-[10px] font-black uppercase text-[#5A2D82]">Sélection fédérale</span>;
   if (race.registration) return <span className="rounded-full bg-[#FFF3BC] px-3 py-2 text-[10px] font-black uppercase text-[#7A5B00]">{registeredCount} engagés</span>;
   if (!race.canRegister) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#789087]">Inscriptions closes</span>;
   return <span className="rounded-full bg-[#176951] px-3 py-2 text-[10px] font-black uppercase text-white">À composer</span>;
@@ -629,6 +638,16 @@ function RaceStatus({
 function Badge({ children, tone }: { children: React.ReactNode; tone: "world" | "national" | "tour" | "profile" }) {
   const classes = tone === "world" ? "bg-[#E6D9F5] text-[#5A2D82]" : tone === "national" ? "bg-[#E4ECFF] text-[#234B9A]" : tone === "tour" ? "bg-[#FFF0B8] text-[#705400]" : "bg-[#E5F4ED] text-[#176951]";
   return <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] ${classes}`}>{children}</span>;
+}
+
+function isJuniorFederationSelectionRace(
+  race: Pick<DevelopmentRace, "competitionType">,
+) {
+  return (
+    race.competitionType === "nations_cup_junior" ||
+    race.competitionType.startsWith("continental_") ||
+    race.competitionType.startsWith("world_")
+  );
 }
 
 function SectionTitle({ eyebrow, title, detail }: { eyebrow: string; title: string; detail: string }) {

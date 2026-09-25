@@ -9,6 +9,10 @@ const migration = read(
 const selectionPool = read("services/federation-selection-pool.ts");
 const raceCalendar = read("services/race-calendar.ts");
 const proCalendarPage = read("app/jeu/calendrier/page.tsx");
+const seasonCalendar = read("components/game/season-calendar.tsx");
+const juniorInternationalPage = read(
+  "app/jeu/championnats-internationaux/juniors/page.tsx",
+);
 const developmentPanel = read("components/game/development-team-panel.tsx");
 
 describe("federation junior championship registrations", () => {
@@ -43,12 +47,15 @@ describe("federation junior championship registrations", () => {
     );
     expect(migration).toContain("set status = 'withdrawn'");
     expect(developmentPanel).toContain("CC junior");
-    expect(read("services/development-team.ts")).toContain(
+    expect(read("services/development-team.ts")).not.toContain(
       'isFederationChampionship && view !== "resultats"',
+    );
+    expect(developmentPanel).toContain(
+      "/jeu/championnats-internationaux/juniors",
     );
   });
 
-  it("adds continental races and sends the pro calendar directly to junior results", () => {
+  it("adds continental races to the dedicated junior calendar only", () => {
     expect(migration).toContain("'continental_road'");
     expect(migration).toContain("'continental_time_trial'");
     expect(migration).toContain("championship_continent_code");
@@ -61,10 +68,16 @@ describe("federation junior championship registrations", () => {
     expect(raceCalendar).toContain(
       "options.includeJuniorChampionships === true",
     );
-    expect(proCalendarPage).toContain("includeJuniorChampionships: true");
+    expect(proCalendarPage).toContain("includeJuniorChampionships: false");
+    expect(juniorInternationalPage).toContain(
+      "includeJuniorChampionships: true",
+    );
+    expect(seasonCalendar).toContain(
+      "edition.isJuniorChampionship !== true",
+    );
   });
 
-  it("keeps the junior Nations Cup in the junior calendar only", () => {
+  it("keeps the junior Nations Cup with CM and CC in the junior calendar only", () => {
     expect(migration).toContain("'nc-junior-road'");
     expect(migration).toContain("'nations_cup_junior'");
     expect(migration).toContain("'nations-cup-juniors'");
@@ -82,11 +95,13 @@ describe("federation junior championship registrations", () => {
     expect(loaderStart).toBeGreaterThan(-1);
     expect(filterStart).toBeGreaterThan(loaderStart);
     expect(filterEnd).toBeGreaterThan(filterStart);
-    expect(raceCalendar.slice(filterStart, filterEnd)).not.toContain(
+    expect(raceCalendar.slice(filterStart, filterEnd)).toContain(
       '"nations_cup_junior"',
     );
-    expect(read("services/development-team.ts")).toContain(
-      'edition.competition_type.startsWith("world_");',
+    expect(juniorInternationalPage).toContain('audience="junior"');
+    expect(proCalendarPage).toContain("includeJuniorChampionships: false");
+    expect(read("services/development-team.ts")).not.toContain(
+      'if (isFederationChampionship && view !== "resultats") return false;',
     );
     expect(developmentPanel).toContain(
       'race.competitionType === "nations_cup_junior"',

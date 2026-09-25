@@ -12,16 +12,27 @@ import {
 } from "@/services/international-championship-selections";
 
 export async function answerFederationCallupAction(formData: FormData) {
-  const input = z.object({ memberId: z.string().uuid(), decision: z.enum(["confirm", "decline"]) })
-    .safeParse({ memberId: formData.get("memberId"), decision: formData.get("decision") });
+  const input = z.object({
+    memberId: z.string().uuid(),
+    decision: z.enum(["confirm", "decline"]),
+    audience: z.enum(["professional", "junior"]).default("professional"),
+  }).safeParse({
+    memberId: formData.get("memberId"),
+    decision: formData.get("decision"),
+    audience: formData.get("audience") ?? "professional",
+  });
   if (!input.success) redirect("/jeu/selections-internationales?erreur=Décision%20invalide");
+  const returnHref =
+    input.data.audience === "junior"
+      ? "/jeu/selections-internationales?categorie=junior"
+      : "/jeu/selections-internationales";
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
   const { error } = await supabase.rpc("respond_to_national_federation_preselection", {
     p_member_id: input.data.memberId, p_accept: input.data.decision === "confirm",
   });
-  if (error) redirect(`/jeu/selections-internationales?erreur=${encodeURIComponent(error.message.slice(0, 240))}`);
+  if (error) redirect(`${returnHref}${returnHref.includes("?") ? "&" : "?"}erreur=${encodeURIComponent(error.message.slice(0, 240))}`);
   try {
     await syncDueNationalFederationChampionshipLineups({ force: true });
   } catch (syncError) {
@@ -34,10 +45,11 @@ export async function answerFederationCallupAction(formData: FormData) {
   revalidatePath("/jeu/selections-internationales");
   revalidatePath("/jeu/federations/[codePays]", "page");
   revalidatePath("/jeu/championnats-internationaux");
+  revalidatePath("/jeu/championnats-internationaux/juniors");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/courses/[slug]", "page");
   revalidatePath("/jeu/boite-mail");
-  redirect("/jeu/selections-internationales");
+  redirect(returnHref);
 }
 
 export async function answerInternationalSelectionsAction(formData: FormData) {

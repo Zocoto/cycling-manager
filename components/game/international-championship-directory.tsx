@@ -17,19 +17,28 @@ import {
 } from "@/lib/game/international-championship-navigation";
 
 type InternationalChampionshipGroup = {
-  key: "continental_championship" | "world_championship";
+  key:
+    | "continental_championship"
+    | "world_championship"
+    | "nations_cup";
   eyebrow: string;
   title: string;
   description: string;
   editions: RaceCalendarEdition[];
 };
 
+export type InternationalChampionshipAudience =
+  | "professional"
+  | "junior";
+
 export function InternationalChampionshipDirectory({
   calendar,
+  audience = "professional",
 }: {
   calendar: SeasonRaceCalendar;
+  audience?: InternationalChampionshipAudience;
 }) {
-  const groups = buildInternationalChampionshipGroups(calendar);
+  const groups = buildInternationalChampionshipGroups(calendar, audience);
 
   if (groups.every((group) => group.editions.length === 0)) {
     return (
@@ -75,7 +84,9 @@ function InternationalChampionshipGroupSection({
   const sectionId =
     group.key === "continental_championship"
       ? "championnats-continentaux"
-      : "championnats-du-monde";
+      : group.key === "world_championship"
+        ? "championnats-du-monde"
+        : "nations-cup-juniors";
 
   if (!selectedEdition) return null;
 
@@ -162,29 +173,56 @@ function getServerLocationHash() {
 
 export function buildInternationalChampionshipGroups(
   calendar: SeasonRaceCalendar,
+  audience: InternationalChampionshipAudience = "professional",
 ): InternationalChampionshipGroup[] {
-  const configurations = [
+  const configurations: Array<
+    Omit<InternationalChampionshipGroup, "editions">
+  > = [
     {
       key: "continental_championship" as const,
       eyebrow: "CC · Équipes nationales",
-      title: "Championnats continentaux",
+      title:
+        audience === "junior"
+          ? "Championnats continentaux juniors"
+          : "Championnats continentaux",
       description:
-        "Tous les parcours continentaux de la saison, avec leur startlist nationale actualisée.",
+        audience === "junior"
+          ? "Tous les parcours continentaux juniors, avec les sélections fédérales actualisées."
+          : "Tous les parcours continentaux professionnels, avec leur startlist nationale actualisée.",
     },
     {
       key: "world_championship" as const,
       eyebrow: "CM · Équipes nationales",
-      title: "Championnats du monde",
+      title:
+        audience === "junior"
+          ? "Championnats du monde juniors"
+          : "Championnats du monde",
       description:
-        "Les parcours mondiaux contre-la-montre et en ligne, leurs engagés et leur fiche complète.",
+        audience === "junior"
+          ? "Les parcours mondiaux juniors contre-la-montre et en ligne, avec leurs sélections."
+          : "Les parcours mondiaux professionnels contre-la-montre et en ligne, leurs engagés et leur fiche complète.",
     },
   ];
+
+  if (audience === "junior") {
+    configurations.push({
+      key: "nations_cup",
+      eyebrow: "Nations Cup · Sélection fédérale",
+      title: "Nations Cup juniors",
+      description:
+        "L’épreuve internationale junior et sa sélection fédérale officielle.",
+    });
+  }
 
   return configurations.map((configuration) => ({
     ...configuration,
     editions: calendar.editions
       .filter(
-        (edition) => edition.competitionType === configuration.key,
+        (edition) =>
+          edition.competitionType === configuration.key &&
+          (audience === "junior"
+            ? edition.isJuniorChampionship === true
+            : edition.isJuniorChampionship !== true),
       )
       .sort(compareInternationalChampionshipEditions),
   }));
@@ -196,12 +234,15 @@ function InternationalChampionshipCard({
   edition: RaceCalendarEdition;
 }) {
   const isWorld = edition.competitionType === "world_championship";
+  const isNationsCup = edition.competitionType === "nations_cup";
   const isJunior = edition.isJuniorChampionship === true;
 
   return (
     <article
       id={edition.slug}
-      data-international-championship={isWorld ? "CM" : "CC"}
+      data-international-championship={
+        isNationsCup ? "NC junior" : isWorld ? "CM" : "CC"
+      }
       className="relative scroll-mt-24 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]"
     >
       <span
@@ -214,7 +255,9 @@ function InternationalChampionshipCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-[#0B302B] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white">
-                {isWorld
+                {isNationsCup
+                  ? "Nations Cup juniors"
+                  : isWorld
                   ? isJunior
                     ? "CM junior"
                     : "CM"

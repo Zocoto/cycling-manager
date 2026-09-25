@@ -429,10 +429,6 @@ export async function getDevelopmentTeamOverview(
     (countriesResult.data ?? []).map((country) => country.iso_alpha2),
   );
   const visibleEditions = editions.filter((edition) => {
-    const isFederationChampionship =
-      edition.competition_type.startsWith("continental_") ||
-      edition.competition_type.startsWith("world_");
-    if (isFederationChampionship && view !== "resultats") return false;
     return (
       !edition.competition_type.startsWith("national_") ||
       academyCountryCodes.has(edition.country_code)
