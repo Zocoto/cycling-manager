@@ -4,7 +4,9 @@ import { SPONSORS } from "@/data/sponsors";
 import {
   buildCareerPalmares,
   type CareerPalmares,
+  type CareerDistinctiveJerseyEntry,
   type CareerPalmaresEntry,
+  type CareerPalmaresSupplementEntry,
 } from "@/lib/game/career-palmares";
 import {
   isRaceCategoryCode,
@@ -518,12 +520,57 @@ export async function getPublicTeamProfileHistory(
       ];
     },
   );
-  const palmares = buildCareerPalmares([
-    ...professionalPalmaresEntries,
-    ...juniorPalmaresEntries,
-  ]);
+  const stageVictories = candidates.flatMap<CareerPalmaresSupplementEntry>(
+    (candidate) => {
+      const season = seasonById.get(candidate.seasonId);
+      if (candidate.kind !== "stage" || candidate.rank !== 1 || !season) {
+        return [];
+      }
+
+      return [toPalmaresSupplementEntry(candidate, season)];
+    },
+  );
+  const distinctiveJerseys =
+    candidates.flatMap<CareerDistinctiveJerseyEntry>((candidate) => {
+      const season = seasonById.get(candidate.seasonId);
+      if (
+        candidate.kind !== "classification" ||
+        candidate.rank !== 1 ||
+        !candidate.classificationType ||
+        candidate.classificationType === "team" ||
+        !season
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          ...toPalmaresSupplementEntry(candidate, season),
+          classificationType: candidate.classificationType,
+        },
+      ];
+    });
+  const palmares = buildCareerPalmares(
+    [...professionalPalmaresEntries, ...juniorPalmaresEntries],
+    { stageVictories, distinctiveJerseys },
+  );
 
   return { seasons, recentResults, palmares };
+}
+
+function toPalmaresSupplementEntry(
+  candidate: TeamResultCandidate,
+  season: PublicTeamSeasonHistoryEntry,
+): CareerPalmaresSupplementEntry {
+  return {
+    resultId: candidate.id,
+    raceKey: candidate.raceSlug,
+    raceName: candidate.raceName,
+    seasonId: season.seasonId,
+    seasonName: season.seasonName,
+    gameYear: season.gameYear,
+    prestigeRank: candidate.prestigeRank,
+  };
 }
 
 function buildResultCandidates({

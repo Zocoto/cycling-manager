@@ -46,10 +46,48 @@ export type CareerPalmaresSection = {
   achievements: CareerPalmaresAchievement[];
 };
 
+export type CareerPalmaresSupplementEntry = {
+  resultId: string;
+  raceKey: string;
+  raceName: string;
+  seasonId: string;
+  seasonName: string;
+  gameYear: number;
+  prestigeRank: number;
+};
+
+export type CareerDistinctiveJerseyType = "mountain" | "sprint" | "youth";
+
+export type CareerDistinctiveJerseyEntry = CareerPalmaresSupplementEntry & {
+  classificationType: CareerDistinctiveJerseyType;
+};
+
+export type CareerStageVictoryAchievement = {
+  id: string;
+  raceKey: string;
+  raceName: string;
+  count: number;
+  seasonLabels: string[];
+};
+
+export type CareerDistinctiveJerseyAchievement =
+  CareerStageVictoryAchievement & {
+    classificationType: CareerDistinctiveJerseyType;
+  };
+
+export type CareerPalmaresSupplements = {
+  stageVictories?: readonly CareerPalmaresSupplementEntry[];
+  distinctiveJerseys?: readonly CareerDistinctiveJerseyEntry[];
+};
+
 export type CareerPalmares = {
   victoryCount: number;
   podiumCount: number;
+  stageVictoryCount: number;
+  distinctiveJerseyCount: number;
   sections: CareerPalmaresSection[];
+  stageVictories: CareerStageVictoryAchievement[];
+  distinctiveJerseys: CareerDistinctiveJerseyAchievement[];
 };
 
 type AggregatedAchievement = CareerPalmaresAchievement & {
@@ -59,6 +97,7 @@ type AggregatedAchievement = CareerPalmaresAchievement & {
 
 export function buildCareerPalmares(
   entries: readonly CareerPalmaresEntry[],
+  supplements: CareerPalmaresSupplements = {},
 ): CareerPalmares {
   const podiumEntries = entries.filter(
     (entry): entry is CareerPalmaresEntry & { rank: 1 | 2 | 3 } =>
@@ -142,10 +181,95 @@ export function buildCareerPalmares(
     },
   );
 
+  const stageVictories = aggregateSupplementEntries(
+    supplements.stageVictories ?? [],
+    (entry) => entry.raceKey,
+  );
+  const distinctiveJerseys = aggregateSupplementEntries(
+    supplements.distinctiveJerseys ?? [],
+    (entry) => `${entry.raceKey}:${entry.classificationType}`,
+  );
+
   return {
     victoryCount: podiumEntries.filter((entry) => entry.rank === 1).length,
     podiumCount: podiumEntries.length,
+    stageVictoryCount: supplements.stageVictories?.length ?? 0,
+    distinctiveJerseyCount: supplements.distinctiveJerseys?.length ?? 0,
     sections,
+    stageVictories: stageVictories.map(toStageVictoryAchievement),
+    distinctiveJerseys: distinctiveJerseys.map((achievement) => ({
+      ...toStageVictoryAchievement(achievement),
+      classificationType: achievement.source.classificationType,
+    })),
+  };
+}
+
+type AggregatedSupplement<T extends CareerPalmaresSupplementEntry> =
+  CareerStageVictoryAchievement & {
+    prestigeRank: number;
+    source: T;
+    seasons: Map<string, { label: string; gameYear: number }>;
+  };
+
+function aggregateSupplementEntries<T extends CareerPalmaresSupplementEntry>(
+  entries: readonly T[],
+  getKey: (entry: T) => string,
+): AggregatedSupplement<T>[] {
+  const achievements = new Map<string, AggregatedSupplement<T>>();
+
+  for (const entry of entries) {
+    const key = getKey(entry);
+    const achievement = achievements.get(key) ?? {
+      id: key,
+      raceKey: entry.raceKey,
+      raceName: entry.raceName,
+      count: 0,
+      seasonLabels: [],
+      prestigeRank: entry.prestigeRank,
+      source: entry,
+      seasons: new Map<string, { label: string; gameYear: number }>(),
+    };
+
+    achievement.count += 1;
+    achievement.prestigeRank = Math.min(
+      achievement.prestigeRank,
+      entry.prestigeRank,
+    );
+    achievement.seasons.set(entry.seasonId, {
+      label: getCareerSeasonLabel(entry.seasonName, entry.gameYear),
+      gameYear: entry.gameYear,
+    });
+    achievements.set(key, achievement);
+  }
+
+  return [...achievements.values()]
+    .map((achievement) => ({
+      ...achievement,
+      seasonLabels: [...achievement.seasons.values()]
+        .sort(
+          (left, right) =>
+            left.gameYear - right.gameYear ||
+            left.label.localeCompare(right.label, "fr"),
+        )
+        .map((season) => season.label),
+    }))
+    .sort(
+      (left, right) =>
+        left.prestigeRank - right.prestigeRank ||
+        right.count - left.count ||
+        left.raceName.localeCompare(right.raceName, "fr"),
+    );
+}
+
+function toStageVictoryAchievement(
+  achievement: AggregatedSupplement<CareerPalmaresSupplementEntry>,
+): CareerStageVictoryAchievement {
+  return {
+    id: achievement.id,
+    raceKey: achievement.raceKey,
+    raceName: achievement.raceName,
+    count: achievement.count,
+    seasonLabels: achievement.seasonLabels,
   };
 }
 

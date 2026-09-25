@@ -1,10 +1,15 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { useLocale } from "@/components/i18n/locale-provider";
 import type {
   CareerPalmares,
   CareerPalmaresAchievement,
   CareerPalmaresCategory,
+  CareerDistinctiveJerseyAchievement,
+  CareerDistinctiveJerseyType,
+  CareerStageVictoryAchievement,
 } from "@/lib/game/career-palmares";
 
 const CATEGORY_ICON: Record<CareerPalmaresCategory, string> = {
@@ -18,6 +23,7 @@ const CATEGORY_ICON: Record<CareerPalmaresCategory, string> = {
 };
 
 const MAX_VISIBLE_ACHIEVEMENTS = 8;
+const MAX_VISIBLE_SUPPLEMENTS = 10;
 
 export function CareerPalmaresCard({
   palmares,
@@ -31,6 +37,10 @@ export function CareerPalmaresCard({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const isTeam = tone === "team";
+  const hasAchievements =
+    palmares.sections.length > 0 ||
+    palmares.stageVictories.length > 0 ||
+    palmares.distinctiveJerseys.length > 0;
   const numberFormatter = new Intl.NumberFormat(isEnglish ? "en-GB" : "fr-FR");
   const categoryLabels: Record<CareerPalmaresCategory, string> = isEnglish
     ? {
@@ -75,12 +85,12 @@ export function CareerPalmaresCard({
           </h2>
           <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-white/70 sm:text-sm">
             {isEnglish
-              ? "Overall classifications only · podium results grouped by race and season."
-              : "Classements généraux uniquement · podiums regroupés par course et par saison."}
+              ? "Overall podiums, stage wins and distinctive jerseys grouped by race and season."
+              : "Podiums généraux, victoires d’étapes et maillots distinctifs regroupés par course et par saison."}
           </p>
         </div>
 
-        <dl className="grid shrink-0 grid-cols-2 gap-2">
+        <dl className="grid shrink-0 grid-cols-2 gap-2 xl:grid-cols-4">
           <PalmaresMetric
             label={isEnglish ? "Wins" : "Victoires"}
             value={numberFormatter.format(palmares.victoryCount)}
@@ -89,10 +99,18 @@ export function CareerPalmaresCard({
             label={isEnglish ? "Podiums" : "Podiums"}
             value={numberFormatter.format(palmares.podiumCount)}
           />
+          <PalmaresMetric
+            label={isEnglish ? "Stages" : "Étapes"}
+            value={numberFormatter.format(palmares.stageVictoryCount)}
+          />
+          <PalmaresMetric
+            label={isEnglish ? "Jerseys" : "Maillots"}
+            value={numberFormatter.format(palmares.distinctiveJerseyCount)}
+          />
         </dl>
       </header>
 
-      {palmares.sections.length ? (
+      {hasAchievements ? (
         <div className="grid gap-4 p-5 sm:p-7 lg:grid-cols-2">
           {palmares.sections.map((section) => {
             const sectionPodiumCount = section.achievements.reduce(
@@ -219,6 +237,52 @@ export function CareerPalmaresCard({
               </article>
             );
           })}
+          {palmares.stageVictories.length ? (
+            <SupplementCard
+              icon="↗"
+              title={isEnglish ? "Stage wins" : "Victoires d’étapes"}
+              countLabel={formatCountLabel({
+                count: palmares.stageVictoryCount,
+                singular: isEnglish ? "stage win" : "victoire d’étape",
+                plural: isEnglish ? "stage wins" : "victoires d’étape",
+                numberFormatter,
+              })}
+              isTeam={isTeam}
+            >
+              {palmares.stageVictories.map((achievement) => (
+                <StageVictoryRow
+                  key={achievement.id}
+                  achievement={achievement}
+                  isEnglish={isEnglish}
+                  isTeam={isTeam}
+                  numberFormatter={numberFormatter}
+                />
+              ))}
+            </SupplementCard>
+          ) : null}
+          {palmares.distinctiveJerseys.length ? (
+            <SupplementCard
+              icon="◆"
+              title={isEnglish ? "Distinctive jerseys" : "Maillots distinctifs"}
+              countLabel={formatCountLabel({
+                count: palmares.distinctiveJerseyCount,
+                singular: isEnglish ? "jersey" : "maillot",
+                plural: isEnglish ? "jerseys" : "maillots",
+                numberFormatter,
+              })}
+              isTeam={isTeam}
+            >
+              {palmares.distinctiveJerseys.map((achievement) => (
+                <DistinctiveJerseyRow
+                  key={achievement.id}
+                  achievement={achievement}
+                  isEnglish={isEnglish}
+                  isTeam={isTeam}
+                  numberFormatter={numberFormatter}
+                />
+              ))}
+            </SupplementCard>
+          ) : null}
         </div>
       ) : (
         <div className="px-6 py-9 text-center sm:px-8">
@@ -238,8 +302,8 @@ export function CareerPalmaresCard({
             }`}
           >
             {isEnglish
-              ? "No official overall podium has been recorded yet."
-              : "Aucun podium officiel au classement général n’est encore enregistré."}
+              ? "No official career achievement has been recorded yet."
+              : "Aucun résultat officiel n’est encore enregistré au palmarès."}
           </p>
         </div>
       )}
@@ -309,4 +373,216 @@ function PalmaresAchievementRow({
       </p>
     </li>
   );
+}
+
+function SupplementCard({
+  icon,
+  title,
+  countLabel,
+  isTeam,
+  children,
+}: {
+  icon: string;
+  title: string;
+  countLabel: string;
+  isTeam: boolean;
+  children: ReactNode[];
+}) {
+  const visibleChildren = children.slice(0, MAX_VISIBLE_SUPPLEMENTS);
+  const hiddenChildren = children.slice(MAX_VISIBLE_SUPPLEMENTS);
+
+  return (
+    <article
+      className={`self-start overflow-hidden rounded-2xl border ${
+        isTeam
+          ? "border-[var(--team-line)] bg-[var(--team-surface)]"
+          : "border-[#315B3E]/12 bg-[#F8FBF9]"
+      }`}
+    >
+      <div
+        className={`flex items-center gap-3 border-b px-4 py-3 ${
+          isTeam ? "border-[var(--team-line)]" : "border-[#315B3E]/10"
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-black ${
+            isTeam
+              ? "bg-[var(--team-primary)] text-white"
+              : "bg-[#176951] text-white"
+          }`}
+        >
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3
+            className={`font-black ${
+              isTeam ? "text-[var(--team-ink)]" : "text-[#183F37]"
+            }`}
+          >
+            {title}
+          </h3>
+          <p
+            className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.12em] ${
+              isTeam ? "text-[var(--team-muted)]" : "text-[#60756E]"
+            }`}
+          >
+            {countLabel}
+          </p>
+        </div>
+      </div>
+
+      <ul className="divide-y divide-[#315B3E]/8 px-4">{visibleChildren}</ul>
+
+      {hiddenChildren.length ? (
+        <details
+          className={`group border-t ${
+            isTeam ? "border-[var(--team-line)]" : "border-[#315B3E]/10"
+          }`}
+        >
+          <summary
+            className={`flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-black marker:hidden ${
+              isTeam
+                ? "text-[var(--team-secondary)]"
+                : "text-[#176951]"
+            }`}
+          >
+            <span>+ {hiddenChildren.length}</span>
+            <span aria-hidden="true" className="transition group-open:rotate-180">
+              ⌄
+            </span>
+          </summary>
+          <ul className="divide-y divide-[#315B3E]/8 border-t border-[#315B3E]/8 px-4">
+            {hiddenChildren}
+          </ul>
+        </details>
+      ) : null}
+    </article>
+  );
+}
+
+function StageVictoryRow({
+  achievement,
+  isEnglish,
+  isTeam,
+  numberFormatter,
+}: {
+  achievement: CareerStageVictoryAchievement;
+  isEnglish: boolean;
+  isTeam: boolean;
+  numberFormatter: Intl.NumberFormat;
+}) {
+  return (
+    <SupplementRow
+      raceName={achievement.raceName}
+      resultLabel={formatCountLabel({
+        count: achievement.count,
+        singular: isEnglish ? "stage win" : "victoire d’étape",
+        plural: isEnglish ? "stage wins" : "victoires d’étape",
+        numberFormatter,
+      })}
+      seasonLabels={achievement.seasonLabels}
+      isTeam={isTeam}
+    />
+  );
+}
+
+function DistinctiveJerseyRow({
+  achievement,
+  isEnglish,
+  isTeam,
+  numberFormatter,
+}: {
+  achievement: CareerDistinctiveJerseyAchievement;
+  isEnglish: boolean;
+  isTeam: boolean;
+  numberFormatter: Intl.NumberFormat;
+}) {
+  const labels = getJerseyLabels(achievement.classificationType, isEnglish);
+
+  return (
+    <SupplementRow
+      raceName={achievement.raceName}
+      resultLabel={formatCountLabel({
+        count: achievement.count,
+        singular: labels.singular,
+        plural: labels.plural,
+        numberFormatter,
+      })}
+      seasonLabels={achievement.seasonLabels}
+      isTeam={isTeam}
+    />
+  );
+}
+
+function SupplementRow({
+  raceName,
+  resultLabel,
+  seasonLabels,
+  isTeam,
+}: {
+  raceName: string;
+  resultLabel: string;
+  seasonLabels: string[];
+  isTeam: boolean;
+}) {
+  return (
+    <li className="py-3 text-xs font-semibold leading-5">
+      <p className={isTeam ? "text-[var(--team-muted)]" : "text-[#48665F]"}>
+        <strong
+          className={isTeam ? "text-[var(--team-ink)]" : "text-[#183F37]"}
+        >
+          {raceName}
+        </strong>
+        {" : "}
+        {resultLabel}
+        {seasonLabels.length ? ` (${seasonLabels.join(", ")})` : null}
+      </p>
+    </li>
+  );
+}
+
+function formatCountLabel({
+  count,
+  singular,
+  plural,
+  numberFormatter,
+}: {
+  count: number;
+  singular: string;
+  plural: string;
+  numberFormatter: Intl.NumberFormat;
+}): string {
+  return `${numberFormatter.format(count)} ${count === 1 ? singular : plural}`;
+}
+
+function getJerseyLabels(
+  classificationType: CareerDistinctiveJerseyType,
+  isEnglish: boolean,
+): { singular: string; plural: string } {
+  if (isEnglish) {
+    return {
+      mountain: {
+        singular: "mountains jersey",
+        plural: "mountains jerseys",
+      },
+      sprint: { singular: "points jersey", plural: "points jerseys" },
+      youth: { singular: "young rider jersey", plural: "young rider jerseys" },
+    }[classificationType];
+  }
+
+  return {
+    mountain: {
+      singular: "maillot de la montagne",
+      plural: "maillots de la montagne",
+    },
+    sprint: {
+      singular: "maillot du classement par points",
+      plural: "maillots du classement par points",
+    },
+    youth: {
+      singular: "maillot du meilleur jeune",
+      plural: "maillots du meilleur jeune",
+    },
+  }[classificationType];
 }

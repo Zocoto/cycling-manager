@@ -3,10 +3,14 @@ import "server-only";
 import {
   buildCareerPalmares,
   type CareerPalmares,
+  type CareerDistinctiveJerseyEntry,
+  type CareerDistinctiveJerseyType,
   type CareerPalmaresEntry,
+  type CareerPalmaresSupplementEntry,
 } from "@/lib/game/career-palmares";
 import {
   isRaceCategoryCode,
+  type RaceCategoryCode,
   type RaceCompetitionType,
 } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -25,6 +29,22 @@ type RaceResultRow = {
   final_rank: number;
 };
 
+type StageResultRow = {
+  id: string;
+  stage_id: string;
+};
+
+type SecondaryResultRow = {
+  id: string;
+  race_edition_id: string;
+  classification_type: CareerDistinctiveJerseyType;
+};
+
+type StageRow = {
+  id: string;
+  race_edition_id: string;
+};
+
 type RaceEditionRow = {
   id: string;
   race_id: string;
@@ -36,6 +56,7 @@ type RaceEditionRow = {
 type RaceRow = {
   id: string;
   slug: string;
+  race_format: string;
   competition_type: string;
   is_monument: boolean;
   is_grand_tour: boolean;
@@ -74,6 +95,13 @@ type DevelopmentEditionRow = {
   name: string;
 };
 
+type ProfessionalPalmaresContext = {
+  edition: RaceEditionRow;
+  race: RaceRow;
+  category: RaceCategoryRow & { code: RaceCategoryCode };
+  season: SeasonRow;
+};
+
 export async function getRiderCareerPalmares(
   riderId: string,
 ): Promise<CareerPalmares> {
@@ -105,7 +133,12 @@ export async function getRiderCareerPalmares(
 
   const rosterIds = rostersResult.data.map((roster) => roster.id);
   const academyRiderId = academyRiderResult.data?.id ?? null;
-  const [raceResultsResult, developmentResultsResult] = await Promise.all([
+  const [
+    raceResultsResult,
+    stageResultsResult,
+    secondaryResultsResult,
+    developmentResultsResult,
+  ] = await Promise.all([
     collectChunkedPaginatedRows<RaceResultRow, { message: string }, string>({
       values: rosterIds,
       fetchPage: async (chunk, from, to) => {
@@ -121,6 +154,38 @@ export async function getRiderCareerPalmares(
         return { data: result.data, error: result.error };
       },
     }),
+    collectChunkedPaginatedRows<StageResultRow, { message: string }, string>({
+      values: rosterIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("stage_results")
+          .select("id, stage_id")
+          .in("race_roster_id", chunk)
+          .eq("status", "finished")
+          .eq("rank", 1)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<StageResultRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<SecondaryResultRow, { message: string }, string>(
+      {
+        values: rosterIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
+            .from("race_secondary_results")
+            .select("id, race_edition_id, classification_type")
+            .in("race_roster_id", chunk)
+            .in("classification_type", ["mountain", "sprint", "youth"])
+            .eq("rank", 1)
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<SecondaryResultRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      },
+    ),
     academyRiderId
       ? collectPaginatedRows<DevelopmentResultRow, { message: string }>({
           fetchPage: async (from, to) => {
@@ -142,21 +207,34 @@ export async function getRiderCareerPalmares(
         }),
   ]);
   assertQuery(raceResultsResult.error, "les podiums professionnels du coureur");
+  assertQuery(stageResultsResult.error, "les victoires d’étape du coureur");
+  assertQuery(
+    secondaryResultsResult.error,
+    "les maillots distinctifs du coureur",
+  );
   assertQuery(
     developmentResultsResult.error,
     "les podiums juniors du coureur",
   );
 
-  const professionalEntries = await loadProfessionalPalmaresEntries({
+  const professionalPalmares = await loadProfessionalPalmares({
     admin,
-    results: raceResultsResult.data,
+    raceResults: raceResultsResult.data,
+    stageResults: stageResultsResult.data,
+    secondaryResults: secondaryResultsResult.data,
   });
   const juniorEntries = await loadDevelopmentPalmaresEntries({
     admin,
     results: developmentResultsResult.data,
   });
 
-  return buildCareerPalmares([...professionalEntries, ...juniorEntries]);
+  return buildCareerPalmares(
+    [...professionalPalmares.entries, ...juniorEntries],
+    {
+      stageVictories: professionalPalmares.stageVictories,
+      distinctiveJerseys: professionalPalmares.distinctiveJerseys,
+    },
+  );
 }
 
 export async function getTeamJuniorPalmaresEntries(
@@ -216,14 +294,51 @@ export async function getTeamJuniorPalmaresEntries(
   });
 }
 
-async function loadProfessionalPalmaresEntries({
+async function loadProfessionalPalmares({
   admin,
-  results,
+  raceResults,
+  stageResults,
+  secondaryResults,
 }: {
   admin: ReturnType<typeof createSupabaseAdminClient>;
-  results: RaceResultRow[];
-}): Promise<CareerPalmaresEntry[]> {
-  const editionIds = unique(results.map((result) => result.race_edition_id));
+  raceResults: RaceResultRow[];
+  stageResults: StageResultRow[];
+  secondaryResults: SecondaryResultRow[];
+}): Promise<{
+  entries: CareerPalmaresEntry[];
+  stageVictories: CareerPalmaresSupplementEntry[];
+  distinctiveJerseys: CareerDistinctiveJerseyEntry[];
+}> {
+  const stagesResult = await collectChunkedPaginatedRows<
+    StageRow,
+    { message: string },
+    string
+  >({
+    values: unique(stageResults.map((result) => result.stage_id)),
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("stages")
+        .select("id, race_edition_id")
+        .in("id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<StageRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+  assertQuery(stagesResult.error, "les étapes gagnées par le coureur");
+
+  const stageById = new Map(
+    stagesResult.data.map((stage) => [stage.id, stage]),
+  );
+  const editionIds = unique([
+    ...raceResults.map((result) => result.race_edition_id),
+    ...stageResults.flatMap((result) => {
+      const editionId = stageById.get(result.stage_id)?.race_edition_id;
+      return editionId ? [editionId] : [];
+    }),
+    ...secondaryResults.map((result) => result.race_edition_id),
+  ]);
   const editionsResult = await collectChunkedPaginatedRows<
     RaceEditionRow,
     { message: string },
@@ -256,7 +371,7 @@ async function loadProfessionalPalmaresEntries({
         const result = await admin
           .from("races")
           .select(
-            "id, slug, competition_type, is_monument, is_grand_tour",
+            "id, slug, race_format, competition_type, is_monument, is_grand_tour",
           )
           .in("id", chunk)
           .order("id", { ascending: true })
@@ -292,8 +407,10 @@ async function loadProfessionalPalmaresEntries({
     seasonsResult.map((season) => [season.id, season]),
   );
 
-  return results.flatMap<CareerPalmaresEntry>((result) => {
-    const edition = editionById.get(result.race_edition_id);
+  const resolveContext = (
+    editionId: string,
+  ): ProfessionalPalmaresContext | null => {
+    const edition = editionById.get(editionId);
     const race = edition ? raceById.get(edition.race_id) : null;
     const category = edition
       ? categoryById.get(edition.race_category_id)
@@ -307,27 +424,79 @@ async function loadProfessionalPalmaresEntries({
       !season ||
       !isRaceCategoryCode(category.code)
     ) {
-      return [];
+      return null;
     }
+
+    return {
+      edition,
+      race,
+      category: { ...category, code: category.code },
+      season,
+    };
+  };
+
+  const entries = raceResults.flatMap<CareerPalmaresEntry>((result) => {
+    const context = resolveContext(result.race_edition_id);
+    if (!context) return [];
 
     return [
       {
         resultId: `professional:${result.id}`,
-        raceKey: race.slug,
-        raceName: edition.display_name,
-        seasonId: season.id,
-        seasonName: season.name,
-        gameYear: season.game_year,
+        raceKey: context.race.slug,
+        raceName: context.edition.display_name,
+        seasonId: context.season.id,
+        seasonName: context.season.name,
+        gameYear: context.season.game_year,
         rank: result.final_rank,
-        categoryCode: category.code,
-        competitionType: normalizeCompetitionType(race.competition_type),
-        prestigeRank: category.prestige_rank,
-        isGrandTour: race.is_grand_tour,
-        isMonument: race.is_monument,
+        categoryCode: context.category.code,
+        competitionType: normalizeCompetitionType(
+          context.race.competition_type,
+        ),
+        prestigeRank: context.category.prestige_rank,
+        isGrandTour: context.race.is_grand_tour,
+        isMonument: context.race.is_monument,
         isJunior: false,
       },
     ];
   });
+  const toSupplementEntry = (
+    resultId: string,
+    editionId: string,
+  ): CareerPalmaresSupplementEntry | null => {
+    const context = resolveContext(editionId);
+    if (!context || context.race.race_format !== "stage_race") return null;
+
+    return {
+      resultId,
+      raceKey: context.race.slug,
+      raceName: context.edition.display_name,
+      seasonId: context.season.id,
+      seasonName: context.season.name,
+      gameYear: context.season.game_year,
+      prestigeRank: context.category.prestige_rank,
+    };
+  };
+  const stageVictories = stageResults.flatMap<CareerPalmaresSupplementEntry>(
+    (result) => {
+      const editionId = stageById.get(result.stage_id)?.race_edition_id;
+      const entry = editionId
+        ? toSupplementEntry(`stage:${result.id}`, editionId)
+        : null;
+      return entry ? [entry] : [];
+    },
+  );
+  const distinctiveJerseys =
+    secondaryResults.flatMap<CareerDistinctiveJerseyEntry>((result) => {
+      const entry = toSupplementEntry(
+        `classification:${result.id}`,
+        result.race_edition_id,
+      );
+      return entry
+        ? [{ ...entry, classificationType: result.classification_type }]
+        : [];
+    });
+
+  return { entries, stageVictories, distinctiveJerseys };
 }
 
 async function loadDevelopmentPalmaresEntries({
