@@ -27,7 +27,19 @@ import type {
 } from "@/lib/game/rider-profile";
 
 const OBJECTIVE_COUNT = 10;
-const SPONSOR_OBJECTIVE_GENERATION_VERSION = 9;
+const SPONSOR_OBJECTIVE_GENERATION_VERSION = 10;
+export const SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR = 4;
+
+const SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE: Record<
+  SponsorPrestige,
+  readonly (readonly RaceCategoryCode[])[]
+> = {
+  1: [["national"], ["continental"], ["world"], ["elite"]],
+  2: [["national", "continental"], ["world"], ["elite"]],
+  3: [["continental"], ["world", "national"], ["elite"]],
+  4: [["world", "continental"], ["elite"], ["national"]],
+  5: [["elite", "world"], ["continental"], ["national"]],
+};
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -80,6 +92,7 @@ type GenerateSponsorObjectivesOptions = {
   teamRiderCandidates?: readonly SponsorObjectiveTeamRiderCandidate[];
   previousObjectives?: readonly SponsorObjectiveTargetDetails[];
   includeRiderRecruitmentObjective?: boolean;
+  targetSeasonGameYear?: number;
   random?: () => number;
 };
 
@@ -245,6 +258,8 @@ export function generateProvisionalSponsorObjectives({
   teamRiderCandidates = [],
   previousObjectives = [],
   includeRiderRecruitmentObjective = false,
+  targetSeasonGameYear =
+    SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR - 1,
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
@@ -285,6 +300,8 @@ export function generateProvisionalSponsorObjectives({
     sponsorContinentCode,
     sportingPhilosophy,
     ambitionLevel,
+    sponsorPrestige,
+    targetSeasonGameYear,
     teamReputationPoints,
     raceCandidates,
     previousRaceIds,
@@ -409,6 +426,8 @@ export function generateProvisionalSponsorObjectives({
     sponsorContinentCode,
     sportingPhilosophy,
     ambitionLevel,
+    sponsorPrestige,
+    targetSeasonGameYear,
     teamReputationPoints,
     teamRiderCandidates,
     raceCandidates,
@@ -700,6 +719,8 @@ function createNewLeaderOpportunityObjective({
   sponsorContinentCode,
   sportingPhilosophy,
   ambitionLevel,
+  sponsorPrestige,
+  targetSeasonGameYear,
   teamReputationPoints,
   teamRiderCandidates,
   raceCandidates,
@@ -711,6 +732,8 @@ function createNewLeaderOpportunityObjective({
   sponsorContinentCode: string | null;
   sportingPhilosophy: SponsorSportingPhilosophy;
   ambitionLevel: SponsorObjectiveAmbitionLevel;
+  sponsorPrestige: SponsorPrestige;
+  targetSeasonGameYear: number;
   teamReputationPoints: number;
   teamRiderCandidates: readonly SponsorObjectiveTeamRiderCandidate[];
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
@@ -729,9 +752,14 @@ function createNewLeaderOpportunityObjective({
 
   if (!opportunity) return null;
 
-  const eligibleRaces = getEligibleSponsorObjectiveRaces({
-    teamReputationPoints,
-    raceCandidates,
+  const eligibleRaces = selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+    candidates: getEligibleSponsorObjectiveRaces({
+      teamReputationPoints,
+      raceCandidates,
+    }),
+    sponsorPrestige,
+    targetSeasonGameYear,
+    minimumCount: 1,
   }).filter(
     (race) =>
       !excludedRaceIds.has(race.raceId) &&
@@ -1250,6 +1278,8 @@ function selectSponsorObjectivePortfolio({
   sponsorContinentCode,
   sportingPhilosophy,
   ambitionLevel,
+  sponsorPrestige,
+  targetSeasonGameYear,
   teamReputationPoints,
   raceCandidates,
   previousRaceIds,
@@ -1259,6 +1289,8 @@ function selectSponsorObjectivePortfolio({
   sponsorContinentCode: string | null;
   sportingPhilosophy: SponsorSportingPhilosophy;
   ambitionLevel: SponsorObjectiveAmbitionLevel;
+  sponsorPrestige: SponsorPrestige;
+  targetSeasonGameYear: number;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   previousRaceIds: ReadonlySet<string>;
@@ -1273,13 +1305,21 @@ function selectSponsorObjectivePortfolio({
     teamReputationPoints,
     raceCandidates,
   });
+  const categoryPolicyEnabled = isSponsorObjectivePrestigeCategoryPolicyEnabled(
+    targetSeasonGameYear,
+  );
+  const topPrestigeRaceIds = new Set(
+    selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+      candidates: eligible,
+      sponsorPrestige,
+      targetSeasonGameYear,
+      minimumCount: 1,
+    }).map((candidate) => candidate.raceId),
+  );
   const usedRaceIds = new Set<string>();
-  const take = (
-    predicate: (candidate: SponsorObjectiveRaceCandidate) => boolean
+  const takeFromCandidates = (
+    candidates: readonly SponsorObjectiveRaceCandidate[],
   ): SponsorObjectiveRaceCandidate | null => {
-    const candidates = eligible.filter(
-      (entry) => !usedRaceIds.has(entry.raceId) && predicate(entry),
-    );
     const unseenCandidates = candidates.filter(
       (candidate) => !previousRaceIds.has(candidate.raceId),
     );
@@ -1290,6 +1330,22 @@ function selectSponsorObjectivePortfolio({
 
     if (candidate) usedRaceIds.add(candidate.raceId);
     return candidate ?? null;
+  };
+  const take = (
+    predicate: (candidate: SponsorObjectiveRaceCandidate) => boolean
+  ): SponsorObjectiveRaceCandidate | null => {
+    const candidates = eligible.filter(
+      (entry) => !usedRaceIds.has(entry.raceId) && predicate(entry),
+    );
+    const prestigeAlignedCandidates =
+      selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+        candidates,
+        sponsorPrestige,
+        targetSeasonGameYear,
+        minimumCount: 1,
+      });
+
+    return takeFromCandidates(prestigeAlignedCandidates);
   };
   const takeAny = () => take(() => true);
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
@@ -1305,26 +1361,62 @@ function selectSponsorObjectivePortfolio({
     .toLowerCase();
   const takeByGeography = (
     predicate: (candidate: SponsorObjectiveRaceCandidate) => boolean,
-  ): SponsorObjectiveRaceCandidate | null =>
-    take(
+  ): SponsorObjectiveRaceCandidate | null => {
+    if (!categoryPolicyEnabled) {
+      return take(
+        (candidate) =>
+          candidate.countryCode.toUpperCase() === normalizedCountryCode &&
+          predicate(candidate),
+      ) ??
+        take(
+          (candidate) =>
+            areSponsorCountriesNeighbors(
+              normalizedCountryCode,
+              candidate.countryCode,
+            ) && predicate(candidate),
+        ) ??
+        take(
+          (candidate) =>
+            normalizedContinentCode !== "" &&
+            candidate.continentCode?.toLowerCase() === normalizedContinentCode &&
+            predicate(candidate),
+        ) ??
+        take(predicate);
+    }
+
+    const availableCandidates = eligible.filter(
+      (candidate) => !usedRaceIds.has(candidate.raceId) && predicate(candidate),
+    );
+    const prestigeAlignedCandidates =
+      selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+        candidates: availableCandidates,
+        sponsorPrestige,
+        targetSeasonGameYear,
+        minimumCount: 1,
+      });
+    const takeGeographicCandidates = (
+      geographyPredicate: (candidate: SponsorObjectiveRaceCandidate) => boolean,
+    ) => takeFromCandidates(
+      prestigeAlignedCandidates.filter(geographyPredicate),
+    );
+
+    return takeGeographicCandidates(
       (candidate) =>
-        candidate.countryCode.toUpperCase() === normalizedCountryCode &&
-        predicate(candidate),
+        candidate.countryCode.toUpperCase() === normalizedCountryCode,
     ) ??
-    take(
-      (candidate) =>
+      takeGeographicCandidates((candidate) =>
         areSponsorCountriesNeighbors(
           normalizedCountryCode,
           candidate.countryCode,
-        ) && predicate(candidate),
-    ) ??
-    take(
-      (candidate) =>
-        normalizedContinentCode !== "" &&
-        candidate.continentCode?.toLowerCase() === normalizedContinentCode &&
-        predicate(candidate),
-    ) ??
-    take(predicate);
+        )
+      ) ??
+      takeGeographicCandidates(
+        (candidate) =>
+          normalizedContinentCode !== "" &&
+          candidate.continentCode?.toLowerCase() === normalizedContinentCode,
+      ) ??
+      takeFromCandidates(prestigeAlignedCandidates);
+  };
 
   const philosophyPredicate = (
     candidate: SponsorObjectiveRaceCandidate,
@@ -1352,6 +1444,23 @@ function selectSponsorObjectivePortfolio({
     );
   };
   const philosophyPrimary =
+    (categoryPolicyEnabled && ambitionLevel >= 6
+      ? take(
+          (candidate) =>
+            topPrestigeRaceIds.has(candidate.raceId) &&
+            flagshipPhilosophyPredicate(candidate),
+        )
+      : null) ??
+    (categoryPolicyEnabled
+      ? takeByGeography(
+          (candidate) =>
+            topPrestigeRaceIds.has(candidate.raceId) &&
+            philosophyPredicate(candidate),
+        )
+      : null) ??
+    (categoryPolicyEnabled
+      ? takeByGeography((candidate) => topPrestigeRaceIds.has(candidate.raceId))
+      : null) ??
     (ambitionLevel >= 6 ? take(flagshipPhilosophyPredicate) : null) ??
     takeByGeography(philosophyPredicate) ??
     (sportingPhilosophy === "grand_tour_general"
@@ -1364,6 +1473,20 @@ function selectSponsorObjectivePortfolio({
     takeByGeography(() => true);
 
   const domestic =
+    (categoryPolicyEnabled
+      ? take(
+          (candidate) =>
+            topPrestigeRaceIds.has(candidate.raceId) &&
+            candidate.countryCode.toUpperCase() === normalizedCountryCode &&
+            candidate.raceFormat === "stage_race",
+        ) ??
+        take(
+          (candidate) =>
+            topPrestigeRaceIds.has(candidate.raceId) &&
+            candidate.countryCode.toUpperCase() === normalizedCountryCode,
+        ) ??
+        takeByGeography((candidate) => topPrestigeRaceIds.has(candidate.raceId))
+      : null) ??
     take(
       (candidate) =>
         candidate.countryCode.toUpperCase() === normalizedCountryCode &&
@@ -1376,6 +1499,24 @@ function selectSponsorObjectivePortfolio({
     takeByGeography(() => true);
 
   const regional =
+    (categoryPolicyEnabled
+      ? take(
+          (candidate) =>
+            topPrestigeRaceIds.has(candidate.raceId) &&
+            areSponsorCountriesNeighbors(
+              normalizedCountryCode,
+              candidate.countryCode,
+            ),
+        ) ??
+        take(
+          (candidate) =>
+            topPrestigeRaceIds.has(candidate.raceId) &&
+            normalizedContinentCode !== "" &&
+            candidate.continentCode?.toLowerCase() === normalizedContinentCode &&
+            candidate.countryCode.toUpperCase() !== normalizedCountryCode,
+        ) ??
+        takeAny()
+      : null) ??
     take((candidate) =>
       areSponsorCountriesNeighbors(
         normalizedCountryCode,
@@ -1390,7 +1531,13 @@ function selectSponsorObjectivePortfolio({
     ) ??
     takeAny();
 
-  const philosophySecondary = takeByGeography(philosophyPredicate);
+  const philosophySecondary = categoryPolicyEnabled
+    ? takeByGeography(
+        (candidate) =>
+          topPrestigeRaceIds.has(candidate.raceId) &&
+          philosophyPredicate(candidate),
+      )
+    : takeByGeography(philosophyPredicate);
 
   if (!domestic || !regional || !philosophyPrimary) {
     throw new Error(
@@ -1455,6 +1602,71 @@ function getEligibleSponsorObjectiveRaces({
   }
 
   return [...uniqueCandidates.values()];
+}
+
+function isSponsorObjectivePrestigeCategoryPolicyEnabled(
+  targetSeasonGameYear: number,
+): boolean {
+  return Number.isFinite(targetSeasonGameYear) &&
+    Math.floor(targetSeasonGameYear) >=
+      SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR;
+}
+
+function getSponsorObjectiveRaceCategoryTier(
+  candidate: SponsorObjectiveRaceCandidate,
+  sponsorPrestige: SponsorPrestige,
+): number {
+  const categoryBands =
+    SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE[sponsorPrestige];
+  const categoryTier = categoryBands.findIndex((categoryCodes) =>
+    candidate.categoryCode !== undefined &&
+    categoryCodes.includes(candidate.categoryCode)
+  );
+
+  return categoryTier >= 0 ? categoryTier : categoryBands.length;
+}
+
+function selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+  candidates,
+  sponsorPrestige,
+  targetSeasonGameYear,
+  minimumCount,
+}: {
+  candidates: readonly SponsorObjectiveRaceCandidate[];
+  sponsorPrestige: SponsorPrestige;
+  targetSeasonGameYear: number;
+  minimumCount: number;
+}): SponsorObjectiveRaceCandidate[] {
+  if (
+    !isSponsorObjectivePrestigeCategoryPolicyEnabled(targetSeasonGameYear) ||
+    candidates.length === 0
+  ) {
+    return [...candidates];
+  }
+
+  const requiredCount = Math.min(
+    candidates.length,
+    Math.max(1, Math.floor(minimumCount)),
+  );
+  const selectedCandidates: SponsorObjectiveRaceCandidate[] = [];
+  const maximumTier =
+    SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE[sponsorPrestige].length;
+
+  for (let tier = 0; tier <= maximumTier; tier += 1) {
+    selectedCandidates.push(
+      ...candidates.filter(
+        (candidate) =>
+          getSponsorObjectiveRaceCategoryTier(candidate, sponsorPrestige) ===
+          tier,
+      ),
+    );
+
+    if (selectedCandidates.length >= requiredCount) {
+      return selectedCandidates;
+    }
+  }
+
+  return selectedCandidates;
 }
 
 export function isSponsorObjectiveRaceCandidateEligible(
@@ -1568,6 +1780,9 @@ function createRaceTopObjective(
 export function selectSponsorObjectiveRaces({
   sponsorCountryCode,
   sponsorContinentCode = null,
+  sponsorPrestige,
+  targetSeasonGameYear =
+    SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR - 1,
   teamReputationPoints,
   raceCandidates,
   count,
@@ -1575,16 +1790,28 @@ export function selectSponsorObjectiveRaces({
 }: {
   sponsorCountryCode: string;
   sponsorContinentCode?: string | null;
+  sponsorPrestige?: SponsorPrestige;
+  targetSeasonGameYear?: number;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   count: number;
   random?: () => number;
 }): SponsorObjectiveRaceCandidate[] {
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
-  const eligibleCandidates = getEligibleSponsorObjectiveRaces({
+  const allEligibleCandidates = getEligibleSponsorObjectiveRaces({
     teamReputationPoints,
     raceCandidates,
   });
+  const categoryPolicyEnabled = sponsorPrestige !== undefined &&
+    isSponsorObjectivePrestigeCategoryPolicyEnabled(targetSeasonGameYear);
+  const eligibleCandidates = sponsorPrestige === undefined
+    ? allEligibleCandidates
+    : selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+        candidates: allEligibleCandidates,
+        sponsorPrestige,
+        targetSeasonGameYear,
+        minimumCount: count,
+      });
   const normalizedContinentCode = (
     sponsorContinentCode ??
     eligibleCandidates.find(
@@ -1639,12 +1866,30 @@ export function selectSponsorObjectiveRaces({
     ),
     random
   );
-  const selectedCandidates = [
+  const geographicallyOrderedCandidates = [
     ...domesticCandidates,
     ...neighboringCandidates,
     ...continentalCandidates,
     ...otherCandidates,
-  ].slice(0, count);
+  ];
+  const selectedCandidates = categoryPolicyEnabled
+    ? geographicallyOrderedCandidates
+        .map((candidate, geographyIndex) => ({ candidate, geographyIndex }))
+        .sort(
+          (left, right) =>
+            getSponsorObjectiveRaceCategoryTier(
+              left.candidate,
+              sponsorPrestige,
+            ) -
+              getSponsorObjectiveRaceCategoryTier(
+                right.candidate,
+                sponsorPrestige,
+              ) ||
+            left.geographyIndex - right.geographyIndex,
+        )
+        .map(({ candidate }) => candidate)
+        .slice(0, count)
+    : geographicallyOrderedCandidates.slice(0, count);
 
   if (selectedCandidates.length < count) {
     throw new Error(

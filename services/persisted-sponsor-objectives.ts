@@ -5,6 +5,7 @@ import {
   generateProvisionalSponsorObjectives,
   isSponsorObjectiveRaceCandidateEligible,
   selectSponsorObjectiveRaces,
+  SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR,
   shouldSponsorRequestRiderRecruitment,
   type SponsorObjectiveRaceCandidate,
   type SponsorObjectiveRiderCandidate,
@@ -199,6 +200,11 @@ export async function ensureAndLoadSponsorObjectives({
     return new Map();
   }
 
+  const targetSeasonGameYear = await loadTargetSeasonGameYear({
+    supabase,
+    seasonId,
+  });
+
   const offerIds = offers.map((offer) => offer.offerId);
   const {
     raceCandidates,
@@ -303,6 +309,7 @@ export async function ensureAndLoadSponsorObjectives({
           objectiveHistoryByOfferId.get(offer.offerId) ?? [],
         includeRiderRecruitmentObjective:
           offer.includeRiderRecruitmentObjective === true,
+        targetSeasonGameYear,
         teamReputationPoints,
         raceCandidates,
         random: createSeededRandom(
@@ -373,6 +380,8 @@ export async function ensureAndLoadSponsorObjectives({
       supabase,
       objectiveRows: existingRows,
       sponsorCountryCode: offer.sponsor.countryCode,
+      sponsorPrestige: offer.sponsor.prestige,
+      targetSeasonGameYear,
       teamReputationPoints,
       raceCandidates,
       random: createSeededRandom(
@@ -1101,6 +1110,32 @@ async function loadSponsorObjectiveRaceCandidates({
   };
 }
 
+async function loadTargetSeasonGameYear({
+  supabase,
+  seasonId,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+}): Promise<number> {
+  const { data, error } = await supabase
+    .from("seasons")
+    .select("id, game_year")
+    .eq("id", seasonId)
+    .maybeSingle<SeasonReferenceRow>();
+
+  if (error) {
+    throw new Error(
+      `Impossible de dater la saison des objectifs sponsor : ${error.message}`,
+    );
+  }
+
+  if (!data || !Number.isFinite(data.game_year)) {
+    throw new Error("La saison des objectifs sponsor est introuvable.");
+  }
+
+  return Math.floor(data.game_year!);
+}
+
 async function loadPreviousSponsorObjectivesByOffer({
   supabase,
   seasonId,
@@ -1677,6 +1712,8 @@ async function repairLegacyRaceObjectives({
   supabase,
   objectiveRows,
   sponsorCountryCode,
+  sponsorPrestige,
+  targetSeasonGameYear,
   teamReputationPoints,
   raceCandidates,
   random,
@@ -1684,6 +1721,8 @@ async function repairLegacyRaceObjectives({
   supabase: SupabaseAdminClient;
   objectiveRows: readonly SponsorObjectiveRow[];
   sponsorCountryCode: string;
+  sponsorPrestige: Sponsor["prestige"];
+  targetSeasonGameYear: number;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   random: () => number;
@@ -1698,20 +1737,26 @@ async function repairLegacyRaceObjectives({
 
   const selectedRaces = selectSponsorObjectiveRaces({
     sponsorCountryCode,
+    sponsorPrestige,
+    targetSeasonGameYear,
     teamReputationPoints,
     raceCandidates,
     count: raceObjectiveRows.length,
     random,
   });
+  const prestigeCategoryPolicyEnabled =
+    targetSeasonGameYear >=
+      SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR;
   const eligibleCandidateByRaceId = new Map(
-    raceCandidates
-      .filter((candidate) =>
-        isSponsorObjectiveRaceCandidateEligible(
-          candidate,
-          teamReputationPoints,
+    (prestigeCategoryPolicyEnabled
+      ? selectedRaces
+      : raceCandidates.filter((candidate) =>
+          isSponsorObjectiveRaceCandidateEligible(
+            candidate,
+            teamReputationPoints,
+          )
         )
-      )
-      .map((candidate) => [candidate.raceId, candidate])
+    ).map((candidate) => [candidate.raceId, candidate])
   );
   const retainedRaceIds = new Set(
     raceObjectiveRows.flatMap((objective) => {

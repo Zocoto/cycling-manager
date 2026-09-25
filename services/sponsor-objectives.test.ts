@@ -795,6 +795,163 @@ describe("generateProvisionalSponsorObjectives", () => {
     );
   });
 
+  it("aligne les catégories de course sur le prestige du sponsor dès la saison 4", () => {
+    const raceCandidates = [
+      createRace("national-fr", "Nationale France", "FR"),
+      createRace("national-be", "Nationale Belgique", "BE"),
+      createRace("continental-fr", "Continentale France", "FR", {
+        categoryCode: "continental",
+      }),
+      createRace("continental-be", "Continentale Belgique", "BE", {
+        categoryCode: "continental",
+      }),
+      createRace("continental-es", "Continentale Espagne", "ES", {
+        categoryCode: "continental",
+      }),
+      createRace("world-fr", "Mondiale France", "FR", {
+        categoryCode: "world",
+      }),
+      createRace("world-be", "Mondiale Belgique", "BE", {
+        categoryCode: "world",
+      }),
+      createRace("world-it", "Mondiale Italie", "IT", {
+        categoryCode: "world",
+      }),
+      createRace("elite-es", "Élite Espagne", "ES", {
+        categoryCode: "elite",
+      }),
+    ];
+    const selectForPrestige = (
+      sponsorPrestige: 1 | 2 | 3 | 4 | 5,
+      count: number,
+    ) => selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      sponsorContinentCode: "europe",
+      sponsorPrestige,
+      targetSeasonGameYear: 4,
+      teamReputationPoints: 200,
+      raceCandidates,
+      count,
+      random: () => 0.5,
+    }).map((race) => race.categoryCode);
+
+    expect(new Set(selectForPrestige(1, 2))).toEqual(new Set(["national"]));
+    expect(
+      selectForPrestige(2, 4).every(
+        (category) => category === "national" || category === "continental",
+      ),
+    ).toBe(true);
+    expect(new Set(selectForPrestige(3, 3))).toEqual(
+      new Set(["continental"]),
+    );
+    expect(
+      selectForPrestige(4, 4).every(
+        (category) => category === "continental" || category === "world",
+      ),
+    ).toBe(true);
+    expect(
+      selectForPrestige(5, 4).every(
+        (category) => category === "world" || category === "elite",
+      ),
+    ).toBe(true);
+  });
+
+  it("ne change pas la sélection de la saison 3", () => {
+    const raceCandidates = [
+      createRace("national", "Nationale", "FR"),
+      createRace("continental", "Continentale", "FR", {
+        categoryCode: "continental",
+      }),
+      createRace("world", "Mondiale", "FR", {
+        categoryCode: "world",
+      }),
+    ];
+    const currentSeason = selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      targetSeasonGameYear: 3,
+      teamReputationPoints: 200,
+      raceCandidates,
+      count: 3,
+      random: () => 0.5,
+    });
+    const nextSeason = selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      targetSeasonGameYear: 4,
+      teamReputationPoints: 200,
+      raceCandidates,
+      count: 1,
+      random: () => 0.5,
+    });
+
+    expect(new Set(currentSeason.map((race) => race.categoryCode))).toEqual(
+      new Set(["national", "continental", "world"]),
+    );
+    expect(nextSeason.map((race) => race.categoryCode)).toEqual(["world"]);
+  });
+
+  it("réserve les objectifs de course d’un sponsor 5/5 aux épreuves mondiales ou élite", () => {
+    const raceCandidates = [
+      createRace("national-fr", "Nationale France", "FR"),
+      createRace("continental-fr", "Continentale France", "FR", {
+        categoryCode: "continental",
+      }),
+      createRace("world-fr-tour", "Tour mondial français", "FR", {
+        categoryCode: "world",
+        raceFormat: "stage_race",
+        profileTypes: ["hilly", "time_trial"],
+      }),
+      createRace("world-fr-cobbles", "Mondiale pavée française", "FR", {
+        categoryCode: "world",
+        profileTypes: ["cobbles"],
+      }),
+      createRace("world-be-cobbles", "Mondiale pavée belge", "BE", {
+        categoryCode: "world",
+        profileTypes: ["cobbles"],
+      }),
+      createRace("world-es-sprint", "Mondiale espagnole", "ES", {
+        categoryCode: "world",
+        profileTypes: ["sprint"],
+      }),
+      createRace("elite-it-monument", "Monument italien", "IT", {
+        categoryCode: "elite",
+        isMonument: true,
+        profileTypes: ["hilly"],
+      }),
+    ];
+    const categoryByRaceId = new Map(
+      raceCandidates.map((race) => [race.raceId, race.categoryCode]),
+    );
+    const objectives = generateObjectivesFromRaces({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      proposedBudget: 1_700_000,
+      teamReputationPoints: 200,
+      raceCandidates,
+      sportingPhilosophy: "cobbled_classics",
+      targetSeasonGameYear: 4,
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    });
+    const raceObjectives = objectives.filter(
+      (objective) => objective.targetDetails.kind === "race_result",
+    );
+
+    expect(raceObjectives.length).toBeGreaterThanOrEqual(3);
+    expect(
+      raceObjectives.every((objective) => {
+        if (objective.targetDetails.kind !== "race_result") return false;
+        const category = categoryByRaceId.get(objective.targetDetails.raceId);
+        return category === "world" || category === "elite";
+      }),
+    ).toBe(true);
+    expect(
+      objectives.every(
+        (objective) => objective.targetDetails.generationVersion === 10,
+      ),
+    ).toBe(true);
+  });
+
   it("reconnaît les profils sportifs à partir du format et des étapes", () => {
     expect(
       matchesSponsorSportingPhilosophy(
