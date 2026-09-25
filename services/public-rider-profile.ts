@@ -11,6 +11,10 @@ import {
   resolvePublicTeamName,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import {
+  parseSquadStatus,
+  type SquadStatus,
+} from "@/lib/game/squad-status";
 import { getDailyConditionHistoryLabel } from "@/lib/game/rider-form-history";
 import {
   isRiderSpecialAbility,
@@ -84,6 +88,7 @@ export type PublicRiderProfile = {
     divisionCode: string;
     divisionName: string;
   } | null;
+  squadStatus: SquadStatus | null;
   nationalTitles: Array<{
     type: "road" | "time_trial";
     seasonId: string;
@@ -236,6 +241,7 @@ type ContractRow = {
   left_season_id: string | null;
   left_day_number: number | null;
   transfer_fee: number | string | null;
+  squad_status: string | null;
 };
 
 type SummaryRow = {
@@ -475,7 +481,7 @@ export async function getPublicRiderProfile({
     supabase
       .from("rider_contracts")
       .select(
-        "team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, signed_at, joined_day_number, left_season_id, left_day_number, transfer_fee",
+        "team_id, start_season_id, end_season_id, salary_per_season, currency_code, status, signed_at, joined_day_number, left_season_id, left_day_number, transfer_fee, squad_status",
       )
       .eq("rider_id", rider.id)
       .in("status", ["planned", "active", "completed", "terminated"])
@@ -1201,6 +1207,7 @@ export async function getPublicRiderProfile({
         }
       : null,
     currentTeam,
+    squadStatus: parseSquadStatus(currentContract?.squad_status),
     nationalTitles: nationalTitleRows.flatMap((title) =>
       title.championship_type === "road" ||
       title.championship_type === "time_trial"

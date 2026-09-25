@@ -272,6 +272,7 @@ export async function getArchivedRiderProfile(
     condition: { form: 75, dayNumber: null, events: [] },
     medical: null,
     currentTeam: null,
+    squadStatus: null,
     nationalTitles: history.flatMap((season) =>
       season.nationalTitles.map((title) => ({
         ...title,

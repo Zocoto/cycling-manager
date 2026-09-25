@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
+import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import {
   RIDER_CLIMATE_LABELS,
   RiderClimateIcon,
@@ -393,6 +394,11 @@ export function RaceRosterSelector({
                       >
                         Forme {formatRosterForm(rider.form)}/100
                       </span>
+                      <SquadStatusBadge
+                        status={rider.squadStatus}
+                        tone="dark"
+                        compact
+                      />
                       <RiderWeatherAffinities profile={rider.climateProfile} />
                     </span>
                     <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">

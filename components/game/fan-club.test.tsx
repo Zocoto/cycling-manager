@@ -23,7 +23,6 @@ const LIVE_DATA = {
   supporterCount: 250,
   fervor: 22,
   teamReach: 17,
-  sportingResultCount: 0,
   riders: [],
   races: [],
   supporterBreakdown: {

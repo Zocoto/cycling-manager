@@ -12,6 +12,7 @@ import { PotentialStars } from "@/components/game/potential-stars";
 import { RaceReconnaissancePlanner } from "@/components/game/race-reconnaissance-planner";
 import { RiderPreparationCenter } from "@/components/game/rider-preparation-center";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import { TrainingReportPopover } from "@/components/game/training-report-popover";
 import { TrainerOverviewCard } from "@/components/game/trainer-overview-card";
 import { TeamProgressionModal } from "@/components/game/team-progression-modal";
@@ -392,6 +393,10 @@ export default async function TrainingPage({
                               </span>
                               <PotentialStars
                                 potentialSteps={rider.potentialSteps}
+                                compact
+                              />
+                              <SquadStatusBadge
+                                status={rider.squadStatus}
                                 compact
                               />
                               <RiderDeclineIndicators rider={rider} />

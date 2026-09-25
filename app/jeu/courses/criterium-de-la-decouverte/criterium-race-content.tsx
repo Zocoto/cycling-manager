@@ -156,6 +156,7 @@ export async function CriteriumDiscoveryRaceContent({
       sprint: Number(rider.sprint),
       breakaway: Number(rider.breakaway),
       form: health?.form ?? 75,
+      squadStatus: null,
       climateProfile: getRiderClimateProfile({
         riderId: rider.rider_id,
         countryCode: rider.country_iso_alpha2,

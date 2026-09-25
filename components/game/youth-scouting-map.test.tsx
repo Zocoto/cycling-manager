@@ -30,7 +30,7 @@ describe("YouthScoutingMap", () => {
         reputation: 4,
         reputationSourceSeasonName: "Saison 1",
         uciNationRank: 4,
-        specialty: "grimpeur" as const,
+        specialty: "climber" as const,
         secondarySpecialty: "puncheur" as const,
         specialtyLabel: "Grimpeurs",
         secondarySpecialtyLabel: "Puncheurs",

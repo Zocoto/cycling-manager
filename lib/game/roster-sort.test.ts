@@ -13,6 +13,7 @@ describe("roster sorting", () => {
     expect(parseRosterSortKey("sprint")).toBe("sprint");
     expect(parseRosterSortKey("mountain")).toBe("mountain");
     expect(parseRosterSortKey("form")).toBe("form");
+    expect(parseRosterSortKey("squad_status")).toBe("squad_status");
     expect(parseRosterSortKey("salary")).toBeNull();
     expect(parseRosterSortKey("contract")).toBeNull();
     expect(parseRosterSortKey("unknown")).toBeNull();
@@ -22,6 +23,7 @@ describe("roster sorting", () => {
     expect(parseRosterSortDirection(undefined, "sprint")).toBe("desc");
     expect(parseRosterSortDirection(undefined, "average")).toBe("desc");
     expect(parseRosterSortDirection(undefined, "form")).toBe("desc");
+    expect(parseRosterSortDirection(undefined, "squad_status")).toBe("desc");
     expect(parseRosterSortDirection(undefined, "rider")).toBe("asc");
   });
 

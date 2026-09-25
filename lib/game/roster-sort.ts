@@ -2,6 +2,7 @@ export const ROSTER_SORT_KEYS = [
   "rider",
   "age",
   "profile",
+  "squad_status",
   "potential",
   "form",
   "mountain",
@@ -33,6 +34,7 @@ export type RosterSortValue =
   | null;
 
 const DESCENDING_BY_DEFAULT = new Set<RosterSortKey>([
+  "squad_status",
   "potential",
   "form",
   "mountain",

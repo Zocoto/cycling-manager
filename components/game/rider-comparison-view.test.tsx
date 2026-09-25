@@ -91,6 +91,7 @@ function createProfile({
       divisionCode: "D1",
       divisionName: "Division 1",
     },
+    squadStatus: null,
     nationalTitles: [],
     worldTitles: [],
     continentalTitles: [],

@@ -12,14 +12,10 @@ import {
 describe("calendrier des fêtes nationales", () => {
   it("couvre les 195 pays actifs sans doublon ni pays non affecté", () => {
     const coveredCodes = NATIONAL_DAY_CALENDAR.map((entry) => entry.isoAlpha2);
-    const unassignedCodes = UNASSIGNED_NATIONAL_DAY_COUNTRIES.map(
-      (entry) => entry.isoAlpha2,
-    );
-
     expect(new Set(coveredCodes).size).toBe(193);
     expect(coveredCodes).toHaveLength(193);
     expect(DYNAMIC_NATIONAL_DAY_COUNTRIES).toEqual(["GB", "IL"]);
-    expect(unassignedCodes).toEqual([]);
+    expect(UNASSIGNED_NATIONAL_DAY_COUNTRIES).toEqual([]);
     expect(
       new Set([...coveredCodes, ...DYNAMIC_NATIONAL_DAY_COUNTRIES]).size,
     ).toBe(195);

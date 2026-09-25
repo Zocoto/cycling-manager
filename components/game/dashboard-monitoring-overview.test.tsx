@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
 import type { UciRankings } from "@/services/uci-rankings";
 
 import { DashboardMonitoringOverview } from "./dashboard-monitoring-overview";
@@ -107,6 +108,10 @@ function createRankings(): UciRankings {
       rank: index + 1,
       riderId: `rider-${index + 1}`,
       riderName: `Coureur ${index + 1}`,
+      avatarProfileKey: null,
+      avatarSeed: null,
+      age: 25,
+      jersey: FREE_AGENT_RIDER_JERSEY,
       teamId: `team-${index + 1}`,
       teamName: `Équipe ${index + 1}`,
       countryCode: "FR",

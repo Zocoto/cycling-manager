@@ -216,7 +216,7 @@ describe("public game news", () => {
   it("normalise le total exact renvoyé par PostgreSQL", () => {
     expect(normalizePublicGameNewsTotal(123)).toBe(123);
     expect(normalizePublicGameNewsTotal("123")).toBe(123);
-    expect(normalizePublicGameNewsTotal(123n)).toBe(123);
+    expect(normalizePublicGameNewsTotal(BigInt(123))).toBe(123);
     expect(normalizePublicGameNewsTotal(null)).toBe(0);
     expect(normalizePublicGameNewsTotal("invalide")).toBe(0);
   });

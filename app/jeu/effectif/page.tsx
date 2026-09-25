@@ -19,6 +19,7 @@ import {
   RiderComparisonRosterProvider,
 } from "@/components/game/rider-comparison-launcher";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
+import { SquadStatusEditor } from "@/components/game/squad-status-editor";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { PotentialStars } from "../../../components/game/potential-stars";
 import {
@@ -41,6 +42,10 @@ import {
   type RiderRatings,
 } from "../../../lib/game/rider-profile";
 import { getEquipmentRatingBonusTotals } from "@/lib/game/equipment";
+import {
+  getSquadStatusRank,
+  type SquadStatus,
+} from "@/lib/game/squad-status";
 import type { RiderComparisonOption } from "@/lib/game/rider-comparison";
 import { getRiderRatingColorClasses } from "../../../lib/game/rider-rating-colors";
 import {
@@ -96,6 +101,7 @@ type RiderRow = {
   recovery: number;
   breakaway: number;
   prologue: number;
+  squad_status: SquadStatus | null;
 };
 
 type RiderRosterHealth = {
@@ -231,6 +237,9 @@ export default async function TeamRosterPage({
         currentSortKey,
       )
     : "asc";
+  const rosterReturnTo = currentSortKey
+    ? `/jeu/effectif?vue=statistiques&sort=${currentSortKey}&direction=${currentSortDirection}`
+    : "/jeu/effectif?vue=statistiques";
 
   const supabase = await createSupabaseServerClient();
 
@@ -605,13 +614,14 @@ export default async function TeamRosterPage({
                               rider.rider_id,
                             ) ?? {}
                           }
+                          returnTo={rosterReturnTo}
                         />
                       ))}
                     </div>
                   </div>
 
                   <div className="hidden h-[calc(100dvh-20rem)] min-h-[30rem] max-h-[52rem] overflow-auto overscroll-contain [scrollbar-gutter:stable] xl:block">
-                    <table className="min-w-[1140px] w-full border-collapse">
+                    <table className="min-w-[1320px] w-full border-collapse">
                       <thead>
                         <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
                           <SortableTableHeader
@@ -639,6 +649,16 @@ export default async function TeamRosterPage({
                             fullLabel="profil"
                             align="left"
                             className="min-w-28"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
+
+                          <SortableTableHeader
+                            sortKey="squad_status"
+                            label="Statut"
+                            fullLabel="statut dans l’effectif"
+                            align="left"
+                            className="min-w-52"
                             currentSortKey={currentSortKey}
                             currentDirection={currentSortDirection}
                           />
@@ -705,6 +725,7 @@ export default async function TeamRosterPage({
                                 rider.rider_id,
                               ) ?? {}
                             }
+                            returnTo={rosterReturnTo}
                           />
                         ))}
                       </tbody>
@@ -943,6 +964,11 @@ function MobileRosterSortMenu({
     { key: "rider", label: "Nom", fullLabel: "nom du coureur" },
     { key: "age", label: "\u00c2ge", fullLabel: "\u00e2ge" },
     { key: "profile", label: "Profil", fullLabel: "profil" },
+    {
+      key: "squad_status",
+      label: "Statut effectif",
+      fullLabel: "statut dans l’effectif",
+    },
     { key: "potential", label: "Potentiel", fullLabel: "potentiel" },
     { key: "form", label: "Forme", fullLabel: "forme actuelle" },
     ...ratingColumns.map((column) => ({
@@ -1022,11 +1048,13 @@ function RiderMobileCard({
   jersey,
   health,
   equipmentBonuses,
+  returnTo,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
   health: RiderRosterHealth | null;
   equipmentBonuses: Partial<Record<RiderRatingKey, number>>;
+  returnTo: string;
 }) {
   const riderName = `${rider.first_name} ${rider.last_name}`.trim();
   const riderProfile = getRiderSportingProfile(toRiderRatings(rider));
@@ -1129,6 +1157,15 @@ function RiderMobileCard({
         />
       </div>
 
+      <div className="mt-3 rounded-xl border border-[#315B3E]/10 bg-[#F7FAF9] p-2.5">
+        <SquadStatusEditor
+          riderId={rider.rider_id}
+          status={rider.squad_status}
+          returnTo={returnTo}
+          compact
+        />
+      </div>
+
       <CollapsibleMobileRiderRatings
         riderName={riderName}
         ratings={ratingColumns.map((column) => ({
@@ -1176,11 +1213,13 @@ function RiderTableRow({
   jersey,
   health,
   equipmentBonuses,
+  returnTo,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
   health: RiderRosterHealth | null;
   equipmentBonuses: Partial<Record<RiderRatingKey, number>>;
+  returnTo: string;
 }) {
   const riderName = `${rider.first_name} ${rider.last_name}`.trim();
 
@@ -1274,6 +1313,15 @@ function RiderTableRow({
         <span className="inline-flex max-w-28 rounded-full bg-[#D7EEE8] px-2.5 py-1.5 text-xs font-extrabold leading-4 text-[#176951]">
           {riderProfile}
         </span>
+      </td>
+
+      <td className="px-2 py-3">
+        <SquadStatusEditor
+          riderId={rider.rider_id}
+          status={rider.squad_status}
+          returnTo={returnTo}
+          compact
+        />
       </td>
 
       <td className="px-2 py-3 text-center">
@@ -1579,6 +1627,8 @@ function getRosterSortValue(
       return rider.age;
     case "profile":
       return getRiderSportingProfile(toRiderRatings(rider));
+    case "squad_status":
+      return getSquadStatusRank(rider.squad_status);
     case "potential":
       return rider.potential_steps;
     case "form":

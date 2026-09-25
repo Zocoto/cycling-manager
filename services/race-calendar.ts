@@ -27,6 +27,10 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import {
+  parseSquadStatus,
+  type SquadStatus,
+} from "@/lib/game/squad-status";
 import type { FanClubRaceBoost } from "@/lib/game/fan-club-race-boost";
 import { isSecondaryProfessionalNationsCupHeatSlug } from "@/lib/game/nations-cup-heats";
 import {
@@ -565,6 +569,7 @@ export type RaceRosterOption = {
   sprint: number;
   breakaway: number;
   form: number;
+  squadStatus: SquadStatus | null;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
   currentRole: RaceRole;
@@ -681,6 +686,7 @@ type RaceRosterOptionRow = {
   conflicting_race_name: string | null;
   conflicting_start_day: number | null;
   conflicting_end_day: number | null;
+  squad_status: string | null;
 };
 
 export type RaceEngagedRider = {
@@ -2001,6 +2007,7 @@ export async function getCurrentTeamRaceRosterOptions(
     sprint: rider.sprint,
     breakaway: rider.breakaway,
     form: Number(rider.current_form),
+    squadStatus: parseSquadStatus(rider.squad_status),
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
       countryCode: rider.country_iso_alpha2,

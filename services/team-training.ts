@@ -28,6 +28,10 @@ import {
   type TrainingSessionStatus,
 } from "@/lib/game/training";
 import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
+import {
+  parseSquadStatus,
+  type SquadStatus,
+} from "@/lib/game/squad-status";
 import { isNationalPerformanceCenterSpecializationCode } from "@/lib/game/federation-infrastructure-effects";
 import {
   getSkippedLowFormRecoveryGain,
@@ -47,7 +51,7 @@ type TeamSeasonRow = {
   registration_country_id: string;
 };
 type DayRow = { id: string; day_number: number; calendar_date: string };
-type ContractRow = { rider_id: string };
+type ContractRow = { rider_id: string; squad_status: string | null };
 type RiderRow = {
   id: string;
   country_id: string;
@@ -190,6 +194,7 @@ export type TeamTrainingRider = {
   age: number;
   potentialSteps: number;
   form: number;
+  squadStatus: SquadStatus | null;
   declineProfile: {
     seasonPointsBeforeTraining: number;
     naturalMultiplier: number;
@@ -242,7 +247,7 @@ export async function getCurrentTeamTrainingOverview(
         .returns<DayRow[]>(),
       admin
         .from("rider_contracts")
-        .select("rider_id")
+        .select("rider_id, squad_status")
         .eq("team_id", teamSeason.team_id)
         .eq("status", "active")
         .returns<ContractRow[]>(),
@@ -574,6 +579,12 @@ export async function getCurrentTeamTrainingOverview(
     )
       ? federationPerformanceSpecializationResult.data
       : null;
+  const squadStatusByRiderId = new Map(
+    (contractsResult.data ?? []).map((contract) => [
+      contract.rider_id,
+      parseSquadStatus(contract.squad_status),
+    ]),
+  );
 
   return {
     teamId: teamSeason.team_id,
@@ -666,6 +677,7 @@ export async function getCurrentTeamTrainingOverview(
             age: rating.age,
             potentialSteps: rider.potential_steps,
             form: condition?.form ?? 75,
+            squadStatus: squadStatusByRiderId.get(rider.id) ?? null,
             declineProfile: {
               seasonPointsBeforeTraining: getSeasonDeclinePoints(rating.age, {
                 declineMultiplier: naturalDeclineMultiplier,

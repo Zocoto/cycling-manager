@@ -23,6 +23,8 @@ import {
 import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
 import { WorldChampionJersey } from "@/components/game/world-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { SquadStatusBadge } from "@/components/game/squad-status-badge";
+import { SquadStatusEditor } from "@/components/game/squad-status-editor";
 import { RiderComparisonLauncher } from "@/components/game/rider-comparison-launcher";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
@@ -455,6 +457,9 @@ export default async function RiderProfilePage({
                 <IdentityBadge>
                   {profile.activeSeason?.name ?? "Hors saison"}
                 </IdentityBadge>
+                {profile.currentTeam ? (
+                  <SquadStatusBadge status={profile.squadStatus} tone="dark" />
+                ) : null}
                 {profile.worldTitles
                   .filter((title) => title.isActive)
                   .map((title) => (
@@ -532,6 +537,16 @@ export default async function RiderProfilePage({
                 activeContinentalTitles={activeContinentalTitles}
                 activeWorldTitles={activeWorldTitles}
               />
+              {profile.canManage && profile.currentTeam ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <SquadStatusEditor
+                    riderId={profile.id}
+                    status={profile.squadStatus}
+                    returnTo={`/jeu/coureurs/${profile.id}`}
+                    tone="dark"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </header>

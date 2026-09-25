@@ -70,7 +70,12 @@ const financeBaseline: FederationFinanceBaseline = {
   acceptedTeamEntries: 45,
   averageStarters: 54,
   teamProfiles: [
-    { teamId: "team-fr", teamName: "Équipe formatrice", reputationPoints: 42 },
+    {
+      teamId: "team-fr",
+      teamName: "Équipe formatrice",
+      reputationPoints: 42,
+      solidarityReceived: 0,
+    },
   ],
 };
 

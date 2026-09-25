@@ -19,7 +19,8 @@ describe("notes de version", () => {
 
   it("présente les jeux, leurs gains, objectifs et trophée", () => {
     const gamesRelease = releases.find(
-      (release) => release.anchor === "gazette-games",
+      (release) =>
+        "anchor" in release && release.anchor === "gazette-games",
     );
     expect(gamesRelease).toBeDefined();
     const details = gamesRelease?.features.join("\n") ?? "";
