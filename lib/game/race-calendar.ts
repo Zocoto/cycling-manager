@@ -184,6 +184,12 @@ export type RaceCalendarEdition = {
   maximumRosterSize: number;
   engagedRiderCount: number;
   engagedRiders: RiderSimulationInput[];
+  /**
+   * Nombre de coureurs appartenant à l'équipe du DS courant et présents sur
+   * la start-list fédérale. Les inscriptions de club continuent d'utiliser
+   * `currentTeamRegistration`.
+   */
+  currentTeamInternationalRiderCount?: number;
   currentTeamRegistration: {
     status: "pending" | "accepted" | "rejected" | "withdrawn";
     rosterCount: number;
@@ -358,6 +364,11 @@ function createFederationCalendarGroup(
       0,
     ),
     engagedRiders: [],
+    currentTeamInternationalRiderCount: sourceEditions.reduce(
+      (total, edition) =>
+        total + (edition.currentTeamInternationalRiderCount ?? 0),
+      0,
+    ),
     currentTeamRegistration: null,
     stages: [
       {

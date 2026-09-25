@@ -201,6 +201,7 @@ describe("SeasonCalendar", () => {
     });
     championship.registrationPolicy = "closed";
     championship.engagedRiderCount = 37;
+    championship.currentTeamInternationalRiderCount = 2;
     const calendar: SeasonRaceCalendar = {
       seasonId: "season-worlds",
       seasonName: "Saison des Mondiaux",
@@ -243,6 +244,10 @@ describe("SeasonCalendar", () => {
       "/jeu/championnats-internationaux#championnats-du-monde",
     );
     expect(markup).toContain("Voir les CC &amp; CM");
+    expect(markup).toContain("✓ 2");
+    expect(markup).toContain(
+      "2 coureurs de votre équipe retenus en sélection nationale",
+    );
   });
 
   it("affiche une seule entrée Nations Cup ouvrant les cinq épreuves", () => {
@@ -252,7 +257,7 @@ describe("SeasonCalendar", () => {
       ["nations-cup-sprint", "Nations Cup · Sprint"],
       ["nations-cup-paves", "Nations Cup · Pavés"],
       ["nations-cup-contre-la-montre", "Nations Cup · Contre-la-montre"],
-    ].map(([id, name]) => {
+    ].map(([id, name], index) => {
       const edition = createEdition({
         id,
         name,
@@ -268,6 +273,7 @@ describe("SeasonCalendar", () => {
       edition.minimumRosterSize = 1;
       edition.maximumRosterSize = 1;
       edition.engagedRiderCount = 32;
+      edition.currentTeamInternationalRiderCount = index < 3 ? 1 : 0;
       return edition;
     });
 
@@ -280,6 +286,7 @@ describe("SeasonCalendar", () => {
     expect(visibleEditions).toHaveLength(1);
     expect(visibleEditions[0]).toMatchObject({
       name: "Nations Cup",
+      currentTeamInternationalRiderCount: 3,
       calendarGroup: {
         kind: "nations_cup",
         editionCount: 5,
@@ -321,6 +328,10 @@ describe("SeasonCalendar", () => {
     expect(markup.match(/data-federation-selection="true"/g)).toHaveLength(2);
     expect(markup).toContain('href="/jeu/nations-cup"');
     expect(markup).toContain("Ouvrir les 5 épreuves");
+    expect(markup).toContain("✓ 3");
+    expect(markup).toContain(
+      "3 engagements de vos coureurs sur ces épreuves internationales",
+    );
   });
 
   it("affiche une seule entrée pour les championnats continentaux pros et juniors", () => {
@@ -441,6 +452,7 @@ describe("SeasonCalendar", () => {
     juniorChampionship.registrationPolicy = "closed";
     juniorChampionship.minimumRosterSize = 1;
     juniorChampionship.maximumRosterSize = 6;
+    juniorChampionship.currentTeamInternationalRiderCount = 1;
 
     expect(getCalendarEditionHref(juniorChampionship, 20)).toBe(
       "/jeu/resultats-juniors/mondial-junior-route",
@@ -475,6 +487,10 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain("Résultats juniors");
     expect(markup).toContain(
       "/jeu/resultats-juniors/mondial-junior-route",
+    );
+    expect(markup).toContain("✓ 1");
+    expect(markup).toContain(
+      "1 coureur de votre équipe retenu en sélection nationale",
     );
   });
 

@@ -61,6 +61,7 @@ describe("consolidateFederationCalendarEditions", () => {
       edition.competitionType = "nations_cup";
       edition.countryCode = "CH";
       edition.countryName = "Suisse";
+      edition.currentTeamInternationalRiderCount = index < 3 ? 1 : 0;
       return edition;
     });
 
@@ -70,6 +71,7 @@ describe("consolidateFederationCalendarEditions", () => {
     expect(consolidated[0]).toMatchObject({
       name: "Nations Cup",
       calendarHref: "/jeu/nations-cup",
+      currentTeamInternationalRiderCount: 3,
       calendarGroup: {
         kind: "nations_cup",
         editionCount: 5,

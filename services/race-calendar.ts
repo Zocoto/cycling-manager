@@ -447,6 +447,10 @@ type CalendarEngagedCountRow = {
   engaged_rider_count: number;
 };
 
+type CurrentTeamInternationalCalendarCountRow = CalendarEngagedCountRow & {
+  rider_category: "professional" | "junior";
+};
+
 type ActiveTeamSponsorContractRow = {
   team_id: string;
   sponsor_id: string;
@@ -829,6 +833,7 @@ export async function getActiveSeasonRaceCalendar(
     sponsorObjectivesResult,
     regionalRaceContextResult,
     earlyEngagedCountsResult,
+    earlyCurrentTeamInternationalCountsResult,
   ] = await Promise.all([
     supabase
       .from("season_days")
@@ -871,6 +876,9 @@ export async function getActiveSeasonRaceCalendar(
             };
           },
         })
+      : Promise.resolve(null),
+    includeEngagedCounts
+      ? supabase.rpc("get_current_team_international_calendar_counts")
       : Promise.resolve(null),
   ]);
 
@@ -960,6 +968,11 @@ export async function getActiveSeasonRaceCalendar(
       `Impossible de charger le nombre de coureurs engagés : ${engagedCountsResult.error.message}`,
     );
   }
+  if (earlyCurrentTeamInternationalCountsResult?.error) {
+    throw new Error(
+      `Impossible de charger les engagements internationaux de l’équipe : ${earlyCurrentTeamInternationalCountsResult.error.message}`,
+    );
+  }
 
   const engagedRiderRows =
     (engagedRidersResult?.data as CalendarEngagedRiderRow[] | null) ?? [];
@@ -970,6 +983,20 @@ export async function getActiveSeasonRaceCalendar(
     ((engagedCountsResult?.data as CalendarEngagedCountRow[] | null) ?? []).map(
       (row) => [row.race_edition_id, row.engaged_rider_count],
     ),
+  );
+  const currentTeamInternationalCountRows =
+    (earlyCurrentTeamInternationalCountsResult?.data as
+      | CurrentTeamInternationalCalendarCountRow[]
+      | null) ?? [];
+  const currentTeamProfessionalCountByEditionId = new Map(
+    currentTeamInternationalCountRows
+      .filter((row) => row.rider_category === "professional")
+      .map((row) => [row.race_edition_id, row.engaged_rider_count]),
+  );
+  const currentTeamJuniorCountByEditionId = new Map(
+    currentTeamInternationalCountRows
+      .filter((row) => row.rider_category === "junior")
+      .map((row) => [row.race_edition_id, row.engaged_rider_count]),
   );
   const engagedRiderIds = unique(
     engagedRiderRows.map((rider) => rider.rider_id),
@@ -1647,6 +1674,12 @@ export async function getActiveSeasonRaceCalendar(
           engagedRidersByEditionId.get(edition.id) ?? [],
           favoriteRaceRiderIdsByRace.get(race.id),
         ),
+        currentTeamInternationalRiderCount:
+          race.competition_type === "world_championship" ||
+          race.competition_type === "continental_championship" ||
+          race.competition_type === "nations_cup"
+            ? (currentTeamProfessionalCountByEditionId.get(edition.id) ?? 0)
+            : undefined,
         currentTeamRegistration: registrationByEditionId.has(edition.id)
           ? {
               status: registrationByEditionId.get(edition.id)!
@@ -1730,6 +1763,7 @@ export async function getActiveSeasonRaceCalendar(
       ? await loadJuniorChampionshipCalendarEditions(supabase, {
           seasonId: season.id,
           currentDayNumber,
+          currentTeamCountByEditionId: currentTeamJuniorCountByEditionId,
         })
       : [];
 
@@ -1751,9 +1785,11 @@ async function loadJuniorChampionshipCalendarEditions(
   {
     seasonId,
     currentDayNumber,
+    currentTeamCountByEditionId,
   }: {
     seasonId: string;
     currentDayNumber: number;
+    currentTeamCountByEditionId: ReadonlyMap<string, number>;
   },
 ): Promise<RaceCalendarEdition[]> {
   const editionsResult = await supabase
@@ -1767,6 +1803,7 @@ async function loadJuniorChampionshipCalendarEditions(
       "continental_time_trial",
       "world_road",
       "world_time_trial",
+      "nations_cup_junior",
     ])
     .neq("status", "cancelled")
     .order("start_day_number")
@@ -1880,6 +1917,8 @@ async function loadJuniorChampionshipCalendarEditions(
       maximumRosterSize: edition.selection_maximum,
       engagedRiderCount: selectedCountByEditionId.get(edition.id) ?? 0,
       engagedRiders: [],
+      currentTeamInternationalRiderCount:
+        currentTeamCountByEditionId.get(edition.id) ?? 0,
       currentTeamRegistration: null,
       stages: stages.map((stage) => ({
         id: `junior:${stage.id}`,

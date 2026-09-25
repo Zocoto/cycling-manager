@@ -54,6 +54,29 @@ type SeasonCalendarProps = {
 type CalendarScope = "team" | "all";
 type CalendarView = "planning" | "list";
 
+function getCurrentTeamEngagementBadge(edition: RaceCalendarEdition) {
+  if (
+    edition.currentTeamRegistration?.status === "accepted" &&
+    edition.currentTeamRegistration.rosterCount > 0
+  ) {
+    const count = edition.currentTeamRegistration.rosterCount;
+    return {
+      count,
+      title: `${count} coureur${count > 1 ? "s" : ""} engagé${count > 1 ? "s" : ""} par votre équipe`,
+    };
+  }
+
+  const count = edition.currentTeamInternationalRiderCount ?? 0;
+  if (!isFederationSelectionEdition(edition) || count <= 0) return null;
+
+  return {
+    count,
+    title: edition.calendarGroup
+      ? `${count} engagement${count > 1 ? "s" : ""} de vos coureurs sur ces épreuves internationales`
+      : `${count} coureur${count > 1 ? "s" : ""} de votre équipe retenu${count > 1 ? "s" : ""} en sélection nationale`,
+  };
+}
+
 export function SeasonCalendar({
   calendar,
   reputationPoints,
@@ -599,6 +622,8 @@ function RaceCalendarList({
           const style = RACE_CATEGORY_STYLE[edition.categoryCode];
           const grandTourAccent = getGrandTourCalendarAccent(edition);
           const registration = edition.currentTeamRegistration;
+          const currentTeamEngagement =
+            getCurrentTeamEngagementBadge(edition);
           const availability = getRegistrationAvailability({
             policy: edition.registrationPolicy,
             closesAt: getRaceRegistrationDeadline({ edition, divisionCode }),
@@ -622,7 +647,12 @@ function RaceCalendarList({
               now: new Date(nowIso),
             });
           const status = isFederationSelection
-            ? edition.calendarGroup
+            ? currentTeamEngagement
+              ? {
+                  label: `✓ ${currentTeamEngagement.count} engagé${currentTeamEngagement.count > 1 ? "s" : ""}`,
+                  tone: "success" as const,
+                }
+              : edition.calendarGroup
               ? {
                   label: "Épreuves regroupées",
                   tone: "success" as const,
@@ -1069,6 +1099,8 @@ function DesktopCalendarWeek({
                 isInternationalChampionshipEdition(segment.edition);
               const isFederationSelection =
                 isFederationSelectionEdition(segment.edition);
+              const currentTeamEngagement =
+                getCurrentTeamEngagementBadge(segment.edition);
               const registrationClosed =
                 !isFederationSelection && isRaceRegistrationClosed({
                   edition: segment.edition,
@@ -1156,9 +1188,12 @@ function DesktopCalendarWeek({
                     </span>
                   ) : null}
 
-                  {segment.edition.currentTeamRegistration?.status === "accepted" ? (
-                    <span className="shrink-0 text-[9px] font-black" title={`${segment.edition.currentTeamRegistration.rosterCount} coureurs engagés`}>
-                      ✓
+                  {currentTeamEngagement ? (
+                    <span
+                      className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-black"
+                      title={currentTeamEngagement.title}
+                    >
+                      ✓ {currentTeamEngagement.count}
                     </span>
                   ) : null}
 
@@ -1382,6 +1417,8 @@ function MobileCalendarDay({
             isInternationalChampionshipEdition(edition);
           const isFederationSelection =
             isFederationSelectionEdition(edition);
+          const currentTeamEngagement =
+            getCurrentTeamEngagementBadge(edition);
           const registrationClosed =
             !isFederationSelection && isRaceRegistrationClosed({
               edition,
@@ -1467,10 +1504,12 @@ function MobileCalendarDay({
                 </span>
               </span>
 
-              {edition.currentTeamRegistration
-                ?.status === "accepted" ? (
-                <span className="shrink-0 rounded-full bg-white/20 px-2 py-1 text-[10px] font-black">
-                  ✓ {edition.currentTeamRegistration.rosterCount}
+              {currentTeamEngagement ? (
+                <span
+                  className="shrink-0 rounded-full bg-white/20 px-2 py-1 text-[10px] font-black"
+                  title={currentTeamEngagement.title}
+                >
+                  ✓ {currentTeamEngagement.count}
                 </span>
               ) : null}
             </Link>
