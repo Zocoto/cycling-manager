@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-real-pursuit-groups-v34";
+  "2026.09-wheel-latching-groups-v35";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

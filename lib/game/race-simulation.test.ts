@@ -17,6 +17,8 @@ import {
   getFinalBattleScenario,
   findDroppedRiderIdsCaughtByDelayedGroup,
   getDelayedRiderPursuitOutcome,
+  getDetachedRiderLatchOutcome,
+  getDetachedRiderPursuitOutcome,
   getDroppedGroupPursuitOutcome,
   getElapsedGroupGapSeconds,
   getHillyClimbSelectionRating,
@@ -47,6 +49,7 @@ import {
   shouldPreserveFinalRoadGroupTimes,
   simulateRaceStage,
   splitElapsedRiderGroups,
+  spreadRoadGroupTransitionsAcrossFrames,
   type RiderSimulationInput,
 } from "./race-simulation";
 import type { RaceStageSegment } from "./race-profiles";
@@ -515,6 +518,162 @@ describe("findDroppedRiderIdsCaughtByDelayedGroup", () => {
     expect(
       groups.map((group) => getElapsedGroupGapSeconds(group, 1_000)),
     ).toEqual([43, 102]);
+  });
+});
+
+describe("getDetachedRiderLatchOutcome", () => {
+  it("fait dépenser de l’énergie à un leader frais capable de prendre les roues", () => {
+    const outcome = getDetachedRiderLatchOutcome({
+      riderTerrainRating: 82,
+      targetPaceRating: 87,
+      resistanceRating: 66,
+      enduranceRating: 66,
+      energy: 55,
+      form: 98,
+      gapSeconds: 7,
+      targetGroupSize: 6,
+      selectionDifficulty: 1.15,
+      terrain: "climb",
+      surface: "asphalt",
+      isPriorityRider: true,
+    });
+
+    expect(outcome.canLatch).toBe(true);
+    expect(outcome.energyCost).toBeGreaterThan(0);
+  });
+
+  it("ne permet pas à un sprinteur trop faible de suivre un groupe de grimpeurs", () => {
+    expect(
+      getDetachedRiderLatchOutcome({
+        riderTerrainRating: 44,
+        targetPaceRating: 78,
+        resistanceRating: 72,
+        enduranceRating: 72,
+        energy: 70,
+        form: 100,
+        gapSeconds: 2,
+        targetGroupSize: 8,
+        selectionDifficulty: 1.05,
+        terrain: "climb",
+        surface: "asphalt",
+        isPriorityRider: true,
+      }).canLatch,
+    ).toBe(false);
+  });
+
+  it("refuse un saut trop grand même à un leader encore frais", () => {
+    expect(
+      getDetachedRiderLatchOutcome({
+        riderTerrainRating: 84,
+        targetPaceRating: 86,
+        resistanceRating: 75,
+        enduranceRating: 78,
+        energy: 62,
+        form: 100,
+        gapSeconds: 14,
+        targetGroupSize: 5,
+        selectionDifficulty: 1,
+        terrain: "climb",
+        surface: "asphalt",
+        isPriorityRider: true,
+      }).canLatch,
+    ).toBe(false);
+  });
+});
+
+describe("getDetachedRiderPursuitOutcome", () => {
+  it("fait utiliser sa réserve à un bon grimpeur isolé pour limiter les dégâts", () => {
+    const outcome = getDetachedRiderPursuitOutcome({
+      riderTerrainRating: 82,
+      fieldTerrainRating: 88,
+      resistanceRating: 66,
+      enduranceRating: 66,
+      energy: 50,
+      form: 98,
+      segmentDistanceKm: 11,
+      selectionDifficulty: 1.2,
+      terrain: "climb",
+      surface: "asphalt",
+      isPriorityRider: true,
+    });
+
+    expect(outcome.canPursue).toBe(true);
+    expect(outcome.lossMultiplier).toBeLessThan(0.8);
+    expect(outcome.energyCost).toBeGreaterThan(2);
+  });
+
+  it("ne transforme pas la réserve d’un mauvais grimpeur en capacité de poursuite", () => {
+    expect(
+      getDetachedRiderPursuitOutcome({
+        riderTerrainRating: 44,
+        fieldTerrainRating: 78,
+        resistanceRating: 72,
+        enduranceRating: 72,
+        energy: 65,
+        form: 100,
+        segmentDistanceKm: 15,
+        selectionDifficulty: 1.1,
+        terrain: "climb",
+        surface: "asphalt",
+        isPriorityRider: true,
+      }),
+    ).toEqual({ canPursue: false, lossMultiplier: 1, energyCost: 0 });
+  });
+});
+
+describe("spreadRoadGroupTransitionsAcrossFrames", () => {
+  it("matérialise une cassure avant la ligne au lieu de créer tout l’écart sur la dernière image", () => {
+    const frames = Array.from({ length: 5 }, (_, index) => ({
+      segmentNumber: 14,
+      completedDistanceKm: 180 + index,
+      sourceTimelineIndex: 13,
+      groups: [
+        {
+          id: "peloton-leader-yash",
+          label: "Peloton",
+          type: "peloton" as const,
+          riderIds: ["leader", "yash"],
+          gapToLeaderSeconds: 0,
+          averageEnergy: 58,
+        },
+      ],
+    }));
+    const smoothed = spreadRoadGroupTransitionsAcrossFrames({
+      frames,
+      finalSnapshot: {
+        segmentNumber: 14,
+        completedDistanceKm: 184,
+        groups: [
+          {
+            id: "peloton-leader",
+            label: "Groupe de tête",
+            type: "peloton",
+            riderIds: ["leader"],
+            gapToLeaderSeconds: 0,
+            averageEnergy: 50,
+          },
+          {
+            id: "dropped-yash",
+            label: "Groupe 2",
+            type: "dropped",
+            riderIds: ["yash"],
+            gapToLeaderSeconds: 30,
+            averageEnergy: 52,
+          },
+        ],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+    });
+    const penultimateYashGroup = smoothed.at(-2)!.groups.find((group) =>
+      group.riderIds.includes("yash"),
+    )!;
+
+    expect(smoothed[0].groups).toEqual(frames[0].groups);
+    expect(penultimateYashGroup.riderIds).toEqual(["yash"]);
+    expect(penultimateYashGroup.gapToLeaderSeconds).toBeGreaterThan(0);
+    expect(penultimateYashGroup.gapToLeaderSeconds).toBeLessThan(30);
   });
 });
 
