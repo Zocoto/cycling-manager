@@ -1,4 +1,8 @@
-import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
+import {
+  RIDER_RATING_AXES,
+  type RiderRatingKey,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
 import type { BonusBreakdown } from "@/lib/game/bonus-breakdown";
 import {
   getSkippedLowFormRecoveryGain,
@@ -272,6 +276,81 @@ const SECONDARY_STATS: Record<TrainingDomain, readonly RiderRatingKey[]> = {
   sprinter: ["resistance", "prologue", "cobbles"],
 };
 
+export const TRAINING_DOMAIN_PRIMARY_WEIGHT = 1;
+export const TRAINING_DOMAIN_SECONDARY_WEIGHT = 0.55;
+export const TRAINING_DOMAIN_SUPPORT_WEIGHT = 0.1;
+
+export type TrainingDomainWeightTier =
+  | "primary"
+  | "secondary"
+  | "support";
+
+export type TrainingDomainWeightGroup = {
+  tier: TrainingDomainWeightTier;
+  label: string;
+  weight: number;
+  stats: ReadonlyArray<{
+    key: RiderRatingKey;
+    label: string;
+    shortLabel: string;
+  }>;
+};
+
+export function getTrainingDomainWeightGroups(
+  domain: TrainingDomain,
+): TrainingDomainWeightGroup[] {
+  const focusedStats = new Set([
+    ...PRIMARY_STATS[domain],
+    ...SECONDARY_STATS[domain],
+  ]);
+  const groups = [
+    {
+      tier: "primary",
+      label: "Gain prioritaire",
+      weight: TRAINING_DOMAIN_PRIMARY_WEIGHT,
+      ratingKeys: PRIMARY_STATS[domain],
+    },
+    {
+      tier: "secondary",
+      label: "Gain secondaire",
+      weight: TRAINING_DOMAIN_SECONDARY_WEIGHT,
+      ratingKeys: SECONDARY_STATS[domain],
+    },
+    {
+      tier: "support",
+      label: "Gain d’entretien",
+      weight: TRAINING_DOMAIN_SUPPORT_WEIGHT,
+      ratingKeys: RIDER_RATING_AXES.map((axis) => axis.key).filter(
+        (ratingKey) => !focusedStats.has(ratingKey),
+      ),
+    },
+  ] as const;
+
+  return groups.map(({ ratingKeys, ...group }) => ({
+    ...group,
+    stats: ratingKeys.map((ratingKey) => {
+      const axis = RIDER_RATING_AXES.find(
+        (candidate) => candidate.key === ratingKey,
+      );
+      if (!axis) {
+        throw new Error(`Statistique d’entraînement inconnue : ${ratingKey}`);
+      }
+      return {
+        key: axis.key,
+        label: axis.label,
+        shortLabel: axis.shortLabel,
+      };
+    }),
+  }));
+}
+
+export function getTrainingDomainChoiceLabel(domain: TrainingDomain): string {
+  const primaryStats = getTrainingDomainWeightGroups(domain)[0].stats
+    .map((stat) => stat.shortLabel)
+    .join(" / ");
+  return `${TRAINING_DOMAIN_LABELS[domain]} · ${primaryStats}`;
+}
+
 const TRAINER_SPECIALTY_STATS: Record<
   TrainerSpecialty,
   readonly RiderRatingKey[]
@@ -337,9 +416,13 @@ export function getTrainingDomainWeight(
   domain: TrainingDomain,
   ratingKey: RiderRatingKey,
 ): number {
-  if (PRIMARY_STATS[domain].includes(ratingKey)) return 1;
-  if (SECONDARY_STATS[domain].includes(ratingKey)) return 0.55;
-  return 0.1;
+  if (PRIMARY_STATS[domain].includes(ratingKey)) {
+    return TRAINING_DOMAIN_PRIMARY_WEIGHT;
+  }
+  if (SECONDARY_STATS[domain].includes(ratingKey)) {
+    return TRAINING_DOMAIN_SECONDARY_WEIGHT;
+  }
+  return TRAINING_DOMAIN_SUPPORT_WEIGHT;
 }
 
 export function getTrainerMultiplier({

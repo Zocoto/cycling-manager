@@ -13,7 +13,8 @@ import {
   dismissYouthRidersBulkAction,
   saveYouthTrainingSettingsBulkAction,
 } from "@/app/jeu/centre-de-formation/actions";
-import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
+import { TrainingDomainGainBreakdown } from "@/components/game/training-domain-gain-breakdown";
+import { getTrainingDomainChoiceLabel } from "@/lib/game/training";
 import {
   getChangedYouthTrainingSettings,
   indexYouthTrainingSettings,
@@ -280,14 +281,16 @@ export function YouthTrainingSettingsFields({
           >
             {YOUTH_TRAINING_DOMAINS.map((domain) => (
               <option key={domain} value={domain}>
-                {domain === "rouleur"
-                  ? "CLM / Rouleur"
-                  : TRAINING_DOMAIN_LABELS[domain]}
+                {getTrainingDomainChoiceLabel(domain)}
               </option>
             ))}
           </select>
         </label>
       </div>
+      <TrainingDomainGainBreakdown
+        domain={current.trainingPriority}
+        className="mt-3"
+      />
       {hasLocalChanges ? (
         <p className="mt-3 rounded-lg bg-[#DCEFE9] px-3 py-2 text-[9px] font-black text-[#176951]">
           Modification prête à être validée dans la barre en bas de l’écran.

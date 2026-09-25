@@ -14,9 +14,10 @@ import {
   saveRiderTrainingPlansAction,
   saveTeamTrainingSettingsAction,
 } from "@/app/jeu/entrainement/actions";
+import { TrainingDomainGainBreakdown } from "@/components/game/training-domain-gain-breakdown";
 import {
   TRAINING_DOMAINS,
-  TRAINING_DOMAIN_LABELS,
+  getTrainingDomainChoiceLabel,
   getTrainingFormDelta,
   type TrainingDomain,
 } from "@/lib/game/training";
@@ -292,7 +293,7 @@ export function RiderTrainingPlanFields({
         >
           {TRAINING_DOMAINS.map((trainingDomain) => (
             <option key={trainingDomain} value={trainingDomain}>
-              {TRAINING_DOMAIN_LABELS[trainingDomain]}
+              {getTrainingDomainChoiceLabel(trainingDomain)}
             </option>
           ))}
         </select>
@@ -406,6 +407,11 @@ export function RiderTrainingPlanFields({
           </span>
         ) : null}
       </div>
+
+      <TrainingDomainGainBreakdown
+        domain={domain}
+        className="lg:col-span-3"
+      />
     </div>
   );
 }

@@ -79,5 +79,11 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain("Lignes Sprint +20%, Chrono &amp; prologue +20%");
     expect(markup).toContain('for="training-trainer-rider-1"');
     expect(markup).toContain('id="training-trainer-rider-1"');
+    expect(markup).toContain("Grimpeur · MON / END");
+    expect(markup).toContain("Répartition du gain · Grimpeur");
+    expect(markup).toContain("Gain prioritaire");
+    expect(markup).toContain("100 %");
+    expect(markup).toContain("55 %");
+    expect(markup).toContain("Gain d’entretien");
   });
 });

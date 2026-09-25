@@ -16,13 +16,41 @@ import {
   getSkippedTrainingFormDelta,
   getTrainerMultiplier,
   getTrainerRiderCapacity,
+  getTrainingDomainChoiceLabel,
   getTrainingDomainWeight,
+  getTrainingDomainWeightGroups,
   getTrainingFormDelta,
   indexLatestTrainingSessionsByRider,
   parseTrainingPageTab,
   TRAINING_STAT_CODES,
   validateRecognitionCampSchedule,
 } from "@/lib/game/training";
+
+describe("training domain gain breakdown", () => {
+  it("expose toutes les statistiques et leurs poids réels pour chaque profil", () => {
+    const groups = getTrainingDomainWeightGroups("climber");
+
+    expect(groups.map(({ tier, weight }) => ({ tier, weight }))).toEqual([
+      { tier: "primary", weight: 1 },
+      { tier: "secondary", weight: 0.55 },
+      { tier: "support", weight: 0.1 },
+    ]);
+    expect(groups[0].stats.map((stat) => stat.shortLabel)).toEqual([
+      "MON",
+      "END",
+    ]);
+    expect(groups[1].stats.map((stat) => stat.shortLabel)).toEqual([
+      "VAL",
+      "REC",
+      "DES",
+      "ACC",
+    ]);
+    expect(groups.flatMap((group) => group.stats)).toHaveLength(13);
+    expect(getTrainingDomainChoiceLabel("climber")).toBe(
+      "Grimpeur · MON / END",
+    );
+  });
+});
 
 describe("training page tabs", () => {
   it("affiche les entraînements par défaut et reconnaît le second onglet", () => {

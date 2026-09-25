@@ -24,6 +24,10 @@ describe("French to English UI catalog", () => {
       Réafficher: "Show again",
       "Voir les Directeurs Sportifs en ligne":
         "View online Sporting Directors",
+      "Répartition du gain": "Progress distribution",
+      "Gain prioritaire": "Primary progress",
+      "Gain secondaire": "Secondary progress",
+      "Gain d’entretien": "Maintenance progress",
     });
   });
 
@@ -37,6 +41,9 @@ describe("French to English UI catalog", () => {
     expect(translateUiText("Erik Van Dijk")).toBe("Erik Van Dijk");
     expect(translateUiText("Coureur · Moyenne générale")).toBe(
       "Rider · Overall average",
+    );
+    expect(translateUiText("Répartition du gain · Grimpeur")).toBe(
+      "Progress distribution · Climber",
     );
     expect(
       translateUiText(
