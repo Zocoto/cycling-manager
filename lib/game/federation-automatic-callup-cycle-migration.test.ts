@@ -6,6 +6,9 @@ const read = (path: string) => readFileSync(path, "utf8").replaceAll("\r", "");
 const migration = read(
   "supabase/migrations/20260925100000_require_ds_approval_for_automatic_international_callups.sql",
 );
+const responsePerformanceMigration = read(
+  "supabase/migrations/20260925141500_accelerate_federation_callup_responses.sql",
+);
 const pool = read("services/federation-selection-pool.ts");
 const federationActions = read("app/jeu/federations/selection-actions.ts");
 const callupActions = read("app/jeu/selections-internationales/actions.ts");
@@ -75,12 +78,27 @@ describe("automatic international federation call-ups", () => {
     );
   });
 
-  it("refills and synchronizes immediately after either call-up response path", () => {
+  it("refills and synchronizes only the affected list after a call-up response", () => {
     expect(federationActions).toContain(
       "await syncFederationChampionshipStartlists();",
     );
-    expect(callupActions).toContain(
-      "await syncDueNationalFederationChampionshipLineups({ force: true })",
+    expect(callupActions).not.toContain(
+      "syncDueNationalFederationChampionshipLineups",
+    );
+    expect(responsePerformanceMigration).toContain(
+      "create or replace function public.refill_national_federation_professional_selection(",
+    );
+    expect(responsePerformanceMigration).toContain(
+      "perform public.refill_national_federation_professional_selection(",
+    );
+    expect(responsePerformanceMigration).toContain(
+      "perform public.sync_national_federation_championship_lineup(v_list.id)",
+    );
+    expect(responsePerformanceMigration).toContain(
+      "existing_roster.race_registration_id = v_registration_id",
+    );
+    expect(responsePerformanceMigration).not.toContain(
+      "sync_due_national_federation_championship_lineups",
     );
   });
 
