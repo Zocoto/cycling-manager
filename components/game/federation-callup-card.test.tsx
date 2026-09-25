@@ -13,6 +13,7 @@ const callup: FederationCallup = {
   competition_label: "CC Pros · Route", rider_id: "rider", rider_name: "Coureur test",
   rider_category: "professional", response_status: "pending", published_at: "2026-09-11T08:00:00Z",
   closes_at: "2026-09-25T11:00:00Z", can_respond: true, race_href: "/jeu/courses/test",
+  conflicting_race_names: [],
 };
 const rider: FederationSelectionRider = {
   id: "rider", teamId: "team", teamName: "Équipe", name: "Coureur test", age: 25,
@@ -43,6 +44,11 @@ describe("federation call-up interface", () => {
     for (const value of [{ ...callup, response_status: "confirmed" as const }, { ...callup, can_respond: false }]) {
       expect(renderToStaticMarkup(<FederationCallupCard callup={value} />)).not.toContain('<form');
     }
+  });
+  it("names the conflicting race and explains the automatic withdrawal", () => {
+    const html = renderToStaticMarkup(<FederationCallupCard callup={{ ...callup, conflicting_race_names: ["Tour des Alpes"] }} />);
+    expect(html).toContain("Conflit de calendrier : Tour des Alpes");
+    expect(html).toContain("désinscrira automatiquement le coureur de la course en conflit");
   });
   it("keeps a confirmed rider checked and disabled in the president's list", () => {
     const html = workbench(state);

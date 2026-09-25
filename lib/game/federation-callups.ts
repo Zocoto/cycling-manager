@@ -23,6 +23,7 @@ export type FederationCallup = {
   closes_at: string | null;
   can_respond: boolean;
   race_href: string | null;
+  conflicting_race_names: string[];
 };
 
 export function splitFederationCallups(callups: FederationCallup[]) {

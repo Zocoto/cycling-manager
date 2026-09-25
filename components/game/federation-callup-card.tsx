@@ -21,10 +21,20 @@ export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
       {callup.race_href ? <Link href={callup.race_href} className="mt-3 inline-block text-sm font-bold text-[#176951] underline underline-offset-4">Voir le profil et la startlist →</Link> : null}
       {canRespond ? (
         <>
+          {callup.conflicting_race_names.length > 0 ? (
+            <div className="mt-4 rounded-2xl border border-[#D4A82F]/35 bg-[#FFF7D9] px-4 py-3 text-sm font-bold leading-6 text-[#7A5B09]">
+              <p>
+                Conflit de calendrier : {callup.conflicting_race_names.join(", ")}.
+              </p>
+              <p className="mt-1">
+                Accepter la convocation désinscrira automatiquement le coureur {callup.conflicting_race_names.length > 1 ? "des courses en conflit" : "de la course en conflit"}. La compétition internationale sera prioritaire.
+              </p>
+            </div>
+          ) : null}
           <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
             Vous pouvez répondre dès maintenant, jusqu’au {formatFederationSelectionDeadline(callup.closes_at)} (heure de Paris).
             Après confirmation, le président ne pourra plus retirer ce coureur.
-            {callup.rider_category === "professional" ? " La sélection est prioritaire sur les engagements et stages en conflit ; un tour déjà verrouillé reste protégé." : " La participation sera inscrite dans la sélection nationale junior."}
+            {callup.rider_category === "professional" ? " La sélection est prioritaire sur tous les engagements et stages en conflit, y compris un tour verrouillé ou commencé." : " La participation sera inscrite dans la sélection nationale junior."}
           </p>
           <form action={answerFederationCallupAction} className="mt-5 flex flex-wrap gap-3">
             <input type="hidden" name="memberId" value={callup.member_id} />

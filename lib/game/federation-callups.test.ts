@@ -6,6 +6,7 @@ const callup: FederationCallup = {
   competition_label: "CC Pros · Route", rider_id: "rider", rider_name: "Un coureur",
   rider_category: "professional", response_status: "pending", published_at: "2026-09-11T08:00:00Z",
   closes_at: "2026-09-25T11:00:00Z", can_respond: true, race_href: "/jeu/courses/test",
+  conflicting_race_names: [],
 };
 
 describe("federation call-ups", () => {
