@@ -85,5 +85,9 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain("100 %");
     expect(markup).toContain("55 %");
     expect(markup).toContain("Gain d’entretien");
+    expect(markup).toContain(
+      "grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))]",
+    );
+    expect(markup).toContain("whitespace-nowrap");
   });
 });

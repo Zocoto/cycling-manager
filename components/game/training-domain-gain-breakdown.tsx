@@ -39,17 +39,17 @@ export function TrainingDomainGainBreakdown({
           Poids appliqué au gain de base
         </p>
       </div>
-      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+      <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-2">
         {groups.map((group) => (
           <div
             key={group.tier}
-            className={`rounded-lg border px-2.5 py-2 ${GROUP_STYLES[group.tier]}`}
+            className={`min-w-0 rounded-lg border px-2.5 py-2 ${GROUP_STYLES[group.tier]}`}
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[9px] font-black uppercase tracking-[0.08em]">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+              <span className="min-w-0 break-words text-[9px] font-black uppercase leading-4 tracking-[0.06em]">
                 {group.label}
               </span>
-              <strong className="text-[11px] font-black">
+              <strong className="shrink-0 whitespace-nowrap text-[11px] font-black tabular-nums">
                 {formatWeight(group.weight)} %
               </strong>
             </div>
