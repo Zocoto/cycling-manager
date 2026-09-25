@@ -1761,7 +1761,6 @@ async function loadJuniorChampionshipCalendarEditions(
       "continental_time_trial",
       "world_road",
       "world_time_trial",
-      "nations_cup_junior",
     ])
     .neq("status", "cancelled")
     .order("start_day_number")

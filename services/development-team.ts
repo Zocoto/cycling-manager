@@ -431,8 +431,7 @@ export async function getDevelopmentTeamOverview(
   const visibleEditions = editions.filter((edition) => {
     const isFederationChampionship =
       edition.competition_type.startsWith("continental_") ||
-      edition.competition_type.startsWith("world_") ||
-      edition.competition_type === "nations_cup_junior";
+      edition.competition_type.startsWith("world_");
     if (isFederationChampionship && view !== "resultats") return false;
     return (
       !edition.competition_type.startsWith("national_") ||

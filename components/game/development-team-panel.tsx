@@ -307,13 +307,20 @@ function RaceRegistrationCard({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {race.isWorldChampionship ? <Badge tone="world">Mondial junior</Badge> : null}
+            {race.competitionType === "nations_cup_junior" ? <Badge tone="world">Nations Cup juniors</Badge> : null}
             {race.competitionType.startsWith("national_") ? <Badge tone="national">CN junior</Badge> : null}
             {race.raceFormat === "stage_race" ? <Badge tone="tour">Mini-tour</Badge> : null}
             <Badge tone="profile">
               {DEVELOPMENT_RACE_PROFILE_LABELS[race.profileType]}
             </Badge>
           </div>
-          <h3 className="mt-2 text-xl font-black text-[#183F37]">{race.name}</h3>
+          <h3 className="mt-2 text-xl font-black text-[#183F37]">
+            {race.competitionType === "nations_cup_junior" ? (
+              <Link href={`/jeu/resultats-juniors/${encodeURIComponent(race.slug)}`} className="transition hover:text-[#176951] hover:underline">
+                {race.name}
+              </Link>
+            ) : race.name}
+          </h3>
           <p className="mt-1 text-xs font-semibold text-[#60756E]">
             <span className={`fi fi-${race.countryCode.toLowerCase()} mr-2 rounded-sm`} />
             {race.locationName} · {race.stages.length} étape{race.stages.length > 1 ? "s" : ""} · sélection {race.selectionMinimum}–{race.selectionMaximum}
@@ -560,7 +567,7 @@ export function DevelopmentResultRiderLink({
 function CalendarPreview({ races }: { races: DevelopmentRace[] }) {
   return (
     <section className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-sm sm:p-6">
-      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} épreuves accessibles à la DevTeam. Les CM et CC sont gérés par les fédérations et restent consultables dans Résultats.`} />
+      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} rendez-vous juniors. Les courses DevTeam se composent ici ; la Nations Cup juniors est signalée comme sélection fédérale.`} />
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {races.map((race) => (
           <CalendarPreviewRace key={race.id} race={race} />
@@ -584,6 +591,8 @@ function CalendarPreviewRace({ race }: { race: DevelopmentRace }) {
       <p className="mt-1 text-[9px] font-bold text-[#789087]">
         {race.isWorldChampionship
           ? "Championnat du monde"
+          : race.competitionType === "nations_cup_junior"
+            ? "Nations Cup juniors · sélection fédérale"
           : race.competitionType.startsWith("national_")
             ? "Championnat national"
             : race.raceFormat === "stage_race"
@@ -611,6 +620,7 @@ function RaceStatus({
   if (race.status === "completed") return <span className="rounded-full bg-[#E5F4ED] px-3 py-2 text-[10px] font-black uppercase text-[#176951]">Résultats publiés</span>;
   if (race.raceFormat === "stage_race" && currentDayNumber >= race.startDayNumber && currentDayNumber < race.endDayNumber) return <span className="rounded-full bg-[#E4ECFF] px-3 py-2 text-[10px] font-black uppercase text-[#234B9A]">Tour en cours</span>;
   if (currentDayNumber >= race.endDayNumber) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#60756E]">Résultats en cours</span>;
+  if (race.competitionType === "nations_cup_junior") return <span className="rounded-full bg-[#E6D9F5] px-3 py-2 text-[10px] font-black uppercase text-[#5A2D82]">Sélection fédérale</span>;
   if (race.registration) return <span className="rounded-full bg-[#FFF3BC] px-3 py-2 text-[10px] font-black uppercase text-[#7A5B00]">{registeredCount} engagés</span>;
   if (!race.canRegister) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#789087]">Inscriptions closes</span>;
   return <span className="rounded-full bg-[#176951] px-3 py-2 text-[10px] font-black uppercase text-white">À composer</span>;

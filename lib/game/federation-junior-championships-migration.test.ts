@@ -64,15 +64,34 @@ describe("federation junior championship registrations", () => {
     expect(proCalendarPage).toContain("includeJuniorChampionships: true");
   });
 
-  it("adds the junior Nations Cup with the same federation-only pool", () => {
+  it("keeps the junior Nations Cup in the junior calendar only", () => {
     expect(migration).toContain("'nc-junior-road'");
     expect(migration).toContain("'nations_cup_junior'");
     expect(migration).toContain("'nations-cup-juniors'");
     expect(migration).toContain(
       "ensure_automatic_federation_junior_lineups",
     );
-    expect(raceCalendar).toContain('"nations_cup_junior"');
-    expect(raceCalendar).toContain('? "nations_cup"');
+    const loaderStart = raceCalendar.indexOf(
+      "async function loadJuniorChampionshipCalendarEditions",
+    );
+    const filterStart = raceCalendar.indexOf(
+      '.in("competition_type", [',
+      loaderStart,
+    );
+    const filterEnd = raceCalendar.indexOf("    ])", filterStart);
+    expect(loaderStart).toBeGreaterThan(-1);
+    expect(filterStart).toBeGreaterThan(loaderStart);
+    expect(filterEnd).toBeGreaterThan(filterStart);
+    expect(raceCalendar.slice(filterStart, filterEnd)).not.toContain(
+      '"nations_cup_junior"',
+    );
+    expect(read("services/development-team.ts")).toContain(
+      'edition.competition_type.startsWith("world_");',
+    );
+    expect(developmentPanel).toContain(
+      'race.competitionType === "nations_cup_junior"',
+    );
+    expect(developmentPanel).toContain("Sélection fédérale");
   });
 
   it("merges federation riders into the official deterministic result", () => {

@@ -18,6 +18,9 @@ const migration = read(
 const federationEquipmentMigration = read(
   "supabase/migrations/20260920170000_create_federation_equipment_and_race_preparation.sql",
 );
+const federationRoadGuardMigration = read(
+  "supabase/migrations/20260925123000_allow_federation_international_road_preparation.sql",
+);
 
 describe("international race preparation boundaries", () => {
   it("removes every international race from the club preparation workspace", () => {
@@ -38,7 +41,7 @@ describe("international race preparation boundaries", () => {
     expect(preparationLinkIndex).toBeGreaterThan(internationalPanelIndex);
   });
 
-  it("blocks team roles and strategies for international races in the database", () => {
+  it("keeps club tactics blocked while allowing linked federation road plans", () => {
     expect(preparationTriggerMigration).toContain(
       "race_stage_strategies_reject_time_trial",
     );
@@ -52,6 +55,25 @@ describe("international race preparation boundaries", () => {
     expect(migration).toContain("'world_championship'");
     expect(migration).toContain(
       "Course internationale : les consignes collectives sont gerees par la selection nationale.",
+    );
+    expect(federationRoadGuardMigration).toContain(
+      "create or replace function public.reject_time_trial_race_preparation()",
+    );
+    expect(federationRoadGuardMigration).toContain(
+      "national_federation_selection_race_links",
+    );
+    expect(federationRoadGuardMigration).toContain(
+      "registration.team_season_id is null",
+    );
+    expect(federationRoadGuardMigration).toContain(
+      "slot.rider_category = 'professional'",
+    );
+    expect(federationRoadGuardMigration).toContain(
+      "and not v_is_federation_registration",
+    );
+    expect(federationRoadGuardMigration).toContain("'nations_cup'");
+    expect(federationRoadGuardMigration).toContain(
+      "'individual_time_trial'",
     );
   });
 
@@ -68,6 +90,20 @@ describe("international race preparation boundaries", () => {
     );
     expect(federationEquipmentMigration).toContain(
       "Ce contre-la-montre international est préparé par la sélection nationale.",
+    );
+  });
+
+  it("feeds federation road roles and strategies to international simulations", () => {
+    expect(calendarService).toContain("riderRoleOverrides:");
+    expect(calendarService).toContain("teamStrategies:");
+    expect(federationEquipmentMigration).toContain(
+      "save_national_federation_race_preparation",
+    );
+    expect(federationRoadGuardMigration).not.toContain(
+      "drop trigger race_stage_strategies_reject_time_trial",
+    );
+    expect(federationRoadGuardMigration).not.toContain(
+      "drop trigger race_roster_stage_roles_reject_time_trial",
     );
   });
 

@@ -58,6 +58,10 @@ type RegistrationRow = {
   race_edition_id: string;
   status: "pending" | "accepted";
 };
+type FederationSelectionRaceLinkRow = {
+  race_registration_id: string;
+  race_edition_id: string;
+};
 type RosterRow = {
   rider_id: string;
   race_registration_id: string;
@@ -195,7 +199,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
   const [
     ridersResult,
     ratingsResult,
-    registrationsResult,
+    teamRegistrationsResult,
     racesResult,
     stagesResult,
     campsResult,
@@ -268,7 +272,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
   for (const [result, label] of [
     [ridersResult, "les coureurs"],
     [ratingsResult, "l’âge des coureurs"],
-    [registrationsResult, "les inscriptions en course"],
+    [teamRegistrationsResult, "les inscriptions en course"],
     [racesResult, "les identités des courses"],
     [stagesResult, "les étapes"],
     [campsResult, "les stages de forme"],
@@ -279,7 +283,40 @@ export async function getCurrentTeamRiderSeasonPlanning({
   }
 
   const riders = ridersResult.data ?? [];
-  const registrations = registrationsResult.data ?? [];
+  const federationLinksResult = editionIds.length
+    ? await admin
+        .from("national_federation_selection_race_links")
+        .select("race_registration_id, race_edition_id")
+        .in("race_edition_id", editionIds)
+        .returns<FederationSelectionRaceLinkRow[]>()
+    : await emptyResult<FederationSelectionRaceLinkRow>();
+  assertQuery(
+    federationLinksResult.error,
+    "les inscriptions des sélections fédérales",
+  );
+  const federationRegistrationIds = [
+    ...new Set(
+      (federationLinksResult.data ?? []).map(
+        (link) => link.race_registration_id,
+      ),
+    ),
+  ];
+  const federationRegistrationsResult = federationRegistrationIds.length
+    ? await admin
+        .from("race_registrations")
+        .select("id, race_edition_id, status")
+        .in("id", federationRegistrationIds)
+        .in("status", ["pending", "accepted"])
+        .returns<RegistrationRow[]>()
+    : await emptyResult<RegistrationRow>();
+  assertQuery(
+    federationRegistrationsResult.error,
+    "les engagements des sélections fédérales",
+  );
+  const registrations = uniqueById([
+    ...(teamRegistrationsResult.data ?? []),
+    ...(federationRegistrationsResult.data ?? []),
+  ]);
   const registrationIds = registrations.map((registration) => registration.id);
   const reconnaissances = reconnaissancesResult.data ?? [];
   const reconnaissanceIds = reconnaissances.map(
@@ -650,6 +687,10 @@ function groupBy<T>(rows: T[], key: (row: T) => string) {
     groups.set(rowKey, [...(groups.get(rowKey) ?? []), row]);
   }
   return groups;
+}
+
+function uniqueById<T extends { id: string }>(rows: T[]) {
+  return [...new Map(rows.map((row) => [row.id, row])).values()];
 }
 
 function emptyResult<T>() {

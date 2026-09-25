@@ -8,6 +8,9 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const migration = read(
   "supabase/migrations/20260920170000_create_federation_equipment_and_race_preparation.sql",
 );
+const roadGuardMigration = read(
+  "supabase/migrations/20260925123000_allow_federation_international_road_preparation.sql",
+);
 const calendarService = read("services/race-calendar.ts");
 const panel = read("components/game/federation-equipment-preparation-panel.tsx");
 const assistant = read("lib/game/dashboard-assistant.ts");
@@ -60,6 +63,12 @@ describe("federation equipment and race preparation", () => {
     );
     expect(panel).toContain('mode="federation"');
     expect(panel).toContain("readOnly={!state.canManage}");
+    expect(roadGuardMigration).toContain(
+      "selection_list.status in ('pending_confirmation', 'finalized')",
+    );
+    expect(roadGuardMigration).toContain(
+      "registration.team_season_id is null",
+    );
   });
 
   it("reminds a president until the seasonal supplier is chosen", () => {
