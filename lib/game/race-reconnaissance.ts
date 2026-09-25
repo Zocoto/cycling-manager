@@ -91,3 +91,16 @@ export function getRaceReconnaissanceBonus(level?: number | null) {
     ) / 100
   );
 }
+
+export function getRaceReconnaissanceErrorMessage(error: {
+  code?: string | null;
+  message: string;
+}) {
+  const isInternalConstraintError =
+    error.code === "23514" ||
+    /violates check constraint|new row for relation/i.test(error.message);
+
+  return isInternalConstraintError
+    ? "La reconnaissance n’a pas pu être enregistrée à cause d’un réglage technique. Réessayez dans quelques instants."
+    : error.message;
+}

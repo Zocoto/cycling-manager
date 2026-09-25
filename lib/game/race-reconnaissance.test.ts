@@ -8,6 +8,7 @@ import {
   getRacePreparerReconnaissanceCostReductionPercentage,
   getRaceReconnaissanceBonus,
   getRaceReconnaissanceCost,
+  getRaceReconnaissanceErrorMessage,
 } from "@/lib/game/race-reconnaissance";
 
 describe("race reconnaissance", () => {
@@ -78,6 +79,23 @@ describe("race reconnaissance", () => {
         raceFormat: "one_day",
       }),
     );
+  });
+
+  it("masque les contraintes SQL internes sans altérer les erreurs métier", () => {
+    expect(
+      getRaceReconnaissanceErrorMessage({
+        code: "23514",
+        message:
+          'new row for relation "stage_reconnaissances" violates check constraint "stage_reconnaissances_bonus_range"',
+      }),
+    ).toBe(
+      "La reconnaissance n’a pas pu être enregistrée à cause d’un réglage technique. Réessayez dans quelques instants.",
+    );
+    expect(
+      getRaceReconnaissanceErrorMessage({
+        message: "La trésorerie de l’équipe est insuffisante.",
+      }),
+    ).toBe("La trésorerie de l’équipe est insuffisante.");
   });
 
 });

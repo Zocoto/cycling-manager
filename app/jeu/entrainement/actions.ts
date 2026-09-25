@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isTrainingDomain } from "@/lib/game/training";
+import { getRaceReconnaissanceErrorMessage } from "@/lib/game/race-reconnaissance";
 import type { TrainingPlanDraft } from "@/lib/game/training-plan-drafts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -82,7 +83,9 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
       p_preparer_contract_id: preparerContractId,
     },
   );
-  if (error) redirectWithRecognitionError(error.message);
+  if (error) {
+    redirectWithRecognitionError(getRaceReconnaissanceErrorMessage(error));
+  }
 
   revalidateTrainingPaths();
   revalidatePath("/jeu/calendrier");
