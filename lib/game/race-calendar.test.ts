@@ -6,9 +6,11 @@ import {
   buildCalendarWeeks,
   consolidateFederationCalendarEditions,
   consolidateNationalChampionshipEvents,
+  getCalendarRaceDisplayName,
   getEditionDayRange,
   getEffectiveSeasonDay,
   getGrandTourCalendarAccent,
+  getRaceImportance,
   getRaceRegistrationDeadline,
   getRaceCategoryReputationThreshold,
   getRegistrationAvailability,
@@ -22,6 +24,39 @@ import {
   isUnderfilledRaceRosterCorrectionOpen,
   type RaceCalendarEdition,
 } from "./race-calendar";
+
+describe("race calendar importance", () => {
+  it("préfixe uniquement les Grands Tours et sans doubler le libellé", () => {
+    expect(
+      getCalendarRaceDisplayName({
+        name: "Boucle des Provinces",
+        isGrandTour: true,
+      }),
+    ).toBe("Grand Tour : Boucle des Provinces");
+    expect(
+      getCalendarRaceDisplayName({
+        name: "Grand Tour : Boucle des Provinces",
+        isGrandTour: true,
+      }),
+    ).toBe("Grand Tour : Boucle des Provinces");
+    expect(
+      getCalendarRaceDisplayName({
+        name: "Enfer des Dunes",
+        isGrandTour: false,
+      }),
+    ).toBe("Enfer des Dunes");
+  });
+
+  it("classe un marqueur invalide double en Grand Tour par priorité", () => {
+    expect(getRaceImportance({ isGrandTour: true, isMonument: true })).toBe(
+      "grand_tour",
+    );
+    expect(getRaceImportance({ isGrandTour: false, isMonument: true })).toBe(
+      "monument",
+    );
+    expect(getRaceImportance({})).toBeNull();
+  });
+});
 
 describe("consolidateNationalChampionshipEvents", () => {
   it("remplace les deux liens CN par une entrée unique en J8", () => {

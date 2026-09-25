@@ -2,6 +2,7 @@
 
 import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
+import { RaceImportanceBadge } from "@/components/game/race-importance-badge";
 
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { getInternationalChampionshipDirectoryHref } from "@/lib/game/international-championship-navigation";
@@ -15,8 +16,10 @@ import {
   buildCalendarWeeks,
   compareRaceDaySlots,
   consolidateFederationCalendarEditions,
+  getCalendarRaceDisplayName,
   getEditionDayRange,
   getGrandTourCalendarAccent,
+  getRaceImportance,
   getRaceRegistrationDeadline,
   getRegistrationAvailability,
   isFederationSelectionEdition,
@@ -415,6 +418,14 @@ export function SeasonCalendar({
               <SponsorObjectiveBadge compact />
               Objectif sponsor
             </span>
+            <span className="inline-flex items-center gap-2">
+              <RaceImportanceBadge importance="grand_tour" compact />
+              Grand Tour
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <RaceImportanceBadge importance="monument" compact />
+              Monument
+            </span>
             <span>Les tours enchaînent une étape à chaque demi-journée.</span>
           </div>
 
@@ -621,6 +632,8 @@ function RaceCalendarList({
           );
           const style = RACE_CATEGORY_STYLE[edition.categoryCode];
           const grandTourAccent = getGrandTourCalendarAccent(edition);
+          const importance = getRaceImportance(edition);
+          const displayName = getCalendarRaceDisplayName(edition);
           const registration = edition.currentTeamRegistration;
           const currentTeamEngagement =
             getCurrentTeamEngagementBadge(edition);
@@ -677,6 +690,7 @@ function RaceCalendarList({
                   : "not-closed"
               }
               data-grand-tour-accent={grandTourAccent?.key}
+              data-race-importance={importance ?? undefined}
               data-international-championship={
                 isInternationalChampionship ? "true" : undefined
               }
@@ -686,9 +700,9 @@ function RaceCalendarList({
               title={
                 registrationClosed
                   ? isPast
-                    ? `${edition.name} · Voir les résultats`
-                    : `${edition.name} · Inscriptions closes`
-                  : edition.name
+                    ? `${displayName} · Voir les résultats`
+                    : `${displayName} · Inscriptions closes`
+                  : displayName
               }
               className={`relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#F5EEFF] outline outline-2 outline-offset-[-2px] outline-[#8B5CF6]" : ""}`}
               style={{
@@ -698,7 +712,9 @@ function RaceCalendarList({
                     : undefined,
                 boxShadow: grandTourAccent
                   ? `inset 0 0 0 2px ${grandTourAccent.color}`
-                  : undefined,
+                  : importance === "monument"
+                    ? "inset 5px 0 0 #A95337, inset 0 0 0 1px rgba(169,83,55,0.32)"
+                    : undefined,
               }}
             >
               <InternationalChampionshipStripe edition={edition} />
@@ -721,6 +737,9 @@ function RaceCalendarList({
                     {style.shortLabel}
                   </span>
                   {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
+                  {importance ? (
+                    <RaceImportanceBadge importance={importance} />
+                  ) : null}
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#789087]">
                     {edition.calendarGroup
                       ? `${edition.calendarGroup.editionCount} épreuves`
@@ -729,7 +748,7 @@ function RaceCalendarList({
                         : "Un jour"}
                   </span>
                 </div>
-                <h3 className="mt-2 truncate text-base font-black text-[#0B302B]">{edition.name}</h3>
+                <h3 className="mt-2 truncate text-base font-black text-[#0B302B]">{displayName}</h3>
                 <p className="mt-1 text-xs font-semibold text-[#688176]">
                   {edition.calendarGroup?.locationLabel ?? edition.countryName}
                 </p>
@@ -1080,6 +1099,8 @@ function DesktopCalendarWeek({
               const grandTourAccent = getGrandTourCalendarAccent(
                 segment.edition,
               );
+              const importance = getRaceImportance(segment.edition);
+              const displayName = getCalendarRaceDisplayName(segment.edition);
               const columnStart =
                 segment.startHalfDayIndex - week.startHalfDayIndex + 1;
               const columnEnd =
@@ -1120,20 +1141,21 @@ function DesktopCalendarWeek({
                     segment.edition,
                     currentDayNumber,
                   )}
-                  aria-label={`${getCalendarEditionActionLabel(segment.edition)} · ${segment.edition.name}`}
+                  aria-label={`${getCalendarEditionActionLabel(segment.edition)} · ${displayName}`}
                   data-registration-status={
                     registrationClosed
                       ? "closed"
                       : "not-closed"
                   }
                   data-grand-tour-accent={grandTourAccent?.key}
+                  data-race-importance={importance ?? undefined}
                   data-international-championship={
                     isInternationalChampionship ? "true" : undefined
                   }
                   data-federation-selection={
                     isFederationSelection ? "true" : undefined
                   }
-                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
+                  title={`${displayName} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
                   className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
                   } ${
@@ -1153,10 +1175,14 @@ function DesktopCalendarWeek({
                             style.foreground
                           )
                         : undefined,
-                    borderColor: grandTourAccent?.color ?? style.border,
+                    borderColor:
+                      grandTourAccent?.color ??
+                      (importance === "monument" ? "#A95337" : style.border),
                     boxShadow: grandTourAccent
                       ? `0 0 0 2px ${grandTourAccent.color}`
-                      : undefined,
+                      : importance === "monument"
+                        ? "0 0 0 2px rgba(169,83,55,0.65)"
+                        : undefined,
                     color: style.foreground,
                   }}
                 >
@@ -1167,6 +1193,9 @@ function DesktopCalendarWeek({
                     {style.shortLabel}
                   </span>
                   {segment.edition.isSponsorObjective ? <SponsorObjectiveBadge compact /> : null}
+                  {importance ? (
+                    <RaceImportanceBadge importance={importance} compact />
+                  ) : null}
 
                   <RaceCountryFlag
                     countryCode={segment.edition.countryCode}
@@ -1176,7 +1205,9 @@ function DesktopCalendarWeek({
 
                   <span className="min-w-0 flex-1 truncate">
                     {segment.startsBeforeWeek ? "← " : ""}
-                    {halfDaySpan <= 2
+                    {segment.edition.isGrandTour
+                      ? displayName
+                      : halfDaySpan <= 2
                       ? segment.edition.shortName ?? segment.edition.name
                       : segment.edition.name}
                     {segment.continuesAfterWeek ? " →" : ""}
@@ -1275,6 +1306,8 @@ function DesktopCalendarWeek({
                       <ul className="mt-2 space-y-2">
                         {hiddenSegments.map((segment) => {
                           const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
+                          const importance = getRaceImportance(segment.edition);
+                          const displayName = getCalendarRaceDisplayName(segment.edition);
                           const registrationClosed =
                             !isFederationSelectionEdition(
                               segment.edition,
@@ -1318,8 +1351,11 @@ function DesktopCalendarWeek({
                                 countryName={segment.edition.countryName}
                               />
                               {segment.edition.isSponsorObjective ? <SponsorObjectiveBadge compact /> : null}
+                              {importance ? (
+                                <RaceImportanceBadge importance={importance} compact />
+                              ) : null}
                               <span className="truncate text-[11px] font-bold">
-                                {segment.edition.name}
+                                {displayName}
                               </span>
                             </li>
                           );
@@ -1408,6 +1444,8 @@ function MobileCalendarDay({
               edition.categoryCode
             ];
           const grandTourAccent = getGrandTourCalendarAccent(edition);
+          const importance = getRaceImportance(edition);
+          const displayName = getCalendarRaceDisplayName(edition);
           const slotConfig =
             RACE_DAY_SLOT_CONFIG[stage.daySlot];
           const startsSlot =
@@ -1445,13 +1483,14 @@ function MobileCalendarDay({
             ) : null}
             <Link
               href={getCalendarEditionHref(edition, currentDayNumber)}
-              aria-label={`${getCalendarEditionActionLabel(edition)} · ${edition.name}`}
+              aria-label={`${getCalendarEditionActionLabel(edition)} · ${displayName}`}
               data-registration-status={
                 registrationClosed
                   ? "closed"
                   : "not-closed"
               }
               data-grand-tour-accent={grandTourAccent?.key}
+              data-race-importance={importance ?? undefined}
               data-international-championship={
                 isInternationalChampionship ? "true" : undefined
               }
@@ -1461,16 +1500,20 @@ function MobileCalendarDay({
               title={
                 registrationClosed
                   ? editionIsPast
-                    ? `${edition.name} · Voir les résultats`
-                    : `${edition.name} · Inscriptions closes`
-                  : edition.name
+                    ? `${displayName} · Voir les résultats`
+                    : `${displayName} · Inscriptions closes`
+                  : displayName
               }
               className={`relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
               style={{
-                borderColor: grandTourAccent?.color ?? style.border,
+                borderColor:
+                  grandTourAccent?.color ??
+                  (importance === "monument" ? "#A95337" : style.border),
                 boxShadow: grandTourAccent
                   ? `0 0 0 2px ${grandTourAccent.color}`
-                  : undefined,
+                  : importance === "monument"
+                    ? "0 0 0 2px rgba(169,83,55,0.65)"
+                    : undefined,
                 backgroundColor: style.background,
                 backgroundImage:
                   registrationClosed
@@ -1487,6 +1530,9 @@ function MobileCalendarDay({
               </span>
 
               {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
+              {importance ? (
+                <RaceImportanceBadge importance={importance} />
+              ) : null}
               <RaceCountryFlag
                 countryCode={edition.countryCode}
                 countryName={edition.countryName}
@@ -1495,7 +1541,7 @@ function MobileCalendarDay({
 
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-black">
-                  {edition.name}
+                  {displayName}
                 </span>
                 <span className="mt-0.5 block truncate text-[11px] font-semibold opacity-85">
                   {edition.calendarGroup

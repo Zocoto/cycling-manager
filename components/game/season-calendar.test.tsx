@@ -182,9 +182,57 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain('data-grand-tour-accent="italy"');
     expect(markup).toContain('data-grand-tour-accent="france"');
     expect(markup).toContain('data-grand-tour-accent="spain"');
+    expect(markup.match(/data-race-importance="grand_tour"/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(markup).toContain("Grand Tour : Corsa delle Regioni");
+    expect(markup).toContain("Grand Tour : Boucle des Provinces");
+    expect(markup).toContain("Grand Tour : Ruta de las Sierras");
     expect(markup).toContain("0 0 0 2px #F0A1BB");
     expect(markup).toContain("0 0 0 2px #F2C94C");
     expect(markup).toContain("0 0 0 2px #E05252");
+  });
+
+  it("distingue un Monument des autres courses élite", () => {
+    const monument = createEdition({
+      id: "enfer-des-dunes",
+      name: "Enfer des Dunes",
+      categoryCode: "elite",
+      countryCode: "FR",
+      dayNumber: 4,
+      daySlot: "early",
+      registrationClosesAt: "2026-08-04T08:00:00Z",
+      accepted: false,
+      isMonument: true,
+    });
+    const calendar: SeasonRaceCalendar = {
+      seasonId: "season-monument",
+      seasonName: "Saison des Monuments",
+      gameYear: 1,
+      startsOn: "2026-08-01",
+      endsOn: "2026-08-28",
+      currentDayNumber: 1,
+      days: Array.from({ length: 28 }, (_, index) => ({
+        id: `day-${index + 1}`,
+        dayNumber: index + 1,
+        calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+          .toISOString()
+          .slice(0, 10),
+        label: null,
+      })),
+      events: [],
+      editions: [monument],
+    };
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={calendar}
+        reputationPoints={100}
+        nowIso="2026-08-01T07:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain('data-race-importance="monument"');
+    expect(markup).toContain('aria-label="Course majeure : Monument"');
+    expect(markup).toContain("#A95337");
   });
 
   it("affiche les championnats internationaux en consultation avec le liseré arc-en-ciel", () => {
@@ -623,6 +671,7 @@ function createEdition({
   accepted,
   countryCode = "FR",
   isGrandTour = false,
+  isMonument = false,
   raceFormat = "one_day",
   competitionType = "standard",
 }: {
@@ -635,6 +684,7 @@ function createEdition({
   accepted: boolean;
   countryCode?: string;
   isGrandTour?: boolean;
+  isMonument?: boolean;
   raceFormat?: RaceCalendarEdition["raceFormat"];
   competitionType?: RaceCalendarEdition["competitionType"];
 }): RaceCalendarEdition {
@@ -660,6 +710,7 @@ function createEdition({
     raceFormat,
     competitionType,
     isGrandTour,
+    isMonument,
     registrationClosesAt,
     wildcardClosesAt: registrationClosesAt,
     withdrawalClosesAt:

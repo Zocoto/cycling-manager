@@ -1,6 +1,10 @@
 import Link from "@/components/ui/app-link";
+import { RaceImportanceBadge } from "@/components/game/race-importance-badge";
 import {
   RACE_CATEGORY_STYLE,
+  getCalendarRaceDisplayName,
+  getGrandTourCalendarAccent,
+  getRaceImportance,
   getRegistrationAvailability,
   isRaceEditionAvailableToCurrentTeam,
   type RaceCalendarEdition,
@@ -113,6 +117,9 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
     needsRegistrationAttention,
   } = race;
   const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+  const importance = getRaceImportance(edition);
+  const grandTourAccent = getGrandTourCalendarAccent(edition);
+  const displayName = getCalendarRaceDisplayName(edition);
   const registration = edition.currentTeamRegistration;
   const actionLabel = needsRegistrationAttention
     ? "À corriger"
@@ -128,25 +135,38 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
     <li>
       <Link
         href={getRaceRegistrationHref(edition.slug)}
+        data-race-importance={importance ?? undefined}
         title={
           needsRegistrationAttention
             ? "Inscription à revoir : la start-list ne respecte plus le contingent minimum"
             : edition.isSponsorObjective
               ? "Objectif sponsor"
-              : undefined
+              : importance === "grand_tour"
+                ? "Course majeure · Grand Tour"
+                : importance === "monument"
+                  ? "Course majeure · Monument"
+                  : undefined
         }
         className={`group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-2 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] ${
           needsRegistrationAttention
             ? "bg-[#FFF0F1] ring-1 ring-inset ring-[#EF5B65]/55"
             : edition.isSponsorObjective
               ? "bg-[#F5EEFF] ring-1 ring-inset ring-[#8B5CF6]"
-              : ""
+              : importance === "grand_tour"
+                ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#C59A19]/70"
+                : importance === "monument"
+                  ? "bg-[#FFF1EB] ring-1 ring-inset ring-[#A95337]/65"
+                  : ""
         }`}
       >
         <span
           aria-hidden="true"
           className="h-8 w-1 rounded-full"
-          style={{ backgroundColor: style.background }}
+          style={{
+            backgroundColor:
+              grandTourAccent?.color ??
+              (importance === "monument" ? "#A95337" : style.background),
+          }}
         />
 
         <span className="min-w-0">
@@ -167,12 +187,17 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
               </span>
             ) : null}
             <span className="truncate text-[13px] font-black text-[#183F37] transition group-hover:text-[#176951]">
-              {edition.name}
+              {displayName}
             </span>
           </span>
-          <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[#789087]">
-            {style.label} · {formatRaceDays(startDayNumber, endDayNumber)}
-            {calendarDate ? ` · ${formatCalendarDate(calendarDate)}` : ""}
+          <span className="mt-1 flex min-w-0 items-center gap-1.5">
+            {importance ? (
+              <RaceImportanceBadge importance={importance} compact />
+            ) : null}
+            <span className="truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[#789087]">
+              {style.label} · {formatRaceDays(startDayNumber, endDayNumber)}
+              {calendarDate ? ` · ${formatCalendarDate(calendarDate)}` : ""}
+            </span>
           </span>
           {needsRegistrationAttention && registration ? (
             <span className="mt-0.5 block truncate text-[9px] font-black uppercase tracking-[0.08em] text-[#C4333E]">

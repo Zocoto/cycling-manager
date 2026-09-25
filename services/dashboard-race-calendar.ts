@@ -44,6 +44,7 @@ type RaceRow = {
   slug: string;
   competition_type: RaceCompetitionType;
   is_grand_tour: boolean;
+  is_monument: boolean;
 };
 
 type CategoryRow = {
@@ -167,7 +168,7 @@ export async function getDashboardRaceCalendar(
       ? supabase
           .from("races")
           .select(
-            "id, country_id, name, short_name, race_format, slug, competition_type, is_grand_tour",
+            "id, country_id, name, short_name, race_format, slug, competition_type, is_grand_tour, is_monument",
           )
           .in("id", raceIds)
           .returns<RaceRow[]>()
@@ -304,6 +305,7 @@ export async function getDashboardRaceCalendar(
         raceFormat: race.race_format,
         competitionType: race.competition_type,
         isGrandTour: race.is_grand_tour,
+        isMonument: race.is_monument,
         isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id),
         registrationClosesAt: edition.registration_closes_at,
         wildcardClosesAt: edition.wildcard_closes_at,

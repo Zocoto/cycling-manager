@@ -139,6 +139,38 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain("bg-[#8B5CF6]");
   });
 
+  it("hiérarchise les Grands Tours et les Monuments parmi les courses élite", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardEligibleRaces
+        calendar={createCalendar([
+          createEdition("boucle-des-provinces", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 12,
+            isGrandTour: true,
+          }),
+          createEdition("enfer-des-dunes", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 13,
+            isMonument: true,
+          }),
+        ])}
+        reputationPoints={125}
+        riderCount={8}
+        now={new Date("2026-07-10T10:00:00.000Z")}
+      />,
+    );
+
+    expect(markup).toContain('data-race-importance="grand_tour"');
+    expect(markup).toContain('data-race-importance="monument"');
+    expect(markup).toContain("Grand Tour : Course boucle-des-provinces");
+    expect(markup).toContain('aria-label="Course majeure : Grand Tour"');
+    expect(markup).toContain('aria-label="Course majeure : Monument"');
+    expect(markup).toContain("bg-[#FFF9DF]");
+    expect(markup).toContain("bg-[#FFF1EB]");
+  });
+
   it("conserve et signale une inscription acceptée devenue incomplète", () => {
     const calendar = createCalendar([
       createEdition("a-corriger", {
@@ -232,6 +264,8 @@ function createEdition(
     registrationPolicy = "open",
     startDay,
     isSponsorObjective = false,
+    isGrandTour = false,
+    isMonument = false,
     currentTeamRegistration = null,
   }: {
     minimumReputation: number;
@@ -239,6 +273,8 @@ function createEdition(
     registrationPolicy?: RaceCalendarEdition["registrationPolicy"];
     startDay: number;
     isSponsorObjective?: boolean;
+    isGrandTour?: boolean;
+    isMonument?: boolean;
     currentTeamRegistration?: RaceCalendarEdition["currentTeamRegistration"];
   },
 ): RaceCalendarEdition {
@@ -256,6 +292,8 @@ function createEdition(
     prestigeRank: 10,
     raceFormat: "one_day",
     competitionType: "standard",
+    isGrandTour,
+    isMonument,
     isSponsorObjective,
     registrationClosesAt: "2026-07-11T22:00:00.000Z",
     wildcardClosesAt: null,

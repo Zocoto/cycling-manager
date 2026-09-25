@@ -171,6 +171,7 @@ export type RaceCalendarEdition = {
     locationLabel: string;
   };
   isGrandTour?: boolean;
+  isMonument?: boolean;
   isSponsorObjective?: boolean;
   federationHomeAdvantageBonus?: number;
   federationHomeAdvantageSpecialization?: HomeAdvantageProgramSpecialization | null;
@@ -444,6 +445,26 @@ export function getGrandTourCalendarAccent(
   if (!edition.isGrandTour) return null;
 
   return GRAND_TOUR_CALENDAR_ACCENTS[edition.countryCode.toUpperCase()] ?? null;
+}
+
+export type RaceImportance = "grand_tour" | "monument";
+
+export function getRaceImportance(
+  edition: Pick<RaceCalendarEdition, "isGrandTour" | "isMonument">,
+): RaceImportance | null {
+  if (edition.isGrandTour) return "grand_tour";
+  if (edition.isMonument) return "monument";
+  return null;
+}
+
+export function getCalendarRaceDisplayName(
+  edition: Pick<RaceCalendarEdition, "name" | "isGrandTour">,
+) {
+  if (!edition.isGrandTour || /^grand tour\s*:/iu.test(edition.name)) {
+    return edition.name;
+  }
+
+  return `Grand Tour : ${edition.name}`;
 }
 
 export type SeasonCalendarDay = {
