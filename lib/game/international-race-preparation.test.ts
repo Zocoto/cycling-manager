@@ -21,6 +21,9 @@ const federationEquipmentMigration = read(
 const federationRoadGuardMigration = read(
   "supabase/migrations/20260925123000_allow_federation_international_road_preparation.sql",
 );
+const federationRoadGuardRepairMigration = read(
+  "supabase/migrations/20260925144700_reapply_federation_international_road_preparation_guard.sql",
+);
 
 describe("international race preparation boundaries", () => {
   it("removes every international race from the club preparation workspace", () => {
@@ -74,6 +77,24 @@ describe("international race preparation boundaries", () => {
     expect(federationRoadGuardMigration).toContain("'nations_cup'");
     expect(federationRoadGuardMigration).toContain(
       "'individual_time_trial'",
+    );
+    expect(federationRoadGuardRepairMigration).toContain(
+      "create or replace function public.reject_time_trial_race_preparation()",
+    );
+    expect(federationRoadGuardRepairMigration).toContain(
+      "registration.team_season_id is null",
+    );
+    expect(federationRoadGuardRepairMigration).toContain(
+      "link.race_registration_id = registration.id",
+    );
+    expect(federationRoadGuardRepairMigration).toContain(
+      "link.race_edition_id = registration.race_edition_id",
+    );
+    expect(federationRoadGuardRepairMigration).toContain(
+      "slot.rider_category = 'professional'",
+    );
+    expect(federationRoadGuardRepairMigration).toContain(
+      "and not coalesce(v_is_federation_registration, false)",
     );
   });
 
