@@ -21,16 +21,22 @@ export function SquadStatusEditor({
   return (
     <form
       action={updateRiderSquadStatusAction}
-      className={compact ? "flex min-w-36 items-center gap-1.5" : "flex flex-wrap items-end gap-2"}
+      className={
+        compact
+          ? "flex min-w-52 items-center gap-1.5"
+          : "flex flex-wrap items-end gap-2"
+      }
     >
       <input type="hidden" name="riderId" value={riderId} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <label className={compact ? "sr-only" : "min-w-52 flex-1"}>
-        {!compact ? (
+      <label className={compact ? "min-w-0 flex-1" : "min-w-52 flex-1"}>
+        {compact ? (
+          <span className="sr-only">Statut effectif</span>
+        ) : (
           <span className={dark ? "mb-1.5 block text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]" : "mb-1.5 block text-[10px] font-black uppercase tracking-wider text-[#60756E]"}>
             Statut effectif
           </span>
-        ) : null}
+        )}
         <select
           name="squadStatus"
           defaultValue={status ?? ""}
@@ -52,6 +58,7 @@ export function SquadStatusEditor({
       </label>
       <button
         type="submit"
+        aria-label="Enregistrer le statut dans l’effectif"
         className={[
           "min-h-9 rounded-lg px-3 text-[10px] font-black uppercase tracking-wide transition",
           dark
@@ -59,7 +66,7 @@ export function SquadStatusEditor({
             : "bg-[#176951] text-white hover:bg-[#0F5944]",
         ].join(" ")}
       >
-        {compact ? "OK" : "Enregistrer"}
+        {compact ? "Valider" : "Enregistrer"}
       </button>
     </form>
   );
