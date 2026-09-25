@@ -1,24 +1,63 @@
 export const RIDER_INJURY_DIAGNOSES = {
-  rib_fracture: {
-    label: "Fracture des côtes",
+  road_rash: {
+    label: "Abrasions superficielles",
+    type: "abrasions",
+    recoveryHours: 24,
+    severity: "minor",
+    abandonmentChance: 0,
+  },
+  hip_contusion: {
+    label: "Contusion de la hanche",
+    type: "contusion",
+    recoveryHours: 48,
+    severity: "minor",
+    abandonmentChance: 0.08,
+  },
+  shoulder_sprain: {
+    label: "Entorse de l’épaule",
+    type: "sprain",
     recoveryHours: 72,
     severity: "moderate",
-    abandonmentChance: 0.3,
+    abandonmentChance: 0.35,
+  },
+  rib_fracture: {
+    label: "Fracture des côtes",
+    type: "fracture",
+    recoveryHours: 96,
+    severity: "moderate",
+    abandonmentChance: 0.55,
   },
   wrist_fracture: {
     label: "Fracture du poignet",
-    recoveryHours: 96,
+    type: "fracture",
+    recoveryHours: 168,
     severity: "moderate",
-    abandonmentChance: 0.7,
+    abandonmentChance: 0.85,
+  },
+  concussion: {
+    label: "Commotion cérébrale",
+    type: "concussion",
+    recoveryHours: 144,
+    severity: "serious",
+    abandonmentChance: 1,
   },
   clavicle_fracture: {
     label: "Fracture de la clavicule",
-    recoveryHours: 120,
+    type: "fracture",
+    recoveryHours: 192,
+    severity: "serious",
+    abandonmentChance: 1,
+  },
+  pelvis_fracture: {
+    label: "Fracture du bassin",
+    type: "fracture",
+    recoveryHours: 240,
     severity: "serious",
     abandonmentChance: 1,
   },
   fatigue_exhaustion: {
     label: "Blessure de fatigue",
+    type: "fatigue",
     recoveryHours: 72,
     severity: "minor",
     abandonmentChance: 0,
@@ -31,12 +70,18 @@ type CrashInjuryDiagnosisCode = Exclude<
   "fatigue_exhaustion"
 >;
 
+export type CrashInjuryType = Exclude<
+  (typeof RIDER_INJURY_DIAGNOSES)[RiderInjuryDiagnosisCode]["type"],
+  "fatigue"
+>;
+
 export type RaceMedicalOutcome = {
   diagnosisCode: CrashInjuryDiagnosisCode;
+  type: CrashInjuryType;
   label: string;
   recoveryHours: number;
   recoveryDays: number;
-  severity: "moderate" | "serious";
+  severity: "minor" | "moderate" | "serious";
   causesAbandonment: boolean;
 };
 
@@ -205,6 +250,22 @@ export type MedicalProtocolCode = keyof typeof MEDICAL_PROTOCOLS;
 
 const BASE_CRASH_INJURY_CHANCE = 0.2;
 
+// Conditional on a crash causing an injury. Each diagnosis gets a similar
+// share (11–14%); the overall injury chance remains unchanged.
+const CRASH_DIAGNOSIS_THRESHOLDS = [
+  { code: "road_rash", upperBound: 0.14 },
+  { code: "hip_contusion", upperBound: 0.28 },
+  { code: "shoulder_sprain", upperBound: 0.41 },
+  { code: "rib_fracture", upperBound: 0.54 },
+  { code: "concussion", upperBound: 0.66 },
+  { code: "wrist_fracture", upperBound: 0.78 },
+  { code: "clavicle_fracture", upperBound: 0.89 },
+  { code: "pelvis_fracture", upperBound: 1 },
+] as const satisfies ReadonlyArray<{
+  code: CrashInjuryDiagnosisCode;
+  upperBound: number;
+}>;
+
 export function resolveCrashMedicalOutcome({
   random,
   injuryRiskReductionPct = 0,
@@ -220,12 +281,10 @@ export function resolveCrashMedicalOutcome({
   if (random() >= injuryChance) return null;
 
   const diagnosisRoll = random();
-  const diagnosisCode: CrashInjuryDiagnosisCode =
-    diagnosisRoll < 0.5
-      ? "rib_fracture"
-      : diagnosisRoll < 0.8
-        ? "wrist_fracture"
-        : "clavicle_fracture";
+  const diagnosisCode =
+    CRASH_DIAGNOSIS_THRESHOLDS.find(
+      (entry) => diagnosisRoll < entry.upperBound,
+    )?.code ?? "pelvis_fracture";
   const diagnosis = RIDER_INJURY_DIAGNOSES[diagnosisCode];
   const abandonmentProtection =
     diagnosis.severity === "moderate"
@@ -234,6 +293,7 @@ export function resolveCrashMedicalOutcome({
 
   return {
     diagnosisCode,
+    type: diagnosis.type,
     label: diagnosis.label,
     recoveryHours: diagnosis.recoveryHours,
     recoveryDays: diagnosis.recoveryHours / 24,

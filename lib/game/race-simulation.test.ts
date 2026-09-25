@@ -4048,7 +4048,8 @@ describe("simulateRaceStage", () => {
     )!;
     expect(injuredFinisher.rank).not.toBeNull();
     expect(injuredFinisher.abandonment).toBeNull();
-    expect(injuredFinisher.injury?.recoveryHours).toBeGreaterThanOrEqual(72);
+    expect(injuredFinisher.injury?.recoveryHours).toBeGreaterThanOrEqual(24);
+    expect(injuredFinisher.injury?.recoveryHours).toBeLessThanOrEqual(240);
     expect(
       stage!.timeline.some((snapshot) =>
         snapshot.commentary.some((line) => line.includes("blessure")),

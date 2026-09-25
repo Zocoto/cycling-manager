@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  RIDER_INJURY_DIAGNOSES,
   getDoctorFormCampBoostPct,
   getFormCampGainPerDay,
   getFormCampTotal,
@@ -18,33 +19,85 @@ describe("resolveCrashMedicalOutcome", () => {
       resolveCrashMedicalOutcome({ random: sequence(0.2) })
     ).toBeNull();
     expect(
-      resolveCrashMedicalOutcome({ random: sequence(0.199, 0.2, 0.9) })
+      resolveCrashMedicalOutcome({ random: sequence(0.199, 0.5, 0.9) })
         ?.diagnosisCode
     ).toBe("rib_fracture");
   });
 
-  it("respecte la répartition côtes, poignet et clavicule", () => {
-    expect(
-      resolveCrashMedicalOutcome({ random: sequence(0, 0.49, 0.99) })
-        ?.diagnosisCode
-    ).toBe("rib_fracture");
-    expect(
-      resolveCrashMedicalOutcome({ random: sequence(0, 0.5, 0.99) })
-        ?.diagnosisCode
-    ).toBe("wrist_fracture");
-    expect(
-      resolveCrashMedicalOutcome({ random: sequence(0, 0.8, 0.99) })
-        ?.diagnosisCode
-    ).toBe("clavicle_fracture");
+  it("répartit toutes les blessures, des abrasions aux fractures graves", () => {
+    const weightedDiagnoses = [
+      [0.13, "road_rash"],
+      [0.14, "hip_contusion"],
+      [0.28, "shoulder_sprain"],
+      [0.41, "rib_fracture"],
+      [0.54, "concussion"],
+      [0.66, "wrist_fracture"],
+      [0.78, "clavicle_fracture"],
+      [0.89, "pelvis_fracture"],
+    ] as const;
+
+    for (const [roll, code] of weightedDiagnoses) {
+      expect(
+        resolveCrashMedicalOutcome({ random: sequence(0, roll, 0.99) })
+          ?.diagnosisCode,
+      ).toBe(code);
+    }
   });
 
-  it("rend la clavicule toujours éliminatoire et les côtes parfois non", () => {
+  it("étale régulièrement les durées et les chances de chaque diagnostic", () => {
+    const days = Object.entries(RIDER_INJURY_DIAGNOSES)
+      .filter(([code]) => code !== "fatigue_exhaustion")
+      .map(([, diagnosis]) => diagnosis.recoveryHours / 24)
+      .sort((left, right) => left - right);
+    expect(days).toEqual([1, 2, 3, 4, 6, 7, 8, 10]);
+
+    const counts = new Map<string, number>();
+    for (let index = 0; index < 1_000; index += 1) {
+      const outcome = resolveCrashMedicalOutcome({
+        random: sequence(0, index / 1_000, 0.99),
+      });
+      const code = outcome!.diagnosisCode;
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+    expect(counts.size).toBe(8);
+    expect(Math.min(...counts.values())).toBeGreaterThanOrEqual(109);
+    expect(Math.max(...counts.values())).toBeLessThanOrEqual(141);
+  });
+
+  it("propose des convalescences de 1 à 10 jours et le bon type médical", () => {
+    expect(resolveCrashMedicalOutcome({ random: sequence(0, 0.1, 0.99) }))
+      .toMatchObject({
+        diagnosisCode: "road_rash",
+        type: "abrasions",
+        severity: "minor",
+        recoveryHours: 24,
+        recoveryDays: 1,
+        causesAbandonment: false,
+      });
+    expect(resolveCrashMedicalOutcome({ random: sequence(0, 0.99, 0.99) }))
+      .toMatchObject({
+        diagnosisCode: "pelvis_fracture",
+        type: "fracture",
+        severity: "serious",
+        recoveryHours: 240,
+        recoveryDays: 10,
+        causesAbandonment: true,
+      });
     expect(
-      resolveCrashMedicalOutcome({ random: sequence(0, 0.9, 0.99) })
+      Object.values(RIDER_INJURY_DIAGNOSES).every(
+        (diagnosis) => diagnosis.recoveryHours <= 240,
+      ),
+    ).toBe(true);
+    expect(RIDER_INJURY_DIAGNOSES.fatigue_exhaustion.recoveryHours).toBe(72);
+  });
+
+  it("rend les diagnostics graves éliminatoires et les lésions légères non", () => {
+    expect(
+      resolveCrashMedicalOutcome({ random: sequence(0, 0.85, 0.99) })
         ?.causesAbandonment
     ).toBe(true);
     expect(
-      resolveCrashMedicalOutcome({ random: sequence(0, 0.2, 0.99) })
+      resolveCrashMedicalOutcome({ random: sequence(0, 0.1, 0.99) })
         ?.causesAbandonment
     ).toBe(false);
   });
@@ -61,12 +114,12 @@ describe("resolveCrashMedicalOutcome", () => {
   it("réduit le risque d’abandon sur une blessure modérée", () => {
     expect(
       resolveCrashMedicalOutcome({
-        random: sequence(0, 0.2, 0.29),
+        random: sequence(0, 0.5, 0.54),
       })?.causesAbandonment,
     ).toBe(true);
     expect(
       resolveCrashMedicalOutcome({
-        random: sequence(0, 0.2, 0.29),
+        random: sequence(0, 0.5, 0.54),
         moderateInjuryAbandonmentRiskReductionPct: 8,
       })?.causesAbandonment,
     ).toBe(false);
@@ -75,7 +128,7 @@ describe("resolveCrashMedicalOutcome", () => {
   it("ne réduit pas l’abandon obligatoire d’une blessure grave", () => {
     expect(
       resolveCrashMedicalOutcome({
-        random: sequence(0, 0.9, 0.99),
+        random: sequence(0, 0.85, 0.99),
         moderateInjuryAbandonmentRiskReductionPct: 50,
       })?.causesAbandonment,
     ).toBe(true);

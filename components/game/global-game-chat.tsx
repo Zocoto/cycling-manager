@@ -15,6 +15,7 @@ import {
 } from "react";
 
 import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
+import { ChatDiscordFeedbackBanner } from "@/components/game/chat-discord-feedback-banner";
 import { RookieBadge } from "@/components/game/rookie-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
@@ -1210,6 +1211,8 @@ export function GlobalGameChat({
         onModeChange={changeMode}
         onShowOnlineDirectors={() => setShowOnlineDirectors(true)}
       />
+
+      <ChatDiscordFeedbackBanner isEnglish={locale === "en"} />
 
       <div
         className={

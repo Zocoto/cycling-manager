@@ -21,6 +21,10 @@ import {
   type RaceProfileType,
 } from "@/lib/game/race-calendar";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
+import {
+  RIDER_INJURY_DIAGNOSES,
+  type RiderInjuryDiagnosisCode,
+} from "@/lib/game/health-center";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = {
@@ -953,16 +957,9 @@ function groupParticipants(rows: ParticipantRow[]) {
 }
 
 function injuryLabel(code: string) {
-  switch (code) {
-    case "clavicle_fracture":
-      return "Fracture de la clavicule";
-    case "wrist_fracture":
-      return "Fracture du poignet";
-    case "rib_fracture":
-      return "Fracture des côtes";
-    default:
-      return "Blessure en cours";
-  }
+  return code in RIDER_INJURY_DIAGNOSES
+    ? RIDER_INJURY_DIAGNOSES[code as RiderInjuryDiagnosisCode].label
+    : "Blessure en cours";
 }
 
 function emptyResult<T>() {

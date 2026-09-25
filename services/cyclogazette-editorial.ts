@@ -842,9 +842,14 @@ function getDiagnosis(code: string) {
     const diagnosis =
       RIDER_INJURY_DIAGNOSES[code as RiderInjuryDiagnosisCode];
     const english = {
+      road_rash: "Road rash",
+      hip_contusion: "Hip contusion",
+      shoulder_sprain: "Shoulder sprain",
       rib_fracture: "Rib fracture",
       wrist_fracture: "Wrist fracture",
+      concussion: "Concussion",
       clavicle_fracture: "Collarbone fracture",
+      pelvis_fracture: "Pelvic fracture",
       fatigue_exhaustion: "Fatigue injury",
     } satisfies Record<RiderInjuryDiagnosisCode, string>;
     return { label: diagnosis.label, labelEn: english[code as RiderInjuryDiagnosisCode] };

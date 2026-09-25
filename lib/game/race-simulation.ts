@@ -35,6 +35,7 @@ import {
 } from "./special-abilities";
 import {
   resolveCrashMedicalOutcome,
+  type CrashInjuryType,
   type RiderInjuryDiagnosisCode,
 } from "./health-center";
 import {
@@ -315,7 +316,7 @@ export type RaceInjurySeverity = (typeof RACE_INJURY_SEVERITIES)[number];
 export type RaceInjury = {
   riderId: string;
   segmentNumber: number;
-  type: "fracture";
+  type: CrashInjuryType;
   diagnosisCode: RiderInjuryDiagnosisCode;
   label: string;
   severity: RaceInjurySeverity;
@@ -8254,7 +8255,7 @@ function maybeCreateCrashMedicalResult(
   const injury: RaceInjury = {
     riderId: state.rider.id,
     segmentNumber: segmentIndex + 1,
-    type: "fracture",
+    type: outcome.type,
     diagnosisCode: outcome.diagnosisCode,
     label: outcome.label,
     severity: outcome.severity,
