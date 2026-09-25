@@ -5,6 +5,10 @@ const migration = readFileSync(
   "supabase/migrations/20260925103000_reopen_remaining_s3_automatic_callups.sql",
   "utf8",
 ).replaceAll("\r", "");
+const modeSwitchMigration = readFileSync(
+  "supabase/migrations/20260925104500_reopen_callup_after_manual_mode_switch.sql",
+  "utf8",
+).replaceAll("\r", "");
 
 describe("S3 federation call-up transition", () => {
   it("keeps H-24 from S4 and grants only S3 the necessary H-1 repair window", () => {
@@ -31,6 +35,19 @@ describe("S3 federation call-up transition", () => {
     );
     expect(migration).toContain("set status = 'withdrawn'");
     expect(migration).toContain(
+      "select public.sync_due_national_federation_championship_lineups(now(), true)",
+    );
+  });
+
+  it("also repairs an automatic confirmation after the president switched to manual mode", () => {
+    expect(modeSwitchMigration).toContain(
+      "member.responded_at = selection_list.published_at",
+    );
+    expect(modeSwitchMigration).not.toContain("automatic_selection");
+    expect(modeSwitchMigration).toContain(
+      "set response_status = 'pending', responded_at = null",
+    );
+    expect(modeSwitchMigration).toContain(
       "select public.sync_due_national_federation_championship_lineups(now(), true)",
     );
   });
