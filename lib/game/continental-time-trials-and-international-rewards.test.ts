@@ -30,6 +30,21 @@ const settlementService = readFileSync(
 );
 
 describe("CLM continentaux S2 et gains internationaux", () => {
+  it("neutralise tous les gains des championnats continentaux de S3", () => {
+    expect(
+      calculateInternationalChampionshipReward({
+        gameYear: 3,
+        competitionType: "continental_championship",
+        finalRank: 1,
+      }),
+    ).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
+  });
+
   it("applique la grille continentale au top 10", () => {
     expect(
       calculateInternationalChampionshipReward({
@@ -176,5 +191,11 @@ describe("CLM continentaux S2 et gains internationaux", () => {
     expect(s1RewardBackfill).toContain("v_result.target_uci - v_existing_uci");
     expect(s1RewardBackfill).toContain("s1-international-reward-adjustment:");
     expect(s1RewardBackfill).toMatch(/v_delta_uci,\r?\n\s+false,/);
+  });
+
+  it("conserve la victoire sportive même lorsque le barème est neutralisé", () => {
+    expect(settlementService).toContain("reward.uciPoints === 0 &&");
+    expect(settlementService).toContain("result.rank !== 1");
+    expect(settlementService).toContain("p_is_victory: result.rank === 1");
   });
 });

@@ -1684,7 +1684,8 @@ async function persistRaceClassification({
       reward.reputation === 0 &&
       reward.experience === 0 &&
       reward.cashPrize === 0 &&
-      reward.uciPoints === 0
+      reward.uciPoints === 0 &&
+      result.rank !== 1
     ) {
       continue;
     }

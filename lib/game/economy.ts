@@ -732,6 +732,13 @@ export function calculateInternationalChampionshipReward({
   finalRank,
   gameYear,
 }: InternationalChampionshipRewardInput): RaceReward {
+  // Les convocations continentales de S3 n'ont pas offert les mêmes chances
+  // à toutes les équipes. Les résultats et titres restent officiels, mais
+  // aucun gain économique ou de progression n'est attribué sur ces épreuves.
+  if (gameYear === 3 && competitionType === "continental_championship") {
+    return { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
+  }
+
   if (finalRank === null || !Number.isFinite(finalRank) || finalRank < 1) {
     return { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
   }
