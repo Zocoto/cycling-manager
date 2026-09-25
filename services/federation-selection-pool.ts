@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+import { projectYouthRating } from "@/lib/game/youth-training";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationSelectionRider = {
@@ -278,19 +279,19 @@ async function loadFederationSelectionPool({
     const academyName =
       teamNameById.get(junior.team_id) ?? "Équipe formatrice";
     const ratings = {
-      mountain: Number(junior.mountain),
-      hills: Number(junior.hills),
-      flat: Number(junior.flat),
-      timeTrial: Number(junior.time_trial),
-      cobbles: Number(junior.cobbles),
-      sprint: Number(junior.sprint),
-      acceleration: Number(junior.acceleration),
-      downhill: Number(junior.downhill),
-      endurance: Number(junior.endurance),
-      resistance: Number(junior.resistance),
-      recovery: Number(junior.recovery),
-      breakaway: Number(junior.breakaway),
-      prologue: Number(junior.prologue),
+      mountain: projectFederationYouthRating(junior.mountain),
+      hills: projectFederationYouthRating(junior.hills),
+      flat: projectFederationYouthRating(junior.flat),
+      timeTrial: projectFederationYouthRating(junior.time_trial),
+      cobbles: projectFederationYouthRating(junior.cobbles),
+      sprint: projectFederationYouthRating(junior.sprint),
+      acceleration: projectFederationYouthRating(junior.acceleration),
+      downhill: projectFederationYouthRating(junior.downhill),
+      endurance: projectFederationYouthRating(junior.endurance),
+      resistance: projectFederationYouthRating(junior.resistance),
+      recovery: projectFederationYouthRating(junior.recovery),
+      breakaway: projectFederationYouthRating(junior.breakaway),
+      prologue: projectFederationYouthRating(junior.prologue),
     };
     return {
       id: junior.id,
@@ -314,6 +315,10 @@ async function loadFederationSelectionPool({
     (left, right) =>
       right.overall - left.overall || left.name.localeCompare(right.name, "fr"),
   );
+}
+
+export function projectFederationYouthRating(value: number | string): number {
+  return Math.round(projectYouthRating(Number(value)));
 }
 
 function getProfile(

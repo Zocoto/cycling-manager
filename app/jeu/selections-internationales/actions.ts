@@ -6,7 +6,10 @@ import { z } from "zod";
 
 import { parseAnsweredInternationalSelectionDecisions } from "@/lib/game/international-selection-batch";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { respondToInternationalChampionshipSelections } from "@/services/international-championship-selections";
+import {
+  respondToInternationalChampionshipSelections,
+  syncDueNationalFederationChampionshipLineups,
+} from "@/services/international-championship-selections";
 
 export async function answerFederationCallupAction(formData: FormData) {
   const input = z.object({ memberId: z.string().uuid(), decision: z.enum(["confirm", "decline"]) })
@@ -19,6 +22,14 @@ export async function answerFederationCallupAction(formData: FormData) {
     p_member_id: input.data.memberId, p_accept: input.data.decision === "confirm",
   });
   if (error) redirect(`/jeu/selections-internationales?erreur=${encodeURIComponent(error.message.slice(0, 240))}`);
+  try {
+    await syncDueNationalFederationChampionshipLineups({ force: true });
+  } catch (syncError) {
+    console.error(
+      "Échec du remplacement après réponse à une convocation fédérale :",
+      syncError,
+    );
+  }
   revalidatePath("/jeu");
   revalidatePath("/jeu/selections-internationales");
   revalidatePath("/jeu/federations/[codePays]", "page");

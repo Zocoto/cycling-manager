@@ -140,7 +140,9 @@ export default async function InternationalSelectionsPage({
               <p className="mt-4 text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
                 Répondez dès la publication des convocations par le président.
                 Une participation confirmée ne peut plus être retirée de sa liste.
-                Les sélections automatiques sont publiées à l’échéance prévue pour chaque compétition.
+                Pour les CC et Mondiaux, les nations sont figées à J8 puis les
+                convocations automatiques sont envoyées aux DS. Sans réponse
+                explicite avant la clôture, le coureur n’est pas mobilisé.
               </p>
             </div>
             <div className="grid gap-3">
@@ -219,7 +221,7 @@ export default async function InternationalSelectionsPage({
               <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#60756E]">
                 {historicalSelections.length + federation.history.length > 0
                   ? "Toutes les convocations reçues ont déjà été traitées. Vous pouvez retrouver leur détail dans l’historique ci-dessous."
-                  : "Les convocations apparaîtront ici dès leur publication par la fédération, même en début de saison. En mode automatique, elles seront publiées à l’échéance de chaque compétition."}
+                  : "Les convocations apparaîtront ici dès leur publication par la fédération. En mode automatique, celles des CC et Mondiaux sont envoyées après le classement de qualification figé à J8."}
               </p>
             </div>
           ) : null}

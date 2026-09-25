@@ -16,6 +16,7 @@ const MAINTENANCE_TASKS = [
   "settle_due_exceptional_federation_elections",
   "settle_due_national_federation_hosting_candidacies",
   "ensure_due_professional_nations_cup",
+  "freeze_due_international_nation_qualifications",
   "prepare_due_automatic_federation_junior_lineups",
   "activate_due_national_federation_jerseys",
   "initialize_due_national_federation_accounts",

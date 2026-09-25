@@ -111,6 +111,7 @@ export async function respondFederationPreselectionAction(formData: FormData) {
     console.error("Échec de réponse à la présélection fédérale :", result.error.message);
     redirect(`/jeu/selections-internationales?erreur=${encodeURIComponent(result.error.message.slice(0, 240))}`);
   }
+  await syncFederationChampionshipStartlists();
   revalidateFederation(countryCode.data);
   revalidatePath("/jeu/selections-internationales");
   revalidatePath("/jeu/calendrier");
