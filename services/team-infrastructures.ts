@@ -298,6 +298,47 @@ export async function getTeamInfrastructureOverview(
   }
 
   const contracts = contractsResult.data ?? [];
+  const contractIds = contracts.map((contract) => contract.id);
+  const federationAssignmentsResult = contractIds.length
+    ? await admin
+        .from("national_federation_project_architects")
+        .select("staff_contract_id, project_id")
+        .in("staff_contract_id", contractIds)
+        .returns<Array<{ staff_contract_id: string; project_id: string }>>()
+    : { data: [], error: null };
+  assertQuery(
+    federationAssignmentsResult.error,
+    "les missions fédérales des architectes",
+  );
+  const assignedFederationProjectIds = [
+    ...new Set(
+      (federationAssignmentsResult.data ?? []).map(
+        (assignment) => assignment.project_id,
+      ),
+    ),
+  ];
+  const activeFederationProjectsResult = assignedFederationProjectIds.length
+    ? await admin
+        .from("national_federation_infrastructure_projects")
+        .select("id")
+        .in("id", assignedFederationProjectIds)
+        .eq("status", "active")
+        .returns<Array<{ id: string }>>()
+    : { data: [], error: null };
+  assertQuery(
+    activeFederationProjectsResult.error,
+    "les chantiers fédéraux actifs",
+  );
+  const activeFederationProjectIds = new Set(
+    (activeFederationProjectsResult.data ?? []).map((project) => project.id),
+  );
+  const federallyBusyContractIds = new Set(
+    (federationAssignmentsResult.data ?? []).flatMap((assignment) =>
+      activeFederationProjectIds.has(assignment.project_id)
+        ? [assignment.staff_contract_id]
+        : [],
+    ),
+  );
   const architectQuoteByContractId = new Map(
     normalizeArchitectEffectiveQuotes(architectQuotesResult.data).map(
       (quote) => [quote.contractId, quote],
@@ -364,7 +405,7 @@ export async function getTeamInfrastructureOverview(
   const architects = contracts.flatMap(
     (contract): InfrastructureArchitect[] => {
       const member = memberById.get(contract.staff_member_id);
-      if (!member) return [];
+      if (!member || federallyBusyContractIds.has(contract.id)) return [];
       const rawSpecialty = member.architect_specialty ?? "";
       const specialty: ArchitectSpecialty = isArchitectSpecialty(rawSpecialty)
         ? rawSpecialty
