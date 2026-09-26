@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { NationRiderRanking } from "@/components/game/nation-rider-ranking";
+import { PublicCountryPresidentCard } from "@/components/game/public-country-president-card";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
@@ -68,7 +69,7 @@ export default async function PublicCountryPage({
     notFound();
   }
 
-  const { country, members } = directory;
+  const { country, members, president } = directory;
   const viewerFederationCountryCode = headerData.teamId
     ? await getCurrentTeamFederationCountryCode(headerData.teamId)
     : null;
@@ -144,6 +145,7 @@ export default async function PublicCountryPage({
                   href="/jeu/classements?vue=nations"
                   dark
                 />
+                <PublicCountryPresidentCard president={president} />
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <Statistic
                     label="Directeurs Sportifs"
