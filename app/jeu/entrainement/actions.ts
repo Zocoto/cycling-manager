@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isTrainingDomain } from "@/lib/game/training";
+import { getInteractiveActionErrorMessage } from "@/lib/game/interactive-action-errors";
 import { getRaceReconnaissanceErrorMessage } from "@/lib/game/race-reconnaissance";
 import type { TrainingPlanDraft } from "@/lib/game/training-plan-drafts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ export async function saveTeamTrainingSettingsAction(formData: FormData) {
     "save_current_team_training_settings",
     { p_minimum_form: minimumForm },
   );
-  if (error) redirectWithError(error.message);
+  if (error) redirectWithError(getInteractiveActionErrorMessage(error.message));
 
   revalidateTrainingPaths();
   redirect(
@@ -41,7 +42,7 @@ export async function saveRiderTrainingPlansAction(formData: FormData) {
       })),
     },
   );
-  if (error) redirectWithError(error.message);
+  if (error) redirectWithError(getInteractiveActionErrorMessage(error.message));
 
   revalidateTrainingPaths();
   redirect(

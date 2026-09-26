@@ -315,7 +315,21 @@ export default async function GamePage() {
     "Impossible de récupérer les prochaines courses du bureau :",
   );
 
-  const [profileResult, countriesResult, teamSummaryResult, rosterResult] =
+  const rosterPromise = loadDashboardValue(
+    supabase.rpc("get_current_team_roster").then((result) => {
+      if (result.error) {
+        throw new Error(
+          `Impossible de récupérer l’effectif pour le bureau du Directeur Sportif : ${result.error.message}`,
+        );
+      }
+
+      return (result.data ?? []) as DashboardRider[];
+    }),
+    [] as DashboardRider[],
+    "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
+  );
+
+  const [profileResult, countriesResult, teamSummaryResult] =
     await Promise.all([
       supabase
         .from("sporting_directors")
@@ -354,17 +368,12 @@ export default async function GamePage() {
         data: toTeamSummary(summary),
         error: null as { code: string; message: string } | null,
       })),
-
-      supabase.rpc("get_current_team_roster"),
     ]);
 
   const dashboardTeamSummary =
     (teamSummaryResult.data as CurrentTeamDashboardSummary | null) ?? null;
   const dashboardSportingDirector = profileResult.data;
   const dashboardTeamId = dashboardTeamSummary?.team_id ?? null;
-  const dashboardRiderIds = ((rosterResult.data ?? []) as DashboardRider[]).map(
-    (rider) => rider.rider_id,
-  );
 
   const sponsorIdentityPromise: Promise<{
     identity: TeamSponsorIdentity | null;
@@ -403,12 +412,13 @@ export default async function GamePage() {
         : null,
   );
   const activeChampionshipTitlesPromise = loadDashboardValue(
-    getActiveChampionshipTitlesForRiders(supabase, dashboardRiderIds),
-    {
-      national: new Map(),
-      continental: new Map(),
-      world: new Map(),
-    } satisfies ActiveChampionshipTitlesForRiders,
+    rosterPromise.then((riders) =>
+      getActiveChampionshipTitlesForRiders(
+        supabase,
+        riders.map((rider) => rider.rider_id),
+      ),
+    ),
+    emptyActiveChampionshipTitles(),
     "Impossible de récupérer les maillots de champions du bureau :",
   );
   const [
@@ -417,8 +427,6 @@ export default async function GamePage() {
     financeOverview,
     inventoryOverview,
     reputationBreakdown,
-    raceCalendar,
-    activeChampionshipTitles,
     sponsorObjectiveSummary,
     fanClubBuildings,
   ] = await Promise.all([
@@ -443,8 +451,6 @@ export default async function GamePage() {
       null as SportingDirectorReputationBreakdown | null,
       "Impossible de r\u00e9cup\u00e9rer le d\u00e9tail de la r\u00e9putation :",
     ),
-    raceCalendarPromise,
-    activeChampionshipTitlesPromise,
     sponsorObjectiveSummaryPromise,
     loadDashboardValue(
       dashboardTeamId
@@ -454,17 +460,11 @@ export default async function GamePage() {
       "Impossible de récupérer les bâtiments du Fan Club :",
     ),
   ]);
-  const activeNationalTitlesByRiderId = activeChampionshipTitles.national;
-  const activeContinentalTitlesByRiderId =
-    activeChampionshipTitles.continental;
-  const activeWorldTitlesByRiderId = activeChampionshipTitles.world;
-
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
 
   const dashboardFastSummary = await fastSummaryPromise;
-  const raceRosterAlerts = getDashboardRaceRosterAlerts(raceCalendar);
-  const raceRosterAlertCount = raceRosterAlerts.length;
+  const raceRosterAlertCount = dashboardFastSummary?.raceRosterAlertCount ?? 0;
 
   const sportingDirector = dashboardSportingDirector;
 
@@ -489,16 +489,6 @@ export default async function GamePage() {
       code: teamSummaryResult.error.code,
       message: teamSummaryResult.error.message,
     });
-  }
-
-  if (rosterResult.error) {
-    console.error(
-      "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
-      {
-        code: rosterResult.error.code,
-        message: rosterResult.error.message,
-      },
-    );
   }
 
   const countries = (countriesResult.data ?? []) as CountryRow[];
@@ -531,13 +521,6 @@ export default async function GamePage() {
     .trim()
     .toUpperCase();
 
-  const featuredRiders = [...((rosterResult.data ?? []) as DashboardRider[])]
-    .sort(
-      (left, right) =>
-        getDashboardRiderAverage(right) - getDashboardRiderAverage(left),
-    )
-    .slice(0, 11);
-
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({
         colors: teamSponsorIdentity.sponsor.colors,
@@ -547,39 +530,7 @@ export default async function GamePage() {
     : teamAmateurIdentity
       ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
       : FREE_AGENT_RIDER_JERSEY;
-  const nationalChampionJerseyByRiderId = new Map(
-    [...activeNationalTitlesByRiderId].map(([riderId, title]) => [
-      riderId,
-      createNationalChampionRiderJersey({
-        countryCode: title.countryCode,
-        championshipType: title.championshipType,
-      }),
-    ]),
-  );
-  for (const [riderId, title] of activeContinentalTitlesByRiderId) {
-    nationalChampionJerseyByRiderId.set(
-      riderId,
-      createContinentalChampionRiderJersey({
-        continentCode: title.continentCode,
-        championshipType: title.championshipType,
-      }),
-    );
-  }
-  for (const [riderId, title] of activeWorldTitlesByRiderId) {
-    nationalChampionJerseyByRiderId.set(
-      riderId,
-      createWorldChampionRiderJersey({
-        championshipType: title.championshipType,
-      }),
-    );
-  }
-
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
-  const raceRegistrationAlerts =
-    getDashboardLowReputationRegistrationAlerts(
-      raceCalendar,
-      reputationPoints,
-    );
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
   const objectiveTotalCount = dashboardFastSummary?.objectiveTotalCount ?? 0;
   const objectiveRewardCount = dashboardFastSummary?.objectiveReadyCount ?? 0;
@@ -678,10 +629,10 @@ export default async function GamePage() {
 
           {DASHBOARD_ASSISTANT_ENABLED ? (
             <Suspense fallback={<DashboardAssistantSkeleton />}>
-              <DashboardAssistant
+              <DashboardAssistantDeferred
                 summaryPromise={dashboardAssistantPromise}
-                raceRosterAlerts={raceRosterAlerts}
-                raceRegistrationAlerts={raceRegistrationAlerts}
+                raceCalendarPromise={raceCalendarPromise}
+                reputationPoints={reputationPoints}
                 rewardCount={readyRewardCount}
                 cashBalance={financeOverview?.balance ?? null}
                 hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
@@ -702,7 +653,7 @@ export default async function GamePage() {
               teamAmateurIdentity={teamAmateurIdentity}
               financeOverview={financeOverview}
               reputationBreakdown={reputationBreakdown}
-              calendar={raceCalendar}
+              calendarPromise={raceCalendarPromise}
               riderCount={riderCount}
             />
 
@@ -736,27 +687,45 @@ export default async function GamePage() {
                 />
               )}
 
-              <TeamRosterCard
-                status={
-                  teamSummary
-                    ? formatRiderCount(riderCount)
-                    : isProfileComplete
-                      ? "Création en attente"
-                      : "En attente"
+              <Suspense
+                fallback={
+                  <TeamRosterCard
+                    status={getRosterStatus({
+                      teamSummary,
+                      isProfileComplete,
+                      riderCount,
+                    })}
+                    description={getRosterDescription({
+                      teamSummary,
+                      isProfileComplete,
+                      commercialTeamName,
+                      riderCount,
+                    })}
+                    riders={[]}
+                    jersey={riderJersey}
+                    nationalChampionJerseyByRiderId={new Map()}
+                  />
                 }
-                description={
-                  teamSummary
-                    ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
-                    : isProfileComplete
-                      ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
-                      : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
-                }
-                riders={featuredRiders}
-                jersey={riderJersey}
-                nationalChampionJerseyByRiderId={
-                  nationalChampionJerseyByRiderId
-                }
-              />
+              >
+                <TeamRosterCardDeferred
+                  rosterPromise={rosterPromise}
+                  activeChampionshipTitlesPromise={
+                    activeChampionshipTitlesPromise
+                  }
+                  status={getRosterStatus({
+                    teamSummary,
+                    isProfileComplete,
+                    riderCount,
+                  })}
+                  description={getRosterDescription({
+                    teamSummary,
+                    isProfileComplete,
+                    commercialTeamName,
+                    riderCount,
+                  })}
+                  jersey={riderJersey}
+                />
+              </Suspense>
             </div>
           </section>
 
@@ -862,6 +831,181 @@ export default async function GamePage() {
   );
 }
 
+async function DashboardAssistantDeferred({
+  summaryPromise,
+  raceCalendarPromise,
+  reputationPoints,
+  rewardCount,
+  cashBalance,
+  hasTeam,
+}: {
+  summaryPromise: ReturnType<typeof getCurrentDashboardAssistantSummary>;
+  raceCalendarPromise: Promise<SeasonRaceCalendar | null>;
+  reputationPoints: number;
+  rewardCount: number;
+  cashBalance: number | null;
+  hasTeam: boolean;
+}) {
+  const [summary, calendar] = await Promise.all([
+    summaryPromise,
+    raceCalendarPromise,
+  ]);
+
+  return (
+    <DashboardAssistant
+      summaryPromise={Promise.resolve(summary)}
+      raceRosterAlerts={getDashboardRaceRosterAlerts(calendar)}
+      raceRegistrationAlerts={getDashboardLowReputationRegistrationAlerts(
+        calendar,
+        reputationPoints,
+      )}
+      rewardCount={rewardCount}
+      cashBalance={cashBalance}
+      hasTeam={hasTeam}
+    />
+  );
+}
+
+async function DashboardEligibleRacesDeferred({
+  calendarPromise,
+  reputationPoints,
+  riderCount,
+}: {
+  calendarPromise: Promise<SeasonRaceCalendar | null>;
+  reputationPoints: number;
+  riderCount: number;
+}) {
+  return (
+    <DashboardEligibleRaces
+      calendar={await calendarPromise}
+      reputationPoints={reputationPoints}
+      riderCount={riderCount}
+    />
+  );
+}
+
+function DashboardEligibleRacesSkeleton() {
+  return (
+    <div
+      aria-label="Chargement des prochaines courses"
+      className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/5"
+    />
+  );
+}
+
+async function TeamRosterCardDeferred({
+  rosterPromise,
+  activeChampionshipTitlesPromise,
+  status,
+  description,
+  jersey,
+}: {
+  rosterPromise: Promise<DashboardRider[]>;
+  activeChampionshipTitlesPromise: Promise<ActiveChampionshipTitlesForRiders>;
+  status: string;
+  description: string;
+  jersey: RiderJerseyAppearance;
+}) {
+  const [riders, activeChampionshipTitles] = await Promise.all([
+    rosterPromise,
+    activeChampionshipTitlesPromise,
+  ]);
+  const featuredRiders = [...riders]
+    .sort(
+      (left, right) =>
+        getDashboardRiderAverage(right) - getDashboardRiderAverage(left),
+    )
+    .slice(0, 11);
+
+  return (
+    <TeamRosterCard
+      status={status}
+      description={description}
+      riders={featuredRiders}
+      jersey={jersey}
+      nationalChampionJerseyByRiderId={buildChampionJerseyMap(
+        activeChampionshipTitles,
+      )}
+    />
+  );
+}
+
+function buildChampionJerseyMap(
+  titles: ActiveChampionshipTitlesForRiders,
+): Map<string, RiderJerseyAppearance> {
+  const jerseys = new Map(
+    [...titles.national].map(([riderId, title]) => [
+      riderId,
+      createNationalChampionRiderJersey({
+        countryCode: title.countryCode,
+        championshipType: title.championshipType,
+      }),
+    ]),
+  );
+
+  for (const [riderId, title] of titles.continental) {
+    jerseys.set(
+      riderId,
+      createContinentalChampionRiderJersey({
+        continentCode: title.continentCode,
+        championshipType: title.championshipType,
+      }),
+    );
+  }
+  for (const [riderId, title] of titles.world) {
+    jerseys.set(
+      riderId,
+      createWorldChampionRiderJersey({
+        championshipType: title.championshipType,
+      }),
+    );
+  }
+
+  return jerseys;
+}
+
+function emptyActiveChampionshipTitles(): ActiveChampionshipTitlesForRiders {
+  return {
+    national: new Map(),
+    continental: new Map(),
+    world: new Map(),
+  };
+}
+
+function getRosterStatus({
+  teamSummary,
+  isProfileComplete,
+  riderCount,
+}: {
+  teamSummary: CurrentTeamDashboardSummary | null;
+  isProfileComplete: boolean;
+  riderCount: number;
+}) {
+  return teamSummary
+    ? formatRiderCount(riderCount)
+    : isProfileComplete
+      ? "Création en attente"
+      : "En attente";
+}
+
+function getRosterDescription({
+  teamSummary,
+  isProfileComplete,
+  commercialTeamName,
+  riderCount,
+}: {
+  teamSummary: CurrentTeamDashboardSummary | null;
+  isProfileComplete: boolean;
+  commercialTeamName: string;
+  riderCount: number;
+}) {
+  return teamSummary
+    ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
+    : isProfileComplete
+      ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
+      : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur.";
+}
+
 function DirectorProfileCard({
   sportingDirector,
   email,
@@ -872,7 +1016,7 @@ function DirectorProfileCard({
   teamAmateurIdentity,
   financeOverview,
   reputationBreakdown,
-  calendar,
+  calendarPromise,
   riderCount,
 }: {
   sportingDirector: SportingDirector | null;
@@ -884,7 +1028,7 @@ function DirectorProfileCard({
   teamAmateurIdentity: TeamAmateurIdentity | null;
   financeOverview: TeamFinanceOverview | null;
   reputationBreakdown: SportingDirectorReputationBreakdown | null;
-  calendar: SeasonRaceCalendar | null;
+  calendarPromise: Promise<SeasonRaceCalendar | null>;
   riderCount: number;
 }) {
   const profileName =
@@ -1024,11 +1168,13 @@ function DirectorProfileCard({
           ) : null}
         </div>
 
-        <DashboardEligibleRaces
-          calendar={calendar}
-          reputationPoints={reputationPoints}
-          riderCount={riderCount}
-        />
+        <Suspense fallback={<DashboardEligibleRacesSkeleton />}>
+          <DashboardEligibleRacesDeferred
+            calendarPromise={calendarPromise}
+            reputationPoints={reputationPoints}
+            riderCount={riderCount}
+          />
+        </Suspense>
       </div>
     </article>
   );
@@ -1909,7 +2055,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 async function loadDashboardValue<T>(
-  promise: Promise<T>,
+  promise: PromiseLike<T>,
   fallback: T,
   errorMessage: string,
 ): Promise<T> {
