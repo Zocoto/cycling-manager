@@ -21,6 +21,7 @@ type SupabaseServerClient = Awaited<
 export type PublicCountryDirectory = {
   country: GlobalSearchResult;
   members: GroupedGlobalSearchResults;
+  president: GlobalSearchResult | null;
 };
 
 type SportingDirectorRow = {
@@ -44,6 +45,14 @@ type TeamAssignmentRow = {
 
 type ActiveSeasonRow = {
   id: string;
+};
+
+type ActiveSeasonYearRow = {
+  game_year: number;
+};
+
+type FederationPresidentTermRow = {
+  president_director_id: string | null;
 };
 
 type TeamSeasonRow = {
@@ -253,11 +262,42 @@ export async function getPublicCountryDirectory(
       result.country_code.toLowerCase() ===
       country.country_code.toLowerCase()
   );
+  const president = await getPublicCountryPresident(country.entity_id);
 
   return {
     country,
     members: groupGlobalSearchResults(countryResults),
+    president,
   };
+}
+
+async function getPublicCountryPresident(
+  countryId: string,
+): Promise<GlobalSearchResult | null> {
+  const admin = createSupabaseAdminClient();
+  const seasonResult = await admin
+    .from("seasons")
+    .select("game_year")
+    .eq("status", "active")
+    .maybeSingle<ActiveSeasonYearRow>();
+
+  assertDirectoryQuery(seasonResult.error, "la saison de la présidence fédérale");
+  if (!seasonResult.data) return null;
+
+  const termResult = await admin
+    .from("national_federation_terms")
+    .select("president_director_id")
+    .eq("country_id", countryId)
+    .lte("start_game_year", seasonResult.data.game_year)
+    .gte("end_game_year", seasonResult.data.game_year)
+    .maybeSingle<FederationPresidentTermRow>();
+
+  assertDirectoryQuery(termResult.error, "la présidence fédérale du pays");
+  const presidentDirectorId = termResult.data?.president_director_id;
+
+  return presidentDirectorId
+    ? getPublicSportingDirector(presidentDirectorId)
+    : null;
 }
 
 function isUuid(value: string): boolean {
