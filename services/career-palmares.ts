@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   buildCareerPalmares,
+  isFinalCareerJerseyEdition,
   type CareerPalmares,
   type CareerDistinctiveJerseyEntry,
   type CareerDistinctiveJerseyType,
@@ -51,6 +52,7 @@ type RaceEditionRow = {
   season_id: string;
   race_category_id: string;
   display_name: string;
+  status: string;
 };
 
 type RaceRow = {
@@ -348,7 +350,9 @@ async function loadProfessionalPalmares({
     fetchPage: async (chunk, from, to) => {
       const result = await admin
         .from("race_editions")
-        .select("id, race_id, season_id, race_category_id, display_name")
+        .select(
+          "id, race_id, season_id, race_category_id, display_name, status",
+        )
         .in("id", chunk)
         .order("id", { ascending: true })
         .range(from, to)
@@ -474,6 +478,13 @@ async function loadProfessionalPalmares({
       seasonName: context.season.name,
       gameYear: context.season.game_year,
       prestigeRank: context.category.prestige_rank,
+      categoryCode: context.category.code,
+      competitionType: normalizeCompetitionType(
+        context.race.competition_type,
+      ),
+      isGrandTour: context.race.is_grand_tour,
+      isMonument: context.race.is_monument,
+      isJunior: false,
     };
   };
   const stageVictories = stageResults.flatMap<CareerPalmaresSupplementEntry>(
@@ -487,6 +498,11 @@ async function loadProfessionalPalmares({
   );
   const distinctiveJerseys =
     secondaryResults.flatMap<CareerDistinctiveJerseyEntry>((result) => {
+      const context = resolveContext(result.race_edition_id);
+      if (!context || !isFinalCareerJerseyEdition(context.edition.status)) {
+        return [];
+      }
+
       const entry = toSupplementEntry(
         `classification:${result.id}`,
         result.race_edition_id,

@@ -32,14 +32,26 @@ export type CareerPalmaresEntry = {
   isJunior: boolean;
 };
 
-export type CareerPalmaresAchievement = {
+type CareerPalmaresAchievementBase = {
   id: string;
   raceKey: string;
   raceName: string;
-  rank: 1 | 2 | 3;
   count: number;
   seasonLabels: string[];
 };
+
+export type CareerPalmaresAchievement =
+  | (CareerPalmaresAchievementBase & {
+      kind: "race_result";
+      rank: 1 | 2 | 3;
+    })
+  | (CareerPalmaresAchievementBase & {
+      kind: "stage_victory";
+    })
+  | (CareerPalmaresAchievementBase & {
+      kind: "distinctive_jersey";
+      classificationType: CareerDistinctiveJerseyType;
+    });
 
 export type CareerPalmaresSection = {
   category: CareerPalmaresCategory;
@@ -54,6 +66,11 @@ export type CareerPalmaresSupplementEntry = {
   seasonName: string;
   gameYear: number;
   prestigeRank: number;
+  categoryCode: RaceCategoryCode | null;
+  competitionType: RaceCompetitionType | null;
+  isGrandTour: boolean;
+  isMonument: boolean;
+  isJunior: boolean;
 };
 
 export type CareerDistinctiveJerseyType = "mountain" | "sprint" | "youth";
@@ -90,8 +107,13 @@ export type CareerPalmares = {
   distinctiveJerseys: CareerDistinctiveJerseyAchievement[];
 };
 
+export function isFinalCareerJerseyEdition(status: string): boolean {
+  return status === "completed";
+}
+
 type AggregatedAchievement = CareerPalmaresAchievement & {
   prestigeRank: number;
+  sortRank: number;
   seasons: Map<string, { label: string; gameYear: number }>;
 };
 
@@ -115,15 +137,17 @@ export function buildCareerPalmares(
     const categoryAchievements =
       achievementsByCategory.get(category) ??
       new Map<string, AggregatedAchievement>();
-    const achievementKey = `${entry.raceKey}:${entry.rank}`;
+    const achievementKey = `race:${entry.raceKey}:${entry.rank}`;
     const achievement = categoryAchievements.get(achievementKey) ?? {
       id: `${category}:${achievementKey}`,
       raceKey: entry.raceKey,
       raceName: entry.raceName,
+      kind: "race_result" as const,
       rank: entry.rank,
       count: 0,
       seasonLabels: [],
       prestigeRank: entry.prestigeRank,
+      sortRank: entry.rank === 1 ? 0 : entry.rank === 2 ? 3 : 4,
       seasons: new Map<string, { label: string; gameYear: number }>(),
     };
 
@@ -140,6 +164,41 @@ export function buildCareerPalmares(
     achievementsByCategory.set(category, categoryAchievements);
   }
 
+  for (const entry of supplements.stageVictories ?? []) {
+    addSupplementAchievement({
+      achievementsByCategory,
+      entry,
+      achievementKey: `stage:${entry.raceKey}`,
+      achievement: {
+        id: "",
+        raceKey: entry.raceKey,
+        raceName: entry.raceName,
+        kind: "stage_victory",
+        count: 0,
+        seasonLabels: [],
+      },
+      sortRank: 1,
+    });
+  }
+
+  for (const entry of supplements.distinctiveJerseys ?? []) {
+    addSupplementAchievement({
+      achievementsByCategory,
+      entry,
+      achievementKey: `jersey:${entry.raceKey}:${entry.classificationType}`,
+      achievement: {
+        id: "",
+        raceKey: entry.raceKey,
+        raceName: entry.raceName,
+        kind: "distinctive_jersey",
+        classificationType: entry.classificationType,
+        count: 0,
+        seasonLabels: [],
+      },
+      sortRank: 2,
+    });
+  }
+
   const sections = CAREER_PALMARES_CATEGORIES.flatMap<CareerPalmaresSection>(
     (category) => {
       const categoryAchievements = achievementsByCategory.get(category);
@@ -150,7 +209,14 @@ export function buildCareerPalmares(
           id: achievement.id,
           raceKey: achievement.raceKey,
           raceName: achievement.raceName,
-          rank: achievement.rank,
+          ...(achievement.kind === "race_result"
+            ? { kind: achievement.kind, rank: achievement.rank }
+            : achievement.kind === "distinctive_jersey"
+              ? {
+                  kind: achievement.kind,
+                  classificationType: achievement.classificationType,
+                }
+              : { kind: achievement.kind }),
           count: achievement.count,
           seasonLabels: [...achievement.seasons.values()]
             .sort(
@@ -162,14 +228,14 @@ export function buildCareerPalmares(
         }))
         .sort((left, right) => {
           const leftSource = categoryAchievements.get(
-            `${left.raceKey}:${left.rank}`,
+            getAchievementKey(left),
           );
           const rightSource = categoryAchievements.get(
-            `${right.raceKey}:${right.rank}`,
+            getAchievementKey(right),
           );
 
           return (
-            left.rank - right.rank ||
+            (leftSource?.sortRank ?? 99) - (rightSource?.sortRank ?? 99) ||
             (leftSource?.prestigeRank ?? 99) -
               (rightSource?.prestigeRank ?? 99) ||
             right.count - left.count ||
@@ -202,6 +268,56 @@ export function buildCareerPalmares(
       classificationType: achievement.source.classificationType,
     })),
   };
+}
+
+function addSupplementAchievement({
+  achievementsByCategory,
+  entry,
+  achievementKey,
+  achievement,
+  sortRank,
+}: {
+  achievementsByCategory: Map<
+    CareerPalmaresCategory,
+    Map<string, AggregatedAchievement>
+  >;
+  entry: CareerPalmaresSupplementEntry;
+  achievementKey: string;
+  achievement: CareerPalmaresAchievement;
+  sortRank: number;
+}) {
+  const category = resolveCareerPalmaresCategory(entry);
+  if (!category) return;
+
+  const categoryAchievements =
+    achievementsByCategory.get(category) ??
+    new Map<string, AggregatedAchievement>();
+  const current = categoryAchievements.get(achievementKey) ?? {
+    ...achievement,
+    id: `${category}:${achievementKey}`,
+    prestigeRank: entry.prestigeRank,
+    sortRank,
+    seasons: new Map<string, { label: string; gameYear: number }>(),
+  };
+
+  current.count += 1;
+  current.prestigeRank = Math.min(current.prestigeRank, entry.prestigeRank);
+  current.seasons.set(entry.seasonId, {
+    label: getCareerSeasonLabel(entry.seasonName, entry.gameYear),
+    gameYear: entry.gameYear,
+  });
+  categoryAchievements.set(achievementKey, current);
+  achievementsByCategory.set(category, categoryAchievements);
+}
+
+function getAchievementKey(achievement: CareerPalmaresAchievement): string {
+  if (achievement.kind === "race_result") {
+    return `race:${achievement.raceKey}:${achievement.rank}`;
+  }
+  if (achievement.kind === "distinctive_jersey") {
+    return `jersey:${achievement.raceKey}:${achievement.classificationType}`;
+  }
+  return `stage:${achievement.raceKey}`;
 }
 
 type AggregatedSupplement<T extends CareerPalmaresSupplementEntry> =
@@ -282,7 +398,14 @@ export function getCareerSeasonLabel(
 }
 
 function resolveCareerPalmaresCategory(
-  entry: CareerPalmaresEntry,
+  entry: Pick<
+    CareerPalmaresEntry,
+    | "isJunior"
+    | "isGrandTour"
+    | "isMonument"
+    | "competitionType"
+    | "categoryCode"
+  >,
 ): CareerPalmaresCategory | null {
   if (entry.isJunior) return "junior";
   if (entry.isGrandTour || entry.isMonument) {

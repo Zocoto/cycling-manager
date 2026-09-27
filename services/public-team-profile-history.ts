@@ -3,6 +3,7 @@ import "server-only";
 import { SPONSORS } from "@/data/sponsors";
 import {
   buildCareerPalmares,
+  isFinalCareerJerseyEdition,
   type CareerPalmares,
   type CareerDistinctiveJerseyEntry,
   type CareerPalmaresEntry,
@@ -86,6 +87,7 @@ type RaceEditionRow = {
   season_id: string;
   race_category_id: string;
   display_name: string;
+  status: string;
 };
 
 type RaceRow = {
@@ -269,7 +271,9 @@ export async function getPublicTeamProfileHistory(
       fetchPage: async (chunk, from, to) => {
         const result = await admin
           .from("race_editions")
-          .select("id, race_id, season_id, race_category_id, display_name")
+          .select(
+            "id, race_id, season_id, race_category_id, display_name, status"
+          )
           .in("id", chunk)
           .order("id", { ascending: true })
           .range(from, to)
@@ -530,6 +534,17 @@ export async function getPublicTeamProfileHistory(
       return [toPalmaresSupplementEntry(candidate, season)];
     },
   );
+  const raceSlugById = new Map(
+    racesResult.data.map((race) => [race.id, race.slug])
+  );
+  const completedRaceKeys = new Set(
+    editions.flatMap((edition) => {
+      const raceSlug = raceSlugById.get(edition.race_id);
+      return isFinalCareerJerseyEdition(edition.status) && raceSlug
+        ? [`${edition.season_id}:${raceSlug}`]
+        : [];
+    })
+  );
   const distinctiveJerseys =
     candidates.flatMap<CareerDistinctiveJerseyEntry>((candidate) => {
       const season = seasonById.get(candidate.seasonId);
@@ -538,6 +553,7 @@ export async function getPublicTeamProfileHistory(
         candidate.rank !== 1 ||
         !candidate.classificationType ||
         candidate.classificationType === "team" ||
+        !completedRaceKeys.has(`${candidate.seasonId}:${candidate.raceSlug}`) ||
         !season
       ) {
         return [];
@@ -570,6 +586,11 @@ function toPalmaresSupplementEntry(
     seasonName: season.seasonName,
     gameYear: season.gameYear,
     prestigeRank: candidate.prestigeRank,
+    categoryCode: candidate.categoryCode,
+    competitionType: candidate.competitionType,
+    isGrandTour: Boolean(candidate.isGrandTour),
+    isMonument: Boolean(candidate.isMonument),
+    isJunior: false,
   };
 }
 
