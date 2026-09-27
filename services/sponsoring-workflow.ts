@@ -20,6 +20,7 @@ import type {
   SponsorObjectiveStatus,
   SponsorObjectiveTargetDetails,
 } from "@/types/sponsor-objective";
+import type { SponsorObjectiveAchievementLevel } from "@/lib/game/sponsor-objective-status";
 import {
   resolveSponsorSportingPhilosophy,
   type SponsorSportingPhilosophy,
@@ -53,6 +54,10 @@ export type SponsorContractObjective = {
   satisfactionPoints: number;
   targetDetails: SponsorObjectiveTargetDetails;
   currentValue: number | null;
+  targetValue: number | null;
+  progressStatus: "not_started" | "in_progress" | "achieved" | "failed" | null;
+  achievementLevel: SponsorObjectiveAchievementLevel | null;
+  partialSatisfactionPoints: number;
 };
 
 export type SponsorSatisfactionEvent = {
@@ -247,6 +252,16 @@ type SponsorRegistryRow = {
 type SponsorObjectiveProgressRow = {
   sponsor_objective_id: string;
   current_value: number | string;
+  status: "not_started" | "in_progress" | "achieved" | "failed";
+  details: Record<string, unknown> | null;
+};
+
+type SponsorObjectiveProgress = {
+  currentValue: number;
+  targetValue: number | null;
+  status: SponsorObjectiveProgressRow["status"];
+  achievementLevel: SponsorObjectiveAchievementLevel | null;
+  partialSatisfactionPoints: number;
 };
 
 type SponsorSatisfactionEventRow = {
@@ -793,7 +808,7 @@ async function hydrateSponsorContract({
 
   let objectives: SponsorContractObjective[] = [];
   let sportingPhilosophy = resolveSponsorSportingPhilosophy(sponsor.id);
-  let currentValuesByObjectiveId = new Map<string, number>();
+  let progressByObjectiveId = new Map<string, SponsorObjectiveProgress>();
 
   if (contractRow.sponsor_offer_id) {
     const objectiveSeasonId = satisfactionSeasonId;
@@ -828,24 +843,24 @@ async function hydrateSponsorContract({
         );
       }
 
-      const trackedObjectiveIds = (
-        objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
-      )
-        .filter(
-          (objective) =>
-            objective.targetDetails.kind === "nationality_quota" ||
-            objective.targetDetails.kind === "rider_recruitment",
-        )
-        .map((objective) => objective.id);
-
-      [objectivesByOffer, currentValuesByObjectiveId] = await Promise.all([
+      [objectivesByOffer, progressByObjectiveId] = await Promise.all([
         ensureAndLoadSponsorObjectives(objectiveContext),
-        loadSponsorObjectiveCurrentValues({
+        loadSponsorObjectiveProgress({
           supabase,
           contractId: contractRow.id,
-          objectiveIds: trackedObjectiveIds,
+          objectiveIds: (
+            objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
+          ).map((objective) => objective.id),
         }),
       ]);
+    } else {
+      progressByObjectiveId = await loadSponsorObjectiveProgress({
+        supabase,
+        contractId: contractRow.id,
+        objectiveIds: (
+          objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
+        ).map((objective) => objective.id),
+      });
     }
 
     const persistedObjectives =
@@ -854,8 +869,10 @@ async function hydrateSponsorContract({
       persistedObjectives.find(
         (objective) => objective.targetDetails.sportingPhilosophy,
       )?.targetDetails.sportingPhilosophy ?? sportingPhilosophy;
-    objectives =
-      persistedObjectives.map((objective) => ({
+    objectives = persistedObjectives.map((objective) => {
+      const progress = progressByObjectiveId.get(objective.id);
+
+      return {
         id: objective.id,
         name: objective.name,
         description: objective.description,
@@ -863,8 +880,13 @@ async function hydrateSponsorContract({
         status: objective.status,
         satisfactionPoints: objective.satisfactionPoints,
         targetDetails: objective.targetDetails,
-        currentValue: currentValuesByObjectiveId.get(objective.id) ?? null,
-      }));
+        currentValue: progress?.currentValue ?? null,
+        targetValue: progress?.targetValue ?? null,
+        progressStatus: progress?.status ?? null,
+        achievementLevel: progress?.achievementLevel ?? null,
+        partialSatisfactionPoints: progress?.partialSatisfactionPoints ?? 0,
+      };
+    });
   }
 
   const budgetPerSeason = Number(
@@ -962,7 +984,7 @@ async function hydrateSponsorContract({
   };
 }
 
-async function loadSponsorObjectiveCurrentValues({
+async function loadSponsorObjectiveProgress({
   supabase,
   contractId,
   objectiveIds,
@@ -970,14 +992,14 @@ async function loadSponsorObjectiveCurrentValues({
   supabase: SupabaseAdminClient;
   contractId: string;
   objectiveIds: string[];
-}): Promise<Map<string, number>> {
+}): Promise<Map<string, SponsorObjectiveProgress>> {
   if (objectiveIds.length === 0) {
     return new Map();
   }
 
   const { data, error } = await supabase
     .from("objective_progress")
-    .select("sponsor_objective_id, current_value")
+    .select("sponsor_objective_id, current_value, status, details")
     .eq("team_sponsor_contract_id", contractId)
     .in("sponsor_objective_id", objectiveIds)
     .returns<SponsorObjectiveProgressRow[]>();
@@ -992,11 +1014,48 @@ async function loadSponsorObjectiveCurrentValues({
     (data ?? []).flatMap((progress) => {
       const currentValue = Number(progress.current_value);
 
-      return Number.isFinite(currentValue)
-        ? [[progress.sponsor_objective_id, currentValue] as const]
-        : [];
+      if (!Number.isFinite(currentValue)) {
+        return [];
+      }
+
+      const targetValue = readFiniteNumber(progress.details?.targetValue);
+      const partialSatisfactionPoints = Math.max(
+        0,
+        readFiniteNumber(progress.details?.partialSatisfactionPoints) ?? 0,
+      );
+      const achievementLevel = readAchievementLevel(
+        progress.details?.achievementLevel,
+      );
+
+      return [[
+        progress.sponsor_objective_id,
+        {
+          currentValue,
+          targetValue,
+          status: progress.status,
+          achievementLevel,
+          partialSatisfactionPoints,
+        },
+      ] as const];
     }),
   );
+}
+
+function readFiniteNumber(value: unknown): number | null {
+  const numericValue =
+    typeof value === "number" || typeof value === "string"
+      ? Number(value)
+      : Number.NaN;
+
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function readAchievementLevel(
+  value: unknown,
+): SponsorObjectiveAchievementLevel | null {
+  return value === "full" || value === "partial" || value === "missed"
+    ? value
+    : null;
 }
 
 async function resolveActiveSeason(

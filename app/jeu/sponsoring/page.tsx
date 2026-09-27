@@ -12,6 +12,7 @@ import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
+import { getSponsorObjectiveProgressDisplay } from "@/lib/game/sponsor-objective-progress";
 import { SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM } from "@/lib/game/sponsor-performance-satisfaction";
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
@@ -1275,20 +1276,17 @@ function ContractObjectiveItem({
   objective: SponsorContractObjective;
   textColor: string;
 }) {
-  const presentation = getSponsorObjectiveStatusPresentation(objective.status);
-  const nationalityTarget =
-    objective.targetDetails.kind === "nationality_quota"
-      ? objective.targetDetails.minimumPercentage
-      : null;
-  const nationalityProgress =
-    nationalityTarget !== null &&
-    nationalityTarget > 0 &&
-    objective.currentValue !== null
-      ? Math.min(
-          100,
-          Math.max(0, (objective.currentValue / nationalityTarget) * 100),
-        )
-      : null;
+  const presentation = getSponsorObjectiveStatusPresentation(
+    objective.status,
+    objective.achievementLevel,
+  );
+  const progress = getSponsorObjectiveProgressDisplay({
+    targetDetails: objective.targetDetails,
+    currentValue: objective.currentValue,
+    persistedTargetValue: objective.targetValue,
+  });
+  const raceResult = getSponsorRaceResultDisplay(objective);
+  const rankingResult = getSponsorRankingDisplay(objective);
   const recruitmentProgress =
     objective.targetDetails.kind === "rider_recruitment" &&
     objective.currentValue !== null
@@ -1314,28 +1312,34 @@ function ContractObjectiveItem({
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>
-        {nationalityProgress !== null ? (
-          <div
-            className="mt-2"
-            aria-label={`Effectif actuel : ${formatSponsorPercentage(objective.currentValue ?? 0)} % sur ${formatSponsorPercentage(nationalityTarget ?? 0)} % requis`}
-          >
-            <p className="text-[11px] font-bold text-[#526A62]">
-              Effectif actuel :{" "}
-              {formatSponsorPercentage(objective.currentValue ?? 0)} %
-              <span className="text-[#84938E]">
-                {" "}/ {formatSponsorPercentage(nationalityTarget ?? 0)} % requis
+        {raceResult ? (
+          <div className="mt-2 rounded-lg border border-[#315B3E]/10 bg-[#F7FAF8] px-3 py-2">
+            <p className="text-[11px] font-extrabold text-[#294D43]">
+              Résultat obtenu : {formatSponsorRank(raceResult.rank)}
+              <span className="font-semibold text-[#72847E]">
+                {" "}· objectif : {formatSponsorRaceTarget(raceResult.targetRank)}
               </span>
             </p>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#E4ECE8]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${nationalityProgress}%`,
-                  backgroundColor: textColor,
-                }}
-              />
-            </div>
+            {objective.achievementLevel === "partial" &&
+            objective.partialSatisfactionPoints > 0 ? (
+              <p className="mt-1 text-[10px] font-extrabold text-[#B66A14]">
+                Petite satisfaction : +{objective.partialSatisfactionPoints} point
+                {objective.partialSatisfactionPoints > 1 ? "s" : ""} sur les{" "}
+                {objective.satisfactionPoints} prévus.
+              </p>
+            ) : null}
           </div>
+        ) : null}
+        {rankingResult ? (
+          <p className="mt-2 text-[11px] font-bold text-[#526A62]">
+            Classement actuel : {formatSponsorRank(rankingResult.rank)}
+            <span className="text-[#84938E]">
+              {" "}· objectif : top {rankingResult.targetRank}
+            </span>
+          </p>
+        ) : null}
+        {progress ? (
+          <SponsorObjectiveProgressGauge progress={progress} color={textColor} />
         ) : null}
         {recruitmentProgress !== null ? (
           <p className="mt-2 text-[11px] font-bold text-[#526A62]">
@@ -1348,6 +1352,8 @@ function ContractObjectiveItem({
           className={`mt-1 text-xs font-extrabold ${
             presentation.status === "achieved"
               ? "text-[#17865F]"
+              : presentation.status === "partial"
+                ? "text-[#B66A14]"
               : presentation.status === "failed"
                 ? "text-[#C4473B]"
                 : presentation.status === "neutralized"
@@ -1366,14 +1372,120 @@ function formatSponsorPercentage(value: number): string {
   return sponsorPercentageFormatter.format(value);
 }
 
+function SponsorObjectiveProgressGauge({
+  progress,
+  color,
+}: {
+  progress: NonNullable<
+    ReturnType<typeof getSponsorObjectiveProgressDisplay>
+  >;
+  color: string;
+}) {
+  const currentLabel = formatSponsorProgressValue(
+    progress.currentValue,
+    progress.unit,
+  );
+  const targetLabel = formatSponsorProgressValue(
+    progress.targetValue,
+    progress.unit,
+  );
+
+  return (
+    <div
+      className="mt-2"
+      aria-label={`${progress.label} : ${currentLabel} sur ${targetLabel}`}
+    >
+      <div className="flex items-baseline justify-between gap-3 text-[11px] font-bold text-[#526A62]">
+        <p>{progress.label}</p>
+        <p className="shrink-0">
+          {currentLabel}
+          <span className="text-[#84938E]"> / {targetLabel}</span>
+        </p>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#E4ECE8]">
+        <div
+          className="h-full rounded-full transition-[width] duration-500"
+          style={{
+            width: `${progress.percentage}%`,
+            backgroundColor: color,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function getSponsorRaceResultDisplay(
+  objective: SponsorContractObjective,
+): { rank: number; targetRank: number } | null {
+  if (
+    objective.targetDetails.kind !== "race_result" ||
+    objective.currentValue === null ||
+    objective.currentValue <= 0 ||
+    (objective.status !== "completed" && objective.status !== "failed")
+  ) {
+    return null;
+  }
+
+  return {
+    rank: Math.round(objective.currentValue),
+    targetRank: Math.max(
+      1,
+      Math.round(
+        objective.targetValue ?? objective.targetDetails.targetRank ?? 1,
+      ),
+    ),
+  };
+}
+
+function getSponsorRankingDisplay(
+  objective: SponsorContractObjective,
+): { rank: number; targetRank: number } | null {
+  if (
+    (objective.targetDetails.kind !== "uci_ranking" &&
+      objective.targetDetails.kind !== "nation_uci_ranking") ||
+    objective.currentValue === null ||
+    objective.currentValue <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    rank: Math.round(objective.currentValue),
+    targetRank: Math.max(
+      1,
+      Math.round(objective.targetValue ?? objective.targetDetails.targetRank),
+    ),
+  };
+}
+
+function formatSponsorProgressValue(
+  value: number,
+  unit: "count" | "percentage",
+): string {
+  const formattedValue = formatSponsorPercentage(value);
+
+  return unit === "percentage" ? `${formattedValue} %` : formattedValue;
+}
+
+function formatSponsorRank(rank: number): string {
+  return rank === 1 ? "1er" : `${rank}e`;
+}
+
+function formatSponsorRaceTarget(targetRank: number): string {
+  return targetRank === 1 ? "victoire" : `top ${targetRank}`;
+}
+
 function SponsorObjectiveStatusIcon({
   status,
 }: {
-  status: "achieved" | "failed" | "neutralized" | "in_progress";
+  status: "achieved" | "partial" | "failed" | "neutralized" | "in_progress";
 }) {
   const tone =
     status === "achieved"
       ? "bg-[#DDF5E9] text-[#17865F] ring-[#17865F]/15"
+      : status === "partial"
+        ? "bg-[#FFF0DB] text-[#B66A14] ring-[#B66A14]/15"
       : status === "failed"
         ? "bg-[#FDE7E4] text-[#C4473B] ring-[#C4473B]/15"
         : status === "neutralized"
@@ -1391,6 +1503,16 @@ function SponsorObjectiveStatusIcon({
             d="m5 12.5 4.2 4L19 7"
             stroke="currentColor"
             strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : status === "partial" ? (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="M8 4h8v5a4 4 0 0 1-8 0V4Zm4 9v4m-3 3h6M8 6H5v1a4 4 0 0 0 4 4m7-5h3v1a4 4 0 0 1-4 4"
+            stroke="currentColor"
+            strokeWidth="1.9"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
