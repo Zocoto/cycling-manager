@@ -13,6 +13,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import { PreRacePressConferencePanel } from "@/components/game/pre-race-press-conference-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
+import { RaceRecordsSummary } from "@/components/game/race-records-summary";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
@@ -63,9 +64,11 @@ import {
   getCurrentRaceUserContext,
   getCurrentTeamRaceRosterOptions,
   getRaceEngagedRiders,
+  getRaceHistoricalRecords,
   getRacePastWinners,
   type CurrentRaceUserContext,
   type RaceEngagedRider,
+  type RaceHistoricalRecord,
   type RacePastWinner,
   type RaceRosterOption,
 } from "@/services/race-calendar";
@@ -185,11 +188,13 @@ export async function RaceProfileContent({
   };
   let contextError: string | null = null;
   let pastWinners: RacePastWinner[] = [];
+  let historicalRecords: RaceHistoricalRecord[] = [];
   let rosterOptions: RaceRosterOption[] = [];
   let engagedRiders: RaceEngagedRider[] = [];
   let pressConferences: PreRacePressConference[] = [];
   let teamRivalries: TeamRivalry[] = [];
   let winnersError = false;
+  let recordsError = false;
   let rosterError: string | null = null;
   let engagedRidersError = false;
   let pressConferencesError = false;
@@ -197,6 +202,7 @@ export async function RaceProfileContent({
   const [
     contextResult,
     winnersResult,
+    recordsResult,
     rosterResult,
     engagedRidersResult,
     pressResult,
@@ -220,6 +226,15 @@ export async function RaceProfileContent({
         }))
         .catch((error: unknown) => ({
           winners: [] as RacePastWinner[],
+          error,
+        })),
+      getRaceHistoricalRecords(supabase, edition.raceId)
+        .then((records) => ({
+          records,
+          error: null,
+        }))
+        .catch((error: unknown) => ({
+          records: [] as RaceHistoricalRecord[],
           error,
         })),
       isInternationalChampionship
@@ -290,6 +305,15 @@ export async function RaceProfileContent({
       winnersResult.error,
     );
     winnersError = true;
+  }
+
+  historicalRecords = recordsResult.records;
+  if (recordsResult.error) {
+    console.error(
+      "Impossible de charger les records historiques de la course :",
+      recordsResult.error,
+    );
+    recordsError = true;
   }
 
   rosterOptions = rosterResult.riders;
@@ -575,10 +599,18 @@ export async function RaceProfileContent({
                     Palmarès
                   </p>
                   <h2 className="mt-2 text-xl font-black text-[#0B302B]">
-                    Podiums des éditions passées
+                    Records de l’épreuve
                   </h2>
+                  <RaceRecordsSummary
+                    records={historicalRecords}
+                    isStageRace={edition.raceFormat === "stage_race"}
+                    hasError={recordsError}
+                  />
+                  <h3 className="mt-6 text-sm font-black uppercase tracking-[0.12em] text-[#315B3E]">
+                    Podiums par saison
+                  </h3>
                   {pastWinners.length > 0 ? (
-                    <div className="mt-4 max-h-80 overflow-y-auto rounded-xl border border-[#315B3E]/15 bg-white">
+                    <div className="mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#315B3E]/15 bg-white">
                       {groupRacePastWinners(pastWinners).map((podium) => (
                         <section
                           key={podium.gameYear}

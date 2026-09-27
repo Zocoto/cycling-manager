@@ -547,6 +547,19 @@ export type RacePastWinner = {
   teamName: string;
 };
 
+export type RaceHistoricalRecordType = "overall" | "stage";
+
+export type RaceHistoricalRecord = {
+  type: RaceHistoricalRecordType;
+  rank: number;
+  riderId: string;
+  riderName: string;
+  victoryCount: number;
+  gameYears: number[];
+  latestGameYear: number;
+  latestTeamName: string;
+};
+
 type RacePastWinnerRow = {
   game_year: number;
   season_name: string;
@@ -555,6 +568,18 @@ type RacePastWinnerRow = {
   rider_first_name: string;
   rider_last_name: string;
   team_name: string;
+};
+
+type RaceHistoricalRecordRow = {
+  record_type: string;
+  leaderboard_rank: number;
+  rider_id: string;
+  rider_first_name: string;
+  rider_last_name: string;
+  victory_count: number;
+  game_years: number[] | null;
+  latest_game_year: number;
+  latest_team_name: string;
 };
 
 export type RaceRosterOption = {
@@ -2015,6 +2040,38 @@ export async function getRacePastWinners(
     riderName: `${winner.rider_first_name} ${winner.rider_last_name}`,
     teamName: winner.team_name,
   }));
+}
+
+export async function getRaceHistoricalRecords(
+  supabase: SupabaseServerClient,
+  raceId: string,
+): Promise<RaceHistoricalRecord[]> {
+  const { data, error } = await supabase.rpc("get_race_historical_records", {
+    p_race_id: raceId,
+  });
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger les records de la course : ${error.message}`,
+    );
+  }
+
+  return ((data as RaceHistoricalRecordRow[] | null) ?? [])
+    .filter(
+      (record): record is RaceHistoricalRecordRow & {
+        record_type: RaceHistoricalRecordType;
+      } => record.record_type === "overall" || record.record_type === "stage",
+    )
+    .map((record) => ({
+      type: record.record_type,
+      rank: record.leaderboard_rank,
+      riderId: record.rider_id,
+      riderName: `${record.rider_first_name} ${record.rider_last_name}`,
+      victoryCount: record.victory_count,
+      gameYears: record.game_years ?? [],
+      latestGameYear: record.latest_game_year,
+      latestTeamName: record.latest_team_name,
+    }));
 }
 
 export async function getCurrentTeamRaceRosterOptions(
