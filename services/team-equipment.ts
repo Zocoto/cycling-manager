@@ -151,6 +151,7 @@ export type TeamEquipmentOverview = {
   teamSeasonId: string;
   teamName: string;
   seasonName: string;
+  gameYear: number;
   currentDayNumber: number;
   balance: number;
   currency: string;
@@ -186,6 +187,7 @@ export async function getCurrentTeamEquipmentOverview(
     teamSeasonId: context.teamSeason.id,
     teamName: context.teamSeason.display_name,
     seasonName: context.season.name,
+    gameYear: context.season.game_year,
     currentDayNumber: context.season.current_day_number ?? 1,
     balance: toNumber(context.teamSeason.cash_balance),
     currency: context.teamSeason.currency,

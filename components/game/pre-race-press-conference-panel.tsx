@@ -9,6 +9,11 @@ import {
   type PreRacePressConference,
   type PreRaceRivalryPrompt,
 } from "@/lib/game/pre-race-press";
+import {
+  isReputationFeatureEnabled,
+  PRESS_REPUTATION_COMMITMENTS,
+  REPUTATION_FEATURE_THRESHOLDS,
+} from "@/lib/game/reputation";
 import type { RaceRosterOption } from "@/services/race-calendar";
 
 export function PreRacePressConferencePanel({
@@ -19,6 +24,8 @@ export function PreRacePressConferencePanel({
   canPublish,
   loadError,
   rivalryPrompt = null,
+  gameYear,
+  reputationPoints,
 }: {
   editionId: string;
   raceSlug: string;
@@ -27,6 +34,8 @@ export function PreRacePressConferencePanel({
   canPublish: boolean;
   loadError: boolean;
   rivalryPrompt?: PreRaceRivalryPrompt | null;
+  gameYear: number;
+  reputationPoints: number;
 }) {
   const ownConference = conferences.find((conference) => conference.isOwn) ?? null;
 
@@ -88,6 +97,50 @@ export function PreRacePressConferencePanel({
               ))}
             </select>
           </label>
+
+          {isReputationFeatureEnabled(gameYear) ? (
+            <fieldset className="rounded-xl border border-[#B99A4A]/30 bg-white/70 p-3">
+              <legend className="px-1 text-xs font-black uppercase tracking-[0.14em] text-[#174C3E]">
+                Renforcer l’engagement
+              </legend>
+              <p className="mt-1 text-[10px] font-bold leading-4 text-[#6F6650]">
+                Les points sont réservés jusqu’à l’arrivée : rendus si l’objectif est tenu, perdus sinon. Le bonus sponsor s’ajoute aux +25 liés aux résultats.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {PRESS_REPUTATION_COMMITMENTS.map((option) => {
+                  const locked = option.amount > 0 && (
+                    reputationPoints < REPUTATION_FEATURE_THRESHOLDS.reinforcedPress ||
+                    reputationPoints < option.amount
+                  );
+                  return (
+                    <label key={option.amount} className={`rounded-lg border p-2.5 ${locked ? "cursor-not-allowed border-[#315B3E]/10 bg-[#EEF1EE] opacity-65" : "cursor-pointer border-[#B99A4A]/25 bg-white"}`}>
+                      <span className="flex items-start gap-2">
+                        <input
+                          type="radio"
+                          name="commitmentAmount"
+                          value={option.amount}
+                          defaultChecked={option.amount === 0}
+                          disabled={locked}
+                          className="mt-0.5 accent-[#176951]"
+                        />
+                        <span>
+                          <span className="block text-xs font-black text-[#183F37]">{option.label}</span>
+                          <span className="mt-0.5 block text-[10px] font-semibold leading-4 text-[#6F6650]">
+                            {option.description}{option.sponsorBonus > 0 ? ` Bonus sponsor : +${option.sponsorBonus}.` : ""}
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {reputationPoints < REPUTATION_FEATURE_THRESHOLDS.reinforcedPress ? (
+                <p className="mt-2 text-[10px] font-bold text-[#936A21]">
+                  Disponible à {REPUTATION_FEATURE_THRESHOLDS.reinforcedPress} points de réputation.
+                </p>
+              ) : null}
+            </fieldset>
+          ) : null}
 
           <fieldset>
             <legend className="text-xs font-black uppercase tracking-[0.14em] text-[#174C3E]">
@@ -193,6 +246,11 @@ function PublishedConference({
       <p className="mt-3 text-[10px] font-bold text-[#6F6650]">
         Leader : <Link href={`/jeu/coureurs/${conference.leaderRiderId}`} className="text-[#176951] underline-offset-2 hover:underline">{conference.leaderName}</Link> · {ambition.target}
       </p>
+      {conference.commitmentAmount > 0 ? (
+        <p className="mt-2 text-[10px] font-black text-[#936A21]">
+          Engagement renforcé : {conference.commitmentAmount} points · bonus sponsor +{conference.sponsorBonus} si réussi
+        </p>
+      ) : null}
       {conference.status === "settled" ? (
         <p className={`mt-2 text-xs font-black ${conference.targetMet ? "text-[#176951]" : "text-[#9C234A]"}`}>
           {conference.targetMet ? "Objectif tenu" : "Objectif manqué"}

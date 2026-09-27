@@ -13,6 +13,10 @@ import {
   isPreRaceAmbition,
   isPreRaceIntent,
 } from "@/lib/game/pre-race-press";
+import {
+  getPressReputationCommitment,
+  getWildcardReputationCommitment,
+} from "@/lib/game/reputation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function submitPreRacePressConferenceAction(formData: FormData) {
@@ -22,6 +26,7 @@ export async function submitPreRacePressConferenceAction(formData: FormData) {
   const ambition = readFormValue(formData, "ambition");
   const raceIntent = readFormValue(formData, "raceIntent");
   const publicStatement = readFormValue(formData, "publicStatement");
+  const commitmentAmount = Number(readFormValue(formData, "commitmentAmount") || 0);
 
   if (
     !isUuid(editionId) ||
@@ -29,6 +34,7 @@ export async function submitPreRacePressConferenceAction(formData: FormData) {
     !isSlug(slug) ||
     !isPreRaceAmbition(ambition) ||
     !isPreRaceIntent(raceIntent) ||
+    !getPressReputationCommitment(commitmentAmount) ||
     publicStatement.length < 10 ||
     publicStatement.length > 500
   ) {
@@ -53,6 +59,7 @@ export async function submitPreRacePressConferenceAction(formData: FormData) {
       p_ambition: ambition,
       p_race_intent: raceIntent,
       p_public_statement: publicStatement,
+      p_commitment_amount: commitmentAmount,
     },
   );
   if (error) {
@@ -72,6 +79,9 @@ export async function registerRaceRosterAction(
     "editionId"
   );
   const slug = readFormValue(formData, "slug");
+  const wildcardCommitmentAmount = Number(
+    readFormValue(formData, "wildcardCommitmentAmount") || 0,
+  );
   const riderIds = formData
     .getAll("riderIds")
     .filter(
@@ -84,7 +94,11 @@ export async function registerRaceRosterAction(
     role: submittedRoles.get(riderId) ?? "auto",
   }));
 
-  if (!isUuid(editionId) || !isSlug(slug)) {
+  if (
+    !isUuid(editionId) ||
+    !isSlug(slug) ||
+    !getWildcardReputationCommitment(wildcardCommitmentAmount)
+  ) {
     redirectWithError(
       "/jeu/calendrier",
       "La course sélectionnée est invalide."
@@ -107,6 +121,7 @@ export async function registerRaceRosterAction(
     {
       p_race_edition_id: editionId,
       p_roster: roster,
+      p_commitment_amount: wildcardCommitmentAmount,
     }
   );
 

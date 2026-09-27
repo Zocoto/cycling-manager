@@ -9,6 +9,7 @@ import {
   isSponsoringUnlocked,
 } from "@/lib/gameplay-rules";
 import { SPONSORS } from "@/data/sponsors";
+import { getSponsorReputationInvestment } from "@/lib/game/reputation";
 import {
   getSponsorNegotiationBudgetCeiling,
   isSponsorObjectiveDifficulty,
@@ -378,8 +379,11 @@ export async function signSponsorOfferAction(
     formData,
     "offerId"
   );
+  const reputationInvestmentCost = Number(
+    readRequiredValue(formData, "reputationInvestmentCost") || 0,
+  );
 
-  if (!isUuid(offerId)) {
+  if (!isUuid(offerId) || !getSponsorReputationInvestment(reputationInvestmentCost)) {
     redirectWithError(
       "L’offre sélectionnée est invalide."
     );
@@ -476,6 +480,7 @@ export async function signSponsorOfferAction(
     "sign_sponsor_offer",
     {
       p_offer_id: offerId,
+      p_reputation_cost: reputationInvestmentCost,
     }
   );
 

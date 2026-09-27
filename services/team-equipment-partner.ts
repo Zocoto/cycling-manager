@@ -23,6 +23,9 @@ type ContractRow = {
   status: "active" | "completed";
   signed_at: string;
   completed_at: string | null;
+  reputation_extra_cost: number;
+  reputation_extra_item_id: string | null;
+  reputation_extra_purchased_at: string | null;
 };
 
 type SeasonRow = {
@@ -39,6 +42,7 @@ type ProductRow = {
   supplier_key: string;
   equipment_item_id: string;
   display_order: number;
+  offer_type: "core" | "rare";
 };
 
 export type EquipmentPartnerProduct = {
@@ -49,6 +53,7 @@ export type EquipmentPartnerProduct = {
   baseEffectSummary: string;
   effects: EquipmentEffects;
   isAvailable: boolean;
+  offerType: ProductRow["offer_type"];
 };
 
 export type EquipmentPartnerSupplierOption = {
@@ -75,11 +80,15 @@ export type EquipmentPartnerContract = {
   status: ContractRow["status"];
   signedAt: string;
   completedAt: string | null;
+  reputationExtraCost: number;
+  reputationExtraItemId: string | null;
+  reputationExtraPurchasedAt: string | null;
 };
 
 export type TeamEquipmentPartnerOverview = {
   teamName: string;
   seasonName: string;
+  gameYear: number;
   reputationPoints: number;
   reputationThreshold: number;
   unlocked: boolean;
@@ -113,7 +122,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
     admin
       .from("equipment_partner_contracts")
       .select(
-        "id, supplier_key, start_season_id, end_season_id, status, signed_at, completed_at",
+        "id, supplier_key, start_season_id, end_season_id, status, signed_at, completed_at, reputation_extra_cost, reputation_extra_item_id, reputation_extra_purchased_at",
       )
       .eq("team_id", equipment.teamId)
       .order("signed_at", { ascending: false })
@@ -131,7 +140,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
       .returns<ContractSupplierRow[]>(),
     admin
       .from("equipment_partner_products")
-      .select("supplier_key, equipment_item_id, display_order")
+      .select("supplier_key, equipment_item_id, display_order, offer_type")
       .order("display_order", { ascending: true })
       .returns<ProductRow[]>(),
   ]);
@@ -190,6 +199,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
   return {
     teamName: equipment.teamName,
     seasonName: equipment.seasonName,
+    gameYear: equipment.gameYear,
     reputationPoints,
     reputationThreshold: EQUIPMENT_PARTNER_REPUTATION_THRESHOLD,
     unlocked,
@@ -219,6 +229,7 @@ function groupProductsBySupplier(
       baseEffectSummary: item.effectSummary,
       effects: item.effects,
       isAvailable: item.isUnlimited,
+      offerType: row.offer_type,
     });
     grouped.set(row.supplier_key, products);
   }
@@ -291,6 +302,9 @@ function mapContract(
     status: contract.status,
     signedAt: contract.signed_at,
     completedAt: contract.completed_at,
+    reputationExtraCost: Number(contract.reputation_extra_cost ?? 0),
+    reputationExtraItemId: contract.reputation_extra_item_id,
+    reputationExtraPurchasedAt: contract.reputation_extra_purchased_at,
   };
 }
 

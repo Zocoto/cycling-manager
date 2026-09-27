@@ -8,12 +8,16 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorBudgetHistoryChart } from "@/components/game/sponsor-budget-history-chart";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
+import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
 import { getSponsorObjectiveProgressDisplay } from "@/lib/game/sponsor-objective-progress";
-import { SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM } from "@/lib/game/sponsor-performance-satisfaction";
+import {
+  SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM,
+  SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM,
+} from "@/lib/game/sponsor-performance-satisfaction";
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -84,6 +88,22 @@ export default async function SponsoringPage({
 
     sponsoringError = getErrorMessage(error);
   }
+
+  const [reputationResult, activeSeasonResult] = await Promise.all([
+    supabase
+      .from("sporting_directors")
+      .select("reputation_points")
+      .eq("auth_user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle<{ reputation_points: number | string }>(),
+    supabase
+      .from("seasons")
+      .select("game_year")
+      .eq("status", "active")
+      .maybeSingle<{ game_year: number }>(),
+  ]);
+  const reputationPoints = Number(reputationResult.data?.reputation_points ?? 0);
+  const currentGameYear = activeSeasonResult.data?.game_year ?? 0;
 
   const availableOfferCount =
     sponsoringState?.kind === "offers"
@@ -171,7 +191,11 @@ export default async function SponsoringPage({
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
             sponsoringState.offers.length > 0 ? (
-              <OffersSection offers={sponsoringState.offers} />
+              <OffersSection
+                offers={sponsoringState.offers}
+                gameYear={currentGameYear}
+                reputationPoints={reputationPoints}
+              />
             ) : null}
 
             {!sponsoringError &&
@@ -181,14 +205,14 @@ export default async function SponsoringPage({
 
             {!sponsoringError &&
             sponsoringState?.kind === "amateur-qualified" ? (
-              <FutureSponsoringSection state={sponsoringState.future} />
+              <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
             ) : null}
 
             {!sponsoringError && sponsoringState?.kind === "active" ? (
               <>
                 <ActiveSponsorSection contract={sponsoringState.contract} />
 
-                <FutureSponsoringSection state={sponsoringState.future} />
+                <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
               </>
             ) : null}
 
@@ -196,7 +220,7 @@ export default async function SponsoringPage({
               <>
                 <TerminatedSponsorSection contract={sponsoringState.contract} />
 
-                <FutureSponsoringSection state={sponsoringState.future} />
+                <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
               </>
             ) : null}
 
@@ -383,7 +407,15 @@ function SponsoringStatusNotice({ state }: { state: SponsoringState }) {
   );
 }
 
-function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
+function OffersSection({
+  offers,
+  gameYear,
+  reputationPoints,
+}: {
+  offers: PersistedSponsorOffer[];
+  gameYear: number;
+  reputationPoints: number;
+}) {
   return (
     <>
       <section
@@ -391,7 +423,12 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
         className="mt-8 grid items-stretch gap-6 xl:grid-cols-3"
       >
         {offers.map((offer) => (
-          <SponsorOfferCard key={offer.id} offer={offer} />
+          <SponsorOfferCard
+            key={offer.id}
+            offer={offer}
+            gameYear={gameYear}
+            reputationPoints={reputationPoints}
+          />
         ))}
       </section>
 
@@ -407,7 +444,15 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
   );
 }
 
-function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
+function SponsorOfferCard({
+  offer,
+  gameYear,
+  reputationPoints,
+}: {
+  offer: PersistedSponsorOffer;
+  gameYear: number;
+  reputationPoints: number;
+}) {
   const sponsor = offer.sponsor;
   const philosophy =
     SPONSOR_SPORTING_PHILOSOPHY_CONFIG[offer.sportingPhilosophy];
@@ -625,6 +670,11 @@ function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
         <div className="mt-auto pt-7">
           <form action={signSponsorOfferAction}>
             <input type="hidden" name="offerId" value={offer.id} />
+
+            <SponsorReputationInvestmentOptions
+              gameYear={gameYear}
+              reputationPoints={reputationPoints}
+            />
 
             <ConfirmSponsorButton
               sponsorName={sponsor.name}
@@ -859,6 +909,12 @@ function ActiveSponsorSection({
                 backgroundColor={sponsor.colors.background}
               />
             </div>
+
+            {contract.reputationInvestmentCost > 0 ? (
+              <p className="mt-4 rounded-xl border border-[#278B70]/20 bg-white/70 px-4 py-3 text-xs font-bold leading-5 text-[#48665F]">
+                Partenariat renforcé : {contract.reputationInvestmentCost} points de réputation dépensés à la signature pour +{contract.reputationBudgetBonusPercent} % de budget annuel.
+              </p>
+            ) : null}
 
             <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
               {contract.signedAt ? (
@@ -1156,7 +1212,7 @@ function SponsorPerformanceSatisfactionSection({
             className="text-xs font-extrabold uppercase tracking-[0.16em]"
             style={{ color: sponsor.colors.primary }}
           >
-            Bonus sportifs · Saison 3
+            Bonus sportifs et engagements publics
           </p>
           <h3 className="mt-1 text-lg font-black" style={{ color: sponsor.colors.text }}>
             Les résultats qui ont convaincu {sponsor.name}
@@ -1171,6 +1227,9 @@ function SponsorPerformanceSatisfactionSection({
         >
           +{contract.performanceSatisfactionBonus}/
           {SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM}
+          {contract.commitmentSatisfactionBonus > 0
+            ? ` + ${contract.commitmentSatisfactionBonus}/${SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM}`
+            : ""}
         </p>
       </div>
 
@@ -1226,7 +1285,9 @@ function SponsorPerformanceSatisfactionSection({
 
       <p className="mt-4 text-[11px] font-semibold leading-5 text-[#72847E]">
         Les bonus sportifs sont plafonnés à {SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM}
-        points par contrat et ne peuvent jamais porter la satisfaction au-delà de 100.
+        points par contrat. À partir de la saison 4, les engagements publics tenus
+        peuvent ajouter jusqu’à {SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM} points en
+        plus, sans jamais porter la satisfaction au-delà de 100.
       </p>
     </div>
   );

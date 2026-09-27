@@ -1,3 +1,9 @@
+import {
+  getAvailableReputation,
+  getNextReputationTier,
+  getReputationTier,
+} from "@/lib/game/reputation";
+
 export type ReputationGainRow = {
   source_type: string;
   reputation_points: number | string;
@@ -20,7 +26,14 @@ export type SportingDirectorReputationBreakdown = {
   items: ReputationBreakdownItem[];
   recentGains: ReputationRecentGain[];
   totalGains: number;
+  totalLosses: number;
   currentPoints: number;
+  committedPoints: number;
+  availablePoints: number;
+  peakPoints: number;
+  tierLabel: string;
+  nextTierLabel: string | null;
+  nextTierMinimum: number | null;
 };
 
 const REPUTATION_SOURCE_CATEGORIES: Record<
@@ -72,6 +85,26 @@ const REPUTATION_SOURCE_CATEGORIES: Record<
     label: "Actions en course",
     order: 50,
   },
+  pre_race_press: {
+    key: "public-commitments",
+    label: "Engagements publics",
+    order: 60,
+  },
+  reputation_commitment: {
+    key: "public-commitments",
+    label: "Engagements publics",
+    order: 60,
+  },
+  reputation_spend: {
+    key: "reputation-investments",
+    label: "Investissements de réputation",
+    order: 70,
+  },
+  season_maintenance: {
+    key: "reputation-maintenance",
+    label: "Maintien de la notoriété",
+    order: 80,
+  },
 };
 
 const OTHER_GAINS_CATEGORY = {
@@ -83,20 +116,24 @@ const OTHER_GAINS_CATEGORY = {
 export function buildSportingDirectorReputationBreakdown(
   rows: ReputationGainRow[],
   currentPoints: number,
+  options: {
+    committedPoints?: number;
+    peakPoints?: number;
+  } = {},
 ): SportingDirectorReputationBreakdown {
   const categoryTotals = new Map<
     string,
     { key: string; label: string; order: number; points: number }
   >();
 
-  const positiveRows = rows
+  const normalizedRows = rows
     .map((row) => ({
       ...row,
       points: normalizePoints(row.reputation_points),
     }))
-    .filter((row) => row.points > 0);
+    .filter((row) => row.points !== 0);
 
-  for (const row of positiveRows) {
+  for (const row of normalizedRows) {
     const category =
       REPUTATION_SOURCE_CATEGORIES[row.source_type] ?? OTHER_GAINS_CATEGORY;
     const currentCategory = categoryTotals.get(category.key);
@@ -108,10 +145,26 @@ export function buildSportingDirectorReputationBreakdown(
   }
 
   const totalGains = roundPoints(
-    positiveRows.reduce((total, row) => total + row.points, 0),
+    normalizedRows.reduce(
+      (total, row) => total + (row.points > 0 ? row.points : 0),
+      0,
+    ),
+  );
+  const totalLosses = roundPoints(
+    normalizedRows.reduce(
+      (total, row) => total + (row.points < 0 ? Math.abs(row.points) : 0),
+      0,
+    ),
   );
   const safeCurrentPoints = roundPoints(Math.max(0, currentPoints));
-  const adjustment = roundPoints(safeCurrentPoints - totalGains);
+  const recordedNet = roundPoints(totalGains - totalLosses);
+  const adjustment = roundPoints(safeCurrentPoints - recordedNet);
+  const committedPoints = roundPoints(Math.max(0, options.committedPoints ?? 0));
+  const peakPoints = roundPoints(
+    Math.max(safeCurrentPoints, options.peakPoints ?? safeCurrentPoints),
+  );
+  const tier = getReputationTier(safeCurrentPoints);
+  const nextTier = getNextReputationTier(safeCurrentPoints);
 
   if (adjustment !== 0) {
     categoryTotals.set("adjustments", {
@@ -133,12 +186,19 @@ export function buildSportingDirectorReputationBreakdown(
           left.label.localeCompare(right.label, "fr"),
       )
       .map(({ key, label, points }) => ({ key, label, points })),
-    recentGains: positiveRows.slice(0, 3).map((row) => ({
+    recentGains: normalizedRows.slice(0, 4).map((row) => ({
       description: row.description,
       points: row.points,
     })),
     totalGains,
+    totalLosses,
     currentPoints: safeCurrentPoints,
+    committedPoints,
+    availablePoints: getAvailableReputation(safeCurrentPoints, committedPoints),
+    peakPoints,
+    tierLabel: tier.label,
+    nextTierLabel: nextTier?.label ?? null,
+    nextTierMinimum: nextTier?.minimum ?? null,
   };
 }
 
