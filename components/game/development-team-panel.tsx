@@ -347,7 +347,7 @@ function RaceRegistrationCard({
             </div>
           ) : null}
         </div>
-        <RaceStatus
+        <DevelopmentRaceStatus
           race={race}
           registeredCount={registeredRiders.length}
           currentDayNumber={overview.currentDayNumber}
@@ -617,16 +617,26 @@ function CalendarPreviewRace({ race }: { race: DevelopmentRace }) {
   );
 }
 
-function RaceStatus({
+export function DevelopmentRaceStatus({
   race,
   registeredCount,
   currentDayNumber,
 }: {
-  race: DevelopmentRace;
+  race: Pick<
+    DevelopmentRace,
+    | "status"
+    | "raceFormat"
+    | "startDayNumber"
+    | "endDayNumber"
+    | "competitionType"
+    | "registration"
+    | "canRegister"
+  >;
   registeredCount: number;
   currentDayNumber: number;
 }) {
   if (race.status === "completed") return <span className="rounded-full bg-[#E5F4ED] px-3 py-2 text-[10px] font-black uppercase text-[#176951]">Résultats publiés</span>;
+  if (race.status === "cancelled") return <span className="rounded-full bg-[#EEE9E5] px-3 py-2 text-[10px] font-black uppercase text-[#72675E]">Épreuve annulée</span>;
   if (race.raceFormat === "stage_race" && currentDayNumber >= race.startDayNumber && currentDayNumber < race.endDayNumber) return <span className="rounded-full bg-[#E4ECFF] px-3 py-2 text-[10px] font-black uppercase text-[#234B9A]">Tour en cours</span>;
   if (currentDayNumber >= race.endDayNumber) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#60756E]">Résultats en cours</span>;
   if (isJuniorFederationSelectionRace(race)) return <span className="rounded-full bg-[#E6D9F5] px-3 py-2 text-[10px] font-black uppercase text-[#5A2D82]">Sélection fédérale</span>;
