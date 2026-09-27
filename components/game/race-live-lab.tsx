@@ -40,6 +40,8 @@ import {
   getFinalReplayFrame,
   getFinishPassageDurationMs,
   getFinishPassagePosition,
+  getFinishSameTimeOrderIndex,
+  getFinishVisualCrossingTimeSeconds,
   getFinishLaneOffset,
   getSmallGroupAttackProgress,
   getSmallGroupFinishPosition,
@@ -2184,6 +2186,11 @@ function SprintLaneView({
               finishPassageProgress,
               finishLinePosition: 84,
               winnerHasFinished,
+              sameTimeOrderIndex: getFinishSameTimeOrderIndex({
+                rank: result.rank ?? contenderIndex + 1,
+                gapToWinnerSeconds: result.gapToWinnerSeconds,
+                results: contenderResults,
+              }),
             });
         const riderHasFinished =
           !isLeadout && winnerHasFinished && left > 84;
@@ -2245,6 +2252,14 @@ function SprintLaneView({
           </div>
         );
       })}
+      {winnerHasFinished && !raceComplete ? (
+        <FinishPassageOrder
+          results={contenderResults}
+          riderById={riderById}
+          finishPassageProgress={finishPassageProgress}
+          maximumGapToWinnerSeconds={maximumGapToWinnerSeconds}
+        />
+      ) : null}
       {raceComplete && winner ? (
         <FinishVictoryBanner winner={winner} />
       ) : null}
@@ -2545,6 +2560,11 @@ function FinishBattleView({
           finishPassageProgress,
           finishLinePosition: 86,
           winnerHasFinished,
+          sameTimeOrderIndex: getFinishSameTimeOrderIndex({
+            rank: riderRank,
+            gapToWinnerSeconds: result.gapToWinnerSeconds,
+            results: allFinalists,
+          }),
         });
         const riderHasFinished = winnerHasFinished && left > 86;
         const finishLaneOffsetY = getFinishLaneOffset({
@@ -2630,6 +2650,14 @@ function FinishBattleView({
           </div>
         );
       })}
+      {winnerHasFinished && !raceComplete ? (
+        <FinishPassageOrder
+          results={allFinalists}
+          riderById={riderById}
+          finishPassageProgress={finishPassageProgress}
+          maximumGapToWinnerSeconds={maximumGapToWinnerSeconds}
+        />
+      ) : null}
       {raceComplete && winner ? (
         <FinishVictoryBanner winner={winner} />
       ) : null}
@@ -2655,6 +2683,91 @@ function FinishBattleView({
         active={winnerHasFinished}
       />
     </div>
+    </div>
+  );
+}
+
+function FinishPassageOrder({
+  results,
+  riderById,
+  finishPassageProgress,
+  maximumGapToWinnerSeconds,
+}: {
+  results: StageSimulationResult["results"];
+  riderById: Map<string, RiderSimulationInput>;
+  finishPassageProgress: number;
+  maximumGapToWinnerSeconds: number;
+}) {
+  const passageDurationSeconds =
+    getFinishPassageDurationMs(maximumGapToWinnerSeconds) / 1_000;
+  const elapsedSeconds = finishPassageProgress * passageDurationSeconds;
+  const passedResults = results
+    .filter(
+      (result) =>
+        result.status === "finished" &&
+        result.rank !== null &&
+        getFinishVisualCrossingTimeSeconds({
+          rank: result.rank,
+          gapToWinnerSeconds: result.gapToWinnerSeconds,
+          sameTimeOrderIndex: getFinishSameTimeOrderIndex({
+            rank: result.rank,
+            gapToWinnerSeconds: result.gapToWinnerSeconds,
+            results,
+          }),
+        }) <= elapsedSeconds + Number.EPSILON
+    )
+    .sort(
+      (first, second) =>
+        (first.rank ?? Number.MAX_SAFE_INTEGER) -
+        (second.rank ?? Number.MAX_SAFE_INTEGER)
+    )
+    .slice(0, 5);
+
+  if (passedResults.length === 0) return null;
+
+  return (
+    <div
+      aria-live="polite"
+      data-finish-official-order
+      className="absolute bottom-3 right-3 z-40 w-48 rounded-xl border border-[#F2C94C]/45 bg-[#071A17]/94 px-3 py-2 text-white shadow-2xl backdrop-blur"
+    >
+      <p className="text-[8px] font-black uppercase tracking-[0.16em] text-[#F2C94C]">
+        Passage officiel
+      </p>
+      <ol className="mt-1 space-y-0.5">
+        {passedResults.map((result) => {
+          const rider = riderById.get(result.riderId);
+          if (!rider || result.rank === null) return null;
+          return (
+            <li
+              key={result.riderId}
+              data-finish-official-rank={result.rank}
+              className="flex items-center gap-1.5 text-[9px] font-black"
+            >
+              <span className="w-4 text-right tabular-nums text-[#FFF4C4]">
+                {result.rank}.
+              </span>
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full border border-white/45"
+                style={{
+                  background: `linear-gradient(135deg, ${rider.teamPrimaryColor} 0 55%, ${rider.teamSecondaryColor} 55% 100%)`,
+                }}
+              />
+              <span className="min-w-0 flex-1 truncate">
+                {getFinishRiderName(rider.name)}
+              </span>
+              <span className="text-[8px] text-[#9BE0CA]">
+                {result.rank === 1
+                  ? ""
+                  : result.gapToWinnerSeconds === 0
+                    ? "MT"
+                    : `+${formatGap(result.gapToWinnerSeconds)}`}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
