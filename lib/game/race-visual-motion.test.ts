@@ -87,5 +87,16 @@ describe("race visual motion", () => {
     expect(motion.cycleDistance / motion.durationSeconds).toBeCloseTo(
       100 / 18,
     );
+
+    const responsiveSprintMotion = getRaceRoadMarkingMotion({
+      cycleDistance: 78,
+      viewportDistance: 1_000,
+      sceneryDurationSeconds: 18,
+    });
+    expect(responsiveSprintMotion.durationSeconds).toBeCloseTo(1.404);
+    expect(
+      responsiveSprintMotion.cycleDistance /
+        responsiveSprintMotion.durationSeconds,
+    ).toBeCloseTo(1_000 / 18);
   });
 });

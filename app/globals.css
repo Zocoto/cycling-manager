@@ -168,10 +168,6 @@ a {
   }
 }
 
-@keyframes cm-race-road-marking-strip {
-  to { background-position-x: -78px; }
-}
-
 @keyframes cm-race-road-chalk-svg {
   to {
     transform: translate(
@@ -206,6 +202,28 @@ a {
   to { transform: translate3d(-50%, 0, 0); }
 }
 
+@keyframes cm-race-biotope-foreground-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to {
+    transform: translate3d(
+      -100%,
+      var(--cm-race-biotope-foreground-travel-y, 0%),
+      0
+    );
+  }
+}
+
+@keyframes cm-race-crowd-scroll-slope {
+  from { transform: translate3d(0, 0, 0); }
+  to {
+    transform: translate3d(
+      -100%,
+      var(--cm-race-crowd-travel-y, 0%),
+      0
+    );
+  }
+}
+
 @keyframes cm-race-scenery-scroll-far {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(-50%, 0, 0); }
@@ -237,12 +255,12 @@ a {
 
 @keyframes cm-bike-bob {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-1.5px) rotate(-0.6deg); }
+  50% { transform: translateY(calc(var(--cm-rider-bob-y, 1.5px) * -1)) rotate(-0.6deg); }
 }
 
 @keyframes cm-bike-standing {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(-1.15deg); }
-  50% { transform: translate3d(0, -1.25px, 0) rotate(1.15deg); }
+  50% { transform: translate3d(0, calc(var(--cm-rider-bob-y, 1.25px) * -0.82), 0) rotate(1.15deg); }
 }
 
 @keyframes cm-bike-wheel {
@@ -254,13 +272,37 @@ a {
 }
 
 @keyframes cm-bike-leg-front {
-  0%, 100% { transform: rotate(15deg); }
-  50% { transform: rotate(-17deg); }
+  0%, 100% { transform: rotate(9deg); }
+  50% { transform: rotate(-10deg); }
 }
 
 @keyframes cm-bike-leg-back {
-  0%, 100% { transform: rotate(-16deg); }
-  50% { transform: rotate(14deg); }
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(9deg); }
+}
+
+@keyframes cm-bike-calf-front {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  24% { transform: rotate(1deg) translateY(-0.18px); }
+  50% { transform: rotate(5deg) translateY(-0.42px); }
+  76% { transform: rotate(0deg) translateY(-0.16px); }
+}
+
+@keyframes cm-bike-calf-back {
+  0%, 100% { transform: rotate(5deg) translateY(-0.42px); }
+  24% { transform: rotate(0deg) translateY(-0.16px); }
+  50% { transform: rotate(-3deg) translateY(0); }
+  76% { transform: rotate(1deg) translateY(-0.18px); }
+}
+
+@keyframes cm-bike-arm-front {
+  0%, 100% { transform: rotate(-0.7deg) translateY(0); }
+  50% { transform: rotate(0.9deg) translateY(-0.3px); }
+}
+
+@keyframes cm-bike-arm-rear {
+  0%, 100% { transform: rotate(0.55deg) translateY(-0.15px); }
+  50% { transform: rotate(-0.8deg) translateY(0.2px); }
 }
 
 @keyframes cm-bike-leg-top-front {
@@ -305,6 +347,11 @@ a {
 @keyframes cm-helicopter-rotor {
   0%, 100% { transform: scaleX(1); opacity: 0.62; }
   50% { transform: scaleX(0.14); opacity: 1; }
+}
+
+@keyframes cm-helicopter-tail-rotor {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes cm-bike-top-sway {
@@ -423,14 +470,6 @@ a {
     ) linear infinite;
 }
 
-.cm-race-road-marking-strip {
-  animation: cm-race-road-marking-strip var(
-      --cm-race-road-marking-strip-duration,
-      1.4s
-    ) linear infinite;
-  will-change: background-position;
-}
-
 .cm-race-road-chalk-svg {
   animation-name: cm-race-road-chalk-svg;
   animation-timing-function: linear;
@@ -460,6 +499,22 @@ a {
 .cm-race-scenery-scroll {
   animation: cm-race-scenery-scroll var(--cm-scene-flow-duration, 18s) linear infinite;
   contain: paint;
+  will-change: transform;
+}
+
+.cm-race-biotope-foreground-scroll {
+  animation: cm-race-biotope-foreground-scroll var(--cm-scene-flow-duration, 18s) linear infinite;
+  contain: paint;
+  transform-box: view-box;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.cm-race-crowd-scroll-slope {
+  animation: cm-race-crowd-scroll-slope var(--cm-scene-flow-duration, 18s) linear infinite;
+  contain: paint;
+  transform-box: view-box;
+  transform-origin: 0 0;
   will-change: transform;
 }
 
@@ -502,15 +557,27 @@ a {
 
 .cm-race-cyclist-effort-relay .cm-bike-leg-front,
 .cm-race-cyclist-effort-relay .cm-bike-leg-back,
+.cm-race-cyclist-effort-relay .cm-bike-calf-front,
+.cm-race-cyclist-effort-relay .cm-bike-calf-back,
+.cm-race-cyclist-effort-relay .cm-bike-arm-front,
+.cm-race-cyclist-effort-relay .cm-bike-arm-rear,
 .cm-race-cyclist-effort-chase .cm-bike-leg-front,
-.cm-race-cyclist-effort-chase .cm-bike-leg-back {
+.cm-race-cyclist-effort-chase .cm-bike-leg-back,
+.cm-race-cyclist-effort-chase .cm-bike-calf-front,
+.cm-race-cyclist-effort-chase .cm-bike-calf-back,
+.cm-race-cyclist-effort-chase .cm-bike-arm-front,
+.cm-race-cyclist-effort-chase .cm-bike-arm-rear {
   animation-duration: 0.34s;
 }
 
 .cm-race-cyclist-effort-sheltered .cm-bike-wheel,
 .cm-race-cyclist-effort-sheltered .cm-bike-pedal,
 .cm-race-cyclist-effort-sheltered .cm-bike-leg-front,
-.cm-race-cyclist-effort-sheltered .cm-bike-leg-back {
+.cm-race-cyclist-effort-sheltered .cm-bike-leg-back,
+.cm-race-cyclist-effort-sheltered .cm-bike-calf-front,
+.cm-race-cyclist-effort-sheltered .cm-bike-calf-back,
+.cm-race-cyclist-effort-sheltered .cm-bike-arm-front,
+.cm-race-cyclist-effort-sheltered .cm-bike-arm-rear {
   animation-duration: 0.58s;
 }
 
@@ -581,6 +648,32 @@ a {
   transform-box: view-box;
 }
 
+.cm-bike-calf-front,
+.cm-bike-calf-back,
+.cm-bike-arm-front,
+.cm-bike-arm-rear {
+  animation-duration: 0.48s;
+  animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  animation-iteration-count: infinite;
+  transform-box: view-box;
+}
+
+.cm-bike-calf-front {
+  animation-name: cm-bike-calf-front;
+}
+
+.cm-bike-calf-back {
+  animation-name: cm-bike-calf-back;
+}
+
+.cm-bike-arm-front {
+  animation-name: cm-bike-arm-front;
+}
+
+.cm-bike-arm-rear {
+  animation-name: cm-bike-arm-rear;
+}
+
 .cm-bike-leg-front {
   animation-name: cm-bike-leg-front;
 }
@@ -646,6 +739,12 @@ a {
   transform-origin: center;
 }
 
+.cm-helicopter-tail-rotor {
+  animation: cm-helicopter-tail-rotor 0.18s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .cm-bike-top-sway {
   animation: cm-bike-top-sway 0.42s ease-in-out infinite;
   transform-box: fill-box;
@@ -659,6 +758,11 @@ a {
 }
 .cm-supporter-run {
   animation: cm-supporter-run 0.52s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.cm-supporter-pacer {
   transform-box: fill-box;
   transform-origin: center bottom;
 }
@@ -748,12 +852,13 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .cm-race-road-marking-svg,
-  .cm-race-road-marking-strip,
   .cm-race-road-chalk-svg,
   .cm-race-cobble-flow-strip,
   .cm-race-scenery,
   .cm-race-scenery-detail,
   .cm-race-scenery-scroll,
+  .cm-race-biotope-foreground-scroll,
+  .cm-race-crowd-scroll-slope,
   .cm-race-scenery-scroll-far,
   .cm-race-rider-weave,
   .cm-race-cyclist-airflow,
@@ -765,6 +870,10 @@ a {
   .cm-bike-pedal,
   .cm-bike-leg-front,
   .cm-bike-leg-back,
+  .cm-bike-calf-front,
+  .cm-bike-calf-back,
+  .cm-bike-arm-front,
+  .cm-bike-arm-rear,
   .cm-bike-leg-top-front,
   .cm-bike-leg-top-back,
   .cm-support-car,
@@ -774,9 +883,11 @@ a {
   .cm-camera-stabilizer,
   .cm-race-helicopter,
   .cm-helicopter-rotor,
+  .cm-helicopter-tail-rotor,
   .cm-bike-top-sway,
   .cm-crowd-wave,
   .cm-supporter-run,
+  .cm-supporter-pacer,
   .cm-supporter-smoke,
   .cm-sprint-surge,
   .cm-sprint-finish-cross,

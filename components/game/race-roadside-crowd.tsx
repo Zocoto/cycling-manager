@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 
 const DEFAULT_CROWD_COLORS = ["#F2C94C", "#FFFDF4", "#EF5B65", "#2457C5", "#43C892"];
 const COUNTRY_FLAGS = ["FR", "BE", "IT", "ES", "NL", "CO"] as const;
@@ -21,6 +21,15 @@ export type RaceSupporterTeamPalette = {
   secondaryColor: string;
 };
 
+export type RaceFeaturedRunningSupporter = {
+  x: number;
+  side: "upper" | "lower";
+  phase: number;
+  primaryColor: string;
+  secondaryColor: string;
+  teamId?: string;
+};
+
 export function RaceRoadsideCrowd({
   show,
   isMoving,
@@ -30,6 +39,7 @@ export function RaceRoadsideCrowd({
   terrain,
   palette = DEFAULT_CROWD_COLORS,
   teamPalettes = [],
+  featuredRunner = null,
 }: {
   show: boolean;
   isMoving: boolean;
@@ -39,6 +49,7 @@ export function RaceRoadsideCrowd({
   terrain: "flat" | "climb" | "descent";
   palette?: readonly string[];
   teamPalettes?: readonly RaceSupporterTeamPalette[];
+  featuredRunner?: RaceFeaturedRunningSupporter | null;
 }) {
   const clipId = useId().replace(/:/g, "");
   if (!show) return null;
@@ -52,6 +63,7 @@ export function RaceRoadsideCrowd({
         secondaryColor: colors[(index + 2) % colors.length],
       }));
   const dense = terrain === "climb";
+  const slopeTravelY = roadRightY - roadLeftY;
   const rearPositions = getClusteredSpectatorPositions(dense);
   const roadY = (x: number) => roadLeftY + (roadRightY - roadLeftY) * (x / 1000);
   const upperRoadInset = dense ? Math.min(12, roadDepthY * 0.12) : -2;
@@ -68,7 +80,6 @@ export function RaceRoadsideCrowd({
         data-race-crowd-layer="rear-verge"
         data-race-crowd-safe-lane="upper"
         clipPath={`url(#${clipId}-upper)`}
-        className="cm-crowd-wave"
       >
         {rearPositions.map((x, index) => {
           const variant = getSpectatorVariant(index);
@@ -83,18 +94,16 @@ export function RaceRoadsideCrowd({
               x={x}
               y={
                 dense
-                  ? upperSafeBoundary(x) -
-                    (runsAlongside ? 0.5 : 1.5) -
-                    getCrowdVerticalJitter(index) * 0.55
-                  : roadY(x) - 2.5 - getCrowdVerticalJitter(index)
+                  ? upperSafeBoundary(x) - (runsAlongside ? 0.5 : 0.8)
+                  : roadY(x) - 0.8
               }
               color={supporterPalette.primaryColor}
               accentColor={supporterPalette.secondaryColor}
               teamId={teamPalettes.length > 0 ? supporterPalette.teamId : undefined}
               scale={
                 dense
-                  ? 0.61 + (index % 4) * 0.018
-                  : 0.53 + (index % 5) * 0.018
+                  ? 0.66 + (index % 4) * 0.024
+                  : 0.56 + (index % 5) * 0.02
               }
               opacity={0.92}
               armPose={variant.armPose}
@@ -120,25 +129,32 @@ export function RaceRoadsideCrowd({
       >
         {foregroundX.map((x, index) => {
           const variant = getSpectatorVariant(index + 31);
-          const special = dense && index === 2 ? "runner" : null;
+          const special = null;
+          const scale = dense ? 0.64 : 0.57;
+          const holdsFlag = index === 1 || index === foregroundX.length - 2;
           const supporterPalette =
             supporterPalettes[(index + 1) % supporterPalettes.length];
           return (
             <Spectator
               key={`foreground-${x}`}
               x={x}
-              y={dense ? lowerSafeBoundary(x) + 43 : 318 - (index % 2) * 2}
+              y={
+                Math.min(
+                  318,
+                  lowerSafeBoundary(x) + getLowerVergeBaseline(scale, holdsFlag),
+                )
+              }
               color={supporterPalette.primaryColor}
               accentColor={supporterPalette.secondaryColor}
               teamId={teamPalettes.length > 0 ? supporterPalette.teamId : undefined}
-              scale={dense ? 0.58 : 0.54}
+              scale={scale}
               opacity={0.84}
               armPose={variant.armPose}
               jersey={teamPalettes.length > 0 && variant.jersey !== "striped" ? "plain" : variant.jersey}
               skinTone={variant.skinTone}
               accessory={special === null ? variant.accessory : null}
               special={special}
-              holdsFlag={index === 1 || index === foregroundX.length - 2}
+              holdsFlag={holdsFlag}
               flagCountry={COUNTRY_FLAGS[(index + 2) % COUNTRY_FLAGS.length]}
             />
           );
@@ -150,18 +166,31 @@ export function RaceRoadsideCrowd({
   const upperClipPath = buildUpperSafePath(upperSafeBoundary);
   const lowerClipPath = buildLowerSafePath(lowerSafeBoundary);
 
+  const featuredRunnerX = featuredRunner
+    ? Math.max(90, Math.min(910, featuredRunner.x))
+    : 0;
+  const featuredRunnerY = featuredRunner
+    ? featuredRunner.side === "upper"
+      ? upperSafeBoundary(featuredRunnerX) - 0.5
+      : Math.min(318, lowerSafeBoundary(featuredRunnerX) + getLowerVergeBaseline(0.67))
+    : 0;
+  const featuredRunnerPhase = featuredRunner
+    ? Math.max(0, Math.min(1, featuredRunner.phase))
+    : 0;
+  const featuredRunnerOpacity = getFeaturedRunnerOpacity(featuredRunnerPhase);
+
   return (
+    <>
     <svg
       aria-hidden="true"
-      viewBox="0 0 2000 320"
+      viewBox="0 0 1000 320"
       preserveAspectRatio="none"
       data-race-roadside-crowd={dense ? "climb-dense" : "roadside"}
       data-race-crowd-spacing="clustered-irregular"
       data-race-crowd-track="right-to-left"
+      data-race-crowd-slope-flow="slope-corrected"
       data-race-crowd-protected-corridor={dense ? "climb" : "full-road"}
-      className={`pointer-events-none absolute inset-y-0 left-0 z-[8] h-full w-[200%] max-w-none overflow-hidden ${
-        isMoving ? "cm-race-scenery-scroll" : ""
-      }`}
+      className="pointer-events-none absolute inset-0 z-[8] h-full w-full overflow-hidden"
     >
       <defs>
         <clipPath id={`${clipId}-upper`} clipPathUnits="userSpaceOnUse">
@@ -171,28 +200,58 @@ export function RaceRoadsideCrowd({
           <path d={lowerClipPath} />
         </clipPath>
       </defs>
-      {renderCrowd("a")}
-      <g transform="translate(1000 0)">{renderCrowd("b")}</g>
+      <g
+        data-race-crowd-scroll-track="slope-corrected"
+        className={isMoving ? "cm-race-crowd-scroll-slope" : undefined}
+        style={
+          {
+            "--cm-race-crowd-travel-y": `${(-slopeTravelY / 320) * 100}%`,
+          } as CSSProperties
+        }
+      >
+        {renderCrowd("a")}
+        <g transform={`translate(1000 ${slopeTravelY})`}>{renderCrowd("b")}</g>
+      </g>
     </svg>
+    {featuredRunner ? (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 1000 320"
+        preserveAspectRatio="none"
+        data-race-featured-supporter="sprinter-pacer"
+        data-race-crowd-fixed-to-race="true"
+        data-race-supporter-phase={featuredRunnerPhase.toFixed(3)}
+        className="pointer-events-none absolute inset-0 z-[19] h-full w-full overflow-hidden"
+      >
+        <Spectator
+          x={featuredRunnerX}
+          y={featuredRunnerY}
+          color={featuredRunner.primaryColor}
+          accentColor={featuredRunner.secondaryColor}
+          teamId={featuredRunner.teamId}
+          scale={featuredRunner.side === "upper" ? 0.7 : 0.67}
+          opacity={featuredRunnerOpacity}
+          armPose="one-raised"
+          jersey="plain"
+          skinTone={featuredRunner.side === "upper" ? "#B97856" : "#DDA37F"}
+          accessory={null}
+          special="runner"
+          holdsFlag={false}
+          flagCountry="FR"
+          paceAlongside
+        />
+      </svg>
+    ) : null}
+    </>
   );
 }
 
 function buildUpperSafePath(boundary: (x: number) => number) {
-  return [0, 1000]
-    .map(
-      (offset) =>
-        `M${offset} 0H${offset + 1000}V${boundary(1000)}L${offset} ${boundary(0)}Z`,
-    )
-    .join(" ");
+  return `M0 0H1000V${boundary(1000)}L0 ${boundary(0)}Z`;
 }
 
 function buildLowerSafePath(boundary: (x: number) => number) {
-  return [0, 1000]
-    .map(
-      (offset) =>
-        `M${offset} ${boundary(0)}L${offset + 1000} ${boundary(1000)}V320H${offset}Z`,
-    )
-    .join(" ");
+  return `M0 ${boundary(0)}L1000 ${boundary(1000)}V320H0Z`;
 }
 
 function getClimbSupporter(index: number): SpecialSupporter | null {
@@ -202,8 +261,6 @@ function getClimbSupporter(index: number): SpecialSupporter | null {
     13: "gaul-strongman",
     18: "druid",
     23: "horse-mask",
-    27: "runner",
-    34: "flag-runner",
   } as Record<number, SpecialSupporter>)[index] ?? null;
 }
 
@@ -247,8 +304,20 @@ function getClusteredSpectatorPositions(dense: boolean) {
       ];
 }
 
-function getCrowdVerticalJitter(index: number) {
-  return [0, 2.8, -0.7, 1.4, -1.3, 3.1, 0.6][index % 7];
+function getLowerVergeBaseline(scale: number, hasTallProp = false) {
+  return (hasTallProp ? 58 : 45) * scale + 2;
+}
+
+function getFeaturedRunnerOpacity(phase: number) {
+  const fadeInEnd = 0.12;
+  const fadeOutStart = 0.82;
+  const visibility =
+    phase < fadeInEnd
+      ? phase / fadeInEnd
+      : phase > fadeOutStart
+        ? (1 - phase) / (1 - fadeOutStart)
+        : 1;
+  return 0.98 * Math.max(0, Math.min(1, visibility));
 }
 
 function Spectator({
@@ -267,6 +336,7 @@ function Spectator({
   holdsFlag,
   flagCountry,
   smokeColor = null,
+  paceAlongside = false,
 }: {
   x: number;
   y: number;
@@ -283,6 +353,7 @@ function Spectator({
   holdsFlag: boolean;
   flagCountry: (typeof COUNTRY_FLAGS)[number];
   smokeColor?: string | null;
+  paceAlongside?: boolean;
 }) {
   const jerseyColor =
     special === "devil"
@@ -300,15 +371,18 @@ function Spectator({
 
   return (
     <g
-      transform={`translate(${x} ${y}) scale(${scale})`}
+      transform={`translate(${x} ${y})`}
       opacity={opacity}
       data-race-spectator={armPose}
       data-race-spectator-jersey={jersey}
       data-race-supporter-team={teamId}
       data-race-supporter-special={special ?? "regular"}
       data-race-supporter-motion={running ? "running" : "stationary"}
+      data-race-supporter-pace={paceAlongside ? "sprinter" : undefined}
       data-race-supporter-accessory={accessory ?? "none"}
     >
+      <g transform={`scale(${scale})`}>
+      <g className={paceAlongside ? "cm-supporter-pacer" : undefined}>
       <g className={running ? "cm-supporter-run" : undefined}>
         {holdsFlag ? <SupporterFlag country={flagCountry} /> : null}
         {smokeColor ? <SmokeFlare color={smokeColor} /> : null}
@@ -324,9 +398,15 @@ function Spectator({
           strokeWidth="3.4"
           strokeLinecap="round"
         />
-        <path d={running ? "M-13 0h6M10-2h7" : "M-8 1h5M5 1h6"} stroke="#18221E" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx={running ? -10.8 : -6.6} cy={running ? -0.2 : 0.6} r="1.55" fill="#26362F" data-race-supporter-detail="knees" />
+        <circle cx={running ? 11.8 : 6.6} cy={running ? -2 : 0.6} r="1.55" fill="#26362F" data-race-supporter-detail="knees" />
+        <path d={running ? "M-15 0h8M9-2h9" : "M-9 1h6M4 1h7"} stroke="#F5F7F4" strokeWidth="2.7" strokeLinecap="round" data-race-supporter-detail="running-shoes" />
+        <path d="M-8-13h16L6-6 1-7 0-11-1-7-6-6Z" fill="#25342E" stroke="#D8E1DC" strokeWidth="0.65" data-race-supporter-detail="technical-shorts" />
         <path d="M-7-26h14l2 18H-9Z" fill={jerseyColor} stroke="#31423A" strokeWidth="0.85" strokeLinejoin="round" />
         <path d="M-8-12h16l1 4H-9Z" fill={special === "gaul-strongman" ? "#F2C94C" : "#25342E"} opacity="0.82" />
+        <path d="M-5.5-25h11M0-25v15M-7.5-20h15" fill="none" stroke="#FFFDF4" strokeWidth="0.65" opacity="0.68" data-race-supporter-detail="jersey-tailoring" />
+        <path d="M-3-26q3 4 6 0" fill="#1F342D" stroke="#E8EEE9" strokeWidth="0.55" data-race-supporter-detail="jersey-collar" />
+        <path d="M-8-22h3M5-22h3" stroke={accentColor} strokeWidth="1.6" strokeLinecap="round" data-race-supporter-detail="sleeve-cuffs" />
         {jersey === "striped" && special === null ? <path d="M-3-26h5l1 14h-5Z" fill={accentColor} opacity="0.92" /> : null}
         {jersey === "polka-dot" && special === null ? (
           <g fill="#D62F3D">
@@ -341,9 +421,18 @@ function Spectator({
         ) : (
           <path d={running ? "M-6-23-15-29M6-23 15-17" : "M-6-23-13-13M6-23 13-13"} fill="none" stroke={skinTone} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         )}
-        <path d="M-2-28v3h4v-3" fill={skinTone} />
+        <path d="M-2-28v3h4v-3" fill={skinTone} data-race-supporter-detail="neck" />
         {special !== "horse-mask" ? <circle cx="0" cy="-34" r="5.7" fill={skinTone} stroke="#5F4133" strokeWidth="0.75" /> : null}
         {special === "druid" ? null : special !== "horse-mask" ? <path d="M-5-35q5-7 10 0" fill={special === "gaul-warrior" ? "#F2C94C" : "#4A3429"} /> : null}
+        {special !== "horse-mask" ? (
+          <g data-race-supporter-detail="face">
+            <circle cx="2.2" cy="-34.4" r="0.58" fill="#17261E" />
+            <path d="M4-33.4 5.7-32.6 4-31.8M1-30.8q2 .9 3.6-.2" fill="none" stroke="#6D4333" strokeWidth="0.62" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M-5.4-34.5q-1.8 1.8.2 3.4" fill={skinTone} stroke="#6D4333" strokeWidth="0.55" />
+          </g>
+        ) : null}
+      </g>
+      </g>
       </g>
     </g>
   );

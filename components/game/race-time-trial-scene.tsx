@@ -5,7 +5,10 @@ import { useMemo, type CSSProperties } from "react";
 import { SideRaceCyclist } from "@/components/game/race-cyclist-detailed";
 import { RaceRoadChalk } from "@/components/game/race-road-chalk";
 import { RaceRoadsideCrowd } from "@/components/game/race-roadside-crowd";
-import { RaceSceneryBackdrop } from "@/components/game/race-scenery-detailed";
+import {
+  RaceBiotopeForeground,
+  RaceSceneryBackdrop,
+} from "@/components/game/race-scenery-detailed";
 import { RaceWeatherOverlay } from "@/components/game/race-weather-overlay";
 import {
   buildTimeTrialStartSchedule,
@@ -123,7 +126,11 @@ export function RaceTimeTrialScene({
               preserveAspectRatio="none"
               className="absolute inset-0 h-full w-full"
             >
-              <path d="M0 43H100V83H0Z" fill="#C7B98D" />
+              <path
+                d="M0 43H100V46H0Z"
+                fill="#C7B98D"
+                data-road-edge="upper-grass"
+              />
               <path d="M0 46H100V80H0Z" fill="#35453F" />
               <path
                 d="M0 63H100"
@@ -131,8 +138,9 @@ export function RaceTimeTrialScene({
                 stroke="rgba(255,255,255,0.72)"
                 strokeWidth="0.8"
                 strokeDasharray="7 6"
-                vectorEffect="non-scaling-stroke"
                 data-road-flow-direction="right-to-left"
+                data-road-marking-motion="world-synchronized"
+                data-road-marking-horizontal-cycle={roadMarkingMotion.cycleDistance}
                 className={isMoving ? "cm-race-road-marking-svg" : ""}
                 style={
                   {
@@ -152,6 +160,12 @@ export function RaceTimeTrialScene({
                 isMoving={isMoving}
               />
             </svg>
+            <RaceBiotopeForeground
+              kind={activeSegment?.terrain === "climb" ? "forest" : "fields"}
+              roadLeftY={256}
+              roadRightY={256}
+              isMoving={isMoving}
+            />
             <RaceRoadsideCrowd
               show
               isMoving={isMoving}
@@ -251,7 +265,7 @@ export function RaceTimeTrialScene({
                         <SideRaceCyclist
                           rider={rider}
                           isMoving={isMoving}
-                          className="h-10 w-[4.5rem]"
+                          className="h-8 w-14"
                           timeTrial
                           rearDiscWheel={hasDiscWheel(rider.id)}
                         />

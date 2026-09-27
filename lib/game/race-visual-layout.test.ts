@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getIntermediateSprintVisualProgress,
+  getRareClimbSprinterSupporterRun,
   getRaceGroupDisplayLabel,
   getRaceGroupRiderSlots,
   getRaceRoadFormationTop,
@@ -118,9 +119,65 @@ describe("race visual layout", () => {
   it("accentue les forts pourcentages sans déformer les pentes ordinaires", () => {
     expect(getRaceRoadSlopeOffset(0)).toBe(0);
     expect(getRaceRoadSlopeOffset(4)).toBe(4);
-    expect(getRaceRoadSlopeOffset(9)).toBe(12.5);
-    expect(getRaceRoadSlopeOffset(14)).toBe(14);
-    expect(getRaceRoadSlopeOffset(-9)).toBe(-12.5);
+    expect(getRaceRoadSlopeOffset(9)).toBeCloseTo(12.6);
+    expect(getRaceRoadSlopeOffset(12)).toBe(17.5);
+    expect(getRaceRoadSlopeOffset(14)).toBe(17.5);
+    expect(getRaceRoadSlopeOffset(-9)).toBeCloseTo(-12.6);
+  });
+
+  it("ne fait courir un supporter près d'un sprinteur que rarement et brièvement en montée", () => {
+    const eligibleSeed = Array.from({ length: 200 }, (_, index) => `race-${index}`)
+      .find((visualSeed) =>
+        Array.from({ length: 101 }, (_, progressIndex) => progressIndex / 100)
+          .some((segmentProgress) =>
+            getRareClimbSprinterSupporterRun({
+              visualSeed,
+              segmentNumber: 7,
+              terrain: "climb",
+              averageGradientPct: 8.5,
+              segmentProgress,
+              hasSprinter: true,
+            }),
+          ),
+      );
+
+    expect(eligibleSeed).toBeDefined();
+    const activeMoments = Array.from(
+      { length: 101 },
+      (_, progressIndex) => progressIndex / 100,
+    ).filter((segmentProgress) =>
+      getRareClimbSprinterSupporterRun({
+        visualSeed: eligibleSeed!,
+        segmentNumber: 7,
+        terrain: "climb",
+        averageGradientPct: 8.5,
+        segmentProgress,
+        hasSprinter: true,
+      }),
+    );
+
+    expect(activeMoments.length).toBeGreaterThan(0);
+    expect(activeMoments.length).toBeLessThanOrEqual(9);
+    expect(
+      getRareClimbSprinterSupporterRun({
+        visualSeed: eligibleSeed!,
+        segmentNumber: 7,
+        terrain: "flat",
+        averageGradientPct: 0,
+        segmentProgress: activeMoments[0],
+        hasSprinter: true,
+      }),
+    ).toBeNull();
+    expect(
+      getRareClimbSprinterSupporterRun({
+        visualSeed: eligibleSeed!,
+        segmentNumber: 7,
+        terrain: "climb",
+        averageGradientPct: 8.5,
+        segmentProgress: activeMoments[0],
+        hasSprinter: false,
+      }),
+    ).toBeNull();
   });
 
   it("retire les marquages blancs des secteurs pavés", () => {

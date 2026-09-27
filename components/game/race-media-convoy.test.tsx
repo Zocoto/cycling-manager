@@ -29,9 +29,21 @@ describe("race media convoy", () => {
     expect(markup.match(/data-race-person-scale="cyclist"/g)).toHaveLength(4);
     expect(markup.match(/data-race-camera-moto-wheel="detailed"/g)).toHaveLength(4);
     expect(markup).toContain('data-race-camera-motorcycle-body="touring"');
+    expect(markup).toContain('data-race-camera-moto-detail="engine"');
+    expect(markup).toContain('data-race-camera-moto-detail="front-suspension"');
+    expect(markup).toContain('data-race-camera-moto-detail="broadcast-aerials"');
+    expect(markup).toContain('data-race-camera-moto-detail="broadcast-panniers"');
+    expect(markup).toContain('data-race-camera-moto-detail="shotgun-mic"');
     expect(markup).toContain("cm-camera-moto");
     expect(markup).toContain('data-race-helicopter="occasional"');
+    expect(markup).toContain('data-race-helicopter-detail="cockpit-glazing"');
+    expect(markup).toContain('data-race-helicopter-detail="panel-lines"');
+    expect(markup).toContain('data-race-helicopter-detail="fenestron"');
+    expect(markup).toContain('data-race-helicopter-detail="broadcast-gimbal"');
+    expect(markup).toContain('data-race-helicopter-detail="dual-skids"');
+    expect(markup).toContain('data-race-helicopter-detail="main-rotor-blur"');
     expect(markup).toContain("cm-race-helicopter");
+    expect(markup).toContain("cm-helicopter-tail-rotor");
   });
 
   it("keeps the helicopter occasional and freezes vehicles when paused", () => {
@@ -42,6 +54,22 @@ describe("race media convoy", () => {
     expect(markup).toContain('data-race-camera-motorcycle="top"');
     expect(markup).not.toContain("data-race-helicopter");
     expect(markup).not.toContain("cm-camera-moto-wheel");
+  });
+
+  it("freezes both helicopter rotors when the replay is paused", () => {
+    const markup = renderToStaticMarkup(
+      <RaceMediaConvoy
+        isMoving={false}
+        showHelicopter
+        mode="side"
+        visualSeed="paused-helicopter"
+      />,
+    );
+
+    expect(markup).toContain('data-race-helicopter="occasional"');
+    expect(markup).not.toContain("cm-race-helicopter");
+    expect(markup).not.toContain("cm-helicopter-rotor");
+    expect(markup).not.toContain("cm-helicopter-tail-rotor");
   });
 
   it("keeps motorcycles immediately ahead of and behind the race groups", () => {

@@ -30,7 +30,13 @@ describe("race road chalk", () => {
     );
     expect(markup).toContain("POGA");
     expect(markup).toContain('data-race-road-chalk-density="supporter-burst"');
-    expect(markup).toContain('data-race-road-chalk-layout="irregular-across-road-width"');
+    expect(markup).toContain('data-race-road-chalk-layout="centered-within-road"');
+    expect(markup).toContain('data-race-road-chalk-bounds="contained"');
+    expect(markup).toContain(
+      'data-race-road-chalk-clip="static-road-polygon"',
+    );
+    expect(markup).toContain("<clipPath");
+    expect(markup).toContain('clip-path="url(#race-road-chalk-');
     expect(markup).toContain('data-race-road-chalk-source="team"');
     expect(markup).toContain('data-race-road-chalk-source="local-club"');
     expect(markup).toContain('data-race-road-chalk-source="supporter"');
@@ -65,6 +71,8 @@ describe("race road chalk", () => {
     expect(sparse.placements.length).toBeLessThanOrEqual(3);
     expect(burst.density).toBe("supporter-burst");
     expect(burst.placements).toHaveLength(6);
+    expect(burst.placements.every((placement) => placement.laneRatio === 0.5))
+      .toBe(true);
     expect(
       Math.max(...burst.placements.map((placement) => placement.x)) -
         Math.min(...burst.placements.map((placement) => placement.x)),
