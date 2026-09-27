@@ -116,9 +116,13 @@ function SecondarySponsorStateContent({
   }
 
   const contract = state.contract;
+  const isPreview = state.kind === "preview";
   return (
     <div className="space-y-7">
-      <SecondarySponsorContractCard contract={contract} />
+      <SecondarySponsorContractCard
+        contract={contract}
+        previewMode={isPreview}
+      />
 
       {contract.status === "planned" && contract.baseJersey ? (
         <SecondarySponsorJerseyEditor
@@ -127,6 +131,7 @@ function SecondarySponsorStateContent({
           jersey={contract.baseJersey.jersey}
           secondarySponsor={contract.sponsor}
           initialPlacement={contract.logoPlacement}
+          previewMode={isPreview}
         />
       ) : contract.status === "planned" ? (
         <SecondaryNotice
@@ -140,8 +145,10 @@ function SecondarySponsorStateContent({
 
 function SecondarySponsorContractCard({
   contract,
+  previewMode = false,
 }: {
   contract: SecondarySponsorContract;
+  previewMode?: boolean;
 }) {
   const combinedName = contract.baseJersey
     ? `${contract.baseJersey.futureTeamName} - ${contract.sponsor.name}`
@@ -162,7 +169,11 @@ function SecondarySponsorContractCard({
         </div>
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-            {isActive ? "Sponsor secondaire actif" : "Contrat secondaire signé"}
+            {previewMode
+              ? "Aperçu temporaire · aucun contrat"
+              : isActive
+                ? "Sponsor secondaire actif"
+                : "Contrat secondaire signé"}
             {" · "}
             {contract.targetSeasonName}
           </p>
@@ -170,7 +181,9 @@ function SecondarySponsorContractCard({
             {combinedName}
           </h2>
           <p className="mt-3 text-sm leading-6 text-[#60756E]">
-            {isActive
+            {previewMode
+              ? "Test visuel réservé à votre équipe. Aucun contrat, objectif, gain ou changement de nom ne sera enregistré."
+              : isActive
               ? "Chaque objectif accompli verse sa prime immédiatement. Ce partenaire n’a ni budget annuel ni jauge de satisfaction."
               : "Le nouveau nom et le logo entreront en vigueur au J1. Le sponsor secondaire n’a ni budget annuel ni jauge de satisfaction."}
           </p>
