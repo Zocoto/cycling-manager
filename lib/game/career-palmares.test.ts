@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCareerPalmares,
+  isFinalCareerJerseyEdition,
   type CareerDistinctiveJerseyEntry,
   type CareerPalmaresEntry,
   type CareerPalmaresSupplementEntry,
@@ -39,11 +40,22 @@ function supplement(
     seasonName: "Saison 1",
     gameYear: 1,
     prestigeRank: 1,
+    categoryCode: "elite",
+    competitionType: "standard",
+    isGrandTour: true,
+    isMonument: false,
+    isJunior: false,
     ...overrides,
   };
 }
 
 describe("buildCareerPalmares", () => {
+  it("ne reconnaît un maillot final que lorsque le tour est terminé", () => {
+    expect(isFinalCareerJerseyEdition("completed")).toBe(true);
+    expect(isFinalCareerJerseyEdition("in_progress")).toBe(false);
+    expect(isFinalCareerJerseyEdition("registration_closed")).toBe(false);
+  });
+
   it("regroupe une même place sur une course et trie les saisons", () => {
     const palmares = buildCareerPalmares([
       entry(),
@@ -67,6 +79,7 @@ describe("buildCareerPalmares", () => {
       category: "grand_tour_monument",
       achievements: [
         expect.objectContaining({
+          kind: "race_result",
           raceName: "Tour de France",
           rank: 1,
           count: 3,
@@ -144,7 +157,9 @@ describe("buildCareerPalmares", () => {
     ]);
 
     expect(
-      palmares.sections[0]?.achievements.map((achievement) => achievement.rank),
+      palmares.sections[0]?.achievements.flatMap((achievement) =>
+        achievement.kind === "race_result" ? [achievement.rank] : [],
+      ),
     ).toEqual([1, 2, 3]);
   });
 
@@ -183,6 +198,24 @@ describe("buildCareerPalmares", () => {
         raceName: "Tour des Flandres",
         count: 1,
         seasonLabels: ["S1"],
+      },
+    ]);
+    expect(palmares.sections).toEqual([
+      {
+        category: "grand_tour_monument",
+        achievements: [
+          expect.objectContaining({
+            kind: "stage_victory",
+            raceName: "Tour de France",
+            count: 3,
+            seasonLabels: ["S1", "S2"],
+          }),
+          expect.objectContaining({
+            kind: "stage_victory",
+            raceName: "Tour des Flandres",
+            count: 1,
+          }),
+        ],
       },
     ]);
   });
@@ -224,5 +257,33 @@ describe("buildCareerPalmares", () => {
     ]);
     expect(palmares.victoryCount).toBe(0);
     expect(palmares.podiumCount).toBe(0);
+    expect(palmares.sections[0]?.achievements).toEqual([
+      expect.objectContaining({
+        kind: "distinctive_jersey",
+        classificationType: "mountain",
+        count: 2,
+      }),
+      expect.objectContaining({
+        kind: "distinctive_jersey",
+        classificationType: "sprint",
+        count: 1,
+      }),
+    ]);
+  });
+
+  it("intègre les résultats, étapes et maillots dans leur catégorie", () => {
+    const palmares = buildCareerPalmares(
+      [entry()],
+      {
+        stageVictories: [supplement()],
+        distinctiveJerseys: [
+          { ...supplement(), resultId: "jersey-1", classificationType: "youth" },
+        ],
+      },
+    );
+
+    expect(
+      palmares.sections[0]?.achievements.map((achievement) => achievement.kind),
+    ).toEqual(["race_result", "stage_victory", "distinctive_jersey"]);
   });
 });

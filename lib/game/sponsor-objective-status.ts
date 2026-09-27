@@ -2,9 +2,15 @@ import type { SponsorObjectiveStatus } from "@/types/sponsor-objective";
 
 export type SponsorObjectiveVisualStatus =
   | "achieved"
+  | "partial"
   | "failed"
   | "neutralized"
   | "in_progress";
+
+export type SponsorObjectiveAchievementLevel =
+  | "full"
+  | "partial"
+  | "missed";
 
 export type SponsorObjectiveStatusPresentation = {
   status: SponsorObjectiveVisualStatus;
@@ -13,9 +19,14 @@ export type SponsorObjectiveStatusPresentation = {
 
 export function getSponsorObjectiveStatusPresentation(
   status: SponsorObjectiveStatus,
+  achievementLevel: SponsorObjectiveAchievementLevel | null = null,
 ): SponsorObjectiveStatusPresentation {
   if (status === "completed") {
     return { status: "achieved", label: "Objectif atteint" };
+  }
+
+  if (achievementLevel === "partial") {
+    return { status: "partial", label: "Réussite partielle" };
   }
 
   if (status === "failed") {

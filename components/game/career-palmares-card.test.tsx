@@ -11,6 +11,11 @@ describe("CareerPalmaresCard", () => {
       raceName: "Tour de France",
       seasonName: "Saison 1",
       prestigeRank: 1,
+      categoryCode: "elite" as const,
+      competitionType: "standard" as const,
+      isGrandTour: true,
+      isMonument: false,
+      isJunior: false,
     };
     const palmares = buildCareerPalmares([], {
       stageVictories: [
@@ -50,11 +55,12 @@ describe("CareerPalmaresCard", () => {
       <CareerPalmaresCard palmares={palmares} />,
     );
 
-    expect(markup).toContain("Victoires d’étapes");
+    expect(markup).toContain("Grands Tours &amp; Monuments");
     expect(markup).toContain("Tour de France");
-    expect(markup).toContain("3 victoires d’étape");
-    expect(markup).toContain("(S1, S2)");
-    expect(markup).toContain("Maillots distinctifs");
-    expect(markup).toContain("1 maillot de la montagne");
+    expect(markup).toContain("3 × Tour de France");
+    expect(markup).toContain("Victoires d’étape · S1, S2");
+    expect(markup).toContain("Maillot");
+    expect(markup).toContain("Vainqueur final du maillot de la montagne");
+    expect(markup).not.toContain("Maillots distinctifs</h3>");
   });
 });

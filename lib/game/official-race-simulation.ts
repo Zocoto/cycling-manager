@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-wheel-latching-groups-v35";
+  "2026.09-leadout-selective-finishes-v36";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

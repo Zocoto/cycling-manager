@@ -17,6 +17,13 @@ describe("getSponsorObjectiveStatusPresentation", () => {
     });
   });
 
+  it("distingue une réussite partielle d’un échec sec", () => {
+    expect(getSponsorObjectiveStatusPresentation("failed", "partial")).toEqual({
+      status: "partial",
+      label: "Réussite partielle",
+    });
+  });
+
   it("affiche un sablier tant que l'objectif reste en cours", () => {
     expect(getSponsorObjectiveStatusPresentation("active")).toEqual({
       status: "in_progress",

@@ -1,15 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
-
 import { useLocale } from "@/components/i18n/locale-provider";
 import type {
   CareerPalmares,
   CareerPalmaresAchievement,
   CareerPalmaresCategory,
-  CareerDistinctiveJerseyAchievement,
   CareerDistinctiveJerseyType,
-  CareerStageVictoryAchievement,
 } from "@/lib/game/career-palmares";
 
 const CATEGORY_ICON: Record<CareerPalmaresCategory, string> = {
@@ -23,7 +19,6 @@ const CATEGORY_ICON: Record<CareerPalmaresCategory, string> = {
 };
 
 const MAX_VISIBLE_ACHIEVEMENTS = 8;
-const MAX_VISIBLE_SUPPLEMENTS = 10;
 
 export function CareerPalmaresCard({
   palmares,
@@ -37,10 +32,7 @@ export function CareerPalmaresCard({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const isTeam = tone === "team";
-  const hasAchievements =
-    palmares.sections.length > 0 ||
-    palmares.stageVictories.length > 0 ||
-    palmares.distinctiveJerseys.length > 0;
+  const hasAchievements = palmares.sections.length > 0;
   const numberFormatter = new Intl.NumberFormat(isEnglish ? "en-GB" : "fr-FR");
   const categoryLabels: Record<CareerPalmaresCategory, string> = isEnglish
     ? {
@@ -113,7 +105,7 @@ export function CareerPalmaresCard({
       {hasAchievements ? (
         <div className="grid gap-4 p-5 sm:p-7 lg:grid-cols-2">
           {palmares.sections.map((section) => {
-            const sectionPodiumCount = section.achievements.reduce(
+            const sectionAchievementCount = section.achievements.reduce(
               (total, achievement) => total + achievement.count,
               0,
             );
@@ -168,14 +160,14 @@ export function CareerPalmaresCard({
                           : "text-[#60756E]"
                       }`}
                     >
-                      {numberFormatter.format(sectionPodiumCount)}{" "}
-                      {sectionPodiumCount === 1
+                      {numberFormatter.format(sectionAchievementCount)}{" "}
+                      {sectionAchievementCount === 1
                         ? isEnglish
-                          ? "podium"
-                          : "podium"
+                          ? "career achievement"
+                          : "distinction"
                         : isEnglish
-                          ? "podiums"
-                          : "podiums"}
+                          ? "career achievements"
+                          : "distinctions"}
                     </p>
                   </div>
                 </div>
@@ -237,52 +229,6 @@ export function CareerPalmaresCard({
               </article>
             );
           })}
-          {palmares.stageVictories.length ? (
-            <SupplementCard
-              icon="↗"
-              title={isEnglish ? "Stage wins" : "Victoires d’étapes"}
-              countLabel={formatCountLabel({
-                count: palmares.stageVictoryCount,
-                singular: isEnglish ? "stage win" : "victoire d’étape",
-                plural: isEnglish ? "stage wins" : "victoires d’étape",
-                numberFormatter,
-              })}
-              isTeam={isTeam}
-            >
-              {palmares.stageVictories.map((achievement) => (
-                <StageVictoryRow
-                  key={achievement.id}
-                  achievement={achievement}
-                  isEnglish={isEnglish}
-                  isTeam={isTeam}
-                  numberFormatter={numberFormatter}
-                />
-              ))}
-            </SupplementCard>
-          ) : null}
-          {palmares.distinctiveJerseys.length ? (
-            <SupplementCard
-              icon="◆"
-              title={isEnglish ? "Distinctive jerseys" : "Maillots distinctifs"}
-              countLabel={formatCountLabel({
-                count: palmares.distinctiveJerseyCount,
-                singular: isEnglish ? "jersey" : "maillot",
-                plural: isEnglish ? "jerseys" : "maillots",
-                numberFormatter,
-              })}
-              isTeam={isTeam}
-            >
-              {palmares.distinctiveJerseys.map((achievement) => (
-                <DistinctiveJerseyRow
-                  key={achievement.id}
-                  achievement={achievement}
-                  isEnglish={isEnglish}
-                  isTeam={isTeam}
-                  numberFormatter={numberFormatter}
-                />
-              ))}
-            </SupplementCard>
-          ) : null}
         </div>
       ) : (
         <div className="px-6 py-9 text-center sm:px-8">
@@ -331,30 +277,14 @@ function PalmaresAchievementRow({
   isEnglish: boolean;
   isTeam: boolean;
 }) {
-  const rankLabel = isEnglish
-    ? achievement.rank === 1
-      ? "1st"
-      : achievement.rank === 2
-        ? "2nd"
-        : "3rd"
-    : achievement.rank === 1
-      ? "1er"
-      : achievement.rank === 2
-        ? "2e"
-        : "3e";
-  const rankClass =
-    achievement.rank === 1
-      ? "border-[#C49516]/30 bg-[#FFF2C4] text-[#745300]"
-      : achievement.rank === 2
-        ? "border-[#8C9AA4]/30 bg-[#EEF2F4] text-[#55636C]"
-        : "border-[#AD7048]/30 bg-[#F8E4D6] text-[#78472B]";
+  const presentation = getAchievementPresentation(achievement, isEnglish);
 
   return (
     <li className="flex items-start gap-3 py-3">
       <span
-        className={`mt-0.5 inline-flex min-w-10 shrink-0 justify-center rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${rankClass}`}
+        className={`mt-0.5 inline-flex min-w-10 shrink-0 justify-center rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${presentation.badgeClass}`}
       >
-        {rankLabel}
+        {presentation.badgeLabel}
       </span>
       <p
         className={`min-w-0 text-xs font-semibold leading-5 ${
@@ -368,6 +298,7 @@ function PalmaresAchievementRow({
         </strong>{" "}
         <span aria-hidden="true">·</span>{" "}
         <span className="whitespace-normal">
+          {presentation.resultLabel ? `${presentation.resultLabel} · ` : null}
           {achievement.seasonLabels.join(", ")}
         </span>
       </p>
@@ -375,214 +306,72 @@ function PalmaresAchievementRow({
   );
 }
 
-function SupplementCard({
-  icon,
-  title,
-  countLabel,
-  isTeam,
-  children,
-}: {
-  icon: string;
-  title: string;
-  countLabel: string;
-  isTeam: boolean;
-  children: ReactNode[];
-}) {
-  const visibleChildren = children.slice(0, MAX_VISIBLE_SUPPLEMENTS);
-  const hiddenChildren = children.slice(MAX_VISIBLE_SUPPLEMENTS);
+function getAchievementPresentation(
+  achievement: CareerPalmaresAchievement,
+  isEnglish: boolean,
+): { badgeLabel: string; badgeClass: string; resultLabel: string | null } {
+  if (achievement.kind === "stage_victory") {
+    return {
+      badgeLabel: isEnglish ? "Stage" : "Étape",
+      badgeClass: "border-[#176951]/25 bg-[#E5F4ED] text-[#176951]",
+      resultLabel:
+        achievement.count === 1
+          ? isEnglish
+            ? "Stage win"
+            : "Victoire d’étape"
+          : isEnglish
+            ? "Stage wins"
+            : "Victoires d’étape",
+    };
+  }
 
-  return (
-    <article
-      className={`self-start overflow-hidden rounded-2xl border ${
-        isTeam
-          ? "border-[var(--team-line)] bg-[var(--team-surface)]"
-          : "border-[#315B3E]/12 bg-[#F8FBF9]"
-      }`}
-    >
-      <div
-        className={`flex items-center gap-3 border-b px-4 py-3 ${
-          isTeam ? "border-[var(--team-line)]" : "border-[#315B3E]/10"
-        }`}
-      >
-        <span
-          aria-hidden="true"
-          className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-black ${
-            isTeam
-              ? "bg-[var(--team-primary)] text-white"
-              : "bg-[#176951] text-white"
-          }`}
-        >
-          {icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3
-            className={`font-black ${
-              isTeam ? "text-[var(--team-ink)]" : "text-[#183F37]"
-            }`}
-          >
-            {title}
-          </h3>
-          <p
-            className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.12em] ${
-              isTeam ? "text-[var(--team-muted)]" : "text-[#60756E]"
-            }`}
-          >
-            {countLabel}
-          </p>
-        </div>
-      </div>
+  if (achievement.kind === "distinctive_jersey") {
+    return {
+      badgeLabel: isEnglish ? "Jersey" : "Maillot",
+      badgeClass: "border-[#7D5BA6]/25 bg-[#F1EAF8] text-[#68478E]",
+      resultLabel: getFinalJerseyLabel(
+        achievement.classificationType,
+        isEnglish,
+      ),
+    };
+  }
 
-      <ul className="divide-y divide-[#315B3E]/8 px-4">{visibleChildren}</ul>
+  const badgeLabel = isEnglish
+    ? achievement.rank === 1
+      ? "1st"
+      : achievement.rank === 2
+        ? "2nd"
+        : "3rd"
+    : achievement.rank === 1
+      ? "1er"
+      : achievement.rank === 2
+        ? "2e"
+        : "3e";
+  const badgeClass =
+    achievement.rank === 1
+      ? "border-[#C49516]/30 bg-[#FFF2C4] text-[#745300]"
+      : achievement.rank === 2
+        ? "border-[#8C9AA4]/30 bg-[#EEF2F4] text-[#55636C]"
+        : "border-[#AD7048]/30 bg-[#F8E4D6] text-[#78472B]";
 
-      {hiddenChildren.length ? (
-        <details
-          className={`group border-t ${
-            isTeam ? "border-[var(--team-line)]" : "border-[#315B3E]/10"
-          }`}
-        >
-          <summary
-            className={`flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-black marker:hidden ${
-              isTeam
-                ? "text-[var(--team-secondary)]"
-                : "text-[#176951]"
-            }`}
-          >
-            <span>+ {hiddenChildren.length}</span>
-            <span aria-hidden="true" className="transition group-open:rotate-180">
-              ⌄
-            </span>
-          </summary>
-          <ul className="divide-y divide-[#315B3E]/8 border-t border-[#315B3E]/8 px-4">
-            {hiddenChildren}
-          </ul>
-        </details>
-      ) : null}
-    </article>
-  );
+  return { badgeLabel, badgeClass, resultLabel: null };
 }
 
-function StageVictoryRow({
-  achievement,
-  isEnglish,
-  isTeam,
-  numberFormatter,
-}: {
-  achievement: CareerStageVictoryAchievement;
-  isEnglish: boolean;
-  isTeam: boolean;
-  numberFormatter: Intl.NumberFormat;
-}) {
-  return (
-    <SupplementRow
-      raceName={achievement.raceName}
-      resultLabel={formatCountLabel({
-        count: achievement.count,
-        singular: isEnglish ? "stage win" : "victoire d’étape",
-        plural: isEnglish ? "stage wins" : "victoires d’étape",
-        numberFormatter,
-      })}
-      seasonLabels={achievement.seasonLabels}
-      isTeam={isTeam}
-    />
-  );
-}
-
-function DistinctiveJerseyRow({
-  achievement,
-  isEnglish,
-  isTeam,
-  numberFormatter,
-}: {
-  achievement: CareerDistinctiveJerseyAchievement;
-  isEnglish: boolean;
-  isTeam: boolean;
-  numberFormatter: Intl.NumberFormat;
-}) {
-  const labels = getJerseyLabels(achievement.classificationType, isEnglish);
-
-  return (
-    <SupplementRow
-      raceName={achievement.raceName}
-      resultLabel={formatCountLabel({
-        count: achievement.count,
-        singular: labels.singular,
-        plural: labels.plural,
-        numberFormatter,
-      })}
-      seasonLabels={achievement.seasonLabels}
-      isTeam={isTeam}
-    />
-  );
-}
-
-function SupplementRow({
-  raceName,
-  resultLabel,
-  seasonLabels,
-  isTeam,
-}: {
-  raceName: string;
-  resultLabel: string;
-  seasonLabels: string[];
-  isTeam: boolean;
-}) {
-  return (
-    <li className="py-3 text-xs font-semibold leading-5">
-      <p className={isTeam ? "text-[var(--team-muted)]" : "text-[#48665F]"}>
-        <strong
-          className={isTeam ? "text-[var(--team-ink)]" : "text-[#183F37]"}
-        >
-          {raceName}
-        </strong>
-        {" : "}
-        {resultLabel}
-        {seasonLabels.length ? ` (${seasonLabels.join(", ")})` : null}
-      </p>
-    </li>
-  );
-}
-
-function formatCountLabel({
-  count,
-  singular,
-  plural,
-  numberFormatter,
-}: {
-  count: number;
-  singular: string;
-  plural: string;
-  numberFormatter: Intl.NumberFormat;
-}): string {
-  return `${numberFormatter.format(count)} ${count === 1 ? singular : plural}`;
-}
-
-function getJerseyLabels(
+function getFinalJerseyLabel(
   classificationType: CareerDistinctiveJerseyType,
   isEnglish: boolean,
-): { singular: string; plural: string } {
+): string {
   if (isEnglish) {
     return {
-      mountain: {
-        singular: "mountains jersey",
-        plural: "mountains jerseys",
-      },
-      sprint: { singular: "points jersey", plural: "points jerseys" },
-      youth: { singular: "young rider jersey", plural: "young rider jerseys" },
+      mountain: "Final winner of the mountains jersey",
+      sprint: "Final winner of the points jersey",
+      youth: "Final winner of the young rider jersey",
     }[classificationType];
   }
 
   return {
-    mountain: {
-      singular: "maillot de la montagne",
-      plural: "maillots de la montagne",
-    },
-    sprint: {
-      singular: "maillot du classement par points",
-      plural: "maillots du classement par points",
-    },
-    youth: {
-      singular: "maillot du meilleur jeune",
-      plural: "maillots du meilleur jeune",
-    },
+    mountain: "Vainqueur final du maillot de la montagne",
+    sprint: "Vainqueur final du maillot du classement par points",
+    youth: "Vainqueur final du maillot du meilleur jeune",
   }[classificationType];
 }

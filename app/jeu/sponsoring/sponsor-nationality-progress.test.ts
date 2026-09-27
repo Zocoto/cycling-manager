@@ -12,7 +12,7 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-describe("progression de l'objectif sponsor de nationalité", () => {
+describe("progression des objectifs sponsor", () => {
   it("réutilise la progression persistée et indexée du contrat", () => {
     expect(workflowSource).toContain('.from("objective_progress")');
     expect(workflowSource).toContain(
@@ -23,17 +23,24 @@ describe("progression de l'objectif sponsor de nationalité", () => {
     );
   });
 
-  it("charge la progression en parallèle du rafraîchissement déjà existant", () => {
+  it("charge toutes les progressions en parallèle du rafraîchissement déjà existant", () => {
     expect(workflowSource).toContain(
-      "[objectivesByOffer, currentValuesByObjectiveId] = await Promise.all([",
+      "[objectivesByOffer, progressByObjectiveId] = await Promise.all([",
+    );
+    expect(workflowSource).toContain(
+      '.select("sponsor_objective_id, current_value, status, details")',
     );
   });
 
-  it("affiche le pourcentage courant uniquement pour l'objectif de nationalité", () => {
-    expect(pageSource).toContain(
-      'objective.targetDetails.kind === "nationality_quota"',
-    );
-    expect(pageSource).toContain("Effectif actuel :");
+  it("affiche une jauge générique tout en conservant le format des pourcentages", () => {
+    expect(pageSource).toContain("getSponsorObjectiveProgressDisplay");
+    expect(pageSource).toContain("SponsorObjectiveProgressGauge");
     expect(pageSource).toContain("formatSponsorPercentage");
+  });
+
+  it("rend le classement final et le bonus de réussite partielle explicites", () => {
+    expect(pageSource).toContain("Résultat obtenu :");
+    expect(pageSource).toContain("Petite satisfaction :");
+    expect(pageSource).toContain("objective.partialSatisfactionPoints");
   });
 });

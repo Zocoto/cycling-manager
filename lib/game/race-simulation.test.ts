@@ -1961,6 +1961,190 @@ describe("simulateRaceStage", () => {
     );
   });
 
+  it("préserve le poisson-pilote tant qu’un équipier peut assurer le travail collectif", () => {
+    const teamId = "protected-leadout-team";
+    const sprinter = {
+      ...createSelectionTestRider("protected-leadout-sprinter", {
+        flat: 82,
+        sprint: 90,
+        acceleration: 88,
+        endurance: 72,
+        resistance: 74,
+      }),
+      teamId,
+      form: 92,
+      role: "leader_sprinter" as const,
+    };
+    const leadout = {
+      ...createSelectionTestRider("protected-leadout", {
+        flat: 76,
+        sprint: 78,
+        acceleration: 82,
+        endurance: 70,
+        resistance: 72,
+      }),
+      teamId,
+      form: 90,
+      role: "leadout" as const,
+    };
+    const domestique = {
+      ...createSelectionTestRider("protected-leadout-domestique", {
+        flat: 72,
+        sprint: 55,
+        acceleration: 58,
+        endurance: 72,
+        resistance: 70,
+      }),
+      teamId,
+      form: 90,
+      role: "domestique" as const,
+    };
+    const rivals = Array.from({ length: 9 }, (_, index) => ({
+      ...createSelectionTestRider(`protected-leadout-rival-${index}`, {
+        flat: 68 + (index % 3),
+        sprint: 70 + (index % 4),
+        acceleration: 68 + (index % 3),
+        endurance: 68,
+        resistance: 68,
+      }),
+      teamId: `protected-leadout-rival-team-${Math.floor(index / 3)}`,
+      role:
+        index % 3 === 0
+          ? ("sprinter" as const)
+          : index % 3 === 1
+            ? ("leadout" as const)
+            : ("domestique" as const),
+      form: 88,
+    }));
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 10 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 18,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      }),
+    );
+    const simulation = simulateRaceStage({
+      id: "protected-leadout-energy",
+      name: "Poisson-pilote préservé",
+      stageType: "road",
+      profileType: "sprint",
+      isStageRace: false,
+      seed: 20260927,
+      riders: [sprinter, leadout, domestique, ...rivals],
+      segments,
+    });
+    const resultByRiderId = new Map(
+      simulation.results.map((result) => [result.riderId, result]),
+    );
+
+    expect(resultByRiderId.get(leadout.id)!.energyAfter).toBeGreaterThan(
+      resultByRiderId.get(domestique.id)!.energyAfter + 8,
+    );
+  });
+
+  it("fait prendre une roue adverse au sprinteur dont le poisson-pilote est épuisé", () => {
+    const teamASprinter = {
+      ...createSelectionTestRider("wheel-borrower", {
+        flat: 84,
+        sprint: 92,
+        acceleration: 90,
+        endurance: 72,
+        resistance: 74,
+      }),
+      teamId: "wheel-borrower-team",
+      form: 92,
+      role: "leader_sprinter" as const,
+    };
+    const exhaustedLeadout = {
+      ...createSelectionTestRider("exhausted-leadout", {
+        flat: 72,
+        sprint: 76,
+        acceleration: 78,
+        endurance: 62,
+        resistance: 64,
+      }),
+      teamId: teamASprinter.teamId,
+      form: 35,
+      role: "leadout" as const,
+    };
+    const rivalSprinter = {
+      ...createSelectionTestRider("rival-train-sprinter", {
+        flat: 80,
+        sprint: 84,
+        acceleration: 84,
+        endurance: 70,
+        resistance: 72,
+      }),
+      teamId: "rival-train-team",
+      form: 90,
+      role: "leader_sprinter" as const,
+    };
+    const rivalLeadout = {
+      ...createSelectionTestRider("rival-train-leadout", {
+        flat: 78,
+        sprint: 80,
+        acceleration: 82,
+        endurance: 72,
+        resistance: 72,
+      }),
+      teamId: rivalSprinter.teamId,
+      form: 90,
+      role: "leadout" as const,
+    };
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 3 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 20,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      }),
+    );
+    const simulation = simulateRaceStage({
+      id: "exhausted-leadout-borrowed-wheel",
+      name: "Roue adverse",
+      stageType: "road",
+      profileType: "sprint",
+      isStageRace: false,
+      seed: 27,
+      riders: [
+        teamASprinter,
+        exhaustedLeadout,
+        rivalSprinter,
+        rivalLeadout,
+      ],
+      segments,
+      teamStrategies: [teamASprinter.teamId, rivalSprinter.teamId].map(
+        (teamId) => ({
+          teamId,
+          objective: "sprint" as const,
+          collectivePosture: "balanced" as const,
+          breakawayPolicy: "avoid" as const,
+          chasePolicy: "dangerous_breakaway" as const,
+          lieutenantRiderId: null,
+          dangerPacerRiderId: null,
+          protectorRiderId: null,
+          breakawayRiderId: null,
+          attackOrders: [],
+        }),
+      ),
+    });
+    const exhaustedResult = simulation.results.find(
+      (result) => result.riderId === exhaustedLeadout.id,
+    )!;
+
+    expect(exhaustedResult.energyAfter).toBeLessThan(18);
+    expect(simulation.timeline.at(-1)?.commentary.join(" ")).toContain(
+      `${teamASprinter.name} n’a pas de train encore opérationnel et choisit la roue de ${rivalSprinter.name}`,
+    );
+  });
+
   it("protège aussi le leader / sprinteur pendant l’étape", () => {
     const baseInput = createDemoSimulationInput("sprint-littoral", 13);
     const leaderRatings = {
@@ -2641,7 +2825,7 @@ describe("simulateRaceStage", () => {
     expect(freshRiderGroup?.type).toBe("peloton");
   });
 
-  it("conserve le peloton sur une étape vallonnée tant que la sélection reste supportable", () => {
+  it("conserve le peloton sur une étape vallonnée jusqu’au final sélectif", () => {
     const input = createDemoSimulationInput("collines-ardennes", 32);
     const result = simulateRaceStage(input);
     const firstSnapshotWithoutPeloton = result.timeline.findIndex(
@@ -2663,7 +2847,10 @@ describe("simulateRaceStage", () => {
       ),
     );
 
-    expect(firstSnapshotWithoutPeloton).toBe(-1);
+    expect(
+      firstSnapshotWithoutPeloton === -1 ||
+        firstSnapshotWithoutPeloton >= Math.floor(result.timeline.length * 0.7),
+    ).toBe(true);
     expect(winnerTime).toBeGreaterThan(0);
     expect(maximumGap).toBeLessThan(winnerTime);
     expect(maximumTimelineGap).toBeLessThan(3_600);
@@ -4175,6 +4362,7 @@ describe("simulateRaceStage", () => {
   it("keeps five closely matched mountain favorites in contention without flattening the hierarchy", () => {
     const winnerCounts = new Map<string, number>();
     let racesWithDecisiveFavoriteAttack = 0;
+    let racesWithSuccessfulAttackGap = 0;
 
     for (let seed = 1; seed <= 120; seed += 1) {
       const simulation = simulateRaceStage(
@@ -4184,14 +4372,21 @@ describe("simulateRaceStage", () => {
         (result) => result.rank === 1,
       )!.riderId;
       winnerCounts.set(winnerId, (winnerCounts.get(winnerId) ?? 0) + 1);
+      const hasDecisiveAttack = simulation.timeline.some((snapshot) =>
+        snapshot.commentary.some((line) =>
+          line.includes("refuse d’attendre"),
+        ),
+      );
+      if (hasDecisiveAttack) {
+        racesWithDecisiveFavoriteAttack += 1;
+      }
       if (
-        simulation.timeline.some((snapshot) =>
-          snapshot.commentary.some((line) =>
-            line.includes("refuse d’attendre"),
-          ),
+        hasDecisiveAttack &&
+        simulation.results.some(
+          (result) => result.rank === 2 && result.gapToWinnerSeconds > 0,
         )
       ) {
-        racesWithDecisiveFavoriteAttack += 1;
+        racesWithSuccessfulAttackGap += 1;
       }
     }
 
@@ -4211,6 +4406,37 @@ describe("simulateRaceStage", () => {
     expect(leadingFavoriteWins).toBeGreaterThan(lowerFavoriteWins);
     expect(racesWithDecisiveFavoriteAttack).toBeGreaterThan(40);
     expect(racesWithDecisiveFavoriteAttack).toBeLessThan(115);
+    expect(racesWithSuccessfulAttackGap).toBeGreaterThan(12);
+    expect(racesWithSuccessfulAttackGap).toBeLessThan(100);
+  });
+
+  it("matérialise aussi des écarts après une attaque sur une arrivée vallonnée en montée", () => {
+    let decisiveAttacks = 0;
+    let attacksCreatingAGap = 0;
+
+    for (let seed = 1; seed <= 80; seed += 1) {
+      const simulation = simulateRaceStage(
+        createBalancedHillySummitInput(seed),
+      );
+      const hasAttack = simulation.timeline.some((snapshot) =>
+        snapshot.commentary.some((line) =>
+          line.includes("refuse d’attendre"),
+        ),
+      );
+      if (hasAttack) decisiveAttacks += 1;
+      if (
+        hasAttack &&
+        simulation.results.some(
+          (result) => result.rank === 2 && result.gapToWinnerSeconds > 0,
+        )
+      ) {
+        attacksCreatingAGap += 1;
+      }
+    }
+
+    expect(decisiveAttacks).toBeGreaterThan(20);
+    expect(attacksCreatingAGap).toBeGreaterThan(6);
+    expect(attacksCreatingAGap).toBeLessThan(65);
   });
 });
 
@@ -4400,6 +4626,62 @@ function createBalancedMountainFavoritesInput(
       segment(6, 8, "climb", 7),
       segment(7, 8, "climb", 8),
       segment(8, 7, "climb", 9),
+    ],
+  };
+}
+
+function createBalancedHillySummitInput(
+  seed: number,
+): Parameters<typeof simulateRaceStage>[0] {
+  const riders = Array.from({ length: 14 }, (_, index) => ({
+    ...createSelectionTestRider(`hilly-summit-${index + 1}`, {
+      flat: 67,
+      mountain: 66 + (index % 3),
+      hills: 84 - index * 0.65,
+      downhill: 70,
+      sprint: 62,
+      acceleration: 82 - (index % 4),
+      timeTrial: 64,
+      prologue: 64,
+      endurance: 76,
+      resistance: 76,
+      recovery: 72,
+      breakaway: 58,
+    }),
+    form: 82,
+    role: "leader" as const,
+    careerRaceDays: 180,
+  }));
+  const segment = (
+    segmentNumber: number,
+    distanceKm: number,
+    terrain: RaceStageSegment["terrain"],
+    averageGradientPct: number,
+  ): RaceStageSegment => ({
+    segmentNumber,
+    distanceKm,
+    terrain,
+    averageGradientPct,
+    surface: "asphalt",
+    prime: null,
+  });
+
+  return {
+    id: `hilly-summit-balance-${seed}`,
+    name: "Final vallonné en montée",
+    stageType: "road",
+    profileType: "hilly",
+    isStageRace: false,
+    seed,
+    riders,
+    segments: [
+      segment(1, 35, "flat", 0),
+      segment(2, 18, "climb", 4.5),
+      segment(3, 15, "descent", -4.5),
+      segment(4, 30, "flat", 0),
+      segment(5, 10, "climb", 5.5),
+      segment(6, 8, "descent", -5.5),
+      segment(7, 5, "climb", 8.5),
     ],
   };
 }
