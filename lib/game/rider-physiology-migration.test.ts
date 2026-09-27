@@ -11,6 +11,14 @@ const migration = readFileSync(
   "utf8",
 );
 
+const permissionMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260927220000_grant_rider_weight_event_access.sql",
+  ),
+  "utf8",
+);
+
 describe("rider physiology migration", () => {
   it("neutralizes existing riders while activating future generation", () => {
     expect(migration).toContain("physiology_version = 0");
@@ -37,5 +45,14 @@ describe("rider physiology migration", () => {
     expect(migration).toContain("create table public.rider_weight_events");
     expect(migration).toContain("apply_supplement_weight_risk_before_insert");
     expect(migration).toContain("source in ('supplement', 'weight_cut')");
+  });
+
+  it("grants the application roles access to the weight audit trail", () => {
+    expect(permissionMigration).toContain(
+      "grant select on table public.rider_weight_events to authenticated",
+    );
+    expect(permissionMigration).toContain(
+      "grant all privileges on table public.rider_weight_events to service_role",
+    );
   });
 });
