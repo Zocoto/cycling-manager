@@ -107,6 +107,11 @@ import {
 } from "./race-infrastructure-specializations";
 import { applyFanClubRaceRatingBoost } from "./fan-club-race-boost";
 import { applyFavoriteRaceRatingBonus } from "./rider-favorite-races";
+import {
+  getRiderPhysiologyProfileModifier,
+  getRiderPhysiologyTerrainModifier,
+  type RiderPhysiology,
+} from "./rider-physiology";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -214,6 +219,7 @@ export type RiderSimulationInput = {
   classificationJerseyVisual?: StageRaceJerseyVisual | null;
   age: number;
   form: number;
+  physiology?: RiderPhysiology | null;
   careerRaceDays?: number;
   countryCode?: string | null;
   climateProfile?: RiderClimateProfile;
@@ -1377,6 +1383,11 @@ function getResultsOnlyRoadRating(
   return (
     getStageSuitability(rider, input.segments) * 0.72 +
     finishRating * 0.28 +
+    getRiderPhysiologyProfileModifier({
+      physiology: rider.physiology,
+      ratings: rider.ratings,
+      profileType: input.profileType,
+    }) +
     pistardSprintBonus
   );
 }
@@ -8672,6 +8683,17 @@ function getRoadFinishScores(
 
   for (const state of states.values()) {
     const rider = state.rider;
+    const physiologyFinishProfile: RaceProfileType =
+      longSummitFinishFactor > 0
+        ? "mountain"
+        : massSprintFinish
+          ? "sprint"
+          : profileType;
+    const physiologyFinishBonus = getRiderPhysiologyProfileModifier({
+      physiology: rider.physiology,
+      ratings: rider.ratings,
+      profileType: physiologyFinishProfile,
+    });
     let score: number;
     let scoreNoiseFactor = 1;
 
@@ -8841,7 +8863,8 @@ function getRoadFinishScores(
 
     scores.set(
       rider.id,
-      score -
+      score +
+        physiologyFinishBonus -
         (massSprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) -
         getCollectiveWorkFinishPenalty({
           state,
@@ -10315,6 +10338,12 @@ function getTerrainRating(
     rating = rating * 0.36 + rider.ratings.cobbles * 0.64;
   }
 
+  rating += getRiderPhysiologyTerrainModifier({
+    physiology: rider.physiology,
+    ratings: rider.ratings,
+    segment,
+  });
+
   return (
     rating +
     getRaceDayBonus(rider) +
@@ -10547,6 +10576,12 @@ function getTimeTrialSegmentRating(
     rider.ratings.endurance * 0.1 +
     rider.form * 0.05 +
     getRaceDayBonus(rider) * 0.73 +
+    getRiderPhysiologyProfileModifier({
+      physiology: rider.physiology,
+      ratings: rider.ratings,
+      profileType: "time_trial",
+    }) *
+      0.73 +
     pistardBonus
   );
 }
@@ -10577,6 +10612,11 @@ function getAutomaticLeaderScore(
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
 ) {
+  const physiologyModifier = getRiderPhysiologyProfileModifier({
+    physiology: rider.physiology,
+    ratings: rider.ratings,
+    profileType,
+  });
   if (profileType === "hilly") {
     return (
       rider.ratings.hills * 0.5 +
@@ -10584,7 +10624,8 @@ function getAutomaticLeaderScore(
       rider.ratings.resistance * 0.1 +
       rider.ratings.endurance * 0.08 +
       rider.form * 0.1 +
-      getRaceDayBonus(rider)
+      getRaceDayBonus(rider) +
+      physiologyModifier
     );
   }
 
@@ -10595,7 +10636,8 @@ function getAutomaticLeaderScore(
       rider.ratings.endurance * 0.12 +
       rider.ratings.recovery * 0.12 +
       rider.form * 0.12 +
-      getRaceDayBonus(rider)
+      getRaceDayBonus(rider) +
+      physiologyModifier
     );
   }
 
@@ -10606,7 +10648,8 @@ function getAutomaticLeaderScore(
       rider.ratings.resistance * 0.14 +
       rider.ratings.endurance * 0.12 +
       rider.form * 0.12 +
-      getRaceDayBonus(rider)
+      getRaceDayBonus(rider) +
+      physiologyModifier
     );
   }
 

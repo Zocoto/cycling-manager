@@ -41,6 +41,10 @@ type RiderRow = {
   last_name: string;
   avatar_profile_key: string;
   avatar_seed: number | string;
+  height_cm: number | string | null;
+  weight_kg: number | string | null;
+  baseline_weight_kg: number | string | null;
+  physiology_version: number | null;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
 type RatingRow = {
@@ -141,6 +145,17 @@ type NutritionInterventionRow = {
   form_before: number;
   form_after: number;
   applied_at: string;
+  weight_delta_kg: number | string;
+};
+type WeightEventRow = {
+  rider_id: string;
+  game_day_index: number;
+  source: "supplement" | "weight_cut";
+  weight_before_kg: number | string;
+  weight_delta_kg: number | string;
+  weight_after_kg: number | string;
+  form_cost: number | string;
+  applied_at: string;
 };
 type NutritionistEffectiveQuote = {
   contractId: string;
@@ -199,6 +214,11 @@ export type TeamHealthRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number;
+  heightCm: number | null;
+  weightKg: number | null;
+  baselineWeightKg: number | null;
+  physiologyVersion: number;
+  nextWeightCutGameDayIndex: number | null;
   ratings: RiderRatings;
   averageRating: number;
   form: number;
@@ -249,6 +269,7 @@ export type TeamNutritionIntervention = {
   formBefore: number;
   formAfter: number;
   appliedAt: string;
+  weightDeltaKg: number;
 };
 
 export type TeamHealthOverview = {
@@ -256,6 +277,7 @@ export type TeamHealthOverview = {
   teamSeasonId: string;
   teamName: string;
   seasonName: string;
+  gameYear: number;
   currentDayNumber: number;
   balance: number;
   currency: string;
@@ -370,6 +392,7 @@ export async function getCurrentTeamHealthOverview(
       teamSeasonId: teamSeason.id,
       teamName: teamSeason.display_name,
       seasonName: season.name,
+      gameYear: season.game_year,
       currentDayNumber: season.current_day_number ?? 1,
       balance: toNumber(teamSeason.cash_balance),
       currency: teamSeason.currency,
@@ -385,7 +408,7 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("riders")
         .select(
-          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed",
+          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, height_cm, weight_kg, baseline_weight_kg, physiology_version",
         )
         .in("id", riderIds)
         .returns<RiderRow[]>(),
@@ -443,6 +466,7 @@ export async function getCurrentTeamHealthOverview(
     conditionsResult,
     treatmentsResult,
     nutritionInterventionsResult,
+    weightEventsResult,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -470,7 +494,7 @@ export async function getCurrentTeamHealthOverview(
       ? admin
           .from("rider_nutrition_interventions")
           .select(
-            "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at",
+            "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at, weight_delta_kg",
           )
           .eq("team_season_id", teamSeason.id)
           .eq("season_day_id", currentDayId)
@@ -480,6 +504,14 @@ export async function getCurrentTeamHealthOverview(
           data: [] as NutritionInterventionRow[],
           error: null,
         }),
+    admin
+      .from("rider_weight_events")
+      .select(
+        "rider_id, game_day_index, source, weight_before_kg, weight_delta_kg, weight_after_kg, form_cost, applied_at",
+      )
+      .in("rider_id", riderIds)
+      .order("game_day_index", { ascending: false })
+      .returns<WeightEventRow[]>(),
   ]);
   assertQuery(countriesResult.error, "les pays des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
@@ -488,6 +520,7 @@ export async function getCurrentTeamHealthOverview(
     nutritionInterventionsResult.error,
     "les interventions nutritionnelles",
   );
+  assertQuery(weightEventsResult.error, "l’historique de poids");
 
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
@@ -521,12 +554,22 @@ export async function getCurrentTeamHealthOverview(
   const campByRiderId = new Map(
     (campsResult.data ?? []).map((camp) => [camp.rider_id, camp]),
   );
+  const latestWeightCutByRiderId = new Map<string, WeightEventRow>();
+  for (const event of weightEventsResult.data ?? []) {
+    if (
+      event.source === "weight_cut" &&
+      !latestWeightCutByRiderId.has(event.rider_id)
+    ) {
+      latestWeightCutByRiderId.set(event.rider_id, event);
+    }
+  }
 
   return {
     teamId: teamSeason.team_id,
     teamSeasonId: teamSeason.id,
     teamName: teamSeason.display_name,
     seasonName: season.name,
+    gameYear: season.game_year,
     currentDayNumber: season.current_day_number ?? 1,
     balance: toNumber(teamSeason.cash_balance),
     currency: teamSeason.currency,
@@ -545,6 +588,7 @@ export async function getCurrentTeamHealthOverview(
         formBefore: intervention.form_before,
         formAfter: intervention.form_after,
         appliedAt: intervention.applied_at,
+        weightDeltaKg: toNumber(intervention.weight_delta_kg),
       }),
     ),
     riders: riders
@@ -568,6 +612,18 @@ export async function getCurrentTeamHealthOverview(
           avatarProfileKey: rider.avatar_profile_key,
           avatarSeed: rider.avatar_seed,
           age: rating?.age ?? 25,
+          heightCm:
+            rider.height_cm === null ? null : toNumber(rider.height_cm),
+          weightKg:
+            rider.weight_kg === null ? null : toNumber(rider.weight_kg),
+          baselineWeightKg:
+            rider.baseline_weight_kg === null
+              ? null
+              : toNumber(rider.baseline_weight_kg),
+          physiologyVersion: Number(rider.physiology_version ?? 0),
+          nextWeightCutGameDayIndex: latestWeightCutByRiderId.has(rider.id)
+            ? (latestWeightCutByRiderId.get(rider.id)?.game_day_index ?? 0) + 5
+            : null,
           ratings,
           averageRating: Math.round(
             Object.values(ratings).reduce((total, value) => total + value, 0) /

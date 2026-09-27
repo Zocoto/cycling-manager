@@ -1010,6 +1010,11 @@ function AcademyRiderCard({
             <p className="mt-0.5 text-xs font-extrabold text-[#278B70]">
               {rider.sportingProfile}
             </p>
+            {rider.heightCm !== null && rider.weightKg !== null ? (
+              <p className="mt-1 text-[10px] font-bold text-[#60756E]">
+                {rider.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+              </p>
+            ) : null}
             <div className="mt-1.5">
               <PotentialStars potentialSteps={rider.potentialSteps} />
             </div>
@@ -1450,6 +1455,11 @@ function CandidateCard({
           <p className="mt-1 text-xs font-extrabold text-[#278B70]">
             {candidate.sportingProfile}
           </p>
+          {candidate.heightCm !== null && candidate.weightKg !== null ? (
+            <p className="mt-1 text-[10px] font-bold text-[#60756E]">
+              {candidate.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {candidate.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+            </p>
+          ) : null}
           {candidate.internationalCenterBonusPercentage > 0 ? (
             <p className="mt-2 inline-flex rounded-full bg-[#F2C94C]/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#8A6714]">
               {candidate.internationalCenterBonusApplied

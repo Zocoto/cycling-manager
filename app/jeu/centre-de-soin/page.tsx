@@ -27,6 +27,7 @@ import {
   NUTRITION_INTERVENTIONS,
   getDoctorFormCampBoostPct,
   getNutritionInterventionOutcome,
+  getNutritionWeightGainRiskPct,
   getProtocolRecoveryReductionHours,
   orderNutritionRidersByForm,
   type NutritionInterventionCode,
@@ -58,6 +59,7 @@ import {
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
+  applyWeightCutAction,
   cancelPlannedFormCampAction,
   requestFormCampInterruptionAction,
 } from "./actions";
@@ -111,6 +113,7 @@ type HealthCenterPageProps = {
     stage?: string | string[];
     affectation?: string | string[];
     nutrition?: string | string[];
+    affutage?: string | string[];
     annulation?: string | string[];
     interruption?: string | string[];
     effet?: string | string[];
@@ -273,6 +276,11 @@ export default async function HealthCenterPage({
         {readQuery(query.nutrition) === "confirmee" ? (
           <SuccessMessage>
             Les compléments sont enregistrés : la forme des coureurs et la trésorerie ont été mises à jour en une seule fois.
+          </SuccessMessage>
+        ) : null}
+        {readQuery(query.affutage) === "confirme" ? (
+          <SuccessMessage>
+            Le programme d’affûtage est terminé : le poids et la forme du coureur ont été mis à jour.
           </SuccessMessage>
         ) : null}
         {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
@@ -802,6 +810,8 @@ function NutritionPanel({
       intervention,
     ]),
   );
+  const currentGameDayIndex =
+    overview.gameYear * 28 + overview.currentDayNumber - 1;
 
   return (
     <section data-tutorial-id="medical-center-nutrition" className="mt-7">
@@ -856,6 +866,12 @@ function NutritionPanel({
                 </p>
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#809189]">
                   Niveau {intervention.minimumNutritionistLevel} requis
+                </p>
+                <p className="mt-2 text-[10px] font-bold leading-4 text-[#986A17]">
+                  Risque de +{intervention.possibleWeightGainKg.toLocaleString("fr-FR")} kg : {getNutritionWeightGainRiskPct({
+                    code,
+                    nutritionistLevel: referenceNutritionist?.level ?? 1,
+                  }).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %
                 </p>
               </article>
             );
@@ -965,6 +981,9 @@ function NutritionPanel({
                     {applied ? (
                       <p className="mt-4 rounded-xl bg-[#EEF7E8] px-4 py-3 text-sm font-bold text-[#527633]">
                         {applied.label} appliquée aujourd’hui · {applied.formBefore} → {applied.formAfter} de forme.
+                        {applied.weightDeltaKg > 0
+                          ? ` Prise de poids constatée : +${applied.weightDeltaKg.toLocaleString("fr-FR")} kg.`
+                          : " Aucun effet sur le poids."}
                       </p>
                     ) : (
                       <NutritionInterventionFields
@@ -973,6 +992,63 @@ function NutritionPanel({
                         currency={overview.currency}
                       />
                     )}
+
+                    {rider.heightCm !== null && rider.weightKg !== null ? (
+                      <form
+                        action={applyWeightCutAction}
+                        className="mt-4 grid gap-3 rounded-2xl border border-[#D7B84A]/25 bg-[#FFF9E8] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+                      >
+                        <input type="hidden" name="riderId" value={rider.id} />
+                        <label className="grid gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#806114]">
+                            Programme d’affûtage · {rider.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+                          </span>
+                          <select
+                            name="weightLossKg"
+                            defaultValue="0.2"
+                            disabled={
+                              rider.nextWeightCutGameDayIndex !== null &&
+                              currentGameDayIndex < rider.nextWeightCutGameDayIndex
+                            }
+                            className="min-h-11 rounded-xl border border-[#806114]/20 bg-white px-3 text-sm font-black text-[#183F37] disabled:cursor-not-allowed disabled:bg-[#F1EEE4] disabled:text-[#8B877C]"
+                          >
+                            {[0.2, 0.4, 0.6, 0.8, 1].map((loss) => {
+                              const formCost = loss * 20;
+                              const safeMinimum = Math.max(
+                                45,
+                                18 * (rider.heightCm! / 100) ** 2,
+                              );
+                              const unavailable =
+                                rider.form < formCost ||
+                                rider.weightKg! - loss < safeMinimum;
+                              return (
+                                <option key={loss} value={loss} disabled={unavailable}>
+                                  −{loss.toLocaleString("fr-FR")} kg · −{formCost} forme
+                                  {unavailable ? " · indisponible" : ""}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <span className="text-[10px] font-semibold leading-4 text-[#806630]">
+                            Une fois tous les cinq jours, sans plafond saisonnier.
+                            {rider.nextWeightCutGameDayIndex !== null &&
+                            currentGameDayIndex < rider.nextWeightCutGameDayIndex
+                              ? ` Prochain programme dans ${rider.nextWeightCutGameDayIndex - currentGameDayIndex} jour(s).`
+                              : " Le poids agit immédiatement sur les performances."}
+                          </span>
+                        </label>
+                        <HealthCenterSubmitButton
+                          pendingLabel="Affûtage…"
+                          disabled={
+                            (rider.nextWeightCutGameDayIndex !== null &&
+                              currentGameDayIndex < rider.nextWeightCutGameDayIndex) ||
+                            rider.form < 4
+                          }
+                        >
+                          Lancer l’affûtage
+                        </HealthCenterSubmitButton>
+                      </form>
+                    ) : null}
                   </article>
                 );
               })}

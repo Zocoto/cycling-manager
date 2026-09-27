@@ -504,6 +504,10 @@ type RiderCountryRow = {
   avatar_profile_key: string;
   avatar_seed: number | string;
   career_race_days: number;
+  height_cm: number | string | null;
+  weight_kg: number | string | null;
+  baseline_weight_kg: number | string | null;
+  physiology_version: number | null;
 };
 
 type RiderSpecialAbilityRow = {
@@ -3038,6 +3042,19 @@ function groupCalendarEngagedRiders(
       continentalChampionships,
       age: Number(row.age),
       form: Number(row.form),
+      physiology:
+        riderMetadata?.height_cm != null &&
+        riderMetadata.weight_kg != null &&
+        riderMetadata.baseline_weight_kg != null
+          ? {
+              heightCm: Number(riderMetadata.height_cm),
+              weightKg: Number(riderMetadata.weight_kg),
+              baselineWeightKg: Number(riderMetadata.baseline_weight_kg),
+              physiologyVersion: Number(
+                riderMetadata.physiology_version ?? 0,
+              ),
+            }
+          : null,
       careerRaceDays: Number(riderMetadata?.career_race_days ?? 0),
       countryCode: riderCountry?.iso_alpha2 ?? null,
       ...(usesNationalWorldModel && riderMetadata
@@ -3510,7 +3527,7 @@ async function loadRaceCalendarRiderContext({
         const result = await admin
           .from("riders")
           .select(
-            "id, country_id, avatar_profile_key, avatar_seed, career_race_days",
+            "id, country_id, avatar_profile_key, avatar_seed, career_race_days, height_cm, weight_kg, baseline_weight_kg, physiology_version",
           )
           .in("id", chunk)
           .order("id", { ascending: true })
@@ -3668,6 +3685,10 @@ function parseRaceCalendarRiderContext(
       avatar_profile_key: row.avatar_profile_key,
       avatar_seed: row.avatar_seed,
       career_race_days: row.career_race_days,
+      height_cm: row.height_cm,
+      weight_kg: row.weight_kg,
+      baseline_weight_kg: row.baseline_weight_kg,
+      physiology_version: row.physiology_version,
     });
 
     if (Array.isArray(row.special_ability_codes)) {

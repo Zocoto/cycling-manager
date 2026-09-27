@@ -200,6 +200,10 @@ type CandidateRow = {
   school_plan_archetype: YouthArchetype | null;
   school_plan_transfer_points: number | string;
   archetype_probabilities: Record<string, unknown> | null;
+  adult_height_cm: number | string | null;
+  adult_weight_kg: number | string | null;
+  growth_pattern: "early_stop" | "early" | "steady" | "late_spurt" | null;
+  physiology_version: number | null;
 };
 
 type SchoolCyclingPlanRow = {
@@ -292,6 +296,8 @@ export type YouthCandidate = {
   firstName: string;
   lastName: string;
   age: number;
+  heightCm: number | null;
+  weightKg: number | null;
   countryName: string;
   countryCode: string;
   archetype: YouthArchetype;
@@ -348,6 +354,8 @@ export type AcademyYouth = {
   firstName: string;
   lastName: string;
   age: number;
+  heightCm: number | null;
+  weightKg: number | null;
   countryName: string;
   countryCode: string;
   profileKey: string;
@@ -1041,6 +1049,8 @@ async function loadOverview(admin: AdminClient, context: Context) {
       firstName: rider.first_name,
       lastName: rider.last_name,
       age,
+      heightCm: getVisibleYouthHeight(rider, age),
+      weightKg: getVisibleYouthWeight(rider, age),
       countryName: country?.name ?? "Pays inconnu",
       countryCode: country?.iso_alpha2 ?? "--",
       profileKey: rider.avatar_profile_key,
@@ -2060,6 +2070,10 @@ async function createPermanentRider(
       last_name: academy.last_name,
       status,
       potential_steps: academy.potential_steps,
+      height_cm: academy.adult_height_cm,
+      weight_kg: academy.adult_weight_kg,
+      baseline_weight_kg: academy.adult_weight_kg,
+      physiology_version: academy.physiology_version,
     })
     .select("id")
     .single<{ id: string }>();
@@ -2241,6 +2255,8 @@ function toCandidate(
     firstName: row.first_name,
     lastName: row.last_name,
     age: row.age,
+    heightCm: getVisibleYouthHeight(row, row.age),
+    weightKg: getVisibleYouthWeight(row, row.age),
     countryName: country?.name ?? "Pays inconnu",
     countryCode: country?.iso_alpha2 ?? "--",
     archetype: row.archetype,
@@ -2301,6 +2317,51 @@ function toCandidate(
       },
     ]),
   };
+}
+
+function getVisibleYouthHeight(
+  row: Pick<CandidateRow, "adult_height_cm" | "growth_pattern">,
+  age: number,
+) {
+  if (row.adult_height_cm === null || row.growth_pattern === null) return null;
+  const adultHeight = toNumber(row.adult_height_cm);
+  const remainingGrowth =
+    age >= 17 || row.growth_pattern === "early_stop"
+      ? 0
+      : row.growth_pattern === "early"
+        ? age <= 15
+          ? 2.5
+          : 0.5
+        : row.growth_pattern === "late_spurt"
+          ? age <= 15
+            ? 8
+            : 5
+          : age <= 15
+            ? 5
+            : 2;
+  return Math.round((adultHeight - remainingGrowth) * 10) / 10;
+}
+
+function getVisibleYouthWeight(
+  row: Pick<
+    CandidateRow,
+    "adult_height_cm" | "adult_weight_kg" | "growth_pattern"
+  >,
+  age: number,
+) {
+  const currentHeight = getVisibleYouthHeight(row, age);
+  if (
+    currentHeight === null ||
+    row.adult_height_cm === null ||
+    row.adult_weight_kg === null
+  ) {
+    return null;
+  }
+  const adultHeight = toNumber(row.adult_height_cm);
+  const adultWeight = toNumber(row.adult_weight_kg);
+  return (
+    Math.round(adultWeight * (currentHeight / adultHeight) ** 2 * 10) / 10
+  );
 }
 
 function toYouthGenerationProfile(

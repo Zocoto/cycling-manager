@@ -65,6 +65,12 @@ export type PublicRiderProfile = {
     gameYear: number;
   } | null;
   age: number | null;
+  physique: {
+    heightCm: number;
+    weightKg: number;
+    baselineWeightKg: number;
+    physiologyVersion: number;
+  } | null;
   careerRaceDays: number;
   potentialSteps: number | null;
   ratings: RiderRatings | null;
@@ -195,6 +201,10 @@ type RiderRow = {
   avatar_seed: number | string;
   potential_steps: number;
   career_race_days: number;
+  height_cm: number | string | null;
+  weight_kg: number | string | null;
+  baseline_weight_kg: number | string | null;
+  physiology_version: number | null;
 };
 
 type CountryRow = {
@@ -435,7 +445,7 @@ export async function getPublicRiderProfile({
   const { data: rider, error: riderError } = await supabase
     .from("riders")
     .select(
-      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps, career_race_days",
+      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps, career_race_days, height_cm, weight_kg, baseline_weight_kg, physiology_version",
     )
     .eq("id", riderId)
     .maybeSingle<RiderRow>();
@@ -1185,6 +1195,17 @@ export async function getPublicRiderProfile({
         }
       : null,
     age: currentRating?.age ?? null,
+    physique:
+      rider.height_cm != null &&
+      rider.weight_kg != null &&
+      rider.baseline_weight_kg != null
+        ? {
+            heightCm: Number(rider.height_cm),
+            weightKg: Number(rider.weight_kg),
+            baselineWeightKg: Number(rider.baseline_weight_kg),
+            physiologyVersion: Number(rider.physiology_version ?? 0),
+          }
+        : null,
     careerRaceDays: Number(rider.career_race_days ?? 0),
     potentialSteps: mustUseScoutingReport ? null : rider.potential_steps,
     ratings: mustUseScoutingReport ? null : exactRatings,

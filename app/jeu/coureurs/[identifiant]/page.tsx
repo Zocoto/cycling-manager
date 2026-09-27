@@ -433,6 +433,16 @@ export default async function RiderProfilePage({
                 {profile.age ? (
                   <IdentityBadge>{profile.age} ans</IdentityBadge>
                 ) : null}
+                {profile.physique ? (
+                  <IdentityBadge>
+                    {profile.physique.heightCm.toLocaleString("fr-FR", {
+                      maximumFractionDigits: 1,
+                    })} cm · {profile.physique.weightKg.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })} kg
+                  </IdentityBadge>
+                ) : null}
                 <IdentityBadge>
                   Expérience · {riderExperience.level} ·{" "}
                   {riderExperienceScoreFormatter.format(riderExperience.score)}

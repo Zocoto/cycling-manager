@@ -339,6 +339,30 @@ export async function applyNutritionInterventionAction(formData: FormData) {
   redirect("/jeu/centre-de-soin?onglet=nutrition&nutrition=confirmee");
 }
 
+export async function applyWeightCutAction(formData: FormData) {
+  const riderId = readValue(formData, "riderId");
+  const weightLossKg = Number(readValue(formData, "weightLossKg"));
+  const allowedLosses = new Set([0.2, 0.4, 0.6, 0.8, 1]);
+
+  if (!isUuid(riderId) || !allowedLosses.has(weightLossKg)) {
+    redirectWithError("nutrition", "Le programme d’affûtage est invalide.");
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc("apply_current_team_weight_cut", {
+    p_rider_id: riderId,
+    p_weight_loss_kg: weightLossKg,
+  });
+
+  if (error) {
+    redirectWithError("nutrition", getHealthCenterErrorMessage(error.message));
+  }
+
+  revalidateHealthPaths();
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  redirect("/jeu/centre-de-soin?onglet=nutrition&affutage=confirme");
+}
+
 async function requireAuthenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const {
