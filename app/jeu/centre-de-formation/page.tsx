@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
-  recruitYouthRiderAction,
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
@@ -28,6 +27,7 @@ import { SpecialAbilityMedallion } from "@/components/game/special-ability-medal
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
+import { YouthPromotionForm } from "@/components/game/youth-promotion-form";
 import {
   YouthDismissalSelectionField,
   YouthTrainingBulkEditor,
@@ -771,7 +771,6 @@ function AcademyTab({
                     currency={overview.currency}
                     canSchedulePromotion={overview.canScheduleYouthPromotion}
                     rosterLimit={overview.rosterLimit}
-                    preserveFinalYearFilter={activeFilter === "final_year"}
                   />
                 ))}
               </div>
@@ -965,14 +964,12 @@ function AcademyRiderCard({
   currency,
   canSchedulePromotion,
   rosterLimit,
-  preserveFinalYearFilter,
 }: {
   rider: AcademyYouth;
   gameYear: number;
   currency: string;
   canSchedulePromotion: boolean;
   rosterLimit: number;
-  preserveFinalYearFilter: boolean;
 }) {
   const releasePending = rider.status === "release_pending";
 
@@ -1091,19 +1088,10 @@ function AcademyRiderCard({
                 </div>
               ) : rider.canRecruit ? (
                 canSchedulePromotion ? (
-                  <form action={recruitYouthRiderAction}>
-                    <input
-                      type="hidden"
-                      name="academyRiderId"
-                      value={rider.id}
-                    />
-                    {preserveFinalYearFilter ? (
-                      <input type="hidden" name="age" value="18" />
-                    ) : null}
-                    <button className="w-full rounded-xl bg-[#F2C94C] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">
-                      Recruter pour la saison {gameYear + 1}
-                    </button>
-                  </form>
+                  <YouthPromotionForm
+                    academyRiderId={rider.id}
+                    nextGameYear={gameYear + 1}
+                  />
                 ) : (
                   <p className="rounded-xl bg-[#FFF0EE] px-3 py-2.5 text-[10px] font-bold text-[#8A2F2F]">
                     Promotion impossible · {rosterLimit} places déjà engagées.
