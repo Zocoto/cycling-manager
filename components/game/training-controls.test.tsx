@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   RiderTrainingPlanFields,
   TrainingPlansEditor,
+  TrainingRosterList,
 } from "@/components/game/training-controls";
 import type { TeamTrainer } from "@/services/team-training";
 
@@ -89,5 +90,34 @@ describe("RiderTrainingPlanFields", () => {
       "grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))]",
     );
     expect(markup).toContain("whitespace-nowrap");
+  });
+
+  it("propose un tri compact par statut sans quitter l’éditeur", () => {
+    const markup = renderToStaticMarkup(
+      <TrainingRosterList
+        riders={[
+          {
+            id: "rider-1",
+            firstName: "Ana",
+            lastName: "Martin",
+            squadStatus: "absolute_leader",
+          },
+          {
+            id: "rider-2",
+            firstName: "Zoé",
+            lastName: "Bernard",
+            squadStatus: "domestique",
+          },
+        ]}
+      >
+        <article>Ana Martin</article>
+        <article>Zoé Bernard</article>
+      </TrainingRosterList>,
+    );
+
+    expect(markup).toContain("Trier par");
+    expect(markup).toContain("Statut dans l’équipe");
+    expect(markup).toContain("Nom du coureur");
+    expect(markup).toContain("Ordre habituel de la page Effectif.");
   });
 });

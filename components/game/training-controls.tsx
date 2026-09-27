@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Children,
+  Fragment,
   createContext,
   useCallback,
   useContext,
@@ -27,6 +29,11 @@ import {
   type TrainingPlanDraft,
 } from "@/lib/game/training-plan-drafts";
 import { TRAINER_NATIONALITY_BONUS_PERCENTAGE } from "@/lib/game/training";
+import { sortRosterItems } from "@/lib/game/roster-sort";
+import {
+  getSquadStatusRank,
+  type SquadStatus,
+} from "@/lib/game/squad-status";
 import type { TeamTrainer } from "@/services/team-training";
 
 type TrainingPlanPatch = Partial<Omit<TrainingPlanDraft, "riderId">>;
@@ -39,6 +46,79 @@ type TrainingPlansEditorContextValue = {
 
 const TrainingPlansEditorContext =
   createContext<TrainingPlansEditorContextValue | null>(null);
+
+type TrainingRosterSortKey = "default" | "squad_status" | "rider";
+
+export type TrainingRosterSortRider = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  squadStatus: SquadStatus | null;
+};
+
+export function TrainingRosterList({
+  riders,
+  children,
+}: {
+  riders: TrainingRosterSortRider[];
+  children: ReactNode;
+}) {
+  const [sortKey, setSortKey] = useState<TrainingRosterSortKey>("default");
+  const childRows = Children.toArray(children);
+  const rows = riders.map((rider, index) => ({
+    rider,
+    child: childRows[index] ?? null,
+  }));
+  const sortedRows =
+    sortKey === "default"
+      ? rows
+      : sortRosterItems({
+          items: rows,
+          direction: sortKey === "squad_status" ? "desc" : "asc",
+          getValue: ({ rider }) =>
+            sortKey === "squad_status"
+              ? getSquadStatusRank(rider.squadStatus)
+              : `${rider.lastName} ${rider.firstName}`,
+          getTieBreaker: ({ rider }) =>
+            `${rider.lastName} ${rider.firstName}`,
+        });
+
+  return (
+    <div className="mt-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 shadow-[0_8px_24px_rgba(19,60,46,0.05)]">
+        <label className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+            Trier par
+          </span>
+          <select
+            value={sortKey}
+            onChange={(event) =>
+              setSortKey(event.target.value as TrainingRosterSortKey)
+            }
+            className="min-h-10 min-w-0 rounded-xl border border-[#315B3E]/15 bg-[#F7FAF8] px-3 text-xs font-black text-[#183F37] outline-none transition focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15 sm:min-w-52"
+          >
+            <option value="default">Ordre de l’effectif</option>
+            <option value="squad_status">Statut dans l’équipe</option>
+            <option value="rider">Nom du coureur</option>
+          </select>
+        </label>
+        <p className="text-[10px] font-bold text-[#60756E]">
+          {sortKey === "squad_status"
+            ? "Leaders en premier, équipiers ensuite, statuts non définis à la fin."
+            : sortKey === "rider"
+              ? "Classement alphabétique par nom."
+              : "Ordre habituel de la page Effectif."}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {sortedRows.map(({ rider, child }) => (
+          <Fragment key={rider.id}>{child}</Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function TrainingPlansEditor({
   initialPlans,
