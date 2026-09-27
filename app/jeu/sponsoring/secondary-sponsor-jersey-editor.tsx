@@ -16,20 +16,18 @@ export function SecondarySponsorJerseyEditor({
   jersey,
   secondarySponsor,
   initialPlacement,
-  previewMode = false,
 }: {
   contractId: string;
   principalSponsor: Sponsor;
   jersey: Sponsor["jerseys"][number];
   secondarySponsor: SecondarySponsorIdentity;
   initialPlacement: SecondarySponsorLogoPlacement;
-  previewMode?: boolean;
 }) {
   const [placement, setPlacement] = useState(initialPlacement);
 
   return (
     <form
-      action={previewMode ? undefined : updateSecondarySponsorLogoAction}
+      action={updateSecondarySponsorLogoAction}
       className="grid gap-7 rounded-2xl border border-[#315B3E]/15 bg-white/90 p-5 shadow-[0_18px_45px_rgba(19,60,46,0.08)] lg:grid-cols-[minmax(240px,0.75fr)_minmax(300px,1.25fr)] lg:p-7"
     >
       <input type="hidden" name="contractId" value={contractId} />
@@ -102,17 +100,11 @@ export function SecondarySponsorJerseyEditor({
         </div>
 
         <button
-          type={previewMode ? "button" : "submit"}
+          type="submit"
           className="mt-7 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#082A2A] px-5 py-3 text-sm font-black text-white transition hover:bg-[#12473F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2"
         >
-          {previewMode ? "Aperçu test · rien n’est enregistré" : "Enregistrer le placement"}
+          Enregistrer le placement
         </button>
-        {previewMode ? (
-          <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#60756E]">
-            Les curseurs modifient le maillot en direct. Cet accès et ce sponsor
-            seront retirés après votre validation.
-          </p>
-        ) : null}
       </div>
     </form>
   );

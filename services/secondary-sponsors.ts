@@ -4,7 +4,6 @@ import { SPONSORS } from "@/data/sponsors";
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import {
   calculateSecondarySponsorObjectiveReward,
-  DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT,
   getSecondarySponsorEligibleCategoryCodes,
   getSecondarySponsorObjectiveCount,
   getSecondarySponsorTargetRank,
@@ -84,20 +83,7 @@ export type SecondarySponsoringState = SecondarySponsoringStateWithActiveContrac
       kind: "signed";
       contract: SecondarySponsorContract;
     }
-  | {
-      kind: "preview";
-      contract: SecondarySponsorContract;
-    }
 );
-
-// Aperçu de production strictement temporaire demandé pour l’équipe Abbaye.
-// Supprimer cette entrée et la branche `preview` après validation du joueur.
-const TEMPORARY_SECONDARY_SPONSOR_PREVIEW_BY_TEAM_ID: Readonly<
-  Record<string, string>
-> = {
-  "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57":
-    "88a643f5-5a60-44da-927f-274931c10509", // TerraNova BE
-};
 
 type DirectorRow = {
   id: string;
@@ -254,21 +240,6 @@ export async function getSecondarySponsoringStateForAuthUser(
     );
   }
 
-  const previewSponsorId =
-    TEMPORARY_SECONDARY_SPONSOR_PREVIEW_BY_TEAM_ID[assignment.team_id];
-  if (previewSponsorId) {
-    return {
-      kind: "preview",
-      activeContract: null,
-      contract: await loadTemporarySecondarySponsorPreview({
-        supabase,
-        teamId: assignment.team_id,
-        sponsorId: previewSponsorId,
-        activeSeason,
-      }),
-    };
-  }
-
   const activeContractRow = await loadSecondaryContract({
     supabase,
     teamId: assignment.team_id,
@@ -362,46 +333,6 @@ export async function getSecondarySponsoringStateForAuthUser(
     targetGameYear,
     targetSeasonName: targetSeason.name,
     offers,
-  };
-}
-
-async function loadTemporarySecondarySponsorPreview({
-  supabase,
-  teamId,
-  sponsorId,
-  activeSeason,
-}: {
-  supabase: SupabaseAdminClient;
-  teamId: string;
-  sponsorId: string;
-  activeSeason: SeasonRow;
-}): Promise<SecondarySponsorContract> {
-  const [catalogResult, country, baseJersey] = await Promise.all([
-    supabase
-      .from("secondary_sponsor_catalog")
-      .select(
-        "id, country_id, name, prestige, primary_color, accent_color, logo_variant",
-      )
-      .eq("id", sponsorId)
-      .maybeSingle<CatalogRow>(),
-    loadContractCountry(supabase, sponsorId),
-    loadFuturePrincipalJersey({ supabase, teamId, targetSeason: activeSeason }),
-  ]);
-
-  if (catalogResult.error || !catalogResult.data || !country || !baseJersey) {
-    throw new Error("L’aperçu temporaire du sponsor secondaire est indisponible.");
-  }
-
-  return {
-    id: `preview:${teamId}`,
-    status: "planned",
-    seasonId: activeSeason.id,
-    targetGameYear: activeSeason.game_year,
-    targetSeasonName: "Aperçu temporaire",
-    sponsor: hydrateSecondarySponsor(catalogResult.data, country),
-    objectives: [],
-    logoPlacement: DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT,
-    baseJersey,
   };
 }
 
