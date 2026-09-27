@@ -666,6 +666,8 @@ export default async function GamePage() {
                     teamSponsorIdentity.budgetPerSeason,
                     teamSponsorIdentity.currencyCode,
                   )}
+                  secondarySponsor={teamSponsorIdentity.secondarySponsor}
+                  secondaryLogoPlacement={teamSponsorIdentity.secondaryLogoPlacement}
                   objectiveSummary={sponsorObjectiveSummary}
                 />
               ) : (
@@ -1093,6 +1095,8 @@ function DirectorProfileCard({
             amateurTeamName={teamAmateurIdentity?.amateurName}
             sponsor={teamSponsorIdentity?.sponsor}
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
+            secondarySponsor={teamSponsorIdentity?.secondarySponsor}
+            secondaryLogoPlacement={teamSponsorIdentity?.secondaryLogoPlacement}
             className="h-20 w-16 shrink-0 drop-shadow-lg sm:h-24 sm:w-20"
           />
 

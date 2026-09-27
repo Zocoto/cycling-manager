@@ -1350,6 +1350,8 @@ function CurrentTeamCard({
             amateurTeamName={amateurTeamName}
             sponsor={sponsorIdentity?.sponsor ?? null}
             sponsorJersey={sponsorIdentity?.selectedJersey ?? null}
+            secondarySponsor={sponsorIdentity?.secondarySponsor ?? null}
+            secondaryLogoPlacement={sponsorIdentity?.secondaryLogoPlacement ?? null}
             className="mx-auto h-24 w-20 drop-shadow-xl"
           />
           <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#BFD1C6]">

@@ -2,6 +2,7 @@ import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "@/components/game/sponsor-logo";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
+import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
 import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
 import {
   SPONSOR_SPORTING_PHILOSOPHY_CONFIG,
@@ -292,6 +293,10 @@ function ContinuingContractNotice({
                     >
                       {objective.name}
                     </SponsorObjectiveTitle>
+                    <SponsorMainObjectiveTermsCard
+                      terms={objective.mainObjectiveTerms}
+                      compact
+                    />
                   </li>
                 ))}
               </ol>
@@ -548,6 +553,10 @@ function FutureSponsorOfferCard({
                   <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">
                     {objective.satisfactionPoints} points
                   </span>
+                  <SponsorMainObjectiveTermsCard
+                    terms={objective.mainObjectiveTerms}
+                    compact
+                  />
                 </div>
               </li>
             ))}

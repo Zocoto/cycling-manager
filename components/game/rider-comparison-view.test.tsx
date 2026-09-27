@@ -78,6 +78,7 @@ function createProfile({
     avatarSeed: id,
     activeSeason: { id: "season", name: "Saison 2", gameYear: 2 },
     age: 26,
+    physique: null,
     careerRaceDays: 125,
     potentialSteps: 6,
     ratings,

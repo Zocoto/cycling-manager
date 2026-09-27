@@ -568,6 +568,8 @@ function ProfileSummaryCard({
             amateurTeamName={teamAmateurIdentity?.amateurName}
             sponsor={teamSponsorIdentity?.sponsor}
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
+            secondarySponsor={teamSponsorIdentity?.secondarySponsor}
+            secondaryLogoPlacement={teamSponsorIdentity?.secondaryLogoPlacement}
             className="h-36 w-32 drop-shadow-xl"
           />
 
@@ -603,6 +605,8 @@ function ProfileSummaryCard({
               amateurTeamName={teamAmateurIdentity?.amateurName}
               sponsor={teamSponsorIdentity?.sponsor}
               sponsorJersey={teamSponsorIdentity?.selectedJersey}
+              secondarySponsor={teamSponsorIdentity?.secondarySponsor}
+              secondaryLogoPlacement={teamSponsorIdentity?.secondaryLogoPlacement}
               className="h-32 w-28 shrink-0 drop-shadow-xl"
             />
 

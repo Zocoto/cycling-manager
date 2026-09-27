@@ -10,6 +10,7 @@ import {
 } from "@/lib/gameplay-rules";
 import { SPONSORS } from "@/data/sponsors";
 import { getSponsorReputationInvestment } from "@/lib/game/reputation";
+import { normalizeSecondarySponsorLogoPlacement } from "@/lib/game/secondary-sponsor";
 import {
   getSponsorNegotiationBudgetCeiling,
   isSponsorObjectiveDifficulty,
@@ -651,6 +652,65 @@ export async function terminateSponsorContractAction(
   );
 }
 
+export async function signSecondarySponsorOfferAction(formData: FormData) {
+  const offerId = readRequiredValue(formData, "offerId");
+  if (!isUuid(offerId)) {
+    redirectSecondaryWithError("L’offre secondaire sélectionnée est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc("sign_secondary_sponsor_offer", {
+    p_offer_id: offerId,
+  });
+  if (error) redirectSecondaryWithError(error.message);
+
+  revalidateSponsoringPaths();
+  redirect("/jeu/sponsoring?onglet=secondaire&succes=sponsor-secondaire");
+}
+
+export async function updateSecondarySponsorLogoAction(formData: FormData) {
+  const contractId = readRequiredValue(formData, "contractId");
+  if (!isUuid(contractId)) {
+    redirectSecondaryWithError("Le contrat secondaire est invalide.");
+  }
+
+  const rawPlacement = {
+    xPercent: Number(readRequiredValue(formData, "xPercent")),
+    yPercent: Number(readRequiredValue(formData, "yPercent")),
+    scale: Number(readRequiredValue(formData, "scale")),
+    rotationDegrees: Number(readRequiredValue(formData, "rotationDegrees")),
+  };
+  if (Object.values(rawPlacement).some((value) => !Number.isFinite(value))) {
+    redirectSecondaryWithError("Le placement du logo est invalide.");
+  }
+  const placement = normalizeSecondarySponsorLogoPlacement(rawPlacement);
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc("update_secondary_sponsor_logo", {
+    p_contract_id: contractId,
+    p_x_percent: placement.xPercent,
+    p_y_percent: placement.yPercent,
+    p_scale: placement.scale,
+    p_rotation_degrees: placement.rotationDegrees,
+  });
+  if (error) redirectSecondaryWithError(error.message);
+
+  revalidateSponsoringPaths();
+  redirect("/jeu/sponsoring?onglet=secondaire&succes=logo-secondaire");
+}
+
 function revalidateSponsoringPaths() {
   for (const path of
     SPONSORING_REVALIDATION_PATHS) {
@@ -696,5 +756,15 @@ function redirectWithError(
     `/jeu/sponsoring?erreur=${encodeURIComponent(
       normalizedMessage
     )}`
+  );
+}
+
+function redirectSecondaryWithError(message: string): never {
+  const normalizedMessage =
+    message.trim() || "Une erreur est survenue pendant l’opération.";
+  redirect(
+    `/jeu/sponsoring?onglet=secondaire&erreur=${encodeURIComponent(
+      normalizedMessage,
+    )}`,
   );
 }

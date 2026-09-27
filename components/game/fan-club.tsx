@@ -42,6 +42,10 @@ import {
 } from "@/lib/game/fan-club-pilot";
 import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
 import type { Sponsor } from "@/types/sponsor";
+import type {
+  SecondarySponsorIdentity,
+  SecondarySponsorLogoPlacement,
+} from "@/lib/game/secondary-sponsor";
 
 const BASE_TABS: ReadonlyArray<{
   id: FanClubPilotTab;
@@ -84,6 +88,8 @@ type ExecuteAction = (
 export type FanClubSponsorIdentity = {
   sponsor: Sponsor;
   selectedJersey: Sponsor["jerseys"][number];
+  secondarySponsor?: SecondarySponsorIdentity | null;
+  secondaryLogoPlacement?: SecondarySponsorLogoPlacement | null;
 };
 
 export function FanClub({
@@ -904,6 +910,8 @@ export function StoreProductVisual({
         <SponsorJerseyPreview
           sponsor={sponsorIdentity.sponsor}
           jersey={sponsorIdentity.selectedJersey}
+          secondarySponsor={sponsorIdentity.secondarySponsor}
+          secondaryLogoPlacement={sponsorIdentity.secondaryLogoPlacement}
           className={compact ? "h-12 w-11" : "h-[4.5rem] w-16"}
         />
       ) : (

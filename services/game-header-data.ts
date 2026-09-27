@@ -97,6 +97,8 @@ function toTeamSponsorIdentity(
     teamShortName: snapshot.team_short_name,
     sponsor,
     selectedJersey,
+    secondarySponsor: null,
+    secondaryLogoPlacement: null,
     budgetPerSeason,
     currencyCode: snapshot.currency_code,
     contractDurationSeasons: snapshot.contract_duration_seasons,

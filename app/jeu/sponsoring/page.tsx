@@ -8,6 +8,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorBudgetHistoryChart } from "@/components/game/sponsor-budget-history-chart";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
+import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
 import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
@@ -30,10 +31,15 @@ import {
 } from "../../../services/sponsoring-workflow";
 import type { PersistedSponsorObjective } from "../../../types/sponsor-objective";
 import {
+  getSecondarySponsoringStateForAuthUser,
+  type SecondarySponsoringState,
+} from "../../../services/secondary-sponsors";
+import {
   signSponsorOfferAction,
   terminateSponsorContractAction,
 } from "./actions";
 import { FutureSponsoringSection } from "./future-sponsoring-section";
+import { SecondarySponsorSection } from "./secondary-sponsor-section";
 import {
   ConfirmSponsorButton,
   SponsorJerseySelector,
@@ -54,6 +60,7 @@ type SponsoringPageProps = {
   searchParams?: Promise<{
     erreur?: string | string[];
     succes?: string | string[];
+    onglet?: string | string[];
   }>;
 };
 
@@ -65,6 +72,11 @@ export default async function SponsoringPage({
   const actionError = readSearchParameter(resolvedSearchParams.erreur);
 
   const actionSuccess = readSearchParameter(resolvedSearchParams.succes);
+
+  const activeTab =
+    readSearchParameter(resolvedSearchParams.onglet) === "secondaire"
+      ? "secondaire"
+      : "principal";
 
   const supabase = await createSupabaseServerClient();
 
@@ -81,12 +93,24 @@ export default async function SponsoringPage({
 
   let sponsoringError: string | null = null;
 
+  let secondarySponsoringState: SecondarySponsoringState | null = null;
+
+  let secondarySponsoringError: string | null = null;
+
   try {
     sponsoringState = await getSponsoringStateForAuthUser(user.id);
   } catch (error) {
     console.error("Impossible de récupérer l’état du sponsoring :", error);
 
     sponsoringError = getErrorMessage(error);
+  }
+
+  try {
+    secondarySponsoringState =
+      await getSecondarySponsoringStateForAuthUser(user.id);
+  } catch (error) {
+    console.error("Impossible de récupérer le sponsor secondaire :", error);
+    secondarySponsoringError = getErrorMessage(error);
   }
 
   const [reputationResult, activeSeasonResult] = await Promise.all([
@@ -145,11 +169,15 @@ export default async function SponsoringPage({
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
-                {getPageIntroduction(sponsoringState)}
+                {activeTab === "secondaire"
+                  ? "Préparez un partenariat complémentaire pour la saison suivante et placez son logo sur votre futur maillot."
+                  : getPageIntroduction(sponsoringState)}
               </p>
             </div>
 
-            {availableOfferCount !== null && !sponsoringError ? (
+            {activeTab === "principal" &&
+            availableOfferCount !== null &&
+            !sponsoringError ? (
               <div className="rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 text-right shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
                 <p className="text-2xl font-black">{availableOfferCount}</p>
 
@@ -160,13 +188,15 @@ export default async function SponsoringPage({
             ) : null}
           </header>
 
-          {sponsoringState ? (
+          <SponsoringTabs activeTab={activeTab} />
+
+          {activeTab === "principal" && sponsoringState ? (
             <div data-tutorial-id="sponsoring-overview">
               <SponsoringStatusNotice state={sponsoringState} />
             </div>
           ) : null}
 
-          <TutorialSponsorPreview />
+          {activeTab === "principal" ? <TutorialSponsorPreview /> : null}
 
           {actionSuccess === "rupture" ? <ActionSuccessMessage /> : null}
 
@@ -175,12 +205,25 @@ export default async function SponsoringPage({
             <NegotiationSuccessMessage />
           ) : null}
 
+          {actionSuccess === "sponsor-secondaire" ? (
+            <SecondarySponsorSuccessMessage />
+          ) : null}
+
+          {actionSuccess === "logo-secondaire" ? (
+            <SecondaryLogoSuccessMessage />
+          ) : null}
+
           {actionError ? <ActionErrorMessage message={actionError} /> : null}
 
-          {sponsoringError ? (
+          {activeTab === "principal" && sponsoringError ? (
             <SponsoringErrorMessage message={sponsoringError} />
           ) : null}
 
+          {activeTab === "secondaire" && secondarySponsoringError ? (
+            <SponsoringErrorMessage message={secondarySponsoringError} />
+          ) : null}
+
+          {activeTab === "principal" ? (
           <div data-tutorial-id="sponsoring-overview">
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
@@ -223,10 +266,14 @@ export default async function SponsoringPage({
                 <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
               </>
             ) : null}
-
           </div>
 
-          {!sponsoringError &&
+          ) : !secondarySponsoringError ? (
+            <SecondarySponsorSection state={secondarySponsoringState} />
+          ) : null}
+
+          {activeTab === "principal" &&
+          !sponsoringError &&
           sponsoringState &&
           sponsoringState.kind !== "onboarding" ? (
             <SponsorBudgetHistoryChart points={sponsoringState.budgetHistory} />
@@ -1373,6 +1420,10 @@ function ContractObjectiveItem({
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>
+        <SponsorMainObjectiveTermsCard
+          terms={objective.mainObjectiveTerms}
+          compact
+        />
         {raceResult ? (
           <div className="mt-2 rounded-lg border border-[#315B3E]/10 bg-[#F7FAF8] px-3 py-2">
             <p className="text-[11px] font-extrabold text-[#294D43]">
@@ -1757,6 +1808,10 @@ function SponsorObjectiveItem({
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>
+        <SponsorMainObjectiveTermsCard
+          terms={objective.mainObjectiveTerms}
+          compact
+        />
       </div>
     </li>
   );
@@ -1789,6 +1844,62 @@ function NegotiationSuccessMessage() {
         recalculés selon le niveau de difficulté choisi.
       </p>
     </div>
+  );
+}
+
+function SecondarySponsorSuccessMessage() {
+  return (
+    <div role="status" className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950">
+      <p className="font-black">Le sponsor secondaire est signé.</p>
+      <p className="mt-2 text-sm leading-6">
+        Le nouveau nom, les objectifs rémunérés et le logo prendront effet au
+        jour 1 de la saison suivante.
+      </p>
+    </div>
+  );
+}
+
+function SecondaryLogoSuccessMessage() {
+  return (
+    <div role="status" className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950">
+      <p className="font-black">Le placement du logo est enregistré.</p>
+      <p className="mt-2 text-sm leading-6">
+        Cette position sera appliquée au maillot de la saison suivante.
+      </p>
+    </div>
+  );
+}
+
+function SponsoringTabs({
+  activeTab,
+}: {
+  activeTab: "principal" | "secondaire";
+}) {
+  return (
+    <nav className="mt-8 flex w-fit rounded-xl border border-[#315B3E]/15 bg-white/85 p-1 shadow-sm" aria-label="Catégories de sponsoring">
+      <Link
+        href="/jeu/sponsoring"
+        aria-current={activeTab === "principal" ? "page" : undefined}
+        className={`rounded-lg px-4 py-2.5 text-sm font-black transition ${
+          activeTab === "principal"
+            ? "bg-[#082A2A] text-white"
+            : "text-[#48665F] hover:bg-[#EAF5F3]"
+        }`}
+      >
+        Sponsor principal
+      </Link>
+      <Link
+        href="/jeu/sponsoring?onglet=secondaire"
+        aria-current={activeTab === "secondaire" ? "page" : undefined}
+        className={`rounded-lg px-4 py-2.5 text-sm font-black transition ${
+          activeTab === "secondaire"
+            ? "bg-[#082A2A] text-white"
+            : "text-[#48665F] hover:bg-[#EAF5F3]"
+        }`}
+      >
+        Sponsor secondaire
+      </Link>
+    </nav>
   );
 }
 

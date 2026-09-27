@@ -20,6 +20,7 @@ import type {
   SponsorObjectiveStatus,
   SponsorObjectiveTargetDetails,
 } from "@/types/sponsor-objective";
+import type { SponsorMainObjectiveTerms } from "@/lib/game/sponsor-main-objective";
 import type { SponsorObjectiveAchievementLevel } from "@/lib/game/sponsor-objective-status";
 import {
   resolveSponsorSportingPhilosophy,
@@ -58,6 +59,7 @@ export type SponsorContractObjective = {
   progressStatus: "not_started" | "in_progress" | "achieved" | "failed" | null;
   achievementLevel: SponsorObjectiveAchievementLevel | null;
   partialSatisfactionPoints: number;
+  mainObjectiveTerms: SponsorMainObjectiveTerms | null;
 };
 
 export type SponsorSatisfactionEvent = {
@@ -892,6 +894,7 @@ async function hydrateSponsorContract({
         progressStatus: progress?.status ?? null,
         achievementLevel: progress?.achievementLevel ?? null,
         partialSatisfactionPoints: progress?.partialSatisfactionPoints ?? 0,
+        mainObjectiveTerms: objective.mainObjectiveTerms,
       };
     });
   }
