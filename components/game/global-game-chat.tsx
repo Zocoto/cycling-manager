@@ -1222,38 +1222,18 @@ export function GlobalGameChat({
         }
       >
       <section className="relative flex h-full min-h-0 min-w-0 flex-col bg-[#F7FBF9]">
-        <header className="shrink-0 border-b border-[#315B3E]/12 bg-white px-4 py-2.5 sm:px-6">
-          <div className="flex items-center gap-2.5">
+        <header className="shrink-0 border-b border-[#315B3E]/12 bg-white px-3 py-1.5 sm:px-6 sm:py-2">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <span
               aria-hidden="true"
-              className="h-2 w-2 animate-pulse rounded-full bg-[#42B99A]"
+              className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#42B99A] sm:h-2 sm:w-2"
             />
-            <h2 className="min-w-0 flex-1 truncate text-base font-black text-[#0B302B] sm:text-lg">
-              Le peloton parle
+            <h2 className="shrink-0 text-xs font-black text-[#0B302B] sm:text-base">
+              <span className="sm:hidden">Peloton</span>
+              <span className="hidden sm:inline">Le peloton parle</span>
             </h2>
-            <button
-              type="button"
-              onClick={() =>
-                searchOpen ? closeHistorySearch() : setSearchOpen(true)
-              }
-              className={`grid h-8 w-8 place-items-center rounded-full text-sm font-black transition ${
-                searchOpen
-                  ? "bg-[#176951] text-white"
-                  : "bg-[#EAF7F1] text-[#176951] hover:bg-[#D7EFE3]"
-              }`}
-              aria-label="Rechercher dans l’historique du chat"
-              aria-expanded={searchOpen}
-            >
-             ⌕
-            </button>
-            <span className="hidden rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951] lg:inline-flex">
-              {onlineDirectors.length} en ligne
-            </span>
-          </div>
-
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div
-              className="order-2 flex min-w-0 items-center gap-1.5 overflow-x-auto sm:order-1 sm:flex-1"
+              className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-1.5"
               data-mobile-scroll-rail="true"
             >
               {(
@@ -1277,7 +1257,7 @@ export function GlobalGameChat({
                   key={view}
                   type="button"
                   onClick={() => setGlobalView(view)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                  className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black transition sm:px-3 sm:py-1.5 sm:text-[10px] ${
                     globalView === view
                       ? "bg-[#0B302B] text-white"
                       : "bg-[#F0F6F3] text-[#60756E] hover:bg-[#E4F4EC] hover:text-[#176951]"
@@ -1291,10 +1271,10 @@ export function GlobalGameChat({
             <button
               type="button"
               onClick={toggleRaceMessagesVisibility}
-              className={`group order-1 flex w-full shrink-0 items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]/30 sm:order-2 sm:w-auto sm:min-w-[18rem] ${
+              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2 text-[9px] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]/30 sm:h-8 sm:gap-1.5 sm:px-2.5 sm:text-[10px] ${
                 hideRaceMessages
                   ? "border-[#42B99A]/60 bg-[#EAF7F1] text-[#0B302B] hover:bg-[#DDF3E7]"
-                  : "border-[#DDBE46] bg-[#FFF8DB] text-[#0B302B] shadow-[0_3px_12px_rgba(149,116,0,0.12)] hover:bg-[#FFF2BD]"
+                  : "border-[#DDBE46] bg-[#FFF8DB] text-[#0B302B] hover:bg-[#FFF2BD]"
               }`}
               data-chat-race-visibility-control="true"
               aria-label={
@@ -1303,18 +1283,16 @@ export function GlobalGameChat({
                   : "Masquer les messages issus des courses"
               }
               aria-pressed={hideRaceMessages}
+              title={
+                hideRaceMessages
+                  ? "Réafficher les discussions de courses"
+                  : "Masquer les discussions de courses"
+              }
             >
-              <span
-                aria-hidden="true"
-                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
-                  hideRaceMessages
-                    ? "bg-[#176951] text-white"
-                    : "bg-[#F2C94C] text-[#0B302B]"
-                }`}
-              >
+              <span aria-hidden="true" className="shrink-0">
                 <svg
                   viewBox="0 0 24 24"
-                  className="h-4 w-4"
+                  className="h-3.5 w-3.5"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -1326,26 +1304,31 @@ export function GlobalGameChat({
                   {hideRaceMessages ? <path d="m4 4 16 16" /> : null}
                 </svg>
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-black leading-tight">
-                  Discussions de courses
-                </span>
-                <span className="mt-0.5 block text-[9px] font-bold leading-tight text-[#60756E]">
-                  {hideRaceMessages
-                    ? "Masquées du chat général"
-                    : "Affichées dans le chat général"}
-                </span>
-              </span>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.04em] ${
-                  hideRaceMessages
-                    ? "bg-white text-[#176951] shadow-sm"
-                    : "bg-[#0B302B] text-white"
-                }`}
-              >
-                {hideRaceMessages ? "Réafficher" : "Masquer"}
+              <span aria-hidden="true">Courses</span>
+              <span className="sr-only">
+                Discussions de courses · {hideRaceMessages
+                  ? "Masquées du chat général"
+                  : "Affichées dans le chat général"}
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                searchOpen ? closeHistorySearch() : setSearchOpen(true)
+              }
+              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black transition sm:h-8 sm:w-8 sm:text-sm ${
+                searchOpen
+                  ? "bg-[#176951] text-white"
+                  : "bg-[#EAF7F1] text-[#176951] hover:bg-[#D7EFE3]"
+              }`}
+              aria-label="Rechercher dans l’historique du chat"
+              aria-expanded={searchOpen}
+            >
+              ⌕
+            </button>
+            <span className="hidden rounded-full bg-[#E4F4EC] px-3 py-1 text-[10px] font-black text-[#176951] lg:inline-flex">
+              {onlineDirectors.length} en ligne
+            </span>
           </div>
 
           {searchOpen ? (
@@ -1777,7 +1760,7 @@ function ChatModeTabs({
 }) {
   return (
     <div
-      className="flex shrink-0 items-center gap-2 border-b border-[#315B3E]/12 bg-white/95 px-4 py-3 backdrop-blur sm:px-6"
+      className="flex shrink-0 items-center gap-1.5 border-b border-[#315B3E]/12 bg-white/95 px-3 py-2 backdrop-blur sm:gap-2 sm:px-6 sm:py-3"
     >
       <div
         className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto"
@@ -1789,7 +1772,7 @@ function ChatModeTabs({
           role="tab"
           aria-selected={activeMode === "global"}
           onClick={() => onModeChange("global")}
-          className={`relative shrink-0 rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+          className={`relative shrink-0 rounded-xl px-2.5 py-1.5 text-[11px] font-black transition sm:px-4 sm:py-2 sm:text-xs ${
             activeMode === "global"
               ? "bg-[#176951] text-white shadow-sm"
               : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
@@ -1805,7 +1788,7 @@ function ChatModeTabs({
           role="tab"
           aria-selected={activeMode === "direct"}
           onClick={() => onModeChange("direct")}
-          className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-black transition sm:gap-2 sm:px-4 sm:py-2 sm:text-xs ${
             activeMode === "direct"
               ? "bg-[#176951] text-white shadow-sm"
               : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
@@ -1813,7 +1796,7 @@ function ChatModeTabs({
         >
           Privés
           {directUnreadCount > 0 ? (
-            <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[#EF5B65] px-1 text-[9px] font-black text-white">
+            <span className="grid min-h-4 min-w-4 place-items-center rounded-full bg-[#EF5B65] px-1 text-[8px] font-black text-white sm:min-h-5 sm:min-w-5 sm:text-[9px]">
               {Math.min(99, directUnreadCount)}
             </span>
           ) : null}
@@ -1823,7 +1806,7 @@ function ChatModeTabs({
           role="tab"
           aria-selected={activeMode === "federation"}
           onClick={() => onModeChange("federation")}
-          className={`shrink-0 rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 ${
+          className={`shrink-0 rounded-xl px-2.5 py-1.5 text-[11px] font-black transition sm:px-4 sm:py-2 sm:text-xs ${
             activeMode === "federation"
               ? "bg-[#176951] text-white shadow-sm"
               : "bg-[#EAF7F1] text-[#176951] hover:bg-[#DDF3E7]"
@@ -1835,12 +1818,12 @@ function ChatModeTabs({
       <button
         type="button"
         onClick={onShowOnlineDirectors}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#0B302B] px-3 py-2 text-[10px] font-black text-white shadow-sm transition hover:bg-[#176951] lg:hidden"
+        className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#0B302B] px-2 py-1.5 text-[9px] font-black text-white shadow-sm transition hover:bg-[#176951] sm:gap-1.5 sm:px-3 sm:py-2 sm:text-[10px] lg:hidden"
         aria-label="Voir les Directeurs Sportifs en ligne"
       >
         <span
           aria-hidden="true"
-          className="h-2 w-2 rounded-full bg-[#42B99A]"
+          className="h-1.5 w-1.5 rounded-full bg-[#42B99A] sm:h-2 sm:w-2"
         />
         {onlineDirectorCount}
         <span>en ligne</span>

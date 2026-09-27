@@ -69,9 +69,18 @@ describe("global chat mobile refresh", () => {
     expect(chat).toContain("Discussions de courses");
     expect(chat).toContain("Affichées dans le chat général");
     expect(chat).toContain("Masquées du chat général");
-    expect(chat).toContain('sm:min-w-[18rem]');
+    expect(chat).toContain("inline-flex h-7 shrink-0");
+    expect(chat).not.toContain('sm:min-w-[18rem]');
     expect(chat).toContain("saveGlobalChatRaceVisibilityPreference");
     expect(chat).toContain("!raceMessageIsHidden");
+  });
+
+  it("keeps the mobile reading area tall with one compact command row", () => {
+    expect(chat).toContain('<span className="sm:hidden">Peloton</span>');
+    expect(chat).toContain("px-3 py-1.5 sm:px-6 sm:py-2");
+    expect(chat).toContain("px-2 py-1 text-[9px]");
+    expect(chat).toContain("px-3 py-2 backdrop-blur");
+    expect(chat).toContain("px-2.5 py-1.5 text-[11px]");
   });
 
   it("renders the race origin in the shared global feed", () => {
