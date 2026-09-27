@@ -708,6 +708,7 @@ export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
+const SELECTIVE_FINISH_SAME_TIME_MAX_GAP_SECONDS = 0;
 const DELAYED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const DROPPED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
@@ -845,9 +846,10 @@ export function decideLargeBreakawayStandoff({
 export function areFinishersInSameTimeGroup(
   previousElapsedTimeSeconds: number,
   elapsedTimeSeconds: number,
+  maximumGapSeconds = SAME_TIME_MAX_GAP_SECONDS,
 ) {
   const gapSeconds = elapsedTimeSeconds - previousElapsedTimeSeconds;
-  return gapSeconds >= 0 && gapSeconds <= SAME_TIME_MAX_GAP_SECONDS;
+  return gapSeconds >= 0 && gapSeconds <= Math.max(0, maximumGapSeconds);
 }
 
 /**
@@ -3485,9 +3487,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     input.segments,
     getLargestContendingRoadGroupSize(states),
   );
-  const groupSprintFinish = roadFinishMode !== "selective";
+  const massSprintFinish = roadFinishMode === "mass_sprint";
   const preserveFinalRoadGroups =
-    groupSprintFinish || shouldPreserveFinalRoadGroupTimes(input.segments);
+    roadFinishMode !== "selective" ||
+    shouldPreserveFinalRoadGroupTimes(input.segments);
   const finishScores = getRoadFinishScores(
     states,
     input.segments,
@@ -3503,6 +3506,14 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     profileType: input.profileType,
     finishMode: roadFinishMode,
     commentary: finalCommentary,
+  });
+  const finalEffortGapSecondsByRiderId = buildNonMassFinishEffortGaps({
+    states,
+    finishScores,
+    groups: timeline.at(-1)?.groups ?? [],
+    segments: input.segments,
+    profileType: input.profileType,
+    finishMode: roadFinishMode,
   });
   const fixedRoadGroupFinishTimes = preserveFinalRoadGroups
     ? buildFlatGroupFinishTimes({
@@ -3522,9 +3533,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       elapsedTimeSeconds: getRoadFinishTime(
         state,
         states,
-        groupSprintFinish,
+        massSprintFinish,
         fixedRoadGroupFinishTimes.get(state.rider.id),
-      ),
+      ) + (finalEffortGapSecondsByRiderId.get(state.rider.id) ?? 0),
       energyAfter: round(state.energy, 1),
     }));
   rawResults.sort(
@@ -3568,6 +3579,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
   const finishGroups = normalizeRoadFinishGroupTimes({
     results,
+    sameTimeMaximumGapSeconds: massSprintFinish
+      ? SAME_TIME_MAX_GAP_SECONDS
+      : SELECTIVE_FINISH_SAME_TIME_MAX_GAP_SECONDS,
   });
 
   awardFinishClassificationPoints({
@@ -9007,7 +9021,7 @@ function applyTeamFinishHierarchy({
 function getRoadFinishTime(
   state: RiderState,
   states: Map<string, RiderState>,
-  groupSprintFinish: boolean,
+  massSprintFinish: boolean,
   fixedGroupFinishTimeSeconds?: number,
 ) {
   if (
@@ -9018,7 +9032,7 @@ function getRoadFinishTime(
   }
 
   const sprintFinish =
-    groupSprintFinish &&
+    massSprintFinish &&
     (state.group === "peloton" ||
       state.group === "breakaway" ||
       state.group === "breakaway_2" ||
@@ -9035,10 +9049,193 @@ function getRoadFinishTime(
     );
   }
 
-  // Les tronçons, attaques et cassures ont déjà produit le temps réellement
-  // couru. Le score final départage uniquement les coureurs à temps égal :
-  // le convertir aussi en secondes compterait une deuxième fois la montée.
+  // Les tronçons, attaques et cassures fournissent le temps de base. Sur un
+  // final non massif, l'ajustement d'effort final est ajouté séparément afin
+  // de matérialiser les dernières différences de niveau et de fraîcheur.
   return state.elapsedTimeSeconds;
+}
+
+type FinishEffortGapProfile = {
+  scoreTolerance: number;
+  secondsPerScorePoint: number;
+  freshnessTolerance: number;
+  secondsPerFreshnessPoint: number;
+  maximumGapSeconds: number;
+};
+
+/**
+ * L'effort jusqu'à la ligne ne doit pas être une simple photo-finish sur un
+ * final sélectif. Le score de finish contient déjà le niveau du terrain, la
+ * forme du jour et le travail collectif ; la réserve restante ajoute la part
+ * de fraîcheur qui distingue deux coureurs encore ensemble au pied du dernier
+ * effort. Les coefficients restent volontairement plus faibles sur un sprint
+ * réduit que sur une arrivée au sommet.
+ */
+export function getNonMassFinishEffortGapSeconds({
+  score,
+  bestScore,
+  energy,
+  referenceEnergy,
+  profile,
+}: {
+  score: number;
+  bestScore: number;
+  energy: number;
+  referenceEnergy: number;
+  profile: FinishEffortGapProfile;
+}) {
+  const scoreDeficit = Math.max(
+    0,
+    bestScore - score - profile.scoreTolerance,
+  );
+  const freshnessDeficit = Math.max(
+    0,
+    referenceEnergy - energy - profile.freshnessTolerance,
+  );
+
+  return clamp(
+    scoreDeficit * profile.secondsPerScorePoint +
+      freshnessDeficit * profile.secondsPerFreshnessPoint,
+    0,
+    profile.maximumGapSeconds,
+  );
+}
+
+function getNonMassFinishEffortGapProfile({
+  segments,
+  profileType,
+  finishMode,
+}: {
+  segments: RaceStageSegment[];
+  profileType: RaceProfileType;
+  finishMode: RoadFinishMode;
+}): FinishEffortGapProfile | null {
+  if (
+    finishMode === "mass_sprint" ||
+    shouldPreserveFinalRoadGroupTimes(segments)
+  ) {
+    return null;
+  }
+
+  if (finishMode === "reduced_sprint") {
+    return {
+      scoreTolerance: 1.25,
+      secondsPerScorePoint: 0.24,
+      freshnessTolerance: 5,
+      secondsPerFreshnessPoint: 0.06,
+      maximumGapSeconds: 15,
+    };
+  }
+
+  const longSummitFinishFactor = getLongSummitFinishFactor(segments);
+  if (longSummitFinishFactor > 0) {
+    return {
+      scoreTolerance: 0.45,
+      secondsPerScorePoint: 1.35 + longSummitFinishFactor * 0.75,
+      freshnessTolerance: 2,
+      secondsPerFreshnessPoint: 0.16 + longSummitFinishFactor * 0.14,
+      maximumGapSeconds: 120,
+    };
+  }
+
+  const finalSegment = segments.at(-1);
+  if (finalSegment?.terrain === "climb") {
+    const climbDifficulty = clamp(
+      (finalSegment.distanceKm *
+        Math.max(0, finalSegment.averageGradientPct)) /
+        70,
+      0,
+      1,
+    );
+    const mountainFinish = profileType === "mountain";
+    return {
+      scoreTolerance: 0.6,
+      secondsPerScorePoint:
+        (mountainFinish ? 0.95 : 0.65) + climbDifficulty * 0.35,
+      freshnessTolerance: 3,
+      secondsPerFreshnessPoint:
+        (mountainFinish ? 0.14 : 0.1) + climbDifficulty * 0.08,
+      maximumGapSeconds: mountainFinish ? 65 : 40,
+    };
+  }
+
+  if (profileType === "hilly" || profileType === "mixed") {
+    return {
+      scoreTolerance: 0.75,
+      secondsPerScorePoint: 0.55,
+      freshnessTolerance: 4,
+      secondsPerFreshnessPoint: 0.09,
+      maximumGapSeconds: 32,
+    };
+  }
+
+  return {
+    scoreTolerance: 0.85,
+    secondsPerScorePoint: profileType === "mountain" ? 0.65 : 0.45,
+    freshnessTolerance: 4,
+    secondsPerFreshnessPoint: profileType === "mountain" ? 0.11 : 0.07,
+    maximumGapSeconds: profileType === "mountain" ? 45 : 28,
+  };
+}
+
+function buildNonMassFinishEffortGaps({
+  states,
+  finishScores,
+  groups,
+  segments,
+  profileType,
+  finishMode,
+}: {
+  states: Map<string, RiderState>;
+  finishScores: ReadonlyMap<string, number>;
+  groups: ReadonlyArray<Pick<RaceGroupSnapshot, "riderIds">>;
+  segments: RaceStageSegment[];
+  profileType: RaceProfileType;
+  finishMode: RoadFinishMode;
+}) {
+  const profile = getNonMassFinishEffortGapProfile({
+    segments,
+    profileType,
+    finishMode,
+  });
+  const gapSecondsByRiderId = new Map<string, number>();
+  if (!profile) return gapSecondsByRiderId;
+
+  for (const group of groups) {
+    const groupStates = group.riderIds.flatMap((riderId) => {
+      const state = states.get(riderId);
+      return state && state.group !== "abandoned" ? [state] : [];
+    });
+    if (groupStates.length < 2) continue;
+
+    let referenceState: RiderState | undefined;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    for (const state of groupStates) {
+      const score = finishScores.get(state.rider.id);
+      if (score !== undefined && Number.isFinite(score) && score > bestScore) {
+        referenceState = state;
+        bestScore = score;
+      }
+    }
+    if (!referenceState || !Number.isFinite(bestScore)) continue;
+
+    for (const state of groupStates) {
+      const score = finishScores.get(state.rider.id);
+      if (score === undefined || !Number.isFinite(score)) continue;
+      gapSecondsByRiderId.set(
+        state.rider.id,
+        getNonMassFinishEffortGapSeconds({
+          score,
+          bestScore,
+          energy: state.energy,
+          referenceEnergy: referenceState.energy,
+          profile,
+        }),
+      );
+    }
+  }
+
+  return gapSecondsByRiderId;
 }
 
 function applySuccessfulFinalClimbAttackGap({
@@ -9315,8 +9512,10 @@ type ClassifiedStageResult = StageSimulationResult["results"][number] & {
 
 export function normalizeRoadFinishGroupTimes({
   results,
+  sameTimeMaximumGapSeconds = SAME_TIME_MAX_GAP_SECONDS,
 }: {
   results: StageSimulationResult["results"];
+  sameTimeMaximumGapSeconds?: number;
 }): ClassifiedStageResult[][] {
   const finishers = results
     .filter(
@@ -9324,7 +9523,10 @@ export function normalizeRoadFinishGroupTimes({
         result.status === "finished" && result.rank !== null,
     )
     .sort((first, second) => first.rank - second.rank);
-  const finishGroups = splitFinishGroupByTime(finishers);
+  const finishGroups = splitFinishGroupByTime(
+    finishers,
+    sameTimeMaximumGapSeconds,
+  );
   const winnerTime = finishGroups[0]?.[0]?.elapsedTimeSeconds ?? 0;
 
   for (const group of finishGroups) {
@@ -9339,7 +9541,10 @@ export function normalizeRoadFinishGroupTimes({
   return finishGroups;
 }
 
-function splitFinishGroupByTime(finishers: ClassifiedStageResult[]) {
+function splitFinishGroupByTime(
+  finishers: ClassifiedStageResult[],
+  sameTimeMaximumGapSeconds: number,
+) {
   const groups: ClassifiedStageResult[][] = [];
 
   for (const finisher of finishers) {
@@ -9351,6 +9556,7 @@ function splitFinishGroupByTime(finishers: ClassifiedStageResult[]) {
       !areFinishersInSameTimeGroup(
         groupLeader.elapsedTimeSeconds,
         finisher.elapsedTimeSeconds,
+        sameTimeMaximumGapSeconds,
       )
     ) {
       groups.push([finisher]);

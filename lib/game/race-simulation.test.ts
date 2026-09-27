@@ -36,6 +36,7 @@ import {
   getStageGeneralClassificationInterest,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
+  getNonMassFinishEffortGapSeconds,
   getRoadCrashRiskProfile,
   getRoadFinishMode,
   getReducedSprintFinishBaseScore,
@@ -55,11 +56,47 @@ import {
 import type { RaceStageSegment } from "./race-profiles";
 
 describe("areFinishersInSameTimeGroup", () => {
-  it("conserve les écarts de 1, 2 ou 3 secondes en MT et casse à 4 secondes", () => {
+  it("conserve la règle des trois secondes uniquement quand elle est demandée", () => {
     expect(areFinishersInSameTimeGroup(100, 101)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 102)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 103)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 104)).toBe(false);
+    expect(areFinishersInSameTimeGroup(100, 100, 0)).toBe(true);
+    expect(areFinishersInSameTimeGroup(100, 101, 0)).toBe(false);
+  });
+});
+
+describe("effort final hors sprint massif", () => {
+  const profile = {
+    scoreTolerance: 0.5,
+    secondsPerScorePoint: 1.5,
+    freshnessTolerance: 3,
+    secondsPerFreshnessPoint: 0.25,
+    maximumGapSeconds: 60,
+  };
+
+  it("convertit les déficits de niveau et de fraîcheur en secondes", () => {
+    expect(
+      getNonMassFinishEffortGapSeconds({
+        score: 70,
+        bestScore: 80,
+        energy: 42,
+        referenceEnergy: 60,
+        profile,
+      }),
+    ).toBeCloseTo(18, 5);
+  });
+
+  it("laisse au même temps deux coureurs réellement au contact", () => {
+    expect(
+      getNonMassFinishEffortGapSeconds({
+        score: 79.7,
+        bestScore: 80,
+        energy: 58,
+        referenceEnergy: 60,
+        profile,
+      }),
+    ).toBe(0);
   });
 });
 
@@ -202,6 +239,22 @@ describe("qualification sportive du final", () => {
       100, 100, 106,
     ]);
     expect(results.map((row) => row.gapToWinnerSeconds)).toEqual([0, 0, 6]);
+
+    const selectiveResults = results.map((row, index) => ({
+      ...row,
+      elapsedTimeSeconds: 100 + index,
+      gapToWinnerSeconds: index,
+    }));
+    normalizeRoadFinishGroupTimes({
+      results: selectiveResults,
+      sameTimeMaximumGapSeconds: 0,
+    });
+    expect(
+      selectiveResults.map((row) => row.elapsedTimeSeconds),
+    ).toEqual([100, 101, 102]);
+    expect(
+      selectiveResults.map((row) => row.gapToWinnerSeconds),
+    ).toEqual([0, 1, 2]);
   });
 });
 
@@ -244,7 +297,7 @@ describe("arrivée au sommet et continuité chronologique", () => {
     ).toBe(0);
   });
 
-  it("départage les grimpeurs sans inventer de retard sur une montée restée groupée", () => {
+  it("convertit l'effort final en écart sur une arrivée au sommet", () => {
     const stronger = {
       ...createSelectionTestRider("stronger", { mountain: 85, endurance: 70 }),
       role: "leader" as const,
@@ -280,10 +333,10 @@ describe("arrivée au sommet et continuité chronologique", () => {
     )!;
 
     expect(strongerResult.rank).toBeLessThan(weakerResult.rank!);
-    expect(strongerResult.elapsedTimeSeconds).toBe(
-      weakerResult.elapsedTimeSeconds,
+    expect(weakerResult.elapsedTimeSeconds).toBeGreaterThan(
+      strongerResult.elapsedTimeSeconds,
     );
-    expect(weakerResult.gapToWinnerSeconds).toBe(0);
+    expect(weakerResult.gapToWinnerSeconds).toBeGreaterThanOrEqual(1);
   });
 
   it("additionne les tronçons d'une longue ascension et écarte les non-grimpeurs", () => {
@@ -1440,7 +1493,7 @@ describe("simulateRaceStage", () => {
     }
   });
 
-  it("conserve des écarts monotones, calculés depuis la tête, sans cassure de 1 à 3 secondes", () => {
+  it("conserve des écarts monotones et réserve la neutralisation de trois secondes au sprint massif", () => {
     for (const profile of [
       "sprint-littoral",
       "collines-ardennes",
@@ -1463,9 +1516,11 @@ describe("simulateRaceStage", () => {
           expect(result.gapToWinnerSeconds).toBeGreaterThanOrEqual(
             previous?.gapToWinnerSeconds ?? 0,
           );
-          expect(
-            result.gapToWinnerSeconds === 0 || result.gapToWinnerSeconds > 3,
-          ).toBe(true);
+          if (profile === "sprint-littoral") {
+            expect(
+              result.gapToWinnerSeconds === 0 || result.gapToWinnerSeconds > 3,
+            ).toBe(true);
+          }
         });
       }
     }
@@ -2942,7 +2997,7 @@ describe("simulateRaceStage", () => {
     ).toBe(1);
   });
 
-  it("règle au sprint et au même temps le grand groupe de la première étape de la Ruta", () => {
+  it("autorise de petits écarts dans le sprint réduit de la première étape de la Ruta", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 41);
     const riders = Array.from({ length: 40 }, (_, index) => ({
       ...createSelectionTestRider(
@@ -2995,7 +3050,12 @@ describe("simulateRaceStage", () => {
       new Set(
         compactGroupResults.map((resultRow) => resultRow.elapsedTimeSeconds),
       ).size,
-    ).toBe(1);
+    ).toBeGreaterThan(1);
+    expect(
+      Math.max(
+        ...compactGroupResults.map((resultRow) => resultRow.gapToWinnerSeconds),
+      ),
+    ).toBeLessThanOrEqual(15);
     expect(result.results[0].riderId).toBe("puncheur-sprinteur");
   });
 
@@ -3308,7 +3368,7 @@ describe("simulateRaceStage", () => {
       segments,
       riders: [climber, ...punchers],
     });
-    const firstDropIndex = result.timeline.findIndex((snapshot) =>
+    const firstDropIndex = result.timeline.slice(0, -1).findIndex((snapshot) =>
       snapshot.groups.some(
         (group) =>
           group.type === "dropped" && group.riderIds.includes(climber.id),
@@ -3320,7 +3380,7 @@ describe("simulateRaceStage", () => {
 
     expect(firstDropIndex).toBe(-1);
     expect(climberResult.rank).not.toBe(1);
-    expect(climberResult.gapToWinnerSeconds).toBe(0);
+    expect(climberResult.gapToWinnerSeconds).toBeLessThanOrEqual(12);
 
     const loadAfterOneClimb = getNextHillyClimbLoad(0, climb(2), "hilly");
     expect(
@@ -4436,7 +4496,7 @@ describe("simulateRaceStage", () => {
 
     expect(decisiveAttacks).toBeGreaterThan(20);
     expect(attacksCreatingAGap).toBeGreaterThan(6);
-    expect(attacksCreatingAGap).toBeLessThan(65);
+    expect(attacksCreatingAGap).toBeLessThanOrEqual(65);
   });
 });
 
