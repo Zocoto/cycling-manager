@@ -25,16 +25,14 @@ begin
   v_definition := pg_get_functiondef(
     'private.apply_team_rivalry_reward(uuid, text, uuid, uuid, integer, numeric, text)'::regprocedure
   );
-  v_patched := replace(
+  v_patched := regexp_replace(
     v_definition,
-    'v_applied_reputation := least(
-    1000,
-    greatest(0, v_previous_reputation + p_requested_reputation)
-  ) - v_previous_reputation;',
+    'v_applied_reputation[[:space:]]*:=[[:space:]]*least\([[:space:]]*1000[[:space:]]*,[[:space:]]*greatest\([[:space:]]*0[[:space:]]*,[[:space:]]*v_previous_reputation[[:space:]]*\+[[:space:]]*p_requested_reputation[[:space:]]*\)[[:space:]]*\)[[:space:]]*-[[:space:]]*v_previous_reputation[[:space:]]*;',
     'v_applied_reputation := greatest(
     0,
     v_previous_reputation + p_requested_reputation
-  ) - v_previous_reputation;'
+  ) - v_previous_reputation;',
+    'i'
   );
   if v_patched = v_definition then
     raise exception 'Impossible de retirer le plafond du moteur de rivalités.';
