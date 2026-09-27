@@ -13,7 +13,7 @@ const nutritionMigration = read(
   "supabase/migrations/20260808161000_bulk_nutrition_and_lower_prices.sql",
 );
 const nutritionPerformanceMigration = read(
-  "supabase/migrations/20260824140000_optimize_bulk_nutrition_interventions.sql",
+  "supabase/migrations/20260927100000_optimize_nutrition_batch_retry.sql",
 );
 const equipmentMigration = read(
   "supabase/migrations/20260808162000_bulk_equipment_assignments.sql",
@@ -21,7 +21,6 @@ const equipmentMigration = read(
 const nutritionEditor = read(
   "components/game/nutrition-interventions-editor.tsx",
 );
-const healthCenterPage = read("app/jeu/centre-de-soin/page.tsx");
 const equipmentEditor = read(
   "components/game/team-equipment-bulk-editor.tsx",
 );
@@ -29,6 +28,7 @@ const equipmentAction = read("app/jeu/materiel/actions.ts");
 const materialPage = read("app/jeu/materiel/page.tsx");
 const partnerPage = read("app/jeu/materiel/equipementier/page.tsx");
 const teamEquipmentPage = read("app/jeu/materiel/equiper/page.tsx");
+const materialNavigation = read("components/game/material-navigation.tsx");
 
 describe("administration groupée de la nutrition", () => {
   it("réduit les trois prix serveur et conserve les remises existantes", () => {
@@ -50,23 +50,23 @@ describe("administration groupée de la nutrition", () => {
     );
   });
 
-  it("règle l’état quotidien une seule fois et laisse finir le lot borné", () => {
+  it("écrit le lot sans boucle unitaire et confirme une répétition exacte", () => {
     expect(nutritionPerformanceMigration).toContain(
-      "perform public.settle_current_health_and_form_throttled();",
+      "v_matching_count = v_requested_count",
     );
     expect(nutritionPerformanceMigration).toContain(
-      "current_setting(''app.nutrition_batch_settlement'', true)",
+      "insert into public.rider_nutrition_interventions",
     );
     expect(nutritionPerformanceMigration).toContain(
-      "'app.nutrition_batch_settlement'",
+      "set cash_balance = team_season.cash_balance - v_total_price",
     );
-    expect(nutritionPerformanceMigration).toContain(
-      "set statement_timeout = '0'",
+    expect(nutritionPerformanceMigration).not.toContain(
+      "public.apply_current_team_nutrition_intervention(",
     );
-    expect(nutritionPerformanceMigration).toContain(
-      "rider_nutrition_interventions_nutritionist_day_idx",
+    expect(nutritionPerformanceMigration).not.toContain("for v_intervention");
+    expect(nutritionPerformanceMigration).not.toContain(
+      "settle_current_health_and_form",
     );
-    expect(healthCenterPage).toContain("export const maxDuration = 300;");
   });
 
   it("affiche les réglages par coureur et une validation flottante", () => {
@@ -76,6 +76,7 @@ describe("administration groupée de la nutrition", () => {
       "mobile-dock-clearance fixed inset-x-3 bottom-",
     );
     expect(nutritionEditor).toContain("Valider les compléments");
+    expect(nutritionEditor).toContain("Application des ${count} compléments…");
   });
 
   it("réserve immédiatement le contingent pendant la saisie groupée", () => {
@@ -119,9 +120,10 @@ describe("administration groupée de la nutrition", () => {
 describe("administration groupée du matériel", () => {
   it("rend le nouvel onglet accessible depuis toute la rubrique", () => {
     for (const page of [materialPage, partnerPage, teamEquipmentPage]) {
-      expect(page).toContain('href="/jeu/materiel/equiper"');
-      expect(page).toContain("Équiper l’équipe");
+      expect(page).toContain("<MaterialNavigation");
     }
+    expect(materialNavigation).toContain('"/jeu/materiel/equiper"');
+    expect(materialNavigation).toContain("Équiper l’équipe");
   });
 
   it("prépare les huit emplacements et donne priorité au changement programmé", () => {

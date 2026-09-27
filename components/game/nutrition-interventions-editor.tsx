@@ -503,7 +503,9 @@ function NutritionBulkSubmitButton({
       className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-4 text-center text-xs font-black uppercase tracking-[0.08em] text-[#0B302B] transition hover:bg-[#FFE071] disabled:cursor-not-allowed disabled:bg-[#91A59D] disabled:text-white sm:min-w-56"
     >
       {pending
-        ? "Validation…"
+        ? count === 1
+          ? "Application du complément…"
+          : `Application des ${count} compléments…`
         : count === 1
           ? "Valider le complément"
           : "Valider les compléments"}
