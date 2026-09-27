@@ -10,6 +10,7 @@ import {
 } from "@/lib/game/youth-training";
 import type { YouthTrainingSettingsValue } from "@/lib/game/youth-training-bulk";
 import { isValidYouthScoutingDuration } from "@/lib/game/youth-scouting-duration";
+import { getInteractiveActionErrorMessage } from "@/lib/game/interactive-action-errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const CENTER_PATH = "/jeu/centre-de-formation";
@@ -92,7 +93,7 @@ export async function saveYouthTrainingSettingsBulkAction(formData: FormData) {
     redirectWithMessage(
       "ecole",
       "erreur",
-      result.error.message,
+      getInteractiveActionErrorMessage(result.error.message),
       preserveFinalYearFilter,
     );
   }

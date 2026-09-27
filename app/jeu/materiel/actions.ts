@@ -12,6 +12,7 @@ import {
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import { parseEquipmentCartLines } from "@/lib/game/equipment-cart";
+import { getInteractiveActionErrorMessage } from "@/lib/game/interactive-action-errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PurchaseEquipmentCartState = {
@@ -154,7 +155,12 @@ export async function saveTeamEquipmentAssignmentsAction(formData: FormData) {
     { p_assignments: assignments },
   );
 
-  if (error) redirectWithError("/jeu/materiel/equiper", error.message);
+  if (error) {
+    redirectWithError(
+      "/jeu/materiel/equiper",
+      getInteractiveActionErrorMessage(error.message),
+    );
+  }
 
   revalidatePath("/jeu/coureurs/[identifiant]", "page");
   revalidatePath("/jeu/inventaire");

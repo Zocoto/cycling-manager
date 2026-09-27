@@ -6,8 +6,10 @@ export function getHealthCenterErrorMessage(message: string): string {
 
   if (
     normalized.includes("statement timeout") ||
+    normalized.includes("lock timeout") ||
     normalized.includes("canceling statement") ||
-    normalized.includes("cancelling statement")
+    normalized.includes("cancelling statement") ||
+    normalized.includes("could not obtain lock")
   ) {
     return HEALTH_CENTER_TIMEOUT_MESSAGE;
   }

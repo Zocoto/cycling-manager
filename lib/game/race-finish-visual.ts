@@ -7,6 +7,7 @@ import {
 export const FINAL_KILOMETER_DURATION_MS = 8_000;
 export const FINAL_FINISH_PASSAGE_DURATION_MS = 5_000;
 export const FINISH_LINE_REVEAL_METERS = 500;
+export const SAME_TIME_FINISH_VISUAL_STEP_SECONDS = 0.16;
 
 type SprintVisualRider = Pick<
   RiderSimulationInput,
@@ -760,6 +761,50 @@ export function getFinishLaneOffset({
   return roadDepth * laneRatios[Math.abs(riderIndex) % laneRatios.length];
 }
 
+/**
+ * Décale uniquement l'animation des coureurs classés dans la même seconde.
+ * Le classement et les temps officiels ne changent pas : cet intervalle rend
+ * simplement chaque passage lisible à 30 images par seconde, même avec la
+ * transition CSS appliquée aux silhouettes.
+ */
+export function getFinishVisualCrossingTimeSeconds({
+  rank,
+  gapToWinnerSeconds,
+  sameTimeOrderIndex,
+}: {
+  rank: number;
+  gapToWinnerSeconds: number;
+  sameTimeOrderIndex?: number;
+}) {
+  const visualOrderIndex =
+    sameTimeOrderIndex ??
+    (gapToWinnerSeconds === 0 ? Math.max(0, rank - 1) : 0);
+  return (
+    Math.max(0, gapToWinnerSeconds) +
+    Math.max(0, visualOrderIndex) * SAME_TIME_FINISH_VISUAL_STEP_SECONDS
+  );
+}
+
+export function getFinishSameTimeOrderIndex({
+  rank,
+  gapToWinnerSeconds,
+  results,
+}: {
+  rank: number;
+  gapToWinnerSeconds: number;
+  results: ReadonlyArray<{
+    rank: number | null;
+    gapToWinnerSeconds: number;
+  }>;
+}) {
+  return results.filter(
+    (result) =>
+      result.rank !== null &&
+      result.rank < rank &&
+      result.gapToWinnerSeconds === gapToWinnerSeconds
+  ).length;
+}
+
 export function getFinishPassagePosition({
   approachPosition,
   rank,
@@ -769,6 +814,7 @@ export function getFinishPassagePosition({
   finishPassageProgress,
   finishLinePosition,
   winnerHasFinished,
+  sameTimeOrderIndex,
 }: {
   approachPosition: number;
   rank: number;
@@ -778,18 +824,18 @@ export function getFinishPassagePosition({
   finishPassageProgress: number;
   finishLinePosition: number;
   winnerHasFinished: boolean;
+  sameTimeOrderIndex?: number;
 }) {
   if (!winnerHasFinished) return approachPosition;
   const passageDurationSeconds =
     getFinishPassageDurationMs(maximumGapToWinnerSeconds) / 1_000;
   const elapsedSeconds =
     clamp(finishPassageProgress, 0, 1) * passageDurationSeconds;
-  const visualOrderOffsetSeconds =
-    rank <= 1
-      ? 0
-      : Math.min(0.35, Math.max(0, rank - 1) * 0.025);
-  const crossingTimeSeconds =
-    Math.max(0, gapToWinnerSeconds) + visualOrderOffsetSeconds;
+  const crossingTimeSeconds = getFinishVisualCrossingTimeSeconds({
+    rank,
+    gapToWinnerSeconds,
+    sameTimeOrderIndex,
+  });
   const crossingAnimationSeconds = 0.45;
   const approachToLineProgress = crossingTimeSeconds <= 0
     ? 1

@@ -16,6 +16,8 @@ import {
   getMassSprintVisualPhase,
   getFinishPassageDurationMs,
   getFinishPassagePosition,
+  getFinishSameTimeOrderIndex,
+  getFinishVisualCrossingTimeSeconds,
   getFinishTargetPosition,
   getSmallGroupAttackProgress,
   getSmallGroupFinishPosition,
@@ -596,6 +598,56 @@ describe("final race visualization", () => {
     expect(delayedHalfway).toBeGreaterThan(delayedAtStart);
     expect(delayedHalfway).toBeLessThan(86);
     expect(positionAtSecond(delayedApproach, 6, 60, 60.4)).toBeGreaterThan(86);
+  });
+
+  it("rend lisible l'ordre officiel des coureurs classés dans le même temps", () => {
+    const crossingTimes = [1, 2, 3, 4, 5].map((rank) =>
+      getFinishVisualCrossingTimeSeconds({
+        rank,
+        gapToWinnerSeconds: 0,
+      })
+    );
+
+    expect(crossingTimes).toEqual([0, 0.16, 0.32, 0.48, 0.64]);
+    expect(crossingTimes[3]).toBeGreaterThan(crossingTimes[2]);
+
+    const sameGapResults = [
+      { rank: 1, gapToWinnerSeconds: 0 },
+      { rank: 2, gapToWinnerSeconds: 3 },
+      { rank: 3, gapToWinnerSeconds: 3 },
+    ];
+    expect(
+      getFinishSameTimeOrderIndex({
+        rank: 3,
+        gapToWinnerSeconds: 3,
+        results: sameGapResults,
+      })
+    ).toBe(1);
+    expect(
+      getFinishVisualCrossingTimeSeconds({
+        rank: 3,
+        gapToWinnerSeconds: 3,
+        sameTimeOrderIndex: 1,
+      })
+    ).toBe(3.16);
+
+    const passageDurationSeconds =
+      getFinishPassageDurationMs(0) / 1_000;
+    const positionAtSecond = (rank: number, elapsedSeconds: number) =>
+      getFinishPassagePosition({
+        approachPosition: 82 - rank,
+        rank,
+        riderCount: 5,
+        gapToWinnerSeconds: 0,
+        maximumGapToWinnerSeconds: 0,
+        finishPassageProgress: elapsedSeconds / passageDurationSeconds,
+        finishLinePosition: 86,
+        winnerHasFinished: true,
+      });
+
+    expect(positionAtSecond(3, 0.4)).toBeGreaterThan(86);
+    expect(positionAtSecond(4, 0.4)).toBeLessThan(86);
+    expect(positionAtSecond(4, 0.5)).toBeGreaterThan(86);
   });
 
   it("donne neuf positions d'entrée distinctes à un groupe de neuf", () => {
