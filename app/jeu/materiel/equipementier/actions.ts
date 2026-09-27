@@ -23,6 +23,25 @@ export async function signEquipmentPartnerAction(formData: FormData) {
   redirect(`${RETURN_PATH}?etat=contrat-signe`);
 }
 
+export async function purchaseEquipmentPartnerReputationExtraAction(
+  formData: FormData,
+) {
+  const contractId = readValue(formData, "contractId");
+  if (!isUuid(contractId)) {
+    redirectWithError("Ce contrat équipementier est invalide.");
+  }
+
+  const supabase = await authenticatedClient();
+  const { error } = await supabase.rpc(
+    "purchase_current_equipment_partner_reputation_extra",
+    { p_contract_id: contractId },
+  );
+  if (error) redirectWithError(error.message);
+
+  revalidateEquipmentPaths();
+  redirect(`${RETURN_PATH}?etat=dotation-reputation`);
+}
+
 async function authenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -48,4 +67,10 @@ function redirectWithError(message: string): never {
 function readValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

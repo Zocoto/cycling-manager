@@ -1,5 +1,5 @@
 import type { SportingDirectorReputationBreakdown } from "@/lib/game/reputation-breakdown";
-import { MAX_SPORTING_DIRECTOR_REPUTATION_POINTS } from "@/lib/game/sporting-director-limits";
+import { getNextReputationTier, getReputationTier } from "@/lib/game/reputation";
 
 import { ReputationBreakdownPopover } from "./reputation-breakdown-popover";
 
@@ -16,12 +16,9 @@ export function SportingDirectorReputation({
 }: SportingDirectorReputationProps) {
   const safeReputationPoints = new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: 2,
-  }).format(
-    Math.min(
-      MAX_SPORTING_DIRECTOR_REPUTATION_POINTS,
-      Math.max(0, reputationPoints),
-    ),
-  );
+  }).format(Math.max(0, reputationPoints));
+  const tier = getReputationTier(reputationPoints);
+  const nextTier = getNextReputationTier(reputationPoints);
 
   if (compact) {
     return (
@@ -38,7 +35,7 @@ export function SportingDirectorReputation({
         </div>
 
         <span className="rounded-full border border-[#7CCF9C]/25 bg-[#7CCF9C]/10 px-3 py-1.5 text-xs font-bold text-[#9BE0BC]">
-          Crédibilité sponsor
+          {tier.label}
         </span>
       </div>
     );
@@ -60,15 +57,42 @@ export function SportingDirectorReputation({
         <ReputationIcon />
       </div>
 
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <ReputationMetric label="Rang" value={tier.label} />
+        <ReputationMetric
+          label="Disponible"
+          value={`${formatPoints(breakdown?.availablePoints ?? reputationPoints)} pts`}
+        />
+        <ReputationMetric
+          label="Record"
+          value={`${formatPoints(breakdown?.peakPoints ?? reputationPoints)} pts`}
+        />
+      </div>
+
       <p className="mt-4 text-sm leading-6 text-[#60756E]">
-        La réputation mesure votre crédibilité auprès
-        des sponsors et du monde du cyclisme. Certains
-        partenaires prestigieux imposent un minimum de
-        réputation. Elle est plafonnée à 1 000 points :
-        les pertes restent possibles une fois ce plafond
-        atteint.
+        La réputation n’est plus plafonnée. Les engagements en cours réduisent
+        seulement la part disponible ; les dépenses et pénalités diminuent la
+        valeur actuelle.
+        {nextTier ? ` Prochain rang : ${nextTier.label} à ${formatPoints(nextTier.minimum)} points.` : " Vous avez atteint le rang maximal actuel."}
       </p>
     </div>
+  );
+}
+
+function ReputationMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#315B3E]/12 bg-[#F4F8F5] px-3 py-2.5">
+      <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-[#6A817A]">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-black text-[#183F37]">{value}</p>
+    </div>
+  );
+}
+
+function formatPoints(points: number) {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(
+    Math.max(0, points),
   );
 }
 

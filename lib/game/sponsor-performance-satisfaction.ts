@@ -1,5 +1,6 @@
 export const SPONSOR_PERFORMANCE_SATISFACTION_START_GAME_YEAR = 3;
 export const SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM = 25;
+export const SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM = 8;
 
 export function isSponsorPerformanceSatisfactionEnabled(gameYear: number) {
   return gameYear >= SPONSOR_PERFORMANCE_SATISFACTION_START_GAME_YEAR;
@@ -8,10 +9,12 @@ export function isSponsorPerformanceSatisfactionEnabled(gameYear: number) {
 export function calculateSponsorSatisfactionScore({
   objectivePoints,
   performancePoints,
+  commitmentPoints = 0,
   gameYear,
 }: {
   objectivePoints: number;
   performancePoints: number;
+  commitmentPoints?: number;
   gameYear: number;
 }) {
   const normalizedObjectivePoints = normalizePoints(objectivePoints, 100);
@@ -26,7 +29,10 @@ export function calculateSponsorSatisfactionScore({
 
   return Math.min(
     100,
-    normalizedObjectivePoints + normalizedPerformancePoints,
+    normalizedObjectivePoints + normalizedPerformancePoints + normalizePoints(
+      commitmentPoints,
+      SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM,
+    ),
   );
 }
 

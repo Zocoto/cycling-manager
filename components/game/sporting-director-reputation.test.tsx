@@ -19,7 +19,14 @@ describe("SportingDirectorReputation", () => {
           ],
           recentGains: [],
           totalGains: 3.5,
+          totalLosses: 0,
           currentPoints: 3.5,
+          committedPoints: 0,
+          availablePoints: 3.5,
+          peakPoints: 3.5,
+          tierLabel: "Amateur",
+          nextTierLabel: "Prometteur",
+          nextTierMinimum: 30,
         }}
       />,
     );
@@ -29,13 +36,13 @@ describe("SportingDirectorReputation", () => {
     expect(markup).toContain("Consulter le d\u00e9tail");
   });
 
-  it("n'affiche jamais plus de 1 000 points", () => {
+  it("affiche les valeurs au-delà de 1 000 points", () => {
     const markup = renderToStaticMarkup(
       <SportingDirectorReputation reputationPoints={1_250} />,
     );
 
-    expect(markup).toContain("1\u202f000 points");
-    expect(markup).not.toContain("1\u202f250 points");
-    expect(markup).toContain("plafonn\u00e9e \u00e0 1 000 points");
+    expect(markup).toContain("1\u202f250 points");
+    expect(markup).toContain("Institution");
+    expect(markup).toContain("n’est plus plafonnée");
   });
 });

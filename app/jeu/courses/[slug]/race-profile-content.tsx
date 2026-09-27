@@ -13,6 +13,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import { PreRacePressConferencePanel } from "@/components/game/pre-race-press-conference-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
+import { RaceRecordsSummary } from "@/components/game/race-records-summary";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
@@ -59,13 +60,20 @@ import { getPreRacePressConferences } from "@/services/pre-race-press";
 import type { PreRacePressConference } from "@/lib/game/pre-race-press";
 import type { PreRaceRivalryPrompt } from "@/lib/game/pre-race-press";
 import {
+  isReputationFeatureEnabled,
+  REPUTATION_FEATURE_THRESHOLDS,
+  WILDCARD_REPUTATION_COMMITMENTS,
+} from "@/lib/game/reputation";
+import {
   getActiveSeasonRaceCalendar,
   getCurrentRaceUserContext,
   getCurrentTeamRaceRosterOptions,
   getRaceEngagedRiders,
+  getRaceHistoricalRecords,
   getRacePastWinners,
   type CurrentRaceUserContext,
   type RaceEngagedRider,
+  type RaceHistoricalRecord,
   type RacePastWinner,
   type RaceRosterOption,
 } from "@/services/race-calendar";
@@ -185,11 +193,13 @@ export async function RaceProfileContent({
   };
   let contextError: string | null = null;
   let pastWinners: RacePastWinner[] = [];
+  let historicalRecords: RaceHistoricalRecord[] = [];
   let rosterOptions: RaceRosterOption[] = [];
   let engagedRiders: RaceEngagedRider[] = [];
   let pressConferences: PreRacePressConference[] = [];
   let teamRivalries: TeamRivalry[] = [];
   let winnersError = false;
+  let recordsError = false;
   let rosterError: string | null = null;
   let engagedRidersError = false;
   let pressConferencesError = false;
@@ -197,6 +207,7 @@ export async function RaceProfileContent({
   const [
     contextResult,
     winnersResult,
+    recordsResult,
     rosterResult,
     engagedRidersResult,
     pressResult,
@@ -220,6 +231,15 @@ export async function RaceProfileContent({
         }))
         .catch((error: unknown) => ({
           winners: [] as RacePastWinner[],
+          error,
+        })),
+      getRaceHistoricalRecords(supabase, edition.raceId)
+        .then((records) => ({
+          records,
+          error: null,
+        }))
+        .catch((error: unknown) => ({
+          records: [] as RaceHistoricalRecord[],
           error,
         })),
       isInternationalChampionship
@@ -290,6 +310,15 @@ export async function RaceProfileContent({
       winnersResult.error,
     );
     winnersError = true;
+  }
+
+  historicalRecords = recordsResult.records;
+  if (recordsResult.error) {
+    console.error(
+      "Impossible de charger les records historiques de la course :",
+      recordsResult.error,
+    );
+    recordsError = true;
   }
 
   rosterOptions = rosterResult.riders;
@@ -575,10 +604,18 @@ export async function RaceProfileContent({
                     Palmarès
                   </p>
                   <h2 className="mt-2 text-xl font-black text-[#0B302B]">
-                    Podiums des éditions passées
+                    Records de l’épreuve
                   </h2>
+                  <RaceRecordsSummary
+                    records={historicalRecords}
+                    isStageRace={edition.raceFormat === "stage_race"}
+                    hasError={recordsError}
+                  />
+                  <h3 className="mt-6 text-sm font-black uppercase tracking-[0.12em] text-[#315B3E]">
+                    Podiums par saison
+                  </h3>
                   {pastWinners.length > 0 ? (
-                    <div className="mt-4 max-h-80 overflow-y-auto rounded-xl border border-[#315B3E]/15 bg-white">
+                    <div className="mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#315B3E]/15 bg-white">
                       {groupRacePastWinners(pastWinners).map((podium) => (
                         <section
                           key={podium.gameYear}
@@ -643,6 +680,7 @@ export async function RaceProfileContent({
                   <RegistrationPanel
                     edition={edition}
                     currentDayNumber={calendar.currentDayNumber}
+                    gameYear={calendar.gameYear}
                     context={raceUserContext}
                     contextError={contextError}
                     riders={rosterOptions}
@@ -666,6 +704,8 @@ export async function RaceProfileContent({
                         }
                         loadError={pressConferencesError}
                         rivalryPrompt={preRaceRivalryPrompt}
+                        gameYear={calendar.gameYear}
+                        reputationPoints={raceUserContext.reputationPoints}
                       />
                     </div>
                   ) : null}
@@ -768,6 +808,7 @@ function groupRacePastWinners(winners: RacePastWinner[]) {
 function RegistrationPanel({
   edition,
   currentDayNumber,
+  gameYear,
   context,
   contextError,
   riders,
@@ -778,6 +819,7 @@ function RegistrationPanel({
 }: {
   edition: RaceCalendarEdition;
   currentDayNumber: number;
+  gameYear: number;
   context: CurrentRaceUserContext;
   contextError: string | null;
   riders: RaceRosterOption[];
@@ -1241,6 +1283,45 @@ function RegistrationPanel({
           <form action={registerRaceRosterAction} className="mt-5">
             <input type="hidden" name="editionId" value={edition.id} />
             <input type="hidden" name="slug" value={edition.slug} />
+            {isReputationFeatureEnabled(gameYear) ? (
+              <fieldset className="mb-4 rounded-xl border border-[#F2C94C]/25 bg-white/5 p-3">
+                <legend className="px-1 text-xs font-black uppercase tracking-[0.14em] text-[#F7DA72]">
+                  Appui de la candidature
+                </legend>
+                <p className="mt-1 text-[10px] font-semibold leading-4 text-[#D6DFD2]">
+                  Les points sont réservés jusqu’à la décision. L’appui renforce le dossier sans garantir la Wild Card.
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {WILDCARD_REPUTATION_COMMITMENTS.map((option) => {
+                    const locked = option.amount > 0 && (
+                      context.reputationPoints < REPUTATION_FEATURE_THRESHOLDS.wildcardSupport ||
+                      context.reputationPoints < option.amount
+                    );
+                    return (
+                      <label key={option.amount} className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${locked ? "cursor-not-allowed border-white/10 opacity-55" : "cursor-pointer border-white/15 bg-black/10"}`}>
+                        <input
+                          type="radio"
+                          name="wildcardCommitmentAmount"
+                          value={option.amount}
+                          defaultChecked={option.amount === 0}
+                          disabled={locked}
+                          className="mt-0.5 accent-[#F2C94C]"
+                        />
+                        <span>
+                          <span className="block text-xs font-black text-white">{option.label}</span>
+                          <span className="mt-0.5 block text-[10px] font-semibold leading-4 text-[#D6DFD2]">{option.description}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {context.reputationPoints < REPUTATION_FEATURE_THRESHOLDS.wildcardSupport ? (
+                  <p className="mt-2 text-[10px] font-bold text-[#F7DA72]">
+                    Appui disponible à {REPUTATION_FEATURE_THRESHOLDS.wildcardSupport} points de réputation.
+                  </p>
+                ) : null}
+              </fieldset>
+            ) : null}
             {riders.length > 0 ? (
               <RaceRosterSelector
                 riders={riders}

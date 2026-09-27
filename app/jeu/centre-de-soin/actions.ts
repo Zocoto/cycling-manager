@@ -286,6 +286,7 @@ export async function applyNutritionInterventionsAction(formData: FormData) {
   }
 
   const supabase = await requireAuthenticatedClient();
+  const startedAt = Date.now();
   const { error } = await supabase.rpc(
     "apply_current_team_nutrition_interventions",
     {
@@ -293,12 +294,18 @@ export async function applyNutritionInterventionsAction(formData: FormData) {
     },
   );
 
+  console.info("nutrition_batch_action", {
+    count: interventions.length,
+    durationMs: Date.now() - startedAt,
+    status: error ? "error" : "success",
+    errorCode: error?.code ?? null,
+  });
+
   if (error) {
     redirectWithError("nutrition", getHealthCenterErrorMessage(error.message));
   }
 
-  revalidateHealthPaths();
-  revalidatePath("/jeu/entrainement");
+  revalidatePath("/jeu/centre-de-soin");
   redirect(
     `/jeu/centre-de-soin?onglet=nutrition&nutrition=confirmee&nombre=${interventions.length}`,
   );
@@ -376,12 +383,6 @@ async function requireAuthenticatedClient() {
 
 function revalidateHealthPaths() {
   revalidatePath("/jeu/centre-de-soin");
-  revalidatePath("/jeu/effectif");
-  revalidatePath("/jeu/calendrier");
-  revalidatePath("/jeu/finances");
-  revalidatePath("/jeu/selections-internationales");
-  revalidatePath("/jeu/boite-mail");
-  revalidatePath("/jeu");
 }
 
 function redirectWithError(tab: string, message: string): never {
