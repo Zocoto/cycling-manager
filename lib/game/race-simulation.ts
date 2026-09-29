@@ -727,7 +727,6 @@ const FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS = 16;
 const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
 const MINIMUM_EFFECTIVE_SPRINT_TRAIN_ENERGY = 18;
 const LEADOUT_FINAL_WORK_DISTANCE_KM = 25;
-const MINIMUM_BREAKAWAY_LEAD_ENERGY = 9;
 const RACE_INJURY_PERFORMANCE_PENALTY = {
   minor: 2.5,
   moderate: 6,
@@ -3406,6 +3405,12 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       injuries.push(...finalMassSprintIncident.injuries);
       commentary.unshift(finalMassSprintIncident.commentary);
     }
+
+    reconcileDetachedRoadGroupsWithPeloton(
+      states,
+      segmentIndex,
+      breakawayGapSeconds,
+    );
 
     if (segment.prime) {
       const primeResult = resolvePrime({
@@ -7035,9 +7040,19 @@ function resolveExistingChasers({
       );
       state.lostTimeSeconds = 0;
     } else {
+      const additionalLossSeconds = 10 + random() * 12;
       state.group = "dropped";
       state.groupSinceSegment = segmentIndex;
-      state.lostTimeSeconds += 10 + random() * 12;
+      // Le chasseur a d'abord roulé devant le peloton. S'il échoue et lâche,
+      // son statut et son horloge doivent raconter la même chose : repartir du
+      // temps du peloton avant d'ajouter la cassure évite qu'un « attardé »
+      // reste sportivement ou visuellement devant le groupe principal.
+      state.elapsedTimeSeconds =
+        Math.max(state.elapsedTimeSeconds, pelotonTime) + additionalLossSeconds;
+      state.lostTimeSeconds = Math.max(
+        additionalLossSeconds,
+        state.elapsedTimeSeconds - pelotonTime,
+      );
     }
   }
 }
@@ -7311,8 +7326,6 @@ function resolveDroppedGroupPursuit({
     );
 
     for (const group of currentGroups) {
-      if (group.length < 2) continue;
-
       const groupElapsedTimeSeconds = average(
         group.map((state) => state.elapsedTimeSeconds),
       );
@@ -7320,6 +7333,22 @@ function resolveDroppedGroupPursuit({
         0,
         groupElapsedTimeSeconds - pelotonTimeSeconds,
       );
+      // Une étiquette « attardé » peut subsister après une poursuite, un
+      // incident ou une transition de groupe. Dès que l'écart réel rentre dans
+      // la fenêtre du peloton, le groupe est officiellement réintégré au lieu
+      // d'être affiché par-dessus lui avec un écart nul.
+      if (gapSeconds <= SAME_TIME_MAX_GAP_SECONDS) {
+        for (const state of group) {
+          state.group = "peloton";
+          state.groupSinceSegment = segmentIndex;
+          state.elapsedTimeSeconds = pelotonTimeSeconds;
+          state.lostTimeSeconds = 0;
+        }
+        rejoined.push(...group);
+        continue;
+      }
+      if (group.length < 2) continue;
+
       const pursuit = getDroppedGroupPursuitOutcome({
         groupSize: group.length,
         groupTerrainRating: average(
@@ -8067,9 +8096,11 @@ function promoteSecondaryBreakawayWhenNeeded(
   const secondary = getStatesInGroup(states, "breakaway_2").sort(
     (first, second) => second.energy - first.energy,
   );
-  const newLeader = secondary.find(
-    (state) => state.energy >= MINIMUM_BREAKAWAY_LEAD_ENERGY,
-  );
+  // Tant que ce groupe roule encore devant le peloton, son meilleur élément
+  // devient la nouvelle référence de l'échappée, même épuisé. Le reclasser
+  // « dropped » uniquement à cause de son énergie créerait un attardé situé
+  // devant le peloton. Il ne basculera derrière qu'au moment réel de la reprise.
+  const newLeader = secondary[0];
 
   if (newLeader) {
     const promotedGapSeconds = Math.max(0, newLeader.lostTimeSeconds);
@@ -8082,12 +8113,69 @@ function promoteSecondaryBreakawayWhenNeeded(
     newLeader.group = "breakaway";
     newLeader.groupSinceSegment = segmentIndex;
     newLeader.lostTimeSeconds = 0;
-  } else {
-    for (const state of secondary) {
-      state.group = "dropped";
+  }
+}
+
+/**
+ * Invariant central de chronologie : le statut détaché est dérivé de l'horloge,
+ * jamais l'inverse. Toute transition (attaque avortée, incident, soutien ou
+ * grupetto) repasse ici avant la publication du snapshot officiel.
+ */
+function reconcileDetachedRoadGroupsWithPeloton(
+  states: Map<string, RiderState>,
+  segmentIndex: number,
+  breakawayGapSeconds: number,
+) {
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+  const pelotonTimeSeconds = average(
+    peloton.map((state) => state.elapsedTimeSeconds),
+  );
+
+  // Un coureur lâché de l'échappée est repris dès que son retard sur la tête
+  // atteint l'avance du peloton. Sans cette jonction immédiate, il conservait
+  // encore pendant un segment un statut d'échappé exactement à la position du
+  // peloton, ce qui créait une superposition aussi bien logique que graphique.
+  if (breakawayGapSeconds > 0) {
+    for (const state of getStatesInGroup(states, "breakaway_2")) {
+      if (
+        state.lostTimeSeconds <
+        breakawayGapSeconds - SAME_TIME_MAX_GAP_SECONDS
+      ) {
+        continue;
+      }
+
+      const gapSeconds = state.elapsedTimeSeconds - pelotonTimeSeconds;
+      state.group =
+        gapSeconds > SAME_TIME_MAX_GAP_SECONDS ? "dropped" : "peloton";
       state.groupSinceSegment = segmentIndex;
-      state.lostTimeSeconds = Math.max(state.lostTimeSeconds, 8);
+      if (state.group === "peloton") {
+        state.elapsedTimeSeconds = pelotonTimeSeconds;
+        state.lostTimeSeconds = 0;
+      } else {
+        state.lostTimeSeconds = Math.max(0, gapSeconds);
+      }
     }
+  }
+
+  for (const state of states.values()) {
+    if (state.group !== "delayed" && state.group !== "dropped") continue;
+    const gapSeconds = state.elapsedTimeSeconds - pelotonTimeSeconds;
+    if (gapSeconds > SAME_TIME_MAX_GAP_SECONDS) {
+      state.lostTimeSeconds = Math.max(0, gapSeconds);
+      continue;
+    }
+
+    if (state.leaderRecoveryStatus !== undefined) {
+      clearLeaderRecoveryAssignment(state, states);
+    }
+    state.group = "peloton";
+    state.groupSinceSegment = segmentIndex;
+    state.elapsedTimeSeconds = pelotonTimeSeconds;
+    state.lostTimeSeconds = 0;
+    delete state.supportingLeaderId;
+    delete state.grupettoStatus;
+    delete state.grupettoPacePressure;
   }
 }
 
@@ -9692,35 +9780,48 @@ function updateFinalRoadGroups({
 }) {
   const finalSnapshot = timeline.at(-1);
   if (!finalSnapshot) return;
-  const escapedRiderIds = new Set(
+  const pelotonRiderIds = new Set(
     finalSnapshot.groups
-      .filter((group) => group.type === "breakaway")
+      .filter((group) => group.type === "peloton")
       .flatMap((group) => group.riderIds),
   );
+  const pelotonFinishGroupIndex = finishGroups.reduce(
+    (best, group, index) => {
+      const pelotonOverlap = group.filter((result) =>
+        pelotonRiderIds.has(result.riderId),
+      ).length;
+      if (
+        pelotonOverlap > best.pelotonOverlap ||
+        (pelotonOverlap === best.pelotonOverlap && group.length > best.groupSize)
+      ) {
+        return { index, pelotonOverlap, groupSize: group.length };
+      }
+      return best;
+    },
+    { index: 0, pelotonOverlap: -1, groupSize: -1 },
+  ).index;
 
-  finalSnapshot.groups = finishGroups.map((group, index) => {
-    const escapedGroupWins =
-      index === 0 && escapedRiderIds.has(group[0].riderId);
-    return {
-      id: `finish-group-${index + 1}`,
-      label: escapedGroupWins
-        ? "Échappée victorieuse"
-        : index === 0
-          ? "Groupe de tête"
-          : `Groupe ${index + 1}`,
-      type: escapedGroupWins
-        ? "breakaway"
-        : index === 0
-          ? "peloton"
-          : "dropped",
-      riderIds: group.map((result) => result.riderId),
-      gapToLeaderSeconds: group[0].gapToWinnerSeconds,
-      averageEnergy: round(
-        average(group.map((result) => result.energyAfter)),
-        1,
-      ),
-    } satisfies RaceGroupSnapshot;
-  });
+  finalSnapshot.groups = normalizeRoadSnapshotGroups(
+    finishGroups.map((group, index) => {
+      const type =
+        index < pelotonFinishGroupIndex
+          ? ("breakaway" as const)
+          : index === pelotonFinishGroupIndex
+            ? ("peloton" as const)
+            : ("dropped" as const);
+      return {
+        id: `finish-group-${index + 1}`,
+        label: type === "peloton" ? "Peloton" : "Groupe",
+        type,
+        riderIds: group.map((result) => result.riderId),
+        gapToLeaderSeconds: group[0].gapToWinnerSeconds,
+        averageEnergy: round(
+          average(group.map((result) => result.energyAfter)),
+          1,
+        ),
+      } satisfies RaceGroupSnapshot;
+    }),
+  );
 
   if (finishGroups.length > 1) {
     finalSnapshot.commentary.push(
@@ -10100,11 +10201,13 @@ function buildRoadSnapshot({
   return {
     segmentNumber,
     completedDistanceKm: round(completedDistanceKm, 1),
-    groups: accumulateRaceGroupGapsFromLeader(
-      groups.sort(
-        (first, second) =>
-          first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
-          first.id.localeCompare(second.id),
+    groups: normalizeRoadSnapshotGroups(
+      accumulateRaceGroupGapsFromLeader(
+        groups.sort(
+          (first, second) =>
+            first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+            first.id.localeCompare(second.id),
+        ),
       ),
     ),
     incidents,
@@ -10222,12 +10325,14 @@ export function spreadRoadGroupTransitionsAcrossFrames({
 
     return {
       ...frame,
-      groups: accumulateRaceGroupGapsFromLeader(
-        groups.sort(
-          (first, second) =>
-            first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
-            first.id.localeCompare(second.id),
+      groups: normalizeRoadSnapshotGroups(
+        accumulateRaceGroupGapsFromLeader(
+          groups.sort(
+            (first, second) =>
+              first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+              first.id.localeCompare(second.id),
           ),
+        ),
       ),
       ...(frame.frontDynamics
         ? {
@@ -10261,6 +10366,108 @@ export function accumulateRaceGroupGapsFromLeader(
       gapToLeaderSeconds,
     };
   });
+}
+
+/**
+ * Nomenclature publique unique, fondée uniquement sur la position par rapport
+ * au peloton : E1..En devant, A1..An derrière. L'origine du groupe (attaque,
+ * poursuite, chute, fatigue ou grupetto) ne change jamais son nom affiché.
+ */
+export function normalizeRoadSnapshotGroups(
+  groups: RaceGroupSnapshot[],
+): RaceGroupSnapshot[] {
+  const sortedGroups = groups
+    .map(cloneRaceGroupSnapshot)
+    .sort(
+      (first, second) =>
+        first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+        first.id.localeCompare(second.id),
+    );
+  const initialPelotonIndex = sortedGroups.findIndex(
+    (group) => group.type === "peloton",
+  );
+  if (initialPelotonIndex < 0) return sortedGroups;
+
+  const initialPeloton = sortedGroups[initialPelotonIndex];
+  const groupsAtPelotonPosition = sortedGroups.filter(
+    (group) =>
+      group.gapToLeaderSeconds === initialPeloton.gapToLeaderSeconds,
+  );
+  const groupsAwayFromPeloton = sortedGroups.filter(
+    (group) => !groupsAtPelotonPosition.includes(group),
+  );
+  const mergedPelotonRiderIds = [
+    ...new Set(groupsAtPelotonPosition.flatMap((group) => group.riderIds)),
+  ].sort();
+  const mergedPelotonRiderCount = groupsAtPelotonPosition.reduce(
+    (total, group) => total + group.riderIds.length,
+    0,
+  );
+  const mergedPeloton: RaceGroupSnapshot = {
+    ...cloneRaceGroupSnapshot(initialPeloton),
+    id: `peloton-${mergedPelotonRiderIds.join("-")}`,
+    label: "Peloton",
+    type: "peloton",
+    riderIds: mergedPelotonRiderIds,
+    averageEnergy:
+      mergedPelotonRiderCount > 0
+        ? round(
+            groupsAtPelotonPosition.reduce(
+              (total, group) =>
+                total + group.averageEnergy * group.riderIds.length,
+              0,
+            ) / mergedPelotonRiderCount,
+            1,
+          )
+        : initialPeloton.averageEnergy,
+  };
+  const normalizedGroups = [...groupsAwayFromPeloton, mergedPeloton].sort(
+    (first, second) =>
+      first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+      (first.type === "peloton" ? -1 : second.type === "peloton" ? 1 : 0) ||
+      first.id.localeCompare(second.id),
+  );
+  const leadingGapSeconds = normalizedGroups[0]?.gapToLeaderSeconds ?? 0;
+  for (const group of normalizedGroups) {
+    group.gapToLeaderSeconds = Math.max(
+      0,
+      group.gapToLeaderSeconds - leadingGapSeconds,
+    );
+  }
+  const pelotonIndex = normalizedGroups.findIndex(
+    (group) => group.type === "peloton",
+  );
+
+  let escapedGroupNumber = 0;
+  let delayedGroupNumber = 0;
+  return normalizedGroups.map((group, index) => {
+    if (index < pelotonIndex) {
+      escapedGroupNumber += 1;
+      return {
+        ...cloneRaceGroupSnapshot(group),
+        label: `Échappée E${escapedGroupNumber}`,
+        type: "breakaway",
+      };
+    }
+    if (index === pelotonIndex) {
+      return {
+        ...cloneRaceGroupSnapshot(group),
+        label: "Peloton",
+        type: "peloton",
+      };
+    }
+
+    delayedGroupNumber += 1;
+    return {
+      ...cloneRaceGroupSnapshot(group),
+      label: `Attardés A${delayedGroupNumber}`,
+      type: "dropped",
+    };
+  });
+}
+
+function cloneRaceGroupSnapshot(group: RaceGroupSnapshot): RaceGroupSnapshot {
+  return { ...group, riderIds: [...group.riderIds] };
 }
 
 /**
