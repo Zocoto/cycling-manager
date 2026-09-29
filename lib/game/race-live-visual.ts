@@ -1,8 +1,9 @@
-import type {
-  RaceGroupSnapshot,
-  RaceTimelineSnapshot,
-  RaceVisualFrame,
-  StageSimulationResult,
+import {
+  normalizeRoadSnapshotGroups,
+  type RaceGroupSnapshot,
+  type RaceTimelineSnapshot,
+  type RaceVisualFrame,
+  type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 
 const ROAD_GROUP_VISUAL_MERGE_GAP_SECONDS = 3;
@@ -19,9 +20,19 @@ export function getRaceVisualTimeline(
         sourceTimelineIndex,
       }));
 
-  return authoredFrames.map((frame) =>
-    stabilizeRaceVisualFrame(simulation.timeline, frame),
-  );
+  return authoredFrames.map((frame) => {
+    const stabilizedFrame = stabilizeRaceVisualFrame(
+      simulation.timeline,
+      frame,
+    );
+    return {
+      ...stabilizedFrame,
+      // Les anciennes simulations conservent leurs snapshots bruts en base.
+      // Normaliser à la lecture leur applique aussi la chronologie et le
+      // nommage E/Peloton/A sans réécrire l'historique sportif enregistré.
+      groups: normalizeRoadSnapshotGroups(stabilizedFrame.groups),
+    };
+  });
 }
 
 function stabilizeRaceVisualFrame(

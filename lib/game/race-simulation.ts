@@ -10405,7 +10405,10 @@ export function normalizeRoadSnapshotGroups(
   );
   const mergedPeloton: RaceGroupSnapshot = {
     ...cloneRaceGroupSnapshot(initialPeloton),
-    id: `peloton-${mergedPelotonRiderIds.join("-")}`,
+    id:
+      groupsAtPelotonPosition.length === 1
+        ? initialPeloton.id
+        : `peloton-${mergedPelotonRiderIds.join("-")}`,
     label: "Peloton",
     type: "peloton",
     riderIds: mergedPelotonRiderIds,
