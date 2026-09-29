@@ -7,6 +7,7 @@ import {
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
   buildFlatGroupFinishTimes,
+  buildPreservedRoadGroupFinishTimes,
   buildStageRaceStandings,
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
@@ -29,6 +30,7 @@ import {
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
   canLeaderFollowRecoveryPace,
+  canLaunchPlannedAttackFromRoadGroup,
   canRiderStayInGrupetto,
   getLeaderRecoveryHelperLimit,
   getLeaderRecoveryTargetPriority,
@@ -860,6 +862,69 @@ describe("buildFlatGroupFinishTimes", () => {
     expect(finishTimes.get("leader-b")).toBe(25_722);
     expect(finishTimes.get("chaser")).toBe(25_812);
     expect(finishTimes.get("gruppetto")).toBe(25_932);
+  });
+});
+
+describe("buildPreservedRoadGroupFinishTimes", () => {
+  const groups = [
+    {
+      type: "peloton" as const,
+      riderIds: ["leader-a", "leader-b"],
+      gapToLeaderSeconds: 0,
+    },
+    {
+      type: "dropped" as const,
+      riderIds: ["grupetto-a", "grupetto-b", "grupetto-c"],
+      gapToLeaderSeconds: 120,
+    },
+  ];
+  const elapsedTimeByRiderId = new Map([
+    ["leader-a", 10_000],
+    ["leader-b", 10_002],
+    ["grupetto-a", 10_119],
+    ["grupetto-b", 10_121],
+    ["grupetto-c", 10_122],
+  ]);
+
+  it("préserve le temps collectif du groupe attardé sur un final sélectif", () => {
+    const finishTimes = buildPreservedRoadGroupFinishTimes({
+      groups,
+      elapsedTimeByRiderId,
+      preserveAllGroups: false,
+    });
+
+    expect(finishTimes.has("leader-a")).toBe(false);
+    expect(finishTimes.has("leader-b")).toBe(false);
+    expect(
+      new Set([
+        finishTimes.get("grupetto-a"),
+        finishTimes.get("grupetto-b"),
+        finishTimes.get("grupetto-c"),
+      ]).size,
+    ).toBe(1);
+    expect(finishTimes.get("grupetto-a")).toBe(10_121);
+  });
+
+  it("préserve tous les groupes lorsque le profil final l’exige", () => {
+    const finishTimes = buildPreservedRoadGroupFinishTimes({
+      groups,
+      elapsedTimeByRiderId,
+      preserveAllGroups: true,
+    });
+
+    expect(finishTimes.get("leader-a")).toBe(10_001);
+    expect(finishTimes.get("leader-b")).toBe(10_001);
+    expect(finishTimes.get("grupetto-a")).toBe(10_121);
+  });
+});
+
+describe("attaques préparées depuis un groupe attardé", () => {
+  it("réserve l’attaque au peloton encore en course", () => {
+    expect(canLaunchPlannedAttackFromRoadGroup("peloton")).toBe(true);
+    expect(canLaunchPlannedAttackFromRoadGroup("delayed")).toBe(false);
+    expect(canLaunchPlannedAttackFromRoadGroup("dropped")).toBe(false);
+    expect(canLaunchPlannedAttackFromRoadGroup("chase")).toBe(false);
+    expect(canLaunchPlannedAttackFromRoadGroup("breakaway")).toBe(false);
   });
 });
 

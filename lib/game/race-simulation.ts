@@ -3527,29 +3527,43 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     profileType: input.profileType,
     finishMode: roadFinishMode,
   });
-  const fixedRoadGroupFinishTimes = preserveFinalRoadGroups
-    ? buildFlatGroupFinishTimes({
-        groups: timeline.at(-1)?.groups ?? [],
-        elapsedTimeByRiderId: new Map(
-          [...states.values()]
-            .filter((state) => state.group !== "abandoned")
-            .map((state) => [state.rider.id, state.elapsedTimeSeconds]),
-        ),
-      })
-    : new Map<string, number>();
+  const finalRoadGroups = timeline.at(-1)?.groups ?? [];
+  const fixedRoadGroupFinishTimes = buildPreservedRoadGroupFinishTimes({
+    groups: finalRoadGroups,
+    elapsedTimeByRiderId: new Map(
+      [...states.values()]
+        .filter((state) => state.group !== "abandoned")
+        .map((state) => [state.rider.id, state.elapsedTimeSeconds]),
+    ),
+    preserveAllGroups: preserveFinalRoadGroups,
+  });
+  const preservedDroppedRiderIds = new Set(
+    finalRoadGroups
+      .filter((group) => group.type === "dropped")
+      .flatMap((group) => group.riderIds),
+  );
   const rawResults = [...states.values()]
     .filter((state) => state.group !== "abandoned")
-    .map((state) => ({
-      riderId: state.rider.id,
-      score: finishScores.get(state.rider.id) ?? 0,
-      elapsedTimeSeconds: getRoadFinishTime(
-        state,
-        states,
-        massSprintFinish,
-        fixedRoadGroupFinishTimes.get(state.rider.id),
-      ) + (finalEffortGapSecondsByRiderId.get(state.rider.id) ?? 0),
-      energyAfter: round(state.energy, 1),
-    }));
+    .map((state) => {
+      const fixedGroupFinishTimeSeconds = fixedRoadGroupFinishTimes.get(
+        state.rider.id,
+      );
+      return {
+        riderId: state.rider.id,
+        score: finishScores.get(state.rider.id) ?? 0,
+        elapsedTimeSeconds:
+          getRoadFinishTime(
+            state,
+            states,
+            massSprintFinish,
+            fixedGroupFinishTimeSeconds,
+          ) +
+          (preservedDroppedRiderIds.has(state.rider.id)
+            ? 0
+            : (finalEffortGapSecondsByRiderId.get(state.rider.id) ?? 0)),
+        energyAfter: round(state.energy, 1),
+      };
+    });
   rawResults.sort(
     (first, second) =>
       first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
@@ -4559,7 +4573,7 @@ function attemptPlannedStrategyAttacks({
     if (
       !state ||
       state.rider.teamId !== order.teamId ||
-      (state.group !== "peloton" && state.group !== "delayed") ||
+      !canLaunchPlannedAttackFromRoadGroup(state.group) ||
       state.energy < getPlannedAttackMinimumEnergy(order.intensity) ||
       !isPlannedAttackConditionMet({
         order,
@@ -4638,6 +4652,17 @@ function attemptPlannedStrategyAttacks({
   );
 
   return true;
+}
+
+/**
+ * Un coureur déjà distancé ne transforme pas un ordre préparé en attaque
+ * individuelle. Il reste avec son groupe pour économiser ses réserves et
+ * contribuer à la poursuite collective jusqu'à l'arrivée.
+ */
+export function canLaunchPlannedAttackFromRoadGroup(
+  group: RiderState["group"],
+) {
+  return group === "peloton";
 }
 
 function getPlannedAttackMinimumEnergy(
@@ -9538,6 +9563,41 @@ export function buildFlatGroupFinishTimes({
   }
 
   return finishTimes;
+}
+
+/**
+ * Sur un final sélectif, seuls les groupes encore en lutte pour la victoire
+ * produisent des écarts individuels. Un groupe déjà attardé roule ensemble :
+ * son ordre est départagé au score, mais tous ses membres conservent le temps
+ * collectif du snapshot final. Les finales neutralisées (descente ou sprint
+ * groupé) continuent, elles, à préserver tous les groupes.
+ */
+export function buildPreservedRoadGroupFinishTimes({
+  groups,
+  elapsedTimeByRiderId,
+  preserveAllGroups,
+}: {
+  groups: ReadonlyArray<
+    Pick<RaceGroupSnapshot, "type" | "riderIds" | "gapToLeaderSeconds">
+  >;
+  elapsedTimeByRiderId: ReadonlyMap<string, number>;
+  preserveAllGroups: boolean;
+}) {
+  const allGroupFinishTimes = buildFlatGroupFinishTimes({
+    groups,
+    elapsedTimeByRiderId,
+  });
+  const preservedRiderIds = new Set(
+    groups
+      .filter((group) => preserveAllGroups || group.type === "dropped")
+      .flatMap((group) => group.riderIds),
+  );
+
+  return new Map(
+    [...allGroupFinishTimes].filter(([riderId]) =>
+      preservedRiderIds.has(riderId),
+    ),
+  );
 }
 
 export function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
