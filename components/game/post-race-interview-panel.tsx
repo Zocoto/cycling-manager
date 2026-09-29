@@ -7,7 +7,6 @@ import { SportingDirectorAvatar } from "@/components/game/sporting-director-avat
 import type {
   PostRaceInterviewSnapshot,
   ZoneMixteEvent,
-  ZoneMixteEventRisk,
 } from "@/lib/game/post-race-interview";
 
 export function PostRaceInterviewPanel({
@@ -246,7 +245,6 @@ function ZoneMixteEventCard({
               <span className="min-w-0">
                 <span className="flex flex-wrap items-center gap-2 text-xs font-black text-[#183F37]">
                   {choice.label}
-                  <RiskBadge risk={choice.risk} />
                 </span>
                 <span className="mt-1 block text-[11px] font-semibold leading-4 text-[#6F6650]">
                   {choice.description}
@@ -283,20 +281,10 @@ function ZoneMixteEventCard({
           </span>
         </label>
       </div>
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9C234A]">
+        La conséquence sera révélée après validation.
+      </p>
     </fieldset>
-  );
-}
-
-function RiskBadge({ risk }: { risk: ZoneMixteEventRisk }) {
-  const presentation = {
-    safe: "Sûr",
-    balanced: "Mesuré",
-    bold: "Audacieux",
-  }[risk];
-  return (
-    <span className="rounded-full border border-current/15 bg-white/60 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.12em] text-[#7B6330]">
-      {presentation}
-    </span>
   );
 }
 

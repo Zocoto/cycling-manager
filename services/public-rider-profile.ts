@@ -16,6 +16,7 @@ import {
   type SquadStatus,
 } from "@/lib/game/squad-status";
 import { getDailyConditionHistoryLabel } from "@/lib/game/rider-form-history";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -77,8 +78,10 @@ export type PublicRiderProfile = {
   scoutingReport: TransferScoutingReport | null;
   condition: {
     form: number;
+    morale: number;
     dayNumber: number | null;
     events: RiderFormEvent[];
+    moraleEvents: RiderMoraleEvent[];
   };
   medical: {
     diagnosisCode: string;
@@ -292,6 +295,17 @@ type SeasonDayRow = {
 type ConditionRow = {
   season_day_id: string;
   form: number;
+  morale: number | string;
+};
+
+type MoraleEventRow = {
+  id: string;
+  source_type: string;
+  description: string;
+  applied_delta: number | string;
+  morale_before: number | string;
+  morale_after: number | string;
+  occurred_at: string;
 };
 
 type DailyConditionEffectRow = {
@@ -1487,7 +1501,13 @@ async function getCurrentCondition({
   activeSeason: SeasonRow | null;
 }): Promise<PublicRiderProfile["condition"]> {
   if (!activeSeason) {
-    return { form: 75, dayNumber: null, events: [] };
+    return {
+      form: 75,
+      morale: 60,
+      dayNumber: null,
+      events: [],
+      moraleEvents: [],
+    };
   }
 
   const dayNumber = activeSeason.current_day_number ?? 1;
@@ -1502,14 +1522,14 @@ async function getCurrentCondition({
   assertQuery(seasonDayError, "la journée courante");
 
   if (!seasonDays || seasonDays.length === 0) {
-    return { form: 75, dayNumber, events: [] };
+    return { form: 75, morale: 60, dayNumber, events: [], moraleEvents: [] };
   }
 
-  const [{ data: conditions, error: conditionError }, events] =
+  const [{ data: conditions, error: conditionError }, events, moraleEvents] =
     await Promise.all([
       supabase
         .from("rider_condition_states")
-        .select("season_day_id, form")
+        .select("season_day_id, form, morale")
         .eq("rider_id", riderId)
         .in(
           "season_day_id",
@@ -1517,6 +1537,7 @@ async function getCurrentCondition({
         )
         .returns<ConditionRow[]>(),
       getRecentFormEvents({ supabase, riderId }),
+      getRecentMoraleEvents({ supabase, riderId }),
     ]);
 
   assertQuery(conditionError, "la forme du coureur");
@@ -1529,9 +1550,40 @@ async function getCurrentCondition({
 
   return {
     form: Number(condition?.form ?? 75),
+    morale: Number(condition?.morale ?? 60),
     dayNumber,
     events,
+    moraleEvents,
   };
+}
+
+async function getRecentMoraleEvents({
+  supabase,
+  riderId,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  riderId: string;
+}): Promise<RiderMoraleEvent[]> {
+  const result = await supabase
+    .from("rider_morale_events")
+    .select(
+      "id, source_type, description, applied_delta, morale_before, morale_after, occurred_at",
+    )
+    .eq("rider_id", riderId)
+    .order("occurred_at", { ascending: false })
+    .limit(20)
+    .returns<MoraleEventRow[]>();
+  assertQuery(result.error, "l’historique de moral du coureur");
+
+  return (result.data ?? []).map((event) => ({
+    id: event.id,
+    label: event.description,
+    delta: Number(event.applied_delta),
+    moraleBefore: Number(event.morale_before),
+    moraleAfter: Number(event.morale_after),
+    occurredAt: event.occurred_at,
+    sourceType: event.source_type,
+  }));
 }
 
 async function getRecentFormEvents({

@@ -470,8 +470,8 @@ function InjuryCard({
               </Link>
               <p className="mt-1 text-sm font-bold text-[#60756E]">
                 {isFatigueInjury
-                  ? "Forme bloquée à 0 pendant la convalescence"
-                  : `Forme ${rider.form}/100 · perte −${rider.injury.formLossPerDay}/jour`}
+                  ? `Forme bloquée à 0 pendant la convalescence · Moral ${Math.round(rider.morale)}/100`
+                  : `Forme ${rider.form}/100 · Moral ${Math.round(rider.morale)}/100 · perte −${rider.injury.formLossPerDay}/jour`}
               </p>
             </div>
           </div>
@@ -753,6 +753,7 @@ function FormPanel({
             countryName: rider.countryName,
             countryCode: rider.countryCode,
             form: rider.form,
+            morale: rider.morale,
           }))}
           planning={planning}
           balance={overview.balance}
@@ -970,7 +971,7 @@ function NutritionPanel({
                           ) : null}
                         </div>
                         <p className="mt-1 text-xs font-bold text-[#60756E]">
-                          Forme actuelle · {rider.form}/100
+                          Forme {rider.form}/100 · Moral {Math.round(rider.morale)}/100
                         </p>
                       </div>
                       <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633]">

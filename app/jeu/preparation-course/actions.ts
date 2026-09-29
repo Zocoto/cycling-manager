@@ -137,6 +137,22 @@ export async function saveTimeTrialPreparationAction(formData: FormData) {
   const slug = readFormValue(formData, "slug");
   const plans = readTimeTrialPlans(formData);
   const isTeamTimeTrial = stageType === "team_time_trial";
+  const roles = readSubmittedRoles(formData).map(([riderId, role]) => ({
+    riderId,
+    role,
+  }));
+  const objective = readFormValue(formData, "objective");
+  const collectivePosture = readFormValue(formData, "collectivePosture");
+  const breakawayPolicy = readFormValue(formData, "breakawayPolicy");
+  const chasePolicy = readFormValue(formData, "chasePolicy");
+  const lieutenantRiderId = readOptionalRiderId(formData, "lieutenantRiderId");
+  const dangerPacerRiderId = readOptionalRiderId(
+    formData,
+    "dangerPacerRiderId",
+  );
+  const protectorRiderId = readOptionalRiderId(formData, "protectorRiderId");
+  const breakawayRiderId = readOptionalRiderId(formData, "breakawayRiderId");
+  const attackOrders = readAttackOrders(formData);
 
   if (
     !isUuid(editionId) ||
@@ -154,7 +170,23 @@ export async function saveTimeTrialPreparationAction(formData: FormData) {
           (total, plan) => total + (plan.relaySharePct ?? 0),
           0,
         ) - 100,
-      ) > 0.001)
+      ) > 0.001) ||
+    (isTeamTimeTrial &&
+      (roles.length === 0 ||
+        !isRaceStrategyValue(RACE_STRATEGY_OBJECTIVES, objective) ||
+        !isRaceStrategyValue(
+          RACE_COLLECTIVE_POSTURES,
+          collectivePosture,
+        ) ||
+        !isRaceStrategyValue(RACE_BREAKAWAY_POLICIES, breakawayPolicy) ||
+        !isRaceStrategyValue(RACE_CHASE_POLICIES, chasePolicy) ||
+        [
+          lieutenantRiderId,
+          dangerPacerRiderId,
+          protectorRiderId,
+          breakawayRiderId,
+        ].some((riderId) => riderId !== null && !isUuid(riderId)) ||
+        attackOrders === null))
   ) {
     redirectWithError(
       `/jeu/preparation-course${slug ? `?course=${encodeURIComponent(slug)}` : ""}`,
@@ -174,11 +206,29 @@ export async function saveTimeTrialPreparationAction(formData: FormData) {
 
   const { error } = await supabase.rpc(
     "save_current_team_time_trial_preparation",
-    {
-      p_race_edition_id: editionId,
-      p_stage_id: stageId,
-      p_plan: plans,
-    },
+    isTeamTimeTrial
+      ? {
+          p_race_edition_id: editionId,
+          p_stage_id: stageId,
+          p_plan: plans,
+          p_roles: roles,
+          p_strategy: {
+            objective,
+            collectivePosture,
+            breakawayPolicy,
+            chasePolicy,
+            lieutenantRiderId,
+            dangerPacerRiderId,
+            protectorRiderId,
+            breakawayRiderId,
+            attackOrders,
+          },
+        }
+      : {
+          p_race_edition_id: editionId,
+          p_stage_id: stageId,
+          p_plan: plans,
+        },
   );
 
   if (error) {

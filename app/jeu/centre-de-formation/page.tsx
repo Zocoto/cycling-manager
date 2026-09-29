@@ -23,6 +23,7 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
@@ -1029,6 +1030,13 @@ function AcademyRiderCard({
                 </span>
               </div>
             ) : null}
+            <div className="mt-3 border-t border-[#315B3E]/10 pt-3">
+              <RiderMoraleGauge
+                value={rider.morale}
+                events={rider.moraleEvents}
+                compact
+              />
+            </div>
           </div>
         </div>
         <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">

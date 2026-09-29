@@ -49,4 +49,12 @@ describe("race preparation navigation", () => {
     );
     expect(preparationPage).toContain("Promise.all");
   });
+
+  it("limits a direct race link to the requested preparation", () => {
+    expect(preparationPage).toContain("const requestedEdition = requestedCourse");
+    expect(preparationPage).toContain("const selectedCalendarEdition =");
+    expect(preparationPage).toContain("? [selectedCalendarEdition]");
+    expect(preparationPage).toContain("entries: displayedCalendarEditions.map");
+    expect(preparationPage).toContain("navigationEditions={navigationEditions}");
+  });
 });

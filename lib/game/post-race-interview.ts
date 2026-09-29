@@ -9,6 +9,7 @@ export type ZoneMixteEventOutcome = {
   reputationDelta?: number;
   cashDelta?: number;
   riderPopularityDelta?: number;
+  riderMoraleDelta?: number;
   inventoryItemKey?: "acceleration-focus";
   inventoryItemName?: "Module explosivité";
   summary: string;
@@ -123,6 +124,25 @@ export type PostRaceInterviewSnapshot = {
   submittedAt: string | null;
   eventResolution: PostRaceInterviewEventResolution | null;
 };
+
+export function concealZoneMixteEventOutcomes(
+  context: PostRaceInterviewContext,
+): PostRaceInterviewContext {
+  const event = context.zoneMixteEvent;
+  if (!event) return context;
+
+  return {
+    ...context,
+    zoneMixteEvent: {
+      ...event,
+      choices: event.choices.map((choice) => ({
+        ...choice,
+        impactPreview: "Conséquence cachée",
+        outcomes: [],
+      })),
+    },
+  };
+}
 
 type ResultSituation = "win" | "podium" | "top10" | "outside";
 type InterviewRaceType = "road" | "itt";

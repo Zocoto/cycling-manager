@@ -7,8 +7,16 @@ import {
   type RiderSimulationInput,
 } from "./race-simulation";
 import type { TimeTrialRiderPlan } from "./time-trial-preparation";
+import { getTeamTimeTrialCoreSize } from "./team-time-trial";
 
 describe("time-trial race preparation", () => {
+  it("keeps a four-to-six rider core depending on the starting roster", () => {
+    expect(getTeamTimeTrialCoreSize(5)).toBe(4);
+    expect(getTeamTimeTrialCoreSize(7)).toBe(4);
+    expect(getTeamTimeTrialCoreSize(8)).toBe(5);
+    expect(getTeamTimeTrialCoreSize(9)).toBe(6);
+  });
+
   it("renormalizes configured relay shares", () => {
     const plans = {
       strong: { effortMode: "normal", relaySharePct: 70 },
@@ -126,7 +134,7 @@ describe("time-trial race preparation", () => {
         timeTrial: 48,
         endurance: 48,
         resistance: 45,
-      }),
+      }, 16),
       createDetailedRider("rouleur-1", {
         timeTrial: 88,
         endurance: 84,
@@ -179,8 +187,108 @@ describe("time-trial race preparation", () => {
     expect(
       new Set(
         simulation.results.map((result) => result.elapsedTimeSeconds),
-      ).size,
+    ).size,
     ).toBeGreaterThan(1);
+  });
+
+  it("keeps an energetic weak rider in the group while taking them out of relays", () => {
+    const baseInput = createDemoSimulationInput("chrono-algarve", 133);
+    const weak = createDetailedRider(
+      "energetic-weak",
+      { timeTrial: 48, endurance: 52, resistance: 50 },
+      94,
+    );
+    const rouleurs = [1, 2, 3, 4].map((index) =>
+      createDetailedRider(`rouleur-${index}`, {
+        timeTrial: 86 - index,
+        endurance: 82,
+        resistance: 80,
+      }),
+    );
+    const riders = [weak, ...rouleurs];
+
+    const simulation = simulateRaceStage({
+      ...baseInput,
+      stageType: "team_time_trial",
+      riders,
+      timeTrialPlans: Object.fromEntries(
+        riders.map((rider) => [
+          rider.id,
+          {
+            effortMode: "normal",
+            relaySharePct: rider.id === weak.id ? 5 : 23.75,
+          } satisfies TimeTrialRiderPlan,
+        ]),
+      ),
+    });
+
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.commentary.some((entry) =>
+          entry.includes("ne prend plus de relais"),
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.groups.some(
+          (group) =>
+            group.type === "dropped" && group.riderIds.includes(weak.id),
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("always waits for the tour leader even when the planned pace is too high", () => {
+    const baseInput = createDemoSimulationInput("chrono-algarve", 144);
+    const leader = {
+      ...createDetailedRider(
+        "tour-leader",
+        { timeTrial: 48, endurance: 52, resistance: 50 },
+        18,
+      ),
+      role: "leader" as const,
+      generalClassificationProtected: true,
+    };
+    const rouleurs = [1, 2, 3, 4, 5].map((index) =>
+      createDetailedRider(`leader-rouleur-${index}`, {
+        timeTrial: 88 - index,
+        endurance: 84,
+        resistance: 82,
+      }),
+    );
+    const riders = [leader, ...rouleurs];
+
+    const simulation = simulateRaceStage({
+      ...baseInput,
+      stageType: "team_time_trial",
+      riders,
+      timeTrialPlans: Object.fromEntries(
+        riders.map((rider) => [
+          rider.id,
+          {
+            effortMode: rider.id === leader.id ? "conserve" : "all_in",
+            relaySharePct: rider.id === leader.id ? 0 : 20,
+          } satisfies TimeTrialRiderPlan,
+        ]),
+      ),
+    });
+
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.groups.some(
+          (group) =>
+            group.type === "dropped" && group.riderIds.includes(leader.id),
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.commentary.some((entry) =>
+          entry.includes(`conserver ${leader.name} dans son noyau`),
+        ),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -216,10 +324,12 @@ function createRider(id: string, timeTrial: number): RiderSimulationInput {
 function createDetailedRider(
   id: string,
   ratings: Partial<RiderSimulationInput["ratings"]>,
+  form = 78,
 ) {
   const rider = createRider(id, ratings.timeTrial ?? 70);
   return {
     ...rider,
+    form,
     ratings: {
       ...rider.ratings,
       ...ratings,

@@ -8,6 +8,7 @@ describe("RiderConditionGauges", () => {
     const markup = renderToStaticMarkup(
       <RiderConditionGauges
         form={72}
+        morale={68}
         dayNumber={8}
         events={[
           {
@@ -16,15 +17,25 @@ describe("RiderConditionGauges", () => {
             occurredAt: "2026-08-02T08:00:00.000Z",
           },
         ]}
+        moraleEvents={[
+          {
+            label: "Confiance affichée en zone mixte",
+            delta: 3,
+            occurredAt: "2026-08-02T09:00:00.000Z",
+          },
+        ]}
       />,
     );
 
     expect(markup).toContain('data-form-history-tooltip="touchable"');
-    expect(markup).toContain("Forme du jour");
+    expect(markup).toContain("Santé du coureur");
     expect(markup).toContain("<summary");
     expect(markup).toContain("group-open/form-tooltip:visible");
     expect(markup).toContain("overflow-y-auto");
     expect(markup).toContain("Course");
-    expect(markup).toContain("Total sur 48 h");
+    expect(markup).toContain("Total des variations affichées");
+    expect(markup).toContain("Moral");
+    expect(markup).toContain("bg-[#3B82F6]");
+    expect(markup).toContain("Confiance affichée en zone mixte");
   });
 });

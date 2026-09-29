@@ -26,6 +26,12 @@ import {
 } from "./time-trial-preparation";
 import { getRiderExperienceRaceBonus } from "./rider-experience";
 import {
+  DEFAULT_RIDER_MORALE,
+  getRiderMoraleExecutionBias,
+  getRiderTimeTrialMoraleExecutionBias,
+  normalizeRiderMorale,
+} from "./rider-morale";
+import {
   applyMetronomeToRaceDaySwing,
   doesCyclocrossmanAvoidCobbledCrash,
   getCyclocrossmanTerrainBonus,
@@ -112,6 +118,10 @@ import {
   getRiderPhysiologyTerrainModifier,
   type RiderPhysiology,
 } from "./rider-physiology";
+import {
+  getTeamTimeTrialCohesionMultiplier,
+  getTeamTimeTrialCoreSize,
+} from "./team-time-trial";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -219,6 +229,7 @@ export type RiderSimulationInput = {
   classificationJerseyVisual?: StageRaceJerseyVisual | null;
   age: number;
   form: number;
+  morale?: number;
   physiology?: RiderPhysiology | null;
   careerRaceDays?: number;
   countryCode?: string | null;
@@ -1182,6 +1193,7 @@ function normalizeStageSimulationInput(
 
         return {
           ...rider,
+          morale: normalizeRiderMorale(rider.morale),
           climateProfile,
           weatherCenterEnergyCostReductionPercentage:
             weatherCenterEffects.energyCostReductionPercentage,
@@ -3692,7 +3704,9 @@ function simulateIndividualTimeTrial(
       {
         rider,
         energy: clamp(rider.form, 5, 100),
-        raceDayExecutionBonus: 0,
+        raceDayExecutionBonus: getRiderTimeTrialMoraleExecutionBias(
+          rider.morale ?? DEFAULT_RIDER_MORALE,
+        ),
         decisiveAttackBonus: 0,
         injuryPerformancePenalty: 0,
         finalSprintCrashFinishPenalty: 0,
@@ -3796,13 +3810,19 @@ function simulateTeamTimeTrial(
       new Set(riders.map((rider) => rider.id)),
     ]),
   );
+  const startingRiderCountByTeam = new Map(
+    [...teams].map(([teamId, riders]) => [teamId, riders.length]),
+  );
+  const strainedSegmentCountByRiderId = new Map<string, number>();
   const states = new Map<string, RiderState>(
     input.riders.map((rider) => [
       rider.id,
       {
         rider,
         energy: clamp(rider.form, 5, 100),
-        raceDayExecutionBonus: 0,
+        raceDayExecutionBonus: getRiderTimeTrialMoraleExecutionBias(
+          rider.morale ?? DEFAULT_RIDER_MORALE,
+        ),
         decisiveAttackBonus: 0,
         injuryPerformancePenalty: 0,
         finalSprintCrashFinishPenalty: 0,
@@ -3822,6 +3842,8 @@ function simulateTeamTimeTrial(
 
   input.segments.forEach((segment, segmentIndex) => {
     const droppedThisSegment: RiderState[] = [];
+    const shelteredThisSegment: RiderState[] = [];
+    const waitedForThisSegment: RiderState[] = [];
 
     for (const [teamId, riders] of teams) {
       const activeRiderIds = activeRiderIdsByTeam.get(teamId)!;
@@ -3876,7 +3898,7 @@ function simulateTeamTimeTrial(
         );
       }
 
-      const relayShares = normalizeTeamTimeTrialRelayShares(
+      const plannedRelayShares = normalizeTeamTimeTrialRelayShares(
         activeRiders.map((rider) => rider.id),
         input.timeTrialPlans,
       );
@@ -3898,33 +3920,108 @@ function simulateTeamTimeTrial(
       const averageTeamTimeTrialRating = average([
         ...timeTrialRatingByRiderId.values(),
       ]);
-      const teamRating = activeRiders.reduce((total, rider) => {
+      const sustainableRatingByRiderId = new Map(
+        activeRiders.map((rider) => {
+          const riderRating = timeTrialRatingByRiderId.get(rider.id) ?? 0;
+          return [
+            rider.id,
+            riderRating * 0.72 +
+              rider.ratings.endurance * 0.16 +
+              rider.ratings.resistance * 0.12,
+          ];
+        }),
+      );
+      const followCapacityByRiderId = new Map(
+        activeRiders.map((rider) => {
+          const state = states.get(rider.id)!;
+          const energyBuffer = clamp((state.energy - 25) * 0.15, 0, 10);
+          return [
+            rider.id,
+            (sustainableRatingByRiderId.get(rider.id) ?? 0) + energyBuffer,
+          ];
+        }),
+      );
+      const getPlannedTeamRating = () =>
+        activeRiders.reduce((total, rider) => {
+          const effort =
+            TIME_TRIAL_EFFORT_EFFECTS[
+              getTimeTrialPlan(input, rider.id).effortMode
+            ];
+          return (
+            total +
+            (timeTrialRatingByRiderId.get(rider.id) ?? 0) *
+              effort.paceMultiplier *
+              plannedRelayShares[rider.id]
+          );
+        }, 0);
+      const plannedTeamRating = getPlannedTeamRating();
+      const shelteredRiderIds = new Set(
+        activeRiders
+          .filter((rider) => {
+            const state = states.get(rider.id)!;
+            const followCapacity = followCapacityByRiderId.get(rider.id) ?? 0;
+            const isProtected = isTeamTimeTrialProtectedRider(rider);
+            const hasLightRelayPlan =
+              plannedRelayShares[rider.id] <= equalRelayShare * 0.75;
+            return (
+              state.energy < 28 ||
+              (followCapacity < plannedTeamRating - 4 &&
+                (isProtected || hasLightRelayPlan))
+            );
+          })
+          .map((rider) => rider.id),
+      );
+      const relayShares = normalizeRelaySharesAfterSheltering({
+        riders: activeRiders,
+        plannedRelayShares,
+        shelteredRiderIds,
+      });
+      shelteredThisSegment.push(
+        ...activeRiders
+          .filter((rider) => shelteredRiderIds.has(rider.id))
+          .map((rider) => states.get(rider.id)!),
+      );
+      const rawTeamRating = activeRiders.reduce((total, rider) => {
         const effort =
           TIME_TRIAL_EFFORT_EFFECTS[
             getTimeTrialPlan(input, rider.id).effortMode
           ];
         return (
           total +
-          getTimeTrialSegmentRating(
-            rider,
-            segment,
-            "team_time_trial",
-            getPistardTimeTrialBonus({
-              hasPistard: hasSpecialAbility(rider, "pistard"),
-              distanceKm: totalDistanceKm,
-            }),
-          ) *
+          (timeTrialRatingByRiderId.get(rider.id) ?? 0) *
             effort.paceMultiplier *
             relayShares[rider.id]
         );
       }, 0);
+      const slowestFollowCapacity = Math.min(
+        ...activeRiders.map(
+          (rider) => (followCapacityByRiderId.get(rider.id) ?? 0) + 4,
+        ),
+      );
+      const teamRating = Math.min(rawTeamRating, slowestFollowCapacity);
+      if (teamRating < rawTeamRating - 0.5) {
+        const limitingRider = [...activeRiders].sort(
+          (first, second) =>
+            (followCapacityByRiderId.get(first.id) ?? 0) -
+            (followCapacityByRiderId.get(second.id) ?? 0),
+        )[0];
+        if (limitingRider) {
+          waitedForThisSegment.push(states.get(limitingRider.id)!);
+        }
+      }
+      const startingRiderCount = startingRiderCountByTeam.get(teamId) ?? 1;
+      const cohesionMultiplier = getTeamTimeTrialCohesionMultiplier({
+        activeRiderCount: activeRiders.length,
+        startingRiderCount,
+      });
       const speed = Math.max(
         8,
         getBaseSpeed(segment) *
           (0.87 +
             teamRating * 0.0038 +
             Math.log2(activeRiders.length + 1) * 0.012 +
-            (random() - 0.5) * 0.01),
+            (random() - 0.5) * 0.01) *
+          cohesionMultiplier,
       );
       const segmentSeconds = (segment.distanceKm / speed) * 3_600;
       const groupTime = (teamGroupTimes.get(teamId) ?? 0) + segmentSeconds;
@@ -3980,43 +4077,49 @@ function simulateTeamTimeTrial(
           effort.energyCostMultiplier * relayLoadMultiplier,
         );
 
-        const riderRating = getTimeTrialSegmentRating(
-          rider,
-          segment,
-          "team_time_trial",
-          getPistardTimeTrialBonus({
-            hasPistard: hasSpecialAbility(rider, "pistard"),
-            distanceKm: totalDistanceKm,
-          }),
-        );
         const sustainableRating =
-          riderRating * 0.72 +
-          rider.ratings.endurance * 0.16 +
-          rider.ratings.resistance * 0.12;
-        const fatiguePressure = Math.max(0, 18 - state.energy) * 0.48;
+          sustainableRatingByRiderId.get(rider.id) ?? 0;
+        const postEffortEnergyBuffer = clamp((state.energy - 25) * 0.15, 0, 10);
+        const followDeficit =
+          rawTeamRating - sustainableRating - postEffortEnergyBuffer;
+        const previousStrainedSegments =
+          strainedSegmentCountByRiderId.get(rider.id) ?? 0;
+        const strainedSegments =
+          followDeficit > 6 && state.energy <= 42
+            ? previousStrainedSegments + 1
+            : Math.max(0, previousStrainedSegments - 1);
+        strainedSegmentCountByRiderId.set(rider.id, strainedSegments);
+        const fatiguePressure = Math.max(0, 32 - state.energy) * 0.32;
         const relayPressure =
           Math.max(0, normalizedRelayShare / equalRelayShare - 1) *
-          Math.max(0, 24 - state.energy) *
+          Math.max(0, 38 - state.energy) *
           0.16;
         dropScores.push({
           state,
-          score:
-            teamRating - sustainableRating + fatiguePressure + relayPressure,
+          score: followDeficit + fatiguePressure + relayPressure,
         });
       }
 
       if (segmentIndex < input.segments.length - 1 && activeRiders.length > 1) {
+        const minimumCoreSize = getTeamTimeTrialCoreSize(startingRiderCount);
+        const availableDropSlots = Math.max(
+          0,
+          activeRiders.length - minimumCoreSize,
+        );
         const candidates = dropScores
           .filter(
             ({ state, score }) =>
-              state.energy <= 3.5 || score > 6.5 + random() * 3.5,
+              !isTeamTimeTrialProtectedRider(state.rider) &&
+              (strainedSegmentCountByRiderId.get(state.rider.id) ?? 0) >= 2 &&
+              state.energy <= 42 &&
+              score > 8 + random() * 2,
           )
           .sort(
             (first, second) =>
               second.score - first.score ||
               first.state.energy - second.state.energy,
           )
-          .slice(0, activeRiders.length - 1);
+          .slice(0, Math.min(1, availableDropSlots));
 
         for (const { state, score } of candidates) {
           activeRiderIds.delete(state.rider.id);
@@ -4089,6 +4192,29 @@ function simulateTeamTimeTrial(
       abandonments: [],
       commentary: [
         `${orderedGroups[0].label} signe le meilleur temps intermédiaire.`,
+        ...shelteredThisSegment
+          .filter(
+            (state, index, entries) =>
+              entries.findIndex(
+                (candidate) => candidate.rider.id === state.rider.id,
+              ) === index,
+          )
+          .slice(0, 2)
+          .map(
+            (state) =>
+              `${state.rider.name} ne prend plus de relais et reste abrité dans le collectif.`,
+          ),
+        ...waitedForThisSegment
+          .filter(
+            (state, index, entries) =>
+              entries.findIndex(
+                (candidate) => candidate.rider.id === state.rider.id,
+              ) === index,
+          )
+          .slice(0, 2)
+          .map((state) =>
+            `${state.rider.teamName} adapte son rythme pour conserver ${state.rider.name} dans son noyau.`,
+          ),
         ...droppedThisSegment
           .slice(0, 3)
           .map(
@@ -4100,6 +4226,44 @@ function simulateTeamTimeTrial(
   });
 
   return buildTimedResult(input, states, timeline);
+}
+
+function isTeamTimeTrialProtectedRider(rider: RiderSimulationInput) {
+  return (
+    rider.generalClassificationProtected === true ||
+    isRaceLeaderRole(rider.role) ||
+    isRaceProtectedRiderRole(rider.role)
+  );
+}
+
+function normalizeRelaySharesAfterSheltering({
+  riders,
+  plannedRelayShares,
+  shelteredRiderIds,
+}: {
+  riders: readonly RiderSimulationInput[];
+  plannedRelayShares: Record<string, number>;
+  shelteredRiderIds: ReadonlySet<string>;
+}) {
+  const contributingRiders = riders.filter(
+    (rider) => !shelteredRiderIds.has(rider.id),
+  );
+  if (contributingRiders.length === 0) return plannedRelayShares;
+
+  const contributingTotal = contributingRiders.reduce(
+    (total, rider) => total + plannedRelayShares[rider.id],
+    0,
+  );
+  if (contributingTotal <= 0) return plannedRelayShares;
+
+  return Object.fromEntries(
+    riders.map((rider) => [
+      rider.id,
+      shelteredRiderIds.has(rider.id)
+        ? 0
+        : plannedRelayShares[rider.id] / contributingTotal,
+    ]),
+  );
 }
 
 function buildTimedResult(
@@ -10938,12 +11102,24 @@ function getRiderRaceDayExecutionBonus(
     `${input.id}:${input.seed}:race-execution:${rider.id}`,
   );
 
-  return getControlledRaceDayExecutionSwing({
-    firstRoll: random(),
-    secondRoll: random(),
-    experienceRaceBonus: getRiderExperienceRaceBonus(rider.careerRaceDays ?? 0),
-    hasMetronome: hasSpecialAbility(rider, "metronome"),
-  });
+  return round(
+    clamp(
+      getControlledRaceDayExecutionSwing({
+        firstRoll: random(),
+        secondRoll: random(),
+        experienceRaceBonus: getRiderExperienceRaceBonus(
+          rider.careerRaceDays ?? 0,
+        ),
+        hasMetronome: hasSpecialAbility(rider, "metronome"),
+      }) +
+        getRiderMoraleExecutionBias(
+          rider.morale ?? DEFAULT_RIDER_MORALE,
+        ),
+      -5,
+      5,
+    ),
+    3,
+  );
 }
 
 function getBaseSpeed(segment: RaceStageSegment) {

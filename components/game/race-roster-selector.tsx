@@ -394,6 +394,9 @@ export function RaceRosterSelector({
                       >
                         Forme {formatRosterForm(rider.form)}/100
                       </span>
+                      <span className="rounded-full border border-[#76A7E5]/40 bg-[#173A61] px-2 py-0.5 text-[10px] font-black text-[#B8D8FF]">
+                        Moral {Math.round(rider.morale)}/100
+                      </span>
                       <SquadStatusBadge
                         status={rider.squadStatus}
                         tone="dark"

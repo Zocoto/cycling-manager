@@ -93,6 +93,7 @@ import {
 } from "@/lib/rider-names/generate-rider-identities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -250,6 +251,7 @@ type AcademyRow = Omit<
     | "released";
   promotion_game_year: number | null;
   promoted_rider_id: string | null;
+  morale: number | string;
 };
 
 type YouthTrainingSessionRow = {
@@ -261,6 +263,17 @@ type YouthTrainingSessionRow = {
   score: number | null;
   rating_changes: Record<string, number>;
   processed_at: string;
+};
+
+type YouthMoraleEventRow = {
+  id: string;
+  academy_rider_id: string;
+  source_type: string;
+  applied_delta: number | string;
+  morale_before: number | string;
+  morale_after: number | string;
+  description: string;
+  occurred_at: string;
 };
 
 export type YouthCountry = {
@@ -363,6 +376,8 @@ export type AcademyYouth = {
   sportingProfile: string;
   potentialSteps: number;
   nativeSpecialAbility: SpecialAbilityDefinition | null;
+  morale: number;
+  moraleEvents: RiderMoraleEvent[];
   ratings: YouthRatings;
   trainingPriority: YouthTrainingDomain;
   trainingMode: YouthTrainingMode;
@@ -919,22 +934,52 @@ async function loadOverview(admin: AdminClient, context: Context) {
     "la nationalité de l’équipe",
   );
   const academyIds = academyRows.map((rider) => rider.id);
-  const latestSessionsResult = academyIds.length
-    ? await admin
-        .from("youth_academy_training_sessions")
-        .select(
-          "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
-        )
-        .in("academy_rider_id", academyIds)
-        .eq("season_id", context.seasonId)
-        .order("day_number", { ascending: false })
-        .order("processed_at", { ascending: false })
-        .returns<YouthTrainingSessionRow[]>()
-    : { data: [], error: null };
+  const [latestSessionsResult, moraleEventsResult] = academyIds.length
+    ? await Promise.all([
+        admin
+          .from("youth_academy_training_sessions")
+          .select(
+            "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
+          )
+          .in("academy_rider_id", academyIds)
+          .eq("season_id", context.seasonId)
+          .order("day_number", { ascending: false })
+          .order("processed_at", { ascending: false })
+          .returns<YouthTrainingSessionRow[]>(),
+        admin
+          .from("youth_rider_morale_events")
+          .select(
+            "id, academy_rider_id, source_type, applied_delta, morale_before, morale_after, description, occurred_at",
+          )
+          .in("academy_rider_id", academyIds)
+          .order("occurred_at", { ascending: false })
+          .limit(250)
+          .returns<YouthMoraleEventRow[]>(),
+      ])
+    : [
+        { data: [] as YouthTrainingSessionRow[], error: null },
+        { data: [] as YouthMoraleEventRow[], error: null },
+      ];
   assertQuery(
     latestSessionsResult.error,
     "les rapports d’entraînement des jeunes",
   );
+  assertQuery(moraleEventsResult.error, "l’historique de moral des jeunes");
+  const moraleEventsByRider = new Map<string, RiderMoraleEvent[]>();
+  for (const event of moraleEventsResult.data ?? []) {
+    const events = moraleEventsByRider.get(event.academy_rider_id) ?? [];
+    if (events.length >= 12) continue;
+    events.push({
+      id: event.id,
+      label: event.description,
+      delta: toNumber(event.applied_delta),
+      moraleBefore: toNumber(event.morale_before),
+      moraleAfter: toNumber(event.morale_after),
+      occurredAt: event.occurred_at,
+      sourceType: event.source_type,
+    });
+    moraleEventsByRider.set(event.academy_rider_id, events);
+  }
   const sessionRows = latestSessionsResult.data ?? [];
   const latestByRider = new Map<
     string,
@@ -1060,6 +1105,8 @@ async function loadOverview(admin: AdminClient, context: Context) {
       nativeSpecialAbility: getSpecialAbilityDefinition(
         rider.native_special_ability_code,
       ),
+      morale: toNumber(rider.morale ?? 60),
+      moraleEvents: moraleEventsByRider.get(rider.id) ?? [],
       ratings: scaleYouthRatings(ratings),
       trainingPriority: rider.training_priority,
       trainingMode: rider.training_mode,

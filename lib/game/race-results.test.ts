@@ -86,11 +86,11 @@ describe("buildTeamTimeTrialStageClassification", () => {
 
   it("ignore les abandons et conserve le temps du groupe devant un coureur lâché", () => {
     const classification = buildTeamTimeTrialStageClassification([
-      {
+      ...[1, 2, 3, 4].map((index) => ({
         ...coquinous,
-        riderId: "groupe",
+        riderId: `groupe-${index}`,
         elapsedTimeMs: 3_600_000,
-      },
+      })),
       {
         ...coquinous,
         riderId: "lache",
@@ -112,6 +112,18 @@ describe("buildTeamTimeTrialStageClassification", () => {
         totalTimeMs: 3_600_000,
       }),
     ]);
+  });
+
+  it("prend le temps du noyau et non celui d'un unique survivant", () => {
+    const classification = buildTeamTimeTrialStageClassification(
+      Array.from({ length: 8 }, (_, index) => ({
+        ...coquinous,
+        riderId: `coquinous-${index + 1}`,
+        elapsedTimeMs: index < 4 ? 3_600_000 : 3_600_000 + index * 10_000,
+      })),
+    );
+
+    expect(classification[0].totalTimeMs).toBe(3_640_000);
   });
 });
 

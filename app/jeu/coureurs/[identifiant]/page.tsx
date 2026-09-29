@@ -595,8 +595,10 @@ export default async function RiderProfilePage({
             <div data-tutorial-id="rider-profile-form">
               <RiderConditionGauges
                 form={profile.condition.form}
+                morale={profile.condition.morale}
                 dayNumber={profile.condition.dayNumber}
                 events={profile.condition.events}
+                moraleEvents={profile.condition.moraleEvents}
               />
             </div>
             <RiderClimateProfileCard profile={riderClimateProfile} />

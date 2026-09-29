@@ -9,7 +9,10 @@ import type {
   PostRaceInterviewRivalryContext,
   PostRaceInterviewSnapshot,
 } from "@/lib/game/post-race-interview";
-import { selectPostRaceInterviewQuestions } from "@/lib/game/post-race-interview";
+import {
+  concealZoneMixteEventOutcomes,
+  selectPostRaceInterviewQuestions,
+} from "@/lib/game/post-race-interview";
 import { selectZoneMixteEvent } from "@/lib/game/post-race-interview-events";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 import { isPostRaceInterviewWindowOpen } from "@/lib/game/post-race-interview-window";
@@ -623,7 +626,9 @@ function mapInterview(row: PostRaceInterviewRow): PostRaceInterviewSnapshot {
     questions: row.question_set as PostRaceInterviewQuestion[],
     answers: row.answers as PostRaceInterviewAnswer[],
     closingNote: row.closing_note ?? "",
-    context: row.context as PostRaceInterviewContext,
+    context: concealZoneMixteEventOutcomes(
+      row.context as PostRaceInterviewContext,
+    ),
     submittedAt: row.submitted_at,
     eventResolution: asEventResolution(row.event_choice_id, row.event_outcome),
   };

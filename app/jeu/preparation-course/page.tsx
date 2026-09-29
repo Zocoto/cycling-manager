@@ -11,9 +11,13 @@ import { GameHeader } from "@/components/game/game-header";
 import {
   RacePreparationWorkspace,
   type RacePreparationWorkspaceEdition,
+  type RacePreparationWorkspaceNavigationEdition,
 } from "@/components/game/race-preparation-workspace";
 import { getStageLiveState } from "@/lib/game/race-live";
-import { isRacePreparationStageAvailable } from "@/lib/game/race-preparation";
+import {
+  isRacePreparationStageAvailable,
+  isRaceStagePreparationPending,
+} from "@/lib/game/race-preparation";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -97,9 +101,57 @@ export default async function RacePreparationPage({
         ? [{ ...edition, stages }]
         : [];
     }) ?? [];
+  const requestedCourse = readSingleSearchParam(resolvedSearchParams.course);
+  const requestedEdition = requestedCourse
+    ? preparableCalendarEditions.find(
+        (edition) => edition.slug === requestedCourse,
+      )
+    : null;
+  const selectedCalendarEdition =
+    requestedEdition ?? preparableCalendarEditions[0] ?? null;
+  const displayedCalendarEditions = selectedCalendarEdition
+    ? [selectedCalendarEdition]
+    : [];
+  const navigationEditions: RacePreparationWorkspaceNavigationEdition[] =
+    preparableCalendarEditions.map((edition) => {
+      const orderedStages = [...edition.stages].sort(
+        (first, second) =>
+          first.dayNumber - second.dayNumber ||
+          first.stageNumber - second.stageNumber,
+      );
+      const scheduledStages = orderedStages.filter(
+        (stage) => getStageLiveState(stage, now).status === "scheduled",
+      );
+      const plan = plansByEditionId.get(edition.id)!;
+
+      return {
+        id: edition.id,
+        slug: edition.slug,
+        name: edition.name,
+        shortName: edition.shortName,
+        categoryCode: edition.categoryCode,
+        categoryName: edition.categoryName,
+        pendingWildcard:
+          edition.categoryCode === "elite" &&
+          edition.currentTeamRegistration?.status === "pending",
+        startDepartureAt: orderedStages[0]?.departureAt ?? null,
+        endDepartureAt: orderedStages.at(-1)?.departureAt ?? null,
+        startDayNumber: orderedStages[0]?.dayNumber ?? null,
+        endDayNumber: orderedStages.at(-1)?.dayNumber ?? null,
+        pendingCount: scheduledStages.filter((stage) =>
+          isRaceStagePreparationPending({
+            edition,
+            stage,
+            plan: plan.stages[stage.id],
+            scheduled: true,
+          }),
+        ).length,
+        scheduledStageCount: scheduledStages.length,
+      };
+    });
   const equipmentPlanningResult = await getRaceEquipmentPlanningDataBatch({
     authUserId: user.id,
-    entries: preparableCalendarEditions.map((edition) => ({
+    entries: displayedCalendarEditions.map((edition) => ({
       edition,
       riderIds: plansByEditionId
         .get(edition.id)!
@@ -121,7 +173,7 @@ export default async function RacePreparationPage({
     );
   }
   const editions: RacePreparationWorkspaceEdition[] =
-    preparableCalendarEditions.map((edition) => ({
+    displayedCalendarEditions.map((edition) => ({
       id: edition.id,
       slug: edition.slug,
       name: edition.name,
@@ -225,12 +277,13 @@ export default async function RacePreparationPage({
               tacticalAction={saveRaceTacticalBriefingAction}
               timeTrialAction={saveTimeTrialPreparationAction}
               editions={editions}
+              navigationEditions={navigationEditions}
               gameYear={calendarResult.calendar?.gameYear ?? 1}
               tacticalCenterLevel={0}
               tacticalBriefingsByStageId={{}}
               tacticalError={false}
               nowIso={now.toISOString()}
-              initialSlug={readSingleSearchParam(resolvedSearchParams.course)}
+              initialSlug={requestedCourse}
               equipmentError={Boolean(equipmentPlanningResult.error)}
               equipmentSaveStatus={readSingleSearchParam(
                 resolvedSearchParams.materiel,

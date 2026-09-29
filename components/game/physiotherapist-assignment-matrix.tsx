@@ -372,6 +372,9 @@ function RiderSummary({
           >
             Forme {rider.form}/100
           </span>
+          <span className="rounded-full border border-[#8BB8F0]/40 bg-[#EAF3FF] px-2 py-0.5 text-[10px] font-black text-[#315F9C]">
+            Moral {Math.round(rider.morale)}/100
+          </span>
           {rider.injury ? (
             <span className="rounded-full bg-[#FFF0EE] px-2 py-0.5 text-[9px] font-black text-[#B54242]">
               Blessé

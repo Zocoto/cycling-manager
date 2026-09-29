@@ -106,6 +106,7 @@ type ConditionRow = {
   rider_id: string;
   season_day_id: string;
   form: number;
+  morale: number | string;
   updated_at: string;
 };
 type PlanRow = {
@@ -194,6 +195,7 @@ export type TeamTrainingRider = {
   age: number;
   potentialSteps: number;
   form: number;
+  morale: number;
   squadStatus: SquadStatus | null;
   declineProfile: {
     seasonPointsBeforeTraining: number;
@@ -330,7 +332,7 @@ export async function getCurrentTeamTrainingOverview(
       riderIds.length && conditionDayIds.length
         ? admin
             .from("rider_condition_states")
-            .select("rider_id, season_day_id, form, updated_at")
+            .select("rider_id, season_day_id, form, morale, updated_at")
             .in("rider_id", riderIds)
             .in("season_day_id", conditionDayIds)
             .returns<ConditionRow[]>()
@@ -677,6 +679,7 @@ export async function getCurrentTeamTrainingOverview(
             age: rating.age,
             potentialSteps: rider.potential_steps,
             form: condition?.form ?? 75,
+            morale: Number(condition?.morale ?? 60),
             squadStatus: squadStatusByRiderId.get(rider.id) ?? null,
             declineProfile: {
               seasonPointsBeforeTraining: getSeasonDeclinePoints(rating.age, {

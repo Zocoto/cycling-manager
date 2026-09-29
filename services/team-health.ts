@@ -16,6 +16,7 @@ import {
   type StaffTalentCode,
 } from "@/lib/game/staff-talents";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = { id: string };
@@ -70,6 +71,17 @@ type ConditionRow = {
   season_day_id: string;
   form: number;
   fatigue: number;
+  morale: number | string;
+};
+type MoraleEventRow = {
+  id: string;
+  rider_id: string;
+  source_type: string;
+  description: string;
+  applied_delta: number | string;
+  morale_before: number | string;
+  morale_after: number | string;
+  occurred_at: string;
 };
 type InjuryRow = {
   id: string;
@@ -223,6 +235,8 @@ export type TeamHealthRider = {
   averageRating: number;
   form: number;
   fatigue: number;
+  morale: number;
+  moraleEvents: RiderMoraleEvent[];
   injury: RiderMedicalInjury | null;
   formCamp: RiderFormCamp | null;
 };
@@ -467,6 +481,7 @@ export async function getCurrentTeamHealthOverview(
     treatmentsResult,
     nutritionInterventionsResult,
     weightEventsResult,
+    moraleEventsResult,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -476,7 +491,7 @@ export async function getCurrentTeamHealthOverview(
     dayIds.length
       ? admin
           .from("rider_condition_states")
-          .select("rider_id, season_day_id, form, fatigue")
+          .select("rider_id, season_day_id, form, fatigue, morale")
           .in("rider_id", riderIds)
           .in("season_day_id", dayIds)
           .returns<ConditionRow[]>()
@@ -512,6 +527,15 @@ export async function getCurrentTeamHealthOverview(
       .in("rider_id", riderIds)
       .order("game_day_index", { ascending: false })
       .returns<WeightEventRow[]>(),
+    admin
+      .from("rider_morale_events")
+      .select(
+        "id, rider_id, source_type, description, applied_delta, morale_before, morale_after, occurred_at",
+      )
+      .in("rider_id", riderIds)
+      .order("occurred_at", { ascending: false })
+      .limit(500)
+      .returns<MoraleEventRow[]>(),
   ]);
   assertQuery(countriesResult.error, "les pays des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
@@ -521,6 +545,7 @@ export async function getCurrentTeamHealthOverview(
     "les interventions nutritionnelles",
   );
   assertQuery(weightEventsResult.error, "l’historique de poids");
+  assertQuery(moraleEventsResult.error, "l’historique de moral");
 
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
@@ -562,6 +587,21 @@ export async function getCurrentTeamHealthOverview(
     ) {
       latestWeightCutByRiderId.set(event.rider_id, event);
     }
+  }
+  const moraleEventsByRiderId = new Map<string, RiderMoraleEvent[]>();
+  for (const event of moraleEventsResult.data ?? []) {
+    const history = moraleEventsByRiderId.get(event.rider_id) ?? [];
+    if (history.length >= 12) continue;
+    history.push({
+      id: event.id,
+      label: event.description,
+      delta: toNumber(event.applied_delta),
+      moraleBefore: toNumber(event.morale_before),
+      moraleAfter: toNumber(event.morale_after),
+      occurredAt: event.occurred_at,
+      sourceType: event.source_type,
+    });
+    moraleEventsByRiderId.set(event.rider_id, history);
   }
 
   return {
@@ -631,6 +671,8 @@ export async function getCurrentTeamHealthOverview(
           ),
           form: condition?.form ?? 75,
           fatigue: condition?.fatigue ?? 0,
+          morale: toNumber(condition?.morale ?? 60),
+          moraleEvents: moraleEventsByRiderId.get(rider.id) ?? [],
           injury: injury
             ? {
                 id: injury.id,

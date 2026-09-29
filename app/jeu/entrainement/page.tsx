@@ -393,7 +393,7 @@ export default async function TrainingPage({
                                 aria-label={`Drapeau : ${rider.countryName}`}
                               />
                               {rider.countryName} · {rider.age} ans · Forme{" "}
-                              {rider.form}%
+                              {rider.form}% · Moral {Math.round(rider.morale)}%
                             </p>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <span

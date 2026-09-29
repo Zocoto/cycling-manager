@@ -30,6 +30,7 @@ const rider = {
   sprint: 61,
   breakaway: 73,
   form: 87.5,
+  morale: 72,
   squadStatus: "lieutenant",
   climateProfile: { strength: "sun", weakness: "rain" },
   isSelected: false,
