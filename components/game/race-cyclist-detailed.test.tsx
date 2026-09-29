@@ -86,6 +86,8 @@ describe("detailed race cyclist", () => {
     expect(markup).toContain(rider.teamJersey!.imagePath!);
     expect(markup).not.toContain("m35 19-8 8");
     expect(markup).toContain('data-race-cyclist-direction="finish-right"');
+    expect(markup).toContain('data-race-cyclist-scale="broadcast-aligned"');
+    expect(markup).toContain("cm-race-cyclist");
     expect(markup).toContain('data-race-cyclist-pose="seated"');
     expect(markup).toContain('data-race-pedal-rig="synchronized"');
     expect(markup).toContain('data-race-pedaling="active"');
@@ -181,6 +183,8 @@ describe("detailed race cyclist", () => {
       accent: "#EAF4EF",
     });
     expect(markup.match(/data-race-helmet-team-colors="true"/g)).toHaveLength(2);
+    expect(markup.match(/data-race-cyclist-scale="broadcast-aligned"/g)).toHaveLength(2);
+    expect(markup).toContain("h-10 w-24");
     expect(markup).toContain("#214E43");
     expect(markup).toContain("#E58A2B");
   });

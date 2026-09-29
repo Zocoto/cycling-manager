@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from "react";
+import { memo, useId, type CSSProperties } from "react";
 
 import { SvgCountryFlag } from "@/components/game/svg-country-flag";
 import { ContinentalChampionPattern } from "@/components/game/continental-champion-pattern";
@@ -15,7 +15,7 @@ import {
 import type { RiderJerseyPattern } from "@/lib/rider-jersey";
 import type { RaceRiderVisualEffort } from "@/lib/game/race-visual-motion";
 
-export function SideRaceCyclist({
+export const SideRaceCyclist = memo(function SideRaceCyclist({
   rider,
   isMoving = true,
   className = "h-12 w-[5.25rem]",
@@ -73,13 +73,14 @@ export function SideRaceCyclist({
       aria-label={label}
       data-race-cyclist-effort={effort}
       data-race-cyclist-direction="finish-right"
+      data-race-cyclist-scale="broadcast-aligned"
       data-race-cyclist-pose={standing ? "standing-climb" : "seated"}
       data-race-rider-morphology={morphology.profile}
       data-race-rider-height-cm={rider.physiology?.heightCm}
       data-race-rider-weight-kg={rider.physiology?.weightKg}
       data-race-pedal-cycle-duration={pedalCycleDuration}
       style={riderMotionStyle}
-      className={`${className} overflow-visible drop-shadow-md ${
+      className={`${className} cm-race-cyclist overflow-visible drop-shadow-md ${
         isMoving ? (standing ? "cm-bike-standing" : "cm-bike-bob") : ""
       } cm-race-cyclist-effort-${effort}`}
     >
@@ -575,7 +576,7 @@ export function SideRaceCyclist({
       </g>
     </svg>
   );
-}
+});
 
 type PedalPoint = { x: number; y: number };
 
@@ -962,7 +963,7 @@ function getRacePedalCycleDuration(effort: RaceRiderVisualEffort) {
   return "0.5s";
 }
 
-export function TopRaceCyclist({
+export const TopRaceCyclist = memo(function TopRaceCyclist({
   rider,
   isMoving = true,
   celebrating = false,
@@ -985,9 +986,10 @@ export function TopRaceCyclist({
       role="img"
       aria-label={label}
       data-race-rider-morphology={morphology.profile}
+      data-race-cyclist-scale="broadcast-aligned"
       data-race-rider-height-cm={rider.physiology?.heightCm}
       data-race-rider-weight-kg={rider.physiology?.weightKg}
-      className={`h-9 w-[5.25rem] overflow-visible drop-shadow-lg ${
+      className={`h-10 w-24 cm-race-cyclist overflow-visible drop-shadow-lg ${
         isMoving ? "cm-bike-top-sway" : ""
       }`}
     >
@@ -1140,7 +1142,7 @@ export function TopRaceCyclist({
       </g>
     </svg>
   );
-}
+});
 
 export function getRaceCyclistTeamHelmetPalette(
   rider: Pick<

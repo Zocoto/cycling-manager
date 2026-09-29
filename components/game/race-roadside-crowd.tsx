@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from "react";
+import { memo, useId, type CSSProperties } from "react";
 
 const DEFAULT_CROWD_COLORS = ["#F2C94C", "#FFFDF4", "#EF5B65", "#2457C5", "#43C892"];
 const COUNTRY_FLAGS = ["FR", "BE", "IT", "ES", "NL", "CO"] as const;
@@ -30,7 +30,7 @@ export type RaceFeaturedRunningSupporter = {
   teamId?: string;
 };
 
-export function RaceRoadsideCrowd({
+export const RaceRoadsideCrowd = memo(function RaceRoadsideCrowd({
   show,
   isMoving,
   roadLeftY,
@@ -244,7 +244,7 @@ export function RaceRoadsideCrowd({
     ) : null}
     </>
   );
-}
+});
 
 function buildUpperSafePath(boundary: (x: number) => number) {
   return `M0 0H1000V${boundary(1000)}L0 ${boundary(0)}Z`;

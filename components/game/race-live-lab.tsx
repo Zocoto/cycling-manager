@@ -119,6 +119,7 @@ type PlaybackSpeed = 1 | 2 | 4;
 
 const REPLAY_STEP_DURATION_MS = 6_000;
 const RACE_RENDER_FRAME_INTERVAL_MS = 1_000 / 30;
+const FINISH_MEDIA_GROUP_POSITIONS = [58, 76] as const;
 
 export function RaceLiveLab({
   edition,
@@ -821,7 +822,7 @@ function RaceVisualViewport({
         <div
           dir="ltr"
           data-race-motion-intensity={motionIntensity}
-          className={`relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}
+          className={`cm-race-visual-viewport relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}
           style={style}
         >
           {children}
@@ -911,7 +912,10 @@ function RoadScene({
     scenery,
     terrain: segment.terrain,
   });
-  const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
+  const spectatorTeamPalettes = useMemo(
+    () => getRaceSpectatorTeamPalettes(riderById),
+    [riderById],
+  );
   const sprinterGroup = groups.find((group) =>
     group.riderIds.some((riderId) => {
       const rider = riderById.get(riderId);
@@ -1157,7 +1161,7 @@ function RoadScene({
                 ? [primeWinnerId]
                 : []),
           ],
-          maximumVisibleRiders: groups.length <= 3 ? 8 : 5,
+          maximumVisibleRiders: groups.length <= 3 ? 7 : 5,
         });
         const displayLabel = getRaceGroupDisplayLabel({
           type: group.type,
@@ -1168,14 +1172,14 @@ function RoadScene({
         return (
           <div
             key={group.id}
-            className="absolute -translate-x-1/2 transition-[left,top] duration-700 ease-out"
+            className="cm-race-motion-layer pointer-events-none absolute inset-0 transition-transform duration-150 ease-linear"
             style={{
-              left: `${left}%`,
-              top: `${roadFormationTopPct}%`,
+              transform: `translate3d(${left}%, ${roadFormationTopPct}%, 0)`,
               zIndex: 20 - groupIndex,
             }}
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
           >
+            <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2">
             <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
               {displayLabel} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
             </div>
@@ -1193,6 +1197,7 @@ function RoadScene({
               frontDynamics={frontDynamics}
               terrain={segment.terrain}
             />
+            </div>
           </div>
         );
           })}
@@ -1450,26 +1455,27 @@ function RaceDepartureSequence({
       </div>
 
       <div
-        className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-100 ease-linear"
+        className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-150 ease-linear"
         style={{
-          left: `${carPosition}%`,
-          top: `${carRoadTop + 3}%`,
+          transform: `translate3d(${carPosition}%, ${carRoadTop + 3}%, 0)`,
         }}
       >
-        <RaceDirectorCar isMoving={isMoving} />
+        <div className="absolute left-0 top-0 -translate-x-1/2 -translate-y-full">
+          <RaceDirectorCar isMoving={isMoving} />
+        </div>
       </div>
 
       <div
-        className="absolute z-20 -translate-x-1/2 transition-[left,top] duration-100 ease-linear"
+        className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-150 ease-linear"
         style={{
-          left: `${pelotonPosition}%`,
-          top: `${pelotonRoadTop}%`,
+          transform: `translate3d(${pelotonPosition}%, ${pelotonRoadTop}%, 0)`,
         }}
         title={riderIds
           .map((riderId) => riderById.get(riderId)?.name)
           .filter(Boolean)
           .join(", ")}
       >
+        <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2">
         <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-3 py-1 text-center text-[9px] font-black text-white shadow-lg backdrop-blur">
           Peloton · {riderIds.length} coureurs
         </div>
@@ -1478,6 +1484,7 @@ function RaceDepartureSequence({
           riderById={riderById}
           isMoving={isMoving}
         />
+        </div>
       </div>
     </>
   );
@@ -2095,7 +2102,7 @@ function SprintLaneView({
       <RaceMediaConvoy
         isMoving={!raceComplete}
         visualSeed={`${simulation.seed}:sprint-media`}
-        groupPositions={[58, 76]}
+        groupPositions={FINISH_MEDIA_GROUP_POSITIONS}
         context="finish"
         showHelicopter={
           getVisualSeedNumber(`${simulation.seed}:sprint-helicopter`) % 5 === 0
@@ -2281,19 +2288,19 @@ function SprintLaneView({
             data-sprint-team-id={sprintTeam.teamId}
             data-sprint-rider-role={isLeadout ? "leadout" : "sprinter"}
             data-sprint-rider-phase={frame.phase}
-            className="absolute z-20 transition-[left,top,opacity] duration-300 ease-out"
+            className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-[transform,opacity] duration-150 ease-linear"
             style={{
-              left: `${left}%`,
-              top: `${
+              transform: `translate3d(${left}%, ${
                 13 +
                 lane * sprintLaneStep +
                 frame.verticalOffset +
                 (wheelTargetTeamIndex >= 0 ? 1.2 + (wheelFollowerIndex % 2) * 0.55 : 0)
-              }%`,
+              }%, 0)`,
               opacity: frame.opacity,
             }}
             title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
+            <div className="pointer-events-auto absolute left-0 top-0">
             <TopRaceCyclist
               rider={rider}
               isMoving={!raceComplete}
@@ -2307,7 +2314,7 @@ function SprintLaneView({
             />
             {frame.opacity > 0.15 ? (
               <span
-                className={`absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-1 text-[8px] font-black shadow-lg ${
+                className={`absolute left-1/2 top-10 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-1 text-[8px] font-black shadow-lg ${
                   isLeadout
                     ? "border-white/10 bg-[#071A17]/72 text-white/65"
                     : "border-[#F2C94C]/25 bg-[#071A17]/90 text-white"
@@ -2321,6 +2328,7 @@ function SprintLaneView({
                   : ""}
               </span>
             ) : null}
+            </div>
           </div>
         );
       })}
@@ -2456,7 +2464,18 @@ function FinishBattleView({
     .join(" · ");
   const decisiveMovementText =
     "Les accélérations se répondent, sans qu’aucun coureur ne parvienne encore à faire la différence.";
-  const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
+  const spectatorTeamPalettes = useMemo(
+    () => getRaceSpectatorTeamPalettes(riderById),
+    [riderById],
+  );
+  const finishMediaRoadGeometry = useMemo(
+    () => ({
+      leftPct: (roadLeftY / 320) * 100,
+      rightPct: (roadRightY / 320) * 100,
+      depthPct: (roadDepthY / 320) * 100,
+    }),
+    [roadDepthY, roadLeftY, roadRightY],
+  );
   const winnerResult = simulation.results.find(
     (result) => result.status === "finished" && result.rank === 1
   );
@@ -2558,12 +2577,8 @@ function FinishBattleView({
       <RaceMediaConvoy
         isMoving={!raceComplete}
         visualSeed={`${simulation.seed}:finish-media`}
-        groupPositions={[58, 76]}
-        roadGeometry={{
-          leftPct: (roadLeftY / 320) * 100,
-          rightPct: (roadRightY / 320) * 100,
-          depthPct: (roadDepthY / 320) * 100,
-        }}
+        groupPositions={FINISH_MEDIA_GROUP_POSITIONS}
+        roadGeometry={finishMediaRoadGeometry}
         context="finish"
         showHelicopter={
           getVisualSeedNumber(`${simulation.seed}:finish-helicopter`) % 3 === 0
@@ -2688,14 +2703,14 @@ function FinishBattleView({
             data-finish-rank={riderHasFinished ? result.rank : undefined}
             data-finish-lane-offset={finishLaneOffsetY}
             data-finish-status={riderHasFinished ? "finished" : "racing"}
-            className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-out"
+            className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-150 ease-linear"
             style={{
-              left: `${left}%`,
-              top: `${(roadY / 320) * 100}%`,
+              transform: `translate3d(${left}%, ${(roadY / 320) * 100}%, 0)`,
               zIndex: 30 + Math.round(finishLaneOffsetY),
             }}
             title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
+            <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2 -translate-y-full">
             <SideRaceCyclist
               rider={rider}
               isMoving={!raceComplete}
@@ -2713,9 +2728,9 @@ function FinishBattleView({
                   isPhotoFinish,
                 })
               }
-              className="h-9 w-16"
+              className="h-11 w-20"
             />
-            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${formationIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : "border-white/20 bg-[#071A17]/90"}`}>
+            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${formationIndex % 2 === 0 ? "-top-8" : "top-12"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : "border-white/20 bg-[#071A17]/90"}`}>
               <span className="flex items-center gap-1 text-[9px] font-black text-white">
                 <span
                   aria-hidden="true"
@@ -2729,6 +2744,7 @@ function FinishBattleView({
               <span className="mt-0.5 block text-[7px] font-black uppercase tracking-wide text-[#C1D3CA]">
                 {riderStatus}
               </span>
+            </div>
             </div>
           </div>
         );
