@@ -27,6 +27,7 @@ import {
   type OfficialRaceEditionResults,
   type OfficialRiderResult,
 } from "@/lib/game/race-results";
+import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
 import type { StageRaceStandings } from "@/lib/game/race-simulation";
@@ -73,6 +74,7 @@ export function RaceStageExperience({
   currentDirectorId,
   initialMessages,
   lockedSimulations,
+  courseJournal,
   postRaceInterview,
   replayRequested = false,
   initialClassification,
@@ -84,6 +86,7 @@ export function RaceStageExperience({
   currentDirectorId: string;
   initialMessages: RaceLiveMessage[];
   lockedSimulations: LockedOfficialStageSimulation[];
+  courseJournal: RaceCourseJournalEntry[];
   postRaceInterview: PostRaceInterviewSnapshot | null;
   replayRequested?: boolean;
   initialClassification?: "general";
@@ -387,6 +390,7 @@ export function RaceStageExperience({
               gameYear={gameYear}
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
+              courseJournal={courseJournal}
               postRaceInterview={postRaceInterview}
               initialClassification={initialClassification}
             />

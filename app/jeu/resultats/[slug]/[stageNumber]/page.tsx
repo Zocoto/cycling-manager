@@ -12,6 +12,7 @@ import {
 } from "@/lib/game/national-championship-results-only";
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { buildRaceCourseJournal } from "@/lib/game/race-course-journal";
 import { getRaceWeather, getRaceWeatherLabel } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -118,10 +119,11 @@ export default async function RaceLivePage({
       );
     }
   }
-  const officialResults =
+  const replayRequested = resolvedSearchParams.replay === "1";
+  const officialResultsPromise =
     state.status !== "finished"
-      ? null
-      : await getOfficialRaceResults(calendar)
+      ? Promise.resolve(null)
+      : getOfficialRaceResults(calendar)
           .then((directory) => directory[edition.id] ?? null)
           .catch((error: unknown) => {
             console.error(
@@ -130,6 +132,25 @@ export default async function RaceLivePage({
             );
             return null;
           });
+  const shouldLoadLockedSimulation =
+    !resultsOnlyNationalChampionship &&
+    (state.status === "live" || state.status === "finished");
+  const lockedSimulationPromise: Promise<LockedOfficialRaceSimulationDirectory> =
+    shouldLoadLockedSimulation
+      ? getLockedOfficialRaceSimulations(calendar, [stage.id]).catch(
+          (error: unknown) => {
+            console.error(
+              "Impossible de charger le scénario officiel :",
+              error,
+            );
+            return {};
+          },
+        )
+      : Promise.resolve({});
+  const [officialResults, lockedSimulationDirectory] = await Promise.all([
+    officialResultsPromise,
+    lockedSimulationPromise,
+  ]);
   const selectedStageResultAvailable = Boolean(
     officialResults?.stages.some(
       (candidate) => candidate.stageId === stage.id,
@@ -159,32 +180,28 @@ export default async function RaceLivePage({
       }
     });
   }
-  const replayRequested = resolvedSearchParams.replay === "1";
   const shouldLoadReplay =
     !resultsOnlyNationalChampionship &&
     (state.status === "live" ||
       (state.status === "finished" &&
         selectedStageResultAvailable &&
         replayRequested));
-  const lockedSimulationDirectory: LockedOfficialRaceSimulationDirectory =
-    !shouldLoadReplay
-      ? {}
-      : await getLockedOfficialRaceSimulations(
-          calendar,
-          [stage.id],
-        ).catch(
-          (error: unknown) => {
-            console.error(
-              "Impossible de charger le scénario officiel :",
-              error,
-            );
-            return {};
-          },
-        );
   const lockedSimulations = lockedSimulationDirectory[edition.id] ?? [];
-  const selectedSimulationAvailable = lockedSimulations.some(
+  const selectedLockedSimulation = lockedSimulations.find(
     (simulation) => simulation.stageId === stage.id,
   );
+  const selectedSimulationAvailable = Boolean(selectedLockedSimulation);
+  const courseJournal =
+    state.status === "finished" &&
+    selectedStageResultAvailable &&
+    selectedLockedSimulation
+    ? buildRaceCourseJournal({
+        simulation: selectedLockedSimulation.simulation,
+      })
+    : [];
+  const experienceLockedSimulations = shouldLoadReplay
+    ? lockedSimulations
+    : [];
   if (shouldLoadReplay && !selectedSimulationAvailable) {
     after(async () => {
       try {
@@ -324,7 +341,8 @@ export default async function RaceLivePage({
             officialResults={officialResults}
             currentDirectorId={directorResult.data!.id}
             initialMessages={initialMessages}
-            lockedSimulations={lockedSimulations}
+            lockedSimulations={experienceLockedSimulations}
+            courseJournal={courseJournal}
             postRaceInterview={postRaceInterview}
             replayRequested={replayRequested}
             initialClassification={
