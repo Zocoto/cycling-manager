@@ -7,6 +7,10 @@ const RECONNAISSANCE_COSTS: Record<
   RaceCategoryCode,
   Record<RaceFormat, number>
 > = {
+  local: {
+    one_day: 2_500,
+    stage_race: 2_000,
+  },
   elite: {
     one_day: 20_000,
     stage_race: 15_000,

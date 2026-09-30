@@ -60,6 +60,7 @@ export default async function RaceResultsPage({
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {
       includeEngagedRiders: false,
+      includeIneligibleRegionalRaces: true,
     })
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),

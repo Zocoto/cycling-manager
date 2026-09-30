@@ -10,6 +10,7 @@ export const CAREER_PALMARES_CATEGORIES = [
   "continental",
   "national",
   "regional",
+  "local",
   "junior",
 ] as const;
 

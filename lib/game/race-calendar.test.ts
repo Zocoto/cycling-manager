@@ -322,6 +322,7 @@ describe("getRegistrationAvailability", () => {
     expect(getRaceCategoryReputationThreshold("world")).toBe(200);
     expect(getRaceCategoryReputationThreshold("national")).toBeNull();
     expect(getRaceCategoryReputationThreshold("regional")).toBeNull();
+    expect(getRaceCategoryReputationThreshold("local")).toBeNull();
   });
 
   it("affiche les Régionales avec une identité grise dédiée", () => {
@@ -329,6 +330,14 @@ describe("getRegistrationAvailability", () => {
       label: "Régional",
       shortLabel: "RÉG",
       background: "#D7DADD",
+    });
+  });
+
+  it("affiche les Locales en blanc sans les confondre avec les Régionales", () => {
+    expect(RACE_CATEGORY_STYLE.local).toMatchObject({
+      label: "Local",
+      shortLabel: "LOC",
+      background: "#FFFFFF",
     });
   });
 

@@ -75,6 +75,7 @@ export default async function RaceLivePage({
     getActiveSeasonRaceCalendar(supabase, now, {
       raceSlug: slug,
       includeEngagedRiders: true,
+      includeIneligibleRegionalRaces: true,
     }),
   ]);
   const edition = calendar?.editions.find(

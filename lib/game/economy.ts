@@ -1,4 +1,5 @@
 export type RaceTier =
+  | "local"
   | "regional"
   | "national"
   | "continental"
@@ -88,7 +89,9 @@ type StagePrizeRule = {
 
 export const EXPANDED_RACE_REWARDS_START_GAME_YEAR = 4;
 
-const LEGACY_STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
+type RewardScaleTier = Exclude<RaceTier, "local">;
+
+const LEGACY_STAGE_PRIZE_SCALES: Record<RewardScaleTier, StagePrizeRule[]> = {
   regional: [
     { maxRank: 1, cashPrize: 600, uciPoints: 10 },
     { maxRank: 2, cashPrize: 350, uciPoints: 6 },
@@ -124,7 +127,7 @@ const LEGACY_STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
 };
 
 const LEGACY_REWARD_SCALES: Record<
-  RaceTier,
+  RewardScaleTier,
   Record<RaceRewardScope, RewardScale>
 > = {
   regional: {
@@ -289,7 +292,7 @@ const LEGACY_REWARD_SCALES: Record<
  * est volontairement le plus fort en catégorie Nationale, où la densité des
  * équipes rendait les revenus de course trop rares.
  */
-const SEASON_FOUR_STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
+const SEASON_FOUR_STAGE_PRIZE_SCALES: Record<RewardScaleTier, StagePrizeRule[]> = {
   regional: [
     { maxRank: 1, experience: 8, cashPrize: 750, uciPoints: 12 },
     { maxRank: 2, experience: 5, cashPrize: 450, uciPoints: 7 },
@@ -330,7 +333,7 @@ const SEASON_FOUR_STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
 };
 
 const SEASON_FOUR_REWARD_SCALES: Record<
-  RaceTier,
+  RewardScaleTier,
   Record<RaceRewardScope, RewardScale>
 > = {
   regional: {
@@ -617,7 +620,8 @@ export function calculateRaceRewardBreakdown(
   const scales = usesExpandedRaceRewards(input.gameYear)
     ? SEASON_FOUR_REWARD_SCALES
     : LEGACY_REWARD_SCALES;
-  const scale = scales[input.tier][input.scope];
+  const rewardTier = input.tier === "local" ? "regional" : input.tier;
+  const scale = scales[rewardTier][input.scope];
   const placement = findPlacement(scale.placements, input.finalRank);
   const secondaryClassifications = [
     ...new Set(input.secondaryClassifications ?? []),
@@ -958,7 +962,8 @@ export function calculateStageReward({
   const scales = usesExpandedRaceRewards(gameYear)
     ? SEASON_FOUR_STAGE_PRIZE_SCALES
     : LEGACY_STAGE_PRIZE_SCALES;
-  const placement = scales[tier].find(
+  const rewardTier = tier === "local" ? "regional" : tier;
+  const placement = scales[rewardTier].find(
     (placement) => finalRank <= placement.maxRank,
   );
 

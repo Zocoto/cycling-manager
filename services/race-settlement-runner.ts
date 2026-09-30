@@ -15,7 +15,10 @@ import {
   PROFESSIONAL_NATIONS_CUP_HEAT_BATCH_SIZE,
 } from "@/lib/game/nations-cup-heats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import {
+  getActiveSeasonRaceCalendar,
+  getDueRaceJobEditionIds,
+} from "@/services/race-calendar";
 import {
   loadIncompleteCompletedEditionIds,
   settleFinishedRaceResults,
@@ -35,12 +38,16 @@ export async function settleDueStandardRaceResults({
   maxEditions?: number;
 } = {}) {
   const admin = createSupabaseAdminClient();
+  const dueEditionIds = raceSlug
+    ? undefined
+    : await getDueRaceJobEditionIds(admin, now, "settlement");
   const discoveryCalendar = await getActiveSeasonRaceCalendar(admin, now, {
     includeEngagedCounts: true,
     includeEngagedRiders: false,
     includeIneligibleRegionalRaces: true,
     includeNationsCupHeats: true,
     raceSlug,
+    raceEditionIds: dueEditionIds,
   });
 
   if (!discoveryCalendar) {

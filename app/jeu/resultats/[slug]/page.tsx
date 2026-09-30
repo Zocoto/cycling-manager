@@ -46,6 +46,7 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
     getActiveSeasonRaceCalendar(supabase, now, {
       raceSlug: slug,
       includeEngagedRiders: false,
+      includeIneligibleRegionalRaces: true,
     }),
   ]);
   const edition = calendar?.editions.find(

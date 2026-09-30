@@ -14,17 +14,28 @@ export type RegionalRaceContinentCode =
 export type RegionalRaceAccessContext = {
   isAmateur: boolean;
   teamContinentCode: string | null;
+  teamCountryCode: string | null;
 };
 
 export function canTeamAccessRaceCategory({
   categoryCode,
+  raceCountryCode,
   raceContinentCode,
   context,
 }: {
   categoryCode: RaceCategoryCode;
+  raceCountryCode: string | null;
   raceContinentCode: string | null;
   context: RegionalRaceAccessContext | null;
 }) {
+  if (categoryCode === "local") {
+    return Boolean(
+      context?.teamCountryCode &&
+        raceCountryCode &&
+        context.teamCountryCode === raceCountryCode,
+    );
+  }
+
   if (categoryCode !== "regional") return true;
 
   return Boolean(

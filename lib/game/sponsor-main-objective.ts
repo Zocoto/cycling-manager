@@ -12,6 +12,7 @@ export type SponsorMainObjectiveTerms = {
 };
 
 const CASH_REWARD_BY_CATEGORY: Record<RaceCategoryCode, number> = {
+  local: 60_000,
   regional: 60_000,
   national: 100_000,
   continental: 180_000,
@@ -20,6 +21,7 @@ const CASH_REWARD_BY_CATEGORY: Record<RaceCategoryCode, number> = {
 };
 
 const REPUTATION_PENALTY_BY_CATEGORY: Record<RaceCategoryCode, number> = {
+  local: 10,
   regional: 10,
   national: 20,
   continental: 30,
@@ -28,6 +30,7 @@ const REPUTATION_PENALTY_BY_CATEGORY: Record<RaceCategoryCode, number> = {
 };
 
 const CATEGORY_SCORE: Record<RaceCategoryCode, number> = {
+  local: 0,
   regional: 0,
   national: 1,
   continental: 2,

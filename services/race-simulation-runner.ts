@@ -15,7 +15,10 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { syncDueNationalFederationChampionshipLineups } from "@/services/international-championship-selections";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import {
+  getActiveSeasonRaceCalendar,
+  getDueRaceJobEditionIds,
+} from "@/services/race-calendar";
 
 export async function precomputeRequestedOfficialRaceReplay({
   calendar,
@@ -89,6 +92,11 @@ export async function precomputeDueOfficialRaceSimulations(
   }
   const admin = createSupabaseAdminClient();
   const discoveryStartedAt = Date.now();
+  const dueEditionIds = await getDueRaceJobEditionIds(
+    admin,
+    simulationClock,
+    "simulation",
+  );
   const discoveryCalendar = await getActiveSeasonRaceCalendar(
     admin,
     simulationClock,
@@ -97,6 +105,7 @@ export async function precomputeDueOfficialRaceSimulations(
       includeEngagedRiders: false,
       includeIneligibleRegionalRaces: true,
       includeNationsCupHeats: true,
+      raceEditionIds: dueEditionIds,
     },
   );
   const discoveryDurationMs = Date.now() - discoveryStartedAt;

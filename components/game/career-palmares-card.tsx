@@ -15,6 +15,7 @@ const CATEGORY_ICON: Record<CareerPalmaresCategory, string> = {
   continental: "C",
   national: "N",
   regional: "R",
+  local: "L",
   junior: "J",
 };
 
@@ -42,6 +43,7 @@ export function CareerPalmaresCard({
         continental: "Continental",
         national: "National",
         regional: "Regional",
+        local: "Local",
         junior: "Junior",
       }
     : {
@@ -51,6 +53,7 @@ export function CareerPalmaresCard({
         continental: "Continental",
         national: "National",
         regional: "Régional",
+        local: "Local",
         junior: "Juniors",
       };
 

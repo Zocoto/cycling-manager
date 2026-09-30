@@ -85,8 +85,13 @@ type CountryRow = {
 };
 
 type RegionalRaceContextRow = {
+  team_country_code: string | null;
   team_continent_code: string | null;
   is_amateur: boolean;
+};
+
+type VisibleCalendarEditionRow = {
+  race_edition_id: string;
 };
 
 type RegistrationRow = {
@@ -113,25 +118,56 @@ export async function getDashboardRaceCalendar(
     currentDayNumber: number;
   },
 ): Promise<SeasonRaceCalendar> {
+  const [visibleEditionIdsResult, regionalRaceContextResult] =
+    await Promise.all([
+      supabase.rpc("get_current_team_visible_calendar_edition_ids", {
+        p_season_id: seasonId,
+      }),
+      supabase.rpc("get_current_team_race_access_context"),
+    ]);
+
+  assertQuery(
+    visibleEditionIdsResult.error,
+    "les courses visibles du bureau",
+  );
+  assertQuery(
+    regionalRaceContextResult.error,
+    "l’éligibilité aux courses réservées",
+  );
+
+  const visibleEditionIds = (
+    (visibleEditionIdsResult.data as VisibleCalendarEditionRow[] | null) ?? []
+  ).map((row) => row.race_edition_id);
+  const editionIdChunks = chunkValues(visibleEditionIds, 120);
+
   const [
     editionsResult,
     daysResult,
     registrationsResult,
     sponsorObjectivesResult,
-    regionalRaceContextResult,
   ] = await Promise.all([
-    supabase
-      .from("race_editions")
-      .select(
-        "id, race_id, host_country_id, race_category_id, display_name, status, registration_closes_at, wildcard_closes_at, withdrawal_closes_at, minimum_reputation, registration_policy",
-      )
-      .eq("season_id", seasonId)
-      .in("status", [
-        "planned",
-        "registration_open",
-        "registration_closed",
-      ])
-      .returns<EditionRow[]>(),
+    editionIdChunks.length
+      ? Promise.all(
+          editionIdChunks.map((editionIds) =>
+            supabase
+              .from("race_editions")
+              .select(
+                "id, race_id, host_country_id, race_category_id, display_name, status, registration_closes_at, wildcard_closes_at, withdrawal_closes_at, minimum_reputation, registration_policy",
+              )
+              .eq("season_id", seasonId)
+              .in("id", editionIds)
+              .in("status", [
+                "planned",
+                "registration_open",
+                "registration_closed",
+              ])
+              .returns<EditionRow[]>(),
+          ),
+        ).then((results) => ({
+          data: results.flatMap((result) => result.data ?? []),
+          error: results.find((result) => result.error)?.error ?? null,
+        }))
+      : emptyResult<EditionRow>(),
     supabase
       .from("season_days")
       .select("id, day_number, calendar_date, label")
@@ -140,18 +176,12 @@ export async function getDashboardRaceCalendar(
       .returns<DayRow[]>(),
     supabase.rpc("get_current_team_calendar_registrations"),
     supabase.rpc("get_current_team_sponsor_objective_races"),
-    supabase.rpc("get_current_team_regional_race_context"),
   ]);
 
   assertQuery(editionsResult.error, "les courses du bureau");
   assertQuery(daysResult.error, "les journées de la saison");
   assertQuery(registrationsResult.error, "les inscriptions de l'équipe");
   assertQuery(sponsorObjectivesResult.error, "les objectifs sponsor");
-  assertQuery(
-    regionalRaceContextResult.error,
-    "l’éligibilité aux courses régionales",
-  );
-
   const editions = editionsResult.data ?? [];
   const sponsorObjectiveEditionIds = new Set(((sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []).map((objective) => objective.race_edition_id));
   const regionalRaceContext =
@@ -274,10 +304,12 @@ export async function getDashboardRaceCalendar(
     if (
       !canTeamAccessRaceCategory({
         categoryCode: category.code,
+        raceCountryCode: country.iso_alpha2,
         raceContinentCode: country.continent_code,
         context: regionalRaceContext
           ? {
               isAmateur: regionalRaceContext.is_amateur,
+              teamCountryCode: regionalRaceContext.team_country_code,
               teamContinentCode: regionalRaceContext.team_continent_code,
             }
           : null,
@@ -299,6 +331,7 @@ export async function getDashboardRaceCalendar(
         shortName: race.short_name,
         countryName: country.name,
         countryCode: country.iso_alpha2,
+        continentCode: country.continent_code,
         categoryCode: category.code,
         categoryName: category.name,
         prestigeRank: category.prestige_rank,
@@ -352,6 +385,14 @@ export async function getDashboardRaceCalendar(
     events: [],
     editions: calendarEditions,
   };
+}
+
+function chunkValues<T>(values: readonly T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function unique(values: string[]) {

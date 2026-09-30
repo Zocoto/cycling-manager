@@ -11,6 +11,7 @@ export const RACE_CATEGORY_CODES = [
   "continental",
   "national",
   "regional",
+  "local",
 ] as const;
 
 export const RACE_DAY_SLOTS = ["early", "late"] as const;
@@ -157,6 +158,7 @@ export type RaceCalendarEdition = {
   shortName: string | null;
   countryName: string;
   countryCode: string;
+  continentCode?: string | null;
   categoryCode: RaceCategoryCode;
   categoryName: string;
   prestigeRank: number;
@@ -609,6 +611,13 @@ export const RACE_CATEGORY_STYLE: Record<
     background: "#D7DADD",
     foreground: "#293138",
     border: "#8B9298",
+  },
+  local: {
+    label: "Local",
+    shortLabel: "LOC",
+    background: "#FFFFFF",
+    foreground: "#24332D",
+    border: "#B9C8C1",
   },
 };
 
