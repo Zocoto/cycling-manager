@@ -43,7 +43,7 @@ export function PcmExportPanel() {
       }
 
       const blob = await response.blob();
-      const filename = readFilename(response) ?? "Cyclostratege-PCM26.cdb";
+      const filename = readFilename(response) ?? "Cyclostratege-PCM26.zip";
       const downloadUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = downloadUrl;
@@ -128,8 +128,8 @@ export function PcmExportPanel() {
               : "Générer et télécharger la base PCM26"}
           </button>
           <p className="mt-3 text-xs font-semibold leading-5 text-[#6A817A]">
-            La base est relue et contrôlée avant le téléchargement. Compter quelques
-            secondes selon la charge du serveur.
+            La base est relue, contrôlée puis emballée avec tous les fichiers du mod.
+            Compter quelques secondes selon la charge du serveur.
           </p>
 
           <details className="mt-5 rounded-2xl border border-[#CFE0DA] bg-white px-4 py-3 text-sm text-[#49665E]">
@@ -137,9 +137,10 @@ export function PcmExportPanel() {
               Où placer le fichier ?
             </summary>
             <p className="mt-3 font-semibold leading-6">
-              Remplace le fichier <code>OfficialRelease.cdb</code> du dossier de ton
-              mod Cyclostratège dans <code>AppData\Roaming\Pro Cycling Manager 2026\Mod</code>,
-              puis sélectionne ce mod dans PCM26.
+              Décompresse l’archive, puis copie directement le dossier
+              <code> Cyclostratege</code> dans
+              <code> %APPDATA%\Pro Cycling Manager 2026\Mod\</code>. Relance ensuite
+              PCM26 et sélectionne la base Cyclostratège.
             </p>
           </details>
         </div>

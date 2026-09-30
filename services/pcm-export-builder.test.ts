@@ -57,6 +57,37 @@ describe("generateur de base PCM26", () => {
             "SELECT COUNT(*) FROM DYN_cyclist WHERE CONSTANT LIKE 'CS_%'",
           ),
         ).toBe(1);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*)
+             FROM DYN_cyclist cyclist
+             LEFT JOIN STA_cyclist_state state
+               ON state.IDcyclist_state = cyclist.fkIDcyclist_state
+             WHERE cyclist.CONSTANT LIKE 'CS_%'
+               AND state.IDcyclist_state IS NULL`,
+          ),
+        ).toBe(0);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*)
+             FROM DYN_cyclist
+             WHERE CONSTANT LIKE 'CS_%'
+               AND (charac_i_tour NOT BETWEEN 0 AND 5
+                 OR charac_i_classic NOT BETWEEN 0 AND 5)`,
+          ),
+        ).toBe(0);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*)
+             FROM DYN_cyclist
+             WHERE CONSTANT LIKE 'CS_%'
+               AND value_f_potentiel NOT IN
+                 (0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0)`,
+          ),
+        ).toBe(0);
       } finally {
         db.close();
       }

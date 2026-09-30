@@ -8,10 +8,7 @@ import { cdbToSql, sqlToCdb } from "cdb-converter";
 import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
-import {
-  convertCsRatingToPcm,
-  convertRiderRatings,
-} from "@/lib/game/pcm-export/ratings";
+import { convertRiderRatings } from "@/lib/game/pcm-export/ratings";
 import type {
   PcmExportResult,
   PcmExportSnapshot,
@@ -422,7 +419,7 @@ function buildDatabaseFromSnapshot(
       const riderId = nextCyclistId++;
       const contractId = nextContractId++;
       const birthYear = 2026 - Number(rating.age);
-      const tourRating = Math.round(
+      const tourRating = toPcmProfileLevel(
         average([
           converted.charac_i_mountain,
           converted.charac_i_hill,
@@ -431,7 +428,7 @@ function buildDatabaseFromSnapshot(
           converted.charac_i_endurance,
         ]),
       );
-      const classicRating = Math.round(
+      const classicRating = toPcmProfileLevel(
         average([
           converted.charac_i_hill,
           converted.charac_i_cobble,
@@ -457,24 +454,12 @@ function buildDatabaseFromSnapshot(
         gene_f_popularity: 0,
         gene_f_popularity_max: 0,
         value_i_rank_voted: 0,
-        value_f_potentiel: Math.min(
-          85,
-          currentAbility +
-            convertCsRatingToPcm(
-              Math.min(
-                snapshot.ratingPolicy.scale.csMaximum,
-                snapshot.ratingPolicy.scale.csMinimum +
-                  Number(rider.potential_steps || 0),
-              ),
-              snapshot.ratingPolicy.scale,
-            ) -
-            snapshot.ratingPolicy.scale.pcmMinimum,
-        ),
+        value_f_potentiel: toPcmPotential(rider.potential_steps),
         value_f_current_ability: currentAbility,
         current_f_stage_score: 0,
         fkIDrace: 0,
         fkIDlaststage: 0,
-        fkIDcyclist_state: 0,
+        fkIDcyclist_state: 3,
         fkIDtype_rider: inferRiderType(converted),
         fkIDinjury: 0,
         gene_i_size: Math.round(Number(rider.height_cm) || 178),
@@ -810,6 +795,27 @@ function inferRiderType(converted: Record<string, number>) {
   ];
 
   return scores.sort((left, right) => right[1] - left[1])[0][0];
+}
+
+/**
+ * PCM stores the Tour and Classics indicators as profile levels, not as
+ * performance ratings. Zero means that the profile is not significant; the
+ * remaining levels must stay in the native 1..5 range enforced by PCM26.
+ */
+function toPcmProfileLevel(score: number) {
+  if (score < 70) return 0;
+  return Math.min(5, Math.floor((score - 70) / 3) + 1);
+}
+
+/**
+ * PCM26 accepts only half-star potential levels between 0.5 and 6.0. CS uses
+ * eight progression steps, so the full CS range is projected onto the full
+ * PCM range while retaining PCM's discrete half-star values.
+ */
+function toPcmPotential(value: number | null) {
+  const steps = Math.max(1, Math.min(8, Math.round(Number(value) || 1)));
+  const projected = 0.5 + ((steps - 1) * 5.5) / 7;
+  return Math.round(projected * 2) / 2;
 }
 
 function average(values: number[]) {

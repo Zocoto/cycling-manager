@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/admin/pcm-export": [
       "./assets/pcm/OfficialRelease.template.cdb",
+      "./assets/pcm/OfficialLocal.template.cdb",
       "./node_modules/sql.js/dist/sql-wasm.wasm",
     ],
   },

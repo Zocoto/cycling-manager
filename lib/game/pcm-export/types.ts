@@ -136,3 +136,10 @@ export type PcmExportResult = {
   cdb: Uint8Array;
   metadata: PcmExportMetadata;
 };
+
+export type PcmExportPackageResult = {
+  archive: Uint8Array;
+  filename: string;
+  archiveSha256: string;
+  database: PcmExportMetadata;
+};

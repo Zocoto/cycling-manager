@@ -25,26 +25,28 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { cdb, metadata } = await generatePcmExport();
-    const body = new Uint8Array(cdb.byteLength);
-    body.set(cdb);
+    const { archive, filename, archiveSha256, database } =
+      await generatePcmExport();
+    const body = new Uint8Array(archive.byteLength);
+    body.set(archive);
 
     return new Response(body, {
       status: 200,
       headers: {
         "Cache-Control": "private, no-store, max-age=0",
-        "Content-Disposition": `attachment; filename="${metadata.filename}"`,
-        "Content-Length": String(metadata.bytes),
-        "Content-Type": "application/octet-stream",
-        "X-CS-Season": String(metadata.season),
-        "X-CS-Teams": String(metadata.counts.teams),
-        "X-CS-Riders": String(metadata.counts.riders),
-        "X-CS-Contracts": String(metadata.counts.contracts),
-        "X-CS-Rating-Range": `${metadata.ratingRange.minimum}-${metadata.ratingRange.maximum}`,
-        "X-CS-Country-Fallbacks": String(metadata.countryFallbacks.length),
-        "X-CS-Generated-At": metadata.generatedAt,
-        "X-CS-Snapshot": metadata.snapshotSha256.slice(0, 16),
-        "X-CS-Output": metadata.outputSha256.slice(0, 16),
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Length": String(archive.byteLength),
+        "Content-Type": "application/zip",
+        "X-CS-Season": String(database.season),
+        "X-CS-Teams": String(database.counts.teams),
+        "X-CS-Riders": String(database.counts.riders),
+        "X-CS-Contracts": String(database.counts.contracts),
+        "X-CS-Rating-Range": `${database.ratingRange.minimum}-${database.ratingRange.maximum}`,
+        "X-CS-Country-Fallbacks": String(database.countryFallbacks.length),
+        "X-CS-Generated-At": database.generatedAt,
+        "X-CS-Snapshot": database.snapshotSha256.slice(0, 16),
+        "X-CS-Database": database.outputSha256.slice(0, 16),
+        "X-CS-Output": archiveSha256.slice(0, 16),
       },
     });
   } catch (error) {

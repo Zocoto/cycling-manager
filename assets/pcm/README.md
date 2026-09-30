@@ -11,3 +11,10 @@ comme socle de l'export administrateur Cyclostratège.
 
 Ne pas remplacer ce fichier par une base WorldDB sans embarquer également ses
 fichiers d'étapes : PCM26 refuserait alors le mod lors du contrôle `CheckRaces`.
+
+`OfficialLocal.template.cdb` est la base locale officielle livrée avec PCM26.
+Elle est recopiée sans modification dans le pack afin que le dossier du mod soit
+complet et n'émette pas l'avertissement `Could not find file OfficialLocal.cdb`.
+
+- Taille attendue : `2001159` octets
+- SHA-256 : `8e4312928de4700fafbb85e2b63b71635ab5455aa45c60dc6190784b7d51a740`
