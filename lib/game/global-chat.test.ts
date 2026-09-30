@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  extractGlobalChatInternalLinkReference,
   extractGlobalChatPreviewReference,
   getGlobalChatMentionQuery,
   getGlobalChatHistoryStart,
@@ -9,11 +10,13 @@ import {
   isGlobalChatCursor,
   normalizeGlobalChatMessage,
   normalizeGlobalChatSearchQuery,
+  splitGlobalChatInternalLinks,
   stripGlobalChatCyclingReactionTokens,
 } from "@/lib/game/global-chat";
 
 const TEAM_ID = "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57";
 const RIDER_ID = "6b01ad75-9cdb-4f4a-9b24-143fe9e6f4e2";
+const JUNIOR_ID = "d70af252-cf68-4c0a-9e67-37719a088212";
 const DIRECTOR_USERNAME = "Fra Troisset";
 
 describe("global chat links", () => {
@@ -64,7 +67,27 @@ describe("global chat links", () => {
     });
   });
 
-  it("allows only Cyclo Stratège rider, team and director profile links", () => {
+  it("allows and extracts a junior profile without creating a rich preview", () => {
+    const link = `/jeu/centre-de-formation/development/${JUNIOR_ID}`;
+
+    expect(hasForbiddenGlobalChatLink(link)).toBe(false);
+    expect(
+      hasForbiddenGlobalChatLink(`https://cyclostratege.fr${link}`),
+    ).toBe(false);
+    expect(extractGlobalChatInternalLinkReference(link)).toEqual({
+      type: "junior",
+      entityId: JUNIOR_ID,
+      href: link,
+    });
+    expect(extractGlobalChatPreviewReference(link)).toBeNull();
+    expect(splitGlobalChatInternalLinks(`Junior : ${link}.`)).toEqual([
+      { text: "Junior : ", href: null },
+      { text: link, href: link },
+      { text: ".", href: null },
+    ]);
+  });
+
+  it("allows only Cyclo Stratège rider, junior, team and director profile links", () => {
     expect(
       hasForbiddenGlobalChatLink(`/jeu/equipes/${TEAM_ID}`),
     ).toBe(false);

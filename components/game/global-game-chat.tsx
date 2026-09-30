@@ -32,7 +32,6 @@ import Link from "@/components/ui/app-link";
 import {
   expandGlobalChatEmoticons,
   extractGlobalChatCyclingReaction,
-  extractGlobalChatPreviewReference,
   getGlobalChatMentionQuery,
   globalChatMessageMentionsUsername,
   GLOBAL_CHAT_MENTION_MAX_RECIPIENTS,
@@ -43,6 +42,7 @@ import {
   hasForbiddenGlobalChatLink,
   normalizeGlobalChatSearchQuery,
   normalizeGlobalChatMessage,
+  splitGlobalChatInternalLinks,
   splitGlobalChatMessageContent,
   stripGlobalChatCyclingReactionTokens,
   type GlobalChatCursor,
@@ -1114,7 +1114,7 @@ export function GlobalGameChat({
     if (!message || isPending) return;
     if (hasForbiddenGlobalChatLink(message)) {
       setError(
-        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, junior, équipe ou DS sont autorisés.",
       );
       return;
     }
@@ -1171,7 +1171,7 @@ export function GlobalGameChat({
     if (!message) return;
     if (hasForbiddenGlobalChatLink(message)) {
       setEditingError(
-        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, junior, équipe ou DS sont autorisés.",
       );
       return;
     }
@@ -2899,30 +2899,25 @@ function renderLinkedMessageText(
   inverted: boolean,
   contentIndex: number,
 ) {
-  const tokenPattern =
-    /((?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:(?:equipes|coureurs)\/[0-9a-f-]{36}|directeurs-sportifs\/[^/?#\s<>]+)(?:[/?#][^\s]*)?)/gi;
-  const tokens = message.split(tokenPattern);
-
-  return tokens.map((token, index) => {
-    const key = `${contentIndex}-${token}-${index}`;
-    const internalReference = extractGlobalChatPreviewReference(token);
-    if (internalReference) {
+  return splitGlobalChatInternalLinks(message).map((part, index) => {
+    const key = `${contentIndex}-${part.text}-${index}`;
+    if (part.href) {
       return (
         <Link
           key={key}
-          href={internalReference.href}
+          href={part.href}
           className={`underline decoration-2 underline-offset-2 ${
             inverted
               ? "decoration-[#F2C94C]/60 hover:text-[#F2C94C]"
               : "text-[#176951] decoration-[#42B99A]/55 hover:text-[#0B302B]"
           }`}
         >
-          {token}
+          {part.text}
         </Link>
       );
     }
 
-    return token;
+    return part.text;
   });
 }
 

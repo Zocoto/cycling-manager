@@ -108,16 +108,33 @@ export type GlobalChatPreviewReference = {
   href: string;
 };
 
+export type GlobalChatInternalLinkType = GlobalChatPreviewType | "junior";
+
+export type GlobalChatInternalLinkReference = {
+  type: GlobalChatInternalLinkType;
+  entityId: string;
+  href: string;
+};
+
+export type GlobalChatMessageLinkPart = {
+  text: string;
+  href: string | null;
+};
+
 export type GlobalChatMentionQuery = {
   query: string;
   start: number;
   end: number;
 };
 
-const INTERNAL_ENTITY_PATH =
+const INTERNAL_PREVIEW_ENTITY_PATH =
   /\/jeu\/(?:(equipes|coureurs)\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})|directeurs-sportifs\/([^/?#\s),.;!<>]+))(?=$|[/?#\s),.;!?])/i;
+const INTERNAL_CHAT_LINK_PATH =
+  /\/jeu\/(?:(equipes|coureurs)\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})|directeurs-sportifs\/([^/?#\s),.;!<>]+)|centre-de-formation\/development\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}))(?=$|[/?#\s),.;!?])/i;
 const GLOBAL_CHAT_ALLOWED_LINK =
-  /^(?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:(?:equipes|coureurs)\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|directeurs-sportifs\/[^/?#\s<>]+)(?:[/?#][^\s<]*)?$/i;
+  /^(?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:(?:equipes|coureurs)\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|directeurs-sportifs\/[^/?#\s<>]+|centre-de-formation\/development\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:[/?#][^\s<]*)?$/i;
+const GLOBAL_CHAT_INTERNAL_LINK_TOKEN_PATTERN =
+  /((?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:(?:equipes|coureurs)\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|directeurs-sportifs\/[^/?#\s<>]+|centre-de-formation\/development\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:[/?#][^\s]*)?)/gi;
 const GLOBAL_CHAT_URL_LIKE_PATTERN =
   /(?:https?:\/\/|www\.)[^\s<]+|(?:^|[\s<(])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gi;
 
@@ -288,7 +305,7 @@ export function isGlobalChatCursor(value: unknown): value is GlobalChatCursor {
 export function extractGlobalChatPreviewReference(
   message: string,
 ): GlobalChatPreviewReference | null {
-  const match = message.match(INTERNAL_ENTITY_PATH);
+  const match = message.match(INTERNAL_PREVIEW_ENTITY_PATH);
 
   if (!match) {
     return null;
@@ -314,6 +331,56 @@ export function extractGlobalChatPreviewReference(
     entityId,
     href: `/jeu/${collection}/${entityId}`,
   };
+}
+
+export function extractGlobalChatInternalLinkReference(
+  message: string,
+): GlobalChatInternalLinkReference | null {
+  const match = message.match(INTERNAL_CHAT_LINK_PATH);
+
+  if (!match) return null;
+
+  if (match[4]) {
+    const entityId = match[4].toLowerCase();
+    return {
+      type: "junior",
+      entityId,
+      href: `/jeu/centre-de-formation/development/${entityId}`,
+    };
+  }
+
+  if (match[3]) {
+    const entityId = safelyDecodePathSegment(match[3]);
+    if (!entityId) return null;
+
+    return {
+      type: "director",
+      entityId,
+      href: `/jeu/directeurs-sportifs/${encodeURIComponent(entityId)}`,
+    };
+  }
+
+  const entityId = match[2].toLowerCase();
+  const type = match[1].toLowerCase() === "equipes" ? "team" : "rider";
+  const collection = type === "team" ? "equipes" : "coureurs";
+
+  return {
+    type,
+    entityId,
+    href: `/jeu/${collection}/${entityId}`,
+  };
+}
+
+export function splitGlobalChatInternalLinks(
+  value: string,
+): GlobalChatMessageLinkPart[] {
+  return value
+    .split(GLOBAL_CHAT_INTERNAL_LINK_TOKEN_PATTERN)
+    .flatMap((text) => {
+      if (!text) return [];
+      const reference = extractGlobalChatInternalLinkReference(text);
+      return [{ text, href: reference?.href ?? null }];
+    });
 }
 
 function safelyDecodePathSegment(value: string) {

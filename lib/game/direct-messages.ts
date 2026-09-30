@@ -1,5 +1,5 @@
 import { normalizeChatMessageText } from "@/lib/game/chat-message-text";
-import { extractGlobalChatPreviewReference } from "@/lib/game/global-chat";
+import { splitGlobalChatInternalLinks } from "@/lib/game/global-chat";
 
 export const DIRECT_MESSAGE_MAX_LENGTH = 1000;
 export const DIRECT_TRANSFER_OFFER_MESSAGE_MAX_LENGTH = 500;
@@ -10,8 +10,6 @@ export const DIRECT_RECIPIENT_SEARCH_MIN_LENGTH = 2;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const DIRECT_MESSAGE_INTERNAL_LINK_PATTERN =
-  /((?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:(?:equipes|coureurs)\/[0-9a-f-]{36}|directeurs-sportifs\/[^/?#\s<>]+)(?:[/?#][^\s]*)?)/gi;
 
 export type DirectMessageContentPart = {
   text: string;
@@ -35,11 +33,7 @@ export function normalizeDirectMessage(value: string) {
 export function splitDirectMessageLinks(
   value: string,
 ): DirectMessageContentPart[] {
-  return value.split(DIRECT_MESSAGE_INTERNAL_LINK_PATTERN).flatMap((text) => {
-    if (!text) return [];
-    const reference = extractGlobalChatPreviewReference(text);
-    return [{ text, href: reference?.href ?? null }];
-  });
+  return splitGlobalChatInternalLinks(value);
 }
 
 export function isUuid(value: string) {

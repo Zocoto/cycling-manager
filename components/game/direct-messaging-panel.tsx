@@ -643,7 +643,7 @@ export function DirectMessagingPanel({
     if (!body) return;
     if (hasForbiddenGlobalChatLink(body)) {
       setError(
-        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, junior, équipe ou DS sont autorisés.",
       );
       return;
     }
@@ -691,7 +691,7 @@ export function DirectMessagingPanel({
     if (!body) return;
     if (hasForbiddenGlobalChatLink(body)) {
       setEditingError(
-        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, junior, équipe ou DS sont autorisés.",
       );
       return;
     }
@@ -1150,7 +1150,7 @@ export function DirectMessagingPanel({
                   {draft.length}/{DIRECT_MESSAGE_MAX_LENGTH}
                 </p>
                 <p className="basis-full text-[9px] font-semibold leading-4 text-[#789087]">
-                  Liens autorisés : fiches coureurs, équipes et DS Cyclo Stratège
+                  Liens autorisés : fiches coureurs, juniors, équipes et DS Cyclo Stratège
                 </p>
               </div>
             </form>

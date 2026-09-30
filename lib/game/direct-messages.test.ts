@@ -59,4 +59,13 @@ describe("direct messages helpers", () => {
       },
     ]);
   });
+
+  it("extracts a safe internal junior link", () => {
+    const link = `/jeu/centre-de-formation/development/${uuid}`;
+
+    expect(splitDirectMessageLinks(`À suivre : ${link}`)).toEqual([
+      { text: "À suivre : ", href: null },
+      { text: link, href: link },
+    ]);
+  });
 });
