@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260930120000_refine_nutrition_weight_impacts.sql",
+    "supabase/migrations/20260930140000_refine_nutrition_weight_impacts.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("nutrition weight impact migration", () => {
   it("augmente progressivement l’impact des trois compléments", () => {
