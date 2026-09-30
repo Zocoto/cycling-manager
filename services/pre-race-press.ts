@@ -23,6 +23,8 @@ type ConferenceRow = {
   target_met: boolean | null;
   leader_final_rank: number | null;
   reputation_delta: number | null;
+  commitment_amount: number;
+  sponsor_bonus: number;
   submitted_at: string;
   is_own: boolean;
 };
@@ -60,6 +62,8 @@ export async function getPreRacePressConferences(
           targetMet: row.target_met,
           leaderFinalRank: row.leader_final_rank,
           reputationDelta: row.reputation_delta,
+          commitmentAmount: Number(row.commitment_amount ?? 0),
+          sponsorBonus: Number(row.sponsor_bonus ?? 0),
           submittedAt: row.submitted_at,
           isOwn: row.is_own,
         }]

@@ -7,6 +7,7 @@ import type {
   RiderSimulationRatings,
   StageSimulationInput,
 } from "./race-simulation";
+import { getRiderPhysiologyProfileModifier } from "./rider-physiology";
 
 export type RaceFavoriteStars = 1 | 2 | 3;
 
@@ -143,7 +144,12 @@ export function buildTeamTimeTrialFavorites({
       const representative = orderedTeammates[0];
       const collectiveRating = average(
         orderedTeammates.map((rider) =>
-          getTimeTrialFavoriteRating(rider.ratings, stage),
+          getTimeTrialFavoriteRating(rider.ratings, stage) +
+          getRiderPhysiologyProfileModifier({
+            physiology: rider.physiology,
+            ratings: rider.ratings,
+            profileType: "time_trial",
+          }),
         ),
       );
       // The simulator also rewards the aerodynamic depth of a larger train.
@@ -194,10 +200,43 @@ export function getRaceFavoriteScore(
   }
 
   if (edition.raceFormat === "one_day") {
-    return getOneDayFavoriteScore(rider.ratings, stages[0]);
+    return (
+      getOneDayFavoriteScore(rider.ratings, stages[0]) +
+      getRiderPhysiologyProfileModifier({
+        physiology: rider.physiology,
+        ratings: rider.ratings,
+        profileType: stages[0].profileType,
+      })
+    );
   }
 
-  return getGeneralClassificationFavoriteScore(rider.ratings, stages);
+  const decisiveStages = stages
+    .map((stage) => ({
+      stage,
+      weight: getGeneralClassificationStageWeight(stage),
+    }))
+    .filter(({ weight }) => weight > 0);
+  const totalWeight = decisiveStages.reduce(
+    (total, entry) => total + entry.weight,
+    0,
+  );
+  const physiologyModifier = totalWeight
+    ? decisiveStages.reduce(
+        (total, { stage, weight }) =>
+          total +
+          getRiderPhysiologyProfileModifier({
+            physiology: rider.physiology,
+            ratings: rider.ratings,
+            profileType: stage.profileType,
+          }) *
+            weight,
+        0,
+      ) / totalWeight
+    : 0;
+  return (
+    getGeneralClassificationFavoriteScore(rider.ratings, stages) +
+    physiologyModifier
+  );
 }
 
 function getOneDayFavoriteScore(

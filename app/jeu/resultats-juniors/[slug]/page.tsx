@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { JuniorChampionshipResultEmptyState } from "@/components/game/junior-championship-result-empty-state";
 import Link from "@/components/ui/app-link";
 import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -170,15 +171,7 @@ export default async function JuniorChampionshipResultsPage({
               </table>
             </div>
           ) : (
-            <div className="px-6 py-12 text-center">
-              <p className="font-black text-[#183F37]">
-                Le résultat n’est pas encore publié.
-              </p>
-              <p className="mt-2 text-sm font-semibold text-[#60756E]">
-                Les sélections sont consultables dès maintenant ; le classement
-                apparaîtra automatiquement après la course.
-              </p>
-            </div>
+            <JuniorChampionshipResultEmptyState status={snapshot.race.status} />
           )}
         </section>
       </section>

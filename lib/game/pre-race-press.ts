@@ -54,6 +54,8 @@ export type PreRacePressConference = {
   targetMet: boolean | null;
   leaderFinalRank: number | null;
   reputationDelta: number | null;
+  commitmentAmount: number;
+  sponsorBonus: number;
   submittedAt: string;
   isOwn: boolean;
 };

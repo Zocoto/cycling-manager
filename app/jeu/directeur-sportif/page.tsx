@@ -33,6 +33,7 @@ import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getCurrentReferralOverview } from "../../../services/referrals";
 import { getSportingDirectorSeasonAwards } from "../../../services/season-awards";
+import { getSportingDirectorReputationBreakdown } from "../../../services/sporting-director-reputation";
 import {
   getTeamAmateurIdentityForAuthUser,
   type TeamAmateurIdentity,
@@ -180,6 +181,16 @@ export default async function SportingDirectorProfilePage() {
 
   const sportingDirector =
     profileResult.data;
+  const reputationBreakdown = sportingDirector
+    ? await getSportingDirectorReputationBreakdown(
+        supabase,
+        sportingDirector.id,
+        sportingDirector.reputation_points,
+      ).catch((error: unknown) => {
+        console.error("Impossible de charger le détail de réputation :", error);
+        return null;
+      })
+    : null;
 
   const [
     careerTrophiesResult,
@@ -374,6 +385,7 @@ export default async function SportingDirectorProfilePage() {
                     reputationPoints={
                       sportingDirector.reputation_points
                     }
+                    breakdown={reputationBreakdown}
                   />
                 </section>
 
@@ -556,6 +568,8 @@ function ProfileSummaryCard({
             amateurTeamName={teamAmateurIdentity?.amateurName}
             sponsor={teamSponsorIdentity?.sponsor}
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
+            secondarySponsor={teamSponsorIdentity?.secondarySponsor}
+            secondaryLogoPlacement={teamSponsorIdentity?.secondaryLogoPlacement}
             className="h-36 w-32 drop-shadow-xl"
           />
 
@@ -591,6 +605,8 @@ function ProfileSummaryCard({
               amateurTeamName={teamAmateurIdentity?.amateurName}
               sponsor={teamSponsorIdentity?.sponsor}
               sponsorJersey={teamSponsorIdentity?.selectedJersey}
+              secondarySponsor={teamSponsorIdentity?.secondarySponsor}
+              secondaryLogoPlacement={teamSponsorIdentity?.secondaryLogoPlacement}
               className="h-32 w-28 shrink-0 drop-shadow-xl"
             />
 

@@ -5,7 +5,10 @@ import { useMemo, type CSSProperties } from "react";
 import { SideRaceCyclist } from "@/components/game/race-cyclist-detailed";
 import { RaceRoadChalk } from "@/components/game/race-road-chalk";
 import { RaceRoadsideCrowd } from "@/components/game/race-roadside-crowd";
-import { RaceSceneryBackdrop } from "@/components/game/race-scenery-detailed";
+import {
+  RaceBiotopeForeground,
+  RaceSceneryBackdrop,
+} from "@/components/game/race-scenery-detailed";
 import { RaceWeatherOverlay } from "@/components/game/race-weather-overlay";
 import {
   buildTimeTrialStartSchedule,
@@ -123,7 +126,11 @@ export function RaceTimeTrialScene({
               preserveAspectRatio="none"
               className="absolute inset-0 h-full w-full"
             >
-              <path d="M0 43H100V83H0Z" fill="#C7B98D" />
+              <path
+                d="M0 43H100V46H0Z"
+                fill="#C7B98D"
+                data-road-edge="upper-grass"
+              />
               <path d="M0 46H100V80H0Z" fill="#35453F" />
               <path
                 d="M0 63H100"
@@ -131,8 +138,9 @@ export function RaceTimeTrialScene({
                 stroke="rgba(255,255,255,0.72)"
                 strokeWidth="0.8"
                 strokeDasharray="7 6"
-                vectorEffect="non-scaling-stroke"
                 data-road-flow-direction="right-to-left"
+                data-road-marking-motion="world-synchronized"
+                data-road-marking-horizontal-cycle={roadMarkingMotion.cycleDistance}
                 className={isMoving ? "cm-race-road-marking-svg" : ""}
                 style={
                   {
@@ -152,6 +160,12 @@ export function RaceTimeTrialScene({
                 isMoving={isMoving}
               />
             </svg>
+            <RaceBiotopeForeground
+              kind={activeSegment?.terrain === "climb" ? "forest" : "fields"}
+              roadLeftY={256}
+              roadRightY={256}
+              isMoving={isMoving}
+            />
             <RaceRoadsideCrowd
               show
               isMoving={isMoving}
@@ -230,20 +244,22 @@ export function RaceTimeTrialScene({
                         ? "negative-split"
                         : "even"
                   }
-                  className="absolute z-20 -translate-x-1/2 transition-[left] duration-700 ease-linear"
+                  className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-300 ease-linear"
                   style={{
-                    left: `${left}%`,
-                    top: isTeamTimeTrial ? `${49 + (unitIndex % 3) * 8}%` : "55%",
+                    transform: `translate3d(${left}%, ${
+                      isTeamTimeTrial ? 49 + (unitIndex % 3) * 8 : 55
+                    }%, 0)`,
                   }}
                   title={`${unit.label} · départ n°${unit.startOrder}`}
                 >
-                  <div className={isTeamTimeTrial ? "relative h-10 w-24" : "relative h-10 w-20"}>
+                  <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2">
+                  <div className={isTeamTimeTrial ? "relative h-14 w-28" : "relative h-14 w-24"}>
                     {riders.map((rider, riderIndex) => (
                       <div
                         key={rider.id}
                         className="absolute"
                         style={{
-                          left: `${riderIndex * -9}px`,
+                          left: `${riderIndex * -12}px`,
                           top: `${riderIndex * 3}px`,
                           zIndex: riders.length - riderIndex,
                         }}
@@ -251,7 +267,7 @@ export function RaceTimeTrialScene({
                         <SideRaceCyclist
                           rider={rider}
                           isMoving={isMoving}
-                          className="h-10 w-[4.5rem]"
+                          className="h-11 w-[4.5rem]"
                           timeTrial
                           rearDiscWheel={hasDiscWheel(rider.id)}
                         />
@@ -264,6 +280,7 @@ export function RaceTimeTrialScene({
                       ? ` · ${getTeamMonogram(riders[0].teamName)}`
                       : ""}
                   </span>
+                  </div>
                 </div>
               );
             })}

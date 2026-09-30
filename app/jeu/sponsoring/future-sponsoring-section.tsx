@@ -2,6 +2,8 @@ import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "@/components/game/sponsor-logo";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
+import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
+import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
 import {
   SPONSOR_SPORTING_PHILOSOPHY_CONFIG,
   type SponsorSportingPhilosophy,
@@ -21,8 +23,10 @@ import { SponsorNegotiationControl } from "./sponsor-negotiation-control";
 
 export function FutureSponsoringSection({
   state,
+  reputationPoints,
 }: {
   state: FutureSponsoringState;
+  reputationPoints: number;
 }) {
   return (
     <section className="mt-10 border-t border-[#315B3E]/15 pt-10">
@@ -59,7 +63,7 @@ export function FutureSponsoringSection({
       ) : null}
 
       {state.kind === "offers" ? (
-        <FutureOffersSection state={state} />
+        <FutureOffersSection state={state} reputationPoints={reputationPoints} />
       ) : null}
 
       {state.kind === "jersey-selection" ? (
@@ -289,6 +293,10 @@ function ContinuingContractNotice({
                     >
                       {objective.name}
                     </SponsorObjectiveTitle>
+                    <SponsorMainObjectiveTermsCard
+                      terms={objective.mainObjectiveTerms}
+                      compact
+                    />
                   </li>
                 ))}
               </ol>
@@ -312,8 +320,10 @@ function ContinuingContractNotice({
 
 function FutureOffersSection({
   state,
+  reputationPoints,
 }: {
   state: Extract<FutureSponsoringState, { kind: "offers" }>;
+  reputationPoints: number;
 }) {
   return (
     <>
@@ -347,6 +357,7 @@ function FutureOffersSection({
             targetSeasonName={state.season.name}
             targetGameYear={state.season.gameYear}
             renewalBudgetIsFinal={state.renewalBudgetIsFinal}
+            reputationPoints={reputationPoints}
           />
         ))}
       </div>
@@ -371,11 +382,13 @@ function FutureSponsorOfferCard({
   targetSeasonName,
   targetGameYear,
   renewalBudgetIsFinal,
+  reputationPoints,
 }: {
   offer: PersistedSponsorOffer;
   targetSeasonName: string;
   targetGameYear: number;
   renewalBudgetIsFinal: boolean;
+  reputationPoints: number;
 }) {
   const sponsor = offer.sponsor;
 
@@ -540,6 +553,10 @@ function FutureSponsorOfferCard({
                   <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">
                     {objective.satisfactionPoints} points
                   </span>
+                  <SponsorMainObjectiveTermsCard
+                    terms={objective.mainObjectiveTerms}
+                    compact
+                  />
                 </div>
               </li>
             ))}
@@ -552,6 +569,11 @@ function FutureSponsorOfferCard({
               type="hidden"
               name="offerId"
               value={offer.id}
+            />
+
+            <SponsorReputationInvestmentOptions
+              gameYear={targetGameYear}
+              reputationPoints={reputationPoints}
             />
 
             <ConfirmSponsorButton

@@ -409,7 +409,8 @@ export function RaceReconnaissancePlanner({
                           className={`fi fi-${rider.countryCode.toLowerCase()} mr-1.5 rounded-sm`}
                           aria-hidden="true"
                         />
-                        {rider.countryName} · Forme {rider.form}%
+                        {rider.countryName} · Forme {rider.form}% · Moral{" "}
+                        {Math.round(rider.morale)}%
                       </span>
                       {currentUnavailability ? (
                         <span className="mt-1 block text-[10px] font-black text-[#9A4940]">

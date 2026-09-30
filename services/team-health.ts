@@ -16,6 +16,7 @@ import {
   type StaffTalentCode,
 } from "@/lib/game/staff-talents";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = { id: string };
@@ -41,6 +42,10 @@ type RiderRow = {
   last_name: string;
   avatar_profile_key: string;
   avatar_seed: number | string;
+  height_cm: number | string | null;
+  weight_kg: number | string | null;
+  baseline_weight_kg: number | string | null;
+  physiology_version: number | null;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
 type RatingRow = {
@@ -66,6 +71,17 @@ type ConditionRow = {
   season_day_id: string;
   form: number;
   fatigue: number;
+  morale: number | string;
+};
+type MoraleEventRow = {
+  id: string;
+  rider_id: string;
+  source_type: string;
+  description: string;
+  applied_delta: number | string;
+  morale_before: number | string;
+  morale_after: number | string;
+  occurred_at: string;
 };
 type InjuryRow = {
   id: string;
@@ -141,6 +157,17 @@ type NutritionInterventionRow = {
   form_before: number;
   form_after: number;
   applied_at: string;
+  weight_delta_kg: number | string;
+};
+type WeightEventRow = {
+  rider_id: string;
+  game_day_index: number;
+  source: "supplement" | "weight_cut";
+  weight_before_kg: number | string;
+  weight_delta_kg: number | string;
+  weight_after_kg: number | string;
+  form_cost: number | string;
+  applied_at: string;
 };
 type NutritionistEffectiveQuote = {
   contractId: string;
@@ -199,10 +226,17 @@ export type TeamHealthRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number;
+  heightCm: number | null;
+  weightKg: number | null;
+  baselineWeightKg: number | null;
+  physiologyVersion: number;
+  nextWeightCutGameDayIndex: number | null;
   ratings: RiderRatings;
   averageRating: number;
   form: number;
   fatigue: number;
+  morale: number;
+  moraleEvents: RiderMoraleEvent[];
   injury: RiderMedicalInjury | null;
   formCamp: RiderFormCamp | null;
 };
@@ -249,6 +283,7 @@ export type TeamNutritionIntervention = {
   formBefore: number;
   formAfter: number;
   appliedAt: string;
+  weightDeltaKg: number;
 };
 
 export type TeamHealthOverview = {
@@ -256,6 +291,7 @@ export type TeamHealthOverview = {
   teamSeasonId: string;
   teamName: string;
   seasonName: string;
+  gameYear: number;
   currentDayNumber: number;
   balance: number;
   currency: string;
@@ -370,6 +406,7 @@ export async function getCurrentTeamHealthOverview(
       teamSeasonId: teamSeason.id,
       teamName: teamSeason.display_name,
       seasonName: season.name,
+      gameYear: season.game_year,
       currentDayNumber: season.current_day_number ?? 1,
       balance: toNumber(teamSeason.cash_balance),
       currency: teamSeason.currency,
@@ -385,7 +422,7 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("riders")
         .select(
-          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed",
+          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, height_cm, weight_kg, baseline_weight_kg, physiology_version",
         )
         .in("id", riderIds)
         .returns<RiderRow[]>(),
@@ -443,6 +480,8 @@ export async function getCurrentTeamHealthOverview(
     conditionsResult,
     treatmentsResult,
     nutritionInterventionsResult,
+    weightEventsResult,
+    moraleEventsResult,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -452,7 +491,7 @@ export async function getCurrentTeamHealthOverview(
     dayIds.length
       ? admin
           .from("rider_condition_states")
-          .select("rider_id, season_day_id, form, fatigue")
+          .select("rider_id, season_day_id, form, fatigue, morale")
           .in("rider_id", riderIds)
           .in("season_day_id", dayIds)
           .returns<ConditionRow[]>()
@@ -470,7 +509,7 @@ export async function getCurrentTeamHealthOverview(
       ? admin
           .from("rider_nutrition_interventions")
           .select(
-            "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at",
+            "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at, weight_delta_kg",
           )
           .eq("team_season_id", teamSeason.id)
           .eq("season_day_id", currentDayId)
@@ -480,6 +519,23 @@ export async function getCurrentTeamHealthOverview(
           data: [] as NutritionInterventionRow[],
           error: null,
         }),
+    admin
+      .from("rider_weight_events")
+      .select(
+        "rider_id, game_day_index, source, weight_before_kg, weight_delta_kg, weight_after_kg, form_cost, applied_at",
+      )
+      .in("rider_id", riderIds)
+      .order("game_day_index", { ascending: false })
+      .returns<WeightEventRow[]>(),
+    admin
+      .from("rider_morale_events")
+      .select(
+        "id, rider_id, source_type, description, applied_delta, morale_before, morale_after, occurred_at",
+      )
+      .in("rider_id", riderIds)
+      .order("occurred_at", { ascending: false })
+      .limit(500)
+      .returns<MoraleEventRow[]>(),
   ]);
   assertQuery(countriesResult.error, "les pays des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
@@ -488,6 +544,8 @@ export async function getCurrentTeamHealthOverview(
     nutritionInterventionsResult.error,
     "les interventions nutritionnelles",
   );
+  assertQuery(weightEventsResult.error, "l’historique de poids");
+  assertQuery(moraleEventsResult.error, "l’historique de moral");
 
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
@@ -521,12 +579,37 @@ export async function getCurrentTeamHealthOverview(
   const campByRiderId = new Map(
     (campsResult.data ?? []).map((camp) => [camp.rider_id, camp]),
   );
+  const latestWeightCutByRiderId = new Map<string, WeightEventRow>();
+  for (const event of weightEventsResult.data ?? []) {
+    if (
+      event.source === "weight_cut" &&
+      !latestWeightCutByRiderId.has(event.rider_id)
+    ) {
+      latestWeightCutByRiderId.set(event.rider_id, event);
+    }
+  }
+  const moraleEventsByRiderId = new Map<string, RiderMoraleEvent[]>();
+  for (const event of moraleEventsResult.data ?? []) {
+    const history = moraleEventsByRiderId.get(event.rider_id) ?? [];
+    if (history.length >= 12) continue;
+    history.push({
+      id: event.id,
+      label: event.description,
+      delta: toNumber(event.applied_delta),
+      moraleBefore: toNumber(event.morale_before),
+      moraleAfter: toNumber(event.morale_after),
+      occurredAt: event.occurred_at,
+      sourceType: event.source_type,
+    });
+    moraleEventsByRiderId.set(event.rider_id, history);
+  }
 
   return {
     teamId: teamSeason.team_id,
     teamSeasonId: teamSeason.id,
     teamName: teamSeason.display_name,
     seasonName: season.name,
+    gameYear: season.game_year,
     currentDayNumber: season.current_day_number ?? 1,
     balance: toNumber(teamSeason.cash_balance),
     currency: teamSeason.currency,
@@ -545,6 +628,7 @@ export async function getCurrentTeamHealthOverview(
         formBefore: intervention.form_before,
         formAfter: intervention.form_after,
         appliedAt: intervention.applied_at,
+        weightDeltaKg: toNumber(intervention.weight_delta_kg),
       }),
     ),
     riders: riders
@@ -568,6 +652,18 @@ export async function getCurrentTeamHealthOverview(
           avatarProfileKey: rider.avatar_profile_key,
           avatarSeed: rider.avatar_seed,
           age: rating?.age ?? 25,
+          heightCm:
+            rider.height_cm === null ? null : toNumber(rider.height_cm),
+          weightKg:
+            rider.weight_kg === null ? null : toNumber(rider.weight_kg),
+          baselineWeightKg:
+            rider.baseline_weight_kg === null
+              ? null
+              : toNumber(rider.baseline_weight_kg),
+          physiologyVersion: Number(rider.physiology_version ?? 0),
+          nextWeightCutGameDayIndex: latestWeightCutByRiderId.has(rider.id)
+            ? (latestWeightCutByRiderId.get(rider.id)?.game_day_index ?? 0) + 5
+            : null,
           ratings,
           averageRating: Math.round(
             Object.values(ratings).reduce((total, value) => total + value, 0) /
@@ -575,6 +671,8 @@ export async function getCurrentTeamHealthOverview(
           ),
           form: condition?.form ?? 75,
           fatigue: condition?.fatigue ?? 0,
+          morale: toNumber(condition?.morale ?? 60),
+          moraleEvents: moraleEventsByRiderId.get(rider.id) ?? [],
           injury: injury
             ? {
                 id: injury.id,

@@ -180,11 +180,60 @@ export function getRaceRoadSlopeOffset(gradientPct: number) {
   const direction = Math.sign(gradientPct);
   const magnitude = Math.min(18, Math.abs(gradientPct));
   const emphasizedMagnitude =
-    magnitude <= 4
+    magnitude <= 6
       ? magnitude
-      : 4 + (magnitude - 4) * 1.7;
+      : 6 + (magnitude - 6) * 2.2;
 
-  return direction * Math.min(14, emphasizedMagnitude);
+  return direction * Math.min(17.5, emphasizedMagnitude);
+}
+
+export type RareClimbSprinterSupporterRun = {
+  side: "upper" | "lower";
+  phase: number;
+};
+
+export function getRareClimbSprinterSupporterRun({
+  visualSeed,
+  segmentNumber,
+  terrain,
+  averageGradientPct,
+  segmentProgress,
+  hasSprinter,
+}: {
+  visualSeed: string | number;
+  segmentNumber: number;
+  terrain: "flat" | "climb" | "descent";
+  averageGradientPct: number;
+  segmentProgress: number;
+  hasSprinter: boolean;
+}): RareClimbSprinterSupporterRun | null {
+  if (
+    terrain !== "climb" ||
+    averageGradientPct < 5 ||
+    !hasSprinter
+  ) {
+    return null;
+  }
+
+  const eventSeed = stableVisualHash(
+    `${visualSeed}:${segmentNumber}:sprinter-supporter-run`,
+  );
+  if (eventSeed % 5 !== 0) return null;
+
+  const windowStart = 0.14 + ((eventSeed >>> 5) % 57) / 100;
+  const windowDuration = 0.085;
+  const windowEnd = windowStart + windowDuration;
+  if (segmentProgress < windowStart || segmentProgress > windowEnd) {
+    return null;
+  }
+
+  return {
+    side: (eventSeed >>> 12) % 2 === 0 ? "upper" : "lower",
+    phase: Math.max(
+      0,
+      Math.min(1, (segmentProgress - windowStart) / windowDuration),
+    ),
+  };
 }
 
 export function shouldShowRaceRoadMarkings(

@@ -550,6 +550,8 @@ function TeamSeasonIdentityCard({
           amateurTeamName={amateurIdentity?.amateurName ?? teamName}
           sponsor={sponsorIdentity?.sponsor ?? null}
           sponsorJersey={sponsorIdentity?.selectedJersey ?? null}
+          secondarySponsor={sponsorIdentity?.secondarySponsor ?? null}
+          secondaryLogoPlacement={sponsorIdentity?.secondaryLogoPlacement ?? null}
           className="h-32 w-24 shrink-0 drop-shadow-lg"
         />
 

@@ -135,6 +135,8 @@ export const NUTRITION_INTERVENTIONS = {
     baseFormGain: 3,
     basePrice: 500,
     minimumNutritionistLevel: 1,
+    baseWeightGainRiskPct: 5,
+    possibleWeightGainKg: 0.1,
   },
   tailored_plan: {
     label: "Plan nutritionnel personnalisé",
@@ -142,6 +144,8 @@ export const NUTRITION_INTERVENTIONS = {
     baseFormGain: 5,
     basePrice: 1_200,
     minimumNutritionistLevel: 3,
+    baseWeightGainRiskPct: 8,
+    possibleWeightGainKg: 0.1,
   },
   elite_recharge: {
     label: "Recharge haute performance",
@@ -149,10 +153,26 @@ export const NUTRITION_INTERVENTIONS = {
     baseFormGain: 7,
     basePrice: 2_500,
     minimumNutritionistLevel: 5,
+    baseWeightGainRiskPct: 12,
+    possibleWeightGainKg: 0.2,
   },
 } as const;
 
 export type NutritionInterventionCode = keyof typeof NUTRITION_INTERVENTIONS;
+
+export function getNutritionWeightGainRiskPct({
+  code,
+  nutritionistLevel,
+}: {
+  code: NutritionInterventionCode;
+  nutritionistLevel: number;
+}) {
+  return Math.max(
+    0,
+    NUTRITION_INTERVENTIONS[code].baseWeightGainRiskPct -
+      Math.max(0, Math.trunc(nutritionistLevel) - 1) * 0.75,
+  );
+}
 
 type NutritionRiderOrderCandidate = {
   id: string;

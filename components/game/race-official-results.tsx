@@ -3,9 +3,11 @@
 import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
+import { RaceCourseJournal } from "@/components/game/race-course-journal";
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
+import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type {
   OfficialAttackParticipant,
@@ -36,6 +38,7 @@ export function RaceOfficialResults({
   gameYear,
   selectedStageId,
   officialResults,
+  courseJournal = [],
   postRaceInterview = null,
   initialClassification,
 }: {
@@ -43,6 +46,7 @@ export function RaceOfficialResults({
   gameYear: number;
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
+  courseJournal?: RaceCourseJournalEntry[];
   postRaceInterview?: PostRaceInterviewSnapshot | null;
   initialClassification?: ClassificationKey;
 }) {
@@ -127,6 +131,8 @@ export function RaceOfficialResults({
           className="mt-5"
         />
       </header>
+
+      <RaceCourseJournal entries={courseJournal} />
 
       {postRaceInterview ? (
         <PostRaceInterviewPanel initialInterview={postRaceInterview} />

@@ -21,6 +21,7 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import {
   RiderTrainingPlanFields,
   TrainingPlansEditor,
+  TrainingRosterList,
   TrainingThresholdForm,
 } from "@/components/game/training-controls";
 
@@ -346,7 +347,14 @@ export default async function TrainingPage({
                   trainerContractId: rider.plan.trainerContractId,
                 }))}
               >
-                <div className="mt-5 space-y-4">
+                <TrainingRosterList
+                  riders={overview.riders.map((rider) => ({
+                    id: rider.id,
+                    firstName: rider.firstName,
+                    lastName: rider.lastName,
+                    squadStatus: rider.squadStatus,
+                  }))}
+                >
                   {overview.riders.map((rider, riderIndex) => (
                     <article
                       key={rider.id}
@@ -364,14 +372,20 @@ export default async function TrainingPage({
                             className="h-16 w-16"
                           />
                           <div className="min-w-0">
-                            <Link
-                              href={`/jeu/coureurs/${rider.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
-                            >
-                              {rider.firstName} {rider.lastName} ↗
-                            </Link>
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <Link
+                                href={`/jeu/coureurs/${rider.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="min-w-0 truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
+                              >
+                                {rider.firstName} {rider.lastName} ↗
+                              </Link>
+                              <SquadStatusBadge
+                                status={rider.squadStatus}
+                                compact
+                              />
+                            </div>
                             <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
                               <span
                                 className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
@@ -379,7 +393,7 @@ export default async function TrainingPage({
                                 aria-label={`Drapeau : ${rider.countryName}`}
                               />
                               {rider.countryName} · {rider.age} ans · Forme{" "}
-                              {rider.form}%
+                              {rider.form}% · Moral {Math.round(rider.morale)}%
                             </p>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <span
@@ -393,10 +407,6 @@ export default async function TrainingPage({
                               </span>
                               <PotentialStars
                                 potentialSteps={rider.potentialSteps}
-                                compact
-                              />
-                              <SquadStatusBadge
-                                status={rider.squadStatus}
                                 compact
                               />
                               <RiderDeclineIndicators rider={rider} />
@@ -430,7 +440,7 @@ export default async function TrainingPage({
                       </div>
                     </article>
                   ))}
-                </div>
+                </TrainingRosterList>
               </TrainingPlansEditor>
             </section>
           </>

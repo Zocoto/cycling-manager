@@ -208,6 +208,28 @@ describe("audience réelle du Fan Club", () => {
     );
   });
 
+  it("valorise la réputation au-delà de 1 000 avec un rendement réduit", () => {
+    const currentRider = rider();
+    const atFormerCap = calculateFanClubAudience({
+      riders: [currentRider],
+      directorReputation: 1_000,
+      headquartersLevel: 1,
+      activeSeason: 4,
+      activeDay: 1,
+      events: [],
+    });
+    const highLevel = calculateFanClubAudience({
+      riders: [currentRider],
+      directorReputation: 1_250,
+      headquartersLevel: 1,
+      activeSeason: 4,
+      activeDay: 1,
+      events: [],
+    });
+
+    expect(highLevel.breakdown.reputation - atFormerCap.breakdown.reputation).toBe(2_500);
+  });
+
   it("sépare la ferveur récente du rayonnement global", () => {
     const popularRider = rider();
     const withoutRecentResult = calculateFanClubAudience({

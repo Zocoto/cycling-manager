@@ -11,6 +11,11 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
 import { EQUIPMENT_PARTNER_CONTRACT_SEASONS } from "@/lib/game/equipment-partner";
+import {
+  EQUIPMENT_PARTNER_EXTRA_COST,
+  isReputationFeatureEnabled,
+  REPUTATION_FEATURE_THRESHOLDS,
+} from "@/lib/game/reputation";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -24,7 +29,10 @@ import {
   type EquipmentPartnerProduct,
   type EquipmentPartnerSupplierOption,
 } from "@/services/team-equipment-partner";
-import { signEquipmentPartnerAction } from "./actions";
+import {
+  purchaseEquipmentPartnerReputationExtraAction,
+  signEquipmentPartnerAction,
+} from "./actions";
 
 export const metadata: Metadata = {
   title: "Équipementier",
@@ -151,8 +159,8 @@ export default async function EquipmentPartnerPage({
         >
           <RuleCard
             eyebrow="Signature"
-            title="Aucun coût"
-            body="Le matériel est disponible sans achat ni stock à gérer pendant toute la durée du contrat."
+            title="Dotation de base incluse"
+            body="Le cadre et les roues sont disponibles sans achat ni stock pendant toute la durée du contrat."
           />
           <RuleCard
             eyebrow="Engagement"
@@ -294,7 +302,9 @@ function SupplierContractCard({
 }: {
   supplier: EquipmentPartnerSupplierOption;
 }) {
-  const coreProducts = supplier.products;
+  const coreProducts = supplier.products.filter(
+    (product) => product.offerType === "core",
+  );
 
   return (
     <article
@@ -391,6 +401,11 @@ function ActiveContractSection({
   supplier: EquipmentPartnerSupplierOption;
 }) {
   const contract = overview.activeContract!;
+  const reputationExtra = supplier.products.find(
+    (product) => product.offerType === "rare",
+  ) ?? null;
+  const reputationExtraUnlocked =
+    overview.reputationPoints >= REPUTATION_FEATURE_THRESHOLDS.equipmentPartnerExtra;
 
   return (
     <>
@@ -447,6 +462,43 @@ function ActiveContractSection({
           </div>
         ) : null}
       </section>
+
+      {isReputationFeatureEnabled(overview.gameYear) && reputationExtra ? (
+        <section className="mt-7 rounded-[2rem] border border-[#B99A4A]/30 bg-[#FFF8DF] p-6 shadow-[0_16px_42px_rgba(19,60,46,0.08)] sm:p-8">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#936A21]">
+            Signature technique haute réputation
+          </p>
+          <div className="mt-3 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <h2 className="text-2xl font-black text-[#183F37]">
+                Quatrième élément · {reputationExtra.name}
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
+                Dépense définitive de {EQUIPMENT_PARTNER_EXTRA_COST} points. Cet équipement virtuel respecte l’identité de {supplier.name}, reste non revendable et disparaît à la fin du contrat.
+              </p>
+            </div>
+            {contract.reputationExtraItemId ? (
+              <span className="rounded-full bg-[#176951] px-4 py-2 text-xs font-black text-white">
+                Dotation obtenue
+              </span>
+            ) : (
+              <form action={purchaseEquipmentPartnerReputationExtraAction}>
+                <input type="hidden" name="contractId" value={contract.id} />
+                <EquipmentPartnerSubmitButton
+                  label={`Dépenser ${EQUIPMENT_PARTNER_EXTRA_COST} points`}
+                  pendingLabel="Attribution…"
+                  disabled={!reputationExtraUnlocked || overview.reputationPoints < EQUIPMENT_PARTNER_EXTRA_COST}
+                />
+              </form>
+            )}
+          </div>
+          {!contract.reputationExtraItemId && !reputationExtraUnlocked ? (
+            <p className="mt-3 text-xs font-bold text-[#936A21]">
+              Disponible à {REPUTATION_FEATURE_THRESHOLDS.equipmentPartnerExtra} points de réputation.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="mt-7">
         <div>
@@ -546,6 +598,8 @@ function SuccessMessage({ state }: { state: string }) {
   const messages: Record<string, string> = {
     "contrat-signe":
       "Le contrat est signé. La dotation du partenaire est disponible sans limite de stock pendant le partenariat.",
+    "dotation-reputation":
+      "La quatrième dotation est active et utilisable sans limite de stock jusqu’à la fin du contrat.",
   };
   const message = messages[state];
   return message ? (

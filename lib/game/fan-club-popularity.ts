@@ -151,7 +151,11 @@ export function calculateFanClubAudience({
     )
     .reduce((total, event) => total + recentResultValue(event), 0);
   const foundation = 250;
-  const reputation = Math.round(Math.max(0, directorReputation) * 40);
+  const normalizedReputation = Math.max(0, directorReputation);
+  const reputation = Math.round(
+    Math.min(1_000, normalizedReputation) * 40 +
+      Math.max(0, normalizedReputation - 1_000) * 10,
+  );
   const riderAudience = Math.round(
     riders.reduce(
       (total, rider) =>

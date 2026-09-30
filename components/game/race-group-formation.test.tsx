@@ -70,8 +70,10 @@ describe("race group formation", () => {
     );
 
     expect(markup).toContain('data-race-group-formation="peloton-front"');
+    expect(markup).toContain("h-11 w-[4.5rem]");
+    expect(markup).toContain('data-race-cyclist-scale="broadcast-aligned"');
     expect(markup).toContain('data-race-rider-weave="active"');
-    expect(markup.match(/translate\(/g)).toHaveLength(8);
+    expect(markup.match(/data-race-rider-weave="active"/g)).toHaveLength(8);
     expect(markup).toContain("translate(-");
     expect(markup).toContain("translate(62");
     expect(markup).toContain("+1");
@@ -101,6 +103,8 @@ describe("race group formation", () => {
     expect(markup).not.toContain("transform:rotate");
     expect(markup).toContain("#145A4A");
     expect(markup).toContain("#F2C94C");
+    expect(markup.match(/data-race-car-detail="visible-crew"/g)).toHaveLength(2);
+    expect(markup.match(/data-race-car-roof-bike="one"/g)).toHaveLength(2);
   });
   it("renders a breakaway in a paceline", () => {
     const riders = Array.from({ length: 6 }, (_, index) => buildRider(index + 1));

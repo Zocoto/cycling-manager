@@ -18,6 +18,10 @@ const bulkEditor = readFileSync(
   join(process.cwd(), "components/game/youth-training-bulk-editor.tsx"),
   "utf8",
 );
+const promotionForm = readFileSync(
+  join(process.cwd(), "components/game/youth-promotion-form.tsx"),
+  "utf8",
+);
 
 describe("gestion de l’école de cyclisme", () => {
   it("retire les notifications de l’école et de son compteur", () => {
@@ -74,6 +78,23 @@ describe("gestion de l’école de cyclisme", () => {
     expect(action).not.toContain(
       'redirectWithMessage("ecole", "succes"',
     );
+  });
+
+  it("programme le passage pro sans recharger toute l’école", () => {
+    const actionStart = academyActions.indexOf(
+      "export async function recruitYouthRiderInlineAction",
+    );
+    const actionEnd = academyActions.indexOf(
+      "export async function dismissYouthRiderAction",
+    );
+    const action = academyActions.slice(actionStart, actionEnd);
+
+    expect(academyPage).toContain("<YouthPromotionForm");
+    expect(promotionForm).toContain("useActionState");
+    expect(promotionForm).toContain("Signature en cours…");
+    expect(action).toContain('"recruit_current_youth_rider"');
+    expect(action).not.toContain("revalidateCenter()");
+    expect(action).not.toContain("redirectWithMessage(");
   });
 
   it("propose une validation groupée dans une barre flottante", () => {

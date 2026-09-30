@@ -231,6 +231,11 @@ export function RiderComparisonView({
             right={`${Math.round(right.condition.form)}/100`}
           />
           <ComparisonDataRow
+            label="Moral actuel"
+            left={`${Math.round(left.condition.morale)}/100`}
+            right={`${Math.round(right.condition.morale)}/100`}
+          />
+          <ComparisonDataRow
             label="Potentiel"
             left={<PotentialValue profile={left} />}
             right={<PotentialValue profile={right} />}

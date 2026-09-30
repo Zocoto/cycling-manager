@@ -3,7 +3,12 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import type {
+  SecondarySponsorIdentity,
+  SecondarySponsorLogoPlacement,
+} from "@/lib/game/secondary-sponsor";
 import type { Sponsor } from "@/types/sponsor";
+import { SecondarySponsorLogo } from "./secondary-sponsor-logo";
 
 type SponsorJersey =
   Sponsor["jerseys"][number];
@@ -12,12 +17,16 @@ type SponsorJerseyPreviewProps = {
   sponsor: Sponsor;
   jersey: SponsorJersey;
   className?: string;
+  secondarySponsor?: SecondarySponsorIdentity | null;
+  secondaryLogoPlacement?: SecondarySponsorLogoPlacement | null;
 };
 
 export function SponsorJerseyPreview({
   sponsor,
   jersey,
   className = "h-64 w-56 drop-shadow-xl",
+  secondarySponsor = null,
+  secondaryLogoPlacement = null,
 }: SponsorJerseyPreviewProps) {
   const [
     failedImagePath,
@@ -27,16 +36,6 @@ export function SponsorJerseyPreview({
   const imageFailed =
     failedImagePath === jersey.imagePath;
 
-  if (!jersey.imagePath || imageFailed) {
-    return (
-      <FallbackJerseyPreview
-        sponsor={sponsor}
-        jersey={jersey}
-        className={className}
-      />
-    );
-  }
-
   return (
     <div
       className={[
@@ -44,19 +43,41 @@ export function SponsorJerseyPreview({
         className,
       ].join(" ")}
     >
-      <Image
-        src={jersey.imagePath}
-        alt={`Maillot ${jersey.name} de ${sponsor.name}`}
-        fill
-        sizes="(max-width: 640px) 14rem, 16rem"
-        className="select-none object-contain"
-        draggable={false}
-        onError={() => {
-          setFailedImagePath(
-            jersey.imagePath
-          );
-        }}
-      />
+      {!jersey.imagePath || imageFailed ? (
+        <FallbackJerseyPreview
+          sponsor={sponsor}
+          jersey={jersey}
+          className="h-full w-full"
+        />
+      ) : (
+        <Image
+          src={jersey.imagePath}
+          alt={`Maillot ${jersey.name} de ${sponsor.name}`}
+          fill
+          sizes="(max-width: 640px) 14rem, 16rem"
+          className="select-none object-contain"
+          draggable={false}
+          onError={() => {
+            setFailedImagePath(
+              jersey.imagePath
+            );
+          }}
+        />
+      )}
+
+      {secondarySponsor && secondaryLogoPlacement ? (
+        <span
+          data-secondary-sponsor-logo="true"
+          className="pointer-events-none absolute z-10 w-[34%] origin-center"
+          style={{
+            left: `${secondaryLogoPlacement.xPercent}%`,
+            top: `${secondaryLogoPlacement.yPercent}%`,
+            transform: `translate(-50%, -50%) rotate(${secondaryLogoPlacement.rotationDegrees}deg) scale(${secondaryLogoPlacement.scale})`,
+          }}
+        >
+          <SecondarySponsorLogo sponsor={secondarySponsor} />
+        </span>
+      ) : null}
     </div>
   );
 }

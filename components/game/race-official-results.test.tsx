@@ -181,4 +181,29 @@ describe("RaceOfficialResults", () => {
     expect(markup).toContain("<details");
     expect(markup).not.toContain("<details open");
   });
+
+  it("place le journal de course dans l'en-tête des résultats", () => {
+    const markup = renderToStaticMarkup(
+      <RaceOfficialResults
+        gameYear={3}
+        edition={edition}
+        selectedStageId="stage-1"
+        officialResults={buildResults("team-active")}
+        courseJournal={[
+          {
+            id: "finish",
+            kind: "finish",
+            distanceKm: 150,
+            title: "Victoire",
+            detail: "Camille Rapide s’impose.",
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain("data-race-course-journal");
+    expect(markup.indexOf("Journal de course")).toBeLessThan(
+      markup.indexOf("Classements de la course"),
+    );
+  });
 });

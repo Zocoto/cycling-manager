@@ -20,7 +20,10 @@ import { RaceRoadChalk } from "@/components/game/race-road-chalk";
 import { RaceRoadsideCrowd } from "@/components/game/race-roadside-crowd";
 import { RaceTimeTrialScene } from "@/components/game/race-time-trial-scene";
 import { FinishRoadsideInfrastructure } from "@/components/game/race-scenery";
-import { RaceSceneryBackdrop } from "@/components/game/race-scenery-detailed";
+import {
+  RaceBiotopeForeground,
+  RaceSceneryBackdrop,
+} from "@/components/game/race-scenery-detailed";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RaceWeatherBadge,
@@ -56,6 +59,7 @@ import {
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
 import {
   getIntermediateSprintVisualProgress,
+  getRareClimbSprinterSupporterRun,
   getRaceGroupDisplayLabel,
   getRaceRoadFormationTop,
   getRaceRoadSlopeOffset,
@@ -87,6 +91,7 @@ import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock
 import {
   getFinalBattleScenario,
   getLeadingFinishGroupRiderIds,
+  isRaceSprinterRole,
   isMassGroupFinish,
   RACE_ROLE_LABELS,
   type RaceGroupSnapshot,
@@ -114,6 +119,7 @@ type PlaybackSpeed = 1 | 2 | 4;
 
 const REPLAY_STEP_DURATION_MS = 6_000;
 const RACE_RENDER_FRAME_INTERVAL_MS = 1_000 / 30;
+const FINISH_MEDIA_GROUP_POSITIONS = [58, 76] as const;
 
 export function RaceLiveLab({
   edition,
@@ -816,7 +822,7 @@ function RaceVisualViewport({
         <div
           dir="ltr"
           data-race-motion-intensity={motionIntensity}
-          className={`relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}
+          className={`cm-race-visual-viewport relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}
           style={style}
         >
           {children}
@@ -882,14 +888,19 @@ function RoadScene({
   const roadSlopeOffset = getRaceRoadSlopeOffset(
     segment.averageGradientPct,
   );
-  const roadTopCenterPct = 54;
   const roadDepthPct = 32;
+  const roadTopCenterPct = Math.min(
+    54,
+    99 - roadDepthPct - Math.abs(roadSlopeOffset),
+  );
   const roadLeftPct = roadTopCenterPct + roadSlopeOffset;
   const roadRightPct = roadTopCenterPct - roadSlopeOffset;
   const roadBottomLeftPct = roadLeftPct + roadDepthPct;
   const roadBottomRightPct = roadRightPct + roadDepthPct;
-  const roadMarkingLeftPct = roadLeftPct + roadDepthPct * 0.52;
-  const roadMarkingRightPct = roadRightPct + roadDepthPct * 0.52;
+  const roadSlopePerHorizontalPct = (roadRightPct - roadLeftPct) / 100;
+  const roadMarkingPathScale = Math.hypot(1, roadSlopePerHorizontalPct);
+  const roadYAtHorizontalPct = (x: number, depth = 0) =>
+    roadLeftPct + roadSlopePerHorizontalPct * x + depth;
   const scenery = getRaceSceneryKind({
     seed: visualSeed,
     segment,
@@ -901,7 +912,51 @@ function RoadScene({
     scenery,
     terrain: segment.terrain,
   });
-  const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
+  const spectatorTeamPalettes = useMemo(
+    () => getRaceSpectatorTeamPalettes(riderById),
+    [riderById],
+  );
+  const sprinterGroup = groups.find((group) =>
+    group.riderIds.some((riderId) => {
+      const rider = riderById.get(riderId);
+      return Boolean(
+        rider &&
+          (isRaceSprinterRole(rider.role) ||
+            (rider.ratings.sprint >= 82 &&
+              rider.ratings.sprint >= rider.ratings.mountain + 14)),
+      );
+    }),
+  );
+  const sprinterRider = sprinterGroup
+    ? sprinterGroup.riderIds
+        .map((riderId) => riderById.get(riderId))
+        .find(
+          (rider) =>
+            rider &&
+            (isRaceSprinterRole(rider.role) ||
+              (rider.ratings.sprint >= 82 &&
+                rider.ratings.sprint >= rider.ratings.mountain + 14)),
+        ) ?? null
+    : null;
+  const rareSupporterRun = getRareClimbSprinterSupporterRun({
+    visualSeed,
+    segmentNumber: segment.segmentNumber,
+    terrain: segment.terrain,
+    averageGradientPct: segment.averageGradientPct,
+    segmentProgress,
+    hasSprinter: Boolean(sprinterRider),
+  });
+  const featuredRunner =
+    rareSupporterRun && sprinterGroup && sprinterRider
+      ? {
+          x: getGroupScreenPosition(sprinterGroup, groups) * 10,
+          side: rareSupporterRun.side,
+          phase: rareSupporterRun.phase,
+          primaryColor: sprinterRider.teamPrimaryColor,
+          secondaryColor: sprinterRider.teamSecondaryColor,
+          teamId: sprinterRider.teamId,
+        }
+      : null;
   const roadPatternId = `road-surface-${segment.segmentNumber}`;
   const departureProgress =
     snapshot.segmentNumber === 1 && segmentProgress < 0.46
@@ -960,28 +1015,14 @@ function RoadScene({
           data-road-foreground="sloped"
         />
         <path
-          d={`M -2 ${roadLeftPct} L 102 ${roadRightPct}`}
+          d={`M -2 ${roadYAtHorizontalPct(-2)} L 102 ${roadYAtHorizontalPct(102)}`}
           fill="none"
           stroke="#557450"
           strokeWidth="8"
           vectorEffect="non-scaling-stroke"
         />
         <path
-          d={`M -2 ${roadBottomLeftPct} L 102 ${roadBottomRightPct}`}
-          fill="none"
-          stroke="#557450"
-          strokeWidth="8"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={`M -2 ${roadLeftPct} L 102 ${roadRightPct}`}
-          fill="none"
-          stroke="#C8B889"
-          strokeWidth="5.2"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={`M -2 ${roadBottomLeftPct} L 102 ${roadBottomRightPct}`}
+          d={`M -2 ${roadYAtHorizontalPct(-2)} L 102 ${roadYAtHorizontalPct(102)}`}
           fill="none"
           stroke="#C8B889"
           strokeWidth="5.2"
@@ -995,18 +1036,19 @@ function RoadScene({
         />
         {shouldShowRaceRoadMarkings(segment.surface) ? (
           <path
-            d={`M -8 ${roadMarkingLeftPct} L 108 ${roadMarkingRightPct}`}
+            d={`M -18 ${roadYAtHorizontalPct(-18, roadDepthPct * 0.52)} L 118 ${roadYAtHorizontalPct(118, roadDepthPct * 0.52)}`}
             fill="none"
             stroke="rgba(255,255,255,0.72)"
             strokeWidth="0.85"
-            strokeDasharray="8 6"
-            vectorEffect="non-scaling-stroke"
+            strokeDasharray={`${8 * roadMarkingPathScale} ${6 * roadMarkingPathScale}`}
             data-road-flow-direction="right-to-left"
+            data-road-marking-motion="world-synchronized"
+            data-road-marking-horizontal-cycle={roadMarkingMotion.cycleDistance}
             className={isMoving ? "cm-race-road-marking-svg" : ""}
             style={
               {
                 "--cm-race-road-marking-cycle-distance":
-                  roadMarkingMotion.cycleDistance,
+                  roadMarkingMotion.cycleDistance * roadMarkingPathScale,
                 "--cm-race-road-marking-cycle-duration":
                   `${roadMarkingMotion.durationSeconds}s`,
               } as CSSProperties
@@ -1035,14 +1077,21 @@ function RoadScene({
           />
         ))}
       </svg>
+      <RaceBiotopeForeground
+        kind={scenery}
+        roadLeftY={roadBottomLeftPct * 3.2}
+        roadRightY={roadBottomRightPct * 3.2}
+        isMoving={isMoving}
+      />
       <RaceRoadsideCrowd
-        show={showSpectators}
+        show={showSpectators || Boolean(featuredRunner)}
         isMoving={isMoving}
         roadLeftY={roadLeftPct * 3.2}
         roadRightY={roadRightPct * 3.2}
         roadDepthY={roadDepthPct * 3.2}
         terrain={segment.terrain}
         teamPalettes={spectatorTeamPalettes}
+        featuredRunner={featuredRunner}
       />
       <RaceMediaConvoy
         isMoving={isMoving}
@@ -1112,7 +1161,7 @@ function RoadScene({
                 ? [primeWinnerId]
                 : []),
           ],
-          maximumVisibleRiders: groups.length <= 3 ? 8 : 5,
+          maximumVisibleRiders: groups.length <= 3 ? 7 : 5,
         });
         const displayLabel = getRaceGroupDisplayLabel({
           type: group.type,
@@ -1123,14 +1172,14 @@ function RoadScene({
         return (
           <div
             key={group.id}
-            className="absolute -translate-x-1/2 transition-[left,top] duration-700 ease-out"
+            className="cm-race-motion-layer pointer-events-none absolute inset-0 transition-transform duration-150 ease-linear"
             style={{
-              left: `${left}%`,
-              top: `${roadFormationTopPct}%`,
+              transform: `translate3d(${left}%, ${roadFormationTopPct}%, 0)`,
               zIndex: 20 - groupIndex,
             }}
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
           >
+            <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2">
             <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
               {displayLabel} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
             </div>
@@ -1148,6 +1197,7 @@ function RoadScene({
               frontDynamics={frontDynamics}
               terrain={segment.terrain}
             />
+            </div>
           </div>
         );
           })}
@@ -1405,26 +1455,27 @@ function RaceDepartureSequence({
       </div>
 
       <div
-        className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-100 ease-linear"
+        className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-150 ease-linear"
         style={{
-          left: `${carPosition}%`,
-          top: `${carRoadTop + 3}%`,
+          transform: `translate3d(${carPosition}%, ${carRoadTop + 3}%, 0)`,
         }}
       >
-        <RaceDirectorCar isMoving={isMoving} />
+        <div className="absolute left-0 top-0 -translate-x-1/2 -translate-y-full">
+          <RaceDirectorCar isMoving={isMoving} />
+        </div>
       </div>
 
       <div
-        className="absolute z-20 -translate-x-1/2 transition-[left,top] duration-100 ease-linear"
+        className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-150 ease-linear"
         style={{
-          left: `${pelotonPosition}%`,
-          top: `${pelotonRoadTop}%`,
+          transform: `translate3d(${pelotonPosition}%, ${pelotonRoadTop}%, 0)`,
         }}
         title={riderIds
           .map((riderId) => riderById.get(riderId)?.name)
           .filter(Boolean)
           .join(", ")}
       >
+        <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2">
         <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-3 py-1 text-center text-[9px] font-black text-white shadow-lg backdrop-blur">
           Peloton · {riderIds.length} coureurs
         </div>
@@ -1433,6 +1484,7 @@ function RaceDepartureSequence({
           riderById={riderById}
           isMoving={isMoving}
         />
+        </div>
       </div>
     </>
   );
@@ -1447,7 +1499,7 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
       data-race-director-car="detailed"
       data-race-car-direction="right"
       data-race-car-front="right"
-      className={`h-16 w-28 overflow-visible drop-shadow-xl ${
+      className={`h-18 w-36 overflow-visible drop-shadow-xl ${
         isMoving ? "cm-support-car" : ""
       }`}
     >
@@ -1461,6 +1513,10 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
           <stop offset="0" stopColor="#F4FAF8" />
           <stop offset="1" stopColor="#66827D" />
         </linearGradient>
+        <pattern id="director-car-paint" width="3" height="3" patternUnits="userSpaceOnUse">
+          <circle cx="0.7" cy="0.8" r="0.18" fill="#FFFFFF" opacity="0.36" />
+          <circle cx="2.2" cy="2.1" r="0.15" fill="#431016" opacity="0.3" />
+        </pattern>
       </defs>
       <ellipse cx="76" cy="70" rx="66" ry="4.5" fill="rgba(5,17,14,0.22)" />
       <path
@@ -1477,6 +1533,8 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
         strokeWidth="0.85"
       />
       <path d="M86 17v17M112 24l9 10" stroke="#435E59" strokeWidth="0.72" />
+      <path d="M59 30q24-10 59 2" fill="none" stroke="#FFFFFF" strokeWidth="1.1" opacity="0.27" />
+      <path d="M18 43h119v17H18Z" fill="url(#director-car-paint)" opacity="0.18" data-race-car-texture="metallic-paint" />
       <path d="M18 43h119" stroke="#FFFDF4" strokeWidth="1.2" opacity="0.8" />
       <path d="M56 33 51 60m36-26v26m39-26 5 20" fill="none" stroke="#57141B" strokeWidth="0.65" opacity="0.7" />
       <path d="M68 40h8m23 0h8" stroke="#5C1720" strokeWidth="1.1" strokeLinecap="round" />
@@ -1487,6 +1545,12 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
       <path d="M149 43h12" stroke="#FFF2B5" strokeWidth="1.1" strokeLinecap="round" opacity="0.42" />
       <path d="M149 44.5h5m-5 3h6" stroke="#FFF2B5" strokeWidth="0.7" strokeLinecap="round" opacity="0.8" />
       <path d="M12 56h9m115 0h13M65 59h27" stroke="#411015" strokeWidth="1" strokeLinecap="round" />
+      <path d="M68 22q8 5 15 10m8-13q11 7 19 14" stroke="#EAF5F1" strokeWidth="0.55" opacity="0.55" data-race-car-detail="windshield-reflection" />
+      <path d="M71 32 63 28m42 5 9-4" stroke="#263C36" strokeWidth="0.72" data-race-car-detail="windshield-wipers" />
+      <path d="M52 34 43 37l2 4 9-2m71-4 10 2-2 4-8-2" fill="#B52632" stroke="#F2E9E5" strokeWidth="0.62" data-race-car-detail="side-mirrors" />
+      <path d="M137 52h12v5h-14" fill="#67766F" stroke="#F4E9E6" strokeWidth="0.5" data-race-car-detail="front-grille" />
+      <rect x="120" y="58" width="18" height="4.5" rx="1" fill="#F5F6EF" stroke="#411015" strokeWidth="0.5" data-race-car-detail="license-plate" />
+      <text x="129" y="61.2" textAnchor="middle" fontSize="2.8" fontWeight="800" fill="#214C72">DIRECTION</text>
 
       {[38, 116].map((wheelX) => (
         <g
@@ -1495,7 +1559,9 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
           data-race-car-wheel-animation={isMoving ? "running" : "paused"}
         >
           <circle cx={wheelX} cy="63" r="10.5" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
+          <path d={`M${wheelX - 8} 56.2q8-5 16 0M${wheelX - 9.5} 63q9.5 3 19 0`} fill="none" stroke="#53615C" strokeWidth="0.42" strokeDasharray="1.2 1" opacity="0.7" data-race-car-detail="tire-tread" />
           <circle cx={wheelX} cy="63" r="6.3" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.72" />
+          <circle cx={wheelX} cy="63" r="4.7" fill="#465851" stroke="#C5D1CB" strokeWidth="0.42" data-race-car-detail="brake-disc" />
           <g
             data-race-car-wheel-rotor="centered"
             className={isMoving ? "cm-race-car-wheel" : ""}
@@ -2036,7 +2102,7 @@ function SprintLaneView({
       <RaceMediaConvoy
         isMoving={!raceComplete}
         visualSeed={`${simulation.seed}:sprint-media`}
-        groupPositions={[58, 76]}
+        groupPositions={FINISH_MEDIA_GROUP_POSITIONS}
         context="finish"
         showHelicopter={
           getVisualSeedNumber(`${simulation.seed}:sprint-helicopter`) % 5 === 0
@@ -2053,20 +2119,33 @@ function SprintLaneView({
       </div>
       <FinishDistanceCounter metersRemaining={metersRemaining} />
       {shouldShowRaceRoadMarkings(segment.surface) ? (
-        <div
+        <svg
           aria-hidden="true"
-          data-road-center-marking="classic"
-          data-road-flow-direction="right-to-left"
-          className={`absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.78)_0_42px,transparent_42px_78px)] [background-size:78px_3px] ${
-            !raceComplete ? "cm-race-road-marking-strip" : ""
-          }`}
-          style={
-            {
-              "--cm-race-road-marking-strip-duration":
-                `${sprintRoadMarkingMotion.durationSeconds}s`,
-            } as CSSProperties
-          }
-        />
+          viewBox="0 0 1000 480"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full"
+        >
+          <path
+            d="M -90 240 H 1090"
+            fill="none"
+            stroke="rgba(255,255,255,0.78)"
+            strokeWidth="3"
+            strokeDasharray="42 36"
+            data-road-center-marking="classic"
+            data-road-flow-direction="right-to-left"
+            data-road-marking-motion="world-synchronized-responsive"
+            data-road-marking-horizontal-cycle={sprintRoadMarkingMotion.cycleDistance}
+            className={!raceComplete ? "cm-race-road-marking-svg" : ""}
+            style={
+              {
+                "--cm-race-road-marking-cycle-distance":
+                  sprintRoadMarkingMotion.cycleDistance,
+                "--cm-race-road-marking-cycle-duration":
+                  `${sprintRoadMarkingMotion.durationSeconds}s`,
+              } as CSSProperties
+            }
+          />
+        </svg>
       ) : null}
       <div className="absolute left-4 top-4 z-30 max-w-[58%] rounded-xl bg-[#071A17]/88 px-3 py-2 backdrop-blur">
         <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
@@ -2209,19 +2288,19 @@ function SprintLaneView({
             data-sprint-team-id={sprintTeam.teamId}
             data-sprint-rider-role={isLeadout ? "leadout" : "sprinter"}
             data-sprint-rider-phase={frame.phase}
-            className="absolute z-20 transition-[left,top,opacity] duration-300 ease-out"
+            className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-[transform,opacity] duration-150 ease-linear"
             style={{
-              left: `${left}%`,
-              top: `${
+              transform: `translate3d(${left}%, ${
                 13 +
                 lane * sprintLaneStep +
                 frame.verticalOffset +
                 (wheelTargetTeamIndex >= 0 ? 1.2 + (wheelFollowerIndex % 2) * 0.55 : 0)
-              }%`,
+              }%, 0)`,
               opacity: frame.opacity,
             }}
             title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
+            <div className="pointer-events-auto absolute left-0 top-0">
             <TopRaceCyclist
               rider={rider}
               isMoving={!raceComplete}
@@ -2235,7 +2314,7 @@ function SprintLaneView({
             />
             {frame.opacity > 0.15 ? (
               <span
-                className={`absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-1 text-[8px] font-black shadow-lg ${
+                className={`absolute left-1/2 top-10 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-1 text-[8px] font-black shadow-lg ${
                   isLeadout
                     ? "border-white/10 bg-[#071A17]/72 text-white/65"
                     : "border-[#F2C94C]/25 bg-[#071A17]/90 text-white"
@@ -2249,6 +2328,7 @@ function SprintLaneView({
                   : ""}
               </span>
             ) : null}
+            </div>
           </div>
         );
       })}
@@ -2292,15 +2372,20 @@ function FinishBattleView({
   const roadSlopeOffset = getRaceRoadSlopeOffset(
     segment.averageGradientPct,
   );
-  const roadTopCenterY = 174;
   const roadDepthY = 70;
   const roadSlopeY = roadSlopeOffset * 5.2;
+  const roadTopCenterY = Math.min(
+    174,
+    314 - roadDepthY - Math.abs(roadSlopeY),
+  );
   const roadLeftY = roadTopCenterY + roadSlopeY;
   const roadRightY = roadTopCenterY - roadSlopeY;
   const roadBottomLeftY = roadLeftY + roadDepthY;
   const roadBottomRightY = roadRightY + roadDepthY;
-  const roadMarkingLeftY = roadLeftY + roadDepthY * 0.52;
-  const roadMarkingRightY = roadRightY + roadDepthY * 0.52;
+  const finishRoadSlopePerX = (roadRightY - roadLeftY) / 1_000;
+  const finishRoadMarkingPathScale = Math.hypot(1, finishRoadSlopePerX);
+  const finishRoadYAtX = (x: number, depth = 0) =>
+    roadLeftY + finishRoadSlopePerX * x + depth;
   const finishScenery = getRaceSceneryKind({
     seed: simulation.seed,
     segment,
@@ -2379,7 +2464,18 @@ function FinishBattleView({
     .join(" · ");
   const decisiveMovementText =
     "Les accélérations se répondent, sans qu’aucun coureur ne parvienne encore à faire la différence.";
-  const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
+  const spectatorTeamPalettes = useMemo(
+    () => getRaceSpectatorTeamPalettes(riderById),
+    [riderById],
+  );
+  const finishMediaRoadGeometry = useMemo(
+    () => ({
+      leftPct: (roadLeftY / 320) * 100,
+      rightPct: (roadRightY / 320) * 100,
+      depthPct: (roadDepthY / 320) * 100,
+    }),
+    [roadDepthY, roadLeftY, roadRightY],
+  );
   const winnerResult = simulation.results.find(
     (result) => result.status === "finished" && result.rank === 1
   );
@@ -2408,45 +2504,45 @@ function FinishBattleView({
           isMoving={!raceComplete}
         />
         <path
-          d={`M -30 ${roadBottomLeftY} L 1030 ${roadBottomRightY} L 1030 320 L -30 320 Z`}
+          d={`M -30 ${finishRoadYAtX(-30, roadDepthY)} L 1030 ${finishRoadYAtX(1030, roadDepthY)} L 1030 320 L -30 320 Z`}
           fill="#5F8658"
           data-road-foreground="sloped"
         />
-        {[0, roadDepthY].map((depth) => (
-          <g key={depth}>
-            <path
-              d={`M -30 ${roadLeftY + depth} L 1030 ${roadRightY + depth}`}
-              fill="none"
-              stroke="#557450"
-              strokeWidth="26"
-            />
-            <path
-              d={`M -30 ${roadLeftY + depth} L 1030 ${roadRightY + depth}`}
-              fill="none"
-              stroke="#C8B889"
-              strokeWidth="16"
-            />
-          </g>
-        ))}
         <path
-          d={`M -30 ${roadLeftY} L 1030 ${roadRightY} L 1030 ${roadBottomRightY} L -30 ${roadBottomLeftY} Z`}
+          d={`M -30 ${finishRoadYAtX(-30)} L 1030 ${finishRoadYAtX(1030)}`}
+          fill="none"
+          stroke="#557450"
+          strokeWidth="26"
+        />
+        <path
+          d={`M -30 ${finishRoadYAtX(-30)} L 1030 ${finishRoadYAtX(1030)}`}
+          fill="none"
+          stroke="#C8B889"
+          strokeWidth="16"
+          data-road-edge="upper-grass"
+        />
+        <path
+          d={`M -30 ${finishRoadYAtX(-30)} L 1030 ${finishRoadYAtX(1030)} L 1030 ${finishRoadYAtX(1030, roadDepthY)} L -30 ${finishRoadYAtX(-30, roadDepthY)} Z`}
           fill={segment.surface === "cobbles" ? `url(#${finishRoadPatternId})` : `url(#${finishRoadPatternId}-asphalt)`}
           data-road-bounds="parallel"
           data-road-slope-offset={roadSlopeOffset}
         />
         {shouldShowRaceRoadMarkings(segment.surface) ? (
           <path
-            d={`M -30 ${roadMarkingLeftY} L 1030 ${roadMarkingRightY}`}
+            d={`M -90 ${finishRoadYAtX(-90, roadDepthY * 0.52)} L 1090 ${finishRoadYAtX(1090, roadDepthY * 0.52)}`}
             fill="none"
             stroke="rgba(255,255,255,0.72)"
             strokeWidth="4"
-            strokeDasharray="42 34"
+            strokeDasharray={`${42 * finishRoadMarkingPathScale} ${34 * finishRoadMarkingPathScale}`}
             data-road-flow-direction="right-to-left"
+            data-road-marking-motion="world-synchronized"
+            data-road-marking-horizontal-cycle={finishRoadMarkingMotion.cycleDistance}
             className={!raceComplete ? "cm-race-road-marking-svg" : ""}
             style={
               {
                 "--cm-race-road-marking-cycle-distance":
-                  finishRoadMarkingMotion.cycleDistance,
+                  finishRoadMarkingMotion.cycleDistance *
+                  finishRoadMarkingPathScale,
                 "--cm-race-road-marking-cycle-duration":
                   `${finishRoadMarkingMotion.durationSeconds}s`,
               } as CSSProperties
@@ -2456,13 +2552,19 @@ function FinishBattleView({
         {[0, roadDepthY].map((depth) => (
           <path
             key={`edge-${depth}`}
-            d={`M -30 ${roadLeftY + depth} L 1030 ${roadRightY + depth}`}
+            d={`M -30 ${finishRoadYAtX(-30, depth)} L 1030 ${finishRoadYAtX(1030, depth)}`}
             fill="none"
             stroke="rgba(16,32,27,0.58)"
             strokeWidth="5"
           />
         ))}
       </svg>
+      <RaceBiotopeForeground
+        kind={finishScenery}
+        roadLeftY={roadBottomLeftY}
+        roadRightY={roadBottomRightY}
+        isMoving={!raceComplete}
+      />
       <RaceRoadsideCrowd
         show
         isMoving={!raceComplete}
@@ -2475,12 +2577,8 @@ function FinishBattleView({
       <RaceMediaConvoy
         isMoving={!raceComplete}
         visualSeed={`${simulation.seed}:finish-media`}
-        groupPositions={[58, 76]}
-        roadGeometry={{
-          leftPct: (roadLeftY / 320) * 100,
-          rightPct: (roadRightY / 320) * 100,
-          depthPct: (roadDepthY / 320) * 100,
-        }}
+        groupPositions={FINISH_MEDIA_GROUP_POSITIONS}
+        roadGeometry={finishMediaRoadGeometry}
         context="finish"
         showHelicopter={
           getVisualSeedNumber(`${simulation.seed}:finish-helicopter`) % 3 === 0
@@ -2605,14 +2703,14 @@ function FinishBattleView({
             data-finish-rank={riderHasFinished ? result.rank : undefined}
             data-finish-lane-offset={finishLaneOffsetY}
             data-finish-status={riderHasFinished ? "finished" : "racing"}
-            className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-out"
+            className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-150 ease-linear"
             style={{
-              left: `${left}%`,
-              top: `${(roadY / 320) * 100}%`,
+              transform: `translate3d(${left}%, ${(roadY / 320) * 100}%, 0)`,
               zIndex: 30 + Math.round(finishLaneOffsetY),
             }}
             title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
+            <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2 -translate-y-full">
             <SideRaceCyclist
               rider={rider}
               isMoving={!raceComplete}
@@ -2630,9 +2728,9 @@ function FinishBattleView({
                   isPhotoFinish,
                 })
               }
-              className="h-12 w-[4.5rem]"
+              className="h-11 w-20"
             />
-            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${formationIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : "border-white/20 bg-[#071A17]/90"}`}>
+            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${formationIndex % 2 === 0 ? "-top-8" : "top-12"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : "border-white/20 bg-[#071A17]/90"}`}>
               <span className="flex items-center gap-1 text-[9px] font-black text-white">
                 <span
                   aria-hidden="true"
@@ -2646,6 +2744,7 @@ function FinishBattleView({
               <span className="mt-0.5 block text-[7px] font-black uppercase tracking-wide text-[#C1D3CA]">
                 {riderStatus}
               </span>
+            </div>
             </div>
           </div>
         );

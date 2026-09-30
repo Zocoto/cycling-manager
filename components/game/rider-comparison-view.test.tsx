@@ -54,6 +54,7 @@ describe("RiderComparisonView", () => {
     expect(markup).toContain("←");
     expect(markup).toContain("→");
     expect(markup).toContain("Expérience de course");
+    expect(markup).toContain("Moral actuel");
   });
 });
 
@@ -78,11 +79,18 @@ function createProfile({
     avatarSeed: id,
     activeSeason: { id: "season", name: "Saison 2", gameYear: 2 },
     age: 26,
+    physique: null,
     careerRaceDays: 125,
     potentialSteps: 6,
     ratings,
     scoutingReport: null,
-    condition: { form: 81, dayNumber: 22, events: [] },
+    condition: {
+      form: 81,
+      morale: 60,
+      dayNumber: 22,
+      events: [],
+      moraleEvents: [],
+    },
     medical: null,
     currentTeam: {
       id: `team-${id}`,

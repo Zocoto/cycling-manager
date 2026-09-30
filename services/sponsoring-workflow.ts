@@ -20,6 +20,7 @@ import type {
   SponsorObjectiveStatus,
   SponsorObjectiveTargetDetails,
 } from "@/types/sponsor-objective";
+import type { SponsorMainObjectiveTerms } from "@/lib/game/sponsor-main-objective";
 import type { SponsorObjectiveAchievementLevel } from "@/lib/game/sponsor-objective-status";
 import {
   resolveSponsorSportingPhilosophy,
@@ -58,11 +59,12 @@ export type SponsorContractObjective = {
   progressStatus: "not_started" | "in_progress" | "achieved" | "failed" | null;
   achievementLevel: SponsorObjectiveAchievementLevel | null;
   partialSatisfactionPoints: number;
+  mainObjectiveTerms: SponsorMainObjectiveTerms | null;
 };
 
 export type SponsorSatisfactionEvent = {
   id: string;
-  eventType: "race_result" | "uci_ranking";
+  eventType: "race_result" | "uci_ranking" | "pre_race_commitment";
   points: number;
   title: string;
   description: string;
@@ -96,9 +98,12 @@ export type PersistedSponsorContract = {
   objectiveSatisfactionScore: number;
   performanceSatisfactionEnabled: boolean;
   performanceSatisfactionBonus: number;
+  commitmentSatisfactionBonus: number;
   satisfactionEvents: SponsorSatisfactionEvent[];
   satisfactionScore: number;
   reputationPenalty: number;
+  reputationInvestmentCost: number;
+  reputationBudgetBonusPercent: number;
   objectives: SponsorContractObjective[];
 };
 
@@ -242,6 +247,8 @@ type SponsorContractRow = {
   terminated_at: string | null;
   termination_reason: string | null;
   reputation_penalty: number;
+  reputation_investment_cost: number;
+  reputation_budget_bonus_percent: number;
   satisfaction_score: number;
 };
 
@@ -728,6 +735,8 @@ function contractSelection(): string {
     terminated_at,
     termination_reason,
     reputation_penalty,
+    reputation_investment_cost,
+    reputation_budget_bonus_percent,
     satisfaction_score
   `;
 }
@@ -885,6 +894,7 @@ async function hydrateSponsorContract({
         progressStatus: progress?.status ?? null,
         achievementLevel: progress?.achievementLevel ?? null,
         partialSatisfactionPoints: progress?.partialSatisfactionPoints ?? 0,
+        mainObjectiveTerms: objective.mainObjectiveTerms,
       };
     });
   }
@@ -937,7 +947,11 @@ async function hydrateSponsorContract({
     }),
   );
   const performanceSatisfactionBonus = satisfactionEvents.reduce(
-    (total, event) => total + event.points,
+    (total, event) => total + (event.eventType === "pre_race_commitment" ? 0 : event.points),
+    0,
+  );
+  const commitmentSatisfactionBonus = satisfactionEvents.reduce(
+    (total, event) => total + (event.eventType === "pre_race_commitment" ? event.points : 0),
     0,
   );
   const performanceSatisfactionEnabled =
@@ -945,6 +959,7 @@ async function hydrateSponsorContract({
   const satisfactionScore = calculateSponsorSatisfactionScore({
     objectivePoints: objectiveSatisfactionScore,
     performancePoints: performanceSatisfactionBonus,
+    commitmentPoints: commitmentSatisfactionBonus,
     gameYear: currentGameYear,
   });
   return {
@@ -975,9 +990,14 @@ async function hydrateSponsorContract({
     terminatedAt: contractRow.terminated_at,
     terminationReason: contractRow.termination_reason,
     reputationPenalty,
+    reputationInvestmentCost: Number(contractRow.reputation_investment_cost ?? 0),
+    reputationBudgetBonusPercent: Number(
+      contractRow.reputation_budget_bonus_percent ?? 0,
+    ),
     objectiveSatisfactionScore,
     performanceSatisfactionEnabled,
     performanceSatisfactionBonus,
+    commitmentSatisfactionBonus,
     satisfactionEvents,
     satisfactionScore,
     objectives,

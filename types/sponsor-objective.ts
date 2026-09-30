@@ -1,6 +1,7 @@
 import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 import type { RiderSportingProfile } from "@/lib/game/rider-profile";
+import type { SponsorMainObjectiveTerms } from "@/lib/game/sponsor-main-objective";
 
 export type SponsorObjectiveAmbitionLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -154,4 +155,5 @@ export type PersistedSponsorObjective =
     id: string;
     status: SponsorObjectiveStatus;
     isProvisional: boolean;
+    mainObjectiveTerms: SponsorMainObjectiveTerms | null;
   };

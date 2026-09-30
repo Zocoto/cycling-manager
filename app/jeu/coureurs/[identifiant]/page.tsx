@@ -433,6 +433,16 @@ export default async function RiderProfilePage({
                 {profile.age ? (
                   <IdentityBadge>{profile.age} ans</IdentityBadge>
                 ) : null}
+                {profile.physique ? (
+                  <IdentityBadge>
+                    {profile.physique.heightCm.toLocaleString("fr-FR", {
+                      maximumFractionDigits: 1,
+                    })} cm · {profile.physique.weightKg.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })} kg
+                  </IdentityBadge>
+                ) : null}
                 <IdentityBadge>
                   Expérience · {riderExperience.level} ·{" "}
                   {riderExperienceScoreFormatter.format(riderExperience.score)}
@@ -585,8 +595,10 @@ export default async function RiderProfilePage({
             <div data-tutorial-id="rider-profile-form">
               <RiderConditionGauges
                 form={profile.condition.form}
+                morale={profile.condition.morale}
                 dayNumber={profile.condition.dayNumber}
                 events={profile.condition.events}
+                moraleEvents={profile.condition.moraleEvents}
               />
             </div>
             <RiderClimateProfileCard profile={riderClimateProfile} />
@@ -1340,6 +1352,8 @@ function CurrentTeamCard({
             amateurTeamName={amateurTeamName}
             sponsor={sponsorIdentity?.sponsor ?? null}
             sponsorJersey={sponsorIdentity?.selectedJersey ?? null}
+            secondarySponsor={sponsorIdentity?.secondarySponsor ?? null}
+            secondaryLogoPlacement={sponsorIdentity?.secondaryLogoPlacement ?? null}
             className="mx-auto h-24 w-20 drop-shadow-xl"
           />
           <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#BFD1C6]">

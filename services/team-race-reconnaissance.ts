@@ -71,6 +71,7 @@ type ConditionRow = {
   rider_id: string;
   season_day_id: string;
   form: number;
+  morale: number | string;
   updated_at: string;
 };
 type InjuryRow = {
@@ -172,6 +173,7 @@ export type RaceReconnaissanceRider = {
   avatarSeed: number | string | null;
   age: number;
   form: number;
+  morale: number;
   registeredRaces: ReconnaissanceRaceEntry[];
   unavailabilities: Array<{
     startDayNumber: number;
@@ -419,7 +421,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     riderIds.length && conditionDayIds.length
       ? admin
           .from("rider_condition_states")
-          .select("rider_id, season_day_id, form, updated_at")
+          .select("rider_id, season_day_id, form, morale, updated_at")
           .in("rider_id", riderIds)
           .in("season_day_id", conditionDayIds)
           .returns<ConditionRow[]>()
@@ -630,6 +632,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         avatarSeed: rider.avatar_seed,
         age: ageByRiderId.get(rider.id) ?? 25,
         form: latestConditionByRiderId.get(rider.id)?.form ?? 75,
+        morale: Number(latestConditionByRiderId.get(rider.id)?.morale ?? 60),
         registeredRaces: registeredRacesByRiderId.get(rider.id) ?? [],
         unavailabilities,
       };

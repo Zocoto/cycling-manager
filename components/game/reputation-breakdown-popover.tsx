@@ -158,7 +158,7 @@ export function ReputationBreakdownPopover({
                   D&eacute;tail de la r&eacute;putation
                 </p>
                 <p className="mt-1 text-sm font-black text-[#123C33]">
-                  D&rsquo;o&ugrave; viennent vos points
+                  {breakdown?.tierLabel ?? "D’où viennent vos points"}
                 </p>
               </div>
 
@@ -188,14 +188,20 @@ export function ReputationBreakdownPopover({
                     </ul>
                   ) : (
                     <p className="px-4 py-5 text-xs font-semibold leading-5 text-[#60756E]">
-                      Aucun gain de r&eacute;putation n&rsquo;est encore enregistr&eacute;.
+                      Aucun mouvement de r&eacute;putation n&rsquo;est encore enregistr&eacute;.
                     </p>
                   )}
+
+                  <div className="grid grid-cols-3 gap-2 border-t border-[#315B3E]/12 bg-white/65 px-4 py-3 text-center">
+                    <ReputationSummary label="Disponible" value={breakdown.availablePoints} />
+                    <ReputationSummary label="Engagé" value={breakdown.committedPoints} />
+                    <ReputationSummary label="Record" value={breakdown.peakPoints} />
+                  </div>
 
                   {breakdown.recentGains.length > 0 ? (
                     <div className="border-t border-[#315B3E]/12 bg-white/65 px-4 py-3">
                       <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#6A817A]">
-                        Derniers gains
+                        Derniers mouvements
                       </p>
                       <ol className="mt-2 space-y-2">
                         {breakdown.recentGains.map((gain, index) => (
@@ -206,7 +212,7 @@ export function ReputationBreakdownPopover({
                             <span className="text-[#526E66]">
                               {gain.description}
                             </span>
-                            <span className="shrink-0 font-black text-[#176951]">
+                            <span className={`shrink-0 font-black ${gain.points < 0 ? "text-[#B9473B]" : "text-[#176951]"}`}>
                               {formatSignedPoints(gain.points)}
                             </span>
                           </li>
@@ -235,6 +241,17 @@ export function ReputationBreakdownPopover({
           )
         : null}
     </>
+  );
+}
+
+function ReputationSummary({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#6A817A]">
+        {label}
+      </p>
+      <p className="mt-1 text-xs font-black text-[#183F37]">{formatPoints(value)}</p>
+    </div>
   );
 }
 

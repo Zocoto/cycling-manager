@@ -29,6 +29,7 @@ type FormCampPlannerRider = {
   countryName: string;
   countryCode: string;
   form: number;
+  morale: number;
 };
 
 const EVENT_LABELS: Record<RiderPlanningEvent["type"], string> = {
@@ -468,7 +469,7 @@ function PlannerRiderRow({
             }`}
             title={status}
           >
-            Forme {rider.form} · {status}
+            Forme {rider.form} · Moral {Math.round(rider.morale)} · {status}
           </span>
         </span>
       </label>

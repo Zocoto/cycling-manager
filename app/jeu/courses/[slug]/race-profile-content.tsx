@@ -60,6 +60,11 @@ import { getPreRacePressConferences } from "@/services/pre-race-press";
 import type { PreRacePressConference } from "@/lib/game/pre-race-press";
 import type { PreRaceRivalryPrompt } from "@/lib/game/pre-race-press";
 import {
+  isReputationFeatureEnabled,
+  REPUTATION_FEATURE_THRESHOLDS,
+  WILDCARD_REPUTATION_COMMITMENTS,
+} from "@/lib/game/reputation";
+import {
   getActiveSeasonRaceCalendar,
   getCurrentRaceUserContext,
   getCurrentTeamRaceRosterOptions,
@@ -675,6 +680,7 @@ export async function RaceProfileContent({
                   <RegistrationPanel
                     edition={edition}
                     currentDayNumber={calendar.currentDayNumber}
+                    gameYear={calendar.gameYear}
                     context={raceUserContext}
                     contextError={contextError}
                     riders={rosterOptions}
@@ -698,6 +704,8 @@ export async function RaceProfileContent({
                         }
                         loadError={pressConferencesError}
                         rivalryPrompt={preRaceRivalryPrompt}
+                        gameYear={calendar.gameYear}
+                        reputationPoints={raceUserContext.reputationPoints}
                       />
                     </div>
                   ) : null}
@@ -800,6 +808,7 @@ function groupRacePastWinners(winners: RacePastWinner[]) {
 function RegistrationPanel({
   edition,
   currentDayNumber,
+  gameYear,
   context,
   contextError,
   riders,
@@ -810,6 +819,7 @@ function RegistrationPanel({
 }: {
   edition: RaceCalendarEdition;
   currentDayNumber: number;
+  gameYear: number;
   context: CurrentRaceUserContext;
   contextError: string | null;
   riders: RaceRosterOption[];
@@ -1273,6 +1283,45 @@ function RegistrationPanel({
           <form action={registerRaceRosterAction} className="mt-5">
             <input type="hidden" name="editionId" value={edition.id} />
             <input type="hidden" name="slug" value={edition.slug} />
+            {isReputationFeatureEnabled(gameYear) ? (
+              <fieldset className="mb-4 rounded-xl border border-[#F2C94C]/25 bg-white/5 p-3">
+                <legend className="px-1 text-xs font-black uppercase tracking-[0.14em] text-[#F7DA72]">
+                  Appui de la candidature
+                </legend>
+                <p className="mt-1 text-[10px] font-semibold leading-4 text-[#D6DFD2]">
+                  Les points sont réservés jusqu’à la décision. L’appui renforce le dossier sans garantir la Wild Card.
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {WILDCARD_REPUTATION_COMMITMENTS.map((option) => {
+                    const locked = option.amount > 0 && (
+                      context.reputationPoints < REPUTATION_FEATURE_THRESHOLDS.wildcardSupport ||
+                      context.reputationPoints < option.amount
+                    );
+                    return (
+                      <label key={option.amount} className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${locked ? "cursor-not-allowed border-white/10 opacity-55" : "cursor-pointer border-white/15 bg-black/10"}`}>
+                        <input
+                          type="radio"
+                          name="wildcardCommitmentAmount"
+                          value={option.amount}
+                          defaultChecked={option.amount === 0}
+                          disabled={locked}
+                          className="mt-0.5 accent-[#F2C94C]"
+                        />
+                        <span>
+                          <span className="block text-xs font-black text-white">{option.label}</span>
+                          <span className="mt-0.5 block text-[10px] font-semibold leading-4 text-[#D6DFD2]">{option.description}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {context.reputationPoints < REPUTATION_FEATURE_THRESHOLDS.wildcardSupport ? (
+                  <p className="mt-2 text-[10px] font-bold text-[#F7DA72]">
+                    Appui disponible à {REPUTATION_FEATURE_THRESHOLDS.wildcardSupport} points de réputation.
+                  </p>
+                ) : null}
+              </fieldset>
+            ) : null}
             {riders.length > 0 ? (
               <RaceRosterSelector
                 riders={riders}

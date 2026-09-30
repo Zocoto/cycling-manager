@@ -2,6 +2,11 @@ import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type {
+  SecondarySponsorIdentity,
+  SecondarySponsorLogoPlacement,
+  SecondarySponsorLogoVariant,
+} from "@/lib/game/secondary-sponsor";
 import type { Sponsor } from "@/types/sponsor";
 
 export type TeamSponsorIdentity = {
@@ -12,6 +17,8 @@ export type TeamSponsorIdentity = {
 
   sponsor: Sponsor;
   selectedJersey: Sponsor["jerseys"][number];
+  secondarySponsor: SecondarySponsorIdentity | null;
+  secondaryLogoPlacement: SecondarySponsorLogoPlacement | null;
 
   budgetPerSeason: number;
   currencyCode: string;
@@ -56,6 +63,26 @@ type TeamSeasonRow = {
   display_name: string;
   short_name: string | null;
 };
+
+type SecondaryContractRow = {
+  secondary_sponsor_id: string;
+  logo_x_percent: number | string;
+  logo_y_percent: number | string;
+  logo_scale: number | string;
+  logo_rotation_degrees: number | string;
+};
+
+type SecondaryCatalogRow = {
+  id: string;
+  country_id: string;
+  name: string;
+  prestige: number;
+  primary_color: string;
+  accent_color: string;
+  logo_variant: SecondarySponsorLogoVariant;
+};
+
+type CountryRow = { name: string; iso_alpha2: string };
 
 export async function getActiveTeamSponsorIdentityForAuthUser(
   authUserId: string
@@ -249,6 +276,12 @@ export async function getActiveTeamSponsorIdentity(
     );
   }
 
+  const secondaryIdentity = await loadActiveSecondaryIdentity({
+    supabase,
+    teamId: normalizedTeamId,
+    seasonId,
+  });
+
   const budgetPerSeason = Number(
     contract.budget_per_season
   );
@@ -273,6 +306,8 @@ export async function getActiveTeamSponsorIdentity(
 
     sponsor,
     selectedJersey,
+    secondarySponsor: secondaryIdentity?.sponsor ?? null,
+    secondaryLogoPlacement: secondaryIdentity?.placement ?? null,
 
     budgetPerSeason,
     currencyCode:
@@ -280,6 +315,86 @@ export async function getActiveTeamSponsorIdentity(
 
     contractDurationSeasons:
       contract.contract_duration_seasons,
+  };
+}
+
+async function loadActiveSecondaryIdentity({
+  supabase,
+  teamId,
+  seasonId,
+}: {
+  supabase: SupabaseAdminClient;
+  teamId: string;
+  seasonId: string;
+}): Promise<{
+  sponsor: SecondarySponsorIdentity;
+  placement: SecondarySponsorLogoPlacement;
+} | null> {
+  const { data: contract, error: contractError } = await supabase
+    .from("secondary_sponsor_contracts")
+    .select(
+      "secondary_sponsor_id, logo_x_percent, logo_y_percent, logo_scale, logo_rotation_degrees",
+    )
+    .eq("team_id", teamId)
+    .eq("season_id", seasonId)
+    .eq("status", "active")
+    .maybeSingle<SecondaryContractRow>();
+
+  if (contractError) {
+    throw new Error(
+      `Impossible de charger le sponsor secondaire actif : ${contractError.message}`,
+    );
+  }
+  if (!contract) return null;
+
+  const { data: catalog, error: catalogError } = await supabase
+    .from("secondary_sponsor_catalog")
+    .select(
+      "id, country_id, name, prestige, primary_color, accent_color, logo_variant",
+    )
+    .eq("id", contract.secondary_sponsor_id)
+    .maybeSingle<SecondaryCatalogRow>();
+
+  if (catalogError || !catalog) {
+    throw new Error("Le sponsor secondaire actif est absent du catalogue.");
+  }
+
+  const { data: country, error: countryError } = await supabase
+    .from("countries")
+    .select("name, iso_alpha2")
+    .eq("id", catalog.country_id)
+    .maybeSingle<CountryRow>();
+
+  if (countryError || !country) {
+    throw new Error("Le pays du sponsor secondaire actif est indisponible.");
+  }
+
+  return {
+    sponsor: {
+      id: catalog.id,
+      name: catalog.name,
+      countryCode: country.iso_alpha2,
+      countryName: country.name,
+      prestige:
+        catalog.prestige <= 1
+          ? 1
+          : catalog.prestige === 2
+            ? 2
+            : catalog.prestige === 3
+              ? 3
+              : catalog.prestige === 4
+                ? 4
+                : 5,
+      primaryColor: catalog.primary_color,
+      accentColor: catalog.accent_color,
+      logoVariant: catalog.logo_variant,
+    },
+    placement: {
+      xPercent: Number(contract.logo_x_percent),
+      yPercent: Number(contract.logo_y_percent),
+      scale: Number(contract.logo_scale),
+      rotationDegrees: Number(contract.logo_rotation_degrees),
+    },
   };
 }
 

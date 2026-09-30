@@ -190,34 +190,66 @@ export async function completeYouthManualTrainingAction(input: {
   return { ok: true as const, report };
 }
 
-export async function recruitYouthRiderAction(formData: FormData) {
+export type RecruitYouthRiderActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  promotionGameYear: number | null;
+};
+
+export async function recruitYouthRiderInlineAction(
+  _previousState: RecruitYouthRiderActionState,
+  formData: FormData,
+): Promise<RecruitYouthRiderActionState> {
+  const startedAt = Date.now();
   const academyRiderId = readValue(formData, "academyRiderId");
-  const preserveFinalYearFilter = readFinalYearFilter(formData);
   if (!isUuid(academyRiderId)) {
-    redirectWithMessage(
-      "ecole",
-      "erreur",
-      "Le jeune transmis est invalide.",
-      preserveFinalYearFilter,
-    );
+    return {
+      status: "error",
+      message: "Le jeune transmis est invalide.",
+      promotionGameYear: null,
+    };
   }
+
   const supabase = await authenticatedClient();
-  const result = await supabase.rpc("recruit_current_youth_rider", { p_academy_rider_id: academyRiderId });
+  const result = await supabase.rpc("recruit_current_youth_rider", {
+    p_academy_rider_id: academyRiderId,
+  });
   if (result.error) {
-    redirectWithMessage(
-      "ecole",
-      "erreur",
-      result.error.message,
-      preserveFinalYearFilter,
-    );
+    console.warn("youth_promotion_action", {
+      outcome: "error",
+      code: result.error.code,
+      durationMs: Date.now() - startedAt,
+    });
+    return {
+      status: "error",
+      message: getInteractiveActionErrorMessage(result.error.message),
+      promotionGameYear: null,
+    };
   }
-  revalidateCenter();
-  redirectWithMessage(
-    "ecole",
-    "succes",
-    `Recrutement validé : arrivée dans l’équipe première en ${result.data}.`,
-    preserveFinalYearFilter,
-  );
+
+  const promotionGameYear = Number(result.data);
+  if (!Number.isInteger(promotionGameYear)) {
+    return {
+      status: "error",
+      message: "La saison de passage professionnel est indisponible.",
+      promotionGameYear: null,
+    };
+  }
+
+  // La carte est mise à jour localement par le formulaire client. On invalide
+  // seulement les écrans qui consomment la nouvelle notification afin de ne
+  // pas recalculer tout le Centre de formation après une écriture très courte.
+  revalidatePath("/jeu");
+  revalidatePath("/jeu/boite-mail");
+  console.info("youth_promotion_action", {
+    outcome: "success",
+    durationMs: Date.now() - startedAt,
+  });
+  return {
+    status: "success",
+    message: `Recrutement validé : arrivée dans l’équipe première en ${promotionGameYear}.`,
+    promotionGameYear,
+  };
 }
 
 export async function dismissYouthRiderAction(formData: FormData) {

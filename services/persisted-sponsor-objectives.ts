@@ -19,6 +19,13 @@ import { calculateNationRiderOverall } from "@/lib/game/nation-rider-ranking";
 import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { Sponsor } from "@/types/sponsor";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
+import {
+  calculateSponsorMainObjectiveTerms,
+  getSponsorMainObjectiveCandidateScore,
+  selectSponsorMainObjectiveOfferId,
+  SPONSOR_MAIN_OBJECTIVE_START_GAME_YEAR,
+  type SponsorMainObjectiveTerms,
+} from "@/lib/game/sponsor-main-objective";
 import type {
   RaceCategoryCode,
   RaceProfileType,
@@ -84,6 +91,15 @@ type SponsorObjectiveInsertRow = {
   satisfaction_points: number;
   is_provisional: true;
   target_details: SponsorObjectiveTargetDetails;
+};
+
+type SponsorMainObjectiveTermRow = {
+  sponsor_objective_id: string;
+  cash_reward: number | string;
+  currency_code: string;
+  reputation_penalty: number | string;
+  race_category_code: RaceCategoryCode;
+  settlement_status: SponsorMainObjectiveTerms["settlementStatus"];
 };
 
 type RaceEditionRow = {
@@ -521,6 +537,21 @@ export async function ensureAndLoadSponsorObjectives({
     completeObjectiveRows
   );
 
+  await ensureSponsorMainObjectiveTerms({
+    supabase,
+    seasonId,
+    targetSeasonGameYear,
+    offers,
+    objectiveRows: completeObjectiveRows,
+    raceCandidates,
+  });
+
+  const mainObjectiveTermsByObjectiveId =
+    await loadSponsorMainObjectiveTerms({
+      supabase,
+      objectiveIds: completeObjectiveRows.map((objective) => objective.id),
+    });
+
   const completeRowsByOfferId = groupRowsByOfferId(
     completeObjectiveRows
   );
@@ -546,7 +577,12 @@ export async function ensureAndLoadSponsorObjectives({
     objectivesByOfferId.set(
       offer.offerId,
       offerObjectiveRows
-        .map(hydrateSponsorObjective)
+        .map((objective) =>
+          hydrateSponsorObjective(
+            objective,
+            mainObjectiveTermsByObjectiveId.get(objective.id) ?? null,
+          ),
+        )
         .sort(
           (firstObjective, secondObjective) =>
             firstObjective.displayOrder -
@@ -808,7 +844,8 @@ function getObjectiveSignature(
 }
 
 function hydrateSponsorObjective(
-  objectiveRow: SponsorObjectiveRow
+  objectiveRow: SponsorObjectiveRow,
+  mainObjectiveTerms: SponsorMainObjectiveTerms | null,
 ): PersistedSponsorObjective {
   if (
     objectiveRow.evaluation_timing !==
@@ -876,7 +913,139 @@ function hydrateSponsorObjective(
     targetDetails:
       objectiveRow.target_details,
     status: objectiveRow.status,
+    mainObjectiveTerms,
   };
+}
+
+async function ensureSponsorMainObjectiveTerms({
+  supabase,
+  seasonId,
+  targetSeasonGameYear,
+  offers,
+  objectiveRows,
+  raceCandidates,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+  targetSeasonGameYear: number;
+  offers: readonly SponsorOfferObjectiveContext[];
+  objectiveRows: readonly SponsorObjectiveRow[];
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+}): Promise<void> {
+  if (targetSeasonGameYear < SPONSOR_MAIN_OBJECTIVE_START_GAME_YEAR) return;
+
+  const eligibleOffers = offers.filter(
+    (offer) => offer.neutralizeMissingObjectives !== true,
+  );
+  const selectedOfferId = selectSponsorMainObjectiveOfferId(
+    eligibleOffers.map((offer) => offer.offerId),
+    seasonId,
+  );
+
+  if (!selectedOfferId) return;
+
+  const selectedOffer = eligibleOffers.find(
+    (offer) => offer.offerId === selectedOfferId,
+  );
+  if (!selectedOffer) return;
+
+  const raceById = new Map(
+    raceCandidates.map((candidate) => [candidate.raceId, candidate]),
+  );
+  const candidates = objectiveRows
+    .filter(
+      (objective) =>
+        objective.sponsor_offer_id === selectedOfferId &&
+        objective.status !== "cancelled" &&
+        objective.target_details.kind === "race_result",
+    )
+    .flatMap((objective) => {
+      if (objective.target_details.kind !== "race_result") return [];
+      const race = raceById.get(objective.target_details.raceId);
+      if (!race?.categoryCode) return [];
+      const targetRank =
+        objective.target_details.achievementType === "win"
+          ? 1
+          : (objective.target_details.targetRank ?? 10);
+
+      return [
+        {
+          objective,
+          categoryCode: race.categoryCode,
+          targetRank,
+          score: getSponsorMainObjectiveCandidateScore({
+            raceCategoryCode: race.categoryCode,
+            targetRank,
+          }),
+        },
+      ];
+    })
+    .sort(
+      (first, second) =>
+        second.score - first.score ||
+        first.objective.display_order - second.objective.display_order,
+    );
+  const selectedObjective = candidates[0];
+  if (!selectedObjective) return;
+
+  const terms = calculateSponsorMainObjectiveTerms({
+    sponsorPrestige: selectedOffer.sponsor.prestige,
+    raceCategoryCode: selectedObjective.categoryCode,
+    targetRank: selectedObjective.targetRank,
+  });
+  const { error } = await supabase.from("sponsor_main_objective_terms").upsert(
+    {
+      sponsor_objective_id: selectedObjective.objective.id,
+      cash_reward: terms.cashReward,
+      currency_code: "EUR",
+      reputation_penalty: terms.reputationPenalty,
+      race_category_code: selectedObjective.categoryCode,
+    },
+    { onConflict: "sponsor_objective_id", ignoreDuplicates: true },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible d’enregistrer l’objectif principal du sponsor : ${error.message}`,
+    );
+  }
+}
+
+async function loadSponsorMainObjectiveTerms({
+  supabase,
+  objectiveIds,
+}: {
+  supabase: SupabaseAdminClient;
+  objectiveIds: readonly string[];
+}): Promise<Map<string, SponsorMainObjectiveTerms>> {
+  if (objectiveIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("sponsor_main_objective_terms")
+    .select(
+      "sponsor_objective_id, cash_reward, currency_code, reputation_penalty, race_category_code, settlement_status",
+    )
+    .in("sponsor_objective_id", [...objectiveIds])
+    .returns<SponsorMainObjectiveTermRow[]>();
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger les conditions des objectifs principaux : ${error.message}`,
+    );
+  }
+
+  return new Map(
+    (data ?? []).map((row) => [
+      row.sponsor_objective_id,
+      {
+        cashReward: Number(row.cash_reward),
+        currencyCode: row.currency_code,
+        reputationPenalty: Number(row.reputation_penalty),
+        raceCategoryCode: row.race_category_code,
+        settlementStatus: row.settlement_status,
+      },
+    ]),
+  );
 }
 
 function createSeededRandom(

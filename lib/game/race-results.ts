@@ -1,5 +1,6 @@
 import { getStageLiveState } from "./race-live";
 import type { RaceCalendarStage } from "./race-calendar";
+import { getTeamTimeTrialCoreSize } from "./team-time-trial";
 
 export type OfficialResultStatus =
   | "finished"
@@ -46,40 +47,39 @@ export type OfficialSecondaryClassification = {
 
 /**
  * Classe un CLM par équipes à partir du temps collectif enregistré pour ses
- * coureurs. Les coureurs lâchés peuvent terminer plus tard : le meilleur temps
- * de l'équipe correspond au groupe encore réuni à l'arrivée dans le moteur TTT.
+ * coureurs. Le temps est pris sur le dernier membre du noyau réglementaire :
+ * perdre un à trois coureurs reste possible, mais un survivant isolé ne peut
+ * plus porter à lui seul le classement de toute l'équipe.
  */
 export function buildTeamTimeTrialStageClassification(
   results: readonly OfficialRiderResult[],
 ): OfficialTeamTimeTrialStageResult[] {
-  const teamById = new Map<
-    string,
-    Omit<OfficialTeamTimeTrialStageResult, "rank">
-  >();
+  const finishedResultsByTeamId = new Map<string, OfficialRiderResult[]>();
 
   for (const result of results) {
     if (result.status !== "finished" || result.elapsedTimeMs === null) continue;
 
-    const existing = teamById.get(result.teamId);
-    if (existing) {
-      existing.totalTimeMs = Math.min(
-        existing.totalTimeMs,
-        result.elapsedTimeMs,
-      );
-      existing.riderIds.push(result.riderId);
-      continue;
-    }
-
-    teamById.set(result.teamId, {
-      teamId: result.teamId,
-      teamProfileId: result.teamProfileId,
-      teamName: result.teamName,
-      totalTimeMs: result.elapsedTimeMs,
-      riderIds: [result.riderId],
-    });
+    const teamResults = finishedResultsByTeamId.get(result.teamId) ?? [];
+    teamResults.push(result);
+    finishedResultsByTeamId.set(result.teamId, teamResults);
   }
 
-  return [...teamById.values()]
+  return [...finishedResultsByTeamId.values()]
+    .map((teamResults) => {
+      const orderedResults = [...teamResults].sort(
+        (first, second) => first.elapsedTimeMs! - second.elapsedTimeMs!,
+      );
+      const coreSize = getTeamTimeTrialCoreSize(orderedResults.length);
+      const timedResult = orderedResults[Math.max(0, coreSize - 1)];
+      const first = orderedResults[0];
+      return {
+        teamId: first.teamId,
+        teamProfileId: first.teamProfileId,
+        teamName: first.teamName,
+        totalTimeMs: timedResult.elapsedTimeMs!,
+        riderIds: orderedResults.map((result) => result.riderId),
+      };
+    })
     .sort(
       (first, second) =>
         first.totalTimeMs - second.totalTimeMs ||

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 
 const FUN_CHALK_MESSAGES = [
   "À BLOC",
@@ -48,6 +48,7 @@ export function RaceRoadChalk({
   roadDepth: number;
   isMoving: boolean;
 }) {
+  const clipId = `race-road-chalk-${useId().replace(/:/g, "")}`;
   if (!show) return null;
 
   const localClubMessages =
@@ -79,14 +80,24 @@ export function RaceRoadChalk({
       data-race-road-chalk="climb"
       data-race-road-chalk-density={chalkLayout.density}
       data-race-road-chalk-orientation="top-toward-finish-right"
-      data-race-road-chalk-layout="irregular-across-road-width"
+      data-race-road-chalk-layout="centered-within-road"
+      data-race-road-chalk-bounds="contained"
+      data-race-road-chalk-clip="static-road-polygon"
       data-race-road-flow-direction="right-to-left"
       data-race-road-chalk-moving={isMoving ? "true" : "false"}
       fill="rgba(245,243,226,0.82)"
       stroke="rgba(255,255,255,0.18)"
       strokeWidth="0.08"
       paintOrder="stroke"
+      clipPath={`url(#${clipId})`}
     >
+      <defs>
+        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+          <path
+            d={`M 0 ${roadLeft} L 100 ${roadRight} L 100 ${roadRight + roadDepth} L 0 ${roadLeft + roadDepth} Z`}
+          />
+        </clipPath>
+      </defs>
       <g
         className={isMoving ? "cm-race-road-chalk-svg" : undefined}
         style={isMoving ? motionStyle : undefined}
@@ -97,7 +108,15 @@ export function RaceRoadChalk({
             if (!message) return null;
             const x = placement.x + offset;
             const roadY = roadLeft + (roadRight - roadLeft) * (x / 100);
-            const y = roadY + roadDepth * placement.laneRatio;
+            const y = roadY + roadDepth * 0.5;
+            const rotationRadians = (placement.rotation * Math.PI) / 180;
+            const projectedLengthOnRoadDepth = Math.abs(
+              Math.sin(rotationRadians) - roadSlope * Math.cos(rotationRadians),
+            );
+            const containmentPadding = Math.max(1.8, placement.fontSize * 0.55);
+            const maximumContainedLength =
+              Math.max(0, roadDepth - containmentPadding * 2) /
+              Math.max(0.01, projectedLengthOnRoadDepth);
             return (
               <text
                 key={`${offset}-${message.text}-${index}`}
@@ -114,6 +133,7 @@ export function RaceRoadChalk({
                 textLength={Math.min(
                   roadDepth * placement.widthRatio,
                   placement.maximumWidth,
+                  maximumContainedLength,
                 )}
                 lengthAdjust="spacingAndGlyphs"
               >
@@ -195,7 +215,7 @@ export function getRaceRoadChalkLayout({
     density,
     placements: positions.slice(0, maximumCount).map((x, index) => ({
       x,
-      laneRatio: 0.38 + ((seed >>> (index + 4)) % 25) / 100,
+      laneRatio: 0.5,
       rotation: 90 + (((seed >>> (index + 7)) % 15) - 7),
       fontSize: 2.45 + ((seed >>> (index + 10)) % 9) / 10,
       letterSpacing: 0.14 + ((seed >>> (index + 12)) % 12) / 100,

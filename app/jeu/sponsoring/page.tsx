@@ -8,12 +8,17 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorBudgetHistoryChart } from "@/components/game/sponsor-budget-history-chart";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
+import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
+import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
 import { getSponsorObjectiveProgressDisplay } from "@/lib/game/sponsor-objective-progress";
-import { SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM } from "@/lib/game/sponsor-performance-satisfaction";
+import {
+  SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM,
+  SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM,
+} from "@/lib/game/sponsor-performance-satisfaction";
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -26,10 +31,15 @@ import {
 } from "../../../services/sponsoring-workflow";
 import type { PersistedSponsorObjective } from "../../../types/sponsor-objective";
 import {
+  getSecondarySponsoringStateForAuthUser,
+  type SecondarySponsoringState,
+} from "../../../services/secondary-sponsors";
+import {
   signSponsorOfferAction,
   terminateSponsorContractAction,
 } from "./actions";
 import { FutureSponsoringSection } from "./future-sponsoring-section";
+import { SecondarySponsorSection } from "./secondary-sponsor-section";
 import {
   ConfirmSponsorButton,
   SponsorJerseySelector,
@@ -50,6 +60,7 @@ type SponsoringPageProps = {
   searchParams?: Promise<{
     erreur?: string | string[];
     succes?: string | string[];
+    onglet?: string | string[];
   }>;
 };
 
@@ -61,6 +72,11 @@ export default async function SponsoringPage({
   const actionError = readSearchParameter(resolvedSearchParams.erreur);
 
   const actionSuccess = readSearchParameter(resolvedSearchParams.succes);
+
+  const activeTab =
+    readSearchParameter(resolvedSearchParams.onglet) === "secondaire"
+      ? "secondaire"
+      : "principal";
 
   const supabase = await createSupabaseServerClient();
 
@@ -77,6 +93,10 @@ export default async function SponsoringPage({
 
   let sponsoringError: string | null = null;
 
+  let secondarySponsoringState: SecondarySponsoringState | null = null;
+
+  let secondarySponsoringError: string | null = null;
+
   try {
     sponsoringState = await getSponsoringStateForAuthUser(user.id);
   } catch (error) {
@@ -84,6 +104,30 @@ export default async function SponsoringPage({
 
     sponsoringError = getErrorMessage(error);
   }
+
+  try {
+    secondarySponsoringState =
+      await getSecondarySponsoringStateForAuthUser(user.id);
+  } catch (error) {
+    console.error("Impossible de récupérer le sponsor secondaire :", error);
+    secondarySponsoringError = getErrorMessage(error);
+  }
+
+  const [reputationResult, activeSeasonResult] = await Promise.all([
+    supabase
+      .from("sporting_directors")
+      .select("reputation_points")
+      .eq("auth_user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle<{ reputation_points: number | string }>(),
+    supabase
+      .from("seasons")
+      .select("game_year")
+      .eq("status", "active")
+      .maybeSingle<{ game_year: number }>(),
+  ]);
+  const reputationPoints = Number(reputationResult.data?.reputation_points ?? 0);
+  const currentGameYear = activeSeasonResult.data?.game_year ?? 0;
 
   const availableOfferCount =
     sponsoringState?.kind === "offers"
@@ -125,11 +169,15 @@ export default async function SponsoringPage({
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
-                {getPageIntroduction(sponsoringState)}
+                {activeTab === "secondaire"
+                  ? "Préparez un partenariat complémentaire pour la saison suivante et placez son logo sur votre futur maillot."
+                  : getPageIntroduction(sponsoringState)}
               </p>
             </div>
 
-            {availableOfferCount !== null && !sponsoringError ? (
+            {activeTab === "principal" &&
+            availableOfferCount !== null &&
+            !sponsoringError ? (
               <div className="rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 text-right shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
                 <p className="text-2xl font-black">{availableOfferCount}</p>
 
@@ -140,13 +188,15 @@ export default async function SponsoringPage({
             ) : null}
           </header>
 
-          {sponsoringState ? (
+          <SponsoringTabs activeTab={activeTab} />
+
+          {activeTab === "principal" && sponsoringState ? (
             <div data-tutorial-id="sponsoring-overview">
               <SponsoringStatusNotice state={sponsoringState} />
             </div>
           ) : null}
 
-          <TutorialSponsorPreview />
+          {activeTab === "principal" ? <TutorialSponsorPreview /> : null}
 
           {actionSuccess === "rupture" ? <ActionSuccessMessage /> : null}
 
@@ -155,12 +205,25 @@ export default async function SponsoringPage({
             <NegotiationSuccessMessage />
           ) : null}
 
+          {actionSuccess === "sponsor-secondaire" ? (
+            <SecondarySponsorSuccessMessage />
+          ) : null}
+
+          {actionSuccess === "logo-secondaire" ? (
+            <SecondaryLogoSuccessMessage />
+          ) : null}
+
           {actionError ? <ActionErrorMessage message={actionError} /> : null}
 
-          {sponsoringError ? (
+          {activeTab === "principal" && sponsoringError ? (
             <SponsoringErrorMessage message={sponsoringError} />
           ) : null}
 
+          {activeTab === "secondaire" && secondarySponsoringError ? (
+            <SponsoringErrorMessage message={secondarySponsoringError} />
+          ) : null}
+
+          {activeTab === "principal" ? (
           <div data-tutorial-id="sponsoring-overview">
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
@@ -171,7 +234,11 @@ export default async function SponsoringPage({
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
             sponsoringState.offers.length > 0 ? (
-              <OffersSection offers={sponsoringState.offers} />
+              <OffersSection
+                offers={sponsoringState.offers}
+                gameYear={currentGameYear}
+                reputationPoints={reputationPoints}
+              />
             ) : null}
 
             {!sponsoringError &&
@@ -181,14 +248,14 @@ export default async function SponsoringPage({
 
             {!sponsoringError &&
             sponsoringState?.kind === "amateur-qualified" ? (
-              <FutureSponsoringSection state={sponsoringState.future} />
+              <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
             ) : null}
 
             {!sponsoringError && sponsoringState?.kind === "active" ? (
               <>
                 <ActiveSponsorSection contract={sponsoringState.contract} />
 
-                <FutureSponsoringSection state={sponsoringState.future} />
+                <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
               </>
             ) : null}
 
@@ -196,13 +263,17 @@ export default async function SponsoringPage({
               <>
                 <TerminatedSponsorSection contract={sponsoringState.contract} />
 
-                <FutureSponsoringSection state={sponsoringState.future} />
+                <FutureSponsoringSection state={sponsoringState.future} reputationPoints={reputationPoints} />
               </>
             ) : null}
-
           </div>
 
-          {!sponsoringError &&
+          ) : !secondarySponsoringError ? (
+            <SecondarySponsorSection state={secondarySponsoringState} />
+          ) : null}
+
+          {activeTab === "principal" &&
+          !sponsoringError &&
           sponsoringState &&
           sponsoringState.kind !== "onboarding" ? (
             <SponsorBudgetHistoryChart points={sponsoringState.budgetHistory} />
@@ -383,7 +454,15 @@ function SponsoringStatusNotice({ state }: { state: SponsoringState }) {
   );
 }
 
-function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
+function OffersSection({
+  offers,
+  gameYear,
+  reputationPoints,
+}: {
+  offers: PersistedSponsorOffer[];
+  gameYear: number;
+  reputationPoints: number;
+}) {
   return (
     <>
       <section
@@ -391,7 +470,12 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
         className="mt-8 grid items-stretch gap-6 xl:grid-cols-3"
       >
         {offers.map((offer) => (
-          <SponsorOfferCard key={offer.id} offer={offer} />
+          <SponsorOfferCard
+            key={offer.id}
+            offer={offer}
+            gameYear={gameYear}
+            reputationPoints={reputationPoints}
+          />
         ))}
       </section>
 
@@ -407,7 +491,15 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
   );
 }
 
-function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
+function SponsorOfferCard({
+  offer,
+  gameYear,
+  reputationPoints,
+}: {
+  offer: PersistedSponsorOffer;
+  gameYear: number;
+  reputationPoints: number;
+}) {
   const sponsor = offer.sponsor;
   const philosophy =
     SPONSOR_SPORTING_PHILOSOPHY_CONFIG[offer.sportingPhilosophy];
@@ -625,6 +717,11 @@ function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
         <div className="mt-auto pt-7">
           <form action={signSponsorOfferAction}>
             <input type="hidden" name="offerId" value={offer.id} />
+
+            <SponsorReputationInvestmentOptions
+              gameYear={gameYear}
+              reputationPoints={reputationPoints}
+            />
 
             <ConfirmSponsorButton
               sponsorName={sponsor.name}
@@ -859,6 +956,12 @@ function ActiveSponsorSection({
                 backgroundColor={sponsor.colors.background}
               />
             </div>
+
+            {contract.reputationInvestmentCost > 0 ? (
+              <p className="mt-4 rounded-xl border border-[#278B70]/20 bg-white/70 px-4 py-3 text-xs font-bold leading-5 text-[#48665F]">
+                Partenariat renforcé : {contract.reputationInvestmentCost} points de réputation dépensés à la signature pour +{contract.reputationBudgetBonusPercent} % de budget annuel.
+              </p>
+            ) : null}
 
             <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
               {contract.signedAt ? (
@@ -1156,7 +1259,7 @@ function SponsorPerformanceSatisfactionSection({
             className="text-xs font-extrabold uppercase tracking-[0.16em]"
             style={{ color: sponsor.colors.primary }}
           >
-            Bonus sportifs · Saison 3
+            Bonus sportifs et engagements publics
           </p>
           <h3 className="mt-1 text-lg font-black" style={{ color: sponsor.colors.text }}>
             Les résultats qui ont convaincu {sponsor.name}
@@ -1171,6 +1274,9 @@ function SponsorPerformanceSatisfactionSection({
         >
           +{contract.performanceSatisfactionBonus}/
           {SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM}
+          {contract.commitmentSatisfactionBonus > 0
+            ? ` + ${contract.commitmentSatisfactionBonus}/${SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM}`
+            : ""}
         </p>
       </div>
 
@@ -1226,7 +1332,9 @@ function SponsorPerformanceSatisfactionSection({
 
       <p className="mt-4 text-[11px] font-semibold leading-5 text-[#72847E]">
         Les bonus sportifs sont plafonnés à {SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM}
-        points par contrat et ne peuvent jamais porter la satisfaction au-delà de 100.
+        points par contrat. À partir de la saison 4, les engagements publics tenus
+        peuvent ajouter jusqu’à {SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM} points en
+        plus, sans jamais porter la satisfaction au-delà de 100.
       </p>
     </div>
   );
@@ -1312,6 +1420,10 @@ function ContractObjectiveItem({
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>
+        <SponsorMainObjectiveTermsCard
+          terms={objective.mainObjectiveTerms}
+          compact
+        />
         {raceResult ? (
           <div className="mt-2 rounded-lg border border-[#315B3E]/10 bg-[#F7FAF8] px-3 py-2">
             <p className="text-[11px] font-extrabold text-[#294D43]">
@@ -1696,6 +1808,10 @@ function SponsorObjectiveItem({
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>
+        <SponsorMainObjectiveTermsCard
+          terms={objective.mainObjectiveTerms}
+          compact
+        />
       </div>
     </li>
   );
@@ -1728,6 +1844,62 @@ function NegotiationSuccessMessage() {
         recalculés selon le niveau de difficulté choisi.
       </p>
     </div>
+  );
+}
+
+function SecondarySponsorSuccessMessage() {
+  return (
+    <div role="status" className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950">
+      <p className="font-black">Le sponsor secondaire est signé.</p>
+      <p className="mt-2 text-sm leading-6">
+        Le nouveau nom, les objectifs rémunérés et le logo prendront effet au
+        jour 1 de la saison suivante.
+      </p>
+    </div>
+  );
+}
+
+function SecondaryLogoSuccessMessage() {
+  return (
+    <div role="status" className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950">
+      <p className="font-black">Le placement du logo est enregistré.</p>
+      <p className="mt-2 text-sm leading-6">
+        Cette position sera appliquée au maillot de la saison suivante.
+      </p>
+    </div>
+  );
+}
+
+function SponsoringTabs({
+  activeTab,
+}: {
+  activeTab: "principal" | "secondaire";
+}) {
+  return (
+    <nav className="mt-8 flex w-fit rounded-xl border border-[#315B3E]/15 bg-white/85 p-1 shadow-sm" aria-label="Catégories de sponsoring">
+      <Link
+        href="/jeu/sponsoring"
+        aria-current={activeTab === "principal" ? "page" : undefined}
+        className={`rounded-lg px-4 py-2.5 text-sm font-black transition ${
+          activeTab === "principal"
+            ? "bg-[#082A2A] text-white"
+            : "text-[#48665F] hover:bg-[#EAF5F3]"
+        }`}
+      >
+        Sponsor principal
+      </Link>
+      <Link
+        href="/jeu/sponsoring?onglet=secondaire"
+        aria-current={activeTab === "secondaire" ? "page" : undefined}
+        className={`rounded-lg px-4 py-2.5 text-sm font-black transition ${
+          activeTab === "secondaire"
+            ? "bg-[#082A2A] text-white"
+            : "text-[#48665F] hover:bg-[#EAF5F3]"
+        }`}
+      >
+        Sponsor secondaire
+      </Link>
+    </nav>
   );
 }
 

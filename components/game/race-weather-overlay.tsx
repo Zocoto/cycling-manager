@@ -1,10 +1,12 @@
+import { memo } from "react";
+
 import {
   getRaceWeatherLabel,
   getRaceWindLabel,
   type RaceWeather,
 } from "@/lib/game/race-weather";
 
-export function RaceWeatherBadge({
+export const RaceWeatherBadge = memo(function RaceWeatherBadge({
   weather,
 }: {
   weather: RaceWeather;
@@ -26,9 +28,9 @@ export function RaceWeatherBadge({
       {getRaceWindLabel(weather.windDirection)} {weather.windSpeedKph} km/h
     </span>
   );
-}
+});
 
-export function RaceWeatherOverlay({
+export const RaceWeatherOverlay = memo(function RaceWeatherOverlay({
   weather,
 }: {
   weather: RaceWeather;
@@ -123,4 +125,4 @@ export function RaceWeatherOverlay({
       />
     </div>
   );
-}
+});

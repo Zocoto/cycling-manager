@@ -6,19 +6,23 @@ type RiderFormEvent = {
 
 type RiderConditionGaugesProps = {
   form: number;
+  morale?: number;
   dayNumber: number | null;
   events: RiderFormEvent[];
+  moraleEvents?: RiderFormEvent[];
 };
 
 export function RiderConditionGauges({
   form,
+  morale = 60,
   dayNumber,
   events,
+  moraleEvents = [],
 }: RiderConditionGaugesProps) {
   return (
     <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-black text-[#183F37]">Forme du jour</h2>
+        <h2 className="text-lg font-black text-[#183F37]">Santé du coureur</h2>
         {dayNumber ? (
           <span className="rounded-full bg-[#EAF5F3] px-3 py-1 text-xs font-black text-[#176951]">
             J{dayNumber}
@@ -33,7 +37,20 @@ export function RiderConditionGauges({
           colorClass="bg-[#2FA982]"
           trackClass="bg-[#D7EEE8]"
           events={events}
+          historyLabel="Variations de forme sur 48 h"
+          emptyLabel="Aucune variation de forme enregistrée sur les 48 dernières heures."
         />
+        <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
+          <Gauge
+            label="Moral"
+            value={morale}
+            colorClass="bg-[#3B82F6]"
+            trackClass="bg-[#DCEBFA]"
+            events={moraleEvents}
+            historyLabel="Éléments ayant influencé le moral"
+            emptyLabel="Aucune variation de moral enregistrée."
+          />
+        </div>
       </div>
     </section>
   );
@@ -45,12 +62,16 @@ function Gauge({
   colorClass,
   trackClass,
   events,
+  historyLabel,
+  emptyLabel,
 }: {
   label: string;
   value: number;
   colorClass: string;
   trackClass: string;
   events: RiderFormEvent[];
+  historyLabel: string;
+  emptyLabel: string;
 }) {
   const normalizedValue = Math.min(Math.max(value, 0), 100);
   const totalDelta = events.reduce((total, event) => total + event.delta, 0);
@@ -66,17 +87,16 @@ function Gauge({
           >
             <summary
               className="grid size-5 cursor-pointer list-none place-items-center rounded-full border border-[#176951]/25 bg-[#EAF5F3] text-[11px] font-black text-[#176951] outline-none focus-visible:ring-2 focus-visible:ring-[#2FA982] [&::-webkit-details-marker]:hidden"
-              aria-label="Détail des variations de forme sur 48 heures"
+              aria-label={`Détail : ${historyLabel}`}
             >
               ?
             </summary>
             <span
-              id="form-history-tooltip"
               role="tooltip"
               className="invisible absolute bottom-full left-0 z-30 mb-2 max-h-[min(22rem,calc(100dvh-2rem))] w-[min(19rem,calc(100vw-3rem))] translate-y-1 overflow-y-auto overscroll-contain rounded-xl bg-[#0B302B] p-3 text-left text-white opacity-0 shadow-xl transition group-open/form-tooltip:visible group-open/form-tooltip:translate-y-0 group-open/form-tooltip:opacity-100 group-hover/form-tooltip:visible group-hover/form-tooltip:translate-y-0 group-hover/form-tooltip:opacity-100"
             >
               <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-[#9EDCCB]">
-                Variations sur 48 h
+                {historyLabel}
               </span>
               {events.length > 0 ? (
                 <span className="mt-2 block space-y-2">
@@ -103,13 +123,13 @@ function Gauge({
                     </span>
                   ))}
                   <span className="grid grid-cols-[1fr_auto] gap-3 border-t border-white/15 pt-2 text-xs font-black">
-                    <span>Total sur 48 h</span>
+                    <span>Total des variations affichées</span>
                     <span>{formatSignedForm(totalDelta)}</span>
                   </span>
                 </span>
               ) : (
                 <span className="mt-2 block text-xs font-semibold leading-5 text-white/70">
-                  Aucune variation enregistrée sur les 48 dernières heures.
+                  {emptyLabel}
                 </span>
               )}
             </span>

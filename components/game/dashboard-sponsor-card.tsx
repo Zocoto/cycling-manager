@@ -2,6 +2,10 @@ import type { CSSProperties } from "react";
 
 import { DEFAULT_AMATEUR_JERSEY } from "@/lib/amateur-team";
 import type { SponsorObjectiveSummary } from "@/lib/game/sponsor-objective-summary";
+import type {
+  SecondarySponsorIdentity,
+  SecondarySponsorLogoPlacement,
+} from "@/lib/game/secondary-sponsor";
 import type { Sponsor } from "@/types/sponsor";
 
 import Link from "../ui/app-link";
@@ -13,6 +17,8 @@ type DashboardSponsorCardProps = {
   jersey: Sponsor["jerseys"][number];
   budgetLabel: string;
   objectiveSummary?: SponsorObjectiveSummary | null;
+  secondarySponsor?: SecondarySponsorIdentity | null;
+  secondaryLogoPlacement?: SecondarySponsorLogoPlacement | null;
 };
 
 export function DashboardSponsorCard({
@@ -20,6 +26,8 @@ export function DashboardSponsorCard({
   jersey,
   budgetLabel,
   objectiveSummary = null,
+  secondarySponsor = null,
+  secondaryLogoPlacement = null,
 }: DashboardSponsorCardProps) {
   const theme = {
     "--dashboard-sponsor-primary": sponsor.colors.primary,
@@ -108,6 +116,8 @@ export function DashboardSponsorCard({
             amateurJersey={DEFAULT_AMATEUR_JERSEY}
             sponsor={sponsor}
             sponsorJersey={jersey}
+            secondarySponsor={secondarySponsor}
+            secondaryLogoPlacement={secondaryLogoPlacement}
             className="relative h-32 w-24 shrink-0 drop-shadow-[0_16px_18px_rgba(0,0,0,0.3)] transition duration-300 group-hover:-translate-y-1 group-hover:scale-[1.03] sm:h-40 sm:w-32"
           />
           <span className="relative -mt-1 rounded-full border border-white/15 bg-black/25 px-2 py-1 text-center text-[8px] font-black uppercase tracking-[0.12em] text-white/70 backdrop-blur-sm sm:text-[9px]">

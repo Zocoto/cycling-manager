@@ -19,6 +19,7 @@ import {
   RiderComparisonRosterProvider,
 } from "@/components/game/rider-comparison-launcher";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
+import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
 import { SquadStatusEditor } from "@/components/game/squad-status-editor";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { PotentialStars } from "../../../components/game/potential-stars";
@@ -47,6 +48,7 @@ import {
   type SquadStatus,
 } from "@/lib/game/squad-status";
 import type { RiderComparisonOption } from "@/lib/game/rider-comparison";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { getRiderRatingColorClasses } from "../../../lib/game/rider-rating-colors";
 import {
   getNextRosterSortDirection,
@@ -106,6 +108,8 @@ type RiderRow = {
 
 type RiderRosterHealth = {
   form: number;
+  morale: number;
+  moraleEvents: RiderMoraleEvent[];
   injury: RiderMedicalInjury | null;
   formCamp: RiderFormCamp | null;
 };
@@ -338,6 +342,8 @@ export default async function TeamRosterPage({
       rider.id,
       {
         form: rider.form,
+        morale: rider.morale,
+        moraleEvents: rider.moraleEvents,
         injury: rider.injury,
         formCamp: rider.formCamp,
       },
@@ -675,9 +681,9 @@ export default async function TeamRosterPage({
 
                           <SortableTableHeader
                             sortKey="form"
-                            label="Forme"
-                            fullLabel="forme actuelle"
-                            className="min-w-20"
+                            label="Santé"
+                            fullLabel="santé du coureur : forme physique et moral"
+                            className="min-w-28"
                             linkClassName="px-2"
                             currentSortKey={currentSortKey}
                             currentDirection={currentSortDirection}
@@ -970,7 +976,11 @@ function MobileRosterSortMenu({
       fullLabel: "statut dans l’effectif",
     },
     { key: "potential", label: "Potentiel", fullLabel: "potentiel" },
-    { key: "form", label: "Forme", fullLabel: "forme actuelle" },
+    {
+      key: "form",
+      label: "Santé (forme)",
+      fullLabel: "santé du coureur, triée par forme physique",
+    },
     ...ratingColumns.map((column) => ({
       key: column.key,
       label: column.label,
@@ -1152,8 +1162,8 @@ function RiderMobileCard({
           }
         />
         <MobileRiderMetric
-          label="Forme"
-          value={<RiderFormBadge value={health?.form ?? 75} />}
+          label="Santé du coureur"
+          value={<RiderRosterHealthGauges health={health} />}
         />
       </div>
 
@@ -1333,7 +1343,7 @@ function RiderTableRow({
       </td>
 
       <td className="px-2 py-3 text-center">
-        <RiderFormBadge value={health?.form ?? 75} />
+        <RiderRosterHealthGauges health={health} />
       </td>
 
       {ratingColumns.map((column) => {
@@ -1367,6 +1377,27 @@ function RiderTableRow({
   );
 }
 
+function RiderRosterHealthGauges({
+  health,
+}: {
+  health: RiderRosterHealth | null;
+}) {
+  return (
+    <div
+      className="mx-auto w-20 space-y-2.5"
+      aria-label="Santé du coureur"
+      data-rider-health-gauges
+    >
+      <RiderFormBadge value={health?.form ?? 75} />
+      <RiderMoraleGauge
+        value={health?.morale ?? 60}
+        events={health?.moraleEvents ?? []}
+        compact
+      />
+    </div>
+  );
+}
+
 function RiderFormBadge({ value }: { value: number }) {
   const normalizedValue = Math.min(Math.max(Math.round(value), 0), 100);
   const colorClass =
@@ -1381,14 +1412,18 @@ function RiderFormBadge({ value }: { value: number }) {
   return (
     <div
       title={`Forme actuelle : ${normalizedValue} %`}
-      className="mx-auto w-14"
+      className="mx-auto w-20"
     >
-      <span
-        aria-hidden="true"
-        className="block text-sm font-black tabular-nums text-[#183F37]"
-      >
-        {normalizedValue}
-        <span className="ml-0.5 text-[9px] text-[#60756E]">%</span>
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="text-[9px] font-black uppercase tracking-[0.08em] text-[#287A65]">
+          Forme
+        </span>
+        <span
+          aria-hidden="true"
+          className="text-[11px] font-black tabular-nums text-[#183F37]"
+        >
+          {normalizedValue}%
+        </span>
       </span>
       <span
         role="progressbar"
@@ -1396,7 +1431,7 @@ function RiderFormBadge({ value }: { value: number }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={normalizedValue}
-        className="mx-auto mt-1 block h-1.5 w-12 overflow-hidden rounded-full bg-[#D7EEE8]"
+        className="mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-[#D7EEE8]"
       >
         <span
           className={`block h-full rounded-full ${colorClass}`}

@@ -23,6 +23,7 @@ export type InternationalChampionshipSelection = {
   uciPoints: number;
   overallRating: number;
   currentForm: number;
+  currentMorale: number;
   responseStatus: InternationalSelectionResponseStatus;
   isSelected: boolean;
   wasSelected: boolean;
@@ -204,8 +205,13 @@ export async function getCurrentDirectorInternationalSelections({
       Number(condition.current_form),
     ]),
   );
+  const selectionRows = (data as InternationalSelectionRow[] | null) ?? [];
+  const currentMoraleByRider = await loadCurrentMoraleByRiderIds(
+    admin,
+    selectionRows.map((selection) => selection.rider_id),
+  );
 
-  return ((data as InternationalSelectionRow[] | null) ?? [])
+  return selectionRows
     .map((selection): InternationalChampionshipSelection => ({
       candidateId: selection.candidate_id,
       riderId: selection.rider_id,
@@ -214,6 +220,7 @@ export async function getCurrentDirectorInternationalSelections({
       uciPoints: selection.uci_points,
       overallRating: Number(selection.overall_rating),
       currentForm: currentFormByCandidate.get(selection.candidate_id) ?? 75,
+      currentMorale: currentMoraleByRider.get(selection.rider_id) ?? 60,
       responseStatus: selection.response_status,
       isSelected: selection.is_selected,
       wasSelected: selection.was_selected,
@@ -246,6 +253,53 @@ export async function getCurrentDirectorInternationalSelections({
         left.riderRank - right.riderRank ||
         left.riderName.localeCompare(right.riderName, "fr"),
     );
+}
+
+async function loadCurrentMoraleByRiderIds(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  riderIds: string[],
+) {
+  const uniqueRiderIds = [...new Set(riderIds)];
+  if (uniqueRiderIds.length === 0) return new Map<string, number>();
+
+  const seasonResult = await admin
+    .from("seasons")
+    .select("id, current_day_number")
+    .eq("status", "active")
+    .maybeSingle<{ id: string; current_day_number: number | null }>();
+  if (seasonResult.error || !seasonResult.data) {
+    throw new Error(
+      `Impossible de charger la saison active du moral : ${seasonResult.error?.message ?? "saison absente"}`,
+    );
+  }
+  const dayResult = await admin
+    .from("season_days")
+    .select("id")
+    .eq("season_id", seasonResult.data.id)
+    .eq("day_number", seasonResult.data.current_day_number ?? 1)
+    .maybeSingle<{ id: string }>();
+  if (dayResult.error || !dayResult.data) {
+    throw new Error(
+      `Impossible de charger la journée courante du moral : ${dayResult.error?.message ?? "journée absente"}`,
+    );
+  }
+  const result = await admin
+    .from("rider_condition_states")
+    .select("rider_id, morale")
+    .eq("season_day_id", dayResult.data.id)
+    .in("rider_id", uniqueRiderIds)
+    .returns<Array<{ rider_id: string; morale: number | string }>>();
+  if (result.error) {
+    throw new Error(
+      `Impossible de charger le moral des coureurs convoqués : ${result.error.message}`,
+    );
+  }
+  return new Map(
+    (result.data ?? []).map((condition) => [
+      condition.rider_id,
+      Number(condition.morale ?? 60),
+    ]),
+  );
 }
 
 export async function respondToInternationalChampionshipSelection({

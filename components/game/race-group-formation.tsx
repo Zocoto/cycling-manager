@@ -90,19 +90,19 @@ export function RaceGroupFormation({
       className={`relative overflow-visible ${
         formation === "breakaway-line"
           ? compact
-            ? "h-16 w-40"
-            : "h-20 w-60"
+            ? "h-20 w-40"
+            : "h-24 w-60"
           : formation === "peloton-front"
             ? compact
-              ? "h-16 w-36"
-              : "h-20 w-52"
+              ? "h-20 w-36"
+              : "h-24 w-52"
             : formation === "prime-sprint"
               ? compact
-                ? "h-20 w-40"
-                : "h-20 w-52"
+                ? "h-24 w-40"
+                : "h-24 w-52"
               : compact
-                ? "h-16 w-28"
-                : "h-20 w-44"
+                ? "h-20 w-28"
+                : "h-24 w-44"
       }`}
     >
       {isPrimeSprintBattle ? (
@@ -199,7 +199,7 @@ export function RaceGroupFormation({
                   isMoving={isMoving}
                   effort={visualEffort}
                   ridingPose={ridesStanding ? "standing" : "seated"}
-                  className={compact ? "h-9 w-14" : "h-10 w-16"}
+                  className={compact ? "h-10 w-16" : "h-11 w-[4.5rem]"}
                 />
                 {riderIncident &&
                 (riderIncident.type === "crash_individual" ||
@@ -223,7 +223,7 @@ export function RaceGroupFormation({
               </span>
               {showName ? (
                 <span
-                  className={`absolute left-1/2 top-[1.95rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${
+                  className={`absolute left-1/2 top-[2.6rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${
                     primeWinner
                       ? "bg-[#F2C94C] text-[#17261E]"
                       : incidentRider
@@ -284,7 +284,7 @@ export function RaceSupportConvoy({
         variant="team"
       />
       {showSecondCar ? (
-        <div className="absolute -left-14 top-2 scale-[0.82] opacity-90">
+        <div className="absolute -left-24 top-3 scale-[0.76] opacity-90">
           <RaceSupportCar
             primaryColor="#243B35"
             secondaryColor="#F2C94C"
@@ -316,7 +316,7 @@ export function RaceDepartureFormation({
   return (
     <div
       data-race-group-formation="departure"
-      className="relative h-20 w-44 overflow-visible"
+      className="relative h-24 w-44 overflow-visible"
     >
       {visibleRiderIds.map((riderId, index) => {
         const rider = riderById.get(riderId);
@@ -335,7 +335,7 @@ export function RaceDepartureFormation({
             <SideRaceCyclist
               rider={rider}
               isMoving={isMoving}
-              className="h-10 w-16"
+              className="h-11 w-[4.5rem]"
             />
           </span>
         );
@@ -372,7 +372,7 @@ function RaceSupportCar({
       data-race-support-car={variant}
       data-race-car-direction="right"
       data-race-car-front="right"
-      className={`h-12 w-28 drop-shadow-xl ${
+      className={`h-14 w-36 drop-shadow-xl ${
         isMoving ? "cm-support-car" : ""
       }`}
     >
@@ -387,6 +387,15 @@ function RaceSupportCar({
           <stop offset="0.45" stopColor="#A9C5C0" />
           <stop offset="1" stopColor="#4F6D68" />
         </linearGradient>
+        <linearGradient id={`${visualId}-chrome`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#F7FBF9" />
+          <stop offset="0.45" stopColor="#7D9189" />
+          <stop offset="1" stopColor="#263A33" />
+        </linearGradient>
+        <pattern id={`${visualId}-paint-flake`} width="3" height="3" patternUnits="userSpaceOnUse">
+          <circle cx="0.7" cy="0.8" r="0.18" fill="#FFFFFF" opacity="0.38" />
+          <circle cx="2.2" cy="2.1" r="0.15" fill="#071A17" opacity="0.24" />
+        </pattern>
       </defs>
       <ellipse cx="78" cy="64" rx="66" ry="4.5" fill="rgba(5,17,14,0.2)" />
       <path
@@ -400,9 +409,17 @@ function RaceSupportCar({
         d="m55 29 11-14q2-2 6-2h12v17Zm32-16h15q4 0 7 4l13 14H87Z"
         fill={`url(#${visualId}-glass)`}
         stroke="#DCE8E2"
-        strokeWidth="0.85"
+        strokeWidth="1.2"
       />
-      <path d="M86 13v18M112 21l10 10" stroke="#425E59" strokeWidth="0.75" />
+      <g data-race-car-detail="visible-crew">
+        <circle cx="75" cy="21" r="4.1" fill="#C98F69" stroke="#50382F" strokeWidth="0.65" />
+        <path d="M69 30q2-8 7-8t7 8" fill="#173A31" opacity="0.9" />
+        <circle cx="102" cy="22" r="3.8" fill="#8F5D43" stroke="#4C3328" strokeWidth="0.65" />
+        <path d="M96 30q2-7 6-7t7 7" fill="#233F54" opacity="0.92" />
+      </g>
+      <path d="M86 13v18M112 21l10 10" stroke="#425E59" strokeWidth="1.05" />
+      <path d="M58 27q24-9 58 1" fill="none" stroke="#FFFFFF" strokeWidth="1.15" opacity="0.28" />
+      <path d="M18 39h119v17H18Z" fill={`url(#${visualId}-paint-flake)`} opacity="0.2" data-race-car-texture="metallic-paint" />
       <path d="M18 39h119" stroke={secondaryColor} strokeWidth="1.45" opacity="0.95" />
       <path d="M55 30 50 55m37-24v25m38-24 5 18" fill="none" stroke="#142720" strokeWidth="0.65" opacity="0.62" />
       <path d="M61 39h17m17 0h16" stroke="#F3F7F5" strokeWidth="0.7" strokeLinecap="round" opacity="0.82" />
@@ -415,13 +432,33 @@ function RaceSupportCar({
       <path d="M148 40.5h5m-5 3h6" stroke="#FFF3B5" strokeWidth="0.7" strokeLinecap="round" opacity="0.78" />
       <path d="M10 51h9m117 0h13M64 54h28" stroke="#12231D" strokeWidth="1.1" strokeLinecap="round" />
       <path d="M17 49h5m118-2h7" stroke="#E8F0EC" strokeWidth="0.55" />
+      <path d="M67 17q9 5 16 12M91 15q10 7 18 15" stroke="#E7F3EF" strokeWidth="0.55" opacity="0.55" data-race-car-detail="windshield-reflection" />
+      <path d="M71 29 63 25m43 5 9-4" stroke="#263D36" strokeWidth="0.72" data-race-car-detail="windshield-wipers" />
+      <path d="M51 31 42 34l2 4 9-2m73-4 10 2-2 4-8-2" fill={primaryColor} stroke="#E4ECE8" strokeWidth="0.62" data-race-car-detail="side-mirrors" />
+      <path d="M70 43h8m19 0h8" stroke="#DCE5E1" strokeWidth="0.65" strokeLinecap="round" data-race-car-detail="door-handles" />
+      <g data-race-car-detail="team-door-panel">
+        <rect x="60" y="42" width="52" height="10" rx="2.5" fill={secondaryColor} stroke="#FFFDF4" strokeWidth="0.9" />
+        <text x="86" y="49.2" textAnchor="middle" fontSize="5.2" fontWeight="900" letterSpacing="0.65" fill="#17261E">
+          {variant === "team" ? "ÉQUIPE" : "COURSE"}
+        </text>
+      </g>
+      <path d="M137 47h11v5h-13" fill={`url(#${visualId}-chrome)`} stroke="#0E1D18" strokeWidth="0.48" data-race-car-detail="front-grille" />
+      <path d="M140 49h6m-6 1.6h6" stroke="#17261E" strokeWidth="0.35" />
+      <rect x="121" y="53" width="18" height="4.5" rx="1" fill="#F5F6EF" stroke="#263A34" strokeWidth="0.5" data-race-car-detail="license-plate" />
+      <text x="130" y="56.3" textAnchor="middle" fontSize="2.8" fontWeight="800" fill="#214C72">COURSE</text>
+      <path d="M93 9V1m0 0q3 1 5 3" stroke="#263832" strokeWidth="0.75" data-race-car-detail="radio-aerial" />
 
       <g data-race-car-roof-rack="detailed" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M58 9h57M64 6v5m43-5v5" stroke="#17261E" strokeWidth="1.35" />
-        <g transform="translate(73 -1) scale(.34)" stroke="#17261E">
-          <circle cx="0" cy="17" r="10" strokeWidth="2.4" />
-          <circle cx="43" cy="17" r="10" strokeWidth="2.4" />
-          <path d="M0 17 14 2l10 15H0L12-5l19 2 12 20M14 2h10m7-5 7-7m-3 0h10" strokeWidth="2.1" />
+        <path d="M54 10h68M61 6v7m53-7v7" stroke="#17261E" strokeWidth="1.75" />
+        <g data-race-car-roof-bike="one" stroke="#17261E">
+          <circle cx="64" cy="5" r="5.4" strokeWidth="1.25" />
+          <circle cx="88" cy="5" r="5.4" strokeWidth="1.25" />
+          <path d="M64 5 72-3l6 8H64l7-12 10 1 7 11M72-3h6m3-3 4-4m-1 0h6" stroke={secondaryColor} strokeWidth="1.55" />
+        </g>
+        <g data-race-car-roof-bike="two" stroke="#17261E" opacity="0.9">
+          <circle cx="91" cy="6" r="4.8" strokeWidth="1.15" />
+          <circle cx="113" cy="6" r="4.8" strokeWidth="1.15" />
+          <path d="M91 6 99-1l5 7H91l7-11 9 1 6 10M99-1h5m3-3 4-4m-1 0h5" stroke="#EAF1ED" strokeWidth="1.35" />
         </g>
       </g>
 
@@ -432,7 +469,9 @@ function RaceSupportCar({
           data-race-car-wheel-animation={isMoving ? "running" : "paused"}
         >
           <circle cx={wheelX} cy="57" r="10.6" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
+          <path d={`M${wheelX - 8.2} 50.3q8.2-5.2 16.4 0M${wheelX - 9.8} 57q9.8 3.1 19.6 0`} fill="none" stroke="#54625D" strokeWidth="0.42" strokeDasharray="1.2 1" opacity="0.72" data-race-car-detail="tire-tread" />
           <circle cx={wheelX} cy="57" r="6.4" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.75" />
+          <circle cx={wheelX} cy="57" r="4.8" fill="#44564F" stroke="#BECBC5" strokeWidth="0.45" data-race-car-detail="brake-disc" />
           <g
             data-race-car-wheel-rotor="centered"
             className={isMoving ? "cm-race-car-wheel" : ""}

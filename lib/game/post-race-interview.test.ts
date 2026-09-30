@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  concealZoneMixteEventOutcomes,
   POST_RACE_INTERVIEW_QUESTION_POOL,
   selectPostRaceInterviewQuestions,
   type PostRaceInterviewContext,
@@ -35,6 +36,39 @@ const BASE_CONTEXT: PostRaceInterviewContext = {
 };
 
 describe("questions après-course", () => {
+  it("ne transmet jamais les issues cachées au navigateur avant le choix", () => {
+    const context = concealZoneMixteEventOutcomes({
+      ...BASE_CONTEXT,
+      zoneMixteEvent: {
+        id: "relationship-test",
+        rarity: "common",
+        title: "Une question sensible",
+        story: "Le coureur attend votre réponse.",
+        choices: [
+          {
+            id: "answer-a",
+            label: "Répondre franchement",
+            description: "Donner une réponse nette.",
+            impactPreview: "+5 moral",
+            risk: "bold",
+            outcomes: [
+              {
+                weight: 100,
+                riderMoraleDelta: 5,
+                summary: "Le coureur apprécie.",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(context.zoneMixteEvent?.choices[0].outcomes).toEqual([]);
+    expect(context.zoneMixteEvent?.choices[0].impactPreview).toBe(
+      "Conséquence cachée",
+    );
+  });
+
   it("propose une bibliothèque largement étoffée et sans doublon", () => {
     expect(POST_RACE_INTERVIEW_QUESTION_POOL.length).toBeGreaterThanOrEqual(95);
     expect(

@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
-  recruitYouthRiderAction,
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
@@ -24,10 +23,12 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
+import { YouthPromotionForm } from "@/components/game/youth-promotion-form";
 import {
   YouthDismissalSelectionField,
   YouthTrainingBulkEditor,
@@ -771,7 +772,6 @@ function AcademyTab({
                     currency={overview.currency}
                     canSchedulePromotion={overview.canScheduleYouthPromotion}
                     rosterLimit={overview.rosterLimit}
-                    preserveFinalYearFilter={activeFilter === "final_year"}
                   />
                 ))}
               </div>
@@ -965,14 +965,12 @@ function AcademyRiderCard({
   currency,
   canSchedulePromotion,
   rosterLimit,
-  preserveFinalYearFilter,
 }: {
   rider: AcademyYouth;
   gameYear: number;
   currency: string;
   canSchedulePromotion: boolean;
   rosterLimit: number;
-  preserveFinalYearFilter: boolean;
 }) {
   const releasePending = rider.status === "release_pending";
 
@@ -1010,6 +1008,11 @@ function AcademyRiderCard({
             <p className="mt-0.5 text-xs font-extrabold text-[#278B70]">
               {rider.sportingProfile}
             </p>
+            {rider.heightCm !== null && rider.weightKg !== null ? (
+              <p className="mt-1 text-[10px] font-bold text-[#60756E]">
+                {rider.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+              </p>
+            ) : null}
             <div className="mt-1.5">
               <PotentialStars potentialSteps={rider.potentialSteps} />
             </div>
@@ -1027,6 +1030,13 @@ function AcademyRiderCard({
                 </span>
               </div>
             ) : null}
+            <div className="mt-3 border-t border-[#315B3E]/10 pt-3">
+              <RiderMoraleGauge
+                value={rider.morale}
+                events={rider.moraleEvents}
+                compact
+              />
+            </div>
           </div>
         </div>
         <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">
@@ -1091,19 +1101,10 @@ function AcademyRiderCard({
                 </div>
               ) : rider.canRecruit ? (
                 canSchedulePromotion ? (
-                  <form action={recruitYouthRiderAction}>
-                    <input
-                      type="hidden"
-                      name="academyRiderId"
-                      value={rider.id}
-                    />
-                    {preserveFinalYearFilter ? (
-                      <input type="hidden" name="age" value="18" />
-                    ) : null}
-                    <button className="w-full rounded-xl bg-[#F2C94C] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">
-                      Recruter pour la saison {gameYear + 1}
-                    </button>
-                  </form>
+                  <YouthPromotionForm
+                    academyRiderId={rider.id}
+                    nextGameYear={gameYear + 1}
+                  />
                 ) : (
                   <p className="rounded-xl bg-[#FFF0EE] px-3 py-2.5 text-[10px] font-bold text-[#8A2F2F]">
                     Promotion impossible · {rosterLimit} places déjà engagées.
@@ -1450,6 +1451,11 @@ function CandidateCard({
           <p className="mt-1 text-xs font-extrabold text-[#278B70]">
             {candidate.sportingProfile}
           </p>
+          {candidate.heightCm !== null && candidate.weightKg !== null ? (
+            <p className="mt-1 text-[10px] font-bold text-[#60756E]">
+              {candidate.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {candidate.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+            </p>
+          ) : null}
           {candidate.internationalCenterBonusPercentage > 0 ? (
             <p className="mt-2 inline-flex rounded-full bg-[#F2C94C]/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#8A6714]">
               {candidate.internationalCenterBonusApplied
