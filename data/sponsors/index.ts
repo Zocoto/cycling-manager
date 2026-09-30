@@ -40,6 +40,7 @@ import { DUTCH_SPONSORS } from "./netherlands";
 import { PORTUGUESE_SPONSORS } from "./portugal";
 import { POSTAL_SERVICE_SPONSORS } from "./postal-services";
 import { PRIORITY_PARTNERSHIP_BATCH_01_SPONSORS } from "./priority-partnership-batch-01";
+import { VIETNAM_PRIORITY_BATCH_01_SPONSORS } from "./vietnam-priority-batch-01";
 import { SPANISH_SPONSORS } from "./spain";
 import { SPIRITS_SPONSORS } from "./spirits";
 import { SPORTING_NATION_PRESTIGE_BATCH_01_SPONSORS } from "./sporting-nation-prestige-batch-01";
@@ -92,6 +93,7 @@ const RAW_SPONSORS = [
   ...CYCLING_PROJECT_SPONSORS,
   ...POSTAL_SERVICE_SPONSORS,
   ...PRIORITY_PARTNERSHIP_BATCH_01_SPONSORS,
+  ...VIETNAM_PRIORITY_BATCH_01_SPONSORS,
   ...AUTOMOTIVE_SPONSORS,
   ...WELLNESS_HYGIENE_SPONSORS,
   ...TOURISM_SPONSORS,
