@@ -62,6 +62,8 @@ describe("GameNavigationMenu", () => {
 
     expect(markup).not.toContain("/jeu/suivi-joueurs");
     expect(markup).not.toContain("Suivi des joueurs");
+    expect(markup).not.toContain("/jeu/export-pcm");
+    expect(markup).not.toContain("Export PCM26");
   });
 
   it("affiche le suivi des joueurs uniquement au compte administrateur", () => {
@@ -71,6 +73,8 @@ describe("GameNavigationMenu", () => {
 
     expect(markup).toContain('href="/jeu/suivi-joueurs"');
     expect(markup).toContain("Suivi des joueurs");
+    expect(markup).toContain('href="/jeu/export-pcm"');
+    expect(markup).toContain("Export PCM26");
   });
 
   it("conserve le raccourci privilégié dans le bandeau supérieur", () => {

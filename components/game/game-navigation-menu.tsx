@@ -2,7 +2,7 @@
 
 import Link from "@/components/ui/app-link";
 import { useLocale } from "@/components/i18n/locale-provider";
-import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
+import { canAccessPrivateAdmin } from "@/lib/game/private-admin-access";
 
 export const NAVIGATION_GROUPS_FR = [
   {
@@ -118,7 +118,7 @@ export function GameNavigationMenu({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const navigationColumns = isEnglish ? NAVIGATION_COLUMNS_EN : NAVIGATION_COLUMNS_FR;
-  const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
+  const showPrivateAdmin = canAccessPrivateAdmin(viewerEmail);
 
   return (
     <details className="group relative hidden shrink-0 sm:block">
@@ -217,8 +217,8 @@ export function GameNavigationMenu({
           ))}
         </nav>
 
-        {showPlayerTracking ? (
-          <div className="border-t border-[#78947D]/30 bg-[#071A17] p-3 sm:px-5">
+        {showPrivateAdmin ? (
+          <div className="space-y-2 border-t border-[#78947D]/30 bg-[#071A17] p-3 sm:px-5">
             <Link
               href="/jeu/suivi-joueurs"
               prefetchOnIntent
@@ -232,6 +232,22 @@ export function GameNavigationMenu({
                 <span className="mt-0.5 block">{isEnglish ? "Player tracking" : "Suivi des joueurs"}</span>
               </span>
               <span aria-hidden="true" className="text-[#F2C94C]">?</span>
+            </Link>
+            <Link
+              href="/jeu/export-pcm"
+              prefetchOnIntent
+              showPendingIndicator={false}
+              className="flex items-center justify-between gap-3 rounded-xl border border-[#9BE0CA]/25 bg-[#9BE0CA]/8 px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:border-[#9BE0CA]/60 hover:bg-[#9BE0CA]/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+            >
+              <span>
+                <span className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
+                  {isEnglish ? "Administration" : "Administration"}
+                </span>
+                <span className="mt-0.5 block">
+                  {isEnglish ? "PCM26 export" : "Export PCM26"}
+                </span>
+              </span>
+              <span aria-hidden="true" className="text-[#9BE0CA]">→</span>
             </Link>
           </div>
         ) : null}

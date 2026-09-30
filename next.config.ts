@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["cdb-converter", "sql.js"],
+  outputFileTracingIncludes: {
+    "/api/admin/pcm-export": [
+      "./assets/pcm/OfficialRelease.template.cdb",
+      "./node_modules/sql.js/dist/sql-wasm.wasm",
+    ],
+  },
   async headers() {
     return [
       {
