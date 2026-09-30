@@ -198,6 +198,16 @@ export function normalizeStaffLevel(level: number): number {
   return Math.min(5, Math.max(1, Math.floor(level)));
 }
 
+export function meetsMinimumStaffLevel(
+  level: number,
+  minimumLevel?: number,
+): boolean {
+  return (
+    minimumLevel === undefined ||
+    normalizeStaffLevel(level) >= normalizeStaffLevel(minimumLevel)
+  );
+}
+
 export function calculateStaffSalary(role: StaffRole, level: number): number {
   const safeLevel = normalizeStaffLevel(level);
   const rawSalary =

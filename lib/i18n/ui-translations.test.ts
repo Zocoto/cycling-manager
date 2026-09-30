@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { translateUiText, UI_TRANSLATIONS } from "@/lib/i18n/ui-translations";
 
 describe("French to English UI catalog", () => {
+  it("translates the staff market minimum-level threshold", () => {
+    expect(translateUiText("Niveau minimum")).toBe("Minimum level");
+    expect(translateUiText("Niveau 3 et plus")).toBe("Level 3 and above");
+  });
+
   it("covers the reviewed cycling vocabulary", () => {
     expect(UI_TRANSLATIONS).toMatchObject({
       Coureur: "Rider",

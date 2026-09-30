@@ -81,7 +81,7 @@ export function sanitizeTransferMarketReturnPath(value: string) {
 
 export type StaffMarketReturnFilters = {
   role?: StaffRole;
-  level?: number;
+  minimumLevel?: number;
   countryCode?: string;
   trainerSpecialty?: TrainerSpecialty;
 };
@@ -91,7 +91,7 @@ export function buildStaffMarketReturnPath(
 ) {
   const params = new URLSearchParams({ onglet: "marche" });
   setOptionalParam(params, "metier", filters.role);
-  setOptionalNumber(params, "niveau", filters.level, 1, 5);
+  setOptionalNumber(params, "niveau", filters.minimumLevel, 1, 5);
   setOptionalParam(
     params,
     "pays",
@@ -110,7 +110,7 @@ export function sanitizeStaffMarketReturnPath(value: string) {
 
   return buildStaffMarketReturnPath({
     role: role && isStaffRole(role) ? role : undefined,
-    level: readBoundedNumber(url.searchParams.get("niveau"), 1, 5),
+    minimumLevel: readBoundedNumber(url.searchParams.get("niveau"), 1, 5),
     countryCode: normalizeCountryCode(url.searchParams.get("pays")),
     trainerSpecialty:
       specialty && isTrainerSpecialty(specialty) ? specialty : undefined,

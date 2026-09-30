@@ -444,7 +444,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "staff-market-filters": {
         title: "Find the specialist you need",
         content:
-          "Filter by profession, level, nationality or coach speciality. Recruited profiles disappear immediately. Combine filters and Reset to see all remaining profiles.\n\nLevels range from 1 to 5: higher levels have stronger effects, salaries and signing fees.",
+          "Filter by profession, minimum level, nationality or coach speciality. Selecting level 3 therefore shows level 3, 4 and 5 profiles. Recruited profiles disappear immediately. Combine filters and Reset to see all remaining profiles.\n\nLevels range from 1 to 5: higher levels have stronger effects, salaries and signing fees.",
       },
       "staff-professions": {
         title: "Eleven professions, eleven development levers",

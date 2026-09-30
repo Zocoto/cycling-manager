@@ -58,7 +58,7 @@ describe("filtered page return paths", () => {
   it("conserve les filtres du staff après un recrutement", () => {
     const path = buildStaffMarketReturnPath({
       role: "trainer",
-      level: 4,
+      minimumLevel: 4,
       countryCode: "be",
       trainerSpecialty: "mountain",
     });
