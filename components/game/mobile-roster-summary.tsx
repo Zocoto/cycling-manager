@@ -62,38 +62,80 @@ const RATING_PRESETS: ReadonlyArray<{
   {
     id: "general",
     label: "Général",
-    keys: ["mountain", "hills", "flat", "sprint"],
+    keys: [
+      "mountain",
+      "hills",
+      "flat",
+      "time_trial",
+      "cobbles",
+      "sprint",
+    ],
   },
   {
     id: "climbing",
     label: "Montagne",
-    keys: ["mountain", "hills", "endurance", "recovery"],
+    keys: [
+      "mountain",
+      "hills",
+      "endurance",
+      "recovery",
+      "acceleration",
+      "downhill",
+    ],
   },
   {
     id: "sprint",
     label: "Sprint",
-    keys: ["sprint", "acceleration", "flat", "resistance"],
+    keys: [
+      "sprint",
+      "acceleration",
+      "flat",
+      "resistance",
+      "endurance",
+      "recovery",
+    ],
   },
   {
     id: "classics",
     label: "Classiques",
-    keys: ["cobbles", "hills", "endurance", "resistance"],
+    keys: [
+      "cobbles",
+      "hills",
+      "endurance",
+      "resistance",
+      "acceleration",
+      "sprint",
+    ],
   },
   {
     id: "chrono",
     label: "Chrono",
-    keys: ["time_trial", "prologue", "flat", "endurance"],
+    keys: [
+      "time_trial",
+      "prologue",
+      "flat",
+      "endurance",
+      "resistance",
+      "recovery",
+    ],
   },
   {
     id: "breakaway",
     label: "Baroudeur",
-    keys: ["breakaway", "downhill", "endurance", "recovery"],
+    keys: [
+      "breakaway",
+      "downhill",
+      "endurance",
+      "recovery",
+      "resistance",
+      "hills",
+    ],
   },
 ];
 
 const DEFAULT_PRESET = RATING_PRESETS[0];
 const STORAGE_KEY = "cyclostratege:mobile-roster-summary:v1";
-const MAX_VISIBLE_RATINGS = 4;
+const MAX_VISIBLE_RATINGS = 6;
 
 export function MobileRosterSummary({
   riders,
@@ -230,14 +272,14 @@ export function MobileRosterSummary({
           </label>
 
           <span className="pb-3 text-[10px] font-bold text-[#82958F]">
-            4 notes · sans défilement
+            6 notes · sans défilement
           </span>
         </div>
 
         {presetId === "custom" ? (
           <fieldset className="mt-3 rounded-xl border border-[#315B3E]/12 bg-[#F7FAF9] p-2">
             <legend className="px-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#60756E]">
-              Choisir jusqu’à quatre notes
+              Choisir jusqu’à six notes
             </legend>
             <div className="grid grid-cols-4 gap-1.5">
               {availableRatings.map((rating) => {
@@ -266,12 +308,15 @@ export function MobileRosterSummary({
         ) : null}
       </section>
 
-      <div className="p-2" data-tutorial-id="roster-mobile-list">
+      <div
+        className="p-1.5 min-[390px]:p-2"
+        data-tutorial-id="roster-mobile-list"
+      >
         <table className="w-full table-fixed overflow-hidden rounded-xl border-separate border-spacing-0 bg-white shadow-[0_8px_20px_rgba(19,60,46,0.08)]">
           <colgroup>
             <col />
             {Array.from({ length: MAX_VISIBLE_RATINGS }).map((_, index) => (
-              <col className="w-9" key={index} />
+              <col className="w-8 min-[390px]:w-9" key={index} />
             ))}
           </colgroup>
           <thead>
@@ -404,7 +449,7 @@ function SummarySortLink({
       scroll={false}
       aria-label={`Trier par ${fullLabel}`}
       aria-current={isActive ? "page" : undefined}
-      className={`flex min-h-11 w-full items-center gap-0.5 text-[9px] font-black uppercase tracking-wide ${className} ${
+      className={`flex min-h-11 w-full items-center gap-0.5 text-[8px] font-black uppercase tracking-normal min-[390px]:text-[9px] min-[390px]:tracking-wide ${className} ${
         isActive ? "text-[#0F5944]" : "text-[#48665F]"
       }`}
     >
@@ -428,7 +473,7 @@ function CompactRatingBadge({
       title={`${rating.fullLabel} : ${rating.value}${bonus > 0 ? ` +${bonus} équipement` : ""}`}
       data-rating-importance={rating.importance}
       className={[
-        "relative inline-flex size-8 items-center justify-center rounded-md border px-0 text-[11px] font-black tabular-nums",
+        "relative inline-flex size-7 items-center justify-center rounded-md border px-0 text-[10px] font-black tabular-nums min-[390px]:size-8 min-[390px]:text-[11px]",
         getRiderRatingColorClasses(rating.value, rating.importance),
       ].join(" ")}
     >
