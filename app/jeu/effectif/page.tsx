@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { CollapsibleMobileRiderRatings } from "@/components/game/collapsible-mobile-rider-ratings";
+import { MobileRosterSummary } from "@/components/game/mobile-roster-summary";
+import { MobileRosterViewSwitch } from "@/components/game/mobile-roster-view-switch";
 import {
   GameSectionTabLink,
   GameSectionTabs,
@@ -59,6 +62,10 @@ import {
   type RosterSortKey,
   type RosterSortValue,
 } from "../../../lib/game/roster-sort";
+import {
+  parseRosterMobileView,
+  ROSTER_MOBILE_VIEW_COOKIE,
+} from "@/lib/game/roster-mobile-view";
 import {
   getCurrentTeamHealthOverview,
   type RiderFormCamp,
@@ -222,6 +229,7 @@ export default async function TeamRosterPage({
     sort?: string | string[];
     direction?: string | string[];
     vue?: string | string[];
+    mobile?: string | string[];
     succes?: string | string[];
     erreur?: string | string[];
   }>;
@@ -241,9 +249,17 @@ export default async function TeamRosterPage({
         currentSortKey,
       )
     : "asc";
+  const requestedMobileRosterView = parseRosterMobileView(
+    getFirstSearchParam(rosterQuery.mobile),
+  );
+  const savedMobileRosterView = parseRosterMobileView(
+    (await cookies()).get(ROSTER_MOBILE_VIEW_COOKIE)?.value,
+  );
+  const mobileRosterView =
+    requestedMobileRosterView ?? savedMobileRosterView ?? "synthese";
   const rosterReturnTo = currentSortKey
-    ? `/jeu/effectif?vue=statistiques&sort=${currentSortKey}&direction=${currentSortDirection}`
-    : "/jeu/effectif?vue=statistiques";
+    ? `/jeu/effectif?vue=statistiques&mobile=${mobileRosterView}&sort=${currentSortKey}&direction=${currentSortDirection}`
+    : `/jeu/effectif?vue=statistiques&mobile=${mobileRosterView}`;
 
   const supabase = await createSupabaseServerClient();
 
@@ -596,34 +612,82 @@ export default async function TeamRosterPage({
               {riders.length > 0 ? (
                 <RiderComparisonRosterProvider options={comparisonOptions}>
                   <div className="xl:hidden">
-                    <MobileRatingCategoryGuide />
-                    <MobileRosterSortMenu
+                    <MobileRosterViewSwitch
+                      activeView={mobileRosterView}
                       currentSortKey={currentSortKey}
                       currentDirection={currentSortDirection}
                     />
-                    <div
-                      data-tutorial-id="roster-mobile-list"
-                      className="space-y-3 bg-[#F3F8F5] p-2 sm:p-3"
-                    >
-                      {sortedRiders.map((rider) => (
-                        <RiderMobileCard
-                          key={rider.rider_id}
-                          rider={rider}
-                          jersey={
-                            nationalChampionJerseyByRiderId.get(
-                              rider.rider_id,
-                            ) ?? riderJersey
-                          }
-                          health={healthByRiderId.get(rider.rider_id) ?? null}
-                          equipmentBonuses={
+                    {mobileRosterView === "synthese" ? (
+                      <MobileRosterSummary
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                        availableRatings={ratingColumns}
+                        riders={sortedRiders.map((rider) => {
+                          const health =
+                            healthByRiderId.get(rider.rider_id) ?? null;
+                          const equipmentBonuses =
                             equipmentRatingBonusesByRiderId.get(
                               rider.rider_id,
-                            ) ?? {}
-                          }
-                          returnTo={rosterReturnTo}
+                            ) ?? {};
+
+                          return {
+                            riderId: rider.rider_id,
+                            riderName:
+                              `${rider.first_name} ${rider.last_name}`.trim(),
+                            profile: getRiderSportingProfile(
+                              toRiderRatings(rider),
+                            ),
+                            form: health?.form ?? 75,
+                            morale: health?.morale ?? 60,
+                            injuryLabel: health?.injury?.label ?? null,
+                            ratings: ratingColumns.map((column) => ({
+                              key: column.key,
+                              label: column.label,
+                              fullLabel: column.fullLabel,
+                              importance: column.importance,
+                              value: rider[column.key],
+                              bonus:
+                                equipmentBonuses[
+                                  toRiderRatingKey(column.key)
+                                ],
+                            })),
+                          };
+                        })}
+                      />
+                    ) : (
+                      <>
+                        <MobileRatingCategoryGuide />
+                        <MobileRosterSortMenu
+                          currentSortKey={currentSortKey}
+                          currentDirection={currentSortDirection}
                         />
-                      ))}
-                    </div>
+                        <div
+                          data-tutorial-id="roster-mobile-list"
+                          className="space-y-3 bg-[#F3F8F5] p-2 sm:p-3"
+                        >
+                          {sortedRiders.map((rider) => (
+                            <RiderMobileCard
+                              key={rider.rider_id}
+                              rider={rider}
+                              jersey={
+                                nationalChampionJerseyByRiderId.get(
+                                  rider.rider_id,
+                                ) ?? riderJersey
+                              }
+                              health={
+                                healthByRiderId.get(rider.rider_id) ?? null
+                              }
+                              equipmentBonuses={
+                                equipmentRatingBonusesByRiderId.get(
+                                  rider.rider_id,
+                                ) ?? {}
+                              }
+                              returnTo={rosterReturnTo}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="hidden h-[calc(100dvh-20rem)] min-h-[30rem] max-h-[52rem] overflow-auto overscroll-contain [scrollbar-gutter:stable] xl:block">
@@ -1022,6 +1086,7 @@ function MobileRosterSortMenu({
                 pathname: "/jeu/effectif",
                 query: {
                   vue: "statistiques",
+                  mobile: "fiches",
                   sort: option.key,
                   direction: nextDirection,
                 },
