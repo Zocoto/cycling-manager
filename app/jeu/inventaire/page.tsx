@@ -14,6 +14,7 @@ import {
 } from "@/components/game/inventory-equipment-form";
 import { InventoryConsumableForm } from "@/components/game/inventory-consumable-form";
 import { InventoryEquipmentSaleForm } from "@/components/game/inventory-equipment-sale-form";
+import { InventoryItemIllustration } from "@/components/game/inventory-item-illustration";
 import { buildInventoryReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   INVENTORY_CATEGORY_DEFINITIONS,
@@ -360,6 +361,9 @@ export default async function InventoryPage({
                     dailyRewardOverview?.scoutingSupervision ??
                     EMPTY_SCOUTING_SUPERVISION_STATUS
                   }
+                  scoutingRevealActiveUntil={
+                    overview.scoutingRevealActiveUntil
+                  }
                 />
               ))}
             </div>
@@ -387,6 +391,7 @@ function InventoryItemCard({
   dailyRewardConstructionProjects,
   dailyRewardStaffMembers,
   dailyRewardScoutingSupervision,
+  scoutingRevealActiveUntil,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
@@ -402,6 +407,7 @@ function InventoryItemCard({
   dailyRewardConstructionProjects: DailyRewardConstructionProject[];
   dailyRewardStaffMembers: DailyRewardStaffMember[];
   dailyRewardScoutingSupervision: ScoutingSupervisionStatus;
+  scoutingRevealActiveUntil: string | null;
 }) {
   const category = getInventoryCategory(item.category);
   const managementReward =
@@ -437,6 +443,13 @@ function InventoryItemCard({
             </p>
           ) : null}
         </div>
+      ) : item.isConsumable ? (
+        <InventoryItemIllustration
+          name={item.name}
+          iconKey={item.iconKey}
+          category={item.category}
+          effectKind={String(item.effectPayload?.effectKind ?? "")}
+        />
       ) : (
         <div className="flex h-28 items-center justify-center bg-[radial-gradient(circle_at_center,#176951,#071A17)] text-[#9BE0BC]">
           <span className="grid h-16 w-16 place-items-center rounded-2xl border border-white/15 bg-white/10">
@@ -502,6 +515,7 @@ function InventoryItemCard({
             constructionProjects={dailyRewardConstructionProjects}
             staffMembers={dailyRewardStaffMembers}
             scoutingSupervision={dailyRewardScoutingSupervision}
+            scoutingRevealActiveUntil={scoutingRevealActiveUntil}
             returnPath={returnPath}
           />
         ) : item.equipmentSlot ? (
@@ -563,7 +577,8 @@ function buildDailyRewardFromInventory(
     effectKind !== "custom_staff_recruitment" &&
     effectKind !== "construction_time_reduction" &&
     effectKind !== "staff_level_boost" &&
-    effectKind !== "injury_care"
+    effectKind !== "injury_care" &&
+    effectKind !== "scouting_visibility"
   ) {
     return null;
   }

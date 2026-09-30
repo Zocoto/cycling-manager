@@ -262,6 +262,14 @@ export async function redeemDailyRewardAction(formData: FormData) {
       redirectDailyRewardError(returnPath, result.error.message);
     }
     resultData = result.data;
+  } else if (effectKind === "scouting_visibility") {
+    const result = await supabase.rpc("activate_scouting_visibility_reward", {
+      p_inventory_id: inventoryId,
+    });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
   } else {
     const result = await supabase.rpc("redeem_current_daily_rewards", {
       p_inventory_id: inventoryId,
@@ -297,6 +305,8 @@ function revalidateDailyRewardPaths() {
   revalidatePath("/jeu/staff");
   revalidatePath("/jeu/infrastructures");
   revalidatePath("/jeu/centre-de-soin");
+  revalidatePath("/jeu/transferts");
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
 }
 
 function redirectDailyRewardError(

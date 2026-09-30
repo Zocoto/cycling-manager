@@ -42,29 +42,39 @@ const CONTEXT: PostRaceInterviewContext = {
 };
 
 describe("événements de zone mixte", () => {
-  it("contient les 24 événements validés, avec la bonne répartition", () => {
-    expect(ZONE_MIXTE_EVENT_DEFINITIONS).toHaveLength(24);
+  it("contient les 34 événements validés, avec la bonne répartition", () => {
+    expect(ZONE_MIXTE_EVENT_DEFINITIONS).toHaveLength(34);
     expect(
       new Set(ZONE_MIXTE_EVENT_DEFINITIONS.map(({ id }) => id)).size,
-    ).toBe(24);
+    ).toBe(34);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "common"),
-    ).toHaveLength(12);
+    ).toHaveLength(16);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "notable"),
-    ).toHaveLength(8);
+    ).toHaveLength(12);
     expect(
       ZONE_MIXTE_EVENT_DEFINITIONS.filter(({ rarity }) => rarity === "rare"),
-    ).toHaveLength(4);
+    ).toHaveLength(6);
   });
 
-  it("déclenche statistiquement environ une interview sur six", () => {
+  it("déclenche environ un événement général sur six et une question relationnelle sur six", () => {
     const events = Array.from({ length: 1_200 }, (_, index) =>
       selectZoneMixteEvent({ context: CONTEXT, seed: `frequency-${index}` }),
     ).filter(Boolean);
+    const relationshipEvents = events.filter((event) =>
+      event!.choices.some((choice) =>
+        choice.outcomes.some((outcome) => outcome.riderMoraleDelta !== undefined),
+      ),
+    );
+    const generalEvents = events.length - relationshipEvents.length;
 
-    expect(events.length).toBeGreaterThan(160);
-    expect(events.length).toBeLessThan(240);
+    expect(events.length).toBeGreaterThan(340);
+    expect(events.length).toBeLessThan(460);
+    expect(relationshipEvents.length).toBeGreaterThan(160);
+    expect(relationshipEvents.length).toBeLessThan(240);
+    expect(generalEvents).toBeGreaterThan(160);
+    expect(generalEvents).toBeLessThan(240);
   });
 
   it("reste déterministe et remplace un événement déjà vu", () => {
@@ -95,12 +105,36 @@ describe("événements de zone mixte", () => {
           expect(outcome.cashDelta ?? 0).toBeLessThanOrEqual(5_000);
           expect(outcome.riderPopularityDelta ?? 0).toBeGreaterThanOrEqual(-3);
           expect(outcome.riderPopularityDelta ?? 0).toBeLessThanOrEqual(5);
+          expect(outcome.riderMoraleDelta ?? 0).toBeGreaterThanOrEqual(-5);
+          expect(outcome.riderMoraleDelta ?? 0).toBeLessThanOrEqual(5);
           if (outcome.inventoryItemKey) {
             expect(outcome.inventoryItemKey).toBe("acceleration-focus");
           }
         }
       }
     }
+  });
+
+  it("propose un vrai panel de décisions cachées qui touchent le moral", () => {
+    const moraleEvents = ZONE_MIXTE_EVENT_DEFINITIONS.filter((event) =>
+      event.choices.some((choice) =>
+        choice.outcomes.some((outcome) => outcome.riderMoraleDelta !== undefined),
+      ),
+    );
+
+    expect(moraleEvents).toHaveLength(10);
+    expect(
+      moraleEvents.every((event) =>
+        event.choices.every((choice) => choice.impactPreview === "Conséquence cachée"),
+      ),
+    ).toBe(true);
+    expect(
+      moraleEvents.some((event) =>
+        event.choices.some((choice) =>
+          choice.outcomes.some((outcome) => (outcome.riderMoraleDelta ?? 0) < 0),
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("injecte le contexte de la course dans le texte", () => {

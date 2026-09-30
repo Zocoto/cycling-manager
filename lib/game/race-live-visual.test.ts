@@ -55,6 +55,61 @@ describe("race live visual timeline", () => {
     expect(frames.map((frame) => frame.completedDistanceKm)).toEqual([10, 20]);
   });
 
+  it("normalise aussi les anciens replays selon leur position autour du peloton", () => {
+    const snapshot: RaceTimelineSnapshot = {
+      segmentNumber: 8,
+      completedDistanceKm: 80,
+      groups: [
+        {
+          id: "old-dropped-ahead",
+          label: "Groupe attardé",
+          type: "dropped",
+          riderIds: ["front-1"],
+          gapToLeaderSeconds: 0,
+          averageEnergy: 50,
+        },
+        {
+          id: "old-chase-ahead",
+          label: "Groupe de chasse",
+          type: "chase",
+          riderIds: ["front-2"],
+          gapToLeaderSeconds: 15,
+          averageEnergy: 55,
+        },
+        {
+          id: "peloton",
+          label: "Peloton",
+          type: "peloton",
+          riderIds: ["main-1", "main-2"],
+          gapToLeaderSeconds: 30,
+          averageEnergy: 60,
+        },
+        {
+          id: "old-crash-behind",
+          label: "Piégés par une chute",
+          type: "chase",
+          riderIds: ["rear-1"],
+          gapToLeaderSeconds: 50,
+          averageEnergy: 35,
+        },
+      ],
+      incidents: [],
+      abandonments: [],
+      commentary: [],
+    };
+
+    const [frame] = getRaceVisualTimeline(
+      buildSimulation({ timeline: [snapshot] }),
+    );
+
+    expect(frame.groups.map((group) => [group.label, group.type])).toEqual([
+      ["Échappée E1", "breakaway"],
+      ["Échappée E2", "breakaway"],
+      ["Peloton", "peloton"],
+      ["Attardés A1", "dropped"],
+    ]);
+  });
+
   it("ne fusionne jamais deux groupes réellement séparés dans la vue live", () => {
     const snapshot: RaceTimelineSnapshot = {
       segmentNumber: 20,
@@ -297,7 +352,8 @@ describe("race live visual timeline", () => {
     const papandreouLate = frames[1]?.groups.find((group) =>
       group.riderIds.includes("papandreou"),
     );
-    expect(papandreouEarly?.type).toBe("chase");
+    expect(papandreouEarly?.type).toBe("dropped");
+    expect(papandreouEarly?.label).toMatch(/^Attardés A\d+$/);
     expect(papandreouEarly?.gapToLeaderSeconds).toBeCloseTo(15.2);
     expect(papandreouLate?.gapToLeaderSeconds).toBeCloseTo(3.8);
 
@@ -316,7 +372,10 @@ describe("race live visual timeline", () => {
       const riderIds = frame.groups.flatMap((group) => group.riderIds);
       expect(new Set(riderIds).size).toBe(riderIds.length);
     }
-    expect(frames[2]?.groups).toEqual(timeline[1]?.groups);
+    expect(frames[2]?.groups.map((group) => group.label)).toEqual([
+      "Peloton",
+      "Attardés A1",
+    ]);
 
     // The normalizer must never rewrite the authored replay or official data.
     expect(earlyFrame.groups[1]?.riderIds).toEqual([
@@ -325,6 +384,7 @@ describe("race live visual timeline", () => {
     ]);
     expect(earlyFrame.groups[1]?.gapToLeaderSeconds).toBe(19);
     expect(timeline[1]?.groups[0]?.id).toBe("finish-group-1");
+    expect(timeline[1]?.groups[0]?.label).toBe("Groupe de tête");
   });
 
   it("interpolates group gaps and tactical pressure without blending rider identities", () => {

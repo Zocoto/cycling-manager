@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from "react";
+import { memo, useId, type CSSProperties } from "react";
 
 type RaceMediaMode = "side" | "top";
 type RaceMediaContext = "race" | "finish";
@@ -17,7 +17,7 @@ export type RaceCameraMotoPlacement = {
   animationDelayMs: number;
 };
 
-export function RaceMediaConvoy({
+export const RaceMediaConvoy = memo(function RaceMediaConvoy({
   isMoving,
   showHelicopter,
   mode = "side",
@@ -88,7 +88,7 @@ export function RaceMediaConvoy({
       ))}
     </div>
   );
-}
+});
 
 export function getRaceCameraMotoPlacements({
   visualSeed,

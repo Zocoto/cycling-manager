@@ -6,6 +6,7 @@ import {
   parseGameObjectiveStatusFilter,
   parseGameObjectiveTypeFilter,
   selectDashboardObjectives,
+  summarizeGameObjectiveRewards,
   type GameObjective,
   type GameObjectiveRow,
 } from "./objectives";
@@ -94,6 +95,30 @@ describe("selectDashboardObjectives", () => {
       "secondary-ready",
       "primary-progress",
     ]);
+  });
+});
+
+describe("summarizeGameObjectiveRewards", () => {
+  it("keeps every counter scoped to objectives and preserves claimed completion", () => {
+    const summary = summarizeGameObjectiveRewards([
+      objective("in-progress"),
+      objective("ready", { completed: true }),
+      objective("claimed", {
+        completed: true,
+        claimedAt: "2026-09-30T08:00:00.000Z",
+      }),
+      objective("legacy-claimed", {
+        completed: false,
+        claimedAt: "2026-08-01T08:00:00.000Z",
+      }),
+    ]);
+
+    expect(summary).toEqual({
+      completedCount: 3,
+      readyCount: 1,
+      claimedCount: 2,
+    });
+    expect(summary.claimedCount).toBeLessThanOrEqual(summary.completedCount);
   });
 });
 

@@ -14,6 +14,7 @@ import { RiderPreparationCenter } from "@/components/game/rider-preparation-cent
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import { TrainingReportPopover } from "@/components/game/training-report-popover";
+import { TrainingRiderRatings } from "@/components/game/training-rider-ratings";
 import { TrainerOverviewCard } from "@/components/game/trainer-overview-card";
 import { TeamProgressionModal } from "@/components/game/team-progression-modal";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
@@ -361,64 +362,70 @@ export default async function TrainingPage({
                       className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] [contain-intrinsic-size:auto_18rem] [content-visibility:auto] hover:[content-visibility:visible] focus-within:[content-visibility:visible] has-[details[open]]:[content-visibility:visible] sm:p-6"
                     >
                       <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
-                        <div className="flex min-w-0 items-center gap-4">
-                          <RiderAvatar
-                            profileKey={rider.avatarProfileKey}
-                            seed={rider.avatarSeed}
-                            riderId={rider.id}
-                            age={rider.age}
-                            jersey={jersey}
-                            label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-                            className="h-16 w-16"
-                          />
-                          <div className="min-w-0">
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <Link
-                                href={`/jeu/coureurs/${rider.id}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="min-w-0 truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
-                              >
-                                {rider.firstName} {rider.lastName} ↗
-                              </Link>
-                              <SquadStatusBadge
-                                status={rider.squadStatus}
-                                compact
-                              />
-                            </div>
-                            <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
-                              <span
-                                className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
-                                role="img"
-                                aria-label={`Drapeau : ${rider.countryName}`}
-                              />
-                              {rider.countryName} · {rider.age} ans · Forme{" "}
-                              {rider.form}%
-                            </p>
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <span
-                                title="Profil recalculé depuis les notes actuelles de la saison"
-                                className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
-                              >
-                                Profil ·{" "}
-                                {getRiderSportingProfile(
-                                  toTrainingRatings(rider.ratings),
-                                )}
-                              </span>
-                              <PotentialStars
-                                potentialSteps={rider.potentialSteps}
-                                compact
-                              />
-                              <RiderDeclineIndicators rider={rider} />
-                            </div>
-                            {rider.plan.isPending ? (
-                              <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
-                                {rider.plan.effectiveFromDayNumber === 29
-                                  ? "Programme \u00e0 venir \u00b7 prochaine saison J1 \u00e0 8 h"
-                                  : `Programme \u00e0 venir J${rider.plan.effectiveFromDayNumber}`}
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 items-center gap-4">
+                            <RiderAvatar
+                              profileKey={rider.avatarProfileKey}
+                              seed={rider.avatarSeed}
+                              riderId={rider.id}
+                              age={rider.age}
+                              jersey={jersey}
+                              label={`Portrait de ${rider.firstName} ${rider.lastName}`}
+                              className="h-16 w-16"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <Link
+                                  href={`/jeu/coureurs/${rider.id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="min-w-0 truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
+                                >
+                                  {rider.firstName} {rider.lastName} ↗
+                                </Link>
+                                <SquadStatusBadge
+                                  status={rider.squadStatus}
+                                  compact
+                                />
+                              </div>
+                              <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
+                                <span
+                                  className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
+                                  role="img"
+                                  aria-label={`Drapeau : ${rider.countryName}`}
+                                />
+                                {rider.countryName} · {rider.age} ans · Forme{" "}
+                                {rider.form}% · Moral {Math.round(rider.morale)}%
                               </p>
-                            ) : null}
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <span
+                                  title="Profil recalculé depuis les notes actuelles de la saison"
+                                  className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
+                                >
+                                  Profil ·{" "}
+                                  {getRiderSportingProfile(
+                                    toTrainingRatings(rider.ratings),
+                                  )}
+                                </span>
+                                <PotentialStars
+                                  potentialSteps={rider.potentialSteps}
+                                  compact
+                                />
+                                <RiderDeclineIndicators rider={rider} />
+                              </div>
+                              {rider.plan.isPending ? (
+                                <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
+                                  {rider.plan.effectiveFromDayNumber === 29
+                                    ? "Programme \u00e0 venir \u00b7 prochaine saison J1 \u00e0 8 h"
+                                    : `Programme \u00e0 venir J${rider.plan.effectiveFromDayNumber}`}
+                                </p>
+                              ) : null}
+                            </div>
                           </div>
+                          <TrainingRiderRatings
+                            riderName={`${rider.firstName} ${rider.lastName}`}
+                            ratings={toTrainingRatings(rider.ratings)}
+                          />
                         </div>
 
                         <RiderTrainingPlanFields

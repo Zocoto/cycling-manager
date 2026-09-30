@@ -32,6 +32,7 @@ export function DailyRewardRedemptionForm({
   constructionProjects,
   staffMembers,
   scoutingSupervision,
+  scoutingRevealActiveUntil = null,
   returnPath,
 }: {
   item: DailyRewardInventoryItem;
@@ -44,6 +45,7 @@ export function DailyRewardRedemptionForm({
   constructionProjects: DailyRewardConstructionProject[];
   staffMembers: DailyRewardStaffMember[];
   scoutingSupervision: ScoutingSupervisionStatus;
+  scoutingRevealActiveUntil?: string | null;
   returnPath?: string;
 }) {
   const targetRiders =
@@ -57,6 +59,9 @@ export function DailyRewardRedemptionForm({
   const hasCompatibleRatingTarget =
     item.effectKind !== "rating_boost" ||
     hasDailyRewardRatingTarget(item, targetRiders);
+  const scoutingRevealIsActive =
+    item.effectKind === "scouting_visibility" &&
+    Boolean(scoutingRevealActiveUntil);
   const canUse =
     item.quantity > 0 &&
     (!needsRider || targetRiders.length > 0) &&
@@ -69,7 +74,8 @@ export function DailyRewardRedemptionForm({
       countries.length > 0) &&
     (item.effectKind !== "construction_time_reduction" ||
       constructionProjects.some((project) => project.remainingDays > 1)) &&
-    (item.effectKind !== "staff_level_boost" || staffMembers.length > 0);
+    (item.effectKind !== "staff_level_boost" || staffMembers.length > 0) &&
+    !scoutingRevealIsActive;
 
   return (
     <form action={redeemDailyRewardAction} className="mt-auto space-y-3 pt-5">
@@ -101,6 +107,21 @@ export function DailyRewardRedemptionForm({
           <p className="mt-1 text-[11px] font-semibold leading-5">
             Le bonus de cet objet s’ajoutera au cumul en cours, dans la limite
             de +100 %.
+          </p>
+        </div>
+      ) : null}
+
+      {scoutingRevealIsActive && scoutingRevealActiveUntil ? (
+        <div className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-3 text-[#715700]">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em]">
+            Vision complète active
+          </p>
+          <p className="mt-1 text-sm font-black">
+            Toutes les notes restent visibles jusqu’au{" "}
+            {formatActivationEnd(scoutingRevealActiveUntil)}.
+          </p>
+          <p className="mt-1 text-[11px] font-semibold leading-5">
+            Conservez cet objet pour une prochaine période de scouting.
           </p>
         </div>
       ) : null}
@@ -272,5 +293,14 @@ function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "construction_time_reduction") return "Accélérer ce chantier";
   if (kind === "staff_level_boost") return "Attribuer l’étoile";
   if (kind === "injury_care") return "Appliquer le soin";
+  if (kind === "scouting_visibility") return "Révéler les rapports pendant 24 h";
   return "Utiliser sur ce coureur";
+}
+
+function formatActivationEnd(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }

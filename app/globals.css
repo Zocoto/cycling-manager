@@ -470,6 +470,37 @@ a {
     ) linear infinite;
 }
 
+.cm-race-visual-viewport {
+  contain: layout paint style;
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.cm-race-motion-layer,
+.cm-race-cyclist {
+  backface-visibility: hidden;
+}
+
+.cm-race-motion-layer {
+  will-change: transform;
+}
+
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .cm-race-cyclist {
+    filter: none !important;
+  }
+
+  .cm-race-visual-viewport [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .cm-race-visual-viewport .cm-camera-stabilizer,
+  .cm-race-visual-viewport .cm-supporter-smoke {
+    animation: none;
+  }
+}
+
 .cm-race-road-chalk-svg {
   animation-name: cm-race-road-chalk-svg;
   animation-timing-function: linear;

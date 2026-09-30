@@ -17,10 +17,22 @@ import {
   getPhysiotherapistRiderCapacity,
   getScoutYouthBonuses,
   getStaffCapacityForDirectorLevel,
+  meetsMinimumStaffLevel,
   selectStaffLevelFromRoll,
 } from "@/lib/game/staff";
 
 describe("staff economy", () => {
+  it("traite le niveau du marché comme un seuil minimum inclusif", () => {
+    expect(
+      [1, 2, 3, 4, 5].filter((level) =>
+        meetsMinimumStaffLevel(level, 3),
+      ),
+    ).toEqual([3, 4, 5]);
+    expect(meetsMinimumStaffLevel(5, 5)).toBe(true);
+    expect(meetsMinimumStaffLevel(2, 3)).toBe(false);
+    expect(meetsMinimumStaffLevel(1)).toBe(true);
+  });
+
   it("keeps the requested salary hierarchy at an equal level", () => {
     const level = 3;
 

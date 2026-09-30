@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -53,6 +53,7 @@ import {
   RACE_COLLECTIVE_POSTURE_LABELS,
   RACE_STRATEGY_OBJECTIVES,
   RACE_STRATEGY_OBJECTIVE_LABELS,
+  DEFAULT_RACE_TEAM_STRATEGY,
   type RaceAttackOrder,
   type RaceBreakawayPolicy,
   type RaceChasePolicy,
@@ -105,11 +106,28 @@ export type RacePreparationWorkspaceEdition = {
   equipmentPlanning: RaceEquipmentPlanningData | null;
 };
 
+export type RacePreparationWorkspaceNavigationEdition = {
+  id: string;
+  slug: string;
+  name: string;
+  shortName: string | null;
+  categoryCode: RaceCategoryCode;
+  categoryName: string;
+  pendingWildcard: boolean;
+  startDepartureAt: string | null;
+  endDepartureAt: string | null;
+  startDayNumber: number | null;
+  endDayNumber: number | null;
+  pendingCount: number;
+  scheduledStageCount: number;
+};
+
 type RacePreparationWorkspaceProps = {
   action: (formData: FormData) => Promise<void>;
   tacticalAction: (formData: FormData) => Promise<void>;
   timeTrialAction: (formData: FormData) => Promise<void>;
   editions: RacePreparationWorkspaceEdition[];
+  navigationEditions?: RacePreparationWorkspaceNavigationEdition[];
   gameYear: number;
   tacticalCenterLevel: number;
   tacticalBriefingsByStageId: Record<string, RaceTacticalPreparationPlan>;
@@ -154,6 +172,7 @@ export function RacePreparationWorkspace({
   tacticalAction,
   timeTrialAction,
   editions,
+  navigationEditions,
   gameYear,
   tacticalCenterLevel,
   tacticalBriefingsByStageId,
@@ -188,6 +207,45 @@ export function RacePreparationWorkspace({
   const selectedEdition =
     orderedEditions.find((edition) => edition.id === selectedEditionId) ??
     orderedEditions[0];
+  const menuEditions = useMemo(
+    () =>
+      navigationEditions ??
+      orderedEditions.map((edition) => {
+        const orderedStages = [...edition.stages].sort(
+          (first, second) =>
+            first.dayNumber - second.dayNumber ||
+            first.stageNumber - second.stageNumber,
+        );
+        const scheduledStages = orderedStages.filter(
+          (stage) => getStageLiveState(stage, now).status === "scheduled",
+        );
+
+        return {
+          id: edition.id,
+          slug: edition.slug,
+          name: edition.name,
+          shortName: edition.shortName,
+          categoryCode: edition.categoryCode,
+          categoryName: edition.categoryName,
+          pendingWildcard: edition.pendingWildcard,
+          startDepartureAt: orderedStages[0]?.departureAt ?? null,
+          endDepartureAt: orderedStages.at(-1)?.departureAt ?? null,
+          startDayNumber: orderedStages[0]?.dayNumber ?? null,
+          endDayNumber: orderedStages.at(-1)?.dayNumber ?? null,
+          pendingCount: scheduledStages.filter((stage) =>
+            isRaceStagePreparationPending({
+              edition,
+              stage,
+              plan: resolveStagePreparationPlan(edition.plan, stage.id),
+              scheduled: true,
+              allowInternational: isFederationMode,
+            }),
+          ).length,
+          scheduledStageCount: scheduledStages.length,
+        };
+      }),
+    [isFederationMode, navigationEditions, now, orderedEditions],
+  );
 
   if (!selectedEdition) return null;
 
@@ -198,7 +256,7 @@ export function RacePreparationWorkspace({
     isRaceStagePreparationPending({
       edition: selectedEdition,
       stage,
-      plan: selectedEdition.plan.stages[stage.id],
+      plan: resolveStagePreparationPlan(selectedEdition.plan, stage.id),
       scheduled: getStageLiveState(stage, now).status === "scheduled",
       allowInternational: isFederationMode,
     }),
@@ -216,34 +274,17 @@ export function RacePreparationWorkspace({
           {isFederationMode ? "Sélections engagées" : "Courses engagées"}
         </p>
         <div className="mt-3 space-y-2" role="list">
-          {orderedEditions.map((edition) => {
+          {menuEditions.map((edition) => {
             const isSelected = edition.id === selectedEdition.id;
-            const scheduledStages = edition.stages.filter(
-              (stage) => getStageLiveState(stage, now).status === "scheduled",
-            );
-            const pendingCount = scheduledStages.filter((stage) =>
-              isRaceStagePreparationPending({
-                edition,
-                stage,
-                plan: edition.plan.stages[stage.id],
-                scheduled: true,
-                allowInternational: isFederationMode,
-              }),
-            ).length;
             const categoryStyle = RACE_CATEGORY_STYLE[edition.categoryCode];
-            const dateRange = formatRaceEditionDates(edition.stages);
-
-            return (
-              <button
-                key={edition.id}
-                type="button"
-                onClick={() => setSelectedEditionId(edition.id)}
-                className={`w-full rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] ${
-                  isSelected
-                    ? "border-[#278B70] bg-[#EAF5F0] text-[#0B302B]"
-                    : "border-[#315B3E]/12 bg-[#F8FBF9] text-[#315B3E] hover:border-[#278B70]/45"
-                }`}
-              >
+            const dateRange = formatRaceMenuDateRange(edition);
+            const className = `block w-full rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] ${
+              isSelected
+                ? "border-[#278B70] bg-[#EAF5F0] text-[#0B302B]"
+                : "border-[#315B3E]/12 bg-[#F8FBF9] text-[#315B3E] hover:border-[#278B70]/45"
+            }`;
+            const content = (
+              <>
                 <span className="block text-sm font-black">
                   {edition.shortName ?? edition.name}
                 </span>
@@ -268,12 +309,32 @@ export function RacePreparationWorkspace({
                   </span>
                 </span>
                 <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-[#66877C]">
-                  {pendingCount > 0
-                    ? `${pendingCount} étape${pendingCount > 1 ? "s" : ""} à préparer`
-                    : scheduledStages.length > 0
+                  {edition.pendingCount > 0
+                    ? `${edition.pendingCount} étape${edition.pendingCount > 1 ? "s" : ""} à préparer`
+                    : edition.scheduledStageCount > 0
                       ? "Toutes les étapes sont préparées"
                       : "Plan verrouillé"}
                 </span>
+              </>
+            );
+
+            return navigationEditions ? (
+              <a
+                key={edition.id}
+                href={`/jeu/preparation-course?course=${encodeURIComponent(edition.slug)}`}
+                aria-current={isSelected ? "page" : undefined}
+                className={className}
+              >
+                {content}
+              </a>
+            ) : (
+              <button
+                key={edition.id}
+                type="button"
+                onClick={() => setSelectedEditionId(edition.id)}
+                className={className}
+              >
+                {content}
               </button>
             );
           })}
@@ -311,37 +372,44 @@ export function RacePreparationWorkspace({
         </header>
 
         <div className="mt-5 space-y-4">
-          {orderedStages.map((stage) => (
-            <StagePreparationForm
-              key={`${selectedEdition.id}:${stage.id}`}
-              action={action}
-              tacticalAction={tacticalAction}
-              timeTrialAction={timeTrialAction}
-              edition={selectedEdition}
-              stage={stage}
-              riders={selectedEdition.plan.riders}
-              strategy={selectedEdition.plan.stages[stage.id]}
-              gameYear={gameYear}
-              tacticalCenterLevel={tacticalCenterLevel}
-              tacticalBriefing={tacticalBriefingsByStageId[stage.id]}
-              tacticalError={tacticalError}
-              now={now}
-              equipmentPlanning={selectedEdition.equipmentPlanning}
-              equipmentError={equipmentError}
-              equipmentSaveStatus={
-                savedEquipmentStageId === stage.id
-                  ? (equipmentSaveStatus ?? null)
-                  : null
-              }
-              initiallyOpen={
-                stage.id === nextEditableStageId ||
-                (!nextEditableStageId && stage.id === orderedStages[0]?.id)
-              }
-              mode={mode}
-              federationCountryCode={federationCountryCode}
-              readOnly={readOnly}
-            />
-          ))}
+          {orderedStages.map((stage) => {
+            const strategy = resolveStagePreparationPlan(
+              selectedEdition.plan,
+              stage.id,
+            );
+
+            return (
+              <StagePreparationForm
+                key={`${selectedEdition.id}:${stage.id}`}
+                action={action}
+                tacticalAction={tacticalAction}
+                timeTrialAction={timeTrialAction}
+                edition={selectedEdition}
+                stage={stage}
+                riders={selectedEdition.plan.riders}
+                strategy={strategy}
+                gameYear={gameYear}
+                tacticalCenterLevel={tacticalCenterLevel}
+                tacticalBriefing={tacticalBriefingsByStageId[stage.id]}
+                tacticalError={tacticalError}
+                now={now}
+                equipmentPlanning={selectedEdition.equipmentPlanning}
+                equipmentError={equipmentError}
+                equipmentSaveStatus={
+                  savedEquipmentStageId === stage.id
+                    ? (equipmentSaveStatus ?? null)
+                    : null
+                }
+                initiallyOpen={
+                  stage.id === nextEditableStageId ||
+                  (!nextEditableStageId && stage.id === orderedStages[0]?.id)
+                }
+                mode={mode}
+                federationCountryCode={federationCountryCode}
+                readOnly={readOnly}
+              />
+            );
+          })}
         </div>
       </section>
     </div>
@@ -429,7 +497,11 @@ function StagePreparationForm({
   const [attackOrders, setAttackOrders] = useState<RaceAttackOrder[]>(
     strategy.attackOrders.slice(0, MAX_RACE_ATTACK_ORDERS),
   );
-  const [isOpen, setIsOpen] = useState(initiallyOpen);
+  const [hasBeenOpened, setHasBeenOpened] = useState(initiallyOpen);
+  const initializeDetailsElement = useInitialDetailsOpen(initiallyOpen);
+  const handleToggle = (open: boolean) => {
+    if (open) setHasBeenOpened(true);
+  };
   const liveState = getStageLiveState(stage, now);
   const isTimeTrial = isTimeTrialPreparationStage(stage);
   const isPreparationAvailable = isRacePreparationStageAvailable({
@@ -443,7 +515,7 @@ function StagePreparationForm({
     !isTimeTrial &&
     isPreparationAvailable;
   const hasUniqueRoles =
-    Object.values(roles).filter((role) => role === "leader").length <= 1 &&
+    Object.values(roles).filter(isRaceLeaderRole).length <= 1 &&
     Object.values(roles).filter(isRaceProtectedRiderRole).length <= 1 &&
     Object.values(roles).filter(isRaceSprinterRole).length <= 1;
   const assignedMissionIds = Object.values(missions).filter(Boolean);
@@ -493,11 +565,15 @@ function StagePreparationForm({
         equipmentPlanning={equipmentPlanning}
         equipmentError={equipmentError}
         equipmentSaveStatus={equipmentSaveStatus}
-        isOpen={isOpen}
-        onToggle={setIsOpen}
+        initiallyOpen={initiallyOpen}
+        renderContent={hasBeenOpened}
+        onToggle={handleToggle}
         showEquipment={mode === "team"}
         federationCountryCode={federationCountryCode}
         readOnly={readOnly}
+        roles={roles}
+        setRoles={setRoles}
+        lockedTourLeaderRiderId={lockedTourLeaderRiderId}
       />
     );
   }
@@ -506,9 +582,9 @@ function StagePreparationForm({
 
   return (
     <details
+      ref={initializeDetailsElement}
       id={`etape-${stage.id}`}
-      open={isOpen}
-      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      onToggle={(event) => handleToggle(event.currentTarget.open)}
       className="scroll-mt-5 overflow-hidden rounded-3xl border border-[#315B3E]/15 bg-white shadow-[0_18px_45px_rgba(19,60,46,0.1)]"
     >
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-7">
@@ -545,7 +621,9 @@ function StagePreparationForm({
         </span>
       </summary>
 
-      <StageProfileOverview stage={stage} />
+      {hasBeenOpened ? (
+        <>
+          <StageProfileOverview stage={stage} />
 
       <div className="border-t border-[#315B3E]/12 bg-[#F8FBF9] px-5 py-3 sm:px-7">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
@@ -628,8 +706,8 @@ function StagePreparationForm({
                           if (candidate.riderId === rider.riderId) return false;
                           const selectedRole = roles[candidate.riderId];
                           if (!selectedRole) return false;
-                          if (candidateRole === "leader") {
-                            return selectedRole === "leader";
+                          if (isRaceLeaderRole(candidateRole)) {
+                            return isRaceLeaderRole(selectedRole);
                           }
                           if (candidateRole === "protected_rider") {
                             return selectedRole === "protected_rider";
@@ -640,7 +718,7 @@ function StagePreparationForm({
                           );
                         });
                         const isReservedTourLeaderRole =
-                          candidateRole === "leader" &&
+                          isRaceLeaderRole(candidateRole) &&
                           Boolean(lockedTourLeaderRiderId) &&
                           !isLockedTourLeader;
                         return (
@@ -925,15 +1003,17 @@ function StagePreparationForm({
         />
       ) : null}
 
-      {mode === "team" ? (
-        <StageEquipmentSection
-          edition={edition}
-          stage={stage}
-          riders={riders}
-          planning={equipmentPlanning}
-          hasError={equipmentError}
-          saveStatus={equipmentSaveStatus}
-        />
+          {mode === "team" ? (
+            <StageEquipmentSection
+              edition={edition}
+              stage={stage}
+              riders={riders}
+              planning={equipmentPlanning}
+              hasError={equipmentError}
+              saveStatus={equipmentSaveStatus}
+            />
+          ) : null}
+        </>
       ) : null}
     </details>
   );
@@ -1462,11 +1542,15 @@ function TimeTrialPreparationForm({
   equipmentPlanning,
   equipmentError,
   equipmentSaveStatus,
-  isOpen,
+  initiallyOpen,
+  renderContent,
   onToggle,
   showEquipment,
   federationCountryCode,
   readOnly,
+  roles,
+  setRoles,
+  lockedTourLeaderRiderId,
 }: {
   action: (formData: FormData) => Promise<void>;
   edition: RacePreparationWorkspaceEdition;
@@ -1477,12 +1561,17 @@ function TimeTrialPreparationForm({
   equipmentPlanning: RaceEquipmentPlanningData | null;
   equipmentError: boolean;
   equipmentSaveStatus: string | null;
-  isOpen: boolean;
+  initiallyOpen: boolean;
+  renderContent: boolean;
   onToggle: (open: boolean) => void;
   showEquipment: boolean;
   federationCountryCode?: string;
   readOnly: boolean;
+  roles: Record<string, RaceRole>;
+  setRoles: Dispatch<SetStateAction<Record<string, RaceRole>>>;
+  lockedTourLeaderRiderId: string | null;
 }) {
+  const initializeDetailsElement = useInitialDetailsOpen(initiallyOpen);
   const isTeamTimeTrial = stage.stageType === "team_time_trial";
   const defaultRelayShares = getDefaultTeamTimeTrialRelayShares(
     riders.map((rider) => rider.riderId),
@@ -1506,7 +1595,13 @@ function TimeTrialPreparationForm({
     (total, rider) => total + (plans[rider.riderId]?.relaySharePct ?? 0),
     0,
   );
-  const isValid = !isTeamTimeTrial || Math.abs(relayTotal - 100) < 0.001;
+  const hasUniqueTeamTimeTrialRoles =
+    Object.values(roles).filter(isRaceLeaderRole).length <= 1 &&
+    Object.values(roles).filter(isRaceProtectedRiderRole).length <= 1 &&
+    Object.values(roles).filter(isRaceSprinterRole).length <= 1;
+  const isValid =
+    !isTeamTimeTrial ||
+    (Math.abs(relayTotal - 100) < 0.001 && hasUniqueTeamTimeTrialRoles);
   const serializedPlans = JSON.stringify(
     riders.map((rider) => ({
       riderId: rider.riderId,
@@ -1519,8 +1614,8 @@ function TimeTrialPreparationForm({
 
   return (
     <details
+      ref={initializeDetailsElement}
       id={`etape-${stage.id}`}
-      open={isOpen}
       onToggle={(event) => onToggle(event.currentTarget.open)}
       className="scroll-mt-5 overflow-hidden rounded-3xl border border-[#315B3E]/15 bg-white shadow-[0_18px_45px_rgba(19,60,46,0.1)]"
     >
@@ -1558,7 +1653,9 @@ function TimeTrialPreparationForm({
         </span>
       </summary>
 
-      <StageProfileOverview stage={stage} />
+      {renderContent ? (
+        <>
+          <StageProfileOverview stage={stage} />
 
       <div className="border-t border-[#315B3E]/12 bg-[#F8FBF9] px-5 py-3 sm:px-7">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
@@ -1576,6 +1673,46 @@ function TimeTrialPreparationForm({
         <input type="hidden" name="stageType" value={stage.stageType} />
         <input type="hidden" name="slug" value={edition.slug} />
         <input type="hidden" name="timeTrialPlans" value={serializedPlans} />
+        {isTeamTimeTrial ? (
+          <>
+            <input type="hidden" name="objective" value={strategy.objective} />
+            <input
+              type="hidden"
+              name="collectivePosture"
+              value={strategy.collectivePosture}
+            />
+            <input
+              type="hidden"
+              name="breakawayPolicy"
+              value={strategy.breakawayPolicy}
+            />
+            <input
+              type="hidden"
+              name="chasePolicy"
+              value={strategy.chasePolicy}
+            />
+            <input
+              type="hidden"
+              name="lieutenantRiderId"
+              value={strategy.lieutenantRiderId ?? ""}
+            />
+            <input
+              type="hidden"
+              name="dangerPacerRiderId"
+              value={strategy.dangerPacerRiderId ?? ""}
+            />
+            <input
+              type="hidden"
+              name="breakawayRiderId"
+              value={strategy.breakawayRiderId ?? ""}
+            />
+            <input
+              type="hidden"
+              name="attackOrders"
+              value={JSON.stringify(strategy.attackOrders)}
+            />
+          </>
+        ) : null}
 
         <div className="p-5 sm:p-7">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -1611,6 +1748,98 @@ function TimeTrialPreparationForm({
               </div>
             ) : null}
           </div>
+
+          {isTeamTimeTrial ? (
+            <section className="mt-5 rounded-2xl border border-[#278B70]/20 bg-[#EAF5F0] p-4">
+              <SectionTitle
+                eyebrow="Noyau à préserver"
+                title="Leader et coureur protégé"
+                description={
+                  lockedTourLeaderRiderId
+                    ? "Le leader déclaré pour le tour reste verrouillé. S’il ne peut plus tenir le rythme prévu, l’équipe ralentit pour le conserver dans le collectif."
+                    : "Le leader et le coureur protégé sont attendus par le collectif. Les autres coureurs peuvent cesser de relayer avant de décrocher réellement."
+                }
+              />
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {riders.map((rider) => {
+                  const role = roles[rider.riderId] ?? rider.generalRole;
+                  const isLockedTourLeader =
+                    rider.riderId === lockedTourLeaderRiderId;
+                  return (
+                    <label
+                      key={rider.riderId}
+                      className="rounded-xl border border-[#315B3E]/12 bg-white p-3"
+                    >
+                      <span className="block truncate text-xs font-black text-[#0B302B]">
+                        {rider.firstName} {rider.lastName}
+                      </span>
+                      <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-[#789487]">
+                        Général · {RACE_ROLE_LABELS[rider.generalRole]}
+                      </span>
+                      {isLockedTourLeader ? (
+                        <>
+                          <span className="mt-1 inline-flex rounded-full bg-[#278B70]/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#176951]">
+                            Leader du tour · verrouillé
+                          </span>
+                          <input
+                            type="hidden"
+                            name="stageRoles"
+                            value={`${rider.riderId}:leader`}
+                          />
+                        </>
+                      ) : null}
+                      <select
+                        name="stageRoles"
+                        value={`${rider.riderId}:${role}`}
+                        disabled={!isEditable || isLockedTourLeader}
+                        onChange={(event) => {
+                          const nextRole = event.target.value
+                            .split(":")
+                            .at(-1) as RaceRole;
+                          setRoles((current) => ({
+                            ...current,
+                            [rider.riderId]: nextRole,
+                          }));
+                        }}
+                        className="mt-3 min-h-10 w-full rounded-xl border border-[#315B3E]/18 bg-white px-2 text-xs font-bold text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF] disabled:text-[#66877C]"
+                      >
+                        {RACE_ROLES.map((candidateRole) => {
+                          const isTaken = riders.some((candidate) => {
+                            if (candidate.riderId === rider.riderId) return false;
+                            const selectedRole = roles[candidate.riderId];
+                            if (!selectedRole) return false;
+                            if (isRaceLeaderRole(candidateRole)) {
+                              return isRaceLeaderRole(selectedRole);
+                            }
+                            if (candidateRole === "protected_rider") {
+                              return selectedRole === "protected_rider";
+                            }
+                            return (
+                              isRaceSprinterRole(candidateRole) &&
+                              isRaceSprinterRole(selectedRole)
+                            );
+                          });
+                          const isReservedTourLeaderRole =
+                            isRaceLeaderRole(candidateRole) &&
+                            Boolean(lockedTourLeaderRiderId) &&
+                            !isLockedTourLeader;
+                          return (
+                            <option
+                              key={candidateRole}
+                              value={`${rider.riderId}:${candidateRole}`}
+                              disabled={isTaken || isReservedTourLeaderRole}
+                            >
+                              {RACE_ROLE_LABELS[candidateRole]}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </label>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
 
           <div className="mt-5 grid gap-3 lg:grid-cols-2">
             {riders.map((rider) => {
@@ -1701,22 +1930,26 @@ function TimeTrialPreparationForm({
             {isEditable
               ? isValid
                 ? "Ces consignes seront lues au départ et intégrées à la simulation officielle."
-                : "Ajustez les relais : leur somme doit être exactement égale à 100 %."
+                : hasUniqueTeamTimeTrialRoles
+                  ? "Ajustez les relais : leur somme doit être exactement égale à 100 %."
+                  : "Un seul leader, un seul coureur protégé et un seul sprinteur peuvent être désignés."
               : "Le départ est passé : ce plan reste consultable et ne peut plus être modifié."}
           </p>
           {isEditable ? <SavePreparationButton disabled={!isValid} /> : null}
         </footer>
       </form>
 
-      {showEquipment ? (
-        <StageEquipmentSection
-          edition={edition}
-          stage={stage}
-          riders={riders}
-          planning={equipmentPlanning}
-          hasError={equipmentError}
-          saveStatus={equipmentSaveStatus}
-        />
+          {showEquipment ? (
+            <StageEquipmentSection
+              edition={edition}
+              stage={stage}
+              riders={riders}
+              planning={equipmentPlanning}
+              hasError={equipmentError}
+              saveStatus={equipmentSaveStatus}
+            />
+          ) : null}
+        </>
       ) : null}
     </details>
   );
@@ -1992,29 +2225,65 @@ function updateAttackOrder(
   );
 }
 
-function formatRaceEditionDates(stages: RaceCalendarStage[]) {
-  const orderedStages = [...stages].sort(
-    (first, second) =>
-      first.dayNumber - second.dayNumber ||
-      first.stageNumber - second.stageNumber,
+function useInitialDetailsOpen(initiallyOpen: boolean) {
+  const initializedRef = useRef(false);
+
+  return useCallback(
+    (element: HTMLDetailsElement | null) => {
+      if (!element || initializedRef.current) return;
+      element.open = initiallyOpen;
+      initializedRef.current = true;
+    },
+    [initiallyOpen],
   );
-  const firstStage = orderedStages[0];
-  const lastStage = orderedStages[orderedStages.length - 1];
-
-  if (!firstStage || !lastStage) return "Date à confirmer";
-
-  const firstDate = formatRaceMenuDate(firstStage);
-  const lastDate = formatRaceMenuDate(lastStage);
-  return firstDate === lastDate ? firstDate : `${firstDate} → ${lastDate}`;
 }
 
-function formatRaceMenuDate(stage: RaceCalendarStage) {
-  if (!stage.departureAt) return `J${stage.dayNumber}`;
+function resolveStagePreparationPlan(
+  plan: RacePreparationEditionPlan,
+  stageId: string,
+): RaceStagePreparationPlan {
+  return (
+    plan.stages[stageId] ?? {
+      teamId: plan.teamId,
+      objective: DEFAULT_RACE_TEAM_STRATEGY.objective,
+      collectivePosture: DEFAULT_RACE_TEAM_STRATEGY.collectivePosture,
+      breakawayPolicy: DEFAULT_RACE_TEAM_STRATEGY.breakawayPolicy,
+      chasePolicy: DEFAULT_RACE_TEAM_STRATEGY.chasePolicy,
+      lieutenantRiderId: null,
+      dangerPacerRiderId: null,
+      protectorRiderId: null,
+      breakawayRiderId: null,
+      attackOrders: [],
+      updatedAt: null,
+      timeTrialUpdatedAt: null,
+    }
+  );
+}
 
-  const departure = new Date(stage.departureAt);
-  return Number.isNaN(departure.getTime())
-    ? `J${stage.dayNumber}`
-    : RACE_MENU_DATE_FORMATTER.format(departure);
+function formatRaceMenuDateRange({
+  startDepartureAt,
+  endDepartureAt,
+  startDayNumber,
+  endDayNumber,
+}: Pick<
+  RacePreparationWorkspaceNavigationEdition,
+  | "startDepartureAt"
+  | "endDepartureAt"
+  | "startDayNumber"
+  | "endDayNumber"
+>) {
+  const firstDate = startDepartureAt
+    ? RACE_MENU_DATE_FORMATTER.format(new Date(startDepartureAt))
+    : startDayNumber !== null
+      ? `J${startDayNumber}`
+      : "Date à confirmer";
+  const lastDate = endDepartureAt
+    ? RACE_MENU_DATE_FORMATTER.format(new Date(endDepartureAt))
+    : endDayNumber !== null
+      ? `J${endDayNumber}`
+      : firstDate;
+
+  return firstDate === lastDate ? firstDate : `${firstDate} → ${lastDate}`;
 }
 
 function formatStageDeparture(value: string | null) {

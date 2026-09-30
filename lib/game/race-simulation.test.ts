@@ -7,6 +7,7 @@ import {
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
   buildFlatGroupFinishTimes,
+  buildPreservedRoadGroupFinishTimes,
   buildStageRaceStandings,
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
@@ -29,6 +30,7 @@ import {
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
   canLeaderFollowRecoveryPace,
+  canLaunchPlannedAttackFromRoadGroup,
   canRiderStayInGrupetto,
   getLeaderRecoveryHelperLimit,
   getLeaderRecoveryTargetPriority,
@@ -44,6 +46,7 @@ import {
   isLikelyMassSprint,
   isMassGroupFinish,
   normalizeRoadFinishGroupTimes,
+  normalizeRoadSnapshotGroups,
   reduceMechanicalIncidentTimeLoss,
   resolveCaughtBreakawayElapsedTime,
   selectStageAttackPlan,
@@ -53,7 +56,7 @@ import {
   spreadRoadGroupTransitionsAcrossFrames,
   type RiderSimulationInput,
 } from "./race-simulation";
-import type { RaceStageSegment } from "./race-profiles";
+import { buildRaceSegments, type RaceStageSegment } from "./race-profiles";
 
 describe("areFinishersInSameTimeGroup", () => {
   it("conserve la règle des trois secondes uniquement quand elle est demandée", () => {
@@ -863,6 +866,167 @@ describe("buildFlatGroupFinishTimes", () => {
   });
 });
 
+describe("normalizeRoadSnapshotGroups", () => {
+  it("nomme tous les groupes uniquement selon leur position autour du peloton", () => {
+    const normalized = normalizeRoadSnapshotGroups([
+      {
+        id: "old-chase",
+        label: "Chasse-patate",
+        type: "chase",
+        riderIds: ["e1"],
+        gapToLeaderSeconds: 0,
+        averageEnergy: 70,
+      },
+      {
+        id: "old-dropped-from-breakaway",
+        label: "Lâchés de l'échappée",
+        type: "dropped",
+        riderIds: ["e2"],
+        gapToLeaderSeconds: 20,
+        averageEnergy: 55,
+      },
+      {
+        id: "peloton",
+        label: "Groupe principal",
+        type: "peloton",
+        riderIds: ["p1", "p2"],
+        gapToLeaderSeconds: 45,
+        averageEnergy: 60,
+      },
+      {
+        id: "old-crash-group",
+        label: "Piégés par une chute",
+        type: "chase",
+        riderIds: ["a1"],
+        gapToLeaderSeconds: 70,
+        averageEnergy: 35,
+      },
+      {
+        id: "old-grupetto",
+        label: "Grupetto",
+        type: "dropped",
+        riderIds: ["a2"],
+        gapToLeaderSeconds: 120,
+        averageEnergy: 25,
+      },
+    ]);
+
+    expect(normalized.map((group) => [group.label, group.type])).toEqual([
+      ["Échappée E1", "breakaway"],
+      ["Échappée E2", "breakaway"],
+      ["Peloton", "peloton"],
+      ["Attardés A1", "dropped"],
+      ["Attardés A2", "dropped"],
+    ]);
+  });
+
+  it("absorbe immédiatement dans le peloton tout groupe arrivé à sa position", () => {
+    const normalized = normalizeRoadSnapshotGroups([
+      {
+        id: "breakaway",
+        label: "Échappée",
+        type: "breakaway",
+        riderIds: ["e1"],
+        gapToLeaderSeconds: 0,
+        averageEnergy: 70,
+      },
+      {
+        id: "secondary",
+        label: "Lâchés de l'échappée",
+        type: "breakaway",
+        riderIds: ["caught"],
+        gapToLeaderSeconds: 18,
+        averageEnergy: 40,
+      },
+      {
+        id: "peloton",
+        label: "Peloton",
+        type: "peloton",
+        riderIds: ["p1", "p2"],
+        gapToLeaderSeconds: 18,
+        averageEnergy: 60,
+      },
+    ]);
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]).toMatchObject({
+      label: "Échappée E1",
+      type: "breakaway",
+      riderIds: ["e1"],
+      gapToLeaderSeconds: 0,
+    });
+    expect(normalized[1]).toMatchObject({
+      label: "Peloton",
+      type: "peloton",
+      riderIds: ["caught", "p1", "p2"],
+      gapToLeaderSeconds: 18,
+    });
+  });
+});
+
+describe("buildPreservedRoadGroupFinishTimes", () => {
+  const groups = [
+    {
+      type: "peloton" as const,
+      riderIds: ["leader-a", "leader-b"],
+      gapToLeaderSeconds: 0,
+    },
+    {
+      type: "dropped" as const,
+      riderIds: ["grupetto-a", "grupetto-b", "grupetto-c"],
+      gapToLeaderSeconds: 120,
+    },
+  ];
+  const elapsedTimeByRiderId = new Map([
+    ["leader-a", 10_000],
+    ["leader-b", 10_002],
+    ["grupetto-a", 10_119],
+    ["grupetto-b", 10_121],
+    ["grupetto-c", 10_122],
+  ]);
+
+  it("préserve le temps collectif du groupe attardé sur un final sélectif", () => {
+    const finishTimes = buildPreservedRoadGroupFinishTimes({
+      groups,
+      elapsedTimeByRiderId,
+      preserveAllGroups: false,
+    });
+
+    expect(finishTimes.has("leader-a")).toBe(false);
+    expect(finishTimes.has("leader-b")).toBe(false);
+    expect(
+      new Set([
+        finishTimes.get("grupetto-a"),
+        finishTimes.get("grupetto-b"),
+        finishTimes.get("grupetto-c"),
+      ]).size,
+    ).toBe(1);
+    expect(finishTimes.get("grupetto-a")).toBe(10_121);
+  });
+
+  it("préserve tous les groupes lorsque le profil final l’exige", () => {
+    const finishTimes = buildPreservedRoadGroupFinishTimes({
+      groups,
+      elapsedTimeByRiderId,
+      preserveAllGroups: true,
+    });
+
+    expect(finishTimes.get("leader-a")).toBe(10_001);
+    expect(finishTimes.get("leader-b")).toBe(10_001);
+    expect(finishTimes.get("grupetto-a")).toBe(10_121);
+  });
+});
+
+describe("attaques préparées depuis un groupe attardé", () => {
+  it("réserve l’attaque au peloton encore en course", () => {
+    expect(canLaunchPlannedAttackFromRoadGroup("peloton")).toBe(true);
+    expect(canLaunchPlannedAttackFromRoadGroup("delayed")).toBe(false);
+    expect(canLaunchPlannedAttackFromRoadGroup("dropped")).toBe(false);
+    expect(canLaunchPlannedAttackFromRoadGroup("chase")).toBe(false);
+    expect(canLaunchPlannedAttackFromRoadGroup("breakaway")).toBe(false);
+  });
+});
+
 describe("reduceMechanicalIncidentTimeLoss", () => {
   it("réduit uniquement le temps d’avarie dans la limite de 80 %", () => {
     expect(reduceMechanicalIncidentTimeLoss(20, 35)).toBe(13);
@@ -1123,14 +1287,14 @@ describe("grupetto dynamics", () => {
 
     expect(
       simulation.timeline.some((snapshot) =>
-        snapshot.groups.some((group) => group.label.startsWith("Grupetto")),
+        snapshot.groups.some(
+          (group) => group.type === "dropped" && group.riderIds.length >= 5,
+        ),
       ),
     ).toBe(true);
     expect(
       simulation.timeline.some((snapshot) =>
-        snapshot.groups.some((group) =>
-          group.label.startsWith("Lâchés du grupetto"),
-        ),
+        snapshot.groups.some((group) => group.label.startsWith("Attardés A")),
       ),
     ).toBe(true);
   });
@@ -1141,6 +1305,79 @@ describe("simulateRaceStage", () => {
     const input = createDemoSimulationInput("sprint-littoral", 12);
 
     expect(simulateRaceStage(input)).toEqual(simulateRaceStage(input));
+  });
+
+  it("garde chaque groupe attardé derrière le peloton sur la Classic du Pacifique", () => {
+    const base = createDemoSimulationInput("sprint-littoral", 1);
+    const simulation = simulateRaceStage({
+      ...base,
+      id: "classic-du-pacifique-group-order",
+      name: "Classic du Pacifique",
+      profileType: "flat",
+      segments: buildRaceSegments({
+        distanceKm: 194,
+        profileType: "flat",
+        seed: "classic-du-pacifique:profile",
+        includeTourPrimes: false,
+      }),
+    });
+
+    for (const snapshot of simulation.timeline) {
+      const peloton = snapshot.groups.find((group) => group.type === "peloton");
+      if (!peloton) continue;
+
+      for (const dropped of snapshot.groups.filter(
+        (group) => group.type === "dropped",
+      )) {
+        expect(dropped.gapToLeaderSeconds).toBeGreaterThan(
+          peloton.gapToLeaderSeconds,
+        );
+      }
+    }
+  });
+
+  it("maintient l'ordre et la nomenclature autour du peloton sur tous les profils", () => {
+    const scenarios = [
+      "sprint-littoral",
+      "collines-ardennes",
+      "haute-montagne",
+      "paves-zelande",
+    ] as const;
+
+    for (const scenario of scenarios) {
+      for (let seed = 1; seed <= 25; seed += 1) {
+        const simulation = simulateRaceStage(
+          createDemoSimulationInput(scenario, seed),
+        );
+
+        const snapshots = [
+          ...simulation.timeline,
+          ...(simulation.visualTimeline ?? []),
+        ];
+        for (const snapshot of snapshots) {
+          const pelotonIndex = snapshot.groups.findIndex(
+            (group) => group.type === "peloton",
+          );
+          if (pelotonIndex < 0) continue;
+          const peloton = snapshot.groups[pelotonIndex];
+
+          snapshot.groups.slice(0, pelotonIndex).forEach((group, index) => {
+            expect(group.type).toBe("breakaway");
+            expect(group.label).toBe(`Échappée E${index + 1}`);
+            expect(group.gapToLeaderSeconds).toBeLessThan(
+              peloton.gapToLeaderSeconds,
+            );
+          });
+          snapshot.groups.slice(pelotonIndex + 1).forEach((group, index) => {
+            expect(group.type).toBe("dropped");
+            expect(group.label).toBe(`Attardés A${index + 1}`);
+            expect(group.gapToLeaderSeconds).toBeGreaterThan(
+              peloton.gapToLeaderSeconds,
+            );
+          });
+        }
+      }
+    }
   });
 
   it("limite presque toujours l’échappée matinale à un coureur par équipe", () => {
@@ -3420,7 +3657,7 @@ describe("simulateRaceStage", () => {
     expect(firstDropIndex).toBeGreaterThan(0);
     const permanentlyDroppedWeakIds = result.timeline
       .at(-2)!
-      .groups.filter((group) => group.label.startsWith("Groupe attardé"))
+      .groups.filter((group) => group.type === "dropped")
       .flatMap((group) => group.riderIds)
       .filter((riderId) => weakIds.has(riderId));
     expect(permanentlyDroppedWeakIds.length).toBeGreaterThan(0);
@@ -4114,7 +4351,7 @@ describe("simulateRaceStage", () => {
     expect(affectedGroup.gapToLeaderSeconds).toBeGreaterThan(
       peloton.gapToLeaderSeconds,
     );
-    expect(affectedGroup.label).toContain("bordure");
+    expect(affectedGroup.label).toMatch(/^Attardés A\d+$/);
   });
 
   it("exécute les ordres d’attaque préparés sur le tronçon demandé", () => {

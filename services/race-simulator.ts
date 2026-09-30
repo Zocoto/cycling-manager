@@ -77,6 +77,7 @@ type ConditionRow = {
   rider_id: string;
   season_day_id: string;
   form: number;
+  morale: number | string;
 };
 
 type CountryRow = {
@@ -201,7 +202,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
       dayIds.length > 0
         ? admin
             .from("rider_condition_states")
-            .select("rider_id, season_day_id, form")
+            .select("rider_id, season_day_id, form, morale")
             .in("rider_id", riderIds)
             .in("season_day_id", dayIds)
             .returns<ConditionRow[]>()
@@ -240,7 +241,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
     (countriesResult.data ?? []).map((country) => [country.id, country])
   );
   const dayNumberById = new Map(days.map((day) => [day.id, day.day_number]));
-  const formByRiderId = indexLatestForm(
+  const conditionByRiderId = indexLatestCondition(
     conditionsResult.data ?? [],
     dayNumberById
   );
@@ -263,7 +264,8 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
             rider,
             rating,
             country,
-            form: formByRiderId.get(rider.id) ?? 75,
+            form: conditionByRiderId.get(rider.id)?.form ?? 75,
+            morale: conditionByRiderId.get(rider.id)?.morale ?? 60,
             specialAbilities: abilitiesByRiderId.get(rider.id) ?? [],
           }),
         ];
@@ -301,7 +303,8 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
         rider,
         rating,
         country,
-        form: formByRiderId.get(rider.id) ?? 75,
+        form: conditionByRiderId.get(rider.id)?.form ?? 75,
+        morale: conditionByRiderId.get(rider.id)?.morale ?? 60,
         specialAbilities: abilitiesByRiderId.get(rider.id) ?? [],
       }),
     ];
@@ -356,12 +359,14 @@ function toSimulatorRider({
   rating,
   country,
   form,
+  morale,
   specialAbilities,
 }: {
   rider: RiderRow;
   rating: RatingRow;
   country: CountryRow;
   form: number;
+  morale: number;
   specialAbilities: RiderSpecialAbility[];
 }) {
   return {
@@ -372,6 +377,7 @@ function toSimulatorRider({
     countryCode: country.iso_alpha2,
     age: rating.age,
     form,
+    morale,
     careerRaceDays: Number(rider.career_race_days ?? 0),
     ratings: toSimulationRatings(rating),
     specialAbilities,
@@ -396,20 +402,27 @@ function toSimulationRatings(rating: RatingRow): RiderSimulationRatings {
   };
 }
 
-function indexLatestForm(
+function indexLatestCondition(
   rows: ConditionRow[],
   dayNumberById: Map<string, number>
 ) {
-  const latest = new Map<string, { dayNumber: number; form: number }>();
+  const latest = new Map<
+    string,
+    { dayNumber: number; form: number; morale: number }
+  >();
   for (const row of rows) {
     const dayNumber = dayNumberById.get(row.season_day_id) ?? 0;
     const existing = latest.get(row.rider_id);
     if (!existing || dayNumber > existing.dayNumber) {
-      latest.set(row.rider_id, { dayNumber, form: row.form });
+      latest.set(row.rider_id, {
+        dayNumber,
+        form: row.form,
+        morale: Number(row.morale ?? 60),
+      });
     }
   }
   return new Map(
-    [...latest.entries()].map(([riderId, value]) => [riderId, value.form])
+    [...latest.entries()].map(([riderId, value]) => [riderId, value])
   );
 }
 

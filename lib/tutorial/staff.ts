@@ -80,7 +80,7 @@ export const staffTutorialDefinition = {
       targetId: "staff-market-filters",
       title: "Isolez le spécialiste recherché",
       content:
-        "Les filtres permettent d’isoler un métier, un niveau, une nationalité ou une spécialité d’entraîneur. Les noms ne sont révélés que tant que le profil reste disponible, et un profil recruté disparaît immédiatement du marché. Combinez les critères et utilisez « Réinitialiser » pour retrouver tous les profils encore disponibles du jour.\n\nLe niveau va de 1 à 5 : plus il est élevé, plus l’effet est puissant, mais plus le salaire et la prime de signature augmentent.",
+        "Les filtres permettent d’isoler un métier, un niveau minimum, une nationalité ou une spécialité d’entraîneur. Choisir le niveau 3 affiche donc les profils de niveaux 3, 4 et 5. Les noms ne sont révélés que tant que le profil reste disponible, et un profil recruté disparaît immédiatement du marché. Combinez les critères et utilisez « Réinitialiser » pour retrouver tous les profils encore disponibles du jour.\n\nLe niveau va de 1 à 5 : plus il est élevé, plus l’effet est puissant, mais plus le salaire et la prime de signature augmentent.",
       placement: "bottom",
       highlightPadding: 8,
     },

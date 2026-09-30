@@ -61,6 +61,7 @@ import {
   type ScoutingSupervisionStatus,
 } from "@/lib/game/scouting-supervision";
 import {
+  createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
@@ -93,7 +94,9 @@ import {
 } from "@/lib/rider-names/generate-rider-identities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
+import { getTeamSeasonScoutingVisibility } from "@/services/scouting-visibility";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -250,6 +253,7 @@ type AcademyRow = Omit<
     | "released";
   promotion_game_year: number | null;
   promoted_rider_id: string | null;
+  morale: number | string;
 };
 
 type YouthTrainingSessionRow = {
@@ -261,6 +265,17 @@ type YouthTrainingSessionRow = {
   score: number | null;
   rating_changes: Record<string, number>;
   processed_at: string;
+};
+
+type YouthMoraleEventRow = {
+  id: string;
+  academy_rider_id: string;
+  source_type: string;
+  applied_delta: number | string;
+  morale_before: number | string;
+  morale_after: number | string;
+  description: string;
+  occurred_at: string;
 };
 
 export type YouthCountry = {
@@ -363,6 +378,8 @@ export type AcademyYouth = {
   sportingProfile: string;
   potentialSteps: number;
   nativeSpecialAbility: SpecialAbilityDefinition | null;
+  morale: number;
+  moraleEvents: RiderMoraleEvent[];
   ratings: YouthRatings;
   trainingPriority: YouthTrainingDomain;
   trainingMode: YouthTrainingMode;
@@ -422,6 +439,7 @@ export type YouthDevelopmentOverview = {
   canScheduleYouthPromotion: boolean;
   totalTuitionPerSeason: number;
   scoutingSupervision: ScoutingSupervisionStatus;
+  scoutingRevealActiveUntil: string | null;
 };
 
 export async function settleDueYouthScoutingMissions(): Promise<number> {
@@ -644,6 +662,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     academyResult,
     rosterCapacity,
     scoutingSupervisionResult,
+    scoutingVisibility,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -687,6 +706,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       .eq("effect_kind", "scouting_boost")
       .eq("status", "active")
       .gte("ends_day_number", context.currentDayNumber),
+    getTeamSeasonScoutingVisibility(admin, context.teamSeasonId),
   ]);
   for (const [result, label] of [
     [countriesResult, "les pays"],
@@ -879,6 +899,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
           mission.duration_days,
           reportPrecisionBonusPercentage,
           potentialPrecisionBonusPercentage,
+          scoutingVisibility.active,
         ),
       ),
     };
@@ -919,22 +940,52 @@ async function loadOverview(admin: AdminClient, context: Context) {
     "la nationalité de l’équipe",
   );
   const academyIds = academyRows.map((rider) => rider.id);
-  const latestSessionsResult = academyIds.length
-    ? await admin
-        .from("youth_academy_training_sessions")
-        .select(
-          "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
-        )
-        .in("academy_rider_id", academyIds)
-        .eq("season_id", context.seasonId)
-        .order("day_number", { ascending: false })
-        .order("processed_at", { ascending: false })
-        .returns<YouthTrainingSessionRow[]>()
-    : { data: [], error: null };
+  const [latestSessionsResult, moraleEventsResult] = academyIds.length
+    ? await Promise.all([
+        admin
+          .from("youth_academy_training_sessions")
+          .select(
+            "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
+          )
+          .in("academy_rider_id", academyIds)
+          .eq("season_id", context.seasonId)
+          .order("day_number", { ascending: false })
+          .order("processed_at", { ascending: false })
+          .returns<YouthTrainingSessionRow[]>(),
+        admin
+          .from("youth_rider_morale_events")
+          .select(
+            "id, academy_rider_id, source_type, applied_delta, morale_before, morale_after, description, occurred_at",
+          )
+          .in("academy_rider_id", academyIds)
+          .order("occurred_at", { ascending: false })
+          .limit(250)
+          .returns<YouthMoraleEventRow[]>(),
+      ])
+    : [
+        { data: [] as YouthTrainingSessionRow[], error: null },
+        { data: [] as YouthMoraleEventRow[], error: null },
+      ];
   assertQuery(
     latestSessionsResult.error,
     "les rapports d’entraînement des jeunes",
   );
+  assertQuery(moraleEventsResult.error, "l’historique de moral des jeunes");
+  const moraleEventsByRider = new Map<string, RiderMoraleEvent[]>();
+  for (const event of moraleEventsResult.data ?? []) {
+    const events = moraleEventsByRider.get(event.academy_rider_id) ?? [];
+    if (events.length >= 12) continue;
+    events.push({
+      id: event.id,
+      label: event.description,
+      delta: toNumber(event.applied_delta),
+      moraleBefore: toNumber(event.morale_before),
+      moraleAfter: toNumber(event.morale_after),
+      occurredAt: event.occurred_at,
+      sourceType: event.source_type,
+    });
+    moraleEventsByRider.set(event.academy_rider_id, events);
+  }
   const sessionRows = latestSessionsResult.data ?? [];
   const latestByRider = new Map<
     string,
@@ -1060,6 +1111,8 @@ async function loadOverview(admin: AdminClient, context: Context) {
       nativeSpecialAbility: getSpecialAbilityDefinition(
         rider.native_special_ability_code,
       ),
+      morale: toNumber(rider.morale ?? 60),
+      moraleEvents: moraleEventsByRider.get(rider.id) ?? [],
       ratings: scaleYouthRatings(ratings),
       trainingPriority: rider.training_priority,
       trainingMode: rider.training_mode,
@@ -1122,6 +1175,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       scoutingSupervisionEffects,
       context.currentDayNumber,
     ),
+    scoutingRevealActiveUntil: scoutingVisibility.activeUntil,
   } satisfies YouthDevelopmentOverview;
 }
 
@@ -2248,6 +2302,7 @@ function toCandidate(
   durationDays: number,
   reportPrecisionBonusPercentage = 0,
   potentialPrecisionBonusPercentage = 0,
+  revealExactValues = false,
 ): YouthCandidate {
   const ratings = scaleYouthRatings(rowToRatings(row));
   return {
@@ -2268,18 +2323,23 @@ function toCandidate(
     ),
     profileKey: row.avatar_profile_key,
     avatarSeed: String(row.avatar_seed),
-    scoutingReport: createStandardTransferScoutingReport({
-      riderId: row.id,
-      seasonId: row.mission_id,
-      ratings,
-      potentialSteps: row.potential_steps,
-      dataRoomLevel: getYouthScoutingReportDetailLevel({
-        scoutLevel,
-        durationDays,
-      }),
-      precisionBonusPercentage: reportPrecisionBonusPercentage,
-      potentialPrecisionBonusPercentage,
-    }),
+    scoutingReport: revealExactValues
+      ? createExactTransferScoutingReport({
+          ratings,
+          potentialSteps: row.potential_steps,
+        })
+      : createStandardTransferScoutingReport({
+          riderId: row.id,
+          seasonId: row.mission_id,
+          ratings,
+          potentialSteps: row.potential_steps,
+          dataRoomLevel: getYouthScoutingReportDetailLevel({
+            scoutLevel,
+            durationDays,
+          }),
+          precisionBonusPercentage: reportPrecisionBonusPercentage,
+          potentialPrecisionBonusPercentage,
+        }),
     signingFee: toNumber(row.signing_fee),
     tuitionPerSeason: toNumber(row.tuition_per_season),
     status: row.status,

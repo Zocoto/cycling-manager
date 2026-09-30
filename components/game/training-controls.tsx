@@ -288,6 +288,7 @@ export function RiderTrainingPlanFields({
   const nationalityBonus =
     selectedTrainer?.countryCode.toUpperCase() === riderCountryCode.toUpperCase();
   const intensityLabelId = `training-intensity-${riderId}`;
+  const domainSelectId = `training-domain-${riderId}`;
   const trainerSelectId = `training-trainer-${riderId}`;
 
   function updateIntensity(value: number) {
@@ -353,15 +354,19 @@ export function RiderTrainingPlanFields({
         </span>
       </div>
 
-      <label
+      <div
         data-tutorial-id={
           tutorialTargetPrefix ? `${tutorialTargetPrefix}-domain` : undefined
         }
       >
-        <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+        <label
+          htmlFor={domainSelectId}
+          className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]"
+        >
           Domaine
-        </span>
+        </label>
         <select
+          id={domainSelectId}
           name={`training-domain-${riderId}`}
           value={domain}
           onChange={(event) =>
@@ -377,7 +382,8 @@ export function RiderTrainingPlanFields({
             </option>
           ))}
         </select>
-      </label>
+        <TrainingDomainGainBreakdown domain={domain} className="mt-1.5" />
+      </div>
 
       <div
         data-tutorial-id={
@@ -488,10 +494,6 @@ export function RiderTrainingPlanFields({
         ) : null}
       </div>
 
-      <TrainingDomainGainBreakdown
-        domain={domain}
-        className="lg:col-span-3"
-      />
     </div>
   );
 }

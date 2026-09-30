@@ -43,9 +43,10 @@ type RawOverview = {
 export async function getCurrentDailyRewardOverview(
   supabase: SupabaseClient,
 ): Promise<DailyRewardOverview | null> {
-  const [result, managementTargetsResult] = await Promise.all([
+  const [result, managementTargetsResult, scoutingVisibilityResult] = await Promise.all([
     supabase.rpc("get_current_daily_reward_overview"),
     supabase.rpc("get_current_management_reward_targets"),
+    supabase.rpc("get_current_scouting_visibility_status"),
   ]);
 
   if (result.error) {
@@ -60,9 +61,15 @@ export async function getCurrentDailyRewardOverview(
       `Impossible de charger les cibles des objets de gestion : ${managementTargetsResult.error.message}`,
     );
   }
+  if (scoutingVisibilityResult.error) {
+    throw new Error(
+      `Impossible de charger la visibilité temporaire du scouting : ${scoutingVisibilityResult.error.message}`,
+    );
+  }
 
   const raw = result.data as RawOverview;
   const rawManagementTargets = readObject(managementTargetsResult.data);
+  const rawScoutingVisibility = readObject(scoutingVisibilityResult.data);
   const seasonId = readString(raw.seasonId);
   if (!seasonId) return null;
   const gameYear = readNumber(raw.gameYear, 1);
@@ -182,6 +189,8 @@ export async function getCurrentDailyRewardOverview(
       scoutingSupervisionEffects,
       currentDayNumber,
     ),
+    scoutingRevealActiveUntil:
+      readString(rawScoutingVisibility.activeUntil) || null,
   };
 }
 
@@ -284,6 +293,7 @@ function readEffectKind(value: unknown): DailyRewardEffectKind | null {
     "construction_time_reduction",
     "staff_level_boost",
     "injury_care",
+    "scouting_visibility",
   ];
   return allowed.includes(normalized as DailyRewardEffectKind)
     ? (normalized as DailyRewardEffectKind)

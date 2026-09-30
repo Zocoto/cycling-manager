@@ -444,7 +444,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "staff-market-filters": {
         title: "Find the specialist you need",
         content:
-          "Filter by profession, level, nationality or coach speciality. Recruited profiles disappear immediately. Combine filters and Reset to see all remaining profiles.\n\nLevels range from 1 to 5: higher levels have stronger effects, salaries and signing fees.",
+          "Filter by profession, minimum level, nationality or coach speciality. Selecting level 3 therefore shows level 3, 4 and 5 profiles. Recruited profiles disappear immediately. Combine filters and Reset to see all remaining profiles.\n\nLevels range from 1 to 5: higher levels have stronger effects, salaries and signing fees.",
       },
       "staff-professions": {
         title: "Eleven professions, eleven development levers",
@@ -506,7 +506,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "free-agent-filters": {
         title: "Narrow the list to useful profiles",
         content:
-          "Combine profile, nationality, age and a minimum estimated attribute. The attribute filter can use AVG or a specific quality.\n\nReports remain imperfect, so use thresholds to shortlist candidates, then compare profile and cost.",
+          "Combine contract, profile, nationality, age, estimated potential and a minimum estimated attribute. Thresholds only use information visible in your scouting report, so the filter never reveals an unknown value.\n\nSearch and pagination run on the server, keeping even a large rider database fast to browse.",
       },
       "free-agent-signing": {
         title: "Check your roster before signing",

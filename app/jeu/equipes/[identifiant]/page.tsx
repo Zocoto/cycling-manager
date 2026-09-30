@@ -327,7 +327,7 @@ async function TeamRosterDisclosure({
       description={`${riders.length} coureur${riders.length > 1 ? "s" : ""} sous contrat`}
     >
       {riders.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {riders.map((rider) => {
             const riderName = `${rider.firstName} ${rider.lastName}`.trim();
 
@@ -338,36 +338,56 @@ async function TeamRosterDisclosure({
                 prefetchOnIntent
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-h-18 items-center gap-3 rounded-2xl border border-[var(--team-line)] bg-white p-3 shadow-[0_8px_24px_var(--team-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-[0_14px_30px_var(--team-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)] sm:gap-4 sm:p-4"
+                className="group min-w-0 rounded-2xl border border-[var(--team-line)] bg-white p-3 shadow-[0_8px_24px_var(--team-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-[0_14px_30px_var(--team-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)] sm:p-4"
               >
-                <RiderAvatar
-                  profileKey={rider.avatarProfileKey}
-                  seed={rider.avatarSeed}
-                  riderId={rider.id}
-                  age={rider.age ?? 25}
-                  jersey={riderJersey}
-                  label={`Portrait généré de ${riderName}`}
-                  className="h-12 w-12 sm:h-14 sm:w-14"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-black text-[var(--team-ink)]">
-                    {riderName}
+                <span className="flex min-w-0 items-center gap-3 sm:gap-4">
+                  <RiderAvatar
+                    profileKey={rider.avatarProfileKey}
+                    seed={rider.avatarSeed}
+                    riderId={rider.id}
+                    age={rider.age ?? 25}
+                    jersey={riderJersey}
+                    label={`Portrait généré de ${riderName}`}
+                    className="h-12 w-12 sm:h-14 sm:w-14"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-black text-[var(--team-ink)]">
+                      {riderName}
+                    </span>
+                    <span className="mt-1 flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--team-muted)]">
+                      <CountryFlag
+                        countryCode={rider.countryCode}
+                        countryName={rider.countryName}
+                        compact
+                      />
+                      <span className="truncate">{rider.countryName}</span>
+                      {rider.age ? ` · ${rider.age} ans` : ""}
+                    </span>
                   </span>
-                  <span className="mt-1 flex items-center gap-2 text-xs font-semibold text-[var(--team-muted)]">
-                    <CountryFlag
-                      countryCode={rider.countryCode}
-                      countryName={rider.countryName}
-                      compact
-                    />
-                    <span className="truncate">{rider.countryName}</span>
-                    {rider.age ? ` · ${rider.age} ans` : ""}
+                  <span
+                    className="shrink-0 text-sm font-black text-[var(--team-secondary)] transition group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  >
+                    ↗
                   </span>
                 </span>
-                <span
-                  className="text-sm font-black text-[var(--team-secondary)]"
-                  aria-hidden="true"
-                >
-                  ↗
+
+                <span className="mt-3 grid grid-cols-6 overflow-hidden rounded-xl border border-[var(--team-line)] bg-[var(--team-soft)]">
+                  {PUBLIC_ROSTER_PRIMARY_RATINGS.map(({ key, label }) => (
+                    <span
+                      key={key}
+                      className="min-w-0 border-r border-[var(--team-line)] px-1 py-2 text-center last:border-r-0 sm:px-2"
+                    >
+                      <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-[var(--team-muted)] sm:text-[9px]">
+                        {label}
+                      </span>
+                      <span className="mt-0.5 block text-sm font-black tabular-nums text-[var(--team-ink)]">
+                        {rider.primaryRatings
+                          ? formatPublicRating(rider.primaryRatings[key])
+                          : "—"}
+                      </span>
+                    </span>
+                  ))}
                 </span>
               </Link>
             );
@@ -380,6 +400,19 @@ async function TeamRosterDisclosure({
       )}
     </ProfileDisclosure>
   );
+}
+
+const PUBLIC_ROSTER_PRIMARY_RATINGS = [
+  { key: "mountain", label: "MON" },
+  { key: "hills", label: "VAL" },
+  { key: "flat", label: "PLA" },
+  { key: "timeTrial", label: "CLM" },
+  { key: "cobbles", label: "PAV" },
+  { key: "sprint", label: "SPR" },
+] as const;
+
+function formatPublicRating(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 async function DevelopmentTeamDisclosure({ teamId }: { teamId: string }) {

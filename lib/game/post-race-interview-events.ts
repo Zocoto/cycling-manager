@@ -16,9 +16,317 @@ type EventRequirement = "sponsor" | "rivalry" | "chase" | "podium";
 
 type ZoneMixteEventDefinition = ZoneMixteEvent & {
   requires?: EventRequirement;
+  family?: "general" | "rider_director_relationship";
 };
 
 const EVENT_DEFINITIONS: readonly ZoneMixteEventDefinition[] = [
+  {
+    id: "rider-confidence",
+    family: "rider_director_relationship",
+    rarity: "common",
+    title: "Le doute derrière le sourire",
+    story:
+      "À l’écart des micros, {{riderName}} vous demande franchement si vous avez encore confiance en lui.",
+    choices: [
+      {
+        id: "reassure-with-plan",
+        label: "Le rassurer avec un plan précis",
+        description: "Lui expliquer ce que l’équipe attend de lui sur les prochaines courses.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 3, summary: "Le plan concret redonne confiance à {{riderName}} : +3 moral." },
+        ],
+      },
+      {
+        id: "demand-reaction",
+        label: "Exiger une réaction immédiate",
+        description: "Lui rappeler que sa place se gagne sur la route.",
+        impactPreview: "Conséquence cachée",
+        risk: "bold",
+        outcomes: [
+          { weight: 35, riderMoraleDelta: 2, summary: "Le défi réveille l’orgueil de {{riderName}} : +2 moral." },
+          { weight: 65, riderMoraleDelta: -3, summary: "{{riderName}} vit cette pression comme un désaveu : −3 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "public-rider-credit",
+    family: "rider_director_relationship",
+    rarity: "common",
+    title: "À qui revient le mérite ?",
+    story:
+      "Un journaliste vous demande si le résultat du jour appartient surtout à {{riderName}} ou au collectif de {{teamName}}.",
+    choices: [
+      {
+        id: "credit-rider",
+        label: "Mettre le coureur en lumière",
+        description: "Insister sur son talent et sur la qualité de son exécution.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 3, riderPopularityDelta: 1, summary: "{{riderName}} apprécie cette reconnaissance publique : +3 moral et +1 popularité." },
+        ],
+      },
+      {
+        id: "credit-team",
+        label: "Célébrer uniquement le collectif",
+        description: "Rappeler que personne ne gagne seul.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 55, riderMoraleDelta: 1, reputationDelta: 1, summary: "Le discours collectif rassemble l’équipe et convient à {{riderName}} : +1 moral et +1 réputation." },
+          { weight: 45, riderMoraleDelta: -2, reputationDelta: 1, summary: "Le collectif est salué, mais {{riderName}} se sent effacé : −2 moral et +1 réputation." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "tactical-disagreement",
+    family: "rider_director_relationship",
+    rarity: "common",
+    title: "Une consigne discutée",
+    story:
+      "{{riderName}} reconnaît devant vous ne pas avoir totalement compris la consigne donnée dans le final.",
+    choices: [
+      {
+        id: "review-privately",
+        label: "Revoir la séquence en privé",
+        description: "Reporter le débat au briefing vidéo, loin des micros.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 2, summary: "La discussion posée restaure la confiance de {{riderName}} : +2 moral." },
+        ],
+      },
+      {
+        id: "assert-authority",
+        label: "Rappeler publiquement la hiérarchie",
+        description: "Expliquer qu’une consigne doit être exécutée avant d’être débattue.",
+        impactPreview: "Conséquence cachée",
+        risk: "bold",
+        outcomes: [
+          { weight: 25, riderMoraleDelta: 1, reputationDelta: 1, summary: "{{riderName}} accepte le rappel et respecte votre franchise : +1 moral et +1 réputation." },
+          { weight: 75, riderMoraleDelta: -4, summary: "{{riderName}} se sent désavoué publiquement : −4 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "domestique-recognition",
+    family: "rider_director_relationship",
+    rarity: "common",
+    title: "Le travail invisible",
+    story:
+      "Personne n’a évoqué les longs relais de {{riderName}}, pourtant essentiels au résultat de {{teamName}}.",
+    choices: [
+      {
+        id: "name-contribution",
+        label: "Détailler publiquement son travail",
+        description: "Nommer précisément ce qu’il a apporté à l’équipe.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 4, riderPopularityDelta: 1, summary: "Enfin reconnu, {{riderName}} ressort grandi de l’interview : +4 moral et +1 popularité." },
+        ],
+      },
+      {
+        id: "normal-duty",
+        label: "Parler d’un travail normal",
+        description: "Présenter ces relais comme le devoir attendu de chacun.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: -2, summary: "{{riderName}} a le sentiment que ses efforts sont tenus pour acquis : −2 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "training-complaint",
+    family: "rider_director_relationship",
+    rarity: "notable",
+    title: "Le programme commence à peser",
+    story:
+      "{{riderName}} vous glisse que l’enchaînement des séances devient difficile à supporter mentalement.",
+    choices: [
+      {
+        id: "listen-and-adjust",
+        label: "Écouter et réévaluer le programme",
+        description: "Promettre un échange avec le staff avant la prochaine séance.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 3, summary: "Le simple fait d’être écouté soulage {{riderName}} : +3 moral." },
+        ],
+      },
+      {
+        id: "keep-program",
+        label: "Maintenir le programme",
+        description: "Insister sur les bénéfices futurs de cette charge de travail.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 30, riderMoraleDelta: 1, summary: "{{riderName}} adhère finalement à l’objectif annoncé : +1 moral." },
+          { weight: 70, riderMoraleDelta: -3, summary: "{{riderName}} repart avec le sentiment de ne pas avoir été entendu : −3 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "crash-confidence",
+    family: "rider_director_relationship",
+    rarity: "notable",
+    title: "La peur n’est pas tout à fait partie",
+    story:
+      "Après les incidents du jour, {{riderName}} reconnaît qu’il hésite encore dans les passages les plus nerveux.",
+    choices: [
+      {
+        id: "protect-return",
+        label: "Lui laisser le temps de retrouver ses repères",
+        description: "Prévoir un retour progressif sans objectif immédiat.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 3, summary: "{{riderName}} se sent protégé et compris : +3 moral." },
+        ],
+      },
+      {
+        id: "face-fear",
+        label: "L’encourager à affronter immédiatement sa peur",
+        description: "Lui demander de reprendre sa place dès la prochaine course.",
+        impactPreview: "Conséquence cachée",
+        risk: "bold",
+        outcomes: [
+          { weight: 30, riderMoraleDelta: 3, summary: "Le défi libère {{riderName}}, qui se sent prêt à repartir : +3 moral." },
+          { weight: 70, riderMoraleDelta: -4, summary: "{{riderName}} se sent précipité vers un retour qu’il ne maîtrise pas : −4 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "transfer-rumor",
+    family: "rider_director_relationship",
+    rarity: "notable",
+    title: "La rumeur de transfert arrive au micro",
+    story:
+      "On demande à {{riderName}} s’il se sent encore pleinement désiré chez {{teamName}}.",
+    choices: [
+      {
+        id: "affirm-place",
+        label: "Réaffirmer clairement sa place",
+        description: "Couper court aux rumeurs et rappeler son importance dans le projet.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 4, summary: "Votre confiance publique rassure profondément {{riderName}} : +4 moral." },
+        ],
+      },
+      {
+        id: "avoid-commitment",
+        label: "Refuser de commenter son avenir",
+        description: "Rester strictement concentré sur la course du jour.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: -2, summary: "L’absence de soutien nourrit les doutes de {{riderName}} : −2 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "leadership-question",
+    family: "rider_director_relationship",
+    rarity: "notable",
+    title: "Un leader pour la suite ?",
+    story:
+      "La presse vous demande si {{riderName}} a gagné le droit d’être davantage protégé lors des prochaines échéances.",
+    choices: [
+      {
+        id: "open-door",
+        label: "Lui ouvrir clairement la porte",
+        description: "Confirmer que sa performance aura des conséquences dans la hiérarchie.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 75, riderMoraleDelta: 4, summary: "{{riderName}} se sent récompensé et responsabilisé : +4 moral." },
+          { weight: 25, riderMoraleDelta: 2, reputationDelta: -1, summary: "{{riderName}} est ravi, même si le reste du groupe goûte peu l’annonce : +2 moral et −1 réputation." },
+        ],
+      },
+      {
+        id: "keep-hierarchy",
+        label: "Maintenir la hiérarchie actuelle",
+        description: "Rappeler qu’une course ne suffit pas à redistribuer les rôles.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: -2, summary: "{{riderName}} comprend la prudence, mais repart déçu : −2 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "mistake-responsibility",
+    family: "rider_director_relationship",
+    rarity: "rare",
+    title: "Qui porte la responsabilité ?",
+    story:
+      "Une erreur de {{riderName}} a coûté cher, et la question tombe sans détour : allez-vous le sanctionner ?",
+    choices: [
+      {
+        id: "share-responsibility",
+        label: "Assumer une responsabilité partagée",
+        description: "Rappeler que les décisions et leur préparation appartiennent à toute l’équipe.",
+        impactPreview: "Conséquence cachée",
+        risk: "safe",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 3, reputationDelta: 1, summary: "Votre protection responsabilise {{riderName}} sans l’accabler : +3 moral et +1 réputation." },
+        ],
+      },
+      {
+        id: "announce-sanction",
+        label: "Annoncer une sanction sportive",
+        description: "Faire de cette erreur un avertissement public pour tout le groupe.",
+        impactPreview: "Conséquence cachée",
+        risk: "bold",
+        outcomes: [
+          { weight: 20, riderMoraleDelta: 1, reputationDelta: 1, summary: "{{riderName}} accepte la sanction et promet de répondre sur la route : +1 moral et +1 réputation." },
+          { weight: 80, riderMoraleDelta: -5, summary: "Humilié par l’annonce publique, {{riderName}} perd confiance : −5 moral." },
+        ],
+      },
+    ],
+  },
+  {
+    id: "private-promise",
+    family: "rider_director_relationship",
+    rarity: "rare",
+    title: "Une promesse rappelée devant les caméras",
+    story:
+      "{{riderName}} évoque à demi-mot une promesse de rôle ou de sélection que vous lui auriez faite en privé.",
+    choices: [
+      {
+        id: "honor-promise",
+        label: "Confirmer votre engagement",
+        description: "Assumer publiquement que la parole donnée sera tenue.",
+        impactPreview: "Conséquence cachée",
+        risk: "balanced",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: 5, reputationDelta: 1, summary: "{{riderName}} sait désormais qu’il peut compter sur votre parole : +5 moral et +1 réputation." },
+        ],
+      },
+      {
+        id: "deny-promise",
+        label: "Nier toute promesse",
+        description: "Refuser que la composition de l’équipe se décide devant les médias.",
+        impactPreview: "Conséquence cachée",
+        risk: "bold",
+        outcomes: [
+          { weight: 100, riderMoraleDelta: -5, summary: "{{riderName}} vit votre réponse comme une rupture de confiance : −5 moral." },
+        ],
+      },
+    ],
+  },
   {
     id: "open-micro",
     rarity: "common",
@@ -682,11 +990,17 @@ export function selectZoneMixteEvent({
   seed: string;
   usedEventIds?: readonly string[];
 }): ZoneMixteEvent | null {
-  if (seededIndex(`${seed}:event-trigger`, 6) !== 0) return null;
+  const triggerRoll = seededIndex(`${seed}:event-trigger`, 6);
+  if (triggerRoll > 1) return null;
+  const selectedFamily =
+    triggerRoll === 0 ? "general" : "rider_director_relationship";
 
   const used = new Set(usedEventIds);
   const eligible = EVENT_DEFINITIONS.filter(
-    (event) => !used.has(event.id) && meetsRequirement(event, context),
+    (event) =>
+      (event.family ?? "general") === selectedFamily &&
+      !used.has(event.id) &&
+      meetsRequirement(event, context),
   );
   if (eligible.length === 0) return null;
 

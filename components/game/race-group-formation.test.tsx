@@ -70,6 +70,8 @@ describe("race group formation", () => {
     );
 
     expect(markup).toContain('data-race-group-formation="peloton-front"');
+    expect(markup).toContain("h-11 w-[4.5rem]");
+    expect(markup).toContain('data-race-cyclist-scale="broadcast-aligned"');
     expect(markup).toContain('data-race-rider-weave="active"');
     expect(markup.match(/data-race-rider-weave="active"/g)).toHaveLength(8);
     expect(markup).toContain("translate(-");

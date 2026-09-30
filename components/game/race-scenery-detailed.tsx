@@ -1,8 +1,8 @@
-import { useId, type CSSProperties } from "react";
+import { memo, useId, type CSSProperties } from "react";
 
 import type { RaceSceneryKind } from "@/lib/game/race-visuals";
 
-export function RaceSceneryBackdrop({
+export const RaceSceneryBackdrop = memo(function RaceSceneryBackdrop({
   kind,
   isMoving,
   showSpectators,
@@ -48,9 +48,9 @@ export function RaceSceneryBackdrop({
       </div>
     </div>
   );
-}
+});
 
-export function RaceBiotopeForeground({
+export const RaceBiotopeForeground = memo(function RaceBiotopeForeground({
   kind,
   roadLeftY,
   roadRightY,
@@ -117,7 +117,7 @@ export function RaceBiotopeForeground({
       </g>
     </svg>
   );
-}
+});
 
 function BiotopeForegroundDetails({
   kind,

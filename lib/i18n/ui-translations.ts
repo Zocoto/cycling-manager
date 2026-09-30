@@ -157,6 +157,23 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Inscriptions de l’équipe": "Team entries",
   "Installer l’application": "Install the app",
   "Inventaire": "Inventory",
+  "Loupe du recruteur": "Scout’s magnifier",
+  "Une fenêtre d’observation privilégiée pour examiner sans approximation les talents disponibles.":
+    "A privileged scouting window for assessing available talent without approximation.",
+  "Révèle pendant 24 h toutes les notes et le potentiel des coureurs libres et des juniors repérés":
+    "Reveals every rating and potential value for free agents and scouted juniors for 24 hours",
+  "Vision du scouting": "Scouting insight",
+  "Révéler les rapports pendant 24 h": "Reveal reports for 24 hours",
+  "Loupe du recruteur active": "Scout’s magnifier active",
+  "Vision complète active": "Full visibility active",
+  "Les notes des coureurs libres sont entièrement visibles.":
+    "Free-agent ratings are fully visible.",
+  "Conservez cet objet pour une prochaine période de scouting.":
+    "Keep this item for a future scouting window.",
+  "Toutes les notes restent visibles jusqu’au":
+    "All ratings remain visible until",
+  "Les notes et le potentiel des juniors repérés sont entièrement visibles jusqu’au":
+    "Every rating and potential value for scouted juniors is fully visible until",
   "Invitation": "Wild Card",
   "Invitation refusée": "Wild Card declined",
   "J8 · Deux disciplines · Une seule grille":
@@ -174,6 +191,12 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "1 staff sur mesure · 20 % de chance pour chaque niveau":
     "1 custom staff member · 20% chance for each level",
   "Métier": "Role",
+  "Niveau minimum": "Minimum level",
+  "Niveau 1 et plus": "Level 1 and above",
+  "Niveau 2 et plus": "Level 2 and above",
+  "Niveau 3 et plus": "Level 3 and above",
+  "Niveau 4 et plus": "Level 4 and above",
+  "Niveau 5 et plus": "Level 5 and above",
   "Moyenne générale": "Overall average",
   "Les meilleurs coureurs": "Top riders",
   "Objectif": "Objective",

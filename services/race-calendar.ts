@@ -438,6 +438,12 @@ type CalendarEngagedRiderRow = {
   equipment_effects: unknown;
 };
 
+type RiderMoraleConditionRow = {
+  rider_id: string;
+  season_day_id: string;
+  morale: number | string;
+};
+
 type RiderPerformancePreparationRow = {
   rider_id: string;
   preparation_type: "indoor_track" | "wind_tunnel";
@@ -678,6 +684,7 @@ export type RaceRosterOption = {
   sprint: number;
   breakaway: number;
   form: number;
+  morale: number;
   squadStatus: SquadStatus | null;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
@@ -1587,6 +1594,55 @@ export async function getActiveSeasonRaceCalendar(
   );
 
   const dayById = new Map(dayRows.map((day) => [day.id, day]));
+  const moraleDayIds = dayRows
+    .filter((day) => day.day_number <= (season.current_day_number ?? 1))
+    .map((day) => day.id);
+  const moraleConditionResult =
+    engagedRiderIds.length > 0 && moraleDayIds.length > 0
+      ? await collectChunkedPaginatedRows<
+          RiderMoraleConditionRow,
+          { message: string },
+          string
+        >({
+          values: engagedRiderIds,
+          chunkSize: 40,
+          fetchPage: async (chunk, from, to) => {
+            const query = await raceDataAdmin
+              .from("rider_condition_states")
+              .select("rider_id, season_day_id, morale")
+              .in("rider_id", chunk)
+              .in("season_day_id", moraleDayIds)
+              .order("rider_id", { ascending: true })
+              .range(from, to)
+              .returns<RiderMoraleConditionRow[]>();
+            return { data: query.data, error: query.error };
+          },
+        })
+      : emptyResult<RiderMoraleConditionRow>();
+  assertQuerySucceeded(
+    moraleConditionResult.error,
+    "le moral des coureurs engagés",
+  );
+  const latestMoraleByRiderId = new Map<
+    string,
+    { dayNumber: number; morale: number }
+  >();
+  for (const condition of moraleConditionResult.data ?? []) {
+    const dayNumber = dayById.get(condition.season_day_id)?.day_number ?? 0;
+    const current = latestMoraleByRiderId.get(condition.rider_id);
+    if (!current || dayNumber > current.dayNumber) {
+      latestMoraleByRiderId.set(condition.rider_id, {
+        dayNumber,
+        morale: Number(condition.morale ?? 60),
+      });
+    }
+  }
+  const moraleByRiderId = new Map(
+    [...latestMoraleByRiderId].map(([riderId, condition]) => [
+      riderId,
+      condition.morale,
+    ]),
+  );
   const raceById = new Map(raceRows.map((race) => [race.id, race]));
   const categoryById = new Map(
     (categoriesResult.data ?? []).map((category) => [category.id, category]),
@@ -1670,6 +1726,7 @@ export async function getActiveSeasonRaceCalendar(
     engagedRiderRows,
     stageEquipmentEffectRows,
     specialAbilitiesByRiderId,
+    moraleByRiderId,
     new Map(riderCountryRows.map((rider) => [rider.id, rider])),
     countryById,
     worldChampionshipTitlesByRiderId,
@@ -2182,7 +2239,12 @@ export async function getCurrentTeamRaceRosterOptions(
     );
   }
 
-  return ((data as RaceRosterOptionRow[] | null) ?? []).map((rider) => ({
+  const riders = (data as RaceRosterOptionRow[] | null) ?? [];
+  const moraleByRiderId = await loadCurrentMoraleByRiderIds(
+    riders.map((rider) => rider.rider_id),
+  );
+
+  return riders.map((rider) => ({
     riderId: rider.rider_id,
     firstName: rider.first_name,
     lastName: rider.last_name,
@@ -2199,6 +2261,7 @@ export async function getCurrentTeamRaceRosterOptions(
     sprint: rider.sprint,
     breakaway: rider.breakaway,
     form: Number(rider.current_form),
+    morale: moraleByRiderId.get(rider.rider_id) ?? 60,
     squadStatus: parseSquadStatus(rider.squad_status),
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
@@ -2228,6 +2291,43 @@ export async function getCurrentTeamRaceRosterOptions(
           }
         : null,
   }));
+}
+
+async function loadCurrentMoraleByRiderIds(riderIds: string[]) {
+  const uniqueRiderIds = [...new Set(riderIds)];
+  if (uniqueRiderIds.length === 0) return new Map<string, number>();
+
+  const admin = createSupabaseAdminClient();
+  const seasonResult = await admin
+    .from("seasons")
+    .select("id, current_day_number")
+    .eq("status", "active")
+    .maybeSingle<{ id: string; current_day_number: number | null }>();
+  assertQuerySucceeded(seasonResult.error, "la saison active du moral");
+  if (!seasonResult.data) return new Map<string, number>();
+
+  const dayResult = await admin
+    .from("season_days")
+    .select("id")
+    .eq("season_id", seasonResult.data.id)
+    .eq("day_number", seasonResult.data.current_day_number ?? 1)
+    .maybeSingle<{ id: string }>();
+  assertQuerySucceeded(dayResult.error, "la journée courante du moral");
+  if (!dayResult.data) return new Map<string, number>();
+
+  const conditionsResult = await admin
+    .from("rider_condition_states")
+    .select("rider_id, morale")
+    .eq("season_day_id", dayResult.data.id)
+    .in("rider_id", uniqueRiderIds)
+    .returns<Array<{ rider_id: string; morale: number | string }>>();
+  assertQuerySucceeded(conditionsResult.error, "le moral des coureurs");
+  return new Map(
+    (conditionsResult.data ?? []).map((condition) => [
+      condition.rider_id,
+      Number(condition.morale ?? 60),
+    ]),
+  );
 }
 
 export async function getCurrentTeamStageRolePlan(
@@ -3005,6 +3105,7 @@ function groupCalendarEngagedRiders(
   rows: CalendarEngagedRiderRow[],
   stageEquipmentRows: CalendarStageEquipmentEffectsRow[],
   specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>,
+  moraleByRiderId: ReadonlyMap<string, number>,
   riderMetadataById: Map<string, RiderCountryRow>,
   countryById: Map<string, CountryRow>,
   worldChampionshipTitlesByRiderId: Map<
@@ -3188,6 +3289,7 @@ function groupCalendarEngagedRiders(
       continentalChampionships,
       age: Number(row.age),
       form: Number(row.form),
+      morale: moraleByRiderId.get(row.rider_id) ?? 60,
       physiology:
         riderMetadata?.height_cm != null &&
         riderMetadata.weight_kg != null &&

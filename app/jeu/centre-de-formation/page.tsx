@@ -23,6 +23,7 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
@@ -346,6 +347,18 @@ function ScoutingTab({
     : recentMissions;
   return (
     <div className="mt-7 space-y-8">
+      {overview.scoutingRevealActiveUntil ? (
+        <div className="rounded-2xl border border-[#42B99A]/30 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            Loupe du recruteur active
+          </p>
+          <p className="mt-1 text-sm font-black text-[#183F37]">
+            Les notes et le potentiel des juniors repérés sont entièrement
+            visibles jusqu’au{" "}
+            {formatScoutingRevealEnd(overview.scoutingRevealActiveUntil)}.
+          </p>
+        </div>
+      ) : null}
       <section aria-labelledby="scouts-title">
         <SectionHeading
           eyebrow="Cellule de recrutement"
@@ -482,6 +495,14 @@ function ScoutingTab({
       </section>
     </div>
   );
+}
+
+function formatScoutingRevealEnd(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }
 
 const TUTORIAL_SCOUTING_REPORT: TransferScoutingReport = {
@@ -1029,6 +1050,13 @@ function AcademyRiderCard({
                 </span>
               </div>
             ) : null}
+            <div className="mt-3 border-t border-[#315B3E]/10 pt-3">
+              <RiderMoraleGauge
+                value={rider.morale}
+                events={rider.moraleEvents}
+                compact
+              />
+            </div>
           </div>
         </div>
         <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">

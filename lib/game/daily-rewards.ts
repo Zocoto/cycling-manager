@@ -27,7 +27,8 @@ export type DailyRewardEffectKind =
   | "custom_staff_recruitment"
   | "construction_time_reduction"
   | "staff_level_boost"
-  | "injury_care";
+  | "injury_care"
+  | "scouting_visibility";
 
 export type DailyRewardOffer = {
   key: string;
@@ -111,6 +112,7 @@ export type DailyRewardOverview = {
   constructionProjects: DailyRewardConstructionProject[];
   staffMembers: DailyRewardStaffMember[];
   scoutingSupervision: ScoutingSupervisionStatus;
+  scoutingRevealActiveUntil: string | null;
 };
 
 export const DAILY_REWARD_RATING_OPTIONS = RIDER_RATING_AXES.map((axis) => ({

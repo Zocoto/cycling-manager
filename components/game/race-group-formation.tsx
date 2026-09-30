@@ -90,19 +90,19 @@ export function RaceGroupFormation({
       className={`relative overflow-visible ${
         formation === "breakaway-line"
           ? compact
-            ? "h-16 w-40"
-            : "h-20 w-60"
+            ? "h-20 w-40"
+            : "h-24 w-60"
           : formation === "peloton-front"
             ? compact
-              ? "h-16 w-36"
-              : "h-20 w-52"
+              ? "h-20 w-36"
+              : "h-24 w-52"
             : formation === "prime-sprint"
               ? compact
-                ? "h-20 w-40"
-                : "h-20 w-52"
+                ? "h-24 w-40"
+                : "h-24 w-52"
               : compact
-                ? "h-16 w-28"
-                : "h-20 w-44"
+                ? "h-20 w-28"
+                : "h-24 w-44"
       }`}
     >
       {isPrimeSprintBattle ? (
@@ -199,7 +199,7 @@ export function RaceGroupFormation({
                   isMoving={isMoving}
                   effort={visualEffort}
                   ridingPose={ridesStanding ? "standing" : "seated"}
-                  className={compact ? "h-7 w-12" : "h-8 w-14"}
+                  className={compact ? "h-10 w-16" : "h-11 w-[4.5rem]"}
                 />
                 {riderIncident &&
                 (riderIncident.type === "crash_individual" ||
@@ -223,7 +223,7 @@ export function RaceGroupFormation({
               </span>
               {showName ? (
                 <span
-                  className={`absolute left-1/2 top-[1.95rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${
+                  className={`absolute left-1/2 top-[2.6rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${
                     primeWinner
                       ? "bg-[#F2C94C] text-[#17261E]"
                       : incidentRider
@@ -316,7 +316,7 @@ export function RaceDepartureFormation({
   return (
     <div
       data-race-group-formation="departure"
-      className="relative h-20 w-44 overflow-visible"
+      className="relative h-24 w-44 overflow-visible"
     >
       {visibleRiderIds.map((riderId, index) => {
         const rider = riderById.get(riderId);
@@ -335,7 +335,7 @@ export function RaceDepartureFormation({
             <SideRaceCyclist
               rider={rider}
               isMoving={isMoving}
-              className="h-8 w-14"
+              className="h-11 w-[4.5rem]"
             />
           </span>
         );

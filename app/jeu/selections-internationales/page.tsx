@@ -463,6 +463,9 @@ function SelectionCard({
               >
                 Forme {selection.currentForm}/100
               </span>
+              <span className="rounded-full border border-sky-300 bg-sky-50 px-3 py-1.5 text-sky-900">
+                Moral {Math.round(selection.currentMorale)}/100
+              </span>
               <span className="rounded-full bg-[#EEF5F1] px-3 py-1.5">
                 Note {selection.overallRating.toFixed(2)}
               </span>

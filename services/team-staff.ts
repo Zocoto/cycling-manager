@@ -29,6 +29,7 @@ import {
   getStaffCapacityForDirectorLevel,
   isStaffRole,
   isTrainerSpecialty,
+  meetsMinimumStaffLevel,
   selectStaffLevelFromRoll,
   type StaffRole,
   type TrainerSpecialty,
@@ -137,7 +138,7 @@ type FinanceRow = { amount: number | string };
 
 export type StaffMarketFilters = {
   role?: StaffRole;
-  level?: number;
+  minimumLevel?: number;
   countryCode?: string;
   trainerSpecialty?: TrainerSpecialty;
 };
@@ -911,7 +912,7 @@ function toStaffMember({
 
 function matchesFilters(member: TeamStaffMember, filters: StaffMarketFilters) {
   if (filters.role && member.role !== filters.role) return false;
-  if (filters.level && member.level !== filters.level) return false;
+  if (!meetsMinimumStaffLevel(member.level, filters.minimumLevel)) return false;
   if (
     filters.countryCode &&
     member.countryCode.toUpperCase() !== filters.countryCode.toUpperCase()

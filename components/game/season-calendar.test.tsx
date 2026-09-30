@@ -21,6 +21,16 @@ const calendarSource = readFileSync(
 );
 
 describe("SeasonCalendar", () => {
+  it("abrège Grand Tour en GT dans le calendrier mobile", () => {
+    const mobileCalendarSource = calendarSource.slice(
+      calendarSource.indexOf("function MobileCalendarDay"),
+    );
+
+    expect(mobileCalendarSource).toContain(
+      '<RaceImportanceBadge importance={importance} compact />',
+    );
+  });
+
   it("évite une troisième copie des courses et isole le rendu hors écran", () => {
     expect(calendarSource).not.toContain("profileEntries");
     expect(calendarSource).toContain("[content-visibility:auto]");

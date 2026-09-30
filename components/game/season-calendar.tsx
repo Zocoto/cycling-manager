@@ -1533,7 +1533,7 @@ function MobileCalendarDay({
 
               {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
               {importance ? (
-                <RaceImportanceBadge importance={importance} />
+                <RaceImportanceBadge importance={importance} compact />
               ) : null}
               <RaceCountryFlag
                 countryCode={edition.countryCode}

@@ -16,6 +16,7 @@ import {
   type SquadStatus,
 } from "@/lib/game/squad-status";
 import { getDailyConditionHistoryLabel } from "@/lib/game/rider-form-history";
+import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -35,6 +36,7 @@ import {
   type RiderSecondaryPerformance,
 } from "@/lib/game/rider-notable-performances";
 import {
+  createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
@@ -44,6 +46,7 @@ import { parseContinentalChampionshipTitleType } from "@/services/rider-continen
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
 import { getRiderDevelopmentHistory } from "@/services/rider-development-history";
+import { getViewerScoutingVisibility } from "@/services/scouting-visibility";
 
 export type RiderEquipmentSlot = EquipmentSlot;
 
@@ -77,8 +80,10 @@ export type PublicRiderProfile = {
   scoutingReport: TransferScoutingReport | null;
   condition: {
     form: number;
+    morale: number;
     dayNumber: number | null;
     events: RiderFormEvent[];
+    moraleEvents: RiderMoraleEvent[];
   };
   medical: {
     diagnosisCode: string;
@@ -292,6 +297,17 @@ type SeasonDayRow = {
 type ConditionRow = {
   season_day_id: string;
   form: number;
+  morale: number | string;
+};
+
+type MoraleEventRow = {
+  id: string;
+  source_type: string;
+  description: string;
+  applied_delta: number | string;
+  morale_before: number | string;
+  morale_after: number | string;
+  occurred_at: string;
 };
 
 type DailyConditionEffectRow = {
@@ -420,6 +436,14 @@ export type PublicTeamRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number | null;
+  primaryRatings: {
+    mountain: number;
+    hills: number;
+    flat: number;
+    timeTrial: number;
+    cobbles: number;
+    sprint: number;
+  } | null;
 };
 
 type PublicTeamRiderRow = RiderRow;
@@ -619,6 +643,13 @@ export async function getPublicRiderProfile({
     activeSeason,
     seasons,
   });
+  const scoutingVisibilityPromise = activeSeason
+    ? getViewerScoutingVisibility({
+        admin: supabase,
+        authUserId: viewerAuthUserId,
+        seasonId: activeSeason.id,
+      })
+    : Promise.resolve({ active: false, activeUntil: null });
 
   const teamIds = [...new Set(contracts.map((contract) => contract.team_id))];
   const equipmentItemIds = [
@@ -762,6 +793,7 @@ export async function getPublicRiderProfile({
     canManage,
     juniorDevelopmentHistory,
     partnerEffectByItemId,
+    scoutingVisibility,
   ] = await Promise.all([
     performanceResultsPromise,
     divisionsPromise,
@@ -769,6 +801,7 @@ export async function getPublicRiderProfile({
     canManagePromise,
     juniorDevelopmentHistoryPromise,
     partnerEffectByItemIdPromise,
+    scoutingVisibilityPromise,
   ]);
   assertQuery(
     performanceResultsResult.error,
@@ -822,13 +855,18 @@ export async function getPublicRiderProfile({
     !canManage && isTransferTarget && Boolean(exactRatings);
   const scoutingReport =
     mustUseScoutingReport && exactRatings
-      ? createStandardTransferScoutingReport({
-          riderId: rider.id,
-          seasonId:
-            activeSeason?.id ?? currentRating?.season_id ?? "hors-saison",
-          ratings: exactRatings,
-          potentialSteps: rider.potential_steps,
-        })
+      ? rider.status === "free_agent" && scoutingVisibility.active
+        ? createExactTransferScoutingReport({
+            ratings: exactRatings,
+            potentialSteps: rider.potential_steps,
+          })
+        : createStandardTransferScoutingReport({
+            riderId: rider.id,
+            seasonId:
+              activeSeason?.id ?? currentRating?.season_id ?? "hors-saison",
+            ratings: exactRatings,
+            potentialSteps: rider.potential_steps,
+          })
       : null;
 
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
@@ -1207,7 +1245,11 @@ export async function getPublicRiderProfile({
           }
         : null,
     careerRaceDays: Number(rider.career_race_days ?? 0),
-    potentialSteps: mustUseScoutingReport ? null : rider.potential_steps,
+    potentialSteps:
+      mustUseScoutingReport &&
+      !(rider.status === "free_agent" && scoutingVisibility.active)
+        ? null
+        : rider.potential_steps,
     ratings: mustUseScoutingReport ? null : exactRatings,
     scoutingReport,
     condition,
@@ -1392,18 +1434,40 @@ export async function getPublicTeamRiders(
     activeSeasonResult.data
       ? supabase
           .from("rider_season_ratings")
-          .select("rider_id, age")
+          .select(
+            "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint",
+          )
           .eq("season_id", activeSeasonResult.data.id)
           .in("rider_id", riderIds)
-          .returns<Array<{ rider_id: string; age: number }>>()
+          .returns<
+            Array<{
+              rider_id: string;
+              age: number;
+              mountain: number;
+              hills: number;
+              flat: number;
+              time_trial: number;
+              cobbles: number;
+              sprint: number;
+            }>
+          >()
       : Promise.resolve({
-          data: [] as Array<{ rider_id: string; age: number }>,
+          data: [] as Array<{
+            rider_id: string;
+            age: number;
+            mountain: number;
+            hills: number;
+            flat: number;
+            time_trial: number;
+            cobbles: number;
+            sprint: number;
+          }>,
           error: null,
         }),
   ]);
 
   assertQuery(ridersResult.error, "les coureurs de l’équipe");
-  assertQuery(ratingsResult.error, "l’âge des coureurs de l’équipe");
+  assertQuery(ratingsResult.error, "les statistiques des coureurs de l’équipe");
 
   const countryIds = [
     ...new Set((ridersResult.data ?? []).map((rider) => rider.country_id)),
@@ -1419,8 +1483,8 @@ export async function getPublicTeamRiders(
   const countryById = new Map(
     (countries ?? []).map((country) => [country.id, country]),
   );
-  const ageByRiderId = new Map(
-    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
+  const ratingByRiderId = new Map(
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]),
   );
 
   return (ridersResult.data ?? [])
@@ -1431,6 +1495,8 @@ export async function getPublicTeamRiders(
         return null;
       }
 
+      const rating = ratingByRiderId.get(rider.id);
+
       return {
         id: rider.id,
         firstName: rider.first_name,
@@ -1439,7 +1505,17 @@ export async function getPublicTeamRiders(
         countryCode: country.iso_alpha2,
         avatarProfileKey: rider.avatar_profile_key,
         avatarSeed: rider.avatar_seed,
-        age: ageByRiderId.get(rider.id) ?? null,
+        age: rating?.age ?? null,
+        primaryRatings: rating
+          ? {
+              mountain: rating.mountain,
+              hills: rating.hills,
+              flat: rating.flat,
+              timeTrial: rating.time_trial,
+              cobbles: rating.cobbles,
+              sprint: rating.sprint,
+            }
+          : null,
       } satisfies PublicTeamRider;
     })
     .filter((rider): rider is PublicTeamRider => rider !== null)
@@ -1487,7 +1563,13 @@ async function getCurrentCondition({
   activeSeason: SeasonRow | null;
 }): Promise<PublicRiderProfile["condition"]> {
   if (!activeSeason) {
-    return { form: 75, dayNumber: null, events: [] };
+    return {
+      form: 75,
+      morale: 60,
+      dayNumber: null,
+      events: [],
+      moraleEvents: [],
+    };
   }
 
   const dayNumber = activeSeason.current_day_number ?? 1;
@@ -1502,14 +1584,14 @@ async function getCurrentCondition({
   assertQuery(seasonDayError, "la journée courante");
 
   if (!seasonDays || seasonDays.length === 0) {
-    return { form: 75, dayNumber, events: [] };
+    return { form: 75, morale: 60, dayNumber, events: [], moraleEvents: [] };
   }
 
-  const [{ data: conditions, error: conditionError }, events] =
+  const [{ data: conditions, error: conditionError }, events, moraleEvents] =
     await Promise.all([
       supabase
         .from("rider_condition_states")
-        .select("season_day_id, form")
+        .select("season_day_id, form, morale")
         .eq("rider_id", riderId)
         .in(
           "season_day_id",
@@ -1517,6 +1599,7 @@ async function getCurrentCondition({
         )
         .returns<ConditionRow[]>(),
       getRecentFormEvents({ supabase, riderId }),
+      getRecentMoraleEvents({ supabase, riderId }),
     ]);
 
   assertQuery(conditionError, "la forme du coureur");
@@ -1529,9 +1612,40 @@ async function getCurrentCondition({
 
   return {
     form: Number(condition?.form ?? 75),
+    morale: Number(condition?.morale ?? 60),
     dayNumber,
     events,
+    moraleEvents,
   };
+}
+
+async function getRecentMoraleEvents({
+  supabase,
+  riderId,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  riderId: string;
+}): Promise<RiderMoraleEvent[]> {
+  const result = await supabase
+    .from("rider_morale_events")
+    .select(
+      "id, source_type, description, applied_delta, morale_before, morale_after, occurred_at",
+    )
+    .eq("rider_id", riderId)
+    .order("occurred_at", { ascending: false })
+    .limit(20)
+    .returns<MoraleEventRow[]>();
+  assertQuery(result.error, "l’historique de moral du coureur");
+
+  return (result.data ?? []).map((event) => ({
+    id: event.id,
+    label: event.description,
+    delta: Number(event.applied_delta),
+    moraleBefore: Number(event.morale_before),
+    moraleAfter: Number(event.morale_after),
+    occurredAt: event.occurred_at,
+    sourceType: event.source_type,
+  }));
 }
 
 async function getRecentFormEvents({

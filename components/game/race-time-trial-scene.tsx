@@ -244,20 +244,22 @@ export function RaceTimeTrialScene({
                         ? "negative-split"
                         : "even"
                   }
-                  className="absolute z-20 -translate-x-1/2 transition-[left] duration-700 ease-linear"
+                  className="cm-race-motion-layer pointer-events-none absolute inset-0 z-20 transition-transform duration-300 ease-linear"
                   style={{
-                    left: `${left}%`,
-                    top: isTeamTimeTrial ? `${49 + (unitIndex % 3) * 8}%` : "55%",
+                    transform: `translate3d(${left}%, ${
+                      isTeamTimeTrial ? 49 + (unitIndex % 3) * 8 : 55
+                    }%, 0)`,
                   }}
                   title={`${unit.label} · départ n°${unit.startOrder}`}
                 >
-                  <div className={isTeamTimeTrial ? "relative h-10 w-24" : "relative h-10 w-20"}>
+                  <div className="pointer-events-auto absolute left-0 top-0 -translate-x-1/2">
+                  <div className={isTeamTimeTrial ? "relative h-14 w-28" : "relative h-14 w-24"}>
                     {riders.map((rider, riderIndex) => (
                       <div
                         key={rider.id}
                         className="absolute"
                         style={{
-                          left: `${riderIndex * -9}px`,
+                          left: `${riderIndex * -12}px`,
                           top: `${riderIndex * 3}px`,
                           zIndex: riders.length - riderIndex,
                         }}
@@ -265,7 +267,7 @@ export function RaceTimeTrialScene({
                         <SideRaceCyclist
                           rider={rider}
                           isMoving={isMoving}
-                          className="h-8 w-14"
+                          className="h-11 w-[4.5rem]"
                           timeTrial
                           rearDiscWheel={hasDiscWheel(rider.id)}
                         />
@@ -278,6 +280,7 @@ export function RaceTimeTrialScene({
                       ? ` · ${getTeamMonogram(riders[0].teamName)}`
                       : ""}
                   </span>
+                  </div>
                 </div>
               );
             })}
