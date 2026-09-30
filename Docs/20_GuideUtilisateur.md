@@ -1,6 +1,6 @@
 # Guide utilisateur de Cyclo Stratège
 
-Dernière revue fonctionnelle : 23 juillet 2026.
+Dernière revue fonctionnelle : 30 septembre 2026.
 
 Ce document décrit le fonctionnement réellement disponible dans l'application.
 La version destinée aux joueurs est publiée sur la page `/guide`.
@@ -143,7 +143,7 @@ rouleur, baroudeur et sprinteur.
 Un entraîneur n'apporte son bonus qu'au coureur auquel il est affecté :
 
 - +4 % d'efficacité par niveau sur les notes de sa spécialité ;
-- +5 % sur toute la séance si l'entraîneur et le coureur partagent la même
+- +10 % sur toute la séance si l'entraîneur et le coureur partagent la même
   nationalité.
 
 Une blessure, un stage de forme ou une reconnaissance empêche la séance. Une
@@ -159,8 +159,10 @@ Le centre de soin permet :
 - d'utiliser les interventions d'un nutritionniste ;
 - de réserver un stage de forme.
 
-Les blessures de chute principales durent de 72 à 120 heures. Un casque peut
-réduire le risque de blessure jusqu'à la limite prévue par le moteur.
+Le diagnostic détermine la durée de convalescence et le risque d'abandon. Les
+atteintes vont des abrasions superficielles aux fractures graves ou à la
+commotion. Un casque peut réduire le risque de blessure dans la limite indiquée
+par l'équipement.
 
 Le kiné ne protège que les coureurs qui lui sont affectés. Plusieurs kinés
 affectés au même coureur cumulent leurs niveaux, dans la limite des protections
@@ -168,8 +170,11 @@ appliquées par chaque règle.
 
 Les stages durent de un à trois jours :
 
-- classique : +5 forme par jour, 2 000 € par jour ;
-- premium : +10 forme par jour, 6 000 € par jour.
+- classique : +10 forme par jour, 2 000 € par jour ;
+- premium : +20 forme par jour, 6 000 € par jour.
+
+Les niveaux cumulés des médecins augmentent l'efficacité d'un stage de 5 % par
+niveau, avec un plafond de +50 %.
 
 La blessure de fatigue ne peut pas être raccourcie par un protocole.
 
@@ -241,8 +246,17 @@ Une classique possède son classement final. Un tour présente :
 - le meilleur jeune de moins de 25 ans ;
 - le classement par équipes.
 
-Les écarts sont calculés depuis le vainqueur. Les membres d'un même groupe
-d'arrivée reçoivent le même temps, affiché « MT ».
+Les écarts sont calculés depuis le vainqueur. Lors d'un sprint massif, les
+membres d'un même groupe reçoivent le même temps, affiché « MT ». Hors sprint
+massif, une seconde de séparation suffit à créer un écart officiel.
+
+Lorsqu'un groupe en rejoint un autre, les deux ensembles fusionnent réellement.
+En montagne, les coureurs faibles peuvent former un grupetto pour économiser
+leurs forces et tenter de finir dans les délais, sans garantie de pouvoir le
+suivre jusqu'au bout.
+
+La page de résultat propose un journal repliable qui résume les principales
+échappées, jonctions, attaques, reprises, incidents et la victoire.
 
 Un abandon reste en fin de résultat avec la mention « Abandon ». Sur un tour, le
 coureur ne prend plus les départs suivants.
@@ -370,10 +384,20 @@ La signature fixe :
 
 Entre J21 et J28, le DS prépare le partenariat de la saison suivante. Une rupture
 anticipée retire le sponsor, conserve le budget déjà reçu, échoue les objectifs
-encore ouverts et coûte 10 points de réputation.
+encore ouverts et coûte 25 points de réputation.
 
-Le suivi sportif détaillé des objectifs de sponsor est encore annoncé comme
-incomplet dans l'interface actuelle.
+À partir de la saison 4, environ une offre sur trois peut inclure un objectif
+principal : sa réussite verse une prime immédiate, tandis que son échec retire
+la réputation chiffrée avant signature. Les objectifs de course sont alignés sur
+le prestige du sponsor.
+
+À 1 500 points de réputation, l'équipe peut signer un sponsor secondaire. Il
+propose trois à cinq objectifs rémunérés immédiatement, compose le nom de
+l'équipe avec le sponsor principal et permet de placer son logo sur le maillot.
+
+Le partenariat équipementier dure deux saisons. À 1 250 points, le DS peut
+dépenser 200 points de réputation pour obtenir un quatrième équipement exclusif
+pendant la durée du contrat.
 
 ## 17. Finances
 
@@ -426,8 +450,18 @@ débloquées au niveau 10.
 
 ### Réputation
 
-La réputation ouvre des marchés, améliore l'attractivité auprès des sponsors et
-intervient dans l'accès à certaines courses.
+Le plafond de 1 000 points disparaît à partir de la saison 4. Les rangs sont :
+Amateur (0), Prometteur (30), Reconnu (75), Établi (200), Référence (400),
+Élite (750), Icône (1 000), Institution (1 250) et Légende (1 500).
+
+La réputation peut être temporairement engagée pour renforcer une conférence de
+presse ou une candidature à une wildcard. Elle peut aussi être dépensée
+définitivement pour améliorer un contrat sponsor ou obtenir l'équipement
+exclusif du partenaire. Le solde disponible exclut les points déjà engagés.
+
+En fin de saison, la part supérieure à 300 points subit un maintien de 3 %, 5 %
+ou 7 % selon le niveau atteint, plafonné à 75 points. Les victoires World et
+Élite réduisent cette retenue de 5 points chacune, jusqu'à 50 points.
 
 ### UCI et divisions
 
@@ -467,7 +501,10 @@ Le centre de formation permet :
 - de choisir une priorité d'entraînement quotidienne ;
 - de recruter le jeune pour son passage professionnel.
 
-La Development Team est encore en construction.
+L'équipe de développement se compose entre J1 et J7, puis son effectif est
+verrouillé à J8. Ses courses sont simulées sans live ; les podiums font
+progresser les juniors selon leur profil et leur historique est conservé lors du
+passage professionnel.
 
 ## 21. Sélections nationales et internationales
 
@@ -488,24 +525,11 @@ jeu. Les éléments privés restent réservés au DS de l'équipe :
 - planning saisonnier individuel ;
 - décisions médicales et financières.
 
-## 23. État fonctionnel audité
+## 23. Mécaniques détaillées dans le guide public
 
-### Opérationnel
-
-- création de carrière et équipe amateur ;
-- calendrier AM/PM et inscriptions ;
-- lives, chat, replays et résultats ;
-- entraînement, forme et centre de soin ;
-- staff et transferts ;
-- matériel commercial et inventaire ;
-- finances et objectifs de carrière ;
-- classements, divisions et wildcards ;
-- scouting, école de cyclisme et infrastructures.
-
-### Partiel ou en construction
-
-- suivi sportif détaillé des objectifs de sponsor ;
-- Development Team ;
-- partenariat équipementier dédié ;
-- laboratoire de simulation réservé aux comptes autorisés.
+La page `/guide` est la référence exhaustive destinée aux joueurs. Elle contient
+en plus les barèmes S4 complets, les domaines d'entraînement note par note, le
+poids et le moral, les rôles et chronos par équipes, les courses locales, les
+sponsors principal et secondaire, tous les usages de la réputation, le
+catalogue des infrastructures et leurs spécialisations d'équipe et fédérales.
 
