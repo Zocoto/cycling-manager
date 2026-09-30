@@ -290,7 +290,7 @@ function EmploymentMarket({
             ))}
           </select>
         </FilterField>
-        <FilterField label="Niveau">
+        <FilterField label="Niveau minimum">
           <select
             name="niveau"
             defaultValue={readQuery(query.niveau)}
@@ -299,7 +299,7 @@ function EmploymentMarket({
             <option value="">Tous les niveaux</option>
             {[1, 2, 3, 4, 5].map((level) => (
               <option key={level} value={level}>
-                Niveau {level}
+                Niveau {level} et plus
               </option>
             ))}
           </select>
@@ -1074,7 +1074,7 @@ function readFilters(
 
   return {
     role: isStaffRole(roleValue) ? roleValue : undefined,
-    level:
+    minimumLevel:
       Number.isInteger(levelValue) && levelValue >= 1 && levelValue <= 5
         ? levelValue
         : undefined,

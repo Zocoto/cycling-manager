@@ -191,6 +191,12 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "1 staff sur mesure · 20 % de chance pour chaque niveau":
     "1 custom staff member · 20% chance for each level",
   "Métier": "Role",
+  "Niveau minimum": "Minimum level",
+  "Niveau 1 et plus": "Level 1 and above",
+  "Niveau 2 et plus": "Level 2 and above",
+  "Niveau 3 et plus": "Level 3 and above",
+  "Niveau 4 et plus": "Level 4 and above",
+  "Niveau 5 et plus": "Level 5 and above",
   "Moyenne générale": "Overall average",
   "Les meilleurs coureurs": "Top riders",
   "Objectif": "Objective",

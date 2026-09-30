@@ -244,6 +244,7 @@ export type TransferMarketFilters = {
   country?: string;
   minimumAge?: number;
   maximumAge?: number;
+  minimumPotentialSteps?: number;
   rating?: keyof RiderRatings | "overall";
   minimumRating?: number;
   page?: number;
@@ -428,6 +429,8 @@ export async function getTransferMarketOverview(
             p_country_code: filters.country || null,
             p_minimum_age: filters.minimumAge ?? null,
             p_maximum_age: filters.maximumAge ?? null,
+            p_minimum_potential_steps:
+              filters.minimumPotentialSteps ?? null,
             p_rating: filters.rating ?? "overall",
             p_minimum_rating: filters.minimumRating ?? null,
             p_profile: filters.profile ?? null,

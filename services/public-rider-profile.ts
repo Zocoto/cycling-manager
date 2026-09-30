@@ -436,6 +436,14 @@ export type PublicTeamRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number | null;
+  primaryRatings: {
+    mountain: number;
+    hills: number;
+    flat: number;
+    timeTrial: number;
+    cobbles: number;
+    sprint: number;
+  } | null;
 };
 
 type PublicTeamRiderRow = RiderRow;
@@ -1426,18 +1434,40 @@ export async function getPublicTeamRiders(
     activeSeasonResult.data
       ? supabase
           .from("rider_season_ratings")
-          .select("rider_id, age")
+          .select(
+            "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint",
+          )
           .eq("season_id", activeSeasonResult.data.id)
           .in("rider_id", riderIds)
-          .returns<Array<{ rider_id: string; age: number }>>()
+          .returns<
+            Array<{
+              rider_id: string;
+              age: number;
+              mountain: number;
+              hills: number;
+              flat: number;
+              time_trial: number;
+              cobbles: number;
+              sprint: number;
+            }>
+          >()
       : Promise.resolve({
-          data: [] as Array<{ rider_id: string; age: number }>,
+          data: [] as Array<{
+            rider_id: string;
+            age: number;
+            mountain: number;
+            hills: number;
+            flat: number;
+            time_trial: number;
+            cobbles: number;
+            sprint: number;
+          }>,
           error: null,
         }),
   ]);
 
   assertQuery(ridersResult.error, "les coureurs de l’équipe");
-  assertQuery(ratingsResult.error, "l’âge des coureurs de l’équipe");
+  assertQuery(ratingsResult.error, "les statistiques des coureurs de l’équipe");
 
   const countryIds = [
     ...new Set((ridersResult.data ?? []).map((rider) => rider.country_id)),
@@ -1453,8 +1483,8 @@ export async function getPublicTeamRiders(
   const countryById = new Map(
     (countries ?? []).map((country) => [country.id, country]),
   );
-  const ageByRiderId = new Map(
-    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
+  const ratingByRiderId = new Map(
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]),
   );
 
   return (ridersResult.data ?? [])
@@ -1465,6 +1495,8 @@ export async function getPublicTeamRiders(
         return null;
       }
 
+      const rating = ratingByRiderId.get(rider.id);
+
       return {
         id: rider.id,
         firstName: rider.first_name,
@@ -1473,7 +1505,17 @@ export async function getPublicTeamRiders(
         countryCode: country.iso_alpha2,
         avatarProfileKey: rider.avatar_profile_key,
         avatarSeed: rider.avatar_seed,
-        age: ageByRiderId.get(rider.id) ?? null,
+        age: rating?.age ?? null,
+        primaryRatings: rating
+          ? {
+              mountain: rating.mountain,
+              hills: rating.hills,
+              flat: rating.flat,
+              timeTrial: rating.time_trial,
+              cobbles: rating.cobbles,
+              sprint: rating.sprint,
+            }
+          : null,
       } satisfies PublicTeamRider;
     })
     .filter((rider): rider is PublicTeamRider => rider !== null)
