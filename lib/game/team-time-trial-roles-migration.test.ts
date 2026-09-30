@@ -16,8 +16,8 @@ describe("team time-trial role persistence", () => {
     expect(migration).toContain("p_roles jsonb");
     expect(migration).toContain("p_strategy jsonb");
     expect(migration).toContain("save_current_team_race_preparation(");
-    expect(migration).toContain(
-      "save_current_team_time_trial_preparation(\n    p_race_edition_id",
+    expect(migration).toMatch(
+      /save_current_team_time_trial_preparation\(\s+p_race_edition_id/,
     );
   });
 });

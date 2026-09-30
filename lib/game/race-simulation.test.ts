@@ -41,6 +41,7 @@ import {
   getNonMassFinishEffortGapSeconds,
   getRoadCrashRiskProfile,
   getRoadFinishMode,
+  getRaceObjectiveControllingTeamIds,
   getReducedSprintFinishBaseScore,
   isFlatRunInGroupSprint,
   isLikelyMassSprint,
@@ -635,6 +636,29 @@ describe("getDetachedRiderLatchOutcome", () => {
       }).canLatch,
     ).toBe(false);
   });
+
+  it("permet à un groupe frais de reprendre les roues sur le plat sans gommer le même écart en montée", () => {
+    const common = {
+      riderTerrainRating: 76,
+      targetPaceRating: 79,
+      resistanceRating: 74,
+      enduranceRating: 76,
+      energy: 62,
+      form: 92,
+      gapSeconds: 14,
+      targetGroupSize: 10,
+      selectionDifficulty: 0.8,
+      surface: "asphalt" as const,
+      isPriorityRider: true,
+    };
+
+    expect(
+      getDetachedRiderLatchOutcome({ ...common, terrain: "flat" }).canLatch,
+    ).toBe(true);
+    expect(
+      getDetachedRiderLatchOutcome({ ...common, terrain: "climb" }).canLatch,
+    ).toBe(false);
+  });
 });
 
 describe("getDetachedRiderPursuitOutcome", () => {
@@ -961,6 +985,66 @@ describe("normalizeRoadSnapshotGroups", () => {
       riderIds: ["caught", "p1", "p2"],
       gapToLeaderSeconds: 18,
     });
+  });
+
+  it("retrouve le groupe principal d'un ancien replay privé de son type peloton", () => {
+    const normalized = normalizeRoadSnapshotGroups([
+      {
+        id: "front",
+        label: "Groupe en poursuite",
+        type: "chase",
+        riderIds: ["front-1", "front-2"],
+        gapToLeaderSeconds: 0,
+        averageEnergy: 65,
+      },
+      {
+        id: "main-transition",
+        label: "Groupe distancé",
+        type: "dropped",
+        riderIds: ["main-1", "main-2", "main-3", "main-4"],
+        gapToLeaderSeconds: 48,
+        averageEnergy: 55,
+      },
+      {
+        id: "rear",
+        label: "Groupe distancé",
+        type: "dropped",
+        riderIds: ["rear-1"],
+        gapToLeaderSeconds: 75,
+        averageEnergy: 35,
+      },
+    ]);
+
+    expect(normalized.map((group) => group.label)).toEqual([
+      "Échappée E1",
+      "Peloton",
+      "Attardés A1",
+    ]);
+  });
+});
+
+describe("getRaceObjectiveControllingTeamIds", () => {
+  it("fait toujours participer une équipe ayant choisi de contrôler la course", () => {
+    const controllingTeamIds = getRaceObjectiveControllingTeamIds({
+      baseControllingTeamIds: new Set<string>(),
+      likelyMassSprint: false,
+      teamStrategies: [
+        {
+          teamId: "control-team",
+          objective: "mountain_points",
+          collectivePosture: "balanced",
+          breakawayPolicy: "avoid",
+          chasePolicy: "always",
+          lieutenantRiderId: null,
+          dangerPacerRiderId: null,
+          protectorRiderId: null,
+          breakawayRiderId: null,
+          attackOrders: [],
+        },
+      ],
+    });
+
+    expect(controllingTeamIds).toEqual(new Set(["control-team"]));
   });
 });
 

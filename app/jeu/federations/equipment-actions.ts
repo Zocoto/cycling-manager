@@ -126,6 +126,19 @@ export async function saveFederationTimeTrialPreparationAction(formData: FormDat
   const slug = readFormValue(formData, "slug");
   const plans = readTimeTrialPlans(formData);
   const isTeamTimeTrial = stageType === "team_time_trial";
+  const roles = readSubmittedRoles(formData).map(([riderId, role]) => ({
+    riderId,
+    role,
+  }));
+  const objective = readFormValue(formData, "objective");
+  const collectivePosture = readFormValue(formData, "collectivePosture");
+  const breakawayPolicy = readFormValue(formData, "breakawayPolicy");
+  const chasePolicy = readFormValue(formData, "chasePolicy");
+  const lieutenantRiderId = readOptionalRiderId(formData, "lieutenantRiderId");
+  const dangerPacerRiderId = readOptionalRiderId(formData, "dangerPacerRiderId");
+  const protectorRiderId = readOptionalRiderId(formData, "protectorRiderId");
+  const breakawayRiderId = readOptionalRiderId(formData, "breakawayRiderId");
+  const attackOrders = readAttackOrders(formData);
 
   if (
     !countryCode ||
@@ -136,20 +149,65 @@ export async function saveFederationTimeTrialPreparationAction(formData: FormDat
     !plans ||
     plans.length === 0 ||
     (isTeamTimeTrial &&
-      Math.abs(plans.reduce((total, plan) => total + (plan.relaySharePct ?? 0), 0) - 100) > 0.001)
+      (Math.abs(plans.reduce((total, plan) => total + (plan.relaySharePct ?? 0), 0) - 100) > 0.001 ||
+        roles.length === 0 ||
+        !isRaceStrategyValue(RACE_STRATEGY_OBJECTIVES, objective) ||
+        !isRaceStrategyValue(RACE_COLLECTIVE_POSTURES, collectivePosture) ||
+        !isRaceStrategyValue(RACE_BREAKAWAY_POLICIES, breakawayPolicy) ||
+        !isRaceStrategyValue(RACE_CHASE_POLICIES, chasePolicy) ||
+        [lieutenantRiderId, dangerPacerRiderId, protectorRiderId, breakawayRiderId]
+          .some((riderId) => riderId !== null && !isUuid(riderId)) ||
+        attackOrders === null))
   ) {
-    redirectWithPreparationError(countryCode, "Le plan national du contre-la-montre est incomplet ou invalide.");
+    redirectWithPreparationError(
+      countryCode,
+      isTeamTimeTrial
+        ? "Le plan collectif du contre-la-montre est incomplet ou invalide."
+        : "Le plan national du contre-la-montre est incomplet ou invalide.",
+    );
+  }
+
+  const dutyRiderIds = [
+    lieutenantRiderId,
+    dangerPacerRiderId,
+    protectorRiderId,
+    breakawayRiderId,
+  ].filter((riderId): riderId is string => Boolean(riderId));
+  if (isTeamTimeTrial && new Set(dutyRiderIds).size !== dutyRiderIds.length) {
+    redirectWithPreparationError(
+      countryCode,
+      "Un coureur ne peut pas cumuler deux missions spéciales.",
+    );
   }
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.rpc(
     "save_national_federation_time_trial_preparation",
-    {
-      p_country_code: countryCode,
-      p_race_edition_id: editionId,
-      p_stage_id: stageId,
-      p_plan: plans,
-    },
+    isTeamTimeTrial
+      ? {
+          p_country_code: countryCode,
+          p_race_edition_id: editionId,
+          p_stage_id: stageId,
+          p_plan: plans,
+          p_roles: roles,
+          p_strategy: {
+            objective,
+            collectivePosture,
+            breakawayPolicy,
+            chasePolicy,
+            lieutenantRiderId,
+            dangerPacerRiderId,
+            protectorRiderId,
+            breakawayRiderId,
+            attackOrders,
+          },
+        }
+      : {
+          p_country_code: countryCode,
+          p_race_edition_id: editionId,
+          p_stage_id: stageId,
+          p_plan: plans,
+        },
   );
   if (error) redirectWithPreparationError(countryCode, error.message);
 
