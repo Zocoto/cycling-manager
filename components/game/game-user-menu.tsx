@@ -6,9 +6,16 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import Link from "@/components/ui/app-link";
+import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
 import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
 
-export function GameUserMenu({ displayName }: { displayName?: string }) {
+export function GameUserMenu({
+  displayName,
+  viewerEmail,
+}: {
+  displayName?: string;
+  viewerEmail?: string | null;
+}) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const [open, setOpen] = useState(false);
@@ -45,6 +52,7 @@ export function GameUserMenu({ displayName }: { displayName?: string }) {
 
   const menuLabel = isEnglish ? "User menu" : "Menu utilisateur";
   const accountLabel = displayName?.trim() || (isEnglish ? "My account" : "Mon compte");
+  const showPcmExport = canAccessPcmExport(viewerEmail);
 
   return (
     <div ref={rootRef} data-game-user-menu="true" className="relative shrink-0">
@@ -141,6 +149,19 @@ export function GameUserMenu({ displayName }: { displayName?: string }) {
             }
             icon={<ReferralIcon />}
           />
+
+          {showPcmExport ? (
+            <UserMenuLink
+              href="/jeu/export-pcm"
+              label={isEnglish ? "PCM26 export" : "Export PCM26"}
+              description={
+                isEnglish
+                  ? "Generate the database and installation pack"
+                  : "Générez la base et le pack d’installation"
+              }
+              icon={<DatabaseExportIcon />}
+            />
+          ) : null}
 
           <PushNotificationControl variant="menu" isEnglish={isEnglish} />
 
@@ -276,6 +297,26 @@ function ReferralIcon() {
       <circle cx="14" cy="8" r="2" />
       <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
       <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
+    </svg>
+  );
+}
+
+function DatabaseExportIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-5 w-5"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <ellipse cx="8" cy="5" rx="4.5" ry="2" />
+      <path d="M3.5 5v4c0 1.1 2 2 4.5 2m4.5-6v3" />
+      <path d="M3.5 9v4c0 1.1 2 2 4.5 2h1" />
+      <path d="M13 10v6m0 0-2.5-2.5M13 16l2.5-2.5" />
     </svg>
   );
 }

@@ -31,5 +31,28 @@ describe("GameUserMenu", () => {
     expect(markup).toContain('rel="noopener noreferrer"');
     expect(markup).toContain('data-user-menu-language="true"');
     expect(markup).toContain("Langue de l’interface");
+    expect(markup).not.toContain('href="/jeu/export-pcm"');
+  });
+
+  it("affiche l’export PCM26 uniquement au compte administrateur autorisé", () => {
+    const authorizedMarkup = renderToStaticMarkup(
+      <GameUserMenu
+        displayName="Roger Letesteur"
+        viewerEmail="paul.leblanc22@gmail.com"
+      />,
+    );
+    const unauthorizedMarkup = renderToStaticMarkup(
+      <GameUserMenu
+        displayName="Autre directeur"
+        viewerEmail="manager@example.com"
+      />,
+    );
+
+    expect(authorizedMarkup).toContain('href="/jeu/export-pcm"');
+    expect(authorizedMarkup).toContain("Export PCM26");
+    expect(authorizedMarkup).toContain(
+      "Générez la base et le pack d’installation",
+    );
+    expect(unauthorizedMarkup).not.toContain('href="/jeu/export-pcm"');
   });
 });

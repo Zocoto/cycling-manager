@@ -211,7 +211,10 @@ export function GameHeader({
             className="flex min-w-0 shrink-0 items-center gap-1 sm:ml-auto sm:gap-2 lg:ml-0"
           >
             <MobilePageRefreshControl isEnglish={isEnglish} />
-            <GameUserMenu displayName={displayName} />
+            <GameUserMenu
+              displayName={displayName}
+              viewerEmail={simulatorEmail}
+            />
             <LogoutButton isEnglish={isEnglish} />
           </div>
         </div>
