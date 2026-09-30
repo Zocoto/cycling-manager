@@ -14,7 +14,7 @@ const migration = readFileSync(
 const lutchomaniaRepairMigration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260930150000_attach_lutchomania24_to_gouille.sql",
+    "supabase/migrations/20260930170000_attach_lutchomania24_to_gouille.sql",
   ),
   "utf8",
 );
