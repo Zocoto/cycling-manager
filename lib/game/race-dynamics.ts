@@ -113,6 +113,51 @@ export function getContextualBreakawayGapCeiling({
   return Math.round(clamp(ceiling, 360, 1_800));
 }
 
+/**
+ * Gives the morning breakaway a scenario-specific target instead of making
+ * every peloton settle around the same gap. An explicit "control the race"
+ * order keeps the move in a safe window; without one, the field can grant a
+ * substantially larger advantage and occasionally misjudge the chase.
+ */
+export function getContextualBreakawayTargetGapSeconds({
+  randomRoll,
+  explicitControllerCount,
+  naturalControllerCount,
+  likelyMassSprint,
+}: {
+  randomRoll: number;
+  explicitControllerCount: number;
+  naturalControllerCount: number;
+  likelyMassSprint: boolean;
+}) {
+  const roll = clamp(randomRoll, 0, 1);
+  const explicitControllers = Math.max(
+    0,
+    Math.floor(explicitControllerCount),
+  );
+  const naturalControllers = Math.max(
+    0,
+    Math.floor(naturalControllerCount),
+  );
+
+  if (explicitControllers >= 2) {
+    return Math.round(
+      clamp(145 + roll * 85 - (likelyMassSprint ? 10 : 0), 120, 240),
+    );
+  }
+  if (explicitControllers === 1) {
+    return Math.round(
+      clamp(175 + roll * 115 - (likelyMassSprint ? 15 : 0), 145, 310),
+    );
+  }
+
+  const passiveControlReduction =
+    Math.min(75, naturalControllers * 15) + (likelyMassSprint ? 30 : 0);
+  return Math.round(
+    clamp(250 + Math.pow(roll, 1.55) * 430 - passiveControlReduction, 210, 720),
+  );
+}
+
 /** The morning move scales with the actual field rather than a fixed cap. */
 export function getContextualBreakawayMaximum({
   riderCount,

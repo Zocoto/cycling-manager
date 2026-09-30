@@ -126,11 +126,71 @@ function stabilizeRaceVisualFrame(
     segmentProgress,
     sourceTimelineIndex: frame.sourceTimelineIndex,
   });
+  const groupsWithPelotonAnchor = preserveVisualPelotonAnchor({
+    groups: groupsWithContinuousMembership,
+    officialFrom,
+    officialTo,
+    segmentProgress,
+  });
 
   return {
     ...frame,
-    groups: mergeNearbyDroppedVisualGroups(groupsWithContinuousMembership),
+    groups: mergeNearbyDroppedVisualGroups(groupsWithPelotonAnchor),
   };
+}
+
+/**
+ * A whole bunch can change group id between two official snapshots. During
+ * interpolation it then becomes a temporary transition group and used to lose
+ * its peloton type, making the UI call the main field "Groupe distancé". The
+ * official peloton membership is used only as a visual anchor; sporting group
+ * memberships and gaps remain untouched.
+ */
+function preserveVisualPelotonAnchor({
+  groups,
+  officialFrom,
+  officialTo,
+  segmentProgress,
+}: {
+  groups: RaceGroupSnapshot[];
+  officialFrom: RaceTimelineSnapshot;
+  officialTo: RaceTimelineSnapshot;
+  segmentProgress: number;
+}) {
+  if (groups.some((group) => group.type === "peloton")) return groups;
+
+  const preferredSnapshots =
+    segmentProgress < 0.5
+      ? [officialFrom, officialTo]
+      : [officialTo, officialFrom];
+  const referencePeloton = preferredSnapshots
+    .flatMap((snapshot) => snapshot.groups)
+    .find((group) => group.type === "peloton");
+  if (!referencePeloton) return groups;
+
+  const referenceRiderIds = new Set(referencePeloton.riderIds);
+  const anchor = groups
+    .map((group, index) => ({
+      index,
+      overlap: group.riderIds.filter((riderId) =>
+        referenceRiderIds.has(riderId),
+      ).length,
+      size: group.riderIds.length,
+    }))
+    .filter((candidate) => candidate.overlap > 0)
+    .sort(
+      (first, second) =>
+        second.overlap - first.overlap ||
+        second.size - first.size ||
+        first.index - second.index,
+    )[0];
+  if (!anchor) return groups;
+
+  return groups.map((group, index) =>
+    index === anchor.index
+      ? { ...group, label: "Peloton", type: "peloton" as const }
+      : group,
+  );
 }
 
 type RiderGroupTransition = {

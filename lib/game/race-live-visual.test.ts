@@ -387,6 +387,79 @@ describe("race live visual timeline", () => {
     expect(timeline[1]?.groups[0]?.label).toBe("Groupe de tête");
   });
 
+  it("conserve un peloton visuel quand tout le groupe change d'identifiant", () => {
+    const escaped = {
+      id: "escaped",
+      label: "Échappée",
+      type: "breakaway" as const,
+      riderIds: ["escaped-1", "escaped-2"],
+      gapToLeaderSeconds: 0,
+      averageEnergy: 70,
+    };
+    const mainRiderIds = ["main-1", "main-2", "main-3", "main-4"];
+    const originalPeloton = {
+      id: "peloton-original",
+      label: "Peloton",
+      type: "peloton" as const,
+      riderIds: mainRiderIds,
+      gapToLeaderSeconds: 42,
+      averageEnergy: 58,
+    };
+    const renamedPeloton = {
+      ...originalPeloton,
+      id: "peloton-next-segment",
+      gapToLeaderSeconds: 48,
+    };
+    const rear = {
+      id: "rear",
+      label: "Groupe attardé",
+      type: "dropped" as const,
+      riderIds: ["rear-1"],
+      gapToLeaderSeconds: 75,
+      averageEnergy: 35,
+    };
+    const timeline: RaceTimelineSnapshot[] = [
+      {
+        segmentNumber: 10,
+        completedDistanceKm: 100,
+        groups: [escaped, originalPeloton, rear],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+      {
+        segmentNumber: 11,
+        completedDistanceKm: 110,
+        groups: [escaped, renamedPeloton, rear],
+        incidents: [],
+        abandonments: [],
+        commentary: [],
+      },
+    ];
+    const [frame] = getRaceVisualTimeline(
+      buildSimulation({
+        timeline,
+        visualTimeline: [
+          {
+            segmentNumber: 11,
+            completedDistanceKm: 104,
+            sourceTimelineIndex: 1,
+            groups: [escaped, originalPeloton, rear],
+          },
+        ],
+      }),
+    );
+
+    expect(frame.groups.map((group) => [group.label, group.type])).toEqual([
+      ["Échappée E1", "breakaway"],
+      ["Peloton", "peloton"],
+      ["Attardés A1", "dropped"],
+    ]);
+    expect(
+      frame.groups.find((group) => group.type === "peloton")?.riderIds,
+    ).toEqual(mainRiderIds);
+  });
+
   it("interpolates group gaps and tactical pressure without blending rider identities", () => {
     const frames = [
       {

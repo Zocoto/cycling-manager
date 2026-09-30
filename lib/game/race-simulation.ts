@@ -64,6 +64,7 @@ import {
 import {
   evolveBreakawayMomentum,
   getContextualBreakawayGapCeiling,
+  getContextualBreakawayTargetGapSeconds,
   getContextualBreakawayMaximum,
   splitRaceSegmentIntoSimulationTicks,
 } from "./race-dynamics";
@@ -719,7 +720,9 @@ export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
-const SELECTIVE_FINISH_SAME_TIME_MAX_GAP_SECONDS = 0;
+// A selective finish keeps genuine gaps, but differences of one or two
+// seconds inside the same line of riders are not separate sporting groups.
+const SELECTIVE_FINISH_SAME_TIME_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const DELAYED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const DROPPED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
 const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
@@ -2118,6 +2121,14 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   for (const teamId of tacticalResolution.controlTeamIds) {
     controllingTeamIds.add(teamId);
   }
+  const explicitControlTeamIds = new Set(
+    (input.teamStrategies ?? [])
+      .filter((strategy) => strategy.chasePolicy === "always")
+      .map((strategy) => strategy.teamId),
+  );
+  for (const teamId of tacticalResolution.controlTeamIds) {
+    explicitControlTeamIds.add(teamId);
+  }
   const tacticalChaseMultiplier = Math.min(
     1.16,
     1 + tacticalResolution.controlTeamIds.size * 0.08,
@@ -2169,7 +2180,15 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   let lastDecisiveFavoriteAttackAtKm = Number.NEGATIVE_INFINITY;
   let previousLargeBreakawayDecision: LargeBreakawayStandoffDecision = null;
   let pelotonHasReleasedSafeBreakaway = false;
-  const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
+  const breakawayTargetGapSeconds = getContextualBreakawayTargetGapSeconds({
+    randomRoll: random(),
+    explicitControllerCount: explicitControlTeamIds.size,
+    naturalControllerCount: Math.max(
+      0,
+      controllingTeamIds.size - explicitControlTeamIds.size,
+    ),
+    likelyMassSprint,
+  });
   let hillyClimbLoad = 0;
 
   input.segments.forEach((segment, segmentIndex) => {
@@ -2219,14 +2238,19 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       commentary,
     });
 
-    resolveNearbyDetachedGroupLatching({
-      states,
-      segment,
-      segmentIndex,
-      profileType: input.profileType,
-      hillyClimbLoad,
-      commentary,
-    });
+    // On selective terrain riders need an immediate chance to catch the wheel
+    // before the next split. On flat roads and descents, one resolution after
+    // the segment is enough and avoids repeating the same expensive grouping.
+    if (segment.terrain === "climb" || segment.surface === "cobbles") {
+      resolveNearbyDetachedGroupLatching({
+        states,
+        segment,
+        segmentIndex,
+        profileType: input.profileType,
+        hillyClimbLoad,
+        commentary,
+      });
+    }
 
     if (
       !delayedAttackLaunched &&
@@ -5686,12 +5710,12 @@ export function getDetachedRiderLatchOutcome({
         9,
       )
     : clamp(
-        8 +
+        (terrain === "descent" ? 11 : 9.5) +
           (isPriorityRider ? 2 : 0) +
-          Math.max(0, energy - 25) * 0.045 +
+          Math.max(0, energy - 25) * 0.055 +
           draftAllowance,
-        7,
-        13,
+        terrain === "descent" ? 9 : 8,
+        terrain === "descent" ? 20 : 17,
       );
   const minimumEnergy = selectiveTerrain
     ? ABSOLUTE_EXHAUSTION_ENERGY + 2 + normalizedDifficulty * 3.2
@@ -7599,7 +7623,6 @@ function resolveNearbyDetachedGroupLatching({
   hillyClimbLoad: number;
   commentary: string[];
 }) {
-  if (segment.terrain !== "climb" && segment.surface !== "cobbles") return;
   const peloton = getStatesInGroup(states, "peloton");
   const pelotonTime = peloton.length
     ? average(peloton.map((state) => state.elapsedTimeSeconds))
@@ -7611,13 +7634,19 @@ function resolveNearbyDetachedGroupLatching({
       state.supportingLeaderId === undefined,
   );
   if (latchableDetachedStates.length === 0) return;
+  const selectiveTerrain =
+    segment.terrain === "climb" || segment.surface === "cobbles";
+  // A lone incident victim already has dedicated recovery mechanics. The
+  // broader flat-road latching pass is only useful once real fragmentation
+  // appears, which keeps ordinary sprint simulations inexpensive.
+  if (!selectiveTerrain && latchableDetachedStates.length < 4) return;
   const selectionDifficulty = getSegmentSelectionDifficulty(
     segment,
     profileType,
     hillyClimbLoad,
   );
   const latchedStates: RiderState[] = [];
-  const maximumIterations = Math.min(12, latchableDetachedStates.length);
+  const maximumIterations = Math.min(24, latchableDetachedStates.length);
 
   for (let iteration = 0; iteration < maximumIterations; iteration += 1) {
     const currentPeloton = getStatesInGroup(states, "peloton");
@@ -7838,7 +7867,10 @@ function organizeGrupetto({
   if (
     segmentCount < 3 ||
     raceProgress < 0.16 ||
-    (profileType !== "mountain" && profileType !== "mixed")
+    (profileType !== "mountain" &&
+      profileType !== "mixed" &&
+      profileType !== "hilly" &&
+      profileType !== "cobbles")
   ) {
     return;
   }
@@ -7859,7 +7891,12 @@ function organizeGrupetto({
     profileType,
     hillyClimbLoad,
   );
-  const minimumGapSeconds = profileType === "mountain" ? 75 : 105;
+  const minimumGapSeconds =
+    profileType === "mountain"
+      ? 75
+      : profileType === "mixed"
+        ? 90
+        : 105;
   const detachedStates = [...states.values()].filter(
     (state) =>
       (state.group === "delayed" || state.group === "dropped") &&
@@ -10383,9 +10420,20 @@ export function normalizeRoadSnapshotGroups(
         first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
         first.id.localeCompare(second.id),
     );
-  const initialPelotonIndex = sortedGroups.findIndex(
+  const explicitPelotonIndex = sortedGroups.findIndex(
     (group) => group.type === "peloton",
   );
+  const initialPelotonIndex =
+    explicitPelotonIndex >= 0
+      ? explicitPelotonIndex
+      : sortedGroups.reduce((bestIndex, group, index) => {
+          if (group.type === "time_trial") return bestIndex;
+          if (bestIndex < 0) return index;
+          const bestGroup = sortedGroups[bestIndex];
+          return group.riderIds.length > bestGroup.riderIds.length
+            ? index
+            : bestIndex;
+        }, -1);
   if (initialPelotonIndex < 0) return sortedGroups;
 
   const initialPeloton = sortedGroups[initialPelotonIndex];
@@ -10524,6 +10572,10 @@ export function getRaceObjectiveControllingTeamIds({
   const controllingTeamIds = new Set(baseControllingTeamIds);
 
   for (const strategy of teamStrategies) {
+    if (strategy.chasePolicy === "always") {
+      controllingTeamIds.add(strategy.teamId);
+      continue;
+    }
     if (
       strategy.objective === "stage_win" &&
       !stageWinTargetsBreakaway(strategy, likelyMassSprint)
@@ -10932,7 +10984,8 @@ function getPelotonChaseCapacity(
       (state) =>
         getStateTerrainRating(state, segment) * 0.64 +
         state.rider.ratings.endurance * 0.2 +
-        state.energy * 0.16,
+        state.energy * 0.16 -
+        Math.max(0, (state.collectiveWorkload ?? 0) - 5) * 0.25,
     ),
   );
   const expectedWorkers = Math.max(2, controllingTeamIds.size * 1.7);

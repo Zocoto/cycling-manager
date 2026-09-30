@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   evolveBreakawayMomentum,
   getContextualBreakawayGapCeiling,
+  getContextualBreakawayTargetGapSeconds,
   getContextualBreakawayMaximum,
   splitRaceSegmentIntoSimulationTicks,
 } from "./race-dynamics";
@@ -99,6 +100,50 @@ describe("contextual breakaway limits", () => {
     expect(
       getContextualBreakawayMaximum({ riderCount: 180, teamCount: 22 }),
     ).toBeGreaterThan(14);
+  });
+
+  it("diversifie fortement l'avance laissée sans consigne de contrôle", () => {
+    const cautious = getContextualBreakawayTargetGapSeconds({
+      randomRoll: 0.1,
+      explicitControllerCount: 0,
+      naturalControllerCount: 1,
+      likelyMassSprint: false,
+    });
+    const generous = getContextualBreakawayTargetGapSeconds({
+      randomRoll: 0.95,
+      explicitControllerCount: 0,
+      naturalControllerCount: 1,
+      likelyMassSprint: false,
+    });
+
+    expect(cautious).toBeGreaterThanOrEqual(210);
+    expect(generous - cautious).toBeGreaterThan(300);
+    expect(generous).toBeGreaterThan(540);
+  });
+
+  it("resserre et stabilise l'écart quand des équipes contrôlent la course", () => {
+    const uncontrolled = getContextualBreakawayTargetGapSeconds({
+      randomRoll: 0.8,
+      explicitControllerCount: 0,
+      naturalControllerCount: 2,
+      likelyMassSprint: false,
+    });
+    const oneController = getContextualBreakawayTargetGapSeconds({
+      randomRoll: 0.8,
+      explicitControllerCount: 1,
+      naturalControllerCount: 1,
+      likelyMassSprint: false,
+    });
+    const sharedControl = getContextualBreakawayTargetGapSeconds({
+      randomRoll: 0.8,
+      explicitControllerCount: 2,
+      naturalControllerCount: 0,
+      likelyMassSprint: false,
+    });
+
+    expect(uncontrolled).toBeGreaterThan(oneController);
+    expect(oneController).toBeGreaterThan(sharedControl);
+    expect(sharedControl).toBeLessThanOrEqual(240);
   });
 });
 
