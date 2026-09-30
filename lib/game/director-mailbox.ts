@@ -106,50 +106,53 @@ export function filterDirectorMailboxMessages({
     .split(/\s+/)
     .filter(Boolean);
 
-  return messages.filter((message) => {
-    const matchesFolder =
-      filter === "archived"
-        ? message.archivedAt !== null
-        : message.archivedAt === null &&
-          (filter === "inbox" ||
-            (filter === "unread" && message.readAt === null) ||
-            (filter === "important" && message.isImportant));
+  return messages
+    .filter((message) => {
+      const matchesFolder =
+        filter === "archived"
+          ? message.archivedAt !== null
+          : message.archivedAt === null &&
+            (filter === "inbox" ||
+              (filter === "unread" && message.readAt === null) ||
+              (filter === "important" && message.isImportant));
 
-    if (!matchesFolder) return false;
-    if (searchTokens.length === 0) return true;
+      if (!matchesFolder) return false;
+      if (searchTokens.length === 0) return true;
 
-    const searchableText = normalizeSearchText(
-      [
-        message.senderName,
-        message.subject,
-        message.preview,
-        message.body,
-        DIRECTOR_MESSAGE_TYPE_LABELS[message.type],
-      ].join(" "),
-    );
+      const searchableText = normalizeSearchText(
+        [
+          message.senderName,
+          message.subject,
+          message.preview,
+          message.body,
+          DIRECTOR_MESSAGE_TYPE_LABELS[message.type],
+        ].join(" "),
+      );
 
-    return searchTokens.every((token) => searchableText.includes(token));
-  });
+      return searchTokens.every((token) => searchableText.includes(token));
+    })
+    .sort(compareDirectorMailboxMessages);
 }
 
 export function getDirectorMessageIdToMarkReadOnNavigation({
-  currentMessageId,
-  currentMessageReadAt,
   targetMessageId,
+  targetMessageReadAt,
 }: {
-  currentMessageId: string | null;
-  currentMessageReadAt: string | null;
   targetMessageId: string;
+  targetMessageReadAt: string | null;
 }) {
-  if (
-    currentMessageId === null ||
-    currentMessageReadAt !== null ||
-    currentMessageId === targetMessageId
-  ) {
-    return null;
-  }
+  return targetMessageReadAt === null ? targetMessageId : null;
+}
 
-  return currentMessageId;
+function compareDirectorMailboxMessages(
+  left: DirectorMailboxMessage,
+  right: DirectorMailboxMessage,
+) {
+  const readStateComparison =
+    Number(left.readAt !== null) - Number(right.readAt !== null);
+  if (readStateComparison !== 0) return readStateComparison;
+
+  return Date.parse(right.sentAt) - Date.parse(left.sentAt);
 }
 
 function normalizeSearchText(value: string) {

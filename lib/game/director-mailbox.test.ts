@@ -98,30 +98,44 @@ describe("boîte mail du directeur sportif", () => {
     ).toEqual(["race"]);
   });
 
-  it("marque le mail quitté, pas celui qui vient d'être ouvert", () => {
-    expect(
-      getDirectorMessageIdToMarkReadOnNavigation({
-        currentMessageId: "premier-mail",
-        currentMessageReadAt: null,
-        targetMessageId: "deuxieme-mail",
-      }),
-    ).toBe("premier-mail");
+  it("place toujours les non-lus avant les lus, puis conserve l’ordre récent", () => {
+    const recentlyRead = {
+      ...messages[1],
+      id: "recently-read",
+      sentAt: "2026-08-10T18:00:00.000Z",
+    };
 
     expect(
-      getDirectorMessageIdToMarkReadOnNavigation({
-        currentMessageId: "deuxieme-mail",
-        currentMessageReadAt: null,
-        targetMessageId: "deuxieme-mail",
-      }),
-    ).toBeNull();
+      filterDirectorMailboxMessages({
+        messages: [recentlyRead, messages[0], messages[1]],
+        filter: "inbox",
+      }).map((message) => message.id),
+    ).toEqual(["race", "recently-read", "academy"]);
   });
 
-  it("ne réécrit pas un mail déjà lu lors du changement", () => {
+  it("marque le mail qui vient d’être ouvert", () => {
     expect(
       getDirectorMessageIdToMarkReadOnNavigation({
-        currentMessageId: "mail-lu",
-        currentMessageReadAt: "2026-08-11T08:00:00.000Z",
-        targetMessageId: "autre-mail",
+        targetMessageId: "deuxieme-mail",
+        targetMessageReadAt: null,
+      }),
+    ).toBe("deuxieme-mail");
+  });
+
+  it("marque aussi un mail non lu déjà affiché quand on suit son lien", () => {
+    expect(
+      getDirectorMessageIdToMarkReadOnNavigation({
+        targetMessageId: "mail-affiche",
+        targetMessageReadAt: null,
+      }),
+    ).toBe("mail-affiche");
+  });
+
+  it("ne réécrit pas un mail déjà lu lors de son ouverture", () => {
+    expect(
+      getDirectorMessageIdToMarkReadOnNavigation({
+        targetMessageId: "mail-lu",
+        targetMessageReadAt: "2026-08-11T08:00:00.000Z",
       }),
     ).toBeNull();
   });

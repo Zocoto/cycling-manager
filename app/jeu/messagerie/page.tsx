@@ -12,6 +12,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DashboardJournalDeleteButton } from "@/components/game/dashboard-journal-delete-button";
 import { DirectorMailboxMarkAllReadButton } from "@/components/game/director-mailbox-mark-all-read-button";
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
+import { DirectorMailboxReadMarker } from "@/components/game/director-mailbox-read-marker";
 import { GameHeader } from "@/components/game/game-header";
 import { RecruitmentAlertPanel } from "@/components/game/recruitment-alert-panel";
 import Link from "@/components/ui/app-link";
@@ -80,6 +81,20 @@ export default async function DirectorMailboxPage({
     }),
     getCurrentDirectorRecruitmentAlertOverview(supabase),
   ]);
+
+  if (
+    mailbox.selectedMessage &&
+    selectedMessageId !== mailbox.selectedMessage.id
+  ) {
+    redirect(
+      buildMailboxHref({
+        filter,
+        query,
+        messageId: mailbox.selectedMessage.id,
+        showRecruitmentAlerts,
+      }),
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -215,10 +230,8 @@ export default async function DirectorMailboxPage({
                     active={mailbox.selectedMessage?.id === message.id}
                     messageToMarkReadId={getDirectorMessageIdToMarkReadOnNavigation(
                       {
-                        currentMessageId: mailbox.selectedMessage?.id ?? null,
-                        currentMessageReadAt:
-                          mailbox.selectedMessage?.readAt ?? null,
                         targetMessageId: message.id,
+                        targetMessageReadAt: message.readAt,
                       },
                     )}
                     filter={filter}
@@ -327,6 +340,9 @@ function MessageListItem({
 function MessageReader({ message }: { message: DirectorMailboxMessage }) {
   return (
     <article className="p-5 sm:p-8 xl:p-10">
+      <DirectorMailboxReadMarker
+        messageId={message.readAt === null ? message.id : null}
+      />
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#176951]/12 pb-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -393,14 +409,18 @@ function MessageReader({ message }: { message: DirectorMailboxMessage }) {
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {message.actionLinks.map((link) => (
-              <Link
+              <DirectorMailboxMessageLink
                 key={`${link.href}:${link.label}`}
                 href={link.href}
+                active={false}
+                messageToMarkReadId={
+                  message.readAt === null ? message.id : null
+                }
                 className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-[#176951]/12 bg-white px-4 py-2.5 text-sm font-black text-[#174D40] transition hover:-translate-y-0.5 hover:border-[#176951]/35 hover:text-[#176951]"
               >
                 <span>{link.label}</span>
                 <span aria-hidden="true">→</span>
-              </Link>
+              </DirectorMailboxMessageLink>
             ))}
           </div>
         </nav>
@@ -408,12 +428,16 @@ function MessageReader({ message }: { message: DirectorMailboxMessage }) {
 
       {message.actionHref && message.actionLabel ? (
         <div className="mt-9 border-t border-[#176951]/12 pt-6">
-          <Link
+          <DirectorMailboxMessageLink
             href={message.actionHref}
+            active={false}
+            messageToMarkReadId={
+              message.readAt === null ? message.id : null
+            }
             className="inline-flex min-h-12 items-center rounded-xl bg-[#176951] px-5 text-sm font-black text-white shadow-lg shadow-[#176951]/15 transition hover:-translate-y-0.5 hover:bg-[#0F5641]"
           >
             {message.actionLabel} →
-          </Link>
+          </DirectorMailboxMessageLink>
         </div>
       ) : null}
     </article>
