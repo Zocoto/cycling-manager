@@ -30,6 +30,7 @@ import {
 } from "@/lib/rider-jersey";
 import { buildTransferMarketReturnPath } from "@/lib/game/filtered-page-paths";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
+import { formatPotentialStars } from "@/lib/game/recruitment-alerts";
 import {
   isTransferRiderProfileFilter,
   TRANSFER_RIDER_PROFILE_FILTERS,
@@ -207,6 +208,21 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
 
         {success ? <Notice tone="success">{success}</Notice> : null}
         {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
+        {overview.scoutingRevealActiveUntil ? (
+          <div className="mt-5 flex flex-col gap-2 rounded-2xl border border-[#42B99A]/30 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+                Loupe du recruteur active
+              </p>
+              <p className="mt-1 text-sm font-black text-[#183F37]">
+                Les notes des coureurs libres sont entièrement visibles.
+              </p>
+            </div>
+            <p className="text-xs font-bold text-[#60756E]">
+              Jusqu’au {formatScoutingRevealEnd(overview.scoutingRevealActiveUntil)}
+            </p>
+          </div>
+        ) : null}
 
         <GameSectionTabs
           ariaLabel="Rubriques du marché des transferts"
@@ -251,6 +267,14 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
       </section>
     </main>
   );
+}
+
+function formatScoutingRevealEnd(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }
 
 function Auctions({ listings, overview, jerseys, sponsors, returnPath }: {
@@ -526,7 +550,7 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
       ) : null}
       <form
         data-tutorial-id="transfer-free-agent-filters"
-        className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-7"
+        className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-8"
       >
         <input type="hidden" name="onglet" value="libres" />
         <FilterField label="Contrat"><select name="contrat" defaultValue={contractStatus} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Tous les contrats</option><option value="free">Libre</option><option value="contracted">Sous contrat</option></select></FilterField>
@@ -534,9 +558,10 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
         <FilterField label="Nationalité"><select name="pays" defaultValue={readQuery(query.pays)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Toutes</option>{countries.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select></FilterField>
         <FilterField label="Âge min."><input name="ageMin" type="number" min="15" max="60" defaultValue={readQuery(query.ageMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
         <FilterField label="Âge max."><input name="ageMax" type="number" min="15" max="60" defaultValue={readQuery(query.ageMax)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
+        <FilterField label="Potentiel estimé min."><select name="potentielMin" defaultValue={readQuery(query.potentielMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Tous</option>{Array.from({ length: 8 }, (_, index) => index + 1).map((steps) => <option key={steps} value={steps}>{formatPotentialStars(steps)} ou plus</option>)}</select></FilterField>
         <FilterField label="Statistique"><select name="stat" defaultValue={readQuery(query.stat) || "overall"} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="overall">Moyenne</option>{RIDER_RATING_AXES.map((axis) => <option key={axis.key} value={axis.key}>{axis.label}</option>)}</select></FilterField>
         <FilterField label="Seuil estimé"><input name="statMin" type="number" min="0" max="100" defaultValue={readQuery(query.statMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
-        <div className="flex gap-3 xl:col-span-7"><button className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white">Rechercher</button><Link href="/jeu/transferts?onglet=libres" className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-xs font-black uppercase tracking-wider text-[#315B3E]">Réinitialiser</Link></div>
+        <div className="flex gap-3 xl:col-span-8"><button className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white">Rechercher</button><Link href="/jeu/transferts?onglet=libres" className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-xs font-black uppercase tracking-wider text-[#315B3E]">Réinitialiser</Link></div>
       </form>
       <div data-tutorial-id="transfer-free-agent-listings">
         {riders.length > 0 ? (
@@ -790,6 +815,7 @@ function readTab(value: string): TransferTab { return value === "directeurs" || 
 function readNumber(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isFinite(parsed) && readQuery(value) !== "" ? parsed : undefined; }
 function readContractStatus(value: string | string[] | undefined): TransferContractFilter | undefined { const status = readQuery(value); return status === "free" || status === "contracted" ? status : undefined; }
 function readSearchPage(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isInteger(parsed) && parsed >= 1 && parsed <= 100 ? parsed : 1; }
+function readPotentialSteps(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isInteger(parsed) && parsed >= 1 && parsed <= 8 ? parsed : undefined; }
 function readFilters(query: Record<string, string | string[] | undefined>): TransferMarketFilters {
   const profile = readQuery(query.profil);
   const rating = readQuery(query.stat);
@@ -800,6 +826,7 @@ function readFilters(query: Record<string, string | string[] | undefined>): Tran
     country: readQuery(query.pays),
     minimumAge: readNumber(query.ageMin),
     maximumAge: readNumber(query.ageMax),
+    minimumPotentialSteps: readPotentialSteps(query.potentielMin),
     rating:
       rating === "overall" ||
       RIDER_RATING_AXES.some((axis) => axis.key === rating)

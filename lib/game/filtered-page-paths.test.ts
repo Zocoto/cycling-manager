@@ -20,13 +20,14 @@ describe("filtered page return paths", () => {
       country: "fr",
       minimumAge: 20,
       maximumAge: 27,
+      minimumPotentialSteps: 6,
       rating: "mountain",
       minimumRating: 70,
       page: 3,
     });
 
     expect(path).toBe(
-      "/jeu/transferts?onglet=libres&contrat=contracted&profil=Grimpeur&pays=FR&ageMin=20&ageMax=27&stat=mountain&statMin=70&page=3",
+      "/jeu/transferts?onglet=libres&contrat=contracted&profil=Grimpeur&pays=FR&ageMin=20&ageMax=27&potentielMin=6&stat=mountain&statMin=70&page=3",
     );
     expect(sanitizeTransferMarketReturnPath(`${path}&succes=ancien`)).toBe(path);
   });

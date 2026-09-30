@@ -256,6 +256,7 @@ function toInventoryOverview(
         teamName: summary.teamName,
         seasonName: summary.seasonName,
         currency: summary.currency,
+        scoutingRevealActiveUntil: null,
         items: [],
         summary: {
           references: 0,

@@ -81,15 +81,19 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain('for="training-trainer-rider-1"');
     expect(markup).toContain('id="training-trainer-rider-1"');
     expect(markup).toContain("Grimpeur · MON / END");
-    expect(markup).toContain("Répartition du gain · Grimpeur");
+    expect(markup).toContain(
+      'aria-label="Répartition du gain pour le profil Grimpeur"',
+    );
     expect(markup).toContain("Gain prioritaire");
     expect(markup).toContain("100 %");
     expect(markup).toContain("55 %");
     expect(markup).toContain("Gain d’entretien");
-    expect(markup).toContain(
-      "grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))]",
-    );
+    expect(markup).toContain("ⓘ Répartition du gain");
+    expect(markup).toContain("group-open:rotate-180");
+    expect(markup).toContain('for="training-domain-rider-1"');
+    expect(markup).toContain('id="training-domain-rider-1"');
     expect(markup).toContain("whitespace-nowrap");
+    expect(markup).not.toContain("Le gain réel varie ensuite");
   });
 
   it("propose un tri compact par statut sans quitter l’éditeur", () => {

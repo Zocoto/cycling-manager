@@ -506,7 +506,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "free-agent-filters": {
         title: "Narrow the list to useful profiles",
         content:
-          "Combine profile, nationality, age and a minimum estimated attribute. The attribute filter can use AVG or a specific quality.\n\nReports remain imperfect, so use thresholds to shortlist candidates, then compare profile and cost.",
+          "Combine contract, profile, nationality, age, estimated potential and a minimum estimated attribute. Thresholds only use information visible in your scouting report, so the filter never reveals an unknown value.\n\nSearch and pagination run on the server, keeping even a large rider database fast to browse.",
       },
       "free-agent-signing": {
         title: "Check your roster before signing",

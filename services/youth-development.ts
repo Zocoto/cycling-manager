@@ -61,6 +61,7 @@ import {
   type ScoutingSupervisionStatus,
 } from "@/lib/game/scouting-supervision";
 import {
+  createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
@@ -95,6 +96,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
+import { getTeamSeasonScoutingVisibility } from "@/services/scouting-visibility";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -437,6 +439,7 @@ export type YouthDevelopmentOverview = {
   canScheduleYouthPromotion: boolean;
   totalTuitionPerSeason: number;
   scoutingSupervision: ScoutingSupervisionStatus;
+  scoutingRevealActiveUntil: string | null;
 };
 
 export async function settleDueYouthScoutingMissions(): Promise<number> {
@@ -659,6 +662,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     academyResult,
     rosterCapacity,
     scoutingSupervisionResult,
+    scoutingVisibility,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -702,6 +706,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       .eq("effect_kind", "scouting_boost")
       .eq("status", "active")
       .gte("ends_day_number", context.currentDayNumber),
+    getTeamSeasonScoutingVisibility(admin, context.teamSeasonId),
   ]);
   for (const [result, label] of [
     [countriesResult, "les pays"],
@@ -894,6 +899,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
           mission.duration_days,
           reportPrecisionBonusPercentage,
           potentialPrecisionBonusPercentage,
+          scoutingVisibility.active,
         ),
       ),
     };
@@ -1169,6 +1175,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       scoutingSupervisionEffects,
       context.currentDayNumber,
     ),
+    scoutingRevealActiveUntil: scoutingVisibility.activeUntil,
   } satisfies YouthDevelopmentOverview;
 }
 
@@ -2295,6 +2302,7 @@ function toCandidate(
   durationDays: number,
   reportPrecisionBonusPercentage = 0,
   potentialPrecisionBonusPercentage = 0,
+  revealExactValues = false,
 ): YouthCandidate {
   const ratings = scaleYouthRatings(rowToRatings(row));
   return {
@@ -2315,18 +2323,23 @@ function toCandidate(
     ),
     profileKey: row.avatar_profile_key,
     avatarSeed: String(row.avatar_seed),
-    scoutingReport: createStandardTransferScoutingReport({
-      riderId: row.id,
-      seasonId: row.mission_id,
-      ratings,
-      potentialSteps: row.potential_steps,
-      dataRoomLevel: getYouthScoutingReportDetailLevel({
-        scoutLevel,
-        durationDays,
-      }),
-      precisionBonusPercentage: reportPrecisionBonusPercentage,
-      potentialPrecisionBonusPercentage,
-    }),
+    scoutingReport: revealExactValues
+      ? createExactTransferScoutingReport({
+          ratings,
+          potentialSteps: row.potential_steps,
+        })
+      : createStandardTransferScoutingReport({
+          riderId: row.id,
+          seasonId: row.mission_id,
+          ratings,
+          potentialSteps: row.potential_steps,
+          dataRoomLevel: getYouthScoutingReportDetailLevel({
+            scoutLevel,
+            durationDays,
+          }),
+          precisionBonusPercentage: reportPrecisionBonusPercentage,
+          potentialPrecisionBonusPercentage,
+        }),
     signingFee: toNumber(row.signing_fee),
     tuitionPerSeason: toNumber(row.tuition_per_season),
     status: row.status,

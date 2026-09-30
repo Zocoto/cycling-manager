@@ -32,6 +32,7 @@ export type TeamInventoryOverview = {
   teamName: string;
   seasonName: string;
   currency: string;
+  scoutingRevealActiveUntil: string | null;
   items: TeamInventoryItem[];
   summary: ReturnType<typeof summarizeInventory>;
 };
@@ -43,7 +44,7 @@ export async function getCurrentTeamInventoryOverview(
   if (!equipmentOverview) return null;
 
   const admin = createSupabaseAdminClient();
-  const [catalogResult, inventoryResult] = await Promise.all([
+  const [catalogResult, inventoryResult, teamSeasonResult] = await Promise.all([
     admin
       .from("inventory_catalog_items")
       .select(
@@ -57,10 +58,16 @@ export async function getCurrentTeamInventoryOverview(
       .eq("team_season_id", equipmentOverview.teamSeasonId)
       .gt("quantity", 0)
       .returns<InventoryRow[]>(),
+    admin
+      .from("team_seasons")
+      .select("scouting_reports_revealed_until")
+      .eq("id", equipmentOverview.teamSeasonId)
+      .maybeSingle<{ scouting_reports_revealed_until: string | null }>(),
   ]);
 
   assertQuery(catalogResult.error, "le catalogue d’objets");
   assertQuery(inventoryResult.error, "les objets possédés");
+  assertQuery(teamSeasonResult.error, "l’effet de visibilité du scouting");
 
   const catalogById = new Map(
     (catalogResult.data ?? []).map((item) => [item.id, item]),
@@ -141,11 +148,19 @@ export async function getCurrentTeamInventoryOverview(
         Number(left.availableQuantity > 0) ||
       left.name.localeCompare(right.name, "fr"),
   );
+  const rawScoutingRevealActiveUntil =
+    teamSeasonResult.data?.scouting_reports_revealed_until ?? null;
+  const scoutingRevealActiveUntil =
+    rawScoutingRevealActiveUntil &&
+    Date.parse(rawScoutingRevealActiveUntil) > Date.now()
+      ? rawScoutingRevealActiveUntil
+      : null;
 
   return {
     teamName: equipmentOverview.teamName,
     seasonName: equipmentOverview.seasonName,
     currency: equipmentOverview.currency,
+    scoutingRevealActiveUntil,
     items,
     summary: summarizeInventory(items),
   };

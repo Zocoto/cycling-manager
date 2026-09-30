@@ -59,6 +59,12 @@ export type GameObjectiveRow = {
   is_completed: boolean;
 };
 
+export type GameObjectiveRewardSummary = {
+  completedCount: number;
+  readyCount: number;
+  claimedCount: number;
+};
+
 const rewardItemKinds = new Set<GameObjectiveRewardItemKind>([
   "equipment",
   "special_ability",
@@ -104,6 +110,29 @@ export function getGameObjectiveLongTermTier(
   if (objectiveKey.endsWith("_thl")) return "THL";
   if (objectiveKey.endsWith("_hl")) return "HL";
   return null;
+}
+
+export function summarizeGameObjectiveRewards(
+  objectives: GameObjective[],
+): GameObjectiveRewardSummary {
+  return objectives.reduce<GameObjectiveRewardSummary>(
+    (summary, objective) => {
+      const claimed = Boolean(objective.claimedAt);
+
+      if (objective.completed || claimed) {
+        summary.completedCount += 1;
+      }
+      if (objective.completed && !claimed) {
+        summary.readyCount += 1;
+      }
+      if (claimed) {
+        summary.claimedCount += 1;
+      }
+
+      return summary;
+    },
+    { completedCount: 0, readyCount: 0, claimedCount: 0 },
+  );
 }
 
 export function selectDashboardObjectives(

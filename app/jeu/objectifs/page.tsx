@@ -22,6 +22,7 @@ import {
   getGameObjectiveLongTermTier,
   parseGameObjectiveStatusFilter,
   parseGameObjectiveTypeFilter,
+  summarizeGameObjectiveRewards,
   type GameObjective,
 } from "@/lib/game/objectives";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -172,17 +173,8 @@ export default async function ObjectivesPage({
   const groupOptions = availableGroups
     .map((group) => ({ value: group, label: groupLabels[group] ?? group }))
     .sort((left, right) => left.label.localeCompare(right.label, "fr"));
-  const readyObjectiveCount = objectives.filter(
-    (objective) => objective.completed && !objective.claimedAt,
-  ).length;
-  const readyCount =
-    readyObjectiveCount + trophyGallery.claimableTrophies.length;
-  const completedCount = objectives.filter(
-    (objective) => objective.completed,
-  ).length;
-  const claimedCount =
-    objectives.filter((objective) => objective.claimedAt).length +
-    trophyGallery.counts.special;
+  const { completedCount, readyCount, claimedCount } =
+    summarizeGameObjectiveRewards(objectives);
   const success = readQuery(query.succes);
   const errorMessage = readQuery(query.erreur);
   const returnPath = buildObjectivesReturnPath({
@@ -289,17 +281,17 @@ export default async function ObjectivesPage({
             {success ? <Notice tone="success">{success}</Notice> : null}
             {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
 
-            {readyObjectiveCount > 0 ? (
+            {readyCount > 0 ? (
               <aside className="mt-7 flex flex-col gap-4 rounded-2xl border border-[#D6A600]/25 bg-[#FFF7D2] p-5 shadow-[0_12px_30px_rgba(100,75,0,0.08)] sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] text-lg font-black text-[#071A17]">
-                    {readyObjectiveCount}
+                    {readyCount}
                   </span>
                   <div>
                     <p className="font-black text-[#4A3A00]">
-                      {readyObjectiveCount === 1
+                      {readyCount === 1
                         ? "Une récompense vous attend"
-                        : `${readyObjectiveCount} récompenses vous attendent`}
+                        : `${readyCount} récompenses vous attendent`}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-[#75631C]">
                       Les objectifs prêts à être réclamés sont signalés en

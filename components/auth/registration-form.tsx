@@ -1,6 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { registerAccount } from "../../app/(public)/inscription/actions";
 import {
@@ -23,6 +28,11 @@ const registrationFields: RegistrationField[] = [
   "referralCode",
 ];
 
+const REFERRAL_SESSION_STORAGE_KEY =
+  "cyclostratege:referral-invitation:v1";
+
+const subscribeToReferralSession = () => () => undefined;
+
 type RegistrationFormProps = {
   referralCode?: string;
   referrerName?: string;
@@ -39,11 +49,33 @@ export function RegistrationForm({
     initialRegistrationState
   );
 
+  const referralSnapshot = useSyncExternalStore(
+    subscribeToReferralSession,
+    () => readReferralSessionSnapshot(referralCode, referrerName),
+    () => serializeReferral(referralCode, referrerName),
+  );
+  const effectiveReferral = parseReferralSnapshot(referralSnapshot);
+
   const [dismissedFields, setDismissedFields] = useState<
     RegistrationField[]
   >([]);
 
   const registrationSucceeded = state.status === "success";
+
+  useEffect(() => {
+    if (registrationSucceeded) {
+      window.sessionStorage.removeItem(REFERRAL_SESSION_STORAGE_KEY);
+      return;
+    }
+
+    if (referralCode && referrerName) {
+      const invitation = { code: referralCode, referrerName };
+      window.sessionStorage.setItem(
+        REFERRAL_SESSION_STORAGE_KEY,
+        JSON.stringify(invitation),
+      );
+    }
+  }, [referralCode, referrerName, registrationSucceeded]);
 
   const hasFieldErrors = registrationFields.some(
     (field) => Boolean(state.fieldErrors[field]?.length)
@@ -136,7 +168,7 @@ export function RegistrationForm({
         onSubmit={() => setDismissedFields([])}
         className="space-y-5"
       >
-        {referralCode && referrerName ? (
+        {effectiveReferral.code && effectiveReferral.referrerName ? (
           <div className="rounded-xl border border-[#7CCF9C]/35 bg-[#7CCF9C]/10 px-4 py-3">
             <div className="flex items-start gap-3">
               <span
@@ -147,7 +179,7 @@ export function RegistrationForm({
               </span>
               <div>
                 <p className="text-sm font-extrabold text-[#FFFDF4]">
-                  Invitation de {referrerName}
+                  Invitation de {effectiveReferral.referrerName}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[#BFD1C6]">
                   Votre parrainage sera validé dès la confirmation de votre inscription, sans didacticiel obligatoire.
@@ -157,11 +189,25 @@ export function RegistrationForm({
           </div>
         ) : null}
 
-        <input
-          type="hidden"
-          name="referralCode"
-          value={referralCode ?? ""}
-        />
+        {effectiveReferral.code ? (
+          <input
+            type="hidden"
+            name="referralCode"
+            value={effectiveReferral.code}
+          />
+        ) : (
+          <FormField
+            id="referralCode"
+            label="Code de parrainage (facultatif)"
+            type="text"
+            placeholder="DS-XXXXXXXXXXXX"
+            autoComplete="off"
+            disabled={pending || registrationSucceeded}
+            errors={getVisibleErrors("referralCode")}
+            helpText="Si vous avez reçu une invitation mais perdu le lien, saisissez ici le code communiqué par votre parrain."
+            onChange={() => dismissFieldError("referralCode")}
+          />
+        )}
 
         {MARKETING_FIELD_NAMES.map((field) => (
           <input
@@ -335,6 +381,52 @@ export function RegistrationForm({
       </p>
     </div>
   );
+}
+
+function readReferralSessionSnapshot(
+  referralCode?: string,
+  referrerName?: string,
+): string {
+  return (
+    serializeReferral(referralCode, referrerName) ||
+    window.sessionStorage.getItem(REFERRAL_SESSION_STORAGE_KEY) ||
+    ""
+  );
+}
+
+function serializeReferral(
+  referralCode?: string,
+  referrerName?: string,
+): string {
+  return referralCode && referrerName
+    ? JSON.stringify({ code: referralCode, referrerName })
+    : "";
+}
+
+function parseReferralSnapshot(value: string): {
+  code: string;
+  referrerName: string;
+} {
+  try {
+    const invitation = JSON.parse(value) as {
+      code?: unknown;
+      referrerName?: unknown;
+    };
+    const code =
+      typeof invitation.code === "string"
+        ? invitation.code.trim().toUpperCase()
+        : "";
+    const storedReferrerName =
+      typeof invitation.referrerName === "string"
+        ? invitation.referrerName.trim()
+        : "";
+
+    return /^DS-[A-F0-9]{12}$/.test(code) && storedReferrerName
+      ? { code, referrerName: storedReferrerName }
+      : { code: "", referrerName: "" };
+  } catch {
+    return { code: "", referrerName: "" };
+  }
 }
 
 type FormFieldProps = {

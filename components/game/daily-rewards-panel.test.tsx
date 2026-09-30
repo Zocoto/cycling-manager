@@ -243,5 +243,6 @@ function createOverview(): DailyRewardOverview {
       remainingDays: 0,
       effects: [],
     },
+    scoutingRevealActiveUntil: null,
   };
 }

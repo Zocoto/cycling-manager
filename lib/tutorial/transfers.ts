@@ -96,7 +96,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-free-agent-filters",
       title: "Réduisez la liste aux profils utiles",
       content:
-        "Combinez le contrat, le profil, la nationalité, l’âge et une statistique minimale pour cibler votre recherche. Le filtre de statistique peut porter sur la moyenne générale ou sur une qualité précise du coureur.\n\nLa recherche et la pagination sont traitées côté serveur : même une grande base de coureurs reste rapide à parcourir.",
+        "Combinez le contrat, le profil, la nationalité, l’âge, le potentiel estimé et une statistique minimale pour cibler votre recherche. Les seuils respectent les informations visibles dans votre rapport de scouting : une valeur encore inconnue n’est pas révélée par le filtre.\n\nLa recherche et la pagination sont traitées côté serveur : même une grande base de coureurs reste rapide à parcourir.",
       placement: "bottom",
       highlightPadding: 8,
     },
