@@ -1001,13 +1001,22 @@ function NutritionPanel({
                     {rider.heightCm !== null && rider.weightKg !== null ? (
                       <form
                         action={applyWeightCutAction}
-                        className="mt-4 grid gap-3 rounded-2xl border border-[#D7B84A]/25 bg-[#FFF9E8] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+                        className="mt-3 grid gap-2 rounded-xl border border-[#D7B84A]/25 bg-[#FFF9E8] p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
                       >
                         <input type="hidden" name="riderId" value={rider.id} />
-                        <label className="grid gap-1.5">
+                        <div className="flex items-center justify-between gap-2 sm:block sm:min-w-24">
                           <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#806114]">
-                            Programme d’affûtage · {rider.heightCm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} cm · {rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+                            Affûtage
                           </span>
+                          <span className="text-[10px] font-semibold text-[#806630] sm:mt-0.5 sm:block">
+                            {rider.nextWeightCutGameDayIndex !== null &&
+                            currentGameDayIndex < rider.nextWeightCutGameDayIndex
+                              ? `Dans ${rider.nextWeightCutGameDayIndex - currentGameDayIndex} j`
+                              : "Tous les 5 j"}
+                          </span>
+                        </div>
+                        <label className="min-w-0">
+                          <span className="sr-only">Perte de poids et coût en forme</span>
                           <select
                             name="weightLossKg"
                             defaultValue="0.2"
@@ -1015,7 +1024,7 @@ function NutritionPanel({
                               rider.nextWeightCutGameDayIndex !== null &&
                               currentGameDayIndex < rider.nextWeightCutGameDayIndex
                             }
-                            className="min-h-11 rounded-xl border border-[#806114]/20 bg-white px-3 text-sm font-black text-[#183F37] disabled:cursor-not-allowed disabled:bg-[#F1EEE4] disabled:text-[#8B877C]"
+                            className="min-h-9 w-full rounded-lg border border-[#806114]/20 bg-white px-3 text-xs font-black text-[#183F37] disabled:cursor-not-allowed disabled:bg-[#F1EEE4] disabled:text-[#8B877C]"
                           >
                             {[0.2, 0.4, 0.6, 0.8, 1].map((loss) => {
                               const formCost = loss * 20;
@@ -1034,23 +1043,17 @@ function NutritionPanel({
                               );
                             })}
                           </select>
-                          <span className="text-[10px] font-semibold leading-4 text-[#806630]">
-                            Une fois tous les cinq jours, sans plafond saisonnier.
-                            {rider.nextWeightCutGameDayIndex !== null &&
-                            currentGameDayIndex < rider.nextWeightCutGameDayIndex
-                              ? ` Prochain programme dans ${rider.nextWeightCutGameDayIndex - currentGameDayIndex} jour(s).`
-                              : " Le poids agit immédiatement sur les performances."}
-                          </span>
                         </label>
                         <HealthCenterSubmitButton
                           pendingLabel="Affûtage…"
+                          compact
                           disabled={
                             (rider.nextWeightCutGameDayIndex !== null &&
                               currentGameDayIndex < rider.nextWeightCutGameDayIndex) ||
                             rider.form < 4
                           }
                         >
-                          Lancer l’affûtage
+                          Lancer
                         </HealthCenterSubmitButton>
                       </form>
                     ) : null}
