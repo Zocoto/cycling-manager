@@ -38,8 +38,11 @@ describe("regroupement des enchères et console vendeur", () => {
   });
 
   it("révèle les notes exactes sur toutes les enchères créées par un DS", () => {
+    expect(service).toMatch(
+      /revealExactValues:\s*listing\.listing_type === "director"\s*\|\|/,
+    );
     expect(service).toContain(
-      'revealExactValues: listing.listing_type === "director"',
+      "scoutingVisibility.active && listing.seller_team_id === null",
     );
     expect(scoutingPanel).toContain('exactDataLabel = "Données exactes"');
   });

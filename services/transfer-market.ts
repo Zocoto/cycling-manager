@@ -42,6 +42,7 @@ import {
 import { selectWeightedRandomDistinct } from "@/lib/game/weighted-random-selection";
 import { loadFederationMarketNationalityWeights } from "@/services/federation-market-nationality";
 import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
+import { getTeamSeasonScoutingVisibility } from "@/services/scouting-visibility";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -260,6 +261,7 @@ export type TransferMarketOverview = {
   reservedBudget: number;
   availableBudget: number;
   dataRoomLevel: number;
+  scoutingRevealActiveUntil: string | null;
   rosterSize: number;
   rosterLimit: number;
   rosterYouthReserveSlots: number;
@@ -354,7 +356,11 @@ export async function getTransferMarketOverview(
 
   if (!context) return null;
 
-  const [currentRosterCapacity, nextRosterCapacity] = await Promise.all([
+  const [
+    currentRosterCapacity,
+    nextRosterCapacity,
+    scoutingVisibility,
+  ] = await Promise.all([
     loadTeamRosterCapacitySummary({
       admin,
       teamId: context.teamSeason.team_id,
@@ -365,6 +371,7 @@ export async function getTransferMarketOverview(
       teamId: context.teamSeason.team_id,
       gameYear: context.season.game_year + 1,
     }),
+    getTeamSeasonScoutingVisibility(admin, context.teamSeason.id),
   ]);
 
   const marketDate = formatParisDate(new Date());
@@ -613,7 +620,9 @@ export async function getTransferMarketOverview(
           seasonId: context.season.id,
           salaryPerSeason: toNumber(listing.salary_per_season),
           dataRoomLevel,
-          revealExactValues: listing.listing_type === "director",
+          revealExactValues:
+            listing.listing_type === "director" ||
+            (scoutingVisibility.active && listing.seller_team_id === null),
         }),
       } satisfies TransferMarketListing,
     ];
@@ -637,7 +646,8 @@ export async function getTransferMarketOverview(
           currentSalaryQuotes.get(rider.id) ??
           calculateSalaryApproximation(rider.overall),
         dataRoomLevel,
-        revealExactValues: false,
+        revealExactValues:
+          scoutingVisibility.active && searchRow.team_id === null,
       }),
       contractStatus: searchRow.team_id ? "contracted" : "free",
       teamId: searchRow.team_id,
@@ -689,6 +699,7 @@ export async function getTransferMarketOverview(
     reservedBudget,
     availableBudget: Math.max(0, cashBalance - reservedBudget),
     dataRoomLevel,
+    scoutingRevealActiveUntil: scoutingVisibility.activeUntil,
     marketDate,
     nationalDayFeatures: featuredNationalDays.flatMap((featuredNationalDay) => {
       const country = countryByCode.get(featuredNationalDay.isoAlpha2);

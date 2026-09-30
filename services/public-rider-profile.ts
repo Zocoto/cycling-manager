@@ -36,6 +36,7 @@ import {
   type RiderSecondaryPerformance,
 } from "@/lib/game/rider-notable-performances";
 import {
+  createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
@@ -45,6 +46,7 @@ import { parseContinentalChampionshipTitleType } from "@/services/rider-continen
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
 import { getRiderDevelopmentHistory } from "@/services/rider-development-history";
+import { getViewerScoutingVisibility } from "@/services/scouting-visibility";
 
 export type RiderEquipmentSlot = EquipmentSlot;
 
@@ -633,6 +635,13 @@ export async function getPublicRiderProfile({
     activeSeason,
     seasons,
   });
+  const scoutingVisibilityPromise = activeSeason
+    ? getViewerScoutingVisibility({
+        admin: supabase,
+        authUserId: viewerAuthUserId,
+        seasonId: activeSeason.id,
+      })
+    : Promise.resolve({ active: false, activeUntil: null });
 
   const teamIds = [...new Set(contracts.map((contract) => contract.team_id))];
   const equipmentItemIds = [
@@ -776,6 +785,7 @@ export async function getPublicRiderProfile({
     canManage,
     juniorDevelopmentHistory,
     partnerEffectByItemId,
+    scoutingVisibility,
   ] = await Promise.all([
     performanceResultsPromise,
     divisionsPromise,
@@ -783,6 +793,7 @@ export async function getPublicRiderProfile({
     canManagePromise,
     juniorDevelopmentHistoryPromise,
     partnerEffectByItemIdPromise,
+    scoutingVisibilityPromise,
   ]);
   assertQuery(
     performanceResultsResult.error,
@@ -836,13 +847,18 @@ export async function getPublicRiderProfile({
     !canManage && isTransferTarget && Boolean(exactRatings);
   const scoutingReport =
     mustUseScoutingReport && exactRatings
-      ? createStandardTransferScoutingReport({
-          riderId: rider.id,
-          seasonId:
-            activeSeason?.id ?? currentRating?.season_id ?? "hors-saison",
-          ratings: exactRatings,
-          potentialSteps: rider.potential_steps,
-        })
+      ? rider.status === "free_agent" && scoutingVisibility.active
+        ? createExactTransferScoutingReport({
+            ratings: exactRatings,
+            potentialSteps: rider.potential_steps,
+          })
+        : createStandardTransferScoutingReport({
+            riderId: rider.id,
+            seasonId:
+              activeSeason?.id ?? currentRating?.season_id ?? "hors-saison",
+            ratings: exactRatings,
+            potentialSteps: rider.potential_steps,
+          })
       : null;
 
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
@@ -1221,7 +1237,11 @@ export async function getPublicRiderProfile({
           }
         : null,
     careerRaceDays: Number(rider.career_race_days ?? 0),
-    potentialSteps: mustUseScoutingReport ? null : rider.potential_steps,
+    potentialSteps:
+      mustUseScoutingReport &&
+      !(rider.status === "free_agent" && scoutingVisibility.active)
+        ? null
+        : rider.potential_steps,
     ratings: mustUseScoutingReport ? null : exactRatings,
     scoutingReport,
     condition,

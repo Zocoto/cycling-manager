@@ -207,6 +207,21 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
 
         {success ? <Notice tone="success">{success}</Notice> : null}
         {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
+        {overview.scoutingRevealActiveUntil ? (
+          <div className="mt-5 flex flex-col gap-2 rounded-2xl border border-[#42B99A]/30 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+                Loupe du recruteur active
+              </p>
+              <p className="mt-1 text-sm font-black text-[#183F37]">
+                Les notes des coureurs libres sont entièrement visibles.
+              </p>
+            </div>
+            <p className="text-xs font-bold text-[#60756E]">
+              Jusqu’au {formatScoutingRevealEnd(overview.scoutingRevealActiveUntil)}
+            </p>
+          </div>
+        ) : null}
 
         <GameSectionTabs
           ariaLabel="Rubriques du marché des transferts"
@@ -251,6 +266,14 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
       </section>
     </main>
   );
+}
+
+function formatScoutingRevealEnd(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }
 
 function Auctions({ listings, overview, jerseys, sponsors, returnPath }: {

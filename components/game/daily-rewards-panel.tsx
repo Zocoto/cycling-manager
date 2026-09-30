@@ -2,6 +2,7 @@ import {
   claimDailyRewardAction,
 } from "@/app/jeu/objectifs/actions";
 import { DailyRewardRedemptionForm } from "@/components/game/daily-reward-redemption-form";
+import { InventoryItemIllustration } from "@/components/game/inventory-item-illustration";
 import {
   DAILY_REWARD_CYCLE_LENGTH,
   groupDailyRewardInventoryItems,
@@ -160,7 +161,13 @@ export function DailyRewardsPanel({
                     className="flex min-h-full flex-col rounded-2xl border border-[#D6A600]/25 bg-white p-5 shadow-[0_10px_25px_rgba(100,75,0,0.08)]"
                   >
                     <input type="hidden" name="rewardKey" value={offer.key} />
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+                    <InventoryItemIllustration
+                      name={offer.name}
+                      iconKey={offer.iconKey}
+                      effectKind={offer.effectKind}
+                      compact
+                    />
+                    <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
                       {getGiftCategoryLabel(offer.effectKind)}
                     </p>
                     <h4 className="mt-2 text-xl font-black text-[#183F37]">
@@ -248,7 +255,13 @@ function InventoryRewardCard({
 }) {
   return (
     <article className="flex min-h-full flex-col rounded-[1.6rem] border border-[#315B3E]/12 bg-[#FBFDFC] p-5">
-      <div>
+      <InventoryItemIllustration
+        name={item.name}
+        iconKey={item.iconKey}
+        effectKind={item.effectKind}
+        compact
+      />
+      <div className="mt-4">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
           {getGiftCategoryLabel(item.effectKind)}
         </p>
@@ -280,6 +293,7 @@ function InventoryRewardCard({
         constructionProjects={overview.constructionProjects}
         staffMembers={overview.staffMembers}
         scoutingSupervision={overview.scoutingSupervision}
+        scoutingRevealActiveUntil={overview.scoutingRevealActiveUntil}
       />
     </article>
   );
@@ -322,5 +336,6 @@ function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "construction_time_reduction") return "Accélération chantier";
   if (kind === "staff_level_boost") return "Perfectionnement du staff";
   if (kind === "injury_care") return "Soin de blessure";
+  if (kind === "scouting_visibility") return "Vision du scouting";
   return "Ticket d’or";
 }

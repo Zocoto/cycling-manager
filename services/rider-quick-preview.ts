@@ -15,6 +15,7 @@ import {
 } from "@/lib/game/transfer-scouting";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
+import { getViewerScoutingVisibility } from "@/services/scouting-visibility";
 
 type RiderRow = {
   id: string;
@@ -105,6 +106,7 @@ export async function getRiderQuickPreview({
     contractResult,
     listingResult,
     equipmentEffectsByRiderId,
+    scoutingVisibility,
   ] = await Promise.all([
       supabase
         .from("countries")
@@ -136,6 +138,13 @@ export async function getRiderQuickPreview({
         .limit(1)
         .maybeSingle<{ id: string }>(),
       getRiderEquipmentEffectsByRiderId([rider.id]),
+      activeSeason
+        ? getViewerScoutingVisibility({
+            admin: supabase,
+            authUserId: viewerAuthUserId,
+            seasonId: activeSeason.id,
+          })
+        : Promise.resolve({ active: false, activeUntil: null }),
     ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -185,9 +194,11 @@ export async function getRiderQuickPreview({
     !canManage &&
     (rider.status === "free_agent" || Boolean(listingResult.data)) &&
     Boolean(exactRatings);
+  const revealExactScouting =
+    rider.status === "free_agent" && scoutingVisibility.active;
   const ratings =
     exactRatings && activeSeason
-      ? mustUseScouting
+      ? mustUseScouting && !revealExactScouting
         ? createStandardTransferScoutingReport({
             riderId: rider.id,
             seasonId: activeSeason.id,
@@ -207,7 +218,8 @@ export async function getRiderQuickPreview({
     id: rider.id,
     name: `${rider.first_name} ${rider.last_name}`.trim(),
     age: ratingResult.data?.age ?? null,
-    potentialSteps: mustUseScouting ? null : rider.potential_steps,
+    potentialSteps:
+      mustUseScouting && !revealExactScouting ? null : rider.potential_steps,
     country: {
       name: countryResult.data.name,
       code: countryResult.data.iso_alpha2,
