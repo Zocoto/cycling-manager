@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260927230000_add_persistent_rider_morale.sql",
+    "supabase/migrations/20260927233500_reapply_persistent_rider_morale.sql",
   ),
   "utf8",
 );
