@@ -19,6 +19,14 @@ const lutchomaniaRepairMigration = readFileSync(
   "utf8",
 );
 
+const gouilleAccountRepairMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260930180000_reassign_gouille_referrals_to_active_account.sql",
+  ),
+  "utf8",
+);
+
 const registrationAction = readFileSync(
   join(process.cwd(), "app/(public)/inscription/actions.ts"),
   "utf8",
@@ -96,5 +104,24 @@ describe("referral assignment reliability", () => {
       "private.sync_referral_rewards(v_gouille_id)",
     );
     expect(lutchomaniaRepairMigration).not.toContain("like 'lutchomania%'");
+  });
+
+  it("réunit les deux rattachements récents avec les trois filleuls du compte joueur", () => {
+    expect(gouilleAccountRepairMigration).toContain(
+      "lower(director.username) = 'gouilletw'",
+    );
+    expect(gouilleAccountRepairMigration).toContain(
+      "lower(candidate.username) in ('tymeo2202', 'lutchomania24')",
+    );
+    expect(gouilleAccountRepairMigration).toContain(
+      "referrer_director_id = v_target_account_id",
+    );
+    expect(gouilleAccountRepairMigration).toContain(
+      "private.sync_referral_rewards(v_target_account_id)",
+    );
+    expect(gouilleAccountRepairMigration).toContain(
+      "v_target_qualified_count < 5",
+    );
+    expect(gouilleAccountRepairMigration).not.toContain("like '%gouille%'");
   });
 });
