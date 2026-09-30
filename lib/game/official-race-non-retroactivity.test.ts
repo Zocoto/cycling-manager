@@ -20,7 +20,7 @@ const officialSimulationMigration = readFileSync(
 describe("non-rétroactivité du moteur officiel", () => {
   it("attribue une nouvelle version uniquement aux prochaines simulations", () => {
     expect(OFFICIAL_RACE_ENGINE_VERSION).toBe(
-      "2026.09-leadout-selective-finishes-v36",
+      "2026.09-stable-automatic-tour-leader-v37",
     );
     expect(officialSimulationService).toContain(
       "engineVersion: OFFICIAL_RACE_ENGINE_VERSION",

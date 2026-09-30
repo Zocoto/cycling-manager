@@ -19,6 +19,7 @@ import {
   type SimulationStageType,
   type StageSimulationInput,
 } from "./race-simulation";
+import { getRaceFavoriteScore } from "./race-favorites";
 import { resolveStageRaceRole } from "./stage-race-roles";
 import {
   getRiderRaceDuty,
@@ -117,10 +118,12 @@ export function createCalendarSimulationInput({
   edition,
   stage,
   seed,
+  unavailableRiderIds = [],
 }: {
   edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   seed: string | number;
+  unavailableRiderIds?: ReadonlySet<string> | readonly string[];
 }): StageSimulationInput {
   const teamStrategies = Object.values(stage.teamStrategies ?? {}).sort(
     (first, second) => first.teamId.localeCompare(second.teamId),
@@ -147,13 +150,11 @@ export function createCalendarSimulationInput({
   const sourceRiders = [
     ...new Map(rawSourceRiders.map((rider) => [rider.id, rider])).values(),
   ];
-  const tourLeaderByTeamId = new Map(
-    edition.raceFormat === "stage_race"
-      ? sourceRiders
-          .filter((rider) => rider.role === "leader")
-          .map((rider) => [rider.teamId, rider.id] as const)
-      : [],
-  );
+  const tourLeaderByTeamId = getTourLeaderByTeamId({
+    edition,
+    riders: sourceRiders,
+    unavailableRiderIds,
+  });
   const sanitizedTeamStrategies = sanitizeCalendarTeamStrategies({
     stage,
     sourceRiders,
@@ -168,6 +169,14 @@ export function createCalendarSimulationInput({
     sourceRiders
     .map((rider) => {
       const { equipmentEffectsByStageId, ...baseRider } = rider;
+      const lockedLeaderRiderId = tourLeaderByTeamId.get(rider.teamId);
+      const stableGeneralRole = lockedLeaderRiderId
+        ? rider.id === lockedLeaderRiderId
+          ? "leader"
+          : rider.role === "leader"
+            ? "auto"
+            : rider.role
+        : rider.role;
       const teamStrategy = stage.teamStrategies?.[rider.teamId];
       const raceDuty = getRiderRaceDuty(teamStrategy, rider.id);
       const specialAbilities = [
@@ -183,9 +192,9 @@ export function createCalendarSimulationInput({
         ...baseRider,
         role: resolveStageRaceRole({
           riderId: rider.id,
-          generalRole: rider.role,
+          generalRole: stableGeneralRole,
           roleOverrides: stage.riderRoleOverrides,
-          lockedLeaderRiderId: tourLeaderByTeamId.get(rider.teamId),
+          lockedLeaderRiderId,
         }),
         ...(raceDuty ? { raceDuty } : {}),
         specialAbility: specialAbilities[0] ?? null,
@@ -265,6 +274,60 @@ export function createCalendarSimulationInput({
       ? { teamTacticalBriefings }
       : {}),
   };
+}
+
+/**
+ * Le rôle automatique d'un tour appartient à l'édition, pas à une étape.
+ * Sans leader déclaré, le meilleur favori au classement général est donc
+ * choisi sur l'ensemble du parcours et reste leader sur chaque profil. En cas
+ * d'abandon, le même classement de pertinence fournit un remplaçant stable
+ * parmi les coureurs encore disponibles.
+ */
+export function getTourLeaderByTeamId({
+  edition,
+  riders,
+  unavailableRiderIds = [],
+}: {
+  edition: Pick<RaceCalendarEdition, "raceFormat" | "stages">;
+  riders: readonly RiderSimulationInput[];
+  unavailableRiderIds?: ReadonlySet<string> | readonly string[];
+}) {
+  const leaders = new Map<string, string>();
+  if (edition.raceFormat !== "stage_race") return leaders;
+
+  const unavailable =
+    unavailableRiderIds instanceof Set
+      ? unavailableRiderIds
+      : new Set(unavailableRiderIds);
+  const ridersByTeam = new Map<string, RiderSimulationInput[]>();
+
+  for (const rider of riders) {
+    if (unavailable.has(rider.id)) continue;
+    const teammates = ridersByTeam.get(rider.teamId) ?? [];
+    teammates.push(rider);
+    ridersByTeam.set(rider.teamId, teammates);
+  }
+
+  for (const [teamId, teammates] of ridersByTeam) {
+    const declaredLeaders = teammates.filter(
+      (rider) => rider.role === "leader",
+    );
+    const automaticCandidates = teammates.filter(
+      (rider) => rider.role === "auto",
+    );
+    const candidates =
+      declaredLeaders.length > 0 ? declaredLeaders : automaticCandidates;
+    const leader = [...candidates].sort(
+      (first, second) =>
+        getRaceFavoriteScore(edition, second) -
+          getRaceFavoriteScore(edition, first) ||
+        first.id.localeCompare(second.id),
+    )[0];
+
+    if (leader) leaders.set(teamId, leader.id);
+  }
+
+  return leaders;
 }
 
 /**

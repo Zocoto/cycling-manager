@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-leadout-selective-finishes-v36";
+  "2026.09-stable-automatic-tour-leader-v37";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -457,6 +457,7 @@ export function simulateOfficialRaceEdition(
       edition,
       stage,
       seed: edition.id + ":" + stage.id + ":official",
+      unavailableRiderIds,
     });
     const mountainObjectiveRiderIds = getMountainObjectiveRiderIdsByTeam(
       runs.at(-1)?.simulation.resolvedRiders ?? [],

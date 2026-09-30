@@ -202,6 +202,7 @@ export async function ensureLockedOfficialRaceSimulations(
               edition,
               stage,
               seed: `${edition.id}:${stage.id}:official`,
+              unavailableRiderIds,
             });
             const mountainObjectiveRiderIds =
               getMountainObjectiveRiderIdsByTeam(

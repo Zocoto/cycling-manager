@@ -185,6 +185,180 @@ describe("createCalendarSimulationInput", () => {
     expect(riders.map((rider) => rider.role)).toEqual(["domestique", "leader"]);
   });
 
+  it("choisit le leader automatique sur l'ensemble du tour et le conserve à chaque étape", () => {
+    const allRounder = {
+      ...createRider("leader-general", "team-a"),
+      ratings: {
+        ...createRider("leader-general", "team-a").ratings,
+        mountain: 83,
+        hills: 85,
+        timeTrial: 82,
+        prologue: 80,
+        endurance: 84,
+        resistance: 82,
+        recovery: 85,
+      },
+    };
+    const pureClimber = {
+      ...createRider("grimpeur-etape", "team-a"),
+      ratings: {
+        ...createRider("grimpeur-etape", "team-a").ratings,
+        mountain: 94,
+        hills: 68,
+        timeTrial: 50,
+        prologue: 48,
+        endurance: 75,
+        resistance: 68,
+        recovery: 64,
+      },
+    };
+    const puncheur = {
+      ...createRider("puncheur-etape", "team-a"),
+      ratings: {
+        ...createRider("puncheur-etape", "team-a").ratings,
+        mountain: 65,
+        hills: 96,
+        acceleration: 90,
+        timeTrial: 48,
+        prologue: 50,
+        endurance: 72,
+        resistance: 78,
+        recovery: 66,
+      },
+    };
+    const edition = createEdition({
+      slug: "tour-leader-auto-stable",
+      riders: [allRounder, pureClimber, puncheur],
+    });
+    edition.raceFormat = "stage_race";
+    edition.stages = [
+      {
+        ...edition.stages[0],
+        id: "tour-leader-auto-stable-montagne",
+        stageNumber: 1,
+        profileType: "mountain",
+        distanceKm: 182,
+      },
+      {
+        ...edition.stages[0],
+        id: "tour-leader-auto-stable-vallons",
+        stageNumber: 2,
+        profileType: "hilly",
+        distanceKm: 168,
+      },
+      {
+        ...edition.stages[0],
+        id: "tour-leader-auto-stable-chrono",
+        stageNumber: 3,
+        stageType: "individual_time_trial",
+        profileType: "time_trial",
+        distanceKm: 34,
+      },
+    ];
+
+    for (const stage of edition.stages) {
+      const input = createCalendarSimulationInput({
+        edition,
+        stage,
+        seed: stage.id,
+      });
+      expect(
+        input.riders.find((rider) => rider.role === "leader")?.id,
+      ).toBe("leader-general");
+    }
+
+    const simulations = simulateOfficialRaceEdition(edition);
+    expect(
+      simulations.map(
+        (run) =>
+          run.simulation.resolvedRiders.find(
+            (rider) => rider.role === "leader",
+          )?.id,
+      ),
+    ).toEqual([
+      "leader-general",
+      "leader-general",
+      "leader-general",
+    ]);
+  });
+
+  it("promeut le favori général disponible suivant après l'abandon du leader automatique", () => {
+    const first = {
+      ...createRider("premier-general", "team-a"),
+      ratings: {
+        ...createRider("premier-general", "team-a").ratings,
+        mountain: 88,
+        hills: 88,
+        timeTrial: 88,
+        recovery: 88,
+      },
+    };
+    const second = {
+      ...createRider("second-general", "team-a"),
+      ratings: {
+        ...createRider("second-general", "team-a").ratings,
+        mountain: 82,
+        hills: 82,
+        timeTrial: 82,
+        recovery: 82,
+      },
+    };
+    const edition = createEdition({
+      slug: "tour-remplacement-leader-auto",
+      riders: [first, second, createRider("equipier", "team-a")],
+    });
+    edition.raceFormat = "stage_race";
+    edition.stages.push({
+      ...edition.stages[0],
+      id: "tour-remplacement-leader-auto-stage-2",
+      stageNumber: 2,
+      profileType: "mountain",
+    });
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[1],
+      seed: "leader-indisponible",
+      unavailableRiderIds: new Set(["premier-general"]),
+    });
+
+    expect(input.riders.find((rider) => rider.role === "leader")?.id).toBe(
+      "second-general",
+    );
+  });
+
+  it("garde une sélection automatique propre au profil sur une course d'un jour", () => {
+    const puncheur = {
+      ...createRider("puncheur", "team-a"),
+      ratings: {
+        ...createRider("puncheur", "team-a").ratings,
+        hills: 91,
+        acceleration: 87,
+      },
+    };
+    const grimpeur = {
+      ...createRider("grimpeur", "team-a"),
+      ratings: {
+        ...createRider("grimpeur", "team-a").ratings,
+        mountain: 95,
+        hills: 69,
+        acceleration: 66,
+      },
+    };
+    const edition = createEdition({
+      slug: "classique-vallonnee-leader-auto",
+      riders: [puncheur, grimpeur],
+    });
+    edition.stages[0].profileType = "hilly";
+
+    const [run] = simulateOfficialRaceEdition(edition);
+
+    expect(
+      run.simulation.resolvedRiders.find((rider) => rider.role === "leader")
+        ?.id,
+    ).toBe("puncheur");
+  });
+
   it("assainit les doublons historiques de leaders sans modifier la startlist", () => {
     const riders = [
       {
