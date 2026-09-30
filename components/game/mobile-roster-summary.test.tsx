@@ -30,7 +30,7 @@ const ratings: MobileRosterSummaryRating[] = [
 }));
 
 describe("mobile roster summary", () => {
-  it("affiche quatre notes alignées sans tableau horizontal", () => {
+  it("affiche les six notes principales sans tableau horizontal", () => {
     const markup = renderToStaticMarkup(
       <MobileRosterSummary
         riders={[
@@ -51,20 +51,32 @@ describe("mobile roster summary", () => {
 
     expect(markup).toContain("data-mobile-roster-summary");
     expect(markup).toContain("table-fixed");
-    expect(markup.match(/data-summary-rating=/g)).toHaveLength(4);
+    expect(markup.match(/data-summary-rating=/g)).toHaveLength(6);
     expect(markup).toContain("Augusto Silva");
     expect(markup).toContain("Santé : forme 82 %, moral 71 %");
     expect(markup).not.toContain("overflow-x-auto");
-    expect(markup).not.toContain("Contre-la-montre : 72");
+    expect(markup).toContain("Montagne : 81");
+    expect(markup).toContain("Vallon : 77");
+    expect(markup).toContain("Plaine : 69");
+    expect(markup).toContain("Contre-la-montre : 72");
+    expect(markup).toContain("Pavés : 64");
+    expect(markup).toContain("Sprint : 73");
   });
 
-  it("limite une sélection personnalisée à quatre notes", () => {
+  it("limite une sélection personnalisée à six notes", () => {
     expect(
       toggleMobileRosterCustomRating(
-        ["mountain", "hills", "flat", "sprint"],
-        "time_trial",
+        ["mountain", "hills", "flat", "time_trial", "cobbles", "sprint"],
+        "acceleration",
       ),
-    ).toEqual(["hills", "flat", "sprint", "time_trial"]);
+    ).toEqual([
+      "hills",
+      "flat",
+      "time_trial",
+      "cobbles",
+      "sprint",
+      "acceleration",
+    ]);
 
     expect(
       toggleMobileRosterCustomRating(

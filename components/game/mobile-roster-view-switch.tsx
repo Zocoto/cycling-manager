@@ -30,7 +30,7 @@ export function MobileRosterViewSwitch({
     {
       id: "synthese" as const,
       label: "Vue synthèse",
-      description: "Comparer 4 notes",
+      description: "Comparer les 6 notes principales",
     },
     {
       id: "fiches" as const,
