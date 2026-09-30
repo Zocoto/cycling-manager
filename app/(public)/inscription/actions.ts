@@ -8,6 +8,7 @@ import { readMarketingAttributionFromFormData } from "../../../lib/marketing/att
 
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { getPublicReferralInvitation } from "../../../services/referrals";
 import type { RegistrationState } from "./registration-state";
 
 const registrationSchema = z
@@ -116,6 +117,27 @@ export async function registerAccount(
   }
 
   const supabase = await createSupabaseServerClient();
+  const normalizedReferralCode =
+    validationResult.data.referralCode || null;
+
+  if (normalizedReferralCode) {
+    const invitation = await getPublicReferralInvitation(
+      supabase,
+      normalizedReferralCode,
+    );
+
+    if (!invitation) {
+      return {
+        status: "error",
+        message: "Le code de parrainage n’est pas reconnu.",
+        fieldErrors: {
+          referralCode: [
+            "Vérifiez le code avec votre parrain avant de créer le compte.",
+          ],
+        },
+      };
+    }
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email: validationResult.data.email,
@@ -237,6 +259,20 @@ export async function registerAccount(
         "La création du compte n’a pas pu être finalisée. Réessaie dans quelques instants.",
       fieldErrors: {},
     };
+  }
+
+  if (normalizedReferralCode) {
+    const { error: referralFinalizationError } = await admin.rpc(
+      "finalize_registration_referral",
+      { p_auth_user_id: data.user.id },
+    );
+
+    if (referralFinalizationError) {
+      console.error(
+        "Le compte a été créé, mais la seconde tentative de parrainage a échoué :",
+        referralFinalizationError,
+      );
+    }
   }
 
   const confirmationRequired = data.session === null;
