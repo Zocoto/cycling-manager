@@ -38,6 +38,7 @@ export type TransferMarketReturnFilters = {
   country?: string;
   minimumAge?: number;
   maximumAge?: number;
+  minimumPotentialSteps?: number;
   rating?: RiderRatingKey | "overall";
   minimumRating?: number;
   page?: number;
@@ -55,6 +56,13 @@ export function buildTransferMarketReturnPath(
     setOptionalParam(params, "pays", normalizeCountryCode(filters.country));
     setOptionalNumber(params, "ageMin", filters.minimumAge, 15, 60);
     setOptionalNumber(params, "ageMax", filters.maximumAge, 15, 60);
+    setOptionalNumber(
+      params,
+      "potentielMin",
+      filters.minimumPotentialSteps,
+      1,
+      8,
+    );
     setOptionalParam(params, "stat", normalizeRating(filters.rating));
     setOptionalNumber(params, "statMin", filters.minimumRating, 0, 100);
     setOptionalNumber(params, "page", filters.page, 2, 100);
@@ -73,6 +81,11 @@ export function sanitizeTransferMarketReturnPath(value: string) {
     country: normalizeCountryCode(url.searchParams.get("pays")),
     minimumAge: readBoundedNumber(url.searchParams.get("ageMin"), 15, 60),
     maximumAge: readBoundedNumber(url.searchParams.get("ageMax"), 15, 60),
+    minimumPotentialSteps: readBoundedNumber(
+      url.searchParams.get("potentielMin"),
+      1,
+      8,
+    ),
     rating: normalizeRating(url.searchParams.get("stat")),
     minimumRating: readBoundedNumber(url.searchParams.get("statMin"), 0, 100),
     page: readBoundedNumber(url.searchParams.get("page"), 2, 100),
