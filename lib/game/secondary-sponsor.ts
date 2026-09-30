@@ -50,6 +50,7 @@ export const DEFAULT_SECONDARY_SPONSOR_LOGO_PLACEMENT: SecondarySponsorLogoPlace
 };
 
 const SECONDARY_REWARD_BY_CATEGORY: Record<RaceCategoryCode, number> = {
+  local: 8_000,
   regional: 8_000,
   national: 15_000,
   continental: 25_000,

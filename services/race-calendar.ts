@@ -377,8 +377,19 @@ type CountryRow = {
 };
 
 type RegionalRaceContextRow = {
+  team_country_code: string | null;
   team_continent_code: string | null;
   is_amateur: boolean;
+};
+
+type VisibleCalendarEditionRow = {
+  race_edition_id: string;
+};
+
+export type CurrentTeamRaceAccessContext = {
+  teamCountryCode: string | null;
+  teamContinentCode: string | null;
+  isAmateur: boolean;
 };
 
 type SportingDirectorReputationRow = {
@@ -503,6 +514,70 @@ type ActiveSeasonCalendarLoadOptions = {
    */
   includeSimulationEnhancements?: boolean;
 };
+
+export async function getCurrentTeamRaceAccessContext(
+  supabase: SupabaseServerClient,
+): Promise<CurrentTeamRaceAccessContext | null> {
+  const { data, error } = await supabase.rpc(
+    "get_current_team_race_access_context",
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de vérifier l’éligibilité aux courses réservées : ${error.message}`,
+    );
+  }
+
+  const row = ((data as RegionalRaceContextRow[] | null) ?? [])[0] ?? null;
+  return row
+    ? {
+        teamCountryCode: row.team_country_code,
+        teamContinentCode: row.team_continent_code,
+        isAmateur: row.is_amateur,
+      }
+    : null;
+}
+
+async function getCurrentTeamVisibleCalendarEditionIds(
+  supabase: SupabaseServerClient,
+  seasonId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "get_current_team_visible_calendar_edition_ids",
+    { p_season_id: seasonId },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger les courses visibles du calendrier : ${error.message}`,
+    );
+  }
+
+  return ((data as VisibleCalendarEditionRow[] | null) ?? []).map(
+    (row) => row.race_edition_id,
+  );
+}
+
+export async function getDueRaceJobEditionIds(
+  supabase: SupabaseServerClient,
+  clock: Date,
+  mode: "simulation" | "settlement",
+) {
+  const { data, error } = await supabase.rpc(
+    "get_due_race_job_edition_ids",
+    { p_clock: clock.toISOString(), p_mode: mode },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de préparer la file des courses à traiter : ${error.message}`,
+    );
+  }
+
+  return ((data as VisibleCalendarEditionRow[] | null) ?? []).map(
+    (row) => row.race_edition_id,
+  );
+}
 
 type RiderCountryRow = {
   id: string;
@@ -762,7 +837,7 @@ export async function getActiveSeasonRaceCalendar(
     );
   }
 
-  const scopedRaceEditionIds =
+  let scopedRaceEditionIds =
     options.raceEditionIds === undefined
       ? null
       : unique(options.raceEditionIds.filter(Boolean));
@@ -792,6 +867,17 @@ export async function getActiveSeasonRaceCalendar(
 
   if (!season) {
     return null;
+  }
+
+  if (
+    scopedRaceEditionIds === null &&
+    !options.raceSlug &&
+    !options.includeIneligibleRegionalRaces
+  ) {
+    scopedRaceEditionIds = await getCurrentTeamVisibleCalendarEditionIds(
+      supabase,
+      season.id,
+    );
   }
 
   const scopedRaceResult = options.raceSlug
@@ -900,7 +986,7 @@ export async function getActiveSeasonRaceCalendar(
     supabase.rpc("get_current_team_sponsor_objective_races"),
     options.includeIneligibleRegionalRaces
       ? Promise.resolve({ data: null, error: null })
-      : supabase.rpc("get_current_team_regional_race_context"),
+      : supabase.rpc("get_current_team_race_access_context"),
     includeEngagedCounts
       ? collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
           fetchPage: async (from, to) => {
@@ -943,7 +1029,7 @@ export async function getActiveSeasonRaceCalendar(
   }
   if (regionalRaceContextResult.error) {
     throw new Error(
-      `Impossible de vérifier l’éligibilité aux courses régionales : ${regionalRaceContextResult.error.message}`,
+      `Impossible de vérifier l’éligibilité aux courses réservées : ${regionalRaceContextResult.error.message}`,
     );
   }
 
@@ -1690,10 +1776,12 @@ export async function getActiveSeasonRaceCalendar(
         !options.includeIneligibleRegionalRaces &&
         !canTeamAccessRaceCategory({
           categoryCode: category.code,
+          raceCountryCode: country.iso_alpha2,
           raceContinentCode: country.continent_code,
           context: regionalRaceContext
             ? {
                 isAmateur: regionalRaceContext.is_amateur,
+                teamCountryCode: regionalRaceContext.team_country_code,
                 teamContinentCode: regionalRaceContext.team_continent_code,
               }
             : null,
@@ -1718,6 +1806,7 @@ export async function getActiveSeasonRaceCalendar(
         shortName: race.short_name,
         countryName: country.name,
         countryCode: country.iso_alpha2,
+        continentCode: country.continent_code,
         categoryCode: category.code,
         categoryName: category.name,
         prestigeRank: category.prestige_rank,

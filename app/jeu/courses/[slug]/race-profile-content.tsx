@@ -64,8 +64,10 @@ import {
   REPUTATION_FEATURE_THRESHOLDS,
   WILDCARD_REPUTATION_COMMITMENTS,
 } from "@/lib/game/reputation";
+import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import {
   getActiveSeasonRaceCalendar,
+  getCurrentTeamRaceAccessContext,
   getCurrentRaceUserContext,
   getCurrentTeamRaceRosterOptions,
   getRaceEngagedRiders,
@@ -120,34 +122,16 @@ export async function RaceProfileContent({
     redirect("/connexion");
   }
 
-  const [headerData, eligibleCalendar, weatherCenterLevel] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase, new Date(), {
-      raceSlug: slug,
-    }),
-    getCurrentTeamWeatherCenterLevel(user.id),
-  ]);
-  let calendar = eligibleCalendar;
-  let isRegionalAccessDenied = false;
-
-  if (!calendar?.editions.some((candidate) => candidate.slug === slug)) {
-    const completeCalendar = await getActiveSeasonRaceCalendar(
-      supabase,
-      new Date(),
-      {
+  const [headerData, calendar, weatherCenterLevel, raceAccessContext] =
+    await Promise.all([
+      getGameHeaderData(supabase, user.id),
+      getActiveSeasonRaceCalendar(supabase, new Date(), {
         raceSlug: slug,
         includeIneligibleRegionalRaces: true,
-      },
-    );
-    const inaccessibleEdition = completeCalendar?.editions.find(
-      (candidate) => candidate.slug === slug,
-    );
-
-    if (inaccessibleEdition?.categoryCode === "regional") {
-      calendar = completeCalendar;
-      isRegionalAccessDenied = true;
-    }
-  }
+      }),
+      getCurrentTeamWeatherCenterLevel(user.id),
+      getCurrentTeamRaceAccessContext(supabase),
+    ]);
   const edition = calendar?.editions.find(
     (candidate) => candidate.slug === slug,
   );
@@ -155,6 +139,17 @@ export async function RaceProfileContent({
   if (!calendar || !edition) {
     notFound();
   }
+
+  const restrictedAccessDenied = canTeamAccessRaceCategory({
+    categoryCode: edition.categoryCode,
+    raceCountryCode: edition.countryCode,
+    raceContinentCode: edition.continentCode ?? null,
+    context: raceAccessContext,
+  })
+    ? null
+    : edition.categoryCode === "local" || edition.categoryCode === "regional"
+      ? edition.categoryCode
+      : null;
 
   const isInternationalChampionship =
     isInternationalChampionshipEdition(edition);
@@ -686,7 +681,7 @@ export async function RaceProfileContent({
                     riders={rosterOptions}
                     rosterError={rosterError}
                     riderJersey={riderJersey}
-                    isRegionalAccessDenied={isRegionalAccessDenied}
+                    restrictedAccessDenied={restrictedAccessDenied}
                     publishedLeaderRiderIds={pressConferences
                       .filter((conference) => conference.isOwn && conference.status === "published")
                       .map((conference) => conference.leaderRiderId)}
@@ -814,7 +809,7 @@ function RegistrationPanel({
   riders,
   rosterError,
   riderJersey,
-  isRegionalAccessDenied,
+  restrictedAccessDenied,
   publishedLeaderRiderIds,
 }: {
   edition: RaceCalendarEdition;
@@ -825,7 +820,7 @@ function RegistrationPanel({
   riders: RaceRosterOption[];
   rosterError: string | null;
   riderJersey: RiderJerseyAppearance;
-  isRegionalAccessDenied: boolean;
+  restrictedAccessDenied: "local" | "regional" | null;
   publishedLeaderRiderIds: string[];
 }) {
   const registration = context.registration;
@@ -937,15 +932,19 @@ function RegistrationPanel({
     );
   }
 
-  if (isRegionalAccessDenied) {
+  if (restrictedAccessDenied) {
     return (
       <section className="rounded-2xl border border-[#F2C94C]/35 bg-[#0B302B] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)]">
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
-          Course régionale
+          {restrictedAccessDenied === "local"
+            ? "Course locale"
+            : "Course régionale"}
         </p>
         <h2 className="mt-3 text-xl font-black">Inscription non accessible</h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
-          Cette course est réservée aux équipes amateures de son continent.
+          {restrictedAccessDenied === "local"
+            ? `Cette course est réservée aux équipes enregistrées en ${edition.countryName}.`
+            : "Cette course est réservée aux équipes amateures de son continent."}{" "}
           Vous pouvez consulter son parcours, sa startlist et ses résultats,
           mais votre équipe ne peut pas s’y inscrire.
         </p>

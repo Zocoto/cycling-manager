@@ -833,10 +833,10 @@ function getSecondaryRaceScore(
 ): number {
   const categoryOrder: RaceCategoryCode[] =
     prestige >= 4
-      ? ["elite", "world", "continental", "national", "regional"]
+      ? ["elite", "world", "continental", "national", "regional", "local"]
       : prestige >= 2
-        ? ["continental", "world", "national", "elite", "regional"]
-        : ["national", "continental", "world", "elite", "regional"];
+        ? ["continental", "world", "national", "elite", "regional", "local"]
+        : ["national", "continental", "world", "elite", "regional", "local"];
   const categoryScore = categoryOrder.length - categoryOrder.indexOf(candidate.categoryCode);
   return (candidate.isDomestic ? 100 : 0) + categoryScore * 10;
 }

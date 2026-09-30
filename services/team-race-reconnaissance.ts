@@ -521,6 +521,8 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   );
   const regionalRaceContext = {
     isAmateur: (activePrincipalSponsorsResult.data ?? []).length === 0,
+    teamCountryCode:
+      countryById.get(teamSeason.registration_country_id)?.iso_alpha2 ?? null,
     teamContinentCode:
       countryById.get(teamSeason.registration_country_id)?.continent_code ??
       null,
@@ -708,6 +710,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         !registeredEditionIds.has(edition.id) ||
         !canTeamAccessRaceCategory({
           categoryCode: category.code,
+          raceCountryCode: country.iso_alpha2,
           raceContinentCode: country.continent_code,
           context: regionalRaceContext,
         }) ||

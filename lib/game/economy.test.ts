@@ -96,6 +96,29 @@ describe("calculateRaceReward", () => {
     });
   });
 
+  it("applique aux Locales exactement le barème des Régionales", () => {
+    const input = {
+      gameYear: 4,
+      scope: "tour" as const,
+      finalRank: 3,
+      secondaryClassifications: ["mountain" as const],
+      mountainPrimesWon: 2,
+    };
+
+    expect(calculateRaceReward({ ...input, tier: "local" })).toEqual(
+      calculateRaceReward({ ...input, tier: "regional" }),
+    );
+    expect(
+      calculateStageReward({ gameYear: 4, tier: "local", finalRank: 2 }),
+    ).toEqual(
+      calculateStageReward({
+        gameYear: 4,
+        tier: "regional",
+        finalRank: 2,
+      }),
+    );
+  });
+
   it("expose le detail financier du general, des annexes et des primes", () => {
     const breakdown = calculateRaceRewardBreakdown({
       tier: "world",

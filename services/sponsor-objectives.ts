@@ -1677,6 +1677,7 @@ export function isSponsorObjectiveRaceCandidateEligible(
 
   return (
     candidate.categoryCode !== "regional" &&
+    candidate.categoryCode !== "local" &&
     candidate.registrationPolicy === "open" &&
     candidate.minimumReputation !== null &&
     normalizedReputation >= candidate.minimumReputation &&
