@@ -15,6 +15,8 @@ describe("S4 calendar expansion migrations", () => {
     expect(localMigration).toContain("v_season.game_year < 4");
     expect(localMigration).toContain("where game_year >= 4");
     expect(expansionMigration).toContain("where game_year >= 4");
+    expect(localMigration).toContain(") <> 28 then");
+    expect(expansionMigration).toContain(") = 28");
     expect(`${localMigration}\n${expansionMigration}`).not.toContain(
       "game_year >= 3",
     );

@@ -224,6 +224,14 @@ begin
     return 0;
   end if;
 
+  if (
+    select count(*)
+    from public.season_days
+    where season_id = p_season_id
+  ) <> 28 then
+    return 0;
+  end if;
+
   select * into v_country
   from public.countries
   where id = p_country_id;
@@ -822,6 +830,10 @@ begin
       from public.seasons
       where game_year >= 4
         and status in ('planned', 'active')
+        and (
+          select count(*) from public.season_days
+          where season_id = seasons.id
+        ) = 28
     ), direct_countries as (
       select distinct season.id as season_id, team_season.registration_country_id
       from s4_seasons as season

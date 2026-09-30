@@ -166,6 +166,10 @@ begin
     select id, game_year
     from public.seasons
     where game_year >= 4 and status in ('planned', 'active')
+      and (
+        select count(*) from public.season_days
+        where season_id = seasons.id
+      ) = 28
     order by game_year
   loop
     for v_seed in select * from s4_calendar_seed order by preferred_day, slug
@@ -404,6 +408,10 @@ begin
   for v_season in
     select id from public.seasons
     where game_year >= 4 and status = 'planned'
+      and (
+        select count(*) from public.season_days
+        where season_id = seasons.id
+      ) = 28
   loop
     perform private.normalize_standard_race_country_spacing(v_season.id);
   end loop;
