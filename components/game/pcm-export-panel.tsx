@@ -137,10 +137,12 @@ export function PcmExportPanel() {
               Où placer le fichier ?
             </summary>
             <p className="mt-3 font-semibold leading-6">
-              Décompresse l’archive, puis copie directement le dossier
-              <code> Cyclostratege</code> dans
-              <code> %APPDATA%\Pro Cycling Manager 2026\Mod\</code>. Relance ensuite
-              PCM26 et sélectionne la base Cyclostratège.
+              Décompresse l’archive, puis copie directement le dossier extrait
+              <code> Cyclostratege-PCM26-Sx</code> dans
+              <code> %APPDATA%\Pro Cycling Manager 2026\Mod\</code>. Les fichiers
+              <code> OfficialRelease.cdb</code> et <code> OfficialLocal.cdb</code>
+              doivent être immédiatement dans ce dossier, sans sous-dossier
+              supplémentaire.
             </p>
           </details>
         </div>

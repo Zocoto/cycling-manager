@@ -11,7 +11,6 @@ import type {
   PcmExportResult,
 } from "@/lib/game/pcm-export/types";
 
-const PACKAGE_ROOT = "Cyclostratege";
 const LOCAL_DATABASE_PATH = join(
   process.cwd(),
   "assets",
@@ -66,16 +65,16 @@ export async function createPcmExportPackage({
   };
   const archive = zipSync(
     {
-      [`${PACKAGE_ROOT}/OfficialRelease.cdb`]: cdb,
-      [`${PACKAGE_ROOT}/OfficialLocal.cdb`]: localDatabase,
-      [`${PACKAGE_ROOT}/mod.xml`]: strToU8(createModXml(metadata)),
-      [`${PACKAGE_ROOT}/manifest.json`]: strToU8(
+      "OfficialRelease.cdb": cdb,
+      "OfficialLocal.cdb": localDatabase,
+      "mod.xml": strToU8(createModXml(metadata)),
+      "manifest.json": strToU8(
         `${JSON.stringify(manifest, null, 2)}\n`,
       ),
-      [`${PACKAGE_ROOT}/validation.json`]: strToU8(
+      "validation.json": strToU8(
         `${JSON.stringify(validation, null, 2)}\n`,
       ),
-      [`${PACKAGE_ROOT}/LISEZ-MOI.txt`]: strToU8(createInstallationGuide()),
+      "LISEZ-MOI.txt": strToU8(createInstallationGuide(metadata.season)),
     },
     { level: 6 },
   );
@@ -102,19 +101,23 @@ function createModXml(metadata: PcmExportResult["metadata"]) {
 `;
 }
 
-function createInstallationGuide() {
+function createInstallationGuide(season: number) {
   return `INSTALLATION DE LA BASE CYCLOSTRATEGE POUR PCM26
 
 1. Fermez complètement Pro Cycling Manager 2026.
-2. Copiez le dossier "Cyclostratege" dans :
+2. Décompressez l'archive téléchargée.
+3. Copiez le dossier "Cyclostratege-PCM26-S${season}" obtenu dans :
    %APPDATA%\\Pro Cycling Manager 2026\\Mod\\
-3. Le chemin final doit être :
-   %APPDATA%\\Pro Cycling Manager 2026\\Mod\\Cyclostratege\\OfficialRelease.cdb
-4. Relancez PCM26 et sélectionnez la base "Cyclostratège".
-5. Créez une nouvelle partie avec cette base.
+4. Le chemin final doit être :
+   %APPDATA%\\Pro Cycling Manager 2026\\Mod\\Cyclostratege-PCM26-S${season}\\OfficialRelease.cdb
+   Le fichier OfficialLocal.cdb doit se trouver juste à côté, sans sous-dossier.
+5. Relancez PCM26 et sélectionnez "Cyclostratege-PCM26-S${season}".
+6. Créez une nouvelle partie avec cette base.
 
 Ne remplacez pas la base du dossier "Default".
 N'utilisez pas cette DB avec une sauvegarde déjà commencée.
 Les assets graphiques personnalisés ne sont pas encore inclus dans ce pack.
+Les croix rouges devant les maillots, photos, courses et équipements sont donc
+normales : seules les deux lignes de base de données doivent être reconnues.
 `;
 }

@@ -12,22 +12,26 @@ describe("pack d'installation PCM26", () => {
 
     expect(Object.keys(files).sort()).toEqual(
       [
-        "Cyclostratege/LISEZ-MOI.txt",
-        "Cyclostratege/OfficialLocal.cdb",
-        "Cyclostratege/OfficialRelease.cdb",
-        "Cyclostratege/manifest.json",
-        "Cyclostratege/mod.xml",
-        "Cyclostratege/validation.json",
+        "LISEZ-MOI.txt",
+        "OfficialLocal.cdb",
+        "OfficialRelease.cdb",
+        "manifest.json",
+        "mod.xml",
+        "validation.json",
       ].sort(),
     );
-    expect(files["Cyclostratege/OfficialRelease.cdb"]).toEqual(source.cdb);
-    expect(files["Cyclostratege/OfficialLocal.cdb"].byteLength).toBe(2_001_159);
-    expect(strFromU8(files["Cyclostratege/mod.xml"])).toContain(
+    expect(files["OfficialRelease.cdb"]).toEqual(source.cdb);
+    expect(files["OfficialLocal.cdb"].byteLength).toBe(2_001_159);
+    expect(strFromU8(files["mod.xml"])).toContain(
       "<Title>Cyclostratège</Title>",
     );
-    expect(strFromU8(files["Cyclostratege/LISEZ-MOI.txt"])).toContain(
+    expect(strFromU8(files["LISEZ-MOI.txt"])).toContain(
       "%APPDATA%\\Pro Cycling Manager 2026\\Mod\\",
     );
+    expect(strFromU8(files["LISEZ-MOI.txt"])).toContain(
+      "Cyclostratege-PCM26-S3\\OfficialRelease.cdb",
+    );
+    expect(Object.keys(files).every((name) => !name.includes("/"))).toBe(true);
     expect(result.filename).toBe("Cyclostratege-PCM26-S3.zip");
     expect(result.archiveSha256).toMatch(/^[a-f0-9]{64}$/);
   });

@@ -319,7 +319,7 @@ function buildDatabaseFromSnapshot(
         gene_sz_name: teamSeason.display_name.slice(0, 70),
         jersey_sz_abbreviation: code,
         abbreviation: code.toUpperCase(),
-        gene_b_licensed: 0,
+        gene_b_licensed: 1,
         fkIDcountry: country.countryId,
         gene_sz_suffixeMail: "cyclostratege.fr",
         gene_sz_manager_general: "Cyclo Stratege",
@@ -638,6 +638,12 @@ function validateGeneratedRows(
           `Note PCM hors limites pour ${rider.IDcyclist} : ${column}=${value}.`,
         );
       }
+    }
+  }
+
+  for (const team of exportedTeams) {
+    if (Number(team.gene_b_licensed) !== 1) {
+      throw new Error(`Equipe PCM non jouable : ${team.IDteam}.`);
     }
   }
 }

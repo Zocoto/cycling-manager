@@ -48,6 +48,13 @@ describe("generateur de base PCM26", () => {
         expect(
           readCount(db, "SELECT COUNT(*) FROM DYN_team WHERE CONSTANT LIKE 'CS_%'"),
         ).toBe(1);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_team
+             WHERE CONSTANT LIKE 'CS_%' AND gene_b_licensed <> 1`,
+          ),
+        ).toBe(0);
         expect(readCount(db, "SELECT COUNT(*) FROM STA_stage")).toBe(
           sourceStageCount,
         );
