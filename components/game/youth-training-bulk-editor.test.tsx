@@ -31,7 +31,9 @@ describe("YouthTrainingSettingsFields", () => {
     );
 
     expect(markup).toContain("Classiques du Nord · Pavés · PAV / RES / PLA");
-    expect(markup).toContain("Répartition du gain · Classiques du Nord · Pavés");
+    expect(markup).toContain(
+      'aria-label="Répartition du gain pour le profil Classiques du Nord · Pavés"',
+    );
     expect(markup).toContain("Gain prioritaire");
     expect(markup).toContain("Gain secondaire");
     expect(markup).toContain("Gain d’entretien");
