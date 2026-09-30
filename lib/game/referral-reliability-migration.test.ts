@@ -11,6 +11,14 @@ const migration = readFileSync(
   "utf8",
 );
 
+const lutchomaniaRepairMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260930150000_attach_lutchomania24_to_gouille.sql",
+  ),
+  "utf8",
+);
+
 const registrationAction = readFileSync(
   join(process.cwd(), "app/(public)/inscription/actions.ts"),
   "utf8",
@@ -66,5 +74,27 @@ describe("referral assignment reliability", () => {
     expect(migration).toContain("if v_candidate_count <> 1 then");
     expect(migration).toContain("referral.referrer_director_id = v_gouille_id");
     expect(migration).toContain("Aucune attribution appliquee");
+  });
+
+  it("réattribue uniquement lutchomania24 depuis gouilleTW sans invalider un palier", () => {
+    expect(lutchomaniaRepairMigration).toContain(
+      "lower(director.username) = 'lutchomania24'",
+    );
+    expect(lutchomaniaRepairMigration).toContain(
+      "v_existing_referrer_id <> v_gouille_id",
+    );
+    expect(lutchomaniaRepairMigration).toContain(
+      "lower(v_existing_referrer_name) <> 'gouilletw'",
+    );
+    expect(lutchomaniaRepairMigration).toContain(
+      "reward.milestone_count > (",
+    );
+    expect(lutchomaniaRepairMigration).toContain(
+      "referrer_director_id = v_gouille_id",
+    );
+    expect(lutchomaniaRepairMigration).toContain(
+      "private.sync_referral_rewards(v_gouille_id)",
+    );
+    expect(lutchomaniaRepairMigration).not.toContain("like 'lutchomania%'");
   });
 });
