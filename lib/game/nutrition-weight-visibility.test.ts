@@ -26,4 +26,11 @@ describe("nutrition weight visibility", () => {
     expect(nutritionEditor).toContain("kg si déclenché");
     expect(nutritionEditor).toContain("getNutritionWeightGainRiskPct");
   });
+
+  it("garde l’affûtage compact sans répéter les mesures du coureur", () => {
+    expect(healthPage).toContain('className="mt-3 grid gap-2 rounded-xl');
+    expect(healthPage).toContain("Tous les 5 j");
+    expect(healthPage).toContain("pendingLabel=\"Affûtage…\"");
+    expect(healthPage).not.toContain("Programme d’affûtage · {rider.heightCm");
+  });
 });

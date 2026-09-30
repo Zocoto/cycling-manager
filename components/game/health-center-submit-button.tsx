@@ -7,11 +7,13 @@ export function HealthCenterSubmitButton({
   pendingLabel,
   disabled = false,
   tone = "gold",
+  compact = false,
 }: {
   children: React.ReactNode;
   pendingLabel: string;
   disabled?: boolean;
   tone?: "gold" | "green";
+  compact?: boolean;
 }) {
   const { pending } = useFormStatus();
   const colors =
@@ -23,7 +25,11 @@ export function HealthCenterSubmitButton({
     <button
       type="submit"
       disabled={disabled || pending}
-      className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-45 ${colors}`}
+      className={`inline-flex items-center justify-center font-black uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-45 ${
+        compact
+          ? "min-h-9 rounded-lg px-3 py-1.5 text-[11px]"
+          : "min-h-11 rounded-xl px-4 py-2 text-xs"
+      } ${colors}`}
     >
       {pending ? pendingLabel : children}
     </button>
