@@ -135,7 +135,7 @@ export const NUTRITION_INTERVENTIONS = {
     baseFormGain: 3,
     basePrice: 500,
     minimumNutritionistLevel: 1,
-    baseWeightGainRiskPct: 5,
+    baseWeightGainRiskPct: 4,
     possibleWeightGainKg: 0.1,
   },
   tailored_plan: {
@@ -144,8 +144,8 @@ export const NUTRITION_INTERVENTIONS = {
     baseFormGain: 5,
     basePrice: 1_200,
     minimumNutritionistLevel: 3,
-    baseWeightGainRiskPct: 8,
-    possibleWeightGainKg: 0.1,
+    baseWeightGainRiskPct: 7,
+    possibleWeightGainKg: 0.2,
   },
   elite_recharge: {
     label: "Recharge haute performance",
@@ -154,7 +154,7 @@ export const NUTRITION_INTERVENTIONS = {
     basePrice: 2_500,
     minimumNutritionistLevel: 5,
     baseWeightGainRiskPct: 12,
-    possibleWeightGainKg: 0.2,
+    possibleWeightGainKg: 0.3,
   },
 } as const;
 
@@ -168,9 +168,9 @@ export function getNutritionWeightGainRiskPct({
   nutritionistLevel: number;
 }) {
   return Math.max(
-    0,
+    1,
     NUTRITION_INTERVENTIONS[code].baseWeightGainRiskPct -
-      Math.max(0, Math.trunc(nutritionistLevel) - 1) * 0.75,
+      Math.max(0, Math.trunc(nutritionistLevel) - 1) * 0.5,
   );
 }
 

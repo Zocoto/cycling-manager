@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  NUTRITION_INTERVENTIONS,
   RIDER_INJURY_DIAGNOSES,
   getDoctorFormCampBoostPct,
   getFormCampGainPerDay,
   getFormCampTotal,
   getNutritionInterventionOutcome,
+  getNutritionWeightGainRiskPct,
   getNutritionistDailyRecoveryBonus,
   getProtocolRecoveryReductionHours,
   orderNutritionRidersByForm,
@@ -223,6 +225,31 @@ describe("health center rules", () => {
         nutritionistLevel: 4,
       }).isUnlocked,
     ).toBe(false);
+  });
+
+  it("garde une prise de poids rare mais croissante avec la puissance du complément", () => {
+    expect(NUTRITION_INTERVENTIONS.recovery_snack.possibleWeightGainKg).toBe(0.1);
+    expect(NUTRITION_INTERVENTIONS.tailored_plan.possibleWeightGainKg).toBe(0.2);
+    expect(NUTRITION_INTERVENTIONS.elite_recharge.possibleWeightGainKg).toBe(0.3);
+    expect(
+      getNutritionWeightGainRiskPct({
+        code: "recovery_snack",
+        nutritionistLevel: 5,
+      }),
+    ).toBe(2);
+    expect(
+      getNutritionWeightGainRiskPct({
+        code: "tailored_plan",
+        nutritionistLevel: 5,
+      }),
+    ).toBe(5);
+    expect(
+      getNutritionWeightGainRiskPct({
+        code: "elite_recharge",
+        nutritionistLevel: 5,
+      }),
+    ).toBe(10);
+    expect(28 * 0.3 * 0.1).toBeLessThan(1);
   });
 
   it("affiche le prix et l'efficacité réellement calculés par le serveur", () => {

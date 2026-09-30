@@ -869,10 +869,10 @@ function NutritionPanel({
                   Niveau {intervention.minimumNutritionistLevel} requis
                 </p>
                 <p className="mt-2 text-[10px] font-bold leading-4 text-[#986A17]">
-                  Risque de +{intervention.possibleWeightGainKg.toLocaleString("fr-FR")} kg : {getNutritionWeightGainRiskPct({
+                  Impact poids · {getNutritionWeightGainRiskPct({
                     code,
                     nutritionistLevel: referenceNutritionist?.level ?? 1,
-                  }).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %
+                  }).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % de risque · +{intervention.possibleWeightGainKg.toLocaleString("fr-FR", { minimumFractionDigits: 1 })} kg si déclenché
                 </p>
               </article>
             );
@@ -972,6 +972,9 @@ function NutritionPanel({
                         </div>
                         <p className="mt-1 text-xs font-bold text-[#60756E]">
                           Forme {rider.form}/100 · Moral {Math.round(rider.morale)}/100
+                          {rider.weightKg !== null
+                            ? ` · Poids ${rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg`
+                            : ""}
                         </p>
                       </div>
                       <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633]">
@@ -990,6 +993,7 @@ function NutritionPanel({
                       <NutritionInterventionFields
                         riderId={rider.id}
                         riderForm={rider.form}
+                        riderWeightKg={rider.weightKg}
                         currency={overview.currency}
                       />
                     )}

@@ -14,6 +14,7 @@ import { applyNutritionInterventionsAction } from "@/app/jeu/centre-de-soin/acti
 import {
   NUTRITION_INTERVENTIONS,
   getNutritionInterventionOutcome,
+  getNutritionWeightGainRiskPct,
   type NutritionInterventionCode,
 } from "@/lib/game/health-center";
 
@@ -274,10 +275,12 @@ export function NutritionInterventionsEditor({
 export function NutritionInterventionFields({
   riderId,
   riderForm,
+  riderWeightKg,
   currency,
 }: {
   riderId: string;
   riderForm: number;
+  riderWeightKg: number | null;
   currency: string;
 }) {
   const editor = useNutritionEditor();
@@ -304,6 +307,18 @@ export function NutritionInterventionFields({
   const actualFormGain = outcome
     ? Math.min(outcome.formGain, Math.max(0, 100 - riderForm))
     : 0;
+  const weightImpact =
+    selectedNutritionist && draft.interventionCode
+      ? {
+          gainKg:
+            NUTRITION_INTERVENTIONS[draft.interventionCode]
+              .possibleWeightGainKg,
+          riskPct: getNutritionWeightGainRiskPct({
+            code: draft.interventionCode,
+            nutritionistLevel: selectedNutritionist.level,
+          }),
+        }
+      : null;
   const canSelectIntervention = (code: NutritionInterventionCode) =>
     editor.nutritionists.some((nutritionist) =>
       canReserveNutritionistForDraft({
@@ -462,7 +477,17 @@ export function NutritionInterventionFields({
               +{actualFormGain} forme · {formatCurrency(outcome.price, currency)}
             </span>
             <span className="mt-0.5 block text-[10px] text-[#6E805F]">
-              Maximum d’un complément aujourd’hui
+              {weightImpact ? (
+                <>
+                  Impact poids · {formatPercentage(weightImpact.riskPct)} de
+                  risque · +{formatWeight(weightImpact.gainKg)} kg si déclenché
+                  {riderWeightKg !== null
+                    ? ` · poids actuel ${formatWeight(riderWeightKg)} kg`
+                    : ""}
+                </>
+              ) : (
+                "Maximum d’un complément aujourd’hui"
+              )}
             </span>
           </>
         ) : riderForm >= 100 ? (
@@ -475,6 +500,19 @@ export function NutritionInterventionFields({
       </div>
     </div>
   );
+}
+
+function formatPercentage(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 1,
+  }).format(value) + " %";
+}
+
+function formatWeight(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function useNutritionEditor() {
