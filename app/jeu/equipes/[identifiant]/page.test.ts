@@ -45,6 +45,18 @@ describe("team profile mobile layout", () => {
     expect(teamProfilePage).toContain("<ProfileDisclosureSkeleton");
   });
 
+  it("affiche les six statistiques primaires dans chaque carte de l’effectif", () => {
+    expect(teamProfilePage).toContain("PUBLIC_ROSTER_PRIMARY_RATINGS");
+    expect(teamProfilePage).toContain('{ key: "mountain", label: "MON" }');
+    expect(teamProfilePage).toContain('{ key: "hills", label: "VAL" }');
+    expect(teamProfilePage).toContain('{ key: "flat", label: "PLA" }');
+    expect(teamProfilePage).toContain('{ key: "timeTrial", label: "CLM" }');
+    expect(teamProfilePage).toContain('{ key: "cobbles", label: "PAV" }');
+    expect(teamProfilePage).toContain('{ key: "sprint", label: "SPR" }');
+    expect(teamProfilePage).toContain("rider.primaryRatings[key]");
+    expect(teamProfilePage).toContain("grid-cols-6");
+  });
+
   it("affiche le nombre de victoires de chaque saison dans l’historique", () => {
     expect(teamProfilePage).toContain(
       '<th className="px-4 py-4 text-center">Victoires</th>',
