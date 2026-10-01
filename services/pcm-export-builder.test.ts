@@ -29,6 +29,10 @@ describe("generateur de base PCM26", () => {
         templateDb,
         "SELECT COUNT(*) FROM STA_stage",
       );
+      const sourcePresetRaceTeamListCount = readCount(
+        templateDb,
+        "SELECT COUNT(*) FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
+      );
       templateDb.close();
       const result = await buildPcmDatabase(snapshot, template);
 
@@ -120,6 +124,14 @@ describe("generateur de base PCM26", () => {
           readCount(
             db,
             "SELECT COUNT(*) FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
+          ),
+        ).toBe(sourcePresetRaceTeamListCount);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM STA_race
+             WHERE gene_ilist_fkIDteam <> '()'
+               AND gene_ilist_fkIDteam <> '(243,244)'`,
           ),
         ).toBe(0);
         expect(

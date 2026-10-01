@@ -129,6 +129,12 @@ function buildDatabaseFromSnapshot(
   const sourceStageCount = Number(
     queryValue(db, "SELECT COUNT(*) FROM STA_stage"),
   );
+  const sourcePresetRaceTeamListCount = Number(
+    queryValue(
+      db,
+      "SELECT COUNT(*) FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
+    ),
+  );
   const existingCsRows = Number(
     queryValue(db, "SELECT COUNT(*) FROM DYN_team WHERE CONSTANT LIKE 'CS_%'"),
   );
@@ -715,12 +721,15 @@ function buildDatabaseFromSnapshot(
       });
     }
 
+    remapPresetRaceTeamLists(db, teamMappings, spectatorTeamId);
+
     validateGeneratedRows(
       db,
       snapshot,
       teamMappings,
       spectatorTeamId,
       sourceStageCount,
+      sourcePresetRaceTeamListCount,
     );
     db.run("COMMIT");
   } catch (error) {
@@ -841,7 +850,75 @@ function purgeOfficialProfessionalRoster(db: Database) {
   db.run("UPDATE DYN_coach SET fkIDteam = ?", [fallbackTeamId]);
   db.run("UPDATE DYN_physician SET fkIDteam = ?", [fallbackTeamId]);
   db.run("UPDATE DYN_scout SET fkIDteam = ?", [fallbackTeamId]);
-  db.run("UPDATE STA_race SET gene_ilist_fkIDteam = '()'");
+}
+
+/**
+ * PCM validates the predefined participants of every race at database load.
+ * Keeping the official ids would leave dangling references after the roster
+ * purge, while clearing the lists makes PCM reject every race requiring at
+ * least eight teams. Preserve the original field cardinality and rotate the
+ * generated Cyclostratege teams so the calendar stays usable without bringing
+ * back any official team. The spectator team is deliberately present in every
+ * predefined race so an administrator can always follow a simulation.
+ */
+function remapPresetRaceTeamLists(
+  db: Database,
+  teamMappings: Map<string, { pcmTeamId: number; divisionId: number }>,
+  spectatorTeamId: number,
+) {
+  const sportingTeamIds = [...teamMappings.values()]
+    .map((mapping) => mapping.pcmTeamId)
+    .sort((left, right) => left - right);
+  const availableTeamIds = [spectatorTeamId, ...sportingTeamIds];
+
+  for (const race of queryRows(
+    db,
+    "SELECT IDrace, gene_ilist_fkIDteam FROM STA_race ORDER BY IDrace",
+  )) {
+    const originalTeamIds = parsePcmIdList(race.gene_ilist_fkIDteam);
+    if (originalTeamIds.length === 0) continue;
+
+    const targetCount = Math.min(
+      availableTeamIds.length,
+      Math.max(8, originalTeamIds.length),
+    );
+    const raceId = Number(race.IDrace);
+    const rotationStart = sportingTeamIds.length > 0
+      ? Math.abs(raceId) % sportingTeamIds.length
+      : 0;
+    const remappedTeamIds = [spectatorTeamId];
+
+    for (
+      let offset = 0;
+      remappedTeamIds.length < targetCount && offset < sportingTeamIds.length;
+      offset += 1
+    ) {
+      remappedTeamIds.push(
+        sportingTeamIds[(rotationStart + offset) % sportingTeamIds.length],
+      );
+    }
+
+    db.run(
+      "UPDATE STA_race SET gene_ilist_fkIDteam = ? WHERE IDrace = ?",
+      [formatPcmIdList(remappedTeamIds), raceId],
+    );
+  }
+}
+
+function parsePcmIdList(value: SqlValue): number[] {
+  const normalized = String(value ?? "").trim();
+  if (normalized === "" || normalized === "()") return [];
+
+  return normalized
+    .replace(/^\(/, "")
+    .replace(/\)$/, "")
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((id) => Number.isInteger(id) && id > 0);
+}
+
+function formatPcmIdList(ids: readonly number[]): string {
+  return `(${ids.join(",")})`;
 }
 
 function clearTableIfPresent(db: Database, table: string) {
@@ -861,6 +938,7 @@ function validateGeneratedRows(
   teamMappings: Map<string, { pcmTeamId: number; divisionId: number }>,
   spectatorTeamId: number,
   sourceStageCount: number,
+  sourcePresetRaceTeamListCount: number,
 ) {
   const exportedTeams = queryRows(
     db,
@@ -905,15 +983,35 @@ function validateGeneratedRows(
   ) {
     throw new Error("Le controle PCM a detecte un coureur professionnel reel.");
   }
-  if (
-    Number(
-      queryValue(
-        db,
-        "SELECT COUNT(*) FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
-      ),
-    ) !== 0
-  ) {
-    throw new Error("Le controle PCM a detecte une liste d'equipes officielle residuelle.");
+  const presetRaceTeamLists = queryRows(
+    db,
+    "SELECT IDrace, gene_ilist_fkIDteam FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
+  );
+  if (presetRaceTeamLists.length !== sourcePresetRaceTeamListCount) {
+    throw new Error(
+      "Le controle PCM a detecte un nombre incoherent de listes de participants.",
+    );
+  }
+  for (const race of presetRaceTeamLists) {
+    const participantIds = parsePcmIdList(race.gene_ilist_fkIDteam);
+    if (new Set(participantIds).size !== participantIds.length) {
+      throw new Error(`Doublon dans les participants de la course PCM ${race.IDrace}.`);
+    }
+    if (teamIds.size >= 8 && participantIds.length < 8) {
+      throw new Error(
+        `Moins de huit equipes dans la course PCM ${race.IDrace}.`,
+      );
+    }
+    if (!participantIds.includes(spectatorTeamId)) {
+      throw new Error(
+        `Equipe spectateur absente de la course PCM ${race.IDrace}.`,
+      );
+    }
+    if (participantIds.some((participantId) => !teamIds.has(participantId))) {
+      throw new Error(
+        `Equipe officielle residuelle dans la course PCM ${race.IDrace}.`,
+      );
+    }
   }
   if (
     Number(
