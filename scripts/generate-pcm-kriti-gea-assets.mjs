@@ -23,8 +23,8 @@ const outputDirectory = path.join(
 
 const logoPath = path.join(sponsorDirectory, "logo.webp");
 const selectedJerseyPath = path.join(sponsorDirectory, "jersey-modern.webp");
-const texturePath = path.join(outputDirectory, "KRI_maillot.png");
-const miniJerseyPath = path.join(outputDirectory, "KRI_minimaillot.png");
+const texturePath = path.join(outputDirectory, "APT_maillot.png");
+const miniJerseyPath = path.join(outputDirectory, "APT_minimaillot.png");
 const previewPath = path.join(outputDirectory, "kriti-gea-pcm-preview.png");
 const manifestPath = path.join(outputDirectory, "manifest.json");
 
@@ -237,7 +237,7 @@ const previewBackground = Buffer.from(`
   <rect width="1600" height="1080" fill="#f4f0e7"/>
   <rect x="34" y="34" width="1532" height="1012" rx="28" fill="#fffdf8" stroke="#d7c9aa" stroke-width="2"/>
   <text x="80" y="104" fill="#26351d" font-family="Arial, sans-serif" font-weight="700" font-size="38">KRITI GEA · LABYRINTHE</text>
-  <text x="80" y="142" fill="#64705b" font-family="Arial, sans-serif" font-size="22">PCM26 · équipe permanente 302 · texture KRI</text>
+  <text x="80" y="142" fill="#64705b" font-family="Arial, sans-serif" font-size="22">PCM26 · équipe permanente 302 · slot graphique APT</text>
   <text x="102" y="207" fill="#4b563f" font-family="Arial, sans-serif" font-weight="700" font-size="19">RÉFÉRENCE SÉLECTIONNÉE</text>
   <text x="565" y="207" fill="#4b563f" font-family="Arial, sans-serif" font-weight="700" font-size="19">PATRON UV PCM26</text>
   <text x="1175" y="920" fill="#4b563f" font-family="Arial, sans-serif" font-weight="700" font-size="19">MINI-MAILLOT</text>
@@ -283,7 +283,8 @@ const manifest = {
     pcmTeamId: 302,
     currentName: "Nisos Energeia",
     season4Sponsor: "Kriti Gea",
-    expectedSeason4PcmCode: "KRI",
+    displayCode: "KRI",
+    pcmAssetCode: "APT",
   },
   selection: {
     sponsorId: "da289111-922f-458b-91fb-4e6330c80414",

@@ -25,6 +25,7 @@ export type TeamRow = {
   id: string;
   home_country_id: string;
   pcm_export_id: number;
+  pcm_asset_code: string | null;
   amateur_jersey_primary_color: string | null;
   amateur_jersey_secondary_color: string | null;
   [key: string]: unknown;

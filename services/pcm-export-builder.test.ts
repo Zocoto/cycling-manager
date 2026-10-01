@@ -53,7 +53,8 @@ describe("generateur de base PCM26", () => {
             db,
             `SELECT COUNT(*) FROM DYN_team
              WHERE IDteam = 244
-               AND gene_sz_name = 'Abbaye Cyclisme'`,
+               AND gene_sz_name = 'Abbaye Cyclisme'
+               AND jersey_sz_abbreviation = 'apt'`,
           ),
         ).toBe(1);
         expect(
@@ -212,6 +213,7 @@ function createSnapshot(): PcmExportSnapshot {
         id: "team-1",
         home_country_id: "country-fr",
         pcm_export_id: 244,
+        pcm_asset_code: "apt",
         amateur_jersey_primary_color: "#176951",
         amateur_jersey_secondary_color: "#fffdf4",
       },

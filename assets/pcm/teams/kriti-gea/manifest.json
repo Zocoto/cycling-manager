@@ -1,13 +1,14 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T04:24:00.605Z",
+  "generatedAt": "2026-10-01T05:07:58.267Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "permanentTeamId": "caea0559-e3a6-408b-9e2f-4a7755859dd6",
     "pcmTeamId": 302,
     "currentName": "Nisos Energeia",
     "season4Sponsor": "Kriti Gea",
-    "expectedSeason4PcmCode": "KRI"
+    "displayCode": "KRI",
+    "pcmAssetCode": "APT"
   },
   "selection": {
     "sponsorId": "da289111-922f-458b-91fb-4e6330c80414",
@@ -19,14 +20,14 @@
   },
   "assets": [
     {
-      "file": "KRI_maillot.png",
+      "file": "APT_maillot.png",
       "role": "PCM26 3D jersey UV texture",
       "width": 1200,
       "height": 826,
       "sha256": "c34d34334ff3a3fb0435534b39db9aac306ebc2630f6570cc1803a97ca559c0a"
     },
     {
-      "file": "KRI_minimaillot.png",
+      "file": "APT_minimaillot.png",
       "role": "PCM26 interface mini-jersey",
       "width": 256,
       "height": 256,
@@ -37,7 +38,7 @@
       "role": "review board",
       "width": 1600,
       "height": 1080,
-      "sha256": "b73b141aeb9ae0e18c1a152cd4896b5793c7be62a876052edb09b79e9010a6d8"
+      "sha256": "e895a082fbba1c7edf806bceb6bec58157a565541abcc55d2f1a9c5f92b5eafc"
     }
   ],
   "notes": [

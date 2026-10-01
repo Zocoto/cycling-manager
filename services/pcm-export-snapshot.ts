@@ -206,6 +206,16 @@ function assertSnapshotIntegrity({
     throw new Error("Les identifiants PCM permanents des equipes sont invalides.");
   }
 
+  const pcmAssetCodes = teams
+    .map((team) => team.pcm_asset_code?.trim().toLowerCase() ?? null)
+    .filter((code): code is string => code !== null);
+  if (
+    pcmAssetCodes.some((code) => !/^[a-z]{3}$/.test(code)) ||
+    new Set(pcmAssetCodes).size !== pcmAssetCodes.length
+  ) {
+    throw new Error("Les identifiants graphiques PCM permanents sont invalides.");
+  }
+
   const contractsByRider = countBy(contracts, (row) => row.rider_id);
   const ratingsByRider = countBy(ratings, (row) => row.rider_id);
 

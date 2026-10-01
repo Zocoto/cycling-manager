@@ -280,10 +280,25 @@ function buildDatabaseFromSnapshot(
       "SELECT jersey_sz_abbreviation FROM DYN_team",
     ).map((row) => row.jersey_sz_abbreviation);
     reservedTeamCodes.push("cys");
-    const teamCodes = createUniqueTeamCodes(
-      snapshot.teamSeasons,
+    const explicitTeamCodes = new Map(
+      snapshot.teams
+        .filter((team) => team.pcm_asset_code)
+        .map((team) => [
+          team.id,
+          String(team.pcm_asset_code).trim().toLowerCase(),
+        ]),
+    );
+    reservedTeamCodes.push(...explicitTeamCodes.values());
+    const generatedTeamCodes = createUniqueTeamCodes(
+      snapshot.teamSeasons.filter(
+        (teamSeason) => !explicitTeamCodes.has(teamSeason.team_id),
+      ),
       reservedTeamCodes,
     );
+    const teamCodes = new Map([
+      ...generatedTeamCodes,
+      ...explicitTeamCodes,
+    ]);
     const spectatorCountry = pcmCountryByConstant.get("FRA");
     if (!spectatorCountry) {
       throw new Error("Le pays FRA est absent du gabarit PCM.");
