@@ -31,6 +31,66 @@ describe("SeasonCalendar", () => {
     );
   });
 
+  it("conserve le profil visible sur mobile avec un macaron GT ou Monument", () => {
+    const grandTour = createEdition({
+      id: "grand-tour-profile",
+      name: "Grand Tour de test",
+      categoryCode: "elite",
+      dayNumber: 1,
+      daySlot: "early",
+      registrationClosesAt: "2026-08-02T08:00:00Z",
+      accepted: false,
+      isGrandTour: true,
+      raceFormat: "stage_race",
+    });
+    const monument = createEdition({
+      id: "monument-profile",
+      name: "Monument de test",
+      categoryCode: "elite",
+      dayNumber: 2,
+      daySlot: "late",
+      registrationClosesAt: "2026-08-03T08:00:00Z",
+      accepted: false,
+      isMonument: true,
+    });
+    grandTour.stages[0].profileType = "hilly";
+    monument.stages[0].profileType = "cobbles";
+
+    const calendar: SeasonRaceCalendar = {
+      seasonId: "season-mobile-profiles",
+      seasonName: "Saison profils mobiles",
+      gameYear: 3,
+      startsOn: "2026-08-01",
+      endsOn: "2026-08-28",
+      currentDayNumber: 1,
+      days: Array.from({ length: 28 }, (_, index) => ({
+        id: `day-${index + 1}`,
+        dayNumber: index + 1,
+        calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+          .toISOString()
+          .slice(0, 10),
+        label: null,
+      })),
+      events: [],
+      editions: [grandTour, monument],
+    };
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={calendar}
+        reputationPoints={100}
+        nowIso="2026-08-01T07:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain('data-race-importance="grand_tour"');
+    expect(markup).toContain('data-race-importance="monument"');
+    expect(markup).toContain('data-mobile-race-profile="hilly"');
+    expect(markup).toContain('data-mobile-race-profile="cobbles"');
+    expect(markup).toContain("Vallonné");
+    expect(markup).toContain("Pavés");
+  });
+
   it("évite une troisième copie des courses et isole le rendu hors écran", () => {
     expect(calendarSource).not.toContain("profileEntries");
     expect(calendarSource).toContain("[content-visibility:auto]");

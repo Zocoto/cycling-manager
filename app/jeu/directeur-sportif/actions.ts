@@ -41,6 +41,10 @@ import {
   setTutorialStepAction,
 } from "../tutorial-actions";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
+import {
+  ROMAN_ALPHABET_NAME_ERROR,
+  usesRomanAlphabet,
+} from "@/lib/roman-alphabet";
 
 const sportingDirectorProfileSchema = z.object({
   displayName: z
@@ -104,7 +108,8 @@ const amateurTeamSchema = z
       .regex(
         /^[\p{L}\p{M}\p{N} .&'’-]+$/u,
         "Utilise uniquement des lettres, chiffres, espaces et signes simples."
-      ),
+      )
+      .refine(usesRomanAlphabet, ROMAN_ALPHABET_NAME_ERROR),
     countryId: z.string().uuid("Sélectionne un pays valide."),
     jerseyPattern: z.enum(AMATEUR_JERSEY_PATTERNS),
     primaryColor: z.string().regex(/^#[0-9A-F]{6}$/),

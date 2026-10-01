@@ -1545,10 +1545,19 @@ function MobileCalendarDay({
                 <span className="block truncate text-sm font-black">
                   {displayName}
                 </span>
-                <span className="mt-0.5 block truncate text-[11px] font-semibold opacity-85">
-                  {edition.calendarGroup
-                    ? `${edition.calendarGroup.editionCount} épreuves · ${edition.calendarGroup.profileLabel}`
-                    : `${edition.raceFormat === "stage_race" ? `Étape ${stage.stageNumber} · ` : ""}${slotConfig.shortLabel} · ${RACE_PROFILE_LABELS[stage.profileType]} · ${stage.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} km`}
+                <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold">
+                  <span
+                    data-mobile-race-profile={stage.profileType}
+                    className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 font-black"
+                  >
+                    {edition.calendarGroup?.profileLabel ??
+                      RACE_PROFILE_LABELS[stage.profileType]}
+                  </span>
+                  <span className="min-w-0 truncate opacity-85">
+                    {edition.calendarGroup
+                      ? `${edition.calendarGroup.editionCount} épreuves`
+                      : `${edition.raceFormat === "stage_race" ? `Étape ${stage.stageNumber} · ` : ""}${slotConfig.shortLabel} · ${stage.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} km`}
+                  </span>
                 </span>
               </span>
 
