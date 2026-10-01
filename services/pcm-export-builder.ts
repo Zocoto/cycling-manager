@@ -58,6 +58,7 @@ const CONTINENT_FALLBACKS: Record<string, string> = {
 
 const RATING_COLUMNS = [
   "charac_i_mountain",
+  "charac_i_medium_mountain",
   "charac_i_hill",
   "charac_i_plain",
   "charac_i_timetrial",
@@ -1073,6 +1074,14 @@ function validateGeneratedRows(
           `Note PCM hors limites pour ${rider.IDcyclist} : ${column}=${value}.`,
         );
       }
+    }
+    const expectedMediumMountain = Math.round(
+      (Number(rider.charac_i_mountain) + Number(rider.charac_i_hill)) / 2,
+    );
+    if (Number(rider.charac_i_medium_mountain) !== expectedMediumMountain) {
+      throw new Error(
+        `Moyenne montagne PCM incoherente pour ${rider.IDcyclist}.`,
+      );
     }
   }
 

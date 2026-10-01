@@ -116,10 +116,22 @@ describe("generateur de base PCM26", () => {
              WHERE team.CONSTANT = 'CS_SPECTATOR'
                AND cyclist.gene_sz_firstname = 'Simulo'
                AND cyclist.charac_i_mountain = 65
+               AND cyclist.charac_i_medium_mountain = 65
                AND cyclist.charac_i_hill = 65
                AND cyclist.charac_i_sprint = 65`,
           ),
         ).toBe(10);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_cyclist
+             WHERE CONSTANT = 'CS_RIDER1'
+               AND charac_i_mountain = 77
+               AND charac_i_hill = 75
+               AND charac_i_medium_mountain = 76
+               AND limit_i_medium_mountain = 76`,
+          ),
+        ).toBe(1);
         expect(
           readCount(
             db,

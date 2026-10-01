@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   convertCsRatingDeltaToPcm,
   convertCsRatingToPcm,
+  convertRiderRatings,
   deriveGlobalRatingScale,
   type RatingSource,
 } from "@/lib/game/pcm-export/ratings";
@@ -28,6 +29,16 @@ describe("conversion des notes CS vers PCM", () => {
     expect(convertCsRatingToPcm(-10, scale)).toBe(45);
     expect(convertCsRatingToPcm(120, scale)).toBe(85);
     expect(convertCsRatingDeltaToPcm(10, scale)).toBe(4);
+  });
+
+  it("derive la moyenne montagne de la moyenne PCM entre montagne et vallons", () => {
+    const source = { ...rating(50), mountain: 81, hills: 35 };
+    const scale = deriveGlobalRatingScale([source]);
+    const converted = convertRiderRatings(source, scale);
+
+    expect(converted.charac_i_mountain).toBe(77);
+    expect(converted.charac_i_hill).toBe(59);
+    expect(converted.charac_i_medium_mountain).toBe(68);
   });
 });
 

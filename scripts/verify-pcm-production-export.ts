@@ -55,10 +55,22 @@ async function main() {
     (race) => !race.ids.includes(spectatorTeamId),
   );
   const tooShort = participantLists.filter((race) => race.ids.length < 8);
+  const inconsistentMediumMountainRatings = scalar(
+    `SELECT COUNT(*) FROM DYN_cyclist
+     WHERE SUBSTR(CONSTANT, 1, 3) = CHAR(67, 83, 95)
+       AND charac_i_medium_mountain <> CAST(
+         ROUND((charac_i_mountain + charac_i_hill) / 2.0) AS INTEGER
+       )`,
+  );
 
-  if (invalidReferences.length || missingSpectator.length || tooShort.length) {
+  if (
+    invalidReferences.length ||
+    missingSpectator.length ||
+    tooShort.length ||
+    inconsistentMediumMountainRatings > 0
+  ) {
     throw new Error(
-      `Export PCM invalide: ${invalidReferences.length} references, ${missingSpectator.length} sans spectateur, ${tooShort.length} sous huit equipes.`,
+      `Export PCM invalide: ${invalidReferences.length} references, ${missingSpectator.length} sans spectateur, ${tooShort.length} sous huit equipes, ${inconsistentMediumMountainRatings} notes MM incoherentes.`,
     );
   }
 
@@ -81,6 +93,7 @@ async function main() {
         ),
         invalidReferences: invalidReferences.length,
         racesMissingSpectatorTeam: missingSpectator.length,
+        inconsistentMediumMountainRatings,
       },
       null,
       2,

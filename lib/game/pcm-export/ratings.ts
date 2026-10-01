@@ -101,11 +101,18 @@ export function convertCsRatingDeltaToPcm(
 export function convertRiderRatings(
   rating: RatingSource,
   scale: RatingScale,
-) {
-  return Object.fromEntries(
+): Record<string, number> {
+  const converted = Object.fromEntries(
     CS_RATING_KEYS.map((key) => [
       PCM_RATING_COLUMNS[key],
       convertCsRatingToPcm(rating[key], scale),
     ]),
   ) as Record<string, number>;
+
+  return {
+    ...converted,
+    charac_i_medium_mountain: Math.round(
+      (converted.charac_i_mountain + converted.charac_i_hill) / 2,
+    ),
+  };
 }
