@@ -376,9 +376,17 @@ function buildDatabaseFromSnapshot(
     });
     divisionCounts["12"] += 1;
 
-    const sortedTeamSeasons = [...snapshot.teamSeasons].sort((left, right) =>
-      left.display_name.localeCompare(right.display_name, "fr"),
-    );
+    // The season division is frozen from the previous season's final UCI
+    // ranking. Keep that hierarchy in the generated database so PCM presents
+    // the teams in sporting order immediately after the import.
+    const sortedTeamSeasons = [...snapshot.teamSeasons].sort((left, right) => {
+      const divisionDifference =
+        getTeamDivision(left.division_id, divisionsById)
+        - getTeamDivision(right.division_id, divisionsById);
+
+      return divisionDifference
+        || left.display_name.localeCompare(right.display_name, "fr");
+    });
 
     for (const teamSeason of sortedTeamSeasons) {
       const team = teamsById.get(teamSeason.team_id);
@@ -1056,8 +1064,8 @@ function getTeamDivision(
   divisionsById: Map<string, { code: string }>,
 ) {
   const code = divisionsById.get(divisionId)?.code;
-  if (code === "world") return 10;
-  if (code === "elite") return 11;
+  if (code === "elite") return 10;
+  if (code === "world") return 11;
   return 12;
 }
 

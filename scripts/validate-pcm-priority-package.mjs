@@ -33,6 +33,11 @@ const teams = [
   { pcmTeamId: 315, sourceCode: "CCR", pcmSlot: "tpp" },
   { pcmTeamId: 319, sourceCode: "SCA", pcmSlot: "pqt" },
   { pcmTeamId: 332, sourceCode: "TNP", pcmSlot: "loi" },
+  { pcmTeamId: 283, sourceCode: "KHG", pcmSlot: "map" },
+  { pcmTeamId: 331, sourceCode: "TEO", pcmSlot: "rbh" },
+  { pcmTeamId: 259, sourceCode: "STK", pcmSlot: "cof" },
+  { pcmTeamId: 267, sourceCode: "PMF", pcmSlot: "cjr" },
+  { pcmTeamId: 256, sourceCode: "COV", pcmSlot: "tca" },
 ];
 
 function assert(condition, message) {

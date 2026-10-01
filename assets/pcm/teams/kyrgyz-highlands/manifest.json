@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:57:03.546Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "f2ffb52a-8a36-401d-90a9-ca5270cc8252",
+    "pcmTeamId": 283,
+    "currentName": "Kyrgyz Highlands",
+    "season4Sponsor": "Kyrgyz Highlands",
+    "manager": "blk14",
+    "displayCode": "KHG",
+    "pcmAssetCode": "map"
+  },
+  "selection": {
+    "jerseyId": "kyrgyz-highlands-bold",
+    "jerseyName": "Vol de l’aigle",
+    "jerseyStyle": "bold",
+    "sourcePath": "public/images/sponsors/kyrgyz-highlands/jersey-bold.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "KHG_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "KHG_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "da03116700f91b360c7ce825fbc210665c91e69df81236d4933290f1d81de10b"
+    },
+    {
+      "file": "KHG_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "b81ae77875329e8bf078abdba64b2468b831fade80c66a162ac261a282b82f11"
+    },
+    {
+      "file": "KHG_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "2c4dded2333fe32f2e73514c7e8bb52d938beceb1f3f679547099e4b2343cc39"
+    },
+    {
+      "file": "KHG_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "c92a7439e9b62376bd6adc1a347be7b73fd58791ce4aa4056b8e57304e5888f6"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:57:11.960Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
+    "pcmTeamId": 256,
+    "currentName": "Codru Cellars",
+    "season4Sponsor": "Covoare Basarabene",
+    "manager": "Jeff Tomtob",
+    "displayCode": "COV",
+    "pcmAssetCode": "tca"
+  },
+  "selection": {
+    "jerseyId": "covoare-basarabene-classic",
+    "jerseyName": "Țesătură",
+    "jerseyStyle": "classic",
+    "sourcePath": "public/images/sponsors/covoare-basarabene/jersey-classic.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "COV_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "COV_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "c1c4c8de9fde152187752a3e917e6abbb3dd1ba3aacbac05ca38465b0a25f273"
+    },
+    {
+      "file": "COV_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "0677cf47cfd0263069afbcded4ebdd91bd487c88f3ab824737e398f76b342180"
+    },
+    {
+      "file": "COV_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "39ed5ebca058ddc7bf150013b1b3a64119dae3e65be366523cc3cc303e075235"
+    },
+    {
+      "file": "COV_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "3497a55f896395c1dc5f6acc0375996ae21480642ade2548515b022d832cf7e4"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

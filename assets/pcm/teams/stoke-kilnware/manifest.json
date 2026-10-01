@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:57:07.930Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "fefee0ef-81a9-472b-9b8b-e9029815f396",
+    "pcmTeamId": 259,
+    "currentName": "Davidson Fish & Chips",
+    "season4Sponsor": "Stoke Kilnware",
+    "manager": "Freddy",
+    "displayCode": "STK",
+    "pcmAssetCode": "cof"
+  },
+  "selection": {
+    "jerseyId": "stoke-kilnware-modern",
+    "jerseyName": "Kiln Arch",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/stoke-kilnware/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "STK_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "STK_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "774fbe70f69792d4f7401094f85c8eb211c5027aa853b8e03befb76aed68c471"
+    },
+    {
+      "file": "STK_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "3883c5f54ee2a7192afd10de970dfe212c497872db4ddcb6c3fe46348853cf0c"
+    },
+    {
+      "file": "STK_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "ca6e652402b96026bbf021c4dbcceb560ec46984d8219cf2598e5e255dc80319"
+    },
+    {
+      "file": "STK_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "6b94f6d9932059daaf07b1337e125159b7379428331af91d781c424c2e6ec7d7"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

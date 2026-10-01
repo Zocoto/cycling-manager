@@ -39,6 +39,11 @@ describe("generateur de base PCM26", () => {
         contracts: 11,
       });
       expect(result.metadata.ratingRange).toEqual({ minimum: 59, maximum: 77 });
+      expect(result.metadata.divisionCounts).toEqual({
+        "10": 0,
+        "11": 1,
+        "12": 1,
+      });
       expect(result.metadata.filename).toMatch(
         /^OfficialRelease\.cdb$/,
       );
@@ -54,7 +59,8 @@ describe("generateur de base PCM26", () => {
             `SELECT COUNT(*) FROM DYN_team
              WHERE IDteam = 244
                AND gene_sz_name = 'Abbaye Cyclisme'
-               AND jersey_sz_abbreviation = 'apt'`,
+               AND jersey_sz_abbreviation = 'apt'
+               AND fkIDdivision = 11`,
           ),
         ).toBe(1);
         expect(
@@ -153,6 +159,33 @@ describe("generateur de base PCM26", () => {
     },
     20_000,
   );
+
+  it("place la division Elite dans le premier niveau PCM", async () => {
+    const snapshot = createSnapshot();
+    snapshot.divisions[0] = { id: "division-world", code: "elite" };
+
+    const result = await buildPcmDatabase(snapshot);
+    const SQL = await initSqlJs({
+      locateFile: (file) => resolve("node_modules", "sql.js", "dist", file),
+    });
+    const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
+
+    try {
+      expect(
+        readCount(
+          db,
+          "SELECT COUNT(*) FROM DYN_team WHERE IDteam = 244 AND fkIDdivision = 10",
+        ),
+      ).toBe(1);
+      expect(result.metadata.divisionCounts).toEqual({
+        "10": 1,
+        "11": 0,
+        "12": 1,
+      });
+    } finally {
+      db.close();
+    }
+  });
 });
 
 function createSnapshot(): PcmExportSnapshot {

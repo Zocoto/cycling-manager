@@ -143,6 +143,41 @@ const priorityTeams = [
     sourceCode: "TNP",
     pcmSlot: "loi",
   },
+  {
+    pcmTeamId: 283,
+    currentName: "Kyrgyz Highlands",
+    season4Sponsor: "Kyrgyz Highlands",
+    sourceCode: "KHG",
+    pcmSlot: "map",
+  },
+  {
+    pcmTeamId: 331,
+    currentName: "Teranga Océan",
+    season4Sponsor: "Teranga Océan",
+    sourceCode: "TEO",
+    pcmSlot: "rbh",
+  },
+  {
+    pcmTeamId: 259,
+    currentName: "Davidson Fish & Chips",
+    season4Sponsor: "Stoke Kilnware",
+    sourceCode: "STK",
+    pcmSlot: "cof",
+  },
+  {
+    pcmTeamId: 267,
+    currentName: "Fugazza Sprint",
+    season4Sponsor: "Pampa Maté Fuego",
+    sourceCode: "PMF",
+    pcmSlot: "cjr",
+  },
+  {
+    pcmTeamId: 256,
+    currentName: "Codru Cellars",
+    season4Sponsor: "Covoare Basarabene",
+    sourceCode: "COV",
+    pcmSlot: "tca",
+  },
 ];
 
 function queryRows(db, sql, parameters = []) {

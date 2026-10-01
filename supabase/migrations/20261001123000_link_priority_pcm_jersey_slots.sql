@@ -1,4 +1,4 @@
--- Reuse seventeen PCM26 jersey slots that already exist in the WorldDB asset
+-- Reuse twenty-two PCM26 jersey slots that already exist in the WorldDB asset
 -- registry. The team ids stay permanent: a future sponsor rename therefore
 -- keeps pointing at the same graphical slot.
 update public.teams
@@ -21,7 +21,12 @@ from (
     ('8de6e531-3cd5-4d5e-beba-34fd54dc5ea1'::uuid, 'ltk'::text),
     ('12277621-b716-4b0c-934a-f1a0b52364ba'::uuid, 'tpp'::text),
     ('bb7c87bd-a474-4260-8f85-f349849683f3'::uuid, 'pqt'::text),
-    ('52cf9278-cb70-4ed1-9c76-ae7263be8d70'::uuid, 'loi'::text)
+    ('52cf9278-cb70-4ed1-9c76-ae7263be8d70'::uuid, 'loi'::text),
+    ('f2ffb52a-8a36-401d-90a9-ca5270cc8252'::uuid, 'map'::text),
+    ('088a7b6b-a8cf-4545-b08b-4bff6c42b476'::uuid, 'rbh'::text),
+    ('fefee0ef-81a9-472b-9b8b-e9029815f396'::uuid, 'cof'::text),
+    ('b6932cdd-3ad3-4475-9509-080c35694f2d'::uuid, 'cjr'::text),
+    ('de60b8f0-c3c7-4f8e-bd85-305439b1a482'::uuid, 'tca'::text)
 ) as mapping(team_id, pcm_asset_code)
 where teams.id = mapping.team_id
   and teams.pcm_asset_code is distinct from mapping.pcm_asset_code;

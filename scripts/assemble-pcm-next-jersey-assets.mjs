@@ -85,6 +85,41 @@ const teams = [
     logo: "public/images/sponsors/junkanoo-brass-feather/logo.webp", rearLogoWidth: 110,
     repairRearLogo: true,
   },
+  {
+    directory: "kyrgyz-highlands", code: "KHG", pcmTeamId: 283, pcmSlot: "map",
+    permanentTeamId: "f2ffb52a-8a36-401d-90a9-ca5270cc8252", currentName: "Kyrgyz Highlands",
+    sponsor: "Kyrgyz Highlands", manager: "blk14", jersey: "Vol de l’aigle", style: "bold",
+    jerseyId: "kyrgyz-highlands-bold", source: "public/images/sponsors/kyrgyz-highlands/jersey-bold.webp",
+    logo: "public/images/sponsors/kyrgyz-highlands/logo.webp",
+  },
+  {
+    directory: "teranga-ocean", code: "TEO", pcmTeamId: 331, pcmSlot: "rbh",
+    permanentTeamId: "088a7b6b-a8cf-4545-b08b-4bff6c42b476", currentName: "Teranga Océan",
+    sponsor: "Teranga Océan", manager: "Ernest Testicular", jersey: "Hospitalité", style: "classic",
+    jerseyId: "teranga-ocean-classic", source: "public/images/sponsors/teranga-ocean/jersey-classic.webp",
+    logo: "public/images/sponsors/teranga-ocean/logo.webp",
+  },
+  {
+    directory: "stoke-kilnware", code: "STK", pcmTeamId: 259, pcmSlot: "cof",
+    permanentTeamId: "fefee0ef-81a9-472b-9b8b-e9029815f396", currentName: "Davidson Fish & Chips",
+    sponsor: "Stoke Kilnware", manager: "Freddy", jersey: "Kiln Arch", style: "modern",
+    jerseyId: "stoke-kilnware-modern", source: "public/images/sponsors/stoke-kilnware/jersey-modern.webp",
+    logo: "public/images/sponsors/stoke-kilnware/logo.webp",
+  },
+  {
+    directory: "pampa-mate-fuego", code: "PMF", pcmTeamId: 267, pcmSlot: "cjr",
+    permanentTeamId: "b6932cdd-3ad3-4475-9509-080c35694f2d", currentName: "Fugazza Sprint",
+    sponsor: "Pampa Maté Fuego", manager: "Garzol", jersey: "Maté céleste", style: "classic",
+    jerseyId: "pampa-mate-fuego-classic", source: "public/images/sponsors/pampa-mate-fuego/jersey-classic.webp",
+    logo: "public/images/sponsors/pampa-mate-fuego/logo.webp",
+  },
+  {
+    directory: "covoare-basarabene", code: "COV", pcmTeamId: 256, pcmSlot: "tca",
+    permanentTeamId: "de60b8f0-c3c7-4f8e-bd85-305439b1a482", currentName: "Codru Cellars",
+    sponsor: "Covoare Basarabene", manager: "Jeff Tomtob", jersey: "Țesătură", style: "classic",
+    jerseyId: "covoare-basarabene-classic", source: "public/images/sponsors/covoare-basarabene/jersey-classic.webp",
+    logo: "public/images/sponsors/covoare-basarabene/logo.webp",
+  },
 ];
 
 const escapeXml = (value) => value
