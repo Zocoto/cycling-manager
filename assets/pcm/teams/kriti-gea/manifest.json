@@ -1,0 +1,48 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T04:24:00.605Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "caea0559-e3a6-408b-9e2f-4a7755859dd6",
+    "pcmTeamId": 302,
+    "currentName": "Nisos Energeia",
+    "season4Sponsor": "Kriti Gea",
+    "expectedSeason4PcmCode": "KRI"
+  },
+  "selection": {
+    "sponsorId": "da289111-922f-458b-91fb-4e6330c80414",
+    "sponsorContractId": "df9e0f8d-1473-4c1c-af31-afb5785c9e9d",
+    "jerseyId": "kriti-gea-modern",
+    "jerseyStyle": "modern",
+    "jerseyName": "Labyrinthe",
+    "source": "manager season 4 selection"
+  },
+  "assets": [
+    {
+      "file": "KRI_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "sha256": "c34d34334ff3a3fb0435534b39db9aac306ebc2630f6570cc1803a97ca559c0a"
+    },
+    {
+      "file": "KRI_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "sha256": "007b48480d97f16e57dee93c70d253fd62c73345addf22eee215bb1392274c1e"
+    },
+    {
+      "file": "kriti-gea-pcm-preview.png",
+      "role": "review board",
+      "width": 1600,
+      "height": 1080,
+      "sha256": "b73b141aeb9ae0e18c1a152cd4896b5793c7be62a876052edb09b79e9010a6d8"
+    }
+  ],
+  "notes": [
+    "The mini-jersey uses the selected Cyclostratege artwork without reinterpretation.",
+    "The UV texture recreates the selected ivory, olive, terracotta and Aegean-blue identity on the PCM26 garment layout.",
+    "The permanent PCM team id remains 302 when the sponsor name changes."
+  ]
+}
