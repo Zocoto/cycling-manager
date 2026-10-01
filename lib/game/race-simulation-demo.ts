@@ -152,6 +152,7 @@ export function createCalendarSimulationInput({
   const tourLeaderByTeamId = getTourLeaderByTeamId({
     edition,
     riders: sourceRiders,
+    roleOverrides: stage.riderRoleOverrides,
     unavailableRiderIds,
   });
   const preliminaryTeamStrategies = sanitizeCalendarTeamStrategies({
@@ -288,18 +289,21 @@ export function createCalendarSimulationInput({
 
 /**
  * Le rôle automatique d'un tour appartient à l'édition, pas à une étape.
- * Sans leader déclaré, le meilleur favori au classement général est donc
- * choisi sur l'ensemble du parcours et reste leader sur chaque profil. En cas
- * d'abandon, le même classement de pertinence fournit un remplaçant stable
- * parmi les coureurs encore disponibles.
+ * Sans leader général déclaré, une préparation d'étape explicite garde la
+ * priorité. À défaut, le meilleur favori au classement général est choisi sur
+ * l'ensemble du parcours et reste leader sur chaque profil. En cas d'abandon,
+ * le même classement de pertinence fournit un remplaçant stable parmi les
+ * coureurs encore disponibles.
  */
 export function getTourLeaderByTeamId({
   edition,
   riders,
+  roleOverrides,
   unavailableRiderIds = [],
 }: {
   edition: Pick<RaceCalendarEdition, "raceFormat" | "stages">;
   riders: readonly RiderSimulationInput[];
+  roleOverrides?: RaceCalendarStage["riderRoleOverrides"];
   unavailableRiderIds?: ReadonlySet<string> | readonly string[];
 }) {
   const leaders = new Map<string, string>();
@@ -322,11 +326,18 @@ export function getTourLeaderByTeamId({
     const declaredLeaders = teammates.filter(
       (rider) => rider.role === "leader",
     );
+    const stageLeaders = teammates.filter(
+      (rider) => roleOverrides?.[rider.id] === "leader",
+    );
     const automaticCandidates = teammates.filter(
       (rider) => rider.role === "auto",
     );
     const candidates =
-      declaredLeaders.length > 0 ? declaredLeaders : automaticCandidates;
+      declaredLeaders.length > 0
+        ? declaredLeaders
+        : stageLeaders.length > 0
+          ? stageLeaders
+          : automaticCandidates;
     const leader = [...candidates].sort(
       (first, second) =>
         getRaceFavoriteScore(edition, second) -

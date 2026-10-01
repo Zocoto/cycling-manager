@@ -219,6 +219,52 @@ function hydrateLockedRiderVisualMetadata({
   };
 }
 
+/**
+ * Les résultats d'un scénario verrouillé restent immuables, mais son replay
+ * doit présenter les rôles explicitement enregistrés avant le départ. Les
+ * anciens scénarios pouvaient écraser ces choix avec le leader automatique du
+ * tour. Le rôle `auto` reste, lui, celui déjà résolu dans le scénario.
+ */
+function hydrateLockedRiderStageRoles({
+  stage,
+  input,
+  simulation,
+}: {
+  stage: RaceCalendarStage;
+  input: StageSimulationInput;
+  simulation: StageSimulationResult;
+}) {
+  const roleOverrides = stage.riderRoleOverrides;
+  if (!roleOverrides) return { input, simulation };
+
+  const hydrateRider = (rider: StageSimulationInput["riders"][number]) => {
+    const preparedRole = roleOverrides[rider.id];
+    if (
+      !preparedRole ||
+      preparedRole === "auto" ||
+      preparedRole === rider.role
+    ) {
+      return rider;
+    }
+    return { ...rider, role: preparedRole };
+  };
+  const hydratedInputRiders = input.riders.map(hydrateRider);
+  const hydratedResolvedRiders = simulation.resolvedRiders.map(hydrateRider);
+  const inputChanged = hydratedInputRiders.some(
+    (rider, index) => rider !== input.riders[index],
+  );
+  const simulationChanged = hydratedResolvedRiders.some(
+    (rider, index) => rider !== simulation.resolvedRiders[index],
+  );
+
+  return {
+    input: inputChanged ? { ...input, riders: hydratedInputRiders } : input,
+    simulation: simulationChanged
+      ? { ...simulation, resolvedRiders: hydratedResolvedRiders }
+      : simulation,
+  };
+}
+
 function decorateStageRaceJerseys({
   edition,
   stage,
@@ -552,11 +598,17 @@ export function getOfficialStageSimulationContext({
       simulation: sanitizedLockedSimulationData.simulation,
     });
 
-    const decoratedLockedSimulationData = decorateStageRaceJerseys({
-      edition,
+    const roleHydratedLockedSimulationData = hydrateLockedRiderStageRoles({
       stage,
       input: hydratedLockedSimulationData.input,
       simulation: hydratedLockedSimulationData.simulation,
+    });
+
+    const decoratedLockedSimulationData = decorateStageRaceJerseys({
+      edition,
+      stage,
+      input: roleHydratedLockedSimulationData.input,
+      simulation: roleHydratedLockedSimulationData.simulation,
       standingsBeforeStage,
     });
 

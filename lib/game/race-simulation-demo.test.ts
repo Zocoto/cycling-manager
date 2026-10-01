@@ -282,6 +282,45 @@ describe("createCalendarSimulationInput", () => {
     ]);
   });
 
+  it("donne priorité au leader explicitement préparé sur le leader automatique du tour", () => {
+    const automaticFavorite = {
+      ...createRider("favori-automatique", "team-a"),
+      ratings: {
+        ...createRider("favori-automatique", "team-a").ratings,
+        mountain: 92,
+        hills: 92,
+        timeTrial: 92,
+        recovery: 92,
+      },
+    };
+    const preparedLeader = {
+      ...createRider("leader-prepare", "team-a"),
+      role: "leader_sprinter" as const,
+    };
+    const edition = createEdition({
+      slug: "tour-leader-prepare",
+      riders: [automaticFavorite, preparedLeader],
+    });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = {
+      "favori-automatique": "domestique",
+      "leader-prepare": "leader",
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "leader-prepare",
+    });
+
+    expect(
+      input.riders.find((rider) => rider.id === "favori-automatique")?.role,
+    ).toBe("domestique");
+    expect(
+      input.riders.find((rider) => rider.id === "leader-prepare")?.role,
+    ).toBe("leader");
+  });
+
   it("promeut le favori général disponible suivant après l'abandon du leader automatique", () => {
     const first = {
       ...createRider("premier-general", "team-a"),
@@ -717,6 +756,71 @@ describe("createCalendarSimulationInput", () => {
       run.simulation.resolvedRiders,
     );
     expect(context.input.seed).toBe(run.input.seed);
+  });
+
+  it("réaffiche les rôles préparés dans un ancien scénario verrouillé sans modifier ses résultats", () => {
+    const riders = [
+      createRider("favori-automatique", "team-a"),
+      {
+        ...createRider("leader-prepare", "team-a"),
+        role: "leader_sprinter" as const,
+      },
+    ];
+    const edition = createEdition({
+      slug: "tour-replay-roles-prepares",
+      riders,
+    });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = {
+      "favori-automatique": "domestique",
+      "leader-prepare": "leader",
+    };
+    const run = simulateOfficialRaceEdition(edition)[0];
+    const staleRoleByRiderId = new Map([
+      ["favori-automatique", "leader" as const],
+      ["leader-prepare", "leader_sprinter" as const],
+    ]);
+    const lockedInput = {
+      ...run.input,
+      riders: run.input.riders.map((rider) => ({
+        ...rider,
+        role: staleRoleByRiderId.get(rider.id) ?? rider.role,
+      })),
+    };
+    const lockedSimulation = {
+      ...run.simulation,
+      resolvedRiders: run.simulation.resolvedRiders.map((rider) => ({
+        ...rider,
+        role: staleRoleByRiderId.get(rider.id) ?? rider.role,
+      })),
+    };
+
+    const context = getOfficialStageSimulationContext({
+      edition,
+      stageId: run.stage.id,
+      lockedSimulations: [
+        {
+          stageId: run.stage.id,
+          raceEditionId: edition.id,
+          engineVersion: "legacy",
+          seed: String(run.input.seed),
+          input: lockedInput,
+          simulation: lockedSimulation,
+        },
+      ],
+    });
+
+    expect(
+      context.simulation.resolvedRiders.find(
+        (rider) => rider.id === "favori-automatique",
+      )?.role,
+    ).toBe("domestique");
+    expect(
+      context.simulation.resolvedRiders.find(
+        (rider) => rider.id === "leader-prepare",
+      )?.role,
+    ).toBe("leader");
+    expect(context.simulation.results).toBe(lockedSimulation.results);
   });
 
   it("porte les maillots acquis la veille et laisse le champion national dessous", () => {
