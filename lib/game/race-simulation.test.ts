@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
+  DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS,
   accumulateRaceGroupGapsFromLeader,
   applyStageTimeLimit,
   areFinishersInSameTimeGroup,
@@ -36,6 +37,7 @@ import {
   getLeaderRecoveryTargetPriority,
   getLeaderRecoverySuccessChance,
   getStageGeneralClassificationInterest,
+  getAutomaticLeaderAttackInterest,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
   getNonMassFinishEffortGapSeconds,
@@ -46,6 +48,7 @@ import {
   isFlatRunInGroupSprint,
   isLikelyMassSprint,
   isMassGroupFinish,
+  normalizeFinishEffortGapsWithinRoadGroups,
   normalizeRoadFinishGroupTimes,
   normalizeRoadSnapshotGroups,
   reduceMechanicalIncidentTimeLoss,
@@ -67,6 +70,67 @@ describe("areFinishersInSameTimeGroup", () => {
     expect(areFinishersInSameTimeGroup(100, 104)).toBe(false);
     expect(areFinishersInSameTimeGroup(100, 100, 0)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 101, 0)).toBe(false);
+  });
+});
+
+describe("cohésion des groupes routiers", () => {
+  it("dissocie le temps officiel de la cohésion physique d'un groupe attardé", () => {
+    expect(DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS).toBeGreaterThan(3);
+
+    const groups = splitElapsedRiderGroups(
+      [
+        { riderId: "a", elapsedTimeSeconds: 100 },
+        { riderId: "b", elapsedTimeSeconds: 108 },
+        { riderId: "c", elapsedTimeSeconds: 116 },
+        { riderId: "d", elapsedTimeSeconds: 126 },
+        { riderId: "e", elapsedTimeSeconds: 134 },
+      ],
+      DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS,
+    );
+
+    expect(groups.map((group) => group.map((rider) => rider.riderId))).toEqual([
+      ["a", "b", "c"],
+      ["d", "e"],
+    ]);
+  });
+
+  it("ne chaîne toujours pas de petits écarts jusqu'à créer un faux grand groupe", () => {
+    const groups = splitElapsedRiderGroups(
+      [0, 13, 26, 39].map((elapsedTimeSeconds, index) => ({
+        riderId: `rider-${index}`,
+        elapsedTimeSeconds,
+      })),
+      DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS,
+    );
+
+    expect(groups.map((group) => group.map((rider) => rider.riderId))).toEqual([
+      ["rider-0", "rider-1"],
+      ["rider-2", "rider-3"],
+    ]);
+  });
+});
+
+describe("initiative automatique des leaders", () => {
+  it("conserve une forte envie d'attaquer sur une étape décisive du général", () => {
+    expect(
+      getAutomaticLeaderAttackInterest({
+        isStageRace: true,
+        hasEstablishedGeneralClassification: true,
+        generalClassificationThreat: 0,
+        generalClassificationStageInterest: 1,
+      }),
+    ).toBeCloseTo(0.72, 5);
+  });
+
+  it("reste prudente lorsque l'étape compte peu pour le général", () => {
+    expect(
+      getAutomaticLeaderAttackInterest({
+        isStageRace: true,
+        hasEstablishedGeneralClassification: true,
+        generalClassificationThreat: 0,
+        generalClassificationStageInterest: 0.15,
+      }),
+    ).toBeLessThan(0.2);
   });
 });
 
@@ -101,6 +165,28 @@ describe("effort final hors sprint massif", () => {
         profile,
       }),
     ).toBe(0);
+  });
+
+  it("conserve de petits groupes à l'arrivée sans chaîner des écarts successifs", () => {
+    const normalized = normalizeFinishEffortGapsWithinRoadGroups({
+      gapSecondsByRiderId: new Map([
+        ["a", 0],
+        ["b", 5],
+        ["c", 10],
+        ["d", 15],
+        ["isolated", 32],
+      ]),
+      groups: [{ riderIds: ["a", "b", "c", "d", "isolated"] }],
+      maximumGroupSpanSeconds: 8,
+    });
+
+    expect([...normalized.entries()]).toEqual([
+      ["a", 0],
+      ["b", 0],
+      ["c", 10],
+      ["d", 10],
+      ["isolated", 32],
+    ]);
   });
 });
 
@@ -1098,6 +1184,40 @@ describe("buildPreservedRoadGroupFinishTimes", () => {
     expect(finishTimes.get("leader-a")).toBe(10_001);
     expect(finishTimes.get("leader-b")).toBe(10_001);
     expect(finishTimes.get("grupetto-a")).toBe(10_121);
+  });
+
+  it("ne recompte pas l'écart d'une échappée dispersée dans le temps d'un groupe attardé", () => {
+    const finishTimes = buildPreservedRoadGroupFinishTimes({
+      groups: [
+        {
+          type: "breakaway" as const,
+          riderIds: ["escape-winner", "escape-tail"],
+          gapToLeaderSeconds: 0,
+        },
+        {
+          type: "peloton" as const,
+          riderIds: ["favorite"],
+          gapToLeaderSeconds: 220,
+        },
+        {
+          type: "dropped" as const,
+          riderIds: ["detached-leader", "helper"],
+          gapToLeaderSeconds: 350,
+        },
+      ],
+      elapsedTimeByRiderId: new Map([
+        ["escape-winner", 10_000],
+        ["escape-tail", 10_300],
+        ["favorite", 10_220],
+        ["detached-leader", 10_348],
+        ["helper", 10_352],
+      ]),
+      preserveAllGroups: false,
+    });
+
+    expect(finishTimes.get("detached-leader")).toBe(10_350);
+    expect(finishTimes.get("helper")).toBe(10_350);
+    expect(finishTimes.has("favorite")).toBe(false);
   });
 });
 

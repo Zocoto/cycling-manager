@@ -723,8 +723,15 @@ const SAME_TIME_MAX_GAP_SECONDS = 3;
 // A selective finish keeps genuine gaps, but differences of one or two
 // seconds inside the same line of riders are not separate sporting groups.
 const SELECTIVE_FINISH_SAME_TIME_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
-const DELAYED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
-const DROPPED_GROUP_MAX_GAP_SECONDS = SAME_TIME_MAX_GAP_SECONDS;
+const SELECTIVE_FINISH_COHESION_SPAN_SECONDS = 8;
+// The three-second official timing rule is not a physical group-cohesion
+// rule. Riders spread over a handful of seconds still share the same chase,
+// shelter and pacing dynamics. Reusing the official threshold here caused a
+// single selective segment to manufacture dozens of isolated riders, who
+// could then never cooperate again on a climb.
+export const DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS = 24;
+const DELAYED_GROUP_MAX_GAP_SECONDS = DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS;
+const DROPPED_GROUP_MAX_GAP_SECONDS = DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS;
 const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
 const FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS = 16;
 const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
@@ -2494,7 +2501,6 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       hasEstablishedGeneralClassification,
       generalClassificationThreat: breakawayGeneralClassificationThreat,
       generalClassificationStageInterest,
-      pelotonHasReleasedBreakaway: pelotonHasReleasedSafeBreakaway,
     });
     const simulationTicks = splitRaceSegmentIntoSimulationTicks(segment);
     const visualTickGapSeconds: number[] = [];
@@ -9549,7 +9555,47 @@ function buildNonMassFinishEffortGaps({
     }
   }
 
-  return gapSecondsByRiderId;
+  return finishMode === "selective"
+    ? normalizeFinishEffortGapsWithinRoadGroups({
+        gapSecondsByRiderId,
+        groups,
+      })
+    : gapSecondsByRiderId;
+}
+
+export function normalizeFinishEffortGapsWithinRoadGroups({
+  gapSecondsByRiderId,
+  groups,
+  maximumGroupSpanSeconds = SELECTIVE_FINISH_COHESION_SPAN_SECONDS,
+}: {
+  gapSecondsByRiderId: ReadonlyMap<string, number>;
+  groups: ReadonlyArray<Pick<RaceGroupSnapshot, "riderIds">>;
+  maximumGroupSpanSeconds?: number;
+}) {
+  const normalizedGaps = new Map(gapSecondsByRiderId);
+
+  for (const group of groups) {
+    const effortRows = group.riderIds.flatMap((riderId) => {
+      const gapSeconds = gapSecondsByRiderId.get(riderId);
+      return gapSeconds === undefined ? [] : [{ riderId, gapSeconds }];
+    });
+
+    for (const effortGroup of splitElapsedRiderGroups(
+      effortRows.map((row) => ({
+        ...row,
+        elapsedTimeSeconds: row.gapSeconds,
+      })),
+      maximumGroupSpanSeconds,
+    )) {
+      const sharedGapSeconds = effortGroup[0]?.gapSeconds;
+      if (sharedGapSeconds === undefined) continue;
+      for (const row of effortGroup) {
+        normalizedGaps.set(row.riderId, sharedGapSeconds);
+      }
+    }
+  }
+
+  return normalizedGaps;
 }
 
 function applySuccessfulFinalClimbAttackGap({
@@ -9708,21 +9754,35 @@ export function buildPreservedRoadGroupFinishTimes({
   elapsedTimeByRiderId: ReadonlyMap<string, number>;
   preserveAllGroups: boolean;
 }) {
+  if (!preserveAllGroups) {
+    const preservedFinishTimes = new Map<string, number>();
+    for (const group of groups) {
+      if (group.type !== "dropped") continue;
+      const memberTimes = group.riderIds.flatMap((riderId) => {
+        const elapsedTimeSeconds = elapsedTimeByRiderId.get(riderId);
+        return elapsedTimeSeconds === undefined ? [] : [elapsedTimeSeconds];
+      });
+      if (memberTimes.length === 0) continue;
+
+      // On a selective finish the detached group's own race clock is the
+      // canonical source. Rebuilding it from the leading escape's average and
+      // a displayed gap can count the breakaway offset twice and manufacture
+      // minutes after the last simulated sector.
+      const groupFinishTimeSeconds = Math.round(average(memberTimes));
+      for (const riderId of group.riderIds) {
+        if (elapsedTimeByRiderId.has(riderId)) {
+          preservedFinishTimes.set(riderId, groupFinishTimeSeconds);
+        }
+      }
+    }
+    return preservedFinishTimes;
+  }
+
   const allGroupFinishTimes = buildFlatGroupFinishTimes({
     groups,
     elapsedTimeByRiderId,
   });
-  const preservedRiderIds = new Set(
-    groups
-      .filter((group) => preserveAllGroups || group.type === "dropped")
-      .flatMap((group) => group.riderIds),
-  );
-
-  return new Map(
-    [...allGroupFinishTimes].filter(([riderId]) =>
-      preservedRiderIds.has(riderId),
-    ),
-  );
+  return allGroupFinishTimes;
 }
 
 export function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
@@ -9822,21 +9882,19 @@ function updateFinalRoadGroups({
       .filter((group) => group.type === "peloton")
       .flatMap((group) => group.riderIds),
   );
-  const pelotonFinishGroupIndex = finishGroups.reduce(
-    (best, group, index) => {
-      const pelotonOverlap = group.filter((result) =>
-        pelotonRiderIds.has(result.riderId),
-      ).length;
-      if (
-        pelotonOverlap > best.pelotonOverlap ||
-        (pelotonOverlap === best.pelotonOverlap && group.length > best.groupSize)
-      ) {
-        return { index, pelotonOverlap, groupSize: group.length };
-      }
-      return best;
-    },
-    { index: 0, pelotonOverlap: -1, groupSize: -1 },
-  ).index;
+  const firstPelotonFinishGroupIndex = finishGroups.findIndex((group) =>
+    group.some((result) => pelotonRiderIds.has(result.riderId)),
+  );
+  const pelotonFinishGroupIndex =
+    firstPelotonFinishGroupIndex >= 0
+      ? firstPelotonFinishGroupIndex
+      : finishGroups.reduce(
+          (best, group, index) =>
+            group.length > best.groupSize
+              ? { index, groupSize: group.length }
+              : best,
+          { index: 0, groupSize: -1 },
+        ).index;
 
   finalSnapshot.groups = normalizeRoadSnapshotGroups(
     finishGroups.map((group, index) => {
@@ -10679,18 +10737,16 @@ function getExplicitPelotonChaseDemand({
   return demand;
 }
 
-function getAutomaticLeaderAttackInterest({
+export function getAutomaticLeaderAttackInterest({
   isStageRace,
   hasEstablishedGeneralClassification,
   generalClassificationThreat,
   generalClassificationStageInterest,
-  pelotonHasReleasedBreakaway,
 }: {
   isStageRace: boolean;
   hasEstablishedGeneralClassification: boolean;
   generalClassificationThreat: number;
   generalClassificationStageInterest: number;
-  pelotonHasReleasedBreakaway: boolean;
 }) {
   if (!isStageRace || !hasEstablishedGeneralClassification) return 1;
 
@@ -10701,9 +10757,11 @@ function getAutomaticLeaderAttackInterest({
     1,
   );
 
-  return pelotonHasReleasedBreakaway
-    ? clamp(naturalInterest * 0.28, 0.04, 0.26)
-    : naturalInterest;
+  // Letting a harmless breakaway contest the stage must not neutralize the
+  // battle between GC riders behind it. On decisive terrain the favourites
+  // still attack one another even when they have no sporting reason to spend
+  // domestiques bringing the escape back.
+  return naturalInterest;
 }
 
 function getStrategyChaseModifier({
