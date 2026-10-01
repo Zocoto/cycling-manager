@@ -143,8 +143,8 @@ export const ACTIVE_FEDERATION_BATCH_01_SPONSORS = [
   },
   {
     id: "bishkek-emal",
-    name: "Бишкек Эмаль",
-    shortName: "Бишкек Эмаль",
+    name: "Bishkek Emal",
+    shortName: "Bishkek Emal",
     countryCode: "KG",
     sector: "Vaisselle émaillée et ustensiles de cuisson",
     description:

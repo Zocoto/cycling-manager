@@ -5,6 +5,7 @@ import process from "node:process";
 import sharp from "sharp";
 
 import { SPONSORS } from "../data/sponsors";
+import { usesRomanAlphabet } from "../lib/roman-alphabet";
 import type {
   JerseyStyle,
   Sponsor,
@@ -24,6 +25,12 @@ const COUNTRY_CODE_PATTERN =
 
 const HEX_COLOR_PATTERN =
   /^#[0-9A-F]{6}$/i;
+
+const FRENCH_DESCRIPTION_START_PATTERN =
+  /^(?:Un|Une|Le|La|Les|L[’']|Des|Ce|Cet|Cette|Ces|Fondé|Fondée|Créé|Créée|Né|Née)\b/u;
+
+const FRENCH_DESCRIPTION_MARKER_PATTERN =
+  /(?:\bqui\b|\bdont\b|\bavec\b|\bpour\b|\bdans\b|\bdes\b|\bune\b|\bles\b|\bdu\b|\bde la\b|\baux\b|d[’']|l[’'])/iu;
 
 type AssetKind = "logo" | "jersey";
 
@@ -183,6 +190,26 @@ function validateSponsorMetadata({
     value: sponsor.description,
     messages,
   });
+
+  if (
+    !usesRomanAlphabet(sponsor.name) ||
+    !usesRomanAlphabet(sponsor.shortName)
+  ) {
+    addError(
+      messages,
+      `${sponsor.id} : le nom et le nom court doivent utiliser l’alphabet latin.`,
+    );
+  }
+
+  if (
+    !FRENCH_DESCRIPTION_START_PATTERN.test(sponsor.description) ||
+    !FRENCH_DESCRIPTION_MARKER_PATTERN.test(sponsor.description)
+  ) {
+    addError(
+      messages,
+      `${sponsor.id} : la description doit être rédigée en français.`,
+    );
+  }
 
   if (
     !SPONSOR_ID_PATTERN.test(sponsor.id)

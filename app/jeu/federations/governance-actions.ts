@@ -4,6 +4,10 @@ import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  ROMAN_ALPHABET_NAME_ERROR,
+  usesRomanAlphabet,
+} from "@/lib/roman-alphabet";
 
 export type FederationGovernanceActionState = {
   status: "idle" | "success" | "error";
@@ -22,13 +26,19 @@ const hostingEventTypeSchema = z.enum([
   "continental_championship_junior",
   "nations_cup_junior",
 ]);
-const raceNameSchema = z.string().trim().min(4).max(80);
+const raceNameSchema = z
+  .string()
+  .trim()
+  .min(4)
+  .max(80)
+  .refine(usesRomanAlphabet, ROMAN_ALPHABET_NAME_ERROR);
 const raceShortNameSchema = z
   .string()
   .trim()
   .min(2)
   .max(12)
-  .regex(/^[\p{L}\p{N} -]+$/u);
+  .regex(/^[\p{L}\p{N} -]+$/u)
+  .refine(usesRomanAlphabet, ROMAN_ALPHABET_NAME_ERROR);
 const federationRaceProjectIdSchema = z.string().uuid();
 const federationRaceVoteChoiceSchema = z.enum(["approve", "reject"]);
 
@@ -55,7 +65,12 @@ const raceSegmentSchema = z
 
 const raceStageSchema = z
   .object({
-    name: z.string().trim().min(3).max(80),
+    name: z
+      .string()
+      .trim()
+      .min(3)
+      .max(80)
+      .refine(usesRomanAlphabet, ROMAN_ALPHABET_NAME_ERROR),
     stageType: z.enum([
       "road",
       "individual_time_trial",

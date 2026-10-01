@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ACTIVE_FEDERATION_BATCH_01_SPONSORS } from "./active-federation-batch-01";
 import { SPONSORS } from "./index";
+import { usesRomanAlphabet } from "../../lib/roman-alphabet";
 
 const EXPECTED_COUNTRIES = ["LS", "MY", "PG", "DE", "LU", "HR", "SZ", "KG", "SN", "TG"];
 
@@ -56,5 +57,15 @@ describe("ACTIVE_FEDERATION_BATCH_01_SPONSORS", () => {
     for (const sponsor of ACTIVE_FEDERATION_BATCH_01_SPONSORS) {
       expect(catalogIds.has(sponsor.id)).toBe(true);
     }
+  });
+
+  it("publie tous les noms dans l’alphabet latin", () => {
+    expect(
+      ACTIVE_FEDERATION_BATCH_01_SPONSORS.every(
+        (sponsor) =>
+          usesRomanAlphabet(sponsor.name) &&
+          usesRomanAlphabet(sponsor.shortName),
+      ),
+    ).toBe(true);
   });
 });

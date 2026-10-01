@@ -36,4 +36,11 @@ describe("priority partnership sponsor batch 01", () => {
       );
     }
   });
+
+  it("publie les secteurs et descriptions en français", () => {
+    for (const sponsor of PRIORITY_PARTNERSHIP_BATCH_01_SPONSORS) {
+      expect(sponsor.description).toMatch(/^(?:Un|Une) /u);
+      expect(sponsor.description).not.toMatch(/\b(?:din|care|pentru|și|în)\b/iu);
+    }
+  });
 });
