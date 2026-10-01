@@ -1060,19 +1060,23 @@ function cleanHex(value: unknown, fallback: string) {
 }
 
 function getTeamDivision(
-  divisionId: string,
+  divisionId: string | null,
   divisionsById: Map<string, { code: string }>,
 ) {
   const code = getSourceDivisionCode(divisionId, divisionsById);
   if (code === "elite") return 10;
   if (code === "world") return 11;
-  if (code === "continental" || code === "national") return 12;
+  if (
+    code === "continental"
+    || code === "national"
+    || code === "amateur"
+  ) return 12;
 
   throw new Error(`Division Cyclostratege non exportable : ${code}.`);
 }
 
 function getSourceDivisionOrder(
-  divisionId: string,
+  divisionId: string | null,
   divisionsById: Map<string, { code: string }>,
 ) {
   const code = getSourceDivisionCode(divisionId, divisionsById);
@@ -1081,6 +1085,7 @@ function getSourceDivisionOrder(
     world: 1,
     continental: 2,
     national: 3,
+    amateur: 4,
   }[code];
 
   if (order === undefined) {
@@ -1091,13 +1096,16 @@ function getSourceDivisionOrder(
 }
 
 function getSourceDivisionCode(
-  divisionId: string,
+  divisionId: string | null,
   divisionsById: Map<string, { code: string }>,
 ) {
+  // Cyclostratege deliberately stores no division row for amateur teams.
+  if (!divisionId) return "amateur";
+
   const code = divisionsById.get(divisionId)?.code?.trim().toLowerCase();
   if (!code) {
     throw new Error(
-      `Division Cyclostratege absente pour l'equipe active : ${divisionId || "non renseignee"}.`,
+      `Division Cyclostratege inconnue pour l'equipe active : ${divisionId}.`,
     );
   }
 

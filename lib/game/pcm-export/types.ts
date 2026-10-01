@@ -11,7 +11,7 @@ export type TeamSeasonRow = {
   id: string;
   season_id: string;
   team_id: string;
-  division_id: string;
+  division_id: string | null;
   registration_country_id: string;
   display_name: string;
   short_name: string | null;
