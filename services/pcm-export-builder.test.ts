@@ -186,6 +186,40 @@ describe("generateur de base PCM26", () => {
       db.close();
     }
   });
+
+  it.each(["continental", "national"])(
+    "place la division Cyclostratege %s dans le troisieme niveau PCM",
+    async (divisionCode) => {
+      const snapshot = createSnapshot();
+      snapshot.divisions[0] = { id: "division-world", code: divisionCode };
+
+      const result = await buildPcmDatabase(snapshot);
+      const SQL = await initSqlJs({
+        locateFile: (file) => resolve("node_modules", "sql.js", "dist", file),
+      });
+      const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
+
+      try {
+        expect(
+          readCount(
+            db,
+            "SELECT COUNT(*) FROM DYN_team WHERE IDteam = 244 AND fkIDdivision = 12",
+          ),
+        ).toBe(1);
+      } finally {
+        db.close();
+      }
+    },
+  );
+
+  it("interrompt l'export si la division reelle d'une equipe est absente", async () => {
+    const snapshot = createSnapshot();
+    snapshot.teamSeasons[0].division_id = "division-inconnue";
+
+    await expect(buildPcmDatabase(snapshot)).rejects.toThrow(
+      "Division Cyclostratege absente",
+    );
+  });
 });
 
 function createSnapshot(): PcmExportSnapshot {

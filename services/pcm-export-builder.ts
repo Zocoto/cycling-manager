@@ -381,8 +381,8 @@ function buildDatabaseFromSnapshot(
     // the teams in sporting order immediately after the import.
     const sortedTeamSeasons = [...snapshot.teamSeasons].sort((left, right) => {
       const divisionDifference =
-        getTeamDivision(left.division_id, divisionsById)
-        - getTeamDivision(right.division_id, divisionsById);
+        getSourceDivisionOrder(left.division_id, divisionsById)
+        - getSourceDivisionOrder(right.division_id, divisionsById);
 
       return divisionDifference
         || left.display_name.localeCompare(right.display_name, "fr");
@@ -1063,10 +1063,45 @@ function getTeamDivision(
   divisionId: string,
   divisionsById: Map<string, { code: string }>,
 ) {
-  const code = divisionsById.get(divisionId)?.code;
+  const code = getSourceDivisionCode(divisionId, divisionsById);
   if (code === "elite") return 10;
   if (code === "world") return 11;
-  return 12;
+  if (code === "continental" || code === "national") return 12;
+
+  throw new Error(`Division Cyclostratege non exportable : ${code}.`);
+}
+
+function getSourceDivisionOrder(
+  divisionId: string,
+  divisionsById: Map<string, { code: string }>,
+) {
+  const code = getSourceDivisionCode(divisionId, divisionsById);
+  const order = {
+    elite: 0,
+    world: 1,
+    continental: 2,
+    national: 3,
+  }[code];
+
+  if (order === undefined) {
+    throw new Error(`Division Cyclostratege non exportable : ${code}.`);
+  }
+
+  return order;
+}
+
+function getSourceDivisionCode(
+  divisionId: string,
+  divisionsById: Map<string, { code: string }>,
+) {
+  const code = divisionsById.get(divisionId)?.code?.trim().toLowerCase();
+  if (!code) {
+    throw new Error(
+      `Division Cyclostratege absente pour l'equipe active : ${divisionId || "non renseignee"}.`,
+    );
+  }
+
+  return code;
 }
 
 function inferRiderType(converted: Record<string, number>) {
