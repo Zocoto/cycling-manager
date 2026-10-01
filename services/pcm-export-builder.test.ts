@@ -52,6 +52,14 @@ describe("generateur de base PCM26", () => {
           readCount(
             db,
             `SELECT COUNT(*) FROM DYN_team
+             WHERE IDteam = 244
+               AND gene_sz_name = 'Abbaye Cyclisme'`,
+          ),
+        ).toBe(1);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_team
              WHERE CONSTANT = 'CS_SPECTATOR'
                AND gene_sz_name = 'Cyclostratège'
                AND gene_b_licensed = 1`,
@@ -203,6 +211,7 @@ function createSnapshot(): PcmExportSnapshot {
       {
         id: "team-1",
         home_country_id: "country-fr",
+        pcm_export_id: 244,
         amateur_jersey_primary_color: "#176951",
         amateur_jersey_secondary_color: "#fffdf4",
       },

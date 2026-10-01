@@ -196,6 +196,16 @@ function assertSnapshotIntegrity({
     throw new Error("Une equipe active ne possede pas de fiche permanente.");
   }
 
+  const pcmTeamIds = teams.map((team) => Number(team.pcm_export_id));
+  if (
+    pcmTeamIds.some(
+      (id) => !Number.isInteger(id) || id <= 243,
+    ) ||
+    new Set(pcmTeamIds).size !== pcmTeamIds.length
+  ) {
+    throw new Error("Les identifiants PCM permanents des equipes sont invalides.");
+  }
+
   const contractsByRider = countBy(contracts, (row) => row.rider_id);
   const ratingsByRider = countBy(ratings, (row) => row.rider_id);
 

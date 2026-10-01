@@ -74,6 +74,7 @@ const RATING_COLUMNS = [
 
 const SPECTATOR_RIDER_COUNT = 10;
 const SPECTATOR_PCM_RATING = 65;
+const SPECTATOR_TEAM_ID = 243;
 
 type SqlValue = string | number | Uint8Array | null;
 type SqlRow = Record<string, SqlValue>;
@@ -240,10 +241,6 @@ function buildDatabaseFromSnapshot(
     "IDcontract_cyclist",
     1,
   );
-  // Keep generated identifiers above the official ranges even after the purge.
-  // Any opaque PCM list that escaped the explicit cleanup can therefore never
-  // bind an old official identifier to a new Cyclostratege entity by accident.
-  const firstGeneratedTeamId = nextId(db, "DYN_team", "IDteam");
   const firstGeneratedTeamSponsorId = nextId(
     db,
     "DYN_team_sponsor",
@@ -269,7 +266,6 @@ function buildDatabaseFromSnapshot(
   try {
     purgeOfficialProfessionalRoster(db);
 
-    let nextTeamId = firstGeneratedTeamId;
     let nextSponsorId = nextId(db, "DYN_sponsor", "IDsponsor");
     let nextTeamSponsorId = firstGeneratedTeamSponsorId;
     let nextTeamHistoryId = nextId(
@@ -297,7 +293,7 @@ function buildDatabaseFromSnapshot(
     if (!spectatorRegionId) {
       throw new Error("La region francaise est absente du gabarit PCM.");
     }
-    const spectatorTeamId = nextTeamId++;
+    const spectatorTeamId = SPECTATOR_TEAM_ID;
     const spectatorSponsorId = nextSponsorId++;
 
     insertRow(db, "DYN_team", {
@@ -387,7 +383,7 @@ function buildDatabaseFromSnapshot(
       const country = resolveCountry(
         teamSeason.registration_country_id || team.home_country_id,
       );
-      const teamId = nextTeamId++;
+      const teamId = Number(team.pcm_export_id);
       const sponsorId = nextSponsorId++;
       const primaryColor = cleanHex(
         team.amateur_jersey_primary_color,
