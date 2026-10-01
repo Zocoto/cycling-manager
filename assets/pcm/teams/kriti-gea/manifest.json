@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T05:07:58.267Z",
+  "generatedAt": "2026-10-01T07:54:46.864Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "permanentTeamId": "caea0559-e3a6-408b-9e2f-4a7755859dd6",
@@ -24,7 +24,7 @@
       "role": "PCM26 3D jersey UV texture",
       "width": 1200,
       "height": 826,
-      "sha256": "c34d34334ff3a3fb0435534b39db9aac306ebc2630f6570cc1803a97ca559c0a"
+      "sha256": "dc08c1ea5bdaa95f0c30461f27ccce7fda9e291912dc11450b84e6c117709766"
     },
     {
       "file": "APT_minimaillot.png",
@@ -38,12 +38,13 @@
       "role": "review board",
       "width": 1600,
       "height": 1080,
-      "sha256": "e895a082fbba1c7edf806bceb6bec58157a565541abcc55d2f1a9c5f92b5eafc"
+      "sha256": "45713551df5a946ba0d19e23cb243c5d0dd56567283a4dee671d49b811bc66f1"
     }
   ],
   "notes": [
     "The mini-jersey uses the selected Cyclostratege artwork without reinterpretation.",
     "The UV texture recreates the selected ivory, olive, terracotta and Aegean-blue identity on the PCM26 garment layout.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
     "The permanent PCM team id remains 302 when the sponsor name changes."
   ]
 }

@@ -1,0 +1,55 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T07:55:48.961Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "currentName": "Gouille Developpement",
+    "season4Sponsor": "Cidrerie de l’Aulne",
+    "manager": "gouilleTW",
+    "pcmAssetCode": "aul"
+  },
+  "selection": {
+    "jerseyName": "Pomme tempête",
+    "jerseyStyle": "bold",
+    "sourcePath": "public/images/sponsors/cidrerie-aulne/jersey-bold.webp"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "AUL_uv-source.png"
+  },
+  "assets": [
+    {
+      "file": "AUL_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "63b79c13d238739104c9baa883824f263b08100fcec1bffd1d666ff068951067"
+    },
+    {
+      "file": "AUL_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "dd67d2b3eb34f1698fb8eaeefe9660ea23d509741ced5b85f6afe07b7835d592"
+    },
+    {
+      "file": "AUL_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "db27d23599132eab6192659151d140effa07b17388725177fecdb6458842a75a"
+    },
+    {
+      "file": "AUL_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "c552a5f803ccfbfcdd7453e7f782fabfdd676b7dcce52b4842e822a4892320eb"
+    }
+  ]
+}

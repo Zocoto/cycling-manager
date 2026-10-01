@@ -174,7 +174,8 @@ await sharp(textureSvg)
     { input: leftSleeveLogo, left: 18, top: 170 },
     { input: rightSleeveLogo, left: 466, top: 166 },
     { input: leftSleeveLogo, left: 1123, top: 166 },
-    { input: shortsLogo, left: 254, top: 552 },
+    // Le panneau de gauche correspond à l'avant du cuissard : aucun logo.
+    // Le marquage sponsor reste uniquement sur le panneau arrière/fessier.
     { input: shortsLogo, left: 868, top: 552 },
   ])
   .png({ compressionLevel: 9, adaptiveFiltering: true })
@@ -302,6 +303,7 @@ const manifest = {
   notes: [
     "The mini-jersey uses the selected Cyclostratege artwork without reinterpretation.",
     "The UV texture recreates the selected ivory, olive, terracotta and Aegean-blue identity on the PCM26 garment layout.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
     "The permanent PCM team id remains 302 when the sponsor name changes.",
   ],
 };

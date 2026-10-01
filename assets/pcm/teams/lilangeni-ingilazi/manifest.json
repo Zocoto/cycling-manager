@@ -1,0 +1,55 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T07:55:52.454Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "currentName": "Lusutfu Cane",
+    "season4Sponsor": "Lilangeni Ingilazi",
+    "manager": "Julgator",
+    "pcmAssetCode": "lil"
+  },
+  "selection": {
+    "jerseyName": "Four en fusion",
+    "jerseyStyle": "bold",
+    "sourcePath": "public/images/sponsors/lilangeni-ingilazi/jersey-bold.webp"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "LIL_uv-source.png"
+  },
+  "assets": [
+    {
+      "file": "LIL_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": true,
+      "sha256": "7817831f1d96d8754ab88b7cefb6412296f6c0ad731300d8d3888372c085d26f"
+    },
+    {
+      "file": "LIL_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "b1384a6ef1bd02406b87bd44ef04536daaaba0db667ce1f7a8243692b2f7e0f9"
+    },
+    {
+      "file": "LIL_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "ce4137df3b04972d087ec01df70b647f8c04ea4633cfa5814b5608cdd9a897e9"
+    },
+    {
+      "file": "LIL_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "a8073bad2cf18a3171b2c5275e9b3f7dc923cdbb1cef4a6fb5cfdf0fb329e3ce"
+    }
+  ]
+}
