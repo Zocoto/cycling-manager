@@ -1,12 +1,13 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T07:55:48.961Z",
+  "generatedAt": "2026-10-01T08:11:19.770Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Gouille Developpement",
     "season4Sponsor": "Cidrerie de l’Aulne",
     "manager": "gouilleTW",
-    "pcmAssetCode": "aul"
+    "pcmAssetCode": "aul",
+    "pcmCompatibilitySlot": "gfc"
   },
   "selection": {
     "jerseyName": "Pomme tempête",

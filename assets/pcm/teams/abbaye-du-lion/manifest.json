@@ -1,12 +1,13 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T07:55:56.081Z",
+  "generatedAt": "2026-10-01T08:11:27.855Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Abbaye du Lion",
     "season4Sponsor": "Abbaye du Lion",
     "manager": "Roger Letesteur",
-    "pcmAssetCode": "adl"
+    "pcmAssetCode": "adl",
+    "pcmCompatibilitySlot": "mov"
   },
   "selection": {
     "jerseyName": "Tradition",

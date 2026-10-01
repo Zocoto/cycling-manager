@@ -28,7 +28,11 @@ Les textures terminées sont conservées dans `teams/<sponsor>/` avec :
 - un aperçu de contrôle et un manifeste qui relie l'asset à l'équipe permanente,
   au contrat sponsor et au choix du manager.
 
-Le premier lot saison 4 est `teams/kriti-gea/`, associé à l'équipe permanente
-PCM `302` et au maillot `kriti-gea-modern` (« Labyrinthe »). Les assets ne sont
-pas encore injectés automatiquement dans le ZIP tant que la chaîne graphique
-complète n'a pas été validée équipe par équipe.
+Le premier lot saison 4 couvre sept équipes : Abbaye du Lion, Ardennes
+Outillage, Cidrerie de l'Aulne, Kriti Gea, Lilangeni Ingilazi, Vereda Nova
+Automóveis et Yukikaze Outdoor. Chaque asset est lié à l'identifiant permanent
+de son équipe et à un emplacement PCM26 réservé au mod.
+
+Le PAK est compilé séparément du ZIP de base de données sous le nom
+`PCMAssets_cyclostratege-local_P.pak`. Les quatorze textures (maillot et
+mini-maillot) font l'objet d'un contrôle pixel par pixel après lecture du PAK.

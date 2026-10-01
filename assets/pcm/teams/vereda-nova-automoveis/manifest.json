@@ -1,12 +1,13 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T07:56:02.342Z",
+  "generatedAt": "2026-10-01T08:11:34.653Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Vereda Nova Automóveis",
     "season4Sponsor": "Vereda Nova Automóveis",
     "manager": "Misha3",
-    "pcmAssetCode": "vna"
+    "pcmAssetCode": "vna",
+    "pcmCompatibilitySlot": "uex"
   },
   "selection": {
     "jerseyName": "Arara Viva",

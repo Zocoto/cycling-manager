@@ -16,6 +16,7 @@ const teamsRoot = path.join(workspaceRoot, "SourceAssets", "Teams");
 const teams = [
   {
     code: "ARO",
+    pcmCompatibilitySlot: "dct",
     sponsor: "Ardennes Outillage",
     jersey: "Acier",
     style: "modern",
@@ -26,6 +27,7 @@ const teams = [
   },
   {
     code: "AUL",
+    pcmCompatibilitySlot: "gfc",
     sponsor: "Cidrerie de l’Aulne",
     jersey: "Pomme tempête",
     style: "bold",
@@ -36,6 +38,7 @@ const teams = [
   },
   {
     code: "LIL",
+    pcmCompatibilitySlot: "soq",
     sponsor: "Lilangeni Ingilazi",
     jersey: "Four en fusion",
     style: "bold",
@@ -47,6 +50,7 @@ const teams = [
   },
   {
     code: "ADL",
+    pcmCompatibilitySlot: "mov",
     sponsor: "Abbaye du Lion",
     jersey: "Tradition",
     style: "classic",
@@ -58,6 +62,7 @@ const teams = [
   },
   {
     code: "YUK",
+    pcmCompatibilitySlot: "tvl",
     sponsor: "Yukikaze Outdoor",
     jersey: "Hokkaidō",
     style: "classic",
@@ -68,6 +73,7 @@ const teams = [
   },
   {
     code: "VNA",
+    pcmCompatibilitySlot: "uex",
     sponsor: "Vereda Nova Automóveis",
     jersey: "Arara Viva",
     style: "bold",
@@ -249,6 +255,7 @@ for (const team of teams) {
       season4Sponsor: team.sponsor,
       manager: team.manager,
       pcmAssetCode: team.code.toLowerCase(),
+      pcmCompatibilitySlot: team.pcmCompatibilitySlot,
     },
     selection: {
       jerseyName: team.jersey,
