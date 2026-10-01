@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.09-stable-automatic-tour-leader-v37";
+  "2026.10-resilient-tactical-duties-v38";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

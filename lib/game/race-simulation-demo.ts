@@ -13,6 +13,8 @@ import {
   getStageSeasonGameYear,
 } from "./race-weather";
 import {
+  isRaceLeaderRole,
+  isRaceProtectedRiderRole,
   isRaceSprinterRole,
   type RiderSimulationInput,
   type RiderSimulationRatings,
@@ -125,9 +127,6 @@ export function createCalendarSimulationInput({
   seed: string | number;
   unavailableRiderIds?: ReadonlySet<string> | readonly string[];
 }): StageSimulationInput {
-  const teamStrategies = Object.values(stage.teamStrategies ?? {}).sort(
-    (first, second) => first.teamId.localeCompare(second.teamId),
-  );
   const teamTacticalBriefings = Object.values(
     stage.teamTacticalBriefings ?? {},
   ).sort((first, second) => first.teamId.localeCompare(second.teamId));
@@ -155,65 +154,76 @@ export function createCalendarSimulationInput({
     riders: sourceRiders,
     unavailableRiderIds,
   });
-  const sanitizedTeamStrategies = sanitizeCalendarTeamStrategies({
+  const preliminaryTeamStrategies = sanitizeCalendarTeamStrategies({
     stage,
     sourceRiders,
   });
-  teamStrategies.splice(
-    0,
-    teamStrategies.length,
-    ...sanitizedTeamStrategies,
-  );
 
-  const riders = sanitizeUniqueCalendarRaceRoles(
+  const ridersWithoutDuties = sanitizeUniqueCalendarRaceRoles(
     sourceRiders
-    .map((rider) => {
-      const { equipmentEffectsByStageId, ...baseRider } = rider;
-      const lockedLeaderRiderId = tourLeaderByTeamId.get(rider.teamId);
-      const stableGeneralRole = lockedLeaderRiderId
-        ? rider.id === lockedLeaderRiderId
-          ? "leader"
-          : rider.role === "leader"
-            ? "auto"
-            : rider.role
-        : rider.role;
-      const teamStrategy = stage.teamStrategies?.[rider.teamId];
-      const raceDuty = getRiderRaceDuty(teamStrategy, rider.id);
-      const specialAbilities = [
-        ...(rider.specialAbilities ?? []),
-        ...(rider.specialAbility ? [rider.specialAbility] : []),
-      ]
-        .filter(
-          (ability, index, abilities) => abilities.indexOf(ability) === index,
-        )
-        .sort();
+      .map((rider) => {
+        const { equipmentEffectsByStageId, ...baseRider } = rider;
+        const lockedLeaderRiderId = tourLeaderByTeamId.get(rider.teamId);
+        const stableGeneralRole = lockedLeaderRiderId
+          ? rider.id === lockedLeaderRiderId
+            ? "leader"
+            : rider.role === "leader"
+              ? "auto"
+              : rider.role
+          : rider.role;
+        const specialAbilities = [
+          ...(rider.specialAbilities ?? []),
+          ...(rider.specialAbility ? [rider.specialAbility] : []),
+        ]
+          .filter(
+            (ability, index, abilities) =>
+              abilities.indexOf(ability) === index,
+          )
+          .sort();
 
-      return {
-        ...baseRider,
-        role: resolveStageRaceRole({
-          riderId: rider.id,
-          generalRole: stableGeneralRole,
-          roleOverrides: stage.riderRoleOverrides,
-          lockedLeaderRiderId,
-        }),
-        ...(raceDuty ? { raceDuty } : {}),
-        specialAbility: specialAbilities[0] ?? null,
-        ...(specialAbilities.length > 0 || rider.specialAbilities !== undefined
-          ? { specialAbilities }
-          : {}),
-        ratings: { ...rider.ratings },
-        ...(equipmentEffectsByStageId?.[stage.id]
-          ? { equipmentEffects: equipmentEffectsByStageId[stage.id] }
-          : {}),
-      };
-    })
-    .sort(
-      (first, second) =>
-        first.teamId.localeCompare(second.teamId) ||
-        first.id.localeCompare(second.id),
-    ),
+        return {
+          ...baseRider,
+          role: resolveStageRaceRole({
+            riderId: rider.id,
+            generalRole: stableGeneralRole,
+            roleOverrides: stage.riderRoleOverrides,
+            lockedLeaderRiderId,
+          }),
+          specialAbility: specialAbilities[0] ?? null,
+          ...(specialAbilities.length > 0 ||
+          rider.specialAbilities !== undefined
+            ? { specialAbilities }
+            : {}),
+          ratings: { ...rider.ratings },
+          ...(equipmentEffectsByStageId?.[stage.id]
+            ? { equipmentEffects: equipmentEffectsByStageId[stage.id] }
+            : {}),
+        };
+      })
+      .sort(
+        (first, second) =>
+          first.teamId.localeCompare(second.teamId) ||
+          first.id.localeCompare(second.id),
+      ),
     stage,
   );
+  const teamStrategies = sanitizeCalendarTeamStrategyDuties({
+    strategies: preliminaryTeamStrategies,
+    riders: ridersWithoutDuties,
+  });
+  const strategiesByTeamId = new Map(
+    teamStrategies.map((strategy) => [strategy.teamId, strategy]),
+  );
+  const riders = ridersWithoutDuties.map((rider) => {
+    const teamStrategy = strategiesByTeamId.get(rider.teamId);
+    if (!teamStrategy) return rider;
+    const withoutHistoricalDuty = { ...rider };
+    delete withoutHistoricalDuty.raceDuty;
+    const raceDuty = getRiderRaceDuty(teamStrategy, rider.id);
+    return raceDuty
+      ? { ...withoutHistoricalDuty, raceDuty }
+      : withoutHistoricalDuty;
+  });
   const riderIds = new Set(riders.map((rider) => rider.id));
   const timeTrialPlans = Object.fromEntries(
     Object.entries(stage.timeTrialPlans ?? {}).filter(([riderId]) =>
@@ -482,6 +492,55 @@ export function sanitizeCalendarTeamStrategies({
       return removeDuplicateTacticalDuties(sanitized);
     })
     .sort((first, second) => first.teamId.localeCompare(second.teamId));
+}
+
+/**
+ * Une préparation peut devenir incohérente quand le rôle d'un coureur est
+ * modifié après l'enregistrement de la stratégie (promotion comme leader,
+ * sprinteur ou coureur protégé). L'ordre devenu impossible est ignoré dans
+ * l'entrée officielle plutôt que de bloquer toute la chaîne d'un tour.
+ */
+export function sanitizeCalendarTeamStrategyDuties({
+  strategies,
+  riders,
+}: {
+  strategies: readonly RaceTeamStrategy[];
+  riders: readonly RiderSimulationInput[];
+}): RaceTeamStrategy[] {
+  const ridersById = new Map(riders.map((rider) => [rider.id, rider]));
+  const sanitizeDutyRiderId = (riderId: string | null, teamId: string) => {
+    if (!riderId) return null;
+    const rider = ridersById.get(riderId);
+    if (!rider || rider.teamId !== teamId) return null;
+    if (
+      isRaceLeaderRole(rider.role) ||
+      isRaceSprinterRole(rider.role) ||
+      isRaceProtectedRiderRole(rider.role)
+    ) {
+      return null;
+    }
+    return riderId;
+  };
+
+  return strategies.map((strategy) => ({
+    ...strategy,
+    lieutenantRiderId: sanitizeDutyRiderId(
+      strategy.lieutenantRiderId,
+      strategy.teamId,
+    ),
+    dangerPacerRiderId: sanitizeDutyRiderId(
+      strategy.dangerPacerRiderId,
+      strategy.teamId,
+    ),
+    protectorRiderId: sanitizeDutyRiderId(
+      strategy.protectorRiderId,
+      strategy.teamId,
+    ),
+    breakawayRiderId: sanitizeDutyRiderId(
+      strategy.breakawayRiderId,
+      strategy.teamId,
+    ),
+  }));
 }
 
 function removeDuplicateTacticalDuties(

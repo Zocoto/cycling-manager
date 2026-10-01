@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import type { RaceCalendarEdition, RaceCalendarStage } from "./race-calendar";
 import { createCalendarSimulationInput } from "./race-simulation-demo";
 import {
+  buildOfficialStageRaceStandings,
   getOfficialStageSimulationContext,
   isUnavailableForFollowingStage,
   simulateOfficialRaceEdition,
 } from "./official-race-simulation";
 import {
   applyNationalTechnicalLabBonus,
-  buildStageRaceStandings,
   type RiderSimulationInput,
 } from "./race-simulation";
 import {
@@ -577,6 +577,62 @@ describe("createCalendarSimulationInput", () => {
     expect(() => simulateOfficialRaceEdition(edition)).not.toThrow();
   });
 
+  it("retire une mission devenue incompatible avec le rôle du coureur", () => {
+    const leader = {
+      ...createRider("leader-a", "team-a"),
+      role: "leader" as const,
+    };
+    const protectedRider = {
+      ...createRider("protected-a", "team-a"),
+      role: "protected_rider" as const,
+    };
+    const helper = {
+      ...createRider("helper-a", "team-a"),
+      role: "domestique" as const,
+    };
+    const edition = createEdition({
+      slug: "course-missions-roles-modifies",
+      riders: [leader, protectedRider, helper],
+    });
+    edition.stages[0].teamStrategies = {
+      "team-a": {
+        teamId: "team-a",
+        objective: "general_classification",
+        collectivePosture: "balanced",
+        breakawayPolicy: "avoid",
+        chasePolicy: "protect_lead",
+        lieutenantRiderId: leader.id,
+        dangerPacerRiderId: null,
+        protectorRiderId: protectedRider.id,
+        breakawayRiderId: helper.id,
+        attackOrders: [],
+      },
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "official",
+    });
+
+    expect(input.teamStrategies).toEqual([
+      expect.objectContaining({
+        teamId: "team-a",
+        lieutenantRiderId: null,
+        protectorRiderId: null,
+        breakawayRiderId: helper.id,
+      }),
+    ]);
+    expect(input.riders.find((rider) => rider.id === leader.id)?.raceDuty)
+      .toBeUndefined();
+    expect(
+      input.riders.find((rider) => rider.id === protectedRider.id)?.raceDuty,
+    ).toBeUndefined();
+    expect(input.riders.find((rider) => rider.id === helper.id)?.raceDuty)
+      .toBe("breakaway_candidate");
+    expect(() => simulateOfficialRaceEdition(edition)).not.toThrow();
+  });
+
   it("refuse une course ordinaire sans startlist", () => {
     const edition = createEdition({
       slug: "grand-prix-de-bretagne",
@@ -656,8 +712,11 @@ describe("createCalendarSimulationInput", () => {
       ],
     });
 
-    expect(context.simulation).toBe(run.simulation);
-    expect(context.input).toBe(run.input);
+    expect(context.simulation.results).toBe(run.simulation.results);
+    expect(context.simulation.resolvedRiders).toBe(
+      run.simulation.resolvedRiders,
+    );
+    expect(context.input.seed).toBe(run.input.seed);
   });
 
   it("porte les maillots acquis la veille et laisse le champion national dessous", () => {
@@ -688,8 +747,8 @@ describe("createCalendarSimulationInput", () => {
       stages: [firstStage, secondStage],
     };
     const runs = simulateOfficialRaceEdition(edition);
-    const generalBeforeSecondStage = buildStageRaceStandings([
-      runs[0].simulation,
+    const generalBeforeSecondStage = buildOfficialStageRaceStandings([
+      runs[0],
     ]).general;
 
     expect(runs[0].input.generalClassification).toBeUndefined();
@@ -709,8 +768,8 @@ describe("createCalendarSimulationInput", () => {
         [riders[2].id]: 15,
       },
     };
-    const standingsAfterStageOne = buildStageRaceStandings([
-      firstStageSimulation,
+    const standingsAfterStageOne = buildOfficialStageRaceStandings([
+      { ...runs[0], simulation: firstStageSimulation },
     ]);
     const expectedJerseyByRiderId = getStageRaceJerseyByRiderId(
       assignStageRaceJerseys(standingsAfterStageOne),
