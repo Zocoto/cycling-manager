@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T08:11:16.623Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "BelgianTalent",
@@ -26,7 +26,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": false,
-      "sha256": "c29285c099d5c145585d91b14243e397197178375bdaffdc3f070a7dfd1d2fcb"
+      "sha256": "ce8f73608659c8e6bd210a363c18ea2500c8ce8b52a4eaa912fea4d9e92fa9df"
     },
     {
       "file": "ARO_minimaillot.png",
@@ -42,7 +42,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "10301a656cb073a0ddcec92ee76b6d42207919ff56ab5017063e20f487d8b459"
+      "sha256": "557dee60b4e2769f4f1f25071913818d9364ab27ae65e9afda4749ed8b3ac7d0"
     },
     {
       "file": "ARO_reference.webp",

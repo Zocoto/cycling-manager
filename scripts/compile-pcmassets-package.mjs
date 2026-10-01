@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
@@ -71,6 +72,36 @@ if (evaluation.result?.subtype === "error") {
   throw new Error(evaluation.result.description ?? "Compilation PCMAssets impossible.");
 }
 
+const compiledPakPath = evaluation.result?.value;
+if (typeof compiledPakPath !== "string" || !compiledPakPath.endsWith(".pak")) {
+  throw new Error("PCMAssets n'a pas renvoye le chemin du PAK compile.");
+}
+const packagePakPath = path.join(packageRoot, path.basename(compiledPakPath));
+await copyFile(compiledPakPath, packagePakPath);
+const packagePak = await readFile(packagePakPath);
+const pakSha256 = createHash("sha256").update(packagePak).digest("hex");
+const pakBytes = (await stat(packagePakPath)).size;
+
+const manifestPath = path.join(packageRoot, "manifest.json");
+const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+manifest.graphics = {
+  ...manifest.graphics,
+  pakFile: path.basename(packagePakPath),
+  pakSha256,
+  pakBytes,
+};
+await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+
+const validationPath = path.join(packageRoot, "validation.json");
+const validation = JSON.parse(await readFile(validationPath, "utf8"));
+validation.graphics = {
+  ...validation.graphics,
+  pakFile: path.basename(packagePakPath),
+  pakSha256,
+  pakBytes,
+};
+await writeFile(validationPath, `${JSON.stringify(validation, null, 2)}\n`, "utf8");
+
 console.log(JSON.stringify({
   compiled: true,
   packageId: changesDocument.packageId,
@@ -78,5 +109,8 @@ console.log(JSON.stringify({
   gameDirectory,
   packageRoot,
   donorModDirectory,
-  result: evaluation.result?.value ?? null,
+  result: compiledPakPath,
+  packagePakPath,
+  pakSha256,
+  pakBytes,
 }, null, 2));

@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T08:11:24.004Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Lusutfu Cane",
@@ -26,7 +26,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": true,
-      "sha256": "7817831f1d96d8754ab88b7cefb6412296f6c0ad731300d8d3888372c085d26f"
+      "sha256": "a681160e33d22055db36293bf48e1119d223c114206b7f222ee01776f88a6775"
     },
     {
       "file": "LIL_minimaillot.png",
@@ -42,7 +42,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "ce4137df3b04972d087ec01df70b647f8c04ea4633cfa5814b5608cdd9a897e9"
+      "sha256": "58b7f89981c61f55dd1628dc72dd74e751af1d5ac9413d91078aa39b35dff646"
     },
     {
       "file": "LIL_reference.webp",

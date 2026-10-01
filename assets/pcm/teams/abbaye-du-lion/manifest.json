@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T08:11:27.855Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Abbaye du Lion",
@@ -26,7 +26,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": true,
-      "sha256": "db2d20fb473faf2638e77ec8be48cc1979914e4eb9bbd4c341b4354510c006ca"
+      "sha256": "e5e038f4c896c0a2d8d978ca3115b40f871933dc4541a40f05a6bccb6115ea88"
     },
     {
       "file": "ADL_minimaillot.png",
@@ -42,7 +42,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "a37ee708bb88edd58be47b07456aeb8c668a41c79d14a375f13fd8ef77df330b"
+      "sha256": "33cd8c8e008326e3f1432fc2bc3ab3e8087ecf9eed32a1dc508953247adb2124"
     },
     {
       "file": "ADL_reference.webp",

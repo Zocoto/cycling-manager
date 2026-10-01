@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T08:11:31.242Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Yukikaze Outdoor",
@@ -26,7 +26,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": false,
-      "sha256": "c51f36c2092e68e9ed15a5f113656a81c72f67b8128584f5f0a9f44e056b39be"
+      "sha256": "42e984bced978919ecb79b5fbc47e23e2f00739ad349872e82ca1b27e8ec5348"
     },
     {
       "file": "YUK_minimaillot.png",
@@ -42,7 +42,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "bb7a8d35429a45c41d640c57bc90527f3b23aaa56e4b4a65516bc94aeed0401d"
+      "sha256": "c681ecc0148babbc844bbab82ec852706d7edf759c083a687c701a73c6b60070"
     },
     {
       "file": "YUK_reference.webp",

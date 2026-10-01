@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T08:11:34.653Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Vereda Nova Automóveis",
@@ -26,7 +26,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": false,
-      "sha256": "f592e49e7558ed6cfea19c98d3df5c5a0ed5f732d32f67a5306b93c5d1884ac8"
+      "sha256": "c0b90386df6db623f15a2ca58829b5927d19ec95e841ab8c1fbd8e15c2ba447c"
     },
     {
       "file": "VNA_minimaillot.png",
@@ -42,7 +42,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "16d46b1d7d5af336c82796b2d014b831a1d50c1992c2eb940a0938599ae2c3b8"
+      "sha256": "eef528b2ccf06427ca447a5729961d146ab21f449132cfff3fdc83e302617db5"
     },
     {
       "file": "VNA_reference.webp",

@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T09:08:09.243Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "permanentTeamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
@@ -31,7 +31,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": true,
-      "sha256": "24c271ac7b49e80ae3e57dc5216d399015220dfd137051b11c58720136c7f5b1"
+      "sha256": "9a81c359a420d7ca91f55857a907eca3ea363c2daa11fe391e37bb6f764869cf"
     },
     {
       "file": "ARL_minimaillot.png",
@@ -47,7 +47,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "40996d0350524ba7a6391a516569bc293625d5dc5201a6e7bcd5aba6449c9249"
+      "sha256": "c1f5bf355c049635cb6210a0ea99c130b47be12361e7b677ca80c68f27ed82cf"
     },
     {
       "file": "ARL_reference.webp",

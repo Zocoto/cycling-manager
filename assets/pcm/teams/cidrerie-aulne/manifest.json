@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-10-01T08:11:19.770Z",
+  "generatedAt": "2026-10-01T12:41:30.248Z",
   "game": "Pro Cycling Manager 2026",
   "team": {
     "currentName": "Gouille Developpement",
@@ -26,7 +26,7 @@
       "width": 1200,
       "height": 826,
       "hasAlpha": false,
-      "sha256": "63b79c13d238739104c9baa883824f263b08100fcec1bffd1d666ff068951067"
+      "sha256": "ba42857e2bca14b211b64268e653eb4625c68da470fa9407e8790b9f485d2f6d"
     },
     {
       "file": "AUL_minimaillot.png",
@@ -42,7 +42,7 @@
       "width": 1600,
       "height": 1080,
       "hasAlpha": true,
-      "sha256": "db27d23599132eab6192659151d140effa07b17388725177fecdb6458842a75a"
+      "sha256": "ad6b1a6b0b9e6f2d98bb5227915f6152a28ffa7b6b626233ff9a67b21aade747"
     },
     {
       "file": "AUL_reference.webp",
