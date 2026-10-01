@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:08:05.157Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+    "pcmTeamId": 297,
+    "currentName": "Montecristi Toquilla House",
+    "season4Sponsor": "Montecristi Toquilla House",
+    "manager": "Romain Bardet",
+    "displayCode": "MTH",
+    "pcmAssetCode": "tbv"
+  },
+  "selection": {
+    "jerseyId": "montecristi-toquilla-house-modern",
+    "jerseyName": "Ruban",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/montecristi-toquilla-house/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "MTH_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "MTH_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "a5adaf74ded98eb3a61000abc522b6b9ece07baa4ac58bef693323db4b14017f"
+    },
+    {
+      "file": "MTH_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "c1a91d45fbf8a09f55c64b77ff41d05b3b4fd47881af03a97286d799322968c3"
+    },
+    {
+      "file": "MTH_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "cfaf6bedb1a62f12f4e40cb43eb04cc8bc71f7ffd16c41b01cf8c875dbb99fe3"
+    },
+    {
+      "file": "MTH_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "41b39c24fdff59edca126a756438d61e87206f003c1cda873cfea04c38277d47"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

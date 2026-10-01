@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:07:59.512Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
+    "pcmTeamId": 332,
+    "currentName": "Terroirs Unis",
+    "season4Sponsor": "Terroirs Unis",
+    "manager": "Jean léchaper",
+    "displayCode": "TNP",
+    "pcmAssetCode": "loi"
+  },
+  "selection": {
+    "jerseyId": "terroirs-unis-modern",
+    "jerseyName": "Sillons",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/terroirs-unis/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "TNP_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "TNP_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "1caef8e360c6d6e35af128d135a9efbfe881689af242e6fdbb48c9d68169d9f3"
+    },
+    {
+      "file": "TNP_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "7aa2d2e1f3ea4de194cb5c2f32fe2e8bdce78558777650c79baec95e07f3ad97"
+    },
+    {
+      "file": "TNP_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "9d3c3c28b6407cfe5baabaec70882b7a655f9f58485039c28eba53b4b8c276a4"
+    },
+    {
+      "file": "TNP_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "6fc7073b87089a6cdd0daa1b5959c1e5c58cbbf2e8de76230c1961351b321323"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

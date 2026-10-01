@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:07:57.482Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
+    "pcmTeamId": 290,
+    "currentName": "Lima Maki",
+    "season4Sponsor": "Lima Maki",
+    "manager": "Humberto Julgaby",
+    "displayCode": "LIM",
+    "pcmAssetCode": "efe"
+  },
+  "selection": {
+    "jerseyId": "lima-maki-classic",
+    "jerseyName": "Pacifique",
+    "jerseyStyle": "classic",
+    "sourcePath": "public/images/sponsors/lima-maki/jersey-classic.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "LIM_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "LIM_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "d03536ae3954c1e024099a9a7d1519db795f56a7b7073f9ce721b40dd74be4a2"
+    },
+    {
+      "file": "LIM_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "3a4b4df883fe316d7b8dd193286516a3d38626f5c4cba71a5b64e7821c81046c"
+    },
+    {
+      "file": "LIM_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "8e73284d4779eef4813b5ee4497f8c1c22949d172cdb92484c3d5430f200aa08"
+    },
+    {
+      "file": "LIM_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "52ff42ba3bfa6da4fcd56e3d4de6ef09c43ae000ddfbdd8bad6c8215eb1baa84"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

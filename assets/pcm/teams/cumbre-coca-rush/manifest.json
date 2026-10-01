@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:08:06.856Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+    "pcmTeamId": 315,
+    "currentName": "Pura Cadencia Test Team",
+    "season4Sponsor": "Cumbre Coca Rush",
+    "manager": "Sousou",
+    "displayCode": "CCR",
+    "pcmAssetCode": "tpp"
+  },
+  "selection": {
+    "jerseyId": "cumbre-coca-rush-bold",
+    "jerseyName": "Cumbre néon",
+    "jerseyStyle": "bold",
+    "sourcePath": "public/images/sponsors/cumbre-coca-rush/jersey-bold.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "CCR_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "CCR_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "8a67839a27ca82f82e21131b3c9cf2db34dc792c34372ec9c645ae0e36e0fa95"
+    },
+    {
+      "file": "CCR_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "99ee6a46012eca6334994fd268389d1c7eb6361a3a820fa9555d23488668424b"
+    },
+    {
+      "file": "CCR_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "7685d67c62240db2065e137d0cea17e6b99fcbb4606ef952ed60ac10a40e4962"
+    },
+    {
+      "file": "CCR_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "756f86836f05b44d3a4c93d365dd0abf2c653717bfee096559a617a19576b1f4"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

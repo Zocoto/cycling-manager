@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:08:01.358Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
+    "pcmTeamId": 311,
+    "currentName": "Penn Kreiz Crêpes",
+    "season4Sponsor": "Penn Kreiz Crêpes",
+    "manager": "JLFlick13",
+    "displayCode": "PKC",
+    "pcmAssetCode": "ltk"
+  },
+  "selection": {
+    "jerseyId": "penn-kreiz-crepes-bold",
+    "jerseyName": "Grand disque",
+    "jerseyStyle": "bold",
+    "sourcePath": "public/images/sponsors/penn-kreiz-crepes/jersey-bold.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "PKC_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "PKC_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "c5fc170be4e40db40deca9f8e83042f184166530fd8f9dd3cad0248e48f6b8a0"
+    },
+    {
+      "file": "PKC_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "0971aa3635eca3e37ba530ea11d6e48d045b4ffc45d0cc00610496dab1f0d11d"
+    },
+    {
+      "file": "PKC_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "48d13377398da71f1406b37f73bf5cbbcf064a37f4fbc137ce27b010be1ac9c3"
+    },
+    {
+      "file": "PKC_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "624f97a9fbff8cb86341f498b91e74061386f8a5d284d02429f4df01328ff381"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

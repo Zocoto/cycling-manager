@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:08:03.369Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+    "pcmTeamId": 307,
+    "currentName": "Okavango Stack",
+    "season4Sponsor": "Okavango Stack",
+    "manager": "Max Lamenace",
+    "displayCode": "OKA",
+    "pcmAssetCode": "xat"
+  },
+  "selection": {
+    "jerseyId": "okavango-stack-classic",
+    "jerseyName": "Delta Grill",
+    "jerseyStyle": "classic",
+    "sourcePath": "public/images/sponsors/okavango-stack/jersey-classic.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "OKA_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "OKA_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "95e749125f1620f1d576ef4b348c6dd9758f338a9252b35483630f37e61f9d0a"
+    },
+    {
+      "file": "OKA_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "84756b319a260d0ae98da37bf1f8030ef0900df1f168b6629f99b449f503c093"
+    },
+    {
+      "file": "OKA_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "3189b5b3100e5156b8523659d3cec80429247812faf45127e8b526dab76fc4a1"
+    },
+    {
+      "file": "OKA_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "640d87db816a27aa7a1b1e057ea1a969171bec139cb4a1c85258f0c7a819b0d8"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T09:08:09.243Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
+    "pcmTeamId": 249,
+    "currentName": "Atlas Racing Lab",
+    "season4Sponsor": "Atlas Racing Lab",
+    "manager": "T-Point",
+    "displayCode": "ARL",
+    "pcmAssetCode": "jay"
+  },
+  "selection": {
+    "jerseyId": "atlas-racing-lab-bold",
+    "jerseyName": "Ocre Racing",
+    "jerseyStyle": "bold",
+    "sourcePath": "public/images/sponsors/atlas-racing-lab/jersey-bold.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "ARL_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "ARL_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": true,
+      "sha256": "24c271ac7b49e80ae3e57dc5216d399015220dfd137051b11c58720136c7f5b1"
+    },
+    {
+      "file": "ARL_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "2f6dfefba5b50af77e351c02e679f8f5c90caa49abe8fe63d0bd34bd5454c698"
+    },
+    {
+      "file": "ARL_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "40996d0350524ba7a6391a516569bc293625d5dc5201a6e7bcd5aba6449c9249"
+    },
+    {
+      "file": "ARL_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "0b751e63fb0addd82069ceccfb13d1c44625442488b54a39d644acd8f2717ee4"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}
