@@ -8,7 +8,7 @@ const migration = readFileSync(
     import.meta.url,
   ),
   "utf8",
-);
+).replaceAll("\r", "");
 
 describe("régénération des offres sponsors", () => {
   it("libère les anciennes offres retirées et expirées", () => {
