@@ -152,7 +152,7 @@ describe("generateSponsorProposals", () => {
     ).toBe(false);
   });
 
-  it("complète l'offre nationale avec les pays des leaders puis de l'effectif majoritaire", () => {
+  it("réserve une offre au pays du DS avant les autres affinités", () => {
     const proposals = generateSponsorProposals({
       teamCountryCode: "AR",
       leaderCountryCodes: ["ES"],
@@ -164,8 +164,25 @@ describe("generateSponsorProposals", () => {
 
     expect(proposals.map((proposal) => proposal.sponsor.countryCode)).toEqual([
       "AR",
+      "FR",
       "ES",
-      "IT",
+    ]);
+  });
+
+  it("garantit une offre rwandaise à un DS rwandais expatrié", () => {
+    const proposals = generateSponsorProposals({
+      teamCountryCode: "TZ",
+      directorCountryCode: "RW",
+      leaderCountryCodes: ["ZW", "TJ"],
+      rosterMajorityCountryCode: "RW",
+      directorReputation: 296.24,
+      proposalCount: 2,
+      random: () => 0.5,
+    });
+
+    expect(proposals.map((proposal) => proposal.sponsor.countryCode)).toEqual([
+      "TZ",
+      "RW",
     ]);
   });
 

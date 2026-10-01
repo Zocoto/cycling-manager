@@ -36,4 +36,18 @@ describe("international school sponsor affinity wiring", () => {
       "countryAffinity.internationalSchoolAffinities",
     );
   });
+
+  it("forwards the sporting director country to every sponsor draw", () => {
+    expect(teamAffinitySource).toContain("directorCountryCode");
+    expect(teamAffinitySource).toContain("directorCountryId");
+    expect(futureOffersSource).toContain(
+      "directorCountryCode: countryAffinity.directorCountryCode",
+    );
+    expect(persistedOffersSource).toContain(
+      "directorCountryCode: countryAffinity.directorCountryCode",
+    );
+    expect(futureOffersSource).toContain(
+      "const DIRECTOR_COUNTRY_OFFER_GENERATION_VERSION = 10",
+    );
+  });
 });

@@ -46,10 +46,12 @@ export async function loadTeamSponsorCountryAffinity({
   supabase,
   teamId,
   seasonId,
+  directorCountryId,
 }: {
   supabase: SupabaseAdminClient;
   teamId: string;
   seasonId: string;
+  directorCountryId?: string | null;
 }): Promise<TeamSponsorCountryAffinity> {
   const [
     teamResult,
@@ -120,6 +122,7 @@ export async function loadTeamSponsorCountryAffinity({
   const internationalSchools = internationalSchoolsResult.data ?? [];
   const countryIds = new Set<string>([
     primaryCountryId,
+    ...(directorCountryId ? [directorCountryId] : []),
     ...internationalSchools.map((school) => school.country_id),
   ]);
 
@@ -178,6 +181,9 @@ export async function loadTeamSponsorCountryAffinity({
     ])
   );
   const teamCountryCode = countryCodeById.get(primaryCountryId);
+  const directorCountryCode = directorCountryId
+    ? countryCodeById.get(directorCountryId) ?? ""
+    : "";
 
   if (!teamCountryCode) {
     throw new Error("Le pays fondateur de l'équipe est introuvable.");
@@ -246,6 +252,7 @@ export async function loadTeamSponsorCountryAffinity({
     )[0]?.[0] ?? null;
 
   return {
+    directorCountryCode,
     teamCountryCode,
     leaderCountryCodes,
     rosterMajorityCountryCode,

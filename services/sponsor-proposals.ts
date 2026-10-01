@@ -128,6 +128,15 @@ export function generateSponsorProposals({
     ),
     random
   );
+  const directorSponsors =
+    directorCountry && directorCountry !== primaryCountry
+      ? shuffleSponsors(
+          eligibleSponsors.filter(
+            (sponsor) => sponsor.countryCode === directorCountry,
+          ),
+          random,
+        )
+      : [];
   const preferredSponsors = shuffleSponsors(
     eligibleSponsors.filter((sponsor) => preferredSponsorIdSet.has(sponsor.id)),
     random,
@@ -146,7 +155,10 @@ export function generateSponsorProposals({
     ? shuffleSponsors(contactedSchool.sponsors, random)
     : [];
   const affinitySponsorPools = uniqueAffinityCountries
-    .filter((countryCode) => countryCode !== primaryCountry)
+    .filter(
+      (countryCode) =>
+        countryCode !== primaryCountry && countryCode !== directorCountry,
+    )
     .map((countryCode) =>
       shuffleSponsors(
         eligibleSponsors.filter(
@@ -193,6 +205,7 @@ export function generateSponsorProposals({
   if (preferredSponsors.length > 0) {
     const reservedPrioritySlots =
       Number(nationalPrioritySponsors.length > 0) +
+      Number(directorSponsors.length > 0) +
       Number(internationalSchoolSponsors.length > 0);
     selectFromPool(
       preferredSponsors,
@@ -201,6 +214,7 @@ export function generateSponsorProposals({
   }
 
   selectFromPool(nationalPrioritySponsors, 1);
+  selectFromPool(directorSponsors, 1);
   selectFromPool(internationalSchoolSponsors, 1);
 
   for (const pool of affinitySponsorPools) {

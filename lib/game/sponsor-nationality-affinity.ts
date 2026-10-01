@@ -9,6 +9,7 @@ export type InternationalSchoolSponsorAffinity = {
 };
 
 export type TeamSponsorCountryAffinity = {
+  directorCountryCode: string;
   teamCountryCode: string;
   leaderCountryCodes: readonly string[];
   rosterMajorityCountryCode: string | null;

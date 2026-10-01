@@ -37,6 +37,7 @@ const RENEWAL_ALTERNATIVE_COUNT = 2;
 const SPONSOR_OFFER_GENERATION_VERSION = 6;
 const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 7;
 const INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION = 9;
+const DIRECTOR_COUNTRY_OFFER_GENERATION_VERSION = 10;
 
 export type FutureSponsorOfferMode =
   | "renewal"
@@ -249,13 +250,21 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     supabase,
     teamId: normalizedTeamId,
     seasonId: activeSeason.id,
+    directorCountryId: sportingDirector.country_id,
   });
-  const generationVersion =
+  const baseGenerationVersion =
     countryAffinity.internationalSchoolAffinities.length > 0
       ? INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION
       : countryAffinity.preferredSponsorIds.length > 0
       ? PREFERRED_SPONSOR_OFFER_GENERATION_VERSION
       : SPONSOR_OFFER_GENERATION_VERSION;
+  const generationVersion = Math.max(
+    baseGenerationVersion,
+    countryAffinity.directorCountryCode &&
+      countryAffinity.directorCountryCode !== countryAffinity.teamCountryCode
+      ? DIRECTOR_COUNTRY_OFFER_GENERATION_VERSION
+      : 0,
+  );
 
   if (
     existingOfferRows?.length === DEFAULT_PROPOSAL_COUNT &&
@@ -515,6 +524,7 @@ function createFutureProposals({
     });
 
     const alternativeProposals = generateSponsorProposals({
+      directorCountryCode: countryAffinity.directorCountryCode,
       teamCountryCode: countryAffinity.teamCountryCode,
       leaderCountryCodes: countryAffinity.leaderCountryCodes,
       rosterMajorityCountryCode:
@@ -550,6 +560,7 @@ function createFutureProposals({
   }
 
   const replacementProposals = generateSponsorProposals({
+    directorCountryCode: countryAffinity.directorCountryCode,
     teamCountryCode: countryAffinity.teamCountryCode,
     leaderCountryCodes: countryAffinity.leaderCountryCodes,
     rosterMajorityCountryCode:
