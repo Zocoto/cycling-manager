@@ -178,6 +178,34 @@ const priorityTeams = [
     sourceCode: "COV",
     pcmSlot: "tca",
   },
+  {
+    pcmTeamId: 268,
+    currentName: "Glen Durnach",
+    season4Sponsor: "Glen Durnach",
+    sourceCode: "GLD",
+    pcmSlot: "igd",
+  },
+  {
+    pcmTeamId: 260,
+    currentName: "Dodo Blue Finance",
+    season4Sponsor: "Dodo Blue Finance",
+    sourceCode: "DBF",
+    pcmSlot: "dft",
+  },
+  {
+    pcmTeamId: 273,
+    currentName: "Indus Mithai",
+    season4Sponsor: "Indus Mithai",
+    sourceCode: "IDM",
+    pcmSlot: "nsn",
+  },
+  {
+    pcmTeamId: 334,
+    currentName: "Tsubame Precision",
+    season4Sponsor: "Uji Midori",
+    sourceCode: "UJM",
+    pcmSlot: "vbg",
+  },
 ];
 
 function queryRows(db, sql, parameters = []) {

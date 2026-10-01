@@ -120,6 +120,34 @@ const teams = [
     jerseyId: "covoare-basarabene-classic", source: "public/images/sponsors/covoare-basarabene/jersey-classic.webp",
     logo: "public/images/sponsors/covoare-basarabene/logo.webp",
   },
+  {
+    directory: "glen-durnach", code: "GLD", pcmTeamId: 268, pcmSlot: "igd",
+    permanentTeamId: "20bcbcf8-7f09-42b7-b4be-ce77d4aade10", currentName: "Glen Durnach",
+    sponsor: "Glen Durnach", manager: "Dénis Gregoire", jersey: "Peat Valley", style: "modern",
+    jerseyId: "glen-durnach-modern", source: "public/images/sponsors/glen-durnach/jersey-modern.webp",
+    logo: "public/images/sponsors/glen-durnach/logo.webp",
+  },
+  {
+    directory: "dodo-blue-finance", code: "DBF", pcmTeamId: 260, pcmSlot: "dft",
+    permanentTeamId: "ac9c6a66-e4ee-404e-bf9d-0665a6515640", currentName: "Dodo Blue Finance",
+    sponsor: "Dodo Blue Finance", manager: "Rigobert", jersey: "Port-Louis", style: "classic",
+    jerseyId: "dodo-blue-finance-classic", source: "public/images/sponsors/dodo-blue-finance/jersey-classic.webp",
+    logo: "public/images/sponsors/dodo-blue-finance/logo.webp",
+  },
+  {
+    directory: "indus-mithai", code: "IDM", pcmTeamId: 273, pcmSlot: "nsn",
+    permanentTeamId: "ac3691bf-5539-4243-b0f1-69385f340391", currentName: "Indus Mithai",
+    sponsor: "Indus Mithai", manager: "Rondoudou", jersey: "Fleuve Rose", style: "modern",
+    jerseyId: "indus-mithai-modern", source: "public/images/sponsors/indus-mithai/jersey-modern.webp",
+    logo: "public/images/sponsors/indus-mithai/logo.webp",
+  },
+  {
+    directory: "uji-midori", code: "UJM", pcmTeamId: 334, pcmSlot: "vbg",
+    permanentTeamId: "ad506cc8-91ff-4306-a30f-b1397e2154a5", currentName: "Tsubame Precision",
+    sponsor: "Uji Midori", manager: "Pipo Inzaghi", jersey: "Jardin d’Uji", style: "modern",
+    jerseyId: "uji-midori-modern", source: "public/images/sponsors/uji-midori/jersey-modern.webp",
+    logo: "public/images/sponsors/uji-midori/logo.webp",
+  },
 ];
 
 const escapeXml = (value) => value

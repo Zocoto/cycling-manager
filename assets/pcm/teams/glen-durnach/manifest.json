@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T11:14:23.138Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+    "pcmTeamId": 268,
+    "currentName": "Glen Durnach",
+    "season4Sponsor": "Glen Durnach",
+    "manager": "Dénis Gregoire",
+    "displayCode": "GLD",
+    "pcmAssetCode": "igd"
+  },
+  "selection": {
+    "jerseyId": "glen-durnach-modern",
+    "jerseyName": "Peat Valley",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/glen-durnach/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "GLD_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "GLD_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "682af9664fe2d473dea8a2d59a0311dd688dfc8f1f73ae85c4d3b39b880b750b"
+    },
+    {
+      "file": "GLD_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "d2649152d810da4588eaf16f8500e8aca14db19df7a474dd795acba27c9fcba5"
+    },
+    {
+      "file": "GLD_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "7a83223bc5d2513bedd43d378f3ee92dfb68f4c4ae6ba64f616a4e6267d197dd"
+    },
+    {
+      "file": "GLD_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "77abfb237c3f1d39b2c937410fc1ead654d3d19bb0faeaab66d44518220721e2"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

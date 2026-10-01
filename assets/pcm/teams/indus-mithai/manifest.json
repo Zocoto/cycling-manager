@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T11:14:26.725Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+    "pcmTeamId": 273,
+    "currentName": "Indus Mithai",
+    "season4Sponsor": "Indus Mithai",
+    "manager": "Rondoudou",
+    "displayCode": "IDM",
+    "pcmAssetCode": "nsn"
+  },
+  "selection": {
+    "jerseyId": "indus-mithai-modern",
+    "jerseyName": "Fleuve Rose",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/indus-mithai/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "IDM_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "IDM_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "f146e1a3551fd138d76d8e2adca1db48de2ac8d609dff96d5f0c57f619634828"
+    },
+    {
+      "file": "IDM_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "5fc6f86f543fee8f953391690c364187a5c9b8bad5f60533c9e7068f0117ba5c"
+    },
+    {
+      "file": "IDM_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "ad1e15fc23219cbf578d1fa6b3cd5b49d9d019e25af0c76f32b26e5ecc76e840"
+    },
+    {
+      "file": "IDM_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "a2c20e2d7fee65068544ec6e22213f660ba97c3b4be1c2bab5c6623f9071e30b"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

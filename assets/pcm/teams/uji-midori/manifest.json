@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T11:14:28.413Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+    "pcmTeamId": 334,
+    "currentName": "Tsubame Precision",
+    "season4Sponsor": "Uji Midori",
+    "manager": "Pipo Inzaghi",
+    "displayCode": "UJM",
+    "pcmAssetCode": "vbg"
+  },
+  "selection": {
+    "jerseyId": "uji-midori-modern",
+    "jerseyName": "Jardin d’Uji",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/uji-midori/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "UJM_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "UJM_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "f4230fd40be59daa0883c4adbd7e60a685acfa743fb74bd16706836bc910600f"
+    },
+    {
+      "file": "UJM_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "b678434a8777bf0b2ff17cea1f63613682eb3a5e35b8a0354f4b1018b7e33da6"
+    },
+    {
+      "file": "UJM_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "53e1a73ce05739b5b3ad5d0ee20868087c7bb279fa1680c7e0c15aab266e1c05"
+    },
+    {
+      "file": "UJM_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "e90f1426c3250d7d9f711b5a741c4aaa3348671432e7d0859215c22825bb7d84"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

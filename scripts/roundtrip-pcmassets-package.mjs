@@ -16,6 +16,7 @@ const teams = [
   ["loi", "TNP"],
   ["map", "KHG"], ["rbh", "TEO"], ["cof", "STK"],
   ["cjr", "PMF"], ["tca", "COV"],
+  ["igd", "GLD"], ["dft", "DBF"], ["nsn", "IDM"], ["vbg", "UJM"],
 ];
 
 const endpoint = await fetch("http://127.0.0.1:9222/json").then((response) => response.json());
