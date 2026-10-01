@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   getRaceJobPackFromSlot,
+  RACE_SETTLEMENT_EDITION_BATCH_SIZE,
+  RACE_SETTLEMENT_RECOVERY_BATCH_SIZE,
   selectRaceJobPack,
 } from "@/lib/game/race-job-packs";
 
@@ -56,6 +58,12 @@ describe("race job packs", () => {
     });
     expect(() => getRaceJobPackFromSlot("early-summer-pre-p4")).toThrow(
       RangeError,
+    );
+  });
+
+  it("gives recovery runs enough room to clear dense one-day calendars", () => {
+    expect(RACE_SETTLEMENT_RECOVERY_BATCH_SIZE).toBeGreaterThan(
+      RACE_SETTLEMENT_EDITION_BATCH_SIZE,
     );
   });
 });

@@ -1,6 +1,7 @@
 export const RACE_JOB_PACK_COUNT = 3;
 export const RACE_SIMULATION_EDITION_BATCH_SIZE = 3;
 export const RACE_SETTLEMENT_EDITION_BATCH_SIZE = 3;
+export const RACE_SETTLEMENT_RECOVERY_BATCH_SIZE = 5;
 
 export type RaceJobPack = {
   packIndex: number;

@@ -104,6 +104,7 @@ describe("race settlement cron resilience", () => {
     expect(route).toContain('slot.endsWith("-recovery")');
     expect(route).toContain("result.deferredEditions > 0");
     expect(route).toContain("persistentBacklog");
+    expect(route).toContain("RACE_SETTLEMENT_RECOVERY_BATCH_SIZE");
   });
 
   it("keeps locked-result settlement independent from simulation bonuses", () => {

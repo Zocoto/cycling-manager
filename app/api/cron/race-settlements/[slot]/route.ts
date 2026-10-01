@@ -1,6 +1,7 @@
 import {
   getRaceJobPackFromSlot,
   RACE_SETTLEMENT_EDITION_BATCH_SIZE,
+  RACE_SETTLEMENT_RECOVERY_BATCH_SIZE,
 } from "@/lib/game/race-job-packs";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
@@ -79,7 +80,9 @@ export async function GET(
     now,
     raceSlug: requestedRaceSlug ?? undefined,
     ...jobPack,
-    maxEditions: RACE_SETTLEMENT_EDITION_BATCH_SIZE,
+    maxEditions: slot.endsWith("-recovery")
+      ? RACE_SETTLEMENT_RECOVERY_BATCH_SIZE
+      : RACE_SETTLEMENT_EDITION_BATCH_SIZE,
   });
   const settlementDurationMs = Date.now() - settlementStartedAt;
   const result = {
