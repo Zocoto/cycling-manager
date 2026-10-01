@@ -426,6 +426,15 @@ async function settleEditionRaceResults({
             `Le scénario officiel fourni pour ${edition.name} ne couvre pas la startlist et ne peut pas être reverrouillé.`,
           );
         }
+        const hasHomologatedStageResults = await hasAnyPersistedStageResults(
+          admin,
+          orderedStages.map((stage) => stage.id),
+        );
+        if (hasHomologatedStageResults) {
+          throw new Error(
+            `Le scénario officiel de ${edition.name} ne couvre pas la startlist, mais des résultats d'étape sont déjà homologués. Réparation manuelle requise : aucun résultat existant n'a été modifié.`,
+          );
+        }
         editionSimulations = await relockEditionOfficialSimulations({
           admin,
           calendar,
@@ -467,7 +476,10 @@ async function settleEditionRaceResults({
     }
 
     // Les partants attendus sont les coureurs simulés : les abandonnés et
-    // blessés des étapes précédentes ne reprennent pas le départ.
+    // blessés des étapes précédentes ne reprennent pas le départ. Cette liste
+    // ne sert toutefois qu'à valider une toute première écriture. Dès qu'une
+    // étape possède des résultats, ces lignes homologuées sont la source de
+    // vérité et un nouveau scénario ne doit jamais pouvoir les remplacer.
     const expectedRosterIds = new Set(
       simulation.results.map(
         (result) => requireRoster(rosterByRiderId, result.riderId).rosterId,
@@ -476,24 +488,10 @@ async function settleEditionRaceResults({
     const allPersistedStageRows = persistedStageRows.filter(
       (row) => row.stage_id === stage.id,
     );
-    let stageRows = allPersistedStageRows.filter((row) =>
-      expectedRosterIds.has(row.race_roster_id),
-    );
-    const expectedRankByRosterId = new Map(
-      simulation.results.map((result) => [
-        requireRoster(rosterByRiderId, result.riderId).rosterId,
-        result.status === "finished" ? result.rank : null,
-      ]),
-    );
-    const persistedRanksMatchSimulation = stageRows.every(
-      (row) => row.rank === expectedRankByRosterId.get(row.race_roster_id),
-    );
-    const stageAlreadyComplete =
-      stageRows.length === expectedRosterIds.size &&
-      allPersistedStageRows.length === expectedRosterIds.size &&
-      persistedRanksMatchSimulation;
+    let stageRows = allPersistedStageRows;
+    const stageAlreadyHomologated = stageRows.length > 0;
 
-    if (!stageAlreadyComplete) {
+    if (!stageAlreadyHomologated) {
       await persistStageResult({
         admin,
         edition,
@@ -510,9 +508,7 @@ async function settleEditionRaceResults({
         ...persistedStageRows.filter((row) => row.stage_id !== stage.id),
         ...reloadedRows,
       ];
-      stageRows = reloadedRows.filter((row) =>
-        expectedRosterIds.has(row.race_roster_id),
-      );
+      stageRows = reloadedRows;
     } else if (stage.status !== "completed") {
       // Une tentative interrompue peut avoir écrit tous les résultats avant
       // de marquer l'étape comme terminée. La reprise doit aussi réparer ce
@@ -524,7 +520,7 @@ async function settleEditionRaceResults({
       assertQuery(stageStatusError, `la reprise du statut de ${stage.name}`);
     }
 
-    if (stageRows.length !== expectedRosterIds.size) {
+    if (!stageAlreadyHomologated && stageRows.length !== expectedRosterIds.size) {
       throw new Error(
         `Le classement de ${stage.name} est incomplet (${stageRows.length}/${expectedRosterIds.size}).`,
       );
@@ -1087,6 +1083,20 @@ async function loadPersistedStageResultRows(
   });
   assertQuery(error, "les résultats d'étapes déjà enregistrés");
   return data ?? [];
+}
+
+async function hasAnyPersistedStageResults(
+  admin: AdminClient,
+  stageIds: string[],
+) {
+  if (stageIds.length === 0) return false;
+
+  const { count, error } = await admin
+    .from("stage_results")
+    .select("id", { count: "exact", head: true })
+    .in("stage_id", stageIds);
+  assertQuery(error, "le verrouillage des résultats d'étapes homologués");
+  return (count ?? 0) > 0;
 }
 
 async function hasCompleteRaceClassification(
