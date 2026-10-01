@@ -128,7 +128,9 @@ export type PcmExportMetadata = {
     nativeRatingsOnly: true;
     bonusesIncluded: false;
     graphicalAssetsIncluded: false;
-    existingPcmContentPreserved: true;
+    existingPcmContentPreserved: false;
+    originalProfessionalTeamsRemoved: true;
+    spectatorTeamIncluded: true;
   };
 };
 

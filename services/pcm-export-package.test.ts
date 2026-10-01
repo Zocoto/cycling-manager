@@ -31,6 +31,9 @@ describe("pack d'installation PCM26", () => {
     expect(strFromU8(files["LISEZ-MOI.txt"])).toContain(
       "Cyclostratege-PCM26-S3\\OfficialRelease.cdb",
     );
+    expect(strFromU8(files["LISEZ-MOI.txt"])).toContain(
+      "dix coureurs Simulo",
+    );
     expect(Object.keys(files).every((name) => !name.includes("/"))).toBe(true);
     expect(result.filename).toBe("Cyclostratege-PCM26-S3.zip");
     expect(result.archiveSha256).toMatch(/^[a-f0-9]{64}$/);
@@ -47,25 +50,27 @@ function createSource(): PcmExportResult {
       outputSha256: "b".repeat(64),
       filename: "OfficialRelease.cdb",
       bytes: 4,
-      counts: { teams: 108, riders: 1341, sponsors: 108, contracts: 1341 },
-      divisionCounts: { "10": 30, "11": 20, "12": 58 },
+      counts: { teams: 109, riders: 1351, sponsors: 109, contracts: 1351 },
+      divisionCounts: { "10": 30, "11": 20, "12": 59 },
       ratingScale: {
-        version: 1,
-        method: "global-linear-population",
-        population: "all active contracted riders in the exported season",
-        csMinimum: 35,
-        csMaximum: 81,
-        pcmMinimum: 50,
+        version: 2,
+        method: "fixed-linear-absolute",
+        population: "theoretical Cyclostratege scale from 0 to 100",
+        csMinimum: 0,
+        csMaximum: 100,
+        pcmMinimum: 45,
         pcmMaximum: 85,
-        coefficient: 35 / 46,
+        coefficient: 0.4,
       },
-      ratingRange: { minimum: 50, maximum: 85 },
+      ratingRange: { minimum: 59, maximum: 77 },
       countryFallbacks: [],
       scope: {
         nativeRatingsOnly: true,
         bonusesIncluded: false,
         graphicalAssetsIncluded: false,
-        existingPcmContentPreserved: true,
+        existingPcmContentPreserved: false,
+        originalProfessionalTeamsRemoved: true,
+        spectatorTeamIncluded: true,
       },
     },
   };

@@ -35,9 +35,9 @@ export const PCM_RATING_COLUMNS: Record<CsRatingKey, string> = {
 export type RatingSource = Record<CsRatingKey, number>;
 
 export type RatingScale = {
-  version: 1;
-  method: "global-linear-population";
-  population: "all active contracted riders in the exported season";
+  version: 2;
+  method: "fixed-linear-absolute";
+  population: "theoretical Cyclostratege scale from 0 to 100";
   csMinimum: number;
   csMaximum: number;
   pcmMinimum: number;
@@ -47,7 +47,7 @@ export type RatingScale = {
 
 export function deriveGlobalRatingScale(
   ratings: RatingSource[],
-  { pcmMinimum = 50, pcmMaximum = 85 } = {},
+  { pcmMinimum = 45, pcmMaximum = 85 } = {},
 ): RatingScale {
   const values = ratings.flatMap((rating) =>
     CS_RATING_KEYS.map((key) => Number(rating[key])).filter(Number.isFinite),
@@ -57,16 +57,13 @@ export function deriveGlobalRatingScale(
     throw new Error("Impossible de calculer l'echelle PCM sans notes CS.");
   }
 
-  const csMinimum = Math.min(...values);
-  const csMaximum = Math.max(...values);
-  if (csMinimum === csMaximum) {
-    throw new Error("Les notes CS ne presentent pas assez d'ecart pour etre converties.");
-  }
+  const csMinimum = 0;
+  const csMaximum = 100;
 
   return {
-    version: 1,
-    method: "global-linear-population",
-    population: "all active contracted riders in the exported season",
+    version: 2,
+    method: "fixed-linear-absolute",
+    population: "theoretical Cyclostratege scale from 0 to 100",
     csMinimum,
     csMaximum,
     pcmMinimum,

@@ -116,6 +116,8 @@ function createInstallationGuide(season: number) {
 
 Ne remplacez pas la base du dossier "Default".
 N'utilisez pas cette DB avec une sauvegarde déjà commencée.
+Les équipes et coureurs professionnels réels ont été retirés de cette base.
+L'équipe "Cyclostratège" contient dix coureurs Simulo destinés au mode spectateur.
 Les assets graphiques personnalisés ne sont pas encore inclus dans ce pack.
 Les croix rouges devant les maillots, photos, courses et équipements sont donc
 normales : seules les deux lignes de base de données doivent être reconnues.

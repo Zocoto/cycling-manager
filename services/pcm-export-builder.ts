@@ -72,6 +72,9 @@ const RATING_COLUMNS = [
   "charac_i_prologue",
 ] as const;
 
+const SPECTATOR_RIDER_COUNT = 10;
+const SPECTATOR_PCM_RATING = 65;
+
 type SqlValue = string | number | Uint8Array | null;
 type SqlRow = Record<string, SqlValue>;
 
@@ -237,33 +240,20 @@ function buildDatabaseFromSnapshot(
     "IDcontract_cyclist",
     1,
   );
-
-  let nextTeamId = nextId(db, "DYN_team", "IDteam");
-  let nextSponsorId = nextId(db, "DYN_sponsor", "IDsponsor");
-  let nextTeamSponsorId = nextId(
+  // Keep generated identifiers above the official ranges even after the purge.
+  // Any opaque PCM list that escaped the explicit cleanup can therefore never
+  // bind an old official identifier to a new Cyclostratege entity by accident.
+  const firstGeneratedTeamId = nextId(db, "DYN_team", "IDteam");
+  const firstGeneratedTeamSponsorId = nextId(
     db,
     "DYN_team_sponsor",
     "IDteam_sponsor",
   );
-  let nextTeamHistoryId = nextId(
-    db,
-    "DYN_team_history",
-    "IDteam_history",
-  );
-  let nextCyclistId = nextId(db, "DYN_cyclist", "IDcyclist");
-  let nextContractId = nextId(
+  const firstGeneratedCyclistId = nextId(db, "DYN_cyclist", "IDcyclist");
+  const firstGeneratedContractId = nextId(
     db,
     "DYN_contract_cyclist",
     "IDcontract_cyclist",
-  );
-
-  const reservedTeamCodes = queryRows(
-    db,
-    "SELECT jersey_sz_abbreviation FROM DYN_team",
-  ).map((row) => row.jersey_sz_abbreviation);
-  const teamCodes = createUniqueTeamCodes(
-    snapshot.teamSeasons,
-    reservedTeamCodes,
   );
   const teamMappings = new Map<
     string,
@@ -277,6 +267,104 @@ function buildDatabaseFromSnapshot(
 
   db.run("BEGIN");
   try {
+    purgeOfficialProfessionalRoster(db);
+
+    let nextTeamId = firstGeneratedTeamId;
+    let nextSponsorId = nextId(db, "DYN_sponsor", "IDsponsor");
+    let nextTeamSponsorId = firstGeneratedTeamSponsorId;
+    let nextTeamHistoryId = nextId(
+      db,
+      "DYN_team_history",
+      "IDteam_history",
+    );
+    let nextCyclistId = firstGeneratedCyclistId;
+    let nextContractId = firstGeneratedContractId;
+    const reservedTeamCodes = queryRows(
+      db,
+      "SELECT jersey_sz_abbreviation FROM DYN_team",
+    ).map((row) => row.jersey_sz_abbreviation);
+    reservedTeamCodes.push("cys");
+    const teamCodes = createUniqueTeamCodes(
+      snapshot.teamSeasons,
+      reservedTeamCodes,
+    );
+    const spectatorCountry = pcmCountryByConstant.get("FRA");
+    if (!spectatorCountry) {
+      throw new Error("Le pays FRA est absent du gabarit PCM.");
+    }
+    const spectatorCountryId = Number(spectatorCountry.IDcountry);
+    const spectatorRegionId = firstRegionByCountry.get(spectatorCountryId);
+    if (!spectatorRegionId) {
+      throw new Error("La region francaise est absente du gabarit PCM.");
+    }
+    const spectatorTeamId = nextTeamId++;
+    const spectatorSponsorId = nextSponsorId++;
+
+    insertRow(db, "DYN_team", {
+      ...teamTemplate,
+      IDteam: spectatorTeamId,
+      gene_sz_shortname: "Cyclostratege",
+      gene_sz_name: "Cyclostratège",
+      jersey_sz_abbreviation: "cys",
+      abbreviation: "CYS",
+      gene_b_licensed: 1,
+      fkIDcountry: spectatorCountryId,
+      gene_sz_suffixeMail: "cyclostratege.fr",
+      gene_sz_manager_general: "Mode spectateur",
+      fkIDdivision: 12,
+      fkIDnextdivision: 0,
+      fkIDprevdivision: 0,
+      fkIDrace: 0,
+      prerace_i_team: 0,
+      gene_b_selected: 0,
+      CONSTANT: "CS_SPECTATOR",
+      gene_b_default_picking: 0,
+      value_ilist_race_like: "()",
+      value_ilist_race_dislike: "()",
+      value_i_budget: 0,
+      gene_sz_color: "123d34",
+      gene_sz_secondary_color: "9be0ca",
+    });
+    insertRow(db, "DYN_sponsor", {
+      ...sponsorTemplate,
+      IDsponsor: spectatorSponsorId,
+      gene_sz_name: "Cyclostratège",
+      jersey_sz_abbreviation: "cys",
+      abbreviation: "CYS",
+      fkIDregion: spectatorRegionId,
+      fkIDworld_range: 1,
+      gene_sz_color: "123d34",
+      gene_sz_secondary_color: "9be0ca",
+      value_ilist_important_race: "()",
+      value_b_generate: 0,
+    });
+    insertRow(db, "DYN_team_sponsor", {
+      ...teamSponsorTemplate,
+      IDteam_sponsor: nextTeamSponsorId++,
+      fkIDteam: spectatorTeamId,
+      fkIDsponsor: spectatorSponsorId,
+      value_i_contract_year_start: 2026,
+      value_i_contract_year_end: 2035,
+      value_i_pos_curr: 0,
+      value_i_pos_next: 0,
+      value_i_budget: 0,
+      value_i_budget_next: 0,
+    });
+    insertRow(db, "DYN_team_history", {
+      ...teamHistoryTemplate,
+      IDteam_history: nextTeamHistoryId++,
+      fkIDteam: spectatorTeamId,
+      fkIDdivision: 12,
+      value_i_year: 2025,
+      value_sz_name: "Cyclostratège",
+      value_f_evaluation: 0,
+      value_f_moyage: 0,
+      value_i_nb_cyclist: SPECTATOR_RIDER_COUNT,
+      value_i_nb_victory: 0,
+      value_i_ranking: 0,
+    });
+    divisionCounts["12"] += 1;
+
     const sortedTeamSeasons = [...snapshot.teamSeasons].sort((left, right) =>
       left.display_name.localeCompare(right.display_name, "fr"),
     );
@@ -525,7 +613,96 @@ function buildDatabaseFromSnapshot(
       });
     }
 
-    validateGeneratedRows(db, snapshot, teamMappings, sourceStageCount);
+    const spectatorRatings = Object.fromEntries(
+      RATING_COLUMNS.map((column) => [column, SPECTATOR_PCM_RATING]),
+    ) as SqlRow;
+    const spectatorLimits = Object.fromEntries(
+      RATING_COLUMNS.map((column) => [
+        column.replace("charac_i_", "limit_i_"),
+        SPECTATOR_PCM_RATING,
+      ]),
+    ) as SqlRow;
+
+    for (let index = 1; index <= SPECTATOR_RIDER_COUNT; index += 1) {
+      const riderId = nextCyclistId++;
+      const contractId = nextContractId++;
+      insertRow(db, "DYN_cyclist", {
+        ...cyclistTemplate,
+        IDcyclist: riderId,
+        gene_sz_lastname: String(index),
+        gene_sz_firstname: "Simulo",
+        gene_sz_firstlastname: String(index),
+        fkIDteam: spectatorTeamId,
+        fkIDregion: spectatorRegionId,
+        fkIDcontract: 0,
+        fkIDprevcontract: 0,
+        fkIDnextcontract: 0,
+        gene_sz_photo: "",
+        gene_i_birthdate: 20020101,
+        gene_f_popularity: 0,
+        gene_f_popularity_max: 0,
+        value_i_rank_voted: 0,
+        value_f_potentiel: 1,
+        value_f_current_ability: SPECTATOR_PCM_RATING,
+        current_f_stage_score: 0,
+        fkIDrace: 0,
+        fkIDlaststage: 0,
+        fkIDcyclist_state: 3,
+        fkIDtype_rider: 7,
+        fkIDinjury: 0,
+        gene_i_size: 178,
+        gene_i_weight: 68,
+        prerace_i_cyclist: 0,
+        race_b_withdrawal: 0,
+        ...spectatorRatings,
+        ...spectatorLimits,
+        charac_i_tour: 0,
+        charac_i_classic: 0,
+        fitness_i_handicap: 0,
+        gene_b_will_retire: 0,
+        gene_i_dossard: 0,
+        gene_i_champion_bit: 0,
+        gene_b_nominated: 0,
+        CONSTANT: `CS_SIMULO_${String(index).padStart(2, "0")}`,
+        gene_sz_soundname: "",
+        fkIDstate_roster: 0,
+        gene_b_inshortlist: 0,
+        gene_i_date_last_breakaway: 0,
+        gene_i_date_last_punchers: 0,
+        gene_ilist_fkIDfavorite_races: "()",
+        gene_i_nb_total_victory: 0,
+        gene_i_nb_tdf: 0,
+        gene_i_nb_giro: 0,
+        gene_i_nb_vuelta: 0,
+        gene_i_nb_sanremo: 0,
+        gene_i_nb_flandres: 0,
+        gene_i_nb_roubaix: 0,
+        gene_i_nb_liege: 0,
+        gene_i_nb_lombardia: 0,
+      });
+      insertRow(db, "DYN_contract_cyclist", {
+        ...contractTemplate,
+        IDcontract_cyclist: contractId,
+        fkIDcyclist: riderId,
+        fkIDteam: spectatorTeamId,
+        fkIDprevteam: spectatorTeamId,
+        finan_i_period_wage: 0,
+        iYearBegin: 2026,
+        iYearEnd: 2035,
+        gene_b_active_contract: 1,
+        iRole: -1,
+        gene_i_hierarchy: 0,
+        gene_bitfield_group: 0,
+      });
+    }
+
+    validateGeneratedRows(
+      db,
+      snapshot,
+      teamMappings,
+      spectatorTeamId,
+      sourceStageCount,
+    );
     db.run("COMMIT");
   } catch (error) {
     db.run("ROLLBACK");
@@ -554,10 +731,10 @@ function buildDatabaseFromSnapshot(
       filename,
       bytes: output.byteLength,
       counts: {
-        teams: snapshot.counts.teams,
-        riders: snapshot.counts.riders,
-        sponsors: snapshot.counts.teams,
-        contracts: snapshot.counts.contracts,
+        teams: snapshot.counts.teams + 1,
+        riders: snapshot.counts.riders + SPECTATOR_RIDER_COUNT,
+        sponsors: snapshot.counts.teams + 1,
+        contracts: snapshot.counts.contracts + SPECTATOR_RIDER_COUNT,
       },
       divisionCounts,
       ratingScale: snapshot.ratingPolicy.scale,
@@ -572,16 +749,98 @@ function buildDatabaseFromSnapshot(
         nativeRatingsOnly: true,
         bonusesIncluded: false,
         graphicalAssetsIncluded: false,
-        existingPcmContentPreserved: true,
+        existingPcmContentPreserved: false,
+        originalProfessionalTeamsRemoved: true,
+        spectatorTeamIncluded: true,
       },
     },
   };
+}
+
+/**
+ * The PCM database contains a technical fallback team (`LOOSER_TEAM`) used by
+ * free staff and internal game flows. It is not a real-world selectable team,
+ * so it must remain while the official professional roster is removed.
+ */
+function purgeOfficialProfessionalRoster(db: Database) {
+  const fallbackTeamId = Number(
+    queryValue(
+      db,
+      "SELECT IDteam FROM DYN_team WHERE CONSTANT = 'LOOSER_TEAM' LIMIT 1",
+    ),
+  );
+  if (!Number.isInteger(fallbackTeamId) || fallbackTeamId <= 0) {
+    throw new Error(
+      "L'equipe technique interne de PCM est absente : purge interrompue.",
+    );
+  }
+
+  const tablesToClear = [
+    "DYN_brand_contract",
+    "DYN_career_precontract_cyclist",
+    "DYN_contract_cyclist",
+    "DYN_contract_cyclist_offer",
+    "DYN_cyclist_fitness",
+    "DYN_cyclist_fitpeak_history",
+    "DYN_cyclist_history",
+    "DYN_cyclist_impact_moral",
+    "DYN_cyclist_national_selection",
+    "DYN_cyclist_objective",
+    "DYN_cyclist_peak_detail",
+    "DYN_cyclist_progression",
+    "DYN_cyclist_satisfaction",
+    "DYN_cyclist_season",
+    "DYN_investment_cyclist",
+    "DYN_invitation_cyclist",
+    "DYN_palmares",
+    "DYN_palmares_cyclist",
+    "DYN_palmares_team",
+    "DYN_procyclist",
+    "DYN_procyclist_charac_history",
+    "DYN_procyclist_contract_offer",
+    "DYN_procyclist_skilltree",
+    "DYN_procyclist_teammate",
+    "DYN_ranking_race_points",
+    "DYN_result_season_team",
+    "DYN_team_history",
+    "DYN_team_race",
+    "DYN_team_sponsor",
+    "DYN_transfer_available_cyclist",
+    "DYN_transfer_team_wish",
+    "DYN_u23_link",
+    "DYN_ui_planner_cyclist_sort",
+    "STA_records",
+    "STA_roster_listraces",
+  ];
+
+  for (const table of tablesToClear) {
+    clearTableIfPresent(db, table);
+  }
+
+  db.run("DELETE FROM DYN_cyclist");
+  db.run("DELETE FROM DYN_team WHERE IDteam <> ?", [fallbackTeamId]);
+  db.run("UPDATE DYN_coach SET fkIDteam = ?", [fallbackTeamId]);
+  db.run("UPDATE DYN_physician SET fkIDteam = ?", [fallbackTeamId]);
+  db.run("UPDATE DYN_scout SET fkIDteam = ?", [fallbackTeamId]);
+  db.run("UPDATE STA_race SET gene_ilist_fkIDteam = '()'");
+}
+
+function clearTableIfPresent(db: Database, table: string) {
+  const exists = Number(
+    queryValue(
+      db,
+      "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+      [table],
+    ),
+  );
+  if (exists === 1) db.run(`DELETE FROM ${escapeIdentifier(table)}`);
 }
 
 function validateGeneratedRows(
   db: Database,
   snapshot: PcmExportSnapshot,
   teamMappings: Map<string, { pcmTeamId: number; divisionId: number }>,
+  spectatorTeamId: number,
   sourceStageCount: number,
 ) {
   const exportedTeams = queryRows(
@@ -595,12 +854,71 @@ function validateGeneratedRows(
   const teamIds = new Set(
     [...teamMappings.values()].map((mapping) => mapping.pcmTeamId),
   );
+  teamIds.add(spectatorTeamId);
 
-  if (exportedTeams.length !== snapshot.counts.teams) {
+  if (exportedTeams.length !== snapshot.counts.teams + 1) {
     throw new Error("Le controle PCM a detecte un nombre d'equipes incoherent.");
   }
-  if (exportedRiders.length !== snapshot.counts.riders) {
+  if (
+    exportedRiders.length !==
+    snapshot.counts.riders + SPECTATOR_RIDER_COUNT
+  ) {
     throw new Error("Le controle PCM a detecte un nombre de coureurs incoherent.");
+  }
+  if (
+    Number(
+      queryValue(
+        db,
+        `SELECT COUNT(*) FROM DYN_team
+         WHERE CONSTANT <> 'LOOSER_TEAM' AND CONSTANT NOT LIKE 'CS_%'`,
+      ),
+    ) !== 0
+  ) {
+    throw new Error("Le controle PCM a detecte une equipe professionnelle reelle.");
+  }
+  if (
+    Number(
+      queryValue(
+        db,
+        "SELECT COUNT(*) FROM DYN_cyclist WHERE CONSTANT NOT LIKE 'CS_%'",
+      ),
+    ) !== 0
+  ) {
+    throw new Error("Le controle PCM a detecte un coureur professionnel reel.");
+  }
+  if (
+    Number(
+      queryValue(
+        db,
+        "SELECT COUNT(*) FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
+      ),
+    ) !== 0
+  ) {
+    throw new Error("Le controle PCM a detecte une liste d'equipes officielle residuelle.");
+  }
+  if (
+    Number(
+      queryValue(
+        db,
+        "SELECT COUNT(*) FROM DYN_team WHERE IDteam = ? AND CONSTANT = 'CS_SPECTATOR' AND gene_b_licensed = 1",
+        [spectatorTeamId],
+      ),
+    ) !== 1 ||
+    Number(
+      queryValue(
+        db,
+        `SELECT COUNT(*) FROM DYN_cyclist
+         WHERE fkIDteam = ?
+           AND gene_sz_firstname = 'Simulo'
+           AND CONSTANT LIKE 'CS_SIMULO_%'
+           AND ${RATING_COLUMNS.map(
+             (column) => `${escapeIdentifier(column)} = ${SPECTATOR_PCM_RATING}`,
+           ).join(" AND ")}`,
+        [spectatorTeamId],
+      ),
+    ) !== SPECTATOR_RIDER_COUNT
+  ) {
+    throw new Error("Le controle PCM a detecte une equipe spectateur invalide.");
   }
   if (Number(queryValue(db, "SELECT COUNT(*) FROM STA_stage")) !== sourceStageCount) {
     throw new Error(

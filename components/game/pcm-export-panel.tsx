@@ -98,8 +98,10 @@ export function PcmExportPanel() {
           <ul className="mt-4 grid gap-3 text-sm font-semibold leading-6 text-[#49665E] sm:grid-cols-2">
             <ScopeItem>Équipes actives de la saison en cours</ScopeItem>
             <ScopeItem>Coureurs sous contrat et contrats actifs</ScopeItem>
-            <ScopeItem>13 notes natives converties entre 50 et 85</ScopeItem>
+            <ScopeItem>13 notes natives sur une échelle fixe de 45 à 85</ScopeItem>
             <ScopeItem>Taille, poids, âge, nationalité et division</ScopeItem>
+            <ScopeItem>Aucune équipe ni aucun coureur professionnel réel</ScopeItem>
+            <ScopeItem>Équipe spectateur avec 10 coureurs « Simulo » moyens</ScopeItem>
             <ScopeItem>Courses et étapes de la base officielle PCM26</ScopeItem>
           </ul>
 

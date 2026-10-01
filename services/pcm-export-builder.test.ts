@@ -33,12 +33,12 @@ describe("generateur de base PCM26", () => {
       const result = await buildPcmDatabase(snapshot, template);
 
       expect(result.metadata.counts).toEqual({
-        teams: 1,
-        riders: 1,
-        sponsors: 1,
-        contracts: 1,
+        teams: 2,
+        riders: 11,
+        sponsors: 2,
+        contracts: 11,
       });
-      expect(result.metadata.ratingRange).toEqual({ minimum: 50, maximum: 85 });
+      expect(result.metadata.ratingRange).toEqual({ minimum: 59, maximum: 77 });
       expect(result.metadata.filename).toMatch(
         /^OfficialRelease\.cdb$/,
       );
@@ -47,7 +47,23 @@ describe("generateur de base PCM26", () => {
       try {
         expect(
           readCount(db, "SELECT COUNT(*) FROM DYN_team WHERE CONSTANT LIKE 'CS_%'"),
+        ).toBe(2);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_team
+             WHERE CONSTANT = 'CS_SPECTATOR'
+               AND gene_sz_name = 'Cyclostratège'
+               AND gene_b_licensed = 1`,
+          ),
         ).toBe(1);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_team
+             WHERE CONSTANT <> 'LOOSER_TEAM' AND CONSTANT NOT LIKE 'CS_%'`,
+          ),
+        ).toBe(0);
         expect(
           readCount(
             db,
@@ -63,7 +79,34 @@ describe("generateur de base PCM26", () => {
             db,
             "SELECT COUNT(*) FROM DYN_cyclist WHERE CONSTANT LIKE 'CS_%'",
           ),
-        ).toBe(1);
+        ).toBe(11);
+        expect(readCount(db, "SELECT COUNT(*) FROM DYN_cyclist")).toBe(11);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_cyclist cyclist
+             JOIN DYN_team team ON team.IDteam = cyclist.fkIDteam
+             WHERE team.CONSTANT = 'CS_SPECTATOR'`,
+          ),
+        ).toBe(10);
+        expect(
+          readCount(
+            db,
+            `SELECT COUNT(*) FROM DYN_cyclist cyclist
+             JOIN DYN_team team ON team.IDteam = cyclist.fkIDteam
+             WHERE team.CONSTANT = 'CS_SPECTATOR'
+               AND cyclist.gene_sz_firstname = 'Simulo'
+               AND cyclist.charac_i_mountain = 65
+               AND cyclist.charac_i_hill = 65
+               AND cyclist.charac_i_sprint = 65`,
+          ),
+        ).toBe(10);
+        expect(
+          readCount(
+            db,
+            "SELECT COUNT(*) FROM STA_race WHERE gene_ilist_fkIDteam <> '()'",
+          ),
+        ).toBe(0);
         expect(
           readCount(
             db,
