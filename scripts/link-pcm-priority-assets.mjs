@@ -206,6 +206,62 @@ const priorityTeams = [
     sourceCode: "UJM",
     pcmSlot: "vbg",
   },
+  {
+    pcmTeamId: 250,
+    currentName: "Aurore Cyclisme",
+    season4Sponsor: "Veloria Mobilités",
+    sourceCode: "VEL",
+    pcmSlot: "adr",
+  },
+  {
+    pcmTeamId: 265,
+    currentName: "Flandres Horizon",
+    season4Sponsor: "Himal Hydro",
+    sourceCode: "HHY",
+    pcmSlot: "kcr",
+  },
+  {
+    pcmTeamId: 295,
+    currentName: "Maloti Mohair",
+    season4Sponsor: "Maloti Mohair",
+    sourceCode: "MAL",
+    pcmSlot: "vrr",
+  },
+  {
+    pcmTeamId: 304,
+    currentName: "Nordkyst Racing",
+    season4Sponsor: "Mekong Discovery Laos",
+    sourceCode: "MDL",
+    pcmSlot: "aub",
+  },
+  {
+    pcmTeamId: 320,
+    currentName: "Sara's team",
+    season4Sponsor: "Sardines du Raz",
+    sourceCode: "SDR",
+    pcmSlot: "tfb",
+  },
+  {
+    pcmTeamId: 322,
+    currentName: "Serra Verde Ciclismo",
+    season4Sponsor: "Prairie Biofoods",
+    sourceCode: "PBF",
+    pcmSlot: "ekp",
+  },
+  {
+    pcmTeamId: 343,
+    currentName: "Vélo Horizon Audit 29",
+    season4Sponsor: "Maison Lannic",
+    sourceCode: "MLA",
+    pcmSlot: "bcs",
+  },
+  {
+    pcmTeamId: 344,
+    currentName: "Vento Corse",
+    season4Sponsor: "Đông Dương Phanh",
+    sourceCode: "DDP",
+    pcmSlot: "bbh",
+  },
 ];
 
 function queryRows(db, sql, parameters = []) {

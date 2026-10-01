@@ -148,6 +148,62 @@ const teams = [
     jerseyId: "uji-midori-modern", source: "public/images/sponsors/uji-midori/jersey-modern.webp",
     logo: "public/images/sponsors/uji-midori/logo.webp",
   },
+  {
+    directory: "veloria-mobilites", code: "VEL", pcmTeamId: 250, pcmSlot: "adr",
+    permanentTeamId: "e8e4d1f4-84cd-4bf7-a0d6-c8015372cad3", currentName: "Aurore Cyclisme",
+    sponsor: "Veloria Mobilités", manager: "Élodie Martin", jersey: "Élégance française", style: "classic",
+    jerseyId: "veloria-mobilites-classic", source: "public/images/sponsors/veloria-mobilites/jersey-classic.webp",
+    logo: "public/images/sponsors/veloria-mobilites/logo.webp",
+  },
+  {
+    directory: "himal-hydro", code: "HHY", pcmTeamId: 265, pcmSlot: "kcr",
+    permanentTeamId: "a55c21a5-135e-40dc-b8f6-497c5258b411", currentName: "Flandres Horizon",
+    sponsor: "Himal Hydro", manager: "Thomas Vermeulen", jersey: "Himalaya", style: "bold",
+    jerseyId: "himal-hydro-bold", source: "public/images/sponsors/himal-hydro/jersey-bold.webp",
+    logo: "public/images/sponsors/himal-hydro/logo.webp",
+  },
+  {
+    directory: "maloti-mohair", code: "MAL", pcmTeamId: 295, pcmSlot: "vrr",
+    permanentTeamId: "89df3cc9-9e81-4c36-8882-c19abb49ea0e", currentName: "Maloti Mohair",
+    sponsor: "Maloti Mohair", manager: "Jerome Nimo", jersey: "Crêtes", style: "modern",
+    jerseyId: "maloti-mohair-modern", source: "public/images/sponsors/maloti-mohair/jersey-modern.webp",
+    logo: "public/images/sponsors/maloti-mohair/logo.webp",
+  },
+  {
+    directory: "mekong-discovery-laos", code: "MDL", pcmTeamId: 304, pcmSlot: "aub",
+    permanentTeamId: "392ac09a-b638-401f-904c-f18bc46be3e1", currentName: "Nordkyst Racing",
+    sponsor: "Mekong Discovery Laos", manager: "Mikkel Sørensen", jersey: "Mékong paisible", style: "classic",
+    jerseyId: "mekong-discovery-laos-classic", source: "public/images/sponsors/mekong-discovery-laos/jersey-classic.webp",
+    logo: "public/images/sponsors/mekong-discovery-laos/logo.webp",
+  },
+  {
+    directory: "sardines-du-raz", code: "SDR", pcmTeamId: 320, pcmSlot: "tfb",
+    permanentTeamId: "21f9b80f-5edd-488a-8fc0-3f30da77be55", currentName: "Sara's team",
+    sponsor: "Sardines du Raz", manager: "Sara", jersey: "Le Courant", style: "modern",
+    jerseyId: "sardines-du-raz-modern", source: "public/images/sponsors/sardines-du-raz/jersey-modern.webp",
+    logo: "public/images/sponsors/sardines-du-raz/logo.webp",
+  },
+  {
+    directory: "prairie-biofoods", code: "PBF", pcmTeamId: 322, pcmSlot: "ekp",
+    permanentTeamId: "e3af168e-ea5b-433c-83b3-680429ad0162", currentName: "Serra Verde Ciclismo",
+    sponsor: "Prairie Biofoods", manager: "Rafael Costa", jersey: "Harvest", style: "modern",
+    jerseyId: "prairie-biofoods-modern", source: "public/images/sponsors/prairie-biofoods/jersey-modern.webp",
+    logo: "public/images/sponsors/prairie-biofoods/logo.webp",
+  },
+  {
+    directory: "maison-lannic", code: "MLA", pcmTeamId: 343, pcmSlot: "bcs",
+    permanentTeamId: "817db772-6373-4b4a-bb01-a78b1107d546", currentName: "Vélo Horizon Audit 29",
+    sponsor: "Maison Lannic", manager: "Antoine Morel 29", jersey: "Feuilletage", style: "modern",
+    jerseyId: "maison-lannic-modern", source: "public/images/sponsors/maison-lannic/jersey-modern.webp",
+    logo: "public/images/sponsors/maison-lannic/logo.webp",
+  },
+  {
+    directory: "dong-duong-phanh", code: "DDP", pcmTeamId: 344, pcmSlot: "bbh",
+    permanentTeamId: "61c5aac7-4917-48ed-b861-ebf5eea2d754", currentName: "Vento Corse",
+    sponsor: "Đông Dương Phanh", manager: "Giulia Rinaldi", jersey: "Point de freinage", style: "modern",
+    jerseyId: "dong-duong-phanh-modern", source: "public/images/sponsors/dong-duong-phanh/jersey-modern.webp",
+    logo: "public/images/sponsors/dong-duong-phanh/logo.webp",
+  },
 ];
 
 const escapeXml = (value) => value
@@ -164,6 +220,18 @@ async function describe(filePath, role) {
     file: path.basename(filePath), role, width: metadata.width, height: metadata.height,
     hasAlpha: metadata.hasAlpha, sha256: await sha256(filePath),
   };
+}
+
+async function resolveGeneratedAt(manifestPath) {
+  try {
+    const existing = JSON.parse(await readFile(manifestPath, "utf8"));
+    if (typeof existing.generatedAt === "string" && existing.generatedAt) {
+      return existing.generatedAt;
+    }
+  } catch {
+    // A new team has no manifest yet.
+  }
+  return new Date().toISOString();
 }
 
 for (const team of teams) {
@@ -258,7 +326,7 @@ for (const team of teams) {
 
   const manifest = {
     formatVersion: 1,
-    generatedAt: new Date().toISOString(),
+    generatedAt: await resolveGeneratedAt(manifestPath),
     game: "Pro Cycling Manager 2026",
     team: {
       permanentTeamId: team.permanentTeamId,

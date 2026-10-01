@@ -42,6 +42,14 @@ const teams = [
   { pcmTeamId: 260, sourceCode: "DBF", pcmSlot: "dft" },
   { pcmTeamId: 273, sourceCode: "IDM", pcmSlot: "nsn" },
   { pcmTeamId: 334, sourceCode: "UJM", pcmSlot: "vbg" },
+  { pcmTeamId: 250, sourceCode: "VEL", pcmSlot: "adr" },
+  { pcmTeamId: 265, sourceCode: "HHY", pcmSlot: "kcr" },
+  { pcmTeamId: 295, sourceCode: "MAL", pcmSlot: "vrr" },
+  { pcmTeamId: 304, sourceCode: "MDL", pcmSlot: "aub" },
+  { pcmTeamId: 320, sourceCode: "SDR", pcmSlot: "tfb" },
+  { pcmTeamId: 322, sourceCode: "PBF", pcmSlot: "ekp" },
+  { pcmTeamId: 343, sourceCode: "MLA", pcmSlot: "bcs" },
+  { pcmTeamId: 344, sourceCode: "DDP", pcmSlot: "bbh" },
 ];
 
 function assert(condition, message) {

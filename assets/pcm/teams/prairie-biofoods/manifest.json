@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T11:42:39.142Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "e3af168e-ea5b-433c-83b3-680429ad0162",
+    "pcmTeamId": 322,
+    "currentName": "Serra Verde Ciclismo",
+    "season4Sponsor": "Prairie Biofoods",
+    "manager": "Rafael Costa",
+    "displayCode": "PBF",
+    "pcmAssetCode": "ekp"
+  },
+  "selection": {
+    "jerseyId": "prairie-biofoods-modern",
+    "jerseyName": "Harvest",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/prairie-biofoods/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "PBF_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "PBF_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "6ce2de58adf5572f99a87500267c11a4d75bbc063686e08e9a04d49ca6013a85"
+    },
+    {
+      "file": "PBF_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "371b3e15dc602cbd05e23b55ec78e2365bf1e5c46c1905e46c3e1dc2c3c3c153"
+    },
+    {
+      "file": "PBF_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "25dfde72c112d5cb139229ae1949a18318e766c0c90d06cb429c227c7fb553cc"
+    },
+    {
+      "file": "PBF_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "f1fde6c4682034c8678605cb1d453082689881b06fb602370f28544b56cf67f8"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T11:42:43.733Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "61c5aac7-4917-48ed-b861-ebf5eea2d754",
+    "pcmTeamId": 344,
+    "currentName": "Vento Corse",
+    "season4Sponsor": "Đông Dương Phanh",
+    "manager": "Giulia Rinaldi",
+    "displayCode": "DDP",
+    "pcmAssetCode": "bbh"
+  },
+  "selection": {
+    "jerseyId": "dong-duong-phanh-modern",
+    "jerseyName": "Point de freinage",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/dong-duong-phanh/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "DDP_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "DDP_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "b84c9a614c5ff91525fe910acf007ffac99bc385ddbcd81b887baa6b8af5dfb4"
+    },
+    {
+      "file": "DDP_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "03f397b6f9cfa8b82fd6943ae8839ac02da0a8e4b9465bb1c5de32c73cc9c4d0"
+    },
+    {
+      "file": "DDP_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "e8701be32153f6ebd5b02a0def61a6810840a77a4f6e9172c766d61fb76786f4"
+    },
+    {
+      "file": "DDP_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "d74ada78af610813f9c5f45950a12ecc2a346f6c028c12f18212c56ca44eec5e"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

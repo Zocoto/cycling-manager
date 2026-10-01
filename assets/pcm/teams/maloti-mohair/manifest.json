@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-10-01T11:42:32.650Z",
+  "game": "Pro Cycling Manager 2026",
+  "team": {
+    "permanentTeamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
+    "pcmTeamId": 295,
+    "currentName": "Maloti Mohair",
+    "season4Sponsor": "Maloti Mohair",
+    "manager": "Jerome Nimo",
+    "displayCode": "MAL",
+    "pcmAssetCode": "vrr"
+  },
+  "selection": {
+    "jerseyId": "maloti-mohair-modern",
+    "jerseyName": "Crêtes",
+    "jerseyStyle": "modern",
+    "sourcePath": "public/images/sponsors/maloti-mohair/jersey-modern.webp",
+    "source": "manager season 4 selection"
+  },
+  "productionRules": {
+    "frontShortsSponsorLogo": false,
+    "rearShortsSponsorLogo": true,
+    "sourceUvPreserved": "MAL_uv-source.png",
+    "visualIdentityPreserved": true
+  },
+  "assets": [
+    {
+      "file": "MAL_maillot.png",
+      "role": "PCM26 3D jersey UV texture",
+      "width": 1200,
+      "height": 826,
+      "hasAlpha": false,
+      "sha256": "f8ef3f3c91fab81a37274133452527e0b1948dca724488b5ba7dcd1fab35e491"
+    },
+    {
+      "file": "MAL_minimaillot.png",
+      "role": "PCM26 interface mini-jersey",
+      "width": 256,
+      "height": 256,
+      "hasAlpha": true,
+      "sha256": "a24bbbab6403671735f146993278778ea6090471ed027dcc7ab1ff56c029d95e"
+    },
+    {
+      "file": "MAL_preview.png",
+      "role": "quality-control review board",
+      "width": 1600,
+      "height": 1080,
+      "hasAlpha": true,
+      "sha256": "5f18444618c350b6b02a4718d74d96a65f2abcc8911b7c9eb1977447d367e750"
+    },
+    {
+      "file": "MAL_reference.webp",
+      "role": "selected season 4 reference",
+      "width": 600,
+      "height": 750,
+      "hasAlpha": true,
+      "sha256": "88d326ab85af0399b5216898721642c8f73c5cc257add3dd1024af511e94f9ba"
+    }
+  ],
+  "notes": [
+    "The selected Cyclostratege jersey remains the visual source of truth.",
+    "The bib-shorts sponsor logo is placed on the rear panel only.",
+    "The PCM team id remains permanent when the sponsor identity changes."
+  ]
+}

@@ -15,33 +15,39 @@ const teamsRoot = path.join(workspaceRoot, "SourceAssets", "Teams");
 
 const teams = [
   {
+    permanentTeamId: "96b66063-c5f7-4115-8be6-807c68a184bf",
     code: "ARO",
     pcmCompatibilitySlot: "dct",
     sponsor: "Ardennes Outillage",
     jersey: "Acier",
     style: "modern",
+    jerseyId: "ardennes-outillage-modern",
     currentTeam: "BelgianTalent",
     manager: "BelgianSteph",
     source: "public/images/sponsors/ardennes-outillage/jersey-modern.webp",
     palette: ["#1a1c1f", "#ef3d20", "#d7d9db", "#555b60"],
   },
   {
+    permanentTeamId: "6d29ce14-c55f-4e3e-bd73-59f410484210",
     code: "AUL",
     pcmCompatibilitySlot: "gfc",
     sponsor: "Cidrerie de l’Aulne",
     jersey: "Pomme tempête",
     style: "bold",
+    jerseyId: "cidrerie-aulne-bold",
     currentTeam: "Gouille Developpement",
     manager: "gouilleTW",
     source: "public/images/sponsors/cidrerie-aulne/jersey-bold.webp",
     palette: ["#071f36", "#0a797d", "#f6e5ae", "#e9261b"],
   },
   {
+    permanentTeamId: "0ceb562b-737c-4650-8e70-5570a915dc41",
     code: "LIL",
     pcmCompatibilitySlot: "soq",
     sponsor: "Lilangeni Ingilazi",
     jersey: "Four en fusion",
     style: "bold",
+    jerseyId: "lilangeni-ingilazi-bold",
     currentTeam: "Lusutfu Cane",
     manager: "Julgator",
     source: "public/images/sponsors/lilangeni-ingilazi/jersey-bold.webp",
@@ -49,11 +55,13 @@ const teams = [
     palette: ["#064733", "#f5edcf", "#42d6d4", "#f68a10"],
   },
   {
+    permanentTeamId: "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
     code: "ADL",
     pcmCompatibilitySlot: "mov",
     sponsor: "Abbaye du Lion",
     jersey: "Tradition",
     style: "classic",
+    jerseyId: "abbaye-du-lion-classic",
     currentTeam: "Abbaye du Lion",
     manager: "Roger Letesteur",
     source: "public/images/sponsors/abbaye-du-lion/jersey-classic.webp",
@@ -61,22 +69,26 @@ const teams = [
     palette: ["#3c2118", "#f1e6c8", "#b48a36", "#68422c"],
   },
   {
+    permanentTeamId: "a81d26fc-5b1f-4267-8c60-073d53389733",
     code: "YUK",
     pcmCompatibilitySlot: "tvl",
     sponsor: "Yukikaze Outdoor",
     jersey: "Hokkaidō",
     style: "classic",
+    jerseyId: "yukikaze-outdoor-classic",
     currentTeam: "Yukikaze Outdoor",
     manager: "Alioch4",
     source: "public/images/sponsors/yukikaze-outdoor/jersey-classic.webp",
     palette: ["#072e62", "#f7f8f5", "#4dc9e7", "#ef3e2f"],
   },
   {
+    permanentTeamId: "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
     code: "VNA",
     pcmCompatibilitySlot: "uex",
     sponsor: "Vereda Nova Automóveis",
     jersey: "Arara Viva",
     style: "bold",
+    jerseyId: "vereda-nova-automoveis-bold",
     currentTeam: "Vereda Nova Automóveis",
     manager: "Misha3",
     source: "public/images/sponsors/vereda-nova-automoveis/jersey-bold.webp",
@@ -109,6 +121,17 @@ async function describe(filePath, role) {
     hasAlpha: metadata.hasAlpha,
     sha256: await sha256(filePath),
   };
+}
+
+async function resolveGeneratedAt(manifestPath) {
+  try {
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    if (typeof manifest.generatedAt === "string") return manifest.generatedAt;
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+
+  return new Date().toISOString();
 }
 
 for (const team of teams) {
@@ -248,9 +271,10 @@ for (const team of teams) {
 
   const manifest = {
     formatVersion: 1,
-    generatedAt: new Date().toISOString(),
+    generatedAt: await resolveGeneratedAt(manifestPath),
     game: "Pro Cycling Manager 2026",
     team: {
+      permanentTeamId: team.permanentTeamId,
       currentName: team.currentTeam,
       season4Sponsor: team.sponsor,
       manager: team.manager,
@@ -258,6 +282,7 @@ for (const team of teams) {
       pcmCompatibilitySlot: team.pcmCompatibilitySlot,
     },
     selection: {
+      jerseyId: team.jerseyId,
       jerseyName: team.jersey,
       jerseyStyle: team.style,
       sourcePath: team.source,
