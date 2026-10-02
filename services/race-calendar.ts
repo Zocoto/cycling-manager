@@ -4081,14 +4081,20 @@ async function loadCalendarEngagedRiders(
   editionIds: string[],
   { isScoped }: { isScoped: boolean },
 ) {
-  const targetedResult = await collectPaginatedRows<
+  // Small, bounded scopes avoid re-sorting the whole season at every page.
+  // UUID order matches the RPC's ORDER BY; pagination still retrieves every row.
+  const targetedResult = await collectChunkedPaginatedRows<
     CalendarEngagedRiderRow,
-    { message: string }
+    { message: string },
+    string
   >({
-    fetchPage: async (from, to) => {
+    values: [...new Set(editionIds)].sort(),
+    chunkSize: 10,
+    maxConcurrency: 2,
+    fetchPage: async (chunk, from, to) => {
       const result = await supabase
         .rpc("get_calendar_engaged_riders", {
-          p_race_edition_ids: editionIds,
+          p_race_edition_ids: chunk,
         })
         .range(from, to);
       return {

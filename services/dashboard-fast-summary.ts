@@ -58,9 +58,10 @@ export type DashboardFastSummary = {
 
 export async function getCurrentDashboardFastSummary(
   supabase: SupabaseServerClient,
+  { deferObjectives = false }: { deferObjectives?: boolean } = {},
 ): Promise<DashboardFastSummary | null> {
   const result = await supabase
-    .rpc("get_current_dashboard_fast_summary_v2")
+    .rpc(deferObjectives ? "get_current_dashboard_core_summary_v2" : "get_current_dashboard_fast_summary_v2")
     .maybeSingle<DashboardFastSummaryRow>();
 
   if (result.error) {
@@ -95,4 +96,15 @@ export async function getCurrentDashboardFastSummary(
     unreadTrophyCount: row.unread_trophy_count,
     dailyRewardAvailable: row.daily_reward_available,
   };
+}
+
+export type DashboardObjectiveSummary = { totalCount: number; readyCount: number };
+
+export async function getCurrentDashboardObjectiveSummary(
+  supabase: SupabaseServerClient,
+): Promise<DashboardObjectiveSummary> {
+  const result = await supabase.rpc("get_current_game_objective_summary_cached")
+    .maybeSingle<{ total_count: number; ready_count: number }>();
+  if (result.error) throw new Error(`Impossible de charger les compteurs d’objectifs : ${result.error.message}`);
+  return { totalCount: result.data?.total_count ?? 0, readyCount: result.data?.ready_count ?? 0 };
 }

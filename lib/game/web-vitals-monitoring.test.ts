@@ -18,7 +18,7 @@ describe("real user performance monitoring", () => {
     expect(reporter).toContain("navigator.sendBeacon");
   });
 
-  it("keeps the collection endpoint bounded and log-only", () => {
+  it("keeps persistence bounded and outside the response path", () => {
     const route = readFileSync(
       join(root, "app", "api", "monitoring", "web-vitals", "route.ts"),
       "utf8",
@@ -26,7 +26,9 @@ describe("real user performance monitoring", () => {
 
     expect(route).toContain("rawBody.length > 16_000");
     expect(route).toContain("rawMetrics.length > 10");
-    expect(route).toContain('event: "web_vitals"');
+    expect(route).toContain("after(() => persistPerformanceSamples(samples))");
+    expect(route).toContain('request.headers.get("origin")');
+    expect(route).not.toContain("user-agent");
     expect(route).not.toContain("createSupabaseAdminClient");
   });
 });

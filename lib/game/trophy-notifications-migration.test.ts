@@ -85,9 +85,8 @@ describe("new trophy notifications", () => {
       "public.get_current_dashboard_fast_summary_v2()",
     );
     expect(migration).toContain("unread_trophy_count integer");
-    expect(dashboardService).toContain(
-      '.rpc("get_current_dashboard_fast_summary_v2")',
-    );
+    expect(dashboardService).toContain('"get_current_dashboard_fast_summary_v2"');
+    expect(dashboardService).toContain('"get_current_dashboard_core_summary_v2"');
     expect(dashboardService).toContain("unreadTrophyCount");
     expect(dashboardVolatilityFix).toContain(
       "alter function public.get_current_dashboard_fast_summary_v2() volatile",
@@ -95,7 +94,7 @@ describe("new trophy notifications", () => {
   });
 
   it("keeps reward and trophy counters distinct and clears only on a real gallery visit", () => {
-    expect(dashboardPage).toContain("hasRewards || hasNewTrophies");
+    expect(dashboardPage).toContain("hasRewards || dailyRewardAvailable || hasNewTrophies");
     expect(dashboardPage).toContain("bg-[#C72F5E]");
     expect(dashboardPage).toContain("bg-[#2F6EC7]");
     expect(objectivesPage).toContain('selectedTab === "trophees"');

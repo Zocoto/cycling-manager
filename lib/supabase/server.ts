@@ -1,5 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { after } from "next/server";
+import { createTimedRpcFetch } from "@/lib/performance/rpc-fetch";
+import type { PerformanceSample } from "@/lib/performance/samples";
+import { persistPerformanceSamples } from "@/services/performance-monitoring";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -14,10 +18,19 @@ export async function createSupabaseServerClient() {
     );
   }
 
+  const samples: PerformanceSample[] = [];
+  const sampled = Math.random() < 0.25;
+  if (sampled) after(() => persistPerformanceSamples(samples));
+
   return createServerClient(
     supabaseUrl,
     supabasePublishableKey,
     {
+      global: sampled ? {
+        fetch: createTimedRpcFetch(fetch, new URL(supabaseUrl).origin, (sample) => {
+          if (samples.length < 32) samples.push(sample);
+        }),
+      } : undefined,
       cookies: {
         getAll() {
           return cookieStore.getAll();

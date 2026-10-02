@@ -17,6 +17,31 @@ describe("chunkValues", () => {
 });
 
 describe("collectChunkedPaginatedRows", () => {
+  it("bounds concurrent requests and preserves ordered, complete results", async () => {
+    let active = 0;
+    let peak = 0;
+    const source = Array.from({ length: 13 }, (_, index) => index);
+    const result = await collectChunkedPaginatedRows<number, Error, number>({
+      values: source, chunkSize: 2, pageSize: 3, maxConcurrency: 2,
+      fetchPage: async (chunk, from, to) => {
+        peak = Math.max(peak, ++active);
+        await new Promise((resolve) => setTimeout(resolve, chunk[0] % 3));
+        active--;
+        return { data: chunk.flatMap((n) => [n * 2, n * 2 + 1]).slice(from, to + 1), error: null };
+      },
+    });
+    expect(peak).toBe(2);
+    expect(result).toEqual({ data: Array.from({ length: 26 }, (_, n) => n), error: null });
+  });
+
+  it("rejects invalid concurrency and never exposes a failed partial batch", async () => {
+    await expect(collectChunkedPaginatedRows({ values: [1], maxConcurrency: 0, fetchPage: async () => ({ data: [], error: null }) })).rejects.toThrow("concurrence");
+    const error = new Error("later page failed");
+    const result = await collectChunkedPaginatedRows({ values: [1, 2], chunkSize: 1, pageSize: 2, maxConcurrency: 1,
+      fetchPage: async (chunk, from) => from > 0 && chunk[0] === 2 ? { data: null, error } : { data: from ? [] : [1, 2], error: null },
+    });
+    expect(result).toEqual({ data: [], error });
+  });
   it("combine lots et pagination sans perdre de lignes", async () => {
     const values = Array.from({ length: 250 }, (_, index) => `id-${index}`);
     const rowsByValue = new Map(

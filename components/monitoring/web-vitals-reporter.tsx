@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useReportWebVitals } from "next/web-vitals";
+import { normalizePerformanceRoute } from "@/lib/performance/samples";
 
 type ReportWebVitalsCallback = Parameters<typeof useReportWebVitals>[0];
 
@@ -42,17 +43,14 @@ function flushMetrics() {
   if (bufferedMetrics.length === 0) return;
 
   const body = JSON.stringify({ metrics: bufferedMetrics.splice(0) });
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon("/api/monitoring/web-vitals", body);
-    return;
-  }
+  if (navigator.sendBeacon?.("/api/monitoring/web-vitals", body)) return;
 
   void fetch("/api/monitoring/web-vitals", {
     method: "POST",
     body,
     keepalive: true,
     headers: { "content-type": "text/plain;charset=UTF-8" },
-  });
+  }).catch(() => { /* Telemetry must not surface network failures in the UI. */ });
 }
 
 const bufferWebVital: ReportWebVitalsCallback = (metric) => {
@@ -65,10 +63,12 @@ const bufferWebVital: ReportWebVitalsCallback = (metric) => {
     delta: metric.delta,
     rating: metric.rating,
     navigationType: metric.navigationType,
-    pathname: window.location.pathname,
+    pathname: normalizePerformanceRoute(window.location.pathname),
     viewportWidth: window.innerWidth,
     recordedAt: new Date().toISOString(),
   });
+
+  if (bufferedMetrics.length >= 10) { flushMetrics(); return; }
 
   if (flushTimer === null) {
     flushTimer = window.setTimeout(flushMetrics, 5_000);

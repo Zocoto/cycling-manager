@@ -57,6 +57,8 @@ import { getSponsorObjectiveSummary } from "../../services/sponsor-objective-sum
 import { getSportingDirectorReputationBreakdown } from "../../services/sporting-director-reputation";
 import {
   getCurrentDashboardFastSummary,
+  getCurrentDashboardObjectiveSummary,
+  type DashboardObjectiveSummary,
   type DashboardFastSummary,
 } from "../../services/dashboard-fast-summary";
 import { getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
@@ -281,9 +283,14 @@ export default async function GamePage() {
   }
 
   const fastSummaryPromise = loadDashboardValue(
-    getCurrentDashboardFastSummary(supabase),
+    getCurrentDashboardFastSummary(supabase, { deferObjectives: true }),
     null as DashboardFastSummary | null,
     "Impossible de récupérer le résumé rapide du bureau :",
+  );
+  const objectiveSummaryPromise = loadDashboardValue(
+    getCurrentDashboardObjectiveSummary(supabase),
+    { totalCount: 0, readyCount: 0 },
+    "Impossible de récupérer les compteurs d’objectifs :",
   );
   const dashboardAssistantPromise = DASHBOARD_ASSISTANT_ENABLED
     ? loadDashboardValue(
@@ -533,15 +540,11 @@ export default async function GamePage() {
       : FREE_AGENT_RIDER_JERSEY;
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
-  const objectiveTotalCount = dashboardFastSummary?.objectiveTotalCount ?? 0;
-  const objectiveRewardCount = dashboardFastSummary?.objectiveReadyCount ?? 0;
   const trophyRewardCount = dashboardFastSummary?.trophyRewardCount ?? 0;
   const unreadTrophyCount = dashboardFastSummary?.unreadTrophyCount ?? 0;
   const dailyRewardAvailable =
     dashboardFastSummary?.dailyRewardAvailable ?? false;
-  const claimableRewardCount = objectiveRewardCount + trophyRewardCount;
-  const readyRewardCount =
-    claimableRewardCount + (dailyRewardAvailable ? 1 : 0);
+  const baseReadyRewardCount = trophyRewardCount + (dailyRewardAvailable ? 1 : 0);
 
   return (
     <main className="min-h-screen text-[#082A2A]">
@@ -575,13 +578,21 @@ export default async function GamePage() {
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
               />
-              <ObjectivesShortcut
-                totalCount={objectiveTotalCount}
-                objectiveRewardCount={objectiveRewardCount}
+              <Suspense fallback={<ObjectivesShortcut
+                pending
+                totalCount={0}
+                objectiveRewardCount={0}
                 dailyRewardAvailable={dailyRewardAvailable}
                 trophyRewardCount={trophyRewardCount}
                 unreadTrophyCount={unreadTrophyCount}
-              />
+              />}>
+                <ObjectivesShortcutDeferred
+                  summaryPromise={objectiveSummaryPromise}
+                  dailyRewardAvailable={dailyRewardAvailable}
+                  trophyRewardCount={trophyRewardCount}
+                  unreadTrophyCount={unreadTrophyCount}
+                />
+              </Suspense>
               <JerseyShortcut />
             </div>
           </header>
@@ -634,7 +645,8 @@ export default async function GamePage() {
                 summaryPromise={dashboardAssistantPromise}
                 raceCalendarPromise={raceCalendarPromise}
                 reputationPoints={reputationPoints}
-                rewardCount={readyRewardCount}
+                rewardCount={baseReadyRewardCount}
+                objectiveSummaryPromise={objectiveSummaryPromise}
                 cashBalance={financeOverview?.balance ?? null}
                 hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
               />
@@ -839,6 +851,7 @@ async function DashboardAssistantDeferred({
   raceCalendarPromise,
   reputationPoints,
   rewardCount,
+  objectiveSummaryPromise,
   cashBalance,
   hasTeam,
 }: {
@@ -846,12 +859,14 @@ async function DashboardAssistantDeferred({
   raceCalendarPromise: Promise<SeasonRaceCalendar | null>;
   reputationPoints: number;
   rewardCount: number;
+  objectiveSummaryPromise: Promise<DashboardObjectiveSummary>;
   cashBalance: number | null;
   hasTeam: boolean;
 }) {
-  const [summary, calendar] = await Promise.all([
+  const [summary, calendar, objectives] = await Promise.all([
     summaryPromise,
     raceCalendarPromise,
+    objectiveSummaryPromise,
   ]);
 
   return (
@@ -862,7 +877,7 @@ async function DashboardAssistantDeferred({
         calendar,
         reputationPoints,
       )}
-      rewardCount={rewardCount}
+      rewardCount={rewardCount + objectives.readyCount}
       cashBalance={cashBalance}
       hasTeam={hasTeam}
     />
@@ -1570,18 +1585,30 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
   );
 }
 
+async function ObjectivesShortcutDeferred({ summaryPromise, ...props }: {
+  summaryPromise: Promise<DashboardObjectiveSummary>;
+  dailyRewardAvailable: boolean;
+  trophyRewardCount: number;
+  unreadTrophyCount: number;
+}) {
+  const summary = await summaryPromise;
+  return <ObjectivesShortcut {...props} totalCount={summary.totalCount} objectiveRewardCount={summary.readyCount} />;
+}
+
 function ObjectivesShortcut({
   totalCount,
   objectiveRewardCount,
   dailyRewardAvailable,
   trophyRewardCount,
   unreadTrophyCount,
+  pending = false,
 }: {
   totalCount: number;
   objectiveRewardCount: number;
   dailyRewardAvailable: boolean;
   trophyRewardCount: number;
   unreadTrophyCount: number;
+  pending?: boolean;
 }) {
   const hasRewards = objectiveRewardCount > 0;
   const trophyNoticeCount = Math.max(
@@ -1602,8 +1629,11 @@ function ObjectivesShortcut({
 
   return (
     <Link
+      aria-busy={pending}
       href={
-        hasNewTrophies
+        pending
+          ? "/jeu/objectifs"
+          : hasNewTrophies
           ? "/jeu/objectifs?onglet=trophees"
           : trophyRewardCount > 0
           ? "/jeu/objectifs?onglet=trophees#trophee-alpha-tester"
@@ -1614,7 +1644,7 @@ function ObjectivesShortcut({
       title={
         notices.length > 0
           ? notices.join(" · ")
-          : `Consulter les récompenses et trophées (${totalCount} objectifs suivis)`
+          : pending ? "Chargement des récompenses et trophées" : `Consulter les récompenses et trophées (${totalCount} objectifs suivis)`
       }
       className="group relative flex min-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#A67C00]/55 bg-[#F2C94C] px-3 py-2.5 text-[#183F37] shadow-[0_12px_30px_rgba(122,91,9,0.2)] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] hover:shadow-[0_16px_34px_rgba(122,91,9,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#183F37] sm:min-w-32"
     >
@@ -1676,7 +1706,7 @@ function ObjectivesShortcut({
               ? "Cadeau quotidien"
               : hasNewTrophies
                 ? "Nouveau trophée"
-                : "Objectifs & trophées"}
+                : pending ? "Chargement…" : "Objectifs & trophées"}
       </span>
     </Link>
   );

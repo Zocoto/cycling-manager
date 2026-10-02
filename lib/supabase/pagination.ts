@@ -33,6 +33,7 @@ export async function collectChunkedPaginatedRows<T, E, V>({
   fetchPage,
   chunkSize = 100,
   pageSize = 1_000,
+  maxConcurrency = Infinity,
 }: {
   values: V[];
   fetchPage: (
@@ -42,18 +43,28 @@ export async function collectChunkedPaginatedRows<T, E, V>({
   ) => Promise<PaginatedPage<T, E>>;
   chunkSize?: number;
   pageSize?: number;
+  maxConcurrency?: number;
 }): Promise<{ data: T[]; error: E | null }> {
+  if (maxConcurrency !== Infinity && (!Number.isInteger(maxConcurrency) || maxConcurrency < 1)) {
+    throw new Error("La concurrence doit être un entier strictement positif.");
+  }
   if (values.length === 0) {
     return { data: [], error: null };
   }
 
-  const batchResults = await Promise.all(
-    chunkValues(values, chunkSize).map((chunk) =>
-      collectPaginatedRows<T, E>({
-        fetchPage: (from, to) => fetchPage(chunk, from, to),
-        pageSize,
-      })
-    )
+  const chunks = chunkValues(values, chunkSize);
+  const batchResults: { data: T[]; error: E | null }[] = new Array(chunks.length);
+  let nextChunk = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(chunks.length, maxConcurrency) }, async () => {
+      while (nextChunk < chunks.length) {
+        const index = nextChunk++;
+        batchResults[index] = await collectPaginatedRows<T, E>({
+          fetchPage: (from, to) => fetchPage(chunks[index], from, to),
+          pageSize,
+        });
+      }
+    }),
   );
   const failedBatch = batchResults.find((result) => result.error);
 
