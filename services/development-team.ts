@@ -16,6 +16,7 @@ import {
   type SpecialAbilityDefinition,
 } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -476,12 +477,22 @@ export async function getDevelopmentTeamOverview(
       .filter((edition) => edition.status === "completed")
       .map((edition) => edition.id);
     const [raceResults, progressionResult] = await Promise.all([
-      admin
-        .from("development_race_results")
-        .select("*")
-        .in("race_edition_id", visibleEditionIds)
-        .order("rank")
-        .returns<ResultRow[]>(),
+      collectChunkedPaginatedRows<ResultRow, { message: string }, string>({
+        values: visibleEditionIds,
+        fetchPage: async (editionIdChunk, from, to) => {
+          const result = await admin
+            .from("development_race_results")
+            .select("*")
+            .in("race_edition_id", editionIdChunk)
+            .order("race_edition_id", { ascending: true })
+            .order("result_scope", { ascending: true })
+            .order("rank", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<ResultRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
       completedEditionIds.length
         ? admin
             .from("development_race_podium_progression")
@@ -500,7 +511,7 @@ export async function getDevelopmentTeamOverview(
       progressionResult.error,
       "les progressions acquises sur les podiums juniors",
     );
-    resultRows = raceResults.data ?? [];
+    resultRows = raceResults.data;
     progressionRows = progressionResult.data ?? [];
   }
 
