@@ -129,8 +129,8 @@ export function evolveBreakawayCooperation({
     Math.round(
       orderedCandidates.length * (0.2 + cooperation * 0.52),
     ),
-    1,
-    orderedCandidates.length,
+    0,
+    orderedCandidates.filter((candidate) => candidate.energy >= 18).length,
   );
   const rotationOffset = tickIndex % orderedCandidates.length;
   const scoredCandidates = orderedCandidates
@@ -170,12 +170,13 @@ export function evolveBreakawayCooperation({
         right.score - left.score || left.riderId.localeCompare(right.riderId),
     );
   const activeRelayRiderIds = scoredCandidates
+    .filter((candidate) => candidate.energy >= 18)
     .slice(0, activeRelayCount)
     .map((candidate) => candidate.riderId);
   const activeRelaySet = new Set(activeRelayRiderIds);
   const shelteredLoad = clamp(0.64 + (1 - cooperation) * 0.16, 0.64, 0.8);
   const workingLoad =
-    orderedCandidates.length === 1
+    orderedCandidates.length === 1 || activeRelayCount === 0
       ? 1
       : clamp(
           (orderedCandidates.length -

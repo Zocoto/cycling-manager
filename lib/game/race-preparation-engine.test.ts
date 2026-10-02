@@ -84,7 +84,7 @@ describe("race preparation engine", () => {
 
   it("gives the lieutenant the full former leader-protection effect", () => {
     const input = createDemoSimulationInput("sprint-littoral", 19);
-    const helper = input.riders[0];
+    const helper = input.riders.find((rider) => rider.role === "domestique")!;
 
     const lieutenantResult = simulateRaceStage({
       ...input,

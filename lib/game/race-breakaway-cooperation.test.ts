@@ -30,6 +30,20 @@ function candidates(count: number): BreakawayRelayCandidate[] {
 }
 
 describe("evolveBreakawayCooperation", () => {
+  it("does not assign relays to exhausted riders while capable riders keep working", () => {
+    const context = {
+      previousState: INITIAL_BREAKAWAY_COOPERATION_STATE,
+      candidates: candidates(6).map((candidate, index) => ({ ...candidate, energy: index < 4 ? 2 : 45 })),
+      tickIndex: 0, raceProgress: 0.6, gapSeconds: 290, chasePressure: 0.6,
+      segment: flatSegment, isWet: false, frontGroupIsYielding: false, frontGroupIsUncontested: false,
+    };
+    const mixed = evolveBreakawayCooperation(context);
+    expect(mixed.activeRelayRiderIds.length).toBeGreaterThan(0);
+    expect(mixed.activeRelayRiderIds.every((id) => ["rider-5", "rider-6"].includes(id))).toBe(true);
+    const exhausted = evolveBreakawayCooperation({ ...context, candidates: context.candidates.map((candidate) => ({ ...candidate, energy: 2 })) });
+    expect(exhausted.activeRelayRiderIds).toEqual([]);
+    expect(Object.values(exhausted.relayLoadByRiderId).every(Number.isFinite)).toBe(true);
+  });
   it("organizes a healthy group under pressure better than a tired late group", () => {
     const organized = evolveBreakawayCooperation({
       previousState: INITIAL_BREAKAWAY_COOPERATION_STATE,

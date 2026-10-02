@@ -2,6 +2,26 @@ import type { RaceStageSegment } from "./race-profiles";
 
 export const ROAD_SIMULATION_TICK_KM = 2;
 
+/** Control reduces unnecessary chasing; it cannot recreate time already lost. */
+export function getControlledBreakawayGapSeconds({
+  previousGapSeconds,
+  naturalGapSeconds,
+  targetGapSeconds,
+  chasePressure,
+  additionalClosingSeconds,
+}: {
+  previousGapSeconds: number;
+  naturalGapSeconds: number;
+  targetGapSeconds: number;
+  chasePressure: number;
+  additionalClosingSeconds: number;
+}) {
+  const controlledMinimum = chasePressure < 0.7
+    ? Math.min(previousGapSeconds, targetGapSeconds)
+    : 0;
+  return Math.max(controlledMinimum, naturalGapSeconds - additionalClosingSeconds);
+}
+
 export type BreakawayMomentumInput = {
   previousMomentum: number;
   raceProgress: number;

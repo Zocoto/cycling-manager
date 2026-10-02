@@ -67,6 +67,7 @@ import {
   getContextualBreakawayGapCeiling,
   getContextualBreakawayTargetGapSeconds,
   getContextualBreakawayMaximum,
+  getControlledBreakawayGapSeconds,
   splitRaceSegmentIntoSimulationTicks,
 } from "./race-dynamics";
 import {
@@ -800,6 +801,9 @@ export function decideLargeBreakawayStandoff({
   chasePressure,
   likelyMassSprint,
   roll,
+  previousDecision = null,
+  mustChase = false,
+  breakawayRiderEnergies = [breakawayAverageEnergy],
 }: {
   breakawaySize: number;
   pelotonSize: number;
@@ -811,7 +815,24 @@ export function decideLargeBreakawayStandoff({
   chasePressure: number;
   likelyMassSprint: boolean;
   roll: number;
+  previousDecision?: LargeBreakawayStandoffDecision;
+  mustChase?: boolean;
+  breakawayRiderEnergies?: number[];
 }): LargeBreakawayStandoffDecision {
+  if (breakawaySize <= 0 || pelotonSize === 0 || gapSeconds <= 0) return null;
+  // A tactical concession survives a segment boundary and a shrinking escape.
+  // Only an actual threat or chase order can mobilize the peloton again.
+  if (previousDecision === "peloton_gives_up" && !mustChase) {
+    return previousDecision;
+  }
+  const canBreakawayYield =
+    gapSeconds <= 120 &&
+    chasePressure >= 0.7 &&
+    breakawayAverageEnergy < 30 &&
+    !breakawayRiderEnergies.some((energy) => energy >= 30);
+  if (previousDecision === "breakaway_gives_up" && canBreakawayYield) {
+    return previousDecision;
+  }
   if (
     breakawaySize <= LARGE_BREAKAWAY_RIDER_THRESHOLD ||
     pelotonSize === 0 ||
@@ -830,14 +851,16 @@ export function decideLargeBreakawayStandoff({
   );
   const catchableGap = clamp((160 - gapSeconds) / 140, 0, 1);
   const sustainedPressure = clamp((chasePressure - 0.55) / 0.35, 0, 1);
-  const breakawayYieldChance = clamp(
-    breakawayFatigue * 0.42 +
-      pelotonEnergyAdvantage * 0.25 +
-      catchableGap * 0.18 +
-      sustainedPressure * 0.15,
-    0,
-    0.72,
-  );
+  const breakawayYieldChance = canBreakawayYield
+    ? clamp(
+        breakawayFatigue * 0.42 +
+          pelotonEnergyAdvantage * 0.25 +
+          catchableGap * 0.18 +
+          sustainedPressure * 0.15,
+        0,
+        0.72,
+      )
+    : 0;
 
   const pelotonFatigue = clamp((38 - pelotonAverageEnergy) / 24, 0, 1);
   const gapOutOfReach = clamp((gapSeconds - 90) / 260, 0, 1);
@@ -865,7 +888,7 @@ export function decideLargeBreakawayStandoff({
   if (normalizedRoll < breakawayYieldChance) {
     return "breakaway_gives_up";
   }
-  if (normalizedRoll > 1 - pelotonYieldChance) {
+  if (!mustChase && normalizedRoll > 1 - pelotonYieldChance) {
     return "peloton_gives_up";
   }
   return null;
@@ -2441,7 +2464,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       1,
     );
     const breakawayAverageEnergy = average(
-      [...breakaway, ...secondaryBreakaway].map((state) => state.energy),
+      breakaway.map((state) => state.energy),
     );
     const pelotonAverageEnergy = average(peloton.map((state) => state.energy));
     const baseChasePressure = getRacePursuitTargetPressure({
@@ -2503,10 +2526,11 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     }
     const largeBreakawayDecision =
       !pelotonHasReleasedSafeBreakaway &&
-      activeBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
+      (breakaway.length > LARGE_BREAKAWAY_RIDER_THRESHOLD ||
+        previousLargeBreakawayDecision !== null) &&
       peloton.length > 0
         ? decideLargeBreakawayStandoff({
-            breakawaySize: activeBreakawaySize,
+            breakawaySize: breakaway.length,
             pelotonSize: peloton.length,
             completedDistanceKm,
             raceProgress,
@@ -2516,6 +2540,15 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             chasePressure: baseChasePressure,
             likelyMassSprint,
             roll: random(),
+            previousDecision: previousLargeBreakawayDecision,
+            mustChase:
+              shouldResumePelotonChase({
+                generalClassificationThreat: breakawayGeneralClassificationThreat,
+                explicitChaseDemand,
+              }) ||
+              (likelyMassSprint && raceProgress >= 0.7) ||
+              (breakawayThreat >= 0.65 && raceProgress >= 0.75),
+            breakawayRiderEnergies: breakaway.map((state) => state.energy),
           })
         : null;
 
@@ -2583,21 +2616,27 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const pelotonWorkerIds = new Set(
       activePelotonWorkers.map((state) => state.rider.id),
     );
-    const pelotonSeconds = getGroupSegmentTime(
-      fieldPaceStates,
-      segment,
-      "peloton",
-      chasePressure,
-      random,
-      activePelotonWorkers.length > 0 ? activePelotonWorkers : undefined,
-    );
+    // A concession changes the peloton's real pace rather than gifting seconds
+    // to the escape. Selective stages still keep the pace required for the GC.
+    const pelotonConservationFactor = pelotonHasGivenUp
+      ? 1 + (1 - generalClassificationStageInterest) * 0.08
+      : 1;
+    const pelotonSeconds =
+      getGroupSegmentTime(
+        fieldPaceStates,
+        segment,
+        "peloton",
+        chasePressure,
+        random,
+        activePelotonWorkers.length > 0 ? activePelotonWorkers : undefined,
+      ) * pelotonConservationFactor;
     const breakawayGapAtSegmentStart = breakawayGapSeconds;
     let breakawaySeconds = breakaway.length
       ? getGroupSegmentTime(breakaway, segment, "breakaway", 0.58, random)
       : pelotonSeconds;
 
     if (breakaway.length > 0 && breakawayHasGivenUp) {
-      breakawaySeconds *= 1.08;
+      breakawaySeconds *= 1.025;
     } else if (breakaway.length > 0 && raceProgress > 0.35) {
       const momentumPaceBonus =
         breakawayMomentum * (0.025 + raceProgress * 0.03);
@@ -2695,13 +2734,16 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
               1,
             );
         visualTickChasePressures.push(chasePressure);
-        const breakawayGapCeiling = getContextualBreakawayGapCeiling({
-          raceProgress: tickRaceProgress,
-          breakawaySize: activeBreakawaySize,
-          pelotonSize: peloton.length,
-          chasePressure,
-          pelotonHasGivenUp,
-        });
+        const breakawayGapCeiling = Math.max(
+          breakawayGapSeconds,
+          getContextualBreakawayGapCeiling({
+            raceProgress: tickRaceProgress,
+            breakawaySize: activeBreakawaySize,
+            pelotonSize: peloton.length,
+            chasePressure,
+            pelotonHasGivenUp,
+          }),
+        );
         const naturalGap =
           breakawayGapSeconds +
           pelotonSeconds * tickShare -
@@ -2715,14 +2757,13 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
         if (breakawayHasGivenUp) {
           breakawayGapSeconds = clamp(
-            naturalGap -
-              Math.max(35 * tickShare, breakawayGapSeconds * 0.38 * tickShare),
+            naturalGap,
             -30,
             breakawayGapCeiling,
           );
         } else if (pelotonHasGivenUp) {
           breakawayGapSeconds = clamp(
-            Math.max(naturalGap, breakawayGapSeconds + 12 * tickShare),
+            naturalGap,
             0,
             breakawayGapCeiling,
           );
@@ -2745,14 +2786,20 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             breakawayGapCeiling,
           );
         } else if (tickRaceProgress < 0.62) {
-          const controlledFloor =
+          const controlledTargetGap =
             breakawayTargetGapSeconds * 0.72 * (1 - breakawayThreat * 0.55);
           const dangerousGroupClosing =
             Math.max(0, chasePressure - 0.5) *
             (18 + breakawayThreat * 42) *
             tickShare;
           breakawayGapSeconds = clamp(
-            Math.max(controlledFloor, naturalGap - dangerousGroupClosing),
+            getControlledBreakawayGapSeconds({
+              previousGapSeconds: breakawayGapSeconds,
+              naturalGapSeconds: naturalGap,
+              targetGapSeconds: controlledTargetGap,
+              chasePressure,
+              additionalClosingSeconds: dangerousGroupClosing,
+            }),
             0,
             breakawayGapCeiling,
           );
@@ -2870,7 +2917,12 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       cooperationCompletedDistanceKm += tick.distanceKm;
     }
     const secondaryBreakawaySeconds = secondaryBreakaway.length
-      ? breakawaySeconds + 3 + random() * 5
+      ? Math.max(
+          breakawaySeconds + 3 + random() * 5,
+          getGroupSegmentTime(
+            secondaryBreakaway, segment, "breakaway", 0.58, () => 0.5,
+          ),
+        )
       : breakawaySeconds;
     const chaseSeconds = chase.length
       ? breakaway.length > 0
@@ -3103,7 +3155,10 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           segmentCount: input.segments.length,
           groupSize,
           chasePressure: tickChasePressure,
-          frontBreakawaySize: activeBreakawaySize,
+          frontBreakawaySize:
+            state.group === "breakaway_2"
+              ? secondaryBreakaway.length
+              : breakaway.length,
           frontGroupIsYielding: breakawayHasGivenUp,
           frontGroupIsUncontested: pelotonHasGivenUp,
           breakawayRelayLoad:
