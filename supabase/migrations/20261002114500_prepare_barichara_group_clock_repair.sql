@@ -84,8 +84,10 @@ begin
     or (select count(distinct rank) from pg_temp.barichara_results) <> 74
     or (select min(rank) from pg_temp.barichara_results) <> 1
     or (select max(rank) from pg_temp.barichara_results) <> 74
-    or exists (select 1 from pg_temp.barichara_results r where status<>'finished'
-      or injury is distinct from 'null'::jsonb or abandonment is distinct from 'null'::jsonb
+    -- jsonb_to_recordset converts a JSON null into SQL NULL, not jsonb 'null'.
+    or exists (select 1 from pg_temp.barichara_results r where status is distinct from 'finished'
+      or injury is not null or abandonment is not null
+      or "elapsedTimeSeconds" is null or "gapToWinnerSeconds" is null
       or "elapsedTimeSeconds"<=0 or "gapToWinnerSeconds"<0
       or "gapToWinnerSeconds" <> "elapsedTimeSeconds"-(select "elapsedTimeSeconds" from pg_temp.barichara_results where rank=1))
     or exists (select 1 from pg_temp.barichara_results a join pg_temp.barichara_results b on b.rank=a.rank+1
@@ -110,6 +112,8 @@ begin
       where r."riderId" is null or p."newRank" is distinct from r.rank or p."oldRank" is distinct from old.final_rank
         or p."teamSeasonId" is distinct from reg.team_season_id
         or source is distinct from 'official-race:'||v_edition||':rider:'||p."riderId"||':v1'
+        or "oldCash" is null or "newCash" is null or "oldUci" is null or "newUci" is null
+        or "oldXp" is null or "newXp" is null or "oldRep" is null or "newRep" is null
         or least("newCash","newUci","newXp","newRep")<0 or description is null)
     or (select sum("newCash"-"oldCash") from pg_temp.barichara_rewards)<>0
     or (select sum("newUci"-"oldUci") from pg_temp.barichara_rewards)<>0 then
