@@ -239,11 +239,16 @@ export async function getRiderCareerPalmares(
   );
 }
 
-export async function getTeamJuniorPalmaresEntries(
+export async function getTeamJuniorPalmares(
   teamId: string,
-): Promise<CareerPalmaresEntry[]> {
+): Promise<{
+  entries: CareerPalmaresEntry[];
+  finishLineVictoryCount: number;
+}> {
   const normalizedTeamId = teamId.trim().toLowerCase();
-  if (!isUuid(normalizedTeamId)) return [];
+  if (!isUuid(normalizedTeamId)) {
+    return { entries: [], finishLineVictoryCount: 0 };
+  }
 
   const admin = createSupabaseAdminClient();
   const developmentTeamsResult = await collectPaginatedRows<
@@ -269,31 +274,48 @@ export async function getTeamJuniorPalmaresEntries(
   const developmentTeamIds = developmentTeamsResult.data.map(
     (team) => team.id,
   );
-  const resultsResult = await collectChunkedPaginatedRows<
-    DevelopmentResultRow,
-    { message: string },
-    string
-  >({
-    values: developmentTeamIds,
-    fetchPage: async (chunk, from, to) => {
-      const result = await admin
-        .from("development_race_results")
-        .select("id, race_edition_id, rank")
-        .in("development_team_id", chunk)
-        .eq("result_scope", "general")
-        .lte("rank", 3)
-        .order("id", { ascending: true })
-        .range(from, to)
-        .returns<DevelopmentResultRow[]>();
-      return { data: result.data, error: result.error };
-    },
-  });
+  const [resultsResult, finishLineVictoriesResult] = await Promise.all([
+    collectChunkedPaginatedRows<
+      DevelopmentResultRow,
+      { message: string },
+      string
+    >({
+      values: developmentTeamIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("development_race_results")
+          .select("id, race_edition_id, rank")
+          .in("development_team_id", chunk)
+          .eq("result_scope", "general")
+          .lte("rank", 3)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<DevelopmentResultRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    developmentTeamIds.length
+      ? admin
+          .from("development_race_results")
+          .select("id", { count: "exact", head: true })
+          .in("development_team_id", developmentTeamIds)
+          .eq("result_scope", "stage")
+          .eq("rank", 1)
+      : Promise.resolve({ count: 0, error: null }),
+  ]);
   assertQuery(resultsResult.error, "les podiums juniors de l’équipe");
+  assertQuery(
+    finishLineVictoriesResult.error,
+    "les victoires juniors de l’équipe",
+  );
 
-  return loadDevelopmentPalmaresEntries({
-    admin,
-    results: resultsResult.data,
-  });
+  return {
+    entries: await loadDevelopmentPalmaresEntries({
+      admin,
+      results: resultsResult.data,
+    }),
+    finishLineVictoryCount: finishLineVictoriesResult.count ?? 0,
+  };
 }
 
 async function loadProfessionalPalmares({

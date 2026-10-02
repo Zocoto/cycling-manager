@@ -28,7 +28,7 @@ import {
   getPublicTeamSeasonHistory,
   type PublicTeamSeasonHistoryEntry,
 } from "@/services/public-team-history";
-import { getTeamJuniorPalmaresEntries } from "@/services/career-palmares";
+import { getTeamJuniorPalmares } from "@/services/career-palmares";
 
 export type PublicTeamHistoricalLogo = {
   sponsorName: string;
@@ -184,7 +184,7 @@ export async function getPublicTeamProfileHistory(
   const admin = createSupabaseAdminClient();
   const teamSeasonIds = seasonHistory.map((entry) => entry.teamSeasonId);
   const seasonIds = seasonHistory.map((entry) => entry.seasonId);
-  const [contractsResult, registrationsResult, juniorPalmaresEntries] =
+  const [contractsResult, registrationsResult, juniorPalmares] =
     await Promise.all([
       admin
         .from("team_sponsor_contracts")
@@ -210,7 +210,7 @@ export async function getPublicTeamProfileHistory(
           return { data: result.data, error: result.error };
         },
       }),
-      getTeamJuniorPalmaresEntries(normalizedTeamId),
+      getTeamJuniorPalmares(normalizedTeamId),
     ]);
 
   assertQuery(contractsResult.error, "les sponsors historiques de l’équipe");
@@ -470,13 +470,29 @@ export async function getPublicTeamProfileHistory(
       ).values(),
     ],
   });
+  const raceSlugById = new Map(
+    racesResult.data.map((race) => [race.id, race.slug])
+  );
+  const completedRaceKeys = new Set(
+    editions.flatMap((edition) => {
+      const raceSlug = raceSlugById.get(edition.race_id);
+      return isFinalCareerJerseyEdition(edition.status) && raceSlug
+        ? [`${edition.season_id}:${raceSlug}`]
+        : [];
+    })
+  );
+  const finalizedPalmaresCandidates = candidates.filter(
+    (candidate) =>
+      candidate.kind === "stage" ||
+      completedRaceKeys.has(`${candidate.seasonId}:${candidate.raceSlug}`),
+  );
   const logoContext = {
     contracts,
     sponsorRegistry: sponsorRegistryResult.data ?? [],
     contractSeasons: contractSeasonsResult.data ?? [],
   };
   const seasons = seasonHistory.map((season) => {
-    const seasonCandidates = candidates.filter(
+    const seasonCandidates = finalizedPalmaresCandidates.filter(
       (candidate) => candidate.seasonId === season.seasonId
     );
 
@@ -491,7 +507,7 @@ export async function getPublicTeamProfileHistory(
   const recentResults =
     activeSeason && activeSeason.currentDayNumber
       ? selectRecentMajorTeamResults({
-          candidates,
+          candidates: finalizedPalmaresCandidates,
           activeSeasonId: activeSeason.seasonId,
           currentDayNumber: activeSeason.currentDayNumber,
         })
@@ -500,10 +516,17 @@ export async function getPublicTeamProfileHistory(
   const seasonById = new Map(
     seasonHistory.map((season) => [season.seasonId, season]),
   );
-  const professionalPalmaresEntries = candidates.flatMap<CareerPalmaresEntry>(
+  const professionalPalmaresEntries =
+    finalizedPalmaresCandidates.flatMap<CareerPalmaresEntry>(
     (candidate) => {
       const season = seasonById.get(candidate.seasonId);
-      if (candidate.kind !== "race" || candidate.rank > 3 || !season) return [];
+      if (
+        candidate.kind !== "race" ||
+        candidate.rank > 3 ||
+        !season
+      ) {
+        return [];
+      }
 
       return [
         {
@@ -524,29 +547,19 @@ export async function getPublicTeamProfileHistory(
       ];
     },
   );
-  const stageVictories = candidates.flatMap<CareerPalmaresSupplementEntry>(
-    (candidate) => {
-      const season = seasonById.get(candidate.seasonId);
-      if (candidate.kind !== "stage" || candidate.rank !== 1 || !season) {
-        return [];
-      }
+  const stageVictories =
+    finalizedPalmaresCandidates.flatMap<CareerPalmaresSupplementEntry>(
+      (candidate) => {
+        const season = seasonById.get(candidate.seasonId);
+        if (candidate.kind !== "stage" || candidate.rank !== 1 || !season) {
+          return [];
+        }
 
-      return [toPalmaresSupplementEntry(candidate, season)];
-    },
-  );
-  const raceSlugById = new Map(
-    racesResult.data.map((race) => [race.id, race.slug])
-  );
-  const completedRaceKeys = new Set(
-    editions.flatMap((edition) => {
-      const raceSlug = raceSlugById.get(edition.race_id);
-      return isFinalCareerJerseyEdition(edition.status) && raceSlug
-        ? [`${edition.season_id}:${raceSlug}`]
-        : [];
-    })
-  );
+        return [toPalmaresSupplementEntry(candidate, season)];
+      },
+    );
   const distinctiveJerseys =
-    candidates.flatMap<CareerDistinctiveJerseyEntry>((candidate) => {
+    finalizedPalmaresCandidates.flatMap<CareerDistinctiveJerseyEntry>((candidate) => {
       const season = seasonById.get(candidate.seasonId);
       if (
         candidate.kind !== "classification" ||
@@ -566,10 +579,20 @@ export async function getPublicTeamProfileHistory(
         },
       ];
     });
-  const palmares = buildCareerPalmares(
-    [...professionalPalmaresEntries, ...juniorPalmaresEntries],
+  const builtPalmares = buildCareerPalmares(
+    [...professionalPalmaresEntries, ...juniorPalmares.entries],
     { stageVictories, distinctiveJerseys },
   );
+  const palmares: CareerPalmares = {
+    ...builtPalmares,
+    // Le compteur d'équipe correspond aux victoires obtenues sur une ligne
+    // d'arrivée : courses d'un jour et étapes. Les classements généraux et
+    // maillots distinctifs restent au palmarès, mais ne sont pas des victoires
+    // de course. Les leads provisoires sont entièrement écartés.
+    victoryCount:
+      countTeamVictories(finalizedPalmaresCandidates) +
+      juniorPalmares.finishLineVictoryCount,
+  };
 
   return { seasons, recentResults, palmares };
 }

@@ -145,12 +145,22 @@ describe("team result highlights", () => {
     expect(recent.map((entry) => entry.id)).toEqual(["day-11", "day-5"]);
   });
 
-  it("compte les victoires finales et d’étape sans les classements annexes", () => {
+  it("compte uniquement les victoires sur une ligne d’arrivée", () => {
     expect(
       countTeamVictories([
-        result({ id: "race-win" }),
-        result({ id: "stage-win", kind: "stage" }),
-        result({ id: "jersey", kind: "classification" }),
+        result({ id: "one-day-win" }),
+        result({ id: "stage-win", kind: "stage", raceFormat: "stage_race" }),
+        result({
+          id: "intermediate-general-lead",
+          kind: "race",
+          raceFormat: "stage_race",
+        }),
+        result({
+          id: "distinctive-jersey",
+          kind: "classification",
+          raceFormat: "stage_race",
+          classificationType: "mountain",
+        }),
         result({ id: "podium", rank: 2 }),
       ])
     ).toBe(2);

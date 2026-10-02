@@ -100,11 +100,18 @@ export function selectRecentMajorTeamResults({
 }
 
 export function countTeamVictories(candidates: TeamResultCandidate[]): number {
-  return candidates.filter(
-    (candidate) =>
-      candidate.rank === 1 &&
-      (candidate.kind === "race" || candidate.kind === "stage")
-  ).length;
+  return candidates.filter(isTeamFinishLineVictory).length;
+}
+
+export function isTeamFinishLineVictory(
+  candidate: TeamResultCandidate,
+): boolean {
+  if (candidate.rank !== 1) return false;
+
+  return (
+    candidate.kind === "stage" ||
+    (candidate.kind === "race" && candidate.raceFormat === "one_day")
+  );
 }
 
 function compareByImportance(
