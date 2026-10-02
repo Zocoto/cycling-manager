@@ -3528,6 +3528,12 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       abandonments,
       commentary,
     });
+    validateRoadSnapshotGroups(
+      officialSnapshot.groups,
+      [...states.values()]
+        .filter((state) => state.group !== "abandoned")
+        .map((state) => state.rider.id),
+    );
     const progressiveVisualFrames =
       segment.terrain === "climb" || segment.surface === "cobbles"
         ? spreadRoadGroupTransitionsAcrossFrames({
@@ -9963,7 +9969,10 @@ export function buildFlatGroupFinishTimes({
   >;
   elapsedTimeByRiderId: ReadonlyMap<string, number>;
 }) {
-  const leadingGroup = groups.find((group) =>
+  const orderedGroups = [...groups].sort(
+    (first, second) => first.gapToLeaderSeconds - second.gapToLeaderSeconds,
+  );
+  const leadingGroup = orderedGroups.find((group) =>
     group.riderIds.some((riderId) => elapsedTimeByRiderId.has(riderId)),
   );
   if (!leadingGroup) return new Map<string, number>();
@@ -9977,7 +9986,7 @@ export function buildFlatGroupFinishTimes({
   const leadingGroupTimeSeconds = average(leadingGroupTimes);
   const finishTimes = new Map<string, number>();
 
-  for (const group of groups) {
+  for (const group of orderedGroups) {
     const groupTimeSeconds =
       leadingGroupTimeSeconds + Math.max(0, group.gapToLeaderSeconds);
     for (const riderId of group.riderIds) {
@@ -9988,6 +9997,50 @@ export function buildFlatGroupFinishTimes({
   }
 
   return finishTimes;
+}
+
+/** Reject a contradictory sporting snapshot before it can become an official
+ * finish. In v36 exhausted detached riders could retain a zero displayed gap;
+ * converting that snapshot to finish times silently put them ahead of leaders.
+ * Genuine escapees remain valid, including riders dropped from an escape. */
+export function validateRoadSnapshotGroups(
+  groups: readonly RaceGroupSnapshot[],
+  activeRiderIds: readonly string[],
+) {
+  const peloton = groups.filter((group) => group.type === "peloton");
+  if (peloton.length > 1) {
+    throw new Error("Simulation incohérente : plusieurs pelotons principaux.");
+  }
+  const expectedIds = new Set(activeRiderIds);
+  const seenIds = new Set<string>();
+  for (const group of groups) {
+    if (
+      group.riderIds.length === 0 ||
+      !Number.isFinite(group.gapToLeaderSeconds) ||
+      group.gapToLeaderSeconds < 0 ||
+      !Number.isFinite(group.averageEnergy) ||
+      (group.elapsedTimeSeconds !== undefined &&
+        !Number.isFinite(group.elapsedTimeSeconds))
+    ) {
+      throw new Error("Simulation incohérente : groupe ou horloge invalide.");
+    }
+    if (
+      peloton[0] &&
+      group.type === "dropped" &&
+      group.gapToLeaderSeconds <= peloton[0].gapToLeaderSeconds
+    ) {
+      throw new Error("Simulation incohérente : groupe attardé sans retard réel.");
+    }
+    for (const riderId of group.riderIds) {
+      if (!expectedIds.has(riderId) || seenIds.has(riderId)) {
+        throw new Error("Simulation incohérente : coureur dupliqué ou inconnu.");
+      }
+      seenIds.add(riderId);
+    }
+  }
+  if (seenIds.size !== expectedIds.size) {
+    throw new Error("Simulation incohérente : coureur absent des groupes.");
+  }
 }
 
 /**
