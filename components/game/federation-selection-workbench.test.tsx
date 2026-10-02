@@ -69,7 +69,7 @@ describe("FederationSelectionWorkbench hosting", () => {
       ...course, stageType: "individual_time_trial", profileType: "time_trial",
       segments: [{ segmentNumber: 1, distanceKm: 30, terrain: "flat", averageGradientPct: 0, surface: "cobbles", prime: null }],
     };
-    expect(getFederationCourseProfileLabel(timeTrial)).toBe("Plat · Pavé");
+    expect(getFederationCourseProfileLabel(timeTrial)).toBe("Plaine · Pavé");
     const markup = renderToStaticMarkup(<FederationSelectionCoursePreview course={timeTrial} />);
     expect(markup).toContain("CLM individuel");
   });

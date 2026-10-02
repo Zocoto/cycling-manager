@@ -555,9 +555,11 @@ export function FederationSelectionWorkbench({
 
         <div className="flex flex-col gap-4 border-t border-[#315B3E]/10 bg-[#F8FBF9] p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
-            Les juniors sont gérés ici : les DS n’auront plus d’inscription
-            directe depuis leur DevTeam. Un coureur {slot.competition === "Jeux quadriennaux" ? "des Jeux quadriennaux" : "Nations Cup"} ne peut
-            être retenu que sur un seul profil.
+            {slot.category === "junior" ? (
+              <>Seuls les juniors de 16 à 18 ans peuvent être convoqués, qu’ils soient encore en école de cyclisme ou déjà en DevTeam. Les DS n’auront plus d’inscription directe depuis leur DevTeam.</>
+            ) : (
+              <>Un coureur {slot.competition === "Jeux quadriennaux" ? "des Jeux quadriennaux" : "de Nations Cup"} ne peut être retenu que sur un seul profil.</>
+            )}
           </p>
           {canManage ? (
             <div className="flex flex-wrap items-center justify-end gap-2">

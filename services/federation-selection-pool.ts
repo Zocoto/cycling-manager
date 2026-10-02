@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+import { getFederationJuniorBirthYearRange } from "@/lib/game/federation-junior-eligibility";
 import { projectYouthRating } from "@/lib/game/youth-training";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -119,6 +120,8 @@ async function loadFederationSelectionPool({
   gameYear: number;
 }): Promise<FederationSelectionRider[]> {
   const admin = createSupabaseAdminClient();
+  const { minBirthGameYear, maxBirthGameYear } =
+    getFederationJuniorBirthYearRange(gameYear);
   const [ridersResult, juniorsResult] = await Promise.all([
     admin
       .from("riders")
@@ -134,6 +137,8 @@ async function loadFederationSelectionPool({
       )
       .eq("country_id", countryId)
       .in("status", ["active", "recruited"])
+      .gte("birth_game_year", minBirthGameYear)
+      .lte("birth_game_year", maxBirthGameYear)
       .limit(250)
       .returns<JuniorRow[]>(),
   ]);
@@ -304,7 +309,7 @@ async function loadFederationSelectionPool({
       teamName: developmentTeam
         ? developmentTeam.display_name
         : `${academyName} · École de cyclisme`,
-      age: Math.max(15, gameYear - junior.birth_game_year),
+      age: gameYear - junior.birth_game_year,
       profile: getProfile(ratings),
       overall: getOverall(ratings),
       ratings,
