@@ -42,6 +42,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import { getFederationSelectionForecasts } from "./federation-selection-weather";
+import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
 import { buildRaceSegments } from "@/lib/game/race-profiles";
 
 function slot(slotKey: string, competitionCode: string, profileLabel = "Route", riderCategory = "professional") {
@@ -146,7 +147,7 @@ describe("official federation selection courses", () => {
     }
   });
 
-  it("selects junior CC, world and Nations Cup courses without inventing segments", async () => {
+  it("selects junior CC, world and Nations Cup courses with a stable display profile", async () => {
     const events = [
       ["cc", "continental_championship_junior", "continental_road", "europe"],
       ["cm", "world_championship_junior", "world_road", null],
@@ -167,8 +168,15 @@ describe("official federation selection courses", () => {
     for (const [key] of events) {
       expect(forecasts[key].course).toMatchObject({
         stageId: `junior:${key}-stage`, profileType: "hilly", distanceKm: 132,
-        dayNumber: 22, countryName: "Maroc", segments: [], href: `/jeu/resultats-juniors/${key}-juniors`,
+        dayNumber: 22, countryName: "Maroc", href: `/jeu/resultats-juniors/${key}-juniors`,
       });
+      expect(forecasts[key].course?.segments).toEqual(
+        buildDevelopmentRaceDisplaySegments({
+          stageId: `${key}-stage`,
+          distanceKm: 132,
+          profileType: "hilly",
+        }),
+      );
       expect(forecasts[key].eventDayNumber).toBe(22);
       expect(forecasts[key].revealDayNumber).toBe(19);
     }

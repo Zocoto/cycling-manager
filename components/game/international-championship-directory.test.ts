@@ -36,6 +36,10 @@ const profileSource = readFileSync(
   new URL("../../app/jeu/courses/[slug]/race-profile-content.tsx", import.meta.url),
   "utf8",
 );
+const raceCalendarServiceSource = readFileSync(
+  new URL("../../services/race-calendar.ts", import.meta.url),
+  "utf8",
+);
 
 describe("annuaire des championnats internationaux", () => {
   it("regroupe tous les CC et CM et les trie par journée puis créneau", () => {
@@ -153,6 +157,15 @@ describe("annuaire des championnats internationaux", () => {
     expect(profileSource).toContain("INTERNATIONAL_SELECTIONS_HREF");
     expect(profileSource).toContain("Retour aux CC & CM");
     expect(profileSource).toContain("Voir mes convocations");
+  });
+
+  it("fournit aussi un tracé visible aux championnats juniors", () => {
+    expect(raceCalendarServiceSource).toContain(
+      "buildDevelopmentRaceDisplaySegments",
+    );
+    expect(raceCalendarServiceSource).toMatch(
+      /stages: stages\.map\(\(stage\)[\s\S]*segments: buildDevelopmentRaceDisplaySegments\(\{[\s\S]*stageId: stage\.id/,
+    );
   });
 });
 

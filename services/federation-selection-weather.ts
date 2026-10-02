@@ -1,5 +1,6 @@
 import "server-only";
 
+import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
 import type { RaceFormat, RaceProfileType, RaceStageType } from "@/lib/game/race-calendar";
 import {
   ensureCompleteRaceSegments,
@@ -536,6 +537,7 @@ function findJuniorStage({
   )[0];
   if (!selected) return null;
   const edition = editionById.get(selected.race_edition_id)!;
+  const distanceKm = Number(selected.distance_km);
   return {
     raceEditionId: `junior:${edition.id}`,
     stageId: `junior:${selected.id}`,
@@ -549,10 +551,13 @@ function findJuniorStage({
       profileType: selected.profile_type,
       countryCode: edition.country_code,
       countryName: countryByCode.get(edition.country_code)?.name ?? edition.country_code,
-      distanceKm: Number(selected.distance_km),
+      distanceKm,
       dayNumber: selected.day_number,
-      // Junior simulations use the official profile and distance, not road segments.
-      segments: [],
+      segments: buildDevelopmentRaceDisplaySegments({
+        stageId: selected.id,
+        distanceKm,
+        profileType: selected.profile_type,
+      }),
       href: `/jeu/resultats-juniors/${encodeURIComponent(edition.slug)}`,
     },
   };

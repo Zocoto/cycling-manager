@@ -26,6 +26,7 @@ import {
   type SeasonCalendarEvent,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import {
   parseSquadStatus,
@@ -2098,23 +2099,30 @@ async function loadJuniorChampionshipCalendarEditions(
       currentTeamInternationalRiderCount:
         currentTeamCountByEditionId.get(edition.id) ?? 0,
       currentTeamRegistration: null,
-      stages: stages.map((stage) => ({
-        id: `junior:${stage.id}`,
-        dayNumber: stage.day_number,
-        stageNumber: stage.stage_number,
-        name: stage.name,
-        stageType: stage.stage_type,
-        status:
-          edition.status === "completed" || stage.day_number < currentDayNumber
-            ? "completed"
-            : "planned",
-        profileType: stage.profile_type,
-        distanceKm: Number(stage.distance_km),
-        daySlot:
-          stage.stage_type === "individual_time_trial" ? "early" : "late",
-        departureAt: null,
-        segments: [],
-      })),
+      stages: stages.map((stage) => {
+        const distanceKm = Number(stage.distance_km);
+        return {
+          id: `junior:${stage.id}`,
+          dayNumber: stage.day_number,
+          stageNumber: stage.stage_number,
+          name: stage.name,
+          stageType: stage.stage_type,
+          status:
+            edition.status === "completed" || stage.day_number < currentDayNumber
+              ? "completed"
+              : "planned",
+          profileType: stage.profile_type,
+          distanceKm,
+          daySlot:
+            stage.stage_type === "individual_time_trial" ? "early" : "late",
+          departureAt: null,
+          segments: buildDevelopmentRaceDisplaySegments({
+            stageId: stage.id,
+            distanceKm,
+            profileType: stage.profile_type,
+          }),
+        };
+      }),
     };
   });
 }

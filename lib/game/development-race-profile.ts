@@ -2,6 +2,7 @@ import type {
   DevelopmentRace,
   DevelopmentRaceProfile,
 } from "@/services/development-team";
+import { buildRaceSegments } from "@/lib/game/race-profiles";
 
 export const DEVELOPMENT_RACE_PROFILE_LABELS: Record<
   DevelopmentRaceProfile,
@@ -25,6 +26,22 @@ const MIXED_COMPONENT_LABELS: Record<DevelopmentRaceProfile, string> = {
   time_trial: "chrono",
   mixed: "étape polyvalente",
 };
+
+export function buildDevelopmentRaceDisplaySegments({
+  stageId,
+  distanceKm,
+  profileType,
+}: {
+  stageId: string;
+  distanceKm: number;
+  profileType: DevelopmentRaceProfile;
+}) {
+  return buildRaceSegments({
+    distanceKm,
+    profileType,
+    seed: `development-stage:${stageId}`,
+  });
+}
 
 export function getDevelopmentMixedProfileDetail(
   race: Pick<DevelopmentRace, "profileType" | "raceFormat" | "stages">,
