@@ -16,8 +16,13 @@ const nutritionEditor = readFileSync(
 );
 
 describe("nutrition weight visibility", () => {
-  it("affiche discrètement le poids actuel sur chaque ligne de coureur", () => {
-    expect(healthPage).toContain("· Poids ${rider.weightKg.toLocaleString");
+  it("affiche la taille, le poids et son évolution saisonnière sur chaque ligne de coureur", () => {
+    expect(healthPage).toContain('Taille {rider.heightCm.toLocaleString("fr-FR")} cm');
+    expect(healthPage).toContain("Poids {rider.weightKg.toLocaleString");
+    expect(healthPage).toContain("Évolution du poids sur la saison");
+    expect(healthPage).toContain('rider.seasonWeightDeltaKg > 0');
+    expect(healthPage).toContain('text-[#C5483D]');
+    expect(healthPage).toContain('text-[#2F6FB5]');
     expect(healthPage).toContain("riderWeightKg={rider.weightKg}");
   });
 

@@ -161,6 +161,7 @@ type NutritionInterventionRow = {
 };
 type WeightEventRow = {
   rider_id: string;
+  season_id: string | null;
   game_day_index: number;
   source: "supplement" | "weight_cut";
   weight_before_kg: number | string;
@@ -229,6 +230,7 @@ export type TeamHealthRider = {
   heightCm: number | null;
   weightKg: number | null;
   baselineWeightKg: number | null;
+  seasonWeightDeltaKg: number;
   physiologyVersion: number;
   nextWeightCutGameDayIndex: number | null;
   ratings: RiderRatings;
@@ -522,7 +524,7 @@ export async function getCurrentTeamHealthOverview(
     admin
       .from("rider_weight_events")
       .select(
-        "rider_id, game_day_index, source, weight_before_kg, weight_delta_kg, weight_after_kg, form_cost, applied_at",
+        "rider_id, season_id, game_day_index, source, weight_before_kg, weight_delta_kg, weight_after_kg, form_cost, applied_at",
       )
       .in("rider_id", riderIds)
       .order("game_day_index", { ascending: false })
@@ -580,7 +582,15 @@ export async function getCurrentTeamHealthOverview(
     (campsResult.data ?? []).map((camp) => [camp.rider_id, camp]),
   );
   const latestWeightCutByRiderId = new Map<string, WeightEventRow>();
+  const seasonWeightDeltaByRiderId = new Map<string, number>();
   for (const event of weightEventsResult.data ?? []) {
+    if (event.season_id === season.id) {
+      seasonWeightDeltaByRiderId.set(
+        event.rider_id,
+        (seasonWeightDeltaByRiderId.get(event.rider_id) ?? 0) +
+          toNumber(event.weight_delta_kg),
+      );
+    }
     if (
       event.source === "weight_cut" &&
       !latestWeightCutByRiderId.has(event.rider_id)
@@ -660,6 +670,10 @@ export async function getCurrentTeamHealthOverview(
             rider.baseline_weight_kg === null
               ? null
               : toNumber(rider.baseline_weight_kg),
+          seasonWeightDeltaKg:
+            Math.round(
+              (seasonWeightDeltaByRiderId.get(rider.id) ?? 0) * 10,
+            ) / 10,
           physiologyVersion: Number(rider.physiology_version ?? 0),
           nextWeightCutGameDayIndex: latestWeightCutByRiderId.has(rider.id)
             ? (latestWeightCutByRiderId.get(rider.id)?.game_day_index ?? 0) + 5

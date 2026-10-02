@@ -972,10 +972,50 @@ function NutritionPanel({
                         </div>
                         <p className="mt-1 text-xs font-bold text-[#60756E]">
                           Forme {rider.form}/100 · Moral {Math.round(rider.morale)}/100
-                          {rider.weightKg !== null
-                            ? ` · Poids ${rider.weightKg.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg`
-                            : ""}
                         </p>
+                        {rider.heightCm !== null || rider.weightKg !== null ? (
+                          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs font-bold text-[#60756E]">
+                            {rider.heightCm !== null ? (
+                              <span>
+                                Taille {rider.heightCm.toLocaleString("fr-FR")} cm
+                              </span>
+                            ) : null}
+                            {rider.weightKg !== null ? (
+                              <>
+                                <span>
+                                  Poids {rider.weightKg.toLocaleString("fr-FR", {
+                                    minimumFractionDigits: 1,
+                                    maximumFractionDigits: 1,
+                                  })} kg
+                                </span>
+                                <span
+                                  title="Évolution du poids sur la saison"
+                                  aria-label={`Évolution du poids sur la saison : ${rider.seasonWeightDeltaKg > 0 ? "+" : rider.seasonWeightDeltaKg < 0 ? "moins " : "stable à "}${Math.abs(rider.seasonWeightDeltaKg).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kilogramme`}
+                                  className={`text-[10px] font-black ${
+                                    rider.seasonWeightDeltaKg > 0
+                                      ? "text-[#C5483D]"
+                                      : rider.seasonWeightDeltaKg < 0
+                                        ? "text-[#2F6FB5]"
+                                        : "text-[#809189]"
+                                  }`}
+                                >
+                                  {rider.seasonWeightDeltaKg > 0
+                                    ? "+"
+                                    : rider.seasonWeightDeltaKg < 0
+                                      ? "−"
+                                      : "±"}
+                                  {Math.abs(rider.seasonWeightDeltaKg).toLocaleString(
+                                    "fr-FR",
+                                    {
+                                      minimumFractionDigits: 1,
+                                      maximumFractionDigits: 1,
+                                    },
+                                  )} kg
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                       <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633]">
                         {applied ? `+${applied.formGain}` : `${rider.form} %`}

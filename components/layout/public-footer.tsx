@@ -120,7 +120,7 @@ export function PublicFooter() {
                 description={
                   isEnglish ? "Join the official server" : "Rejoindre le serveur officiel"
                 }
-                badge={isEnglish ? "Permanent invite" : "Lien permanent"}
+                badge={isEnglish ? "News & support" : "Actus & entraide"}
                 iconSrc="/images/social/discord-symbol.svg"
                 iconAlt=""
                 iconClassName="h-5 w-7"
