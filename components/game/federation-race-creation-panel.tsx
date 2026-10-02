@@ -46,8 +46,7 @@ const PROFILE_OPTIONS: Array<{
   value: FederationRaceProfileType;
   label: string;
 }> = [
-  { value: "flat", label: "Plat" },
-  { value: "sprint", label: "Sprint" },
+  { value: "flat", label: "Plaine" },
   { value: "hilly", label: "Vallonné" },
   { value: "mountain", label: "Montagne" },
   { value: "cobbles", label: "Pavés" },

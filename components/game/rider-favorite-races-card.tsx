@@ -2,8 +2,8 @@ import Link from "@/components/ui/app-link";
 import type { RiderFavoriteRace } from "@/services/rider-favorite-races";
 
 const PROFILE_LABELS: Record<string, string> = {
-  flat: "Plat",
-  sprint: "Sprint",
+  flat: "Plaine",
+  sprint: "Plaine",
   hilly: "Vallons",
   mountain: "Montagne",
   cobbles: "Pavés",

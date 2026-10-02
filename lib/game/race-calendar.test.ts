@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
+  RACE_PROFILE_LABELS,
   buildCalendarWeeks,
   consolidateFederationCalendarEditions,
   consolidateNationalChampionshipEvents,
@@ -24,6 +25,13 @@ import {
   isUnderfilledRaceRosterCorrectionOpen,
   type RaceCalendarEdition,
 } from "./race-calendar";
+
+describe("race profile labels", () => {
+  it("présente l'ancien profil sprint sous l'unique libellé Plaine", () => {
+    expect(RACE_PROFILE_LABELS.flat).toBe("Plaine");
+    expect(RACE_PROFILE_LABELS.sprint).toBe("Plaine");
+  });
+});
 
 describe("race calendar importance", () => {
   it("préfixe uniquement les Grands Tours et sans doubler le libellé", () => {

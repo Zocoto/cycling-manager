@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getDevelopmentMixedProfileDetail } from "./development-race-profile";
+import {
+  DEVELOPMENT_RACE_PROFILE_LABELS,
+  getDevelopmentMixedProfileDetail,
+} from "./development-race-profile";
 
 describe("getDevelopmentMixedProfileDetail", () => {
   it("détaille les terrains successifs d'un tour mixte", () => {
@@ -15,7 +18,12 @@ describe("getDevelopmentMixedProfileDetail", () => {
           { profileType: "cobbles" },
         ],
       } as Parameters<typeof getDevelopmentMixedProfileDetail>[0]),
-    ).toBe("Programme : sprint · pavés · vallons");
+    ).toBe("Programme : plaine · pavés · vallons");
+  });
+
+  it("regroupe les profils plats et sprint sous Plaine", () => {
+    expect(DEVELOPMENT_RACE_PROFILE_LABELS.flat).toBe("Plaine");
+    expect(DEVELOPMENT_RACE_PROFILE_LABELS.sprint).toBe("Plaine");
   });
 
   it("explique la nature polyvalente d'une classique mixte", () => {

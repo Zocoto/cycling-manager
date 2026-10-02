@@ -24,8 +24,8 @@ import type {
 } from "@/services/team-race-reconnaissance";
 
 const PROFILE_LABELS: Record<RaceProfileType, string> = {
-  flat: "Plat",
-  sprint: "Sprint",
+  flat: "Plaine",
+  sprint: "Plaine",
   hilly: "Vallons",
   mountain: "Montagne",
   cobbles: "Pavés",

@@ -8,7 +8,7 @@ export const DEVELOPMENT_RACE_PROFILE_LABELS: Record<
   string
 > = {
   flat: "Plaine",
-  sprint: "Sprint",
+  sprint: "Plaine",
   hilly: "Vallonné",
   mountain: "Montagne",
   cobbles: "Pavés",
@@ -18,7 +18,7 @@ export const DEVELOPMENT_RACE_PROFILE_LABELS: Record<
 
 const MIXED_COMPONENT_LABELS: Record<DevelopmentRaceProfile, string> = {
   flat: "plaine",
-  sprint: "sprint",
+  sprint: "plaine",
   hilly: "vallons",
   mountain: "montagne",
   cobbles: "pavés",

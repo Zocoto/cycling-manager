@@ -79,7 +79,6 @@ const raceStageSchema = z
     ]),
     profileType: z.enum([
       "flat",
-      "sprint",
       "hilly",
       "mountain",
       "cobbles",

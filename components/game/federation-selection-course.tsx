@@ -8,8 +8,8 @@ export function getFederationCourseProfileLabel(
   course: FederationSelectionCourse,
 ): string {
   const labels = {
-    flat: "Plat",
-    sprint: "Plat · Sprint",
+    flat: "Plaine",
+    sprint: "Plaine",
     hilly: "Vallonné",
     mountain: "Montagneux",
     cobbles: "Pavé",
@@ -24,7 +24,7 @@ export function getFederationCourseProfileLabel(
     ? "Montagneux"
     : course.segments.some((segment) => segment.terrain === "climb" && segment.averageGradientPct >= 3)
       ? "Vallonné"
-      : "Plat";
+      : "Plaine";
   return course.segments.some((segment) => segment.surface === "cobbles")
     ? `${terrain} · Pavé`
     : terrain;

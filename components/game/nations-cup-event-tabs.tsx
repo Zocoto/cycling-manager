@@ -101,7 +101,7 @@ function formatProfile(profileType: string): string {
   const labels: Record<string, string> = {
     mountain: "Montagne",
     hilly: "Vallons",
-    sprint: "Sprint",
+    sprint: "Plaine",
     cobbles: "Pavés",
     time_trial: "Contre-la-montre",
   };

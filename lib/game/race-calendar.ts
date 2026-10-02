@@ -623,7 +623,10 @@ export const RACE_CATEGORY_STYLE: Record<
 
 export const RACE_PROFILE_LABELS: Record<RaceProfileType, string> = {
   flat: "Plaine",
-  sprint: "Sprint",
+  // `sprint` remains a legacy storage alias so historical simulations keep
+  // their original input. Product-facing course profiles are consolidated
+  // under the single "Plaine" label.
+  sprint: "Plaine",
   hilly: "Vallonné",
   mountain: "Montagne",
   cobbles: "Pavés",

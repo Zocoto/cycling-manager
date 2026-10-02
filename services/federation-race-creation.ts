@@ -353,6 +353,9 @@ function parseStages(value: unknown): FederationRaceStageBlueprint[] {
     const candidate = stage as Partial<FederationRaceStageBlueprint>;
     if (typeof candidate.name !== "string" || !isStageType(candidate.stageType) ||
         !isProfileType(candidate.profileType) || !Array.isArray(candidate.segments)) return [];
+    const profileType = candidate.profileType === "sprint"
+      ? "flat"
+      : candidate.profileType;
     const segments = candidate.segments.flatMap((segment) => {
       if (!segment || typeof segment !== "object") return [];
       const item = segment as Record<string, unknown>;
@@ -361,7 +364,7 @@ function parseStages(value: unknown): FederationRaceStageBlueprint[] {
       return [{ distanceKm: item.distanceKm, terrainType: item.terrainType,
         surfaceType: item.surfaceType, averageGradientPct: item.averageGradientPct }];
     });
-    return [{ ...candidate, segments } as FederationRaceStageBlueprint];
+    return [{ ...candidate, profileType, segments } as FederationRaceStageBlueprint];
   });
 }
 

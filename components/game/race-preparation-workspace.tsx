@@ -2299,8 +2299,8 @@ function formatStageDeparture(value: string | null) {
 
 function formatProfile(profile: RaceCalendarStage["profileType"]) {
   return {
-    flat: "Plat",
-    sprint: "Sprint",
+    flat: "Plaine",
+    sprint: "Plaine",
     hilly: "Vallonné",
     mountain: "Montagne",
     cobbles: "Pavés",
