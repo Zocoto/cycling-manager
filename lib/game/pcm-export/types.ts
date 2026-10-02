@@ -58,6 +58,7 @@ export type ContractRow = {
 
 export type RiderRow = {
   id: string;
+  pcm_export_id: number;
   first_name: string;
   last_name: string;
   country_id: string;

@@ -61,6 +61,35 @@ type GalaContextRow = {
   selected_rider_ids: string[] | null;
 };
 
+type PublicStartlistRow = {
+  event_key: PcmGalaRaceKey;
+  team_id: string;
+  team_name: string;
+  team_short_name: string;
+  team_country_code: string;
+  rider_id: string;
+  rider_first_name: string;
+  rider_last_name: string;
+  rider_country_code: string;
+  rider_position: number;
+  registered_at: string;
+};
+
+export type PcmGalaRegisteredTeam = {
+  teamId: string;
+  teamName: string;
+  teamShortName: string;
+  countryCode: string;
+  registeredAt: string;
+  riders: Array<{
+    riderId: string;
+    firstName: string;
+    lastName: string;
+    countryCode: string;
+    position: number;
+  }>;
+};
+
 export type PcmGalaRegistrationContext = {
   riders: PcmGalaRider[];
   eventStatuses: Partial<
@@ -69,14 +98,16 @@ export type PcmGalaRegistrationContext = {
   rosterSize: number;
   selectedEventKey: PcmGalaRaceKey | null;
   selectedRiderIds: string[];
+  publicStartlists: Partial<Record<PcmGalaRaceKey, PcmGalaRegisteredTeam[]>>;
 };
 
 export async function getPcmGalaRegistrationContext(
   supabase: SupabaseServerClient,
 ): Promise<PcmGalaRegistrationContext> {
-  const [rosterResult, contextResult] = await Promise.all([
+  const [rosterResult, contextResult, publicStartlistsResult] = await Promise.all([
     supabase.rpc("get_current_team_roster"),
     supabase.rpc("get_current_team_pcm_gala_context"),
+    supabase.rpc("get_pcm_gala_public_startlists"),
   ]);
 
   if (rosterResult.error) {
@@ -91,8 +122,15 @@ export async function getPcmGalaRegistrationContext(
     );
   }
 
+  if (publicStartlistsResult.error) {
+    throw new Error(
+      `Impossible de charger les engagés gala : ${publicStartlistsResult.error.message}`,
+    );
+  }
+
   const rosterRows = (rosterResult.data ?? []) as RosterRow[];
   const contextRows = (contextResult.data ?? []) as GalaContextRow[];
+  const publicStartlistRows = (publicStartlistsResult.data ?? []) as PublicStartlistRow[];
   const registration = contextRows.find((row) => row.selected_event_key);
   const eligibleRiderIds = new Set(rosterRows.map((row) => row.rider_id));
 
@@ -127,5 +165,38 @@ export async function getPcmGalaRegistrationContext(
     selectedRiderIds: (registration?.selected_rider_ids ?? []).filter((riderId) =>
       eligibleRiderIds.has(riderId),
     ),
+    publicStartlists: groupPublicStartlists(publicStartlistRows),
   };
+}
+
+function groupPublicStartlists(rows: PublicStartlistRow[]) {
+  const grouped: Partial<Record<PcmGalaRaceKey, PcmGalaRegisteredTeam[]>> = {};
+  const teamsByEvent = new Map<string, PcmGalaRegisteredTeam>();
+
+  for (const row of rows) {
+    const lookupKey = `${row.event_key}:${row.team_id}`;
+    let team = teamsByEvent.get(lookupKey);
+    if (!team) {
+      team = {
+        teamId: row.team_id,
+        teamName: row.team_name,
+        teamShortName: row.team_short_name,
+        countryCode: row.team_country_code,
+        registeredAt: row.registered_at,
+        riders: [],
+      };
+      teamsByEvent.set(lookupKey, team);
+      (grouped[row.event_key] ??= []).push(team);
+    }
+
+    team.riders.push({
+      riderId: row.rider_id,
+      firstName: row.rider_first_name,
+      lastName: row.rider_last_name,
+      countryCode: row.rider_country_code,
+      position: row.rider_position,
+    });
+  }
+
+  return grouped;
 }

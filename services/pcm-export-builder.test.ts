@@ -354,6 +354,7 @@ function createSnapshot(): PcmExportSnapshot {
     riders: [
       {
         id: "rider-1",
+        pcm_export_id: 10001,
         first_name: "Roger",
         last_name: "Testeur",
         country_id: "country-fr",

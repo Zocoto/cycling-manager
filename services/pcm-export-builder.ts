@@ -74,6 +74,7 @@ const RATING_COLUMNS = [
 ] as const;
 
 const SPECTATOR_RIDER_COUNT = 10;
+const SPECTATOR_RIDER_ID_START = 9001;
 const SPECTATOR_PCM_RATING = 65;
 const SPECTATOR_TEAM_ID = 243;
 
@@ -253,7 +254,6 @@ function buildDatabaseFromSnapshot(
     "DYN_team_sponsor",
     "IDteam_sponsor",
   );
-  const firstGeneratedCyclistId = nextId(db, "DYN_cyclist", "IDcyclist");
   const firstGeneratedContractId = nextId(
     db,
     "DYN_contract_cyclist",
@@ -280,7 +280,6 @@ function buildDatabaseFromSnapshot(
       "DYN_team_history",
       "IDteam_history",
     );
-    let nextCyclistId = firstGeneratedCyclistId;
     let nextContractId = firstGeneratedContractId;
     const reservedTeamCodes = queryRows(
       db,
@@ -530,7 +529,7 @@ function buildDatabaseFromSnapshot(
         snapshot.ratingPolicy.scale,
       );
       const currentAbility = average(Object.values(converted));
-      const riderId = nextCyclistId++;
+      const riderId = Number(rider.pcm_export_id);
       const contractId = nextContractId++;
       const birthYear = 2026 - Number(rating.age);
       const tourRating = toPcmProfileLevel(
@@ -650,7 +649,7 @@ function buildDatabaseFromSnapshot(
     ) as SqlRow;
 
     for (let index = 1; index <= SPECTATOR_RIDER_COUNT; index += 1) {
-      const riderId = nextCyclistId++;
+      const riderId = SPECTATOR_RIDER_ID_START + index - 1;
       const contractId = nextContractId++;
       insertRow(db, "DYN_cyclist", {
         ...cyclistTemplate,

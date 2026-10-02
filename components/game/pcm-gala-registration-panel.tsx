@@ -38,6 +38,7 @@ export function PcmGalaRegistrationPanel({
   rosterSize,
   selectedEventKey,
   selectedRiderIds,
+  publicStartlists,
   jersey,
   successMessage,
   errorMessage,
@@ -60,6 +61,7 @@ export function PcmGalaRegistrationPanel({
   );
   const isOpen = eventStatuses[activeRaceKey] === "open";
   const hasCompleteSelection = selectedIds.size === rosterSize;
+  const activeRegisteredTeams = publicStartlists[activeRaceKey] ?? [];
 
   function toggleRider(riderId: string) {
     setSelectedIds((current) => {
@@ -96,6 +98,7 @@ export function PcmGalaRegistrationPanel({
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           {PCM_GALA_RACES.map((race) => {
             const status = eventStatuses[race.key];
+            const registeredTeams = publicStartlists[race.key] ?? [];
             const selected = race.key === activeRaceKey;
             const disabled = status !== "open";
 
@@ -142,7 +145,9 @@ export function PcmGalaRegistrationPanel({
 
                 <div className="mt-3 flex items-center justify-between gap-3 text-xs font-black text-[#557068]">
                   <span>{race.distanceKm} km</span>
-                  <span>Profil PCM26 adapté</span>
+                  <span>
+                    {registeredTeams.length} équipe{registeredTeams.length > 1 ? "s" : ""} inscrite{registeredTeams.length > 1 ? "s" : ""}
+                  </span>
                 </div>
                 <p className="mt-3 text-sm font-medium leading-5 text-[#60776F]">
                   {race.shortDescription}
@@ -275,6 +280,74 @@ export function PcmGalaRegistrationPanel({
             <WithdrawButton />
           </form>
         ) : null}
+      </section>
+
+      <section
+        aria-labelledby="gala-startlist-view"
+        className="overflow-hidden rounded-[26px] border border-[#CFE1DC] bg-white shadow-sm"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE9E5] bg-[#123D34] px-4 py-5 text-white sm:px-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
+              Startlist en direct
+            </p>
+            <h2 id="gala-startlist-view" className="mt-1 text-2xl font-black">
+              Engagés · {activeRace.name}
+            </h2>
+          </div>
+          <div className="rounded-full border border-[#9BE0CA]/35 bg-[#9BE0CA]/10 px-3 py-1.5 text-xs font-black text-[#D9F6ED]">
+            {activeRegisteredTeams.length} équipe{activeRegisteredTeams.length > 1 ? "s" : ""} · {activeRegisteredTeams.reduce((total, team) => total + team.riders.length, 0)} coureurs
+          </div>
+        </div>
+
+        {activeRegisteredTeams.length > 0 ? (
+          <div className="grid gap-3 p-4 sm:p-6 lg:grid-cols-2">
+            {activeRegisteredTeams.map((team) => (
+              <details
+                key={team.teamId}
+                className="group rounded-2xl border border-[#D6E5E0] bg-[#F8FBFA] px-4 py-3 open:border-[#8DBEAF] open:bg-white"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[#153A34]">
+                      {team.teamName}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#789088]">
+                      {team.countryCode || "—"} · {team.riders.length} coureurs
+                    </p>
+                  </div>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#E5F2EE] text-lg font-black text-[#176951] transition group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <ol className="mt-3 grid gap-1.5 border-t border-[#E0EBE7] pt-3 sm:grid-cols-2">
+                  {[...team.riders]
+                    .sort((left, right) => left.position - right.position)
+                    .map((rider) => (
+                      <li
+                        key={rider.riderId}
+                        className="flex items-center gap-2 rounded-lg bg-[#EFF6F3] px-2.5 py-2 text-xs font-bold text-[#42675C]"
+                      >
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[10px] font-black text-[#176951]">
+                          {rider.position}
+                        </span>
+                        <span className="min-w-0 truncate">
+                          {rider.firstName} {rider.lastName}
+                        </span>
+                        <span className="ml-auto text-[10px] text-[#879A94]">
+                          {rider.countryCode || "—"}
+                        </span>
+                      </li>
+                    ))}
+                </ol>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <p className="px-5 py-8 text-center text-sm font-semibold text-[#71877F]">
+            Aucune équipe n’est encore inscrite sur cette course.
+          </p>
+        )}
       </section>
     </div>
   );

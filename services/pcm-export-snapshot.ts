@@ -218,6 +218,13 @@ function assertSnapshotIntegrity({
 
   const contractsByRider = countBy(contracts, (row) => row.rider_id);
   const ratingsByRider = countBy(ratings, (row) => row.rider_id);
+  const pcmRiderIds = riders.map((rider) => Number(rider.pcm_export_id));
+  if (
+    pcmRiderIds.some((id) => !Number.isInteger(id) || id < 10001) ||
+    new Set(pcmRiderIds).size !== pcmRiderIds.length
+  ) {
+    throw new Error("Les identifiants PCM permanents des coureurs sont invalides.");
+  }
 
   for (const rider of riders) {
     if (contractsByRider.get(rider.id) !== 1) {

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { PcmExportPanel } from "@/components/game/pcm-export-panel";
+import { PcmGalaStartlistExportPanel } from "@/components/game/pcm-gala-startlist-export-panel";
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -53,6 +54,7 @@ export default async function PcmExportPage() {
         </div>
 
         <PcmExportPanel />
+        <PcmGalaStartlistExportPanel />
       </section>
     </main>
   );
