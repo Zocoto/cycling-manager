@@ -12,6 +12,7 @@ describe("guide public", () => {
       "Jonction des groupes",
       "Grupetto et délais",
       "Journal de course",
+      "Prix de la combativité",
       "Courses régionales et locales",
       "Tous les barèmes de course",
       "Sponsor secondaire",
@@ -29,6 +30,7 @@ describe("guide public", () => {
     for (const expectedImport of [
       "calculateRaceReward",
       "calculateStageReward",
+      "calculateCombativityReward",
       "FORM_CAMP_TYPES",
       "NUTRITION_INTERVENTIONS",
       "REPUTATION_TIERS",

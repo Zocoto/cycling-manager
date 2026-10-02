@@ -106,6 +106,25 @@ export type OfficialAttackParticipant = {
   stageNumbers: number[];
 };
 
+export type OfficialCombativityAward = {
+  scope: "stage" | "race";
+  stageId: string | null;
+  stageNumber: number | null;
+  riderId: string;
+  riderName: string;
+  teamId: string;
+  teamProfileId?: string | null;
+  teamName: string;
+  score: number;
+  distanceAtFrontKm: number;
+  activeRelayDistanceKm: number;
+  chaseDistanceKm: number;
+  attacks: number;
+  maxAdvantageSeconds: number;
+  cashPrize: number;
+  experiencePoints: number;
+};
+
 export type OfficialRaceEditionResults = {
   editionId: string;
   isComplete: boolean;
@@ -114,6 +133,7 @@ export type OfficialRaceEditionResults = {
   generalIsProvisional: boolean;
   secondary: OfficialSecondaryClassification[];
   attackParticipants: OfficialAttackParticipant[];
+  combativityAwards?: OfficialCombativityAward[];
 };
 
 export type OfficialRaceResultsDirectory = Record<

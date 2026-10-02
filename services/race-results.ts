@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  calculateCombativityReward,
   calculateInternationalChampionshipReward,
   calculateNationalChampionshipReward,
   calculateRaceRewardBreakdown,
@@ -25,6 +26,7 @@ import {
   normalizeOfficialResultGapsToLeader,
   shouldSettleRaceEdition,
   type OfficialAttackParticipant,
+  type OfficialCombativityAward,
   type OfficialRaceEditionResults,
   type OfficialRaceResultsDirectory,
   type OfficialResultStatus,
@@ -33,6 +35,11 @@ import {
   type PersistedStageRaceStandings,
   type PersistedStageResultForGeneral,
 } from "@/lib/game/race-results";
+import {
+  calculateStageCombativityRanking,
+  calculateTourCombativityRanking,
+  type CombativityBreakdown,
+} from "@/lib/game/race-combativity";
 import {
   isUnavailableForFollowingStage,
   officialStageSimulationCoversRoster,
@@ -147,6 +154,17 @@ type StageAttackParticipantRow = {
   race_roster_id: string;
   participation_type: "breakaway" | "chase";
   first_segment_number: number;
+};
+
+type RaceCombativityAwardRow = {
+  race_edition_id: string;
+  stage_id: string | null;
+  race_roster_id: string;
+  award_scope: "stage" | "race";
+  combativity_score: number | string;
+  score_breakdown: Partial<CombativityBreakdown> | null;
+  cash_prize: number;
+  experience_points: number;
 };
 
 type IncompleteCompletedEditionRow = {
@@ -520,6 +538,20 @@ async function settleEditionRaceResults({
       assertQuery(stageStatusError, `la reprise du statut de ${stage.name}`);
     }
 
+    if (
+      !resultsOnly &&
+      edition.competitionType === "standard" &&
+      stage.stageType === "road"
+    ) {
+      await persistStageCombativityAward({
+        admin,
+        edition,
+        stage,
+        simulation,
+        rosterByRiderId,
+      });
+    }
+
     if (!stageAlreadyHomologated && stageRows.length !== expectedRosterIds.size) {
       throw new Error(
         `Le classement de ${stage.name} est incomplet (${stageRows.length}/${expectedRosterIds.size}).`,
@@ -624,6 +656,15 @@ async function relockEditionOfficialSimulations({
     .in("stage_id", stageIds);
   assertQuery(attackError, `la purge des attaquants de ${edition.name}`);
 
+  const { error: combativityError } = await admin
+    .from("race_combativity_awards")
+    .delete()
+    .eq("race_edition_id", edition.id);
+  assertQuery(
+    combativityError,
+    `la purge des trophées de combativité de ${edition.name}`,
+  );
+
   const { error: stageResultError } = await admin
     .from("stage_results")
     .delete()
@@ -684,6 +725,7 @@ export async function getOfficialRaceResults(
     secondaryQuery,
     registrationQuery,
     attackParticipantQuery,
+    combativityQuery,
   ] = await Promise.all([
     collectChunkedPaginatedRows<StageResultRow, { message: string }, string>({
       values: stageIds,
@@ -777,6 +819,26 @@ export async function getOfficialRaceResults(
         return { data: result.data, error: result.error };
       },
     }),
+    collectChunkedPaginatedRows<
+      RaceCombativityAwardRow,
+      { message: string },
+      string
+    >({
+      values: editionIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_combativity_awards")
+          .select(
+            "race_edition_id, stage_id, race_roster_id, award_scope, combativity_score, score_breakdown, cash_prize, experience_points",
+          )
+          .in("race_edition_id", chunk)
+          .order("race_edition_id", { ascending: true })
+          .order("stage_id", { ascending: true, nullsFirst: false })
+          .range(from, to)
+          .returns<RaceCombativityAwardRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
   ]);
 
   assertQuery(stageResultQuery.error, "les résultats d’étapes");
@@ -784,6 +846,7 @@ export async function getOfficialRaceResults(
   assertQuery(secondaryQuery.error, "les classements annexes");
   assertQuery(registrationQuery.error, "les inscriptions historiques");
   assertQuery(attackParticipantQuery.error, "les attaquants de course");
+  assertQuery(combativityQuery.error, "les prix de la combativité");
 
   const registrations = registrationQuery.data ?? [];
   const registrationIds = registrations.map((row) => row.id);
@@ -932,6 +995,16 @@ export async function getOfficialRaceResults(
       teamSeasonById,
       riderById,
     });
+    const combativityAwards = buildOfficialCombativityAwards({
+      rows: (combativityQuery.data ?? []).filter(
+        (row) => row.race_edition_id === edition.id,
+      ),
+      edition,
+      rosterById,
+      registrationById,
+      teamSeasonById,
+      riderById,
+    });
 
     directory[edition.id] = {
       editionId: edition.id,
@@ -942,6 +1015,7 @@ export async function getOfficialRaceResults(
         edition.raceFormat === "stage_race" && persistedGeneral.length === 0,
       secondary,
       attackParticipants,
+      combativityAwards,
     } satisfies OfficialRaceEditionResults;
   }
 
@@ -1429,6 +1503,44 @@ async function persistStageAttackParticipants({
   }
 }
 
+async function persistStageCombativityAward({
+  admin,
+  edition,
+  stage,
+  simulation,
+  rosterByRiderId,
+}: {
+  admin: AdminClient;
+  edition: RaceCalendarEdition;
+  stage: RaceCalendarStage;
+  simulation: StageSimulationResult;
+  rosterByRiderId: Map<string, RosterContext>;
+}) {
+  const winner = calculateStageCombativityRanking(simulation)[0];
+  if (!winner) return;
+
+  const roster = requireRoster(rosterByRiderId, winner.riderId);
+  const reward = calculateCombativityReward({
+    tier: edition.categoryCode,
+    scope: "stage",
+  });
+  const { error } = await admin.from("race_combativity_awards").upsert(
+    {
+      award_key: `stage:${stage.id}`,
+      race_edition_id: edition.id,
+      stage_id: stage.id,
+      race_roster_id: roster.rosterId,
+      award_scope: "stage",
+      combativity_score: winner.score,
+      score_breakdown: winner.breakdown,
+      cash_prize: reward.cashPrize,
+      experience_points: reward.experience,
+    },
+    { onConflict: "award_key", ignoreDuplicates: true },
+  );
+  assertQuery(error, `le prix de la combativité de ${stage.name}`);
+}
+
 async function persistSecondaryClassifications({
   admin,
   edition,
@@ -1594,6 +1706,17 @@ async function persistRaceClassification({
       edition,
       finalStage,
       stageClassifications,
+      rosterByRiderId,
+    });
+  }
+
+  if (edition.competitionType === "standard") {
+    await persistCombativityAwardsAndRewards({
+      admin,
+      edition,
+      finalStage,
+      general,
+      simulations,
       rosterByRiderId,
     });
   }
@@ -1791,6 +1914,116 @@ async function persistRaceClassification({
       sandwichRewardError,
       `le bonus Homme Sandwich de ${rider.name}`,
     );
+  }
+}
+
+async function persistCombativityAwardsAndRewards({
+  admin,
+  edition,
+  finalStage,
+  general,
+  simulations,
+  rosterByRiderId,
+}: {
+  admin: AdminClient;
+  edition: RaceCalendarEdition;
+  finalStage: RaceCalendarStage;
+  general: OfficialRiderResult[];
+  simulations: StageSimulationResult[];
+  rosterByRiderId: Map<string, RosterContext>;
+}) {
+  if (edition.raceFormat === "stage_race") {
+    const roadStageIds = new Set(
+      edition.stages
+        .filter((stage) => stage.stageType === "road")
+        .map((stage) => stage.id),
+    );
+    const eligibleRiderIds = new Set(
+      general
+        .filter((result) => result.status === "finished")
+        .map((result) => result.riderId),
+    );
+    const overallWinner = calculateTourCombativityRanking({
+      simulations: simulations.filter((simulation) =>
+        roadStageIds.has(simulation.stageId),
+      ),
+      eligibleRiderIds,
+    })[0];
+
+    if (overallWinner) {
+      const reward = calculateCombativityReward({
+        tier: edition.categoryCode,
+        scope: "tour",
+      });
+      const { error } = await admin.from("race_combativity_awards").upsert(
+        {
+          award_key: `race:${edition.id}`,
+          race_edition_id: edition.id,
+          stage_id: null,
+          race_roster_id: requireRoster(
+            rosterByRiderId,
+            overallWinner.riderId,
+          ).rosterId,
+          award_scope: "race",
+          combativity_score: overallWinner.score,
+          score_breakdown: overallWinner.breakdown,
+          cash_prize: reward.cashPrize,
+          experience_points: reward.experience,
+        },
+        { onConflict: "award_key", ignoreDuplicates: true },
+      );
+      assertQuery(error, `le super-combatif de ${edition.name}`);
+    }
+  }
+
+  const { data: awards, error: awardsError } = await admin
+    .from("race_combativity_awards")
+    .select(
+      "race_edition_id, stage_id, race_roster_id, award_scope, combativity_score, score_breakdown, cash_prize, experience_points",
+    )
+    .eq("race_edition_id", edition.id)
+    .returns<RaceCombativityAwardRow[]>();
+  assertQuery(awardsError, `les trophées de combativité de ${edition.name}`);
+
+  for (const award of awards ?? []) {
+    const riderId = findRiderIdByRosterId(
+      rosterByRiderId,
+      award.race_roster_id,
+    );
+    if (!riderId) continue;
+    const roster = requireRoster(rosterByRiderId, riderId);
+    // Les équipes de détection n'ont pas de finances ni de progression
+    // d'équipe à créditer. Leur trophée demeure néanmoins visible.
+    if (roster.detectionTeamNumber !== null || !roster.teamSeasonId) continue;
+
+    const riderName =
+      edition.engagedRiders.find((rider) => rider.id === riderId)?.name ??
+      "Coureur";
+    const stage = award.stage_id
+      ? edition.stages.find((candidate) => candidate.id === award.stage_id)
+      : null;
+    const isStageAward = award.award_scope === "stage";
+    const description = isStageAward
+      ? `${edition.name} — Étape ${stage?.stageNumber ?? "?"} : ${stage?.name ?? "Course"} — ${riderName} · Prix de la combativité${edition.raceFormat === "stage_race" ? " · règlement de fin de tour" : ""}`
+      : `${edition.name} — ${riderName} · Super-combatif du tour`;
+    const { error: rewardError } = await admin.rpc(
+      "apply_race_roster_competition_reward",
+      {
+        p_source_reference: isStageAward
+          ? `official-combativity:${edition.id}:stage:${award.stage_id}:rider:${riderId}:v1`
+          : `official-combativity:${edition.id}:overall:rider:${riderId}:v1`,
+        p_source_type: isStageAward ? "stage_result" : "race_result",
+        p_race_roster_id: roster.rosterId,
+        p_stage_id: finalStage.id,
+        p_reputation_points: 0,
+        p_experience_points: award.experience_points,
+        p_cash_prize: award.cash_prize,
+        p_uci_points: 0,
+        p_is_victory: false,
+        p_description: description,
+      },
+    );
+    assertQuery(rewardError, `la prime de combativité de ${riderName}`);
   }
 }
 
@@ -2164,6 +2397,71 @@ function buildOfficialAttackParticipants({
       (left.stageNumbers[0] ?? 0) - (right.stageNumbers[0] ?? 0) ||
       left.riderName.localeCompare(right.riderName, "fr"),
   );
+}
+
+function buildOfficialCombativityAwards({
+  rows,
+  edition,
+  rosterById,
+  registrationById,
+  teamSeasonById,
+  riderById,
+}: {
+  rows: RaceCombativityAwardRow[];
+  edition: RaceCalendarEdition;
+  rosterById: Map<string, RaceRosterRow>;
+  registrationById: Map<string, RaceRegistrationRow>;
+  teamSeasonById: Map<string, TeamSeasonRow>;
+  riderById: Map<string, OfficialResultRiderIdentity>;
+}): OfficialCombativityAward[] {
+  const stageNumberById = new Map(
+    edition.stages.map((stage) => [stage.id, stage.stageNumber]),
+  );
+  const asNumber = (value: unknown) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  };
+
+  return rows
+    .flatMap((row) => {
+      const identity = resolveResultIdentity({
+        rosterId: row.race_roster_id,
+        editionId: edition.id,
+        rosterById,
+        registrationById,
+        teamSeasonById,
+        riderById,
+      });
+      if (!identity) return [];
+      const breakdown = row.score_breakdown ?? {};
+      return [
+        {
+          ...identity,
+          scope: row.award_scope,
+          stageId: row.stage_id,
+          stageNumber: row.stage_id
+            ? (stageNumberById.get(row.stage_id) ?? null)
+            : null,
+          score: asNumber(row.combativity_score),
+          distanceAtFrontKm: asNumber(breakdown.distanceAtFrontKm),
+          activeRelayDistanceKm: asNumber(
+            breakdown.activeRelayDistanceKm,
+          ),
+          chaseDistanceKm: asNumber(breakdown.chaseDistanceKm),
+          attacks: asNumber(breakdown.attacks),
+          maxAdvantageSeconds: asNumber(breakdown.maxAdvantageSeconds),
+          cashPrize: row.cash_prize,
+          experiencePoints: row.experience_points,
+        } satisfies OfficialCombativityAward,
+      ];
+    })
+    .sort(
+      (left, right) =>
+        (left.scope === "race" ? 1 : 0) -
+          (right.scope === "race" ? 1 : 0) ||
+        (left.stageNumber ?? Number.MAX_SAFE_INTEGER) -
+          (right.stageNumber ?? Number.MAX_SAFE_INTEGER),
+    );
 }
 
 function buildOfficialSecondaryClassifications({

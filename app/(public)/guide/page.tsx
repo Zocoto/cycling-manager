@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import {
+  calculateCombativityReward,
   calculateInternationalChampionshipReward,
   calculateNationalChampionshipReward,
   calculateRaceReward,
@@ -896,6 +897,12 @@ function RacingSection() {
           Les tops d’étape rapportent de l’argent. Sur un tour, toutes ces primes
           sont comptabilisées et versées au jour de la dernière étape.
         </RuleCard>
+        <RuleCard title="Prix de la combativité">
+          Chaque étape en ligne et chaque classique récompense le coureur qui a
+          le plus animé la course. Les kilomètres à l’avant, les relais, les
+          attaques et l’écart créé comptent ; un tour désigne aussi son
+          super-combatif en cumulant toutes les étapes.
+        </RuleCard>
       </div>
 
       <StrategyNote title="Catégories et wildcards">
@@ -969,7 +976,7 @@ function RewardScalesSection() {
       id="baremes"
       eyebrow="Récompenses officielles"
       title="Tous les barèmes de course"
-      introduction="Les montants ci-dessous sont ceux de la saison 4 et des saisons suivantes. Les saisons 1 à 3 conservent leurs barèmes historiques. La catégorie Locale reprend exactement le barème Régional."
+      introduction="Les barèmes de résultat ci-dessous sont ceux de la saison 4 et des saisons suivantes ; les saisons 1 à 3 conservent leurs montants historiques. Le prix de la combativité s’applique dès son introduction. La catégorie Locale reprend exactement le barème Régional."
       tone="mint"
     >
       <div className="grid gap-5 md:grid-cols-3">
@@ -986,6 +993,12 @@ function RewardScalesSection() {
         <RuleCard title="Contre-la-montre par équipes">
           La récompense d’un résultat collectif est créditée une seule fois à
           l’équipe. Elle n’est pas multipliée par le nombre de coureurs classés.
+        </RuleCard>
+        <RuleCard title="Combatif et super-combatif">
+          Le prix rapporte une petite prime à l’équipe et de l’XP au coureur,
+          sans réputation ni points UCI. Sur une classique, le prix d’étape est
+          le trophée de la course ; sur un tour, le super-combatif ajoute un
+          second gain au cumul des trophées d’étape.
         </RuleCard>
       </div>
 
@@ -1042,6 +1055,7 @@ function RewardScalesSection() {
                   )}
                 />
                 <RaceBonusesTable tier={category.code} />
+                <CombativityRewardsTable tier={category.code} />
               </div>
             </details>
           );
@@ -1162,6 +1176,52 @@ function RaceBonusesTable({ tier }: { tier: RaceCategoryCode }) {
           {formatGuideReward(prime)} par grand prix de la montagne ou sprint
           intermédiaire remporté.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function CombativityRewardsTable({ tier }: { tier: RaceCategoryCode }) {
+  const stageReward = calculateCombativityReward({ tier, scope: "stage" });
+  const tourReward = calculateCombativityReward({ tier, scope: "tour" });
+
+  return (
+    <div className="min-w-0">
+      <h3 className="text-lg font-black text-[#082A2A]">Combativité</h3>
+      <div className="mt-3 overflow-hidden rounded-xl border border-[#315B3E]/10">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-[#0B302B] text-white">
+            <tr>
+              <th className="px-3 py-2.5">Trophée</th>
+              <th className="px-3 py-2.5">XP</th>
+              <th className="px-3 py-2.5">Prime</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#315B3E]/10 bg-white font-semibold text-[#48665F]">
+            <tr>
+              <td className="px-3 py-2.5 font-black text-[#176951]">
+                Étape / classique
+              </td>
+              <td className="px-3 py-2.5">
+                {formatGuideNumber(stageReward.experience)}
+              </td>
+              <td className="px-3 py-2.5">
+                {formatGuideMoney(stageReward.cashPrize)}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-3 py-2.5 font-black text-[#176951]">
+                Super-combatif du tour
+              </td>
+              <td className="px-3 py-2.5">
+                {formatGuideNumber(tourReward.experience)}
+              </td>
+              <td className="px-3 py-2.5">
+                {formatGuideMoney(tourReward.cashPrize)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );

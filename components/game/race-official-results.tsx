@@ -11,6 +11,7 @@ import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type {
   OfficialAttackParticipant,
+  OfficialCombativityAward,
   OfficialRaceEditionResults,
   OfficialRiderResult,
   OfficialSecondaryClassification,
@@ -134,6 +135,12 @@ export function RaceOfficialResults({
 
       <RaceCourseJournal entries={courseJournal} />
 
+      <CombativityTrophies
+        awards={officialResults.combativityAwards ?? []}
+        selectedStageId={selectedStageId}
+        isStageRace={edition.raceFormat === "stage_race"}
+      />
+
       {postRaceInterview ? (
         <PostRaceInterviewPanel initialInterview={postRaceInterview} />
       ) : null}
@@ -179,6 +186,135 @@ export function RaceOfficialResults({
       />
     </section>
   );
+}
+
+function CombativityTrophies({
+  awards,
+  selectedStageId,
+  isStageRace,
+}: {
+  awards: OfficialCombativityAward[];
+  selectedStageId: string;
+  isStageRace: boolean;
+}) {
+  const selectedStageAward = awards.find(
+    (award) => award.scope === "stage" && award.stageId === selectedStageId,
+  );
+  const overallAward = awards.find((award) => award.scope === "race");
+  const visibleAwards = [selectedStageAward, overallAward].filter(
+    (award): award is OfficialCombativityAward => Boolean(award),
+  );
+  if (visibleAwards.length === 0) return null;
+
+  return (
+    <section className="border-b border-[#315B3E]/12 bg-[linear-gradient(135deg,#FFF8DF,#FFFDF5)] px-5 py-5 sm:px-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9A6D00]">
+            Les coureurs qui ont fait la course
+          </p>
+          <h3 className="mt-1 text-lg font-black text-[#3E3108]">
+            Trophées de la combativité
+          </h3>
+        </div>
+        <p className="max-w-xl text-xs font-semibold leading-5 text-[#756837]">
+          L’attribution valorise les attaques, les kilomètres à l’avant, les
+          relais assumés et l’écart créé — indépendamment de la place à l’arrivée.
+        </p>
+      </div>
+
+      <div className={`mt-4 grid gap-3 ${visibleAwards.length > 1 ? "lg:grid-cols-2" : ""}`}>
+        {visibleAwards.map((award) => {
+          const facts = formatCombativityFacts(award);
+          const title =
+            award.scope === "race"
+              ? "Super-combatif du tour"
+              : isStageRace
+                ? `Plus combatif de l’étape ${award.stageNumber ?? ""}`.trim()
+                : "Plus combatif de la classique";
+          return (
+            <article
+              key={`${award.scope}-${award.stageId ?? "overall"}`}
+              className="rounded-2xl border border-[#D8B33F]/35 bg-white px-4 py-4 shadow-[0_8px_24px_rgba(92,69,5,0.08)]"
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#F2C94C] text-xl shadow-inner"
+                >
+                  🏆
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9A6D00]">
+                    {title}
+                  </p>
+                  <Link
+                    href={`/jeu/coureurs/${award.riderId}`}
+                    className="mt-0.5 block truncate text-base font-black text-[#0B302B] hover:text-[#176951] hover:underline"
+                  >
+                    {award.riderName}
+                  </Link>
+                  <TeamHistoryName
+                    teamId={award.teamId}
+                    teamProfileId={award.teamProfileId}
+                    teamName={award.teamName}
+                    className="block truncate text-xs font-bold text-[#688176]"
+                    linkClassName="hover:text-[#176951] hover:underline"
+                  />
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-xs font-black text-[#745600]">
+                    +{award.cashPrize.toLocaleString("fr-FR")} €
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#8A7A42]">
+                    +{award.experiencePoints} XP
+                  </p>
+                </div>
+              </div>
+              {facts.length > 0 ? (
+                <p className="mt-3 border-t border-[#D8B33F]/20 pt-3 text-xs font-semibold leading-5 text-[#756837]">
+                  {facts.join(" · ")}
+                </p>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function formatCombativityFacts(award: OfficialCombativityAward) {
+  const facts = [
+    award.distanceAtFrontKm >= 1
+      ? `${formatRaceDistance(award.distanceAtFrontKm)} à l’avant`
+      : null,
+    award.activeRelayDistanceKm >= 1
+      ? `${formatRaceDistance(award.activeRelayDistanceKm)} de relais actifs`
+      : null,
+    award.attacks > 0
+      ? `${award.attacks} ${award.attacks > 1 ? "attaques" : "attaque"}`
+      : null,
+    award.maxAdvantageSeconds >= 30
+      ? `écart maximal ${formatRaceGap(award.maxAdvantageSeconds)}`
+      : null,
+  ].filter((fact): fact is string => Boolean(fact));
+  return facts.slice(0, 4);
+}
+
+function formatRaceDistance(distanceKm: number) {
+  return `${distanceKm.toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+  })} km`;
+}
+
+function formatRaceGap(seconds: number) {
+  const roundedSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(roundedSeconds / 60);
+  const remainingSeconds = roundedSeconds % 60;
+  return minutes > 0
+    ? `${minutes}′${String(remainingSeconds).padStart(2, "0")}″`
+    : `${remainingSeconds}″`;
 }
 
 function RaceAnimators({

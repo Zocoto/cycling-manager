@@ -50,6 +50,13 @@ export type StagePrizeInput = {
   gameYear?: number;
 };
 
+export type CombativityRewardScope = "stage" | "tour";
+
+export type CombativityRewardInput = {
+  tier: RaceTier;
+  scope: CombativityRewardScope;
+};
+
 export type NationalChampionshipRewardInput = {
   finalRank: number | null;
   gameYear?: number;
@@ -330,6 +337,40 @@ const SEASON_FOUR_STAGE_PRIZE_SCALES: Record<RewardScaleTier, StagePrizeRule[]> 
     { maxRank: 10, experience: 7, cashPrize: 750, uciPoints: 12 },
     { maxRank: 15, experience: 3, cashPrize: 300, uciPoints: 5 },
   ],
+};
+
+/**
+ * Prime volontairement inférieure à une victoire. Elle récompense le spectacle
+ * sans créer de points UCI ni gonfler mécaniquement la réputation.
+ */
+export const COMBATIVITY_REWARD_SCALES: Record<
+  RaceTier,
+  Record<CombativityRewardScope, Pick<RaceReward, "experience" | "cashPrize">>
+> = {
+  local: {
+    stage: { experience: 5, cashPrize: 250 },
+    tour: { experience: 15, cashPrize: 600 },
+  },
+  regional: {
+    stage: { experience: 5, cashPrize: 250 },
+    tour: { experience: 15, cashPrize: 600 },
+  },
+  national: {
+    stage: { experience: 8, cashPrize: 450 },
+    tour: { experience: 22, cashPrize: 1_100 },
+  },
+  continental: {
+    stage: { experience: 12, cashPrize: 700 },
+    tour: { experience: 32, cashPrize: 1_800 },
+  },
+  world: {
+    stage: { experience: 20, cashPrize: 1_600 },
+    tour: { experience: 55, cashPrize: 4_000 },
+  },
+  elite: {
+    stage: { experience: 32, cashPrize: 3_000 },
+    tour: { experience: 90, cashPrize: 8_000 },
+  },
 };
 
 const SEASON_FOUR_REWARD_SCALES: Record<
@@ -979,6 +1020,19 @@ export function calculateStageReward({
 
 export function calculateStagePrize(input: StagePrizeInput): number {
   return calculateStageReward(input).cashPrize;
+}
+
+export function calculateCombativityReward({
+  tier,
+  scope,
+}: CombativityRewardInput): RaceReward {
+  const reward = COMBATIVITY_REWARD_SCALES[tier][scope];
+  return {
+    reputation: 0,
+    experience: reward.experience,
+    cashPrize: reward.cashPrize,
+    uciPoints: 0,
+  };
 }
 
 export function calculateRiderSeasonSalary({
