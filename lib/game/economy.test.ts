@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildFinanceProjection,
+  calculateCombativityReward,
   calculateDebtReputationPenalty,
   calculateNationalChampionshipReward,
   calculateRaceReward,
@@ -12,6 +13,39 @@ import {
   getDivisionForRank,
   selectWildcardTeams,
 } from "./economy";
+
+describe("calculateCombativityReward", () => {
+  it("reste inférieur à une victoire d'étape et ne donne ni réputation ni points UCI", () => {
+    const combativity = calculateCombativityReward({
+      tier: "world",
+      scope: "stage",
+    });
+    const stageWin = calculateStageReward({
+      gameYear: 4,
+      tier: "world",
+      finalRank: 1,
+    });
+
+    expect(combativity).toEqual({
+      reputation: 0,
+      experience: 20,
+      cashPrize: 1_600,
+      uciPoints: 0,
+    });
+    expect(combativity.cashPrize).toBeLessThan(stageWin.cashPrize);
+  });
+
+  it("ajoute une vraie prime au super-combatif d'un tour", () => {
+    expect(
+      calculateCombativityReward({ tier: "elite", scope: "tour" }),
+    ).toEqual({
+      reputation: 0,
+      experience: 90,
+      cashPrize: 8_000,
+      uciPoints: 0,
+    });
+  });
+});
 
 describe("calculateRaceReward", () => {
   it("respecte le barème de réputation d’un grand tour Élite", () => {

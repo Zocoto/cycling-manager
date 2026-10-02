@@ -206,4 +206,43 @@ describe("RaceOfficialResults", () => {
       markup.indexOf("Classements de la course"),
     );
   });
+
+  it("met en avant le plus combatif de la classique et sa prime", () => {
+    const results = buildResults("team-active");
+    results.combativityAwards = [
+      {
+        scope: "stage",
+        stageId: "stage-1",
+        stageNumber: 1,
+        riderId: "rider-1",
+        riderName: "Camille Rapide",
+        teamId: "team-active",
+        teamProfileId: "team-active",
+        teamName: "Vélo Club Amateur",
+        score: 142,
+        distanceAtFrontKm: 82.5,
+        activeRelayDistanceKm: 31,
+        chaseDistanceKm: 0,
+        attacks: 2,
+        maxAdvantageSeconds: 245,
+        cashPrize: 700,
+        experiencePoints: 12,
+      },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <RaceOfficialResults
+        gameYear={3}
+        edition={edition}
+        selectedStageId="stage-1"
+        officialResults={results}
+      />,
+    );
+
+    expect(markup).toContain("Trophées de la combativité");
+    expect(markup).toContain("Plus combatif de la classique");
+    expect(markup).toContain("82,5 km à l’avant");
+    expect(markup).toContain("+700 €");
+    expect(markup).toContain("+12 XP");
+  });
 });
