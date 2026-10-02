@@ -56,6 +56,7 @@ export type SpecialAbilityDefinition = {
 
 export const PISTARD_SHORT_TIME_TRIAL_MAX_KM = 12;
 export const PISTARD_TIME_TRIAL_MAX_KM = 25;
+export const FLAHUTE_ENERGY_COST_REDUCTION = 0.08;
 export const THREE_LUNGS_FORM_REDUCTION = 0.25;
 export const THREE_LUNGS_MAX_FORM_SAVING = 4;
 export const CYCLOCROSSMAN_TERRAIN_BONUS = 3;
@@ -66,7 +67,7 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
   {
     code: "flahute",
     name: "Flahute",
-    effect: "Réduit de 12 % la dépense d’énergie dans la seconde moitié de course et sur les secteurs les plus exigeants.",
+    effect: `Réduit de ${FLAHUTE_ENERGY_COST_REDUCTION * 100} % la dépense d’énergie dans la seconde moitié de course et sur les secteurs les plus exigeants.`,
     icon: "thigh",
     tone: "silver",
   },

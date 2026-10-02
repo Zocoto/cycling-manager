@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-stable-selective-groups-v39";
+  "2026.10-contextual-cobbles-finishes-v40";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

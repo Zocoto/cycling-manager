@@ -34,6 +34,7 @@ import {
 import {
   applyMetronomeToRaceDaySwing,
   doesCyclocrossmanAvoidCobbledCrash,
+  FLAHUTE_ENERGY_COST_REDUCTION,
   getCyclocrossmanTerrainBonus,
   getPistardTimeTrialBonus,
   hasSpecialAbility,
@@ -691,6 +692,7 @@ type RiderState = {
   rider: RiderSimulationInput;
   energy: number;
   raceDayExecutionBonus: number;
+  cobblesSectorExecutionBonus: number;
   decisiveAttackBonus: number;
   decisiveAttackGapPotentialSeconds?: number;
   injuryPerformancePenalty: number;
@@ -717,6 +719,11 @@ type RiderState = {
 };
 
 export type RoadFinishMode = "mass_sprint" | "reduced_sprint" | "selective";
+
+export type CobblesFinishArchetype =
+  | "rolling"
+  | "attritional"
+  | "hilly";
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
@@ -2053,6 +2060,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         rider,
         energy: clamp(rider.form, 5, 100),
         raceDayExecutionBonus: getRiderRaceDayExecutionBonus(input, rider),
+        cobblesSectorExecutionBonus:
+          getRiderCobblesSectorExecutionBonus(input, rider),
         decisiveAttackBonus: 0,
         injuryPerformancePenalty: 0,
         finalSprintCrashFinishPenalty: 0,
@@ -2197,6 +2206,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     likelyMassSprint,
   });
   let hillyClimbLoad = 0;
+  let cobblesExecutionCommentaryPublished = false;
 
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
@@ -2206,6 +2216,36 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           .filter((report) => report.triggered)
           .map((report) => report.summary),
       );
+    }
+    if (
+      input.profileType === "cobbles" &&
+      segment.surface === "cobbles" &&
+      !cobblesExecutionCommentaryPublished
+    ) {
+      const activeStates = [...states.values()].filter(
+        (state) => state.group !== "abandoned",
+      );
+      const mostComfortable = [...activeStates].sort(
+        (left, right) =>
+          right.cobblesSectorExecutionBonus -
+          left.cobblesSectorExecutionBonus,
+      )[0];
+      const leastComfortable = [...activeStates].sort(
+        (left, right) =>
+          left.cobblesSectorExecutionBonus -
+          right.cobblesSectorExecutionBonus,
+      )[0];
+      if ((mostComfortable?.cobblesSectorExecutionBonus ?? 0) >= 1.8) {
+        commentary.push(
+          `${mostComfortable.rider.name} trouve immédiatement les bonnes trajectoires et paraît particulièrement à l’aise sur les pavés aujourd’hui.`,
+        );
+      }
+      if ((leastComfortable?.cobblesSectorExecutionBonus ?? 0) <= -1.8) {
+        commentary.push(
+          `${leastComfortable.rider.name} peine davantage à trouver son rythme dans les premiers secteurs pavés.`,
+        );
+      }
+      cobblesExecutionCommentaryPublished = true;
     }
     const incidents: RaceIncident[] = [];
     const strategyAttackLaunched = attemptPlannedStrategyAttacks({
@@ -3756,6 +3796,7 @@ function simulateIndividualTimeTrial(
         raceDayExecutionBonus: getRiderTimeTrialMoraleExecutionBias(
           rider.morale ?? DEFAULT_RIDER_MORALE,
         ),
+        cobblesSectorExecutionBonus: 0,
         decisiveAttackBonus: 0,
         injuryPerformancePenalty: 0,
         finalSprintCrashFinishPenalty: 0,
@@ -3872,6 +3913,7 @@ function simulateTeamTimeTrial(
         raceDayExecutionBonus: getRiderTimeTrialMoraleExecutionBias(
           rider.morale ?? DEFAULT_RIDER_MORALE,
         ),
+        cobblesSectorExecutionBonus: 0,
         decisiveAttackBonus: 0,
         injuryPerformancePenalty: 0,
         finalSprintCrashFinishPenalty: 0,
@@ -5353,7 +5395,10 @@ function updateRiderEnergy({
       ? getSelectionTerrainRating(rider, segment, profileType, hillyClimbLoad)
       : getTerrainRating(rider, segment)) +
     state.raceDayExecutionBonus * 0.65 -
-    state.injuryPerformancePenalty;
+    state.injuryPerformancePenalty +
+    (segment.surface === "cobbles"
+      ? state.cobblesSectorExecutionBonus
+      : 0);
   const terrainDeficit = Math.max(
     0,
     (groupPaceRating ?? riderTerrainRating) - riderTerrainRating,
@@ -5366,7 +5411,7 @@ function updateRiderEnergy({
     hasSpecialAbility(rider, "flahute") &&
     (segmentIndex > segmentCount * 0.45 || terrainLoad > 1.25)
   ) {
-    abilityFactor *= 0.88;
+    abilityFactor *= 1 - FLAHUTE_ENERGY_COST_REDUCTION;
   }
   if (hasSpecialAbility(rider, "locomotive") && isWorking) {
     abilityFactor *= 0.84;
@@ -8954,6 +8999,8 @@ function getRoadFinishScores(
   const peloton = getStatesInGroup(states, "peloton");
   const trainScores = getSprintTrainScores(peloton);
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
+  const cobblesFinishArchetype =
+    profileType === "cobbles" ? getCobblesFinishArchetype(segments) : null;
   const positionedTeams = [...trainScores.entries()]
     .filter(([, score]) => score > 0)
     .sort((first, second) => second[1] - first[1])
@@ -9113,6 +9160,49 @@ function getRoadFinishScores(
           ) /
             100;
       }
+    } else if (
+      profileType === "cobbles" &&
+      cobblesFinishArchetype &&
+      state.group !== "abandoned"
+    ) {
+      const trainRank = positionedTeams.indexOf(rider.teamId);
+      const borrowedWheel = borrowedWheelByRiderId.has(rider.id);
+      const positioningBonus = reducedSprintFinish
+        ? borrowedWheel
+          ? Math.max(1.6, trainRank === 0 ? 1.8 : trainRank === 1 ? 1 : 0)
+          : trainRank === 0
+            ? 1.8
+            : trainRank === 1
+              ? 1
+              : trainRank === 2
+                ? 0.4
+                : 0
+        : 0;
+      const roleBonus = getCobblesFinishRoleBonus({
+        role: rider.role,
+        archetype: cobblesFinishArchetype,
+        finishMode,
+      });
+      const specialistBonus = hasSpecialAbility(rider, "cyclocrossman")
+        ? 1.2
+        : 0;
+      score =
+        getCobblesFinishBaseScore({
+          rider,
+          segments,
+          energy: state.energy,
+          finishMode,
+          archetype: cobblesFinishArchetype,
+        }) +
+        getRaceDayBonus(rider) * 0.55 +
+        positioningBonus +
+        roleBonus +
+        specialistBonus +
+        state.cobblesSectorExecutionBonus * 0.8;
+      scoreNoiseFactor = cobblesFinishArchetype === "rolling" ? 0.95 : 0.85;
+      if (!reducedSprintFinish && state.group === "peloton") {
+        finalAttackScores.push({ state, score });
+      }
     } else if (reducedSprintFinish && state.group !== "abandoned") {
       const trainRank = positionedTeams.indexOf(rider.teamId);
       const positioningBonus =
@@ -9210,7 +9300,8 @@ function getRoadFinishScores(
           SCORE_NOISE *
           scoreNoiseFactor *
           (state.tacticalNoiseMultiplier ?? 1) +
-        state.raceDayExecutionBonus * (massSprintFinish ? 0.7 : 1) +
+        state.raceDayExecutionBonus *
+          (massSprintFinish ? 0.7 : profileType === "cobbles" ? 1.15 : 1) +
         state.decisiveAttackBonus -
         state.injuryPerformancePenalty +
         (state.tacticalFinishBonus ?? 0) -
@@ -9234,11 +9325,174 @@ function getRoadFinishScores(
         ? `${finalAttacker.name} impose son rythme dans la longue ascension finale ; les purs grimpeurs prennent progressivement le dessus.`
         : profileType === "mountain"
           ? `${finalAttacker.name} déclenche la bataille des leaders dans la dernière ascension ; chacun tente de suivre à son rythme.`
+          : profileType === "cobbles"
+            ? cobblesFinishArchetype === "hilly"
+              ? `${finalAttacker.name} accélère dans les derniers pavés vallonnés, où placement et explosivité font la différence.`
+              : cobblesFinishArchetype === "attritional"
+                ? `${finalAttacker.name} profite de l’usure des secteurs pavés pour durcir la course jusque dans le final.`
+                : `${finalAttacker.name} se place au bon moment dans le final pavé roulant et tente de surprendre les sprinteurs.`
           : `${finalAttacker.name} choisit son moment et place une accélération tranchante dans le final vallonné.`,
     );
   }
 
   return scores;
+}
+
+/**
+ * Les courses pavées ne racontent pas toutes la même finale. On regarde les
+ * 45 derniers kilomètres, puis l'usure accumulée sur l'ensemble du parcours,
+ * afin de distinguer un final roulant, une course d'usure et des pavés
+ * vallonnés. Le classement reste déterministe pour un même tracé.
+ */
+export function getCobblesFinishArchetype(
+  segments: RaceStageSegment[],
+): CobblesFinishArchetype {
+  const finishWindowKm = 45;
+  let remainingFinishDistanceKm = finishWindowKm;
+  let finishCobblesDistanceKm = 0;
+  let finishClimbDistanceKm = 0;
+  let finishClimbLoad = 0;
+
+  for (
+    let index = segments.length - 1;
+    index >= 0 && remainingFinishDistanceKm > 0;
+    index -= 1
+  ) {
+    const segment = segments[index];
+    const distanceInsideWindowKm = Math.min(
+      segment.distanceKm,
+      remainingFinishDistanceKm,
+    );
+    if (segment.surface === "cobbles") {
+      finishCobblesDistanceKm += distanceInsideWindowKm;
+    }
+    if (segment.terrain === "climb") {
+      finishClimbDistanceKm += distanceInsideWindowKm;
+      finishClimbLoad +=
+        distanceInsideWindowKm * Math.max(0, segment.averageGradientPct);
+    }
+    remainingFinishDistanceKm -= distanceInsideWindowKm;
+  }
+
+  if (finishClimbDistanceKm >= 4 && finishClimbLoad >= 24) {
+    return "hilly";
+  }
+
+  const totalDistanceKm = segments.reduce(
+    (total, segment) => total + segment.distanceKm,
+    0,
+  );
+  const totalCobblesDistanceKm = segments.reduce(
+    (total, segment) =>
+      total + (segment.surface === "cobbles" ? segment.distanceKm : 0),
+    0,
+  );
+  if (
+    finishCobblesDistanceKm >= 18 ||
+    (totalDistanceKm >= 180 && totalCobblesDistanceKm >= 55)
+  ) {
+    return "attritional";
+  }
+
+  return "rolling";
+}
+
+export function getCobblesFinishRoleBonus({
+  role,
+  archetype,
+  finishMode,
+}: {
+  role: RaceRole;
+  archetype: CobblesFinishArchetype;
+  finishMode: RoadFinishMode;
+}) {
+  const reducedSprint = finishMode === "reduced_sprint";
+
+  if (role === "leader") return reducedSprint ? 1.25 : 3.5;
+  if (role === "leader_sprinter") {
+    return reducedSprint ? 1.5 : archetype === "rolling" ? 0.75 : 0;
+  }
+  if (role === "sprinter") {
+    return reducedSprint ? 1.5 : archetype === "rolling" ? 0.75 : 0;
+  }
+  if (role === "protected_rider") return 0.75;
+  if (role === "free_agent") return 0.5;
+  return 0;
+}
+
+export function getCobblesFinishBaseScore({
+  rider,
+  segments,
+  energy,
+  finishMode,
+  archetype = getCobblesFinishArchetype(segments),
+}: {
+  rider: RiderSimulationInput;
+  segments: RaceStageSegment[];
+  energy: number;
+  finishMode: RoadFinishMode;
+  archetype?: CobblesFinishArchetype;
+}) {
+  const reducedSprint = finishMode === "reduced_sprint";
+  const decisiveFinishRating = getDecisiveRoadFinishRating(rider, segments);
+
+  if (archetype === "rolling") {
+    return reducedSprint
+      ? rider.ratings.cobbles * 0.24 +
+          rider.ratings.flat * 0.16 +
+          rider.ratings.sprint * 0.2 +
+          rider.ratings.acceleration * 0.14 +
+          rider.ratings.resistance * 0.08 +
+          rider.ratings.endurance * 0.05 +
+          decisiveFinishRating * 0.08 +
+          energy * 0.05
+      : rider.ratings.cobbles * 0.28 +
+          rider.ratings.flat * 0.17 +
+          rider.ratings.sprint * 0.1 +
+          rider.ratings.acceleration * 0.15 +
+          rider.ratings.resistance * 0.1 +
+          rider.ratings.endurance * 0.08 +
+          decisiveFinishRating * 0.08 +
+          energy * 0.04;
+  }
+
+  if (archetype === "hilly") {
+    return reducedSprint
+      ? rider.ratings.cobbles * 0.27 +
+          rider.ratings.hills * 0.2 +
+          rider.ratings.sprint * 0.12 +
+          rider.ratings.acceleration * 0.14 +
+          rider.ratings.resistance * 0.1 +
+          rider.ratings.endurance * 0.08 +
+          decisiveFinishRating * 0.05 +
+          energy * 0.04
+      : rider.ratings.cobbles * 0.3 +
+          rider.ratings.hills * 0.24 +
+          rider.ratings.sprint * 0.04 +
+          rider.ratings.acceleration * 0.14 +
+          rider.ratings.resistance * 0.11 +
+          rider.ratings.endurance * 0.08 +
+          decisiveFinishRating * 0.05 +
+          energy * 0.04;
+  }
+
+  return reducedSprint
+    ? rider.ratings.cobbles * 0.32 +
+        rider.ratings.flat * 0.09 +
+        rider.ratings.sprint * 0.13 +
+        rider.ratings.acceleration * 0.1 +
+        rider.ratings.resistance * 0.14 +
+        rider.ratings.endurance * 0.12 +
+        decisiveFinishRating * 0.06 +
+        energy * 0.04
+    : rider.ratings.cobbles * 0.37 +
+        rider.ratings.flat * 0.08 +
+        rider.ratings.sprint * 0.04 +
+        rider.ratings.acceleration * 0.09 +
+        rider.ratings.resistance * 0.16 +
+        rider.ratings.endurance * 0.14 +
+        decisiveFinishRating * 0.08 +
+        energy * 0.04;
 }
 
 export function getReducedSprintFinishBaseScore({
@@ -11205,7 +11459,10 @@ function getStateTerrainRating(state: RiderState, segment: RaceStageSegment) {
   return (
     getTerrainRating(state.rider, segment) +
     state.raceDayExecutionBonus * 0.65 -
-    state.injuryPerformancePenalty
+    state.injuryPerformancePenalty +
+    (segment.surface === "cobbles"
+      ? state.cobblesSectorExecutionBonus
+      : 0)
   );
 }
 
@@ -11223,7 +11480,10 @@ function getStateSelectionTerrainRating(
       hillyClimbLoad,
     ) +
     state.raceDayExecutionBonus * 0.65 -
-    state.injuryPerformancePenalty
+    state.injuryPerformancePenalty +
+    (segment.surface === "cobbles"
+      ? state.cobblesSectorExecutionBonus
+      : 0)
   );
 }
 
@@ -11501,6 +11761,26 @@ function getRiderRaceDayExecutionBonus(
     ),
     3,
   );
+}
+
+export function getRiderCobblesSectorExecutionBonus(
+  input: Pick<StageSimulationInput, "id" | "seed" | "profileType">,
+  rider: Pick<
+    RiderSimulationInput,
+    "id" | "specialAbility" | "specialAbilities"
+  >,
+) {
+  if (input.profileType !== "cobbles") return 0;
+
+  const random = createSeededRandom(
+    `${input.id}:${input.seed}:cobbles-sector-execution:${rider.id}`,
+  );
+  const rawBonus = (random() * 2 - 1) * 3;
+  const adjustedBonus =
+    hasSpecialAbility(rider, "cyclocrossman") && rawBonus < 0
+      ? rawBonus * 0.6
+      : rawBonus;
+  return round(adjustedBonus, 3);
 }
 
 function getBaseSpeed(segment: RaceStageSegment) {

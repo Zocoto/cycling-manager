@@ -43,6 +43,10 @@ import {
   getNonMassFinishEffortGapSeconds,
   getRoadCrashRiskProfile,
   getRoadFinishMode,
+  getCobblesFinishArchetype,
+  getCobblesFinishBaseScore,
+  getCobblesFinishRoleBonus,
+  getRiderCobblesSectorExecutionBonus,
   getRaceObjectiveControllingTeamIds,
   getReducedSprintFinishBaseScore,
   isFlatRunInGroupSprint,
@@ -309,6 +313,187 @@ describe("qualification sportive du final", () => {
     });
 
     expect(hillyFinisherScore).toBeGreaterThan(lateSprinterScore);
+  });
+
+  it("distingue les finales pavées roulantes, d'usure et vallonnées", () => {
+    const segment = (
+      segmentNumber: number,
+      distanceKm: number,
+      terrain: RaceStageSegment["terrain"],
+      averageGradientPct: number,
+      surface: RaceStageSegment["surface"],
+    ): RaceStageSegment => ({
+      segmentNumber,
+      distanceKm,
+      terrain,
+      averageGradientPct,
+      surface,
+      prime: null,
+    });
+
+    expect(
+      getCobblesFinishArchetype([
+        segment(1, 30, "flat", 0, "asphalt"),
+        segment(2, 10, "flat", 0, "cobbles"),
+        segment(3, 25, "flat", 0, "asphalt"),
+      ]),
+    ).toBe("rolling");
+    expect(
+      getCobblesFinishArchetype([
+        segment(1, 25, "flat", 0, "asphalt"),
+        segment(2, 20, "flat", 0, "cobbles"),
+        segment(3, 20, "flat", 0, "cobbles"),
+        segment(4, 5, "flat", 0, "asphalt"),
+      ]),
+    ).toBe("attritional");
+    expect(
+      getCobblesFinishArchetype([
+        segment(1, 25, "flat", 0, "cobbles"),
+        segment(2, 8, "climb", 4, "cobbles"),
+        segment(3, 12, "flat", 0, "asphalt"),
+      ]),
+    ).toBe("hilly");
+  });
+
+  it("attribue une aisance pavée du jour bornée, stable et visible dans le direct", () => {
+    const input = createDemoSimulationInput("paves-zelande", 17);
+    const bonuses = input.riders.map((rider) =>
+      getRiderCobblesSectorExecutionBonus(input, rider),
+    );
+
+    expect(Math.min(...bonuses)).toBeGreaterThanOrEqual(-3);
+    expect(Math.max(...bonuses)).toBeLessThanOrEqual(3);
+    expect(new Set(bonuses).size).toBeGreaterThan(1);
+    expect(
+      getRiderCobblesSectorExecutionBonus(input, input.riders[0]!),
+    ).toBe(bonuses[0]);
+    expect(
+      getRiderCobblesSectorExecutionBonus(
+        { ...input, profileType: "flat" },
+        input.riders[0]!,
+      ),
+    ).toBe(0);
+
+    const simulation = simulateRaceStage(input);
+    expect(
+      simulation.timeline.some((snapshot) =>
+        snapshot.commentary.some(
+          (line) =>
+            line.includes("bonnes trajectoires") ||
+            line.includes("trouver son rythme"),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("fait émerger des favoris différents selon la nature du final pavé", () => {
+    const segments: RaceStageSegment[] = [
+      {
+        segmentNumber: 1,
+        distanceKm: 20,
+        terrain: "flat",
+        averageGradientPct: 0,
+        surface: "cobbles",
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 10,
+        terrain: "climb",
+        averageGradientPct: 4,
+        surface: "cobbles",
+        prime: null,
+      },
+      {
+        segmentNumber: 3,
+        distanceKm: 15,
+        terrain: "flat",
+        averageGradientPct: 0,
+        surface: "asphalt",
+        prime: null,
+      },
+    ];
+    const rollingSprinter = createSelectionTestRider("rolling-sprinter", {
+      flat: 84,
+      hills: 64,
+      sprint: 88,
+      cobbles: 78,
+      acceleration: 86,
+      endurance: 70,
+      resistance: 75,
+    });
+    const enduranceSpecialist = createSelectionTestRider(
+      "endurance-specialist",
+      {
+        flat: 76,
+        hills: 72,
+        sprint: 62,
+        cobbles: 90,
+        acceleration: 72,
+        endurance: 88,
+        resistance: 88,
+      },
+    );
+    const hillySpecialist = createSelectionTestRider("hilly-specialist", {
+      flat: 74,
+      hills: 90,
+      sprint: 68,
+      cobbles: 82,
+      acceleration: 88,
+      endurance: 78,
+      resistance: 80,
+    });
+    const score = (
+      rider: RiderSimulationInput,
+      archetype: "rolling" | "attritional" | "hilly",
+    ) =>
+      getCobblesFinishBaseScore({
+        rider,
+        segments,
+        energy: 90,
+        finishMode: "reduced_sprint",
+        archetype,
+      });
+
+    expect(score(rollingSprinter, "rolling")).toBeGreaterThan(
+      score(enduranceSpecialist, "rolling"),
+    );
+    expect(score(enduranceSpecialist, "attritional")).toBeGreaterThan(
+      score(rollingSprinter, "attritional"),
+    );
+    expect(score(hillySpecialist, "hilly")).toBeGreaterThan(
+      score(rollingSprinter, "hilly"),
+    );
+  });
+
+  it("ne donne plus au leader-sprinteur le bonus du leader pur dans un final pavé sélectif", () => {
+    expect(
+      getCobblesFinishRoleBonus({
+        role: "leader_sprinter",
+        archetype: "attritional",
+        finishMode: "selective",
+      }),
+    ).toBe(0);
+    expect(
+      getCobblesFinishRoleBonus({
+        role: "leader",
+        archetype: "attritional",
+        finishMode: "selective",
+      }),
+    ).toBe(3.5);
+    expect(
+      getCobblesFinishRoleBonus({
+        role: "leader_sprinter",
+        archetype: "rolling",
+        finishMode: "reduced_sprint",
+      }),
+    ).toBe(
+      getCobblesFinishRoleBonus({
+        role: "sprinter",
+        archetype: "rolling",
+        finishMode: "reduced_sprint",
+      }),
+    );
   });
 
   it("ne chaîne pas des écarts de trois secondes jusqu’à effacer un retard réel", () => {
@@ -4910,6 +5095,29 @@ describe("simulateRaceStage", () => {
     expect(racesWithSuccessfulAttackGap).toBeGreaterThan(12);
     expect(racesWithSuccessfulAttackGap).toBeLessThan(100);
   });
+
+  it(
+    "maintient plusieurs vainqueurs crédibles sur un grand échantillon pavé",
+    () => {
+      const winnerCounts = new Map<string, number>();
+
+      for (let seed = 1; seed <= 120; seed += 1) {
+        const simulation = simulateRaceStage(
+          createDemoSimulationInput("paves-zelande", seed),
+        );
+        const winnerId = simulation.results.find(
+          (result) => result.status === "finished" && result.rank === 1,
+        )?.riderId;
+        if (winnerId) {
+          winnerCounts.set(winnerId, (winnerCounts.get(winnerId) ?? 0) + 1);
+        }
+      }
+
+      expect(winnerCounts.size).toBeGreaterThanOrEqual(6);
+      expect(Math.max(...winnerCounts.values())).toBeLessThanOrEqual(36);
+    },
+    10_000,
+  );
 
   it("matérialise aussi des écarts après une attaque sur une arrivée vallonnée en montée", () => {
     let decisiveAttacks = 0;
