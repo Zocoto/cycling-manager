@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import NextLink from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { PotentialStars } from "@/components/game/potential-stars";
+import { RiderPotentialChip } from "@/components/game/rider-potential-chip";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import Link from "@/components/ui/app-link";
 import { getRiderPreview } from "@/lib/game/rider-preview-client";
@@ -145,15 +145,11 @@ export function GlobalChatSharePreview({
                 {preview.age} ans
               </span>
             ) : null}
-            {preview.type === "rider" && riderDetails?.potentialSteps != null ? (
-              <span className="rounded-full border border-[#315B3E]/10 bg-white/85 px-2 py-1 text-[9px] font-black text-[#48665F] shadow-sm">
-                Potentiel <PotentialStars potentialSteps={riderDetails.potentialSteps} compact />
-              </span>
-            ) : null}
-            {preview.type === "rider" && riderDetails?.potentialSteps == null && (riderDetails || riderDetailsUnavailable) ? (
-              <span className="rounded-full border border-[#315B3E]/10 bg-white/85 px-2 py-1 text-[9px] font-black text-[#60756E] shadow-sm">
-                Potentiel à découvrir
-              </span>
+            {preview.type === "rider" &&
+            (riderDetails || riderDetailsUnavailable) ? (
+              <RiderPotentialChip
+                potentialSteps={riderDetails?.potentialSteps ?? null}
+              />
             ) : null}
             {preview.type === "rider" && !preview.teamId ? (
               <span className="rounded-full bg-[#E5E7EB] px-2 py-1 text-[9px] font-black text-[#4B5563]">

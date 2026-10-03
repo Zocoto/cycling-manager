@@ -16,6 +16,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
+import { RiderPotentialChip } from "@/components/game/rider-potential-chip";
 import { getRiderPreview } from "@/lib/game/rider-preview-client";
 import type { RiderQuickPreview } from "@/lib/game/rider-quick-preview";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
@@ -390,11 +391,14 @@ function PreviewContent({
                   </p>
                 )}
               </div>
-              {preview.ratingVisibility === "scouted" ? (
-                <span className="shrink-0 rounded-full bg-[#E9E2F4] px-2.5 py-1 text-[9px] font-black uppercase text-[#684397]">
-                  Scouting
-                </span>
-              ) : null}
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <RiderPotentialChip potentialSteps={preview.potentialSteps} />
+                {preview.ratingVisibility === "scouted" ? (
+                  <span className="rounded-full bg-[#E9E2F4] px-2.5 py-1 text-[9px] font-black uppercase text-[#684397]">
+                    Scouting
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-4">
