@@ -16,14 +16,24 @@ describe("federation selections in rider planning", () => {
     expect(service).toContain(
       '.select("race_registration_id, race_edition_id")',
     );
-    expect(service).toContain("federationRegistrationIds");
-    expect(service).toContain("federationRegistrationsResult.data ?? []");
-    expect(service).toContain("teamRegistrationsResult.data ?? []");
+    expect(service).toContain("loadFederationRegistrations(");
+    expect(service).toContain("...federationRegistrations");
+    expect(service).toContain("...teamRegistrations");
   });
 
   it("keeps only active startlist entries belonging to the displayed riders", () => {
     expect(service).toContain('.from("race_rosters")');
     expect(service).toContain('.in("rider_id", riderIds)');
     expect(service).toContain('.in("status", ["selected", "confirmed"])');
+  });
+
+  it("batches large federation filters and degrades without blocking the page", () => {
+    expect(service).toContain("PLANNING_QUERY_BATCH_SIZE = 75");
+    expect(service).toContain("chunkValues(");
+    expect(service).toContain("loadOptionalFederationRaceRosters(");
+    expect(service).toContain(
+      "Les sélections fédérales sont temporairement omises du planning.",
+    );
+    expect(service).toContain("return [];");
   });
 });

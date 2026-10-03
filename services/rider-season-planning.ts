@@ -129,6 +129,8 @@ type ReconnaissanceParticipantRow = {
   form_camp_id: string;
 };
 
+const PLANNING_QUERY_BATCH_SIZE = 75;
+
 export async function getCurrentTeamRiderSeasonPlanning({
   authUserId,
   riderId,
@@ -283,62 +285,50 @@ export async function getCurrentTeamRiderSeasonPlanning({
   }
 
   const riders = ridersResult.data ?? [];
-  const federationLinksResult = editionIds.length
-    ? await admin
-        .from("national_federation_selection_race_links")
-        .select("race_registration_id, race_edition_id")
-        .in("race_edition_id", editionIds)
-        .returns<FederationSelectionRaceLinkRow[]>()
-    : await emptyResult<FederationSelectionRaceLinkRow>();
-  assertQuery(
-    federationLinksResult.error,
-    "les inscriptions des sélections fédérales",
-  );
-  const federationRegistrationIds = [
-    ...new Set(
-      (federationLinksResult.data ?? []).map(
-        (link) => link.race_registration_id,
-      ),
-    ),
-  ];
-  const federationRegistrationsResult = federationRegistrationIds.length
-    ? await admin
-        .from("race_registrations")
-        .select("id, race_edition_id, status")
-        .in("id", federationRegistrationIds)
-        .in("status", ["pending", "accepted"])
-        .returns<RegistrationRow[]>()
-    : await emptyResult<RegistrationRow>();
-  assertQuery(
-    federationRegistrationsResult.error,
-    "les engagements des sélections fédérales",
+  const teamRegistrations = teamRegistrationsResult.data ?? [];
+  const federationRegistrations = await loadFederationRegistrations(
+    admin,
+    editionIds,
   );
   const registrations = uniqueById([
-    ...(teamRegistrationsResult.data ?? []),
-    ...(federationRegistrationsResult.data ?? []),
+    ...teamRegistrations,
+    ...federationRegistrations,
   ]);
-  const registrationIds = registrations.map((registration) => registration.id);
+  const teamRegistrationIds = teamRegistrations.map(
+    (registration) => registration.id,
+  );
+  const teamRegistrationIdSet = new Set(teamRegistrationIds);
+  const federationRegistrationIds = federationRegistrations
+    .map((registration) => registration.id)
+    .filter((registrationId) => !teamRegistrationIdSet.has(registrationId));
   const reconnaissances = reconnaissancesResult.data ?? [];
   const reconnaissanceIds = reconnaissances.map(
     (reconnaissance) => reconnaissance.id,
   );
   const countryIds = [...new Set(riders.map((rider) => rider.country_id))];
-  const [countriesResult, rostersResult, participantsResult] =
+  const [
+    countriesResult,
+    teamRosters,
+    federationRosters,
+    participantsResult,
+  ] =
     await Promise.all([
       admin
         .from("countries")
         .select("id, name, iso_alpha2")
         .in("id", countryIds)
         .returns<CountryRow[]>(),
-      registrationIds.length
-        ? admin
-            .from("race_rosters")
-            .select("rider_id, race_registration_id")
-            .in("race_registration_id", registrationIds)
-            .in("rider_id", riderIds)
-            .in("status", ["selected", "confirmed"])
-            .returns<RosterRow[]>()
-        : emptyResult<RosterRow>(),
+      loadRaceRosters(
+        admin,
+        teamRegistrationIds,
+        riderIds,
+        "les sélections de course",
+      ),
+      loadOptionalFederationRaceRosters(
+        admin,
+        federationRegistrationIds,
+        riderIds,
+      ),
       reconnaissanceIds.length
         ? admin
             .from("stage_reconnaissance_riders")
@@ -349,8 +339,8 @@ export async function getCurrentTeamRiderSeasonPlanning({
         : emptyResult<ReconnaissanceParticipantRow>(),
     ]);
   assertQuery(countriesResult.error, "les nationalités");
-  assertQuery(rostersResult.error, "les sélections de course");
   assertQuery(participantsResult.error, "les participants aux reconnaissances");
+  const rosters = uniqueRosters([...teamRosters, ...federationRosters]);
 
   const days = daysResult.data ?? [];
   const currentDayNumber = context.season.current_day_number ?? 1;
@@ -388,7 +378,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
     riderIds.map((id) => [id, []]),
   );
 
-  for (const roster of rostersResult.data ?? []) {
+  for (const roster of rosters) {
     const registration = registrationById.get(roster.race_registration_id);
     const edition = registration
       ? editionById.get(registration.race_edition_id)
@@ -691,6 +681,116 @@ function groupBy<T>(rows: T[], key: (row: T) => string) {
 
 function uniqueById<T extends { id: string }>(rows: T[]) {
   return [...new Map(rows.map((row) => [row.id, row])).values()];
+}
+
+async function loadFederationRegistrations(
+  admin: AdminClient,
+  editionIds: string[],
+): Promise<RegistrationRow[]> {
+  try {
+    const links: FederationSelectionRaceLinkRow[] = [];
+    for (const editionIdBatch of chunkValues(
+      editionIds,
+      PLANNING_QUERY_BATCH_SIZE,
+    )) {
+      const result = await admin
+        .from("national_federation_selection_race_links")
+        .select("race_registration_id, race_edition_id")
+        .in("race_edition_id", editionIdBatch)
+        .returns<FederationSelectionRaceLinkRow[]>();
+      assertQuery(result.error, "les inscriptions des sélections fédérales");
+      links.push(...(result.data ?? []));
+    }
+
+    const registrationIds = [
+      ...new Set(links.map((link) => link.race_registration_id)),
+    ];
+    const registrations: RegistrationRow[] = [];
+    for (const registrationIdBatch of chunkValues(
+      registrationIds,
+      PLANNING_QUERY_BATCH_SIZE,
+    )) {
+      const result = await admin
+        .from("race_registrations")
+        .select("id, race_edition_id, status")
+        .in("id", registrationIdBatch)
+        .in("status", ["pending", "accepted"])
+        .returns<RegistrationRow[]>();
+      assertQuery(result.error, "les engagements des sélections fédérales");
+      registrations.push(...(result.data ?? []));
+    }
+    return uniqueById(registrations);
+  } catch (error) {
+    console.error(
+      "[rider-season-planning] Les sélections fédérales sont temporairement omises du planning.",
+      error instanceof Error ? error.message : error,
+    );
+    return [];
+  }
+}
+
+async function loadRaceRosters(
+  admin: AdminClient,
+  registrationIds: string[],
+  riderIds: string[],
+  errorLabel: string,
+): Promise<RosterRow[]> {
+  const rosters: RosterRow[] = [];
+  for (const registrationIdBatch of chunkValues(
+    registrationIds,
+    PLANNING_QUERY_BATCH_SIZE,
+  )) {
+    const result = await admin
+      .from("race_rosters")
+      .select("rider_id, race_registration_id")
+      .in("race_registration_id", registrationIdBatch)
+      .in("rider_id", riderIds)
+      .in("status", ["selected", "confirmed"])
+      .returns<RosterRow[]>();
+    assertQuery(result.error, errorLabel);
+    rosters.push(...(result.data ?? []));
+  }
+  return uniqueRosters(rosters);
+}
+
+async function loadOptionalFederationRaceRosters(
+  admin: AdminClient,
+  registrationIds: string[],
+  riderIds: string[],
+) {
+  try {
+    return await loadRaceRosters(
+      admin,
+      registrationIds,
+      riderIds,
+      "les sélections fédérales de course",
+    );
+  } catch (error) {
+    console.error(
+      "[rider-season-planning] Les coureurs des sélections fédérales sont temporairement omis du planning.",
+      error instanceof Error ? error.message : error,
+    );
+    return [];
+  }
+}
+
+function chunkValues<T>(values: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function uniqueRosters(rows: RosterRow[]) {
+  return [
+    ...new Map(
+      rows.map((row) => [
+        `${row.race_registration_id}:${row.rider_id}`,
+        row,
+      ]),
+    ).values(),
+  ];
 }
 
 function emptyResult<T>() {
