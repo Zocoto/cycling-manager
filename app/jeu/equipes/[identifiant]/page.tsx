@@ -14,6 +14,7 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
+import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { TeamRiderGlossary } from "@/components/game/team-rider-glossary";
@@ -33,7 +34,10 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPublicDevelopmentTeam } from "@/services/development-team";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getPublicTeam } from "@/services/public-directory";
+import {
+  getPublicSportingDirectorPortrait,
+  getPublicTeam,
+} from "@/services/public-directory";
 import { getPublicTeamRiders } from "@/services/public-rider-profile";
 import { getPublicTeamProfileHistory } from "@/services/public-team-profile-history";
 import { getPublicTeamRiderHistory } from "@/services/public-team-rider-history";
@@ -84,6 +88,12 @@ export default async function PublicTeamPage({
   if (!team) {
     notFound();
   }
+  const directorPortrait =
+    team.team_status !== "inactive" && team.sporting_director_username
+      ? await getPublicSportingDirectorPortrait(
+          team.sporting_director_username,
+        )
+      : null;
   const riderJersey = sponsorIdentity
     ? createSponsoredRiderJersey({
         colors: sponsorIdentity.sponsor.colors,
@@ -238,11 +248,18 @@ export default async function PublicTeamPage({
                 prefetchOnIntent
                 className="rounded-2xl border border-[var(--team-line)] bg-[var(--team-surface)] p-5 shadow-[0_8px_24px_var(--team-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-[0_14px_30px_var(--team-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)]"
               >
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--team-secondary)]">
-                  Directeur Sportif
-                </p>
-                <div className="mt-3 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
+                <div className="flex items-center gap-5">
+                  <SportingDirectorAvatar
+                    avatarKey={directorPortrait?.avatar_key}
+                    frameKey={directorPortrait?.avatar_frame_key}
+                    size="large"
+                    label={`Avatar de ${team.sporting_director_name}`}
+                    className="ring-4 ring-white shadow-[0_12px_30px_var(--team-shadow)]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--team-secondary)]">
+                      Directeur Sportif
+                    </p>
                     <p className="truncate font-black text-[var(--team-ink)]">
                       {team.sporting_director_name}
                     </p>
@@ -250,7 +267,7 @@ export default async function PublicTeamPage({
                       @{team.sporting_director_username}
                     </p>
                   </div>
-                  <span className="text-xl font-black text-[var(--team-secondary)]" aria-hidden="true">
+                  <span className="shrink-0 text-xl font-black text-[var(--team-secondary)]" aria-hidden="true">
                     →
                   </span>
                 </div>

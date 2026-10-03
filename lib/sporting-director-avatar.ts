@@ -40,6 +40,8 @@ export const AVATAR_FACE_SHAPES = [
   { key: "square", label: "Carré" },
   { key: "heart", label: "Cœur" },
   { key: "long", label: "Allongé" },
+  { key: "diamond", label: "Diamant" },
+  { key: "triangle", label: "Triangulaire" },
 ] as const;
 
 export const AVATAR_HAIR_STYLES = [
@@ -55,6 +57,13 @@ export const AVATAR_HAIR_STYLES = [
   { key: "long", label: "Longs" },
   { key: "bun", label: "Chignon" },
   { key: "ponytail", label: "Queue-de-cheval" },
+  { key: "pixie", label: "Coupe pixie" },
+  { key: "undercut", label: "Undercut" },
+  { key: "lob", label: "Carré long" },
+  { key: "curtain", label: "Frange rideau" },
+  { key: "twists", label: "Vanilles" },
+  { key: "locs", label: "Locks" },
+  { key: "double-buns", label: "Double chignon" },
 ] as const;
 
 export const AVATAR_HAIR_COLORS = [
@@ -75,6 +84,7 @@ export const AVATAR_EYEBROW_STYLES = [
   { key: "arched", label: "Arquées" },
   { key: "bold", label: "Épais" },
   { key: "angled", label: "Anguleux" },
+  { key: "fine", label: "Fins" },
 ] as const;
 
 export const AVATAR_EYE_SHAPES = [
@@ -125,6 +135,8 @@ export const AVATAR_CHEEK_STYLES = [
   { key: "defined", label: "Marquées" },
   { key: "high", label: "Hautes" },
   { key: "freckles", label: "Taches de rousseur" },
+  { key: "rosy", label: "Rosées" },
+  { key: "beauty-mark", label: "Grain de beauté" },
   { key: NIGHT_AUCTION_AVATAR_CHEEK_KEY, label: "Cernes" },
 ] as const;
 

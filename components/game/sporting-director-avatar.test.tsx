@@ -155,4 +155,31 @@ describe("SportingDirectorAvatar", () => {
     expect(markup).toContain('data-avatar-skin="dark-circles"');
     expect(markup).toContain("#555B78");
   });
+
+  it.each(["pixie", "undercut", "lob", "curtain", "twists", "locs", "double-buns"] as const)(
+    "renders the new hairstyle %s",
+    (hairStyle) => {
+      const avatarKey = encodeSportingDirectorAvatar({
+        ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+        hairStyle,
+      });
+      const markup = renderToStaticMarkup(
+        <SportingDirectorAvatar avatarKey={avatarKey} label={hairStyle} />,
+      );
+
+      expect(markup).toContain(`data-avatar-hair-front="${hairStyle}"`);
+    },
+  );
+
+  it("offers a larger chat portrait without changing compact avatars", () => {
+    const chat = renderToStaticMarkup(
+      <SportingDirectorAvatar size="chat" label="Avatar du chat" />,
+    );
+    const compact = renderToStaticMarkup(
+      <SportingDirectorAvatar size="small" label="Avatar compact" />,
+    );
+
+    expect(chat).toContain("h-12 w-12 sm:h-14 sm:w-14");
+    expect(compact).toContain("h-10 w-10");
+  });
 });

@@ -16,4 +16,8 @@ describe("public sporting director profile", () => {
     expect(source).toContain("{profile.display_name}");
     expect(source).not.toContain("@{profile.public_identifier}");
   });
+
+  it("uses the director avatar as the public profile hero", () => {
+    expect(source).toContain('size="hero"');
+  });
 });

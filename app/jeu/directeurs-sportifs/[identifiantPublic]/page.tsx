@@ -96,9 +96,9 @@ export default async function PublicSportingDirectorPage({
               <SportingDirectorAvatar
                 avatarKey={profile.avatar_key}
                 frameKey={profile.avatar_frame_key}
-                size="large"
+                size="hero"
                 label={`Avatar de ${profile.display_name}`}
-                className="ring-4 ring-white/10"
+                className="self-center ring-4 ring-white/10 sm:self-auto"
               />
 
               <div className="min-w-0 flex-1">

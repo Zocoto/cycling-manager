@@ -908,6 +908,7 @@ export function DirectMessagingPanel({
                 name={activeConversation.counterpartDisplayName}
                 avatarKey={activeConversation.counterpartAvatarKey}
                 frameKey={activeConversation.counterpartAvatarFrameKey}
+                size="medium"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-[#0B302B]">
@@ -1197,16 +1198,18 @@ function Avatar({
   name,
   avatarKey,
   frameKey,
+  size = "small",
 }: {
   name: string;
   avatarKey: string | null;
   frameKey: "alpha_tester" | null;
+  size?: "small" | "medium";
 }) {
   return (
     <SportingDirectorAvatar
       avatarKey={avatarKey}
       frameKey={frameKey}
-      size="small"
+      size={size}
       label={`Avatar de ${name}`}
       className="ring-1 ring-white/10"
     />
