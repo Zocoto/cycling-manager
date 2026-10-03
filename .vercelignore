@@ -1,0 +1,16 @@
+# Local credentials, dependency caches and QA captures are never deployment inputs.
+.git
+.next
+.vercel
+node_modules
+.env*
+!.env.example
+artifacts
+app/local-halloween-qa
+.codex-tools
+.tmp-*
+.codex-feature-*
+.pnpm-store
+coverage
+tmp
+*.tsbuildinfo
