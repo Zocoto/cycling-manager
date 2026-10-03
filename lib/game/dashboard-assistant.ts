@@ -9,6 +9,10 @@ import {
   getDashboardConstructionOpportunity,
   type DashboardConstructionContext,
 } from "@/lib/game/dashboard-construction-alert";
+import {
+  INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL,
+  TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS,
+} from "@/lib/game/infrastructure-specializations";
 
 export const DASHBOARD_ASSISTANT_ENABLED = true;
 
@@ -105,6 +109,7 @@ export type DashboardAssistantSnapshot = {
   developmentRaceRegistrationReminderNextName: string | null;
   developmentRaceRegistrationReminderNextEditionId: string | null;
   constructionContext: DashboardConstructionContext | null;
+  pendingInfrastructureOrientations: DashboardInfrastructureOrientation[];
   fanClubShopLevel: number;
   fanClubStockCount: number;
   fanClubSalesProcessedToday: boolean;
@@ -112,6 +117,12 @@ export type DashboardAssistantSnapshot = {
   fanClubTodayRevenue: number;
   welcomeJourney?: NewcomerJourney | null;
   journalItems: DashboardJournalItem[];
+};
+
+export type DashboardInfrastructureOrientation = {
+  infrastructureCode: string;
+  buildingName: string;
+  level: number;
 };
 
 export type DashboardAssistantLine = {
@@ -147,6 +158,7 @@ const ALERT_PRIORITY = [
   "development-race-registration-reminder",
   "development-team-setup",
   "infrastructure-construction",
+  "infrastructure-orientation",
   "low-reputation-registrations",
   "untreated-injuries",
   "junior-manual-training",
@@ -214,6 +226,18 @@ export function buildDashboardAssistantLines({
         ? `Le talent « Double chantier » ouvre une seconde ligne · ${construction.buildingName} peut être lancé.`
         : `La file de construction est libre · ${construction.buildingName} peut être lancé.`,
       href: construction.href,
+    });
+  }
+
+  for (const orientation of snapshot.pendingInfrastructureOrientations) {
+    alerts.push({
+      id: `infrastructure-orientation:${orientation.infrastructureCode}`,
+      tone: "alert",
+      metric: `N${orientation.level}`,
+      title: `${orientation.buildingName} · orientation à choisir`,
+      detail:
+        "Ce bâtiment a atteint le niveau 3 requis, mais sa voie de spécialisation n’a pas encore été sélectionnée.",
+      href: `/jeu/infrastructures#batiment-${orientation.infrastructureCode}`,
     });
   }
 
@@ -659,6 +683,46 @@ export function buildDashboardAssistantLines({
   return { alerts, information };
 }
 
+export function getPendingInfrastructureOrientations({
+  infrastructureLevels,
+  selectedInfrastructureCodes,
+}: {
+  infrastructureLevels: readonly {
+    infrastructureCode: string;
+    level: number;
+  }[];
+  selectedInfrastructureCodes: readonly string[];
+}): DashboardInfrastructureOrientation[] {
+  const levelByInfrastructureCode = new Map(
+    infrastructureLevels.map(({ infrastructureCode, level }) => [
+      infrastructureCode,
+      Number.isFinite(level) ? Math.max(0, Math.trunc(level)) : 0,
+    ]),
+  );
+  const selectedCodes = new Set(selectedInfrastructureCodes);
+
+  return TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS.flatMap(
+    (proposal): DashboardInfrastructureOrientation[] => {
+      const level = levelByInfrastructureCode.get(proposal.buildingCode) ?? 0;
+
+      if (
+        level < INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL ||
+        selectedCodes.has(proposal.buildingCode)
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          infrastructureCode: proposal.buildingCode,
+          buildingName: proposal.buildingName,
+          level,
+        },
+      ];
+    },
+  );
+}
+
 export function formatDashboardAssistantDate(value: string): string {
   const formatted = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
@@ -841,6 +905,9 @@ function formatAssistantCurrency(amount: number): string {
 function getAlertPriority(id: string): number {
   if (id.startsWith("race-roster-alert:")) {
     return ALERT_PRIORITY.indexOf("race-roster-alerts");
+  }
+  if (id.startsWith("infrastructure-orientation:")) {
+    return ALERT_PRIORITY.indexOf("infrastructure-orientation");
   }
   const priority = ALERT_PRIORITY.indexOf(
     id as (typeof ALERT_PRIORITY)[number],

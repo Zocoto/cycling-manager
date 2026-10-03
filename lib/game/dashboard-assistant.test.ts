@@ -63,6 +63,7 @@ const snapshot: DashboardAssistantSnapshot = {
   developmentRaceRegistrationReminderNextName: null,
   developmentRaceRegistrationReminderNextEditionId: null,
   constructionContext: null,
+  pendingInfrastructureOrientations: [],
   fanClubShopLevel: 0,
   fanClubStockCount: 0,
   fanClubSalesProcessedToday: false,

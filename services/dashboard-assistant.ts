@@ -7,6 +7,8 @@ import type {
   NewcomerJourneyStep,
   NewcomerJourneyStepKey,
 } from "@/lib/game/dashboard-assistant";
+import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
+import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -62,6 +64,15 @@ type FederationEquipmentAlertRow = {
   country_code: string | null;
 };
 
+type DashboardInfrastructureLevelRow = {
+  infrastructure_code: string;
+  level: number;
+};
+
+type DashboardInfrastructureSpecializationRow = {
+  infrastructure_code: string;
+};
+
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardAssistantSnapshot | null> {
@@ -72,6 +83,8 @@ export async function getCurrentDashboardAssistantSummary(
     constructionResult,
     welcomeJourneyResult,
     federationEquipmentAlertResult,
+    infrastructureLevelsResult,
+    infrastructureSpecializationsResult,
   ] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
@@ -87,6 +100,15 @@ export async function getCurrentDashboardAssistantSummary(
     supabase
       .rpc("get_current_federation_equipment_alert")
       .maybeSingle<FederationEquipmentAlertRow>(),
+    supabase
+      .from("team_infrastructures")
+      .select("infrastructure_code, level")
+      .gte("level", INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL)
+      .returns<DashboardInfrastructureLevelRow[]>(),
+    supabase
+      .from("team_infrastructure_specializations")
+      .select("infrastructure_code")
+      .returns<DashboardInfrastructureSpecializationRow[]>(),
   ]);
 
   if (result.error) {
@@ -126,6 +148,20 @@ export async function getCurrentDashboardAssistantSummary(
     console.error(
       "Impossible de charger l’alerte équipementier fédérale :",
       federationEquipmentAlertResult.error.message,
+    );
+  }
+
+  if (infrastructureLevelsResult.error) {
+    console.error(
+      "Impossible de charger les niveaux d’infrastructure pour l’assistant du DS :",
+      infrastructureLevelsResult.error.message,
+    );
+  }
+
+  if (infrastructureSpecializationsResult.error) {
+    console.error(
+      "Impossible de charger les orientations d’infrastructure pour l’assistant du DS :",
+      infrastructureSpecializationsResult.error.message,
     );
   }
 
@@ -208,6 +244,21 @@ export async function getCurrentDashboardAssistantSummary(
     constructionContext: constructionResult.error
       ? null
       : parseDashboardConstructionContext(constructionResult.data),
+    pendingInfrastructureOrientations:
+      infrastructureLevelsResult.error ||
+      infrastructureSpecializationsResult.error
+        ? []
+        : getPendingInfrastructureOrientations({
+            infrastructureLevels: (infrastructureLevelsResult.data ?? []).map(
+              (infrastructure) => ({
+                infrastructureCode: infrastructure.infrastructure_code,
+                level: infrastructure.level,
+              }),
+            ),
+            selectedInfrastructureCodes: (
+              infrastructureSpecializationsResult.data ?? []
+            ).map((specialization) => specialization.infrastructure_code),
+          }),
     fanClubShopLevel: normalizeCount(fanClubSummary?.shop_level),
     fanClubStockCount: normalizeCount(fanClubSummary?.total_stock),
     fanClubSalesProcessedToday:
