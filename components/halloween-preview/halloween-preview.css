@@ -73,13 +73,60 @@
 .halloween-preview .halloween-style-comparison { margin-top: 25px; }.halloween-preview summary { cursor: pointer; font-size: 12px; font-weight: 800; }.halloween-preview .halloween-style-comparison > div { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
 .halloween-preview .halloween-trick-portrait { width: 135px; margin: 25px auto; }.halloween-preview .halloween-negative-result { padding: 12px; border-radius: 12px; background: #f0eaf3; color: #725d80; }
 .halloween-preview .halloween-footer { margin-top: 36px; border-top: 1px solid #e2ddd3; padding-top: 17px; color: #8c8277; font-size: 10px; line-height: 1.8; }
+.halloween-preview .halloween-runner-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
+.halloween-preview .halloween-runner-game { padding: 18px; }
+.halloween-preview .halloween-runner-hud { display: grid; grid-template-columns: .9fr .6fr .8fr 1.1fr; gap: 12px; padding: 5px 6px 19px; }
+.halloween-preview .halloween-runner-hud span { display: block; color: #887a69; text-transform: uppercase; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.halloween-preview .halloween-runner-hud strong { display: block; color: #473729; margin-top: 5px; font-size: 22px; font-variant-numeric: tabular-nums; }
+.halloween-preview .halloween-runner-hud small { font-size: 11px; }
+.halloween-preview .halloween-runner-hud > div:last-child strong { font-size: 13px; padding-top: 7px; }
+.halloween-preview .halloween-runner-surface { position: relative; overflow: hidden; border: 1px solid #d7c7af; border-radius: 16px; background: #f1e8da; }
+.halloween-preview .halloween-runner-surface canvas { display: block; width: 100%; height: auto; aspect-ratio: 960 / 420; touch-action: manipulation; }
+.halloween-preview .halloween-runner-overlay { position: absolute; inset: 0 0 auto; display: grid; justify-items: center; gap: 6px; padding: 25px 16px 10px; text-align: center; pointer-events: none; background: linear-gradient(#f1e8daf0, #f1e8da00); }
+.halloween-preview .halloween-runner-overlay strong { font-size: 20px; color: #46372a; letter-spacing: -.03em; }
+.halloween-preview .halloween-runner-overlay > span:last-child { font-size: 11px; color: #8a7258; }
+.halloween-preview .halloween-runner-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; border-radius: 10px; }
+.halloween-preview .halloween-runner-controls:focus-visible { outline: 2px solid #d5b68d; outline-offset: 6px; }
+.halloween-preview .halloween-runner-controls > span { font-size: 10px; color: #857965; flex: 1; min-width: 150px; }
+.halloween-preview .halloween-runner-controls .halloween-button { min-width: 150px; }
+.halloween-preview .halloween-runner-result { display: grid; gap: 7px; margin-top: 18px; padding: 15px; border: 1px solid #dfc298; border-radius: 13px; background: #fff3df; }
+.halloween-preview .halloween-runner-result strong { font-size: 13px; color: #976132; }
+.halloween-preview .halloween-runner-result span { font-size: 11px; color: #897354; }
+.halloween-preview .halloween-runner-aside { display: grid; gap: 18px; }
+.halloween-preview .halloween-runner-aside .halloween-card { padding: 22px; }
+.halloween-preview .halloween-runner-aside ul { padding-left: 17px; margin: 18px 0; font-size: 12px; color: #7c796d; line-height: 1.8; }
+.halloween-preview .halloween-runner-aside li + li { margin-top: 10px; }
+.halloween-preview .halloween-runner-formula { padding: 10px; background: #f5eee4; border-radius: 9px; font-weight: 800; color: #8d613e; }
+.halloween-preview .halloween-runner-trophy { background: #f8efdf; border-color: #d9ba88; }
+.halloween-preview .halloween-runner-ranking, .halloween-preview .halloween-runner-safety { margin-top: 20px; }
+.halloween-preview .halloween-runner-ranking .halloween-section-heading { align-items: center; margin-bottom: 12px; }
+.halloween-preview .halloween-runner-ranking .halloween-filter { margin: 0; }
+.halloween-preview .halloween-runner-table-wrap { overflow-x: auto; }
+.halloween-preview .halloween-runner-ranking table { border-collapse: collapse; width: 100%; min-width: 625px; text-align: left; font-size: 12px; }
+.halloween-preview .halloween-runner-ranking td, .halloween-preview .halloween-runner-ranking th { padding: 15px 10px; border-bottom: 1px solid #e6e1d8; white-space: nowrap; }
+.halloween-preview .halloween-runner-ranking thead th { font-size: 9px; color: #918170; text-transform: uppercase; letter-spacing: .1em; }
+.halloween-preview .halloween-runner-ranking tbody td:last-child { color: #a46735; font-size: 11px; font-weight: 850; }
+.halloween-preview .halloween-runner-safety p { max-width: 900px; color: #817565; }
 @media (max-width: 950px) {
+  .halloween-preview .halloween-runner-layout { grid-template-columns: 1fr; }
+  .halloween-preview .halloween-runner-aside { grid-template-columns: 1fr 1fr; }
   .halloween-preview .halloween-shop-layout { grid-template-columns: minmax(0, 1fr) 285px; }
   .halloween-preview .halloween-event-grid { grid-template-columns: 1fr; }
   .halloween-preview .halloween-event-side { grid-template-columns: 1fr 1fr; }
   .halloween-preview .halloween-outcome { grid-template-columns: 160px minmax(0, 1fr); }.halloween-preview .halloween-outcome > button { grid-column: 1 / -1; justify-self: start; }
 }
 @media (max-width: 700px) {
+  .halloween-preview .halloween-runner-aside { grid-template-columns: 1fr; }
+  .halloween-preview .halloween-runner-game { padding: 12px; }
+  .halloween-preview .halloween-runner-hud { gap: 8px; padding: 5px 3px 15px; }
+  .halloween-preview .halloween-runner-hud strong { font-size: 18px; }
+  .halloween-preview .halloween-runner-hud span { font-size: 8px; letter-spacing: .03em; }
+  .halloween-preview .halloween-runner-hud > div:last-child strong { font-size: 10px; }
+  .halloween-preview .halloween-runner-overlay { padding: 13px 10px 8px; gap: 4px; }
+  .halloween-preview .halloween-runner-overlay strong { font-size: 12px; }
+  .halloween-preview .halloween-runner-overlay > span:last-child { font-size: 9px; }
+  .halloween-preview .halloween-runner-overlay .halloween-eyebrow { font-size: 8px; }
+  .halloween-preview .halloween-banner-copy strong { font-size: 20px; }
   .halloween-preview .halloween-main { padding: 24px 16px 100px; }
   .halloween-preview .halloween-logo-web { width: 26px; height: 26px; top: 5px; left: 29px; }
   .halloween-preview .mobile-game-navigation-dock { bottom: calc(12px + env(safe-area-inset-bottom)) !important; }

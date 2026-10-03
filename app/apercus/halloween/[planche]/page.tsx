@@ -20,7 +20,9 @@ export default async function HalloweenPreviewPage({
   params: Promise<{ planche: string }>;
 }) {
   const { planche } = await params;
-  if (!isHalloweenPreviewBoard(planche)) notFound();
+  // Keep the previously shared candy-board URL usable, behind the same access gate.
+  const board = planche === "trick-or-treat" ? "cycliste-sans-tete" : planche;
+  if (!isHalloweenPreviewBoard(board)) notFound();
 
   // Fail closed if authentication is temporarily unavailable as well.
   const authentication = await createSupabaseServerClient()
@@ -32,5 +34,5 @@ export default async function HalloweenPreviewPage({
   if (!canAccessPrivateAdmin(user.email)) notFound();
 
   // No game layout, profile query, rewards action or gameplay mutation here.
-  return <HalloweenPreview board={planche} />;
+  return <HalloweenPreview board={board} />;
 }

@@ -59,6 +59,12 @@ describe("planches Halloween privées", () => {
       expect(result.props.board).toBe(board.slug);
     }
   });
+  it("conserve l’ancien lien des bonbons sous le même contrôle d’accès", async () => {
+    await expect(Page({ params: Promise.resolve({ planche: "trick-or-treat" }) })).rejects.toThrow("PRIVATE_404");
+    auth.user = { id: "test-account", email: PRIVATE_ADMIN_EMAIL };
+    const result = await Page({ params: Promise.resolve({ planche: "trick-or-treat" }) });
+    expect(result.props.board).toBe("cycliste-sans-tete");
+  });
   it("rejette une route inconnue sans accès Supabase", async () => {
     await expect(Page({ params: Promise.resolve({ planche: "inconnu" }) })).rejects.toThrow("PRIVATE_404");
     expect(auth.claims).not.toHaveBeenCalled();
@@ -70,7 +76,7 @@ describe("planches Halloween privées", () => {
     expect(source.indexOf("canAccessPrivateAdmin(user.email)")).toBeLessThan(source.indexOf("return <HalloweenPreview"));
   });
   it("n’a ni action serveur ni écriture ni persistance des choix", () => {
-    for (const path of ["app/apercus/halloween/[planche]/page.tsx", "components/halloween-preview/halloween-preview.tsx", "lib/game/halloween-preview.ts"]) {
+    for (const path of ["app/apercus/halloween/[planche]/page.tsx", "components/halloween-preview/halloween-preview.tsx", "components/halloween-preview/halloween-runner.tsx", "components/halloween-preview/halloween-runner-art.ts", "lib/game/halloween-runner-preview.ts", "lib/game/halloween-preview.ts"]) {
       const source = readSource(path);
       expect(source).not.toMatch(/\.rpc\(|\.insert\(|\.update\(|\.delete\(|localStorage|sessionStorage|\bfetch\(/);
       expect(source).not.toContain('"use server"');

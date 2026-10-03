@@ -1,9 +1,9 @@
 /** Design-board data only. Never used by inventory, settlement or the simulator. */
 export const HALLOWEEN_PREVIEW_BOARDS = [
   { slug: "bureau", label: "Bureau" },
-  { slug: "trick-or-treat", label: "Trick or Treat" },
+  { slug: "cycliste-sans-tete", label: "La poursuite" },
   { slug: "boutique", label: "Boutique & avatars" },
-  { slug: "mauvais-bonbons", label: "Mauvais bonbons" },
+  { slug: "mauvais-bonbons", label: "Idées de farces" },
 ] as const;
 
 export type HalloweenPreviewBoard = (typeof HALLOWEEN_PREVIEW_BOARDS)[number]["slug"];
