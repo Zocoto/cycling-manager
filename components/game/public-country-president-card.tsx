@@ -42,7 +42,7 @@ export function PublicCountryPresidentCard({
       <SportingDirectorAvatar
         avatarKey={president.avatar_key}
         frameKey={president.avatar_frame_key}
-        size="small"
+        size="medium"
         label={`Avatar de ${president.display_name}`}
       />
       <span className="min-w-0 flex-1">

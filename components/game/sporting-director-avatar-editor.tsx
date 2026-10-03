@@ -34,10 +34,11 @@ import { SportingDirectorAvatar } from "./sporting-director-avatar";
 type SportingDirectorAvatarEditorProps = {
   avatarKey: string | null;
   frameKey?: "alpha_tester" | null;
+  hasAlphaTesterTrophy?: boolean;
   hasAssiduTrophy?: boolean;
   hasHiddenSwitchbackTrophy?: boolean;
   onCancel: () => void;
-  onConfirm: (avatarKey: string) => void;
+  onConfirm: (avatarKey: string, frameKey: "alpha_tester" | null) => void;
   patronOutfitUnlocked?: boolean;
   patronHatUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
@@ -64,6 +65,7 @@ const editorTabs: Array<{
 export function SportingDirectorAvatarEditor({
   avatarKey,
   frameKey = null,
+  hasAlphaTesterTrophy = false,
   hasAssiduTrophy = false,
   hasHiddenSwitchbackTrophy = false,
   onCancel,
@@ -80,6 +82,9 @@ export function SportingDirectorAvatarEditor({
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
     useState<SportingDirectorAvatarConfig>(initialConfig);
+  const [selectedFrameKey, setSelectedFrameKey] = useState<
+    "alpha_tester" | null
+  >(hasAlphaTesterTrophy ? frameKey : null);
   const [activeTab, setActiveTab] = useState<EditorTab>("face");
   const previewKey = encodeSportingDirectorAvatar(config);
   const availableGlassesStyles = getAvailableAvatarGlassesStyles({
@@ -117,7 +122,7 @@ export function SportingDirectorAvatarEditor({
 
   return (
     <div>
-      <div className="grid lg:grid-cols-[250px_minmax(0,1fr)]">
+      <div className="grid lg:grid-cols-[310px_minmax(0,1fr)]">
         <aside className="border-b border-[#315B3E]/10 bg-[linear-gradient(160deg,#E4F2ED,#F8FBF9)] p-5 lg:border-b-0 lg:border-r lg:p-7">
           <div className="lg:sticky lg:top-28">
             <p className="text-center text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
@@ -127,16 +132,28 @@ export function SportingDirectorAvatarEditor({
             <div className="mt-4 flex justify-center">
               <SportingDirectorAvatar
                 avatarKey={previewKey}
-                frameKey={frameKey}
-                size="xlarge"
+                frameKey={selectedFrameKey}
+                size="hero"
                 label="Aperçu de votre avatar personnalisé"
                 className="ring-8 ring-white/55 shadow-[0_22px_55px_rgba(19,60,46,0.22)]"
               />
             </div>
 
-            <p className="mx-auto mt-5 max-w-52 text-center text-xs leading-5 text-[#60756E]">
-              Chaque détail peut être repris plus tard depuis votre profil de Directeur Sportif.
+            <p className="mx-auto mt-5 max-w-64 text-center text-xs leading-5 text-[#60756E]">
+              Voici le portrait que les autres managers verront sur votre
+              profil, votre équipe et dans le chat.
             </p>
+
+            <div className="mt-4 flex flex-wrap justify-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#176951]">
+              {["Profil public", "Équipe", "Chat"].map((surface) => (
+                <span
+                  key={surface}
+                  className="rounded-full border border-[#278B70]/15 bg-white/75 px-2.5 py-1"
+                >
+                  {surface}
+                </span>
+              ))}
+            </div>
 
             <div className="mt-5 grid grid-cols-2 gap-2">
               <button
@@ -152,7 +169,12 @@ export function SportingDirectorAvatarEditor({
 
               <button
                 type="button"
-                onClick={() => setConfig(initialConfig)}
+                onClick={() => {
+                  setConfig(initialConfig);
+                  setSelectedFrameKey(
+                    hasAlphaTesterTrophy ? frameKey : null,
+                  );
+                }}
                 className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#315B3E]/15 bg-white px-3 py-2 text-xs font-extrabold text-[#48665F] transition hover:border-[#278B70] hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
               >
                 Réinitialiser
@@ -211,7 +233,14 @@ export function SportingDirectorAvatarEditor({
                   onSelect={updateField}
                   swatches
                 />
-                <AvatarChoiceGroup title="Forme du visage" field="faceShape" value={config.faceShape} options={AVATAR_FACE_SHAPES} onSelect={updateField} />
+                <AvatarChoiceGroup
+                  title="Forme du visage"
+                  field="faceShape"
+                  value={config.faceShape}
+                  options={AVATAR_FACE_SHAPES}
+                  onSelect={updateField}
+                  previewConfig={config}
+                />
                 <AvatarChoiceGroup title="Nez" field="noseShape" value={config.noseShape} options={AVATAR_NOSE_SHAPES} onSelect={updateField} />
                 <AvatarChoiceGroup title="Oreilles" field="earShape" value={config.earShape} options={AVATAR_EAR_SHAPES} onSelect={updateField} />
                 <AvatarChoiceGroup
@@ -231,16 +260,45 @@ export function SportingDirectorAvatarEditor({
 
             {activeTab === "eyes" ? (
               <>
-                <AvatarChoiceGroup title="Forme des yeux" field="eyeShape" value={config.eyeShape} options={AVATAR_EYE_SHAPES} onSelect={updateField} />
+                <AvatarChoiceGroup
+                  title="Forme des yeux"
+                  field="eyeShape"
+                  value={config.eyeShape}
+                  options={AVATAR_EYE_SHAPES}
+                  onSelect={updateField}
+                  previewConfig={config}
+                />
                 <AvatarChoiceGroup title="Couleur des yeux" field="eyeColor" value={config.eyeColor} options={AVATAR_EYE_COLORS} onSelect={updateField} swatches />
-                <AvatarChoiceGroup title="Sourcils" field="eyebrowStyle" value={config.eyebrowStyle} options={AVATAR_EYEBROW_STYLES} onSelect={updateField} />
-                <AvatarChoiceGroup title="Expression de la bouche" field="mouthShape" value={config.mouthShape} options={AVATAR_MOUTH_SHAPES} onSelect={updateField} />
+                <AvatarChoiceGroup
+                  title="Sourcils"
+                  field="eyebrowStyle"
+                  value={config.eyebrowStyle}
+                  options={AVATAR_EYEBROW_STYLES}
+                  onSelect={updateField}
+                  previewConfig={config}
+                />
+                <AvatarChoiceGroup
+                  title="Expression de la bouche"
+                  field="mouthShape"
+                  value={config.mouthShape}
+                  options={AVATAR_MOUTH_SHAPES}
+                  onSelect={updateField}
+                  previewConfig={config}
+                />
               </>
             ) : null}
 
             {activeTab === "hair" ? (
               <>
-                <AvatarChoiceGroup title="Coiffure" field="hairStyle" value={config.hairStyle} options={AVATAR_HAIR_STYLES} onSelect={updateField} />
+                <AvatarChoiceGroup
+                  title="Coiffure"
+                  description="Coupes courtes, longues, texturées et attachées peuvent être combinées librement avec les autres traits."
+                  field="hairStyle"
+                  value={config.hairStyle}
+                  options={AVATAR_HAIR_STYLES}
+                  onSelect={updateField}
+                  previewConfig={config}
+                />
                 <AvatarChoiceGroup title="Couleur des cheveux" field="hairColor" value={config.hairColor} options={AVATAR_HAIR_COLORS} onSelect={updateField} swatches />
                 <AvatarChoiceGroup title="Barbe et moustache" field="facialHair" value={config.facialHair} options={AVATAR_FACIAL_HAIR_STYLES} onSelect={updateField} />
               </>
@@ -248,6 +306,50 @@ export function SportingDirectorAvatarEditor({
 
             {activeTab === "style" ? (
               <>
+                {hasAlphaTesterTrophy ? (
+                  <fieldset>
+                    <legend className="text-sm font-black text-[#183F37]">
+                      Liseré du portrait
+                    </legend>
+                    <p className="mt-1 text-xs leading-5 text-[#60756E]">
+                      Votre distinction Alphatesteur peut entourer le portrait
+                      sur tous ses affichages publics.
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={selectedFrameKey === null}
+                        onClick={() => setSelectedFrameKey(null)}
+                        className={avatarFrameChoiceClass(
+                          selectedFrameKey === null,
+                        )}
+                      >
+                        <SportingDirectorAvatar
+                          avatarKey={previewKey}
+                          size="small"
+                          label="Avatar sans liseré"
+                        />
+                        <span>Sans liseré</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={selectedFrameKey === "alpha_tester"}
+                        onClick={() => setSelectedFrameKey("alpha_tester")}
+                        className={avatarFrameChoiceClass(
+                          selectedFrameKey === "alpha_tester",
+                        )}
+                      >
+                        <SportingDirectorAvatar
+                          avatarKey={previewKey}
+                          frameKey="alpha_tester"
+                          size="small"
+                          label="Avatar avec liseré Alphatesteur"
+                        />
+                        <span>Alphatesteur</span>
+                      </button>
+                    </div>
+                  </fieldset>
+                ) : null}
                 <AvatarChoiceGroup
                   title="Lunettes"
                   description={[
@@ -313,10 +415,10 @@ export function SportingDirectorAvatarEditor({
 
         <button
           type="button"
-          onClick={() => onConfirm(previewKey)}
+          onClick={() => onConfirm(previewKey, selectedFrameKey)}
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#176951] px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-[#0E5141] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2"
         >
-          Appliquer cet avatar
+          Valider ce portrait
         </button>
       </div>
     </div>
@@ -342,6 +444,7 @@ type AvatarChoiceGroupProps<K extends keyof SportingDirectorAvatarConfig> = {
   ) => void;
   swatches?: boolean;
   disabledKeys?: readonly string[];
+  previewConfig?: SportingDirectorAvatarConfig;
 };
 
 function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
@@ -353,6 +456,7 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
   onSelect,
   swatches = false,
   disabledKeys = [],
+  previewConfig,
 }: AvatarChoiceGroupProps<K>) {
   return (
     <fieldset>
@@ -369,6 +473,14 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
           const isSelected = option.key === value;
           const swatchColor = option.color ?? option.jacket;
           const isDisabled = disabledKeys.includes(option.key);
+          const optionPreviewKey = previewConfig
+            ? encodeSportingDirectorAvatar(
+                {
+                  ...previewConfig,
+                  [field]: option.key,
+                } as SportingDirectorAvatarConfig,
+              )
+            : null;
 
           return (
             <button
@@ -391,7 +503,14 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
                   : "border-[#315B3E]/15 bg-white text-[#48665F] hover:border-[#42B99A] hover:bg-[#F3FAF7]",
               ].join(" ")}
             >
-              {swatches && swatchColor ? (
+              {optionPreviewKey ? (
+                <SportingDirectorAvatar
+                  avatarKey={optionPreviewKey}
+                  size="small"
+                  label={`Aperçu : ${option.label}`}
+                  className="ring-1 ring-[#315B3E]/10"
+                />
+              ) : swatches && swatchColor ? (
                 <span
                   aria-hidden="true"
                   className="h-6 w-6 shrink-0 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(49,91,62,0.22)]"
@@ -411,6 +530,16 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
       </div>
     </fieldset>
   );
+}
+
+function avatarFrameChoiceClass(isSelected: boolean) {
+  return [
+    "flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2 text-left text-xs font-bold transition",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-1",
+    isSelected
+      ? "border-[#278B70] bg-[#DFF4EC] text-[#0E5141] shadow-sm"
+      : "border-[#315B3E]/15 bg-white text-[#48665F] hover:border-[#42B99A] hover:bg-[#F3FAF7]",
+  ].join(" ");
 }
 
 function ShuffleIcon() {

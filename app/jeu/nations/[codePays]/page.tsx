@@ -328,7 +328,7 @@ function CountryDirectorLink({
       <SportingDirectorAvatar
         avatarKey={director.avatar_key}
         frameKey={director.avatar_frame_key}
-        size="small"
+        size="chat"
         label={`Avatar de ${director.display_name}`}
       />
       <span className="min-w-0 flex-1">

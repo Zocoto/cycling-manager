@@ -67,6 +67,9 @@ export function SportingDirectorProfileForm({
   const [selectedAvatarKey, setSelectedAvatarKey] = useState(
     initialAvatarKey ?? "",
   );
+  const [selectedAvatarFrameKey, setSelectedAvatarFrameKey] = useState<
+    "alpha_tester" | null
+  >(initialAvatarFrameKey);
 
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
@@ -175,10 +178,15 @@ export function SportingDirectorProfileForm({
     return state.fieldErrors[field];
   }
 
-  function selectAvatar(avatarKey: string) {
+  function selectAvatar(
+    avatarKey: string,
+    frameKey: "alpha_tester" | null,
+  ) {
     setSelectedAvatarKey(avatarKey);
+    setSelectedAvatarFrameKey(frameKey);
     setIsAvatarModalOpen(false);
     dismissFieldError("avatarKey");
+    dismissFieldError("alphaTesterFrameEnabled");
   }
 
   const displayNameErrors = getVisibleErrors("displayName");
@@ -291,7 +299,7 @@ export function SportingDirectorProfileForm({
           ) : null}
         </div>
 
-        <fieldset>
+        <fieldset id="distinction-avatar" className="scroll-mt-28">
           <legend className="text-sm font-bold text-[#183F37]">
             Avatar du Directeur Sportif
           </legend>
@@ -300,9 +308,9 @@ export function SportingDirectorProfileForm({
             id="avatarKey-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Composez le portrait qui vous représentera dans votre bureau :
-            carnation, traits du visage, regard, coiffure et accessoires. Vous
-            pourrez le modifier à tout moment.
+            Composez le portrait qui vous représentera auprès des autres
+            managers : carnation, traits du visage, regard, coiffure et
+            accessoires. Vous pourrez le modifier à tout moment.
           </p>
 
           <div
@@ -317,7 +325,7 @@ export function SportingDirectorProfileForm({
               {hasSelectedAvatar ? (
                 <SportingDirectorAvatar
                   avatarKey={selectedAvatarKey}
-                  frameKey={initialAvatarFrameKey}
+                  frameKey={selectedAvatarFrameKey}
                   size="large"
                   label="Avatar actuellement sélectionné"
                 />
@@ -335,8 +343,8 @@ export function SportingDirectorProfileForm({
                 </p>
 
                 <p className="mt-1 max-w-md text-xs leading-5 text-[#60756E]">
-                  Ce portrait apparaîtra dans votre bureau, sur votre carte et
-                  dans les classements publics.
+                  Ce portrait apparaîtra sur votre profil public, la fiche de
+                  votre équipe, dans le chat et les classements.
                 </p>
               </div>
             </div>
@@ -362,10 +370,29 @@ export function SportingDirectorProfileForm({
           </div>
 
           <input type="hidden" name="avatarKey" value={selectedAvatarKey} />
+          <input
+            type="hidden"
+            name="alphaTesterFrameEnabled"
+            value={
+              selectedAvatarFrameKey === "alpha_tester" ? "true" : "false"
+            }
+          />
 
           {avatarErrors?.length ? (
             <div id="avatarKey-error">
               {avatarErrors.map((error) => (
+                <p
+                  key={error}
+                  className="mt-2 text-sm font-semibold text-[#80640C]"
+                >
+                  {error}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {alphaTesterFrameErrors?.length ? (
+            <div id="alphaTesterFrameEnabled-error">
+              {alphaTesterFrameErrors.map((error) => (
                 <p
                   key={error}
                   className="mt-2 text-sm font-semibold text-[#80640C]"
@@ -450,57 +477,6 @@ export function SportingDirectorProfileForm({
               Sportif.
             </p>
           </div>
-        ) : null}
-
-        {hasAlphaTesterTrophy ? (
-          <section
-            id="distinction-avatar"
-            className="scroll-mt-28 rounded-xl border border-[#5CC8B2]/35 bg-[linear-gradient(135deg,rgba(92,200,178,0.12),rgba(119,91,189,0.08))] p-4 sm:p-5"
-          >
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#5B4BA5]">
-              Distinction Alphatesteur
-            </p>
-
-            <label className="mt-3 flex cursor-pointer items-start gap-4">
-              <input
-                type="checkbox"
-                name="alphaTesterFrameEnabled"
-                value="true"
-                defaultChecked={initialAvatarFrameKey === "alpha_tester"}
-                disabled={pending}
-                aria-invalid={Boolean(alphaTesterFrameErrors?.length)}
-                aria-describedby={
-                  alphaTesterFrameErrors?.length
-                    ? "alphaTesterFrameEnabled-error"
-                    : undefined
-                }
-                onChange={() => dismissFieldError("alphaTesterFrameEnabled")}
-                className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-[#315B3E]/30 accent-[#5B4BA5] disabled:cursor-not-allowed"
-              />
-
-              <span>
-                <span className="block text-sm font-bold text-[#183F37]">
-                  Afficher le liseré Alphatesteur
-                </span>
-                <span className="mt-1 block text-xs leading-5 text-[#60756E]">
-                  Ce liseré numérique subtil sera visible par tous autour de votre avatar. Vous pourrez l’activer ou le désactiver ici à tout moment.
-                </span>
-              </span>
-            </label>
-
-            {alphaTesterFrameErrors?.length ? (
-              <div id="alphaTesterFrameEnabled-error">
-                {alphaTesterFrameErrors.map((error) => (
-                  <p
-                    key={error}
-                    className="mt-3 text-sm font-semibold text-[#80640C]"
-                  >
-                    {error}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-          </section>
         ) : null}
 
         {hasAssiduTrophy ? (
@@ -701,7 +677,7 @@ export function SportingDirectorProfileForm({
 
       {isAvatarModalOpen ? (
         <div
-          className="fixed inset-0 z-[260] flex items-center justify-center bg-[#071A17]/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[260] flex items-center justify-center bg-[#071A17]/70 p-0 backdrop-blur-sm sm:p-4"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setIsAvatarModalOpen(false);
@@ -713,7 +689,7 @@ export function SportingDirectorProfileForm({
             aria-modal="true"
             aria-labelledby="avatar-modal-title"
             aria-describedby="avatar-modal-description"
-            className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-white/15 bg-[#F8FBF9] shadow-[0_30px_100px_rgba(7,26,23,0.45)]"
+            className="h-[100dvh] w-full max-w-6xl overflow-y-auto border border-white/15 bg-[#F8FBF9] shadow-[0_30px_100px_rgba(7,26,23,0.45)] sm:h-auto sm:max-h-[92vh] sm:rounded-2xl"
           >
             <div className="sticky top-0 z-10 flex items-start justify-between gap-5 border-b border-[#315B3E]/10 bg-[#F8FBF9] px-5 py-5 sm:px-7">
               <div>
@@ -725,7 +701,9 @@ export function SportingDirectorProfileForm({
                   id="avatar-modal-title"
                   className="mt-2 text-2xl font-black text-[#082A2A]"
                 >
-                  Créer votre avatar
+                  {hasSelectedAvatar
+                    ? "Modifier votre avatar"
+                    : "Créer votre avatar"}
                 </h2>
 
                 <p
@@ -750,7 +728,8 @@ export function SportingDirectorProfileForm({
 
             <SportingDirectorAvatarEditor
               avatarKey={selectedAvatarKey || null}
-              frameKey={initialAvatarFrameKey}
+              frameKey={selectedAvatarFrameKey}
+              hasAlphaTesterTrophy={hasAlphaTesterTrophy}
               hasAssiduTrophy={hasAssiduTrophy}
               hasHiddenSwitchbackTrophy={hasHiddenSwitchbackTrophy}
               onCancel={() => setIsAvatarModalOpen(false)}

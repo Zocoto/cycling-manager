@@ -68,6 +68,25 @@ describe("sporting director avatar editor", () => {
       decodeCustomSportingDirectorAvatar(key)!
     )).toBe(key);
   });
+
+  it("keeps the new inclusive face and hair choices in the versioned avatar key", () => {
+    const key = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      faceShape: "diamond",
+      hairStyle: "double-buns",
+      eyebrowStyle: "fine",
+      cheekStyle: "rosy",
+    });
+
+    expect(decodeCustomSportingDirectorAvatar(key)).toMatchObject({
+      faceShape: "diamond",
+      hairStyle: "double-buns",
+      eyebrowStyle: "fine",
+      cheekStyle: "rosy",
+    });
+    expect(AVATAR_FACE_SHAPES).toHaveLength(7);
+    expect(AVATAR_HAIR_STYLES).toHaveLength(19);
+  });
   it("round-trips the Assidu glasses in a custom avatar key", () => {
     const key = encodeSportingDirectorAvatar({
       ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
@@ -168,7 +187,7 @@ describe("sporting director avatar editor", () => {
       noseShape: AVATAR_NOSE_SHAPES.at(-1)?.key,
       mouthShape: AVATAR_MOUTH_SHAPES.at(-1)?.key,
       earShape: AVATAR_EAR_SHAPES.at(-1)?.key,
-      cheekStyle: "freckles",
+      cheekStyle: "beauty-mark",
       facialHair: AVATAR_FACIAL_HAIR_STYLES.at(-1)?.key,
       glasses: "cat-eye",
       outfit: AVATAR_OUTFITS.find(({ key }) => key === "violet")?.key,

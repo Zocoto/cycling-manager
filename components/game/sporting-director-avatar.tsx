@@ -27,7 +27,7 @@ export { SPORTING_DIRECTOR_AVATARS, isSportingDirectorAvatarKey };
 
 type SportingDirectorAvatarProps = {
   avatarKey?: string | null;
-  size?: "small" | "medium" | "large" | "xlarge";
+  size?: "small" | "chat" | "medium" | "large" | "xlarge" | "hero";
   label?: string;
   className?: string;
   frameKey?: SportingDirectorAvatarFrameKey | null;
@@ -35,9 +35,11 @@ type SportingDirectorAvatarProps = {
 
 const avatarSizeClasses = {
   small: "h-10 w-10",
+  chat: "h-12 w-12 sm:h-14 sm:w-14",
   medium: "h-16 w-16",
   large: "h-24 w-24",
   xlarge: "h-44 w-44",
+  hero: "h-44 w-44 sm:h-56 sm:w-56",
 };
 
 export function SportingDirectorAvatar({
@@ -78,7 +80,9 @@ export function SportingDirectorAvatar({
         />
         <circle cx="99" cy="28" r="20" fill="#FFFFFF" opacity="0.15" />
 
-        <AvatarHairBack avatar={avatar} color={hair.color} />
+        <g data-avatar-hair-back={avatar.hairStyle}>
+          <AvatarHairBack avatar={avatar} color={hair.color} />
+        </g>
 
         <path
           d="M11 121C14 93 31 78 60 78C89 78 106 93 109 121Z"
@@ -113,7 +117,9 @@ export function SportingDirectorAvatar({
         <AvatarEars avatar={avatar} skin={skin.color} shadow={skin.shadow} />
         <AvatarFace avatar={avatar} skin={skin.color} />
         <AvatarCheeks avatar={avatar} blush={skin.blush} shadow={skin.shadow} />
-        <AvatarHairFront avatar={avatar} color={hair.color} />
+        <g data-avatar-hair-front={avatar.hairStyle}>
+          <AvatarHairFront avatar={avatar} color={hair.color} />
+        </g>
         {avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY ? (
           <AvatarPatronHat />
         ) : null}
@@ -363,6 +369,20 @@ function AvatarFace({
       );
     case "long":
       return <ellipse cx="60" cy="49" rx="22" ry="32" fill={skin} />;
+    case "diamond":
+      return (
+        <path
+          d="M60 16C74 16 83 27 85 43C82 62 75 75 60 82C45 75 38 62 35 43C37 27 46 16 60 16Z"
+          fill={skin}
+        />
+      );
+    case "triangle":
+      return (
+        <path
+          d="M60 17C75 17 83 25 84 39C84 60 77 75 60 81C43 75 36 60 36 39C37 25 45 17 60 17Z"
+          fill={skin}
+        />
+      );
     default:
       return <ellipse cx="60" cy="49" rx="24" ry="30" fill={skin} />;
   }
@@ -417,6 +437,15 @@ function AvatarCheeks({
     );
   }
 
+  if (avatar.cheekStyle === "beauty-mark") {
+    return (
+      <g data-avatar-detail="beauty-mark">
+        <circle cx="77" cy="61" r="1.45" fill={shadow} opacity="0.82" />
+        <circle cx="76.6" cy="60.6" r="0.42" fill="#FFFFFF" opacity="0.5" />
+      </g>
+    );
+  }
+
   if (avatar.cheekStyle === NIGHT_AUCTION_AVATAR_CHEEK_KEY) {
     return (
       <g data-avatar-skin="dark-circles">
@@ -429,12 +458,17 @@ function AvatarCheeks({
   }
 
   const cheekY = avatar.cheekStyle === "high" ? 55 : 59;
-  const radiusX = avatar.cheekStyle === "defined" ? 7 : 6;
+  const radiusX = avatar.cheekStyle === "defined" ? 7 : avatar.cheekStyle === "rosy" ? 7.5 : 6;
+  const cheekOpacity = avatar.cheekStyle === "defined"
+    ? 0.34
+    : avatar.cheekStyle === "rosy"
+      ? 0.42
+      : 0.22;
 
   return (
     <>
-      <ellipse cx="45" cy={cheekY} rx={radiusX} ry="3.4" fill={blush} opacity={avatar.cheekStyle === "defined" ? 0.34 : 0.22} />
-      <ellipse cx="75" cy={cheekY} rx={radiusX} ry="3.4" fill={blush} opacity={avatar.cheekStyle === "defined" ? 0.34 : 0.22} />
+      <ellipse cx="45" cy={cheekY} rx={radiusX} ry="3.4" fill={blush} opacity={cheekOpacity} />
+      <ellipse cx="75" cy={cheekY} rx={radiusX} ry="3.4" fill={blush} opacity={cheekOpacity} />
       {avatar.cheekStyle === "defined" ? (
         <>
           <path d="M40 62C44 64 48 64 51 62" fill="none" stroke={shadow} strokeWidth="1.1" opacity="0.5" />
@@ -458,6 +492,7 @@ function AvatarEyebrows({
     arched: { left: "M43 44C47 38.5 52 39 55 42", right: "M65 42C68 39 73 38.5 77 44", width: 2 },
     bold: { left: "M42 43C47 39.5 52 40 56 42", right: "M64 42C68 40 73 39.5 78 43", width: 3.3 },
     angled: { left: "M43 44L55 40", right: "M65 40L77 44", width: 2.4 },
+    fine: { left: "M44 43C48 41 52 41 55 42", right: "M65 42C68 41 72 41 76 43", width: 1.25 },
   }[avatar.eyebrowStyle];
 
   return (
@@ -680,6 +715,10 @@ function AvatarHairBack({
       );
     case "bob":
       return <ellipse cx="60" cy="51" rx="31" ry="37" fill={color} />;
+    case "lob":
+      return <path d="M29 47C29 24 41 13 60 13C79 13 91 24 91 47L88 91H72L78 45H42L48 91H32Z" fill={color} />;
+    case "curtain":
+      return <path d="M31 48C31 25 43 14 60 14C77 14 89 25 89 48L86 83H73L77 43H43L47 83H34Z" fill={color} />;
     case "ponytail":
       return (
         <>
@@ -694,6 +733,31 @@ function AvatarHairBack({
         <>
           <ellipse cx="60" cy="39" rx="29" ry="27" fill={color} />
           <path d="M38 40C30 55 34 75 38 87M46 34C39 54 42 74 45 91M74 34C81 54 78 74 75 91M82 40C90 55 86 75 82 87" fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" />
+        </>
+      );
+    case "twists":
+      return (
+        <>
+          <ellipse cx="60" cy="39" rx="29" ry="28" fill={color} />
+          <path d="M38 38C29 56 34 76 34 92M47 33C38 54 43 77 42 96M73 33C82 54 77 77 78 96M82 38C91 56 86 76 86 92" fill="none" stroke={color} strokeWidth="7" strokeLinecap="round" />
+          <path d="M36 44C31 57 37 70 34 84M84 44C89 57 83 70 86 84" fill="none" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.18" strokeLinecap="round" />
+        </>
+      );
+    case "locs":
+      return (
+        <>
+          <ellipse cx="60" cy="38" rx="29" ry="27" fill={color} />
+          {[35, 43, 51, 69, 77, 85].map((x, index) => (
+            <path key={x} d={`M${x} 35C${x - 4 + (index % 2) * 8} 56 ${x + 2 - (index % 2) * 4} 75 ${x - 1 + (index % 2) * 2} 94`} fill="none" stroke={color} strokeWidth="5.4" strokeLinecap="round" />
+          ))}
+        </>
+      );
+    case "double-buns":
+      return (
+        <>
+          <circle cx="39" cy="18" r="13" fill={color} />
+          <circle cx="81" cy="18" r="13" fill={color} />
+          <ellipse cx="60" cy="41" rx="29" ry="29" fill={color} />
         </>
       );
     default:
@@ -717,6 +781,15 @@ function AvatarHairFront({
       return <path d="M36 40C38 22 47 16 61 16C75 16 83 24 84 40L76 34L71 37L64 32L57 36L50 32L43 38Z" fill={color} />;
     case "side":
       return <path d="M35 42C36 23 47 15 64 17C77 18 84 27 84 42C76 34 69 30 58 30C49 30 42 35 35 42Z" fill={color} />;
+    case "pixie":
+      return <path d="M35 39C36 24 45 16 59 16C73 16 82 22 85 36L78 33L75 39L68 31L62 37L54 30L48 37L41 33Z" fill={color} />;
+    case "undercut":
+      return (
+        <>
+          <path d="M36 39C37 25 46 17 61 17C72 17 80 23 83 33C71 29 61 27 48 32L40 40Z" fill={color} />
+          <path d="M37 39C38 32 40 28 44 24" fill="none" stroke={color} strokeWidth="2" opacity="0.35" />
+        </>
+      );
     case "waves":
       return <path d="M34 42C34 24 44 16 59 16C73 15 84 24 86 41C78 34 73 34 67 29C61 35 54 28 47 35C42 36 38 39 34 42Z" fill={color} />;
     case "curls":
@@ -731,6 +804,20 @@ function AvatarHairFront({
       return <path d="M34 41C36 22 46 14 60 14C74 14 84 22 86 41C77 33 69 29 60 29C51 29 43 33 34 41Z" fill={color} />;
     case "bob":
       return <path d="M33 45C33 24 44 15 60 15C76 15 87 24 87 45C78 34 70 29 60 29C50 29 42 34 33 45Z" fill={color} />;
+    case "lob":
+      return <path d="M32 45C32 24 43 14 60 14C77 14 88 24 88 45C80 35 70 29 60 29C50 29 40 35 32 45Z" fill={color} />;
+    case "curtain":
+      return (
+        <>
+          <path d="M33 43C34 23 44 14 60 14C76 14 86 23 87 43C77 34 70 29 60 29C50 29 43 34 33 43Z" fill={color} />
+          <path d="M59 18C53 23 49 29 47 38M61 18C67 23 71 29 73 38" fill="none" stroke="#FFFFFF" strokeWidth="1.3" strokeOpacity="0.2" strokeLinecap="round" />
+        </>
+      );
+    case "twists":
+    case "locs":
+      return <path d="M33 42C35 21 46 13 60 13C74 13 85 21 87 42C77 33 70 28 60 28C50 28 43 33 33 42Z" fill={color} />;
+    case "double-buns":
+      return <path d="M34 42C35 23 45 15 60 15C75 15 85 23 86 42C77 34 69 29 60 29C51 29 43 34 34 42Z" fill={color} />;
     case "long":
     case "bun":
     case "ponytail":

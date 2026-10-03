@@ -1907,12 +1907,12 @@ function ChatMessage({
       <SportingDirectorAvatar
         avatarKey={avatarKey}
         frameKey={avatarFrameKey}
-        size="small"
+        size="chat"
         label={`Avatar de ${message.authorDisplayName}`}
       />
 
       <div
-        className={`min-w-0 max-w-[min(42rem,calc(100%_-_3rem))] rounded-2xl border px-4 py-3 shadow-sm ${
+        className={`min-w-0 max-w-[min(42rem,calc(100%_-_4.25rem))] rounded-2xl border px-4 py-3 shadow-sm ${
           isCurrentDirector
             ? "rounded-tr-sm border-[#176951] bg-[#176951] text-white"
             : isMentioned

@@ -34,6 +34,11 @@ type SportingDirectorRow = {
   reputation_points: number | null;
 };
 
+export type PublicSportingDirectorPortrait = Pick<
+  SportingDirectorRow,
+  "display_name" | "avatar_key" | "avatar_frame_key"
+>;
+
 type CountryRow = {
   name: string;
   iso_alpha2: string;
@@ -198,6 +203,32 @@ export async function getPublicSportingDirector(
     sporting_director_name: null,
     sporting_director_count: null,
     team_count: null,
+  };
+}
+
+export async function getPublicSportingDirectorPortrait(
+  publicIdentifier: string,
+): Promise<PublicSportingDirectorPortrait | null> {
+  const normalizedIdentifier = normalizePublicIdentifier(publicIdentifier);
+
+  if (normalizedIdentifier.length < 2) {
+    return null;
+  }
+
+  const director = await findSportingDirector({
+    supabase: createSupabaseAdminClient(),
+    column: "username",
+    identifier: normalizedIdentifier,
+  });
+
+  if (!director) {
+    return null;
+  }
+
+  return {
+    display_name: director.display_name,
+    avatar_key: director.avatar_key,
+    avatar_frame_key: director.avatar_frame_key,
   };
 }
 

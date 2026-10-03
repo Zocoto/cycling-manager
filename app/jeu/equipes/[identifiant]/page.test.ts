@@ -71,4 +71,10 @@ describe("team profile mobile layout", () => {
       "en ${entry.seasonName}",
     );
   });
+
+  it("met le portrait du Directeur Sportif en avant sur la fiche équipe", () => {
+    expect(teamProfilePage).toContain("getPublicSportingDirectorPortrait");
+    expect(teamProfilePage).toContain("<SportingDirectorAvatar");
+    expect(teamProfilePage).toContain('size="large"');
+  });
 });
