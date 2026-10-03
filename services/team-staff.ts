@@ -43,8 +43,9 @@ import {
   type StaffTalentCode,
 } from "@/lib/game/staff-talents";
 import {
-  hasStaffMarketNoonWaveStarted,
-  type StaffMarketWave,
+  getCurrentStaffMarketWaveIndex,
+  getDueStaffMarketWaveIndexes,
+  STAFF_MARKET_WAVE_SIZE,
 } from "@/lib/game/staff-market-waves";
 import { selectWeightedRandomDistinct } from "@/lib/game/weighted-random-selection";
 import { calculateSportingDirectorProgression } from "@/lib/game/sporting-director-progression";
@@ -575,18 +576,10 @@ export async function getTeamStaffOverview(
 async function ensureTodayStaffMarket(
   admin: ReturnType<typeof createSupabaseAdminClient>,
 ) {
-  const now = new Date();
-  const marketDate = formatParisDate(now);
-  await ensureStaffMarketWave(admin, marketDate, "midnight");
-  if (hasStaffMarketNoonWaveStarted(now)) {
-    await ensureStaffMarketWave(admin, marketDate, "noon");
-  }
+  await ensureDueStaffMarketWaves(admin, new Date());
 }
 
-export async function settleCurrentStaffMarketWave(
-  wave: StaffMarketWave,
-  now = new Date(),
-) {
+export async function settleDueStaffMarketWaves(now = new Date()) {
   const admin = createSupabaseAdminClient();
   const specializationSettlement = await admin.rpc(
     "settle_due_infrastructure_specializations",
@@ -595,34 +588,53 @@ export async function settleCurrentStaffMarketWave(
     specializationSettlement.error,
     "l’activation des orientations d’infrastructure",
   );
-  const marketDate = formatParisDate(now);
-  const generatedCount = await ensureStaffMarketWave(admin, marketDate, wave);
-
-  return { marketDate, wave, generatedCount };
+  return ensureDueStaffMarketWaves(admin, now);
 }
 
-async function ensureStaffMarketWave(
+async function ensureDueStaffMarketWaves(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  now: Date,
+) {
+  const marketDate = formatParisDate(now);
+  const currentWaveIndex = getCurrentStaffMarketWaveIndex(now);
+  const batch = await loadStaffMarketBatch(admin, marketDate);
+  const completedWaveCount = Math.floor(
+    Number(batch?.staff_count ?? 0) / STAFF_MARKET_WAVE_SIZE,
+  );
+  let generatedCount = 0;
+
+  for (const waveIndex of getDueStaffMarketWaveIndexes(now)) {
+    if (waveIndex < completedWaveCount) continue;
+    generatedCount += await appendStaffMarketWave(
+      admin,
+      marketDate,
+      waveIndex,
+    );
+  }
+
+  return { marketDate, currentWaveIndex, generatedCount };
+}
+
+async function appendStaffMarketWave(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   marketDate: string,
-  wave: StaffMarketWave,
+  waveIndex: number,
 ) {
-  let batch = await loadStaffMarketBatch(admin, marketDate);
+  const candidates = await generateStaffMarketCandidates(
+    admin,
+    STAFF_MARKET_WAVE_SIZE,
+  );
+  const { data, error } = await admin.rpc("append_staff_market_wave", {
+    p_market_date: marketDate,
+    p_wave_index: waveIndex,
+    p_candidates: candidates,
+  });
 
-  if (wave === "midnight") {
-    if (batch) return 0;
-    return createStaffMarketWave(admin, marketDate, "create_daily_staff_market");
-  }
-
-  if (!batch) {
-    await ensureStaffMarketWave(admin, marketDate, "midnight");
-    batch = await loadStaffMarketBatch(admin, marketDate);
-  }
-  if (!batch) {
-    throw new Error("Impossible de retrouver le marché du staff créé ce jour.");
-  }
-  if (batch.staff_count >= 50) return 0;
-
-  return createStaffMarketWave(admin, marketDate, "append_daily_staff_market");
+  assertQuery(
+    error,
+    `les ${STAFF_MARKET_WAVE_SIZE} profils de la vague du marché du staff`,
+  );
+  return Number(data ?? 0);
 }
 
 async function loadStaffMarketBatch(
@@ -639,23 +651,9 @@ async function loadStaffMarketBatch(
   return data;
 }
 
-async function createStaffMarketWave(
-  admin: ReturnType<typeof createSupabaseAdminClient>,
-  marketDate: string,
-  rpcName: "create_daily_staff_market" | "append_daily_staff_market",
-) {
-  const candidates = await generateStaffMarketCandidates(admin);
-  const { data, error } = await admin.rpc(rpcName, {
-    p_market_date: marketDate,
-    p_candidates: candidates,
-  });
-
-  assertQuery(error, "les 25 profils de la vague du marché du staff");
-  return Number(data ?? 0);
-}
-
 async function generateStaffMarketCandidates(
   admin: ReturnType<typeof createSupabaseAdminClient>,
+  count = STAFF_MARKET_WAVE_SIZE,
 ) {
   const [countriesResult, profilesResult, nationalityWeights] =
     await Promise.all([
@@ -685,7 +683,7 @@ async function generateStaffMarketCandidates(
   });
   const selectedCountries = selectWeightedRandomDistinct({
     values: eligibleCountries,
-    count: 25,
+    count,
     getWeight: (country) => nationalityWeights.get(country.id) ?? 1,
     random: () => randomInt(0, 1_000_000) / 1_000_000,
   });
@@ -693,7 +691,7 @@ async function generateStaffMarketCandidates(
     selectedCountries,
     profileByCountryId,
   );
-  const roles = shuffleCopy(STAFF_DAILY_ROLE_DISTRIBUTION);
+  const roles = shuffleCopy(STAFF_DAILY_ROLE_DISTRIBUTION).slice(0, count);
   const candidates = selectedCountries.map((country, index) => {
     const identity = identitiesByCountryId.get(country.id);
     const role = roles[index]!;

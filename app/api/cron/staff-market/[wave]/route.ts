@@ -1,9 +1,9 @@
 import {
-  isStaffMarketWave,
-  isStaffMarketWaveDue,
+  isStaffMarketRefreshHour,
+  isStaffMarketRefreshRoute,
 } from "@/lib/game/staff-market-waves";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
-import { settleCurrentStaffMarketWave } from "@/services/team-staff";
+import { settleDueStaffMarketWaves } from "@/services/team-staff";
 
 export const maxDuration = 60;
 
@@ -16,23 +16,23 @@ export async function GET(
   }
 
   const { wave } = await context.params;
-  if (!isStaffMarketWave(wave)) {
+  if (!isStaffMarketRefreshRoute(wave)) {
     return Response.json({ error: "Invalid staff market wave" }, { status: 400 });
   }
 
   const now = new Date();
-  if (!isStaffMarketWaveDue(wave, now)) {
+  if (!isStaffMarketRefreshHour(now)) {
     return Response.json({
       wave,
       skipped: true,
-      reason: "outside_paris_wave_hour",
+      reason: "outside_paris_bi_hourly_slot",
       checkedAt: now.toISOString(),
     });
   }
 
   try {
-    const settlement = await settleCurrentStaffMarketWave(wave, now);
-    console.info("staff_market_wave_settled", settlement);
+    const settlement = await settleDueStaffMarketWaves(now);
+    console.info("staff_market_waves_settled", settlement);
     return Response.json({
       ...settlement,
       skipped: settlement.generatedCount === 0,

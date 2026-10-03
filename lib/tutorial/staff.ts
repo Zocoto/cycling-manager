@@ -70,7 +70,7 @@ export const staffTutorialDefinition = {
       targetId: "staff-market-overview",
       title: "Un marché mondial partagé",
       content:
-        "Chaque jour, 25 spécialistes arrivent à minuit, puis 25 autres s’ajoutent à midi. Les 50 profils sont communs à tous les Directeurs Sportifs et le marché entier est renouvelé au minuit suivant. Il fonctionne sur le principe du premier arrivé : dès qu’un profil signe ailleurs, il disparaît pour toutes les autres équipes.\n\nSurveillez donc les deux vagues, vos places libres, la prime immédiate et le budget nécessaire pour couvrir toute la saison.",
+        "Toutes les deux heures, 5 spécialistes rejoignent le marché, soit 60 profils répartis sur la journée. Ils sont communs à tous les Directeurs Sportifs et le marché est renouvelé chaque jour. Il fonctionne sur le principe du premier arrivé : dès qu’un profil signe ailleurs, il disparaît pour toutes les autres équipes.\n\nRevenez au moment qui vous convient et vérifiez vos places libres, la prime immédiate et le budget nécessaire pour couvrir toute la saison.",
       placement: "bottom",
       highlightPadding: 8,
     },
