@@ -2375,9 +2375,27 @@ export async function getCurrentTeamStageRolePlan(
 export async function getCurrentTeamRacePreparation(
   supabase: SupabaseServerClient,
 ): Promise<RacePreparationEditionPlan[]> {
-  const { data, error } = await supabase.rpc(
-    "get_current_team_race_preparation",
-  );
+  // Each row represents one stage/rider pair, including past stages. A busy
+  // season can exceed PostgREST's 1,000-row cap before any future race appears.
+  // Read pages sequentially with a unique order; never return a partial plan.
+  const { data, error } = await collectPaginatedRows<
+    RacePreparationRow,
+    { message: string }
+  >({
+    fetchPage: async (from, to) => {
+      const result = await supabase
+        .rpc("get_current_team_race_preparation")
+        .order("race_edition_id", { ascending: true })
+        .order("race_registration_id", { ascending: true })
+        .order("stage_id", { ascending: true })
+        .order("rider_id", { ascending: true })
+        .range(from, to);
+      return {
+        data: result.data as RacePreparationRow[] | null,
+        error: result.error,
+      };
+    },
+  });
 
   if (error) {
     throw new Error(
