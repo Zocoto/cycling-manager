@@ -121,38 +121,38 @@ export type CyclogazetteNationsCupSpecial = {
 };
 
 const CYCLING_HOLLOW_TEASER_DATE = "2026-10-04";
+export const CYCLING_HOLLOW_TEASER_STORY_ID =
+  `event:cycling-hollow:${CYCLING_HOLLOW_TEASER_DATE}`;
 
 const CYCLING_HOLLOW_TEASER_STORY: CyclogazetteFeatureStory = {
-  id: `event:cycling-hollow:${CYCLING_HOLLOW_TEASER_DATE}`,
+  id: CYCLING_HOLLOW_TEASER_STORY_ID,
   kind: "event_teaser",
-  kicker: "Témoignages · La route après minuit",
-  kickerEn: "Eyewitnesses · The road after midnight",
-  title: "La nuit, un étrange cycliste suit le peloton",
-  titleEn: "At night, a strange cyclist follows the peloton",
-  body: "Trois témoins affirment avoir aperçu, sur une route forestière noyée de brume, un cycliste silencieux lancé sans lumière et sans jamais ralentir. Aucun n’a pu distinguer son visage. Après son passage, des traces de gomme brûlée et une roue marquée d’une lueur orange auraient été retrouvées sur le bas-côté. Dans les vieux carnets du peloton, une légende porte déjà un nom : l’Équipier sans tête. La rédaction n’y croyait pas. Jusqu’à ce soir.",
-  bodyEn: "Three witnesses say they spotted a silent cyclist on a forest road drowned in mist, riding without lights and never seeming to slow down. None of them could make out his face. After he passed, scorched tyre marks and a wheel glowing orange were reportedly found by the roadside. In the peloton’s oldest notebooks, the legend already has a name: the Headless Domestique. The newsroom never believed it. Until tonight.",
+  kicker: "Halloween · Témoignages sur la route après minuit",
+  kickerEn: "Halloween · Eyewitnesses on the road after midnight",
+  title: "L’Équipier sans tête roule encore dans la nuit",
+  titleEn: "The Headless Domestique still rides through the night",
+  body: "Trois témoins affirment avoir aperçu, sur une route forestière noyée de brume, un équipier silencieux lancé sans lumière et sans jamais ralentir. Aucun n’a pu distinguer son visage — ni même sa tête. Après son passage, la chaussée portait des traces de gomme brûlée et une roue marquée d’une lueur orange tournait encore sur le bas-côté. Les vieux carnets du peloton racontent qu’il revient chaque automne chercher une roue à suivre. La rédaction n’y croyait pas. Jusqu’à ce soir.",
+  bodyEn: "Three witnesses say they spotted a silent domestique on a forest road drowned in mist, riding without lights and never slowing down. None could make out his face — or even his head. After he passed, scorched tyre marks crossed the road and an orange-glowing wheel was still turning by the verge. Old peloton notebooks say he returns every autumn in search of a wheel to follow. The newsroom never believed it. Until tonight.",
 };
 
 export function includeCyclingHollowTeaserStory(
   stories: readonly CyclogazetteFeatureStory[],
   calendarDate: string,
 ) {
+  const alreadyIncluded = stories.some(
+    (story) => story.id === CYCLING_HOLLOW_TEASER_STORY_ID,
+  );
   const withoutDuplicate = stories.filter(
-    (story) => story.id !== CYCLING_HOLLOW_TEASER_STORY.id,
+    (story) => story.id !== CYCLING_HOLLOW_TEASER_STORY_ID,
   );
 
-  if (calendarDate !== CYCLING_HOLLOW_TEASER_DATE) {
+  if (calendarDate !== CYCLING_HOLLOW_TEASER_DATE && !alreadyIncluded) {
     return withoutDuplicate;
   }
 
-  if (withoutDuplicate.length === 0) {
-    return [CYCLING_HOLLOW_TEASER_STORY];
-  }
-
   return [
-    withoutDuplicate[0],
     CYCLING_HOLLOW_TEASER_STORY,
-    ...withoutDuplicate.slice(1),
+    ...withoutDuplicate,
   ].slice(0, 6);
 }
 

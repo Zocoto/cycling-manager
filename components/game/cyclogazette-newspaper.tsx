@@ -1097,29 +1097,70 @@ function EditorialFeatureSection({
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {stories.map((story, index) => {
+          const isHalloweenTeaser = story.kind === "event_teaser";
           const article = (
             <article
               data-gazette-feature-kind={story.kind}
-              className={`h-full border-l-4 border-[var(--gazette-accent)] bg-[var(--gazette-card)] p-5 ${
-                index === 0 ? "md:col-span-2" : ""
+              data-gazette-halloween-teaser={
+                isHalloweenTeaser ? "true" : undefined
+              }
+              className={`relative h-full overflow-hidden border-l-4 p-5 ${
+                isHalloweenTeaser
+                  ? "border-[#E8751A] text-[#F7E8D2] shadow-[0_18px_42px_rgba(35,12,5,0.24)]"
+                  : "border-[var(--gazette-accent)] bg-[var(--gazette-card)]"
+              } ${
+                index === 0 || isHalloweenTeaser ? "md:col-span-2" : ""
               }`}
+              style={
+                isHalloweenTeaser
+                  ? {
+                      background:
+                        "radial-gradient(circle at 84% 15%, rgba(232,117,26,0.24), transparent 24%), linear-gradient(135deg, #17100D 0%, #2A130D 52%, #080706 100%)",
+                    }
+                  : undefined
+              }
             >
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--gazette-accent)]">
-                {isEnglish ? story.kickerEn : story.kicker}
-              </p>
-              <h3
-                className={`${index === 0 ? "text-3xl" : "text-2xl"} mt-2 font-serif font-black leading-none tracking-[-0.025em]`}
-              >
-                {isEnglish ? story.titleEn : story.title}
-              </h3>
-              <p className="mt-4 font-serif text-sm font-medium leading-6 text-[var(--gazette-body)]">
-                {isEnglish ? story.bodyEn : story.body}
-              </p>
-              {story.href ? (
-                <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--gazette-accent)]">
-                  {isEnglish ? "Read the full story" : "Ouvrir le dossier"} →
-                </p>
+              {isHalloweenTeaser ? (
+                <span aria-hidden="true" className="pointer-events-none absolute right-5 top-5 h-16 w-16 rounded-full bg-[#E8751A]/80 shadow-[0_0_32px_rgba(232,117,26,0.32)]">
+                  <span className="absolute -right-1 -top-1 h-16 w-16 rounded-full bg-[#17100D]" />
+                </span>
               ) : null}
+              <div className="relative z-10 max-w-4xl">
+                <p
+                  className={`text-[9px] font-black uppercase tracking-[0.18em] ${
+                    isHalloweenTeaser
+                      ? "text-[#F29A3A]"
+                      : "text-[var(--gazette-accent)]"
+                  }`}
+                >
+                  {isEnglish ? story.kickerEn : story.kicker}
+                </p>
+                <h3
+                  className={`${index === 0 || isHalloweenTeaser ? "text-3xl" : "text-2xl"} mt-2 font-serif font-black leading-none tracking-[-0.025em]`}
+                >
+                  {isEnglish ? story.titleEn : story.title}
+                </h3>
+                <p
+                  className={`mt-4 font-serif text-sm font-medium leading-6 ${
+                    isHalloweenTeaser
+                      ? "text-[#E4D0BA]"
+                      : "text-[var(--gazette-body)]"
+                  }`}
+                >
+                  {isEnglish ? story.bodyEn : story.body}
+                </p>
+                {isHalloweenTeaser ? (
+                  <p className="mt-5 border-t border-[#E8751A]/35 pt-3 text-[9px] font-black uppercase tracking-[0.16em] text-[#F29A3A]">
+                    {isEnglish
+                      ? "Halloween file · The newsroom keeps the lights on"
+                      : "Dossier Halloween · La rédaction garde les lumières allumées"}
+                  </p>
+                ) : story.href ? (
+                  <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--gazette-accent)]">
+                    {isEnglish ? "Read the full story" : "Ouvrir le dossier"} →
+                  </p>
+                ) : null}
+              </div>
             </article>
           );
 

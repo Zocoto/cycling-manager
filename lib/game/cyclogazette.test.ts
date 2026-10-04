@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CYCLING_HOLLOW_TEASER_STORY_ID,
   formatCyclogazetteStageLabel,
   getParisDateKey,
   getParisHour,
+  includeCyclingHollowTeaserStory,
   isFrenchGrandTourGazetteDay,
   isItalianGrandTourGazetteDay,
   isSpanishGrandTourGazetteDay,
@@ -13,6 +15,24 @@ import {
   selectLatestCyclogazetteTourSummaries,
   sortCyclogazetteStoriesByPrestige,
 } from "@/lib/game/cyclogazette";
+
+describe("teaser de l’Équipier sans tête", () => {
+  it("l’ajoute le jour de l’annonce puis le conserve dans l’édition archivée", () => {
+    const announced = includeCyclingHollowTeaserStory([], "2026-10-04");
+    const archived = includeCyclingHollowTeaserStory(
+      announced,
+      "2026-10-05",
+    );
+
+    expect(announced[0]?.id).toBe(CYCLING_HOLLOW_TEASER_STORY_ID);
+    expect(announced[0]?.title).toContain("L’Équipier sans tête");
+    expect(archived).toEqual(announced);
+  });
+
+  it("ne l’ajoute pas aux anciennes éditions qui ne le contenaient pas", () => {
+    expect(includeCyclingHollowTeaserStory([], "2026-10-03")).toEqual([]);
+  });
+});
 
 describe("horaire de publication de La Cyclogazette", () => {
   it("reconnaît 20 h à Paris pendant l’heure d’été", () => {

@@ -38,6 +38,11 @@ export type NationsCupOverview = {
   seasonName: string;
   gameYear: number;
   currentDayNumber: number;
+  viewerFederation: {
+    countryId: string;
+    division: number;
+    groupCode: string | null;
+  } | null;
   events: NationsCupEvent[];
   standings: NationsCupStanding[];
 };
@@ -292,11 +297,28 @@ export async function getNationsCupOverview(
       eventRanks: eventRankByCountry.get(standing.country_id) ?? {},
     }),
   );
+  const viewerStanding = viewerCountryId
+    ? standings.find((standing) => standing.countryId === viewerCountryId)
+    : null;
+  const viewerFederation = viewerCountryId
+    ? {
+        countryId: viewerCountryId,
+        division:
+          viewerAssignmentResult.data?.division
+          ?? viewerStanding?.division
+          ?? 1,
+        groupCode:
+          viewerAssignmentResult.data?.group_code
+          ?? viewerStanding?.groupCode
+          ?? null,
+      }
+    : null;
 
   return {
     seasonName: season.name,
     gameYear: season.game_year,
     currentDayNumber: season.current_day_number ?? 1,
+    viewerFederation,
     events,
     standings,
   };

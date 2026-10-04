@@ -242,10 +242,10 @@ describe("CyclogazetteNewspaper", () => {
                 kind: "event_teaser",
                 kicker: "Témoignages · La route après minuit",
                 kickerEn: "Eyewitnesses · The road after midnight",
-                title: "La nuit, un étrange cycliste suit le peloton",
-                titleEn: "At night, a strange cyclist follows the peloton",
-                body: "La rédaction poursuit son enquête.",
-                bodyEn: "The newsroom keeps investigating.",
+                title: "L’Équipier sans tête roule encore dans la nuit",
+                titleEn: "The Headless Domestique still rides through the night",
+                body: "Une roue orange tourne encore dans la brume.",
+                bodyEn: "An orange wheel is still turning in the mist.",
               },
             ],
           },
@@ -261,7 +261,12 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("D2 → D1");
     expect(markup).toContain("450 000 €");
     expect(markup).toContain("nations-cup-special.png");
-    expect(markup).toContain("La nuit, un étrange cycliste suit le peloton");
+    expect(markup).toContain("L’Équipier sans tête roule encore dans la nuit");
+    expect(markup).toContain('data-gazette-halloween-teaser="true"');
+    expect(markup).toContain("#E8751A");
+    expect(markup).toContain(
+      "Dossier Halloween · La rédaction garde les lumières allumées",
+    );
     expect(markup).toContain('href="/jeu/nations-cup"');
   });
 

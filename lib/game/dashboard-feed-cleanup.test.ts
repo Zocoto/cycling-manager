@@ -30,12 +30,15 @@ describe("Bureau du Directeur Sportif allégé", () => {
     expect(assistantIndex).toBeLessThan(raceOperationsIndex);
   });
 
-  it("scinde la tuile fédération avec la Nations Cup uniquement à J24", () => {
+  it("scinde la tuile fédération avec la Nations Cup à J24 et J25", () => {
     expect(dashboard).toContain(
-      "showNationsCup={teamSummary?.season_day_number === 24}",
+      "teamSummary?.season_day_number === 24\n                || teamSummary?.season_day_number === 25",
     );
-    expect(dashboard).toContain('data-dashboard-nations-cup="j24"');
-    expect(dashboard).toContain('href="/jeu/nations-cup"');
+    expect(dashboard).toContain('data-dashboard-nations-cup="j24-j25"');
+    expect(dashboard).toContain(
+      'href="/jeu/nations-cup#classement-de-ma-federation"',
+    );
+    expect(dashboard).toContain("J25 · résultats officiels");
     expect(dashboard).toContain("Classements, divisions et mouvements.");
   });
 });

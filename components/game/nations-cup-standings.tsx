@@ -73,10 +73,16 @@ export function getNationsCupDivisionView(
 
 export function NationsCupStandings({
   events,
+  initialDivision,
+  initialGroup,
   standings,
+  viewerCountryId,
 }: {
   events: NationsCupEvent[];
+  initialDivision?: number;
+  initialGroup?: string | null;
   standings: NationsCupStanding[];
+  viewerCountryId?: string;
 }) {
   const availableDivisions = useMemo(
     () => DIVISIONS.filter((division) => (
@@ -86,9 +92,14 @@ export function NationsCupStandings({
   );
   const [selectedRanking, setSelectedRanking] = useState(GENERAL_RANKING);
   const [selectedDivision, setSelectedDivision] = useState<number>(
-    availableDivisions[0] ?? 1,
+    initialDivision != null
+    && availableDivisions.some((division) => division === initialDivision)
+      ? initialDivision
+      : (availableDivisions[0] ?? 1),
   );
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(
+    initialGroup ?? null,
+  );
 
   const { activeGroup, divisionStandings, groups, visibleStandings } = useMemo(
     () => getNationsCupDivisionView(
@@ -104,12 +115,16 @@ export function NationsCupStandings({
   const rankLabel = isGeneralRanking
     ? (activeGroup ? "Rang groupe" : "Rang division")
     : "Rang épreuve";
+  const viewerStanding = viewerCountryId
+    ? standings.find((standing) => standing.countryId === viewerCountryId)
+    : null;
 
   if (availableDivisions.length === 0) return null;
 
   return (
     <section
-      className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]"
+      id="classement-de-ma-federation"
+      className="mt-7 scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]"
       aria-labelledby="nations-cup-standings-title"
     >
       <div className="border-b border-[#315B3E]/10 px-5 py-5 sm:px-8 sm:py-6">
@@ -126,6 +141,34 @@ export function NationsCupStandings({
           Le général cumule les cinq épreuves et détermine seul les montées et
           descentes de fin de saison.
         </p>
+
+        {viewerStanding ? (
+          <div
+            data-nations-cup-viewer-federation={viewerStanding.countryCode.toLowerCase()}
+            className="mt-4 flex max-w-xl items-center gap-3 rounded-2xl border border-[#D5AC18]/45 bg-[#FFF8D8] px-4 py-3 text-[#183F37] shadow-[0_8px_24px_rgba(213,172,24,0.12)]"
+          >
+            <span className="grid h-8 w-11 shrink-0 place-items-center overflow-hidden rounded-md border border-[#315B3E]/12 bg-white">
+              <svg viewBox="0 0 44 32" className="h-full w-full" aria-hidden="true">
+                <SvgCountryFlag
+                  countryCode={viewerStanding.countryCode}
+                  x={0}
+                  y={0}
+                  width={44}
+                  height={32}
+                />
+              </svg>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-[#8A6810]">
+                Votre fédération
+              </span>
+              <strong className="mt-0.5 block text-sm font-black">
+                {viewerStanding.countryName} · Division {viewerStanding.division}
+                {viewerStanding.groupCode ? ` · Groupe ${viewerStanding.groupCode}` : ""}
+              </strong>
+            </span>
+          </div>
+        ) : null}
 
         <div
           className="mt-5 flex gap-2 overflow-x-auto pb-1"
@@ -269,11 +312,13 @@ export function NationsCupStandings({
             events={events}
             rankLabel={rankLabel}
             standings={visibleStandings}
+            viewerCountryId={viewerCountryId}
           />
         ) : selectedEvent ? (
           <EventStandingsTable
             event={selectedEvent}
             standings={visibleStandings}
+            viewerCountryId={viewerCountryId}
           />
         ) : null}
       </div>
@@ -313,11 +358,13 @@ function GeneralStandingsTable({
   events,
   rankLabel,
   standings,
+  viewerCountryId,
 }: {
   activeGroup: string | null;
   events: NationsCupEvent[];
   rankLabel: string;
   standings: NationsCupStanding[];
+  viewerCountryId?: string;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -341,12 +388,22 @@ function GeneralStandingsTable({
           {standings.map((standing) => (
             <tr
               key={standing.countryId}
-              className={`${movementRowClass(standing.movementZone)} hover:brightness-[0.985]`}
+              data-nations-cup-viewer-row={
+                standing.countryId === viewerCountryId ? "true" : undefined
+              }
+              className={`${
+                standing.countryId === viewerCountryId
+                  ? "bg-[#FFF8D8] outline outline-2 -outline-offset-2 outline-[#D5AC18]"
+                  : movementRowClass(standing.movementZone)
+              } hover:brightness-[0.985]`}
             >
               <td className="px-4 py-3 text-center text-lg font-black text-[#183F37]">
                 #{activeGroup ? standing.groupRank : standing.divisionRank}
               </td>
-              <NationCell standing={standing} />
+              <NationCell
+                isViewer={standing.countryId === viewerCountryId}
+                standing={standing}
+              />
               <td className="px-3 py-3 text-center font-bold text-[#60756E]">
                 #{standing.overallRank}
               </td>
@@ -380,9 +437,11 @@ function GeneralStandingsTable({
 function EventStandingsTable({
   event,
   standings,
+  viewerCountryId,
 }: {
   event: NationsCupEvent;
   standings: NationsCupStanding[];
+  viewerCountryId?: string;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -400,11 +459,24 @@ function EventStandingsTable({
           {standings.map((standing) => {
             const eventRank = standing.eventRanks[event.slug];
             return (
-              <tr key={standing.countryId} className="hover:bg-[#F8FBF9]">
+              <tr
+                key={standing.countryId}
+                data-nations-cup-viewer-row={
+                  standing.countryId === viewerCountryId ? "true" : undefined
+                }
+                className={
+                  standing.countryId === viewerCountryId
+                    ? "bg-[#FFF8D8] outline outline-2 -outline-offset-2 outline-[#D5AC18]"
+                    : "hover:bg-[#F8FBF9]"
+                }
+              >
                 <td className="px-4 py-3 text-center text-lg font-black text-[#183F37]">
                   #{eventRank}
                 </td>
-                <NationCell standing={standing} />
+                <NationCell
+                  isViewer={standing.countryId === viewerCountryId}
+                  standing={standing}
+                />
                 <td className="px-4 py-3 text-center font-black text-[#60756E]">
                   D{standing.division}{standing.groupCode ?? ""}
                 </td>
@@ -423,7 +495,13 @@ function EventStandingsTable({
   );
 }
 
-function NationCell({ standing }: { standing: NationsCupStanding }) {
+function NationCell({
+  isViewer = false,
+  standing,
+}: {
+  isViewer?: boolean;
+  standing: NationsCupStanding;
+}) {
   return (
     <td className="px-4 py-3">
       <Link
@@ -441,7 +519,14 @@ function NationCell({ standing }: { standing: NationsCupStanding }) {
             />
           </svg>
         </span>
-        <span>{standing.countryName}</span>
+        <span>
+          <span className="block">{standing.countryName}</span>
+          {isViewer ? (
+            <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.12em] text-[#8A6810]">
+              Votre fédération
+            </span>
+          ) : null}
+        </span>
       </Link>
     </td>
   );

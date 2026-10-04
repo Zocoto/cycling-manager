@@ -71,7 +71,10 @@ export default async function NationsCupPage() {
             <NationsCupEventTabs events={overview.events} />
             <NationsCupStandings
               events={overview.events}
+              initialDivision={overview.viewerFederation?.division}
+              initialGroup={overview.viewerFederation?.groupCode}
               standings={overview.standings}
+              viewerCountryId={overview.viewerFederation?.countryId}
             />
           </>
         )}

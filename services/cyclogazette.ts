@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  CYCLING_HOLLOW_TEASER_STORY_ID,
   getParisDateKey,
   getParisHour,
   includeCyclingHollowTeaserStory,
@@ -238,6 +239,28 @@ export async function publishCyclogazetteEdition(
   }
   if (existing.data) {
     const existingEdition = mapGazetteEdition(existing.data, season.name);
+    const existingFeatureStories = existingEdition.content.featureStories ?? [];
+    const enrichedFeatureStories = includeCyclingHollowTeaserStory(
+      existingFeatureStories,
+      getParisDateKey(now),
+    );
+    const teaserWasAdded =
+      !existingFeatureStories.some(
+        (story) => story.id === CYCLING_HOLLOW_TEASER_STORY_ID,
+      )
+      && enrichedFeatureStories.some(
+        (story) => story.id === CYCLING_HOLLOW_TEASER_STORY_ID,
+      );
+    let content: CyclogazetteContent = teaserWasAdded
+      ? {
+          ...existingEdition.content,
+          featureStories: enrichedFeatureStories,
+        }
+      : existingEdition.content;
+    let title = existingEdition.title;
+    let subtitle = existingEdition.subtitle;
+    let shouldUpdate = teaserWasAdded;
+
     if (dayNumber === 24 && !existingEdition.content.nationsCupSpecial) {
       const nationsCupSpecial = await loadCyclogazetteNationsCupSpecial(admin, {
         seasonId: season.id,
@@ -245,38 +268,43 @@ export async function publishCyclogazetteEdition(
         calendarDate: seasonDay.calendar_date,
       });
       if (nationsCupSpecial) {
-        const content: CyclogazetteContent = {
-          ...existingEdition.content,
+        content = {
+          ...content,
           nationsCupSpecial,
         };
-        const title = "La Cyclogazette — Spéciale Nations Cup";
-        const subtitle = `${nationsCupSpecial.winner.countryName} remporte la Division 1`;
-        const updated = await admin
-          .from("cyclogazette_editions")
-          .update({
+        title = "La Cyclogazette — Spéciale Nations Cup";
+        subtitle = `${nationsCupSpecial.winner.countryName} remporte la Division 1`;
+        shouldUpdate = true;
+      }
+    }
+
+    if (shouldUpdate) {
+      const updated = await admin
+        .from("cyclogazette_editions")
+        .update({
+          title,
+          subtitle,
+          content,
+          updated_at: now.toISOString(),
+        })
+        .eq("id", existing.data.id);
+      if (!updated.error) {
+        return {
+          status: "already-published",
+          edition: {
+            ...existingEdition,
             title,
             subtitle,
             content,
-            updated_at: now.toISOString(),
-          })
-          .eq("id", existing.data.id);
-        if (!updated.error) {
-          return {
-            status: "already-published",
-            edition: {
-              ...existingEdition,
-              title,
-              subtitle,
-              content,
-            },
-          };
-        }
-        console.error(
-          "Impossible d’enrichir l’édition Nations Cup déjà publiée :",
-          updated.error,
-        );
+          },
+        };
       }
+      console.error(
+        "Impossible d’enrichir l’édition déjà publiée :",
+        updated.error,
+      );
     }
+
     return {
       status: "already-published",
       edition: existingEdition,
@@ -401,7 +429,7 @@ export async function publishCyclogazetteEdition(
     null;
   const eveningFeatureStories = includeCyclingHollowTeaserStory(
     featureStories,
-    seasonDay.calendar_date,
+    getParisDateKey(now),
   );
   const content: CyclogazetteContent = {
     lead,

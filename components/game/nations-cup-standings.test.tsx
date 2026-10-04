@@ -66,6 +66,26 @@ describe("NationsCupStandings", () => {
       "Belgique",
     ]);
   });
+
+  it("ouvre directement la division et le groupe de la fédération du joueur", () => {
+    const markup = renderToStaticMarkup(
+      <NationsCupStandings
+        events={events}
+        initialDivision={2}
+        initialGroup="B"
+        standings={standings}
+        viewerCountryId="nl"
+      />,
+    );
+
+    expect(markup).toContain('id="classement-de-ma-federation"');
+    expect(markup).toContain('data-nations-cup-viewer-federation="nl"');
+    expect(markup).toContain('data-nations-cup-viewer-row="true"');
+    expect(markup).toContain("Pays-Bas · Division 2 · Groupe B");
+    expect(markup).toContain("Général · Division 2 · Groupe B");
+    expect(markup).toContain("Votre fédération");
+    expect(markup).not.toContain(">France<");
+  });
 });
 
 function standing(

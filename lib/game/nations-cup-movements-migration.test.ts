@@ -72,4 +72,18 @@ describe("Nations Cup movements", () => {
     expect(page).toContain("overview.currentDayNumber >= 24");
     expect(page).toContain('event.status !== "completed"');
   });
+
+  it("ouvre le classement sur la division et le groupe de la fédération connectée", () => {
+    expect(overviewService).toContain("viewerFederation");
+    expect(overviewService).toContain("viewerAssignmentResult.data?.division");
+    expect(page).toContain(
+      "initialDivision={overview.viewerFederation?.division}",
+    );
+    expect(page).toContain(
+      "initialGroup={overview.viewerFederation?.groupCode}",
+    );
+    expect(page).toContain(
+      "viewerCountryId={overview.viewerFederation?.countryId}",
+    );
+  });
 });
