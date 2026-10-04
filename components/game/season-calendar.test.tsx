@@ -446,9 +446,10 @@ describe("SeasonCalendar", () => {
     expect(markup.match(/data-federation-selection="true"/g)).toHaveLength(2);
     expect(markup).toContain('href="/jeu/nations-cup"');
     expect(markup).toContain("Ouvrir les 5 épreuves");
-    expect(markup).toContain("✓ 3");
+    expect(markup).toContain("✓ 3 équipe");
+    expect(markup).toContain("✓ 3 de votre équipe");
     expect(markup).toContain(
-      "3 engagements de vos coureurs sur ces épreuves internationales",
+      "3 coureurs de votre équipe mobilisés sur ce créneau par les sélections nationales, toutes nationalités confondues",
     );
   });
 

@@ -75,7 +75,7 @@ function getCurrentTeamEngagementBadge(edition: RaceCalendarEdition) {
   return {
     count,
     title: edition.calendarGroup
-      ? `${count} engagement${count > 1 ? "s" : ""} de vos coureurs sur ces épreuves internationales`
+      ? `${count} coureur${count > 1 ? "s" : ""} de votre équipe mobilisé${count > 1 ? "s" : ""} sur ce créneau par les sélections nationales, toutes nationalités confondues`
       : `${count} coureur${count > 1 ? "s" : ""} de votre équipe retenu${count > 1 ? "s" : ""} en sélection nationale`,
   };
 }
@@ -663,7 +663,7 @@ function RaceCalendarList({
           const status = isFederationSelection
             ? currentTeamEngagement
               ? {
-                  label: `✓ ${currentTeamEngagement.count} engagé${currentTeamEngagement.count > 1 ? "s" : ""}`,
+                  label: `✓ ${currentTeamEngagement.count} de votre équipe`,
                   tone: "success" as const,
                 }
               : edition.calendarGroup
@@ -771,12 +771,16 @@ function RaceCalendarList({
 
               <div>
                 <p className="text-xs font-black text-[#183F37]">
-                  {edition.calendarGroup
+                  {edition.calendarGroup && currentTeamEngagement
+                    ? `${currentTeamEngagement.count} coureur${currentTeamEngagement.count > 1 ? "s" : ""} de votre équipe`
+                    : edition.calendarGroup
                     ? `${edition.calendarGroup.editionCount} épreuves`
                     : `${edition.engagedRiderCount} engagé${edition.engagedRiderCount > 1 ? "s" : ""}`}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-[#789087]">
-                  {edition.calendarGroup
+                  {edition.calendarGroup && currentTeamEngagement
+                    ? "Mobilisés sur ce créneau"
+                    : edition.calendarGroup
                     ? "Sélections nationales"
                     : isFederationSelection
                     ? `${edition.minimumRosterSize}–${edition.maximumRosterSize} par nation`
@@ -1226,7 +1230,7 @@ function DesktopCalendarWeek({
                       className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-black"
                       title={currentTeamEngagement.title}
                     >
-                      ✓ {currentTeamEngagement.count}
+                      ✓ {currentTeamEngagement.count} équipe
                     </span>
                   ) : null}
 
@@ -1566,7 +1570,7 @@ function MobileCalendarDay({
                   className="shrink-0 rounded-full bg-white/20 px-2 py-1 text-[10px] font-black"
                   title={currentTeamEngagement.title}
                 >
-                  ✓ {currentTeamEngagement.count}
+                  ✓ {currentTeamEngagement.count} de votre équipe
                 </span>
               ) : null}
             </Link>
