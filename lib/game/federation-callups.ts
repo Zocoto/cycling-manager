@@ -9,6 +9,12 @@ export type FederationSelectionSchedule = {
   is_open: boolean;
 };
 
+export type FederationSelectionSlotTiming = {
+  competitionCode: string;
+  riderCategory: "professional" | "junior";
+  departureAt: string | null;
+};
+
 export type FederationCallup = {
   member_id: string;
   country_code: string;
@@ -39,6 +45,37 @@ export function filterFederationCallupsByCategory(
 ) {
   return callups.filter((callup) => callup.rider_category === category);
 }
+
+export function getFederationCallupResponseClosesAt({
+  competitionCode,
+  riderCategory,
+  departureAt,
+}: FederationSelectionSlotTiming) {
+  if (!departureAt) return null;
+
+  const departure = new Date(departureAt);
+  if (Number.isNaN(departure.getTime())) return null;
+
+  const leadHours =
+    riderCategory === "junior"
+      ? 0
+      : competitionCode === "world_championship"
+        ? 24
+        : 1;
+
+  return new Date(
+    departure.getTime() - leadHours * 60 * 60 * 1_000,
+  ).toISOString();
+}
+
+export function isFederationCallupResponseOpen(
+  timing: FederationSelectionSlotTiming,
+  now = new Date(),
+) {
+  const closesAt = getFederationCallupResponseClosesAt(timing);
+  return closesAt !== null && now.getTime() < new Date(closesAt).getTime();
+}
+
 export function formatFederationSelectionDeadline(value: string | null) {
   return value ? new Intl.DateTimeFormat("fr-FR", {
     timeZone: "Europe/Paris", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",

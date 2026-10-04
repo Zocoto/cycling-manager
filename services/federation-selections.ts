@@ -1,5 +1,8 @@
 import "server-only";
-import type { FederationSelectionSchedule } from "@/lib/game/federation-callups";
+import {
+  isFederationCallupResponseOpen,
+  type FederationSelectionSchedule,
+} from "@/lib/game/federation-callups";
 
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
@@ -49,6 +52,11 @@ type MemberRow = {
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
 type PreferenceRow = { automatic_selection: boolean };
+type SlotRow = {
+  slot_key: string;
+  competition_code: string;
+  rider_category: "professional" | "junior";
+};
 type HostingAwardRow = {
   event_type: FederationHostingEventType;
   country_id: string;
@@ -80,7 +88,7 @@ export async function getFederationSelectionState({
 
   try {
     const admin = createSupabaseAdminClient();
-    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult, scheduleResult] = await Promise.all([
+    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult, scheduleResult, slotsResult] = await Promise.all([
       admin
         .from("national_federation_selection_lists")
         .select("id, slot_key, status, revision")
@@ -117,6 +125,10 @@ export async function getFederationSelectionState({
         .returns<HostingAwardRow[]>(),
       admin.rpc("get_national_federation_selection_schedule", { p_country_id: countryId, p_season_id: seasonId })
         .select("*").returns<FederationSelectionSchedule[]>(),
+      admin
+        .from("national_federation_selection_slots")
+        .select("slot_key, competition_code, rider_category")
+        .returns<SlotRow[]>(),
     ]);
 
     if (listsResult.error) throw listsResult.error;
@@ -125,7 +137,11 @@ export async function getFederationSelectionState({
     if (preferenceResult.error) throw preferenceResult.error;
     if (hostsResult.error) throw hostsResult.error;
     if (scheduleResult.error) throw scheduleResult.error;
+    if (slotsResult.error) throw slotsResult.error;
     const schedules = Object.fromEntries((Array.isArray(scheduleResult.data) ? scheduleResult.data : []).map((schedule) => [schedule.slot_key, schedule]));
+    const slotsByKey = new Map(
+      (slotsResult.data ?? []).map((slot) => [slot.slot_key, slot]),
+    );
 
     const lists = listsResult.data ?? [];
     const listIds = lists.map((list) => list.id);
@@ -225,12 +241,22 @@ export async function getFederationSelectionState({
       pendingConfirmations: viewerTeamId
         ? members.flatMap((member): FederationPendingConfirmation[] => {
             const list = listById.get(member.selection_list_id);
+            const schedule = list ? schedules[list.slot_key] : null;
+            const slot = list ? slotsByKey.get(list.slot_key) : null;
             const riderId =
               member.professional_rider_id ?? member.junior_rider_id;
             if (
               !list ||
               !riderId ||
-              !schedules[list.slot_key]?.is_open ||
+              !schedule ||
+              !slot ||
+              (slot.rider_category === "junior"
+                ? !schedule.is_open
+                : !isFederationCallupResponseOpen({
+                    competitionCode: slot.competition_code,
+                    riderCategory: slot.rider_category,
+                    departureAt: schedule.departure_at,
+                  })) ||
               member.owner_team_id !== viewerTeamId ||
               member.response_status !== "pending"
             ) {

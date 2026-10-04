@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   filterFederationCallupsByCategory,
   formatFederationSelectionDeadline,
+  getFederationCallupResponseClosesAt,
+  isFederationCallupResponseOpen,
   splitFederationCallups,
   type FederationCallup,
 } from "./federation-callups";
@@ -48,5 +50,50 @@ describe("federation call-ups", () => {
     expect(formatFederationSelectionDeadline("2026-09-25T11:00:00Z")).toContain("13:00");
     expect(formatFederationSelectionDeadline("2026-12-25T11:00:00Z")).toContain("12:00");
     expect(formatFederationSelectionDeadline(null)).toBe("Calendrier indisponible");
+  });
+  it("separates federation freeze time from the DS response deadline", () => {
+    const departureAt = "2026-10-12T16:00:00.000Z";
+
+    expect(
+      getFederationCallupResponseClosesAt({
+        competitionCode: "continental_championship",
+        riderCategory: "professional",
+        departureAt,
+      }),
+    ).toBe("2026-10-12T15:00:00.000Z");
+    expect(
+      getFederationCallupResponseClosesAt({
+        competitionCode: "nations_cup",
+        riderCategory: "professional",
+        departureAt,
+      }),
+    ).toBe("2026-10-12T15:00:00.000Z");
+    expect(
+      getFederationCallupResponseClosesAt({
+        competitionCode: "world_championship",
+        riderCategory: "professional",
+        departureAt,
+      }),
+    ).toBe("2026-10-11T16:00:00.000Z");
+    expect(
+      isFederationCallupResponseOpen(
+        {
+          competitionCode: "continental_championship",
+          riderCategory: "professional",
+          departureAt,
+        },
+        new Date("2026-10-12T14:59:59.000Z"),
+      ),
+    ).toBe(true);
+    expect(
+      isFederationCallupResponseOpen(
+        {
+          competitionCode: "continental_championship",
+          riderCategory: "professional",
+          departureAt,
+        },
+        new Date("2026-10-12T15:00:00.000Z"),
+      ),
+    ).toBe(false);
   });
 });
