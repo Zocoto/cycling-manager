@@ -94,6 +94,23 @@ const gamePillarsEn = [
 
 const productNews = [
   {
+    category: "Événement Halloween",
+    title: "La nuit tombe : l’Équipier sans tête entre en chasse",
+    description:
+      "Bientôt, Cycling Hollow ouvrira sa route. Échappez au lugubre poursuivant, récoltez des roues démoniaques et remportez une ribambelle de gains, des surprises aux récompenses les plus rares.",
+    dateTime: undefined,
+    dateLabel: "Bientôt",
+    accent: "leader",
+    href: "/inscription",
+    linkLabel: "Rejoindre le peloton avant la nuit",
+    image: "/images/announcements/halloween-2026-gameplay.png",
+    imageAlt:
+      "L’événement Halloween de Cyclo Stratège avec l’Équipier sans tête lancé à la poursuite d’un cycliste",
+    visualLabel: "Cycling Hollow",
+    visualValue: "BIENTÔT",
+    visualStatus: "La nuit approche",
+  },
+  {
     category: "Saison 3",
     title: "La Saison 3 donne le pouvoir aux fédérations",
     description:
@@ -196,6 +213,23 @@ const productNews = [
 ] as const;
 
 const productNewsEn = [
+  {
+    category: "Halloween event",
+    title: "Night falls: the Headless Domestique joins the chase",
+    description:
+      "Coming soon, Cycling Hollow will open its road. Escape the grim pursuer, collect demonic wheels and claim a host of prizes, from eerie surprises to the rarest rewards.",
+    dateTime: undefined,
+    dateLabel: "Coming soon",
+    accent: "leader",
+    href: "/inscription",
+    linkLabel: "Join the peloton before nightfall",
+    image: "/images/announcements/halloween-2026-gameplay.png",
+    imageAlt:
+      "Cyclo Stratège’s Halloween event, with the Headless Domestique chasing a rider through the night",
+    visualLabel: "Cycling Hollow",
+    visualValue: "SOON",
+    visualStatus: "Night is closing in",
+  },
   {
     category: "Season 3",
     title: "Season 3 puts federations in charge",
@@ -431,7 +465,7 @@ function ProductNews({ locale }: { locale: AppLocale }) {
               alt={featuredNews.imageAlt}
               fill
               sizes="(min-width: 1024px) 18rem, 100vw"
-              className="object-cover"
+              className="object-cover object-top"
             />
             <span
               aria-hidden="true"

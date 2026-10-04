@@ -38,7 +38,25 @@ describe("page d’accueil publique", () => {
     );
   });
 
-  it("met le parrainage renforcé en vedette au-dessus de quatre annonces historiques", () => {
+  it("met l’événement Halloween en une au-dessus de quatre annonces historiques", () => {
+    expect(source).toContain(
+      'title: "La nuit tombe : l’Équipier sans tête entre en chasse"',
+    );
+    expect(source).toContain('dateLabel: "Bientôt"');
+    expect(source).toContain('dateLabel: "Coming soon"');
+    expect(source).not.toContain("Du 4 octobre au 2 novembre");
+    expect(source).toContain(
+      'image: "/images/announcements/halloween-2026-gameplay.png"',
+    );
+    expect(source).toContain(
+      'linkLabel: "Rejoindre le peloton avant la nuit"',
+    );
+    expect(source).toContain(
+      'title: "Night falls: the Headless Domestique joins the chase"',
+    );
+    expect(source.indexOf("La nuit tombe : l’Équipier sans tête")).toBeLessThan(
+      source.indexOf("La Saison 3 donne le pouvoir aux fédérations"),
+    );
     expect(source).toContain(
       'title: "Le parrainage passe à la vitesse supérieure"',
     );
