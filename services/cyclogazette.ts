@@ -3,6 +3,7 @@ import "server-only";
 import {
   getParisDateKey,
   getParisHour,
+  includeCyclingHollowTeaserStory,
   type CyclogazetteArchiveSeason,
   type CyclogazetteCommunity,
   type CyclogazetteContent,
@@ -349,6 +350,10 @@ export async function publishCyclogazetteEdition(
     raceHighlights[0] ??
     mercatoStories[0] ??
     null;
+  const eveningFeatureStories = includeCyclingHollowTeaserStory(
+    featureStories,
+    seasonDay.calendar_date,
+  );
   const content: CyclogazetteContent = {
     lead,
     raceStories: [...victories.slice(1), ...raceClassifications].filter(
@@ -360,7 +365,7 @@ export async function publishCyclogazetteEdition(
     preRacePressConferences,
     tourSummaries,
     mediaArticles,
-    featureStories,
+    featureStories: eveningFeatureStories,
   };
   const publishedAt = now.toISOString();
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
@@ -1044,11 +1049,14 @@ function mapGazetteEdition(
     title: repairCyclogazetteText(row.title),
     subtitle: repairCyclogazetteText(row.subtitle),
     publishedAt: row.published_at,
-    content: normalizeGazetteContent(row.content),
+    content: normalizeGazetteContent(row.content, row.issue_date),
   };
 }
 
-function normalizeGazetteContent(value: unknown): CyclogazetteContent {
+function normalizeGazetteContent(
+  value: unknown,
+  issueDate: string,
+): CyclogazetteContent {
   const content = repairCyclogazetteValue(
     value ?? {},
   ) as Partial<CyclogazetteContent>;
@@ -1079,9 +1087,10 @@ function normalizeGazetteContent(value: unknown): CyclogazetteContent {
   const mediaArticles = Array.isArray(content.mediaArticles)
     ? content.mediaArticles
     : [];
-  const featureStories = Array.isArray(content.featureStories)
-    ? content.featureStories
-    : [];
+  const featureStories = includeCyclingHollowTeaserStory(
+    Array.isArray(content.featureStories) ? content.featureStories : [],
+    issueDate,
+  );
   const preRacePressConferences = Array.isArray(
     content.preRacePressConferences,
   )

@@ -82,7 +82,8 @@ export type CyclogazetteFeatureKind =
   | "transfer_rumor"
   | "injury"
   | "rivalry"
-  | "federation_race";
+  | "federation_race"
+  | "event_teaser";
 
 export type CyclogazetteFeatureStory = {
   id: string;
@@ -95,6 +96,42 @@ export type CyclogazetteFeatureStory = {
   bodyEn: string;
   href?: string;
 };
+
+const CYCLING_HOLLOW_TEASER_DATE = "2026-10-04";
+
+const CYCLING_HOLLOW_TEASER_STORY: CyclogazetteFeatureStory = {
+  id: `event:cycling-hollow:${CYCLING_HOLLOW_TEASER_DATE}`,
+  kind: "event_teaser",
+  kicker: "Témoignages · La route après minuit",
+  kickerEn: "Eyewitnesses · The road after midnight",
+  title: "La nuit, un étrange cycliste suit le peloton",
+  titleEn: "At night, a strange cyclist follows the peloton",
+  body: "Trois témoins affirment avoir aperçu, sur une route forestière noyée de brume, un cycliste silencieux lancé sans lumière et sans jamais ralentir. Aucun n’a pu distinguer son visage. Après son passage, des traces de gomme brûlée et une roue marquée d’une lueur orange auraient été retrouvées sur le bas-côté. Dans les vieux carnets du peloton, une légende porte déjà un nom : l’Équipier sans tête. La rédaction n’y croyait pas. Jusqu’à ce soir.",
+  bodyEn: "Three witnesses say they spotted a silent cyclist on a forest road drowned in mist, riding without lights and never seeming to slow down. None of them could make out his face. After he passed, scorched tyre marks and a wheel glowing orange were reportedly found by the roadside. In the peloton’s oldest notebooks, the legend already has a name: the Headless Domestique. The newsroom never believed it. Until tonight.",
+};
+
+export function includeCyclingHollowTeaserStory(
+  stories: readonly CyclogazetteFeatureStory[],
+  calendarDate: string,
+) {
+  const withoutDuplicate = stories.filter(
+    (story) => story.id !== CYCLING_HOLLOW_TEASER_STORY.id,
+  );
+
+  if (calendarDate !== CYCLING_HOLLOW_TEASER_DATE) {
+    return withoutDuplicate;
+  }
+
+  if (withoutDuplicate.length === 0) {
+    return [CYCLING_HOLLOW_TEASER_STORY];
+  }
+
+  return [
+    withoutDuplicate[0],
+    CYCLING_HOLLOW_TEASER_STORY,
+    ...withoutDuplicate.slice(1),
+  ].slice(0, 6);
+}
 
 export type CyclogazetteContent = {
   lead: PublicGameNewsItem | null;
