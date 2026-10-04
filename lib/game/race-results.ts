@@ -202,6 +202,21 @@ export function shouldSettleRaceEdition(
   return repairableCompletedEditionIds.has(edition.id);
 }
 
+/**
+ * A rider withdrawn after taking part in a stage still belongs to the
+ * historical startlist used to homologate the remainder of the tour. A rider
+ * withdrawn before ever starting must stay excluded.
+ */
+export function shouldKeepRaceRosterInResultContext({
+  status,
+  hasPersistedStageResult,
+}: {
+  status: string;
+  hasPersistedStageResult: boolean;
+}) {
+  return status !== "withdrawn" || hasPersistedStageResult;
+}
+
 export function hasMinimumRaceEditionField({
   competitionType,
   engagedRiderCount,

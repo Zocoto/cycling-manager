@@ -24,6 +24,7 @@ import {
   buildTeamTimeTrialStageClassification,
   filterInactiveTeamsFromOfficialClassification,
   normalizeOfficialResultGapsToLeader,
+  shouldKeepRaceRosterInResultContext,
   shouldSettleRaceEdition,
   type OfficialAttackParticipant,
   type OfficialCombativityAward,
@@ -1071,9 +1072,9 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
   const withdrawnRosterIds = (rosters ?? [])
     .filter((roster) => roster.status === "withdrawn")
     .map((roster) => roster.id);
-  const outsideTimeLimitRosterIds = new Set<string>();
+  const historicalRosterIds = new Set<string>();
   if (withdrawnRosterIds.length > 0) {
-    const { data: outsideTimeLimitRows, error: outsideTimeLimitError } =
+    const { data: historicalResultRows, error: historicalResultError } =
       await collectChunkedPaginatedRows<
         { race_roster_id: string },
         { message: string },
@@ -1085,22 +1086,24 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
             .from("stage_results")
             .select("race_roster_id")
             .in("race_roster_id", chunk)
-            .eq("status", "outside_time_limit")
             .order("race_roster_id", { ascending: true })
             .range(from, to)
             .returns<Array<{ race_roster_id: string }>>();
           return { data: result.data, error: result.error };
         },
       });
-    assertQuery(outsideTimeLimitError, "outside-time-limit roster history");
-    for (const row of outsideTimeLimitRows ?? []) {
-      outsideTimeLimitRosterIds.add(row.race_roster_id);
+    assertQuery(historicalResultError, "l’historique sportif de la startlist");
+    for (const row of historicalResultRows ?? []) {
+      historicalRosterIds.add(row.race_roster_id);
     }
   }
 
   const resultRosters = (rosters ?? []).filter(
     (roster) =>
-      roster.status !== "withdrawn" || outsideTimeLimitRosterIds.has(roster.id),
+      shouldKeepRaceRosterInResultContext({
+        status: roster.status,
+        hasPersistedStageResult: historicalRosterIds.has(roster.id),
+      }),
   );
 
   return new Map(

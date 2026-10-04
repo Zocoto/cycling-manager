@@ -8,6 +8,7 @@ import {
   hasMinimumRaceEditionField,
   isRaceEditionSettlementCandidate,
   normalizeOfficialResultGapsToLeader,
+  shouldKeepRaceRosterInResultContext,
   shouldSettleRaceEdition,
 } from "./race-results";
 
@@ -38,6 +39,35 @@ const challengers = {
   sprintPoints: 0,
   abandonmentReason: null,
 };
+
+describe("shouldKeepRaceRosterInResultContext", () => {
+  it("conserve un ancien partant retiré après un résultat homologué", () => {
+    expect(
+      shouldKeepRaceRosterInResultContext({
+        status: "withdrawn",
+        hasPersistedStageResult: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("écarte un coureur retiré avant d’avoir pris le départ", () => {
+    expect(
+      shouldKeepRaceRosterInResultContext({
+        status: "withdrawn",
+        hasPersistedStageResult: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("conserve les coureurs encore engagés sans exiger de résultat antérieur", () => {
+    expect(
+      shouldKeepRaceRosterInResultContext({
+        status: "confirmed",
+        hasPersistedStageResult: false,
+      }),
+    ).toBe(true);
+  });
+});
 
 describe("buildTeamTimeTrialStageClassification", () => {
   it("attribue une seule place à chaque équipe selon son temps collectif", () => {

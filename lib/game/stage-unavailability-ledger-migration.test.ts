@@ -53,6 +53,18 @@ describe("registre sportif des non-partants", () => {
     );
   });
 
+  it("conserve dans le contexte les anciens partants retirés du tour", () => {
+    expect(resultService).toContain(
+      'assertQuery(historicalResultError, "l’historique sportif de la startlist")',
+    );
+    expect(resultService).toContain(
+      "hasPersistedStageResult: historicalRosterIds.has(roster.id)",
+    );
+    expect(resultService).not.toMatch(
+      /\.in\("race_roster_id", chunk\)\s*\.eq\("status", "outside_time_limit"\)/,
+    );
+  });
+
   it("répare les quatre indisponibilités confirmées de la Corsa", () => {
     for (const name of [
       "Arjan', 'Nikolić",
