@@ -61,6 +61,7 @@ export default async function RaceResultsPage({
     getActiveSeasonRaceCalendar(supabase, now, {
       includeEngagedRiders: false,
       includeIneligibleRegionalRaces: true,
+      includeNationsCupHeats: true,
     })
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),
@@ -142,7 +143,8 @@ export default async function RaceResultsPage({
           (edition) =>
             edition.competitionType === "standard" ||
             edition.competitionType === "world_championship" ||
-            edition.competitionType === "continental_championship",
+            edition.competitionType === "continental_championship" ||
+            edition.competitionType === "nations_cup",
         ),
       }
     : null;

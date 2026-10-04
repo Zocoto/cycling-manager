@@ -197,6 +197,72 @@ describe("RaceLiveDirectory", () => {
     expect(markup).not.toContain("CN contre-la-montre");
     expect(markup).not.toContain("Courses passées");
   });
+
+  it("affiche la manche Nations Cup de l’équipe à J24 puis dans l’historique", () => {
+    const nationsCupEdition = createEdition({
+      id: "nations-cup-vallee-division-2-groupe-b",
+      name: "Nations Cup · Vallée · Division 2 · Groupe B",
+      dayNumbers: [24],
+      registered: false,
+    });
+    nationsCupEdition.competitionType = "nations_cup";
+    nationsCupEdition.currentTeamInternationalRiderCount = 1;
+
+    expect(isEditionInResultsScope(nationsCupEdition, "team")).toBe(true);
+    expect(isEditionInResultsScope(nationsCupEdition, "unridden")).toBe(false);
+
+    const beforeMarkup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={createCalendar({
+          currentDayNumber: 23,
+          editions: [nationsCupEdition],
+        })}
+        nowIso="2026-08-17T20:00:00Z"
+      />,
+    );
+    const raceDayMarkup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={createCalendar({
+          currentDayNumber: 24,
+          editions: [nationsCupEdition],
+        })}
+        nowIso="2026-08-18T20:00:00Z"
+      />,
+    );
+    const historyMarkup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={createCalendar({
+          currentDayNumber: 25,
+          editions: [nationsCupEdition],
+        })}
+        nowIso="2026-08-19T20:00:00Z"
+      />,
+    );
+
+    expect(beforeMarkup).not.toContain(nationsCupEdition.name);
+    expect(raceDayMarkup).toContain('data-race-period="today"');
+    expect(raceDayMarkup).toContain(nationsCupEdition.name);
+    expect(raceDayMarkup).toContain(
+      'href="/jeu/resultats/nations-cup-vallee-division-2-groupe-b/1"',
+    );
+    expect(historyMarkup).toContain('data-race-period="past"');
+    expect(historyMarkup).toContain("Courses passées");
+    expect(historyMarkup).toContain(nationsCupEdition.name);
+  });
+
+  it("ne remplit pas les résultats avec les manches Nations Cup sans coureur de l’équipe", () => {
+    const nationsCupEdition = createEdition({
+      id: "nations-cup-sprint-division-1-groupe-a",
+      name: "Nations Cup · Sprint · Division 1 · Groupe A",
+      dayNumbers: [24],
+      registered: false,
+    });
+    nationsCupEdition.competitionType = "nations_cup";
+    nationsCupEdition.currentTeamInternationalRiderCount = 0;
+
+    expect(isEditionInResultsScope(nationsCupEdition, "team")).toBe(false);
+    expect(isEditionInResultsScope(nationsCupEdition, "unridden")).toBe(false);
+  });
 });
 
 function createCalendar({

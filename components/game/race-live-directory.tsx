@@ -15,6 +15,7 @@ import {
   RACE_PROFILE_LABELS,
   compareRaceDaySlots,
   isCurrentTeamRegisteredForRace,
+  isProfessionalNationsCupEdition,
   type RaceCalendarEdition,
   type RaceCalendarStage,
   type RaceCategoryCode,
@@ -800,6 +801,13 @@ export function isEditionInResultsScope(
 ) {
   if (edition.competitionType === "world_championship") {
     return true;
+  }
+
+  if (isProfessionalNationsCupEdition(edition)) {
+    const hasCurrentTeamRider =
+      (edition.currentTeamInternationalRiderCount ?? 0) > 0;
+
+    return scope === "team" ? hasCurrentTeamRider : false;
   }
 
   const isRegistered = isCurrentTeamRegisteredForRace(edition);
