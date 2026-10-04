@@ -19,6 +19,8 @@ import type {
   CyclogazetteCommunity,
   CyclogazetteEdition,
   CyclogazetteFeatureStory,
+  CyclogazetteNationsCupMovement,
+  CyclogazetteNationsCupSpecial,
   CyclogazettePreRacePressConference,
   CyclogazetteReaction,
   CyclogazetteTourSummary,
@@ -76,7 +78,13 @@ type SpanishVueltaBrief = {
   copy: string;
 };
 
-type CyclogazetteTheme = "classic" | "giro" | "tour" | "vuelta" | "gala";
+type CyclogazetteTheme =
+  | "classic"
+  | "giro"
+  | "tour"
+  | "vuelta"
+  | "gala"
+  | "nations-cup";
 
 const ITALIAN_GAZETTA_INCIDENTS: readonly ItalianGazettaIncident[] = [
   {
@@ -233,6 +241,7 @@ export function CyclogazetteNewspaper({
     tourSummaries = [],
     mediaArticles = [],
     featureStories = [],
+    nationsCupSpecial,
   } = edition.content;
   const winnerStories = uniqueStories(
     [lead, ...raceStories].filter(
@@ -263,10 +272,13 @@ export function CyclogazetteNewspaper({
     gameYear: Math.ceil(edition.issueNumber / 28),
     dayNumber: edition.dayNumber,
   });
+  const isNationsCupSpecialEdition = Boolean(nationsCupSpecial);
   const isSportsDailyEdition =
     isFrenchGrandTourEdition || isSpanishGrandTourEdition;
   const gazetteTheme: CyclogazetteTheme = isSeasonTwoGalaEdition
     ? "gala"
+    : isNationsCupSpecialEdition
+      ? "nations-cup"
     : isItalianGrandTourEdition
     ? "giro"
     : isFrenchGrandTourEdition
@@ -278,6 +290,10 @@ export function CyclogazetteNewspaper({
     ? isEnglish
       ? "The Cyclogazette Gala"
       : "La Cyclogazette Gala"
+    : isNationsCupSpecialEdition
+      ? isEnglish
+        ? "The Cyclogazette Nations Cup"
+        : "La Cyclogazette Nations Cup"
     : isItalianGrandTourEdition
     ? "Cyclo Gazetta"
     : isSpanishGrandTourEdition
@@ -321,6 +337,20 @@ export function CyclogazetteNewspaper({
           data-gazette-gala-lights="true"
           className="h-2 bg-[linear-gradient(90deg,#5D4616,#F2D88D,#8C6922,#F2D88D,#5D4616)]"
         />
+      ) : isNationsCupSpecialEdition ? (
+        <div
+          aria-hidden="true"
+          data-gazette-nations-cup-ribbon="true"
+          className="grid h-2 grid-cols-7"
+        >
+          <span className="bg-[#173F35]" />
+          <span className="bg-[#D6B247]" />
+          <span className="bg-[#A62F3B]" />
+          <span className="bg-[#F4E7C5]" />
+          <span className="bg-[#173F35]" />
+          <span className="bg-[#D6B247]" />
+          <span className="bg-[#A62F3B]" />
+        </div>
       ) : isItalianGrandTourEdition ? (
         <div
           aria-hidden="true"
@@ -363,6 +393,10 @@ export function CyclogazetteNewspaper({
               ? isEnglish
                 ? "Special edition · Gala night"
                 : "Édition spéciale · Soirée de gala"
+              : isNationsCupSpecialEdition
+                ? isEnglish
+                  ? "Special edition · Nations Cup final"
+                  : "Édition spéciale · Finale de la Nations Cup"
               : isItalianGrandTourEdition
               ? "Edizione rosa · Il giornale del Giro"
               : isFrenchGrandTourEdition
@@ -388,6 +422,10 @@ export function CyclogazetteNewspaper({
               ? isEnglish
                 ? "Awards · Season quiz · Final races"
                 : "Trophées · Quiz de la saison · Dernières courses"
+              : isNationsCupSpecialEdition
+                ? isEnglish
+                  ? "Champion · Promotions · Relegations"
+                  : "Vainqueur · Montées · Descentes"
               : isFrenchGrandTourEdition
               ? isEnglish
                 ? "The Tour · Exclusive · Live"
@@ -423,6 +461,8 @@ export function CyclogazetteNewspaper({
           <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)] sm:text-right">
             {isSeasonTwoGalaEdition
               ? `${isEnglish ? "Gala issue" : "Numéro de gala"} · N° ${edition.issueNumber}`
+              : isNationsCupSpecialEdition
+                ? `${isEnglish ? "Nations Cup issue" : "Numéro Nations Cup"} · N° ${edition.issueNumber}`
               : isItalianGrandTourEdition
               ? `Edizione rosa · N° ${edition.issueNumber}`
               : isFrenchGrandTourEdition
@@ -467,29 +507,54 @@ export function CyclogazetteNewspaper({
       {seasonQuizSection}
 
       <main className="border-b border-[var(--gazette-rule)]/35 p-5 sm:p-8">
-        <section>
-          <SectionTitle
-            eyebrow={isEnglish ? "Front page" : "La Une"}
-            title={isEnglish ? "Today's stage winners" : "Les vainqueurs des étapes"}
-            sportsDaily={isSportsDailyEdition}
-          />
-          <div className="mt-4">
-            {frontPageLead ? (
-              <LeadStory item={frontPageLead} />
-            ) : (
-              <QuietNewsroom />
-            )}
-          </div>
-          {additionalWinners.length > 0 ? (
-            <div className="mt-4 flex flex-wrap items-stretch gap-4">
-              {additionalWinners.map((item) => (
-                <div key={item.id} className="min-w-0 flex-[1_1_290px]">
-                  <WinnerCard item={item} />
+        {nationsCupSpecial ? (
+          <>
+            <NationsCupFrontPage special={nationsCupSpecial} />
+            {winnerStories.length > 0 ? (
+              <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
+                <SectionTitle
+                  eyebrow={isEnglish ? "Five finals" : "Les cinq finales"}
+                  title={
+                    isEnglish
+                      ? "The riders who won their table"
+                      : "Les coureurs vainqueurs de leur table"
+                  }
+                />
+                <div className="mt-4 flex flex-wrap items-stretch gap-4">
+                  {winnerStories.map((item) => (
+                    <div key={item.id} className="min-w-0 flex-[1_1_290px]">
+                      <WinnerCard item={item} />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <section>
+            <SectionTitle
+              eyebrow={isEnglish ? "Front page" : "La Une"}
+              title={isEnglish ? "Today's stage winners" : "Les vainqueurs des étapes"}
+              sportsDaily={isSportsDailyEdition}
+            />
+            <div className="mt-4">
+              {frontPageLead ? (
+                <LeadStory item={frontPageLead} />
+              ) : (
+                <QuietNewsroom />
+              )}
             </div>
-          ) : null}
-        </section>
+            {additionalWinners.length > 0 ? (
+              <div className="mt-4 flex flex-wrap items-stretch gap-4">
+                {additionalWinners.map((item) => (
+                  <div key={item.id} className="min-w-0 flex-[1_1_290px]">
+                    <WinnerCard item={item} />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        )}
 
         {tourSummaries.length > 0 ? (
           <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
@@ -507,6 +572,10 @@ export function CyclogazetteNewspaper({
               ))}
             </div>
           </section>
+        ) : null}
+
+        {nationsCupSpecial ? (
+          <NationsCupMovementsArticle special={nationsCupSpecial} />
         ) : null}
 
         {roadStories.length > 0 ? (
@@ -731,6 +800,270 @@ export function CyclogazetteNewspaper({
       </footer>
     </article>
   );
+}
+
+function NationsCupFrontPage({
+  special,
+}: {
+  special: CyclogazetteNationsCupSpecial;
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  const winnerCode = special.winner.countryCode.toLowerCase();
+
+  return (
+    <section data-gazette-nations-cup-frontpage="true">
+      <SectionTitle
+        eyebrow={isEnglish ? "Front page · Nations Cup" : "La Une · Nations Cup"}
+        title={
+          isEnglish
+            ? "A nation at the top of the world"
+            : "Une nation sur le toit de la Nations Cup"
+        }
+      />
+      <Link
+        href="/jeu/nations-cup"
+        className="group relative mt-4 block min-h-[470px] overflow-hidden border-2 border-[var(--gazette-ink)] bg-[#0B2C25] text-white sm:min-h-[560px]"
+      >
+        <Image
+          src={special.illustrationPath}
+          alt={
+            isEnglish
+              ? "An international peloton racing beneath national flags"
+              : "Un peloton international lancé sous les drapeaux nationaux"
+          }
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 1280px"
+          className="object-cover object-center transition duration-700 group-hover:scale-[1.015]"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,22,18,.2)_0%,rgba(5,22,18,.12)_32%,rgba(5,22,18,.93)_100%)]"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,20,17,.82)_0%,rgba(4,20,17,.18)_58%,rgba(4,20,17,.06)_100%)]"
+        />
+
+        <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 lg:p-10">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="max-w-4xl">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full border border-white/35 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#F4D978] backdrop-blur-sm">
+                  {isEnglish ? "Division 1 champion" : "Vainqueur de la Division 1"}
+                </span>
+                <span
+                  role="img"
+                  aria-label={`${isEnglish ? "Flag of" : "Drapeau"} ${special.winner.countryName}`}
+                  className={`fi fi-${winnerCode} text-2xl shadow-[0_2px_8px_rgba(0,0,0,.4)]`}
+                />
+              </div>
+              <h2 className="mt-3 max-w-4xl font-serif text-4xl font-black leading-[0.88] tracking-[-0.05em] text-white drop-shadow-[0_3px_8px_rgba(0,0,0,.6)] sm:text-6xl lg:text-7xl">
+                {special.winner.countryName}
+                <span className="mt-2 block text-[0.55em] leading-none text-[#F4D978]">
+                  {isEnglish
+                    ? "wins the Nations Cup"
+                    : "remporte la Nations Cup"}
+                </span>
+              </h2>
+            </div>
+
+            <dl className="grid min-w-[260px] grid-cols-3 divide-x divide-white/25 border border-white/25 bg-[#061D18]/80 text-center backdrop-blur-sm">
+              <NationsCupHeroMetric
+                label={isEnglish ? "Points" : "Points"}
+                value={special.winner.points}
+              />
+              <NationsCupHeroMetric
+                label={isEnglish ? "Wins" : "Victoires"}
+                value={special.winner.wins}
+              />
+              <NationsCupHeroMetric
+                label={isEnglish ? "Podiums" : "Podiums"}
+                value={special.winner.podiums}
+              />
+            </dl>
+          </div>
+          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.18em] text-[#F4E7C5]">
+            {isEnglish
+              ? "Full results and every division"
+              : "Tous les résultats et toutes les divisions"} {" "}
+            →
+          </p>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function NationsCupHeroMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="px-3 py-3 sm:px-4">
+      <dt className="text-[8px] font-black uppercase tracking-[0.16em] text-[#D7E7DF]">
+        {label}
+      </dt>
+      <dd className="mt-1 font-serif text-2xl font-black text-white">{value}</dd>
+    </div>
+  );
+}
+
+function NationsCupMovementsArticle({
+  special,
+}: {
+  special: CyclogazetteNationsCupSpecial;
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  const headlinePromotions = selectHeadlineMovements(
+    special.promotions,
+    "promotion",
+  );
+  const headlineRelegations = selectHeadlineMovements(
+    special.relegations,
+    "relegation",
+  );
+
+  return (
+    <section
+      data-gazette-nations-cup-movements="true"
+      className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5"
+    >
+      <SectionTitle
+        eyebrow={isEnglish ? "Next season" : "La saison prochaine"}
+        title={
+          isEnglish
+            ? "The Nations Cup changes floors"
+            : "La Nations Cup change d’étage"
+        }
+      />
+      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(290px,.7fr)]">
+        <article className="border-l-4 border-[var(--gazette-accent)] bg-[var(--gazette-card)] p-5 sm:p-6">
+          <p className="font-serif text-base font-medium leading-7 text-[var(--gazette-body)]">
+            {isEnglish
+              ? `The final table confirms ${special.promotions.length} promotions and ${special.relegations.length} relegations. The Division 2 leaders earn their place among the elite, while the bottom four in Division 1 drop one tier.`
+              : `Le classement final acte ${special.promotions.length} montées et ${special.relegations.length} descentes. Les têtes d’affiche de Division 2 gagnent leur place dans l’élite, tandis que les quatre derniers de Division 1 descendent d’un étage.`}
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <MovementColumn
+              label={isEnglish ? "Promoted" : "Ils montent"}
+              movements={headlinePromotions}
+              tone="promotion"
+            />
+            <MovementColumn
+              label={isEnglish ? "Relegated" : "Ils descendent"}
+              movements={headlineRelegations}
+              tone="relegation"
+            />
+          </div>
+          <p className="mt-5 border-t border-[var(--gazette-rule)]/35 pt-4 font-serif text-sm italic leading-6 text-[var(--gazette-muted)]">
+            {isEnglish
+              ? "Groups A, B and C will be reseeded in a balanced snake order once the new season opens."
+              : "Les groupes A, B et C seront ensuite recomposés à l’ouverture de la nouvelle saison par un tirage en serpentin équilibré."}
+          </p>
+        </article>
+
+        <aside className="border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card-soft)] p-5">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--gazette-accent)]">
+            {isEnglish ? "Federal finances" : "Finances fédérales"}
+          </p>
+          <h3 className="mt-2 font-serif text-2xl font-black leading-none">
+            {isEnglish
+              ? "A division is also a grant"
+              : "Une division, c’est aussi une dotation"}
+          </h3>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {[
+              [1, "450 000 €"],
+              [2, "300 000 €"],
+              [3, "200 000 €"],
+              [4, "120 000 €"],
+            ].map(([division, amount]) => (
+              <div
+                key={division}
+                className="border border-[var(--gazette-rule)]/35 bg-[var(--gazette-paper)] p-3"
+              >
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] text-[var(--gazette-muted)]">
+                  Division {division}
+                </p>
+                <p className="mt-1 font-serif text-lg font-black">{amount}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs font-semibold leading-5 text-[var(--gazette-body)]">
+            {isEnglish
+              ? "The new division is frozen at the rollover and feeds the opening budget calculation for the federation."
+              : "La nouvelle division est figée au rollover et entre directement dans le calcul du budget d’ouverture de la fédération."}
+          </p>
+          <Link
+            href="/jeu/nations-cup"
+            className="mt-5 inline-flex min-h-10 items-center border border-[var(--gazette-accent)] px-4 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)] transition hover:bg-[var(--gazette-accent)] hover:text-white"
+          >
+            {isEnglish ? "Open every division" : "Ouvrir toutes les divisions"} →
+          </Link>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function MovementColumn({
+  label,
+  movements,
+  tone,
+}: {
+  label: string;
+  movements: readonly CyclogazetteNationsCupMovement[];
+  tone: "promotion" | "relegation";
+}) {
+  return (
+    <div>
+      <p
+        className={`text-[9px] font-black uppercase tracking-[0.18em] ${
+          tone === "promotion" ? "text-[#176951]" : "text-[#A62F3B]"
+        }`}
+      >
+        {label}
+      </p>
+      <ul className="mt-2 space-y-2">
+        {movements.map((movement) => (
+          <li
+            key={`${tone}:${movement.countryCode}:${movement.currentDivision}`}
+            className="flex items-center gap-3 border-b border-[var(--gazette-rule)]/25 pb-2 last:border-b-0"
+          >
+            <span
+              role="img"
+              aria-label={`Drapeau ${movement.countryName}`}
+              className={`fi fi-${movement.countryCode.toLowerCase()} shrink-0 text-xl shadow-sm`}
+            />
+            <span className="min-w-0 flex-1 font-serif text-sm font-black">
+              {movement.countryName}
+            </span>
+            <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.1em] text-[var(--gazette-muted)]">
+              D{movement.currentDivision} → D{movement.projectedDivision}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function selectHeadlineMovements(
+  movements: readonly CyclogazetteNationsCupMovement[],
+  tone: "promotion" | "relegation",
+) {
+  const eliteMovements = movements.filter((movement) =>
+    tone === "promotion"
+      ? movement.projectedDivision === 1
+      : movement.currentDivision === 1,
+  );
+  return (eliteMovements.length > 0 ? eliteMovements : movements).slice(0, 6);
 }
 
 function EditorialFeatureSection({
@@ -1075,6 +1408,27 @@ function getSpanishVueltaBriefs(issueNumber: number, isEnglish: boolean) {
 function getCyclogazetteThemeStyle(theme: CyclogazetteTheme) {
   const editorialFont = "var(--font-geist-" + "s" + "ans)";
   const newspaperFont = "Georgia,'Times New Roman',serif";
+
+  if (theme === "nations-cup") {
+    return {
+      "--gazette-paper": "#F2E9D1",
+      "--gazette-feature": "rgba(220, 231, 220, 0.72)",
+      "--gazette-card": "rgba(226, 228, 204, 0.82)",
+      "--gazette-card-soft": "rgba(234, 235, 217, 0.78)",
+      "--gazette-aside": "rgba(23, 63, 53, 0.1)",
+      "--gazette-details": "rgba(225, 230, 211, 0.9)",
+      "--gazette-input": "#F8F2DF",
+      "--gazette-ink": "#102D27",
+      "--gazette-body": "#314A43",
+      "--gazette-muted": "#60736A",
+      "--gazette-rule": "#536D61",
+      "--gazette-accent": "#A62F3B",
+      "--gazette-secondary": "#176951",
+      "--font-serif": newspaperFont,
+      backgroundImage:
+        "radial-gradient(circle at 12% 4%,rgba(255,255,255,.72),transparent 25%),linear-gradient(90deg,rgba(23,105,81,.035),transparent 34%,transparent 68%,rgba(166,47,59,.028)),repeating-linear-gradient(0deg,rgba(16,45,39,.022) 0,rgba(16,45,39,.022) 1px,transparent 1px,transparent 4px)",
+    } as CSSProperties;
+  }
 
   if (theme === "gala") {
     return {

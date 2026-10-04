@@ -97,6 +97,29 @@ export type CyclogazetteFeatureStory = {
   href?: string;
 };
 
+export type CyclogazetteNationsCupMovement = {
+  countryCode: string;
+  countryName: string;
+  currentDivision: number;
+  projectedDivision: number;
+  groupCode: string | null;
+  points: number;
+  divisionRank: number;
+};
+
+export type CyclogazetteNationsCupSpecial = {
+  illustrationPath: string;
+  winner: {
+    countryCode: string;
+    countryName: string;
+    points: number;
+    wins: number;
+    podiums: number;
+  };
+  promotions: CyclogazetteNationsCupMovement[];
+  relegations: CyclogazetteNationsCupMovement[];
+};
+
 const CYCLING_HOLLOW_TEASER_DATE = "2026-10-04";
 
 const CYCLING_HOLLOW_TEASER_STORY: CyclogazetteFeatureStory = {
@@ -143,6 +166,7 @@ export type CyclogazetteContent = {
   tourSummaries?: CyclogazetteTourSummary[];
   mediaArticles?: CyclogazetteMediaArticle[];
   featureStories?: CyclogazetteFeatureStory[];
+  nationsCupSpecial?: CyclogazetteNationsCupSpecial;
 };
 
 export type CyclogazetteEdition = {

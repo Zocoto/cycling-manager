@@ -133,6 +133,9 @@ export default async function CyclogazettePage({
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
   );
+  const isNationsCupSpecialEdition = Boolean(
+    edition?.content.nationsCupSpecial,
+  );
   const openingAwards = selectCyclogazetteOpeningAwards(
     edition,
     archive,
@@ -146,7 +149,7 @@ export default async function CyclogazettePage({
 
   return (
     <main
-      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isSeasonTwoGalaEdition ? "bg-[#050812]" : activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
+      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isSeasonTwoGalaEdition ? "bg-[#050812]" : activeSection === "journal" && isNationsCupSpecialEdition ? "bg-[#123B32]" : activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
     >
       <GameHeader
         simulatorEmail={user.email}

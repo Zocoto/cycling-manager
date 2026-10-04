@@ -208,6 +208,130 @@ function CardWatermark({
   );
 }
 
+function DashboardFederationGateway({
+  countryCode,
+  showNationsCup,
+}: {
+  countryCode: string;
+  showNationsCup: boolean;
+}) {
+  const normalizedCountryCode = countryCode.toLowerCase();
+
+  if (!showNationsCup) {
+    return (
+      <Link
+        href={`/jeu/federations/${normalizedCountryCode}`}
+        prefetchOnIntent
+        data-dashboard-federation={normalizedCountryCode}
+        className="group relative mt-5 flex min-h-[96px] items-center gap-4 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[linear-gradient(105deg,#071A17_0%,#0B302B_62%,#176951_100%)] px-5 py-4 text-white shadow-[0_16px_42px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:border-[#F2C94C]/65 hover:shadow-[0_20px_48px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:min-h-[108px] sm:px-7 sm:py-5"
+      >
+        <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
+          <span
+            role="img"
+            aria-label={`Drapeau ${countryCode}`}
+            className={`fi fi-${normalizedCountryCode} text-4xl`}
+          />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+            Espace national
+          </span>
+          <span className="mt-1 block text-lg font-black sm:text-xl">
+            Fédération
+          </span>
+          <span className="mt-1 hidden text-xs font-semibold text-[#BFD1C6] sm:block">
+            Retrouvez le salon, les sélections et les projets de votre fédération.
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="text-2xl font-black text-[#F2C94C] transition group-hover:translate-x-1"
+        >
+          →
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <section
+      data-dashboard-federation={normalizedCountryCode}
+      data-dashboard-nations-cup="j24"
+      aria-label="Fédération et résultats de la Nations Cup"
+      className="mt-5 grid min-h-[96px] grid-cols-2 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[#071A17] text-white shadow-[0_16px_42px_rgba(7,26,23,0.2)] sm:min-h-[108px]"
+    >
+      <Link
+        href={`/jeu/federations/${normalizedCountryCode}`}
+        prefetchOnIntent
+        className="group flex min-w-0 items-center gap-3 bg-[linear-gradient(110deg,#071A17_0%,#0B302B_100%)] px-3 py-4 transition hover:bg-[#10483C] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F2C94C] sm:px-6 sm:py-5"
+      >
+        <span className="grid h-10 w-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
+          <span
+            role="img"
+            aria-label={`Drapeau ${countryCode}`}
+            className={`fi fi-${normalizedCountryCode} text-3xl sm:text-4xl`}
+          />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[8px] font-black uppercase tracking-[0.14em] text-[#F2C94C] sm:text-[10px] sm:tracking-[0.18em]">
+            Espace national
+          </span>
+          <span className="mt-1 block text-base font-black sm:text-xl">
+            Fédération
+          </span>
+          <span className="mt-1 hidden text-xs font-semibold text-[#BFD1C6] lg:block">
+            Salon, sélections et projets.
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="hidden text-2xl font-black text-[#F2C94C] transition group-hover:translate-x-1 sm:block"
+        >
+          →
+        </span>
+      </Link>
+
+      <Link
+        href="/jeu/nations-cup"
+        prefetchOnIntent
+        className="group relative flex min-w-0 items-center overflow-hidden border-l border-white/15 bg-[radial-gradient(circle_at_88%_15%,rgba(242,201,76,.2),transparent_28%),linear-gradient(115deg,#123B32_0%,#176951_58%,#A62F3B_145%)] px-3 py-4 transition hover:saturate-125 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F2C94C] sm:px-6 sm:py-5"
+      >
+        <span
+          aria-hidden="true"
+          className="absolute -right-5 -top-8 text-8xl font-black italic text-white/[0.045]"
+        >
+          24
+        </span>
+        <span className="relative min-w-0 flex-1">
+          <span className="flex items-center gap-1.5 overflow-hidden">
+            {['fr', 'be', 'it', 'ch', 'gb'].map((flag) => (
+              <span
+                key={flag}
+                className={`fi fi-${flag} shrink-0 text-sm shadow-sm sm:text-base`}
+              />
+            ))}
+          </span>
+          <span className="mt-2 block text-[8px] font-black uppercase tracking-[0.14em] text-[#F2C94C] sm:text-[10px] sm:tracking-[0.18em]">
+            J24 · résultats
+          </span>
+          <span className="mt-1 block text-base font-black sm:text-xl">
+            Nations Cup
+          </span>
+          <span className="mt-1 hidden text-xs font-semibold text-[#D7E7DF] lg:block">
+            Classements, divisions et mouvements.
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="relative ml-2 hidden text-2xl font-black text-[#F2C94C] transition group-hover:translate-x-1 sm:block"
+        >
+          →
+        </span>
+      </Link>
+    </section>
+  );
+}
+
 function toTeamSummary(
   summary: DashboardFastSummary | null,
 ): CurrentTeamDashboardSummary | null {
@@ -606,37 +730,10 @@ export default async function GamePage() {
           ) : null}
 
           {federationCountryCode ? (
-            <Link
-              href={`/jeu/federations/${federationCountryCode.toLowerCase()}`}
-              prefetchOnIntent
-              data-dashboard-federation={federationCountryCode.toLowerCase()}
-              className="group relative mt-5 flex items-center gap-4 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[linear-gradient(105deg,#071A17_0%,#0B302B_62%,#176951_100%)] px-5 py-4 text-white shadow-[0_16px_42px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:border-[#F2C94C]/65 hover:shadow-[0_20px_48px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:px-7 sm:py-5"
-            >
-              <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
-                <span
-                  role="img"
-                  aria-label={`Drapeau ${federationCountryCode}`}
-                  className={`fi fi-${federationCountryCode.toLowerCase()} text-4xl`}
-                />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-                  Espace national
-                </span>
-                <span className="mt-1 block text-lg font-black sm:text-xl">
-                  Fédération
-                </span>
-                <span className="mt-1 hidden text-xs font-semibold text-[#BFD1C6] sm:block">
-                  Retrouvez le salon, les sélections et les projets de votre fédération.
-                </span>
-              </span>
-              <span
-                aria-hidden="true"
-                className="text-2xl font-black text-[#F2C94C] transition group-hover:translate-x-1"
-              >
-                →
-              </span>
-            </Link>
+            <DashboardFederationGateway
+              countryCode={federationCountryCode}
+              showNationsCup={teamSummary?.season_day_number === 24}
+            />
           ) : null}
 
           {DASHBOARD_ASSISTANT_ENABLED ? (

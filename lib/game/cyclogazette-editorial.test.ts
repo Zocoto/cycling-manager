@@ -42,6 +42,23 @@ describe("bouclage éditorial de La Cyclogazette", () => {
     expect(editorialService).toContain('kind: "federation_race"');
   });
 
+  it("boucle la spéciale Nations Cup à J24 sans évincer le teaser Halloween", () => {
+    expect(publicationService).toContain(
+      "loadCyclogazetteNationsCupSpecial(admin, {",
+    );
+    expect(editorialService).toContain("context.dayNumber !== 24");
+    expect(editorialService).toContain(
+      'standing.movement_zone === "promotion"',
+    );
+    expect(editorialService).toContain(
+      'standing.movement_zone === "relegation"',
+    );
+    expect(publicationService).toContain("includeCyclingHollowTeaserStory(");
+    expect(publicationService).toContain(
+      "...existingEdition.content,\n          nationsCupSpecial,",
+    );
+  });
+
   it("réserve le chargement du prestige étendu au bouclage quotidien", () => {
     expect(publicNewsService).toContain(
       "loadRecentVictories(admin, 12, true)",

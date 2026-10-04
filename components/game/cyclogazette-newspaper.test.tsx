@@ -193,6 +193,78 @@ describe("CyclogazetteNewspaper", () => {
     );
   });
 
+  it("publie la Une Nations Cup, les mouvements et conserve le teaser Halloween", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{
+          ...edition,
+          dayNumber: 24,
+          title: "La Cyclogazette — Spéciale Nations Cup",
+          subtitle: "La France remporte la Division 1",
+          content: {
+            ...edition.content,
+            nationsCupSpecial: {
+              illustrationPath:
+                "/images/cyclogazette/nations-cup-special.png",
+              winner: {
+                countryCode: "FR",
+                countryName: "France",
+                points: 184,
+                wins: 2,
+                podiums: 4,
+              },
+              promotions: [
+                {
+                  countryCode: "BE",
+                  countryName: "Belgique",
+                  currentDivision: 2,
+                  projectedDivision: 1,
+                  groupCode: "A",
+                  points: 160,
+                  divisionRank: 1,
+                },
+              ],
+              relegations: [
+                {
+                  countryCode: "GB",
+                  countryName: "Royaume-Uni",
+                  currentDivision: 1,
+                  projectedDivision: 2,
+                  groupCode: null,
+                  points: 72,
+                  divisionRank: 20,
+                },
+              ],
+            },
+            featureStories: [
+              {
+                id: "event:cycling-hollow:2026-10-04",
+                kind: "event_teaser",
+                kicker: "Témoignages · La route après minuit",
+                kickerEn: "Eyewitnesses · The road after midnight",
+                title: "La nuit, un étrange cycliste suit le peloton",
+                titleEn: "At night, a strange cyclist follows the peloton",
+                body: "La rédaction poursuit son enquête.",
+                bodyEn: "The newsroom keeps investigating.",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="nations-cup"');
+    expect(markup).toContain('data-gazette-nations-cup-frontpage="true"');
+    expect(markup).toContain("France");
+    expect(markup).toContain("remporte la Nations Cup");
+    expect(markup).toContain("Belgique");
+    expect(markup).toContain("D2 → D1");
+    expect(markup).toContain("450 000 €");
+    expect(markup).toContain("nations-cup-special.png");
+    expect(markup).toContain("La nuit, un étrange cycliste suit le peloton");
+    expect(markup).toContain('href="/jeu/nations-cup"');
+  });
+
   it("met la course et le vainqueur en Une avec le maillot de son équipe", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper edition={edition} />,

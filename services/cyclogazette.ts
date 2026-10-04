@@ -35,7 +35,10 @@ import type {
 } from "@/lib/game/post-race-interview";
 import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { loadCyclogazetteFeatureStories } from "@/services/cyclogazette-editorial";
+import {
+  loadCyclogazetteFeatureStories,
+  loadCyclogazetteNationsCupSpecial,
+} from "@/services/cyclogazette-editorial";
 import { getCyclogazetteNewsItems } from "@/services/public-game-news";
 
 type SeasonRow = {
@@ -234,9 +237,49 @@ export async function publishCyclogazetteEdition(
     );
   }
   if (existing.data) {
+    const existingEdition = mapGazetteEdition(existing.data, season.name);
+    if (dayNumber === 24 && !existingEdition.content.nationsCupSpecial) {
+      const nationsCupSpecial = await loadCyclogazetteNationsCupSpecial(admin, {
+        seasonId: season.id,
+        dayNumber,
+        calendarDate: seasonDay.calendar_date,
+      });
+      if (nationsCupSpecial) {
+        const content: CyclogazetteContent = {
+          ...existingEdition.content,
+          nationsCupSpecial,
+        };
+        const title = "La Cyclogazette — Spéciale Nations Cup";
+        const subtitle = `${nationsCupSpecial.winner.countryName} remporte la Division 1`;
+        const updated = await admin
+          .from("cyclogazette_editions")
+          .update({
+            title,
+            subtitle,
+            content,
+            updated_at: now.toISOString(),
+          })
+          .eq("id", existing.data.id);
+        if (!updated.error) {
+          return {
+            status: "already-published",
+            edition: {
+              ...existingEdition,
+              title,
+              subtitle,
+              content,
+            },
+          };
+        }
+        console.error(
+          "Impossible d’enrichir l’édition Nations Cup déjà publiée :",
+          updated.error,
+        );
+      }
+    }
     return {
       status: "already-published",
-      edition: mapGazetteEdition(existing.data, season.name),
+      edition: existingEdition,
     };
   }
 
@@ -277,6 +320,7 @@ export async function publishCyclogazetteEdition(
     tourSummaries,
     mediaArticlesResult,
     featureStories,
+    nationsCupSpecial,
   ] = await Promise.all([
       getCyclogazetteNewsItems(),
       loadDailyReactions(seasonDay.calendar_date),
@@ -292,6 +336,11 @@ export async function publishCyclogazetteEdition(
         .limit(8)
         .returns<MediaArticleRow[]>(),
       loadCyclogazetteFeatureStories(admin, {
+        seasonId: season.id,
+        dayNumber,
+        calendarDate: seasonDay.calendar_date,
+      }),
+      loadCyclogazetteNationsCupSpecial(admin, {
         seasonId: season.id,
         dayNumber,
         calendarDate: seasonDay.calendar_date,
@@ -366,11 +415,14 @@ export async function publishCyclogazetteEdition(
     tourSummaries,
     mediaArticles,
     featureStories: eveningFeatureStories,
+    ...(nationsCupSpecial ? { nationsCupSpecial } : {}),
   };
   const publishedAt = now.toISOString();
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
   const subtitle = isSeasonTwoGala
     ? "Les lauréats de la saison 2 sous les projecteurs — et 100 000 € à décrocher dans le grand quiz"
+    : nationsCupSpecial
+      ? `${nationsCupSpecial.winner.countryName} remporte la Division 1`
     : createSubtitle(content, dayNumber);
 
   const inserted = await admin
@@ -381,6 +433,8 @@ export async function publishCyclogazetteEdition(
       issue_number: issueNumber,
       title: isSeasonTwoGala
         ? "La Cyclogazette — Soirée de gala"
+        : nationsCupSpecial
+          ? "La Cyclogazette — Spéciale Nations Cup"
         : "La Cyclogazette",
       subtitle,
       issue_date: seasonDay.calendar_date,
@@ -1109,5 +1163,6 @@ function normalizeGazetteContent(
     tourSummaries,
     mediaArticles,
     featureStories,
+    nationsCupSpecial: content.nationsCupSpecial,
   };
 }

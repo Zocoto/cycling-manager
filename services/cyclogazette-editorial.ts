@@ -7,6 +7,8 @@ import {
 import {
   getParisDateKey,
   type CyclogazetteFeatureStory,
+  type CyclogazetteNationsCupMovement,
+  type CyclogazetteNationsCupSpecial,
 } from "@/lib/game/cyclogazette";
 import { calculateNationRiderOverall } from "@/lib/game/nation-rider-ranking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -162,6 +164,136 @@ type FederationRaceEditorialRow = {
 };
 
 type EditorialCountryRow = { id: string; name: string; iso_alpha2: string };
+
+type NationsCupProjectionRow = {
+  country_code: string;
+  country_name: string;
+  division: number;
+  group_code: string | null;
+  points: number;
+  wins: number;
+  podiums: number;
+  events_count: number;
+  division_rank: number;
+  group_rank: number;
+  projected_division: number;
+  movement_zone: "promotion" | "relegation" | "safe";
+};
+
+type NationsCupHeatEditorialRow = {
+  slot_key: string;
+  race_edition_id: string;
+};
+
+type NationsCupEditionEditorialRow = {
+  id: string;
+  status: string;
+};
+
+const NATIONS_CUP_SPECIAL_ILLUSTRATION =
+  "/images/cyclogazette/nations-cup-special.png";
+
+export async function loadCyclogazetteNationsCupSpecial(
+  admin: AdminClient,
+  context: EditorialContext,
+): Promise<CyclogazetteNationsCupSpecial | null> {
+  if (context.dayNumber !== 24) return null;
+
+  const [standingsResult, heatsResult] = await Promise.all([
+    admin.rpc("get_national_federation_nations_cup_movement_projection", {
+      p_season_id: context.seasonId,
+    }),
+    admin
+      .from("national_federation_nations_cup_heats")
+      .select("slot_key, race_edition_id")
+      .eq("season_id", context.seasonId)
+      .returns<NationsCupHeatEditorialRow[]>(),
+  ]);
+  if (standingsResult.error || heatsResult.error) return null;
+
+  const nationsCupHeats = heatsResult.data ?? [];
+  const nationsCupEditionIds = unique(
+    nationsCupHeats.map((heat) => heat.race_edition_id),
+  );
+  const nationsCupSlots = new Set(
+    nationsCupHeats.map((heat) => heat.slot_key),
+  );
+  if (nationsCupSlots.size < 5 || nationsCupEditionIds.length < 5) {
+    return null;
+  }
+
+  const editionsResult = await admin
+    .from("race_editions")
+    .select("id, status")
+    .in("id", nationsCupEditionIds)
+    .returns<NationsCupEditionEditorialRow[]>();
+  if (editionsResult.error) return null;
+  const completedEditionIds = new Set(
+    (editionsResult.data ?? [])
+      .filter((edition) => edition.status === "completed")
+      .map((edition) => edition.id),
+  );
+  if (
+    nationsCupEditionIds.some(
+      (editionId) => !completedEditionIds.has(editionId),
+    )
+  ) {
+    return null;
+  }
+
+  const standings = (standingsResult.data ?? []) as NationsCupProjectionRow[];
+  const winner = standings.find(
+    (standing) =>
+      standing.division === 1 &&
+      standing.division_rank === 1 &&
+      standing.events_count >= 5,
+  );
+  if (!winner) return null;
+
+  const toMovement = (
+    standing: NationsCupProjectionRow,
+  ): CyclogazetteNationsCupMovement => ({
+    countryCode: standing.country_code,
+    countryName: standing.country_name,
+    currentDivision: standing.division,
+    projectedDivision: standing.projected_division,
+    groupCode: standing.group_code,
+    points: standing.points,
+    divisionRank: standing.group_code
+      ? standing.group_rank
+      : standing.division_rank,
+  });
+  const promotions = standings
+    .filter((standing) => standing.movement_zone === "promotion")
+    .sort(
+      (left, right) =>
+        left.projected_division - right.projected_division ||
+        left.division - right.division ||
+        left.group_rank - right.group_rank,
+    )
+    .map(toMovement);
+  const relegations = standings
+    .filter((standing) => standing.movement_zone === "relegation")
+    .sort(
+      (left, right) =>
+        left.division - right.division ||
+        left.group_rank - right.group_rank,
+    )
+    .map(toMovement);
+
+  return {
+    illustrationPath: NATIONS_CUP_SPECIAL_ILLUSTRATION,
+    winner: {
+      countryCode: winner.country_code,
+      countryName: winner.country_name,
+      points: winner.points,
+      wins: winner.wins,
+      podiums: winner.podiums,
+    },
+    promotions,
+    relegations,
+  };
+}
 
 export async function loadCyclogazetteFeatureStories(
   admin: AdminClient,
