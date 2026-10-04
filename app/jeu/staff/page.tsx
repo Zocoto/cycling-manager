@@ -34,6 +34,11 @@ import {
   type StaffRole,
 } from "@/lib/game/staff";
 import { buildStaffMarketReturnPath } from "@/lib/game/filtered-page-paths";
+import {
+  STAFF_MARKET_DAILY_COUNT,
+  STAFF_MARKET_WAVE_INTERVAL_HOURS,
+  STAFF_MARKET_WAVE_SIZE,
+} from "@/lib/game/staff-market-waves";
 import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -65,7 +70,7 @@ const tabs: Array<{ id: StaffTab; label: string; detail: string }> = [
   {
     id: "marche",
     label: "Marché de l’emploi",
-    detail: "5 profils toutes les 2 heures · 60 par jour · marché commun à tous les DS",
+    detail: `${STAFF_MARKET_WAVE_SIZE} nouveaux profils toutes les ${STAFF_MARKET_WAVE_INTERVAL_HOURS} h · ${STAFF_MARKET_DAILY_COUNT} par jour · marché commun à tous les DS`,
   },
   {
     id: "equipe",
@@ -168,7 +173,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
 
             <div
               data-tutorial-id="staff-capacity"
-              className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-4"
+              className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-5"
             >
               <HeroMetric
                 label="Niveau DS"
@@ -177,6 +182,10 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
               <HeroMetric
                 label="Staff"
                 value={`${overview.activeStaffCount}/${overview.staffCapacity}`}
+              />
+              <HeroMetric
+                label="Marché"
+                value={`+${STAFF_MARKET_WAVE_SIZE} / ${STAFF_MARKET_WAVE_INTERVAL_HOURS} h`}
               />
               <HeroMetric
                 label="Paie saison"
@@ -254,7 +263,7 @@ function EmploymentMarket({
         <SectionHeading
           eyebrow={`Sélection du ${formatDate(overview.marketDate)}`}
           title="Spécialistes disponibles sur le marché mondial"
-          detail="Le pool est identique pour tous les joueurs. Une signature est définitive : dès qu’un DS recrute un profil, celui-ci n’est plus disponible pour les autres équipes."
+          detail={`${STAFF_MARKET_WAVE_SIZE} nouveaux spécialistes rejoignent le marché toutes les ${STAFF_MARKET_WAVE_INTERVAL_HOURS} h, soit ${STAFF_MARKET_DAILY_COUNT} par jour. Le pool est commun à tous les DS : une signature retire immédiatement le profil aux autres équipes.`}
         />
         <div className="grid shrink-0 grid-cols-2 gap-3">
           <CompactMetric
@@ -359,7 +368,7 @@ function EmploymentMarket({
         ) : (
           <EmptyState
             title="Aucun profil disponible avec ces filtres"
-            detail="Modifiez les critères ou revenez après le renouvellement quotidien du marché."
+            detail={`Modifiez les critères ou revenez après la prochaine livraison de ${STAFF_MARKET_WAVE_SIZE} profils, au plus tard dans ${STAFF_MARKET_WAVE_INTERVAL_HOURS} h.`}
           />
         )}
       </div>
