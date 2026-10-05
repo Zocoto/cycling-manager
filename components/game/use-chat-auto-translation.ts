@@ -20,7 +20,7 @@ export function useChatAutoTranslation({ directorId, locale, enabled, active, me
   const followBottomRef = useRef(false);
   useEffect(() => { stateRef.current = translations; }, [translations]);
   useEffect(() => {
-    if (!ready || !enabled || !active || !preferences.automatic) return;
+    if (!ready || !enabled || !active || !preferences.automatic || pausedConfiguration === configuration) return;
     const engine = new ChatAutoTranslationQueue({ directorId, targetLocale: preferences.targetLocale,
       getState: (id) => stateRef.current[id],
       onState: (id, state) => {
@@ -35,7 +35,7 @@ export function useChatAutoTranslation({ directorId, locale, enabled, active, me
     document.addEventListener("visibilitychange", wake);
     return () => { engine.dispose(); engineRef.current = null; document.removeEventListener("visibilitychange", wake);
       setTranslations((current) => Object.fromEntries(Object.entries(current).filter(([, state]) => state.status !== "loading"))); };
-  }, [ready, enabled, active, preferences.automatic, preferences.targetLocale, directorId, setTranslations, configuration, viewportRef]);
+  }, [ready, enabled, active, preferences.automatic, preferences.targetLocale, directorId, setTranslations, configuration, pausedConfiguration, viewportRef]);
   useLayoutEffect(() => {
     if (followBottomRef.current && active && viewportRef.current) viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     followBottomRef.current = false;
@@ -54,10 +54,10 @@ export function useChatAutoTranslation({ directorId, locale, enabled, active, me
     const nodes = [...viewport.querySelectorAll<HTMLElement>("[data-chat-translation-id]")];
     nodes.forEach((node) => observer.observe(node));
     return () => { observer.disconnect(); nodes.forEach((node) => engine.observe(node.dataset.chatTranslationId!, false)); };
-  }, [messages, viewportRef, ready, enabled, active, preferences.automatic, preferences.targetLocale]);
+  }, [messages, viewportRef, ready, enabled, active, preferences.automatic, preferences.targetLocale, pausedConfiguration]);
   return { ...preferences, paused: pausedConfiguration === configuration,
-    setAutomatic: (automatic: boolean) => store.save({ ...preferences, automatic }),
-    setTargetLocale: (targetLocale: ChatTranslationTargetLocale) => store.save({ ...preferences, targetLocale }),
+    setAutomatic: (automatic: boolean) => { setPausedConfiguration(null); store.save({ ...preferences, automatic }); },
+    setTargetLocale: (targetLocale: ChatTranslationTargetLocale) => { setPausedConfiguration(null); store.save({ ...preferences, targetLocale }); },
   };
 }
 
