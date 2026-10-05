@@ -21,6 +21,7 @@ const snapshot: DashboardAssistantSnapshot = {
   lowFormCount: 3,
   completedScoutingCount: 1,
   availableScoutCount: 2,
+  availableRndEngineerCount: 0,
   zeroTrainingCount: 4,
   seniorSessionCount: 20,
   seniorCompletedCount: 17,
@@ -73,6 +74,26 @@ const snapshot: DashboardAssistantSnapshot = {
 };
 
 describe("dashboard DS assistant", () => {
+  it.each([1, 3])("signals %i free R&D engineers with a direct laboratory link", (count) => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, availableRndEngineerCount: count },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+    expect(groups.alerts.find((line) => line.id === "available-rnd-engineers")).toEqual({
+      id: "available-rnd-engineers",
+      tone: "alert",
+      metric: String(count),
+      title: count === 1 ? "ingénieur R&D disponible" : "ingénieurs R&D disponibles",
+      detail: "Une pièce libre peut être confiée au laboratoire pour créer ou améliorer un prototype.",
+      href: "/jeu/materiel/laboratoire",
+    });
+  });
+
+  it("does not signal R&D when no research can be started", () => {
+    const groups = buildDashboardAssistantLines({ snapshot, rewardCount: 0, cashBalance: 100_000 });
+    expect(groups.alerts.some((line) => line.id === "available-rnd-engineers")).toBe(false);
+  });
   it("keeps one compact actionable line per alert category", () => {
     const groups = buildDashboardAssistantLines({
       snapshot,

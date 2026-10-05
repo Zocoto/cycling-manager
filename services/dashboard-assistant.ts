@@ -85,6 +85,7 @@ export async function getCurrentDashboardAssistantSummary(
     federationEquipmentAlertResult,
     infrastructureLevelsResult,
     infrastructureSpecializationsResult,
+    rndOpportunityResult,
   ] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
@@ -109,6 +110,7 @@ export async function getCurrentDashboardAssistantSummary(
       .from("team_infrastructure_specializations")
       .select("infrastructure_code")
       .returns<DashboardInfrastructureSpecializationRow[]>(),
+    supabase.rpc("get_current_equipment_rnd_opportunity"),
   ]);
 
   if (result.error) {
@@ -171,6 +173,9 @@ export async function getCurrentDashboardAssistantSummary(
   const assistantPayload = normalizeAssistantPayload(row.journal_items);
   const sponsoringAlert = sponsoringAlertResult.data;
   const fanClubSummary = fanClubResult.error ? null : fanClubResult.data;
+  if (rndOpportunityResult.error) {
+    console.error("Impossible de charger les disponibilités R&D :", rndOpportunityResult.error.message);
+  }
 
   return {
     gameDate: row.game_date,
@@ -179,6 +184,9 @@ export async function getCurrentDashboardAssistantSummary(
     lowFormCount: row.low_form_count,
     completedScoutingCount: row.completed_scouting_count,
     availableScoutCount: assistantPayload.availableScoutCount,
+    availableRndEngineerCount: rndOpportunityResult.error
+      ? 0
+      : normalizeCount(rndOpportunityResult.data),
     zeroTrainingCount: row.zero_training_count,
     seniorSessionCount: row.senior_session_count,
     seniorCompletedCount: row.senior_completed_count,

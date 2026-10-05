@@ -31,7 +31,9 @@ export async function startEquipmentRndAction(formData: FormData) {
       "/jeu/materiel/laboratoire?erreur=Sélectionnez%20un%20ingénieur%20R%26D%20disponible.",
     );
   }
-  if (!isEquipmentPrototypeNameValid(prototypeName)) {
+  // A prototype retains its name in the database. Only a new name supplied
+  // for a commercial item is validated here; the RPC enforces its presence.
+  if (prototypeName && !isEquipmentPrototypeNameValid(prototypeName)) {
     redirect(
       `/jeu/materiel/laboratoire?erreur=${encodeURIComponent(
         `Le nom du prototype doit contenir entre ${EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH} et ${EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH} caractères.`,
@@ -49,7 +51,7 @@ export async function startEquipmentRndAction(formData: FormData) {
   const { error } = await supabase.rpc("start_current_team_equipment_rnd", {
     p_equipment_item_id: equipmentItemId,
     p_engineer_contract_id: engineerContractId,
-    p_prototype_name: prototypeName,
+    p_prototype_name: prototypeName || null,
   });
   if (error) {
     redirect(
@@ -60,5 +62,6 @@ export async function startEquipmentRndAction(formData: FormData) {
   revalidatePath("/jeu/materiel");
   revalidatePath("/jeu/materiel/equiper");
   revalidatePath("/jeu/materiel/laboratoire");
+  revalidatePath("/jeu");
   redirect("/jeu/materiel/laboratoire?recherche=lancee");
 }

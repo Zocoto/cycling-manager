@@ -219,6 +219,10 @@ const staffRoles = [
     title: "Architecte",
     text: "Réduit le coût, le délai ou les deux lors du lancement d’un chantier d’infrastructure.",
   },
+  {
+    title: "Ingénieur R&D",
+    text: "Pilote une recherche gratuite à la fois au laboratoire. Ses talents réduisent la durée ou améliorent les chances de réussite.",
+  },
 ] as const;
 
 const pageDirectory = [
@@ -1399,6 +1403,20 @@ function TeamManagementSection() {
             victoire.
           </p>
         </article>
+      </div>
+      <div className="mt-7">
+        <RuleCard title="Laboratoire R&D et prototypes">
+          Un ingénieur disponible peut rechercher une pièce libre dans les
+          catégories débloquées par le laboratoire. La recherche est gratuite ;
+          la pièce est indisponible jusqu’au résultat. Un prototype peut être
+          retravaillé plusieurs fois et conserve son nom. La durée dépend de sa
+          note globale actuelle, soit la somme de ses bonus et malus : 2 jours
+          par point jusqu’à +6, puis 4 jours par point supplémentaire, jusqu’au
+          plafond de +10. Un revers raccourcit la prochaine recherche et une
+          amélioration l’allonge ; les talents de l’ingénieur réduisent la durée,
+          avec un minimum d’un jour. L’assistant du DS signale lorsqu’un
+          ingénieur et une pièce éligible sont disponibles.
+        </RuleCard>
       </div>
     </GuideSection>
   );

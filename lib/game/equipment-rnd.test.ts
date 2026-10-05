@@ -109,6 +109,20 @@ describe("equipment R&D engineer talents", () => {
     ).toBe(4);
   });
 
+  it("recalculates successive research from the current net score after setbacks or improvements", () => {
+    const durationFor = (mountain: number) => estimateEquipmentRndResearch({
+      labLevel: 5,
+      engineer: engineer(),
+      existingBonusTotal: getEquipmentRndBonusTotal({
+        ratingBonuses: { mountain, flat: -1 },
+        timeTrialRatingBonuses: { timeTrial: 2 },
+      }),
+    }).durationDays;
+    expect(durationFor(4)).toBe(7);
+    expect(durationFor(3)).toBe(6);
+    expect(durationFor(5)).toBe(9);
+  });
+
   it("shows the exact value of every active talent", () => {
     expect(describeEquipmentRndEngineerEffects(engineer())).toEqual([
       "−2 jours",

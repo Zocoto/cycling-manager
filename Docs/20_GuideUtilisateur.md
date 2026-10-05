@@ -357,6 +357,14 @@ jusqu'à cinq minutes avant le départ.
 L'inventaire contient également les objets de capacité spéciale, de potentiel et
 de statistique. Les consommables doivent être attribués à un coureur.
 
+Le Laboratoire R&D permet à chaque ingénieur disponible de piloter une recherche
+gratuite sur une pièce libre. Un prototype peut être retravaillé plusieurs fois
+et conserve son nom. La durée est recalculée à partir de la somme actuelle de ses
+bonus et malus : 2 jours par point jusqu'à +6, puis 4 jours par point, jusqu'au
+plafond de +10. Un revers raccourcit la recherche suivante ; une amélioration
+l'allonge. Les talents réduisent le délai, avec un minimum d'un jour. L'assistant
+du DS signale les ingénieurs libres lorsqu'une pièce peut être recherchée.
+
 ## 15. Capacités spéciales
 
 Les capacités actuellement définies sont :

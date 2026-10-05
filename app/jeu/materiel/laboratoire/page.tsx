@@ -6,18 +6,12 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { MaterialNavigation } from "@/components/game/material-navigation";
 import Link from "@/components/ui/app-link";
-import { getEquipmentCategory } from "@/lib/game/equipment";
-import {
-  describeEquipmentRndEngineerEffects,
-  EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH,
-  EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH,
-  estimateEquipmentRndResearch,
-} from "@/lib/game/equipment-rnd";
+import { EquipmentRndResearchForm } from "@/components/game/equipment-rnd-research-form";
+import { estimateEquipmentRndResearch } from "@/lib/game/equipment-rnd";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentTeamEquipmentRndOverview } from "@/services/team-equipment-rnd";
-import { startEquipmentRndAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Laboratoire R&D",
@@ -195,7 +189,7 @@ export default async function EquipmentLaboratoryPage({
 
               <div className="mt-6 border-t border-[#315B3E]/12 pt-6">
                 <h3 className="text-lg font-black text-[#183F37]">
-                  Créer un prototype
+                  Créer ou retravailler un prototype
                 </h3>
                 {overview.engineers.length < 1 ? (
                   <div className="mt-4 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
@@ -216,69 +210,22 @@ export default async function EquipmentLaboratoryPage({
                     recrutement d’un ingénieur supplémentaire.
                   </p>
                 ) : overview.researchableItems.length ? (
-                  <form
-                    action={startEquipmentRndAction}
-                    className="mt-4 space-y-5"
-                  >
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
-                      Nom du prototype
-                    </span>
-                    <input
-                      name="prototypeName"
-                      type="text"
-                      required
-                      minLength={EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH}
-                      maxLength={EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH}
-                      autoComplete="off"
-                      placeholder="Ex. Aquila RS-X"
-                      className="mt-2 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
-                      Équipement libre à sacrifier
-                    </span>
-                    <select
-                      name="equipmentItemId"
-                      required
-                      className="mt-2 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
-                    >
-                      <option value="">Choisir une référence</option>
-                      {overview.researchableItems.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {getEquipmentCategory(item.slot).shortLabel} ·{" "}
-                          {item.name} · bonus +{item.bonusTotal} ·{" "}
-                          {item.baseDurationDays} j de base ·{" "}
-                          {item.availableQuantity} libre(s)
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
-                      Ingénieur R&D disponible
-                    </span>
-                    <select
-                      name="engineerContractId"
-                      required
-                      className="mt-2 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
-                    >
-                      <option value="">Choisir un ingénieur</option>
-                      {overview.availableEngineers.map((engineer) => (
-                        <option
-                          key={engineer.contractId}
-                          value={engineer.contractId}
-                        >
-                          {engineer.name} · N{engineer.level} ·{" "}
-                          {describeEquipmentRndEngineerEffects(engineer).join(
-                            " · ",
-                          ) || "aucun talent actif"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p className="rounded-xl bg-[#F3F8F5] p-4 text-xs font-semibold leading-5 text-[#60756E]">
+                  <>
+                  <EquipmentRndResearchForm
+                    items={overview.researchableItems.map((item) => ({
+                      id: item.id,
+                      name: item.name,
+                      slot: item.slot,
+                      channel: item.channel,
+                      bonusTotal: item.bonusTotal,
+                      baseDurationDays: item.baseDurationDays,
+                      availableQuantity: item.availableQuantity,
+                    }))}
+                    engineers={overview.availableEngineers}
+                    labLevel={overview.labLevel}
+                    labEfficiencyBonusPercentage={overview.labEfficiencyBonusPercentage}
+                  />
+                  <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
                     La recherche est gratuite : seul l’exemplaire choisi est
                     consommé. La durée de base est de 2 jours par point jusqu’à
                     +6 : 10 jours à +5 et 12 jours à +6. Chaque point suivant
@@ -292,10 +239,7 @@ export default async function EquipmentLaboratoryPage({
                     au moins trois points disponibles sous le plafond ; le
                     talent Intuition de génie augmente cette chance.
                   </p>
-                  <button className="w-full rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
-                    Consommer la pièce et lancer gratuitement la R&D
-                  </button>
-                  </form>
+                  </>
                 ) : (
                   <p className="mt-5 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
                     {overview.cappedItemCount > 0

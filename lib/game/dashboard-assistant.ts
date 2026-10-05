@@ -67,6 +67,7 @@ export type DashboardAssistantSnapshot = {
   lowFormCount: number;
   completedScoutingCount: number;
   availableScoutCount: number;
+  availableRndEngineerCount: number;
   zeroTrainingCount: number;
   seniorSessionCount: number;
   seniorCompletedCount: number;
@@ -173,6 +174,7 @@ const ALERT_PRIORITY = [
   "staff-recruitment-matches",
   "completed-scouting",
   "available-scouts",
+  "available-rnd-engineers",
   "low-form",
   "zero-training",
   "fan-club-out-of-stock",
@@ -459,6 +461,21 @@ export function buildDashboardAssistantLines({
       ),
       detail: "Disponible sur le marché selon vos critères personnalisés.",
       href: "/jeu/staff?onglet=marche",
+    });
+  }
+
+  if (snapshot.availableRndEngineerCount > 0) {
+    alerts.push({
+      id: "available-rnd-engineers",
+      tone: "alert",
+      metric: String(snapshot.availableRndEngineerCount),
+      title: pluralize(
+        snapshot.availableRndEngineerCount,
+        "ingénieur R&D disponible",
+        "ingénieurs R&D disponibles",
+      ),
+      detail: "Une pièce libre peut être confiée au laboratoire pour créer ou améliorer un prototype.",
+      href: "/jeu/materiel/laboratoire",
     });
   }
 

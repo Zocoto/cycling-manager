@@ -14,6 +14,7 @@ const quietSnapshot = {
   lowFormCount: 0,
   completedScoutingCount: 0,
   availableScoutCount: 0,
+  availableRndEngineerCount: 0,
   zeroTrainingCount: 0,
   seniorSessionCount: 0,
   seniorCompletedCount: 0,

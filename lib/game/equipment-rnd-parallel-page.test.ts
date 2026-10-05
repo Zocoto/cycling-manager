@@ -10,11 +10,15 @@ const service = readFileSync(
   resolve(process.cwd(), "services/team-equipment-rnd.ts"),
   "utf8",
 );
+const form = readFileSync(
+  resolve(process.cwd(), "components/game/equipment-rnd-research-form.tsx"),
+  "utf8",
+);
 
 describe("parallel equipment R&D laboratory", () => {
   it("renders every active project while keeping a free slot launch form", () => {
     expect(page).toContain("overview.activeProjects.map");
-    expect(page).toContain("overview.availableEngineers.map");
+    expect(page).toContain("engineers={overview.availableEngineers}");
     expect(page).toContain("La recherche est gratuite");
     expect(page).not.toContain("Ingénieur R&D (facultatif)");
     expect(page).not.toContain("Aucun ingénieur</option>");
@@ -40,7 +44,7 @@ describe("parallel equipment R&D laboratory", () => {
   });
 
   it("supports named and repeatable prototype research", () => {
-    expect(page).toContain('name="prototypeName"');
+    expect(form).toContain('name="prototypeName"');
     expect(page).toContain(
       "La même référence peut être recherchée plusieurs fois",
     );
