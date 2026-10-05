@@ -32,6 +32,15 @@ export type NationsCupStanding = {
   projectedDivision: number;
   movementZone: "promotion" | "relegation" | "safe";
   eventRanks: Record<string, number | null>;
+  eventResults: Record<string, NationsCupRiderResult | null>;
+};
+
+export type NationsCupRiderResult = {
+  rank: number;
+  riderId: string;
+  firstName: string;
+  lastName: string;
+  teamName: string | null;
 };
 
 export type NationsCupOverview = {
@@ -87,7 +96,14 @@ type ResultRow = {
   final_rank: number;
 };
 type RosterRow = { id: string; rider_id: string };
-type RiderRow = { id: string; country_id: string };
+type RiderRow = {
+  id: string;
+  country_id: string;
+  first_name: string;
+  last_name: string;
+};
+type ContractRow = { rider_id: string; team_id: string };
+type RiderTeamSeasonRow = { team_id: string; display_name: string };
 type TeamSeasonRow = { registration_country_id: string | null };
 type AssignmentRow = { division: number; group_code: string | null };
 
@@ -202,11 +218,36 @@ export async function getNationsCupOverview(
   const ridersResult = riderIds.length
     ? await admin
         .from("riders")
-        .select("id, country_id")
+        .select("id, country_id, first_name, last_name")
         .in("id", riderIds)
         .returns<RiderRow[]>()
     : { data: [] as RiderRow[], error: null };
   if (ridersResult.error) throw ridersResult.error;
+  const contractsResult = riderIds.length
+    ? await admin
+        .from("rider_contracts")
+        .select("rider_id, team_id")
+        .eq("status", "active")
+        .in("rider_id", riderIds)
+        .returns<ContractRow[]>()
+    : { data: [] as ContractRow[], error: null };
+  if (contractsResult.error) throw contractsResult.error;
+  const teamIdByRiderId = new Map(
+    (contractsResult.data ?? []).map((contract) => [
+      contract.rider_id,
+      contract.team_id,
+    ]),
+  );
+  const riderTeamIds = [...new Set(teamIdByRiderId.values())];
+  const riderTeamSeasonsResult = riderTeamIds.length
+    ? await admin
+        .from("team_seasons")
+        .select("team_id, display_name")
+        .eq("season_id", season.id)
+        .in("team_id", riderTeamIds)
+        .returns<RiderTeamSeasonRow[]>()
+    : { data: [] as RiderTeamSeasonRow[], error: null };
+  if (riderTeamSeasonsResult.error) throw riderTeamSeasonsResult.error;
 
   const raceById = new Map(
     (racesResult.data ?? []).map((race) => [race.id, race]),
@@ -220,12 +261,21 @@ export async function getNationsCupOverview(
   const heatByEditionId = new Map(
     heats.map((heat) => [heat.race_edition_id, heat]),
   );
-  const countryByRiderId = new Map(
-    (ridersResult.data ?? []).map((rider) => [rider.id, rider.country_id]),
+  const riderById = new Map(
+    (ridersResult.data ?? []).map((rider) => [rider.id, rider]),
+  );
+  const teamNameById = new Map(
+    (riderTeamSeasonsResult.data ?? []).map((team) => [
+      team.team_id,
+      team.display_name,
+    ]),
+  );
+  const riderIdByRosterId = new Map(
+    (rostersResult.data ?? []).map((roster) => [roster.id, roster.rider_id]),
   );
   const countryByRosterId = new Map<string, string>();
   for (const roster of rostersResult.data ?? []) {
-    const countryId = countryByRiderId.get(roster.rider_id);
+    const countryId = riderById.get(roster.rider_id)?.country_id;
     if (countryId) countryByRosterId.set(roster.id, countryId);
   }
 
@@ -236,14 +286,30 @@ export async function getNationsCupOverview(
     PROFESSIONAL_NATIONS_CUP_EVENTS.map((event) => [event.slotKey, event]),
   );
   const eventRankByCountry = new Map<string, Record<string, number | null>>();
+  const eventResultByCountry = new Map<
+    string,
+    Record<string, NationsCupRiderResult | null>
+  >();
   for (const result of results) {
     const countryId = countryByRosterId.get(result.race_roster_id);
+    const riderId = riderIdByRosterId.get(result.race_roster_id);
+    const rider = riderId ? riderById.get(riderId) : null;
     const heat = heatByEditionId.get(result.race_edition_id);
     const event = heat ? eventBySlotKey.get(heat.slot_key) : null;
-    if (!countryId || !event) continue;
+    if (!countryId || !event || !rider) continue;
     const ranks = eventRankByCountry.get(countryId) ?? {};
     ranks[event.slug] = result.final_rank;
     eventRankByCountry.set(countryId, ranks);
+    const eventResults = eventResultByCountry.get(countryId) ?? {};
+    const teamId = teamIdByRiderId.get(rider.id);
+    eventResults[event.slug] = {
+      rank: result.final_rank,
+      riderId: rider.id,
+      firstName: rider.first_name,
+      lastName: rider.last_name,
+      teamName: teamId ? (teamNameById.get(teamId) ?? null) : null,
+    };
+    eventResultByCountry.set(countryId, eventResults);
   }
 
   const events = PROFESSIONAL_NATIONS_CUP_EVENTS.flatMap(
@@ -295,6 +361,7 @@ export async function getNationsCupOverview(
       projectedDivision: standing.projected_division,
       movementZone: standing.movement_zone,
       eventRanks: eventRankByCountry.get(standing.country_id) ?? {},
+      eventResults: eventResultByCountry.get(standing.country_id) ?? {},
     }),
   );
   const viewerStanding = viewerCountryId

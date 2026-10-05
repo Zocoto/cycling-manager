@@ -28,6 +28,8 @@ describe("NationsCupStandings", () => {
     expect(markup.match(/role="tab"/g)).toHaveLength(7);
     expect(markup.indexOf("Général")).toBeLessThan(markup.indexOf("Sprint"));
     expect(markup).toContain("détermine seul les montées et descentes");
+    expect(markup).toContain("Chaque départ effectif rapporte de la popularité");
+    expect(markup).toContain("+8 au vainqueur");
     expect(markup).toContain("Division 1");
     expect(markup).toContain("Division 4");
     expect(markup).toContain("France");
@@ -54,6 +56,17 @@ describe("NationsCupStandings", () => {
       eventRanks: {
         "nations-cup-sprint": index < 2 ? index + 1 : null,
       },
+      eventResults: {
+        "nations-cup-sprint": index < 2
+          ? {
+              rank: index + 1,
+              riderId: `rider-${index + 1}`,
+              firstName: index === 0 ? "Paul" : "Remco",
+              lastName: index === 0 ? "Magnier" : "Evenepoel",
+              teamName: index === 0 ? "Soudal Quick-Step" : "RSC Anderlecht",
+            }
+          : null,
+      },
     }));
 
     const sprintDivisionTwo = getNationsCupDivisionView(
@@ -65,6 +78,20 @@ describe("NationsCupStandings", () => {
     expect(sprintDivisionTwo.visibleStandings.map((standing) => standing.countryName)).toEqual([
       "Belgique",
     ]);
+
+    const markup = renderToStaticMarkup(
+      <NationsCupStandings
+        events={events}
+        initialDivision={2}
+        initialGroup="A"
+        initialRanking="nations-cup-sprint"
+        standings={withResults}
+      />,
+    );
+    expect(markup).toContain("Coureur sélectionné");
+    expect(markup).toContain("Remco Evenepoel");
+    expect(markup).toContain("RSC Anderlecht");
+    expect(markup).toContain('/jeu/coureurs/rider-2');
   });
 
   it("ouvre directement la division et le groupe de la fédération du joueur", () => {
@@ -112,5 +139,6 @@ function standing(
     projectedDivision: division,
     movementZone: "safe" as const,
     eventRanks: {},
+    eventResults: {},
   };
 }

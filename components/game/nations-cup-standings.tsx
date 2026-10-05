@@ -25,6 +25,16 @@ export type NationsCupStanding = {
   projectedDivision: number;
   movementZone: "promotion" | "relegation" | "safe";
   eventRanks: Record<string, number | null>;
+  eventResults: Record<
+    string,
+    {
+      rank: number;
+      riderId: string;
+      firstName: string;
+      lastName: string;
+      teamName: string | null;
+    } | null
+  >;
 };
 
 const DIVISIONS = [1, 2, 3, 4] as const;
@@ -75,12 +85,14 @@ export function NationsCupStandings({
   events,
   initialDivision,
   initialGroup,
+  initialRanking,
   standings,
   viewerCountryId,
 }: {
   events: NationsCupEvent[];
   initialDivision?: number;
   initialGroup?: string | null;
+  initialRanking?: string;
   standings: NationsCupStanding[];
   viewerCountryId?: string;
 }) {
@@ -90,7 +102,11 @@ export function NationsCupStandings({
     )),
     [standings],
   );
-  const [selectedRanking, setSelectedRanking] = useState(GENERAL_RANKING);
+  const [selectedRanking, setSelectedRanking] = useState(
+    initialRanking && events.some((event) => event.slug === initialRanking)
+      ? initialRanking
+      : GENERAL_RANKING,
+  );
   const [selectedDivision, setSelectedDivision] = useState<number>(
     initialDivision != null
     && availableDivisions.some((division) => division === initialDivision)
@@ -141,6 +157,16 @@ export function NationsCupStandings({
           Le général cumule les cinq épreuves et détermine seul les montées et
           descentes de fin de saison.
         </p>
+        <div className="mt-4 max-w-3xl rounded-2xl border border-[#D5AC18]/25 bg-[#FFFBEB] px-4 py-3">
+          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#8A6810]">
+            Retombées pour les coureurs
+          </p>
+          <p className="mt-1 text-xs font-bold leading-5 text-[#5F5740]">
+            Chaque départ effectif rapporte de la popularité. Le podium est
+            particulièrement valorisé : +8 au vainqueur, +6 au deuxième et +5
+            au troisième, puis des bonus jusqu’au top 16.
+          </p>
+        </div>
 
         {viewerStanding ? (
           <div
@@ -445,11 +471,12 @@ function EventStandingsTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] border-collapse text-sm">
+      <table className="w-full min-w-[900px] border-collapse text-sm">
         <thead className="bg-[#F2F8F5] text-[10px] font-black uppercase tracking-[0.11em] text-[#60756E]">
           <tr>
             <th className="w-20 px-4 py-3 text-center">Rang épreuve</th>
             <th className="px-4 py-3 text-left">Nation</th>
+            <th className="px-4 py-3 text-left">Coureur sélectionné</th>
             <th className="px-4 py-3 text-center">Division/groupe</th>
             <th className="px-4 py-3 text-center">Rang général</th>
             <th className="px-4 py-3 text-center">Points épreuve</th>
@@ -458,6 +485,7 @@ function EventStandingsTable({
         <tbody className="divide-y divide-[#315B3E]/10">
           {standings.map((standing) => {
             const eventRank = standing.eventRanks[event.slug];
+            const riderResult = standing.eventResults[event.slug];
             return (
               <tr
                 key={standing.countryId}
@@ -477,6 +505,23 @@ function EventStandingsTable({
                   isViewer={standing.countryId === viewerCountryId}
                   standing={standing}
                 />
+                <td className="px-4 py-3">
+                  {riderResult ? (
+                    <Link
+                      href={`/jeu/coureurs/${riderResult.riderId}`}
+                      className="group inline-flex flex-col text-[#183F37] hover:text-[#278B70]"
+                    >
+                      <span className="font-black">
+                        {riderResult.firstName} {riderResult.lastName}
+                      </span>
+                      <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#7B8F88] group-hover:text-[#278B70]">
+                        {riderResult.teamName ?? "Équipe non renseignée"}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span className="font-bold text-[#9AABA5]">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-center font-black text-[#60756E]">
                   D{standing.division}{standing.groupCode ?? ""}
                 </td>
