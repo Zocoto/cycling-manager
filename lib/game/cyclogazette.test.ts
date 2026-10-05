@@ -25,7 +25,7 @@ describe("teaser de l’Équipier sans tête", () => {
     );
 
     expect(announced[0]?.id).toBe(CYCLING_HOLLOW_TEASER_STORY_ID);
-    expect(announced[0]?.title).toContain("L’Équipier sans tête");
+    expect(announced[0]?.body).toContain("l’Équipier sans tête");
     expect(archived).toEqual(announced);
   });
 

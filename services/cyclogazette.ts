@@ -1,9 +1,9 @@
 import "server-only";
 
 import {
-  CYCLING_HOLLOW_TEASER_STORY_ID,
   getParisDateKey,
   getParisHour,
+  getCyclingHollowTeaserStory,
   includeCyclingHollowTeaserStory,
   type CyclogazetteArchiveSeason,
   type CyclogazetteCommunity,
@@ -242,14 +242,16 @@ export async function publishCyclogazetteEdition(
     const existingFeatureStories = existingEdition.content.featureStories ?? [];
     const enrichedFeatureStories = includeCyclingHollowTeaserStory(
       existingFeatureStories,
-      getParisDateKey(now),
+      seasonDay.calendar_date,
     );
+    const teaserStory = getCyclingHollowTeaserStory(seasonDay.calendar_date);
     const teaserWasAdded =
+      teaserStory !== null &&
       !existingFeatureStories.some(
-        (story) => story.id === CYCLING_HOLLOW_TEASER_STORY_ID,
+        (story) => story.id === teaserStory.id,
       )
       && enrichedFeatureStories.some(
-        (story) => story.id === CYCLING_HOLLOW_TEASER_STORY_ID,
+        (story) => story.id === teaserStory.id,
       );
     let content: CyclogazetteContent = teaserWasAdded
       ? {
@@ -429,7 +431,7 @@ export async function publishCyclogazetteEdition(
     null;
   const eveningFeatureStories = includeCyclingHollowTeaserStory(
     featureStories,
-    getParisDateKey(now),
+    seasonDay.calendar_date,
   );
   const content: CyclogazetteContent = {
     lead,
@@ -1172,6 +1174,7 @@ function normalizeGazetteContent(
   const featureStories = includeCyclingHollowTeaserStory(
     Array.isArray(content.featureStories) ? content.featureStories : [],
     issueDate,
+    { includeScheduled: false },
   );
   const preRacePressConferences = Array.isArray(
     content.preRacePressConferences,

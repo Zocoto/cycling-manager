@@ -11,7 +11,7 @@ const editorialService = readFileSync(
 const publicationService = readFileSync(
   join(root, "services/cyclogazette.ts"),
   "utf8",
-);
+).replaceAll("\r", "");
 const publicNewsService = readFileSync(
   join(root, "services/public-game-news.ts"),
   "utf8",
@@ -55,7 +55,7 @@ describe("bouclage éditorial de La Cyclogazette", () => {
     );
     expect(publicationService).toContain("includeCyclingHollowTeaserStory(");
     expect(publicationService).toContain(
-      "getParisDateKey(now)",
+      "getCyclingHollowTeaserStory(seasonDay.calendar_date)",
     );
     expect(publicationService).toContain("teaserWasAdded");
     expect(publicationService).toContain("...content,\n          nationsCupSpecial,");

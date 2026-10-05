@@ -127,32 +127,93 @@ export const CYCLING_HOLLOW_TEASER_STORY_ID =
 const CYCLING_HOLLOW_TEASER_STORY: CyclogazetteFeatureStory = {
   id: CYCLING_HOLLOW_TEASER_STORY_ID,
   kind: "event_teaser",
-  kicker: "Halloween · Témoignages sur la route après minuit",
-  kickerEn: "Halloween · Eyewitnesses on the road after midnight",
-  title: "L’Équipier sans tête roule encore dans la nuit",
-  titleEn: "The Headless Domestique still rides through the night",
-  body: "Trois témoins affirment avoir aperçu, sur une route forestière noyée de brume, un équipier silencieux lancé sans lumière et sans jamais ralentir. Aucun n’a pu distinguer son visage — ni même sa tête. Après son passage, la chaussée portait des traces de gomme brûlée et une roue marquée d’une lueur orange tournait encore sur le bas-côté. Les vieux carnets du peloton racontent qu’il revient chaque automne chercher une roue à suivre. La rédaction n’y croyait pas. Jusqu’à ce soir.",
-  bodyEn: "Three witnesses say they spotted a silent domestique on a forest road drowned in mist, riding without lights and never slowing down. None could make out his face — or even his head. After he passed, scorched tyre marks crossed the road and an orange-glowing wheel was still turning by the verge. Old peloton notebooks say he returns every autumn in search of a wheel to follow. The newsroom never believed it. Until tonight.",
+  kicker: "Témoignages · La route après minuit",
+  kickerEn: "Eyewitnesses · The road after midnight",
+  title: "La nuit, un étrange cycliste suit le peloton",
+  titleEn: "At night, a strange cyclist follows the peloton",
+  body: "Trois témoins affirment avoir aperçu, sur une route forestière noyée de brume, un cycliste silencieux lancé sans lumière et sans jamais ralentir. Aucun n’a pu distinguer son visage. Après son passage, des traces de gomme brûlée et une roue marquée d’une lueur orange auraient été retrouvées sur le bas-côté. Dans les vieux carnets du peloton, une légende porte déjà un nom : l’Équipier sans tête. La rédaction n’y croyait pas. Jusqu’à ce soir.",
+  bodyEn: "Three witnesses say they spotted a silent cyclist on a forest road drowned in mist, riding without lights and never seeming to slow down. None of them could make out his face. After he passed, scorched tyre marks and a wheel glowing orange were reportedly found by the roadside. In the peloton’s oldest notebooks, the legend already has a name: the Headless Domestique. The newsroom never believed it. Until tonight.",
 };
+
+const CYCLING_HOLLOW_TEASER_STORIES: Readonly<Record<string, CyclogazetteFeatureStory>> = {
+  [CYCLING_HOLLOW_TEASER_DATE]: CYCLING_HOLLOW_TEASER_STORY,
+  "2026-10-05": {
+    id: "event:cycling-hollow:2026-10-05",
+    kind: "event_teaser",
+    kicker: "Légendes du peloton · Le carnet retrouvé",
+    kickerEn: "Peloton legends · The recovered notebook",
+    title: "L’équipier qui n’est jamais rentré",
+    titleEn: "The domestique who never came home",
+    body: "Après les témoignages d’hier, la rédaction a ouvert une boîte de vieux carnets. Entre deux feuilles de route, une page raconte un automne oublié : un équipier serait reparti dans la nuit chercher le dernier coureur de son équipe, égaré après un col. On avait retrouvé son bidon au pied d’un panneau, puis son vélo appuyé contre un arbre. De l’homme, aucune trace. Depuis, les anciens prétendent entendre une chaîne tourner lorsque le brouillard descend. Il ne chercherait ni la victoire ni un maillot, mais une roue à suivre pour rentrer enfin. Au bas de la page, une phrase a été soulignée trois fois : « S’il prend votre roue, ne vous retournez pas. » La légende de l’Équipier sans tête vient de trouver son premier chapitre.",
+    bodyEn: "After yesterday’s sightings, the newsroom opened a box of old notebooks. Between two route sheets, a page describes a forgotten autumn: a domestique supposedly rode back into the night to find his team’s last rider, lost after a mountain pass. His bottle was found beneath a sign, then his bicycle leaning against a tree. Of the man, no trace. Ever since, old riders claim to hear a chain turning when the mist settles. He is said to seek neither victory nor a jersey, but a wheel to follow home. At the bottom of the page, one sentence is underlined three times: “If he takes your wheel, do not look back.” The legend of the Headless Domestique has found its first chapter.",
+  },
+  "2026-10-06": {
+    id: "event:cycling-hollow:2026-10-06",
+    kind: "event_teaser",
+    kicker: "Légendes du peloton · L’atelier de nuit",
+    kickerEn: "Peloton legends · The midnight workshop",
+    title: "Une roue tournait dans l’atelier fermé",
+    titleEn: "A wheel was turning in the locked workshop",
+    body: "Le carnet retrouvé hier mentionnait un atelier au bord de la forêt. Un ancien mécanicien nous a raconté qu’on y préparait autrefois le vélo de l’équipier disparu : un cadre noir, sans nom, toujours rendu couvert de boue. Cette nuit, assure-t-il, une roue aurait recommencé à tourner sur le pied d’atelier alors que la porte était verrouillée et qu’aucun souffle n’entrait. Ses rayons portaient de petites marques rouges ; au sol, une traînée orange menait jusqu’au seuil. Une farce de fin de saison ? Le mécanicien le voudrait bien. Il a pourtant remis son vieux tablier, fermé les volets et laissé une lampe allumée. « Quand il revient, dit-il, mieux vaut avoir réparé ses freins. » Dans la marge du carnet, quelqu’un a ajouté un nom : Cycling Hollow.",
+    bodyEn: "Yesterday’s notebook mentioned a workshop beside the forest. A retired mechanic told us it once serviced the missing domestique’s bicycle: a nameless black frame, always returned covered in mud. Last night, he claims, a wheel started turning on the repair stand although the door was locked and there was no breeze. Small red marks covered its spokes; an orange trail ran across the floor to the threshold. An end-of-season prank? The mechanic hopes so. Still, he put on his old apron, closed the shutters and left a lamp burning. “When he returns,” he says, “you had better have fixed your brakes.” Someone has added a name in the notebook’s margin: Cycling Hollow.",
+  },
+  "2026-10-07": {
+    id: "event:cycling-hollow:2026-10-07",
+    kind: "event_teaser",
+    kicker: "Légendes du peloton · Le dernier témoin",
+    kickerEn: "Peloton legends · The last witness",
+    title: "Il avait une citrouille pour visage",
+    titleEn: "He had a pumpkin for a face",
+    body: "Un témoin s’est présenté avec un détail que les vieux carnets ne donnaient pas. Sur la route de Cycling Hollow, il aurait d’abord vu deux reflets rouges au ras du sol, puis un cycliste dont le visage brillait comme une citrouille évidée. Le poursuivant ne parlait pas. Il accélérait chaque fois que la route se resserrait. Le témoin raconte avoir franchi une pierre tombée, baissé la tête sous une branche et aperçu de petites roues noires et rouges dans la poussière. Une vieille barrière lui aurait offert assez d’avance pour retrouver la lumière du village. Son récit est impossible à vérifier. Mais il rejoint une annotation découverte ce matin : « La nuit n’appartient pas au plus fort. Elle appartient à celui qui garde son sang-froid. » À deux jours de la saison 4, la légende se rapproche du peloton.",
+    bodyEn: "A witness has come forward with a detail missing from the old notebooks. On the road to Cycling Hollow, he first saw two red reflections close to the ground, then a cyclist whose face glowed like a carved pumpkin. The pursuer never spoke. He accelerated whenever the road narrowed. The witness describes jumping a fallen stone, ducking beneath a branch and spotting little black-and-red wheels in the dust. An old barrier supposedly gave him enough of a lead to reach the village lights. His account cannot be verified. But it echoes a note found this morning: “The night does not belong to the strongest. It belongs to whoever keeps a cool head.” With season four two days away, the legend is closing on the peloton.",
+  },
+  "2026-10-08": {
+    id: "event:cycling-hollow:2026-10-08",
+    kind: "event_teaser",
+    kicker: "Légendes du peloton · La veille du retour",
+    kickerEn: "Peloton legends · The eve of his return",
+    title: "À minuit, ne prenez pas sa roue",
+    titleEn: "At midnight, do not take his wheel",
+    body: "La dernière page du carnet n’indique ni un vainqueur ni un temps. Seulement une heure : minuit, lorsque commence la nouvelle saison. À Cycling Hollow, les volets se ferment déjà. Près de l’atelier, un enfant en tenue de cycliste présenterait deux bonbons aux passants ; derrière lui, une boutique prépare des trésors que l’on paie avec d’étranges roues rouges et noires. Quant à l’équipier disparu, personne ne prétend plus savoir s’il cherche encore son compagnon ou s’il entraîne désormais les autres dans sa nuit. Sa chaîne, elle, recommence à tourner. Le rendez-vous d’Halloween est prévu à J1 de la saison 4 : Cycling Hollow, la légende de l’Équipier sans tête. La rédaction a posé son carnet. Cette fois, ce sera à vous de raconter jusqu’où vous avez réussi à lui échapper.",
+    bodyEn: "The notebook’s final page names neither a winner nor a time. Just an hour: midnight, as the new season begins. In Cycling Hollow, the shutters are already closing. Beside the workshop, a child dressed as a cyclist is said to offer passers-by two sweets; behind him, a shop prepares treasures bought with strange red-and-black wheels. As for the missing domestique, nobody claims to know whether he still seeks his companion or now draws others into his night. His chain is turning again. Halloween is planned for day one of season four: Cycling Hollow, the legend of the Headless Domestique. The newsroom has put down its notebook. This time, you will tell us how far you managed to escape him.",
+  },
+};
+
+export function getCyclingHollowTeaserStory(calendarDate: string) {
+  return Object.hasOwn(CYCLING_HOLLOW_TEASER_STORIES, calendarDate)
+    ? CYCLING_HOLLOW_TEASER_STORIES[calendarDate]
+    : null;
+}
 
 export function includeCyclingHollowTeaserStory(
   stories: readonly CyclogazetteFeatureStory[],
   calendarDate: string,
+  options: { includeScheduled?: boolean } = {},
 ) {
-  const alreadyIncluded = stories.some(
-    (story) => story.id === CYCLING_HOLLOW_TEASER_STORY_ID,
+  // An archived issue keeps its published episode and wording, never today's.
+  const existing = stories.find((story) =>
+    Object.values(CYCLING_HOLLOW_TEASER_STORIES).some(
+      (episode) => episode.id === story.id,
+    ),
   );
-  const withoutDuplicate = stories.filter(
-    (story) => story.id !== CYCLING_HOLLOW_TEASER_STORY_ID,
-  );
-
-  if (calendarDate !== CYCLING_HOLLOW_TEASER_DATE && !alreadyIncluded) {
-    return withoutDuplicate;
+  if (existing) {
+    let kept = false;
+    return stories.filter((story) => {
+      if (story.id !== existing.id) return true;
+      if (kept) return false;
+      kept = true;
+      return true;
+    });
   }
-
+  const episode = options.includeScheduled === false
+    ? null
+    : getCyclingHollowTeaserStory(calendarDate);
+  if (!episode) return [...stories];
+  // Reserve one secondary feature, preserving the main sporting dossier.
   return [
-    CYCLING_HOLLOW_TEASER_STORY,
-    ...withoutDuplicate,
+    ...stories.slice(0, 1),
+    episode,
+    ...stories.slice(1),
   ].slice(0, 6);
 }
 
