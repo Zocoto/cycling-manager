@@ -5,7 +5,9 @@ describe("bounded translation provider batches", () => {
   it("calls Gateway once for a mixed-language batch and preserves protected tokens", async () => {
     vi.stubEnv("DEEPL_API_KEY", ""); vi.stubEnv("AI_GATEWAY_API_KEY", "test");
     const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)); expect(body.model).toBe("google/gemini-2.5-flash-lite"); expect(body.max_tokens).toBeLessThanOrEqual(2048);
+      const body = JSON.parse(String(init?.body)); expect(body.model).toBe("google/gemini-2.5-flash-lite"); expect(body.max_tokens).toBeLessThanOrEqual(2048); expect(body.max_tokens).toBeGreaterThanOrEqual(512);
+      expect(body.response_format.type).toBe("json_schema");
+      expect(body.response_format.json_schema.schema.properties.translations).toMatchObject({ minItems: 2, maxItems: 2 });
       expect(JSON.parse(body.messages[1].content).segments).toEqual([" Bonjour ", "ciao"]);
       return Response.json({ choices: [{ message: { content: JSON.stringify({ translations: [" Hello ", "hello"], detectedSourceLocales: ["fr", "it"] }) } }] });
     });

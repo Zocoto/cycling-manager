@@ -37,8 +37,23 @@ export async function translateChatTextBatch({ messages, targetLocale, vercelOid
           { role: "user", content: JSON.stringify({ targetLanguage: CHAT_TRANSLATION_LANGUAGES[targetLocale], segments: texts }) },
         ],
         temperature: 0,
-        max_tokens: Math.min(2_048, Math.max(128, texts.reduce((sum, text) => sum + text.length, 0) * 2 + texts.length * 32)),
-        response_format: { type: "json_object" },
+        // Leave enough room for JSON even on very short messages. This is a
+        // ceiling, not a minimum bill: generation stops once the object is done.
+        max_tokens: Math.min(2_048, Math.max(512, texts.reduce((sum, text) => sum + text.length, 0) * 2 + texts.length * 32)),
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "chat_translation_batch", strict: true,
+            schema: {
+              type: "object", additionalProperties: false,
+              properties: {
+                translations: { type: "array", items: { type: "string" }, minItems: texts.length, maxItems: texts.length },
+                detectedSourceLocales: { type: "array", items: { type: ["string", "null"] }, minItems: texts.length, maxItems: texts.length },
+              },
+              required: ["translations", "detectedSourceLocales"],
+            },
+          },
+        },
       }),
       signal: AbortSignal.timeout(8_000),
     });
