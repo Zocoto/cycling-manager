@@ -25,7 +25,7 @@ const processingPurposes = [
   },
   {
     purpose: "Faire fonctionner les espaces communautaires",
-    data: "Messages, réactions, mentions, messages privés et contenus que vous choisissez de publier. Dans le chat général, le texte d’un message est transmis au prestataire de traduction uniquement lorsqu’un membre clique sur « Traduire ».",
+    data: "Messages, réactions, mentions, messages privés et contenus que vous choisissez de publier. Dans le chat général, les messages visibles peuvent être transmis au prestataire de traduction : automatiquement lorsque la traduction auto est activée (par défaut), ou après un clic sur « Traduire ». Chaque membre peut désactiver la traduction auto et choisir sa langue. Les messages privés ne sont pas traduits par ce mécanisme.",
     basis: "Exécution du service et intérêt légitime à proposer et modérer la communauté.",
   },
   {
@@ -157,8 +157,9 @@ export default function PrivacyPage() {
               consentement, des e-mails d’actualité.
             </li>
             <li>
-              <strong>Google Gemini ou DeepL</strong> : traduction à la demande
-              des messages du chat général, seulement après un clic explicite
+              <strong>Google Gemini ou DeepL</strong> : traduction des messages
+              visibles du chat général, automatiquement lorsque l’option est
+              activée (par défaut, désactivable dans le chat), ou après un clic
               sur le bouton de traduction. DeepL n’est utilisé que lorsqu’une
               clé dédiée est configurée.
             </li>

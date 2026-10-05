@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   hasTranslatableChatText,
+  CHAT_TRANSLATION_LANGUAGES,
   splitChatMessageForTranslation,
   type ChatTranslationTargetLocale,
 } from "@/lib/game/chat-translation";
@@ -133,7 +134,7 @@ export async function translateChatTextWithDeepL({
       },
       body: JSON.stringify({
         text: translatableSegments.map((segment) => segment.text),
-        target_lang: targetLocale === "en" ? "EN-GB" : "FR",
+        target_lang: targetLocale === "en" ? "EN-GB" : targetLocale === "pt" ? "PT-PT" : targetLocale === "zh" ? "ZH-HANS" : targetLocale.toUpperCase(),
         preserve_formatting: true,
       }),
       signal: AbortSignal.timeout(12_000),
@@ -223,7 +224,7 @@ export async function translateChatTextWithVercelAiGateway({
   }
 
   const translatableSegments = segments.filter((segment) => segment.translate);
-  const targetLanguage = targetLocale === "en" ? "English" : "French";
+  const targetLanguage = targetLocale === "en" ? "English" : targetLocale === "fr" ? "French" : CHAT_TRANSLATION_LANGUAGES[targetLocale];
 
   let response: Response;
   try {

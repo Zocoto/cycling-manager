@@ -36,7 +36,7 @@ export async function POST(
     );
   }
 
-  if (!isChatTranslationTargetLocale(body.targetLocale)) {
+  if (!body || !isChatTranslationTargetLocale(body.targetLocale)) {
     return Response.json(
       { error: "La langue cible n’est pas prise en charge." },
       { status: 400 },

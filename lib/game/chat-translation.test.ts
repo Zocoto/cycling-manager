@@ -7,10 +7,11 @@ import {
 } from "./chat-translation";
 
 describe("chat translation", () => {
-  it("accepts only application locales", () => {
+  it("accepts only supported chat languages", () => {
     expect(isChatTranslationTargetLocale("fr")).toBe(true);
     expect(isChatTranslationTargetLocale("EN")).toBe(true);
-    expect(isChatTranslationTargetLocale("de")).toBe(false);
+    expect(isChatTranslationTargetLocale("de")).toBe(true);
+    expect(isChatTranslationTargetLocale("xx")).toBe(false);
   });
 
   it("keeps reactions, mentions and internal links out of translation", () => {

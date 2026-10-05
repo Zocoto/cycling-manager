@@ -1,9 +1,52 @@
-import type { AppLocale } from "@/lib/i18n/config";
-
-export const CHAT_TRANSLATION_TARGET_LOCALES = ["fr", "en"] as const;
+export const CHAT_TRANSLATION_LANGUAGES = {
+  fr: "Français", en: "English", es: "Español", de: "Deutsch",
+  it: "Italiano", pt: "Português", nl: "Nederlands", pl: "Polski",
+  ja: "日本語", ko: "한국어", zh: "中文", ar: "العربية",
+} as const;
+export const CHAT_TRANSLATION_TARGET_LOCALES = Object.keys(CHAT_TRANSLATION_LANGUAGES);
 export const CHAT_TRANSLATION_RATE_LIMIT_PER_HOUR = 30;
+export const CHAT_TRANSLATION_BATCH_SIZE = 5;
+export const CHAT_TRANSLATION_DAILY_CHARACTER_LIMIT = 15_000;
+export const CHAT_TRANSLATION_DAILY_GENERATION_LIMIT = 200;
 
-export type ChatTranslationTargetLocale = AppLocale;
+export type ChatTranslationTargetLocale = keyof typeof CHAT_TRANSLATION_LANGUAGES;
+
+export type ChatMessageTranslationState = {
+  targetLocale: ChatTranslationTargetLocale;
+  status: "loading" | "loaded" | "error";
+  translatedText: string | null;
+  detectedSourceLocale: string | null;
+  error: string | null;
+  visible: boolean;
+  sourceKey?: string;
+};
+
+export function getPreferredChatTranslationLocale(
+  browserLanguages: readonly string[],
+  fallback: ChatTranslationTargetLocale = "fr",
+): ChatTranslationTargetLocale {
+  for (const language of browserLanguages) {
+    const base = language.toLowerCase().replaceAll("_", "-").split("-")[0];
+    if (isChatTranslationTargetLocale(base)) return base;
+  }
+  return browserLanguages.length ? "en" : fallback;
+}
+
+export function getChatTranslationSourceKey(message: { id: string; editedAt: string | null; message: string }) {
+  return `${message.id}:${message.editedAt ?? ""}:${message.message}`;
+}
+
+export function readChatTranslationPreferences(raw: string | null, browserLanguages: readonly string[], fallback: ChatTranslationTargetLocale) {
+  const defaults = { automatic: true, targetLocale: getPreferredChatTranslationLocale(browserLanguages, fallback) };
+  try {
+    const value = JSON.parse(raw ?? "null");
+    if (!value || typeof value !== "object") return defaults;
+    return {
+      automatic: typeof value.automatic === "boolean" ? value.automatic : defaults.automatic,
+      targetLocale: isChatTranslationTargetLocale(value.targetLocale) ? value.targetLocale.toLowerCase() as ChatTranslationTargetLocale : defaults.targetLocale,
+    };
+  } catch { return defaults; }
+}
 
 export type ChatTranslationSegment = {
   text: string;

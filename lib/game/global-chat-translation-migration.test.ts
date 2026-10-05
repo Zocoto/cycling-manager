@@ -106,10 +106,11 @@ describe("on-demand global chat translation", () => {
     );
   });
 
-  it("discloses every translation processor and keeps translation opt-in", () => {
+  it("discloses every translation processor and the default-on control", () => {
     expect(privacyPage).toContain("AI Gateway");
     expect(privacyPage).toContain("Google Gemini");
     expect(privacyPage).toContain("DeepL");
-    expect(privacyPage).toContain("clic explicite");
+    expect(privacyPage).toContain("par défaut");
+    expect(privacyPage).toContain("désactiver la traduction auto");
   });
 });

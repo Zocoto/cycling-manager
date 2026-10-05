@@ -20,6 +20,8 @@ import { RookieBadge } from "@/components/game/rookie-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
+import { ChatTranslationSettings } from "@/components/game/chat-translation-settings";
+import { useChatAutoTranslation } from "@/components/game/use-chat-auto-translation";
 import {
   editGlobalChatMessageAction,
   postGlobalChatMessageAction,
@@ -51,7 +53,9 @@ import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { useLocale } from "@/components/i18n/locale-provider";
 import {
   hasTranslatableChatText,
+  getChatTranslationSourceKey,
   splitChatMessageForTranslation,
+  type ChatMessageTranslationState,
 } from "@/lib/game/chat-translation";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import {
@@ -110,15 +114,6 @@ const GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX =
 type GlobalChatHistorySearch = {
   query: string;
   messages: GlobalChatMessage[];
-};
-
-type ChatMessageTranslationState = {
-  targetLocale: "fr" | "en";
-  status: "loading" | "loaded" | "error";
-  translatedText: string | null;
-  detectedSourceLocale: string | null;
-  error: string | null;
-  visible: boolean;
 };
 
 export function GlobalGameChat({
@@ -387,6 +382,11 @@ export function GlobalGameChat({
   const timelineMessages = shouldCollapseReadHistory
     ? filteredMessages.slice(compactHistoryStartIndex)
     : filteredMessages;
+  const translationPreferences = useChatAutoTranslation({
+    directorId: identity.sportingDirectorId, locale, enabled: translationEnabled,
+    active: activeMode === "global", messages: timelineMessages, viewportRef,
+    translations: messageTranslations, setTranslations: setMessageTranslations,
+  });
 
   useEffect(() => {
     const savedPreference = readGlobalChatRaceVisibilityPreference(
@@ -934,7 +934,7 @@ export function GlobalGameChat({
   async function toggleMessageTranslation(message: GlobalChatMessage) {
     const current = messageTranslations[message.id];
     if (current?.status === "loading") return;
-    if (current?.status === "loaded" && current.targetLocale === locale) {
+    if (current?.status === "loaded" && current.targetLocale === translationPreferences.targetLocale) {
       setMessageTranslations((translations) => ({
         ...translations,
         [message.id]: { ...current, visible: !current.visible },
@@ -945,7 +945,8 @@ export function GlobalGameChat({
     setMessageTranslations((translations) => ({
       ...translations,
       [message.id]: {
-        targetLocale: locale,
+        targetLocale: translationPreferences.targetLocale,
+        sourceKey: getChatTranslationSourceKey(message),
         status: "loading",
         translatedText: null,
         detectedSourceLocale: null,
@@ -963,7 +964,8 @@ export function GlobalGameChat({
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ targetLocale: locale }),
+          body: JSON.stringify({ targetLocale: translationPreferences.targetLocale }),
+          signal: AbortSignal.timeout(12_000),
         },
       );
       const result = (await response.json()) as {
@@ -983,7 +985,8 @@ export function GlobalGameChat({
       setMessageTranslations((translations) => ({
         ...translations,
         [message.id]: {
-          targetLocale: locale,
+          targetLocale: translationPreferences.targetLocale,
+          sourceKey: getChatTranslationSourceKey(message),
           status: "loaded",
           translatedText,
           detectedSourceLocale:
@@ -998,7 +1001,8 @@ export function GlobalGameChat({
       setMessageTranslations((translations) => ({
         ...translations,
         [message.id]: {
-          targetLocale: locale,
+          targetLocale: translationPreferences.targetLocale,
+          sourceKey: getChatTranslationSourceKey(message),
           status: "error",
           translatedText: null,
           detectedSourceLocale: null,
@@ -1377,6 +1381,7 @@ export function GlobalGameChat({
                       : "Recherche sur 30 jours"}
             </p>
           ) : null}
+          {translationEnabled ? <ChatTranslationSettings {...translationPreferences} isEnglish={locale === "en"} /> : null}
         </header>
 
         {mentionAlert ? (
@@ -1529,7 +1534,7 @@ export function GlobalGameChat({
                   editingDraft={editingDraft}
                   editingError={editingError}
                   isEditPending={isEditing}
-                  translation={messageTranslations[message.id] ?? null}
+                  translation={messageTranslations[message.id]?.targetLocale === translationPreferences.targetLocale && messageTranslations[message.id]?.sourceKey === getChatTranslationSourceKey(message) ? messageTranslations[message.id] : null}
                   translationEnabled={translationEnabled}
                   onReply={beginReply}
                   onReaction={toggleMessageReaction}
@@ -1900,6 +1905,7 @@ function ChatMessage({
   return (
     <article
       id={`global-chat-message-${message.id}`}
+      data-chat-translation-id={message.id}
       className={`flex scroll-mt-4 items-start gap-3 ${
         isCurrentDirector ? "flex-row-reverse" : ""
       }`}

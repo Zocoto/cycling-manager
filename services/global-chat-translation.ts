@@ -1,142 +1,73 @@
 import "server-only";
-
 import { createHash } from "node:crypto";
-
-import { CHAT_TRANSLATION_RATE_LIMIT_PER_HOUR } from "@/lib/game/chat-translation";
-import type { ChatTranslationTargetLocale } from "@/lib/game/chat-translation";
+import { CHAT_TRANSLATION_BATCH_SIZE, type ChatTranslationTargetLocale } from "@/lib/game/chat-translation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import {
-  ChatTranslationProviderError,
-  translateChatText,
-} from "@/services/chat-translation-provider";
-
-type CachedTranslationRow = {
-  source_fingerprint: string;
-  translated_message: string;
-  detected_source_locale: string | null;
-  provider: string;
-};
+import { ChatTranslationProviderError } from "./chat-translation-provider";
+import { translateChatTextBatch } from "./chat-translation-batch-provider";
 
 export type GlobalChatTranslation = {
-  translatedText: string;
-  detectedSourceLocale: string | null;
-  targetLocale: ChatTranslationTargetLocale;
-  cached: boolean;
+  translatedText: string; detectedSourceLocale: string | null;
+  targetLocale: ChatTranslationTargetLocale; cached: boolean;
 };
+export type TranslationSource = { messageId: string; sourceMessage: string; sourceEditedAt: string | null };
+export type BatchTranslationResult = { messageId: string; status: "loaded"; translation: GlobalChatTranslation }
+  | { messageId: string; status: "busy" | "quota" | "budget" | "unavailable" };
+type Claim = { messageId: string; status: "cached" | "claimed" | "busy" | "quota" | "budget" | "unavailable";
+  ticket?: string; translatedText?: string; detectedSourceLocale?: string | null };
 
 export class ChatTranslationRateLimitError extends Error {
-  constructor() {
-    super("Trop de traductions ont été demandées. Réessaie dans une heure.");
-    this.name = "ChatTranslationRateLimitError";
+  constructor(message = "La limite de traduction est atteinte. Les messages originaux restent disponibles.") {
+    super(message); this.name = "ChatTranslationRateLimitError";
   }
 }
 
-export async function getOrCreateGlobalChatTranslation({
-  messageId,
-  sourceMessage,
-  sourceEditedAt,
-  targetLocale,
-  requesterDirectorId,
-  vercelOidcToken,
-}: {
-  messageId: string;
-  sourceMessage: string;
-  sourceEditedAt: string | null;
-  targetLocale: ChatTranslationTargetLocale;
-  requesterDirectorId: string;
-  vercelOidcToken?: string;
+export async function getOrCreateGlobalChatTranslation(input: TranslationSource & {
+  targetLocale: ChatTranslationTargetLocale; requesterDirectorId: string; vercelOidcToken?: string;
 }): Promise<GlobalChatTranslation> {
+  const [result] = await getOrCreateGlobalChatTranslations({ ...input, sources: [input] });
+  if (result?.status === "loaded") return result.translation;
+  if (result?.status === "unavailable") throw new ChatTranslationProviderError();
+  throw new ChatTranslationRateLimitError(result?.status === "busy" ? "La traduction est déjà en cours. Réessayez dans un instant." : undefined);
+}
+
+export async function getOrCreateGlobalChatTranslations({ sources, targetLocale, requesterDirectorId, vercelOidcToken }: {
+  sources: TranslationSource[]; targetLocale: ChatTranslationTargetLocale;
+  requesterDirectorId: string; vercelOidcToken?: string;
+}): Promise<BatchTranslationResult[]> {
+  if (!sources.length || sources.length > CHAT_TRANSLATION_BATCH_SIZE) throw new Error("Lot de traduction invalide.");
   const admin = createSupabaseAdminClient();
-  const fingerprint = createSourceFingerprint(sourceMessage, sourceEditedAt);
-  const cachedResult = await admin
-    .from("global_chat_message_translations")
-    .select(
-      "source_fingerprint, translated_message, detected_source_locale, provider",
-    )
-    .eq("message_id", messageId)
-    .eq("target_locale", targetLocale)
-    .maybeSingle();
-
-  if (cachedResult.error) {
-    throw new Error("Impossible de consulter le cache de traduction.");
-  }
-
-  const cached = cachedResult.data as CachedTranslationRow | null;
-  if (cached?.source_fingerprint === fingerprint) {
-    return {
-      translatedText: cached.translated_message,
-      detectedSourceLocale: cached.detected_source_locale,
-      targetLocale,
-      cached: true,
-    };
-  }
-
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1_000).toISOString();
-  const requestsResult = await admin
-    .from("global_chat_translation_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("sporting_director_id", requesterDirectorId)
-    .gte("created_at", oneHourAgo);
-
-  if (requestsResult.error) {
-    throw new Error("Impossible de vérifier la limite de traduction.");
-  }
-  if ((requestsResult.count ?? 0) >= CHAT_TRANSLATION_RATE_LIMIT_PER_HOUR) {
-    throw new ChatTranslationRateLimitError();
-  }
-
-  const requestResult = await admin
-    .from("global_chat_translation_requests")
-    .insert({
-      sporting_director_id: requesterDirectorId,
-      message_id: messageId,
-      target_locale: targetLocale,
-    });
-  if (requestResult.error) {
-    throw new Error("Impossible d’enregistrer la demande de traduction.");
-  }
-
-  const translation = await translateChatText({
-    message: sourceMessage,
-    targetLocale,
-    vercelOidcToken,
+  const claim = await admin.rpc("claim_global_chat_translation_batch", {
+    p_sporting_director_id: requesterDirectorId, p_target_locale: targetLocale,
+    p_items: sources.map((source) => ({ message_id: source.messageId,
+      source_fingerprint: createHash("sha256").update(`${source.sourceEditedAt ?? "original"}\u0000${source.sourceMessage}`, "utf8").digest("hex"),
+      characters: source.sourceMessage.length })),
   });
-  const cacheResult = await admin
-    .from("global_chat_message_translations")
-    .upsert(
-      {
-        message_id: messageId,
-        target_locale: targetLocale,
-        source_fingerprint: fingerprint,
-        translated_message: translation.translatedText,
-        detected_source_locale: translation.detectedSourceLocale,
-        provider: translation.provider,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "message_id,target_locale" },
-    );
-
-  if (cacheResult.error) {
-    console.error(
-      "Global chat translation cache write failed.",
-      cacheResult.error,
-    );
+  if (claim.error || !Array.isArray(claim.data)) throw new Error("La traduction est momentanément indisponible.");
+  const claims = claim.data as Claim[];
+  const results: BatchTranslationResult[] = claims.filter((item) => item.status !== "claimed").map((item) => item.status === "cached"
+    ? { messageId: item.messageId, status: "loaded", translation: { translatedText: item.translatedText!, detectedSourceLocale: item.detectedSourceLocale ?? null, targetLocale, cached: true } }
+    : { messageId: item.messageId, status: item.status as "busy" | "quota" | "budget" | "unavailable" });
+  const claimed = claims.filter((item) => item.status === "claimed");
+  if (!claimed.length) return results;
+  const ticket = claimed[0].ticket;
+  try {
+    const ordered = claimed.map((item) => sources.find((source) => source.messageId === item.messageId)!);
+    const translations = await translateChatTextBatch({ messages: ordered.map((source) => source.sourceMessage), targetLocale, vercelOidcToken });
+    const completion = await admin.rpc("complete_global_chat_translation_batch", {
+      p_ticket: ticket, p_success: true,
+      p_results: translations.map((translation, index) => ({ messageId: ordered[index].messageId, ...translation })),
+    });
+    if (completion.error) throw new Error("Impossible de conserver la traduction.");
+    return [...results, ...translations.map((translation, index): BatchTranslationResult => ({
+      messageId: ordered[index].messageId, status: "loaded", translation: { ...translation, targetLocale, cached: false },
+    }))];
+  } catch (error) {
+    await admin.rpc("complete_global_chat_translation_batch", { p_ticket: ticket, p_success: false, p_results: [] });
+    console.error("Chat translation batch failed.", error instanceof Error ? error.name : "UnknownError");
+    return [...results, ...claimed.map((item): BatchTranslationResult => ({ messageId: item.messageId, status: "unavailable" }))];
   }
-
-  return {
-    translatedText: translation.translatedText,
-    detectedSourceLocale: translation.detectedSourceLocale,
-    targetLocale,
-    cached: false,
-  };
 }
 
-export function isChatProviderFailure(error: unknown) {
+export function isChatProviderFailure(error: unknown): error is ChatTranslationProviderError {
   return error instanceof ChatTranslationProviderError;
-}
-
-function createSourceFingerprint(message: string, editedAt: string | null) {
-  return createHash("sha256")
-    .update(`${editedAt ?? "original"}\u0000${message}`, "utf8")
-    .digest("hex");
 }
