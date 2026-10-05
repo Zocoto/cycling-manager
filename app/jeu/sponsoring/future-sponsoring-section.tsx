@@ -50,6 +50,19 @@ export function FutureSponsoringSection({
         </span>
       </header>
 
+      {state.kind === "unavailable" ? (
+        <aside role="alert" className="mt-7 rounded-2xl border border-amber-300 bg-amber-50 px-6 py-5 text-amber-950">
+          <p className="font-black">La préparation de la saison suivante est temporairement indisponible.</p>
+          <p className="mt-2 leading-7">
+            Vos informations de la saison en cours restent consultables.
+            Réessayez en rechargeant cette page ; aucun nouveau contrat n’a été signé.
+          </p>
+          <a href="/jeu/sponsoring" className="mt-4 inline-block rounded-xl bg-amber-900 px-4 py-2 font-bold text-white">
+            Réessayer
+          </a>
+        </aside>
+      ) : null}
+
       {state.kind === "locked" ? (
         <FutureLockedNotice state={state} />
       ) : null}
@@ -911,6 +924,9 @@ function SponsorPhilosophyPanel({
 function getFutureSectionTitle(
   state: FutureSponsoringState
 ): string {
+  if (state.kind === "unavailable") {
+    return "Préparation temporairement indisponible";
+  }
   if (state.kind === "locked") {
     return "La prochaine fenêtre n’est pas encore ouverte";
   }
@@ -943,6 +959,9 @@ function getFutureSectionTitle(
 function getFutureSectionIntroduction(
   state: FutureSponsoringState
 ): string {
+  if (state.kind === "unavailable") {
+    return "Les informations de la saison suivante n’ont pas pu être chargées. Votre situation actuelle reste inchangée.";
+  }
   if (state.kind === "locked") {
     return "Les renouvellements et signatures destinés à la saison suivante sont regroupés entre les jours 21 et 28.";
   }

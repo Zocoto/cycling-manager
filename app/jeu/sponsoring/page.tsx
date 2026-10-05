@@ -2093,6 +2093,9 @@ function getQualifiedAmateurTimingMessage(
   ],
   futureSeasonName: string
 ): string {
+  if (future.kind === "unavailable") {
+    return `Les propositions pour ${futureSeasonName} sont temporairement indisponibles. Réessayez depuis la rubrique ci-dessous.`;
+  }
   if (future.kind === "locked") {
     return `Trois sponsors se manifesteront à partir du jour ${future.opensOnDay} pour un contrat prenant effet en ${futureSeasonName}.`;
   }

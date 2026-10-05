@@ -109,6 +109,11 @@ export type PersistedSponsorContract = {
 
 export type FutureSponsoringState =
   | {
+      kind: "unavailable";
+      targetGameYear: number;
+      targetSeasonName: string;
+    }
+  | {
       kind: "locked";
       currentDayNumber: number;
       opensOnDay: number;
@@ -372,7 +377,7 @@ export async function getSponsoringStateForAuthUser(
       kind: "active",
       budgetHistory,
       contract: activeContract,
-      future: await resolveFutureSponsoringState({
+      future: await resolveFutureSponsoringStateSafely({
         supabase,
         authUserId: normalizedAuthUserId,
         sportingDirectorId: sportingDirector.id,
@@ -408,7 +413,7 @@ export async function getSponsoringStateForAuthUser(
       kind: "terminated",
       budgetHistory,
       contract: terminatedContract,
-      future: await resolveFutureSponsoringState({
+      future: await resolveFutureSponsoringStateSafely({
         supabase,
         authUserId: normalizedAuthUserId,
         sportingDirectorId: sportingDirector.id,
@@ -437,7 +442,7 @@ export async function getSponsoringStateForAuthUser(
     kind: "amateur-qualified",
     budgetHistory,
     currentSeasonName: activeSeason.name,
-    future: await resolveFutureSponsoringState({
+    future: await resolveFutureSponsoringStateSafely({
       supabase,
       authUserId: normalizedAuthUserId,
       sportingDirectorId: sportingDirector.id,
@@ -450,6 +455,24 @@ export async function getSponsoringStateForAuthUser(
       currentReputation: sportingDirector.reputation_points,
     }),
   };
+}
+
+// Future-season preparation must not hide an already loaded current contract,
+// its objectives or the budget history. Keep the error observable server-side;
+// never pretend that missing future offers were successfully generated.
+async function resolveFutureSponsoringStateSafely(
+  context: Parameters<typeof resolveFutureSponsoringState>[0],
+): Promise<FutureSponsoringState> {
+  try {
+    return await resolveFutureSponsoringState(context);
+  } catch (error) {
+    console.error("Impossible de préparer le sponsoring de la saison suivante :", error);
+    return {
+      kind: "unavailable",
+      targetGameYear: context.nextGameYear,
+      targetSeasonName: context.targetSeasonName,
+    };
+  }
 }
 
 async function resolveFutureSponsoringState({
