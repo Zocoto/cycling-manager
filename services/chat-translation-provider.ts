@@ -36,11 +36,16 @@ export type ChatProviderTranslation = {
 };
 
 export class ChatTranslationProviderError extends Error {
+  readonly reason?: "configuration" | "timeout" | "network" | "http" | "invalid_response";
+  readonly providerStatus?: number;
   constructor(
     message = "Le service de traduction est momentanément indisponible.",
+    details?: { reason: ChatTranslationProviderError["reason"]; providerStatus?: number },
   ) {
     super(message);
     this.name = "ChatTranslationProviderError";
+    this.reason = details?.reason;
+    this.providerStatus = details?.providerStatus;
   }
 }
 

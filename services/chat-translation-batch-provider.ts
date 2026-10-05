@@ -16,9 +16,10 @@ export async function translateChatTextBatch({ messages, targetLocale, vercelOid
   const token = process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || vercelOidcToken?.trim();
   const provider = deepLKey ? "deepl" : "vercel-ai-gateway";
   if (!texts.length) return messages.map((translatedText) => ({ translatedText, detectedSourceLocale: null, provider }));
-  if (!deepLKey && !token) throw new ChatTranslationProviderError();
+  if (!deepLKey && !token) throw new ChatTranslationProviderError(undefined, { reason: "configuration" });
   let translations: string[];
   let detected: (string | null)[];
+  let receivedResponse = false;
   try {
     const response = await fetcher(deepLKey
       ? `https://${deepLKey.endsWith(":fx") ? "api-free" : "api"}.deepl.com/v2/translate`
@@ -41,7 +42,8 @@ export async function translateChatTextBatch({ messages, targetLocale, vercelOid
       }),
       signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) throw new ChatTranslationProviderError();
+    receivedResponse = true;
+    if (!response.ok) throw new ChatTranslationProviderError(undefined, { reason: "http", providerStatus: response.status });
     const payload = await response.json();
     if (deepLKey) {
       translations = payload.translations?.map((item: { text?: unknown }) => item.text);
@@ -52,8 +54,12 @@ export async function translateChatTextBatch({ messages, targetLocale, vercelOid
       detected = content.detectedSourceLocales;
     }
     if (!Array.isArray(translations) || translations.length !== texts.length || !Array.isArray(detected) || detected.length !== texts.length
-      || translations.some((text, i) => typeof text !== "string" || !text.trim() || text.length > texts[i].length * 6 + 200)) throw new ChatTranslationProviderError();
-  } catch { throw new ChatTranslationProviderError(); }
+      || translations.some((text, i) => typeof text !== "string" || !text.trim() || text.length > texts[i].length * 6 + 200)) throw new ChatTranslationProviderError(undefined, { reason: "invalid_response" });
+  } catch (error) {
+    if (error instanceof ChatTranslationProviderError) throw error;
+    const timeout = error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name);
+    throw new ChatTranslationProviderError(undefined, { reason: timeout ? "timeout" : receivedResponse ? "invalid_response" : "network" });
+  }
   let index = 0;
   return segments.map((parts) => {
     let longest = 0;

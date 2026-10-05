@@ -934,7 +934,7 @@ export function GlobalGameChat({
   async function toggleMessageTranslation(message: GlobalChatMessage) {
     const current = messageTranslations[message.id];
     if (current?.status === "loading") return;
-    if (current?.status === "loaded" && current.targetLocale === translationPreferences.targetLocale) {
+    if (current?.status === "loaded" && current.targetLocale === translationPreferences.targetLocale && current.sourceKey === getChatTranslationSourceKey(message)) {
       setMessageTranslations((translations) => ({
         ...translations,
         [message.id]: { ...current, visible: !current.visible },

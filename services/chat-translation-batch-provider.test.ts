@@ -26,4 +26,16 @@ describe("bounded translation provider batches", () => {
     await translateChatTextBatch({ messages: ["[cycling-reaction:victory] 🎉"], targetLocale: "es", fetcher: fetcher as typeof fetch }); expect(fetcher).not.toHaveBeenCalled();
     await expect(translateChatTextBatch({ messages: ["Hello"], targetLocale: "es", fetcher: fetcher as typeof fetch })).rejects.toThrow(); expect(fetcher).toHaveBeenCalledOnce();
   });
+  it("reports only a safe HTTP status, never the provider response body", async () => {
+    vi.stubEnv("DEEPL_API_KEY", ""); vi.stubEnv("AI_GATEWAY_API_KEY", "test");
+    const fetcher = vi.fn(async () => new Response("provider-sensitive-body", { status: 429 }));
+    await expect(translateChatTextBatch({ messages: ["Hello"], targetLocale: "es", fetcher: fetcher as typeof fetch })).rejects.toMatchObject({ reason: "http", providerStatus: 429 });
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+  it("identifies a provider timeout without retrying the paid request", async () => {
+    vi.stubEnv("DEEPL_API_KEY", ""); vi.stubEnv("AI_GATEWAY_API_KEY", "test");
+    const fetcher = vi.fn(async () => { throw new DOMException("timeout", "TimeoutError"); });
+    await expect(translateChatTextBatch({ messages: ["Hello"], targetLocale: "es", fetcher: fetcher as typeof fetch })).rejects.toMatchObject({ reason: "timeout" });
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
 });

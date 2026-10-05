@@ -63,7 +63,11 @@ export async function getOrCreateGlobalChatTranslations({ sources, targetLocale,
     }))];
   } catch (error) {
     await admin.rpc("complete_global_chat_translation_batch", { p_ticket: ticket, p_success: false, p_results: [] });
-    console.error("Chat translation batch failed.", error instanceof Error ? error.name : "UnknownError");
+    console.error("Chat translation batch failed.", {
+      error: error instanceof Error ? error.name : "UnknownError",
+      reason: error instanceof ChatTranslationProviderError ? error.reason : "cache_completion",
+      providerStatus: error instanceof ChatTranslationProviderError ? error.providerStatus : undefined,
+    });
     return [...results, ...claimed.map((item): BatchTranslationResult => ({ messageId: item.messageId, status: "unavailable" }))];
   }
 }
