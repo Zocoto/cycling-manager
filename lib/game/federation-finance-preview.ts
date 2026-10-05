@@ -9,6 +9,8 @@ export type FederationObjectiveLevel =
   (typeof FEDERATION_OBJECTIVE_LEVELS)[number];
 
 export type FederationFinancePreviewInput = {
+  /** Season receiving the opening budget, not the season supplying results. */
+  budgetGameYear?: number;
   nationRank: number;
   division: 1 | 2 | 3 | 4;
   raceDays: number;
@@ -21,6 +23,8 @@ export type FederationFinancePreview = {
   commonGrant: number;
   uciGrant: number;
   nationsCupGrant: number;
+  nationsCupBaseGrant: number;
+  nationRankingBonus: number;
   raceRevenue: number;
   objectiveBonus: number;
   donations: number;
@@ -48,6 +52,32 @@ const NATIONS_CUP_GRANTS: Record<1 | 2 | 3 | 4, number> = {
   3: 200_000,
   4: 120_000,
 };
+export const FEDERATION_RANKING_BONUS_START_GAME_YEAR = 4;
+
+/** Matches public.get_national_federation_ranking_bonus in PostgreSQL. */
+export function calculateFederationDivisionGrant({
+  budgetGameYear,
+  nationRank,
+  division,
+}: {
+  budgetGameYear: number;
+  nationRank: number;
+  division: 1 | 2 | 3 | 4;
+}): { baseGrant: number; rankingBonus: number; totalGrant: number } {
+  const safeDivision = Number.isFinite(division)
+    ? clampInteger(division, 1, 4)
+    : 4;
+  const safeRank = Number.isFinite(nationRank)
+    ? clampInteger(nationRank, 1, ACTIVE_NATION_COUNT)
+    : ACTIVE_NATION_COUNT;
+  const baseGrant = NATIONS_CUP_GRANTS[safeDivision as 1 | 2 | 3 | 4];
+  const rankingBonus =
+    Number.isFinite(budgetGameYear) &&
+    budgetGameYear >= FEDERATION_RANKING_BONUS_START_GAME_YEAR
+      ? roundToNearest(baseGrant / Math.sqrt(safeRank), 1_000)
+      : 0;
+  return { baseGrant, rankingBonus, totalGrant: baseGrant + rankingBonus };
+}
 const OBJECTIVE_BONUS_RATES: Record<FederationObjectiveLevel, number> = {
   none: 0,
   bronze: 0.03,
@@ -91,7 +121,12 @@ export function calculateFederationFinancePreview(
     150_000 + 850_000 * Math.sqrt(uciPerformance),
     5_000,
   );
-  const nationsCupGrant = NATIONS_CUP_GRANTS[division];
+  const divisionGrant = calculateFederationDivisionGrant({
+    budgetGameYear: rawInput.budgetGameYear ?? 3,
+    nationRank: rawInput.nationRank,
+    division,
+  });
+  const nationsCupGrant = divisionGrant.totalGrant;
   const courseFillRate = Math.min(1, averageStarters / 160);
   const raceRevenue = roundToNearest(
     raceDays * (5_000 + 12_000 * courseFillRate),
@@ -109,6 +144,8 @@ export function calculateFederationFinancePreview(
     commonGrant: COMMON_GRANT,
     uciGrant,
     nationsCupGrant,
+    nationsCupBaseGrant: divisionGrant.baseGrant,
+    nationRankingBonus: divisionGrant.rankingBonus,
     raceRevenue,
     objectiveBonus,
     donations,

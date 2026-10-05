@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateFederationFinancePreview,
+  calculateFederationDivisionGrant,
   getFederationObjectiveLevel,
   getFederationSolidarityEligibleTeams,
 } from "./federation-finance-preview";
@@ -75,6 +76,64 @@ describe("calculateFederationFinancePreview", () => {
     expect(preview.solidarityEnvelope).toBe(
       Math.round((preview.totalRevenue * 0.1) / 5_000) * 5_000,
     );
+  });
+});
+
+describe("season-four division and sporting-rank grants", () => {
+  it.each([
+    [1, 450_000], [2, 300_000], [3, 200_000], [4, 120_000],
+  ] as const)("preserves the guaranteed D%i base of %i euros", (division, baseGrant) => {
+    for (let nationRank = 1; nationRank <= 173; nationRank += 1) {
+      const grant = calculateFederationDivisionGrant({ budgetGameYear: 4, division, nationRank });
+      expect(grant.baseGrant).toBe(baseGrant);
+      expect(grant.totalGrant).toBe(baseGrant + grant.rankingBonus);
+      expect(grant.rankingBonus).toBeGreaterThanOrEqual(0);
+      expect(grant.rankingBonus).toBeLessThanOrEqual(baseGrant);
+    }
+  });
+
+  it.each([undefined, 1, 2, 3])("does not change any pre-S4 opening (%s)", (budgetGameYear) => {
+    for (let nationRank = 1; nationRank <= 173; nationRank += 1) {
+      const division = (nationRank <= 20 ? 1 : nationRank <= 60 ? 2 : nationRank <= 100 ? 3 : 4) as 1 | 2 | 3 | 4;
+      const preview = calculateFederationFinancePreview({ budgetGameYear, nationRank, division, raceDays: 8, averageStarters: 120, donations: 0, objectiveLevel: "gold" });
+      const baseGrant = { 1: 450_000, 2: 300_000, 3: 200_000, 4: 120_000 }[division];
+      const uciGrant = Math.round((150_000 + 850_000 * Math.sqrt(1 - (nationRank - 1) / 172)) / 5_000) * 5_000;
+      const structural = 1_200_000 + uciGrant + baseGrant;
+      expect(preview.nationsCupGrant).toBe(baseGrant);
+      expect(preview.nationRankingBonus).toBe(0);
+      expect(preview.totalRevenue).toBe(structural + 112_000 + Math.round(structural * 0.1 / 5_000) * 5_000);
+    }
+  });
+
+  it.each([
+    [1, 450_000, 900_000], [2, 318_000, 768_000], [3, 260_000, 710_000],
+    [5, 201_000, 651_000], [10, 142_000, 592_000], [20, 101_000, 551_000],
+  ])("pays rank #%i its D1 base plus %i premium = %i", (nationRank, bonus, total) => {
+    expect(calculateFederationDivisionGrant({ budgetGameYear: 4, division: 1, nationRank })).toEqual({ baseGrant: 450_000, rankingBonus: bonus, totalGrant: total });
+  });
+
+  it.each([1, 2, 3, 4] as const)("makes the D%i premium decrease and flatten with rank", (division) => {
+    const grants = Array.from({ length: 173 }, (_, i) => calculateFederationDivisionGrant({ budgetGameYear: 4, division, nationRank: i + 1 }).rankingBonus);
+    for (let i = 1; i < grants.length; i += 1) {
+      expect(grants[i]).toBeLessThanOrEqual(grants[i - 1]);
+      // Nearest-1,000 rounding can move successive gaps by at most 1,000.
+      if (i > 1) expect(grants[i - 1] - grants[i]).toBeLessThanOrEqual(grants[i - 2] - grants[i - 1] + 1_000);
+    }
+    expect(grants[0] - grants[1]).toBeGreaterThan(grants[1] - grants[2]);
+  });
+
+  it("counts the premium once, including in the objective-bonus base", () => {
+    const preview = calculateFederationFinancePreview({ budgetGameYear: 4, nationRank: 1, division: 1, raceDays: 0, averageStarters: 0, donations: 0, objectiveLevel: "gold" });
+    expect(preview.nationsCupBaseGrant).toBe(450_000);
+    expect(preview.nationRankingBonus).toBe(450_000);
+    expect(preview.objectiveBonus).toBe(310_000);
+    expect(preview.totalRevenue).toBe(3_410_000);
+    expect(calculateFederationFinancePreview({ budgetGameYear: 5, nationRank: 1, division: 1, raceDays: 0, averageStarters: 0, donations: 0, objectiveLevel: "gold" })).toEqual(preview);
+  });
+
+  it("does not award the maximum for an unknown rank or activate an invalid season", () => {
+    expect(calculateFederationDivisionGrant({ budgetGameYear: 4, nationRank: Number.NaN, division: 1 }).rankingBonus).toBe(34_000);
+    expect(calculateFederationDivisionGrant({ budgetGameYear: Number.NaN, nationRank: 1, division: 1 }).rankingBonus).toBe(0);
   });
 });
 

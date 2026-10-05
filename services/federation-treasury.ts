@@ -26,6 +26,8 @@ export type FederationTreasuryState = {
       commonGrant: number;
       uciGrant: number;
       nationsCupGrant: number;
+      nationsCupBaseGrant: number;
+      nationRankingBonus: number;
       raceRevenue: number;
       completedRaceDays: number;
       averageStarters: number;
@@ -193,7 +195,7 @@ export async function getFederationTreasuryState({
   }
 }
 
-function parseOpeningBreakdown(
+export function parseOpeningBreakdown(
   value: unknown,
 ): NonNullable<
   NonNullable<FederationTreasuryState["account"]>["openingBreakdown"]
@@ -203,6 +205,11 @@ function parseOpeningBreakdown(
   const commonGrant = finiteNumber(metadata.commonGrant);
   const uciGrant = finiteNumber(metadata.uciGrant);
   const nationsCupGrant = finiteNumber(metadata.nationsCupGrant);
+  // Historical openings contain only the flat division grant. Never infer a
+  // new bonus from today's ranking for an opening that has already been paid.
+  const nationRankingBonus = finiteNumber(metadata.nationRankingBonus) ?? 0;
+  const nationsCupBaseGrant =
+    finiteNumber(metadata.nationsCupBaseGrant) ?? nationsCupGrant;
   const raceRevenue = finiteNumber(metadata.raceRevenue);
   const completedRaceDays = finiteNumber(metadata.completedRaceDays);
   const averageStarters = finiteNumber(metadata.averageStarters);
@@ -220,6 +227,8 @@ function parseOpeningBreakdown(
     commonGrant,
     uciGrant,
     nationsCupGrant,
+    nationsCupBaseGrant: nationsCupBaseGrant ?? nationsCupGrant,
+    nationRankingBonus,
     raceRevenue,
     completedRaceDays,
     averageStarters,

@@ -10,6 +10,7 @@ import {
 import { initialFederationFinanceActionState } from "@/lib/game/federation-action-states";
 import {
   calculateFederationFinancePreview,
+  calculateFederationDivisionGrant,
   getFederationObjectiveBonusPercentage,
   getFederationObjectiveLevel,
   getFederationSolidarityEligibleTeams,
@@ -67,11 +68,19 @@ export function FederationFinancePreview({
     treasuryState?.account?.objectiveCompletedCount ?? completedObjectiveCount;
   const objectiveBonusPercentage =
     getFederationObjectiveBonusPercentage(objectiveLevel);
+  const sourceGameYear =
+    treasuryState?.account?.sourceGameYear ?? baseline.gameYear;
+  const targetGameYear = sourceGameYear + 1;
+  const openingNationRank =
+    treasuryState?.account?.uciRank ?? initialNationRank;
+  const openingDivision =
+    (treasuryState?.account?.nationsCupDivision ?? initialDivision) as 1 | 2 | 3 | 4;
   const projection = useMemo(
     () =>
       calculateFederationFinancePreview({
-        nationRank: initialNationRank,
-        division: initialDivision,
+        budgetGameYear: targetGameYear,
+        nationRank: openingNationRank,
+        division: openingDivision,
         raceDays: projectedRaceDays,
         averageStarters: baseline.averageStarters,
         donations: 0,
@@ -79,10 +88,11 @@ export function FederationFinancePreview({
       }),
     [
       baseline.averageStarters,
-      initialDivision,
-      initialNationRank,
+      openingDivision,
+      openingNationRank,
       objectiveLevel,
       projectedRaceDays,
+      targetGameYear,
     ],
   );
   const [reputationThreshold, setReputationThreshold] = useState(100);
@@ -123,15 +133,16 @@ export function FederationFinancePreview({
   const isActive = gameYear >= 3;
   const solidarityCapReached = isActive && solidarityRemaining <= 0;
   const noEligibleTeam = isActive && eligibleTeams.length === 0;
-  const sourceGameYear =
-    treasuryState?.account?.sourceGameYear ?? baseline.gameYear;
-  const targetGameYear = sourceGameYear + 1;
   const objectiveBonus =
     treasuryState?.account?.objectiveBonus ?? projection.objectiveBonus;
   const openingCommonGrant = settledOpening?.commonGrant ?? projection.commonGrant;
   const openingUciGrant = settledOpening?.uciGrant ?? projection.uciGrant;
   const openingNationsCupGrant =
     settledOpening?.nationsCupGrant ?? projection.nationsCupGrant;
+  const openingDivisionBaseGrant =
+    settledOpening?.nationsCupBaseGrant ?? projection.nationsCupBaseGrant;
+  const openingRankingBonus =
+    settledOpening?.nationRankingBonus ?? projection.nationRankingBonus;
   const openingRaceRevenue =
     settledOpening?.raceRevenue ?? projection.raceRevenue;
   const openingRaceDays =
@@ -139,10 +150,11 @@ export function FederationFinancePreview({
   const openingAverageStarters =
     settledOpening?.averageStarters ?? baseline.averageStarters;
   const openingFillRate = Math.min(1, openingAverageStarters / 160);
-  const openingNationRank =
-    treasuryState?.account?.uciRank ?? initialNationRank;
-  const openingDivision =
-    treasuryState?.account?.nationsCupDivision ?? initialDivision;
+  const nextDivisionGrant = calculateFederationDivisionGrant({
+    budgetGameYear: gameYear + 1,
+    nationRank: initialNationRank,
+    division: initialDivision,
+  });
   return (
     <div className="space-y-7">
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
@@ -211,7 +223,10 @@ export function FederationFinancePreview({
             <dl className="mt-5 divide-y divide-[#315B3E]/10 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9]">
               <FinanceLine label="Socle commun" detail="Base de chaque fédération active" value={openingCommonGrant} />
               <FinanceLine label="Dotation UCI" detail={`Rang #${openingNationRank} en S${sourceGameYear}`} value={openingUciGrant} />
-              <FinanceLine label="Nations Cup" detail={`Division ${openingDivision} issue de la S${sourceGameYear}`} value={openingNationsCupGrant} />
+              <FinanceLine label="Nations Cup · socle de division" detail={`Division ${openingDivision} issue de la S${sourceGameYear}`} value={openingRankingBonus > 0 ? openingDivisionBaseGrant : openingNationsCupGrant} />
+              {openingRankingBonus > 0 ? (
+                <FinanceLine label="Prime de classement sportif" detail={`Rang UCI des nations #${openingNationRank} en S${sourceGameYear} · barème dégressif S4+`} value={openingRankingBonus} />
+              ) : null}
               <FinanceLine label="Courses du pays" detail={`${openingRaceDays} jours · ${Math.round(openingFillRate * 100)} % de remplissage`} value={openingRaceRevenue} />
               <FinanceLine
                 label={`Objectifs fédéraux S${sourceGameYear}`}
@@ -225,6 +240,23 @@ export function FederationFinancePreview({
                 ? `La composition de l’ouverture S${targetGameYear} est définitive et reste séparée des mouvements enregistrés ensuite.`
                 : `Cette projection évolue avec les résultats de la Saison ${sourceGameYear}. Le budget sera calculé et crédité automatiquement à J1 de la Saison ${targetGameYear}.`}
             </p>
+            {gameYear >= 3 ? (
+              <details className="mt-4 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4 text-xs font-semibold leading-5 text-[#60756E]">
+                <summary className="cursor-pointer font-black text-[#183F37]">Budget S{gameYear + 1} · division et classement sportif</summary>
+                <p className="mt-3">
+                  À partir de S4, le socle reste de 450 000 € en D1, 300 000 € en D2, 200 000 € en D3 et 120 000 € en D4.
+                  Une prime s’ajoute : socle de division ÷ racine carrée du rang UCI des nations, arrondie à 1 000 €.
+                  Elle privilégie le haut du classement, puis les écarts se réduisent progressivement.
+                </p>
+                <p className="mt-2">
+                  Avec votre situation actuelle (D{initialDivision}, rang #{initialNationRank}), cette dotation seule serait de <strong className="text-[#183F37]">{money.format(nextDivisionGrant.totalGrant)}</strong> : {money.format(nextDivisionGrant.baseGrant)} de socle + {money.format(nextDivisionGrant.rankingBonus)} de prime.
+                  Le classement définitif de S{gameYear} sera retenu à l’ouverture de S{gameYear + 1}.
+                </p>
+                <p className="mt-2">
+                  La dotation UCI, le socle commun, les recettes de courses et les objectifs restent distincts. Aucun recalcul des budgets déjà crédités.
+                </p>
+              </details>
+            ) : null}
           </div>
         </div>
       </section>
