@@ -17,10 +17,10 @@ export async function POST(request: Request) {
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data")) return failure("Format d’envoi invalide.");
   const length = Number(request.headers.get("content-length"));
   if (length > CHAT_IMAGE_UPLOAD_MAX_BYTES + 32_768) return failure("L’image est trop volumineuse.", 413);
-  const supabase = await createSupabaseServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return failure("Connectez-vous pour envoyer une image.", 401);
   try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return failure("Connectez-vous pour envoyer une image.", 401);
     // Bound streamed/chunked bodies too, before multipart decoding.
     const reader = request.body?.getReader();
     if (!reader) return failure("Image manquante.");

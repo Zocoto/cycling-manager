@@ -36,6 +36,16 @@ describe("authenticated chat image send", () => {
     mock.getUser.mockResolvedValue({ data: { user: null }, error: null });
     expect((await POST(request())).status).toBe(401); expect(mock.reserve).not.toHaveBeenCalled();
   });
+  it("returns a JSON retry error if authentication is temporarily unavailable", async () => {
+    mock.getUser.mockRejectedValue(new Error("Auth service unavailable"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const response = await POST(request());
+      expect(response.headers.get("Content-Type")).toContain("application/json");
+      expect((await response.json()).error).toContain("brouillon est conservé");
+      expect(mock.reserve).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
+  });
   it("preserves caption link restrictions", async () => {
     expect((await POST(request("https://external.example"))).status).toBe(400);
     expect(mock.reserve).not.toHaveBeenCalled();

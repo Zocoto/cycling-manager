@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/validate-race-registration-routes.mjs",
+    "postbuild": "node scripts/validate-race-registration-routes.mjs && node scripts/validate-chat-image-runtime.mjs",
     "marketing:assets": "node scripts/generate-season2-marketing-assets.mjs && node scripts/generate-evergreen-sharing-assets.mjs",
     "marketing:training-story": "tsx scripts/generate-training-how-it-works-story.tsx",
     "marketing:sharing": "node scripts/generate-evergreen-sharing-assets.mjs",

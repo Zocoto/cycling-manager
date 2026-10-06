@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["cdb-converter", "sql.js"],
   outputFileTracingIncludes: {
+    // Vercel handles Next's image optimizer separately and excludes libvips from
+    // normal traces. This custom upload route needs its own native runtime.
+    "/api/game/chat/images": [
+      "./node_modules/sharp/**/*",
+      "./node_modules/@img/sharp-*/**/*",
+    ],
     "/api/admin/pcm-export": [
       "./assets/pcm/OfficialRelease.template.cdb",
       "./assets/pcm/OfficialLocal.template.cdb",

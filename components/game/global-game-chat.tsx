@@ -18,6 +18,7 @@ import { GlobalChatSharePreview } from "@/components/game/global-chat-share-prev
 import { ChatImage, ChatImageDraftPreview } from "@/components/game/chat-image";
 import { useChatImageDraft } from "@/components/game/use-chat-image-draft";
 import { isChatImageOnlyMessage, readChatImageAttachment } from "@/lib/game/chat-images";
+import { readChatImageSendResponse } from "@/lib/game/chat-image-response";
 import { ChatDiscordFeedbackBanner } from "@/components/game/chat-discord-feedback-banner";
 import { RookieBadge } from "@/components/game/rookie-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
@@ -1148,9 +1149,7 @@ export function GlobalGameChat({
           form.set("replyToMessageId", replyTo?.id ?? "");
           form.set("mentionedDirectorIds", JSON.stringify(mentionedDirectorIds));
           const response = await fetch("/api/game/chat/images", { method: "POST", body: form, signal: AbortSignal.timeout(45_000) });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error ?? "L’image n’a pas pu être envoyée.");
-          savedMessage = result.message;
+          savedMessage = await readChatImageSendResponse(response);
         } else {
           savedMessage = await postGlobalChatMessageAction(message, replyTo?.id ?? null, mentionedDirectorIds);
         }
