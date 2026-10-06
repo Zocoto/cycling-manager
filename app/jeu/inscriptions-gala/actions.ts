@@ -9,7 +9,7 @@ import {
 } from "@/lib/game/pcm-gala-races";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { SEASON_FINALE_GALA_EVENT_KEY, SEASON_FINALE_GALA_ROUTE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS } from "@/lib/game/season-finale-gala";
+import { SEASON_FINALE_GALA_EVENT_KEY, SEASON_FINALE_GALA_ROUTE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS, isSeasonFinaleGalaDeadlineReached } from "@/lib/game/season-finale-gala";
 
 const GALA_ROUTE = "/jeu/inscriptions-gala";
 
@@ -28,6 +28,9 @@ export async function saveSeasonFinaleGalaRegistrationAction(formData: FormData)
 
 async function saveRegistration(formData: FormData, route: string, seasonFinale = false): Promise<never> {
   const eventKey = String(formData.get("eventKey") ?? "");
+  if (eventKey === SEASON_FINALE_GALA_EVENT_KEY && isSeasonFinaleGalaDeadlineReached()) {
+    redirectWithMessage("erreur", "Les inscriptions à cette course sont closes.", route);
+  }
   const rawRiderIds = formData.getAll("riderIds");
   const riderIds = formData
     .getAll("riderIds")
@@ -82,6 +85,7 @@ export async function withdrawPcmGalaRegistrationAction(): Promise<never> {
 }
 
 export async function withdrawSeasonFinaleGalaRegistrationAction(): Promise<never> {
+  if (isSeasonFinaleGalaDeadlineReached()) redirectWithMessage("erreur", "Les inscriptions et les modifications sont closes.", SEASON_FINALE_GALA_ROUTE);
   return withdrawRegistration(SEASON_FINALE_GALA_ROUTE);
 }
 
@@ -101,7 +105,7 @@ async function withdrawRegistration(route: string): Promise<never> {
   if (error) {
     redirectWithMessage(
       "erreur",
-      "L’inscription n’a pas pu être retirée. Réessayez dans un instant.",
+      /ferme|fermé/i.test(error.message) ? "Les inscriptions et les modifications sont closes." : "L’inscription n’a pas pu être retirée. Réessayez dans un instant.",
       route,
     );
   }
@@ -113,6 +117,9 @@ async function withdrawRegistration(route: string): Promise<never> {
 
 function normalizeRegistrationError(message: string, seasonFinale = false) {
   const normalized = message.toLocaleLowerCase("fr-FR");
+  if (normalized.includes("identite") || normalized.includes("identité")) {
+    return "Confirmez votre identité de la saison prochaine dans le sponsoring avant de vous inscrire au gala.";
+  }
 
   if (normalized.includes("fermee") || normalized.includes("fermée")) {
     return "Les inscriptions à cette course sont closes.";

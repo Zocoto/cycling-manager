@@ -24,6 +24,11 @@ describe("page du gala", () => {
     expect(html.match(/<article /g)).toHaveLength(5);
     expect(html).not.toContain("Découvrir les lots");
     expect(html).not.toContain("<nav");
+    expect(html).toContain("Jeudi 8 octobre à 12 h (J28), heure de Paris");
+    expect(html).toContain('dateTime="2026-10-08T12:00:00+02:00"');
+    expect(html).toContain("vendredi 9 octobre après-midi");
+    expect(html).toContain("leur identité de la saison prochaine");
+    expect(html).not.toContain("clôture des inscriptions à venir");
   });
   it("n'affiche que le profil vallonné et propose six à huit coureurs", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} seasonFinale />);
@@ -57,6 +62,15 @@ describe("page du gala", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} selectedEventKey="gala-des-sommets" seasonFinale />);
     expect(html).toContain("remplacera cette ancienne inscription");
     expect(html).toContain('value="gala-des-puncheurs"');
+  });
+  it("affiche l'identité prochaine saison avant inscription et bloque une identité non confirmée", () => {
+    const identity = { team_id: "team", identity_season: 4, team_name: "Futur sponsor - Secondaire", team_short_name: "FUT", team_country_code: "fr", registration_country_id: "country", sponsor_catalog_key: null, jersey_id: null, jersey_style: null, identity_ready: true };
+    const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} seasonFinale seasonFinaleIdentity={identity} />);
+    expect(html).toContain("Votre identité pour la saison 4");
+    expect(html).toContain("Futur sponsor - Secondaire");
+    const pending = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} seasonFinale seasonFinaleIdentity={{ ...identity, identity_ready: false }} />);
+    expect(pending).toContain("reste à confirmer");
+    expect(pending).toContain('href="/jeu/sponsoring"');
   });
   it("ne charge aucun lecteur tiers avant le clic et n'invente pas de vidéo", () => {
     const waiting = renderToStaticMarkup(<SeasonFinaleGalaReplay videoId={null} />);

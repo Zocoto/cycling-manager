@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   try {
     const { archive, filename, archiveSha256, database } =
-      await generatePcmExport();
+      await generatePcmExport(new URL(request.url).searchParams.get("gala") === "fin-de-saison");
     const body = new Uint8Array(archive.byteLength);
     body.set(archive);
 

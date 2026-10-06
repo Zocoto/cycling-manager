@@ -1,8 +1,8 @@
 import { strFromU8, unzipSync } from "fflate";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mock = vi.hoisted(() => ({ from: vi.fn() }));
-vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ from: mock.from }) }));
+const mock = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }));
+vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ from: mock.from, rpc: mock.rpc }) }));
 import { generatePcmGalaStartlistExport } from "./pcm-gala-startlist-export";
 
 type Row = Record<string, unknown>;
@@ -19,6 +19,13 @@ beforeEach(() => {
     riders: keys.flatMap((_, i) => Array.from({ length: 7 }, (_, j) => ({ id: `rider-${i}-${j}`, pcm_export_id: 10001 + i * 7 + j, first_name: "Coureur", last_name: `${i}-${j}` }))),
   };
   mock.from.mockReset();
+  mock.rpc.mockReset();
+  mock.rpc.mockImplementation((name: string, params?: { p_team_ids?: string[] }) => Promise.resolve({
+    error: null,
+    data: name === "get_season_finale_gala_export_context" ? [{ id: "season", game_year: 3 }]
+      : (params?.p_team_ids ?? []).map((team_id) => ({ team_id, identity_season: 4,
+        team_name: `Identité S4 ${team_id}`, team_short_name: "S4", identity_ready: true })),
+  }));
   mock.from.mockImplementation((table: string) => {
     let rows = [...(tables[table] ?? [])];
     let range: [number, number] | null = null;
@@ -51,6 +58,7 @@ describe("export PCM du gala, données simulées uniquement", () => {
     const manifest = JSON.parse(strFromU8(files["manifest.json"]));
     expect(manifest.events).toHaveLength(1);
     expect(manifest.events[0].teams[0].riders).toHaveLength(7);
+    expect(manifest.events[0].teams[0]).toMatchObject({ team: "Identité S4 team-1", identitySeason: 4 });
     expect(mock.from.mock.calls.every(([table]) => ["seasons", "pcm_gala_events", "pcm_gala_registrations", "team_seasons", "pcm_gala_registration_riders", "teams", "riders"].includes(table))).toBe(true);
   });
   it("préserve l'extraction des trois profils sur l'ancienne page", async () => {
@@ -69,6 +77,20 @@ describe("export PCM du gala, données simulées uniquement", () => {
   it("refuse une course non configurée au lieu d'exporter un autre profil", async () => {
     tables.pcm_gala_events = tables.pcm_gala_events.filter((row) => row.event_key !== "gala-des-puncheurs");
     await expect(generatePcmGalaStartlistExport("gala-des-puncheurs")).rejects.toThrow("Aucune course gala");
+  });
+  it("ne remplace jamais une identité future inconnue par l'ancien nom", async () => {
+    mock.rpc.mockImplementation((name: string) => Promise.resolve({ error: null,
+      data: name === "get_season_finale_gala_export_context" ? [{ id: "season", game_year: 3 }] : [] }));
+    await expect(generatePcmGalaStartlistExport("gala-des-puncheurs")).rejects.toThrow("Identité de la saison suivante non confirmée");
+  });
+  it("conserve les inscriptions S3 pour la vidéo même quand S4 devient active", async () => {
+    tables.seasons[0].status = "completed";
+    tables.seasons.push({ id: "next", game_year: 4, status: "active" });
+    tables.team_seasons.forEach((row) => { row.status = "completed"; });
+    const result = await generatePcmGalaStartlistExport("gala-des-puncheurs");
+    expect(result).toMatchObject({ season: 3, registeredTeamCount: 1, registeredRiderCount: 7 });
+    const manifest = JSON.parse(strFromU8(unzipSync(result.archive)["manifest.json"]));
+    expect(manifest.events[0].teams[0]).toMatchObject({ team: "Identité S4 team-1", identitySeason: 4 });
   });
   it.each([6, 7, 8])("exporte une sélection de %i coureurs", async (count) => {
     createFinaleTeams(1, count);

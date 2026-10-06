@@ -2,6 +2,7 @@ import "server-only";
 
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PcmGalaRaceKey } from "@/lib/game/pcm-gala-races";
+import type { SeasonFinaleGalaIdentity } from "@/services/season-finale-gala-identity";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -91,6 +92,7 @@ export type PcmGalaRegisteredTeam = {
 };
 
 export type PcmGalaRegistrationContext = {
+  seasonFinaleIdentity?: SeasonFinaleGalaIdentity | null;
   riders: PcmGalaRider[];
   eventStatuses: Partial<
     Record<PcmGalaRaceKey, "open" | "closed" | "exported">
@@ -103,12 +105,16 @@ export type PcmGalaRegistrationContext = {
 
 export async function getPcmGalaRegistrationContext(
   supabase: SupabaseServerClient,
+  seasonFinale = false,
 ): Promise<PcmGalaRegistrationContext> {
-  const [rosterResult, contextResult, publicStartlistsResult] = await Promise.all([
+  const [rosterResult, contextResult, publicStartlistsResult, identityResult] = await Promise.all([
     supabase.rpc("get_current_team_roster"),
-    supabase.rpc("get_current_team_pcm_gala_context"),
+    supabase.rpc(seasonFinale ? "get_current_team_season_finale_gala_context" : "get_current_team_pcm_gala_context"),
     loadPublicStartlists(supabase),
+    seasonFinale ? supabase.rpc("get_pcm_gala_team_identities") : Promise.resolve({ data: [], error: null }),
   ]);
+
+  if (identityResult.error) throw new Error(`Impossible de charger l’identité du gala : ${identityResult.error.message}`);
 
   if (rosterResult.error) {
     throw new Error(
@@ -135,6 +141,7 @@ export async function getPcmGalaRegistrationContext(
   const eligibleRiderIds = new Set(rosterRows.map((row) => row.rider_id));
 
   return {
+    ...(seasonFinale ? { seasonFinaleIdentity: ((identityResult.data ?? []) as SeasonFinaleGalaIdentity[])[0] ?? null } : {}),
     riders: rosterRows.map((row) => ({
       riderId: row.rider_id,
       firstName: row.first_name,

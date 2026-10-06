@@ -15,6 +15,7 @@ import type {
   TeamSeasonRow,
 } from "@/lib/game/pcm-export/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { applySeasonFinaleGalaIdentities, loadSeasonFinaleGalaIdentities, loadSeasonFinaleGalaSourceSeason } from "@/services/season-finale-gala-identity";
 
 const PAGE_SIZE = 1_000;
 
@@ -23,12 +24,13 @@ type PageResult<T> = {
   error: { message: string } | null;
 };
 
-export async function createPcmExportSnapshot(): Promise<PcmExportSnapshot> {
+export async function createPcmExportSnapshot(seasonFinale = false): Promise<PcmExportSnapshot> {
   const admin = createSupabaseAdminClient();
+  const galaSourceSeason = seasonFinale ? await loadSeasonFinaleGalaSourceSeason(admin) : null;
   const activeSeasonResult = await admin
     .from("seasons")
     .select("*")
-    .eq("status", "active")
+    .eq(galaSourceSeason ? "id" : "status", galaSourceSeason?.id ?? "active")
     .single<SeasonRow>();
 
   if (activeSeasonResult.error || !activeSeasonResult.data) {
@@ -45,7 +47,7 @@ export async function createPcmExportSnapshot(): Promise<PcmExportSnapshot> {
           .from("team_seasons")
           .select("*")
           .eq("season_id", activeSeason.id)
-          .eq("status", "active")
+          .in("status", seasonFinale ? ["active", "completed"] : ["active"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<TeamSeasonRow[]>(),
@@ -78,7 +80,7 @@ export async function createPcmExportSnapshot(): Promise<PcmExportSnapshot> {
         admin
           .from("rider_contracts")
           .select("*")
-          .eq("status", "active")
+          .in("status", seasonFinale ? ["active", "completed"] : ["active"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<ContractRow[]>(),
@@ -112,7 +114,11 @@ export async function createPcmExportSnapshot(): Promise<PcmExportSnapshot> {
 
   const activeTeamIds = new Set(teamSeasons.map((row) => row.team_id));
   const teams = allTeams.filter((row) => activeTeamIds.has(row.id));
-  const contracts = allContracts.filter((row) => activeTeamIds.has(row.team_id));
+  const seasonYears = new Map(seasons.map((season) => [season.id, season.game_year]));
+  const contracts = allContracts.filter((row) => activeTeamIds.has(row.team_id) && (!seasonFinale || (
+    (seasonYears.get(row.start_season_id) ?? Infinity) <= activeSeason.game_year &&
+    (seasonYears.get(row.end_season_id) ?? -Infinity) >= activeSeason.game_year
+  )));
   const contractedRiderIds = new Set(contracts.map((row) => row.rider_id));
   const riders = allRiders.filter((row) => contractedRiderIds.has(row.id));
   const ratings = allRatings.filter((row) => contractedRiderIds.has(row.rider_id));
@@ -150,10 +156,12 @@ export async function createPcmExportSnapshot(): Promise<PcmExportSnapshot> {
     riders,
     ratings,
   };
-  const canonical = JSON.stringify(snapshotCore);
+  const projectedSnapshot = seasonFinale ? applySeasonFinaleGalaIdentities({ ...snapshotCore, exportedAt: "", sha256: "" },
+    await loadSeasonFinaleGalaIdentities(admin, [...activeTeamIds])) : snapshotCore;
+  const canonical = JSON.stringify(projectedSnapshot);
 
   return {
-    ...snapshotCore,
+    ...projectedSnapshot,
     exportedAt: new Date().toISOString(),
     sha256: createHash("sha256").update(canonical).digest("hex"),
   };

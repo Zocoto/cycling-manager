@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { SEASON_FINALE_GALA_NAME, SEASON_FINALE_GALA_PRIZES, SEASON_FINALE_GALA_TEAMS_PER_GROUP } from "@/lib/game/season-finale-gala";
+import { SEASON_FINALE_GALA_NAME, SEASON_FINALE_GALA_PRIZES, SEASON_FINALE_GALA_TEAMS_PER_GROUP, SEASON_FINALE_GALA_DEADLINE, SEASON_FINALE_GALA_DEADLINE_LABEL } from "@/lib/game/season-finale-gala";
 
 export function SeasonFinaleGalaPresentation() {
   return (
@@ -12,13 +12,15 @@ export function SeasonFinaleGalaPresentation() {
             <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#F0E3C2] sm:text-4xl">{SEASON_FINALE_GALA_NAME}</h1>
             <p className="mt-3 text-sm leading-6 text-[#C1C4CC]">Une course hors-circuit pour fêter la saison, sans impact sportif, avec des lots à la clé.</p>
             <p className="mt-2 text-xs font-medium text-[#A5A9B3]">205 km vallonnés · 6 à 8 coureurs par équipe · Inscriptions sans limite d’équipes</p>
+            <p className="mt-3 text-sm font-semibold text-[#D2B46B]">Clôture des inscriptions : <time dateTime={SEASON_FINALE_GALA_DEADLINE}>{SEASON_FINALE_GALA_DEADLINE_LABEL}</time>.</p>
           </div>
           <a href="#inscriptions-gala" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#D2B46B] px-5 py-3 text-sm font-semibold text-[#101114] transition hover:bg-[#E2C784] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2C784] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08090B]">Inscrire mon équipe <span aria-hidden="true" className="ml-3">↗</span></a>
         </div>
         <div className="mt-5 space-y-1.5 text-xs leading-5 text-[#A5A9B3]">
           <p>Aucun effet sur la forme, le moral, la fatigue, les blessures, la préparation ou l’usure du matériel. Ni argent, ni points de classement.</p>
           <p>Au-delà de {SEASON_FINALE_GALA_TEAMS_PER_GROUP} équipes : groupes de taille comparable, une simulation et un top 5 récompensé par groupe, sans finale commune. Une équipe spectateur accompagne chaque groupe.</p>
-          <p>Vidéo en différé pour cette édition test. Pas de live ; des améliorations suivront. Date et clôture des inscriptions à venir.</p>
+          <p>En avant-première : les équipes participent sous leur identité de la saison prochaine, avec leurs sponsors déjà confirmés. L’identité actuelle dans le jeu reste inchangée.</p>
+          <p>Enregistrement envisagé vendredi 9 octobre après-midi. Vidéo publiée ensuite en différé pour cette édition test. Pas de live ; des améliorations suivront.</p>
         </div>
       </header>
 

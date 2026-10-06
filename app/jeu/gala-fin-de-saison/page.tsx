@@ -17,6 +17,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import { getPcmGalaRegistrationContext } from "@/services/pcm-gala-registration";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import styles from "@/components/game/season-finale-gala.module.css";
+import { getSeasonFinaleGalaJersey } from "@/services/season-finale-gala-identity";
 
 export const metadata: Metadata = {
   title: SEASON_FINALE_GALA_NAME,
@@ -31,7 +32,7 @@ export default async function SeasonFinaleGalaPage({ searchParams }: {
   if (error || !user) redirect("/connexion");
 
   const [headerData, context, params] = await Promise.all([
-    getGameHeaderData(supabase, user.id), getPcmGalaRegistrationContext(supabase), searchParams,
+    getGameHeaderData(supabase, user.id), getPcmGalaRegistrationContext(supabase, true), searchParams,
   ]);
   const amateurIdentity = headerData.teamSponsorIdentity ? null : await getTeamAmateurIdentityForAuthUser(user.id).catch(() => null);
   const jersey = headerData.teamSponsorIdentity
@@ -45,13 +46,13 @@ export default async function SeasonFinaleGalaPage({ searchParams }: {
         <div className="flex justify-end"><BackToOfficeLink className={styles.backLink} /></div>
         <SeasonFinaleGalaPresentation />
         <div id="inscriptions-gala" className="scroll-mt-6">
-          <PcmGalaRegistrationPanel {...context} jersey={jersey} seasonFinale successMessage={readMessage(params.inscription)} errorMessage={readMessage(params.erreur)} />
+          <PcmGalaRegistrationPanel {...context} jersey={getSeasonFinaleGalaJersey(context.seasonFinaleIdentity) ?? jersey} seasonFinale successMessage={readMessage(params.inscription)} errorMessage={readMessage(params.erreur)} />
         </div>
         <SeasonFinaleGalaReplay videoId={readGalaYoutubeVideoId(process.env.PCM_GALA_REPLAY_YOUTUBE_URL)} />
         {canAccessPcmExport(user.email) ? (
           <div className="mt-6 border-t border-[#393C44] pt-5">
             <PcmGalaStartlistExportPanel eventKey={SEASON_FINALE_GALA_EVENT_KEY} compact />
-            <p className="mt-3 text-xs leading-5 text-[#A5A9B3]">Régénère aussi <AppLink href="/jeu/export-pcm" className="font-semibold text-[#D2B46B] underline">la base Cyclostratège</AppLink> pour activer les sélections de 6 à 8 coureurs.</p>
+            <p className="mt-3 text-xs leading-5 text-[#A5A9B3]">Régénère aussi <AppLink href="/jeu/export-pcm?gala=fin-de-saison" className="font-semibold text-[#D2B46B] underline">la base PCM du gala</AppLink> : identités de la saison suivante, identifiants permanents et sélections de 6 à 8 coureurs.</p>
           </div>
         ) : null}
       </div>

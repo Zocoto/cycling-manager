@@ -5,6 +5,12 @@ import { getPcmGalaRace } from "@/lib/game/pcm-gala-races";
 export const SEASON_FINALE_GALA_ROUTE = "/jeu/gala-fin-de-saison";
 export const SEASON_FINALE_GALA_EVENT_KEY = "gala-des-puncheurs" as const;
 export const SEASON_FINALE_GALA_NAME = "Grand Gala de fin de saison";
+export const SEASON_FINALE_GALA_DEADLINE = "2026-10-08T12:00:00+02:00";
+export const SEASON_FINALE_GALA_DEADLINE_LABEL = "Jeudi 8 octobre à 12 h (J28), heure de Paris";
+
+export function isSeasonFinaleGalaDeadlineReached(now = Date.now()) {
+  return now >= Date.parse(SEASON_FINALE_GALA_DEADLINE);
+}
 export const SEASON_FINALE_GALA_RACE = getPcmGalaRace(SEASON_FINALE_GALA_EVENT_KEY)!;
 export const SEASON_FINALE_GALA_MIN_RIDERS = 6;
 export const SEASON_FINALE_GALA_MAX_RIDERS = 8;

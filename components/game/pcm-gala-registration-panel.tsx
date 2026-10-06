@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
@@ -16,7 +16,7 @@ import {
   type PcmGalaRaceKey,
   type PcmGalaRatingKey,
 } from "@/lib/game/pcm-gala-races";
-import { SEASON_FINALE_GALA_RACE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS } from "@/lib/game/season-finale-gala";
+import { SEASON_FINALE_GALA_RACE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS, SEASON_FINALE_GALA_DEADLINE, isSeasonFinaleGalaDeadlineReached } from "@/lib/game/season-finale-gala";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   PcmGalaRegistrationContext,
@@ -48,7 +48,9 @@ export function PcmGalaRegistrationPanel({
   successMessage,
   errorMessage,
   seasonFinale = false,
+  seasonFinaleIdentity,
 }: PcmGalaRegistrationPanelProps) {
+  const deadlineReached = useSyncExternalStore(subscribeToDeadline, isSeasonFinaleGalaDeadlineReached, () => false);
   const races = seasonFinale ? [SEASON_FINALE_GALA_RACE] : PCM_GALA_RACES;
   const RaceCard = seasonFinale ? "div" : "button";
   const firstOpenRace = races.find(
@@ -65,7 +67,8 @@ export function PcmGalaRegistrationPanel({
   const sortedRiders = sortRidersForRace(riders, activeRace.primaryRating);
   const minimumRiders = seasonFinale ? SEASON_FINALE_GALA_MIN_RIDERS : rosterSize;
   const maximumRiders = seasonFinale ? SEASON_FINALE_GALA_MAX_RIDERS : rosterSize;
-  const isOpen = eventStatuses[activeRaceKey] === "open";
+  const isOpen = eventStatuses[activeRaceKey] === "open" && (!seasonFinale || !deadlineReached);
+  const identityReady = !seasonFinale || Boolean(seasonFinaleIdentity?.identity_ready);
   const hasCompleteSelection = selectedIds.size >= minimumRiders && selectedIds.size <= maximumRiders;
   const activeRegisteredTeams = publicStartlists[activeRaceKey] ?? [];
 
@@ -87,6 +90,13 @@ export function PcmGalaRegistrationPanel({
         <MessageBanner tone="success" message={successMessage} />
       ) : null}
       {errorMessage ? <MessageBanner tone="error" message={errorMessage} /> : null}
+      {seasonFinale ? (
+        <p className="text-xs leading-5 text-[#BFC3CE]">
+          {seasonFinaleIdentity?.identity_ready ? <>Votre identité pour la saison {seasonFinaleIdentity.identity_season} : <strong className="text-[#D2B46B]">{seasonFinaleIdentity.team_name}</strong>. Sélectionnez les coureurs de votre effectif actuel.</>
+            : <>Votre identité de la saison prochaine reste à confirmer dans le <a href="/jeu/sponsoring" className="text-[#D2B46B] underline">sponsoring</a> avant l’inscription.</>}
+          {!isOpen ? <span className="block mt-1">Les inscriptions et les modifications sont closes. Les engagés restent consultables ci-dessous.</span> : null}
+        </p>
+      ) : null}
       {seasonFinale && selectedEventKey && selectedEventKey !== SEASON_FINALE_GALA_RACE.key ? (
         <MessageBanner tone="error" message="Vous avez une inscription sur un autre profil du pilote PCM. Valider ce gala vallonné remplacera cette ancienne inscription ; votre sélection reste modifiable ci-dessous." />
       ) : null}
@@ -235,7 +245,7 @@ export function PcmGalaRegistrationPanel({
                     name="riderIds"
                     value={rider.riderId}
                     checked={selected}
-                    disabled={selectionFull}
+                    disabled={selectionFull || (seasonFinale && (!isOpen || !identityReady))}
                     onChange={() => toggleRider(rider.riderId)}
                     className="h-4 w-4 shrink-0 accent-[#176951]"
                   />
@@ -285,13 +295,13 @@ export function PcmGalaRegistrationPanel({
                 : "Cette inscription est isolée du calendrier officiel : aucune forme, récompense, préparation, usure d’équipement ou donnée de classement ne sera modifiée."}
             </p>
             <SubmitButton
-              disabled={!isOpen || !hasCompleteSelection || riders.length < minimumRiders}
+              disabled={!isOpen || !identityReady || !hasCompleteSelection || riders.length < minimumRiders}
               hasRegistration={Boolean(selectedEventKey)}
             />
           </div>
         </form>
 
-        {selectedEventKey && eventStatuses[selectedEventKey] === "open" ? (
+        {selectedEventKey && eventStatuses[selectedEventKey] === "open" && (!seasonFinale || !deadlineReached) ? (
           <form action={seasonFinale ? withdrawSeasonFinaleGalaRegistrationAction : withdrawPcmGalaRegistrationAction} className="mt-3 text-right">
             <WithdrawButton />
           </form>
@@ -368,6 +378,13 @@ export function PcmGalaRegistrationPanel({
       </section>
     </div>
   );
+}
+
+function subscribeToDeadline(onChange: () => void) {
+  const remaining = Date.parse(SEASON_FINALE_GALA_DEADLINE) - Date.now();
+  if (remaining <= 0) return () => {};
+  const timer = window.setTimeout(onChange, Math.min(remaining, 2_147_483_647));
+  return () => window.clearTimeout(timer);
 }
 function sortRidersForRace(
   riders: readonly PcmGalaRider[],

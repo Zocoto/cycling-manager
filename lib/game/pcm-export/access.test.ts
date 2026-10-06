@@ -21,7 +21,7 @@ describe("acces a l'export PCM", () => {
     expect(pageSource).toContain("if (!canAccessPcmExport(user.email)) notFound()");
     expect(routeSource).toContain("if (!canAccessPcmExport(user.email))");
     expect(routeSource.indexOf("canAccessPcmExport(user.email)")).toBeLessThan(
-      routeSource.indexOf("generatePcmExport()"),
+      routeSource.indexOf("await generatePcmExport("),
     );
     expect(routeSource).toContain('requestedWith === "pcm-export-admin"');
     expect(routeSource).toContain("origin === new URL(request.url).origin");

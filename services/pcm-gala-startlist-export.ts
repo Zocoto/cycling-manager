@@ -12,6 +12,7 @@ import {
   type PcmStartlistTeam,
 } from "@/lib/game/pcm-gala-startlists";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadSeasonFinaleGalaIdentities, loadSeasonFinaleGalaSourceSeason } from "@/services/season-finale-gala-identity";
 
 type ActiveSeason = { id: string; game_year: number };
 type GalaEvent = {
@@ -41,7 +42,9 @@ export type PcmGalaStartlistExportResult = {
 
 export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey): Promise<PcmGalaStartlistExportResult> {
   const admin = createSupabaseAdminClient();
-  const seasonResult = await admin
+  const seasonResult = eventKey === SEASON_FINALE_GALA_EVENT_KEY
+    ? { data: await loadSeasonFinaleGalaSourceSeason(admin), error: null }
+    : await admin
     .from("seasons")
     .select("id,game_year")
     .eq("status", "active")
@@ -87,6 +90,12 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
 
   const registrationIds = registrations.map((row) => row.id);
   const teamIds = [...new Set(registrations.map((row) => row.team_id))];
+  const finaleTeamIds = [...new Set(registrations.filter((row) => events.some((event) =>
+    event.id === row.gala_event_id && event.event_key === SEASON_FINALE_GALA_EVENT_KEY)).map((row) => row.team_id))];
+  const identities = await loadSeasonFinaleGalaIdentities(admin, finaleTeamIds);
+  for (const teamId of finaleTeamIds) {
+    if (!identities.get(teamId)?.identity_ready) throw new Error(`Identité de la saison suivante non confirmée pour l’équipe ${teamId}.`);
+  }
   const [registrationRidersResult, teamsResult] = await Promise.all([
     registrationIds.length > 0
       ? loadRowsByIds(registrationIds, (ids) => admin
@@ -123,6 +132,7 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
 
   const teamsById = new Map((teamsResult.data ?? []).map((row) => [row.id, row]));
   const teamNamesById = new Map((teamSeasonsResult.data ?? []).map((row) => [row.team_id, row.display_name]));
+  for (const identity of identities.values()) teamNamesById.set(identity.team_id, identity.team_name);
   const ridersById = new Map((ridersResult.data ?? []).map((row) => [row.id, row]));
   const registrationRidersByRegistration = new Map<string, RegistrationRider[]>();
   for (const row of registrationRiders) {
@@ -175,6 +185,7 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
       startlistTeams.push({ teamId: Number(team.pcm_export_id), riderIds: pcmRiderIds });
       manifestTeams.push({
         team: teamNamesById.get(registration.team_id) ?? registration.team_id,
+        ...(isFinale ? { identitySeason: season.game_year + 1, teamShortName: identities.get(registration.team_id)?.team_short_name } : {}),
         pcmTeamId: Number(team.pcm_export_id),
         riders: selected.map((selection, index) => {
           const rider = ridersById.get(selection.rider_id)!;
@@ -255,7 +266,9 @@ async function loadRowsByIds<T>(ids: string[], createQuery: (ids: string[]) => {
 function createReadme() {
   return `INSTALLATION DES STARTLISTS CYCLOSTRATEGE DANS PCM26
 
-1. Utilisez une base Cyclostratège générée après la mise en place des identifiants PCM permanents.
+1. Pour le gala vallonné, utilisez la base PCM spéciale gala : identités de la saison suivante
+   et sélection de l'effectif de la saison terminée, avec identifiants PCM permanents.
+   Depuis le gala, suivez le lien « base PCM du gala » puis générez cette base.
 2. Fermez Pro Cycling Manager 2026.
 3. Décompressez cette archive.
 4. Copiez les fichiers XML directement dans :
