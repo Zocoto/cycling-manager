@@ -16,6 +16,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPcmGalaRegistrationContext } from "@/services/pcm-gala-registration";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
+import styles from "@/components/game/season-finale-gala.module.css";
 
 export const metadata: Metadata = {
   title: SEASON_FINALE_GALA_NAME,
@@ -38,20 +39,19 @@ export default async function SeasonFinaleGalaPage({ searchParams }: {
     : amateurIdentity ? createAmateurRiderJersey(amateurIdentity.jersey) : FREE_AGENT_RIDER_JERSEY;
 
   return (
-    <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+    <main data-gala-page className={styles.page}>
       <GameHeader simulatorEmail={user.email} displayName={headerData.displayName} sponsor={headerData.teamSponsorVisual} maxWidth="wide" />
       <div className="mx-auto max-w-[1320px] px-4 py-6 sm:px-8 sm:py-9">
-        <div className="flex justify-end"><BackToOfficeLink /></div>
+        <div className="flex justify-end"><BackToOfficeLink className={styles.backLink} /></div>
         <SeasonFinaleGalaPresentation />
         <div id="inscriptions-gala" className="scroll-mt-6">
           <PcmGalaRegistrationPanel {...context} jersey={jersey} seasonFinale successMessage={readMessage(params.inscription)} errorMessage={readMessage(params.erreur)} />
         </div>
         <SeasonFinaleGalaReplay videoId={readGalaYoutubeVideoId(process.env.PCM_GALA_REPLAY_YOUTUBE_URL)} />
         {canAccessPcmExport(user.email) ? (
-          <div className="mt-8 border-t border-[#BCD3C8] pt-6">
-            <p className="text-xs font-black uppercase tracking-widest text-[#557068]">Organisation · Administration uniquement</p>
-            <PcmGalaStartlistExportPanel eventKey={SEASON_FINALE_GALA_EVENT_KEY} />
-            <p className="mt-4 text-sm leading-6 text-[#557068]">Pour la première simulation, utilise aussi <AppLink href="/jeu/export-pcm" className="font-black text-[#176951] underline">l’extracteur de la base Cyclostratège</AppLink> : la DB et la startlist doivent partager les mêmes identifiants PCM.</p>
+          <div className="mt-6 border-t border-[#393C44] pt-5">
+            <PcmGalaStartlistExportPanel eventKey={SEASON_FINALE_GALA_EVENT_KEY} compact />
+            <p className="mt-3 text-xs leading-5 text-[#A5A9B3]">Régénère aussi <AppLink href="/jeu/export-pcm" className="font-semibold text-[#D2B46B] underline">la base Cyclostratège</AppLink> pour activer les sélections de 6 à 8 coureurs.</p>
           </div>
         ) : null}
       </div>

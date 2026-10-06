@@ -8,7 +8,7 @@ type RaceStageProfileProps = {
   segments: RaceStageSegment[];
   activeSegmentNumber?: number;
   compact?: boolean;
-  tone?: "light" | "dark";
+  tone?: "light" | "dark" | "gala";
   showLegend?: boolean;
   weather?: RaceWeather | null;
   weatherUnavailableLabel?: string | null;
@@ -27,17 +27,17 @@ export function RaceStageProfile({
 }: RaceStageProfileProps) {
   if (segments.length === 0) {
     return (
-      <p className={tone === "dark" ? "text-xs font-semibold text-[#7E9B8F]" : "text-xs font-semibold text-[#688176]"}>
+      <p className={tone === "gala" ? "text-xs font-semibold text-[#A5A9B3]" : tone === "dark" ? "text-xs font-semibold text-[#7E9B8F]" : "text-xs font-semibold text-[#688176]"}>
         Profil détaillé indisponible.
       </p>
     );
   }
 
   const chart = buildProfileChart(segments, compact);
-  const foreground = tone === "dark" ? "#9BE0CA" : "#176951";
-  const muted = tone === "dark" ? "#78968A" : "#8AA299";
-  const grid = tone === "dark" ? "rgba(255,255,255,0.13)" : "rgba(11,48,43,0.14)";
-  const fill = tone === "dark" ? "rgba(114,212,183,0.17)" : "rgba(23,105,81,0.14)";
+  const foreground = tone === "gala" ? "#D2B46B" : tone === "dark" ? "#9BE0CA" : "#176951";
+  const muted = tone === "gala" ? "#A5A9B3" : tone === "dark" ? "#78968A" : "#8AA299";
+  const grid = tone !== "light" ? "rgba(255,255,255,0.13)" : "rgba(11,48,43,0.14)";
+  const fill = tone === "gala" ? "rgba(210,180,107,0.14)" : tone === "dark" ? "rgba(114,212,183,0.17)" : "rgba(23,105,81,0.14)";
   const hasMountainPrime = segments.some(
     (segment) => segment.prime?.type === "mountain"
   );
@@ -215,7 +215,7 @@ export function RaceStageProfile({
       </div>
 
       {showLegend ? (
-        <div className={`mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-bold uppercase tracking-wider ${tone === "dark" ? "text-[#78968A]" : "text-[#688176]"}`}>
+        <div className={`mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-bold uppercase tracking-wider ${tone === "gala" ? "text-[#A5A9B3]" : tone === "dark" ? "text-[#78968A]" : "text-[#688176]"}`}>
           {hasMountainPrime || hasIntermediateSprint ? (
             <>
               {hasMountainPrime ? (

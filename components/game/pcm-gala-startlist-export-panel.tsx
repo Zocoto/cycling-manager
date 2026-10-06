@@ -13,7 +13,7 @@ type ExportSummary = {
   generatedAt: string;
 };
 
-export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRaceKey } = {}) {
+export function PcmGalaStartlistExportPanel({ eventKey, compact = false }: { eventKey?: PcmGalaRaceKey; compact?: boolean } = {}) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ExportSummary | null>(null);
@@ -61,6 +61,20 @@ export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRa
       setIsGenerating(false);
     }
   }
+
+  if (compact) return (
+    <section aria-labelledby="gala-admin-export" className="rounded-xl border border-[#393C44] bg-[#111215] p-4 text-[#BFC3CE]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="gala-admin-export" className="text-sm font-semibold text-[#E5E7ED]">Organisation · Startlists PCM26</h2>
+        <button type="button" onClick={handleExport} disabled={isGenerating} className="min-h-11 rounded-lg bg-[#D2B46B] px-4 py-2 text-xs font-semibold text-[#101114] hover:bg-[#E2C784] disabled:cursor-wait disabled:opacity-65">
+          {isGenerating ? "Construction des listes…" : "Télécharger la startlist du gala"}
+        </button>
+      </div>
+      <p className="mt-3 text-xs leading-5">Un XML par groupe, spectateur inclus. Copie un seul groupe à la fois, sans renommer le fichier, dans <code className="break-all">%APPDATA%\Pro Cycling Manager 2026\Cloud\Startlists\</code>.</p>
+      {error ? <p role="alert" className="mt-3 text-xs text-[#F0B9BF]">{error}</p> : null}
+      {summary ? <p role="status" className="mt-3 text-xs leading-5 text-[#D2B46B]">S{summary.season} · {summary.simulations} simulations · {summary.teams} équipes · {summary.riders} coureurs<br /><span className="break-all text-[#BFC3CE]">{summary.filename}</span></p> : null}
+    </section>
+  );
 
   return (
     <section className="mt-8 overflow-hidden rounded-[1.75rem] border border-[#B9CEC7] bg-white shadow-[0_20px_55px_rgba(20,67,56,0.09)]">

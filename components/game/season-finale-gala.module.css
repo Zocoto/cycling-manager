@@ -1,0 +1,57 @@
+/* Thème limité au gala : les anciennes inscriptions PCM restent inchangées. */
+.page[data-gala-page] {
+  min-height: 100vh;
+  background: #08090b;
+  color: #e5e7ed;
+  color-scheme: dark;
+}
+.page [data-game-header] { background: #0d0e11; border-color: #393c44; }
+.page nav[aria-label="Raccourcis mobiles principaux"] { background: #111215; border-color: #393c44; }
+
+.page .backLink {
+  border-color: #393c44;
+  background: #111215;
+  color: #bfc3ce;
+  box-shadow: none;
+}
+.page .backLink:hover { border-color: #8f7c50; background: #1b1d22; color: #f0e3c2; }
+.registration { color: #e5e7ed; }
+.registration h2, .registration h3, .registration [data-gala-part="name"] { color: #e5e7ed; font-weight: 600; }
+.registration h2 { font-size: 1.125rem; }
+.registration h3 { font-size: 1rem; }
+.registration p { color: #a5a9b3; }
+.registration [data-gala-part="race"], .registration [data-gala-part="selection"], .registration [data-gala-part="engaged"] {
+  border: 1px solid #393c44;
+  border-radius: 0.875rem;
+  background: #111215;
+  box-shadow: none;
+}
+.registration [data-gala-part="profile"] { background: #1b1d22; }
+.registration [data-gala-part="metadata"] { color: #bfc3ce; }
+.registration [data-gala-part="selected-mark"] { display: none; }
+.registration [data-gala-part="count"] { background: #252117; color: #d2b46b; }
+.registration [data-gala-part="count"][data-complete="true"] { border: 1px solid #8f7c50; }
+.registration label { padding: 0.625rem; border-color: #393c44; border-radius: 0.75rem; background: #17191d; }
+.registration label:hover { border-color: #8f7c50; }
+.registration label[data-selected="true"] { border-color: #d2b46b; background: #252117; box-shadow: none; }
+.registration input { accent-color: #d2b46b; }
+.registration [data-gala-part="rating"] { background: #292c32; color: #c8cbd3; }
+.registration [data-gala-part="rating"][data-primary="true"] { background: #d2b46b; color: #101114; }
+.registration [data-gala-part="form-footer"] { border-color: #393c44; }
+.registration [data-gala-part="submit"] { background: #d2b46b; color: #101114; font-weight: 600; box-shadow: none; }
+.registration [data-gala-part="submit"]:hover { background: #e2c784; }
+.registration [data-gala-part="submit"]:disabled { background: #393c44; color: #a5a9b3; }
+.registration [data-gala-part="withdraw"] { color: #c8cbd3; text-decoration-color: #9297a3; }
+.registration [data-gala-part="engaged-header"] { padding-top: 1rem; padding-bottom: 1rem; border-color: #393c44; background: #17191d; }
+.registration [data-gala-part="engaged-count"] { border-color: #626772; background: #292c32; color: #c8cbd3; }
+.registration details { border-color: #393c44; background: #17191d; }
+.registration details[open] { border-color: #8f7c50; background: #1b1d22; }
+.registration summary p:first-child { color: #e5e7ed; }
+.registration summary > span { background: #292c32; color: #d2b46b; }
+.registration ol { border-color: #393c44; }
+.registration li { background: #292c32; color: #c8cbd3; }
+.registration li > span:first-child { background: #17191d; color: #d2b46b; }
+.registration li > span:last-child { color: #a5a9b3; }
+.registration [role="status"] { border-color: #8f7c50; background: #252117; color: #e2c784; }
+.registration [role="alert"], .registration [data-gala-part="roster-warning"] { border-color: #75434a; background: #321c21; color: #f0b9bf; }
+.replay { margin-top: 1.5rem; border: 1px solid #393c44; border-radius: 0.875rem; background: #111215; padding: 1.25rem; }

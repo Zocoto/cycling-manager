@@ -22,6 +22,7 @@ import type {
   PcmGalaRegistrationContext,
   PcmGalaRider,
 } from "@/services/pcm-gala-registration";
+import styles from "./season-finale-gala.module.css";
 
 type PcmGalaRegistrationPanelProps = PcmGalaRegistrationContext & {
   jersey: RiderJerseyAppearance;
@@ -81,7 +82,7 @@ export function PcmGalaRegistrationPanel({
   }
 
   return (
-    <div className="mt-8 space-y-7">
+    <div className={seasonFinale ? `${styles.registration} mt-6 space-y-5` : "mt-8 space-y-7"}>
       {successMessage ? (
         <MessageBanner tone="success" message={successMessage} />
       ) : null}
@@ -93,9 +94,9 @@ export function PcmGalaRegistrationPanel({
       <section aria-labelledby="gala-race-choice">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+            {!seasonFinale ? <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
               Étape 1
-            </p>
+            </p> : null}
             <h2 id="gala-race-choice" className="mt-1 text-2xl font-black">
               {seasonFinale ? "Le parcours du gala" : "Choisissez votre course"}
             </h2>
@@ -113,6 +114,7 @@ export function PcmGalaRegistrationPanel({
             return (
               <RaceCard
                 key={race.key}
+                data-gala-part="race"
                 type={seasonFinale ? undefined : "button"}
                 onClick={seasonFinale ? undefined : () => setActiveRaceKey(race.key)}
                 disabled={seasonFinale ? undefined : disabled}
@@ -127,7 +129,7 @@ export function PcmGalaRegistrationPanel({
                   <div>
                     <span
                       className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white"
-                      style={{ backgroundColor: race.accentColor }}
+                      style={seasonFinale ? { backgroundColor: "#D2B46B", color: "#101114" } : { backgroundColor: race.accentColor }}
                     >
                       {race.profileLabel}
                     </span>
@@ -137,6 +139,7 @@ export function PcmGalaRegistrationPanel({
                   </div>
                   <span
                     aria-hidden="true"
+                    data-gala-part="selected-mark"
                     className={`mt-1 grid h-6 w-6 place-items-center rounded-full border-2 ${
                       selected
                         ? "border-[#176951] bg-[#176951] text-white"
@@ -147,19 +150,19 @@ export function PcmGalaRegistrationPanel({
                   </span>
                 </div>
 
-                <div className="mt-3 rounded-2xl bg-[#F3F8F6] px-2 py-3">
-                  <RaceStageProfile segments={race.segments} compact={!seasonFinale} />
+                <div data-gala-part="profile" className="mt-3 rounded-2xl bg-[#F3F8F6] px-2 py-3">
+                  <RaceStageProfile segments={race.segments} compact tone={seasonFinale ? "gala" : "light"} />
                 </div>
 
-                <div className="mt-3 flex items-center justify-between gap-3 text-xs font-black text-[#557068]">
+                <div data-gala-part="metadata" className="mt-3 flex items-center justify-between gap-3 text-xs font-black text-[#557068]">
                   <span>{race.distanceKm} km</span>
                   <span>
                     {registeredTeams.length} équipe{registeredTeams.length > 1 ? "s" : ""} inscrite{registeredTeams.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                <p className="mt-3 text-sm font-medium leading-5 text-[#60776F]">
+                {!seasonFinale ? <p className="mt-3 text-sm font-medium leading-5 text-[#60776F]">
                   {race.shortDescription}
-                </p>
+                </p> : null}
                 <p className="mt-3 text-[11px] font-bold text-[#83978F]">
                   Base PCM26 : {race.pcmSource.raceName}
                 </p>
@@ -176,22 +179,24 @@ export function PcmGalaRegistrationPanel({
 
       <section
         aria-labelledby="gala-roster-choice"
+        data-gala-part="selection"
         className="rounded-[26px] border border-[#CFE1DC] bg-white p-4 shadow-sm sm:p-6"
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+            {!seasonFinale ? <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
               Étape 2 · {activeRace.name}
-            </p>
+            </p> : null}
             <h2 id="gala-roster-choice" className="mt-1 text-2xl font-black">
               Composez votre sélection
             </h2>
             <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[#60776F]">
-              Les coureurs sont classés par note {ratingLabels[activeRace.primaryRating]}.
-              Seules leurs notes natives sont utilisées pour préparer la startlist PCM26.
+              {seasonFinale ? `Choisissez 6 à 8 coureurs. Notes natives, classées par ${ratingLabels[activeRace.primaryRating]}.` : <>Les coureurs sont classés par note {ratingLabels[activeRace.primaryRating]}. Seules leurs notes natives sont utilisées pour préparer la startlist PCM26.</>}
             </p>
           </div>
           <div
+            data-gala-part="count"
+            data-complete={hasCompleteSelection}
             className={`rounded-2xl px-4 py-3 text-center ${
               hasCompleteSelection
                 ? "bg-[#DDF3EA] text-[#176951]"
@@ -218,6 +223,7 @@ export function PcmGalaRegistrationPanel({
               return (
                 <label
                   key={rider.riderId}
+                  data-selected={selected}
                   className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
                     selected
                       ? "border-[#278B70] bg-[#ECF8F4] shadow-sm"
@@ -240,11 +246,11 @@ export function PcmGalaRegistrationPanel({
                     age={rider.age}
                     jersey={jersey}
                     label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-                    className="h-12 w-12 shrink-0"
+                    className={seasonFinale ? "h-10 w-10 shrink-0" : "h-12 w-12 shrink-0"}
                     renderMode="compact"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-[#153A34]">
+                    <p data-gala-part="name" className="truncate text-sm font-black text-[#153A34]">
                       {rider.firstName} {rider.lastName}
                     </p>
                     <p className="mt-0.5 text-[11px] font-bold text-[#789088]">
@@ -267,15 +273,15 @@ export function PcmGalaRegistrationPanel({
           </div>
 
           {riders.length < minimumRiders ? (
-            <p className="mt-5 rounded-xl bg-[#FCE9E6] px-4 py-3 text-sm font-bold text-[#963F36]">
+            <p data-gala-part="roster-warning" className="mt-5 rounded-xl bg-[#FCE9E6] px-4 py-3 text-sm font-bold text-[#963F36]">
               Votre effectif actif ne compte pas assez de coureurs pour former une sélection de {minimumRiders}.
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#E0EBE7] pt-5">
+          <div data-gala-part="form-footer" className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#E0EBE7] pt-5">
             <p className="max-w-xl text-xs font-semibold leading-5 text-[#71877F]">
               {seasonFinale
-                ? "Inscription hors calendrier officiel : aucun effet sur la forme, le moral, la fatigue, les blessures, la préparation ou l’usure du matériel. Aucun argent, point de classement ou gain habituel de course. Seuls les lots spécifiques du gala sont prévus."
+                ? "Sélection modifiable tant que les inscriptions sont ouvertes."
                 : "Cette inscription est isolée du calendrier officiel : aucune forme, récompense, préparation, usure d’équipement ou donnée de classement ne sera modifiée."}
             </p>
             <SubmitButton
@@ -294,18 +300,19 @@ export function PcmGalaRegistrationPanel({
 
       <section
         aria-labelledby="gala-startlist-view"
+        data-gala-part="engaged"
         className="overflow-hidden rounded-[26px] border border-[#CFE1DC] bg-white shadow-sm"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE9E5] bg-[#123D34] px-4 py-5 text-white sm:px-6">
+        <div data-gala-part="engaged-header" className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE9E5] bg-[#123D34] px-4 py-5 text-white sm:px-6">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
+            {!seasonFinale ? <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
               Liste des engagés
-            </p>
+            </p> : null}
             <h2 id="gala-startlist-view" className="mt-1 text-2xl font-black">
-              Engagés · {activeRace.name}
+              {seasonFinale ? "Engagés" : `Engagés · ${activeRace.name}`}
             </h2>
           </div>
-          <div className="rounded-full border border-[#9BE0CA]/35 bg-[#9BE0CA]/10 px-3 py-1.5 text-xs font-black text-[#D9F6ED]">
+          <div data-gala-part="engaged-count" className="rounded-full border border-[#9BE0CA]/35 bg-[#9BE0CA]/10 px-3 py-1.5 text-xs font-black text-[#D9F6ED]">
             {activeRegisteredTeams.length} équipe{activeRegisteredTeams.length > 1 ? "s" : ""} · {activeRegisteredTeams.reduce((total, team) => total + team.riders.length, 0)} coureurs
           </div>
         </div>
@@ -385,6 +392,8 @@ function RatingPill({
 }) {
   return (
     <span
+      data-gala-part="rating"
+      data-primary={primary}
       className={`rounded-md px-1.5 py-1 text-[10px] font-black ${
         primary
           ? "bg-[#176951] text-white"
@@ -408,6 +417,7 @@ function SubmitButton({
   return (
     <button
       type="submit"
+      data-gala-part="submit"
       disabled={disabled || pending}
       className="rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#105744] disabled:cursor-not-allowed disabled:bg-[#A9BDB7]"
     >
@@ -425,6 +435,7 @@ function WithdrawButton() {
   return (
     <button
       type="submit"
+      data-gala-part="withdraw"
       disabled={pending}
       className="text-xs font-black text-[#8D544B] underline decoration-[#D3A9A2] underline-offset-4 hover:text-[#6F352D] disabled:opacity-50"
     >

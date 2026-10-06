@@ -4,6 +4,7 @@ import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
 import { PcmGalaRegistrationPanel } from "./pcm-gala-registration-panel";
 import { SeasonFinaleGalaPresentation } from "./season-finale-gala-presentation";
 import { SeasonFinaleGalaReplay } from "./season-finale-gala-replay";
+import { PcmGalaStartlistExportPanel } from "./pcm-gala-startlist-export-panel";
 
 const context = { riders: [], eventStatuses: { "gala-des-puncheurs": "open" as const }, rosterSize: 7, selectedEventKey: null, selectedRiderIds: [], publicStartlists: {}, jersey: FREE_AGENT_RIDER_JERSEY };
 
@@ -19,6 +20,10 @@ describe("page du gala", () => {
     expect(html).toContain("chaque groupe");
     expect(html).toContain("Gants de Gala");
     expect(html).toContain('href="#inscriptions-gala"');
+    expect(html.match(/<a /g)).toHaveLength(1);
+    expect(html.match(/<article /g)).toHaveLength(5);
+    expect(html).not.toContain("Découvrir les lots");
+    expect(html).not.toContain("<nav");
   });
   it("n'affiche que le profil vallonné et propose six à huit coureurs", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} seasonFinale />);
@@ -29,6 +34,24 @@ describe("page du gala", () => {
     expect(html).not.toContain("Gala des Sprinteurs");
     expect(html).toContain("0/8");
     expect(html).toContain("6 minimum · 8 maximum");
+    expect(html).toContain('stroke="#D2B46B"');
+    expect(html).not.toContain("Étape 1");
+    expect(html).not.toContain("Étape 2");
+  });
+  it("ne change pas le thème ni le sélecteur de l'ancien pilote à trois profils", () => {
+    const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} />);
+    expect(html).toContain("Gala des Sommets");
+    expect(html).toContain("Gala des Sprinteurs");
+    expect(html).toContain("0/7");
+    expect(html).toContain('stroke="#176951"');
+    expect(html).not.toContain('stroke="#D2B46B"');
+  });
+  it("garde l'extracteur administratif compact sans menu d'installation supplémentaire", () => {
+    const html = renderToStaticMarkup(<PcmGalaStartlistExportPanel eventKey="gala-des-puncheurs" compact />);
+    expect(html).toContain("Télécharger la startlist du gala");
+    expect(html).toContain("Un XML par groupe");
+    expect(html).not.toContain("<details");
+    expect(html).not.toContain("Dernier export de cette session");
   });
   it("avertit avant de remplacer une inscription sur un ancien profil", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} selectedEventKey="gala-des-sommets" seasonFinale />);
