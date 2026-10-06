@@ -16,7 +16,7 @@ import {
   type PcmGalaRaceKey,
   type PcmGalaRatingKey,
 } from "@/lib/game/pcm-gala-races";
-import { SEASON_FINALE_GALA_RACE } from "@/lib/game/season-finale-gala";
+import { SEASON_FINALE_GALA_RACE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS } from "@/lib/game/season-finale-gala";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   PcmGalaRegistrationContext,
@@ -62,8 +62,10 @@ export function PcmGalaRegistrationPanel({
   const activeRace =
     races.find((race) => race.key === activeRaceKey) ?? races[0];
   const sortedRiders = sortRidersForRace(riders, activeRace.primaryRating);
+  const minimumRiders = seasonFinale ? SEASON_FINALE_GALA_MIN_RIDERS : rosterSize;
+  const maximumRiders = seasonFinale ? SEASON_FINALE_GALA_MAX_RIDERS : rosterSize;
   const isOpen = eventStatuses[activeRaceKey] === "open";
-  const hasCompleteSelection = selectedIds.size === rosterSize;
+  const hasCompleteSelection = selectedIds.size >= minimumRiders && selectedIds.size <= maximumRiders;
   const activeRegisteredTeams = publicStartlists[activeRaceKey] ?? [];
 
   function toggleRider(riderId: string) {
@@ -71,7 +73,7 @@ export function PcmGalaRegistrationPanel({
       const next = new Set(current);
       if (next.has(riderId)) {
         next.delete(riderId);
-      } else if (next.size < rosterSize) {
+      } else if (next.size < maximumRiders) {
         next.add(riderId);
       }
       return next;
@@ -197,8 +199,9 @@ export function PcmGalaRegistrationPanel({
             }`}
           >
             <strong className="block text-2xl font-black">
-              {selectedIds.size}/{rosterSize}
+              {selectedIds.size}/{maximumRiders}
             </strong>
+            {seasonFinale ? <span className="block text-xs font-bold">6 minimum · 8 maximum</span> : null}
             <span className="text-[10px] font-black uppercase tracking-[0.12em]">
               coureurs
             </span>
@@ -210,7 +213,7 @@ export function PcmGalaRegistrationPanel({
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {sortedRiders.map((rider) => {
               const selected = selectedIds.has(rider.riderId);
-              const selectionFull = selectedIds.size >= rosterSize && !selected;
+              const selectionFull = selectedIds.size >= maximumRiders && !selected;
 
               return (
                 <label
@@ -263,9 +266,9 @@ export function PcmGalaRegistrationPanel({
             })}
           </div>
 
-          {riders.length < rosterSize ? (
+          {riders.length < minimumRiders ? (
             <p className="mt-5 rounded-xl bg-[#FCE9E6] px-4 py-3 text-sm font-bold text-[#963F36]">
-              Votre effectif actif ne compte pas assez de coureurs pour former une sélection de {rosterSize}.
+              Votre effectif actif ne compte pas assez de coureurs pour former une sélection de {minimumRiders}.
             </p>
           ) : null}
 
@@ -276,7 +279,7 @@ export function PcmGalaRegistrationPanel({
                 : "Cette inscription est isolée du calendrier officiel : aucune forme, récompense, préparation, usure d’équipement ou donnée de classement ne sera modifiée."}
             </p>
             <SubmitButton
-              disabled={!isOpen || !hasCompleteSelection || riders.length < rosterSize}
+              disabled={!isOpen || !hasCompleteSelection || riders.length < minimumRiders}
               hasRegistration={Boolean(selectedEventKey)}
             />
           </div>

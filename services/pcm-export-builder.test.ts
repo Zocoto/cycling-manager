@@ -25,6 +25,8 @@ describe("generateur de base PCM26", () => {
           resolve("node_modules", "sql.js", "dist", file),
       });
       const templateDb = cdbToSql(template, SQL, { preciseTypes: true });
+      expect(readCount(templateDb, "SELECT gene_i_max_riders FROM STA_race_class WHERE IDrace_class = 8")).toBe(7);
+      expect(readCount(templateDb, "SELECT COUNT(*) FROM STA_race_rules WHERE fkIDrace = 15")).toBe(0);
       const sourceStageCount = readCount(
         templateDb,
         "SELECT COUNT(*) FROM STA_stage",
@@ -54,6 +56,8 @@ describe("generateur de base PCM26", () => {
 
       const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
       try {
+        expect(readCount(db, "SELECT COUNT(*) FROM STA_race_rules WHERE fkIDrace=15 AND gene_i_max_team=25 AND gene_i_min_riders=6 AND gene_i_max_riders=8")).toBe(1);
+        expect(readCount(db, "SELECT gene_i_max_riders FROM STA_race_class WHERE IDrace_class = 8")).toBe(7);
         expect(
           readCount(db, "SELECT COUNT(*) FROM DYN_team WHERE CONSTANT LIKE 'CS_%'"),
         ).toBe(2);

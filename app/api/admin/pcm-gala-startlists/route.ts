@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/zip",
         "X-CS-Season": String(result.season),
         "X-CS-Events": String(result.eventCount),
+        "X-CS-Simulations": String(result.simulationCount),
         "X-CS-Teams": String(result.registeredTeamCount),
         "X-CS-Riders": String(result.registeredRiderCount),
         "X-CS-Generated-At": result.generatedAt,

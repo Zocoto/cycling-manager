@@ -19,7 +19,7 @@ import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-ident
 
 export const metadata: Metadata = {
   title: SEASON_FINALE_GALA_NAME,
-  description: "Un gala vallonné simulé dans PCM26 : inscriptions, lots proposés et replay vidéo, sans impact sur les courses du jeu.",
+  description: "Un gala vallonné hors-circuit simulé dans PCM26 : inscriptions de 6 à 8 coureurs, lots du top 5 de chaque groupe et replay vidéo, sans impact sur la forme.",
 };
 
 export default async function SeasonFinaleGalaPage({ searchParams }: {

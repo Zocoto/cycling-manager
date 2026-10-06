@@ -14,18 +14,21 @@ describe("page du gala", () => {
     expect(html).toContain("Pas de live");
     expect(html).toContain("Aucun effet sur la forme");
     expect(html).toContain("Ni argent, ni points de classement");
-    expect(html).toContain("À confirmer");
+    expect(html).not.toContain("À confirmer");
+    expect(html).toContain("hors-circuit");
+    expect(html).toContain("chaque groupe");
     expect(html).toContain("Gants de Gala");
     expect(html).toContain('href="#inscriptions-gala"');
   });
-  it("n'affiche que le profil vallonné et conserve les sept places", () => {
+  it("n'affiche que le profil vallonné et propose six à huit coureurs", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} seasonFinale />);
     expect(html).toContain("Le parcours du gala");
     expect(html).toContain("205 km");
     expect(html).toContain('value="gala-des-puncheurs"');
     expect(html).not.toContain("Gala des Sommets");
     expect(html).not.toContain("Gala des Sprinteurs");
-    expect(html).toContain("0/7");
+    expect(html).toContain("0/8");
+    expect(html).toContain("6 minimum · 8 maximum");
   });
   it("avertit avant de remplacer une inscription sur un ancien profil", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} selectedEventKey="gala-des-sommets" seasonFinale />);

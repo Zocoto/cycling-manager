@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readGalaYoutubeVideoId, SEASON_FINALE_GALA_PRIZES, SEASON_FINALE_GALA_PRIZES_CONFIRMED, SEASON_FINALE_GALA_RACE } from "./season-finale-gala";
+import { readGalaYoutubeVideoId, SEASON_FINALE_GALA_PRIZES, SEASON_FINALE_GALA_PRIZES_CONFIRMED, SEASON_FINALE_GALA_RACE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS, SEASON_FINALE_GALA_TEAMS_PER_GROUP, SEASON_FINALE_GALA_PCM_MAX_TEAMS } from "./season-finale-gala";
 
 describe("Grand Gala de fin de saison", () => {
   it("réutilise uniquement le parcours vallonné officiel du pilote PCM", () => {
@@ -10,12 +10,17 @@ describe("Grand Gala de fin de saison", () => {
     expect(SEASON_FINALE_GALA_RACE.pcmSource.stageFilename).toBe("topclas_fleche");
     expect(SEASON_FINALE_GALA_RACE.distanceKm).toBe(205);
   });
-  it("propose cinq lots distincts, dont des gants exceptionnels, sans annoncer une dotation validée", () => {
+  it("définit cinq lots distincts validés, dont des gants exceptionnels", () => {
     expect(SEASON_FINALE_GALA_PRIZES.map((prize) => prize.rank)).toEqual([1, 2, 3, 4, 5]);
     expect(new Set(SEASON_FINALE_GALA_PRIZES.map((prize) => prize.key)).size).toBe(5);
     expect(SEASON_FINALE_GALA_PRIZES[1]).toMatchObject({ slot: "gloves", rarity: "Exceptionnel" });
-    expect(SEASON_FINALE_GALA_PRIZES_CONFIRMED).toBe(false);
+    expect(SEASON_FINALE_GALA_PRIZES_CONFIRMED).toBe(true);
     for (const prize of SEASON_FINALE_GALA_PRIZES) expect(existsSync(join(process.cwd(), "public", prize.image))).toBe(true);
+  });
+  it("prévoit 6 à 8 coureurs et conserve une place pour le spectateur sous le plafond PCM", () => {
+    expect([SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS]).toEqual([6, 8]);
+    expect(SEASON_FINALE_GALA_TEAMS_PER_GROUP).toBe(20);
+    expect(SEASON_FINALE_GALA_TEAMS_PER_GROUP + 1).toBeLessThanOrEqual(SEASON_FINALE_GALA_PCM_MAX_TEAMS);
   });
   it.each([
     "https://www.youtube.com/watch?v=Abcdef123_-&t=42",

@@ -107,7 +107,7 @@ export async function getPcmGalaRegistrationContext(
   const [rosterResult, contextResult, publicStartlistsResult] = await Promise.all([
     supabase.rpc("get_current_team_roster"),
     supabase.rpc("get_current_team_pcm_gala_context"),
-    supabase.rpc("get_pcm_gala_public_startlists"),
+    loadPublicStartlists(supabase),
   ]);
 
   if (rosterResult.error) {
@@ -167,6 +167,18 @@ export async function getPcmGalaRegistrationContext(
     ),
     publicStartlists: groupPublicStartlists(publicStartlistRows),
   };
+}
+
+async function loadPublicStartlists(supabase: SupabaseServerClient) {
+  const rows: PublicStartlistRow[] = [];
+  const pageSize = 1000;
+  for (let start = 0; ; start += pageSize) {
+    const result = await supabase.rpc("get_pcm_gala_public_startlists").range(start, start + pageSize - 1);
+    if (result.error) return { data: null, error: result.error };
+    const page = (result.data ?? []) as PublicStartlistRow[];
+    rows.push(...page);
+    if (page.length < pageSize) return { data: rows, error: null };
+  }
 }
 
 function groupPublicStartlists(rows: PublicStartlistRow[]) {

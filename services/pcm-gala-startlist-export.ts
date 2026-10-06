@@ -2,6 +2,8 @@ import "server-only";
 
 import { strToU8, zipSync } from "fflate";
 import type { PcmGalaRaceKey } from "@/lib/game/pcm-gala-races";
+import { splitPcmGalaGroups } from "@/lib/game/pcm-gala-groups";
+import { SEASON_FINALE_GALA_EVENT_KEY, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS } from "@/lib/game/season-finale-gala";
 
 import {
   createPcmStartlistXml,
@@ -32,6 +34,7 @@ export type PcmGalaStartlistExportResult = {
   generatedAt: string;
   season: number;
   eventCount: number;
+  simulationCount: number;
   registeredTeamCount: number;
   registeredRiderCount: number;
 };
@@ -52,23 +55,25 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
   const season = seasonResult.data;
 
   const [eventsResult, registrationsResult, teamSeasonsResult] = await Promise.all([
-    admin
+    loadAllRows(admin
       .from("pcm_gala_events")
       .select("id,event_key,display_name,pcm_stage_filename,roster_size,sort_order")
       .eq("season_id", season.id)
       .order("sort_order", { ascending: true })
-      .returns<GalaEvent[]>(),
-    admin
+      .returns<GalaEvent[]>()),
+    loadAllRows(admin
       .from("pcm_gala_registrations")
       .select("id,gala_event_id,team_id")
       .eq("season_id", season.id)
-      .returns<Registration[]>(),
-    admin
+      .order("id")
+      .returns<Registration[]>()),
+    loadAllRows(admin
       .from("team_seasons")
       .select("team_id,display_name")
       .eq("season_id", season.id)
       .eq("status", "active")
-      .returns<TeamSeason[]>(),
+      .order("team_id")
+      .returns<TeamSeason[]>()),
   ]);
 
   assertQuery(eventsResult, "courses gala");
@@ -84,19 +89,21 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
   const teamIds = [...new Set(registrations.map((row) => row.team_id))];
   const [registrationRidersResult, teamsResult] = await Promise.all([
     registrationIds.length > 0
-      ? admin
+      ? loadRowsByIds(registrationIds, (ids) => admin
           .from("pcm_gala_registration_riders")
           .select("registration_id,rider_id,position")
-          .in("registration_id", registrationIds)
+          .in("registration_id", ids)
           .order("position", { ascending: true })
-          .returns<RegistrationRider[]>()
+          .order("registration_id")
+          .returns<RegistrationRider[]>())
       : Promise.resolve({ data: [] as RegistrationRider[], error: null }),
     teamIds.length > 0
-      ? admin
+      ? loadRowsByIds(teamIds, (ids) => admin
           .from("teams")
           .select("id,pcm_export_id")
-          .in("id", teamIds)
-          .returns<Team[]>()
+          .in("id", ids)
+          .order("id")
+          .returns<Team[]>())
       : Promise.resolve({ data: [] as Team[], error: null }),
   ]);
 
@@ -105,11 +112,12 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
   const registrationRiders = registrationRidersResult.data ?? [];
   const riderIds = [...new Set(registrationRiders.map((row) => row.rider_id))];
   const ridersResult = riderIds.length > 0
-    ? await admin
+    ? await loadRowsByIds(riderIds, (ids) => admin
         .from("riders")
         .select("id,pcm_export_id,first_name,last_name")
-        .in("id", riderIds)
-        .returns<Rider[]>()
+        .in("id", ids)
+        .order("id")
+        .returns<Rider[]>())
     : { data: [] as Rider[], error: null };
   assertQuery(ridersResult, "identifiants PCM des coureurs");
 
@@ -134,8 +142,10 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
         (teamNamesById.get(left.team_id) ?? left.team_id).localeCompare(
           teamNamesById.get(right.team_id) ?? right.team_id,
           "fr",
-        ),
+        ) || left.team_id.localeCompare(right.team_id),
       );
+    const groups = event.event_key === SEASON_FINALE_GALA_EVENT_KEY ? splitPcmGalaGroups(eventRegistrations) : [eventRegistrations];
+    for (const [groupIndex, groupRegistrations] of groups.entries()) {
     const startlistTeams: PcmStartlistTeam[] = [
       {
         teamId: PCM_SPECTATOR_TEAM_ID,
@@ -144,14 +154,15 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
     ];
     const manifestTeams: Array<Record<string, unknown>> = [];
 
-    for (const registration of eventRegistrations) {
+    for (const registration of groupRegistrations) {
       const team = teamsById.get(registration.team_id);
       if (!team || !Number.isInteger(Number(team.pcm_export_id))) {
         throw new Error(`Identifiant PCM absent pour l’équipe ${registration.team_id}.`);
       }
       const selected = [...(registrationRidersByRegistration.get(registration.id) ?? [])]
         .sort((left, right) => left.position - right.position);
-      if (selected.length !== event.roster_size) {
+      const isFinale = event.event_key === SEASON_FINALE_GALA_EVENT_KEY;
+      if (isFinale ? selected.length < SEASON_FINALE_GALA_MIN_RIDERS || selected.length > SEASON_FINALE_GALA_MAX_RIDERS : selected.length !== event.roster_size) {
         throw new Error(`Sélection incomplète pour ${teamNamesById.get(registration.team_id) ?? registration.team_id}.`);
       }
       const pcmRiderIds = selected.map((selection) => {
@@ -176,20 +187,23 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
       });
     }
 
-    const xmlFilename = `${event.pcm_stage_filename}.xml`;
+    const xmlFilename = groups.length > 1 ? `Groupe-${groupIndex + 1}/${event.pcm_stage_filename}.xml` : `${event.pcm_stage_filename}.xml`;
     files[xmlFilename] = strToU8(createPcmStartlistXml(startlistTeams));
     manifestEvents.push({
       eventKey: event.event_key,
       eventName: event.display_name,
       file: xmlFilename,
-      registeredTeams: eventRegistrations.length,
+      groupNumber: groupIndex + 1,
+      groupCount: groups.length,
+      registeredTeams: groupRegistrations.length,
       spectatorTeamIncluded: true,
       teams: manifestTeams,
     });
+    }
   }
 
   files["manifest.json"] = strToU8(`${JSON.stringify({
-    formatVersion: 1,
+    formatVersion: 2,
     targetGame: "Pro Cycling Manager 2026",
     generatedAt,
     season: season.game_year,
@@ -203,6 +217,7 @@ export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey):
     generatedAt,
     season: season.game_year,
     eventCount: events.length,
+    simulationCount: manifestEvents.length,
     registeredTeamCount: registrations.length,
     registeredRiderCount: registrationRiders.length,
   };
@@ -215,6 +230,28 @@ function assertQuery<T>(
   if (result.error) throw new Error(`Impossible de charger ${label} : ${result.error.message}`);
 }
 
+async function loadAllRows<T>(query: { range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }> }) {
+  const rows: T[] = [];
+  const pageSize = 1000;
+  for (let start = 0; ; start += pageSize) {
+    const result = await query.range(start, start + pageSize - 1);
+    if (result.error) return { data: null, error: result.error };
+    const page = result.data ?? [];
+    rows.push(...page);
+    if (page.length < pageSize) return { data: rows, error: null };
+  }
+}
+
+async function loadRowsByIds<T>(ids: string[], createQuery: (ids: string[]) => { range: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }> }) {
+  const rows: T[] = [];
+  for (let start = 0; start < ids.length; start += 100) {
+    const result = await loadAllRows(createQuery(ids.slice(start, start + 100)));
+    if (result.error) return result;
+    rows.push(...(result.data ?? []));
+  }
+  return { data: rows, error: null };
+}
+
 function createReadme() {
   return `INSTALLATION DES STARTLISTS CYCLOSTRATEGE DANS PCM26
 
@@ -225,6 +262,18 @@ function createReadme() {
    %APPDATA%\\Pro Cycling Manager 2026\\Cloud\\Startlists\\
 5. Relancez PCM26, chargez le mod Cyclostratège et choisissez la course correspondante.
 6. Activez le chargement de la liste de départ personnalisée.
+
+SI L'ARCHIVE CONTIENT PLUSIEURS DOSSIERS GROUPE :
+- Chaque groupe correspond a une simulation independante du meme parcours.
+- Copiez uniquement le XML du Groupe-1, simulez et enregistrez cette course.
+- Remplacez ensuite ce XML par celui du Groupe-2 et lancez une nouvelle course.
+- Ne renommez pas topclas_fleche.xml : PCM reconnait ce nom de fichier.
+- Continuez de la meme facon si des groupes supplementaires sont presents.
+- Le manifeste detaille toutes les equipes : aucune inscription n'est exclue.
+- Le top 5 de CHAQUE groupe recoit la meme dotation, sans finale commune.
+
+Pour 6 a 8 coureurs sur la Fleche Wallonne, utilisez une DB Cyclostratege
+exportee apres l'ajout des regles specifiques du gala (STA_race_rules).
 
 L'équipe Cyclostratège et sept coureurs Simulo sont ajoutés automatiquement à
 chaque fichier afin de pouvoir suivre la course en mode spectateur.

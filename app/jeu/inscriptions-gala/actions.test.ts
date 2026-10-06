@@ -27,9 +27,26 @@ describe("inscriptions du gala hors compétition", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("refuse les sélections incomplètes et les doublons", async () => {
-    await expect(saveSeasonFinaleGalaRegistrationAction(selection("gala-des-puncheurs", 6))).rejects.toThrow("?erreur=");
+    await expect(saveSeasonFinaleGalaRegistrationAction(selection("gala-des-puncheurs", 5))).rejects.toThrow("?erreur=");
     const duplicate = selection("gala-des-puncheurs", 6); duplicate.append("riderIds", String(duplicate.get("riderIds")));
     await expect(saveSeasonFinaleGalaRegistrationAction(duplicate)).rejects.toThrow("?erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it.each([6, 7, 8])("accepte %i coureurs au gala", async (count) => {
+    await expect(saveSeasonFinaleGalaRegistrationAction(selection("gala-des-puncheurs", count))).rejects.toThrow("?inscription=");
+    expect(mocks.rpc).toHaveBeenCalledWith("save_current_team_pcm_gala_registration", { p_event_key: "gala-des-puncheurs", p_rider_ids: selection("gala-des-puncheurs", count).getAll("riderIds") });
+  });
+  it.each([0, 5, 9])("refuse %i coureurs au gala", async (count) => {
+    await expect(saveSeasonFinaleGalaRegistrationAction(selection("gala-des-puncheurs", count))).rejects.toThrow("?erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it("ne supprime pas silencieusement un identifiant invalide", async () => {
+    const data = selection(); data.append("riderIds", "invalid");
+    await expect(saveSeasonFinaleGalaRegistrationAction(data)).rejects.toThrow("?erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it.each([6, 8])("conserve exactement sept coureurs sur les anciens profils, pas %i", async (count) => {
+    await expect(savePcmGalaRegistrationAction(selection("gala-des-sommets", count))).rejects.toThrow("?erreur=");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("ne modifie rien sans connexion", async () => {

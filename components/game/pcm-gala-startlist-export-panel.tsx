@@ -7,6 +7,7 @@ type ExportSummary = {
   filename: string;
   season: string;
   events: string;
+  simulations: string;
   teams: string;
   riders: string;
   generatedAt: string;
@@ -49,6 +50,7 @@ export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRa
         filename,
         season: response.headers.get("X-CS-Season") ?? "—",
         events: response.headers.get("X-CS-Events") ?? "—",
+        simulations: response.headers.get("X-CS-Simulations") ?? response.headers.get("X-CS-Events") ?? "—",
         teams: response.headers.get("X-CS-Teams") ?? "—",
         riders: response.headers.get("X-CS-Riders") ?? "—",
         generatedAt: response.headers.get("X-CS-Generated-At") ?? new Date().toISOString(),
@@ -87,6 +89,7 @@ export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRa
             Les identifiants équipes et coureurs sont permanents : ces fichiers
             restent alignés avec les nouvelles extractions de la DB Cyclostratège.
           </div>
+          {eventKey ? <p className="mt-4 text-sm font-semibold leading-6 text-[#49665E]">Aucune équipe exclue : au-delà de 20 équipes, l’archive contient plusieurs dossiers Groupe, chacun avec sa startlist. Charge un groupe à la fois dans PCM et enregistre une vidéo par simulation. Utilise une nouvelle extraction de la DB pour activer les sélections de 6 à 8 coureurs.</p> : null}
           {error ? (
             <p role="alert" className="mt-4 rounded-2xl border border-[#D98A8A] bg-[#FFF1F1] px-4 py-3 text-sm font-bold text-[#8F2929]">
               {error}
@@ -103,9 +106,10 @@ export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRa
           <details className="mt-5 rounded-2xl border border-[#CFE0DA] bg-white px-4 py-3 text-sm text-[#49665E]">
             <summary className="cursor-pointer font-black text-[#123D34]">Installation dans PCM26</summary>
             <p className="mt-3 font-semibold leading-6">
-              Décompresse l’archive puis copie {eventKey ? "le fichier XML" : "les trois fichiers XML"} dans
+              Décompresse l’archive puis copie {eventKey ? "le fichier XML du groupe à simuler" : "les fichiers XML de la simulation choisie"} dans
               <code> %APPDATA%\Pro Cycling Manager 2026\Cloud\Startlists\</code>.
             </p>
+            <p className="mt-2 font-semibold leading-6">En présence de dossiers Groupe, termine une simulation puis remplace le XML par celui du groupe suivant. Garde son nom d’origine : ne copie pas les deux groupes simultanément.</p>
           </details>
         </div>
 
@@ -117,6 +121,7 @@ export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRa
             <dl className="mt-4 space-y-3 text-sm">
               <SummaryRow label="Saison" value={`S${summary.season}`} />
               <SummaryRow label="Courses" value={summary.events} />
+              <SummaryRow label="Simulations / groupes" value={summary.simulations} />
               <SummaryRow label="Équipes inscrites" value={summary.teams} />
               <SummaryRow label="Coureurs inscrits" value={summary.riders} />
               <div className="border-t border-[#CFE0DA] pt-3">

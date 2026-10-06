@@ -9,7 +9,7 @@ import {
 } from "@/lib/game/pcm-gala-races";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { SEASON_FINALE_GALA_EVENT_KEY, SEASON_FINALE_GALA_ROUTE } from "@/lib/game/season-finale-gala";
+import { SEASON_FINALE_GALA_EVENT_KEY, SEASON_FINALE_GALA_ROUTE, SEASON_FINALE_GALA_MIN_RIDERS, SEASON_FINALE_GALA_MAX_RIDERS } from "@/lib/game/season-finale-gala";
 
 const GALA_ROUTE = "/jeu/inscriptions-gala";
 
@@ -23,11 +23,12 @@ export async function saveSeasonFinaleGalaRegistrationAction(formData: FormData)
   if (formData.get("eventKey") !== SEASON_FINALE_GALA_EVENT_KEY) {
     redirectWithMessage("erreur", "Seul le profil vallonné est ouvert pour ce gala.", SEASON_FINALE_GALA_ROUTE);
   }
-  return saveRegistration(formData, SEASON_FINALE_GALA_ROUTE);
+  return saveRegistration(formData, SEASON_FINALE_GALA_ROUTE, true);
 }
 
-async function saveRegistration(formData: FormData, route: string): Promise<never> {
+async function saveRegistration(formData: FormData, route: string, seasonFinale = false): Promise<never> {
   const eventKey = String(formData.get("eventKey") ?? "");
+  const rawRiderIds = formData.getAll("riderIds");
   const riderIds = formData
     .getAll("riderIds")
     .filter((value): value is string => typeof value === "string")
@@ -37,13 +38,12 @@ async function saveRegistration(formData: FormData, route: string): Promise<neve
     redirectWithMessage("erreur", "Choisissez une course de gala valide.", route);
   }
 
-  if (
-    riderIds.length !== PCM_GALA_ROSTER_SIZE ||
-    new Set(riderIds).size !== PCM_GALA_ROSTER_SIZE
-  ) {
+  const minimum = seasonFinale ? SEASON_FINALE_GALA_MIN_RIDERS : PCM_GALA_ROSTER_SIZE;
+  const maximum = seasonFinale ? SEASON_FINALE_GALA_MAX_RIDERS : PCM_GALA_ROSTER_SIZE;
+  if (riderIds.length < minimum || riderIds.length > maximum || new Set(riderIds).size !== riderIds.length || rawRiderIds.length !== riderIds.length) {
     redirectWithMessage(
       "erreur",
-      `Sélectionnez exactement ${PCM_GALA_ROSTER_SIZE} coureurs différents.`,
+      seasonFinale ? `Sélectionnez de ${minimum} à ${maximum} coureurs différents.` : `Sélectionnez exactement ${PCM_GALA_ROSTER_SIZE} coureurs différents.`,
       route,
     );
   }
@@ -65,14 +65,14 @@ async function saveRegistration(formData: FormData, route: string): Promise<neve
   );
 
   if (error) {
-    redirectWithMessage("erreur", normalizeRegistrationError(error.message), route);
+    redirectWithMessage("erreur", normalizeRegistrationError(error.message, seasonFinale), route);
   }
 
   revalidatePath(GALA_ROUTE);
   revalidatePath(SEASON_FINALE_GALA_ROUTE);
   redirectWithMessage(
     "inscription",
-    "Votre course et vos 7 coureurs sont enregistrés.",
+    `Votre course et vos ${riderIds.length} coureurs sont enregistrés.`,
     route,
   );
 }
@@ -111,7 +111,7 @@ async function withdrawRegistration(route: string): Promise<never> {
   redirectWithMessage("inscription", "Votre inscription gala a été retirée.", route);
 }
 
-function normalizeRegistrationError(message: string) {
+function normalizeRegistrationError(message: string, seasonFinale = false) {
   const normalized = message.toLocaleLowerCase("fr-FR");
 
   if (normalized.includes("fermee") || normalized.includes("fermée")) {
@@ -120,8 +120,8 @@ function normalizeRegistrationError(message: string) {
   if (normalized.includes("effectif")) {
     return "Un coureur sélectionné n’appartient plus à votre effectif actif.";
   }
-  if (normalized.includes("exactement")) {
-    return `Sélectionnez exactement ${PCM_GALA_ROSTER_SIZE} coureurs différents.`;
+  if (normalized.includes("exactement") || normalized.includes("entre")) {
+    return seasonFinale ? "Sélectionnez de 6 à 8 coureurs différents." : `Sélectionnez exactement ${PCM_GALA_ROSTER_SIZE} coureurs différents.`;
   }
 
   return "L’inscription n’a pas pu être enregistrée. Réessayez dans un instant.";

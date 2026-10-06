@@ -14,7 +14,7 @@ describe("API administrative de startlist gala", () => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue({ data: { user: { email: "admin@test.invalid" } }, error: null });
     mocks.access.mockReturnValue(true);
-    mocks.generate.mockResolvedValue({ archive: new Uint8Array([1, 2, 3]), filename: "gala.zip", season: 3, eventCount: 1, registeredTeamCount: 2, registeredRiderCount: 14, generatedAt: "2026-10-06T12:00:00.000Z" });
+    mocks.generate.mockResolvedValue({ archive: new Uint8Array([1, 2, 3]), filename: "gala.zip", season: 3, eventCount: 1, simulationCount: 1, registeredTeamCount: 2, registeredRiderCount: 14, generatedAt: "2026-10-06T12:00:00.000Z" });
   });
   it("refuse les joueurs ordinaires, même avec un en-tête forgé", async () => {
     mocks.access.mockReturnValue(false);
@@ -41,6 +41,7 @@ describe("API administrative de startlist gala", () => {
     expect(response.headers.get("Content-Type")).toBe("application/zip");
     expect(response.headers.get("Cache-Control")).toContain("no-store");
     expect(response.headers.get("X-CS-Events")).toBe("1");
+    expect(response.headers.get("X-CS-Simulations")).toBe("1");
     expect(response.headers.get("X-CS-Riders")).toBe("14");
   });
   it("conserve l'export de tous les profils en l'absence de filtre", async () => {

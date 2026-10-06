@@ -8,6 +8,7 @@ import { cdbToSql, sqlToCdb } from "cdb-converter";
 import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
+import { configurePcmSeasonFinaleGalaRules } from "@/lib/game/pcm-export/gala-rules";
 import { convertRiderRatings } from "@/lib/game/pcm-export/ratings";
 import type {
   PcmExportResult,
@@ -722,6 +723,7 @@ function buildDatabaseFromSnapshot(
     }
 
     remapPresetRaceTeamLists(db, teamMappings, spectatorTeamId);
+    configurePcmSeasonFinaleGalaRules(db);
 
     validateGeneratedRows(
       db,
