@@ -1,4 +1,5 @@
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
+import { isPcmGalaRaceKey } from "@/lib/game/pcm-gala-races";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { generatePcmGalaStartlistExport } from "@/services/pcm-gala-startlist-export";
@@ -24,8 +25,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Requête d’export invalide." }, { status: 403 });
   }
 
+  const eventKey = new URL(request.url).searchParams.get("eventKey");
+  if (eventKey !== null && !isPcmGalaRaceKey(eventKey)) {
+    return Response.json({ error: "Course gala inconnue." }, { status: 400 });
+  }
+
   try {
-    const result = await generatePcmGalaStartlistExport();
+    const result = await generatePcmGalaStartlistExport(eventKey ?? undefined);
     const body = new Uint8Array(result.archive.byteLength);
     body.set(result.archive);
 

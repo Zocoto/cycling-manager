@@ -1,6 +1,7 @@
 import "server-only";
 
 import { strToU8, zipSync } from "fflate";
+import type { PcmGalaRaceKey } from "@/lib/game/pcm-gala-races";
 
 import {
   createPcmStartlistXml,
@@ -35,7 +36,7 @@ export type PcmGalaStartlistExportResult = {
   registeredRiderCount: number;
 };
 
-export async function generatePcmGalaStartlistExport(): Promise<PcmGalaStartlistExportResult> {
+export async function generatePcmGalaStartlistExport(eventKey?: PcmGalaRaceKey): Promise<PcmGalaStartlistExportResult> {
   const admin = createSupabaseAdminClient();
   const seasonResult = await admin
     .from("seasons")
@@ -74,8 +75,9 @@ export async function generatePcmGalaStartlistExport(): Promise<PcmGalaStartlist
   assertQuery(registrationsResult, "inscriptions gala");
   assertQuery(teamSeasonsResult, "équipes de la saison");
 
-  const events = eventsResult.data ?? [];
-  const registrations = registrationsResult.data ?? [];
+  const events = (eventsResult.data ?? []).filter((event) => !eventKey || event.event_key === eventKey);
+  const eventIds = new Set(events.map((event) => event.id));
+  const registrations = (registrationsResult.data ?? []).filter((registration) => eventIds.has(registration.gala_event_id));
   if (events.length === 0) throw new Error("Aucune course gala n’est configurée.");
 
   const registrationIds = registrations.map((row) => row.id);
@@ -197,7 +199,7 @@ export async function generatePcmGalaStartlistExport(): Promise<PcmGalaStartlist
 
   return {
     archive: zipSync(files, { level: 6 }),
-    filename: `Cyclostratege-Startlists-PCM26-S${season.game_year}.zip`,
+    filename: `Cyclostratege-Startlists-PCM26-S${season.game_year}${eventKey ? `-${eventKey}` : ""}.zip`,
     generatedAt,
     season: season.game_year,
     eventCount: events.length,

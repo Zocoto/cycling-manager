@@ -9,12 +9,24 @@ import {
 } from "@/lib/game/pcm-gala-races";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { SEASON_FINALE_GALA_EVENT_KEY, SEASON_FINALE_GALA_ROUTE } from "@/lib/game/season-finale-gala";
 
 const GALA_ROUTE = "/jeu/inscriptions-gala";
 
 export async function savePcmGalaRegistrationAction(
   formData: FormData,
 ): Promise<never> {
+  return saveRegistration(formData, GALA_ROUTE);
+}
+
+export async function saveSeasonFinaleGalaRegistrationAction(formData: FormData): Promise<never> {
+  if (formData.get("eventKey") !== SEASON_FINALE_GALA_EVENT_KEY) {
+    redirectWithMessage("erreur", "Seul le profil vallonné est ouvert pour ce gala.", SEASON_FINALE_GALA_ROUTE);
+  }
+  return saveRegistration(formData, SEASON_FINALE_GALA_ROUTE);
+}
+
+async function saveRegistration(formData: FormData, route: string): Promise<never> {
   const eventKey = String(formData.get("eventKey") ?? "");
   const riderIds = formData
     .getAll("riderIds")
@@ -22,7 +34,7 @@ export async function savePcmGalaRegistrationAction(
     .filter(isUuid);
 
   if (!isPcmGalaRaceKey(eventKey)) {
-    redirectWithMessage("erreur", "Choisissez une course de gala valide.");
+    redirectWithMessage("erreur", "Choisissez une course de gala valide.", route);
   }
 
   if (
@@ -32,6 +44,7 @@ export async function savePcmGalaRegistrationAction(
     redirectWithMessage(
       "erreur",
       `Sélectionnez exactement ${PCM_GALA_ROSTER_SIZE} coureurs différents.`,
+      route,
     );
   }
 
@@ -52,17 +65,27 @@ export async function savePcmGalaRegistrationAction(
   );
 
   if (error) {
-    redirectWithMessage("erreur", normalizeRegistrationError(error.message));
+    redirectWithMessage("erreur", normalizeRegistrationError(error.message), route);
   }
 
   revalidatePath(GALA_ROUTE);
+  revalidatePath(SEASON_FINALE_GALA_ROUTE);
   redirectWithMessage(
     "inscription",
     "Votre course et vos 7 coureurs sont enregistrés.",
+    route,
   );
 }
 
 export async function withdrawPcmGalaRegistrationAction(): Promise<never> {
+  return withdrawRegistration(GALA_ROUTE);
+}
+
+export async function withdrawSeasonFinaleGalaRegistrationAction(): Promise<never> {
+  return withdrawRegistration(SEASON_FINALE_GALA_ROUTE);
+}
+
+async function withdrawRegistration(route: string): Promise<never> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -79,11 +102,13 @@ export async function withdrawPcmGalaRegistrationAction(): Promise<never> {
     redirectWithMessage(
       "erreur",
       "L’inscription n’a pas pu être retirée. Réessayez dans un instant.",
+      route,
     );
   }
 
   revalidatePath(GALA_ROUTE);
-  redirectWithMessage("inscription", "Votre inscription gala a été retirée.");
+  revalidatePath(SEASON_FINALE_GALA_ROUTE);
+  redirectWithMessage("inscription", "Votre inscription gala a été retirée.", route);
 }
 
 function normalizeRegistrationError(message: string) {
@@ -105,8 +130,9 @@ function normalizeRegistrationError(message: string) {
 function redirectWithMessage(
   key: "inscription" | "erreur",
   message: string,
+  route = GALA_ROUTE,
 ): never {
-  redirect(`${GALA_ROUTE}?${key}=${encodeURIComponent(message)}`);
+  redirect(`${route}?${key}=${encodeURIComponent(message)}`);
 }
 
 function isUuid(value: string) {

@@ -9,6 +9,9 @@ const source = readFileSync(
 );
 
 describe("mobile game navigation", () => {
+  it("met le gala en tête du menu Plus et referme le panneau après navigation", () => {
+    expect(source.includes("<SeasonFinaleGalaMenuLink isEnglish={isEnglish} onClick={() => closePanel()} />")).toBe(true);
+  });
   it("offre cinq destinations majeures accessibles au pouce", () => {
     for (const href of [
       '"/jeu"',

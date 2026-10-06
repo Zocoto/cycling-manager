@@ -7,6 +7,12 @@ import { GameNavigationMenu } from "./game-navigation-menu";
 import { PLAYER_TRACKING_ADMIN_EMAIL } from "@/lib/game/player-tracking-access";
 
 describe("GameNavigationMenu", () => {
+  it("met le gala en tête du menu pour tous les joueurs", () => {
+    const markup = renderToStaticMarkup(<GameNavigationMenu viewerEmail="membre@example.com" />);
+    expect(markup).toContain('href="/jeu/gala-fin-de-saison"');
+    expect(markup).toContain("Grand Gala de fin de saison");
+    expect(markup.indexOf('href="/jeu/gala-fin-de-saison"')).toBeLessThan(markup.indexOf('href="/jeu/effectif"'));
+  });
   it("ne révèle jamais le simulateur dans le menu", () => {
     const markup = renderToStaticMarkup(<GameNavigationMenu />);
 

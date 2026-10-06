@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
   savePcmGalaRegistrationAction,
   withdrawPcmGalaRegistrationAction,
+  saveSeasonFinaleGalaRegistrationAction,
+  withdrawSeasonFinaleGalaRegistrationAction,
 } from "@/app/jeu/inscriptions-gala/actions";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RiderAvatar } from "@/components/game/rider-avatar";
@@ -14,6 +16,7 @@ import {
   type PcmGalaRaceKey,
   type PcmGalaRatingKey,
 } from "@/lib/game/pcm-gala-races";
+import { SEASON_FINALE_GALA_RACE } from "@/lib/game/season-finale-gala";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   PcmGalaRegistrationContext,
@@ -24,6 +27,7 @@ type PcmGalaRegistrationPanelProps = PcmGalaRegistrationContext & {
   jersey: RiderJerseyAppearance;
   successMessage?: string;
   errorMessage?: string;
+  seasonFinale?: boolean;
 };
 
 const ratingLabels: Record<PcmGalaRatingKey, string> = {
@@ -42,23 +46,22 @@ export function PcmGalaRegistrationPanel({
   jersey,
   successMessage,
   errorMessage,
+  seasonFinale = false,
 }: PcmGalaRegistrationPanelProps) {
-  const firstOpenRace = PCM_GALA_RACES.find(
+  const races = seasonFinale ? [SEASON_FINALE_GALA_RACE] : PCM_GALA_RACES;
+  const RaceCard = seasonFinale ? "div" : "button";
+  const firstOpenRace = races.find(
     (race) => eventStatuses[race.key] === "open",
   );
   const [activeRaceKey, setActiveRaceKey] = useState<PcmGalaRaceKey>(
-    selectedEventKey ?? firstOpenRace?.key ?? PCM_GALA_RACES[0].key,
+    races.find((race) => race.key === selectedEventKey)?.key ?? firstOpenRace?.key ?? races[0].key,
   );
   const [selectedIds, setSelectedIds] = useState(
     () => new Set(selectedRiderIds),
   );
   const activeRace =
-    PCM_GALA_RACES.find((race) => race.key === activeRaceKey) ??
-    PCM_GALA_RACES[0];
-  const sortedRiders = useMemo(
-    () => sortRidersForRace(riders, activeRace.primaryRating),
-    [activeRace.primaryRating, riders],
-  );
+    races.find((race) => race.key === activeRaceKey) ?? races[0];
+  const sortedRiders = sortRidersForRace(riders, activeRace.primaryRating);
   const isOpen = eventStatuses[activeRaceKey] === "open";
   const hasCompleteSelection = selectedIds.size === rosterSize;
   const activeRegisteredTeams = publicStartlists[activeRaceKey] ?? [];
@@ -81,6 +84,9 @@ export function PcmGalaRegistrationPanel({
         <MessageBanner tone="success" message={successMessage} />
       ) : null}
       {errorMessage ? <MessageBanner tone="error" message={errorMessage} /> : null}
+      {seasonFinale && selectedEventKey && selectedEventKey !== SEASON_FINALE_GALA_RACE.key ? (
+        <MessageBanner tone="error" message="Vous avez une inscription sur un autre profil du pilote PCM. Valider ce gala vallonné remplacera cette ancienne inscription ; votre sélection reste modifiable ci-dessous." />
+      ) : null}
 
       <section aria-labelledby="gala-race-choice">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -89,26 +95,26 @@ export function PcmGalaRegistrationPanel({
               Étape 1
             </p>
             <h2 id="gala-race-choice" className="mt-1 text-2xl font-black">
-              Choisissez votre course
+              {seasonFinale ? "Le parcours du gala" : "Choisissez votre course"}
             </h2>
           </div>
           <p className="text-sm font-bold text-[#668078]">Une seule course par équipe</p>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          {PCM_GALA_RACES.map((race) => {
+        <div className={`mt-4 grid gap-4 ${seasonFinale ? "" : "lg:grid-cols-3"}`}>
+          {races.map((race) => {
             const status = eventStatuses[race.key];
             const registeredTeams = publicStartlists[race.key] ?? [];
             const selected = race.key === activeRaceKey;
             const disabled = status !== "open";
 
             return (
-              <button
+              <RaceCard
                 key={race.key}
-                type="button"
-                disabled={disabled}
-                onClick={() => setActiveRaceKey(race.key)}
-                aria-pressed={selected}
+                type={seasonFinale ? undefined : "button"}
+                onClick={seasonFinale ? undefined : () => setActiveRaceKey(race.key)}
+                disabled={seasonFinale ? undefined : disabled}
+                aria-pressed={seasonFinale ? undefined : selected}
                 className={`group overflow-hidden rounded-[22px] border-2 bg-white p-4 text-left shadow-sm transition ${
                   selected
                     ? "border-[#176951] shadow-[0_14px_35px_rgba(23,105,81,0.14)]"
@@ -140,7 +146,7 @@ export function PcmGalaRegistrationPanel({
                 </div>
 
                 <div className="mt-3 rounded-2xl bg-[#F3F8F6] px-2 py-3">
-                  <RaceStageProfile segments={race.segments} compact />
+                  <RaceStageProfile segments={race.segments} compact={!seasonFinale} />
                 </div>
 
                 <div className="mt-3 flex items-center justify-between gap-3 text-xs font-black text-[#557068]">
@@ -160,7 +166,7 @@ export function PcmGalaRegistrationPanel({
                     Inscriptions closes
                   </p>
                 ) : null}
-              </button>
+              </RaceCard>
             );
           })}
         </div>
@@ -199,7 +205,7 @@ export function PcmGalaRegistrationPanel({
           </div>
         </div>
 
-        <form action={savePcmGalaRegistrationAction} className="mt-5">
+        <form action={seasonFinale ? saveSeasonFinaleGalaRegistrationAction : savePcmGalaRegistrationAction} className="mt-5">
           <input type="hidden" name="eventKey" value={activeRaceKey} />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {sortedRiders.map((rider) => {
@@ -265,8 +271,9 @@ export function PcmGalaRegistrationPanel({
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#E0EBE7] pt-5">
             <p className="max-w-xl text-xs font-semibold leading-5 text-[#71877F]">
-              Cette inscription est isolée du calendrier officiel : aucune forme,
-              récompense, préparation, usure d’équipement ou donnée de classement ne sera modifiée.
+              {seasonFinale
+                ? "Inscription hors calendrier officiel : aucun effet sur la forme, le moral, la fatigue, les blessures, la préparation ou l’usure du matériel. Aucun argent, point de classement ou gain habituel de course. Seuls les lots spécifiques du gala sont prévus."
+                : "Cette inscription est isolée du calendrier officiel : aucune forme, récompense, préparation, usure d’équipement ou donnée de classement ne sera modifiée."}
             </p>
             <SubmitButton
               disabled={!isOpen || !hasCompleteSelection || riders.length < rosterSize}
@@ -276,7 +283,7 @@ export function PcmGalaRegistrationPanel({
         </form>
 
         {selectedEventKey && eventStatuses[selectedEventKey] === "open" ? (
-          <form action={withdrawPcmGalaRegistrationAction} className="mt-3 text-right">
+          <form action={seasonFinale ? withdrawSeasonFinaleGalaRegistrationAction : withdrawPcmGalaRegistrationAction} className="mt-3 text-right">
             <WithdrawButton />
           </form>
         ) : null}
@@ -289,7 +296,7 @@ export function PcmGalaRegistrationPanel({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE9E5] bg-[#123D34] px-4 py-5 text-white sm:px-6">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
-              Startlist en direct
+              Liste des engagés
             </p>
             <h2 id="gala-startlist-view" className="mt-1 text-2xl font-black">
               Engagés · {activeRace.name}

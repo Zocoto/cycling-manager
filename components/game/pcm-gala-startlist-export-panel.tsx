@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { PcmGalaRaceKey } from "@/lib/game/pcm-gala-races";
 
 type ExportSummary = {
   filename: string;
@@ -11,7 +12,7 @@ type ExportSummary = {
   generatedAt: string;
 };
 
-export function PcmGalaStartlistExportPanel() {
+export function PcmGalaStartlistExportPanel({ eventKey }: { eventKey?: PcmGalaRaceKey } = {}) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ExportSummary | null>(null);
@@ -22,7 +23,8 @@ export function PcmGalaStartlistExportPanel() {
     setError(null);
 
     try {
-      const response = await fetch("/api/admin/pcm-gala-startlists", {
+      const endpoint = eventKey ? `/api/admin/pcm-gala-startlists?eventKey=${encodeURIComponent(eventKey)}` : "/api/admin/pcm-gala-startlists";
+      const response = await fetch(endpoint, {
         method: "POST",
         credentials: "same-origin",
         headers: { "X-CS-Requested-With": "pcm-gala-startlists-admin" },
@@ -77,7 +79,7 @@ export function PcmGalaStartlistExportPanel() {
       <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
         <div>
           <p className="text-sm font-semibold leading-6 text-[#49665E]">
-            Génère un XML natif pour chacune des trois courses à partir des
+            {eventKey ? "Génère uniquement le XML natif du parcours de ce gala" : "Génère un XML natif pour chacune des trois courses"} à partir des
             inscriptions enregistrées. L’équipe spectateur Cyclostratège et sept
             coureurs Simulo sont automatiquement ajoutés à chaque liste.
           </p>
@@ -96,12 +98,12 @@ export function PcmGalaStartlistExportPanel() {
             disabled={isGenerating}
             className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#173B58] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#173B58]/20 transition hover:bg-[#102E46] disabled:cursor-wait disabled:opacity-65"
           >
-            {isGenerating ? "Construction des listes…" : "Télécharger les startlists gala"}
+            {isGenerating ? "Construction des listes…" : eventKey ? "Télécharger la startlist du gala" : "Télécharger les startlists gala"}
           </button>
           <details className="mt-5 rounded-2xl border border-[#CFE0DA] bg-white px-4 py-3 text-sm text-[#49665E]">
             <summary className="cursor-pointer font-black text-[#123D34]">Installation dans PCM26</summary>
             <p className="mt-3 font-semibold leading-6">
-              Décompresse l’archive puis copie les trois fichiers XML dans
+              Décompresse l’archive puis copie {eventKey ? "le fichier XML" : "les trois fichiers XML"} dans
               <code> %APPDATA%\Pro Cycling Manager 2026\Cloud\Startlists\</code>.
             </p>
           </details>

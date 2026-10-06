@@ -11,6 +11,7 @@ import {
 import Link from "@/components/ui/app-link";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
 import { getMobileMoreNavigationGroups } from "@/lib/game/mobile-navigation";
+import { SeasonFinaleGalaMenuLink } from "@/components/game/season-finale-gala-menu-link";
 
 const PRIMARY_LINKS_FR = [
   ["Bureau", "/jeu", "home"],
@@ -309,6 +310,7 @@ export function MobileGameNavigation({
             aria-label={isEnglish ? "Mobile game navigation" : "Navigation mobile du jeu"}
             className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
           >
+            <SeasonFinaleGalaMenuLink isEnglish={isEnglish} onClick={() => closePanel()} />
             {federationCountryCode ? (
               <Link
                 href={`/jeu/federations/${federationCountryCode.toLowerCase()}`}
