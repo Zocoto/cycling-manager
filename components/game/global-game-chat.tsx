@@ -15,6 +15,9 @@ import {
 } from "react";
 
 import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
+import { ChatImage, ChatImageDraftPreview } from "@/components/game/chat-image";
+import { useChatImageDraft } from "@/components/game/use-chat-image-draft";
+import { isChatImageOnlyMessage, readChatImageAttachment } from "@/lib/game/chat-images";
 import { ChatDiscordFeedbackBanner } from "@/components/game/chat-discord-feedback-banner";
 import { RookieBadge } from "@/components/game/rookie-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
@@ -242,6 +245,8 @@ export function GlobalGameChat({
   const [editClockMs, setEditClockMs] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const imageDraft = useChatImageDraft(isPending);
+  const imageSendLock = useRef(false);
   const [isEditing, startEditingTransition] = useTransition();
   const viewportRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -382,9 +387,10 @@ export function GlobalGameChat({
   const timelineMessages = shouldCollapseReadHistory
     ? filteredMessages.slice(compactHistoryStartIndex)
     : filteredMessages;
+  const translationMessages = useMemo(() => timelineMessages.filter((message) => !isChatImageOnlyMessage(message)), [timelineMessages]);
   const translationPreferences = useChatAutoTranslation({
     directorId: identity.sportingDirectorId, locale, enabled: translationEnabled,
-    active: activeMode === "global", messages: timelineMessages, viewportRef,
+    active: activeMode === "global", messages: translationMessages, viewportRef,
     translations: messageTranslations, setTranslations: setMessageTranslations,
   });
 
@@ -1115,7 +1121,7 @@ export function GlobalGameChat({
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = normalizeGlobalChatMessage(draft);
-    if (!message || isPending) return;
+    if ((!message && !imageDraft.image) || isPending || imageDraft.preparing || imageSendLock.current) return;
     if (hasForbiddenGlobalChatLink(message)) {
       setError(
         "Seuls les liens Cyclo Stratège vers une fiche coureur, junior, équipe ou DS sont autorisés.",
@@ -1130,16 +1136,28 @@ export function GlobalGameChat({
       .map((recipient) => recipient.sportingDirectorId);
 
     setError(null);
+    imageSendLock.current = true;
     startTransition(async () => {
       try {
-        const savedMessage = await postGlobalChatMessageAction(
-          message,
-          replyTo?.id ?? null,
-          mentionedDirectorIds,
-        );
+        let savedMessage: GlobalChatMessage;
+        if (imageDraft.image) {
+          const form = new FormData();
+          form.set("image", imageDraft.image.file);
+          form.set("requestId", imageDraft.image.requestId);
+          form.set("message", message);
+          form.set("replyToMessageId", replyTo?.id ?? "");
+          form.set("mentionedDirectorIds", JSON.stringify(mentionedDirectorIds));
+          const response = await fetch("/api/game/chat/images", { method: "POST", body: form, signal: AbortSignal.timeout(45_000) });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error ?? "L’image n’a pas pu être envoyée.");
+          savedMessage = result.message;
+        } else {
+          savedMessage = await postGlobalChatMessageAction(message, replyTo?.id ?? null, mentionedDirectorIds);
+        }
         forceScrollToLatestRef.current = true;
         setMessages((current) => appendUniqueMessage(current, savedMessage));
         setDraft("");
+        imageDraft.clear();
         setReplyTo(null);
         setSelectedMentions([]);
         setMentionQuery(null);
@@ -1150,6 +1168,8 @@ export function GlobalGameChat({
             ? submissionError.message
             : "Le message n’a pas pu être envoyé.",
         );
+      } finally {
+        imageSendLock.current = false;
       }
     });
   }
@@ -1574,6 +1594,8 @@ export function GlobalGameChat({
           <label htmlFor="global-chat-message" className="sr-only">
             Votre message
           </label>
+          {imageDraft.image ? <ChatImageDraftPreview src={imageDraft.image.previewUrl} disabled={isPending} onRemove={imageDraft.clear} /> : null}
+          {imageDraft.preparing ? <p role="status" className="mb-2 text-xs font-semibold text-[#60756E]">Préparation de l’image…</p> : null}
           {replyTo ? (
             <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/20 bg-[#EAF7F1] px-3 py-2">
               <span aria-hidden="true" className="text-lg text-[#176951]">
@@ -1652,6 +1674,8 @@ export function GlobalGameChat({
               id="global-chat-message"
               rows={1}
               value={draft}
+              disabled={isPending}
+              onPaste={imageDraft.onPaste}
               onChange={updateDraftAndMentionSearch}
               onKeyDown={(event) => {
                 if (
@@ -1684,7 +1708,7 @@ export function GlobalGameChat({
             <button
               type="submit"
               disabled={
-                isPending || draft.trim().length === 0
+                isPending || imageDraft.preparing || (draft.trim().length === 0 && !imageDraft.image)
               }
               className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
@@ -1698,13 +1722,18 @@ export function GlobalGameChat({
           </div>
           <div className="mt-2 flex min-h-9 flex-wrap items-center gap-2">
             <GlobalChatMediaPicker
-              onEmojiSelect={appendEmoji}
+              onEmojiSelect={(emoji) => { if (!isPending) appendEmoji(emoji); }}
             />
+            <label className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full border border-[#176951]/15 text-[#176951] ${isPending || imageDraft.preparing ? "pointer-events-none opacity-50" : "hover:bg-[#EAF7F1]"}`} title="Joindre une image (ou Ctrl+V)">
+              <span aria-hidden="true">＋</span>
+              <span className="sr-only">Joindre une image</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" disabled={isPending || imageDraft.preparing} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void imageDraft.select(file); event.target.value = ""; }} />
+            </label>
             <p
               role="alert"
               className="min-w-0 flex-1 text-[10px] font-bold text-red-700"
             >
-              {error ?? reactionError}
+              {error ?? imageDraft.error ?? reactionError}
             </p>
             <p className="ml-auto shrink-0 text-[9px] font-bold text-[#789087]">
               Entrée pour envoyer · {draft.length}/{draftLimit}
@@ -1712,6 +1741,7 @@ export function GlobalGameChat({
             <p className="hidden w-full text-[9px] font-semibold text-[#789087] sm:block">
               Tapez @ pour notifier un membre · liens autorisés : fiches
               coureurs, équipes et DS Cyclo Stratège
+              {" · Ctrl+V pour joindre une image"}
             </p>
           </div>
         </form>
@@ -1900,6 +1930,7 @@ function ChatMessage({
   const canTranslate =
     translationEnabled &&
     !isCurrentDirector &&
+    !isChatImageOnlyMessage(message) &&
     hasTranslatableChatText(splitChatMessageForTranslation(message.message));
 
   return (
@@ -2098,7 +2129,7 @@ function ChatMessage({
             </div>
           </form>
         ) : (
-          <div data-i18n-skip className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+          <div data-i18n-skip={isChatImageOnlyMessage(message) ? undefined : true} className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
             {renderMessageText(message.message, isCurrentDirector)}
           </div>
         )}
@@ -2155,6 +2186,7 @@ function ChatMessage({
         {message.preview ? (
           <GlobalChatSharePreview preview={message.preview} />
         ) : null}
+        {message.image ? <ChatImage image={message.image} author={message.authorDisplayName} /> : null}
         {!isEditing ? (
           <GlobalChatMessageReactions
             message={message}
@@ -2431,7 +2463,7 @@ function appendUniqueMessage(
   message: GlobalChatMessage,
 ) {
   if (messages.some((candidate) => candidate.id === message.id)) {
-    return messages;
+    return upsertRealtimeMessage(messages, message);
   }
   return [...messages, message];
 }
@@ -2611,6 +2643,7 @@ function readRealtimeMessage(
     authorDisplayName: row.author_display_name,
     teamDisplayName: row.team_display_name,
     message: row.message,
+    image: readChatImageAttachment(value),
     preview: readRealtimePreview(row),
     replyTo:
       row.reply_to_author_display_name && row.reply_to_message_excerpt

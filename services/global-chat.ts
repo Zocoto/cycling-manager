@@ -1,4 +1,5 @@
 import "server-only";
+import { readChatImageAttachment, type ChatImageAttachment } from "@/lib/game/chat-images";
 
 import {
   GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
@@ -73,6 +74,7 @@ export type GlobalChatMessageReaction = {
 };
 
 export type GlobalChatMessage = {
+  image?: ChatImageAttachment | null;
   id: string;
   sportingDirectorId: string;
   authorAvatarKey: string | null;
@@ -112,6 +114,9 @@ export type GlobalChatMentionRecipient = {
 };
 
 export type GlobalChatMessageRow = {
+  image_path?: string | null;
+  image_width?: number | null;
+  image_height?: number | null;
   id: string;
   sporting_director_id: string;
   team_id: string;
@@ -203,6 +208,7 @@ type GlobalChatRookieStatusRow = {
 };
 
 const GLOBAL_CHAT_MESSAGE_SELECT = [
+  "image_path", "image_width", "image_height",
   "id",
   "sporting_director_id",
   "team_id",
@@ -490,6 +496,7 @@ export function mapGlobalChatMessage(
     authorDisplayName: row.author_display_name,
     teamDisplayName: row.team_display_name,
     message: row.message,
+    image: readChatImageAttachment(row),
     preview: mapGlobalChatPreview(row),
     replyTo: mapGlobalChatReply(row),
     reactions,

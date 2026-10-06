@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
+import { pruneChatImages } from "@/services/chat-image-maintenance";
 
 export const maxDuration = 300;
 
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const settledAt = new Date().toISOString();
-  const results = [];
+  const results: { task: string; ok: boolean; error: string | null; durationMs: number }[] = [];
   for (const task of MAINTENANCE_TASKS) {
     const startedAt = Date.now();
     const result = await admin.rpc(task);
@@ -51,6 +52,14 @@ export async function GET(request: Request) {
     results.push(taskResult);
     const log = taskResult.ok ? console.info : console.error;
     log("game_maintenance_fallback_task", taskResult);
+  }
+  const imageCleanupStartedAt = Date.now();
+  try {
+    await pruneChatImages(admin);
+    results.push({ task: "prune_global_chat_images", ok: true, error: null, durationMs: Date.now() - imageCleanupStartedAt });
+  } catch (error) {
+    console.error("chat_image_cleanup_failed", error);
+    results.push({ task: "prune_global_chat_images", ok: false, error: "Nettoyage des images indisponible", durationMs: Date.now() - imageCleanupStartedAt });
   }
   const failedTasks = results.filter((result) => !result.ok);
 
