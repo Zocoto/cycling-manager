@@ -24,6 +24,7 @@ beforeEach(() => {
       { id: "c4", rider_id: "rider", team_id: "team", start_season_id: "s4", end_season_id: "s4", salary_per_season: 0, status: "active" }],
     riders: [{ id: "rider", pcm_export_id: 10001, first_name: "Gala", last_name: "Test", country_id: "fr", height_cm: 180, weight_kg: 70, potential_steps: 3 }],
     rider_season_ratings: [3, 4].map((season) => ({ id: `ratings${season}`, rider_id: "rider", season_id: `s${season}`, age: 25, ...Object.fromEntries(CS_RATING_KEYS.map((key) => [key, season === 3 ? 70 : 71])) })),
+    rider_national_championship_titles: [{ id: "title", rider_id: "rider", country_id: "fr", championship_type: "road", relinquished_at: null }],
   };
   mock.rpc.mockReset();
   mock.rpc.mockImplementation((name: string, params?: { p_team_ids?: string[] }) => Promise.resolve({ data:
@@ -36,6 +37,7 @@ beforeEach(() => {
     const query = { select: () => query,
       eq: (key: string, value: unknown) => { rows = rows.filter((row) => row[key] === value); return query; },
       in: (key: string, values: unknown[]) => { rows = rows.filter((row) => values.includes(row[key])); return query; },
+      is: (key: string, value: unknown) => { rows = rows.filter((row) => row[key] === value); return query; },
       order: () => query,
       single: async () => ({ data: rows[0], error: null }),
       range: (from: number, to: number) => { bounds = [from, to]; return query; },
@@ -64,6 +66,7 @@ describe("identités du gala, données simulées uniquement", () => {
     expect(snapshot.teamSeasons[0]).toMatchObject({ display_name: identity.team_name, short_name: "FUT-SEC", registration_country_id: "it" });
     expect(snapshot.contracts.map((row) => row.id)).toEqual(["c3"]);
     expect(snapshot.ratings[0].hills).toBe(70);
+    expect(snapshot.nationalChampionshipTitles).toMatchObject([{ rider_id: "rider", country_id: "fr", championship_type: "road" }]);
     expect(snapshot.teams[0].amateur_jersey_primary_color).toBe(SPONSORS[0].colors.primary);
     expect(tables).toEqual(original);
   });
@@ -74,6 +77,7 @@ describe("identités du gala, données simulées uniquement", () => {
     expect(snapshot).toEqual(original);
     expect(projected.contracts).toBe(snapshot.contracts);
     expect(projected.ratings).toBe(snapshot.ratings);
+    expect(projected.nationalChampionshipTitles).toBe(snapshot.nationalChampionshipTitles);
     expect(projected.teamSeasons[0].display_name).toBe(identity.team_name);
     expect(getSeasonFinaleGalaJersey(identity)).not.toBeNull();
     expect(getSeasonFinaleGalaJersey({ ...identity, sponsor_catalog_key: null })).toBeNull();

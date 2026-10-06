@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { strFromU8, unzipSync } from "fflate";
 
 import type { PcmExportResult } from "@/lib/game/pcm-export/types";
@@ -6,7 +8,7 @@ import { createPcmExportPackage } from "@/services/pcm-export-package";
 
 describe("pack d'installation PCM26", () => {
   it("contient un dossier Cyclostratege directement copiable dans Mod", async () => {
-    const source = createSource();
+    const source = await createSource();
     const result = await createPcmExportPackage(source);
     const files = unzipSync(result.archive);
 
@@ -40,9 +42,10 @@ describe("pack d'installation PCM26", () => {
   });
 });
 
-function createSource(): PcmExportResult {
+async function createSource(): Promise<PcmExportResult> {
   return {
     cdb: new Uint8Array([1, 2, 3, 4]),
+    localCdb: await readFile(resolve("assets/pcm/OfficialLocal.template.cdb")),
     metadata: {
       generatedAt: "2026-09-30T18:00:00.000Z",
       season: 3,
@@ -64,6 +67,9 @@ function createSource(): PcmExportResult {
       },
       ratingRange: { minimum: 59, maximum: 77 },
       countryFallbacks: [],
+      countryAdditions: [],
+      nationalChampions: { riders: 0, road: 0, timeTrial: 0, both: 0 },
+      localOutputSha256: "8e4312928de4700fafbb85e2b63b71635ab5455aa45c60dc6190784b7d51a740",
       scope: {
         nativeRatingsOnly: true,
         bonusesIncluded: false,

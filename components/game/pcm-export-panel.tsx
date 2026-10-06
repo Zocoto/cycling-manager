@@ -10,6 +10,8 @@ type ExportSummary = {
   contracts: string;
   ratingRange: string;
   countryFallbacks: string;
+  countriesAdded: string;
+  nationalChampions: string;
   generatedAt: string;
 };
 
@@ -62,6 +64,8 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
         ratingRange: response.headers.get("X-CS-Rating-Range") ?? "—",
         countryFallbacks:
           response.headers.get("X-CS-Country-Fallbacks") ?? "—",
+        countriesAdded: response.headers.get("X-CS-Countries-Added") ?? "—",
+        nationalChampions: response.headers.get("X-CS-National-Champions") ?? "—",
         generatedAt:
           response.headers.get("X-CS-Generated-At") ?? new Date().toISOString(),
       });
@@ -99,7 +103,8 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
             <ScopeItem>{seasonFinale ? "Identités confirmées de la saison suivante en avant-première" : "Équipes actives de la saison en cours"}</ScopeItem>
             <ScopeItem>{seasonFinale ? "Effectifs et notes de la saison du gala, conservés après le changement de saison" : "Coureurs sous contrat et contrats actifs"}</ScopeItem>
             <ScopeItem>13 notes natives sur une échelle fixe de 45 à 85</ScopeItem>
-            <ScopeItem>Taille, poids, âge, nationalité et division</ScopeItem>
+            <ScopeItem>Taille, poids, âge et division</ScopeItem>
+            <ScopeItem>Nationalités exactes, pays manquants ajoutés et titres nationaux</ScopeItem>
             <ScopeItem>Aucune équipe ni aucun coureur professionnel réel</ScopeItem>
             <ScopeItem>Équipe spectateur avec 10 coureurs « Simulo » moyens</ScopeItem>
             <ScopeItem>Courses et étapes de la base officielle PCM26</ScopeItem>
@@ -160,6 +165,8 @@ export function PcmExportPanel({ seasonFinale = false }: { seasonFinale?: boolea
               <SummaryRow label="Coureurs" value={summary.riders} />
               <SummaryRow label="Contrats" value={summary.contracts} />
               <SummaryRow label="Notes PCM" value={summary.ratingRange} />
+              <SummaryRow label="Pays ajoutés" value={summary.countriesAdded} />
+              <SummaryRow label="Champions nationaux" value={summary.nationalChampions} />
               <SummaryRow
                 label="Nationalités de repli"
                 value={summary.countryFallbacks}

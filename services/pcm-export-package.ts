@@ -1,8 +1,6 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 
 import { strToU8, zipSync } from "fflate";
 
@@ -11,31 +9,22 @@ import type {
   PcmExportResult,
 } from "@/lib/game/pcm-export/types";
 
-const LOCAL_DATABASE_PATH = join(
-  process.cwd(),
-  "assets",
-  "pcm",
-  "OfficialLocal.template.cdb",
-);
-const EXPECTED_LOCAL_DATABASE_SHA256 =
-  "8e4312928de4700fafbb85e2b63b71635ab5455aa45c60dc6190784b7d51a740";
-
 export async function createPcmExportPackage({
   cdb,
+  localCdb: localDatabase,
   metadata,
 }: PcmExportResult): Promise<PcmExportPackageResult> {
-  const localDatabase = await readFile(LOCAL_DATABASE_PATH);
   const localDatabaseSha256 = createHash("sha256")
     .update(localDatabase)
     .digest("hex");
-  if (localDatabaseSha256 !== EXPECTED_LOCAL_DATABASE_SHA256) {
+  if (localDatabaseSha256 !== metadata.localOutputSha256) {
     throw new Error(
-      "Le fichier local officiel PCM26 a ete modifie : export interrompu avant generation.",
+      "Le catalogue de noms PCM ne correspond pas à la base générée : export interrompu.",
     );
   }
 
   const manifest = {
-    formatVersion: 1,
+    formatVersion: 2,
     title: "Cyclostratège",
     targetGame: "Pro Cycling Manager 2026",
     generatedAt: metadata.generatedAt,
@@ -49,6 +38,8 @@ export async function createPcmExportPackage({
     divisionCounts: metadata.divisionCounts,
     ratingScale: metadata.ratingScale,
     countryFallbacks: metadata.countryFallbacks,
+    countryAdditions: metadata.countryAdditions,
+    nationalChampions: metadata.nationalChampions,
     scope: metadata.scope,
   };
   const validation = {
@@ -62,6 +53,9 @@ export async function createPcmExportPackage({
     divisionCounts: metadata.divisionCounts,
     ratingRange: metadata.ratingRange,
     officialPcm26StageCatalogPreserved: true,
+    countriesAdded: metadata.countryAdditions.length,
+    nationalityFallbacks: metadata.countryFallbacks.length,
+    nationalChampions: metadata.nationalChampions,
   };
   const archive = zipSync(
     {
@@ -119,6 +113,11 @@ N'utilisez pas cette DB avec une sauvegarde déjà commencée.
 Les équipes et coureurs professionnels réels ont été retirés de cette base.
 L'équipe "Cyclostratège" contient dix coureurs Simulo destinés au mode spectateur.
 Les assets graphiques personnalisés ne sont pas encore inclus dans ce pack.
+Les pays manquants et leurs noms sont ajoutés automatiquement à cette base.
+Les titres nationaux actifs sont conservés (route et contre-la-montre).
+Installez ensemble OfficialRelease.cdb et OfficialLocal.cdb de cet export.
+Conservez séparément les trois PAK graphiques Cyclostratège (maillots,
+champions et drapeaux) : cet export ne remplace pas les fichiers graphiques.
 Les croix rouges devant les maillots, photos, courses et équipements sont donc
 normales : seules les deux lignes de base de données doivent être reconnues.
 `;

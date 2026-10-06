@@ -15,6 +15,8 @@ import type {
   TeamSeasonRow,
 } from "@/lib/game/pcm-export/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
+import type { NationalChampionshipTitleRow } from "@/lib/game/pcm-export/types";
 import { applySeasonFinaleGalaIdentities, loadSeasonFinaleGalaIdentities, loadSeasonFinaleGalaSourceSeason } from "@/services/season-finale-gala-identity";
 
 const PAGE_SIZE = 1_000;
@@ -122,6 +124,21 @@ export async function createPcmExportSnapshot(seasonFinale = false): Promise<Pcm
   const contractedRiderIds = new Set(contracts.map((row) => row.rider_id));
   const riders = allRiders.filter((row) => contractedRiderIds.has(row.id));
   const ratings = allRatings.filter((row) => contractedRiderIds.has(row.rider_id));
+  const titleResult = await collectChunkedPaginatedRows<NationalChampionshipTitleRow, { message: string }, string>({
+    values: [...contractedRiderIds],
+    maxConcurrency: 1,
+    fetchPage: async (riderIds, from, to) => {
+      const result = await admin.from("rider_national_championship_titles")
+        .select("rider_id, country_id, championship_type")
+        .in("rider_id", riderIds)
+        .in("championship_type", ["road", "time_trial"])
+        .is("relinquished_at", null)
+        .order("id", { ascending: true })
+        .range(from, to).returns<NationalChampionshipTitleRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+  if (titleResult.error) throw new Error(`Impossible de charger les titres nationaux : ${titleResult.error.message}`);
 
   assertSnapshotIntegrity({
     teamSeasons,
@@ -155,6 +172,7 @@ export async function createPcmExportSnapshot(seasonFinale = false): Promise<Pcm
     contracts,
     riders,
     ratings,
+    nationalChampionshipTitles: titleResult.data,
   };
   const projectedSnapshot = seasonFinale ? applySeasonFinaleGalaIdentities({ ...snapshotCore, exportedAt: "", sha256: "" },
     await loadSeasonFinaleGalaIdentities(admin, [...activeTeamIds])) : snapshotCore;

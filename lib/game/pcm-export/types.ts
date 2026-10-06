@@ -33,6 +33,7 @@ export type TeamRow = {
 
 export type CountryRow = {
   id: string;
+  iso_alpha2?: string;
   iso_alpha3: string;
   name: string;
   continent_code: string;
@@ -101,6 +102,23 @@ export type PcmExportSnapshot = {
   contracts: ContractRow[];
   riders: RiderRow[];
   ratings: RatingRow[];
+  nationalChampionshipTitles?: NationalChampionshipTitleRow[];
+};
+
+export type NationalChampionshipTitleRow = {
+  rider_id: string;
+  country_id: string;
+  championship_type: "road" | "time_trial";
+};
+
+export type PcmCountryAddition = {
+  sourceCode: string;
+  sourceName: string;
+  pcmCode: string;
+  countryId: number;
+  regionId: number;
+  localizationId: number;
+  flagName: string;
 };
 
 export type PcmExportMetadata = {
@@ -127,6 +145,9 @@ export type PcmExportMetadata = {
     sourceName: string;
     pcmCode: string;
   }>;
+  countryAdditions: PcmCountryAddition[];
+  nationalChampions: { riders: number; road: number; timeTrial: number; both: number };
+  localOutputSha256: string;
   scope: {
     nativeRatingsOnly: true;
     bonusesIncluded: false;
@@ -139,6 +160,7 @@ export type PcmExportMetadata = {
 
 export type PcmExportResult = {
   cdb: Uint8Array;
+  localCdb: Uint8Array;
   metadata: PcmExportMetadata;
 };
 

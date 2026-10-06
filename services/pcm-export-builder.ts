@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { cdbToSql, sqlToCdb } from "cdb-converter";
 import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
+import { configurePcmNationalities, getPcmNationalChampionBits } from "@/services/pcm-export-nationalities";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
 import { configurePcmSeasonFinaleGalaRules } from "@/lib/game/pcm-export/gala-rules";
@@ -24,38 +25,9 @@ const TEMPLATE_PATH = join(
 const EXPECTED_TEMPLATE_SHA256 =
   "f305b1700a797b46f4e0fc7cc19b4dce006119b4081db25b0b20b972839f1d14";
 
-const COUNTRY_ALIASES: Record<string, string> = {
-  ARE: "UAE",
-  BGR: "BUL",
-  CHE: "SWI",
-  CHN: "CHI",
-  CRI: "CRC",
-  DEU: "GER",
-  DNK: "DEN",
-  GRC: "GRE",
-  HRV: "CRO",
-  KWT: "KUW",
-  MDA: "MOL",
-  MYS: "MAS",
-  NLD: "NED",
-  PRT: "POR",
-  ROU: "ROM",
-  SRB: "SER",
-  SVN: "SLO",
-  SWE: "SWD",
-  URY: "URU",
-  ZAF: "SAR",
-  ZWE: "ZIM",
-};
-
-const CONTINENT_FALLBACKS: Record<string, string> = {
-  africa: "KEN",
-  asia: "KAZ",
-  europe: "FRA",
-  north_america: "USA",
-  south_america: "COL",
-  oceania: "AUS",
-};
+const LOCAL_TEMPLATE_PATH = join(process.cwd(), "assets", "pcm", "OfficialLocal.template.cdb");
+const EXPECTED_LOCAL_TEMPLATE_SHA256 =
+  "8e4312928de4700fafbb85e2b63b71635ab5455aa45c60dc6190784b7d51a740";
 
 const RATING_COLUMNS = [
   "charac_i_mountain",
@@ -84,6 +56,7 @@ type SqlRow = Record<string, SqlValue>;
 
 let sqlJsPromise: Promise<SqlJsStatic> | null = null;
 let templatePromise: Promise<Uint8Array> | null = null;
+let localTemplatePromise: Promise<Uint8Array> | null = null;
 
 export async function buildPcmDatabase(
   snapshot: PcmExportSnapshot,
@@ -93,9 +66,10 @@ export async function buildPcmDatabase(
     throw new Error("L'export PCM doit utiliser exclusivement les notes natives.");
   }
 
-  const [SQL, template] = await Promise.all([
+  const [SQL, template, localTemplate] = await Promise.all([
     getSqlJs(),
     templateOverride ? Promise.resolve(templateOverride) : getTemplate(),
+    localTemplatePromise ??= readFile(LOCAL_TEMPLATE_PATH),
   ]);
   const templateSha256 = createHash("sha256").update(template).digest("hex");
   if (templateSha256 !== EXPECTED_TEMPLATE_SHA256) {
@@ -104,11 +78,16 @@ export async function buildPcmDatabase(
     );
   }
   const db = cdbToSql(template, SQL, { preciseTypes: true });
-
+  let local: Database | undefined;
   try {
-    return buildDatabaseFromSnapshot(db, snapshot);
+    if (createHash("sha256").update(localTemplate).digest("hex") !== EXPECTED_LOCAL_TEMPLATE_SHA256) {
+      throw new Error("Le fichier local officiel PCM26 a été modifié : export interrompu avant génération.");
+    }
+    local = cdbToSql(localTemplate, SQL, { preciseTypes: true });
+    return buildDatabaseFromSnapshot(db, local, localTemplate, snapshot);
   } finally {
     db.close();
+    local?.close();
   }
 }
 
@@ -127,6 +106,8 @@ async function getTemplate() {
 
 function buildDatabaseFromSnapshot(
   db: Database,
+  local: Database,
+  localTemplate: Uint8Array,
   snapshot: PcmExportSnapshot,
 ): PcmExportResult {
   const sourceStageCount = Number(
@@ -145,9 +126,6 @@ function buildDatabaseFromSnapshot(
     throw new Error("Le gabarit PCM contient deja des equipes Cyclostratege.");
   }
 
-  const countriesById = new Map(
-    snapshot.countries.map((row) => [row.id, row]),
-  );
   const divisionsById = new Map(
     snapshot.divisions.map((row) => [row.id, row]),
   );
@@ -160,63 +138,9 @@ function buildDatabaseFromSnapshot(
     snapshot.ratings.map((row) => [row.rider_id, row]),
   );
 
-  const pcmCountries = queryRows(
-    db,
-    "SELECT IDcountry, CONSTANT, gene_sz_flag FROM STA_country ORDER BY IDcountry",
-  );
-  const pcmCountryByConstant = new Map(
-    pcmCountries.map((row) => [String(row.CONSTANT).toUpperCase(), row]),
-  );
-  const pcmRegions = queryRows(
-    db,
-    "SELECT IDregion, fkIDcountry FROM STA_region ORDER BY IDregion",
-  );
-  const firstRegionByCountry = new Map<number, number>();
-  for (const region of pcmRegions) {
-    const countryId = Number(region.fkIDcountry);
-    if (!firstRegionByCountry.has(countryId)) {
-      firstRegionByCountry.set(countryId, Number(region.IDregion));
-    }
-  }
-
-  const countryFallbacks = new Map<
-    string,
-    { sourceCode: string; sourceName: string; pcmCode: string }
-  >();
-  const resolveCountry = (countryId: string) => {
-    const source = countriesById.get(countryId);
-    if (!source) throw new Error(`Pays CS inconnu : ${countryId}`);
-
-    const sourceCode = source.iso_alpha3.toUpperCase();
-    const requestedCode = COUNTRY_ALIASES[sourceCode] ?? sourceCode;
-    let pcmCountry = pcmCountryByConstant.get(requestedCode);
-
-    if (!pcmCountry) {
-      const fallbackCode =
-        CONTINENT_FALLBACKS[source.continent_code] ?? "FRA";
-      pcmCountry = pcmCountryByConstant.get(fallbackCode);
-      if (!pcmCountry) {
-        throw new Error(`Pays de repli PCM introuvable : ${fallbackCode}`);
-      }
-      countryFallbacks.set(sourceCode, {
-        sourceCode,
-        sourceName: source.name,
-        pcmCode: fallbackCode,
-      });
-    }
-
-    const pcmCountryId = Number(pcmCountry.IDcountry);
-    const regionId = firstRegionByCountry.get(pcmCountryId);
-    if (!regionId) {
-      throw new Error(`Region PCM absente pour le pays ${sourceCode}.`);
-    }
-
-    return {
-      countryId: pcmCountryId,
-      regionId,
-      pcmCode: String(pcmCountry.CONSTANT),
-    };
-  };
+  const { resolveCountry, countryAdditions, pcmCountryByConstant, firstRegionByCountry } =
+    configurePcmNationalities(db, local, snapshot);
+  const nationalChampions = getPcmNationalChampionBits(snapshot);
 
   const teamTemplate = requireTemplateRow(db, "DYN_team", "IDteam", 1);
   const sponsorTemplate = requireTemplateRow(
@@ -586,7 +510,7 @@ function buildDatabaseFromSnapshot(
         fitness_i_handicap: 0,
         gene_b_will_retire: 0,
         gene_i_dossard: 0,
-        gene_i_champion_bit: 0,
+        gene_i_champion_bit: nationalChampions.bits.get(rider.id) ?? 0,
         gene_b_nominated: 0,
         CONSTANT: `CS_${rider.id.replaceAll("-", "").slice(0, 20).toUpperCase()}`,
         gene_sz_soundname: "",
@@ -740,6 +664,7 @@ function buildDatabaseFromSnapshot(
   }
 
   const output = new Uint8Array(sqlToCdb(db));
+  const localOutput = countryAdditions.length ? new Uint8Array(sqlToCdb(local)) : new Uint8Array(localTemplate);
   const outputSha256 = createHash("sha256").update(output).digest("hex");
   const generatedAt = new Date().toISOString();
   const filename = "OfficialRelease.cdb";
@@ -753,6 +678,7 @@ function buildDatabaseFromSnapshot(
 
   return {
     cdb: output,
+    localCdb: localOutput,
     metadata: {
       generatedAt,
       season: snapshot.activeSeason.game_year,
@@ -772,9 +698,10 @@ function buildDatabaseFromSnapshot(
         minimum: Math.min(...exportedRatings),
         maximum: Math.max(...exportedRatings),
       },
-      countryFallbacks: [...countryFallbacks.values()].sort((left, right) =>
-        left.sourceCode.localeCompare(right.sourceCode),
-      ),
+      countryFallbacks: [],
+      countryAdditions,
+      nationalChampions: nationalChampions.counts,
+      localOutputSha256: createHash("sha256").update(localOutput).digest("hex"),
       scope: {
         nativeRatingsOnly: true,
         bonusesIncluded: false,

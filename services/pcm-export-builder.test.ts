@@ -11,6 +11,8 @@ import type {
   RatingRow,
 } from "@/lib/game/pcm-export/types";
 import { buildPcmDatabase } from "@/services/pcm-export-builder";
+import { createPcmExportPackage } from "@/services/pcm-export-package";
+import { unzipSync } from "fflate";
 
 describe("generateur de base PCM26", () => {
   it(
@@ -269,6 +271,83 @@ describe("generateur de base PCM26", () => {
     await expect(buildPcmDatabase(snapshot)).rejects.toThrow(
       "Division Cyclostratege inconnue",
     );
+  });
+
+  it("ajoute les vrais pays et leurs noms, utilise les alias existants et conserve les titres", async () => {
+    const snapshot = createSnapshot();
+    const cases = [
+      ["NPL", "NP", "Népal", "asia", "NPL", "Nepal"],
+      ["SLV", "SV", "Salvador", "america", "SLV", "El-Salvador"],
+      ["PRK", "KP", "Corée du Nord", "asia", "PRK", "North-Korea"],
+      ["MDV", "MV", "Maldives", "asia", "MDV", "Maldives"],
+      ["GMB", "GM", "Gambie", "africa", "GMB", "Gambia"],
+      ["MRT", "MR", "Mauritanie", "africa", "MRT", "Mauritania"],
+      ["LVA", "LV", "Lettonie", "europe", "LAT", "Latvia"],
+      ["BMU", "BM", "Bermudes", "america", "BER", "Bermuda"],
+    ];
+    const riderTemplate = snapshot.riders[0], contractTemplate = snapshot.contracts[0], ratingTemplate = snapshot.ratings[0];
+    snapshot.riders = []; snapshot.contracts = []; snapshot.ratings = [];
+    snapshot.nationalChampionshipTitles = [];
+    for (const [i, [code, iso2, name, continent]] of cases.entries()) {
+      const id = `rider-${code}`, countryId = `country-${code}`;
+      snapshot.countries.push({ id: countryId, iso_alpha3: code, iso_alpha2: iso2, name, continent_code: continent });
+      snapshot.riders.push({ ...riderTemplate, id, pcm_export_id: 10001 + i, country_id: countryId });
+      snapshot.contracts.push({ ...contractTemplate, id: `contract-${code}`, rider_id: id });
+      snapshot.ratings.push({ ...ratingTemplate, id: `rating-${code}`, rider_id: id });
+      if (i !== 3) snapshot.nationalChampionshipTitles.push({ rider_id: id, country_id: countryId, championship_type: "road" });
+      if (i < 2) snapshot.nationalChampionshipTitles.push({ rider_id: id, country_id: countryId, championship_type: "time_trial" });
+    }
+    // Teams use registration identity, sponsors use the same country's region.
+    snapshot.teamSeasons[0].registration_country_id = "country-NPL";
+    snapshot.counts = { teams: 1, riders: 8, contracts: 8, ratings: 8 };
+    const result = await buildPcmDatabase(snapshot);
+    expect(result.metadata.countryFallbacks).toEqual([]);
+    expect(result.metadata.countryAdditions.map(c => c.sourceCode)).toEqual(["GMB", "MDV", "MRT", "NPL", "PRK", "SLV"]);
+    expect(result.metadata.nationalChampions).toEqual({ riders: 7, road: 7, timeTrial: 2, both: 2 });
+    // Ensure the zip uses the newly generated Local CDB, not the static template.
+    const files = unzipSync((await createPcmExportPackage(result)).archive);
+    expect(files["OfficialLocal.cdb"]).toEqual(result.localCdb);
+    const SQL = await initSqlJs({ locateFile: file => resolve("node_modules/sql.js/dist", file) });
+    const db = cdbToSql(files["OfficialRelease.cdb"], SQL, { preciseTypes: true });
+    const local = cdbToSql(files["OfficialLocal.cdb"], SQL, { preciseTypes: true });
+    try {
+      for (const [i, [code, , name, , expectedCode, flag]] of cases.entries()) {
+        const row = db.exec(`SELECT co.CONSTANT,co.gene_sz_flag,c.gene_i_champion_bit,c.charac_i_mountain,c.charac_i_hill
+          FROM DYN_cyclist c JOIN STA_region r ON r.IDregion=c.fkIDregion JOIN STA_country co ON co.IDcountry=r.fkIDcountry WHERE c.IDcyclist=${10001+i}`)[0].values[0];
+        expect(row).toEqual([expectedCode, flag, i < 2 ? 192 : i === 3 ? 0 : 128, 77, 75]);
+        expect(readCount(db, `SELECT COUNT(*) FROM STA_country WHERE CONSTANT='${expectedCode}'`)).toBe(1);
+        const addition = result.metadata.countryAdditions.find(c => c.sourceCode === code);
+        if (addition) expect(local.exec(`SELECT gene_sz_french FROM LOC WHERE IDloc=${addition.localizationId}`)[0].values[0][0]).toBe(name);
+      }
+      expect(db.exec("SELECT co.CONSTANT FROM DYN_team t JOIN STA_country co ON co.IDcountry=t.fkIDcountry WHERE t.IDteam=244")[0].values[0][0]).toBe("NPL");
+      expect(db.exec("SELECT co.CONSTANT FROM DYN_team_sponsor ts JOIN DYN_sponsor s ON s.IDsponsor=ts.fkIDsponsor JOIN STA_region r ON r.IDregion=s.fkIDregion JOIN STA_country co ON co.IDcountry=r.fkIDcountry WHERE ts.fkIDteam=244")[0].values[0][0]).toBe("NPL");
+      expect(readCount(db, "SELECT COUNT(*) FROM DYN_cyclist WHERE IDcyclist BETWEEN 9001 AND 9010 AND gene_i_champion_bit<>0")).toBe(0);
+      expect(readCount(db, "SELECT COUNT(*) FROM STA_country WHERE CONSTANT='SAU' AND gene_sz_flag='Saudi-Arabia'")).toBe(1);
+      expect(readCount(db, "SELECT COUNT(*) FROM DYN_cyclist c LEFT JOIN STA_region r ON r.IDregion=c.fkIDregion WHERE r.IDregion IS NULL")).toBe(0);
+    } finally { db.close(); local.close(); }
+  }, 20_000);
+
+  it("conserve un titre CLM seul avec le bit PCM26 64", async () => {
+    const snapshot = createSnapshot();
+    snapshot.nationalChampionshipTitles = [{ rider_id: "rider-1", country_id: "country-fr", championship_type: "time_trial" }];
+    const result = await buildPcmDatabase(snapshot);
+    const SQL = await initSqlJs({ locateFile: file => resolve("node_modules/sql.js/dist", file) });
+    const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
+    try { expect(readCount(db, "SELECT gene_i_champion_bit FROM DYN_cyclist WHERE IDcyclist=10001")).toBe(64); }
+    finally { db.close(); }
+  });
+
+  it("refuse un pays incomplet au lieu de rendre son coureur français", async () => {
+    const snapshot = createSnapshot();
+    snapshot.countries.push({ id: "country-sv", iso_alpha3: "SLV", name: "Salvador", continent_code: "america" });
+    snapshot.riders[0].country_id = "country-sv";
+    await expect(buildPcmDatabase(snapshot)).rejects.toThrow("Code ISO alpha-2 absent");
+  });
+
+  it("refuse un titre national d'un pays différent de celui du coureur", async () => {
+    const snapshot = createSnapshot();
+    snapshot.nationalChampionshipTitles = [{ rider_id: "rider-1", country_id: "country-sv", championship_type: "road" }];
+    await expect(buildPcmDatabase(snapshot)).rejects.toThrow("Titre national incohérent");
   });
 });
 

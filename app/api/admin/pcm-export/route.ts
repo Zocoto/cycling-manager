@@ -43,6 +43,8 @@ export async function POST(request: Request) {
         "X-CS-Contracts": String(database.counts.contracts),
         "X-CS-Rating-Range": `${database.ratingRange.minimum}-${database.ratingRange.maximum}`,
         "X-CS-Country-Fallbacks": String(database.countryFallbacks.length),
+        "X-CS-Countries-Added": String(database.countryAdditions.length),
+        "X-CS-National-Champions": String(database.nationalChampions.riders),
         "X-CS-Generated-At": database.generatedAt,
         "X-CS-Snapshot": database.snapshotSha256.slice(0, 16),
         "X-CS-Database": database.outputSha256.slice(0, 16),
