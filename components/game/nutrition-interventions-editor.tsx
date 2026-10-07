@@ -216,6 +216,9 @@ export function NutritionInterventionsEditor({
 
   return (
     <NutritionEditorContext.Provider value={context}>
+      {/* Rider cards contain independent weight-cut forms; never nest them in
+          the supplement form. Only its serialized draft payload is submitted. */}
+      {children}
       <form
         action={applyNutritionInterventionsAction}
         data-financial-expense={totalPrice}
@@ -226,8 +229,6 @@ export function NutritionInterventionsEditor({
           name="interventions"
           value={JSON.stringify(completeDrafts)}
         />
-        {children}
-
         {activeDrafts.length > 0 ? (
           <>
             <div aria-hidden="true" className="h-32 sm:h-24" />
