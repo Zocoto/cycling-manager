@@ -1,8 +1,8 @@
 import "server-only";
 import { getRiderWeightStatus, type OverweightRiderSummary } from "@/lib/game/rider-weight-status";
-import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type WeightRatingRow = {
   rider_id: string;
   mountain: number; hills: number; flat: number; time_trial: number;
@@ -15,11 +15,13 @@ type WeightRatingRow = {
 };
 
 export async function getDashboardOverweightRiders(
-  supabase: SupabaseServerClient,
   context: { teamId: string; seasonId: string },
+  supabase: SupabaseAdminClient = createSupabaseAdminClient(),
 ): Promise<OverweightRiderSummary[]> {
-  // Authenticated/RLS reads only, scoped to this team's active roster. Do not
-  // load the health overview or scan every rider just to paint the dashboard.
+  // Only use the team/season returned by the authenticated dashboard RPC, never
+  // URL/form parameters. Core rider tables deny direct authenticated reads;
+  // use the server-only client, as the health service does, with bounded filters.
+  // Do not load the health overview or scan every rider to paint the dashboard.
   // A slow optional alert must not hold up the other assistant information.
   const signal = AbortSignal.timeout(3_000);
   const contracts = await supabase.from("rider_contracts").select("rider_id")

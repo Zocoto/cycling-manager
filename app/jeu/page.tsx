@@ -423,7 +423,7 @@ export default async function GamePage() {
   const overweightRidersPromise = DASHBOARD_ASSISTANT_ENABLED
     ? loadDashboardValue(
         fastSummaryPromise.then((summary) => summary
-          ? getDashboardOverweightRiders(supabase, { teamId: summary.teamId, seasonId: summary.seasonId })
+          ? getDashboardOverweightRiders({ teamId: summary.teamId, seasonId: summary.seasonId })
           : []),
         [],
         "Impossible de récupérer les alertes de poids :",
