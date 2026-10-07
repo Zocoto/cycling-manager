@@ -160,17 +160,27 @@ export const NUTRITION_INTERVENTIONS = {
 
 export type NutritionInterventionCode = keyof typeof NUTRITION_INTERVENTIONS;
 
+// Today's dose plus at most six prior daily doses in the rolling seven-day window.
+export const NUTRITION_REGULARITY_MAX_PRIOR_USES = 6;
+export const NUTRITION_REGULARITY_RISK_PER_USE_PCT = 2;
+
 export function getNutritionWeightGainRiskPct({
   code,
   nutritionistLevel,
+  recentInterventionCount = 0,
 }: {
   code: NutritionInterventionCode;
   nutritionistLevel: number;
+  recentInterventionCount?: number;
 }) {
+  const recentUses = Number.isFinite(recentInterventionCount)
+    ? clamp(Math.trunc(recentInterventionCount), 0, NUTRITION_REGULARITY_MAX_PRIOR_USES)
+    : 0;
   return Math.max(
     1,
     NUTRITION_INTERVENTIONS[code].baseWeightGainRiskPct -
-      Math.max(0, Math.trunc(nutritionistLevel) - 1) * 0.5,
+      Math.max(0, Math.trunc(nutritionistLevel) - 1) * 0.5 +
+      recentUses * NUTRITION_REGULARITY_RISK_PER_USE_PCT,
   );
 }
 

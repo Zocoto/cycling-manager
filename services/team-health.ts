@@ -66,6 +66,7 @@ type RatingRow = {
   prologue: number;
 };
 type SeasonDayRow = { id: string; day_number: number };
+type NutritionRegularityRow = { rider_id: string; recent_use_count: number };
 type ConditionRow = {
   rider_id: string;
   season_day_id: string;
@@ -231,6 +232,7 @@ export type TeamHealthRider = {
   weightKg: number | null;
   baselineWeightKg: number | null;
   seasonWeightDeltaKg: number;
+  recentNutritionInterventionCount: number;
   physiologyVersion: number;
   nextWeightCutGameDayIndex: number | null;
   ratings: RiderRatings;
@@ -484,6 +486,7 @@ export async function getCurrentTeamHealthOverview(
     nutritionInterventionsResult,
     weightEventsResult,
     moraleEventsResult,
+    nutritionRegularityResult,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -538,6 +541,13 @@ export async function getCurrentTeamHealthOverview(
       .order("occurred_at", { ascending: false })
       .limit(500)
       .returns<MoraleEventRow[]>(),
+    currentDayId
+      ? admin
+          .rpc("get_recent_supplement_use_counts", {
+            p_rider_ids: riderIds,
+            p_season_day_id: currentDayId,
+          })
+      : Promise.resolve({ data: [] as NutritionRegularityRow[], error: null }),
   ]);
   assertQuery(countriesResult.error, "les pays des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
@@ -548,6 +558,11 @@ export async function getCurrentTeamHealthOverview(
   );
   assertQuery(weightEventsResult.error, "l’historique de poids");
   assertQuery(moraleEventsResult.error, "l’historique de moral");
+  assertQuery(nutritionRegularityResult.error, "la fréquence des compléments");
+
+  const recentNutritionUsesByRiderId = new Map(
+    ((nutritionRegularityResult.data ?? []) as NutritionRegularityRow[]).map((row) => [row.rider_id, row.recent_use_count]),
+  );
 
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
@@ -675,6 +690,7 @@ export async function getCurrentTeamHealthOverview(
               (seasonWeightDeltaByRiderId.get(rider.id) ?? 0) * 10,
             ) / 10,
           physiologyVersion: Number(rider.physiology_version ?? 0),
+          recentNutritionInterventionCount: recentNutritionUsesByRiderId.get(rider.id) ?? 0,
           nextWeightCutGameDayIndex: latestWeightCutByRiderId.has(rider.id)
             ? (latestWeightCutByRiderId.get(rider.id)?.game_day_index ?? 0) + 5
             : null,

@@ -869,7 +869,7 @@ function NutritionPanel({
                   Niveau {intervention.minimumNutritionistLevel} requis
                 </p>
                 <p className="mt-2 text-[10px] font-bold leading-4 text-[#986A17]">
-                  Impact poids · {getNutritionWeightGainRiskPct({
+                  Risque de base · {getNutritionWeightGainRiskPct({
                     code,
                     nutritionistLevel: referenceNutritionist?.level ?? 1,
                   }).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % de risque · +{intervention.possibleWeightGainKg.toLocaleString("fr-FR", { minimumFractionDigits: 1 })} kg si déclenché
@@ -878,6 +878,9 @@ function NutritionPanel({
             );
           })}
         </div>
+        <p className="mt-3 text-[11px] font-semibold text-[#986A17]">
+          Prises régulières : +2 points de risque par prise dans les 6 jours précédents, jusqu’à +12. Les pauses réduisent ce risque.
+        </p>
       </section>
 
       {nutritionists.length === 0 ? (
@@ -1034,6 +1037,7 @@ function NutritionPanel({
                         riderId={rider.id}
                         riderForm={rider.form}
                         riderWeightKg={rider.weightKg}
+                        recentInterventionCount={rider.recentNutritionInterventionCount}
                         currency={overview.currency}
                       />
                     )}

@@ -252,6 +252,40 @@ describe("health center rules", () => {
     expect(28 * 0.3 * 0.1).toBeLessThan(1);
   });
 
+  it("augmente progressivement le risque avec la fréquence, sans changer les gains", () => {
+    expect([0, 1, 2, 3, 4, 5, 6].map((recentInterventionCount) =>
+      getNutritionWeightGainRiskPct({
+        code: "elite_recharge", nutritionistLevel: 5, recentInterventionCount,
+      }),
+    )).toEqual([10, 12, 14, 16, 18, 20, 22]);
+    expect(getNutritionWeightGainRiskPct({
+      code: "recovery_snack", nutritionistLevel: 1, recentInterventionCount: 6,
+    })).toBe(16);
+    expect(getNutritionWeightGainRiskPct({
+      code: "tailored_plan", nutritionistLevel: 3, recentInterventionCount: 6,
+    })).toBe(18);
+    // Even daily elite doses stay modest over 28 days: expected gain < 2 kg.
+    const expectedSeasonGain = Array.from({ length: 28 }, (_, day) =>
+      0.3 * getNutritionWeightGainRiskPct({
+        code: "elite_recharge", nutritionistLevel: 5, recentInterventionCount: day,
+      }) / 100,
+    ).reduce((sum, gain) => sum + gain, 0);
+    expect(expectedSeasonGain).toBeGreaterThan(1);
+    expect(expectedSeasonGain).toBeLessThan(2);
+  });
+
+  it("borne la fréquence et retrouve le risque de base après une pause", () => {
+    const risk = (recentInterventionCount: number) => getNutritionWeightGainRiskPct({
+      code: "elite_recharge", nutritionistLevel: 5, recentInterventionCount,
+    });
+    expect(risk(999)).toBe(22);
+    expect(risk(2.9)).toBe(14);
+    expect(risk(-1)).toBe(10);
+    expect(risk(Number.NaN)).toBe(10);
+    expect(risk(Number.POSITIVE_INFINITY)).toBe(10);
+    expect([6, 3, 0].map(risk)).toEqual([22, 16, 10]);
+  });
+
   it("affiche le prix et l'efficacité réellement calculés par le serveur", () => {
     expect(
       getNutritionInterventionOutcome({

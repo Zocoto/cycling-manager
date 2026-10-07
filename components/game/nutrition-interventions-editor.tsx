@@ -276,11 +276,13 @@ export function NutritionInterventionFields({
   riderId,
   riderForm,
   riderWeightKg,
+  recentInterventionCount,
   currency,
 }: {
   riderId: string;
   riderForm: number;
   riderWeightKg: number | null;
+  recentInterventionCount: number;
   currency: string;
 }) {
   const editor = useNutritionEditor();
@@ -316,6 +318,7 @@ export function NutritionInterventionFields({
           riskPct: getNutritionWeightGainRiskPct({
             code: draft.interventionCode,
             nutritionistLevel: selectedNutritionist.level,
+            recentInterventionCount,
           }),
         }
       : null;
@@ -481,6 +484,9 @@ export function NutritionInterventionFields({
                 <>
                   Impact poids · {formatPercentage(weightImpact.riskPct)} de
                   risque · +{formatWeight(weightImpact.gainKg)} kg si déclenché
+                  {recentInterventionCount > 0
+                    ? ` · ${recentInterventionCount} prise${recentInterventionCount > 1 ? "s" : ""} récente${recentInterventionCount > 1 ? "s" : ""}`
+                    : ""}
                   {riderWeightKg !== null
                     ? ` · poids actuel ${formatWeight(riderWeightKg)} kg`
                     : ""}
