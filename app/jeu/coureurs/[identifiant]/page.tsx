@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getRiderWeightStatus, getRiderWeightStatusLabel } from "@/lib/game/rider-weight-status";
 import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -285,6 +286,7 @@ export default async function RiderProfilePage({
         ? getNationalChampionPalette(activeNationalTitle.countryCode)
         : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+  const weightStatus = profile.physique ? getRiderWeightStatus({ ...profile.physique, ratings: profile.ratings }) : null;
   const formerChampionshipBorder = resolveFormerChampionshipBorder(profile);
   const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
     combineEquipmentEffects(
@@ -437,10 +439,13 @@ export default async function RiderProfilePage({
                   <IdentityBadge>
                     {profile.physique.heightCm.toLocaleString("fr-FR", {
                       maximumFractionDigits: 1,
-                    })} cm · {profile.physique.weightKg.toLocaleString("fr-FR", {
+                    })} cm · <span
+                      className={weightStatus?.isOverweight ? "font-black text-[#FFADA5]" : undefined}
+                      title={weightStatus ? getRiderWeightStatusLabel(weightStatus) : undefined}
+                    >{profile.physique.weightKg.toLocaleString("fr-FR", {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 1,
-                    })} kg
+                    })} kg{weightStatus?.isOverweight ? " · Surpoids" : ""}</span>
                   </IdentityBadge>
                 ) : null}
                 <IdentityBadge>

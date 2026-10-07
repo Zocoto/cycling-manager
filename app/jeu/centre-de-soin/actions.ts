@@ -383,6 +383,7 @@ async function requireAuthenticatedClient() {
 
 function revalidateHealthPaths() {
   revalidatePath("/jeu/centre-de-soin");
+  revalidatePath("/jeu");
 }
 
 function redirectWithError(tab: string, message: string): never {

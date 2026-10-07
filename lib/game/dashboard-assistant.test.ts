@@ -74,6 +74,23 @@ const snapshot: DashboardAssistantSnapshot = {
 };
 
 describe("dashboard DS assistant", () => {
+  it("groups overweight riders into an actionable alert and removes it when none remain", () => {
+    const overweightRiders = [1, 2, 3].map((number) => ({
+      riderId: `rider-${number}`, name: `Coureur ${number}`, profileLabel: "Grimpeur",
+      weightKg: 61, maximumWeightKg: 60.4,
+    }));
+    const alert = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, overweightRiders }, rewardCount: 0, cashBalance: 100_000,
+    }).alerts.find((line) => line.id === "overweight-riders");
+    expect(alert).toEqual(expect.objectContaining({
+      tone: "alert", metric: "3", title: "coureurs en surpoids",
+      href: "/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-rider-1",
+    }));
+    expect(alert?.detail).toContain("Coureur 1 (Grimpeur), Coureur 2 (Grimpeur) et 1 autre");
+    expect(buildDashboardAssistantLines({
+      snapshot: { ...snapshot, overweightRiders: [] }, rewardCount: 0, cashBalance: 100_000,
+    }).alerts.some((line) => line.id === "overweight-riders")).toBe(false);
+  });
   it.each([1, 3])("signals %i free R&D engineers with a direct laboratory link", (count) => {
     const groups = buildDashboardAssistantLines({
       snapshot: { ...snapshot, availableRndEngineerCount: count },

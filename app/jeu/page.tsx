@@ -63,6 +63,7 @@ import {
   type DashboardFastSummary,
 } from "../../services/dashboard-fast-summary";
 import { getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
+import { getDashboardOverweightRiders } from "@/services/dashboard-rider-weight";
 import {
   DASHBOARD_ASSISTANT_ENABLED,
   getDashboardLowReputationRegistrationAlerts,
@@ -419,9 +420,18 @@ export default async function GamePage() {
     { totalCount: 0, readyCount: 0 },
     "Impossible de récupérer les compteurs d’objectifs :",
   );
+  const overweightRidersPromise = DASHBOARD_ASSISTANT_ENABLED
+    ? loadDashboardValue(
+        fastSummaryPromise.then((summary) => summary
+          ? getDashboardOverweightRiders(supabase, { teamId: summary.teamId, seasonId: summary.seasonId })
+          : []),
+        [],
+        "Impossible de récupérer les alertes de poids :",
+      )
+    : Promise.resolve([]);
   const dashboardAssistantPromise = DASHBOARD_ASSISTANT_ENABLED
     ? loadDashboardValue(
-        getCurrentDashboardAssistantSummary(supabase),
+        getCurrentDashboardAssistantSummary(supabase, overweightRidersPromise),
         null,
         "Impossible de récupérer le point quotidien de l’assistant du DS :",
       )

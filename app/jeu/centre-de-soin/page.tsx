@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getRiderWeightStatus, getRiderWeightStatusLabel } from "@/lib/game/rider-weight-status";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
@@ -948,10 +949,12 @@ function NutritionPanel({
             <div className="mt-6 grid gap-4 xl:grid-cols-2">
               {nutritionRiders.map((rider) => {
                 const applied = interventionByRiderId.get(rider.id);
+                const weightStatus = getRiderWeightStatus({ heightCm: rider.heightCm, weightKg: rider.weightKg, ratings: rider.ratings });
 
                 return (
                   <article
                     key={rider.id}
+                    id={`nutrition-rider-${rider.id}`}
                     className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.06)]"
                   >
                     <div className="flex items-center gap-4">
@@ -985,11 +988,15 @@ function NutritionPanel({
                             ) : null}
                             {rider.weightKg !== null ? (
                               <>
-                                <span>
+                                <span
+                                  className={weightStatus?.isOverweight ? "font-black text-[#C5483D]" : undefined}
+                                  title={weightStatus ? getRiderWeightStatusLabel(weightStatus) : undefined}
+                                >
                                   Poids {rider.weightKg.toLocaleString("fr-FR", {
                                     minimumFractionDigits: 1,
                                     maximumFractionDigits: 1,
                                   })} kg
+                                  {weightStatus?.isOverweight ? " · Surpoids" : ""}
                                 </span>
                                 <span
                                   title="Évolution du poids sur la saison"

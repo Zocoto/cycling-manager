@@ -5,6 +5,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
+import type { OverweightRiderSummary } from "./rider-weight-status";
 import {
   getDashboardConstructionOpportunity,
   type DashboardConstructionContext,
@@ -65,6 +66,7 @@ export type DashboardAssistantSnapshot = {
   minimumForm: number;
   untreatedInjuryCount: number;
   lowFormCount: number;
+  overweightRiders?: OverweightRiderSummary[];
   completedScoutingCount: number;
   availableScoutCount: number;
   availableRndEngineerCount: number;
@@ -162,6 +164,7 @@ const ALERT_PRIORITY = [
   "infrastructure-orientation",
   "low-reputation-registrations",
   "untreated-injuries",
+  "overweight-riders",
   "junior-manual-training",
   "federation-selection-reminder",
   "pending-selections",
@@ -282,6 +285,19 @@ export function buildDashboardAssistantLines({
       title: pluralize(snapshot.lowFormCount, "coureur en forme basse", "coureurs en forme basse"),
       detail: `Sous votre seuil de ${snapshot.minimumForm} % de forme.`,
       href: "/jeu/centre-de-soin?onglet=forme",
+    });
+  }
+
+  if (snapshot.overweightRiders?.length) {
+    const riders = snapshot.overweightRiders;
+    const names = riders.slice(0, 2).map((rider) => `${rider.name} (${rider.profileLabel})`).join(", ");
+    alerts.push({
+      id: "overweight-riders",
+      tone: "alert",
+      metric: String(riders.length),
+      title: pluralize(riders.length, "coureur en surpoids", "coureurs en surpoids"),
+      detail: `${names}${riders.length > 2 ? ` et ${riders.length - 2} autre${riders.length > 3 ? "s" : ""}` : ""} · poids trop élevé pour leur profil.`,
+      href: `/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-${riders[0].riderId}`,
     });
   }
 

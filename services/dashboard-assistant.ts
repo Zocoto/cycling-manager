@@ -10,6 +10,7 @@ import type {
 import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
+import type { OverweightRiderSummary } from "@/lib/game/rider-weight-status";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -75,6 +76,7 @@ type DashboardInfrastructureSpecializationRow = {
 
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
+  overweightRidersPromise: Promise<OverweightRiderSummary[]> = Promise.resolve([]),
 ): Promise<DashboardAssistantSnapshot | null> {
   const [
     result,
@@ -86,6 +88,7 @@ export async function getCurrentDashboardAssistantSummary(
     infrastructureLevelsResult,
     infrastructureSpecializationsResult,
     rndOpportunityResult,
+    overweightRiders,
   ] = await Promise.all([
     supabase
       .rpc("get_current_dashboard_assistant_summary")
@@ -111,6 +114,7 @@ export async function getCurrentDashboardAssistantSummary(
       .select("infrastructure_code")
       .returns<DashboardInfrastructureSpecializationRow[]>(),
     supabase.rpc("get_current_equipment_rnd_opportunity"),
+    overweightRidersPromise,
   ]);
 
   if (result.error) {
@@ -182,6 +186,7 @@ export async function getCurrentDashboardAssistantSummary(
     minimumForm: row.minimum_form,
     untreatedInjuryCount: row.untreated_injury_count,
     lowFormCount: row.low_form_count,
+    overweightRiders,
     completedScoutingCount: row.completed_scouting_count,
     availableScoutCount: assistantPayload.availableScoutCount,
     availableRndEngineerCount: rndOpportunityResult.error

@@ -27,7 +27,7 @@ type TerrainPhysiologyContext = {
   averageGradientPct: number;
 };
 
-const PROFILE_REFERENCE: Record<
+export const RIDER_PHYSIOLOGY_PROFILE_REFERENCE: Record<
   RiderPhysiologyProfile,
   { heightCm: number; weightKg: number }
 > = {
@@ -165,7 +165,7 @@ function getReference(
       weightKg: physiology.baselineWeightKg,
     };
   }
-  return PROFILE_REFERENCE[inferRiderPhysiologyProfile(ratings)];
+  return RIDER_PHYSIOLOGY_PROFILE_REFERENCE[inferRiderPhysiologyProfile(ratings)];
 }
 
 function isUsablePhysiology(

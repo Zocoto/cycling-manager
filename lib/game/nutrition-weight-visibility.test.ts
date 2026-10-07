@@ -32,6 +32,15 @@ describe("nutrition weight visibility", () => {
     expect(nutritionEditor).toContain("getNutritionWeightGainRiskPct");
   });
 
+  it("utilise le même statut de poids que l’assistant et signale le surpoids sans dépendre seulement de la couleur", () => {
+    expect(healthPage).toContain("getRiderWeightStatus({");
+    expect(healthPage).toContain('weightStatus?.isOverweight ? "font-black text-[#C5483D]"');
+    expect(healthPage).toContain('weightStatus?.isOverweight ? " · Surpoids"');
+    expect(healthPage).toContain('id={`nutrition-rider-${rider.id}`}');
+    const actions = readFileSync(join(process.cwd(), "app/jeu/centre-de-soin/actions.ts"), "utf8");
+    expect(actions).toContain('revalidatePath("/jeu")');
+  });
+
   it("garde l’affûtage compact sans répéter les mesures du coureur", () => {
     expect(healthPage).toContain('className="mt-3 grid gap-2 rounded-xl');
     expect(healthPage).toContain("Tous les 5 j");
