@@ -719,7 +719,12 @@ export function RaceLiveLab({
         </div>
       ) : tab === "classification" ? (
         mode === "live" ? (
-          <LiveClassification snapshot={snapshot} riderById={riderById} />
+          <LiveClassification
+            snapshot={snapshot}
+            riderById={riderById}
+            officialResults={simulation.results}
+            isRaceFinished={liveState.status === "finished"}
+          />
         ) : (
           <Classification
             simulation={simulation}
@@ -3183,25 +3188,97 @@ function RaceCommentary({ commentary }: { commentary: string[] }) {
   );
 }
 
+export function buildLiveClassificationRows({
+  snapshot,
+  officialResults,
+  isRaceFinished,
+}: {
+  snapshot: StageSimulationResult["timeline"][number];
+  officialResults: StageSimulationResult["results"];
+  isRaceFinished: boolean;
+}) {
+  const provisionalRows = snapshot.groups.flatMap((group) =>
+    group.riderIds.map((riderId) => ({
+      riderId,
+      group,
+    }))
+  );
+
+  if (!isRaceFinished) {
+    return provisionalRows.map((row, index) => ({
+      ...row,
+      position: index + 1,
+      gapToLeaderSeconds: row.group.gapToLeaderSeconds,
+    }));
+  }
+
+  const officialResultByRiderId = new Map(
+    officialResults
+      .filter(
+        (result) => result.status === "finished" && result.rank !== null
+      )
+      .map((result) => [result.riderId, result] as const)
+  );
+  const officialRows = [...provisionalRows].sort((first, second) => {
+    const firstRank =
+      officialResultByRiderId.get(first.riderId)?.rank ??
+      Number.MAX_SAFE_INTEGER;
+    const secondRank =
+      officialResultByRiderId.get(second.riderId)?.rank ??
+      Number.MAX_SAFE_INTEGER;
+    return firstRank - secondRank;
+  });
+
+  return officialRows.map((row, index) => {
+    const result = officialResultByRiderId.get(row.riderId);
+    return {
+      ...row,
+      position: result?.rank ?? index + 1,
+      gapToLeaderSeconds:
+        result?.gapToWinnerSeconds ?? row.group.gapToLeaderSeconds,
+    };
+  });
+}
+
 function LiveClassification({
   snapshot,
   riderById,
+  officialResults,
+  isRaceFinished,
 }: {
   snapshot: StageSimulationResult["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
+  officialResults: StageSimulationResult["results"];
+  isRaceFinished: boolean;
 }) {
-  const rows = snapshot.groups.flatMap((group) =>
-    group.riderIds.map((riderId) => ({ riderId, group }))
-  );
+  const rows = buildLiveClassificationRows({
+    snapshot,
+    officialResults,
+    isRaceFinished,
+  });
 
   return (
     <div className="p-5 sm:p-8">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-[#72D4B7]">Situation en course</p>
-          <p className="mt-1 text-sm font-semibold text-[#91A99E]">Ordre provisoire au km {formatDistance(snapshot.completedDistanceKm)}</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[#72D4B7]">
+            {isRaceFinished ? "Classement officiel" : "Situation en course"}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[#91A99E]">
+            {isRaceFinished
+              ? "Ordre validé à l’arrivée"
+              : `Ordre provisoire au km ${formatDistance(snapshot.completedDistanceKm)}`}
+          </p>
         </div>
-        <span className="rounded-full bg-[#EF5B65]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#FF9EA6]">● Live</span>
+        <span
+          className={
+            isRaceFinished
+              ? "rounded-full bg-[#72D4B7]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#72D4B7]"
+              : "rounded-full bg-[#EF5B65]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#FF9EA6]"
+          }
+        >
+          {isRaceFinished ? "✓ Arrivée" : "● Live"}
+        </span>
       </div>
       <div className="overflow-hidden rounded-2xl border border-white/10">
         <table className="w-full border-collapse text-left">
@@ -3209,11 +3286,11 @@ function LiveClassification({
             <tr><th className="px-4 py-3">Position</th><th className="px-4 py-3">Coureur</th><th className="px-4 py-3">Groupe</th><th className="px-4 py-3 text-right">Écart</th></tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {rows.slice(0, 20).map(({ riderId, group }, index) => {
+            {rows.slice(0, 20).map(({ riderId, group, position, gapToLeaderSeconds }) => {
               const rider = riderById.get(riderId)!;
               return (
                 <tr key={riderId} className="bg-white/[0.025] text-sm font-semibold">
-                  <td className="px-4 py-3 font-black text-[#F2C94C]">{index + 1}</td>
+                  <td className="px-4 py-3 font-black text-[#F2C94C]">{position}</td>
                   <td className="px-4 py-3">{rider.name}</td>
                   <td className="px-4 py-3 text-[#94ADA2]">
                     {getRaceGroupDisplayLabel({
@@ -3223,7 +3300,7 @@ function LiveClassification({
                       fallbackLabel: group.label,
                     })}
                   </td>
-                  <td className="px-4 py-3 text-right font-black">{group.gapToLeaderSeconds ? `+${formatGap(group.gapToLeaderSeconds)}` : "Tête"}</td>
+                  <td className="px-4 py-3 text-right font-black">{gapToLeaderSeconds ? `+${formatGap(gapToLeaderSeconds)}` : "Tête"}</td>
                 </tr>
               );
             })}

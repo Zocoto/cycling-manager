@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import type {
   RaceGroupSnapshot,
   RacePrimeResult,
+  RaceTimelineSnapshot,
   StageRaceStandings,
+  StageSimulationResult,
 } from "@/lib/game/race-simulation";
 
 import {
@@ -14,8 +16,93 @@ import {
   RaceGapLine,
   RoadTextureOverlay,
   RoadSurfaceDefinition,
+  buildLiveClassificationRows,
   getGroupScreenPosition,
 } from "./race-live-lab";
+
+describe("buildLiveClassificationRows", () => {
+  it("bascule sur les rangs officiels à la fin du direct", () => {
+    const snapshot: RaceTimelineSnapshot = {
+      segmentNumber: 1,
+      completedDistanceKm: 162,
+      groups: [
+        {
+          id: "finish-group",
+          label: "Groupe de tête",
+          type: "peloton",
+          riderIds: ["mirza", "tolosa", "mansour", "sidibe"],
+          gapToLeaderSeconds: 0,
+          averageEnergy: 20,
+        },
+      ],
+      incidents: [],
+      abandonments: [],
+      commentary: [],
+    };
+    const officialResults: StageSimulationResult["results"] = [
+      {
+        riderId: "sidibe",
+        rank: 1,
+        status: "finished",
+        elapsedTimeSeconds: 16_570,
+        gapToWinnerSeconds: 0,
+        energyAfter: 20,
+        injury: null,
+        abandonment: null,
+      },
+      {
+        riderId: "mirza",
+        rank: 2,
+        status: "finished",
+        elapsedTimeSeconds: 16_570,
+        gapToWinnerSeconds: 0,
+        energyAfter: 20,
+        injury: null,
+        abandonment: null,
+      },
+      {
+        riderId: "tolosa",
+        rank: 3,
+        status: "finished",
+        elapsedTimeSeconds: 16_570,
+        gapToWinnerSeconds: 0,
+        energyAfter: 20,
+        injury: null,
+        abandonment: null,
+      },
+      {
+        riderId: "mansour",
+        rank: 4,
+        status: "finished",
+        elapsedTimeSeconds: 16_570,
+        gapToWinnerSeconds: 0,
+        energyAfter: 20,
+        injury: null,
+        abandonment: null,
+      },
+    ];
+
+    expect(
+      buildLiveClassificationRows({
+        snapshot,
+        officialResults,
+        isRaceFinished: false,
+      }).map(({ riderId }) => riderId)
+    ).toEqual(["mirza", "tolosa", "mansour", "sidibe"]);
+    expect(
+      buildLiveClassificationRows({
+        snapshot,
+        officialResults,
+        isRaceFinished: true,
+      }).map(({ riderId, position }) => [position, riderId])
+    ).toEqual([
+      [1, "sidibe"],
+      [2, "mirza"],
+      [3, "tolosa"],
+      [4, "mansour"],
+    ]);
+  });
+});
 
 describe("PreviousStageStandings", () => {
   it("affiche en bas du replay les classements établis après l’étape précédente", () => {
