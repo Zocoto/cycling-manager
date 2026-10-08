@@ -37,6 +37,8 @@ export type TeamInventoryItem = {
   pendingQuantity: number;
   equippedRiderIds: string[];
   pendingRiderIds: string[];
+  equippedAssignments?: { riderId: string; slot: EquipmentSlot }[];
+  pendingAssignments?: { riderId: string; slot: EquipmentSlot }[];
   iconKey: string;
   imagePath: string | null;
   supplierName: string | null;

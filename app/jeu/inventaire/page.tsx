@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { randomUUID } from "node:crypto";
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
@@ -14,6 +15,7 @@ import {
 } from "@/components/game/inventory-equipment-form";
 import { InventoryConsumableForm } from "@/components/game/inventory-consumable-form";
 import { InventoryEquipmentSaleForm } from "@/components/game/inventory-equipment-sale-form";
+import { InventoryEquipmentSalePicker } from "@/components/game/inventory-equipment-sale-picker";
 import { InventoryItemIllustration } from "@/components/game/inventory-item-illustration";
 import { buildInventoryReturnPath } from "@/lib/game/filtered-page-paths";
 import {
@@ -329,6 +331,20 @@ export default async function InventoryPage({
             </p>
           </div>
 
+          {visibleItems.some(item => item.source === "equipment" && (item.resalePrice ?? 0) > 0) ? (
+            <details className="mt-5 rounded-2xl border border-[#D29F32]/30 bg-[#FFF9E7]">
+              <summary className="min-h-11 cursor-pointer px-4 py-3 text-sm font-black text-[#7A5A1D]">Revendre plusieurs équipements</summary>
+              <div className="border-t border-[#D29F32]/20 p-4">
+                <InventoryEquipmentSalePicker
+                  items={visibleItems.filter(item => item.source === "equipment" && (item.resalePrice ?? 0) > 0).map(item => ({
+                    id: item.sourceId, name: item.name, quantity: item.quantity, availableQuantity: item.availableQuantity,
+                    resalePrice: item.resalePrice ?? 0, equipped: item.equippedAssignments ?? [], pending: item.pendingAssignments ?? [],
+                  }))}
+                  riders={riders} currency={overview.currency} returnPath={returnPath} saleId={randomUUID()}
+                />
+              </div>
+            </details>
+          ) : null}
           {visibleItems.length > 0 ? (
             <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {visibleItems.map((item) => (
@@ -545,6 +561,11 @@ function InventoryItemCard({
               availableQuantity={item.availableQuantity}
               currency={currency}
               returnPath={returnPath}
+              quantity={item.quantity}
+              equipped={item.equippedAssignments ?? []}
+              pending={item.pendingAssignments ?? []}
+              riders={riders}
+              saleId={randomUUID()}
             />
           </>
         ) : item.isConsumable &&

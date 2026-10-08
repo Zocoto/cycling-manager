@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { parseEquipmentSales } from "@/lib/game/equipment-sale";
 
 import {
   sanitizeInventoryReturnPath,
@@ -72,6 +73,37 @@ export async function useInventoryItemAction(formData: FormData) {
   revalidatePath("/jeu/resultats");
 
   redirect(withPageFeedback(returnPath, "succes", successMessage));
+}
+
+export async function sellEquipmentBatchAction(formData: FormData) {
+  const returnPath = sanitizeInventoryReturnPath(readValue(formData, "returnPath"));
+  const saleId = readValue(formData, "saleId");
+  const rawSales = readValue(formData, "equipmentSales");
+  let parsed: unknown;
+  try { parsed = rawSales.length <= 100_000 ? JSON.parse(rawSales) : null; }
+  catch { parsed = null; }
+  const sales = parseEquipmentSales(parsed);
+  if (!sales || !isUuid(saleId)) redirectWithError(returnPath, "La sélection de matériel à revendre est invalide.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error: authenticationError } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+  const { data, error } = await supabase.rpc("sell_current_team_equipment_batch", { p_sales: sales, p_sale_id: saleId });
+  if (error) redirectWithError(returnPath, error.message);
+  const result = normalizeEquipmentSaleResult(data);
+  const rawResult = data && typeof data === "object" ? data as Record<string, unknown> : {};
+  const quantity = Number(rawResult.quantitySold);
+  const unequipped = Number(rawResult.unequippedCount) || 0;
+  const pendingCancelled = Number(rawResult.pendingCancelledCount) || 0;
+  const plansUpdated = Number(rawResult.racePlansUpdated) || 0;
+  const message = rawResult.alreadySold === true ? "Cette revente a déjà été prise en compte. Aucun matériel supplémentaire n’a été vendu."
+    : `${quantity} exemplaire${quantity > 1 ? "s" : ""} revendu${quantity > 1 ? "s" : ""} pour ${formatCurrency(result.resalePrice, result.currency)}.`
+      + (unequipped ? ` ${unequipped} équipement(s) retiré(s) des coureurs.` : "")
+      + (pendingCancelled ? ` ${pendingCancelled} affectation(s) programmée(s) annulée(s).` : "")
+      + (plansUpdated ? ` ${plansUpdated} montage(s) de course ajusté(s).` : "");
+  for (const path of ["/jeu/inventaire", "/jeu/materiel", "/jeu/materiel/equiper", "/jeu/finances", "/jeu/effectif", "/jeu/preparation-course", "/jeu"]) revalidatePath(path);
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  redirect(withPageFeedback(returnPath, "succes", message));
 }
 
 export async function sellEquipmentAction(formData: FormData) {

@@ -133,6 +133,12 @@ export async function getCurrentTeamInventoryOverview(
           pendingRiderIds: equipmentOverview.pendingAssignments
             .filter((assignment) => assignment.equipmentItemId === item.id)
             .map((assignment) => assignment.riderId),
+          equippedAssignments: equipmentOverview.assignments
+            .filter(assignment => assignment.equipmentItemId === item.id)
+            .map(({ riderId, slot }) => ({ riderId, slot })),
+          pendingAssignments: equipmentOverview.pendingAssignments
+            .filter(assignment => assignment.equipmentItemId === item.id)
+            .map(({ riderId, slot }) => ({ riderId, slot })),
           iconKey: "equipment",
           imagePath: item.imagePath,
           supplierName: item.supplierName,
