@@ -37,3 +37,12 @@ WHERE id='halloween-2026' AND starts_at='2026-10-08 22:00Z';
 Arrêt d'urgence : même requête avec `enabled=false`. Les soldes et objets restent conservés ; la levée gratuite des sorts reste disponible. Ne pas supprimer les tables ni rejouer des courses historiques.
 
 Contrôle après minuit : état et dates de l'édition, disponibilité du site, déploiement Vercel READY, absence d'erreurs du cron. Vérifications en lecture seule, bornées, séquentielles ; aucun compte de joueur utilisé comme fixture.
+
+## Correctif visuel du 9 octobre
+
+- Rétablissement du thème saisonnier approuvé à la racine du site, du 9 octobre au 2 novembre inclus, heure de Paris. Aucune requête supplémentaire pour le thème, aucun changement des couleurs sémantiques des alertes, notes ou drapeaux.
+- Header de jeu natif sur `/jeu/halloween`, avec identité réelle du DS, sponsor et raccourcis habituels ; il reste disponible si le chargement de l'événement échoue.
+- Accueil illustré : poursuite nocturne, Trick or Treat et boutique. Les trois illustrations restent visibles sur téléphone ; bannière recadrée sans couper les cyclistes.
+- Recette locale uniquement, avec les mêmes composants et la même enveloppe mobile que la production. Navigation testée sans achats, participation ni essai réel ; largeurs de 320 et 390 px sans débordement.
+- 36 tests ciblés (thème, accueil, preuves et API), lint des fichiers modifiés. Deux anciens tests de header sont déjà obsolètes dans le commit de base : un fichier retiré et une ancienne signature monoligne. Aucun changement de header partagé pour les contourner.
+- Aucun changement SQL, de solde, d'inventaire, de récompense, de cron ou de moteur dans ce correctif.

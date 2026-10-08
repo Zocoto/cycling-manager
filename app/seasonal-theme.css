@@ -1,0 +1,131 @@
+/* Shared by every route, opt-in only. Never recolor photos, stats, race badges or charts. */
+[data-site-theme="halloween"] {
+  --hw-orange: #eb934d;
+  --hw-orange-hover: #f6a764;
+  --hw-ink: #29231f;
+  --hw-ink-hover: #3b3028;
+  --hw-peach: #f7c697;
+  --hw-border: #be733d;
+  --hw-paper: #fff4e7;
+  /* The shared design tokens reach the home page and every game section.
+     Do not repurpose semantic mint/danger or sponsor colours in flags and portraits. */
+  --cm-night: #201a18;
+  --cm-night-soft: #29211e;
+  --cm-forest: #332721;
+  --cm-forest-light: #614330;
+  --cm-olive: #ad7850;
+  --cm-text-secondary: #e0ccbb;
+  --cm-border: #a98061;
+
+  & :is(header, footer, section, article, nav, div):is([class~="bg-[#071A17]" i], [class~="bg-[#071A17]/95" i], [class~="bg-[#0B302B]" i]):not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    background-color: var(--hw-ink);
+  }
+  & [data-game-header]:not([data-site-theme="default"] *) {
+    --game-header-primary: var(--hw-orange) !important;
+    --game-header-secondary: var(--hw-border) !important;
+    --game-header-accent: var(--hw-peach) !important;
+    --game-header-primary-soft: #eb934d22 !important;
+    --game-header-accent-soft: #f7c6971a !important;
+    border-color: #a9806140;
+  }
+  & [data-game-header] > div[aria-hidden="true"],
+  & [data-halloween-logo-tint]:not([data-site-theme="default"] *) { background: linear-gradient(90deg, var(--hw-orange), var(--hw-peach), var(--hw-border)) !important; }
+  & :is(.cm-surface, .cm-soft-surface):not([data-site-theme="default"] *) {
+    background: linear-gradient(145deg, var(--hw-ink-hover), var(--hw-ink));
+    border-color: #a9806160;
+  }
+  & [data-halloween-logo-web]:not([data-site-theme="default"] *) { display: block; }
+  & .mobile-game-navigation-dock:not([data-site-theme="default"] *) { background-color: var(--hw-ink); border-color: #a9806160; }
+
+  /* Legacy utilities remain untouched outside this opt-in scope. Exact color tokens
+     avoid matching red destructive controls or merely a hover/disabled utility. */
+  & :is(button, input[type="submit"], input[type="button"], [role="button"],
+    a[class*="rounded"][class*="px-"], a[class*="rounded"][class*="p-"][class*="justify-center"],
+    a[data-site-action], a.halloween-button, a.halloween-subtle-button):not(:disabled):not([aria-disabled="true"]):not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    &:is([class~="text-[#0B302B]" i], [class~="text-[#315B3E]" i], [class~="text-[#176951]" i],
+      [class~="text-[#278B70]" i], [class~="text-[#60756E]" i], [class~="text-forest"],
+      [class~="bg-[#EAF5F3]" i], [class~="bg-[#EAF5F0]" i], [class~="bg-[#DDF3E7]" i],
+      [class~="bg-[#E5F4ED]" i], [class~="bg-[#D7EEE8]" i], .halloween-subtle-button,
+      [data-site-action="secondary"]) {
+      --site-action-bg: var(--hw-paper);
+      --site-action-hover: #ffe4c8;
+      --site-action-text: var(--hw-ink);
+      --site-action-border: var(--hw-border);
+      --site-action-image: none;
+      --tw-ring-color: var(--hw-border);
+      background-color: var(--site-action-bg);
+      background-image: none;
+      color: var(--site-action-text);
+      border-color: var(--site-action-border);
+      &:hover { background-color: var(--site-action-hover); }
+      &:focus-visible { outline-color: var(--site-action-border); }
+    }
+
+    &:is([class~="bg-[#071A17]" i], [class~="bg-[#0B302B]" i], [class~="bg-[#176951]" i],
+      [class~="bg-[#315B3E]" i], [class~="bg-[#173C2E]" i], [class~="bg-night"],
+      [class~="bg-forest"], [class~="bg-forest-light"], [class~="bg-white/5"], [class~="bg-[#071A17]/45" i],
+      [data-site-action="dark"]) {
+      --site-action-bg: var(--hw-ink);
+      --site-action-hover: var(--hw-ink-hover);
+      --site-action-text: var(--hw-peach);
+      --site-action-border: var(--hw-border);
+      --site-action-image: none;
+      --tw-ring-color: var(--hw-border);
+      background-color: var(--site-action-bg);
+      background-image: none;
+      color: var(--site-action-text);
+      border-color: var(--site-action-border);
+      &:hover { background-color: var(--site-action-hover); }
+      &:focus-visible { outline-color: var(--site-action-border); }
+    }
+
+    &:is([class~="bg-[#F2C94C]" i], [class~="bg-[#F2C94C]/15" i],
+      [class~="bg-[#42B99A]" i], [class~="bg-[#42CDA8]" i], [class~="bg-[#278B70]" i],
+      [class~="bg-leader"], [class~="bg-mint"], [class~="bg-[var(--game-header-accent)]"],
+      .halloween-button, [data-site-action="primary"]) {
+      --site-action-bg: var(--hw-orange);
+      --site-action-hover: var(--hw-orange-hover);
+      --site-action-text: var(--hw-ink);
+      --site-action-border: var(--hw-border);
+      --site-action-image: none;
+      --tw-ring-color: var(--hw-border);
+      background-color: var(--site-action-bg);
+      background-image: none;
+      color: var(--site-action-text);
+      border-color: var(--site-action-border);
+      &:hover { background-color: var(--site-action-hover); }
+      &:focus-visible { outline-color: var(--site-action-border); }
+    }
+
+    /* Active tabs/filters remain visually distinct from their inactive siblings. */
+    &:is([aria-pressed="true"], [aria-selected="true"], [aria-current="page"]):not([data-site-theme-preserve]) {
+      --site-action-bg: var(--hw-ink);
+      --site-action-hover: var(--hw-ink-hover);
+      --site-action-text: var(--hw-peach);
+      --site-action-border: var(--hw-border);
+      --site-action-image: none;
+      --tw-ring-color: var(--hw-border);
+      background-color: var(--site-action-bg);
+      background-image: none;
+      color: var(--site-action-text);
+      border-color: var(--site-action-border);
+      &:hover { background-color: var(--site-action-hover); }
+      &:focus-visible { outline-color: var(--site-action-border); }
+    }
+  }
+
+  & .halloween-board-nav a:not([data-site-theme="default"] *),
+  & .halloween-filter button:not(:disabled):not([data-site-theme="default"] *) {
+    background-color: var(--hw-paper);
+    border-color: var(--hw-border);
+    color: var(--hw-ink);
+  }
+  & .halloween-board-nav a[aria-current="page"]:not([data-site-theme="default"] *),
+  & .halloween-filter button[aria-pressed="true"]:not([data-site-theme="default"] *) {
+    background-color: var(--hw-ink);
+    color: var(--hw-peach);
+  }
+}
+
+/* Static decoration: no animation, extra asset download, layout shift or click interception. */
+[data-halloween-logo-web] { display: none; position: absolute; inset: -3px auto auto -3px; width: 70%; height: 70%; color: #e0c1a0; pointer-events: none; }

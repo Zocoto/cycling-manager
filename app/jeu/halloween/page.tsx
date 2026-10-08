@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { HalloweenEvent } from "@/components/halloween/halloween-event";
+import { GameHeader } from "@/components/game/game-header";
+import { getGameHeaderData } from "@/services/game-header-data";
 import type { HalloweenState } from "@/lib/game/halloween-event";
 import "@/components/halloween/halloween.css";
 
@@ -10,7 +12,15 @@ export default async function HalloweenPage({ searchParams }: { searchParams: Pr
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
-  const { data, error } = await supabase.rpc("get_current_halloween_state");
-  if (error || !data) return <section className="rounded-3xl bg-white p-8"><h1>Halloween se prépare</h1><p>Les jeux restent fermés pendant les vérifications. Aucun essai ni aucune roue n’a été consommé.</p></section>;
-  return <HalloweenEvent key={onglet} initial={data as HalloweenState} initialTab={onglet} />;
+  const [headerData, { data, error }] = await Promise.all([
+    getGameHeaderData(supabase, user.id).catch((headerError: unknown) => {
+      console.error("Impossible de charger le header Halloween.", headerError);
+      return null;
+    }),
+    supabase.rpc("get_current_halloween_state"),
+  ]);
+  return <>
+    <GameHeader displayName={headerData?.displayName} sponsor={headerData?.teamSponsorVisual} simulatorEmail={user.email} />
+    {error || !data ? <section className="mx-auto max-w-3xl p-8"><h1>Halloween se prépare</h1><p>La page est momentanément indisponible. Réessayez dans quelques instants. Aucun essai ni aucune roue n’a été consommé.</p></section> : <HalloweenEvent key={onglet} initial={data as HalloweenState} initialTab={onglet} />}
+  </>;
 }

@@ -50,6 +50,7 @@ export function WheelLogo({
 
       <span
         aria-hidden="true"
+        data-halloween-logo-tint="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent}, ${colors.secondary})`,
@@ -64,6 +65,12 @@ export function WheelLogo({
           maskPosition: "center",
         }}
       />
+      <svg data-halloween-logo-web="true" aria-hidden="true" viewBox="0 0 60 60" fill="none">
+        <g stroke="currentColor" strokeWidth="1.2" opacity=".7">
+          <path d="M3 3h54M3 3v54M3 3l45 45M3 3l51 21M3 3l21 51" />
+          <path d="M3 15q4-2 8-1t5-11M3 27q8-5 17-4t8-20M3 40q14-7 24-6t13-31M3 53q16-8 31-8t18-42" />
+        </g>
+      </svg>
     </span>
   );
 }

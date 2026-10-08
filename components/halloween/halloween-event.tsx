@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HalloweenRunner } from "./halloween-runner";
-import { HalloweenItemIllustration, HalloweenCandyScene } from "./halloween-art";
+import { HalloweenItemIllustration, HalloweenCandyScene, SpiderWeb } from "./halloween-art";
+import { HalloweenNightRide } from "./halloween-night-ride";
+import { HalloweenEventHome } from "./halloween-event-home";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { DemonicWheel } from "./halloween-wheel";
 import { halloweenRequest } from "./halloween-client";
@@ -29,10 +31,15 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
   };
   const open = state.state === "open";
   const shopOpen = open || state.state === "shop";
-  return <main className="halloween-preview halloween-public-event" data-halloween-event-state={state.state}>
-    <header className="halloween-hero">
-      <div><p className="halloween-eyebrow">Du 9 octobre au 2 novembre inclus · heure de Paris</p><h1>Le peloton de minuit</h1><p>Échappez à l’équipier sans tête, choisissez votre bonbon et collectionnez les trésors d’Halloween.</p><Link href="/jeu" className="halloween-text-link">← Retour au bureau du DS</Link></div>
-      <div className="halloween-card"><span>Votre portefeuille</span><strong className="halloween-wallet"><DemonicWheel size={32} />{state.coins} roues démoniaques</strong><small>{state.tickets} ticket{state.tickets > 1 ? "s" : ""} bonus · aucun effet sur les finances de l’équipe</small></div>
+  return <main className="halloween-preview halloween-public-event" data-site-theme="halloween" data-halloween-event-state={state.state}>
+    <div className="halloween-event-topline">
+      <Link href="/jeu" className="halloween-text-link">← Retour au bureau du DS</Link>
+      <div className="halloween-event-wallet" aria-label="Votre portefeuille Halloween"><strong><DemonicWheel size={26} />{state.coins} roues démoniaques</strong><small>{state.tickets} ticket{state.tickets > 1 ? "s" : ""} bonus · hors finances de l’équipe</small></div>
+    </div>
+    <header className="halloween-event-hero">
+      <SpiderWeb className="halloween-event-corner-web" />
+      <div className="halloween-event-hero-copy"><p className="halloween-eyebrow">Du 9 octobre au 2 novembre inclus · heure de Paris</p><h1>Événement <span>Halloween.</span></h1><p>Échappez à l’équipier sans tête, choisissez votre bonbon et collectionnez les trésors du peloton de minuit.</p></div>
+      <div className="halloween-event-hero-art"><HalloweenNightRide /></div>
     </header>
     <nav className="halloween-filter" aria-label="Halloween">{([["accueil", "L’événement"], ["poursuite", "Cycling Hollow"], ["bonbons", "Trick or Treat"], ["boutique", "La boutique"], ["collection", "Mes trésors"]] as const).map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</nav>
     {notice ? <p role="status" className="halloween-card">{notice}</p> : null}
@@ -42,7 +49,7 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
     {state.curse ? <section className="halloween-card"><h2>{state.curse.kind === "vampire" ? "Le baiser du vampire" : "La malédiction de la momie"}</h2><p>Un sort envoyé par {state.curse.sender}. {curseCopy[state.curse.kind as keyof typeof curseCopy]} Expiration : {new Date(state.curse.expiresAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.</p><button disabled={busy} className="halloween-button" onClick={() => action("dispel")}>Sel anti-malédiction · lever gratuitement</button>
       {state.pendingGift ? <div><p>Cinq bandelettes à retirer, du dessus vers le dessous. {state.bandages}/5 retirées.</p><button disabled={busy} className="halloween-button" onClick={() => action("unwrap", { bandage: state.bandages })}>Retirer la bandelette {state.bandages + 1}</button></div> : null}
     </section> : null}
-    {tab === "accueil" ? <section className="halloween-card"><p className="halloween-eyebrow">Une parenthèse hors des courses</p><h2>Des frissons, pas de fatigue.</h2><p>Les jeux Halloween ne modifient ni la forme de vos coureurs, ni les classements cyclistes. Les objets de la boutique ont les effets indiqués sur leur fiche, uniquement lorsque vous décidez de les utiliser.</p><div className="halloween-shop-grid"><article><h3>Cycling Hollow</h3><p>Un essai quotidien sur le même parcours pour tous. Votre meilleur score est conservé ; les roues de chaque essai validé sont ajoutées à votre portefeuille. Un ticket permet un second essai, au maximum un par jour.</p><button className="halloween-button" onClick={() => setTab("poursuite")}>S’élancer dans la nuit →</button></article><article><h3>Trick or Treat</h3><p>Un tirage quotidien pour 5 roues. La couleur ne change pas vos chances. Un cadeau, des roues ou un essai supplémentaire vous attendent peut-être…</p><button className="halloween-button" onClick={() => setTab("bonbons")}>Choisir un bonbon →</button></article></div><p className="halloween-secondary">Journées renouvelées à minuit à Paris. Les podiums quotidiens sont attribués après la sauvegarde des essais de fin de journée ; les lots finaux après la clôture du 2 novembre. La boutique reste ouverte une semaine supplémentaire. Les tickets non utilisés expirent à la fin des jeux ; les roues non dépensées expirent après la fermeture de la boutique.</p></section> : null}
+    {tab === "accueil" ? <HalloweenEventHome onSelect={setTab} /> : null}
     {tab === "poursuite" ? <HalloweenRunner state={state} onRefresh={() => router.refresh()} onNotice={setNotice} /> : null}
     {tab === "bonbons" ? <section className="halloween-card"><div className="halloween-section-heading"><div><p className="halloween-eyebrow">Une fois par jour · mise de 5 roues</p><h2>Trick or Treat</h2><p>Trois couleurs, les mêmes chances. Votre cadeau est tiré et enregistré côté serveur.</p></div><HalloweenCandyScene /></div><div className="halloween-filter">{["Orange", "Violet", "Vert"].map(color => <button key={color} disabled={busy || !open || state.drawn || state.coins < 5 || !!state.pendingGift} onClick={() => action("draw")}>{color} · 5 roues</button>)}</div><p>{state.drawn ? "Votre bonbon du jour a déjà été choisi." : "Vos chances : 50 % sans cadeau ; 30 % pour 8 roues ; 12 % pour 15 roues ; 5 % pour un consommable ; 1 % pour un cosmétique ; 1,9 % pour un ticket bonus ; 0,1 % pour l’Étoile de la sorcière."}</p><p className="halloween-secondary">Chaque objet d’une même famille a la même chance. Un cosmétique déjà possédé est remplacé par la moitié de son prix, avec un minimum de 5 roues. Après votre première Étoile de la sorcière, ce tirage rare donne 15 roues. Les reliques et le cadre exclusif du vainqueur ne figurent pas dans les tirages ordinaires.</p></section> : null}
     {tab === "boutique" || tab === "collection" ? <section><div className="halloween-section-heading"><div><p className="halloween-eyebrow">{tab === "collection" ? "Votre collection persistante" : "Roues démoniaques uniquement"}</p><h2>{tab === "collection" ? "Mes trésors" : "La boutique de minuit"}</h2></div><div className="halloween-filter">{["all", "cosmetic", "consumable", "transformation"].map(key => <button key={key} onClick={() => setFilter(key)} aria-pressed={filter === key}>{({ all: "Tout", cosmetic: "Portrait", consumable: "Objets", transformation: "Sorts" })[key]}</button>)}</div></div>

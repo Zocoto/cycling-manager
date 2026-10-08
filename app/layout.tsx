@@ -7,8 +7,11 @@ import { ScrollToTop } from "../components/layout/scroll-to-top";
 import { LocaleProvider } from "../components/i18n/locale-provider";
 import { WebVitalsReporter } from "../components/monitoring/web-vitals-reporter";
 import { getRequestLocale } from "../lib/i18n/server";
+import { getActiveSiteTheme } from "../lib/site-theme";
+import { SeasonalThemeSync } from "../components/layout/seasonal-theme-sync";
 
 import "./globals.css";
+import "./seasonal-theme.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -132,9 +135,11 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
+      data-site-theme={getActiveSiteTheme()}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
+        <SeasonalThemeSync />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
