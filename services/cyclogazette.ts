@@ -419,10 +419,7 @@ export async function publishCyclogazetteEdition(
         item.kind !== "staff",
     )
     .slice(0, 8);
-  const reactions = completeEditorialReactions(
-    submittedReactions,
-    victories[0] ?? raceClassifications[0] ?? null,
-  );
+  const reactions = submittedReactions;
   const lead =
     victories[0] ??
     raceClassifications[0] ??
@@ -767,53 +764,6 @@ async function loadDailyPreRacePress(
   }));
 }
 
-function completeEditorialReactions(
-  reactions: CyclogazetteReaction[],
-  lead: PublicGameNewsItem | null,
-) {
-  const fallbacks = [
-    {
-      directorName: "M. Delorme",
-      teamName: "Les suiveurs du peloton",
-      answer: lead
-        ? `« ${lead.title} confirme que chaque seconde et chaque placement comptent. La course a parlé. »`
-        : "« La journée a laissé des enseignements tactiques à tout le peloton. »",
-    },
-    {
-      directorName: "Claire Martin",
-      teamName: "Le collectif des DS",
-      answer: lead
-        ? "« Au-delà du vainqueur, les classements ouvrent déjà de nouvelles perspectives pour la suite. »"
-        : "« Les équipes préparent déjà la prochaine explication. »",
-    },
-  ];
-  return [
-    ...reactions,
-    ...fallbacks
-      .slice(0, Math.max(0, 2 - reactions.length))
-      .map((fallback, index) => ({
-        interviewId: `editorial:${index}`,
-        directorName: fallback.directorName,
-        directorAvatarKey: null,
-        teamId: "",
-        teamName: fallback.teamName,
-        raceName: lead?.title ?? "La journée de course",
-        stageName: lead?.title ?? "Le peloton",
-        question: "Quel enseignement retenez-vous de cette journée ?",
-        answer: fallback.answer,
-        closingNote: null,
-        answers: [
-          {
-            questionId: `editorial:${index}`,
-            question: "Quel enseignement retenez-vous de cette journée ?",
-            answer: fallback.answer,
-          },
-        ],
-        isEditorial: true,
-      })),
-  ];
-}
-
 async function loadDailyTourSummaries(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   seasonDayId: string,
@@ -1151,7 +1101,9 @@ function normalizeGazetteContent(
     ? content.raceHighlights
     : [];
   const reactions = Array.isArray(content.reactions)
-    ? content.reactions.map((reaction) => ({
+    ? content.reactions
+      .filter((reaction) => !reaction.isEditorial)
+      .map((reaction) => ({
         ...reaction,
         answers:
           Array.isArray(reaction.answers) && reaction.answers.length > 0

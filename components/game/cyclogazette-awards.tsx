@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useTransition } from "react";
+
 import Link from "@/components/ui/app-link";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { SeasonAwardMedalMark } from "@/components/game/season-award-medal-mark";
@@ -7,6 +9,7 @@ import {
   SEASON_AWARD_PRESENTATION,
   compareSeasonAwards,
 } from "@/lib/game/season-awards";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { SeasonAward } from "@/services/season-awards";
 
 export function CyclogazetteAwards({
@@ -103,6 +106,9 @@ export function CyclogazetteAwards({
         <p className="mt-3 max-w-3xl font-serif text-sm italic leading-5 text-[#695D43]">
           {isEnglish ? "Before the new peloton sets off, the Cyclogazette honours those who shaped the previous campaign." : "Avant que le nouveau peloton ne s’élance, La Cyclogazette célèbre celles et ceux qui ont marqué la campagne précédente."}
         </p>
+        <p className="mt-2 text-[9px] font-black uppercase tracking-[0.15em] text-[#806C45]">
+          {latest.awards.length} {isEnglish ? "official awards · complete roll of honour" : "awards officiels · palmarès complet"}
+        </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {latest.awards.map((award) => <AwardCard key={award.id} award={award} compact />)}
         </div>
@@ -182,7 +188,131 @@ function AwardCard({
       {!compact ? <p className={`mt-3 font-serif text-xs italic leading-5 ${gala ? "text-[#C8C4BA]" : "text-[#695D43]"}`}>{copy.description}</p> : null}
       {award.teamName && award.teamName !== award.recipientName ? <p className={`mt-1 truncate text-[9px] font-bold ${gala ? "text-[#AEB4C2]" : "text-[#806C45]"}`}>{award.teamName}</p> : null}
       {award.statValue !== null && award.statLabel ? <p className={`${compact ? "mt-2 text-[9px]" : `mt-4 border-t ${gala ? "border-[#D6B45A]/25" : "border-[#806C45]/25"} pt-3 text-xs`} font-black uppercase tracking-[0.1em] ${gala ? "text-[#E8CB78]" : "text-[#9A711F]"}`}>{award.statValue.toLocaleString(locale === "en" ? "en-GB" : "fr-FR")} {award.statLabel}</p> : null}
+      <AwardWinnerComment award={award} compact={compact} gala={gala} />
     </article>
+  );
+}
+
+function AwardWinnerComment({
+  award,
+  compact,
+  gala,
+}: {
+  award: SeasonAward;
+  compact: boolean;
+  gala: boolean;
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  const [comment, setComment] = useState(award.winnerComment ?? null);
+  const [draft, setDraft] = useState(award.winnerComment ?? "");
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const canComment = award.canViewerComment ?? false;
+
+  if (!comment && !canComment) return null;
+
+  function submitComment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    startTransition(async () => {
+      setError(null);
+      const result = await createSupabaseBrowserClient().rpc(
+        "upsert_current_season_award_comment",
+        {
+          p_award_id: award.id,
+          p_message: draft,
+        },
+      );
+      if (result.error) {
+        setError(
+          isEnglish
+            ? "Unable to publish the laureate’s comment."
+            : "Impossible de publier le mot du lauréat.",
+        );
+        return;
+      }
+      setComment(typeof result.data === "string" ? result.data : null);
+      setDraft(typeof result.data === "string" ? result.data : "");
+      setIsEditing(false);
+    });
+  }
+
+  const borderClass = gala
+    ? "border-[#D6B45A]/25"
+    : "border-[#806C45]/25";
+  const mutedClass = gala ? "text-[#C8C4BA]" : "text-[#695D43]";
+  const accentClass = gala ? "text-[#E8CB78]" : "text-[#A12742]";
+
+  return (
+    <div className={`mt-3 border-t ${borderClass} pt-3`}>
+      {comment ? (
+        <blockquote
+          data-award-winner-comment={award.id}
+          className={`${compact ? "text-[11px] leading-4" : "text-xs leading-5"} font-serif italic ${mutedClass}`}
+        >
+          “{comment}”
+        </blockquote>
+      ) : null}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className={`text-[8px] font-black uppercase tracking-[0.13em] ${accentClass}`}>
+          {isEnglish ? "The laureate’s word" : "Le mot du lauréat"}
+        </span>
+        {canComment && !isEditing ? (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className={`text-[8px] font-black uppercase tracking-[0.1em] underline underline-offset-2 ${accentClass}`}
+          >
+            {comment
+              ? isEnglish ? "Edit" : "Modifier"
+              : isEnglish ? "Add yours" : "Commenter"}
+          </button>
+        ) : null}
+      </div>
+      {isEditing ? (
+        <form onSubmit={submitComment} className="mt-2">
+          <label htmlFor={`award-comment-${award.id}`} className="sr-only">
+            {isEnglish ? "Laureate comment" : "Commentaire du lauréat"}
+          </label>
+          <textarea
+            id={`award-comment-${award.id}`}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            maxLength={500}
+            rows={compact ? 3 : 4}
+            autoFocus
+            className={`w-full resize-y border ${borderClass} bg-transparent p-2 font-serif text-xs outline-none focus:border-current ${gala ? "text-[#FFF8E5]" : "text-[#2F2618]"}`}
+          />
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className={`text-[8px] ${mutedClass}`}>{draft.length}/500</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(comment ?? "");
+                  setIsEditing(false);
+                  setError(null);
+                }}
+                className={`text-[8px] font-black uppercase tracking-[0.1em] ${mutedClass}`}
+              >
+                {isEnglish ? "Cancel" : "Annuler"}
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className={`border px-2 py-1 text-[8px] font-black uppercase tracking-[0.1em] disabled:opacity-50 ${gala ? "border-[#D6B45A] text-[#E8CB78]" : "border-[#A12742] text-[#A12742]"}`}
+              >
+                {pending
+                  ? isEnglish ? "Publishing…" : "Publication…"
+                  : isEnglish ? "Publish" : "Publier"}
+              </button>
+            </div>
+          </div>
+          {error ? <p className={`mt-2 text-[10px] font-bold ${accentClass}`}>{error}</p> : null}
+        </form>
+      ) : null}
+    </div>
   );
 }
 

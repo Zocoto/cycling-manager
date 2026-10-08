@@ -42,6 +42,26 @@ describe("CyclogazetteAwards", () => {
 
     expect(markup).toContain('data-gazette-day-one-awards="true"');
     expect(markup).toContain("Spécial ouverture de saison");
+    expect(markup).toContain("palmarès complet");
     expect(markup).toContain("/jeu/gazette?onglet=awards");
+  });
+
+  it("affiche le mot réel du lauréat et lui réserve le bouton d’édition", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteAwards
+        awards={[
+          {
+            ...award,
+            winnerComment: "Une saison gagnée avec tout le collectif.",
+            canViewerComment: true,
+          },
+        ]}
+        mode="day-one"
+      />,
+    );
+
+    expect(markup).toContain('data-award-winner-comment="award-1"');
+    expect(markup).toContain("Une saison gagnée avec tout le collectif.");
+    expect(markup).toContain("Modifier");
   });
 });

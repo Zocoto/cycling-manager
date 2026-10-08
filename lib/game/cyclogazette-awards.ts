@@ -8,6 +8,19 @@ type GazetteArchiveSeasonReference = {
   editions: Array<{ id: string }>;
 };
 
+export function getCyclogazetteOpeningSourceGameYear(
+  edition: GazetteEditionReference | null,
+  archive: GazetteArchiveSeasonReference[],
+) {
+  if (!edition || edition.dayNumber !== 1) return null;
+  const editionSeason = archive.find((season) =>
+    season.editions.some((entry) => entry.id === edition.id),
+  );
+  return editionSeason && editionSeason.gameYear > 1
+    ? editionSeason.gameYear - 1
+    : null;
+}
+
 export function selectCyclogazetteOpeningAwards<T extends { gameYear: number }>(
   edition: GazetteEditionReference | null,
   archive: GazetteArchiveSeasonReference[],

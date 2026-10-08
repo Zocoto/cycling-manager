@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CyclogazetteArchiveNavigation } from "@/components/game/cyclogazette-archive-navigation";
 import { CyclogazetteAwards } from "@/components/game/cyclogazette-awards";
 import { CyclogazetteGamesSidebar } from "@/components/game/cyclogazette-games-sidebar";
+import { CyclogazetteGalaReplays } from "@/components/game/cyclogazette-gala-replays";
 import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper";
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
 import { CyclogazetteRivalries } from "@/components/game/cyclogazette-rivalries";
@@ -12,6 +13,7 @@ import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-se
 import { GameHeader } from "@/components/game/game-header";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
 import {
+  getCyclogazetteOpeningSourceGameYear,
   selectCyclogazetteGalaAwards,
   selectCyclogazetteOpeningAwards,
 } from "@/lib/game/cyclogazette-awards";
@@ -29,6 +31,7 @@ import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 import { getCyclogazetteSeasonQuizOverview } from "@/services/cyclogazette-season-quiz";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getSeasonAwards } from "@/services/season-awards";
+import { getSeasonFinaleGalaReplays } from "@/services/season-finale-gala-replays";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
 import { getCurrentTeamRivalries } from "@/services/team-rivalries";
 
@@ -146,6 +149,13 @@ export default async function CyclogazettePage({
     archive,
     resolvedAwards,
   );
+  const openingSourceGameYear = getCyclogazetteOpeningSourceGameYear(
+    edition,
+    archive,
+  );
+  const galaReplays = openingSourceGameYear
+    ? await getSeasonFinaleGalaReplays(supabase, openingSourceGameYear)
+    : [];
 
   return (
     <main
@@ -188,11 +198,21 @@ export default async function CyclogazettePage({
                   seasonOpeningAwards={
                     galaAwards.length > 0 ? (
                       <CyclogazetteAwards awards={galaAwards} mode="gala" />
-                    ) : openingAwards.length > 0 ? (
-                      <CyclogazetteAwards
-                        awards={openingAwards}
-                        mode="day-one"
-                      />
+                    ) : openingAwards.length > 0 || galaReplays.length > 0 ? (
+                      <>
+                        {openingAwards.length > 0 ? (
+                          <CyclogazetteAwards
+                            awards={openingAwards}
+                            mode="day-one"
+                          />
+                        ) : null}
+                        {galaReplays.length > 0 && openingSourceGameYear ? (
+                          <CyclogazetteGalaReplays
+                            replays={galaReplays}
+                            sourceGameYear={openingSourceGameYear}
+                          />
+                        ) : null}
+                      </>
                     ) : null
                   }
                   seasonQuizSection={

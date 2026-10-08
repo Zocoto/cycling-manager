@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getCyclogazetteOpeningSourceGameYear,
   selectCyclogazetteGalaAwards,
   selectCyclogazetteOpeningAwards,
 } from "./cyclogazette-awards";
@@ -19,6 +20,19 @@ const awards = [
 ];
 
 describe("selectCyclogazetteOpeningAwards", () => {
+  it("retrouve la saison source du gala pour le J1 suivant", () => {
+    const seasonFourArchive = [
+      { gameYear: 4, editions: [{ id: "season-4-day-1" }] },
+    ];
+
+    expect(
+      getCyclogazetteOpeningSourceGameYear(
+        { id: "season-4-day-1", dayNumber: 1 },
+        seasonFourArchive,
+      ),
+    ).toBe(3);
+  });
+
   it("publie au J1 le dernier palmarès disponible", () => {
     expect(
       selectCyclogazetteOpeningAwards(
