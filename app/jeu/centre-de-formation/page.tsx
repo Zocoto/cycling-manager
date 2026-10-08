@@ -705,6 +705,7 @@ function AcademyTab({
           </div>
         </div>
       </div>
+      <YouthCoachCard coach={overview.youthCoach} />
       {nextSeasonPromotions.length ? (
         <NextSeasonPromotions
           riders={nextSeasonPromotions}
@@ -809,6 +810,120 @@ function AcademyTab({
           text="Signez un jeune depuis un rapport de scouting pour commencer sa formation."
         />
       )}
+    </div>
+  );
+}
+
+function YouthCoachCard({
+  coach,
+}: {
+  coach: YouthDevelopmentOverview["youthCoach"];
+}) {
+  if (!coach) {
+    return (
+      <section className="flex flex-col gap-4 rounded-[1.5rem] border border-dashed border-[#278B70]/35 bg-[#F2F8F5] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            Encadrement de l’école
+          </p>
+          <h2 className="mt-1 text-lg font-black text-[#183F37]">
+            Aucun responsable de formation
+          </h2>
+          <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
+            Ce spécialiste facultatif encadre tous les juniors, sans
+            affectation individuelle. Son bonus reste ciblé sur ses domaines
+            et une équipe ne peut en employer qu’un seul.
+          </p>
+        </div>
+        <Link
+          href="/jeu/staff?onglet=marche&metier=youth_coach"
+          className="shrink-0 rounded-xl bg-[#176951] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#0B302B]"
+        >
+          Voir les profils
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="overflow-hidden rounded-[1.5rem] border border-[#278B70]/25 bg-white shadow-sm">
+      <div className="grid gap-4 bg-[linear-gradient(135deg,#0B302B,#176951)] p-5 text-white lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/12 text-xl font-black ring-1 ring-white/15">
+            RF
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
+              Responsable de formation · niveau {coach.level}
+            </p>
+            <h2 className="mt-1 text-xl font-black">
+              {coach.firstName} {coach.lastName}
+            </h2>
+            <p className="mt-1 text-xs font-bold text-[#D6E7DF]">
+              <span
+                className={`fi fi-${coach.countryCode.toLowerCase()} mr-2 inline-block h-3.5 w-5 rounded-sm`}
+                aria-hidden="true"
+              />
+              {coach.countryName} · spécialité {coach.specialtyLabel}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-3">
+          <YouthCoachMetric
+            label="Spécialité"
+            value={`+${coach.specialtyBonusPercentage} %`}
+          />
+          <YouthCoachMetric
+            label="Même nation"
+            value={`+${coach.nationalityBonusPercentage} %`}
+          />
+          <YouthCoachMetric
+            label="Portée"
+            value="Toute l’école"
+            wide
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <p className="text-xs font-semibold leading-5 text-[#60756E]">
+          Affixes secondaires :{" "}
+          <strong className="text-[#183F37]">
+            {coach.talentSpecialtyLabels.length > 0
+              ? coach.talentSpecialtyLabels.join(" · ")
+              : "aucun domaine supplémentaire"}
+          </strong>
+          {coach.talentSpecialtyLabels.length > 0
+            ? ` · +${coach.talentBonusPercentage} % par domaine compatible`
+            : ""}
+        </p>
+        <Link
+          href="/jeu/staff?onglet=equipe"
+          className="text-xs font-black text-[#176951] hover:text-[#0B302B]"
+        >
+          Gérer le staff →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function YouthCoachMetric({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 ${wide ? "col-span-2 sm:col-span-1" : ""}`}
+    >
+      <span className="block text-[8px] font-black uppercase tracking-[0.12em] text-[#9BE0CA]">
+        {label}
+      </span>
+      <strong className="mt-1 block text-xs text-white">{value}</strong>
     </div>
   );
 }

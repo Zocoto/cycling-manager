@@ -327,7 +327,7 @@ function EmploymentMarket({
             ))}
           </select>
         </FilterField>
-        <FilterField label="Spécialité entraîneur">
+        <FilterField label="Spécialité d’entraînement">
           <select
             name="specialite"
             defaultValue={readQuery(query.specialite)}
@@ -846,6 +846,12 @@ function StaffRoleIcon({ role }: { role: StaffRole }) {
     trainer: (
       <>
         <path d="M5 8v8M19 8v8M2 10v4M22 10v4M5 12h14" />
+      </>
+    ),
+    youth_coach: (
+      <>
+        <path d="M4 6h16v12H4zM8 21h8M12 18v3" />
+        <path d="M8 10h8M8 14h5M18 3v6" />
       </>
     ),
     scout: (

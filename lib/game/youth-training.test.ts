@@ -59,6 +59,7 @@ import {
   getYouthTimeTrialWindDrift,
   getYouthTalentProgressMultiplier,
   getYouthTrainingSessionVariance,
+  getYouthCoachTrainingMultiplier,
   getYouthTrainingVarianceFromRoll,
   getYouthTrainingGameType,
   isYouthAutomaticTrainingDue,
@@ -362,6 +363,71 @@ describe("youth training", () => {
 
     expect(automaticBoosted / automaticBase).toBeCloseTo(1.15, 10);
     expect(manualBoosted / manualBase).toBeCloseTo(1.15, 10);
+  });
+
+  it("plafonne le responsable de formation à un bonus ciblé de 15 %", () => {
+    expect(
+      getYouthCoachTrainingMultiplier({
+        level: 5,
+        specialty: "mountain",
+        talentSpecialties: ["sprint"],
+        countryMatch: true,
+        ratingKey: "mountain",
+      }),
+    ).toBeCloseTo(1.15, 10);
+    expect(
+      getYouthCoachTrainingMultiplier({
+        level: 5,
+        specialty: "mountain",
+        talentSpecialties: ["sprint"],
+        countryMatch: true,
+        ratingKey: "sprint",
+      }),
+    ).toBeCloseTo(1.1, 10);
+    expect(
+      getYouthCoachTrainingMultiplier({
+        level: 5,
+        specialty: "mountain",
+        talentSpecialties: ["sprint"],
+        countryMatch: false,
+        ratingKey: "flat",
+      }),
+    ).toBe(1);
+  });
+
+  it("applique le responsable de formation de façon identique aux deux modes", () => {
+    const context = {
+      age: 16,
+      potentialSteps: 6,
+      currentProjectedRating: 58,
+      profilePeakRating: 64,
+      profileAverageRating: 54,
+      sessionVariance: 1,
+      domain: "climber" as const,
+      ratingKey: "mountain" as const,
+    };
+    const coach = {
+      youthCoachLevel: 4,
+      youthCoachSpecialty: "mountain" as const,
+      youthCoachCountryMatch: true,
+    };
+    const automaticBase = calculateYouthAutomaticTrainingGain(context);
+    const automaticBoosted = calculateYouthAutomaticTrainingGain({
+      ...context,
+      ...coach,
+    });
+    const manualBase = calculateYouthManualTrainingGain({
+      ...context,
+      score: 850,
+    });
+    const manualBoosted = calculateYouthManualTrainingGain({
+      ...context,
+      ...coach,
+      score: 850,
+    });
+
+    expect(automaticBoosted / automaticBase).toBeCloseTo(1.13, 10);
+    expect(manualBoosted / manualBase).toBeCloseTo(1.13, 10);
   });
 
   it("freine surtout la statistique forte et plus légèrement tout le profil", () => {

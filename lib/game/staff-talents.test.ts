@@ -11,6 +11,7 @@ import {
   getScoutTalentBonuses,
   getStaffTalentCodes,
   getTrainerTalentSpecialty,
+  getYouthCoachTalentSpecialty,
   isStaffTalentForRole,
   selectInitialStaffTalent,
 } from "@/lib/game/staff-talents";
@@ -67,6 +68,18 @@ describe("staff talents", () => {
           trainerSpecialty: "mountain",
         }),
       ).not.toBe("trainer_mountain");
+    }
+  });
+
+  it("ne donne jamais au responsable de formation son domaine principal en doublon", () => {
+    for (let roll = 0; roll < 30; roll += 1) {
+      const code = selectInitialStaffTalent({
+        role: "youth_coach",
+        roll,
+        trainerSpecialty: "mountain",
+      });
+      expect(code).not.toBe("youth_coach_mountain");
+      expect(getYouthCoachTalentSpecialty(code)).not.toBe("mountain");
     }
   });
 

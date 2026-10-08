@@ -179,11 +179,25 @@ describe("staff economy", () => {
 });
 
 describe("daily staff pool", () => {
-  it("contains exactly 25 jobs and exposes every profession", () => {
-    expect(STAFF_DAILY_ROLE_DISTRIBUTION).toHaveLength(25);
+  it("contains exactly 27 weighted jobs and exposes every profession", () => {
+    expect(STAFF_DAILY_ROLE_DISTRIBUTION).toHaveLength(27);
     for (const role of STAFF_ROLES) {
       expect(STAFF_DAILY_ROLE_DISTRIBUTION).toContain(role);
     }
+  });
+
+  it("garde le responsable de formation sous le niveau d un entraîneur pro", () => {
+    expect(
+      describeStaffEffect({
+        role: "youth_coach",
+        level: 5,
+        trainerSpecialty: "mountain",
+      }),
+    ).toEqual([
+      "+10 % d’efficacité sur les entraînements juniors montagne",
+      "+5 % supplémentaires pour chaque junior de la même nationalité",
+      "Effet collectif sur toute l’école · un seul responsable actif par équipe",
+    ]);
   });
 
   it("makes every additional star rarer than the previous one", () => {

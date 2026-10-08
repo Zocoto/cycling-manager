@@ -447,9 +447,9 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
           "Filter by profession, minimum level, nationality or coach speciality. Selecting level 3 therefore shows level 3, 4 and 5 profiles. Recruited profiles disappear immediately. Combine filters and Reset to see all remaining profiles.\n\nLevels range from 1 to 5: higher levels have stronger effects, salaries and signing fees.",
       },
       "staff-professions": {
-        title: "Eleven professions, eleven development levers",
+        title: "Twelve professions, twelve development levers",
         content:
-          "Coaches improve rider training; scouts youth detection; doctors injury recovery; physiotherapists form protection; nutritionists recovery; mechanics mechanical-loss protection.\n\nRoute specialists improve reconnaissance, architects reduce infrastructure cost and time, community managers increase reputation gains, R&D engineers improve laboratory prototypes and staff educators optimise Trades Academy courses. Staff educators can only be recruited after that building has been constructed. Read every profile: two people in the same profession may provide different value.",
+          "Coaches improve the professionals assigned to them; youth development managers guide the whole cycling school with targeted speciality and nationality bonuses; scouts improve youth detection; doctors injury recovery; physiotherapists form protection; nutritionists recovery; mechanics mechanical-loss protection.\n\nRoute specialists improve reconnaissance, architects reduce infrastructure cost and time, community managers increase reputation gains, R&D engineers improve laboratory prototypes and staff educators optimise Trades Academy courses. Staff educators can only be recruited after that building has been constructed. A team can employ only one active youth development manager. Read every profile: two people in the same profession may provide different value.",
       },
       "staff-team": {
         title: "Manage active effects",
@@ -692,7 +692,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "youth-training-settings": {
         title: "Choose training mode and profile",
         content:
-          "Automatic mode calculates one session every morning at 8:00 with no assignable coach. Manual mode opens midnight–noon and noon–midnight slots.\n\nTalent is decisive and development remains continuous: an already excellent attribute improves more slowly without being blocked, while rare excellent or poor sessions add some variation. Two good manual sessions yield about 40% more than an automatic day. The chosen profile sets trained attributes and minigame. Changes start the next day; a missed manual slot is never replaced automatically.",
+          "Automatic mode calculates one session every morning at 8:00. Manual mode opens midnight–noon and noon–midnight slots. There is no individual assignment: the team’s sole youth development manager, when recruited, guides the whole school in their specialities and gains an affinity bonus with juniors of the same nationality.\n\nTalent is decisive and development remains continuous: an already excellent attribute improves more slowly without being blocked, while rare excellent or poor sessions add some variation. Two good manual sessions yield about 40% more than an automatic day. The chosen profile sets trained attributes and minigame. Changes start the next day; a missed manual slot is never replaced automatically.",
       },
       "youth-minigame": {
         title: "Try the minigame for the selected profile",

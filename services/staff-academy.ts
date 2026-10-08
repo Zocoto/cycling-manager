@@ -289,9 +289,9 @@ export async function getStaffAcademyOverview(
         !ownedCodes.has(code) &&
         member.level >= getStaffTalentMinimumLevel(code) &&
         !(
-          role === "trainer" &&
+          (role === "trainer" || role === "youth_coach") &&
           trainerSpecialty &&
-          code === `trainer_${trainerSpecialty}`
+          code === `${role}_${trainerSpecialty}`
         ),
     );
     const federalDurationReductionPercentage =

@@ -118,7 +118,7 @@ function generateStaffCandidate({
   const identity = generateRiderIdentities(profileCode, 1)[0];
   const level = randomInt(1, 6);
   const trainerSpecialty =
-    role === "trainer"
+    role === "trainer" || role === "youth_coach"
       ? TRAINER_SPECIALTIES[randomInt(0, TRAINER_SPECIALTIES.length)]
       : null;
   const architectSpecialty =
@@ -128,9 +128,9 @@ function generateStaffCandidate({
   const eligibleTalentCodes = getStaffTalentCodes(role).filter(
     (code) =>
       getStaffTalentMinimumLevel(code) <= level &&
-      (role !== "trainer" ||
+      ((role !== "trainer" && role !== "youth_coach") ||
         trainerSpecialty === null ||
-        code !== `trainer_${trainerSpecialty}`),
+        code !== `${role}_${trainerSpecialty}`),
   );
 
   if (!identity || eligibleTalentCodes.length === 0) {

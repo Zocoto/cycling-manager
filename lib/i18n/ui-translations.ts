@@ -225,6 +225,10 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Philosophie sportive": "Sporting philosophy",
   "Préférence nationale": "National preference",
   "Formateur": "Staff educator",
+  "Responsable de formation": "Youth development manager",
+  "Responsables de formation": "Youth development managers",
+  "Encadre toute l’école de cyclisme dans sa spécialité, sans affectation individuelle.":
+    "Guides the whole cycling school in their speciality, with no individual assignment.",
   "Filière formatrice": "Youth development",
   "Optimise les stages de l’Académie des métiers.":
     "Optimises Trades Academy courses.",
@@ -247,8 +251,8 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Bonus formateur : coût −": "Staff educator bonus: cost −",
   "Formateur · coût −": "Staff educator · cost −",
   "· délai −": "· duration −",
-  "Onze métiers, onze leviers de progression":
-    "Eleven professions, eleven development levers",
+  "Douze métiers, douze leviers de progression":
+    "Twelve professions, twelve development levers",
   "Le sponsor exige une forte majorité de coureurs de son pays. Cet engagement pèse lourd dans sa satisfaction et augmente de 15 % le budget proposé.":
     "The sponsor requires a strong majority of riders from its own country. This commitment weighs heavily on satisfaction and increases the proposed budget by 15%.",
   "Le sponsor privilégie les promotions du Centre de formation, la Dev Team, les victoires juniors et la valorisation de quelques coureurs formés au club.":
@@ -330,8 +334,8 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Employ three active staff members who share the team nationality defined by its sponsor.",
   "Réunir six membres actifs du staff ayant la nationalité de l’équipe. Récompense : un Contrat Espoir immédiat.":
     "Employ six active staff members who share the team nationality. Reward: an Instant prospect contract.",
-  "Réunir simultanément les onze métiers de staff. Récompense : un Mandat de recrutement sur mesure.":
-    "Employ all eleven staff roles at the same time. Reward: a Custom staff recruitment mandate.",
+  "Réunir simultanément les douze métiers de staff. Récompense : un Mandat de recrutement sur mesure.":
+    "Employ all twelve staff roles at the same time. Reward: a Custom staff recruitment mandate.",
   "Accueillir dix juniors au centre de formation. Récompense : un Contrat Espoir immédiat.":
     "Recruit ten juniors to the youth development centre. Reward: an Instant prospect contract.",
   "Promouvoir dix juniors dans l’effectif professionnel. Récompense : un Mandat de recrutement sur mesure.":

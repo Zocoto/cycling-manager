@@ -435,7 +435,8 @@ export function getFederalStaffInstituteSpecializationBonusPercentage({
   if (power <= 0) return 0;
 
   const roleMatches =
-    (specializationCode === "coach_school" && role === "trainer") ||
+    (specializationCode === "coach_school" &&
+      (role === "trainer" || role === "youth_coach")) ||
     (specializationCode === "scout_school" && role === "scout") ||
     (specializationCode === "medical_school" &&
       (role === "doctor" ||
@@ -485,7 +486,8 @@ export function getFederalStaffAcademyDurationReductionPercentage({
   if (!isNationalStaff) return 0;
 
   const affectsTraining =
-    (specializationCode === "coach_school" && role === "trainer") ||
+    (specializationCode === "coach_school" &&
+      (role === "trainer" || role === "youth_coach")) ||
     (specializationCode === "medical_school" &&
       (role === "doctor" ||
         role === "physiotherapist" ||

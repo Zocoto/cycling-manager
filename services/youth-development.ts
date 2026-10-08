@@ -65,13 +65,22 @@ import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
-import { getScoutYouthBonuses } from "@/lib/game/staff";
 import {
+  TRAINER_SPECIALTY_LABELS,
+  getStaffEffectPercentage,
+  getScoutYouthBonuses,
+  isTrainerSpecialty,
+  type TrainerSpecialty,
+} from "@/lib/game/staff";
+import {
+  getYouthCoachTalentSpecialty,
   getScoutTalentBonuses,
   isStaffTalentForRole,
   STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE,
+  YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL,
 } from "@/lib/game/staff-talents";
 import {
+  YOUTH_COACH_NATIONALITY_BONUS_PERCENTAGE,
   YOUTH_RAW_RATING_MAX,
   calculateYouthAutomaticTrainingGain,
   getYouthAutomaticFirstDay,
@@ -306,6 +315,24 @@ export type YouthScout = {
   activeMissionId: string | null;
 };
 
+export type YouthCoach = {
+  contractId: string;
+  memberId: string;
+  firstName: string;
+  lastName: string;
+  level: number;
+  countryId: string;
+  countryName: string;
+  countryCode: string;
+  specialty: TrainerSpecialty;
+  specialtyLabel: string;
+  talentSpecialties: TrainerSpecialty[];
+  talentSpecialtyLabels: string[];
+  specialtyBonusPercentage: number;
+  talentBonusPercentage: number;
+  nationalityBonusPercentage: number;
+};
+
 export type YouthCandidate = {
   id: string;
   firstName: string;
@@ -430,6 +457,7 @@ export type YouthDevelopmentOverview = {
   currency: string;
   countries: YouthCountry[];
   scouts: YouthScout[];
+  youthCoach: YouthCoach | null;
   missions: YouthMission[];
   academy: AcademyYouth[];
   unreadCount: number;
@@ -735,9 +763,11 @@ async function loadOverview(admin: AdminClient, context: Context) {
   const memberResult = staffIds.length
     ? await admin
         .from("staff_members")
-        .select("id, country_id, first_name, last_name, role, level")
+        .select(
+          "id, country_id, first_name, last_name, role, level, trainer_specialty",
+        )
         .in("id", staffIds)
-        .eq("role", "scout")
+        .in("role", ["scout", "youth_coach"])
         .returns<
           Array<{
             id: string;
@@ -746,12 +776,15 @@ async function loadOverview(admin: AdminClient, context: Context) {
             last_name: string;
             role: string;
             level: number;
+            trainer_specialty: string | null;
           }>
         >()
     : { data: [], error: null };
   assertQuery(memberResult.error, "les scouts");
   const memberById = new Map(
-    (memberResult.data ?? []).map((member) => [member.id, member]),
+    (memberResult.data ?? [])
+      .filter((member) => member.role === "scout")
+      .map((member) => [member.id, member]),
   );
   const activeMissionByContract = new Map(
     (missionsResult.data ?? [])
@@ -786,6 +819,68 @@ async function loadOverview(admin: AdminClient, context: Context) {
       },
     ];
   });
+  const coachMember = (memberResult.data ?? []).find(
+    (member) =>
+      member.role === "youth_coach" &&
+      isTrainerSpecialty(member.trainer_specialty ?? ""),
+  );
+  const coachContract = coachMember
+    ? contracts.find(
+        (contract) => contract.staff_member_id === coachMember.id,
+      )
+    : undefined;
+  const coachCountry = coachMember
+    ? countryById.get(coachMember.country_id)
+    : undefined;
+  const coachTalentsResult = coachMember
+    ? await admin
+        .from("staff_member_talents")
+        .select("talent_code")
+        .eq("staff_member_id", coachMember.id)
+        .returns<Array<{ talent_code: string }>>()
+    : { data: [] as Array<{ talent_code: string }>, error: null };
+  assertQuery(coachTalentsResult.error, "les affixes du responsable de formation");
+  const coachTalentSpecialties = (coachTalentsResult.data ?? []).flatMap(
+    (talent) => {
+      const specialty = getYouthCoachTalentSpecialty(talent.talent_code);
+      return specialty ? [specialty] : [];
+    },
+  );
+  const coachMemberSpecialty = coachMember?.trainer_specialty;
+  const coachSpecialty =
+    coachMemberSpecialty && isTrainerSpecialty(coachMemberSpecialty)
+      ? coachMemberSpecialty
+      : null;
+  const youthCoach: YouthCoach | null =
+    coachMember &&
+    coachContract &&
+    coachCountry &&
+    coachSpecialty
+      ? {
+          contractId: coachContract.id,
+          memberId: coachMember.id,
+          firstName: coachMember.first_name,
+          lastName: coachMember.last_name,
+          level: coachMember.level,
+          countryId: coachCountry.id,
+          countryName: coachCountry.name,
+          countryCode: coachCountry.iso_alpha2,
+          specialty: coachSpecialty,
+          specialtyLabel: TRAINER_SPECIALTY_LABELS[coachSpecialty],
+          talentSpecialties: coachTalentSpecialties,
+          talentSpecialtyLabels: coachTalentSpecialties.map(
+            (specialty) => TRAINER_SPECIALTY_LABELS[specialty],
+          ),
+          specialtyBonusPercentage: getStaffEffectPercentage(
+            "youth_coach",
+            coachMember.level,
+          ),
+          talentBonusPercentage:
+            coachMember.level * YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL,
+          nationalityBonusPercentage:
+            YOUTH_COACH_NATIONALITY_BONUS_PERCENTAGE,
+        }
+      : null;
 
   const missionIds = (missionsResult.data ?? []).map((mission) => mission.id);
   const candidateResult = missionIds.length
@@ -1157,6 +1252,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     currency: context.currency,
     countries: countriesDto,
     scouts,
+    youthCoach,
     missions,
     academy,
     unreadCount,
@@ -1820,12 +1916,15 @@ async function settleAcademyTrainingSessions(
     modeActivation.error,
     "la programmation des entraînements juniors",
   );
-  const ridersResult = await admin
-    .from("youth_academy_riders")
-    .select("*")
-    .eq("team_id", context.teamId)
-    .in("status", ["active", "recruited"])
-    .returns<AcademyRow[]>();
+  const [ridersResult, youthCoach] = await Promise.all([
+    admin
+      .from("youth_academy_riders")
+      .select("*")
+      .eq("team_id", context.teamId)
+      .in("status", ["active", "recruited"])
+      .returns<AcademyRow[]>(),
+    loadActiveYouthCoach(admin, context.teamId),
+  ]);
   assertQuery(ridersResult.error, "les jeunes à entraîner");
   const riders = ridersResult.data ?? [];
   if (!riders.length) {
@@ -1838,11 +1937,11 @@ async function settleAcademyTrainingSessions(
 
   const daysResult = await admin
     .from("season_days")
-    .select("id, day_number")
+    .select("id, day_number, calendar_date")
     .eq("season_id", context.seasonId)
     .lte("day_number", context.currentDayNumber)
     .order("day_number")
-    .returns<Array<{ id: string; day_number: number }>>();
+    .returns<Array<{ id: string; day_number: number; calendar_date: string }>>();
   assertQuery(daysResult.error, "les journées d’entraînement de l’école");
 
   const existingResult = await admin
@@ -1912,6 +2011,14 @@ async function settleAcademyTrainingSessions(
       const sessionVariance = getYouthTrainingSessionVariance(
         `${rider.id}:${context.seasonId}:${day.id}:automatic`,
       );
+      const effectiveYouthCoach =
+        youthCoach &&
+        wasYouthCoachActiveAtTrainingTime(
+          youthCoach.signedAt,
+          day.calendar_date,
+        )
+          ? youthCoach
+          : null;
       for (const key of YOUTH_RATING_KEYS) {
         const projectedGain = calculateYouthAutomaticTrainingGain({
           age,
@@ -1923,6 +2030,12 @@ async function settleAcademyTrainingSessions(
           schoolTrainingBonusPercentage: toNumber(
             rider.scout_training_bonus_percentage,
           ),
+          youthCoachLevel: effectiveYouthCoach?.level ?? 0,
+          youthCoachSpecialty: effectiveYouthCoach?.specialty ?? null,
+          youthCoachTalentSpecialties:
+            effectiveYouthCoach?.talentSpecialties ?? [],
+          youthCoachCountryMatch:
+            effectiveYouthCoach?.countryId === rider.country_id,
           domain: rider.training_priority,
           ratingKey: key,
         });
@@ -1982,9 +2095,92 @@ async function settleAcademyTrainingSessions(
 
   return {
     riders,
-    days: daysResult.data ?? [],
+    days: (daysResult.data ?? []).map((day) => ({
+      id: day.id,
+      day_number: day.day_number,
+    })),
     processedSessionCount,
   };
+}
+
+async function loadActiveYouthCoach(
+  admin: AdminClient,
+  teamId: string,
+): Promise<{
+  level: number;
+  countryId: string;
+  specialty: TrainerSpecialty;
+  talentSpecialties: TrainerSpecialty[];
+  signedAt: string;
+} | null> {
+  const contractsResult = await admin
+    .from("staff_contracts")
+    .select("id, staff_member_id, signed_at")
+    .eq("team_id", teamId)
+    .eq("status", "active")
+    .returns<
+      Array<{ id: string; staff_member_id: string; signed_at: string }>
+    >();
+  assertQuery(
+    contractsResult.error,
+    "le responsable de formation de l’école",
+  );
+  const contracts = contractsResult.data ?? [];
+  if (contracts.length === 0) return null;
+
+  const memberResult = await admin
+    .from("staff_members")
+    .select("id, country_id, level, trainer_specialty")
+    .in(
+      "id",
+      contracts.map((contract) => contract.staff_member_id),
+    )
+    .eq("role", "youth_coach")
+    .limit(1)
+    .maybeSingle<{
+      id: string;
+      country_id: string;
+      level: number;
+      trainer_specialty: string | null;
+    }>();
+  assertQuery(memberResult.error, "le profil du responsable de formation");
+  const member = memberResult.data;
+  const memberSpecialty = member?.trainer_specialty;
+  if (!member || !memberSpecialty || !isTrainerSpecialty(memberSpecialty)) {
+    return null;
+  }
+  const coachSpecialty = memberSpecialty;
+
+  const talentsResult = await admin
+    .from("staff_member_talents")
+    .select("talent_code")
+    .eq("staff_member_id", member.id)
+    .returns<Array<{ talent_code: string }>>();
+  assertQuery(talentsResult.error, "les affixes du responsable de formation");
+
+  return {
+    level: member.level,
+    countryId: member.country_id,
+    specialty: coachSpecialty,
+    signedAt:
+      contracts.find((contract) => contract.staff_member_id === member.id)
+        ?.signed_at ?? new Date().toISOString(),
+    talentSpecialties: (talentsResult.data ?? []).flatMap((talent) => {
+      const specialty = getYouthCoachTalentSpecialty(talent.talent_code);
+      return specialty ? [specialty] : [];
+    }),
+  };
+}
+
+function wasYouthCoachActiveAtTrainingTime(
+  signedAt: string,
+  trainingCalendarDate: string,
+) {
+  const signedDate = new Date(signedAt);
+  const signedParisDate = formatParisDate(signedDate);
+  if (signedParisDate < trainingCalendarDate) return true;
+  if (signedParisDate > trainingCalendarDate) return false;
+  return getParisHour(signedDate) < 8;
 }
 async function scheduleTuition(
   admin: AdminClient,
@@ -2520,6 +2716,15 @@ function getParisHour(now = new Date()) {
     .formatToParts(now)
     .find((part) => part.type === "hour");
   return Number(hourPart?.value ?? 0);
+}
+
+function formatParisDate(now: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 async function loadTeamSpecializationState(

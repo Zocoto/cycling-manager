@@ -12,6 +12,7 @@ export const STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE = 10;
 export const ARCHITECT_BUILDING_EFFICIENCY_PERCENTAGE_PER_LEVEL = 2;
 export const SCOUT_ACADEMY_TRAINING_PERCENTAGE_PER_LEVEL = 3;
 export const COMMUNITY_GROWTH_BONUS_PERCENTAGE_PER_LEVEL = 3;
+export const YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL = 1;
 
 export const STAFF_TALENTS_BY_ROLE = {
   physiotherapist: [
@@ -54,6 +55,15 @@ export const STAFF_TALENTS_BY_ROLE = {
     "trainer_time_trial",
     "trainer_cobbles",
     "trainer_endurance",
+  ],
+  youth_coach: [
+    "youth_coach_mountain",
+    "youth_coach_hills",
+    "youth_coach_flat",
+    "youth_coach_sprint",
+    "youth_coach_time_trial",
+    "youth_coach_cobbles",
+    "youth_coach_endurance",
   ],
   race_preparer: [
     "preparer_duration",
@@ -253,6 +263,13 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   trainer_time_trial: trainerTalent("time_trial"),
   trainer_cobbles: trainerTalent("cobbles"),
   trainer_endurance: trainerTalent("endurance"),
+  youth_coach_mountain: youthCoachTalent("mountain"),
+  youth_coach_hills: youthCoachTalent("hills"),
+  youth_coach_flat: youthCoachTalent("flat"),
+  youth_coach_sprint: youthCoachTalent("sprint"),
+  youth_coach_time_trial: youthCoachTalent("time_trial"),
+  youth_coach_cobbles: youthCoachTalent("cobbles"),
+  youth_coach_endurance: youthCoachTalent("endurance"),
   preparer_duration: {
     role: "race_preparer",
     label: "Préparation express",
@@ -460,9 +477,9 @@ export function selectInitialStaffTalent({
   const candidates = getStaffTalentCodes(role).filter(
     (code) =>
       isStaffTalentAvailableAtLevel(code, staffLevel ?? 1) &&
-      (role !== "trainer" ||
+      ((role !== "trainer" && role !== "youth_coach") ||
         !trainerSpecialty ||
-        code !== `trainer_${trainerSpecialty}`),
+        code !== `${role}_${trainerSpecialty}`),
   );
   const normalizedRoll = Number.isFinite(roll) ? Math.floor(roll) : 0;
   return candidates[
@@ -488,6 +505,15 @@ export function getTrainerTalentSpecialty(
   if (!isStaffTalentForRole(value, "trainer")) return null;
 
   const specialty = value.slice("trainer_".length);
+  return isTrainerSpecialty(specialty) ? specialty : null;
+}
+
+export function getYouthCoachTalentSpecialty(
+  value: string,
+): TrainerSpecialty | null {
+  if (!isStaffTalentForRole(value, "youth_coach")) return null;
+
+  const specialty = value.slice("youth_coach_".length);
   return isTrainerSpecialty(specialty) ? specialty : null;
 }
 
@@ -521,5 +547,18 @@ function trainerTalent(specialty: TrainerSpecialty): StaffTalentDefinition {
       `+${percentage(level, 4)} % d’efficacité sur les entraînements ${TRAINER_SPECIALTY_LABELS[
         specialty
       ].toLocaleLowerCase("fr")}, cumulable avec la spécialité principale`,
+  };
+}
+
+function youthCoachTalent(
+  specialty: TrainerSpecialty,
+): StaffTalentDefinition {
+  return {
+    role: "youth_coach",
+    label: `Domaine ${TRAINER_SPECIALTY_LABELS[specialty]}`,
+    description: (level) =>
+      `+${percentage(level, YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL)} % d’efficacité sur les entraînements juniors ${TRAINER_SPECIALTY_LABELS[
+        specialty
+      ].toLocaleLowerCase("fr")}`,
   };
 }

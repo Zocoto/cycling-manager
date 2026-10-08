@@ -1,8 +1,15 @@
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
 import {
   getTrainingDomainWeight,
+  trainerSpecialtySupportsRating,
   type TrainingDomain,
 } from "@/lib/game/training";
+import {
+  getStaffEffectPercentage,
+  normalizeStaffLevel,
+  type TrainerSpecialty,
+} from "@/lib/game/staff";
+import { YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL } from "@/lib/game/staff-talents";
 
 export const YOUTH_TRAINING_DOMAINS = [
   "climber",
@@ -70,6 +77,7 @@ export const YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN = 0.3;
 export const YOUTH_MANUAL_SESSION_SHARE = 0.75;
 export const YOUTH_TRAINING_VARIANCE_MIN = 0.78;
 export const YOUTH_TRAINING_VARIANCE_MAX = 1.28;
+export const YOUTH_COACH_NATIONALITY_BONUS_PERCENTAGE = 5;
 
 export const YOUTH_TRAINING_GAME_BY_DOMAIN: Record<
   YouthTrainingDomain,
@@ -318,6 +326,10 @@ export function calculateYouthManualTrainingGain({
   profileAverageRating = currentProjectedRating,
   sessionVariance = 1,
   schoolTrainingBonusPercentage = 0,
+  youthCoachLevel = 0,
+  youthCoachSpecialty = null,
+  youthCoachTalentSpecialties = [],
+  youthCoachCountryMatch = false,
   domain,
   ratingKey,
 }: {
@@ -328,6 +340,10 @@ export function calculateYouthManualTrainingGain({
   profileAverageRating?: number;
   sessionVariance?: number;
   schoolTrainingBonusPercentage?: number;
+  youthCoachLevel?: number;
+  youthCoachSpecialty?: TrainerSpecialty | null;
+  youthCoachTalentSpecialties?: readonly TrainerSpecialty[];
+  youthCoachCountryMatch?: boolean;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
@@ -350,7 +366,14 @@ export function calculateYouthManualTrainingGain({
       YOUTH_TRAINING_VARIANCE_MIN,
       YOUTH_TRAINING_VARIANCE_MAX,
     ) *
-    getYouthSchoolTrainingMultiplier(schoolTrainingBonusPercentage)
+    getYouthSchoolTrainingMultiplier(schoolTrainingBonusPercentage) *
+    getYouthCoachTrainingMultiplier({
+      level: youthCoachLevel,
+      specialty: youthCoachSpecialty,
+      talentSpecialties: youthCoachTalentSpecialties,
+      countryMatch: youthCoachCountryMatch,
+      ratingKey,
+    })
   );
 }
 
@@ -361,6 +384,10 @@ export function calculateYouthAutomaticTrainingGain({
   profileAverageRating = currentProjectedRating,
   sessionVariance = 1,
   schoolTrainingBonusPercentage = 0,
+  youthCoachLevel = 0,
+  youthCoachSpecialty = null,
+  youthCoachTalentSpecialties = [],
+  youthCoachCountryMatch = false,
   domain,
   ratingKey,
 }: {
@@ -371,6 +398,10 @@ export function calculateYouthAutomaticTrainingGain({
   profileAverageRating?: number;
   sessionVariance?: number;
   schoolTrainingBonusPercentage?: number;
+  youthCoachLevel?: number;
+  youthCoachSpecialty?: TrainerSpecialty | null;
+  youthCoachTalentSpecialties?: readonly TrainerSpecialty[];
+  youthCoachCountryMatch?: boolean;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
@@ -390,8 +421,46 @@ export function calculateYouthAutomaticTrainingGain({
       YOUTH_TRAINING_VARIANCE_MIN,
       YOUTH_TRAINING_VARIANCE_MAX,
     ) *
-    getYouthSchoolTrainingMultiplier(schoolTrainingBonusPercentage)
+    getYouthSchoolTrainingMultiplier(schoolTrainingBonusPercentage) *
+    getYouthCoachTrainingMultiplier({
+      level: youthCoachLevel,
+      specialty: youthCoachSpecialty,
+      talentSpecialties: youthCoachTalentSpecialties,
+      countryMatch: youthCoachCountryMatch,
+      ratingKey,
+    })
   );
+}
+
+export function getYouthCoachTrainingMultiplier({
+  level,
+  specialty,
+  talentSpecialties = [],
+  countryMatch = false,
+  ratingKey,
+}: {
+  level: number;
+  specialty: TrainerSpecialty | null;
+  talentSpecialties?: readonly TrainerSpecialty[];
+  countryMatch?: boolean;
+  ratingKey: RiderRatingKey;
+}): number {
+  if (!Number.isFinite(level) || level <= 0) return 1;
+
+  const safeLevel = normalizeStaffLevel(level);
+  const specialtyBonus = trainerSpecialtySupportsRating(specialty, ratingKey)
+    ? getStaffEffectPercentage("youth_coach", safeLevel)
+    : 0;
+  const talentBonus = talentSpecialties.some((talentSpecialty) =>
+    trainerSpecialtySupportsRating(talentSpecialty, ratingKey),
+  )
+    ? safeLevel * YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL
+    : 0;
+  const nationalityBonus = countryMatch
+    ? YOUTH_COACH_NATIONALITY_BONUS_PERCENTAGE
+    : 0;
+
+  return 1 + (specialtyBonus + talentBonus + nationalityBonus) / 100;
 }
 
 export function getYouthSchoolTrainingMultiplier(

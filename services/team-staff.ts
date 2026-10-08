@@ -443,6 +443,10 @@ export async function getTeamStaffOverview(
     (contract) =>
       membersById.get(contract.staff_member_id)?.role === "nutritionist",
   ).length;
+  const activeYouthCoachCount = contracts.filter(
+    (contract) =>
+      membersById.get(contract.staff_member_id)?.role === "youth_coach",
+  ).length;
   const commonBlockReason = getCommonHireBlockReason({
     activeStaffCount,
     staffCapacity,
@@ -479,6 +483,9 @@ export async function getTeamStaffOverview(
         : null) ??
       (member.role === "nutritionist" && activeNutritionistCount >= 3
         ? "Limite atteinte : une équipe ne peut employer que 3 nutritionnistes actifs."
+        : null) ??
+      (member.role === "youth_coach" && activeYouthCoachCount >= 1
+        ? "Limite atteinte : un seul responsable de formation peut encadrer l’école de cyclisme."
         : null) ??
       (balance < member.signingFee + dueSalary
         ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."
@@ -700,7 +707,7 @@ async function generateStaffMarketCandidates(
     }
 
     const trainerSpecialty =
-      role === "trainer"
+      role === "trainer" || role === "youth_coach"
         ? TRAINER_SPECIALTIES[randomInt(0, TRAINER_SPECIALTIES.length)]
         : null;
     const talentCodes = getStaffTalentCodes(role);
@@ -890,7 +897,9 @@ function toStaffMember({
     }),
     talents: parsedTalents,
     nationalityAffinity:
-      member.role !== "trainer" && country.id === teamCountryId,
+      member.role !== "trainer" &&
+      member.role !== "youth_coach" &&
+      country.id === teamCountryId,
     salaryPerSeason,
     salaryPerWeek: calculateStaffWeeklySalary(effectiveSalaryThisSeason),
     salaryWaivedThisSeason,

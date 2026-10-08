@@ -1,7 +1,7 @@
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const YOUTH_DEVELOPMENT_TUTORIAL_KEY = "youth-development";
-export const YOUTH_DEVELOPMENT_TUTORIAL_VERSION = 1;
+export const YOUTH_DEVELOPMENT_TUTORIAL_VERSION = 2;
 export const YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE = "centre-formation";
 export const YOUTH_DEVELOPMENT_SCOUTING_ROUTE =
   "/jeu/centre-de-formation?didacticiel=centre-formation&onglet=scouting";
@@ -118,7 +118,7 @@ export const youthDevelopmentTutorialDefinition = {
       targetId: "youth-tutorial-training-settings",
       title: "Choisissez le mode et le profil travaillés",
       content:
-        "Le mode automatique calcule une séance chaque matin à 8 h, sans entraîneur assignable. Le mode manuel ouvre deux créneaux : minuit–midi et midi–minuit.\n\nLe talent est déterminant et la progression reste continue : une statistique déjà très forte progresse plus lentement sans être bloquée, tandis que de rares très bonnes ou mauvaises séances créent des aléas. Deux bonnes séances manuelles rapportent environ 40 % de plus qu’une journée automatique. Une modification est programmée pour la prochaine journée puis reste active. Un créneau manuel manqué n’est jamais remplacé automatiquement.",
+        "Le mode automatique calcule une séance chaque matin à 8 h. Le mode manuel ouvre deux créneaux : minuit–midi et midi–minuit. Il n’y a aucune affectation individuelle : l’unique responsable de formation de l’équipe, s’il est recruté, encadre toute l’école dans ses spécialités et reçoit un bonus avec les juniors de sa nationalité.\n\nLe talent est déterminant et la progression reste continue : une statistique déjà très forte progresse plus lentement sans être bloquée, tandis que de rares très bonnes ou mauvaises séances créent des aléas. Deux bonnes séances manuelles rapportent environ 40 % de plus qu’une journée automatique. Une modification est programmée pour la prochaine journée puis reste active. Un créneau manuel manqué n’est jamais remplacé automatiquement.",
       placement: "left",
       highlightPadding: 8,
     },

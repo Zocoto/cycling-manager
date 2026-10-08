@@ -6,6 +6,7 @@ import {
 
 export const STAFF_ROLES = [
   "trainer",
+  "youth_coach",
   "scout",
   "doctor",
   "mechanic",
@@ -47,6 +48,14 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     shortDescription: "Accélère la progression dans sa spécialité.",
     salaryBase: 22_000,
     accent: "#E2A63B",
+  },
+  youth_coach: {
+    label: "Responsable de formation",
+    pluralLabel: "Responsables de formation",
+    shortDescription:
+      "Encadre toute l’école de cyclisme dans sa spécialité, sans affectation individuelle.",
+    salaryBase: 20_000,
+    accent: "#2D8C76",
   },
   scout: {
     label: "Scout",
@@ -139,6 +148,8 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "trainer",
   "trainer",
   "trainer",
+  "youth_coach",
+  "youth_coach",
   "scout",
   "scout",
   "doctor",
@@ -408,6 +419,8 @@ export function getStaffEffectPercentage(
   switch (role) {
     case "trainer":
       return safeLevel * 4;
+    case "youth_coach":
+      return safeLevel * 2;
     case "scout":
       return getScoutYouthBonuses(safeLevel).scoutingEfficiencyPercentage;
     case "doctor":
@@ -455,6 +468,16 @@ export function describeStaffEffect({
             ? TRAINER_SPECIALTY_LABELS[trainerSpecialty].toLocaleLowerCase("fr")
             : "de sa spécialité"
         }`,
+      ];
+    case "youth_coach":
+      return [
+        `+${percentage} % d’efficacité sur les entraînements juniors ${
+          trainerSpecialty
+            ? TRAINER_SPECIALTY_LABELS[trainerSpecialty].toLocaleLowerCase("fr")
+            : "de sa spécialité"
+        }`,
+        "+5 % supplémentaires pour chaque junior de la même nationalité",
+        "Effet collectif sur toute l’école · un seul responsable actif par équipe",
       ];
     case "scout": {
       const youthBonuses = getScoutYouthBonuses(safeLevel);

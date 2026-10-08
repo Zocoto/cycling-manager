@@ -188,6 +188,10 @@ const staffRoles = [
     text: "Améliore la séance du coureur auquel il est affecté : +4 % par niveau sur sa spécialité, plus +10 % si les nationalités correspondent.",
   },
   {
+    title: "Responsable de formation",
+    text: "Encadre toute l’école de cyclisme : +2 % par niveau dans sa spécialité, +1 % par niveau via ses affixes et +5 % pour les juniors de sa nationalité. Un seul par équipe.",
+  },
+  {
     title: "Scout",
     text: "Explore son réseau mondial. Sa nationalité donne +15 % d’efficacité dans son propre pays.",
   },
@@ -222,6 +226,10 @@ const staffRoles = [
   {
     title: "Ingénieur R&D",
     text: "Pilote une recherche gratuite à la fois au laboratoire. Ses talents réduisent la durée ou améliorent les chances de réussite.",
+  },
+  {
+    title: "Formateur",
+    text: "Optimise les stages de l’Académie des métiers consacrés à la progression du staff.",
   },
 ] as const;
 
