@@ -17,7 +17,6 @@ describe("CyclogazetteGalaReplays", () => {
             winnerTeamId: "team-1",
             winnerRiderName: "Dijilly Sidibé",
             winnerTeamName: "Cyclo Club",
-            publishedAt: "2026-10-09T12:00:00.000Z",
           },
           {
             id: "replay-2",
@@ -27,7 +26,6 @@ describe("CyclogazetteGalaReplays", () => {
             winnerTeamId: "team-2",
             winnerRiderName: "Anaïs Martin",
             winnerTeamName: "Vélo Club",
-            publishedAt: "2026-10-09T12:05:00.000Z",
           },
         ]}
       />,

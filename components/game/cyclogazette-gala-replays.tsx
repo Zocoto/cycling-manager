@@ -4,13 +4,22 @@ import { useState } from "react";
 
 import { useLocale } from "@/components/i18n/locale-provider";
 import Link from "@/components/ui/app-link";
-import type { SeasonFinaleGalaReplayResult } from "@/services/season-finale-gala-replays";
+
+export type CyclogazetteGalaReplay = {
+  id: string;
+  groupNumber: number;
+  youtubeVideoId: string;
+  winnerRiderId: string;
+  winnerTeamId: string;
+  winnerRiderName: string;
+  winnerTeamName: string;
+};
 
 export function CyclogazetteGalaReplays({
   replays,
   sourceGameYear,
 }: {
-  replays: SeasonFinaleGalaReplayResult[];
+  replays: CyclogazetteGalaReplay[];
   sourceGameYear: number;
 }) {
   const { locale } = useLocale();

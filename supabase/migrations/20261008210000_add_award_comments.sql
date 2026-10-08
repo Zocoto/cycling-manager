@@ -161,55 +161,10 @@ grant execute on function public.get_season_award_comment_context()
 grant execute on function public.upsert_current_season_award_comment(uuid, text)
   to authenticated;
 
-create table public.pcm_gala_group_replays (
-  id uuid primary key default gen_random_uuid(),
-  gala_event_id uuid not null
-    references public.pcm_gala_events(id) on delete cascade,
-  group_number smallint not null check (group_number > 0),
-  youtube_video_id text not null,
-  winner_rider_id uuid not null
-    references public.riders(id) on delete restrict,
-  winner_team_id uuid not null
-    references public.teams(id) on delete restrict,
-  winner_rider_name text not null,
-  winner_team_name text not null,
-  published_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint pcm_gala_group_replays_video_id_valid check (
-    youtube_video_id ~ '^[A-Za-z0-9_-]{11}$'
-  ),
-  constraint pcm_gala_group_replays_winner_name_valid check (
-    winner_rider_name = btrim(winner_rider_name)
-    and winner_rider_name <> ''
-    and winner_team_name = btrim(winner_team_name)
-    and winner_team_name <> ''
-  ),
-  unique (gala_event_id, group_number)
-);
-
-create index pcm_gala_group_replays_published_idx
-  on public.pcm_gala_group_replays (gala_event_id, published_at, group_number);
-
-alter table public.pcm_gala_group_replays enable row level security;
-
-create policy pcm_gala_group_replays_select_published
-  on public.pcm_gala_group_replays
-  for select
-  to authenticated
-  using (published_at <= now());
-
-revoke all on table public.pcm_gala_group_replays
-  from public, anon, authenticated;
-grant select on table public.pcm_gala_group_replays to authenticated;
-grant all privileges on table public.pcm_gala_group_replays to service_role;
-
 comment on table public.season_award_comments is
   'Mot signe par le DS laureat ou le DS de l equipe laureate, un seul par award.';
 comment on function public.upsert_current_season_award_comment(uuid, text) is
   'Publie, modifie ou retire le mot du laureat apres verification historique de son equipe.';
-comment on table public.pcm_gala_group_replays is
-  'Replays officiels du gala, publies uniquement avec le vrai vainqueur de chaque groupe.';
 
 notify pgrst, 'reload schema';
 

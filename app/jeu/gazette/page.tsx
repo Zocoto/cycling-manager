@@ -19,6 +19,13 @@ import {
 } from "@/lib/game/cyclogazette-awards";
 import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
 import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-season-quiz";
+import {
+  readGalaYoutubeVideoId,
+} from "@/lib/game/season-finale-gala";
+import {
+  SEASON_FINALE_GALA_RESULTS,
+  SEASON_FINALE_GALA_RESULTS_VIDEO_IDS,
+} from "@/lib/game/season-finale-gala-results-data";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -31,7 +38,6 @@ import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 import { getCyclogazetteSeasonQuizOverview } from "@/services/cyclogazette-season-quiz";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getSeasonAwards } from "@/services/season-awards";
-import { getSeasonFinaleGalaReplays } from "@/services/season-finale-gala-replays";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
 import { getCurrentTeamRivalries } from "@/services/team-rivalries";
 
@@ -153,8 +159,22 @@ export default async function CyclogazettePage({
     edition,
     archive,
   );
-  const galaReplays = openingSourceGameYear
-    ? await getSeasonFinaleGalaReplays(supabase, openingSourceGameYear)
+  const galaVideoIds = {
+    1: readGalaYoutubeVideoId(process.env.PCM_GALA_REPLAY_YOUTUBE_URL)
+      ?? SEASON_FINALE_GALA_RESULTS_VIDEO_IDS[1],
+    2: readGalaYoutubeVideoId(process.env.PCM_GALA_REPLAY_YOUTUBE_URL_GROUP_2)
+      ?? SEASON_FINALE_GALA_RESULTS_VIDEO_IDS[2],
+  } as const;
+  const galaReplays = openingSourceGameYear === 3
+    ? SEASON_FINALE_GALA_RESULTS.map((group) => ({
+        id: `gala-s3-group-${group.groupNumber}`,
+        groupNumber: group.groupNumber,
+        youtubeVideoId: galaVideoIds[group.groupNumber],
+        winnerRiderId: group.rows[0].riderId,
+        winnerTeamId: group.rows[0].teamId,
+        winnerRiderName: group.rows[0].riderName,
+        winnerTeamName: group.rows[0].teamName,
+      }))
     : [];
 
   return (
