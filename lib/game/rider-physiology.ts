@@ -8,6 +8,9 @@ export type RiderPhysiology = {
   weightKg: number;
   baselineWeightKg: number;
   physiologyVersion: number;
+  // Locked before race-day/equipment adjustments so warning and simulation
+  // keep the same natural profile throughout a race.
+  naturalProfile?: RiderPhysiologyProfile;
 };
 
 export type RiderPhysiologyProfile =
@@ -41,6 +44,37 @@ export const RIDER_PHYSIOLOGY_PROFILE_REFERENCE: Record<
   all_rounder: { heightCm: 177, weightKg: 68 },
 };
 
+// Sporting/gameplay thresholds, not medical BMI classifications.
+export const RIDER_PHYSIOLOGY_WEIGHT_LIMITS: Record<
+  RiderPhysiologyProfile,
+  { label: string; bmiAllowance: number }
+> = {
+  climber: { label: "Grimpeur", bmiAllowance: 0.5 },
+  puncheur: { label: "Puncheur", bmiAllowance: 0.7 },
+  stage_racer: { label: "Coureur de tour", bmiAllowance: 0.6 },
+  northern_classics: { label: "Pavéman", bmiAllowance: 1 },
+  rouleur: { label: "Rouleur", bmiAllowance: 1 },
+  breakaway: { label: "Baroudeur", bmiAllowance: 0.8 },
+  sprinter: { label: "Sprinteur", bmiAllowance: 1 },
+  all_rounder: { label: "Polyvalent", bmiAllowance: 0.8 },
+};
+
+export const RIDER_OVERWEIGHT_BONUS_FADE_BMI = 2;
+export const RIDER_OVERWEIGHT_RULES = {
+  cobbles: { label: "Pavés", penaltyPerBmi: 0.6, maximumPenalty: 3 },
+  flat: { label: "Plat / sprint", penaltyPerBmi: 0.8, maximumPenalty: 4 },
+  time_trial: { label: "CLM", penaltyPerBmi: 1, maximumPenalty: 4 },
+} as const;
+type OverweightTerrain = keyof typeof RIDER_OVERWEIGHT_RULES;
+
+export function getRiderWeightThreshold(profile: RiderPhysiologyProfile, heightCm: number) {
+  const reference = RIDER_PHYSIOLOGY_PROFILE_REFERENCE[profile];
+  const warning = RIDER_PHYSIOLOGY_WEIGHT_LIMITS[profile];
+  const maximumBodyMassIndex = reference.weightKg / (reference.heightCm / 100) ** 2 + warning.bmiAllowance;
+  const maximumWeightKg = Math.floor(maximumBodyMassIndex * (heightCm / 100) ** 2 * 10) / 10;
+  return { maximumBodyMassIndex, maximumWeightKg, profileLabel: warning.label };
+}
+
 export function inferRiderPhysiologyProfile(
   ratings: RiderSimulationRatings,
 ): RiderPhysiologyProfile {
@@ -71,7 +105,8 @@ export function inferRiderPhysiologyProfile(
 /**
  * Returns the rating-equivalent effect of a rider's physique. Legacy riders
  * start neutral (version 0), but later weight changes still matter. New
- * riders also receive their small intrinsic morphology effect.
+ * riders also receive their small intrinsic morphology effect. Excess BMI
+ * fades positive power/stability bonuses and eventually penalizes all riders.
  */
 export function getRiderPhysiologyProfileModifier({
   physiology,
@@ -94,13 +129,13 @@ export function getRiderPhysiologyProfileModifier({
     return clamp(-massDelta * 0.36 - heightDelta * 0.012, -3, 3);
   }
   if (profileType === "cobbles") {
-    return clamp(massDelta * 0.2 + heightDelta * 0.035, -2.2, 2.2);
+    return getPowerTerrainModifier(physiology, ratings, reference, "cobbles", 0.2, 0.035, 2.2);
   }
   if (profileType === "sprint" || profileType === "flat") {
-    return clamp(massDelta * 0.14 + heightDelta * 0.025, -1.8, 1.8);
+    return getPowerTerrainModifier(physiology, ratings, reference, "flat", 0.14, 0.025, 1.8);
   }
   if (profileType === "time_trial") {
-    return clamp(massDelta * 0.08 + heightDelta * 0.035, -1.6, 1.6);
+    return getPowerTerrainModifier(physiology, ratings, reference, "time_trial", 0.08, 0.035, 1.6);
   }
   return clamp(-massDelta * 0.12 + heightDelta * 0.008, -1.5, 1.5);
 }
@@ -121,11 +156,9 @@ export function getRiderPhysiologyTerrainModifier({
 
   if (segment.surface === "cobbles" || segment.surface === "gravel") {
     const roughness = segment.surface === "cobbles" ? 1 : 0.68;
-    return clamp(
-      (massDelta * 0.2 + heightDelta * 0.035) * roughness,
-      -2.2,
-      2.2,
-    );
+    // Retain the existing surface multiplier; both positive stability and
+    // excess-weight penalties are weaker on gravel than on cobbles.
+    return getPowerTerrainModifier(physiology, ratings, reference, "cobbles", 0.2 * roughness, 0.035 * roughness, 2.2, roughness);
   }
   if (segment.terrain === "climb") {
     const difficulty = clamp(
@@ -144,7 +177,50 @@ export function getRiderPhysiologyTerrainModifier({
   if (segment.terrain === "descent") {
     return clamp(massDelta * 0.1 + heightDelta * 0.012, -1.2, 1.2);
   }
-  return clamp(massDelta * 0.07 + heightDelta * 0.015, -1, 1);
+  return getPowerTerrainModifier(physiology, ratings, reference, "flat", 0.07, 0.015, 1);
+}
+
+function getPowerTerrainModifier(
+  physiology: RiderPhysiology,
+  ratings: RiderSimulationRatings,
+  reference: { heightCm: number; weightKg: number },
+  terrain: OverweightTerrain,
+  massCoefficient: number,
+  heightCoefficient: number,
+  currentCap: number,
+  penaltyMultiplier = 1,
+) {
+  const profile = physiology.naturalProfile ?? inferRiderPhysiologyProfile(ratings);
+  const { maximumBodyMassIndex } = getRiderWeightThreshold(profile, physiology.heightCm);
+  const heightSquared = (physiology.heightCm / 100) ** 2;
+  const excessBmi = physiology.weightKg / heightSquared - maximumBodyMassIndex;
+  const currentModifier = clamp(
+    (physiology.weightKg - reference.weightKg) * massCoefficient +
+      (physiology.heightCm - reference.heightCm) * heightCoefficient,
+    -currentCap, currentCap,
+  );
+  if (excessBmi <= 0) return currentModifier;
+
+  // Freeze the bonus at the exact threshold before fading it. Multiplying
+  // the bonus at the current weight would still reward some further gains.
+  const thresholdModifier = clamp(
+    (maximumBodyMassIndex * heightSquared - reference.weightKg) * massCoefficient +
+      (physiology.heightCm - reference.heightCm) * heightCoefficient,
+    -currentCap, currentCap,
+  );
+  const retainedBonus = Math.max(0, thresholdModifier) *
+    Math.max(0, 1 - excessBmi / RIDER_OVERWEIGHT_BONUS_FADE_BMI);
+  const rule = RIDER_OVERWEIGHT_RULES[terrain];
+  const excessPenalty = Math.min(
+    rule.maximumPenalty,
+    Math.max(0, excessBmi - RIDER_OVERWEIGHT_BONUS_FADE_BMI) * rule.penaltyPerBmi,
+  ) * penaltyMultiplier;
+  // Never turn an existing negative modifier into a bonus or erase it.
+  // Keep the maximum a bound on this modifier, not an extra additive tax.
+  return clamp(
+    Math.min(0, currentModifier, thresholdModifier) + retainedBonus - excessPenalty,
+    -Math.max(currentCap, rule.maximumPenalty * penaltyMultiplier), currentCap,
+  );
 }
 
 export function getRiderBodyMassIndex({
@@ -165,7 +241,9 @@ function getReference(
       weightKg: physiology.baselineWeightKg,
     };
   }
-  return RIDER_PHYSIOLOGY_PROFILE_REFERENCE[inferRiderPhysiologyProfile(ratings)];
+  return RIDER_PHYSIOLOGY_PROFILE_REFERENCE[
+    physiology.naturalProfile ?? inferRiderPhysiologyProfile(ratings)
+  ];
 }
 
 function isUsablePhysiology(

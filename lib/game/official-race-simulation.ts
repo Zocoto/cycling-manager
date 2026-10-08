@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-coherent-breakaway-decisions-v42";
+  "2026.10-profile-weight-taper-v43";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

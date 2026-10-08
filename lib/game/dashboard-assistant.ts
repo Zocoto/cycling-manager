@@ -291,12 +291,16 @@ export function buildDashboardAssistantLines({
   if (snapshot.overweightRiders?.length) {
     const riders = snapshot.overweightRiders;
     const names = riders.slice(0, 2).map((rider) => `${rider.name} (${rider.profileLabel})`).join(", ");
+    const penalizedCount = riders.filter((rider) => rider.overweightPhase === "penalty").length;
+    const weightImpact = penalizedCount > 0
+      ? `${penalizedCount} avec malus sur pavés, plat/sprint et CLM.`
+      : "Bonus réduit sur pavés, plat/sprint et CLM.";
     alerts.push({
       id: "overweight-riders",
       tone: "alert",
       metric: String(riders.length),
       title: pluralize(riders.length, "coureur en surpoids", "coureurs en surpoids"),
-      detail: `${names}${riders.length > 2 ? ` et ${riders.length - 2} autre${riders.length > 3 ? "s" : ""}` : ""} · poids trop élevé pour leur profil.`,
+      detail: `${names}${riders.length > 2 ? ` et ${riders.length - 2} autre${riders.length > 3 ? "s" : ""}` : ""} · poids trop élevé pour leur profil. ${weightImpact}`,
       href: `/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-${riders[0].riderId}`,
     });
   }

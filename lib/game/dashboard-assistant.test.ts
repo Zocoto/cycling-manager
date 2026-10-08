@@ -91,6 +91,14 @@ describe("dashboard DS assistant", () => {
       snapshot: { ...snapshot, overweightRiders: [] }, rewardCount: 0, cashBalance: 100_000,
     }).alerts.some((line) => line.id === "overweight-riders")).toBe(false);
   });
+  it("distinguishes reduced bonuses and severe overweight in the compact assistant alert", () => {
+    const rider = { riderId: "sprinter", name: "Un Sprinteur", profileLabel: "Sprinteur", weightKg: 80, maximumWeightKg: 79.3 };
+    const alertFor = (overweightPhase: "reduced_bonus" | "penalty") => buildDashboardAssistantLines({
+      snapshot: { ...snapshot, overweightRiders: [{ ...rider, overweightPhase }] }, rewardCount: 0, cashBalance: 100_000,
+    }).alerts.find((line) => line.id === "overweight-riders");
+    expect(alertFor("reduced_bonus")?.detail).toContain("Bonus réduit sur pavés, plat/sprint et CLM");
+    expect(alertFor("penalty")?.detail).toContain("1 avec malus sur pavés, plat/sprint et CLM");
+  });
   it.each([1, 3])("signals %i free R&D engineers with a direct laboratory link", (count) => {
     const groups = buildDashboardAssistantLines({
       snapshot: { ...snapshot, availableRndEngineerCount: count },

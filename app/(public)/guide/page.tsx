@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
+import { RiderWeightGuideTables } from "@/components/guide/rider-weight-tables";
 import {
   calculateCombativityReward,
   calculateInternationalChampionshipReward,
@@ -681,16 +682,17 @@ function RidersSection() {
               <tbody className="divide-y divide-[#315B3E]/10 bg-white font-semibold text-[#48665F]">
                 <tr><td className="px-3 py-2.5">Montagne</td><td className="px-3 py-2.5">±4,5</td><td className="px-3 py-2.5">Avantage au gabarit léger</td></tr>
                 <tr><td className="px-3 py-2.5">Vallons</td><td className="px-3 py-2.5">±3</td><td className="px-3 py-2.5">Avantage modéré au gabarit léger</td></tr>
-                <tr><td className="px-3 py-2.5">Pavés</td><td className="px-3 py-2.5">±2,2</td><td className="px-3 py-2.5">Avantage au gabarit puissant</td></tr>
-                <tr><td className="px-3 py-2.5">Plat / sprint</td><td className="px-3 py-2.5">±1,8</td><td className="px-3 py-2.5">Avantage au gabarit puissant</td></tr>
-                <tr><td className="px-3 py-2.5">Contre-la-montre</td><td className="px-3 py-2.5">±1,6</td><td className="px-3 py-2.5">Taille et puissance légèrement valorisées</td></tr>
+                <tr><td className="px-3 py-2.5">Pavés</td><td className="px-3 py-2.5">−3 à +2,2</td><td className="px-3 py-2.5">Puissance valorisée, excès de poids pénalisé</td></tr>
+                <tr><td className="px-3 py-2.5">Plat / sprint</td><td className="px-3 py-2.5">−4 à +1,8</td><td className="px-3 py-2.5">Puissance valorisée, excès de poids pénalisé</td></tr>
+                <tr><td className="px-3 py-2.5">Contre-la-montre</td><td className="px-3 py-2.5">−4 à +1,6</td><td className="px-3 py-2.5">Taille et puissance valorisées sans surpoids excessif</td></tr>
               </tbody>
             </table>
           </div>
           <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
             Le tracé affine encore cet effet secteur par secteur : jusqu’à ±4,5
-            sur une ascension difficile, ±2,2 sur pavés ou gravier, ±1,2 en
-            descente et ±1 sur le plat. Ces valeurs sont des équivalents de note,
+            sur une ascension difficile, de −3 à +2,2 sur pavés, de −2,2 à +2,2
+            sur gravier, ±1,2 en descente et de −4 à +1 sur le plat.
+            Ces valeurs sont des équivalents de note,
             pas des points ajoutés aux caractéristiques permanentes.
           </p>
           <div className="mt-5 rounded-xl bg-[#FFF9DF] px-4 py-3 text-sm font-bold leading-6 text-[#705B00]">
@@ -723,6 +725,8 @@ function RidersSection() {
           </p>
         </article>
       </div>
+
+      <RiderWeightGuideTables />
 
       <details className="group mt-7 overflow-hidden rounded-[1.75rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.08)]">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 marker:content-none [&::-webkit-details-marker]:hidden sm:px-8">

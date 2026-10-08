@@ -96,6 +96,50 @@ Les jeunes progressent plus vite. À partir de 32 ans, une pression de déclin
 s'applique. L'entraînement peut limiter cette baisse, mais le coureur ne peut
 plus dépasser sa note de début de saison.
 
+### Poids, morphologie et surpoids
+
+Le seuil de surpoids dépend du profil naturel et de la taille du coureur, pas de
+son rôle en course ni de ses équipements. L'IMC est le poids divisé par la taille
+en mètres au carré. Ces seuils sont des règles sportives du jeu, pas des
+classifications médicales.
+
+| Profil | IMC limite ≈ | Alerte dès, à 1,70 m | À 1,75 m | À 1,80 m |
+| --- | ---: | ---: | ---: | ---: |
+| Grimpeur | 20,92 | 60,5 kg | 64,1 kg | 67,8 kg |
+| Coureur de tour | 21,58 | 62,4 kg | 66,2 kg | 70,0 kg |
+| Baroudeur | 22,11 | 63,9 kg | 67,8 kg | 71,7 kg |
+| Puncheur | 22,25 | 64,4 kg | 68,2 kg | 72,1 kg |
+| Rouleur | 23,10 | 66,8 kg | 70,8 kg | 74,9 kg |
+| Pavéman | 23,94 | 69,2 kg | 73,4 kg | 77,6 kg |
+| Sprinteur | 24,50 | 70,9 kg | 75,1 kg | 79,4 kg |
+
+Les poids correspondent au premier dixième déclenchant l'alerte. Le bonus
+physique acquis au seuil diminue progressivement : il est réduit de moitié à
+un point d'IMC au-dessus du seuil, puis disparaît à deux points. Ensuite, le
+surpoids entraîne un malus. Un malus déjà existant n'est jamais effacé.
+
+| Terrain | Diminution du bonus | Bonus disparu | Malus par point d'IMC suivant | Malus maximal |
+| --- | --- | --- | ---: | ---: |
+| Pavés | Dès le seuil du profil | Seuil + 2 | −0,6 point | −3 points |
+| Plat / sprint | Dès le seuil du profil | Seuil + 2 | −0,8 point | −4 points |
+| CLM | Dès le seuil du profil | Seuil + 2 | −1 point | −4 points |
+
+Exemples à 1,80 m sur le terrain favori, au premier dixième concerné :
+
+| Profil | Bonus réduit dès | Bonus disparu dès | Malus à IMC 30 (97,2 kg) |
+| --- | ---: | ---: | ---: |
+| Pavéman | 77,6 kg | 84,1 kg | −2,4 points |
+| Sprinteur | 79,4 kg | 85,9 kg | −2,8 points |
+| Rouleur en CLM | 74,9 kg | 81,4 kg | −4 points |
+
+Les exemples supposent qu'aucun malus de gabarit n'est déjà présent.
+Ce sont des équivalents de note de performance en simulation, pas des
+pourcentages ni des pertes permanentes de notes. Les pénalités en montagne et
+dans les vallons restent inchangées. Aucun résultat passé n'est recalculé.
+L'assistant du DS distingue bonus réduit et malus ; la fiche coureur et la
+rubrique nutrition indiquent le seuil. L'alerte disparaît après le retour sous
+le seuil du profil.
+
 ## 5. Forme, énergie et récupération
 
 La **forme** et l'**énergie** sont deux données distinctes.

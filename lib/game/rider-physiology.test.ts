@@ -66,9 +66,9 @@ describe("rider physiology", () => {
     expect(sharpened).toBeCloseTo(0.62, 5);
   });
 
-  it("gives heavier bodies a small cobbled stability benefit", () => {
+  it("gives weight gain below the profile threshold a small cobbled stability benefit", () => {
     const modifier = getRiderPhysiologyTerrainModifier({
-      physiology: { ...legacyPhysiology, weightKg: 61 },
+      physiology: { ...legacyPhysiology, weightKg: 60 },
       ratings: climberRatings,
       segment: {
         terrain: "flat",
@@ -78,6 +78,6 @@ describe("rider physiology", () => {
       },
     });
 
-    expect(modifier).toBeCloseTo(0.4, 5);
+    expect(modifier).toBeCloseTo(0.2, 5);
   });
 });

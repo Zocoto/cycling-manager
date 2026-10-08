@@ -52,6 +52,7 @@ export async function getDashboardOverweightRiders(
       riderId: row.rider_id,
       name: `${row.riders.first_name} ${row.riders.last_name}`.trim(),
       profileLabel: status.profileLabel, weightKg, maximumWeightKg: status.maximumWeightKg,
+      overweightPhase: status.overweightPhase,
     }] : [];
   }).sort((left, right) => left.name.localeCompare(right.name, "fr"));
 }

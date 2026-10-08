@@ -52,4 +52,16 @@ describe("profile-specific sporting weight warning", () => {
     expect(getRiderWeightStatus({ heightCm: 170, weightKg: 61, ratings: null })).toBeNull();
     expect(getRiderWeightStatus({ heightCm: 170, weightKg: 61, ratings: { ...climber, mountain: Number.NaN } })).toBeNull();
   });
+
+  it("distinguishes fading bonuses from penalties using the unrounded BMI", () => {
+    const sprinter = { ...ratings, sprint: 95 };
+    expect(getRiderWeightStatus({ heightCm: 180, weightKg: 79.3, ratings: sprinter })?.overweightPhase).toBe("none");
+    const reduced = getRiderWeightStatus({ heightCm: 180, weightKg: 79.4, ratings: sprinter })!;
+    expect(reduced.overweightPhase).toBe("reduced_bonus");
+    expect(getRiderWeightStatusLabel(reduced)).toContain("bonus réduit");
+    expect(getRiderWeightStatus({ heightCm: 180, weightKg: 85.8, ratings: sprinter })?.overweightPhase).toBe("reduced_bonus");
+    const penalty = getRiderWeightStatus({ heightCm: 180, weightKg: 85.9, ratings: sprinter })!;
+    expect(penalty.overweightPhase).toBe("penalty");
+    expect(getRiderWeightStatusLabel(penalty)).toContain("malus sur pavés, plat/sprint et CLM");
+  });
 });

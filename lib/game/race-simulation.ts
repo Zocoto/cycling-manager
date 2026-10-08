@@ -119,6 +119,7 @@ import { applyFavoriteRaceRatingBonus } from "./rider-favorite-races";
 import {
   getRiderPhysiologyProfileModifier,
   getRiderPhysiologyTerrainModifier,
+  inferRiderPhysiologyProfile,
   type RiderPhysiology,
 } from "./rider-physiology";
 import {
@@ -1232,6 +1233,12 @@ function normalizeStageSimulationInput(
 
         return {
           ...rider,
+          ...(rider.physiology ? {
+            physiology: {
+              ...rider.physiology,
+              naturalProfile: rider.physiology.naturalProfile ?? inferRiderPhysiologyProfile(rider.ratings),
+            },
+          } : {}),
           morale: normalizeRiderMorale(rider.morale),
           climateProfile,
           weatherCenterEnergyCostReductionPercentage:

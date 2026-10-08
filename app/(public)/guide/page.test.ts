@@ -38,6 +38,7 @@ describe("guide public", () => {
       "WILDCARD_REPUTATION_COMMITMENTS",
       "TEAM_INFRASTRUCTURE_DEFINITIONS",
       "getTrainingDomainWeightGroups",
+      "RiderWeightGuideTables",
     ]) {
       expect(source).toContain(expectedImport);
     }

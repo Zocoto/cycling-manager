@@ -1,24 +1,13 @@
 import {
   getRiderBodyMassIndex,
+  getRiderWeightThreshold,
   inferRiderPhysiologyProfile,
-  RIDER_PHYSIOLOGY_PROFILE_REFERENCE,
+  RIDER_OVERWEIGHT_BONUS_FADE_BMI,
   type RiderPhysiologyProfile,
 } from "./rider-physiology";
 import type { RiderRatings } from "./rider-profile";
 
-// Sporting/gameplay warning thresholds, not medical BMI classifications.
-// Use the simulation's natural specialty and morphology reference, not equipment
-// bonuses or a leader/support role. Climbers have the smallest weight allowance.
-const PROFILE_WEIGHT_WARNING: Record<RiderPhysiologyProfile, { label: string; bmiAllowance: number }> = {
-  climber: { label: "Grimpeur", bmiAllowance: 0.5 },
-  puncheur: { label: "Puncheur", bmiAllowance: 0.7 },
-  stage_racer: { label: "Coureur de tour", bmiAllowance: 0.6 },
-  northern_classics: { label: "Pavéman", bmiAllowance: 1 },
-  rouleur: { label: "Rouleur", bmiAllowance: 1 },
-  breakaway: { label: "Baroudeur", bmiAllowance: 0.8 },
-  sprinter: { label: "Sprinteur", bmiAllowance: 1 },
-  all_rounder: { label: "Polyvalent", bmiAllowance: 0.8 },
-};
+export type RiderOverweightPhase = "none" | "reduced_bonus" | "penalty";
 
 export type RiderWeightStatus = {
   profile: RiderPhysiologyProfile;
@@ -27,6 +16,7 @@ export type RiderWeightStatus = {
   maximumBodyMassIndex: number;
   maximumWeightKg: number;
   isOverweight: boolean;
+  overweightPhase: RiderOverweightPhase;
 };
 
 export type OverweightRiderSummary = {
@@ -35,6 +25,7 @@ export type OverweightRiderSummary = {
   profileLabel: string;
   weightKg: number;
   maximumWeightKg: number;
+  overweightPhase?: RiderOverweightPhase;
 };
 
 export function getRiderWeightStatus({
@@ -50,22 +41,25 @@ export function getRiderWeightStatus({
       Object.values(ratings).some((rating) => !Number.isFinite(rating))) return null;
 
   const profile = inferRiderPhysiologyProfile(ratings);
-  const reference = RIDER_PHYSIOLOGY_PROFILE_REFERENCE[profile];
-  const warning = PROFILE_WEIGHT_WARNING[profile];
-  const maximumBodyMassIndex = reference.weightKg / (reference.heightCm / 100) ** 2 + warning.bmiAllowance;
-  // Persisted weights have one decimal: show the actual last permitted value.
-  const maximumWeightKg = Math.floor(maximumBodyMassIndex * (heightCm / 100) ** 2 * 10) / 10;
+  const { maximumBodyMassIndex, maximumWeightKg, profileLabel } = getRiderWeightThreshold(profile, heightCm);
+  const isOverweight = weightKg > maximumWeightKg + 1e-9;
+  const overweightPhase: RiderOverweightPhase = !isOverweight ? "none" :
+    weightKg / (heightCm / 100) ** 2 >= maximumBodyMassIndex + RIDER_OVERWEIGHT_BONUS_FADE_BMI
+      ? "penalty" : "reduced_bonus";
   return {
     profile,
-    profileLabel: warning.label,
+    profileLabel,
     bodyMassIndex: getRiderBodyMassIndex({ heightCm, weightKg })!,
     maximumBodyMassIndex: Math.round(maximumBodyMassIndex * 100) / 100,
     maximumWeightKg,
-    isOverweight: weightKg > maximumWeightKg + 1e-9,
+    isOverweight,
+    overweightPhase,
   };
 }
 
 export function getRiderWeightStatusLabel(status: RiderWeightStatus): string {
   const number = (value: number) => value.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
-  return `${status.isOverweight ? "Surpoids pour le profil" : "Profil"} ${status.profileLabel} · IMC ${number(status.bodyMassIndex)} · seuil de poids ${number(status.maximumWeightKg)} kg`;
+  const impact = status.overweightPhase === "penalty" ? " · malus sur pavés, plat/sprint et CLM" :
+    status.overweightPhase === "reduced_bonus" ? " · bonus réduit sur pavés, plat/sprint et CLM" : "";
+  return `${status.isOverweight ? "Surpoids pour le profil" : "Profil"} ${status.profileLabel} · IMC ${number(status.bodyMassIndex)} · seuil de poids ${number(status.maximumWeightKg)} kg${impact}`;
 }
