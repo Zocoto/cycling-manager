@@ -103,6 +103,9 @@ son rôle en course ni de ses équipements. L'IMC est le poids divisé par la ta
 en mètres au carré. Ces seuils sont des règles sportives du jeu, pas des
 classifications médicales.
 
+Le poids attribué à la création d'un coureur ne dépasse pas le seuil de son
+profil initial. Les compléments peuvent ensuite entraîner une prise de poids.
+
 | Profil | IMC limite ≈ | Alerte dès, à 1,70 m | À 1,75 m | À 1,80 m |
 | --- | ---: | ---: | ---: | ---: |
 | Grimpeur | 20,92 | 60,5 kg | 64,1 kg | 67,8 kg |
