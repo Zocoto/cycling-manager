@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const raceCalendarService = readFileSync(
   join(process.cwd(), "services/race-calendar.ts"),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("international national-team equipment boundary", () => {
   it("classifies World Championships, Continental Championships and Nations Cup as national selections", () => {
@@ -29,7 +29,7 @@ describe("international national-team equipment boundary", () => {
       "if (nationalInternationalEditionIds.has(row.race_edition_id)) continue;",
     );
     expect(raceCalendarService).toContain(
-      "values: usesNationalWorldModel\n        ? []",
+      "values: usesNationalWorldModel\n        ? riderMetadata &&\n          federationEquipmentEffectsByCountryId.has(riderMetadata.country_id)",
     );
   });
 

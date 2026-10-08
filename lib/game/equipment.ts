@@ -75,6 +75,9 @@ export type EquipmentEffects = {
   injuryRiskReductionPct: number;
   breakawayReputationBonus: number;
   victoryReputationBonus: number;
+  /** Amplifies an ability already owned; equipment never grants the ability. */
+  specialAbilityMultipliers?: Partial<Record<"bottle_carrier" | "locomotive", number>>;
+  leaderProtectionContributionMultiplier?: number;
 };
 
 export const EMPTY_EQUIPMENT_EFFECTS: EquipmentEffects = {
@@ -178,6 +181,23 @@ export function combineEquipmentEffects(
     combined.breakawayReputationBonus +=
       effect.breakawayReputationBonus ?? 0;
     combined.victoryReputationBonus += effect.victoryReputationBonus ?? 0;
+    for (const ability of ["bottle_carrier", "locomotive"] as const) {
+      const multiplier = normalizeEquipmentMultiplier(effect.specialAbilityMultipliers?.[ability], 2);
+      if (multiplier > 1) {
+        combined.specialAbilityMultipliers ??= {};
+        combined.specialAbilityMultipliers[ability] = Math.max(
+          combined.specialAbilityMultipliers[ability] ?? 1,
+          multiplier,
+        );
+      }
+    }
+    const protectionMultiplier = normalizeEquipmentMultiplier(effect.leaderProtectionContributionMultiplier, 1.15);
+    if (protectionMultiplier > 1) {
+      combined.leaderProtectionContributionMultiplier = Math.max(
+        combined.leaderProtectionContributionMultiplier ?? 1,
+        protectionMultiplier,
+      );
+    }
   }
 
   combined.injuryRiskReductionPct = Math.min(
@@ -231,13 +251,31 @@ export function normalizeEquipmentEffects(value: unknown): EquipmentEffects {
     }
   }
 
-  return {
+  const effects: EquipmentEffects = {
     ratingBonuses,
     timeTrialRatingBonuses,
     injuryRiskReductionPct: toFiniteNumber(payload.injuryRiskReductionPct),
     breakawayReputationBonus: toFiniteNumber(payload.breakawayReputationBonus),
     victoryReputationBonus: toFiniteNumber(payload.victoryReputationBonus),
   };
+  const rawMultipliers = payload.specialAbilityMultipliers;
+  if (rawMultipliers && typeof rawMultipliers === "object" && !Array.isArray(rawMultipliers)) {
+    for (const ability of ["bottle_carrier", "locomotive"] as const) {
+      const multiplier = normalizeEquipmentMultiplier((rawMultipliers as Record<string, unknown>)[ability], 2);
+      if (multiplier > 1) {
+        effects.specialAbilityMultipliers ??= {};
+        effects.specialAbilityMultipliers[ability] = multiplier;
+      }
+    }
+  }
+  const protectionMultiplier = normalizeEquipmentMultiplier(payload.leaderProtectionContributionMultiplier, 1.15);
+  if (protectionMultiplier > 1) effects.leaderProtectionContributionMultiplier = protectionMultiplier;
+  return effects;
+}
+
+export function normalizeEquipmentMultiplier(value: unknown, maximum: number): number {
+  const multiplier = Number(value);
+  return Number.isFinite(multiplier) ? Math.min(maximum, Math.max(1, multiplier)) : 1;
 }
 
 export function applyEquipmentRatingBonuses(

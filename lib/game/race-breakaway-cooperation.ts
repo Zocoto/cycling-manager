@@ -9,6 +9,7 @@ export type BreakawayRelayCandidate = {
   enduranceRating: number;
   role: RaceRole;
   hasLocomotive: boolean;
+  locomotiveAbilityMultiplier?: number;
   hasPanache: boolean;
 };
 
@@ -161,7 +162,7 @@ export function evolveBreakawayCooperation({
           clamp(candidate.enduranceRating / 100, 0, 1) * 0.18 +
           rotationPriority * 0.2 +
           roleWillingness +
-          (candidate.hasLocomotive ? 0.1 : 0) +
+          (candidate.hasLocomotive ? 0.1 * (candidate.locomotiveAbilityMultiplier ?? 1) : 0) +
           (candidate.hasPanache ? 0.055 : 0),
       };
     })

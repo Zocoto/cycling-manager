@@ -10,6 +10,7 @@ import {
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
+import { DashboardHalloweenShortcut } from "../../components/game/dashboard-halloween-shortcut";
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
@@ -735,6 +736,7 @@ export default async function GamePage() {
           </header>
 
           <DashboardGalaShortcut />
+          <Suspense fallback={null}><DashboardHalloweenShortcut /></Suspense>
           <DashboardReferralInvite />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}

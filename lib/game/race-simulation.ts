@@ -19,6 +19,13 @@ import {
   type EquipmentEffects,
 } from "./equipment";
 import {
+  BOTTLE_CARRIER_ENERGY_REDUCTION,
+  getBottleCarrierSupportEnergyCostMultiplier,
+  getLeaderProtectionContributionMultiplier,
+  getLocomotiveEnergyCostMultiplier,
+  getSupportAbilityMultiplier,
+} from "./equipment-support-abilities";
+import {
   DEFAULT_TIME_TRIAL_RIDER_PLAN,
   TIME_TRIAL_EFFORT_EFFECTS,
   isTimeTrialEffortMode,
@@ -2698,6 +2705,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             enduranceRating: state.rider.ratings.endurance,
             role: state.rider.role,
             hasLocomotive: hasSpecialAbility(state.rider, "locomotive"),
+            locomotiveAbilityMultiplier: getSupportAbilityMultiplier(state.rider, "locomotive"),
             hasPanache: hasSpecialAbility(state.rider, "panache"),
           })),
           tickIndex: breakawayRelayTickIndex,
@@ -2903,6 +2911,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             enduranceRating: state.rider.ratings.endurance,
             role: state.rider.role,
             hasLocomotive: hasSpecialAbility(state.rider, "locomotive"),
+            locomotiveAbilityMultiplier: getSupportAbilityMultiplier(state.rider, "locomotive"),
             hasPanache: hasSpecialAbility(state.rider, "panache"),
           })),
           tickIndex: breakawayRelayTickIndex,
@@ -3174,7 +3183,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
                   state.rider.id
                 ] ?? 1)
               : 1,
-          hasBottleCarrierSupport: hasTeammateBottleCarrier(state, states),
+          bottleCarrierEnergyCostMultiplier: getTeammateBottleCarrierEnergyCostMultiplier(state, states),
           leaderProtectionStrength,
           leaderRecoverySupportActive,
           supportingDetachedLeader,
@@ -3914,7 +3923,7 @@ function simulateIndividualTimeTrial(
         segmentCount: input.segments.length,
         groupSize: 1,
         chasePressure: 1,
-        hasBottleCarrierSupport: false,
+        bottleCarrierEnergyCostMultiplier: 1,
         timeTrial: true,
       });
       state.energy = applyTimeTrialEnergyCost(
@@ -4047,7 +4056,7 @@ function simulateTeamTimeTrial(
           segmentCount: input.segments.length,
           groupSize: 1,
           chasePressure: 1,
-          hasBottleCarrierSupport: false,
+          bottleCarrierEnergyCostMultiplier: 1,
           timeTrial: true,
         });
         state.energy = applyTimeTrialEnergyCost(
@@ -4223,11 +4232,7 @@ function simulateTeamTimeTrial(
           segmentCount: input.segments.length,
           groupSize: activeRiders.length,
           chasePressure: 0.82,
-          hasBottleCarrierSupport: activeRiders.some(
-            (teammate) =>
-              teammate.id !== rider.id &&
-              hasSpecialAbility(teammate, "bottle_carrier"),
-          ),
+          bottleCarrierEnergyCostMultiplier: getBottleCarrierSupportEnergyCostMultiplier(rider, activeRiders),
           timeTrial: true,
         });
         state.energy = applyTimeTrialEnergyCost(
@@ -5347,7 +5352,7 @@ function updateRiderEnergy({
   frontGroupIsYielding = false,
   frontGroupIsUncontested = false,
   breakawayRelayLoad = 1,
-  hasBottleCarrierSupport,
+  bottleCarrierEnergyCostMultiplier,
   leaderProtectionStrength = 0,
   leaderRecoverySupportActive = false,
   supportingDetachedLeader = false,
@@ -5369,7 +5374,7 @@ function updateRiderEnergy({
   frontGroupIsYielding?: boolean;
   frontGroupIsUncontested?: boolean;
   breakawayRelayLoad?: number;
-  hasBottleCarrierSupport: boolean;
+  bottleCarrierEnergyCostMultiplier: number;
   leaderProtectionStrength?: number;
   leaderRecoverySupportActive?: boolean;
   supportingDetachedLeader?: boolean;
@@ -5481,9 +5486,7 @@ function updateRiderEnergy({
   ) {
     abilityFactor *= 1 - FLAHUTE_ENERGY_COST_REDUCTION;
   }
-  if (hasSpecialAbility(rider, "locomotive") && isWorking) {
-    abilityFactor *= 0.84;
-  }
+  abilityFactor *= getLocomotiveEnergyCostMultiplier(rider, isWorking);
   if (
     rider.role === "leadout" &&
     rider.indoorTrackSpecialization?.code === "leadout_school"
@@ -5494,7 +5497,7 @@ function updateRiderEnergy({
         100;
   }
 
-  const teamSupport = hasBottleCarrierSupport ? 0.97 : 1;
+  const teamSupport = bottleCarrierEnergyCostMultiplier;
   const loss =
     (segment.distanceKm / 10) *
     (2.05 + terrainLoad * 1.18) *
@@ -5550,17 +5553,17 @@ function updateRiderEnergy({
   );
 }
 
-function hasTeammateBottleCarrier(
+function getTeammateBottleCarrierEnergyCostMultiplier(
   state: RiderState,
   states: Map<string, RiderState>,
 ) {
-  return [...states.values()].some(
-    (teammate) =>
-      teammate.rider.id !== state.rider.id &&
-      teammate.rider.teamId === state.rider.teamId &&
-      teammate.group === state.group &&
-      hasSpecialAbility(teammate.rider, "bottle_carrier"),
-  );
+  let strongestMultiplier = 0;
+  for (const teammate of states.values()) {
+    if (teammate.rider.id === state.rider.id || teammate.rider.teamId !== state.rider.teamId || teammate.group !== state.group) continue;
+    strongestMultiplier = Math.max(strongestMultiplier, getSupportAbilityMultiplier(teammate.rider, "bottle_carrier"));
+    if (strongestMultiplier === 2) break;
+  }
+  return 1 - BOTTLE_CARRIER_ENERGY_REDUCTION * strongestMultiplier;
 }
 
 function getPreferredGeneralSupportHelpers(candidates: RiderState[]) {
@@ -5651,7 +5654,7 @@ function getLeaderProtectionStrength({
   const protectionLevel = isRaceProtectedRiderRole(state.rider.role) ? 0.5 : 1;
 
   return clamp(
-    helpers.length *
+    helpers.reduce((total, helper) => total + getLeaderProtectionContributionMultiplier(helper.rider.equipmentEffects), 0) *
       0.045 *
       clamp(helperQuality / 65, 0.72, 1.18) *
       terrainRelevance *

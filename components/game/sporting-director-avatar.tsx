@@ -1,3 +1,5 @@
+import { halloweenAvatarArts } from "@/lib/game/halloween-avatar";
+import { HalloweenAvatarBackground, HalloweenAvatarOverlay } from "./halloween-avatar-overlay";
 import {
   ALPHA_TESTER_AVATAR_FRAME_KEY,
   type SportingDirectorAvatarFrameKey,
@@ -50,6 +52,7 @@ export function SportingDirectorAvatar({
   frameKey = null,
 }: SportingDirectorAvatarProps) {
   const avatar = resolveSportingDirectorAvatar(avatarKey);
+  const halloweenArts = halloweenAvatarArts(avatarKey);
   const skin = getAvatarSkinTone(avatar.skinTone);
   const hair = getAvatarHairColor(avatar.hairColor);
   const eyes = getAvatarEyeColor(avatar.eyeColor);
@@ -79,6 +82,7 @@ export function SportingDirectorAvatar({
           opacity="0.28"
         />
         <circle cx="99" cy="28" r="20" fill="#FFFFFF" opacity="0.15" />
+        <HalloweenAvatarBackground arts={halloweenArts} />
 
         <g data-avatar-hair-back={avatar.hairStyle}>
           <AvatarHairBack avatar={avatar} color={hair.color} />
@@ -132,6 +136,7 @@ export function SportingDirectorAvatar({
         <AvatarMouth avatar={avatar} />
         <AvatarFacialHair avatar={avatar} color={hair.color} />
         <AvatarGlasses avatar={avatar} />
+        <HalloweenAvatarOverlay arts={halloweenArts} />
         </svg>
       </span>
     </span>

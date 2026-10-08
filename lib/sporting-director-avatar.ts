@@ -405,6 +405,7 @@ export function decodeCustomSportingDirectorAvatar(
 export function resolveSportingDirectorAvatar(
   value: string | null | undefined
 ): SportingDirectorAvatarConfig {
+  value = value?.split("~halloween~")[0] ?? value;
   const customConfig = decodeCustomSportingDirectorAvatar(value);
 
   if (customConfig) {
@@ -421,6 +422,7 @@ export function resolveSportingDirectorAvatar(
 export function isSportingDirectorAvatarKey(
   value: string | null | undefined
 ): value is string {
+  value = value?.split("~halloween~")[0] ?? value;
   return Boolean(
     isLegacySportingDirectorAvatarKey(value) ||
       decodeCustomSportingDirectorAvatar(value)
