@@ -2,33 +2,39 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
 import { PcmGalaRegistrationPanel } from "./pcm-gala-registration-panel";
-import { SeasonFinaleGalaPresentation } from "./season-finale-gala-presentation";
+import { SeasonFinaleGalaPresentation, SeasonFinaleGalaPrizes } from "./season-finale-gala-presentation";
 import { SeasonFinaleGalaReplay } from "./season-finale-gala-replay";
 import { PcmGalaStartlistExportPanel } from "./pcm-gala-startlist-export-panel";
 
 const context = { riders: [], eventStatuses: { "gala-des-puncheurs": "open" as const }, rosterSize: 7, selectedEventKey: null, selectedRiderIds: [], publicStartlists: {}, jersey: FREE_AGENT_RIDER_JERSEY };
 
 describe("page du gala", () => {
-  it("présente le format différé, les lots proposés et l'absence de gains habituels", () => {
+  it("présente les résultats sans laisser d'inscription ni date future", () => {
     const html = renderToStaticMarkup(<SeasonFinaleGalaPresentation />);
     expect(html).toContain("Grand Gala de fin de saison");
-    expect(html).toContain("Pas de live");
+    expect(html).toContain("Les résultats sont tombés");
     expect(html).toContain("Aucun effet sur la forme");
     expect(html).toContain("Ni argent, ni points de classement");
     expect(html).not.toContain("À confirmer");
     expect(html).toContain("hors-circuit");
-    expect(html).toContain("chaque groupe");
-    expect(html).toContain("Gants de Gala");
-    expect(html).toContain('href="#inscriptions-gala"');
-    expect(html.match(/<a /g)).toHaveLength(1);
-    expect(html.match(/<article /g)).toHaveLength(5);
-    expect(html).not.toContain("Découvrir les lots");
+    expect(html).toContain('href="#resultats-gala"');
+    expect(html).toContain('href="#gains-gala"');
+    expect(html.match(/<a /g)).toHaveLength(2);
+    expect(html).not.toContain("Inscrire mon équipe");
     expect(html).not.toContain("<nav");
-    expect(html).toContain("Jeudi 8 octobre à 12 h (J28), heure de Paris");
-    expect(html).toContain('dateTime="2026-10-08T12:00:00+02:00"');
-    expect(html).toContain("vendredi 9 octobre après-midi");
-    expect(html).toContain("leur identité de la saison prochaine");
-    expect(html).not.toContain("clôture des inscriptions à venir");
+    expect(html).not.toContain("Clôture des inscriptions");
+    expect(html).not.toContain("vendredi 9 octobre");
+    expect(html).toContain("Identités de la saison prochaine");
+  });
+  it("conserve le parcours et les cinq lots dans un détail compact", () => {
+    const html = renderToStaticMarkup(<SeasonFinaleGalaPrizes />);
+    expect(html).toContain("Le parcours et les lots du gala");
+    expect(html).toContain("205 km vallonnés");
+    expect(html).toContain('stroke="#D2B46B"');
+    expect(html).toContain("Gants de Gala");
+    expect(html.match(/<article /g)).toHaveLength(5);
+    expect(html).toContain("Même dotation dans chaque groupe");
+    expect(html).not.toContain('<details open');
   });
   it("n'affiche que le profil vallonné et propose six à huit coureurs", () => {
     const html = renderToStaticMarkup(<PcmGalaRegistrationPanel {...context} seasonFinale />);
@@ -75,9 +81,15 @@ describe("page du gala", () => {
   it("ne charge aucun lecteur tiers avant le clic et n'invente pas de vidéo", () => {
     const waiting = renderToStaticMarkup(<SeasonFinaleGalaReplay videoId={null} />);
     const ready = renderToStaticMarkup(<SeasonFinaleGalaReplay videoId="Abcdef123_-" />);
-    expect(waiting).toContain("Vidéo à venir après le gala");
+    expect(waiting).toContain("sera visible ici dès sa mise en ligne");
     expect(waiting).not.toContain("<iframe");
-    expect(ready).toContain("Charger et regarder le replay");
+    expect(ready).toContain("Regarder la poule 1");
     expect(ready).not.toContain("<iframe");
+  });
+  it("distingue les deux lecteurs pour l'accessibilité", () => {
+    const html = renderToStaticMarkup(<><SeasonFinaleGalaReplay videoId="tuP7RV3wkLM" groupNumber={1} /><SeasonFinaleGalaReplay videoId="oxUyuBcQ5aI" groupNumber={2} /></>);
+    expect(html).toContain('id="gala-replay-1"');
+    expect(html).toContain('id="gala-replay-2"');
+    expect(html).toContain("Regarder la poule 2");
   });
 });

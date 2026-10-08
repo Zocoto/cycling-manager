@@ -47,7 +47,7 @@ type CatalogRow = {
   effect_summary: string;
   effect_payload: unknown;
   acquisition_channel:
-    "commercial" | "equipment_partner" | "research_prototype";
+    "commercial" | "equipment_partner" | "research_prototype" | "event_reward";
   owner_team_id: string | null;
 };
 type SupplierRow = {

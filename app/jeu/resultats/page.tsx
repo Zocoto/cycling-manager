@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { DashboardGalaShortcut } from "@/components/game/dashboard-gala-shortcut";
 import {
   NationalChampionshipResultsDirectory,
   buildNationalChampionshipGroups,
@@ -193,6 +194,8 @@ export default async function RaceResultsPage({
             ← Retour au calendrier
           </Link>
         </div>
+
+        <DashboardGalaShortcut />
 
         <div className="mt-8">
           {calendar && spectatorCalendar ? (

@@ -54,4 +54,13 @@
 .registration li > span:last-child { color: #a5a9b3; }
 .registration [role="status"] { border-color: #8f7c50; background: #252117; color: #e2c784; }
 .registration [role="alert"], .registration [data-gala-part="roster-warning"] { border-color: #75434a; background: #321c21; color: #f0b9bf; }
-.replay { margin-top: 1.5rem; border: 1px solid #393c44; border-radius: 0.875rem; background: #111215; padding: 1.25rem; }
+.replay { min-width: 0; border: 1px solid #393c44; border-radius: 0.875rem; background: #111215; padding: 1rem; }
+.resultGroup { margin-top: 2rem; min-width: 0; }
+.resultColumns { display: grid; gap: 1rem; margin-top: 1rem; min-width: 0; align-items: start; }
+.classification { min-width: 0; overflow: hidden; border: 1px solid #393c44; border-radius: 0.875rem; background: #111215; }
+.classificationScroll { max-height: 28rem; overflow-y: auto; overscroll-behavior: contain; }
+.classificationScroll:focus-visible { outline: 2px solid #d2b46b; outline-offset: -2px; }
+@media (min-width: 1024px) {
+  .resultColumns { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  .classificationScroll { max-height: 24rem; }
+}

@@ -13,6 +13,9 @@ describe("raccourci gala du bureau du DS", () => {
     expect(html).not.toContain("<nav");
     expect(html).not.toContain("<details");
     expect(html).not.toContain("Inscriptions ouvertes");
+    expect(html).toContain('bg-[#D2B46B]');
+    expect(html).toContain('text-[#101114]');
+    expect(html).toContain('<strong class="mt-0.5 block text-sm font-black">Les résultats sont tombés</strong>');
   });
   it("place le raccourci dans le bureau avant les cartes de gestion", () => {
     const source = readFileSync(join(process.cwd(), "app/jeu/page.tsx"), "utf8");

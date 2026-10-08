@@ -16,7 +16,7 @@ type CatalogRow = {
   id: string;
   effect_payload: unknown;
   acquisition_channel:
-    "commercial" | "equipment_partner" | "research_prototype";
+    "commercial" | "equipment_partner" | "research_prototype" | "event_reward";
 };
 
 type RiderContractRow = {
