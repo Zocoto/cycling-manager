@@ -19,6 +19,7 @@ import { PhysiotherapistAssignmentMatrix } from "@/components/game/physiotherapi
 import {
   NutritionInterventionFields,
   NutritionInterventionsEditor,
+  NutritionWeightProgramFields,
 } from "@/components/game/nutrition-interventions-editor";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderInjuryMarker } from "@/components/game/rider-injury-marker";
@@ -60,7 +61,6 @@ import {
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
-  applyWeightCutAction,
   cancelPlannedFormCampAction,
   requestFormCampInterruptionAction,
 } from "./actions";
@@ -114,6 +114,7 @@ type HealthCenterPageProps = {
     stage?: string | string[];
     affectation?: string | string[];
     nutrition?: string | string[];
+    plan?: string | string[];
     affutage?: string | string[];
     annulation?: string | string[];
     interruption?: string | string[];
@@ -284,6 +285,7 @@ export default async function HealthCenterPage({
             Le programme d’affûtage est terminé : le poids et la forme du coureur ont été mis à jour.
           </SuccessMessage>
         ) : null}
+        {readQuery(query.plan) === "confirme" ? <SuccessMessage>Tous les choix nutritionnels ont été appliqués : forme, poids et trésorerie sont à jour.</SuccessMessage> : null}
         {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
 
         <GameSectionTabs
@@ -812,8 +814,6 @@ function NutritionPanel({
       intervention,
     ]),
   );
-  const currentGameDayIndex =
-    overview.gameYear * 28 + overview.currentDayNumber - 1;
 
   return (
     <section data-tutorial-id="medical-center-nutrition" className="mt-7">
@@ -939,9 +939,11 @@ function NutritionPanel({
 
 
           <NutritionInterventionsEditor
-            riderIds={nutritionRiders
-              .filter((rider) => !interventionByRiderId.has(rider.id))
-              .map((rider) => rider.id)}
+            riderIds={nutritionRiders.map((rider) => rider.id)}
+            weightRiders={nutritionRiders.map(rider => ({
+              riderId: rider.id, heightCm: rider.heightCm, weightKg: rider.weightKg, form: rider.form,
+              cooldownDays: rider.weightProgramCooldownDays,
+            }))}
             nutritionists={nutritionistOptions}
             balance={overview.balance}
             currency={overview.currency}
@@ -989,14 +991,14 @@ function NutritionPanel({
                             {rider.weightKg !== null ? (
                               <>
                                 <span
-                                  className={weightStatus?.isOverweight ? "font-black text-[#C5483D]" : undefined}
+                                  className={weightStatus?.isOverweight || weightStatus?.isUnderweight ? "font-black text-[#C5483D]" : undefined}
                                   title={weightStatus ? getRiderWeightStatusLabel(weightStatus) : undefined}
                                 >
                                   Poids {rider.weightKg.toLocaleString("fr-FR", {
                                     minimumFractionDigits: 1,
                                     maximumFractionDigits: 1,
                                   })} kg
-                                  {weightStatus?.isOverweight ? " · Surpoids" : ""}
+                                  {weightStatus?.isOverweight ? " · Surpoids" : weightStatus?.isUnderweight ? " · Sous-poids" : ""}
                                 </span>
                                 <span
                                   title="Évolution du poids sur la saison"
@@ -1049,65 +1051,8 @@ function NutritionPanel({
                       />
                     )}
 
-                    {rider.heightCm !== null && rider.weightKg !== null ? (
-                      <form
-                        action={applyWeightCutAction}
-                        className="mt-3 grid gap-2 rounded-xl border border-[#D7B84A]/25 bg-[#FFF9E8] p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
-                      >
-                        <input type="hidden" name="riderId" value={rider.id} />
-                        <div className="flex items-center justify-between gap-2 sm:block sm:min-w-24">
-                          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#806114]">
-                            Affûtage
-                          </span>
-                          <span className="text-[10px] font-semibold text-[#806630] sm:mt-0.5 sm:block">
-                            {rider.nextWeightCutGameDayIndex !== null &&
-                            currentGameDayIndex < rider.nextWeightCutGameDayIndex
-                              ? `Dans ${rider.nextWeightCutGameDayIndex - currentGameDayIndex} j`
-                              : "Tous les 5 j"}
-                          </span>
-                        </div>
-                        <label className="min-w-0">
-                          <span className="sr-only">Perte de poids et coût en forme</span>
-                          <select
-                            name="weightLossKg"
-                            defaultValue="0.2"
-                            disabled={
-                              rider.nextWeightCutGameDayIndex !== null &&
-                              currentGameDayIndex < rider.nextWeightCutGameDayIndex
-                            }
-                            className="min-h-9 w-full rounded-lg border border-[#806114]/20 bg-white px-3 text-xs font-black text-[#183F37] disabled:cursor-not-allowed disabled:bg-[#F1EEE4] disabled:text-[#8B877C]"
-                          >
-                            {[0.2, 0.4, 0.6, 0.8, 1].map((loss) => {
-                              const formCost = loss * 20;
-                              const safeMinimum = Math.max(
-                                45,
-                                18 * (rider.heightCm! / 100) ** 2,
-                              );
-                              const unavailable =
-                                rider.form < formCost ||
-                                rider.weightKg! - loss < safeMinimum;
-                              return (
-                                <option key={loss} value={loss} disabled={unavailable}>
-                                  −{loss.toLocaleString("fr-FR")} kg · −{formCost} forme
-                                  {unavailable ? " · indisponible" : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </label>
-                        <HealthCenterSubmitButton
-                          pendingLabel="Affûtage…"
-                          compact
-                          disabled={
-                            (rider.nextWeightCutGameDayIndex !== null &&
-                              currentGameDayIndex < rider.nextWeightCutGameDayIndex) ||
-                            rider.form < 4
-                          }
-                        >
-                          Lancer
-                        </HealthCenterSubmitButton>
-                      </form>
-                    ) : null}
+                    <NutritionWeightProgramFields riderId={rider.id}
+                      isUnderweight={weightStatus?.isUnderweight} isOverweight={weightStatus?.isOverweight} />
                   </article>
                 );
               })}

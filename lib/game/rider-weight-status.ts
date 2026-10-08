@@ -1,6 +1,7 @@
 import {
   getRiderBodyMassIndex,
   getRiderWeightThreshold,
+  getRiderMinimumPowerWeight,
   inferRiderPhysiologyProfile,
   RIDER_OVERWEIGHT_BONUS_FADE_BMI,
   type RiderPhysiologyProfile,
@@ -17,6 +18,9 @@ export type RiderWeightStatus = {
   maximumWeightKg: number;
   isOverweight: boolean;
   overweightPhase: RiderOverweightPhase;
+  isUnderweight: boolean;
+  minimumWeightKg: number | null;
+  minimumBodyMassIndex: number | null;
 };
 
 export type OverweightRiderSummary = {
@@ -26,6 +30,8 @@ export type OverweightRiderSummary = {
   weightKg: number;
   maximumWeightKg: number;
   overweightPhase?: RiderOverweightPhase;
+  isUnderweight?: boolean;
+  minimumWeightKg?: number;
 };
 
 export function getRiderWeightStatus({
@@ -43,6 +49,7 @@ export function getRiderWeightStatus({
   const profile = inferRiderPhysiologyProfile(ratings);
   const { maximumBodyMassIndex, maximumWeightKg, profileLabel } = getRiderWeightThreshold(profile, heightCm);
   const isOverweight = weightKg > maximumWeightKg + 1e-9;
+  const minimum = getRiderMinimumPowerWeight(profile, heightCm);
   const overweightPhase: RiderOverweightPhase = !isOverweight ? "none" :
     weightKg / (heightCm / 100) ** 2 >= maximumBodyMassIndex + RIDER_OVERWEIGHT_BONUS_FADE_BMI
       ? "penalty" : "reduced_bonus";
@@ -54,11 +61,15 @@ export function getRiderWeightStatus({
     maximumWeightKg,
     isOverweight,
     overweightPhase,
+    isUnderweight: minimum !== null && weightKg < minimum.minimumWeightKg - 1e-9,
+    minimumWeightKg: minimum?.minimumWeightKg ?? null,
+    minimumBodyMassIndex: minimum?.minimumBodyMassIndex ?? null,
   };
 }
 
 export function getRiderWeightStatusLabel(status: RiderWeightStatus): string {
   const number = (value: number) => value.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  if (status.isUnderweight) return `Sous-poids pour le profil ${status.profileLabel} · IMC ${number(status.bodyMassIndex)} · poids minimal ${number(status.minimumWeightKg!)} kg · manque de puissance sur pavés, plat/sprint et CLM`;
   const impact = status.overweightPhase === "penalty" ? " · malus sur pavés, plat/sprint et CLM" :
     status.overweightPhase === "reduced_bonus" ? " · bonus réduit sur pavés, plat/sprint et CLM" : "";
   return `${status.isOverweight ? "Surpoids pour le profil" : "Profil"} ${status.profileLabel} · IMC ${number(status.bodyMassIndex)} · seuil de poids ${number(status.maximumWeightKg)} kg${impact}`;

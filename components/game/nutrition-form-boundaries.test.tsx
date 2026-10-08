@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { NutritionInterventionsEditor, NutritionInterventionFields } from "./nutrition-interventions-editor";
+import { NutritionInterventionsEditor, NutritionInterventionFields, NutritionWeightProgramFields } from "./nutrition-interventions-editor";
 
-vi.mock("@/app/jeu/centre-de-soin/actions", () => ({ applyNutritionInterventionsAction: vi.fn() }));
+vi.mock("@/app/jeu/centre-de-soin/actions", () => ({ applyNutritionPlanAction: vi.fn() }));
 
 function renderNutritionWithWeightCuts() {
   return renderToStaticMarkup(
@@ -28,6 +28,22 @@ function renderNutritionWithWeightCuts() {
 }
 
 describe("nutrition form boundaries", () => {
+  it("uses one atomic form and closed optional panels, even after supplement capacity is exhausted", () => {
+    const markup = renderToStaticMarkup(<NutritionInterventionsEditor riderIds={["one"]} nutritionists={[]}
+      weightRiders={[{riderId: "one", heightCm: 180, weightKg: 68, form: 80, cooldownDays: 0}]}
+      balance={10000} currency="EUR">
+      <NutritionWeightProgramFields riderId="one" isUnderweight />
+    </NutritionInterventionsEditor>);
+    expect([...markup.matchAll(/<form\b/g)]).toHaveLength(1);
+    expect(markup).toContain('name="weightPrograms"');
+    expect(markup).toContain('name="interventions"');
+    expect(markup).toContain("Athlétisation · renforcer");
+    expect(markup).toContain("Affûtage · alléger");
+    expect(markup).toContain("· optionnel");
+    expect(markup).toContain("Sous-poids");
+    expect(markup.match(/<details[^>]*>/)?.[0]).not.toContain("open");
+    expect(markup).not.toContain('name="weightLossKg"');
+  });
   it("never nests independent weight-cut forms inside the bulk supplement form", () => {
     const markup = renderNutritionWithWeightCuts();
     let depth = 0;

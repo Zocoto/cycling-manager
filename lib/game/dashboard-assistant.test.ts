@@ -74,6 +74,16 @@ const snapshot: DashboardAssistantSnapshot = {
 };
 
 describe("dashboard DS assistant", () => {
+  it("separates underweight from overweight with a direct nutrition link", () => {
+    const tooLight = {riderId:"light",name:"Un Sprinteur",profileLabel:"Sprinteur",weightKg:68,maximumWeightKg:79.3,isUnderweight:true,minimumWeightKg:73};
+    const tooHeavy = {...tooLight,riderId:"heavy",weightKg:86,isUnderweight:false};
+    const alerts = buildDashboardAssistantLines({snapshot:{...snapshot,overweightRiders:[tooLight,tooHeavy]},rewardCount:0,cashBalance:100000}).alerts;
+    expect(alerts.find(line=>line.id==="underweight-riders")).toMatchObject({metric:"1",href:"/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-light"});
+    expect(alerts.find(line=>line.id==="underweight-riders")!.detail).toContain("athlétisation");
+    expect(alerts.find(line=>line.id==="overweight-riders")!.metric).toBe("1");
+    const onlyLight = buildDashboardAssistantLines({snapshot:{...snapshot,overweightRiders:[tooLight]},rewardCount:0,cashBalance:100000}).alerts;
+    expect(onlyLight.some(line=>line.id==="overweight-riders")).toBe(false);
+  });
   it("groups overweight riders into an actionable alert and removes it when none remain", () => {
     const overweightRiders = [1, 2, 3].map((number) => ({
       riderId: `rider-${number}`, name: `Coureur ${number}`, profileLabel: "Grimpeur",

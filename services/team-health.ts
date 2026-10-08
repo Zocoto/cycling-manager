@@ -17,6 +17,7 @@ import {
 } from "@/lib/game/staff-talents";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
+import { getWeightProgramCooldownDays } from "@/lib/game/weight-program";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = { id: string };
@@ -65,7 +66,7 @@ type RatingRow = {
   breakaway: number;
   prologue: number;
 };
-type SeasonDayRow = { id: string; day_number: number };
+type SeasonDayRow = { id: string; day_number: number; calendar_date: string };
 type NutritionRegularityRow = { rider_id: string; recent_use_count: number };
 type ConditionRow = {
   rider_id: string;
@@ -164,12 +165,13 @@ type WeightEventRow = {
   rider_id: string;
   season_id: string | null;
   game_day_index: number;
-  source: "supplement" | "weight_cut";
+  source: "supplement" | "weight_cut" | "weight_gain";
   weight_before_kg: number | string;
   weight_delta_kg: number | string;
   weight_after_kg: number | string;
   form_cost: number | string;
   applied_at: string;
+  season_days: { calendar_date: string } | null;
 };
 type NutritionistEffectiveQuote = {
   contractId: string;
@@ -235,6 +237,7 @@ export type TeamHealthRider = {
   recentNutritionInterventionCount: number;
   physiologyVersion: number;
   nextWeightCutGameDayIndex: number | null;
+  weightProgramCooldownDays: number;
   ratings: RiderRatings;
   averageRating: number;
   form: number;
@@ -440,7 +443,7 @@ export async function getCurrentTeamHealthOverview(
         .returns<RatingRow[]>(),
       admin
         .from("season_days")
-        .select("id, day_number")
+        .select("id, day_number, calendar_date")
         .eq("season_id", season.id)
         .lte("day_number", season.current_day_number ?? 1)
         .order("day_number", { ascending: false })
@@ -527,10 +530,10 @@ export async function getCurrentTeamHealthOverview(
     admin
       .from("rider_weight_events")
       .select(
-        "rider_id, season_id, game_day_index, source, weight_before_kg, weight_delta_kg, weight_after_kg, form_cost, applied_at",
+        "rider_id, season_id, game_day_index, source, weight_before_kg, weight_delta_kg, weight_after_kg, form_cost, applied_at, season_days(calendar_date)",
       )
       .in("rider_id", riderIds)
-      .order("game_day_index", { ascending: false })
+      .order("applied_at", { ascending: false })
       .returns<WeightEventRow[]>(),
     admin
       .from("rider_morale_events")
@@ -597,6 +600,12 @@ export async function getCurrentTeamHealthOverview(
     (campsResult.data ?? []).map((camp) => [camp.rider_id, camp]),
   );
   const latestWeightCutByRiderId = new Map<string, WeightEventRow>();
+  const latestWeightProgramDateByRiderId = new Map<string, string>();
+  const calendarDateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const currentCalendarDate = (daysResult.data ?? [])[0]?.calendar_date ??
+    calendarDateFormatter.format(new Date());
   const seasonWeightDeltaByRiderId = new Map<string, number>();
   for (const event of weightEventsResult.data ?? []) {
     if (event.season_id === season.id) {
@@ -606,11 +615,12 @@ export async function getCurrentTeamHealthOverview(
           toNumber(event.weight_delta_kg),
       );
     }
-    if (
-      event.source === "weight_cut" &&
-      !latestWeightCutByRiderId.has(event.rider_id)
-    ) {
-      latestWeightCutByRiderId.set(event.rider_id, event);
+    if (event.source === "weight_cut" || event.source === "weight_gain") {
+      const date = event.season_days?.calendar_date ?? calendarDateFormatter.format(new Date(event.applied_at));
+      if (date > (latestWeightProgramDateByRiderId.get(event.rider_id) ?? "")) {
+        latestWeightCutByRiderId.set(event.rider_id, event);
+        latestWeightProgramDateByRiderId.set(event.rider_id, date);
+      }
     }
   }
   const moraleEventsByRiderId = new Map<string, RiderMoraleEvent[]>();
@@ -694,6 +704,9 @@ export async function getCurrentTeamHealthOverview(
           nextWeightCutGameDayIndex: latestWeightCutByRiderId.has(rider.id)
             ? (latestWeightCutByRiderId.get(rider.id)?.game_day_index ?? 0) + 5
             : null,
+          weightProgramCooldownDays: getWeightProgramCooldownDays(
+            latestWeightProgramDateByRiderId.get(rider.id) ?? null, currentCalendarDate,
+          ),
           ratings,
           averageRating: Math.round(
             Object.values(ratings).reduce((total, value) => total + value, 0) /

@@ -31,6 +31,9 @@ describe("dashboard weight reads", () => {
     expect(await getDashboardOverweightRiders(context, input)).toEqual([{
       riderId: "climber", name: "Un Grimpeur", profileLabel: "Grimpeur", weightKg: 61, maximumWeightKg: 60.4,
       overweightPhase: "reduced_bonus",
+    }, {
+      riderId: "sprinter", name: "Un Grimpeur", profileLabel: "Sprinteur", weightKg: 61,
+      maximumWeightKg: 70.8, overweightPhase: "none", isUnderweight: true, minimumWeightKg: 65.1,
     }]);
     expect(supabase.from.mock.calls).toEqual([["rider_contracts"], ["rider_season_ratings"]]);
     expect(query.eq).toHaveBeenCalledWith("team_id", "team");

@@ -1,5 +1,6 @@
 import {
   getRiderWeightThreshold,
+  getRiderMinimumPowerWeight,
   RIDER_OVERWEIGHT_BONUS_FADE_BMI,
   RIDER_OVERWEIGHT_RULES,
   type RiderPhysiologyProfile,
@@ -126,6 +127,45 @@ export function RiderWeightGuideTables() {
         L’assistant du DS vous avertit du surpoids et distingue bonus réduit et
         malus. La fiche du coureur et la rubrique nutrition affichent son seuil.
         Revenir sous le seuil retire l’alerte de surpoids.
+      </p>
+      <h4 className="mt-7 text-lg font-black text-[#082A2A]">Sous-poids des profils de puissance</h4>
+      <p className="mt-3 text-sm font-medium leading-7 text-[#60756E]">
+        Un rouleur, pavéman ou sprinteur trop léger manque de puissance sur
+        pavés, plat/sprint et CLM. Sous le seuil ci-dessous, le bonus éventuel
+        diminue sur un point d’IMC et un malus progresse immédiatement, avec
+        les mêmes pentes et plafonds que dans le barème précédent. Les autres
+        profils ne reçoivent pas ce malus de sous-poids.
+      </p>
+      <div className={wrapper}>
+        <table className={table}>
+          <caption className="bg-[#F3F8F6] px-4 py-3 text-left font-black text-[#176951]">Poids minimal sans alerte de sous-poids</caption>
+          <thead className={head}><tr>
+            <th scope="col" className={cell}>Profil naturel</th><th scope="col" className={cell}>IMC minimal ≈</th>
+            {heights.map(height => <th key={height} scope="col" className={cell}>{number(height / 100, 2)} m</th>)}
+          </tr></thead>
+          <tbody className={body}>
+            {examples.map(({profile}) => <tr key={profile}>
+              <th scope="row" className={cell}>{getRiderWeightThreshold(profile, 180).profileLabel}</th>
+              <td className={cell}>{number(getRiderMinimumPowerWeight(profile, 180)!.minimumBodyMassIndex, 2)}</td>
+              {heights.map(height => <td key={height} className={cell}>{number(getRiderMinimumPowerWeight(profile, height)!.minimumWeightKg)} kg</td>)}
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
+        Dans la rubrique nutrition, « Ajuster le poids » est optionnel :
+        affûtage pour alléger, athlétisation pour renforcer. Chaque programme
+        ajuste de 0,2 à 1 kg et coûte 4 points de forme par 0,2 kg, sans frais
+        supplémentaires. Les deux sens partagent un délai de cinq jours par
+        coureur. Compléments et programmes se valident ensemble dans la barre
+        flottante ; la forme gagnée par le complément est prise en compte.
+      </p>
+      <p className="mt-3 text-xs font-semibold leading-6 text-[#60756E]">
+        Aucun nouveau spécialiste de puissance ne commence en sous-poids.
+        Les morphologies restent variées : environ 5 % des futurs coureurs
+        peuvent naître avec un léger surpoids, de +0,15 à +0,75 d’IMC au-dessus
+        du seuil de leur profil. Les variations liées aux compléments et aux
+        programmes restent sous votre responsabilité.
       </p>
     </article>
   );

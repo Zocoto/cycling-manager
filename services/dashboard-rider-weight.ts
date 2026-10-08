@@ -48,11 +48,12 @@ export async function getDashboardOverweightRiders(
         recovery: row.recovery, breakaway: row.breakaway, prologue: row.prologue,
       },
     });
-    return status?.isOverweight && weightKg !== null ? [{
+    return status && (status.isOverweight || status.isUnderweight) && weightKg !== null ? [{
       riderId: row.rider_id,
       name: `${row.riders.first_name} ${row.riders.last_name}`.trim(),
       profileLabel: status.profileLabel, weightKg, maximumWeightKg: status.maximumWeightKg,
       overweightPhase: status.overweightPhase,
+      ...(status.isUnderweight ? { isUnderweight: true, minimumWeightKg: status.minimumWeightKg! } : {}),
     }] : [];
   }).sort((left, right) => left.name.localeCompare(right.name, "fr"));
 }

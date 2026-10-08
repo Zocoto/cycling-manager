@@ -60,6 +60,8 @@ export const RIDER_PHYSIOLOGY_WEIGHT_LIMITS: Record<
 };
 
 export const RIDER_OVERWEIGHT_BONUS_FADE_BMI = 2;
+export const RIDER_POWER_UNDERWEIGHT_BMI_ALLOWANCE = 1;
+export const RIDER_POWER_PROFILES: RiderPhysiologyProfile[] = ["rouleur", "northern_classics", "sprinter"];
 export const RIDER_OVERWEIGHT_RULES = {
   cobbles: { label: "Pavés", penaltyPerBmi: 0.6, maximumPenalty: 3 },
   flat: { label: "Plat / sprint", penaltyPerBmi: 0.8, maximumPenalty: 4 },
@@ -73,6 +75,18 @@ export function getRiderWeightThreshold(profile: RiderPhysiologyProfile, heightC
   const maximumBodyMassIndex = reference.weightKg / (reference.heightCm / 100) ** 2 + warning.bmiAllowance;
   const maximumWeightKg = Math.floor(maximumBodyMassIndex * (heightCm / 100) ** 2 * 10) / 10;
   return { maximumBodyMassIndex, maximumWeightKg, profileLabel: warning.label };
+}
+
+export function getRiderMinimumPowerWeight(profile: RiderPhysiologyProfile, heightCm: number) {
+  if (!RIDER_POWER_PROFILES.includes(profile)) return null;
+  const reference = RIDER_PHYSIOLOGY_PROFILE_REFERENCE[profile];
+  const referenceBmi = reference.weightKg / (reference.heightCm / 100) ** 2;
+  const minimumBodyMassIndex = referenceBmi - RIDER_POWER_UNDERWEIGHT_BMI_ALLOWANCE;
+  return {
+    minimumBodyMassIndex,
+    minimumWeightKg: Math.ceil(minimumBodyMassIndex * (heightCm / 100) ** 2 * 10 - 1e-9) / 10,
+    typicalWeightKg: Math.round(referenceBmi * (heightCm / 100) ** 2 * 10) / 10,
+  };
 }
 
 export function inferRiderPhysiologyProfile(
@@ -199,6 +213,20 @@ function getPowerTerrainModifier(
       (physiology.heightCm - reference.heightCm) * heightCoefficient,
     -currentCap, currentCap,
   );
+  if (profile === "rouleur" || profile === "northern_classics" || profile === "sprinter") {
+    // Reuse the already computed BMI delta in this hot sector-by-sector path;
+    // avoid another profile lookup, exponentiation and temporary object.
+    const deficitBmi = -excessBmi - RIDER_PHYSIOLOGY_WEIGHT_LIMITS[profile].bmiAllowance -
+      RIDER_POWER_UNDERWEIGHT_BMI_ALLOWANCE;
+    if (deficitBmi > 0) {
+      const rule = RIDER_OVERWEIGHT_RULES[terrain];
+      return clamp(
+        Math.min(0, currentModifier) + Math.max(0, currentModifier) * Math.max(0, 1 - deficitBmi) -
+          Math.min(rule.maximumPenalty, deficitBmi * rule.penaltyPerBmi) * penaltyMultiplier,
+        -Math.max(currentCap, rule.maximumPenalty * penaltyMultiplier), currentCap,
+      );
+    }
+  }
   if (excessBmi <= 0) return currentModifier;
 
   // Freeze the bonus at the exact threshold before fading it. Multiplying

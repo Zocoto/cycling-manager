@@ -440,12 +440,12 @@ export default async function RiderProfilePage({
                     {profile.physique.heightCm.toLocaleString("fr-FR", {
                       maximumFractionDigits: 1,
                     })} cm · <span
-                      className={weightStatus?.isOverweight ? "font-black text-[#FFADA5]" : undefined}
+                      className={weightStatus?.isOverweight || weightStatus?.isUnderweight ? "font-black text-[#FFADA5]" : undefined}
                       title={weightStatus ? getRiderWeightStatusLabel(weightStatus) : undefined}
                     >{profile.physique.weightKg.toLocaleString("fr-FR", {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 1,
-                    })} kg{weightStatus?.isOverweight ? " · Surpoids" : ""}</span>
+                    })} kg{weightStatus?.isOverweight ? " · Surpoids" : weightStatus?.isUnderweight ? " · Sous-poids" : ""}</span>
                   </IdentityBadge>
                 ) : null}
                 <IdentityBadge>

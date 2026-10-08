@@ -696,7 +696,7 @@ function RidersSection() {
             pas des points ajoutés aux caractéristiques permanentes.
           </p>
           <div className="mt-5 rounded-xl bg-[#FFF9DF] px-4 py-3 text-sm font-bold leading-6 text-[#705B00]">
-            Avec un nutritionniste actif, un programme d’affûtage retire de 0,2 à 1 kg, au maximum une fois tous les cinq jours. Chaque tranche de 0,2 kg coûte 4 points de forme. Le coureur ne peut jamais descendre sous 45 kg ni sous un IMC de 18.
+            Avec un nutritionniste actif, l’affûtage allège et l’athlétisation renforce le coureur de 0,2 à 1 kg. Les deux sens partagent un délai de cinq jours ; chaque tranche de 0,2 kg coûte 4 points de forme. Ces programmes restent optionnels dans la rubrique nutrition et se valident avec les compléments. La perte de poids est limitée par un poids de sécurité ; la prise de poids ne peut dépasser 120 kg.
           </div>
           <p className="mt-4 text-sm font-medium leading-6 text-[#60756E]">
             Les compléments nutritionnels rendent de la forme mais comportent un faible risque de prise de poids, clairement affiché avant validation. Un meilleur nutritionniste réduit ce risque.

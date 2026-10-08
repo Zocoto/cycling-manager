@@ -370,6 +370,49 @@ export async function applyWeightCutAction(formData: FormData) {
   redirect("/jeu/centre-de-soin?onglet=nutrition&affutage=confirme");
 }
 
+export async function applyNutritionPlanAction(formData: FormData) {
+  let interventions: unknown;
+  let programs: unknown;
+  try {
+    interventions = JSON.parse(readValue(formData, "interventions") || "[]");
+    programs = JSON.parse(readValue(formData, "weightPrograms") || "[]");
+  } catch { redirectWithError("nutrition", "La sélection nutritionnelle est invalide."); }
+  if (!Array.isArray(interventions) || !Array.isArray(programs) ||
+    interventions.length > 35 || programs.length > 35 || interventions.length + programs.length === 0) {
+    redirectWithError("nutrition", "Sélectionnez au moins un complément ou un programme de poids (35 coureurs maximum).");
+  }
+  for (const entry of interventions) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry) ||
+      typeof entry.riderId !== "string" || !isUuid(entry.riderId) ||
+      typeof entry.nutritionistContractId !== "string" || !isUuid(entry.nutritionistContractId) ||
+      typeof entry.interventionCode !== "string" || !isNutritionIntervention(entry.interventionCode)) {
+      redirectWithError("nutrition", "Une intervention nutritionnelle est invalide.");
+    }
+  }
+  for (const entry of programs) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry) ||
+      typeof entry.riderId !== "string" || !isUuid(entry.riderId) ||
+      typeof entry.weightDeltaKg !== "number" || ![0.2,0.4,0.6,0.8,1].includes(Math.abs(entry.weightDeltaKg))) {
+      redirectWithError("nutrition", "Un programme de poids est invalide.");
+    }
+  }
+  if (new Set(interventions.map(entry => entry.riderId)).size !== interventions.length ||
+      new Set(programs.map(entry => entry.riderId)).size !== programs.length) {
+    redirectWithError("nutrition", "Un seul complément et un seul programme de poids par coureur.");
+  }
+  // Keep the proven fast supplement path for the everyday use case.
+  if (programs.length === 0) return applyNutritionInterventionsAction(formData);
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc("apply_current_team_nutrition_plan", {
+    p_interventions: interventions, p_weight_programs: programs,
+  });
+  if (error) redirectWithError("nutrition", getHealthCenterErrorMessage(error.message));
+  revalidateHealthPaths();
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  revalidatePath("/jeu/effectif");
+  redirect("/jeu/centre-de-soin?onglet=nutrition&plan=confirme");
+}
+
 async function requireAuthenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const {

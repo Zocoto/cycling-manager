@@ -75,12 +75,13 @@ describe("approved power-terrain overweight curve", () => {
 
   it("preserves the old formulas below the threshold, including legacy neutrality", () => {
     for (const terrain of terrains) for (const height of [170, 180, 195]) {
-      const body = physiology("sprinter", height, 20, 65);
+      const baseline = 23 * (height / 100) ** 2;
+      const body = physiology("sprinter", height, 23.2, baseline);
       const delta = body.weightKg - body.baselineWeightKg;
       const [coefficient, cap] = terrain === "cobbles" ? [0.2, 2.2] :
         terrain === "time_trial" ? [0.08, 1.6] : [0.14, 1.8];
       expect(modifier(body, terrain)).toBeCloseTo(clamp(delta * coefficient, cap), 10);
-      expect(modifier({ ...body, weightKg: 65 }, terrain)).toBe(0);
+      expect(modifier({ ...body, weightKg: baseline }, terrain)).toBe(0);
     }
   });
 

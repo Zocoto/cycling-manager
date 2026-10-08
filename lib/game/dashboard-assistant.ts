@@ -289,13 +289,20 @@ export function buildDashboardAssistantLines({
   }
 
   if (snapshot.overweightRiders?.length) {
-    const riders = snapshot.overweightRiders;
+    const riders = snapshot.overweightRiders.filter(rider => !rider.isUnderweight);
+    const underweight = snapshot.overweightRiders.filter(rider => rider.isUnderweight);
+    if (underweight.length > 0) alerts.push({
+      id: "underweight-riders", tone: "alert", metric: String(underweight.length),
+      title: pluralize(underweight.length, "coureur trop léger pour son profil", "coureurs trop légers pour leur profil"),
+      detail: `${underweight.slice(0, 2).map(rider => `${rider.name} (${rider.profileLabel})`).join(", ")} · manque de puissance. Un programme d’athlétisation peut les aider.`,
+      href: `/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-${underweight[0].riderId}`,
+    });
     const names = riders.slice(0, 2).map((rider) => `${rider.name} (${rider.profileLabel})`).join(", ");
     const penalizedCount = riders.filter((rider) => rider.overweightPhase === "penalty").length;
     const weightImpact = penalizedCount > 0
       ? `${penalizedCount} avec malus sur pavés, plat/sprint et CLM.`
       : "Bonus réduit sur pavés, plat/sprint et CLM.";
-    alerts.push({
+    if (riders.length > 0) alerts.push({
       id: "overweight-riders",
       tone: "alert",
       metric: String(riders.length),

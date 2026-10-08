@@ -96,15 +96,17 @@ Les jeunes progressent plus vite. À partir de 32 ans, une pression de déclin
 s'applique. L'entraînement peut limiter cette baisse, mais le coureur ne peut
 plus dépasser sa note de début de saison.
 
-### Poids, morphologie et surpoids
+### Poids, morphologie, surpoids et sous-poids
 
 Le seuil de surpoids dépend du profil naturel et de la taille du coureur, pas de
 son rôle en course ni de ses équipements. L'IMC est le poids divisé par la taille
 en mètres au carré. Ces seuils sont des règles sportives du jeu, pas des
 classifications médicales.
 
-Le poids attribué à la création d'un coureur ne dépasse pas le seuil de son
-profil initial. Les compléments peuvent ensuite entraîner une prise de poids.
+Les morphologies initiales sont variées : environ 5 % des nouveaux coureurs
+peuvent naître avec un léger surpoids (de +0,15 à +0,75 d'IMC par rapport au
+seuil de leur profil initial). Ce physique est conservé au passage professionnel.
+Les compléments peuvent ensuite entraîner une prise de poids supplémentaire.
 
 | Profil | IMC limite ≈ | Alerte dès, à 1,70 m | À 1,75 m | À 1,80 m |
 | --- | ---: | ---: | ---: | ---: |
@@ -142,6 +144,31 @@ dans les vallons restent inchangées. Aucun résultat passé n'est recalculé.
 L'assistant du DS distingue bonus réduit et malus ; la fiche coureur et la
 rubrique nutrition indiquent le seuil. L'alerte disparaît après le retour sous
 le seuil du profil.
+
+Les rouleurs, pavémans et sprinteurs peuvent aussi être trop légers pour leur
+profil. Leur seuil minimal correspond à l'IMC de référence du profil moins 1.
+Sous ce seuil, sur pavés, plat/sprint et CLM, le bonus éventuel diminue sur un
+point d'IMC et un malus progresse immédiatement, selon les mêmes pentes et
+plafonds que ci-dessus. Les autres profils ne reçoivent pas ce malus.
+
+| Profil | IMC minimal ≈ | Minimum à 1,70 m | À 1,75 m | À 1,80 m | À 1,85 m |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Rouleur | 21,10 | 61,0 kg | 64,7 kg | 68,4 kg | 72,3 kg |
+| Pavéman | 21,94 | 63,5 kg | 67,3 kg | 71,1 kg | 75,2 kg |
+| Sprinteur | 22,50 | 65,1 kg | 69,0 kg | 73,0 kg | 77,1 kg |
+
+Ces poids sont les premiers dixièmes sans alerte. Aucun nouveau spécialiste
+de puissance ne commence en sous-poids. Les poids initiaux hérités trop faibles
+ont été ramenés à la moyenne de leur profil, sans effacer les variations dues
+aux compléments ou aux programmes.
+
+Dans la rubrique nutrition, le volet fermé « Ajuster le poids » propose
+l'affûtage (perte) et l'athlétisation (prise). Un programme ajuste de 0,2 à 1 kg
+par pas de 0,2 kg, coûte 4 points de forme par pas, sans frais supplémentaires,
+et impose cinq jours d'attente partagés entre les deux sens. Vous sélectionnez
+compléments et programmes, puis validez tout dans la barre flottante. La forme
+gagnée par le complément compte avant le coût du programme ; si un choix n'est
+plus possible, aucune opération du lot n'est appliquée.
 
 ## 5. Forme, énergie et récupération
 
