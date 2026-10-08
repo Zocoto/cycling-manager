@@ -4,7 +4,7 @@ set local statement_timeout='30s';
 
 insert into public.equipment_catalog_items(catalog_key,name,slot_type,supplier_key,supplier_name,description,price,rarity,status,image_path,effect_summary,effect_payload,acquisition_channel)
 values('halloween-2026-headless-frame','Monture de l’équipier sans tête','frame','halloween','Halloween',
- 'Cadre exclusif du vainqueur de Cycling Hollow 2026, jamais vendu ni tiré au sort.',0,'epic','active',
+ 'Cadre exclusif du vainqueur de Cycling Hollow 2026, jamais vendu ni tiré au sort.',0,'premium','active',
  '/images/equipment/products/headless-domestique-frame.webp','+3 REC / RES / END / DES · capacités Porteur de bidon et Locomotive ×2 · contribution à la protection +15 %',
  '{"ratingBonuses":{"recovery":3,"resistance":3,"endurance":3,"downhill":3},"specialAbilityMultipliers":{"bottle_carrier":2,"locomotive":2},"leaderProtectionContributionMultiplier":1.15}',
  'event_reward') on conflict(catalog_key) do nothing;
