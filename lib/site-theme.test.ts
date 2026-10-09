@@ -83,6 +83,9 @@ describe("skin Halloween annuel", () => {
     expect(dashboard).toContain("data-site-action-icon");
     expect(dashboard).toContain("data-site-action-overlay");
     expect(css).toContain(".game-shell .mobile-chat-bubble");
+    expect(css).toContain('[class~="bg-[#7CCF9C]/10" i]');
+    expect(css).toContain(':has(> svg[aria-hidden="true"])');
+    expect(css).toContain('[class~="bg-[#1B463C]" i]');
     expect(css).toContain(':not([data-site-theme-preserve] *)');
   });
   it("habille les actions désactivées sans les réactiver ni modifier leur opacité", () => {

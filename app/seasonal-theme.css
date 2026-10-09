@@ -52,6 +52,21 @@
   & [data-site-action-overlay]:not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
     background-image: linear-gradient(180deg, #29231f8c 0%, #29231fc7 55%, #29231ff2 100%);
   }
+  /* Only decorative SVG containers inside actions, never rider art or status badges. */
+  & :is(a, button, [role="button"]) :is(span, div):has(> svg[aria-hidden="true"]):is(
+    [class~="bg-[#0B302B]" i], [class~="bg-[#1B463C]" i],
+    [class~="bg-[#183F37]" i], [class~="bg-[#DDF3E7]" i]
+  ):not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
+    background-color: var(--hw-ink);
+    color: var(--hw-peach);
+  }
+  & .group:is(a, button, [role="button"]):hover :is(span, div):has(> svg[aria-hidden="true"]):is(
+    [class~="bg-[#0B302B]" i], [class~="bg-[#1B463C]" i],
+    [class~="bg-[#183F37]" i], [class~="bg-[#DDF3E7]" i]
+  ):not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
+    background-color: var(--hw-orange);
+    color: var(--hw-ink);
+  }
 
   /* Legacy utilities remain untouched outside this opt-in scope. Exact color tokens
      avoid matching red destructive controls or merely a hover/disabled utility. */
@@ -82,6 +97,7 @@
       [class~="bg-[#315B3E]" i], [class~="bg-[#173C2E]" i], [class~="bg-night"],
       [class~="bg-forest"], [class~="bg-forest-light"], [class~="bg-white/5"], [class~="bg-[#071A17]/45" i],
       [class~="bg-[#183F37]" i], [class~="bg-[#123B32]" i], [class~="bg-[#10483C]" i],
+      [class~="bg-[#7CCF9C]/10" i],
       [class~="bg-[var(--fan-primary)]"], [class~="bg-[var(--federation-secondary)]"],
       [data-site-action="dark"]) {
       --site-action-bg: var(--hw-ink);
