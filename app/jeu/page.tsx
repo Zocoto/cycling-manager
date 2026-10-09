@@ -746,6 +746,7 @@ export default async function GamePage() {
             </div>
           </header>
 
+          {/* eslint-disable-next-line react-hooks/purity -- Dynamic server request clock for the gala's fixed expiry. */}
           <DashboardGalaShortcut now={Date.now()} />
           <Suspense fallback={null}><DashboardHalloweenShortcut /></Suspense>
           <DashboardReferralInvite />
