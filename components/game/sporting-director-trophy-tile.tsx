@@ -1,4 +1,5 @@
 import { CareerTrophyMark } from "@/components/game/career-trophy-mark";
+import { TrophySeasons } from "@/components/game/trophy-seasons";
 import type { CareerTrophy, TrophyGallery } from "@/lib/game/trophy-gallery";
 
 export function SportingDirectorTrophyTile({
@@ -82,21 +83,13 @@ function PublicTrophy({ trophy }: { trophy: CareerTrophy }) {
         <span className="block text-sm font-black leading-tight text-[#183F37]">
           {trophy.title}
         </span>
+        <TrophySeasons
+          trophy={trophy}
+          className="mt-1 block text-xs font-black leading-5 text-[#176951] [overflow-wrap:anywhere]"
+        />
         <span className="mt-1 block text-xs font-semibold leading-4 text-[#60756E]">
           {trophy.competitionName}
         </span>
-        {trophy.seasonNames?.length ? (
-          <span className="mt-2 flex flex-wrap gap-1" aria-label="Saisons obtenues">
-            {trophy.seasonNames.map((seasonName) => (
-              <span
-                key={seasonName}
-                className="rounded-full bg-[#E7F1EC] px-2 py-0.5 text-[10px] font-black text-[#176951]"
-              >
-                {seasonName}
-              </span>
-            ))}
-          </span>
-        ) : null}
       </span>
     </article>
   );

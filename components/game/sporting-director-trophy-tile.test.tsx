@@ -65,8 +65,8 @@ describe("SportingDirectorTrophyTile", () => {
     const gallery = buildTrophyGallery({
       raceWins: Array.from({ length: 6 }, (_, index) => ({
         id: `tour-win-${index + 1}`,
-        raceSlug: "ruta-de-las-sierras",
-        raceName: "Ruta de las Sierras",
+        raceSlug: `tour-${index + 1}`,
+        raceName: `Tour ${index + 1}`,
         seasonName: `Saison ${index + 1}`,
         wonAt: null,
         riderName: `Coureur ${index + 1}`,
@@ -112,6 +112,7 @@ describe("SportingDirectorTrophyTile", () => {
     expect(markup).toContain("data-sponsor-ambassador-trophy");
     expect(markup).toContain("Saison 1");
     expect(markup).toContain("Saison 3");
+    expect(markup).toContain("(S1/3)");
     expect(markup).not.toContain("À débloquer");
   });
 

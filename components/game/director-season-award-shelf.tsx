@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SeasonAwardMedalMark } from "@/components/game/season-award-medal-mark";
 import {
   SEASON_AWARD_PRESENTATION,
-  compareSeasonAwards,
+  groupSeasonAwards,
   type SeasonAwardKey,
 } from "@/lib/game/season-awards";
 
@@ -29,7 +29,7 @@ export function DirectorSeasonAwardShelf({
 }) {
   if (awards.length === 0) return null;
 
-  const sortedAwards = [...awards].sort(compareSeasonAwards);
+  const sortedAwards = groupSeasonAwards(awards);
 
   return (
     <section
@@ -45,7 +45,7 @@ export function DirectorSeasonAwardShelf({
           Awards du DS
         </p>
         <span className={`text-[9px] font-bold ${theme === "dark" ? "text-[#9FB5A8]" : "text-white/65"}`}>
-          {awards.length} médaille{awards.length > 1 ? "s" : ""}
+          {sortedAwards.length} médaille{sortedAwards.length > 1 ? "s" : ""}
         </span>
       </div>
       <div className="flex max-w-full gap-3 overflow-x-auto px-1 pb-2 pt-1 [scrollbar-width:thin]">
@@ -57,11 +57,18 @@ export function DirectorSeasonAwardShelf({
   );
 }
 
-function InteractiveAwardMedal({ award }: { award: DirectorSeasonAward }) {
+function InteractiveAwardMedal({ award }: {
+  award: DirectorSeasonAward & { editions: DirectorSeasonAward[] };
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const tooltipId = `season-award-${award.id}`;
   const presentation = SEASON_AWARD_PRESENTATION[award.key];
+  const seasons = [...new Set(award.editions.map((edition) => edition.seasonName))];
+  const years = [...new Set(award.editions.map((edition) => edition.gameYear))];
+  const seasonLabel = years.every((year) => year > 0)
+    ? `(S${years.join("/")})`
+    : `(${seasons.join(" / ")})`;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -77,7 +84,7 @@ function InteractiveAwardMedal({ award }: { award: DirectorSeasonAward }) {
       ref={buttonRef}
       type="button"
       className="group relative flex w-[68px] shrink-0 cursor-help flex-col items-center border-0 bg-transparent p-0 text-inherit focus-visible:outline-none"
-      aria-label={`${presentation.fr.title}, ${award.seasonName}`}
+      aria-label={`${presentation.fr.title}, ${seasons.join(", ")}`}
       aria-describedby={tooltipId}
       aria-expanded={isOpen}
       onClick={() => setIsOpen((open) => !open)}
@@ -92,26 +99,28 @@ function InteractiveAwardMedal({ award }: { award: DirectorSeasonAward }) {
       <span className="transition group-hover:-translate-y-0.5 group-focus-visible:-translate-y-0.5">
         <SeasonAwardMedalMark awardKey={award.key} className="h-14 w-14" />
       </span>
-      <span className="relative z-10 -mt-1 rounded-full border border-white/25 bg-[#071A17] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#F7DA73] shadow-md">
-        S{award.gameYear}
+      <span className="relative z-10 -mt-1 max-w-full rounded-full border border-white/25 bg-[#071A17] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#F7DA73] shadow-md [overflow-wrap:anywhere]">
+        {seasonLabel}
       </span>
       <span
         id={tooltipId}
         role="tooltip"
-        className={`mobile-dock-clearance pointer-events-none absolute bottom-[calc(100%+0.7rem)] left-1/2 z-50 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-[#071A17] px-3 py-3 text-left text-xs leading-5 text-[#D6DFD2] shadow-2xl transition max-sm:fixed max-sm:inset-x-4 max-sm:bottom-4 max-sm:left-auto max-sm:w-auto max-sm:translate-x-0 ${
+        className={`mobile-dock-clearance pointer-events-none fixed bottom-6 left-1/2 z-50 max-h-[calc(100dvh-6rem)] w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-y-auto rounded-xl border border-white/10 bg-[#071A17] px-3 py-3 text-left text-xs leading-5 text-[#D6DFD2] shadow-2xl transition max-sm:inset-x-4 max-sm:bottom-4 max-sm:left-auto max-sm:w-auto max-sm:translate-x-0 ${
           isOpen
-            ? "visible opacity-100"
+            ? "pointer-events-auto visible opacity-100"
             : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-visible:visible group-focus-visible:opacity-100"
         }`}
       >
         <strong className="block font-black text-[#F2C94C]">{presentation.fr.title}</strong>
         <span className="mt-0.5 block">{presentation.fr.description}</span>
-        <span className="mt-2 block border-t border-white/10 pt-2 font-bold text-[#A8DEC6]">
-          {award.seasonName}
-          {award.statValue !== null && award.statLabel
-            ? ` · ${award.statValue.toLocaleString("fr-FR")} ${award.statLabel}`
-            : ""}
-        </span>
+        {award.editions.map((edition) => (
+          <span key={edition.id} className="mt-2 block border-t border-white/10 pt-2 font-bold text-[#A8DEC6]">
+            {edition.seasonName}
+            {edition.statValue !== null && edition.statLabel
+              ? ` · ${edition.statValue.toLocaleString("fr-FR")} ${edition.statLabel}`
+              : ""}
+          </span>
+        ))}
       </span>
     </button>
   );

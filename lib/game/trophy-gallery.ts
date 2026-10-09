@@ -66,12 +66,18 @@ export type CareerTrophy = {
   description?: string | null;
   prestigeVisualVariant?: RacePrestigeTrophyVisualVariant | null;
   seasonNames?: string[];
+  wins?: TrophyWin[];
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
   medicalVariant?: MedicalTrophyVisualVariant | null;
   championshipVisualVariant?: ChampionshipTrophyVisualVariant | null;
   referralMilestone?: number | null;
 };
+
+export type TrophyWin = Pick<
+  CareerTrophy,
+  "id" | "seasonName" | "wonAt" | "riderName" | "inscription"
+>;
 
 export type ClaimableTrophyReward = {
   key: typeof ALPHA_TESTER_TROPHY_KEY;
@@ -146,6 +152,7 @@ export type TrophySpecialAward = {
   availableAt: string;
   claimedAt: string;
   href: string | null;
+  seasonName?: string;
 };
 
 type BuildTrophyGalleryInput = {
@@ -775,7 +782,7 @@ export function buildTrophyGallery({
         kind: "special",
         title: ALPHA_TESTER_TROPHY_DEFINITION.title,
         competitionName: ALPHA_TESTER_TROPHY_DEFINITION.competitionName,
-        seasonName: ALPHA_TESTER_TROPHY_DEFINITION.seasonName,
+        seasonName: award.seasonName ?? ALPHA_TESTER_TROPHY_DEFINITION.seasonName,
         wonAt: award.claimedAt,
         riderName: null,
         href: award.href,
@@ -793,7 +800,7 @@ export function buildTrophyGallery({
         kind: "medical",
         title: definition.title,
         competitionName: definition.competitionName,
-        seasonName: definition.seasonName,
+        seasonName: award.seasonName ?? definition.seasonName,
         wonAt: award.claimedAt,
         riderName: null,
         href: award.href,
@@ -810,7 +817,7 @@ export function buildTrophyGallery({
       kind: "achievement",
       title: definition.title,
       competitionName: definition.competitionName,
-      seasonName: definition.seasonName,
+      seasonName: award.seasonName ?? definition.seasonName,
       wonAt: award.claimedAt,
       riderName: null,
       href: award.href,
@@ -838,29 +845,21 @@ export function buildTrophyGallery({
     }),
   );
 
-  const sponsorCareerTrophies: CareerTrophy[] =
-    sponsorAmbassadorTrophies.length > 0
-      ? [
-          {
-            id: `sponsor-ambassador:${sponsorAmbassadorTrophies[0]?.id}`,
-            kind: "sponsor",
-            title: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.title,
-            competitionName:
-              SPONSOR_AMBASSADOR_TROPHY_DEFINITION.competitionName,
-            seasonName:
-              sponsorAmbassadorTrophies.at(-1)?.seasonName ?? "Saison",
-            seasonNames: sponsorAmbassadorTrophies.map(
-              (trophy) => trophy.seasonName,
-            ),
-            wonAt: sponsorAmbassadorTrophies.at(-1)?.awardedAt ?? null,
-            riderName: null,
-            href: "/jeu/directeur-sportif#sponsor-ambassador-avatar-outfit",
-            inscription: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.inscription,
-            palette: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.palette,
-            description: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.description,
-          },
-        ]
-      : [];
+  const sponsorCareerTrophies = sponsorAmbassadorTrophies.map<CareerTrophy>(
+    (trophy) => ({
+      id: `sponsor-ambassador:${trophy.id}`,
+      kind: "sponsor",
+      title: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.title,
+      competitionName: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.competitionName,
+      seasonName: trophy.seasonName,
+      wonAt: trophy.awardedAt,
+      riderName: null,
+      href: "/jeu/directeur-sportif#sponsor-ambassador-avatar-outfit",
+      inscription: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.inscription,
+      palette: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.palette,
+      description: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.description,
+    }),
+  );
 
   const referralCareerTrophies = referralTrophies.map((trophy) => ({
     id: `referral:${trophy.count}`,
@@ -876,7 +875,7 @@ export function buildTrophyGallery({
     referralMilestone: trophy.count,
   }));
 
-  const trophies = [
+  const trophies = mergeRepeatedTrophies([
     ...specialTrophies,
     ...sponsorCareerTrophies,
     ...referralCareerTrophies,
@@ -884,7 +883,7 @@ export function buildTrophyGallery({
     ...teamTrophies,
     ...riderTrophies,
     ...raceTrophies,
-  ].sort(compareTrophies);
+  ]).sort(compareTrophies);
 
   return {
     trophies,
@@ -902,18 +901,102 @@ export function buildTrophyGallery({
       uciTitles: trophies.filter(
         (trophy) => trophy.kind === "uci_team" || trophy.kind === "uci_rider",
       ).length,
-      special: specialTrophies.filter((trophy) => trophy.kind === "special")
-        .length,
-      achievements: specialTrophies.filter(
+      special: trophies.filter((trophy) => trophy.kind === "special").length,
+      achievements: trophies.filter(
         (trophy) => trophy.kind === "achievement",
       ).length,
-      medical: specialTrophies.filter((trophy) => trophy.kind === "medical")
-        .length,
-      sponsor: sponsorCareerTrophies.length,
-      attendance: attendanceCareerTrophies.length,
+      medical: trophies.filter((trophy) => trophy.kind === "medical").length,
+      sponsor: trophies.filter((trophy) => trophy.kind === "sponsor").length,
+      attendance: trophies.filter((trophy) => trophy.kind === "attendance").length,
       referrals: trophies.filter((trophy) => trophy.kind === "referral").length,
     },
   };
+}
+
+function mergeRepeatedTrophies(trophies: CareerTrophy[]): CareerTrophy[] {
+  const groups = new Map<string, CareerTrophy[]>();
+  for (const trophy of trophies) {
+    // Race result links use the permanent race slug, not the edition's name.
+    // Keep disciplines, continents and referral milestones distinct.
+    const identity = [
+      trophy.kind,
+      trophy.kind === "grand_tour" ||
+      trophy.kind === "monument" ||
+      trophy.kind === "world_championship" ||
+      trophy.kind === "continental_championship"
+        ? trophy.href ?? trophy.title
+        : trophy.title,
+    ].join(":");
+    const group = groups.get(identity) ?? [];
+    if (!group.some((win) => win.id === trophy.id)) group.push(trophy);
+    groups.set(identity, group);
+  }
+
+  return [...groups.values()].map((group) => {
+    const ordered = [...group].sort(
+      (left, right) =>
+        compareSeasonNames(left.seasonName, right.seasonName) ||
+        (left.wonAt ?? "").localeCompare(right.wonAt ?? "") ||
+        left.id.localeCompare(right.id),
+    );
+    const latest = ordered[ordered.length - 1]!;
+    return {
+      ...latest,
+      id: group[0]!.id,
+      seasonNames: [...new Set(ordered.map((win) => win.seasonName))],
+      inscription: [...new Set(ordered.map((win) => win.inscription))].join(" · "),
+      wins: ordered.map(({ id, seasonName, wonAt, riderName, inscription }) => ({
+        id,
+        seasonName,
+        wonAt,
+        riderName,
+        inscription,
+      })),
+    };
+  });
+}
+
+function compareSeasonNames(left: string, right: string) {
+  return left.localeCompare(right, "fr", { numeric: true });
+}
+
+export function formatTrophySeasons(trophy: CareerTrophy): string {
+  const seasons = [...new Set(trophy.seasonNames ?? [trophy.seasonName])].sort(
+    compareSeasonNames,
+  );
+  const seasonNumbers = seasons.map((season) =>
+    /^(?:saison\s*|s\s*)(\d+)$/i.exec(season.trim())?.[1],
+  );
+  if (
+    seasonNumbers.length &&
+    seasonNumbers.every((number) => number !== undefined)
+  ) {
+    return `(S${[...new Set(seasonNumbers.map(Number))].sort((a, b) => a - b).join("/")})`;
+  }
+  const editionNumbers = seasons.map((season) =>
+    /^édition\s*(\d+)$/i.exec(season.trim())?.[1],
+  );
+  if (
+    editionNumbers.length &&
+    editionNumbers.every((number) => number !== undefined)
+  ) {
+    return `(Éd. ${[...new Set(editionNumbers.map(Number))].sort((a, b) => a - b).join("/")})`;
+  }
+  return `(${seasons.join(" / ")})`;
+}
+
+export function getTrophyAwardSeasonName(
+  awardedAt: string,
+  seasons: readonly { name: string; starts_on: string; ends_on: string }[],
+): string | undefined {
+  const date = new Date(awardedAt);
+  if (!Number.isFinite(date.getTime())) return undefined;
+  const day = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Paris",
+  }).format(date);
+  return seasons.find(
+    (season) => season.starts_on <= day && day <= season.ends_on,
+  )?.name;
 }
 
 function createFallbackIdentity(title: string, primary: string) {
@@ -931,7 +1014,7 @@ function createFallbackIdentity(title: string, primary: string) {
 function compareTrophies(left: CareerTrophy, right: CareerTrophy) {
   return (
     getTrophyWeight(right.kind) - getTrophyWeight(left.kind) ||
-    right.seasonName.localeCompare(left.seasonName, "fr") ||
+    compareSeasonNames(right.seasonName, left.seasonName) ||
     left.title.localeCompare(right.title, "fr")
   );
 }

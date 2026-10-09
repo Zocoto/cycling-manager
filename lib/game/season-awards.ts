@@ -216,3 +216,21 @@ export function compareSeasonAwards(
       SEASON_AWARD_PRESENTATION[right.key].order
   );
 }
+
+/** One medal per distinction, without losing its season-specific statistics. */
+export function groupSeasonAwards<
+  T extends { id: string; key: SeasonAwardKey; gameYear: number; seasonName: string },
+>(awards: readonly T[]): Array<T & { editions: T[] }> {
+  const groups = new Map<SeasonAwardKey, T[]>();
+  for (const award of awards) {
+    const editions = groups.get(award.key) ?? [];
+    if (!editions.some((edition) => edition.id === award.id)) editions.push(award);
+    groups.set(award.key, editions);
+  }
+  return [...groups.values()].map((editions) => {
+    const ordered = [...editions].sort((left, right) =>
+      left.gameYear - right.gameYear || left.id.localeCompare(right.id),
+    );
+    return { ...ordered[ordered.length - 1]!, editions: ordered };
+  }).sort(compareSeasonAwards);
+}

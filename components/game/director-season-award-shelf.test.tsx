@@ -4,6 +4,28 @@ import { describe, expect, it } from "vitest";
 import { DirectorSeasonAwardShelf } from "./director-season-award-shelf";
 
 describe("DirectorSeasonAwardShelf", () => {
+  it("fusionne les médailles répétées et conserve le détail de toutes les saisons", () => {
+    const markup = renderToStaticMarkup(<DirectorSeasonAwardShelf awards={
+      [3, 1, 2, 10].map((season) => ({
+        id: `builder-${season}`, key: "builder", title: "Le Bâtisseur",
+        description: "Investissements", seasonName: `Saison ${season}`,
+        gameYear: season, statValue: season * 100, statLabel: "€ investis",
+      }))
+    } />);
+    expect(markup.match(/data-season-award-medal="builder"/g)).toHaveLength(1);
+    expect(markup).toContain("1 médaille");
+    expect(markup).toContain("(S1/2/3/10)");
+    for (const season of [1, 2, 3, 10]) {
+      expect(markup).toContain(`Saison ${season}`);
+    }
+    expect(markup).toContain("100 € investis");
+    expect(markup).toContain("300 € investis");
+  });
+
+  it("n’affiche rien en l’absence de médailles", () => {
+    expect(renderToStaticMarkup(<DirectorSeasonAwardShelf awards={[]} />)).toBe("");
+  });
+
   it("affiche des médailles identifiées par saison et trie la plus récente en premier", () => {
     const markup = renderToStaticMarkup(
       <DirectorSeasonAwardShelf

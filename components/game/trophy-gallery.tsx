@@ -6,6 +6,7 @@ import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
 import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
 import { PrestigeRaceTrophyMark } from "@/components/game/prestige-race-trophy-mark";
 import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
+import { TrophySeasons } from "@/components/game/trophy-seasons";
 import Link from "@/components/ui/app-link";
 import {
   getLockedTrophyTargets,
@@ -96,7 +97,8 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
               <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#BED1C8]">
                 Les trophées en couleur racontent votre palmarès. Les pièces
                 grisées dévoilent les prochains objectifs à conquérir et leur
-                condition de déblocage.
+                condition de déblocage. Chaque trophée est exposé une seule fois,
+                avec les saisons ou éditions remportées sous son nom.
               </p>
               <div
                 data-trophy-legend
@@ -377,6 +379,12 @@ function TrophyCard({
         >
           {trophy.title}
         </h4>
+        {!locked ? (
+          <TrophySeasons
+            trophy={trophy}
+            className="mt-1 block text-xs font-black leading-5 text-[#9BE0BC] [overflow-wrap:anywhere]"
+          />
+        ) : null}
         <p className="mt-2 text-sm font-bold text-[#BBD0C6]">
           {trophy.competitionName}
         </p>
@@ -396,22 +404,11 @@ function TrophyCard({
           >
             {trophy.inscription}
           </p>
-          {trophy.seasonNames?.length && !locked ? (
-            <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Saisons obtenues">
-              {trophy.seasonNames.map((seasonName) => (
-                <span
-                  key={seasonName}
-                  className="rounded-full border border-white/12 bg-black/15 px-2.5 py-1 text-[10px] font-black text-[#DDEDE5]"
-                >
-                  {seasonName}
-                </span>
-              ))}
-            </div>
-          ) : (
+          {locked ? (
             <p className="mt-1 text-xs font-bold text-[#8FA99E]">
-              {locked ? "Objectif à conquérir" : trophy.seasonName}
+              Objectif à conquérir
             </p>
-          )}
+          ) : null}
         </div>
       </div>
       {trophy.href ? (
@@ -441,7 +438,7 @@ function TrophyCard({
       aria-label={
         locked
           ? `${trophy.title}, à débloquer : ${trophy.inscription}`
-          : `${trophy.title}, ${trophy.seasonName}, ${trophy.inscription}`
+          : `${trophy.title}, ${(trophy.seasonNames ?? [trophy.seasonName]).join(", ")}, ${trophy.inscription}`
       }
     >
       {content}

@@ -14,6 +14,7 @@ import {
   ALPHA_TESTER_TROPHY_DEFINITION,
   ALPHA_TESTER_TROPHY_KEY,
   buildTrophyGallery,
+  getTrophyAwardSeasonName,
   type ClaimableTrophyReward,
   type TrophyGallery,
   type TrophyRaceWin,
@@ -58,6 +59,8 @@ type SeasonRow = {
   game_year: number;
   name: string;
   status: string;
+  starts_on: string;
+  ends_on: string;
 };
 
 type TeamSeasonRow = {
@@ -265,7 +268,7 @@ async function loadSportingDirectorTrophyGallery({
         fetchPage: async (from, to) => {
           const result = await admin
             .from("seasons")
-            .select("id, game_year, name, status")
+            .select("id, game_year, name, status, starts_on, ends_on")
             .order("game_year", { ascending: true })
             .range(from, to)
             .returns<SeasonRow[]>();
@@ -292,6 +295,7 @@ async function loadSportingDirectorTrophyGallery({
   const { specialAwards, claimableTrophies } = mapSpecialTrophies({
     entitlements: entitlementsResult.data ?? [],
     includeClaimable,
+    seasons: seasonsResult.data.filter((season) => season.status !== "cancelled"),
   });
   const assignments = assignmentsResult.data;
   const seasons = seasonsResult.data;
@@ -485,9 +489,11 @@ async function loadAttendanceTrophies({
 function mapSpecialTrophies({
   entitlements,
   includeClaimable,
+  seasons,
 }: {
   entitlements: TrophyEntitlementRow[];
   includeClaimable: boolean;
+  seasons: SeasonRow[];
 }): {
   specialAwards: TrophySpecialAward[];
   claimableTrophies: ClaimableTrophyReward[];
@@ -503,6 +509,10 @@ function mapSpecialTrophies({
             trophyKey: ALPHA_TESTER_TROPHY_KEY,
             availableAt: entitlement.available_at,
             claimedAt: entitlement.claimed_at,
+            seasonName: getTrophyAwardSeasonName(
+              entitlement.available_at,
+              seasons,
+            ),
             href: includeClaimable
               ? "/jeu/directeur-sportif#distinction-avatar"
               : null,
@@ -517,6 +527,10 @@ function mapSpecialTrophies({
             trophyKey: entitlement.trophy_key,
             availableAt: entitlement.available_at,
             claimedAt: entitlement.claimed_at,
+            seasonName: getTrophyAwardSeasonName(
+              entitlement.available_at,
+              seasons,
+            ),
             href: includeClaimable
               ? "/jeu/directeur-sportif#medical-avatar-outfits"
               : null,
@@ -533,6 +547,7 @@ function mapSpecialTrophies({
           trophyKey: entitlement.trophy_key,
           availableAt: entitlement.available_at,
           claimedAt: entitlement.claimed_at,
+          seasonName: getTrophyAwardSeasonName(entitlement.available_at, seasons),
           href: includeClaimable ? definition.href : null,
         },
       ];
