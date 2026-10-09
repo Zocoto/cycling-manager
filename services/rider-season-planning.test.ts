@@ -101,9 +101,11 @@ describe("planning des coureurs avec un grand calendrier", () => {
 
   it("charge toutes les étapes lorsqu'un lot dépasse 1 000 lignes", async () => {
     addCalendar(75, 20);
-    register(74);
+    for (let index = 0; index < 75; index++) register(index);
     const planning = await getCurrentTeamRiderSeasonPlanning({ authUserId: "user" });
-    expect(planning?.riders[0].events).toMatchObject([{ title: "Course 74", startDay: 1, endDay: 20 }]);
+    expect(planning?.riders[0].events).toHaveLength(75);
+    expect(planning?.riders[0].events.find((event) => event.title === "Course 74"))
+      .toMatchObject({ title: "Course 74", startDay: 1, endDay: 20 });
   });
 
   it("conserve les sélections nationales et exclut les étapes annulées", async () => {
@@ -116,6 +118,7 @@ describe("planning des coureurs avec un grand calendrier", () => {
 
   it("remonte une erreur réelle au lieu de fournir un planning partiel", async () => {
     addCalendar(80);
+    register(0);
     rejectedTable = "stages";
     await expect(getCurrentTeamRiderSeasonPlanning({ authUserId: "user", riderId: "rider" })).rejects.toThrow("Impossible de charger les étapes : Bad Request");
   });

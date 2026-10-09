@@ -134,6 +134,7 @@ type ReconnaissanceParticipantRow = {
 };
 
 const PLANNING_QUERY_BATCH_SIZE = 75;
+const PLANNING_QUERY_PAGE_SIZE = 500;
 
 export async function getCurrentTeamRiderSeasonPlanning({
   authUserId,
@@ -143,11 +144,8 @@ export async function getCurrentTeamRiderSeasonPlanning({
   riderId?: string;
 }): Promise<TeamRiderSeasonPlanning | null> {
   const admin = createSupabaseAdminClient();
-  const reconnaissanceSettlement = await admin.rpc(
-    "settle_current_race_reconnaissances",
-  );
-  assertQuery(reconnaissanceSettlement.error, "les reconnaissances de course");
-
+  // This is a read view: event statuses are derived from the current season day.
+  // Opening a planning must not trigger a global gameplay settlement.
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
@@ -165,19 +163,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
         .eq("team_id", context.teamSeason.team_id)
         .eq("status", "active")
         .returns<ContractRow[]>(),
-      collectPaginatedRows<EditionRow, { message: string }>({
-        fetchPage: async (from, to) => {
-          const result = await admin
-            .from("race_editions")
-            .select("id, race_id, race_category_id, display_name, status")
-            .eq("season_id", context.season.id)
-            .neq("status", "cancelled")
-            .order("id")
-            .range(from, to)
-            .returns<EditionRow[]>();
-          return { data: result.data, error: result.error };
-        },
-      }),
+      loadSeasonEditions(admin, context.season.id),
       admin
         .from("race_categories")
         .select("id, code, name")
@@ -195,7 +181,6 @@ export async function getCurrentTeamRiderSeasonPlanning({
   const riderIds = riderId ? [riderId] : contractedRiderIds;
   const editions = editionsResult.data ?? [];
   const editionIds = editions.map((edition) => edition.id);
-  const raceIds = [...new Set(editions.map((edition) => edition.race_id))];
 
   if (riderIds.length === 0) {
     return {
@@ -213,8 +198,6 @@ export async function getCurrentTeamRiderSeasonPlanning({
     ridersResult,
     ratingsResult,
     teamRegistrationsResult,
-    racesResult,
-    stagesResult,
     campsResult,
     injuriesResult,
     reconnaissancesResult,
@@ -238,39 +221,6 @@ export async function getCurrentTeamRiderSeasonPlanning({
       .eq("team_season_id", context.teamSeason.id)
       .in("status", ["pending", "accepted"])
       .returns<RegistrationRow[]>(),
-    collectChunkedPaginatedRows<RaceRow, { message: string }, string>({
-      values: raceIds,
-      chunkSize: PLANNING_QUERY_BATCH_SIZE,
-      maxConcurrency: 2,
-      fetchPage: async (raceIdBatch, from, to) => {
-        const result = await admin
-          .from("races")
-          .select("id, name, slug, race_format")
-          .in("id", raceIdBatch)
-          .order("id")
-          .range(from, to)
-          .returns<RaceRow[]>();
-        return { data: result.data, error: result.error };
-      },
-    }),
-    collectChunkedPaginatedRows<StageRow, { message: string }, string>({
-      values: editionIds,
-      chunkSize: PLANNING_QUERY_BATCH_SIZE,
-      maxConcurrency: 2,
-      fetchPage: async (editionIdBatch, from, to) => {
-        const result = await admin
-          .from("stages")
-          .select(
-            "id, race_edition_id, season_day_id, stage_number, name, status",
-          )
-          .in("race_edition_id", editionIdBatch)
-          .neq("status", "cancelled")
-          .order("id")
-          .range(from, to)
-          .returns<StageRow[]>();
-        return { data: result.data, error: result.error };
-      },
-    }),
     admin
       .from("rider_form_camps")
       .select(
@@ -302,8 +252,6 @@ export async function getCurrentTeamRiderSeasonPlanning({
     [ridersResult, "les coureurs"],
     [ratingsResult, "l’âge des coureurs"],
     [teamRegistrationsResult, "les inscriptions en course"],
-    [racesResult, "les identités des courses"],
-    [stagesResult, "les étapes"],
     [campsResult, "les stages de forme"],
     [injuriesResult, "les blessures"],
     [reconnaissancesResult, "les stages de reconnaissance"],
@@ -368,6 +316,42 @@ export async function getCurrentTeamRiderSeasonPlanning({
   assertQuery(countriesResult.error, "les nationalités");
   assertQuery(participantsResult.error, "les participants aux reconnaissances");
   const rosters = uniqueRosters([...teamRosters, ...federationRosters]);
+  const registrationById = new Map(
+    registrations.map((registration) => [registration.id, registration]),
+  );
+  const editionById = new Map(editions.map((edition) => [edition.id, edition]));
+  const registeredEditionIds = [
+    ...new Set(
+      rosters.flatMap((roster) => {
+        const registration = registrationById.get(roster.race_registration_id);
+        return registration && editionById.has(registration.race_edition_id)
+          ? [registration.race_edition_id]
+          : [];
+      }),
+    ),
+  ];
+  const referencedStageIds = [
+    ...new Set([
+      ...reconnaissances.map((row) => row.target_stage_id),
+      ...(injuriesResult.data ?? []).flatMap((row) =>
+        row.source_stage_id ? [row.source_stage_id] : [],
+      ),
+    ]),
+  ];
+  const stages = uniqueById([
+    ...(await loadPlanningStages(admin, "race_edition_id", registeredEditionIds)),
+    ...(await loadPlanningStages(admin, "id", referencedStageIds)),
+  ]);
+  const requiredRaceIds = [
+    ...new Set(
+      [...registeredEditionIds, ...stages.map((stage) => stage.race_edition_id)]
+        .flatMap((id) => {
+          const edition = editionById.get(id);
+          return edition ? [edition.race_id] : [];
+        }),
+    ),
+  ];
+  const races = await loadPlanningRaces(admin, requiredRaceIds);
 
   const days = daysResult.data ?? [];
   const currentDayNumber = context.season.current_day_number ?? 1;
@@ -378,22 +362,18 @@ export async function getCurrentTeamRiderSeasonPlanning({
   const ageByRiderId = new Map(
     (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
   );
-  const editionById = new Map(editions.map((edition) => [edition.id, edition]));
   const raceById = new Map(
-    (racesResult.data ?? []).map((race) => [race.id, race]),
+    races.map((race) => [race.id, race]),
   );
   const categoryById = new Map(
     (categoriesResult.data ?? []).map((category) => [category.id, category]),
   );
   const stageById = new Map(
-    (stagesResult.data ?? []).map((stage) => [stage.id, stage]),
+    stages.map((stage) => [stage.id, stage]),
   );
   const stagesByEditionId = groupBy(
-    stagesResult.data ?? [],
+    stages,
     (stage) => stage.race_edition_id,
-  );
-  const registrationById = new Map(
-    registrations.map((registration) => [registration.id, registration]),
   );
   const reconnaissanceById = new Map(
     reconnaissances.map((reconnaissance) => [
@@ -710,6 +690,70 @@ function uniqueById<T extends { id: string }>(rows: T[]) {
   return [...new Map(rows.map((row) => [row.id, row])).values()];
 }
 
+async function loadSeasonEditions(admin: AdminClient, seasonId: string) {
+  return collectPaginatedRows<EditionRow, { message: string }>({
+    pageSize: PLANNING_QUERY_PAGE_SIZE,
+    fetchPage: async (from, to) => {
+      const result = await admin
+        .from("race_editions")
+        .select("id, race_id, race_category_id, display_name, status")
+        .eq("season_id", seasonId)
+        .neq("status", "cancelled")
+        .order("id")
+        .range(from, to)
+        .returns<EditionRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+}
+
+async function loadPlanningRaces(admin: AdminClient, raceIds: string[]) {
+  const result = await collectChunkedPaginatedRows<RaceRow, { message: string }, string>({
+    values: raceIds,
+    chunkSize: PLANNING_QUERY_BATCH_SIZE,
+    pageSize: PLANNING_QUERY_PAGE_SIZE,
+    maxConcurrency: 2,
+    fetchPage: async (raceIdBatch, from, to) => {
+      const page = await admin
+        .from("races")
+        .select("id, name, slug, race_format")
+        .in("id", raceIdBatch)
+        .order("id")
+        .range(from, to)
+        .returns<RaceRow[]>();
+      return { data: page.data, error: page.error };
+    },
+  });
+  assertQuery(result.error, "les identités des courses");
+  return uniqueById(result.data);
+}
+
+async function loadPlanningStages(
+  admin: AdminClient,
+  column: "id" | "race_edition_id",
+  ids: string[],
+) {
+  const result = await collectChunkedPaginatedRows<StageRow, { message: string }, string>({
+    values: ids,
+    chunkSize: PLANNING_QUERY_BATCH_SIZE,
+    pageSize: PLANNING_QUERY_PAGE_SIZE,
+    maxConcurrency: 2,
+    fetchPage: async (idBatch, from, to) => {
+      const page = await admin
+        .from("stages")
+        .select("id, race_edition_id, season_day_id, stage_number, name, status")
+        .in(column, idBatch)
+        .neq("status", "cancelled")
+        .order("id")
+        .range(from, to)
+        .returns<StageRow[]>();
+      return { data: page.data, error: page.error };
+    },
+  });
+  assertQuery(result.error, "les étapes");
+  return uniqueById(result.data);
+}
+
 async function loadFederationRegistrations(
   admin: AdminClient,
   editionIds: string[],
@@ -720,13 +764,20 @@ async function loadFederationRegistrations(
       editionIds,
       PLANNING_QUERY_BATCH_SIZE,
     )) {
-      const result = await admin
-        .from("national_federation_selection_race_links")
-        .select("race_registration_id, race_edition_id")
-        .in("race_edition_id", editionIdBatch)
-        .returns<FederationSelectionRaceLinkRow[]>();
-      assertQuery(result.error, "les inscriptions des sélections fédérales");
-      links.push(...(result.data ?? []));
+      for (let offset = 0; ; offset += PLANNING_QUERY_PAGE_SIZE) {
+        const result = await admin
+          .from("national_federation_selection_race_links")
+          .select("race_registration_id, race_edition_id")
+          .in("race_edition_id", editionIdBatch)
+          .order("race_registration_id")
+          .order("race_edition_id")
+          .range(offset, offset + PLANNING_QUERY_PAGE_SIZE - 1)
+          .returns<FederationSelectionRaceLinkRow[]>();
+        assertQuery(result.error, "les inscriptions des sélections fédérales");
+        const page = result.data ?? [];
+        links.push(...page);
+        if (page.length < PLANNING_QUERY_PAGE_SIZE) break;
+      }
     }
 
     const registrationIds = [
@@ -767,15 +818,22 @@ async function loadRaceRosters(
     registrationIds,
     PLANNING_QUERY_BATCH_SIZE,
   )) {
-    const result = await admin
-      .from("race_rosters")
-      .select("rider_id, race_registration_id")
-      .in("race_registration_id", registrationIdBatch)
-      .in("rider_id", riderIds)
-      .in("status", ["selected", "confirmed"])
-      .returns<RosterRow[]>();
-    assertQuery(result.error, errorLabel);
-    rosters.push(...(result.data ?? []));
+    for (let offset = 0; ; offset += PLANNING_QUERY_PAGE_SIZE) {
+      const result = await admin
+        .from("race_rosters")
+        .select("rider_id, race_registration_id")
+        .in("race_registration_id", registrationIdBatch)
+        .in("rider_id", riderIds)
+        .in("status", ["selected", "confirmed"])
+        .order("race_registration_id")
+        .order("rider_id")
+        .range(offset, offset + PLANNING_QUERY_PAGE_SIZE - 1)
+        .returns<RosterRow[]>();
+      assertQuery(result.error, errorLabel);
+      const page = result.data ?? [];
+      rosters.push(...page);
+      if (page.length < PLANNING_QUERY_PAGE_SIZE) break;
+    }
   }
   return uniqueRosters(rosters);
 }
