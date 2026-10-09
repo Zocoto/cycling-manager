@@ -207,7 +207,7 @@ begin
         v_season.id,
         v_country_id,
         v_seed.preferred_day,
-        v_duration,
+        (v_duration + 1) / 2,
         v_edition_id
       );
       if v_start_day is null then
@@ -249,7 +249,7 @@ begin
         select id, calendar_date into v_day
         from public.season_days
         where season_id = v_season.id
-          and day_number = v_start_day + v_stage.stage_number - 1;
+          and day_number = v_start_day + ((v_stage.stage_number - 1) / 2);
         v_stage_type := v_stage.definition ->> 'type';
         v_profile := v_stage.definition ->> 'profile';
         v_distance := (v_stage.definition ->> 'distance')::numeric;

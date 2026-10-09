@@ -307,7 +307,7 @@ begin
       p_season_id,
       p_country_id,
       v_preferred_day,
-      v_duration,
+      (v_duration + 1) / 2,
       v_edition_id
     );
     if v_start_day is null then
@@ -371,7 +371,7 @@ begin
       select id, calendar_date into v_day
       from public.season_days
       where season_id = p_season_id
-        and day_number = v_start_day + v_stage_number - 1;
+        and day_number = v_start_day + ((v_stage_number - 1) / 2);
 
       v_day_slot := case when (v_event_index + v_stage_number) % 2 = 0
         then 'early' else 'late' end;
