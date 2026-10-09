@@ -776,6 +776,9 @@ async function RiderPlanningDisclosure({
   const planning = await getCurrentTeamRiderSeasonPlanning({
     authUserId: viewerAuthUserId,
     riderId: profile.id,
+  }).catch((error: unknown) => {
+    console.error("[rider-profile] Programme temporairement indisponible", error);
+    return null;
   });
 
   return (

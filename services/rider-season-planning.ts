@@ -15,6 +15,10 @@ import {
   type RaceCategoryCode,
 } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  collectChunkedPaginatedRows,
+  collectPaginatedRows,
+} from "@/lib/supabase/pagination";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -161,12 +165,19 @@ export async function getCurrentTeamRiderSeasonPlanning({
         .eq("team_id", context.teamSeason.team_id)
         .eq("status", "active")
         .returns<ContractRow[]>(),
-      admin
-        .from("race_editions")
-        .select("id, race_id, race_category_id, display_name, status")
-        .eq("season_id", context.season.id)
-        .neq("status", "cancelled")
-        .returns<EditionRow[]>(),
+      collectPaginatedRows<EditionRow, { message: string }>({
+        fetchPage: async (from, to) => {
+          const result = await admin
+            .from("race_editions")
+            .select("id, race_id, race_category_id, display_name, status")
+            .eq("season_id", context.season.id)
+            .neq("status", "cancelled")
+            .order("id")
+            .range(from, to)
+            .returns<EditionRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
       admin
         .from("race_categories")
         .select("id, code, name")
@@ -227,23 +238,39 @@ export async function getCurrentTeamRiderSeasonPlanning({
       .eq("team_season_id", context.teamSeason.id)
       .in("status", ["pending", "accepted"])
       .returns<RegistrationRow[]>(),
-    raceIds.length
-      ? admin
+    collectChunkedPaginatedRows<RaceRow, { message: string }, string>({
+      values: raceIds,
+      chunkSize: PLANNING_QUERY_BATCH_SIZE,
+      maxConcurrency: 2,
+      fetchPage: async (raceIdBatch, from, to) => {
+        const result = await admin
           .from("races")
           .select("id, name, slug, race_format")
-          .in("id", raceIds)
-          .returns<RaceRow[]>()
-      : emptyResult<RaceRow>(),
-    editionIds.length
-      ? admin
+          .in("id", raceIdBatch)
+          .order("id")
+          .range(from, to)
+          .returns<RaceRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<StageRow, { message: string }, string>({
+      values: editionIds,
+      chunkSize: PLANNING_QUERY_BATCH_SIZE,
+      maxConcurrency: 2,
+      fetchPage: async (editionIdBatch, from, to) => {
+        const result = await admin
           .from("stages")
           .select(
             "id, race_edition_id, season_day_id, stage_number, name, status",
           )
-          .in("race_edition_id", editionIds)
+          .in("race_edition_id", editionIdBatch)
           .neq("status", "cancelled")
-          .returns<StageRow[]>()
-      : emptyResult<StageRow>(),
+          .order("id")
+          .range(from, to)
+          .returns<StageRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
     admin
       .from("rider_form_camps")
       .select(
