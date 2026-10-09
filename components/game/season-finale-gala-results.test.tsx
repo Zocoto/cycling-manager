@@ -78,7 +78,7 @@ describe("publication des résultats du gala", () => {
 
   it("donne accès au gala depuis les résultats et conserve des colonnes responsive sans largeur fixe", () => {
     const page = readFileSync(join(process.cwd(), "app/jeu/resultats/page.tsx"), "utf8");
-    expect(page).toContain("<DashboardGalaShortcut />");
+    expect(page).toContain("<DashboardGalaShortcut now={Date.now()} />");
     const css = readFileSync(join(process.cwd(), "components/game/season-finale-gala.module.css"), "utf8");
     expect(css).toContain("@media (min-width: 1024px)");
     expect(css).toContain("grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr)");
