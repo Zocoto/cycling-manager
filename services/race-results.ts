@@ -54,6 +54,7 @@ import {
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
+import type { StageEquipmentSnapshot } from "@/lib/game/race-stage-equipment";
 import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { shouldRewardTeamTimeTrialByTeam } from "@/lib/game/team-time-trial-rewards";
@@ -109,6 +110,7 @@ type OfficialResultRiderRow = {
 };
 
 type StageResultRow = {
+  equipment_snapshot?: StageEquipmentSnapshot | null;
   stage_id: string;
   race_roster_id: string;
   status: Exclude<OfficialResultStatus, "withdrawn">;
@@ -734,7 +736,7 @@ export async function getOfficialRaceResults(
         const result = await admin
           .from("stage_results")
           .select(
-            "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, time_bonus_seconds, time_penalty_seconds, abandonment_reason, injury_id",
+            "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, time_bonus_seconds, time_penalty_seconds, abandonment_reason, injury_id, equipment_snapshot",
           )
           .in("stage_id", chunk)
           .order("stage_id", { ascending: true })
@@ -1332,6 +1334,9 @@ async function persistStageResult({
   // tirage différent. Sa fin de validité est gérée par `recovered_at`, pas par
   // la réécriture du scénario de l'étape source.
 
+  const equipmentSnapshotByRiderId = new Map(
+    simulation.resolvedRiders.map((rider) => [rider.id, rider.stageEquipmentSnapshot]),
+  );
   const rows = simulation.results.map((result) => {
     const roster = requireRoster(rosterByRiderId, result.riderId);
     const finished = result.status === "finished";
@@ -1355,6 +1360,7 @@ async function persistStageResult({
       time_penalty_seconds: 0,
       abandonment_reason: result.abandonment ? "crash" : null,
       injury_id: injuryIdByRiderId.get(result.riderId) ?? null,
+      equipment_snapshot: equipmentSnapshotByRiderId.get(result.riderId) ?? null,
       updated_at: new Date().toISOString(),
     };
   });
@@ -2269,6 +2275,7 @@ function toOfficialStageRiderResult({
         timeBonusSeconds: row.time_bonus_seconds,
         timePenaltySeconds: row.time_penalty_seconds,
         abandonmentReason: row.abandonment_reason,
+        stageEquipmentSnapshot: row.equipment_snapshot ?? null,
       }
     : null;
 }

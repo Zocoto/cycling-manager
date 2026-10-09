@@ -90,6 +90,31 @@ it("n'affiche pas les favoris dans les resultats officiels", () => {
 });
 
 describe("RaceOfficialResults", () => {
+  const stageEquipmentSnapshot = { items: [{ slot: "frame" as const, equipmentItemId: "frame-2", name: "Cadre montagne" }], ratingBonuses: { mountain: 4 }, ratingChanges: { mountain: 3 } };
+  it("place une pastille de montage spécifique à côté du coureur", () => {
+    const results = buildResults("team-active");
+    results.stages[0].results[0].stageEquipmentSnapshot = stageEquipmentSnapshot;
+    const markup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={edition} selectedStageId="stage-1" officialResults={results} />);
+    expect(markup).toContain('data-stage-equipment-badge="true"');
+    expect(markup).toContain("Camille Rapide : voir les bonus de notes");
+    expect(markup).toContain('aria-haspopup="dialog"');
+  });
+  it("n’affiche pas de montage non enregistré ou d’étape sur le classement général", () => {
+    const results = buildResults("team-active");
+    const noSnapshotMarkup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={edition} selectedStageId="stage-1" officialResults={results} />);
+    expect(noSnapshotMarkup).not.toContain("data-stage-equipment-badge");
+    results.stages[0].results[0].stageEquipmentSnapshot = stageEquipmentSnapshot;
+    results.general = results.stages[0].results;
+    const generalMarkup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={{ ...edition, raceFormat: "stage_race" }} selectedStageId="stage-1" officialResults={results} initialClassification="general" />);
+    expect(generalMarkup).not.toContain("data-stage-equipment-badge");
+  });
+  it("ne présente pas les bonus d’un non-partant comme appliqués en course", () => {
+    const results = buildResults("team-active");
+    results.stages[0].results[0].status = "did_not_start";
+    results.stages[0].results[0].stageEquipmentSnapshot = stageEquipmentSnapshot;
+    const markup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={edition} selectedStageId="stage-1" officialResults={results} />);
+    expect(markup).not.toContain("data-stage-equipment-badge");
+  });
   it("affiche la bonification obtenue sur une étape de tour", () => {
     const stageRaceEdition = {
       ...edition,

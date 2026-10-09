@@ -1,5 +1,6 @@
 import { getStageLiveState } from "./race-live";
 import type { RaceCalendarStage } from "./race-calendar";
+import type { StageEquipmentSnapshot } from "./race-stage-equipment";
 import { getTeamTimeTrialCoreSize } from "./team-time-trial";
 
 export type OfficialResultStatus =
@@ -25,6 +26,7 @@ export type OfficialRiderResult = {
   timeBonusSeconds?: number;
   timePenaltySeconds?: number;
   abandonmentReason: string | null;
+  stageEquipmentSnapshot?: StageEquipmentSnapshot | null;
 };
 
 export type OfficialTeamResult = {

@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { RaceCourseJournal } from "@/components/game/race-course-journal";
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
+import { RaceStageEquipmentBadge } from "@/components/game/race-stage-equipment-badge";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
@@ -173,7 +174,7 @@ export function RaceOfficialResults({
       ) : (
         <RiderResultsTable
           key={`${selectedStageId}-${resolvedTab}`}
-          results={riderResults}
+                results={riderResults}
           classification={resolvedTab}
           showTimeBonus={
             edition.raceFormat === "stage_race" && resolvedTab === "stage"
@@ -429,17 +430,22 @@ function RiderResultsTable({
                 <Rank rank={result.rank} />
               </td>
               <td className="px-4 py-4">
+                <div className="flex items-center gap-1">
                 <Link
                   href={`/jeu/coureurs/${result.riderId}`}
                   className="font-black text-[#0B302B] hover:text-[#176951] hover:underline"
                 >
                   {result.riderName}
                 </Link>
+                {classification === "stage" && result.stageEquipmentSnapshot && result.status !== "did_not_start" ? (
+                  <RaceStageEquipmentBadge riderName={result.riderName} snapshot={result.stageEquipmentSnapshot} />
+                ) : null}
                 {result.status !== "finished" ? (
                   <span className="ml-2 rounded-full bg-[#A33A3A]/10 px-2 py-1 text-[9px] font-black uppercase text-[#A33A3A]">
                     {statusLabel(result.status)}
                   </span>
                 ) : null}
+                </div>
               </td>
               <td className="px-4 py-4">
                 <TeamHistoryName

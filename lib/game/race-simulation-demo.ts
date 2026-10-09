@@ -3,6 +3,7 @@ import type {
   RaceCalendarStage,
   RaceProfileType,
 } from "./race-calendar";
+import { buildStageEquipmentSnapshot } from "./race-stage-equipment";
 import {
   buildRaceSegments,
   removeOneDayRaceMountainPrimes,
@@ -163,7 +164,22 @@ export function createCalendarSimulationInput({
   const ridersWithoutDuties = sanitizeUniqueCalendarRaceRoles(
     sourceRiders
       .map((rider) => {
-        const { equipmentEffectsByStageId, ...baseRider } = rider;
+        const {
+          equipmentEffectsByStageId,
+          stageEquipmentChangesByStageId,
+          stageEquipmentSnapshot: _previousEquipmentSnapshot,
+          ...baseRider
+        } = rider;
+        void _previousEquipmentSnapshot;
+        const stageEffects = equipmentEffectsByStageId?.[stage.id];
+        const stageEquipmentSnapshot = stageEffects
+          ? buildStageEquipmentSnapshot({
+              items: stageEquipmentChangesByStageId?.[stage.id]?.items ?? [],
+              effects: stageEffects,
+              permanentEffects: stageEquipmentChangesByStageId?.[stage.id]?.permanentEffects,
+              stageType: stage.stageType,
+            })
+          : undefined;
         const lockedLeaderRiderId = tourLeaderByTeamId.get(rider.teamId);
         const stableGeneralRole = lockedLeaderRiderId
           ? rider.id === lockedLeaderRiderId
@@ -196,6 +212,7 @@ export function createCalendarSimulationInput({
             ? { specialAbilities }
             : {}),
           ratings: { ...rider.ratings },
+          ...(stageEquipmentSnapshot ? { stageEquipmentSnapshot } : {}),
           ...(equipmentEffectsByStageId?.[stage.id]
             ? { equipmentEffects: equipmentEffectsByStageId[stage.id] }
             : {}),

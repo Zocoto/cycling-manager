@@ -1,5 +1,6 @@
 import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
 import type { RaceProfileType } from "./race-calendar";
+import type { StageEquipmentChange, StageEquipmentSnapshot } from "./race-stage-equipment";
 import type {
   StageRaceJerseyType,
   StageRaceJerseyVisual,
@@ -270,6 +271,8 @@ export type RiderSimulationInput = {
   ratings: RiderSimulationRatings;
   equipmentEffects?: EquipmentEffects;
   equipmentEffectsByStageId?: Record<string, EquipmentEffects>;
+  stageEquipmentChangesByStageId?: Record<string, StageEquipmentChange>;
+  stageEquipmentSnapshot?: StageEquipmentSnapshot;
   mechanicalIncidentTimeReductionPct?: number;
   weatherCenterSpecialization?: WeatherCenterSpecialization | null;
   weatherCenterEnergyCostReductionPercentage?: number;

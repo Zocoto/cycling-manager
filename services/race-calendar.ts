@@ -28,6 +28,7 @@ import {
 } from "@/lib/game/race-calendar";
 import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import { readStageEquipmentItems, readPermanentStageEquipmentPayloads, type StageEquipmentChange } from "@/lib/game/race-stage-equipment";
 import {
   parseSquadStatus,
   type SquadStatus,
@@ -3182,6 +3183,7 @@ function groupCalendarEngagedRiders(
     string,
     Record<string, EquipmentEffects>
   >();
+  const stageEquipmentChangesByEditionRider = new Map<string, Record<string, StageEquipmentChange>>();
 
   for (const row of stageEquipmentRows) {
     // Les montages par étape appartiennent au club. Le contrat national est
@@ -3197,6 +3199,19 @@ function groupCalendarEngagedRiders(
         raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
     });
     equipmentByEditionRider.set(key, byStage);
+    const items = readStageEquipmentItems(Array.isArray(row.equipment_effects) ? row.equipment_effects : []);
+    if (items.length > 0) {
+      const changesByStage = stageEquipmentChangesByEditionRider.get(key) ?? {};
+      changesByStage[row.stage_id] = {
+        items,
+        permanentEffects: combineEquipmentEffectsWithStaff({
+          values: readPermanentStageEquipmentPayloads(Array.isArray(row.equipment_effects) ? row.equipment_effects : []),
+          teamStaffEffects: raceStaffEffects.byTeamId.get(row.team_id),
+          injuryPreventionPercentage: raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
+        }),
+      };
+      stageEquipmentChangesByEditionRider.set(key, changesByStage);
+    }
   }
 
   for (const row of rows) {
@@ -3257,6 +3272,9 @@ function groupCalendarEngagedRiders(
         : (raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0),
     });
     const equipmentEffectsByStageId = equipmentByEditionRider.get(
+      row.race_edition_id + ":" + row.rider_id,
+    );
+    const stageEquipmentChangesByStageId = stageEquipmentChangesByEditionRider.get(
       row.race_edition_id + ":" + row.rider_id,
     );
     const nationalTechnicalLaboratoryLevel =
@@ -3365,6 +3383,7 @@ function groupCalendarEngagedRiders(
       })),
       equipmentEffects,
       ...(equipmentEffectsByStageId ? { equipmentEffectsByStageId } : {}),
+      ...(stageEquipmentChangesByStageId ? { stageEquipmentChangesByStageId } : {}),
       nationalTechnicalLaboratorySpecialization,
       mechanicalIncidentTimeReductionPct:
         teamStaffEffects?.incidentTimeReductionPercentage ?? 0,

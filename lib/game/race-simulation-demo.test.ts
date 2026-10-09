@@ -10,6 +10,7 @@ import {
 } from "./official-race-simulation";
 import {
   applyNationalTechnicalLabBonus,
+  simulateRaceStageResultsOnly,
   type RiderSimulationInput,
 } from "./race-simulation";
 import {
@@ -18,6 +19,32 @@ import {
 } from "./stage-race-jerseys";
 
 describe("createCalendarSimulationInput", () => {
+  it("fige les bonus du montage choisi sans conserver les autres étapes ni réutiliser un ancien reçu", () => {
+    const rider = createRider("rider-a", "team-a");
+    const edition = createEdition({ slug: "tour-materiel", riders: [rider] });
+    const firstStage = edition.stages[0];
+    edition.engagedRiders[0] = {
+      ...rider,
+      equipmentEffects: createEquipmentEffects(1),
+      equipmentEffectsByStageId: { [firstStage.id]: createEquipmentEffects(4) },
+      stageEquipmentChangesByStageId: { [firstStage.id]: { items: [{ slot: "frame", equipmentItemId: "frame-2", name: "Cadre montagne" }], permanentEffects: createEquipmentEffects(1) } },
+    };
+    const input = createCalendarSimulationInput({ edition, stage: firstStage, seed: "receipt" });
+    expect(input.riders[0].stageEquipmentSnapshot?.ratingBonuses).toEqual({ mountain: 4 });
+    expect(input.riders[0].stageEquipmentSnapshot?.ratingChanges).toEqual({ mountain: 3 });
+    expect(input.riders[0]).not.toHaveProperty("stageEquipmentChangesByStageId");
+    const simulation = simulateRaceStageResultsOnly(input);
+    expect(simulation.resolvedRiders[0].stageEquipmentSnapshot).toEqual(input.riders[0].stageEquipmentSnapshot);
+    const withoutReceipt = { ...input, riders: input.riders.map(({ stageEquipmentSnapshot: receipt, ...rest }) => { void receipt; return rest; }) };
+    expect(simulateRaceStageResultsOnly(withoutReceipt).results).toEqual(simulation.results);
+    edition.engagedRiders[0].stageEquipmentSnapshot = input.riders[0].stageEquipmentSnapshot;
+    const otherInput = createCalendarSimulationInput({ edition, stage: { ...firstStage, id: "stage-other" }, seed: "other" });
+    expect(otherInput.riders[0]).not.toHaveProperty("stageEquipmentSnapshot");
+    edition.engagedRiders[0].equipmentEffectsByStageId![firstStage.id].ratingBonuses.mountain = 99;
+    edition.engagedRiders[0].stageEquipmentChangesByStageId![firstStage.id].items[0].name = "Autre";
+    expect(input.riders[0].stageEquipmentSnapshot?.ratingBonuses.mountain).toBe(4);
+    expect(input.riders[0].stageEquipmentSnapshot?.items[0].name).toBe("Cadre montagne");
+  });
   it("conserve le bonus de course préférée sur toutes les étapes d'un tour", () => {
     const edition = createEdition({
       slug: "tour-prefere",
