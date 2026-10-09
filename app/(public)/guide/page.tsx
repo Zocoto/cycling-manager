@@ -790,6 +790,24 @@ function RidersSection() {
         placez le seuil de repos assez haut avant un grand tour et affectez vos
         meilleurs entraîneurs aux coureurs dont la spécialité correspond.
       </StrategyNote>
+      <div className="mt-7 grid gap-5 md:grid-cols-2">
+        <RuleCard title="Progression des coureurs libres">
+          Les coureurs sans équipe suivent chaque matin un entraînement autonome
+          modéré, orienté vers leurs points forts. Leur progression respecte
+          leur potentiel, leur âge et les plafonds habituels, sans les bonus
+          d’entraîneur ou de bâtiments d’une équipe. Une blessure ou une forme
+          inférieure à 50 empêche la progression du jour ; le déclin lié à l’âge
+          reste applicable. Dès leur recrutement, le programme de l’équipe prend
+          le relais, sans double séance.
+        </RuleCard>
+        <RuleCard title="Retraite des coureurs libres">
+          Un coureur libre peut partir à la retraite après deux saisons complètes
+          et consécutives sans équipe. Une saison passée même partiellement sous
+          contrat ne compte pas. Les coureurs ayant marqué des points UCI comme
+          agents libres restent préservés. Les fiches et les palmarès des
+          retraités demeurent consultables.
+        </RuleCard>
+      </div>
     </GuideSection>
   );
 }

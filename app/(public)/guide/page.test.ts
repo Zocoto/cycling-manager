@@ -21,6 +21,8 @@ describe("guide public", () => {
       "Catalogue complet des bâtiments d’équipe",
       "Spécialisations des bâtiments fédéraux",
       "Équipe de développement",
+      "Progression des coureurs libres",
+      "Retraite des coureurs libres",
     ]) {
       expect(source).toContain(expected);
     }

@@ -50,7 +50,7 @@ describe("free-agent UCI history", () => {
     expect(historyService).toContain('teamName: "Agent libre"');
     expect(historyService).toContain("teamId: null");
     expect(historyService).toContain("achievements.points <= 0");
-    expect(riderPage).toContain("{entry.teamId ? (");
+    expect(riderPage).toMatch(/\{(?:entry|team)\.teamId \? \(/);
   });
 
   it("preserves scoring free agents during every season rollover", () => {
