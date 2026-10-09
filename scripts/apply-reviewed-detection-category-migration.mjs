@@ -1,15 +1,43 @@
-// Install only the reviewed category extension. Never run gameplay or fixtures.
+// Install only an explicitly selected reviewed extension. Never run gameplay or fixtures.
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const version = "20261009140000";
-const name = "extend_detection_teams_to_local_and_regional";
+const reviewedMigrations = {
+  "--apply-reviewed-fix": {
+    version: "20261009140000",
+    name: "extend_detection_teams_to_local_and_regional",
+    markers: [
+      "category.code in ('local', 'regional', 'national', 'continental', 'world')",
+      "when v_edition.category_code in ('local', 'national') then",
+      "when v_edition.category_code in ('regional', 'continental') then",
+    ],
+  },
+  "--apply-reviewed-local-priority": {
+    version: "20261009143000",
+    name: "prioritize_local_detection_geography",
+    markers: [
+      "Local detection geography precedes sporting level.",
+      "when v_edition.category_code = 'local' then",
+      "when rider.country_id = v_edition.race_country_id then 0",
+      "from public.country_adjacencies as adjacency",
+      "adjacency.country_id = v_edition.race_country_id",
+      "adjacency.adjacent_country_id = rider.country_id",
+      ") then 1\n              when rider_country.continent_code =\n                v_edition.race_continent_code then 2\n              else 3",
+      "else 0\n        end asc,",
+    ],
+  },
+};
+const reviewed = reviewedMigrations[process.argv[2]];
+if (process.argv.length !== 3 || !reviewed) {
+  throw new Error("An exact reviewed-install flag is required.");
+}
+const { version, name, markers } = reviewed;
 const migrationPath = fileURLToPath(new URL(`../supabase/migrations/${version}_${name}.sql`, import.meta.url));
 const linkedProject = readFileSync("supabase/.temp/project-ref", "utf8").trim();
-if (linkedProject !== "ikagfuchasnsakpouosg" || process.argv.length !== 3 || process.argv[2] !== "--apply-reviewed-fix") {
+if (linkedProject !== "ikagfuchasnsakpouosg") {
   throw new Error("The reviewed-install flag and expected linked project are required.");
 }
 const require = createRequire(import.meta.url);
@@ -31,9 +59,7 @@ const markerQuery = `begin read only; set local statement_timeout='4s';
   with definition as (select pg_catalog.pg_get_functiondef(
     'public.settle_due_free_agent_detection_teams(timestamp with time zone)'::regprocedure) as source)
   select exists(select 1 from supabase_migrations.schema_migrations where version='${version}') as recorded,
-    position($marker$category.code in ('local', 'regional', 'national', 'continental', 'world')$marker$ in source)>0
-    and position($marker$when v_edition.category_code in ('local', 'national') then$marker$ in source)>0
-    and position($marker$when v_edition.category_code in ('regional', 'continental') then$marker$ in source)>0 as installed
+    ${markers.map(marker => `position($marker$${marker}$marker$ in source)>0`).join("\n    and ")} as installed
   from definition; commit;`;
 const existing = query(markerQuery).rows[0];
 if (existing.recorded && !existing.installed) throw new Error("Recorded migration and installed rule disagree; no changes applied.");

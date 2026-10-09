@@ -16,6 +16,9 @@ const migration = readSource(
 const extension = readSource(
   "supabase/migrations/20261009140000_extend_detection_teams_to_local_and_regional.sql",
 );
+const localGeography = readSource(
+  "supabase/migrations/20261009143000_prioritize_local_detection_geography.sql",
+);
 const maintenanceService = readSource("services/game-state-settlement.ts");
 const resultService = readSource("services/race-results.ts");
 const newsService = readSource("services/public-game-news.ts");
@@ -114,5 +117,23 @@ describe("free-agent detection teams", () => {
     expect(extension).not.toMatch(/\b(update|delete\s+from|insert\s+into)\s+public\./i);
     expect(extension).not.toContain("perform public.settle_due_free_agent_detection_teams");
     expect(extension).not.toContain("select * from public.settle_due_free_agent_detection_teams");
+  });
+
+  it("ranks local country and neighbours before sporting level without changing other categories", () => {
+    expect(localGeography).toContain("when v_edition.category_code = 'local' then");
+    expect(localGeography).toContain("when rider.country_id = v_edition.race_country_id then 0");
+    expect(localGeography).toContain("from public.country_adjacencies as adjacency");
+    expect(localGeography).toContain("adjacency.country_id = v_edition.race_country_id");
+    expect(localGeography).toContain("adjacency.adjacent_country_id = rider.country_id");
+    expect(localGeography).toContain(
+      "then 1\n              when rider_country.continent_code =\n                v_edition.race_continent_code then 2\n              else 3",
+    );
+    expect(localGeography).toContain("else 0\n        end asc,");
+    expect(localGeography).toContain("only partially installed.");
+    expect(localGeography).toContain("no changes applied.");
+    expect(localGeography).toContain("set local lock_timeout = '3s'");
+    expect(localGeography).toContain("set local statement_timeout = '15s'");
+    expect(localGeography).not.toMatch(/\b(update|delete\s+from|insert\s+into)\s+public\./i);
+    expect(localGeography).not.toMatch(/(?:select \* from|perform) public\.settle_due_free_agent_detection_teams/);
   });
 });
