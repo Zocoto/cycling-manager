@@ -195,7 +195,8 @@ export default async function RaceResultsPage({
           </Link>
         </div>
 
-        <DashboardGalaShortcut />
+        {/* eslint-disable-next-line react-hooks/purity -- Dynamic server request clock for the gala's fixed expiry. */}
+        <DashboardGalaShortcut now={Date.now()} />
 
         <div className="mt-8">
           {calendar && spectatorCalendar ? (
