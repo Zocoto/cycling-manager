@@ -4,6 +4,11 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+## Owner delivery preference
+
+- For work the owner requests, proceed through implementation, verification and production deployment without asking for repeated step-by-step validation. This standing authorization covers normal delivery steps within the requested scope, not unrelated or broader mutations.
+- Ask only for indispensable missing information or a genuine product arbitration. Platform permission requirements and production safety rules remain in force.
+
 ## Production database availability
 
 - Never run integration fixtures, temporary gameplay mutations, or migration rehearsals against the live Supabase project (`ikagfuchasnsakpouosg`), even inside a transaction ending in `ROLLBACK`. Rollback does not prevent locks, memory pressure, or downtime. Use an isolated test database.

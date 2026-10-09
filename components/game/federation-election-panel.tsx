@@ -39,6 +39,7 @@ export function FederationElectionPanel({
   );
   const effectivePhase =
     overview.phase === "automatic" ? "finalized" : overview.phase;
+  const hasAppointedPresident = overview.phase === "automatic" && Boolean(overview.presidentName);
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
@@ -57,10 +58,12 @@ export function FederationElectionPanel({
             Une seule voix est accordée à chaque équipe présente sur la liste
             électorale. Un DS dont l’équipe changera de fédération pendant le
             mandat peut voter, mais ne peut pas se présenter. Sans élu,
-            l’administration automatique prend le relais.
+            l’administration automatique prend le relais. Dans une fédération
+            sans président, l’unique DS est nommé automatiquement ; à plusieurs,
+            une élection est organisée.
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-center">
+        {!hasAppointedPresident ? <div className="grid grid-cols-3 gap-2 text-center">
           <ElectionMetric label="Électeurs" value={`${overview.eligibleTeamCount}`} />
           <ElectionMetric label="Candidats" value={`${overview.candidates.length}`} />
           <ElectionMetric
@@ -73,10 +76,10 @@ export function FederationElectionPanel({
                 : "—"
             }
           />
-        </div>
+        </div> : null}
       </div>
 
-      <div className="grid gap-2 border-b border-[#315B3E]/10 bg-[#F8FBF9] p-4 sm:grid-cols-3 sm:p-5">
+      {!hasAppointedPresident ? <div className="grid gap-2 border-b border-[#315B3E]/10 bg-[#F8FBF9] p-4 sm:grid-cols-3 sm:p-5">
         {PHASES.map((phase, index) => {
           const activeIndex = PHASES.findIndex(
             (candidate) => candidate.id === effectivePhase,
@@ -104,7 +107,7 @@ export function FederationElectionPanel({
             </div>
           );
         })}
-      </div>
+      </div> : null}
 
       <div className="space-y-6 p-6 sm:p-8">
         {overview.phase === "scheduled" ? (
@@ -145,11 +148,12 @@ export function FederationElectionPanel({
         ) : null}
 
         {overview.phase === "automatic" ? (
-          <ElectionNotice tone="neutral">
-            Aucun candidat n’a réuni de voix. La fédération reste administrée
-            automatiquement {overview.electionType === "exceptional"
-              ? "jusqu’à la fin du mandat en cours."
-              : "pour ce mandat."}
+          <ElectionNotice tone={overview.presidentName ? "success" : "neutral"}>
+            {overview.presidentName
+              ? `${overview.presidentName} préside la fédération jusqu’à la fin de la Saison ${overview.termEndGameYear}. Les modalités de sa nomination figurent dans le journal fédéral.`
+              : `Aucun candidat n’a réuni de voix. La fédération reste administrée automatiquement ${overview.electionType === "exceptional"
+                  ? "jusqu’à la fin du mandat en cours."
+                  : "pour ce mandat."}`}
           </ElectionNotice>
         ) : null}
       </div>
@@ -416,7 +420,9 @@ function getElectionTitle(overview: FederationGovernanceOverview): string {
   if (overview.phase === "finalized") {
     return exceptional ? "La vacance est terminée" : "Le président est élu";
   }
-  if (overview.phase === "automatic") return "Administration automatique";
+  if (overview.phase === "automatic") {
+    return overview.presidentName ? "Président en fonction" : "Administration automatique";
+  }
   return "Prochaine élection programmée";
 }
 

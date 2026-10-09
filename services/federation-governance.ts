@@ -83,6 +83,8 @@ type TeamSeasonRow = { team_id: string; display_name: string };
 type TermRow = {
   governance_mode: "automatic" | "elected";
   president_director_id: string | null;
+  start_game_year: number;
+  end_game_year: number;
 };
 type AssignmentRow = { sporting_director_id: string };
 type JournalRow = {
@@ -143,7 +145,7 @@ export async function getFederationGovernanceOverview({
         .returns<ElectionRow[]>(),
       admin
         .from("national_federation_terms")
-        .select("governance_mode, president_director_id")
+        .select("governance_mode, president_director_id, start_game_year, end_game_year")
         .eq("country_id", countryId)
         .lte("start_game_year", season.gameYear)
         .gte("end_game_year", season.gameYear)
@@ -214,6 +216,13 @@ export async function getFederationGovernanceOverview({
     if (!election) {
       return {
         ...scheduled,
+        ...(termResult.data?.president_director_id
+          ? {
+              phase: "automatic" as const,
+              termStartGameYear: termResult.data.start_game_year,
+              termEndGameYear: termResult.data.end_game_year,
+            }
+          : {}),
         viewerIsPresident,
         presidentName: presidentResult.data?.display_name ?? null,
         journal,

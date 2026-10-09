@@ -23,8 +23,9 @@ describe("lancement de toutes les fédérations", () => {
   it("exposes a country-aware tile without the Belgian beta wording", () => {
     expect(dashboard).toContain("teamAmateurIdentity?.homeCountryCode");
     expect(dashboard).toContain(
-      "href={`/jeu/federations/${federationCountryCode.toLowerCase()}`}",
+      "href={`/jeu/federations/${normalizedCountryCode}`}",
     );
+    expect(dashboard).toContain("countryCode={federationCountryCode}");
     expect(dashboard).not.toContain("bêta belge");
   });
 
