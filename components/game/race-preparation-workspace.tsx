@@ -23,7 +23,10 @@ import {
   isRaceStagePreparationPending,
   isTimeTrialPreparationStage,
 } from "@/lib/game/race-preparation";
-import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
+import {
+  compareRacePreparationEditionsByDate,
+  compareRacePreparationNavigationEditionsByDate,
+} from "@/lib/game/race-preparation-ordering";
 import { resolveStageRaceRole } from "@/lib/game/stage-race-roles";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
@@ -208,8 +211,8 @@ export function RacePreparationWorkspace({
     orderedEditions.find((edition) => edition.id === selectedEditionId) ??
     orderedEditions[0];
   const menuEditions = useMemo(
-    () =>
-      navigationEditions ??
+    () => {
+      const entries = navigationEditions ??
       orderedEditions.map((edition) => {
         const orderedStages = [...edition.stages].sort(
           (first, second) =>
@@ -243,7 +246,9 @@ export function RacePreparationWorkspace({
           ).length,
           scheduledStageCount: scheduledStages.length,
         };
-      }),
+      });
+      return [...entries].sort(compareRacePreparationNavigationEditionsByDate);
+    },
     [isFederationMode, navigationEditions, now, orderedEditions],
   );
 

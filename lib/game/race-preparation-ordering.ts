@@ -7,6 +7,12 @@ type DatedRacePreparationEdition = {
   >;
 };
 
+type DatedRacePreparationNavigationEdition = {
+  name: string;
+  startDayNumber: number | null;
+  startDepartureAt: string | null;
+};
+
 export function compareRacePreparationEditionsByDate(
   first: DatedRacePreparationEdition,
   second: DatedRacePreparationEdition,
@@ -15,10 +21,26 @@ export function compareRacePreparationEditionsByDate(
   const secondStart = getRacePreparationStart(second.stages);
 
   return (
-    firstStart.dayNumber - secondStart.dayNumber ||
     firstStart.departureTimestamp - secondStart.departureTimestamp ||
+    firstStart.dayNumber - secondStart.dayNumber ||
     first.name.localeCompare(second.name, "fr")
   );
+}
+
+export function compareRacePreparationNavigationEditionsByDate(
+  first: DatedRacePreparationNavigationEdition,
+  second: DatedRacePreparationNavigationEdition,
+) {
+  return (
+    departureTimestamp(first.startDepartureAt) - departureTimestamp(second.startDepartureAt) ||
+    (first.startDayNumber ?? Number.MAX_SAFE_INTEGER) - (second.startDayNumber ?? Number.MAX_SAFE_INTEGER) ||
+    first.name.localeCompare(second.name, "fr")
+  );
+}
+
+function departureTimestamp(value: string | null | undefined) {
+  const timestamp = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(timestamp) ? timestamp : Number.MAX_SAFE_INTEGER;
 }
 
 function getRacePreparationStart(
@@ -29,14 +51,8 @@ function getRacePreparationStart(
       first.dayNumber - second.dayNumber ||
       first.stageNumber - second.stageNumber,
   )[0];
-  const parsedDeparture = firstStage?.departureAt
-    ? Date.parse(firstStage.departureAt)
-    : Number.NaN;
-
   return {
     dayNumber: firstStage?.dayNumber ?? Number.MAX_SAFE_INTEGER,
-    departureTimestamp: Number.isFinite(parsedDeparture)
-      ? parsedDeparture
-      : Number.MAX_SAFE_INTEGER,
+    departureTimestamp: departureTimestamp(firstStage?.departureAt),
   };
 }

@@ -14,6 +14,7 @@ import {
   type RacePreparationWorkspaceNavigationEdition,
 } from "@/components/game/race-preparation-workspace";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
 import {
   isRacePreparationStageAvailable,
   isRaceStagePreparationPending,
@@ -89,7 +90,7 @@ export default async function RacePreparationPage({
     preparationResult.preparations.map((plan) => [plan.editionId, plan]),
   );
   const preparableCalendarEditions =
-    calendarResult.calendar?.editions.flatMap((edition) => {
+    (calendarResult.calendar?.editions.flatMap((edition) => {
       const stages = edition.stages.filter((stage) =>
         isRacePreparationStageAvailable({ edition, stage }),
       );
@@ -100,7 +101,7 @@ export default async function RacePreparationPage({
         )
         ? [{ ...edition, stages }]
         : [];
-    }) ?? [];
+    }) ?? []).sort(compareRacePreparationEditionsByDate);
   const requestedCourse = readSingleSearchParam(resolvedSearchParams.course);
   const requestedEdition = requestedCourse
     ? preparableCalendarEditions.find(

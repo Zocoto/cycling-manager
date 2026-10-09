@@ -57,4 +57,11 @@ describe("race preparation navigation", () => {
     expect(preparationPage).toContain("entries: displayedCalendarEditions.map");
     expect(preparationPage).toContain("navigationEditions={navigationEditions}");
   });
+
+  it("sorts the calendar before choosing the default, while honoring a requested race", () => {
+    const sortIndex = preparationPage.indexOf(".sort(compareRacePreparationEditionsByDate)");
+    expect(sortIndex).toBeGreaterThan(-1);
+    expect(sortIndex).toBeLessThan(preparationPage.indexOf("const selectedCalendarEdition ="));
+    expect(preparationPage).toContain("requestedEdition ?? preparableCalendarEditions[0] ?? null");
+  });
 });
