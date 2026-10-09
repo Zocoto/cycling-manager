@@ -5,6 +5,7 @@ import {
   getCalendarRaceDisplayName,
   getGrandTourCalendarAccent,
   getRaceImportance,
+  getRaceRegistrationDeadline,
   getRegistrationAvailability,
   isRaceEditionAvailableToCurrentTeam,
   type RaceCalendarEdition,
@@ -26,11 +27,13 @@ export function DashboardEligibleRaces({
   calendar,
   reputationPoints,
   riderCount,
+  divisionCode,
   now = new Date(),
 }: {
   calendar: SeasonRaceCalendar | null;
   reputationPoints: number;
   riderCount: number;
+  divisionCode?: string | null;
   now?: Date;
 }) {
   const races = calendar
@@ -38,6 +41,7 @@ export function DashboardEligibleRaces({
         calendar,
         reputationPoints,
         riderCount,
+        divisionCode,
         now,
         horizonDays: DASHBOARD_RACE_HORIZON_DAYS,
       })
@@ -225,12 +229,14 @@ export function getOpenEligibleDashboardRaces({
   calendar,
   reputationPoints,
   riderCount,
+  divisionCode,
   now,
   horizonDays,
 }: {
   calendar: SeasonRaceCalendar;
   reputationPoints: number;
   riderCount: number;
+  divisionCode?: string | null;
   now: Date;
   horizonDays: number;
 }): DashboardEligibleRace[] {
@@ -261,10 +267,7 @@ export function getOpenEligibleDashboardRaces({
         return [];
       }
 
-      const closesAt =
-        edition.categoryCode === "elite"
-          ? edition.wildcardClosesAt
-          : edition.registrationClosesAt;
+      const closesAt = getRaceRegistrationDeadline({ edition, divisionCode });
       const availability = getRegistrationAvailability({
         policy: edition.registrationPolicy,
         closesAt,

@@ -1016,16 +1016,19 @@ async function DashboardEligibleRacesDeferred({
   calendarPromise,
   reputationPoints,
   riderCount,
+  divisionCode,
 }: {
   calendarPromise: Promise<SeasonRaceCalendar | null>;
   reputationPoints: number;
   riderCount: number;
+  divisionCode?: string | null;
 }) {
   return (
     <DashboardEligibleRaces
       calendar={await calendarPromise}
       reputationPoints={reputationPoints}
       riderCount={riderCount}
+      divisionCode={divisionCode}
     />
   );
 }
@@ -1321,6 +1324,7 @@ function DirectorProfileCard({
             calendarPromise={calendarPromise}
             reputationPoints={reputationPoints}
             riderCount={riderCount}
+            divisionCode={financeOverview?.divisionCode}
           />
         </Suspense>
       </div>

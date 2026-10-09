@@ -12,6 +12,77 @@ import {
 } from "./dashboard-eligible-races";
 
 describe("dashboard eligible races", () => {
+  const extendedEliteEdition = (): RaceCalendarEdition => ({
+    ...createEdition("corsa-delle-regioni", {
+      minimumReputation: 0,
+      minimumRosterSize: 8,
+      startDay: 2,
+      isGrandTour: true,
+    }),
+    name: "Corsa delle Regioni",
+    categoryCode: "elite",
+    categoryName: "Élite",
+    status: "registration_open",
+    registrationClosesAt: "2026-10-10T06:00:00.000Z",
+    wildcardClosesAt: "2026-10-09T12:00:00.000Z",
+  });
+  const extendedEliteCalendar = () => ({
+    ...createCalendar([extendedEliteEdition()]),
+    currentDayNumber: 1,
+  });
+
+  it("conserve la Corsa pour les équipes Élite après la clôture des wildcards", () => {
+    const calendar = extendedEliteCalendar();
+    const now = new Date("2026-10-09T15:00:00.000Z");
+    const races = getOpenEligibleDashboardRaces({
+      calendar, divisionCode: "elite", reputationPoints: 500,
+      riderCount: 9, now, horizonDays: 4,
+    });
+    expect(races.map(({ edition }) => edition.slug)).toEqual(["corsa-delle-regioni"]);
+    const markup = renderToStaticMarkup(<DashboardEligibleRaces
+      calendar={calendar} divisionCode="elite" reputationPoints={500}
+      riderCount={9} now={now}
+    />);
+    expect(markup).toContain("Corsa delle Regioni");
+    expect(markup).toContain("/jeu/courses/corsa-delle-regioni#inscription");
+    expect(markup).toContain("S’inscrire");
+  });
+
+  it.each(["world", "continental", "amateur", undefined])(
+    "ne prolonge pas une candidature wildcard pour la division %s", (divisionCode) => {
+      expect(getOpenEligibleDashboardRaces({
+        calendar: extendedEliteCalendar(), divisionCode, reputationPoints: 500,
+        riderCount: 9, now: new Date("2026-10-09T15:00:00.000Z"), horizonDays: 4,
+      })).toEqual([]);
+    },
+  );
+
+  it("retire la Corsa à la clôture exacte des inscriptions Élite", () => {
+    for (const date of ["2026-10-10T06:00:00.000Z", "2026-10-10T06:00:01.000Z"]) {
+      expect(getOpenEligibleDashboardRaces({
+        calendar: extendedEliteCalendar(), divisionCode: "elite", reputationPoints: 500,
+        riderCount: 9, now: new Date(date), horizonDays: 4,
+      })).toEqual([]);
+    }
+    expect(getOpenEligibleDashboardRaces({
+      calendar: extendedEliteCalendar(), divisionCode: "elite", reputationPoints: 500,
+      riderCount: 9, now: new Date("2026-10-10T05:59:59.999Z"), horizonDays: 4,
+    })).toHaveLength(1);
+  });
+
+  it("préserve les limites d’effectif et exclut les courses déjà démarrées", () => {
+    const options = {
+      calendar: extendedEliteCalendar(), divisionCode: "elite", reputationPoints: 500,
+      riderCount: 7, now: new Date("2026-10-09T15:00:00.000Z"), horizonDays: 4,
+    };
+    expect(getOpenEligibleDashboardRaces(options)).toEqual([]);
+    for (const status of ["cancelled", "completed", "in_progress"] as const) {
+      const calendar = extendedEliteCalendar();
+      calendar.editions[0].status = status;
+      expect(getOpenEligibleDashboardRaces({ ...options, calendar, riderCount: 9 })).toEqual([]);
+    }
+  });
+
   it("ne garde que les inscriptions ouvertes et accessibles à l’équipe", () => {
     const calendar = createCalendar([
       createEdition("eligible", {
