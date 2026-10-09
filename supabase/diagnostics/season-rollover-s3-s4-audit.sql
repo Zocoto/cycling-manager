@@ -61,5 +61,20 @@ union all select 'nations_cup_movements',to_jsonb(x) from (
   select n.source_division,n.division,n.movement,count(*) count
   from public.national_federation_nations_cup_assignments n,ids
   where n.season_id=ids.target_id group by n.source_division,n.division,n.movement
+) x
+union all select 'opening_federation_work',jsonb_build_object(
+  'dueInfrastructureProjects',(select count(*) from public.national_federation_infrastructure_projects p
+    where p.status='active' and p.completes_game_day_index<=4*28),
+  'dueSchoolPlans',(select count(*) from public.national_federation_school_cycling_plans p
+    where p.status='deploying' and p.completes_game_day_index<=4*28),
+  'unfinalizedDueElections',(select count(*) from public.national_federation_elections e
+    where e.term_start_game_year<=4 and e.status in ('applications','voting')),
+  'previousSeasonScheduledHostingAwards',(select count(*) from public.national_federation_hosting_awards a
+    where a.target_game_year=3 and a.status='scheduled')
+)
+union all select 'maintenance',to_jsonb(x) from (
+  select task_key,status,last_succeeded_at,last_failed_at,last_error
+  from public.game_maintenance_runs
+  where task_key in ('training','health','staff-academy','infrastructure','equipment','elite-wildcards','development')
 ) x;
 rollback;
