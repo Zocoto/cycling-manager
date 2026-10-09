@@ -36,16 +36,33 @@
   }
   & [data-halloween-logo-web]:not([data-site-theme="default"] *) { display: block; }
   & .mobile-game-navigation-dock:not([data-site-theme="default"] *) { background-color: var(--hw-ink); border-color: #a9806160; }
+  & .game-shell .mobile-chat-bubble:not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    background: var(--hw-ink);
+    border-color: var(--hw-orange);
+    color: var(--hw-peach);
+  }
+  & [data-site-action-icon]:not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    background-color: #eb934d26;
+    color: var(--hw-peach);
+  }
+  & .group:hover [data-site-action-icon]:not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    background-color: var(--hw-orange);
+    color: var(--hw-ink);
+  }
+  & [data-site-action-overlay]:not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    background-image: linear-gradient(180deg, #29231f8c 0%, #29231fc7 55%, #29231ff2 100%);
+  }
 
   /* Legacy utilities remain untouched outside this opt-in scope. Exact color tokens
      avoid matching red destructive controls or merely a hover/disabled utility. */
   & :is(button, input[type="submit"], input[type="button"], [role="button"],
-    a[class*="rounded"][class*="px-"], a[class*="rounded"][class*="p-"][class*="justify-center"],
-    a[data-site-action], a.halloween-button, a.halloween-subtle-button):not(:disabled):not([aria-disabled="true"]):not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
+    a[class*="rounded"], a[class*="px-"],
+    a[data-site-action], a.halloween-button, a.halloween-subtle-button):not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
     &:is([class~="text-[#0B302B]" i], [class~="text-[#315B3E]" i], [class~="text-[#176951]" i],
       [class~="text-[#278B70]" i], [class~="text-[#60756E]" i], [class~="text-forest"],
       [class~="bg-[#EAF5F3]" i], [class~="bg-[#EAF5F0]" i], [class~="bg-[#DDF3E7]" i],
-      [class~="bg-[#E5F4ED]" i], [class~="bg-[#D7EEE8]" i], .halloween-subtle-button,
+      [class~="bg-[#E5F4ED]" i], [class~="bg-[#D7EEE8]" i], [class~="bg-[#176951]/10" i],
+      [class~="text-[var(--fan-primary)]"], [class~="bg-[var(--fan-soft)]"], .halloween-subtle-button,
       [data-site-action="secondary"]) {
       --site-action-bg: var(--hw-paper);
       --site-action-hover: #ffe4c8;
@@ -57,13 +74,15 @@
       background-image: none;
       color: var(--site-action-text);
       border-color: var(--site-action-border);
-      &:hover { background-color: var(--site-action-hover); }
+      &:hover:not(:disabled):not([aria-disabled="true"]) { background-color: var(--site-action-hover); }
       &:focus-visible { outline-color: var(--site-action-border); }
     }
 
     &:is([class~="bg-[#071A17]" i], [class~="bg-[#0B302B]" i], [class~="bg-[#176951]" i],
       [class~="bg-[#315B3E]" i], [class~="bg-[#173C2E]" i], [class~="bg-night"],
       [class~="bg-forest"], [class~="bg-forest-light"], [class~="bg-white/5"], [class~="bg-[#071A17]/45" i],
+      [class~="bg-[#183F37]" i], [class~="bg-[#123B32]" i], [class~="bg-[#10483C]" i],
+      [class~="bg-[var(--fan-primary)]"], [class~="bg-[var(--federation-secondary)]"],
       [data-site-action="dark"]) {
       --site-action-bg: var(--hw-ink);
       --site-action-hover: var(--hw-ink-hover);
@@ -75,13 +94,14 @@
       background-image: none;
       color: var(--site-action-text);
       border-color: var(--site-action-border);
-      &:hover { background-color: var(--site-action-hover); }
+      &:hover:not(:disabled):not([aria-disabled="true"]) { background-color: var(--site-action-hover); }
       &:focus-visible { outline-color: var(--site-action-border); }
     }
 
     &:is([class~="bg-[#F2C94C]" i], [class~="bg-[#F2C94C]/15" i],
       [class~="bg-[#42B99A]" i], [class~="bg-[#42CDA8]" i], [class~="bg-[#278B70]" i],
       [class~="bg-leader"], [class~="bg-mint"], [class~="bg-[var(--game-header-accent)]"],
+      [class~="bg-[var(--fan-accent)]"],
       .halloween-button, [data-site-action="primary"]) {
       --site-action-bg: var(--hw-orange);
       --site-action-hover: var(--hw-orange-hover);
@@ -93,7 +113,7 @@
       background-image: none;
       color: var(--site-action-text);
       border-color: var(--site-action-border);
-      &:hover { background-color: var(--site-action-hover); }
+      &:hover:not(:disabled):not([aria-disabled="true"]) { background-color: var(--site-action-hover); }
       &:focus-visible { outline-color: var(--site-action-border); }
     }
 
@@ -109,7 +129,7 @@
       background-image: none;
       color: var(--site-action-text);
       border-color: var(--site-action-border);
-      &:hover { background-color: var(--site-action-hover); }
+      &:hover:not(:disabled):not([aria-disabled="true"]) { background-color: var(--site-action-hover); }
       &:focus-visible { outline-color: var(--site-action-border); }
     }
   }

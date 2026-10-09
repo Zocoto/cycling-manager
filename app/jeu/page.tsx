@@ -228,6 +228,7 @@ function DashboardFederationGateway({
         href={`/jeu/federations/${normalizedCountryCode}`}
         prefetchOnIntent
         data-dashboard-federation={normalizedCountryCode}
+        data-site-action="dark"
         className="group relative mt-5 flex min-h-[96px] items-center gap-4 overflow-hidden rounded-2xl border border-[#D5AC18]/35 bg-[linear-gradient(105deg,#071A17_0%,#0B302B_62%,#176951_100%)] px-5 py-4 text-white shadow-[0_16px_42px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:border-[#F2C94C]/65 hover:shadow-[0_20px_48px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:min-h-[108px] sm:px-7 sm:py-5"
       >
         <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
@@ -269,6 +270,7 @@ function DashboardFederationGateway({
         href={`/jeu/federations/${normalizedCountryCode}`}
         prefetchOnIntent
         className="group flex min-w-0 items-center gap-3 bg-[linear-gradient(110deg,#071A17_0%,#0B302B_100%)] px-3 py-4 transition hover:bg-[#10483C] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F2C94C] sm:px-6 sm:py-5"
+        data-site-action="dark"
       >
         <span className="grid h-10 w-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-lg sm:h-14 sm:w-20">
           <span
@@ -298,6 +300,7 @@ function DashboardFederationGateway({
 
       <Link
         href="/jeu/nations-cup#classement-de-ma-federation"
+        data-site-action="dark"
         prefetchOnIntent
         className="group relative flex min-w-0 items-center overflow-hidden border-l border-white/15 bg-[radial-gradient(circle_at_88%_15%,rgba(242,201,76,.2),transparent_28%),linear-gradient(115deg,#123B32_0%,#176951_58%,#A62F3B_145%)] px-3 py-4 transition hover:saturate-125 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F2C94C] sm:px-6 sm:py-5"
       >
@@ -1475,10 +1478,11 @@ function TeamRosterCard({
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(11,48,43,0.55)_0%,rgba(11,48,43,0.78)_55%,rgba(11,48,43,0.95)_100%)]"
+        data-site-action-overlay
       />
 
       <div className="flex items-start justify-between gap-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12">
+        <span data-site-action-icon className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12">
           <ManagementModuleIcon icon="riders" />
         </span>
 
@@ -1878,7 +1882,7 @@ function ManagementModuleCard({
       ) : null}
 
       <div className="flex items-start justify-between gap-2 sm:gap-4">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-10 sm:w-10 sm:rounded-xl">
+        <span data-site-action-icon className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-10 sm:w-10 sm:rounded-xl">
           <ManagementModuleIcon icon={icon} />
         </span>
 

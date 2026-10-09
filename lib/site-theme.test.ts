@@ -72,4 +72,23 @@ describe("skin Halloween annuel", () => {
     });
     expect((Math.max(...values) + 0.05) / (Math.min(...values) + 0.05)).toBeGreaterThanOrEqual(4.5);
   });
+  it("couvre les liens-cartes, raccourcis sans arrondi et boutons aux couleurs variables", () => {
+    const css = readFileSync(resolve("app/seasonal-theme.css"), "utf8");
+    expect(css).toContain('a[class*="rounded"], a[class*="px-"]');
+    for (const token of ["bg-[var(--fan-primary)]", "bg-[var(--fan-accent)]", "text-[var(--fan-primary)]", "bg-[var(--federation-secondary)]"]) {
+      expect(css).toContain(`[class~="${token}"]`);
+    }
+    const dashboard = readFileSync(resolve("app/jeu/page.tsx"), "utf8");
+    expect(dashboard.match(/data-site-action="dark"/g)).toHaveLength(3);
+    expect(dashboard).toContain("data-site-action-icon");
+    expect(dashboard).toContain("data-site-action-overlay");
+    expect(css).toContain(".game-shell .mobile-chat-bubble");
+    expect(css).toContain(':not([data-site-theme-preserve] *)');
+  });
+  it("habille les actions désactivées sans les réactiver ni modifier leur opacité", () => {
+    const css = readFileSync(resolve("app/seasonal-theme.css"), "utf8");
+    expect(css).not.toContain('a.halloween-subtle-button):not(:disabled)');
+    expect(css.match(/&:hover:not\(:disabled\):not\(\[aria-disabled="true"\]\)/g)).toHaveLength(4);
+    expect(css).not.toMatch(/cursor\s*:|opacity\s*:|pointer-events\s*:\s*(auto|all)/);
+  });
 });
