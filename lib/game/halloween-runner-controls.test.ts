@@ -46,12 +46,14 @@ describe("commandes tactiles de Cycling Hollow", () => {
 });
 
 describe("cadrage sans déplacement latéral", () => {
-  for (const [width, height] of [[320, 280], [390, 410], [430, 500], [560, 190], [1440, 600]]) it(`garde les deux vélos et la même route visible sur ${width}×${height}`, () => {
+  for (const [width, height] of [[320, 280], [390, 410], [430, 500], [560, 190], [1440, 600], [2536, 700], [844, 220]]) it(`garde les vélos, le sol et les obstacles visibles sur ${width}×${height}`, () => {
     const camera = halloweenRunnerViewport(width, height);
     const screenX = (x: number) => camera.x + x * camera.scale;
     expect(screenX(-68)).toBeGreaterThanOrEqual(0); // pursuer at maximum lead, including cape/wheel
     expect(screenX(362)).toBeLessThan(width); // front edge of player's bike
-    expect(screenX(960)).toBeCloseTo(width, 8); // same forward visibility; float rounding is subpixel
+    expect(screenX(960)).toBeLessThanOrEqual(width + .000001);
+    expect(camera.y + 334 * camera.scale).toBeLessThan(height);
+    expect(camera.y + 420 * camera.scale).toBeLessThanOrEqual(height + .000001);
     expect(camera.y).toBeGreaterThanOrEqual(0);
   });
 });

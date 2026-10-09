@@ -17,6 +17,6 @@ export function createHalloweenRunnerControls() {
 
 /** Full forward visibility on every screen; only the decorative framing changes. */
 export function halloweenRunnerViewport(width: number, height: number) {
-  const scale = width / 1040;
-  return { scale, x: 80 * scale, y: Math.max(0, height * .72 - 334 * scale) };
+  const scale = Math.min(width / 1040, height / 420);
+  return { scale, x: (width - 1040 * scale) / 2 + 80 * scale, y: Math.max(0, Math.min(height - 420 * scale, height * .8 - 334 * scale)) };
 }

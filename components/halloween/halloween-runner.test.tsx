@@ -48,7 +48,7 @@ describe("écran de jeu dédié", () => {
   it("protège la zone tactile et les safe areas sans bloquer les autres pages", () => {
     const css = readFileSync("components/halloween/halloween-console.css", "utf8");
     expect(css).toContain("height: 100dvh");
-    expect(css).toContain("grid-template-rows: minmax(0, 2fr) minmax(0, 1fr)");
+    expect(css).toContain("grid-template-rows: minmax(0, 1fr) auto");
     expect(css).toContain("env(safe-area-inset-bottom"); expect(css).toContain("touch-action: none");
     expect(css).toContain("body:has([data-halloween-console])");
     expect(css).toContain(".game-shell:has([data-halloween-console]) .tutorial-floating-launcher");
