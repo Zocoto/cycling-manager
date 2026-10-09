@@ -12,6 +12,7 @@ const reviewed = {
   '20261009070000': 'harden_automatic_season_rollover',
   '20261009080000': 'preserve_roster_tactics_on_academy_promotion',
   '20261009090000': 'finalize_nations_cup_rollover_and_budgets',
+  '20261009100000': 'credit_late_gazette_games_to_active_season',
 };
 const version = process.argv[3] ?? '20261009070000';
 const name = reviewed[version];
@@ -31,7 +32,9 @@ function query(sql, file = false) {
   const start = raw.indexOf('{');
   return JSON.parse(raw.slice(start));
 }
-const marker = version === '20261009090000'
+const marker = version === '20261009100000'
+  ? "to_regclass('public.gazette_late_payment_season_repairs') is not null"
+  : version === '20261009090000'
   ? "to_regprocedure('public.repair_nations_cup_opening_budgets(uuid)') is not null"
   : version === '20261009070000'
   ? "to_regprocedure('public.get_season_rollover_health()') is not null"
