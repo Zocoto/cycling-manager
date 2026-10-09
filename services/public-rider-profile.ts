@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { RiderArchiveReason } from "@/lib/game/rider-career-archive";
+
 import {
   isPersistedEquipmentAssignmentCompatible,
   normalizeEquipmentEffects,
@@ -181,7 +183,7 @@ export type PublicRiderProfile = {
     retirementSeasonName: string;
     retirementGameYear: number;
     retirementAge: number | null;
-    reason: "no_team" | "no_race" | "no_team_and_no_race";
+    reason: RiderArchiveReason;
     reasonLabel: string;
     totalVictories: number;
     totalPoints: number;

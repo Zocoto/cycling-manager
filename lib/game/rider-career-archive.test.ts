@@ -1,12 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import type { PublicRiderProfile } from "@/services/public-rider-profile";
 
 import {
   getRiderArchiveReason,
   isRiderArchiveReason,
   RIDER_ARCHIVE_REASON_LABELS,
+  type RiderArchiveReason,
 } from "@/lib/game/rider-career-archive";
 
 describe("rider career archival", () => {
+  it("shares every retirement reason with the public historical profile", () => {
+    expectTypeOf<NonNullable<PublicRiderProfile["archive"]>["reason"]>()
+      .toEqualTypeOf<RiderArchiveReason>();
+  });
   it("keeps legacy archive reasons readable and recognizes the new rule", () => {
     for (const reason of Object.keys(RIDER_ARCHIVE_REASON_LABELS)) {
       expect(isRiderArchiveReason(reason)).toBe(true);
