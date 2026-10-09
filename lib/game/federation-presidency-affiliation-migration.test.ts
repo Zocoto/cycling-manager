@@ -3,8 +3,15 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations/20261009170000_initialize_federation_presidents_on_affiliation.sql"), "utf8");
+const membershipChangeMigration = readFileSync(join(process.cwd(), "supabase/migrations/20261009173000_restart_vacant_federation_vote_after_membership_change.sql"), "utf8");
 
 describe("présidence à l’arrivée dans une fédération", () => {
+  it("reopens failed elections for real membership changes, but not for periodic catch-up", () => {
+    expect(membershipChangeMigration).toContain("if not p_membership_changed and exists (");
+    expect(membershipChangeMigration).toContain("private.ensure_federation_presidency(p_country_id, p_season_id, false)");
+    expect(membershipChangeMigration).toContain("private.ensure_federation_presidency(new.registration_country_id, new.season_id, true)");
+    expect(membershipChangeMigration).toContain("from public, anon, authenticated");
+  });
   it("works throughout current and future seasons instead of S3 J1 only", () => {
     expect(migration).not.toContain("game_year <> 3");
     expect(migration).not.toContain("current_day_number, 1) <> 1");

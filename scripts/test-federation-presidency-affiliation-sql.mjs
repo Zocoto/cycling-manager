@@ -9,6 +9,7 @@ const db = new PGlite();
 const uid = (name) => createHash('md5').update(name).digest('hex');
 const id = (name) => `${uid(name).slice(0,8)}-${uid(name).slice(8,12)}-${uid(name).slice(12,16)}-${uid(name).slice(16,20)}-${uid(name).slice(20)}`;
 const migration = await readFile('supabase/migrations/20261009170000_initialize_federation_presidents_on_affiliation.sql', 'utf8');
+const membershipChangeMigration = await readFile('supabase/migrations/20261009173000_restart_vacant_federation_vote_after_membership_change.sql', 'utf8');
 const base = await readFile('supabase/migrations/20260903230000_create_federation_elections.sql', 'utf8');
 const nationality = await readFile('supabase/migrations/20260906130000_enforce_federation_president_nationality.sql', 'utf8');
 const functionSql = (name) => {
@@ -72,6 +73,8 @@ try {
   assert.equal(await electionCount('3810ac68-ffbe-4d89-b2c5-615476ebc6f3'), 0, 'Administrative exception does not invent a ballot');
   await db.exec(migration);
   assert.equal((await one('select count(*)::int n from sporting_director_messages')).n, 1, 'Rwanda repair is idempotent');
+  await db.exec(membershipChangeMigration);
+  await db.exec(membershipChangeMigration);
 
   const solo = await country('SO');
   await db.exec('begin'); const soloPlayer = await addPlayer('solo', solo); await db.exec('commit');
@@ -105,7 +108,13 @@ try {
   assert.equal((await term(multi)).president_director_id, null, 'Even a now sole member cannot bypass an active ballot');
   await db.query("update national_federation_elections set status='automatic' where id=$1", [multiElection.id]);
   await db.query("update team_manager_assignments set status='active' where sporting_director_id=$1", [id('director:multi-two')]);
-  await catchUp(); assert.equal(await electionCount(multi), 1, 'Unsuccessful ballot is not restarted every cron run');
+  assert.equal(await electionCount(multi), 2, 'A returning/new member reopens an unsuccessful ballot');
+  await catchUp(); assert.equal(await electionCount(multi), 2, 'Active new ballot is not duplicated');
+  await db.query("update national_federation_elections set status='automatic' where country_id=$1", [multi]);
+  await catchUp(); assert.equal(await electionCount(multi), 2, 'Without membership changes, unsuccessful ballots are not restarted every cron run');
+  await db.exec('begin'); await addPlayer('multi-third-arrival', multi); await db.exec('commit');
+  assert.equal(await electionCount(multi), 3, 'A genuine new arrival triggers an election, not an arbitrary appointment');
+  assert.equal((await term(multi)).president_director_id, null);
 
   const sponsorDestination = await country('SP');
   await db.query('update team_seasons set registration_country_id=$1 where team_id=$2 and season_id=$3', [sponsorDestination, reversePlayer.teamId, id('s4')]);
@@ -130,6 +139,10 @@ try {
   assert.equal((await term(future)).start_game_year, 5); assert.equal((await term(future)).end_game_year, 6);
   assert.equal((await one("select has_function_privilege('authenticated','public.initialize_due_federation_presidencies()','execute') allowed")).allowed, false);
   assert.equal((await one("select has_function_privilege('anon','private.ensure_federation_presidency(uuid,uuid)','execute') allowed")).allowed, false);
+  assert.equal((await one("select has_function_privilege('authenticated','private.ensure_federation_presidency(uuid,uuid,boolean)','execute') allowed")).allowed, false);
   assert.equal((await one("select has_function_privilege('service_role','public.initialize_due_federation_presidencies()','execute') allowed")).allowed, true);
   console.log('SQL isolé OK : Rwanda exceptionnel, S4 J7 et S5 J9, inscription dans les deux ordres, sponsor, bots exclus, président préservé, scrutin à plusieurs/48h+48h, aucun doublon, rollover sans saison active et droits RPC.');
+} catch (error) {
+  console.error(error instanceof assert.AssertionError ? error.stack : `${error.code ?? 'ERROR'}: ${error.message}\n${error.where ?? ''}`);
+  process.exitCode = 1;
 } finally { await db.close(); }
