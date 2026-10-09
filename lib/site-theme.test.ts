@@ -82,7 +82,7 @@ describe("skin Halloween annuel", () => {
     expect(dashboard.match(/data-site-action="dark"/g)).toHaveLength(3);
     expect(dashboard).toContain("data-site-action-icon");
     expect(dashboard).toContain("data-site-action-overlay");
-    expect(dashboard.match(/data-site-action-label/g)).toHaveLength(3);
+    expect(dashboard.match(/data-site-action-label/g)).toHaveLength(4);
     expect(dashboard.match(/data-site-action-icon/g)).toHaveLength(3);
     expect(css).toContain(':not([class*="bg-"])');
     expect(css).toContain(".game-shell .mobile-chat-bubble");

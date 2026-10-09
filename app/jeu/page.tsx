@@ -1676,7 +1676,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
             </span>
             <span className="min-w-0">
               <span className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
+                <span data-site-action-label className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
                   {entry.eyebrow}
                 </span>
                 <span
