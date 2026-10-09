@@ -1,13 +1,16 @@
 import { notFound } from "next/navigation";
 import { HalloweenEvent } from "@/components/halloween/halloween-event";
 import { GameHeader } from "@/components/game/game-header";
+import { HalloweenRunner } from "@/components/halloween/halloween-runner";
 import type { HalloweenState } from "@/lib/game/halloween-event";
 import "@/components/halloween/halloween.css";
 import "@/app/jeu/mobile.css";
+import "@/components/halloween/halloween-console.css";
 export default async function LocalHalloweenReview({ searchParams }: { searchParams: Promise<{ onglet?: string }> }) {
   if (process.env.NODE_ENV === "production" || process.env.HALLOWEEN_LOCAL_REVIEW !== "1") notFound();
   const state: HalloweenState={state:"open",startsAt:"2026-10-08T22:00Z",endsAt:"2026-11-02T23:00Z",shopEndsAt:"2026-11-09T23:00Z",joined:true,coins:240,tickets:1,inventory:{"lord-vlad":1,"pumpkin-cap":1,"pumpkin-juice":1},obtained:{"lord-vlad":1,"pumpkin-cap":1,"pumpkin-juice":1},purchases:{"lord-vlad":1,"pumpkin-cap":1,"pumpkin-juice":1},cosmetics:{outfit:"lord-vlad",hat:"pumpkin-cap"},curse:null,pendingGift:null,bandages:0,attempts:0,drawn:false,activeRun:null,ranking:[{name:"DS fictif · recette locale",userId:"review",score:3940,distance:2240,coins:68}],dailyRanking:[],riders:[],targets:[],projects:[]};
   const { onglet = "accueil" } = await searchParams;
+  if (onglet === "console") return <div className="game-shell"><HalloweenRunner state={state} reviewOnly /></div>;
   if (onglet === "boutons") {
     return <div className="game-shell"><GameHeader displayName="Recette locale" /><main className="mx-auto grid max-w-4xl gap-4 p-6 text-[#29231f]">
       <h1 className="text-2xl font-black">Contrôle local du thème des boutons</h1>

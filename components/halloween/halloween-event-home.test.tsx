@@ -25,7 +25,8 @@ describe("accueil Halloween illustré", () => {
   it("réemploie l’art approuvé dans la page réelle, sans activer les styles du pilote", () => {
     const event = readFileSync(resolve("components/halloween/halloween-event.tsx"), "utf8");
     expect(event).toContain("<HalloweenNightRide />");
-    expect(event).toContain("<HalloweenEventHome onSelect={setTab} />");
+    expect(event).toContain("<HalloweenEventHome onSelect={selectActivity} />");
+    expect(event).toContain('router.push("/jeu/halloween/poursuite")');
     expect(event).not.toContain('data-halloween-preview="pilot"');
     const preview = readFileSync(resolve("app/apercus/halloween-recette/page.tsx"), "utf8");
     expect(preview).toContain('process.env.NODE_ENV === "production"');

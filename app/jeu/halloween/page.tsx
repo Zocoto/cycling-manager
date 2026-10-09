@@ -9,6 +9,7 @@ import "@/components/halloween/halloween.css";
 export const metadata = { title: "Halloween · Cyclostratège", robots: { index: false, follow: false } };
 export default async function HalloweenPage({ searchParams }: { searchParams: Promise<{ onglet?: string }> }) {
   const { onglet = "accueil" } = await searchParams;
+  if (onglet === "poursuite") redirect("/jeu/halloween/poursuite");
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");

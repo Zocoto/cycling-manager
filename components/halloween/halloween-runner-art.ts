@@ -1,5 +1,6 @@
 import { isRunnerHazard, RUNNER_GROUND, RUNNER_HEIGHT, RUNNER_PLAYER_X, RUNNER_WIDTH, type RunnerState, type RunnerObject } from "@/lib/game/halloween-runner";
 import { DEMONIC_WHEEL_COLORS as wheelColors, DEMONIC_WHEEL_SPOKES } from "@/lib/game/halloween-wheel-art";
+import { halloweenRunnerViewport } from "@/lib/game/halloween-runner-controls";
 
 type Brush = CanvasRenderingContext2D;
 function stroke(ctx: Brush, color: string, width: number, points: number[]) {
@@ -110,7 +111,23 @@ function obstacle(ctx: Brush, object: Pick<RunnerObject, "x" | "height" | "width
   ctx.restore();
 }
 
-export function drawRunnerPreview(ctx: Brush, state: RunnerState, ready: boolean) {
+export function drawRunnerPreview(ctx: Brush, state: RunnerState, ready: boolean, viewport?: { width: number; height: number }) {
+  if (viewport) {
+    const { scale, x, y } = halloweenRunnerViewport(viewport.width, viewport.height);
+    ctx.clearRect(0, 0, viewport.width, viewport.height);
+    ctx.fillStyle = "#121019";
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
+    // Extend the road/sky, not the sprites. Keep both bikes and all approaching
+    // obstacles in view without stretching the illustration or changing physics.
+    ctx.fillStyle = "#3a2b2b";
+    ctx.fillRect(0, y + RUNNER_GROUND * scale, viewport.width, viewport.height);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    drawRunnerPreview(ctx, state, ready);
+    ctx.restore();
+    return;
+  }
   ctx.clearRect(0, 0, RUNNER_WIDTH, RUNNER_HEIGHT);
   ctx.fillStyle = "#121019"; ctx.fillRect(0, 0, RUNNER_WIDTH, RUNNER_HEIGHT);
   ellipse(ctx, 805, 75, 35, 35, "#eee2c7"); ellipse(ctx, 797, 63, 8, 6, "#d3c7b1"); ellipse(ctx, 816, 87, 10, 8, "#d3c7b1");

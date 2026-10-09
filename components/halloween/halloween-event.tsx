@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { HalloweenRunner } from "./halloween-runner";
+import { HalloweenRunnerOverview } from "./halloween-runner-overview";
 import { HalloweenItemIllustration, SpiderWeb } from "./halloween-art";
 import { HalloweenCandyGame, type CandyColor } from "./halloween-candy-game";
 import { HalloweenSkinPortrait, HalloweenSkinPreview } from "./halloween-skin-preview";
@@ -16,10 +16,10 @@ import { HALLOWEEN_PREVIEW_ITEMS, halloweenPresentationEffect, type HalloweenPre
 import type { HalloweenState } from "@/lib/game/halloween-event";
 
 const curseCopy = { vampire: "Votre prochaine poursuite garde son score complet, mais 10 % de ses roues sont retenues. Le sort disparaît ensuite.", mummy: "Votre prochain cadeau sera emballé dans cinq bandelettes. Déballez-le pour tout récupérer." };
-type Tab = "accueil" | "poursuite" | "bonbons" | "boutique" | "collection";
+type Tab = "accueil" | "classements" | "bonbons" | "boutique" | "collection";
 export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { initial: HalloweenState; initialTab?: string }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(["accueil", "poursuite", "bonbons", "boutique", "collection"].includes(initialTab) ? initialTab as Tab : "accueil");
+  const [tab, setTab] = useState<Tab>(["accueil", "classements", "bonbons", "boutique", "collection"].includes(initialTab) ? initialTab as Tab : "accueil");
   const [notice, setNotice] = useState("");
   const [busy, startTransition] = useTransition();
   const [target, setTarget] = useState<Record<string, string>>({});
@@ -39,6 +39,10 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
   };
   const open = state.state === "open";
   const shopOpen = open || state.state === "shop";
+  const selectActivity = (activity: "poursuite" | "bonbons" | "boutique") => {
+    if (activity === "poursuite") router.push("/jeu/halloween/poursuite");
+    else setTab(activity);
+  };
   return <main className="halloween-preview halloween-public-event" data-site-theme="halloween" data-halloween-event-state={state.state}>
     <div className="halloween-event-topline">
       <Link href="/jeu" className="halloween-text-link">← Retour au bureau du DS</Link>
@@ -49,7 +53,7 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
       <div className="halloween-event-hero-copy"><p className="halloween-eyebrow">Du 9 octobre au 2 novembre inclus · heure de Paris</p><h1>Événement <span>Halloween.</span></h1><p>Échappez à l’équipier sans tête, choisissez votre bonbon et collectionnez les trésors du peloton de minuit.</p></div>
       <div className="halloween-event-hero-art"><HalloweenNightRide /></div>
     </header>
-    <nav className="halloween-filter" aria-label="Halloween">{([["accueil", "L’événement"], ["poursuite", "Cycling Hollow"], ["bonbons", "Trick or Treat"], ["boutique", "La boutique"], ["collection", "Mes trésors"]] as const).map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</nav>
+    <nav className="halloween-filter" aria-label="Halloween"><Link href="/jeu/halloween/poursuite" prefetch={false} className="halloween-button">Cycling Hollow ↗</Link>{([["accueil", "L’événement"], ["classements", "Classements"], ["bonbons", "Trick or Treat"], ["boutique", "La boutique"], ["collection", "Mes trésors"]] as const).map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</nav>
     {notice ? <p role="status" className="halloween-card">{notice}</p> : null}
     {!shopOpen ? <section className="halloween-card"><h2>{state.state === "scheduled" ? "La nuit s’ouvre à minuit" : state.state === "archived" ? "Les jeux sont terminés" : "Les jeux sont momentanément fermés"}</h2><p>{state.state === "scheduled" ? "Ouverture vendredi 9 octobre à 00 h, heure de Paris." : "Vos gains déjà acquis et votre collection sont conservés."}</p></section> : null}
     {state.state === "shop" ? <p className="halloween-card">Les jeux sont terminés. Vous pouvez dépenser vos dernières roues jusqu’au 9 novembre inclus. Vos objets acquis restent utilisables ensuite.</p> : null}
@@ -57,8 +61,8 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
     {state.curse ? <section className="halloween-card"><h2>{state.curse.kind === "vampire" ? "Le baiser du vampire" : "La malédiction de la momie"}</h2><p>Un sort envoyé par {state.curse.sender}. {curseCopy[state.curse.kind as keyof typeof curseCopy]} Expiration : {new Date(state.curse.expiresAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.</p><button disabled={busy} className="halloween-button" onClick={() => action("dispel")}>Sel anti-malédiction · lever gratuitement</button>
       {state.pendingGift ? <div><p>Cinq bandelettes à retirer, du dessus vers le dessous. {state.bandages}/5 retirées.</p><button disabled={busy} className="halloween-button" onClick={() => action("unwrap", { bandage: state.bandages })}>Retirer la bandelette {state.bandages + 1}</button></div> : null}
     </section> : null}
-    {tab === "accueil" ? <HalloweenEventHome onSelect={setTab} /> : null}
-    {tab === "poursuite" ? <HalloweenRunner state={state} onRefresh={() => router.refresh()} onNotice={setNotice} /> : null}
+    {tab === "accueil" ? <HalloweenEventHome onSelect={selectActivity} /> : null}
+    {tab === "classements" ? <HalloweenRunnerOverview state={state} /> : null}
     {tab === "bonbons" ? <HalloweenCandyGame disabled={busy || !open || !state.joined || state.drawn || state.coins < 5 || !!state.pendingGift} busy={busy} drawn={state.drawn} pendingGift={!!state.pendingGift} coins={state.coins} chosen={chosenCandy} result={drawResult} onChoose={color => { if (actionLock.current || drawResult) return; setChosenCandy(color); action("draw"); }} /> : null}
     {tab === "boutique" || tab === "collection" ? <section><div className="halloween-section-heading"><div><p className="halloween-eyebrow">{tab === "collection" ? "Votre collection persistante" : "Roues démoniaques uniquement"}</p><h2>{tab === "collection" ? "Mes trésors" : "La boutique de minuit"}</h2></div><div className="halloween-filter">{["all", "cosmetic", "consumable", "transformation"].map(key => <button key={key} onClick={() => setFilter(key)} aria-pressed={filter === key}>{({ all: "Tout", cosmetic: "Portrait", consumable: "Objets", transformation: "Sorts" })[key]}</button>)}</div></div>
       {tab === "collection" ? <div className="halloween-card"><h3>Votre portrait Halloween</h3><div className="halloween-collection-portrait"><SportingDirectorAvatar avatarKey={state.avatarKey} size="xlarge" /></div><button disabled={busy} className="halloween-subtle-button" onClick={() => action("equip", { item: "none" })}>Retirer les accessoires Halloween</button>{(state.inventory["headless-frame-claim"] ?? 0) > 0 ? <button disabled={busy} className="halloween-button" onClick={() => action("use", { item: "headless-frame-claim" })}>Récupérer mon cadre exclusif dans l’inventaire de l’équipe</button> : null}</div> : null}
