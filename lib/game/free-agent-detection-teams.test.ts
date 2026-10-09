@@ -13,6 +13,9 @@ function readSource(...parts: string[]) {
 const migration = readSource(
   "supabase/migrations/20260829143000_add_free_agent_detection_teams.sql",
 );
+const extension = readSource(
+  "supabase/migrations/20261009140000_extend_detection_teams_to_local_and_regional.sql",
+);
 const maintenanceService = readSource("services/game-state-settlement.ts");
 const resultService = readSource("services/race-results.ts");
 const newsService = readSource("services/public-game-news.ts");
@@ -88,5 +91,28 @@ describe("free-agent detection teams", () => {
     expect(resultService).toContain("historical_team_name:");
     expect(newsService).toContain("DETECTION_TEAM_JERSEY");
     expect(newsService).toContain("registration?.historical_team_name");
+  });
+
+  it("extends the existing settlement to local and regional races", () => {
+    expect(extension).toContain(
+      "category.code in ('local', 'regional', 'national', 'continental', 'world')",
+    );
+    expect(extension).toContain(
+      "when v_edition.category_code in ('regional', 'continental') then",
+    );
+    expect(extension).toContain("''local'', ''national''");
+    expect(extension).toContain("pg_catalog.pg_get_functiondef(v_signature)");
+    expect(extension).toContain("execute v_definition;");
+  });
+
+  it("changes only reviewed anchors and safely recognizes repeat installation", () => {
+    expect(extension).toContain("<> 1 then");
+    expect(extension).toContain("no changes applied.");
+    expect(extension).toContain("only partially installed.");
+    expect(extension).toContain("set local lock_timeout = '3s'");
+    expect(extension).toContain("set local statement_timeout = '15s'");
+    expect(extension).not.toMatch(/\b(update|delete\s+from|insert\s+into)\s+public\./i);
+    expect(extension).not.toContain("perform public.settle_due_free_agent_detection_teams");
+    expect(extension).not.toContain("select * from public.settle_due_free_agent_detection_teams");
   });
 });
