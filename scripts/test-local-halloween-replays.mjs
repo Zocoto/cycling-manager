@@ -1,4 +1,5 @@
 // Called only by the isolated PGlite suite. Never run production fixtures.
+import { readFile } from 'node:fs/promises';
 export async function verifyHalloweenMobileReplays(db, { id, action, check, fail, q, scalar, wallet }) {
   await db.exec('begin');
   const verifyRejection = fail;
@@ -21,7 +22,12 @@ export async function verifyHalloweenMobileReplays(db, { id, action, check, fail
     const oldLedger = await q('select * from halloween_ledger order by user_id,source');
     const grant = () => scalar('select grant_halloween_mobile_replays($1::timestamptz) as value', [cutoff]);
     await fail(() => scalar("select grant_halloween_mobile_replays(now()+interval '1 minute') as value"), /Date de correction invalide/);
-    const awarded = await grant();
+    const operation = await readFile(new URL('../supabase/operations/grant_halloween_mobile_replays.sql', import.meta.url), 'utf8');
+    const audited = operation.replace('__HALLOWEEN_UI_CUTOFF__', "'" + new Date(cutoff).toISOString() + "'")
+      .replace(/^begin;\s*/i, '').replace(/commit;\s*$/i, '');
+    await db.exec(audited);
+    const awarded = await scalar("select current_setting('cyclostratege.mobile_replay_receipt')::jsonb as value");
+    check(awarded.scoresPreserved, true); check(awarded.gainsAndTicketsPreserved, true);
     check(awarded.added, 6); check(awarded.total, 6);
     check(await q('select * from halloween_runs order by id'), oldRuns);
     check(await q('select * from halloween_wallets order by user_id'), oldWallets);
