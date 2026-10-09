@@ -29,13 +29,13 @@ body:has([data-halloween-console]) { overflow: hidden; overscroll-behavior: none
 .halloween-console-overlay [role="status"], .halloween-console-overlay [role="alert"] { padding: 8px 12px; border-radius: 8px; background: #21181bee; color: #fff0db; }
 .halloween-console-status { display: flex; justify-content: space-between; gap: 8px; padding: 5px 14px; color: #e4b78b; font-size: 10px; background: #281d24; }
 .halloween-console-controls { display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 0; gap: 8px; padding: 10px max(16px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-bottom, 0px)); border-top: 3px solid #735354; background: #322831; box-shadow: inset 0 8px 20px #100d1644; touch-action: none; user-select: none; -webkit-user-select: none; }
-.halloween-console-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(12px, 4vw, 32px); width: 100%; max-width: 480px; margin: 0 auto; height: 82px; min-height: 0; }
+.halloween-console-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(12px, 4vw, 32px); width: 100%; max-width: 480px; margin: 0 auto; height: 96px; min-height: 0; }
 .halloween-console-buttons button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; min-width: 0; min-height: 64px; padding: 8px; border: 2px solid #f0b788; border-radius: 24px 24px 34px 34px; background: #dc914f; color: #201719; box-shadow: 0 7px 0 #8a5434, 0 12px 16px #120d1855; touch-action: none; -webkit-touch-callout: none; }
 .halloween-console-buttons button[data-runner-action="duck"] { background: #b8a4d2; border-color: #e2cdef; box-shadow: 0 7px 0 #6b537b, 0 12px 16px #120d1855; }
 .halloween-console-buttons button:active, .halloween-console-buttons button[aria-pressed="true"] { transform: translateY(5px); box-shadow: 0 2px 0 #735354; }
-.halloween-console-buttons button > span { font-size: clamp(24px, 7vw, 44px); line-height: 1; font-weight: 900; }
-.halloween-console-buttons strong { font-size: clamp(17px, 4.5vw, 22px); font-weight: 950; white-space: nowrap; }
-.halloween-console-buttons small { font-size: 11px; font-weight: 700; }
+.halloween-console-buttons button > span { font-size: 28px; line-height: 1; font-weight: 900; }
+.halloween-console-buttons strong { font-size: 18px; line-height: 1.15; font-weight: 950; white-space: nowrap; }
+.halloween-console-buttons small { font-size: 10px; line-height: 1.2; font-weight: 700; }
 .halloween-console-controls p { margin: 0; color: #e1d1de; text-align: center; font-size: 11px; }
 .halloween-game-console button { cursor: pointer; }
 .halloween-game-console button:disabled { cursor: default; opacity: .55; }
