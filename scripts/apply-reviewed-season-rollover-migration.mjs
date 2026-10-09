@@ -11,6 +11,7 @@ const binary = path.join(path.dirname(require.resolve('@supabase/cli-windows-x64
 const reviewed = {
   '20261009070000': 'harden_automatic_season_rollover',
   '20261009080000': 'preserve_roster_tactics_on_academy_promotion',
+  '20261009090000': 'finalize_nations_cup_rollover_and_budgets',
 };
 const version = process.argv[3] ?? '20261009070000';
 const name = reviewed[version];
@@ -30,7 +31,9 @@ function query(sql, file = false) {
   const start = raw.indexOf('{');
   return JSON.parse(raw.slice(start));
 }
-const marker = version === '20261009070000'
+const marker = version === '20261009090000'
+  ? "to_regprocedure('public.repair_nations_cup_opening_budgets(uuid)') is not null"
+  : version === '20261009070000'
   ? "to_regprocedure('public.get_season_rollover_health()') is not null"
   : `(select count(*) from pg_constraint where conname in (
       'race_roster_stage_roles_roster_fkey','race_time_trial_rider_plans_roster_fkey',

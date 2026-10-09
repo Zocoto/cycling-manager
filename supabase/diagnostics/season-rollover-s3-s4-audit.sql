@@ -50,7 +50,11 @@ union all select 'other_checks',jsonb_build_object(
     join public.national_federation_nations_cup_assignments n on n.country_id=a.country_id and n.season_id=a.season_id
     where a.season_id=ids.target_id and a.nations_cup_division<>n.division),
   'missingFederationAccounts',(select count(*) from public.national_federation_nations_cup_assignments n
-    where n.season_id=ids.target_id and not exists (select 1 from public.national_federation_accounts a
+    where n.season_id=ids.target_id and exists(select 1 from public.team_seasons ts join public.teams team on team.id=ts.team_id
+      join public.team_manager_assignments ma on ma.team_id=ts.team_id and ma.status='active' and ma.role='general_manager'
+      join public.sporting_directors ds on ds.id=ma.sporting_director_id and ds.status='active'
+      where ts.season_id=ids.target_id and ts.registration_country_id=n.country_id and ts.status='active' and team.status='active')
+    and not exists (select 1 from public.national_federation_accounts a
       where a.country_id=n.country_id and a.season_id=n.season_id))
 ) from ids
 union all select 'nations_cup_movements',to_jsonb(x) from (

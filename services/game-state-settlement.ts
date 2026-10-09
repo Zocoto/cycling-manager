@@ -34,6 +34,7 @@ export type GameMaintenanceHealth = {
     overdueSeasonCount: number;
     missingSettlementCount: number;
     scheduledJobCount: number;
+    provisionalDivisionCount: number;
     error: string | null;
   };
   tasks: Array<{
@@ -204,6 +205,7 @@ export async function getGameMaintenanceHealth(
     overdueSeasonCount: Number(rolloverData.overdueSeasonCount ?? 0),
     missingSettlementCount: Number(rolloverData.missingSettlementCount ?? 0),
     scheduledJobCount: Number(rolloverData.scheduledJobCount ?? 0),
+    provisionalDivisionCount: Number(rolloverData.provisionalDivisionCount ?? 0),
     error: rollover.error?.message ?? null,
   };
   const tasks: GameMaintenanceHealth["tasks"] = GAME_MAINTENANCE_TASKS.map((task) => {
