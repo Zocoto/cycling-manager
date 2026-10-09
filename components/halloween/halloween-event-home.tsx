@@ -18,7 +18,7 @@ export function HalloweenEventHome({ onSelect }: { onSelect: (tab: "poursuite" |
         <div className="halloween-event-card-art halloween-event-candy-art"><HalloweenCandyScene /></div>
         <div className="halloween-event-card-copy">
           <p className="halloween-eyebrow">02 · Le hasard</p><h3>Trick or Treat</h3>
-          <p>Trois couleurs, les mêmes chances. Misez 5 roues démoniaques : un cadeau, des roues ou un essai supplémentaire vous attendent peut-être…</p>
+          <p>Deux bonbons, les mêmes chances. Misez 5 roues démoniaques : une récompense ou une mauvaise pioche, sans malus sur votre équipe.</p>
           <span className="halloween-tag">Un tirage quotidien · aucun malus sur l’équipe</span>
           <button className="halloween-button" onClick={() => onSelect("bonbons")}>Choisir un bonbon <span aria-hidden="true">→</span></button>
         </div>

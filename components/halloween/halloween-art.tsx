@@ -134,7 +134,7 @@ export function HalloweenChild() {
 }
 
 /** A small, static native drawing: scenery stays behind the unchanged child. */
-export function HalloweenCandyScene() {
+export function HalloweenCandyScene({ children }: { children?: ReactNode } = {}) {
   return <div className="halloween-candy-scene" data-halloween-scene="candy">
     <svg aria-hidden="true" focusable="false" viewBox="0 0 420 315" className="halloween-candy-backdrop">
       <rect width="420" height="315" fill="#3D3540" />
@@ -175,6 +175,7 @@ export function HalloweenCandyScene() {
       <path d="M0 25h34M0 0l39 40M0 0v45M0 0l50 18M0 0l18 50M0 17q9-4 14-3t4-14M0 33q16-7 25-5t9-28" fill="none" stroke="#B3A090" strokeWidth="1" opacity=".45" />
     </svg>
     <HalloweenChild />
+    {children}
   </div>;
 }
 

@@ -46,3 +46,12 @@ Contrôle après minuit : état et dates de l'édition, disponibilité du site, 
 - Recette locale uniquement, avec les mêmes composants et la même enveloppe mobile que la production. Navigation testée sans achats, participation ni essai réel ; largeurs de 320 et 390 px sans débordement.
 - 36 tests ciblés (thème, accueil, preuves et API), lint des fichiers modifiés. Deux anciens tests de header sont déjà obsolètes dans le commit de base : un fichier retiré et une ancienne signature monoligne. Aucun changement de header partagé pour les contourner.
 - Aucun changement SQL, de solde, d'inventaire, de récompense, de cron ou de moteur dans ce correctif.
+
+## Bonbons et essayage du 9 octobre
+
+- Trick or Treat : exactement deux bonbons, orange et violet, cliquables directement dans les mains du cycliste sur la grande scène centrale. Choix utilisable au clavier et zones tactiles d'au moins 44 px. Probabilités détaillées dans un volet dépliable.
+- Règles de l'aperçu conservées : 50 % de mauvaise pioche (perte de la mise de 5 roues), 50 % de récompense ; aucune conséquence négative sur l'équipe. Tirage et limite quotidienne toujours autoritaires côté serveur. Verrou client synchrone contre les clics concurrents, choix réactivé si la requête échoue.
+- Boutique et collection : chaque cosmétique présente le portrait personnel du DS avec l'élément essayé, via le même rendu natif que le portrait équipé. Comparaison actuelle / essayage dans un dialogue accessible, fermeture au clavier et par bouton. L'essayage ne déclenche aucune requête d'achat ou d'équipement.
+- Remplacement du seul emplacement concerné (cadre, tenue, etc.), conservation du portrait natif et des autres accessoires. Les transformations sont également prévisualisables ; les malédictions préexistantes sont ignorées dans l'essayage, comme indiqué à l'écran.
+- 59 tests ciblés réussis, lint des fichiers modifiés, contrôle visuel bureau et mobile 320 / 390 px sans débordement. Un clic dans la recette locale est refusé par l'API avec 403, sans débit, puis les deux choix se réactivent.
+- Aucun changement SQL ni réinitialisation des bonbons déjà choisis ; soldes, inventaires et probabilités conservés.
