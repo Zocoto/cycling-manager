@@ -746,7 +746,7 @@ export default async function GamePage() {
             </div>
           </header>
 
-          <DashboardGalaShortcut />
+          <DashboardGalaShortcut now={Date.now()} />
           <Suspense fallback={null}><DashboardHalloweenShortcut /></Suspense>
           <DashboardReferralInvite />
 
