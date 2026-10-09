@@ -66,6 +66,8 @@ export async function saveNationalChampionshipSelectionsAction(
 
   revalidatePath("/jeu/championnats-nationaux");
   revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/courses/[slug]", "page");
+  revalidatePath("/jeu/championnats-nationaux/[discipline]", "page");
   revalidatePath("/jeu/resultats");
   revalidatePath("/jeu");
   redirect("/jeu/championnats-nationaux?enregistrement=confirme");
@@ -107,6 +109,8 @@ export async function withdrawNationalChampionshipRiderAction(
     `/jeu/championnats-nationaux/${input.data.discipline}`,
   );
   revalidatePath("/jeu/championnats-nationaux");
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/courses/[slug]", "page");
   revalidatePath("/jeu/resultats");
   revalidatePath("/jeu");
 }
