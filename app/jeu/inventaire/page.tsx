@@ -17,6 +17,7 @@ import { InventoryConsumableForm } from "@/components/game/inventory-consumable-
 import { InventoryEquipmentSaleForm } from "@/components/game/inventory-equipment-sale-form";
 import { InventoryEquipmentSalePicker } from "@/components/game/inventory-equipment-sale-picker";
 import { InventoryItemIllustration } from "@/components/game/inventory-item-illustration";
+import { HalloweenInventoryCard } from "@/components/game/halloween-inventory-card";
 import { buildInventoryReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   INVENTORY_CATEGORY_DEFINITIONS,
@@ -217,6 +218,7 @@ export default async function InventoryPage({
                 Retrouvez au même endroit les objets gagnés par{" "}
                 {overview.teamName} et chaque pièce achetée dans la rubrique
                 Matériel.
+                {" "}Les achats et cadeaux Halloween sont également conservés ici.
               </p>
             </div>
 
@@ -347,7 +349,9 @@ export default async function InventoryPage({
           ) : null}
           {visibleItems.length > 0 ? (
             <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {visibleItems.map((item) => (
+              {visibleItems.map((item) => item.source === "halloween" ? (
+                <HalloweenInventoryCard key={item.id} item={item} />
+              ) : (
                 <InventoryItemCard
                   key={item.id}
                   item={item}

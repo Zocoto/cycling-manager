@@ -1,4 +1,5 @@
 import type { EquipmentSlot } from "@/lib/game/equipment";
+import type { HalloweenPreviewItem } from "@/lib/game/halloween-catalog";
 import {
   groupDailyRewardInventoryItems,
   type DailyRewardInventoryItem,
@@ -23,7 +24,7 @@ export type TeamInventoryItem = {
   id: string;
   sourceId: string;
   catalogKey?: string | null;
-  source: "item" | "equipment" | "daily_reward";
+  source: "item" | "equipment" | "daily_reward" | "halloween";
   category: InventoryCategory;
   name: string;
   description: string;
@@ -46,6 +47,7 @@ export type TeamInventoryItem = {
   isConsumable: boolean;
   acquiredAt: string | null;
   dailyReward?: DailyRewardInventoryItem | null;
+  halloween?: HalloweenPreviewItem;
 };
 
 export const INVENTORY_CATEGORY_DEFINITIONS = [

@@ -55,6 +55,8 @@ import {
 } from "../../services/team-sponsor-identity";
 import type { TeamFinanceOverview } from "../../services/team-finances";
 import type { TeamInventoryOverview } from "../../services/team-inventory";
+import { getCurrentHalloweenInventory } from "@/services/halloween-inventory";
+import { summarizeInventory, type TeamInventoryItem } from "@/lib/game/inventory";
 import { getSponsorObjectiveSummary } from "../../services/sponsor-objective-summary";
 import { getSportingDirectorReputationBreakdown } from "../../services/sporting-director-reputation";
 import {
@@ -384,18 +386,20 @@ function toFinanceOverview(
 
 function toInventoryOverview(
   summary: DashboardFastSummary | null,
+  halloweenItems: TeamInventoryItem[] = [],
 ): TeamInventoryOverview | null {
+  const halloweenSummary = summarizeInventory(halloweenItems);
   return summary
     ? {
         teamName: summary.teamName,
         seasonName: summary.seasonName,
         currency: summary.currency,
         scoutingRevealActiveUntil: null,
-        items: [],
+        items: halloweenItems,
         summary: {
-          references: 0,
-          totalUnits: summary.inventoryTotalUnits,
-          availableUnits: summary.inventoryAvailableUnits,
+          references: halloweenSummary.references,
+          totalUnits: summary.inventoryTotalUnits + halloweenSummary.totalUnits,
+          availableUnits: summary.inventoryAvailableUnits + halloweenSummary.availableUnits,
           equipmentUnits: 0,
         },
       }
@@ -446,7 +450,11 @@ export default async function GamePage() {
     "Impossible de récupérer la situation financière de l’équipe :",
   );
   const inventoryOverviewPromise = loadDashboardValue(
-    fastSummaryPromise.then(toInventoryOverview),
+    Promise.all([fastSummaryPromise, getCurrentHalloweenInventory(user.id)
+      .catch((error: unknown) => {
+        console.error("Impossible de charger les objets Halloween du bureau :", error);
+        return [] as TeamInventoryItem[];
+      })]).then(([summary, halloweenItems]) => toInventoryOverview(summary, halloweenItems)),
     null as TeamInventoryOverview | null,
     "Impossible de récupérer l’inventaire de l’équipe :",
   );

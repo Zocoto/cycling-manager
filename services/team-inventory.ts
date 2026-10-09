@@ -8,6 +8,7 @@ import {
 } from "@/lib/game/inventory";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentTeamEquipmentOverview } from "@/services/team-equipment";
+import { getCurrentHalloweenInventory } from "@/services/halloween-inventory";
 
 type CatalogRow = {
   id: string;
@@ -44,7 +45,7 @@ export async function getCurrentTeamInventoryOverview(
   if (!equipmentOverview) return null;
 
   const admin = createSupabaseAdminClient();
-  const [catalogResult, inventoryResult, teamSeasonResult] = await Promise.all([
+  const [catalogResult, inventoryResult, teamSeasonResult, halloweenItems] = await Promise.all([
     admin
       .from("inventory_catalog_items")
       .select(
@@ -63,6 +64,7 @@ export async function getCurrentTeamInventoryOverview(
       .select("scouting_reports_revealed_until")
       .eq("id", equipmentOverview.teamSeasonId)
       .maybeSingle<{ scouting_reports_revealed_until: string | null }>(),
+    getCurrentHalloweenInventory(authUserId),
   ]);
 
   assertQuery(catalogResult.error, "le catalogue d’objets");
@@ -148,7 +150,7 @@ export async function getCurrentTeamInventoryOverview(
         }) satisfies TeamInventoryItem,
     );
 
-  const items = [...genericItems, ...equipmentItems].sort(
+  const items = [...genericItems, ...equipmentItems, ...halloweenItems].sort(
     (left, right) =>
       Number(right.availableQuantity > 0) -
         Number(left.availableQuantity > 0) ||
