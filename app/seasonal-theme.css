@@ -52,17 +52,26 @@
   & [data-site-action-overlay]:not([data-site-theme-preserve]):not([data-site-theme="default"] *) {
     background-image: linear-gradient(180deg, #29231f8c 0%, #29231fc7 55%, #29231ff2 100%);
   }
+  & [data-site-action-label]:not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
+    color: var(--hw-peach);
+  }
+  & :is(a, button) :is(span, strong):is(
+    [class~="text-[#183F37]" i], [class~="text-[#173D35]" i],
+    [class~="text-[#176951]" i], [class~="text-[#278B70]" i]
+  ):not([class*="bg-"]):not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
+    color: var(--site-action-text, var(--hw-ink));
+  }
   /* Only decorative SVG containers inside actions, never rider art or status badges. */
   & :is(a, button, [role="button"]) :is(span, div):has(> svg[aria-hidden="true"]):is(
     [class~="bg-[#0B302B]" i], [class~="bg-[#1B463C]" i],
-    [class~="bg-[#183F37]" i], [class~="bg-[#DDF3E7]" i]
+    [class~="bg-[#183F37]" i], [class~="bg-[#DDF3E7]" i], [class~="bg-[#42B99A]/15" i]
   ):not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
     background-color: var(--hw-ink);
     color: var(--hw-peach);
   }
   & .group:is(a, button, [role="button"]):hover :is(span, div):has(> svg[aria-hidden="true"]):is(
     [class~="bg-[#0B302B]" i], [class~="bg-[#1B463C]" i],
-    [class~="bg-[#183F37]" i], [class~="bg-[#DDF3E7]" i]
+    [class~="bg-[#183F37]" i], [class~="bg-[#DDF3E7]" i], [class~="bg-[#42B99A]/15" i]
   ):not([data-site-theme-preserve]):not([data-site-theme-preserve] *):not([data-site-theme="default"] *) {
     background-color: var(--hw-orange);
     color: var(--hw-ink);

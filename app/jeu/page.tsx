@@ -1575,7 +1575,7 @@ function TeamRosterCard({
 
       <p className="mt-4 hidden leading-7 text-[#BFD1C6] sm:block">{description}</p>
 
-      <span className="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-extrabold text-[#9BE0BC] sm:pt-5 sm:text-sm">
+      <span data-site-action-label className="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-extrabold text-[#9BE0BC] sm:pt-5 sm:text-sm">
         Ouvrir
         <ArrowRightIcon />
       </span>
@@ -1671,7 +1671,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
                 className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b"
               />
             ) : null}
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12">
+            <span data-site-action-icon className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12">
               <ManagementModuleIcon icon={entry.icon} />
             </span>
             <span className="min-w-0">
@@ -1695,7 +1695,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
               <span className="mt-2 hidden line-clamp-2 text-xs font-semibold leading-5 text-[#BFD1C6] sm:block">
                 {entry.description}
               </span>
-              <span className="mt-2 inline-flex items-center gap-2 text-xs font-extrabold text-[#9BE0BC] sm:mt-3">
+              <span data-site-action-label className="mt-2 inline-flex items-center gap-2 text-xs font-extrabold text-[#9BE0BC] sm:mt-3">
                 Ouvrir <ArrowRightIcon />
               </span>
             </span>
@@ -1906,7 +1906,7 @@ function ManagementModuleCard({
       </p>
 
       {href ? (
-        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9BE0BC] sm:mt-3 sm:gap-2 sm:text-xs">
+        <span data-site-action-label className="mt-2 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9BE0BC] sm:mt-3 sm:gap-2 sm:text-xs">
           Ouvrir
           <ArrowRightIcon />
         </span>
