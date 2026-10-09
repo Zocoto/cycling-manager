@@ -28,6 +28,14 @@ type MaintenanceRunRow = {
 export type GameMaintenanceHealth = {
   checkedAt: string;
   healthy: boolean;
+  seasonRollover: {
+    healthy: boolean;
+    activeSeasonCount: number;
+    overdueSeasonCount: number;
+    missingSettlementCount: number;
+    scheduledJobCount: number;
+    error: string | null;
+  };
   tasks: Array<{
     task: GameMaintenanceTask;
     status: MaintenanceRunRow["status"] | "missing";
@@ -186,6 +194,18 @@ export async function getGameMaintenanceHealth(
   const rowsByTask = new Map(
     (result.data ?? []).map((row) => [row.task_key, row]),
   );
+  // A maintenance HTTP 200 is not proof that J1 actually opened. Inspect the
+  // authoritative season/settlement state and the independent database clock.
+  const rollover = await admin.rpc("get_season_rollover_health");
+  const rolloverData = isRecord(rollover.data) ? rollover.data : {};
+  const seasonRollover: GameMaintenanceHealth["seasonRollover"] = {
+    healthy: !rollover.error && rolloverData.healthy === true,
+    activeSeasonCount: Number(rolloverData.activeSeasonCount ?? 0),
+    overdueSeasonCount: Number(rolloverData.overdueSeasonCount ?? 0),
+    missingSettlementCount: Number(rolloverData.missingSettlementCount ?? 0),
+    scheduledJobCount: Number(rolloverData.scheduledJobCount ?? 0),
+    error: rollover.error?.message ?? null,
+  };
   const tasks: GameMaintenanceHealth["tasks"] = GAME_MAINTENANCE_TASKS.map((task) => {
     const row = rowsByTask.get(task);
     const lastSucceededAt = row?.last_succeeded_at ?? null;
@@ -208,10 +228,11 @@ export async function getGameMaintenanceHealth(
 
   return {
     checkedAt: now.toISOString(),
-    healthy: tasks.every(
+    healthy: seasonRollover.healthy && tasks.every(
       (task) => task.status === "succeeded" && !task.stale,
     ),
     tasks,
+    seasonRollover,
   };
 }
 
