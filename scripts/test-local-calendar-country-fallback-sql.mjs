@@ -196,4 +196,37 @@ assert.deepEqual((await db.query(`select d.day_number,to_char(t.departure_at at 
   from stages t join race_editions e on e.id=t.race_edition_id join races r on r.id=e.race_id join season_days d on d.id=t.season_day_id
   where r.slug='dst-moving-classic'`)).rows,[{day_number:16,departure:"14:00",registration:"08:00",withdrawal:"08:00"}]);
 console.log("Tour SQL repair passed: 3/4/5/6 stages, DST-safe spacing, future local generation, retained IDs/results, protected started/completed/cancelled/S3 tours, ACLs and idempotence.");
+
+const openingFix = readFileSync(resolve("supabase/migrations/20261009190000_reserve_future_season_opening_day.sql"),"utf8");
+const s5 = "11111111-1111-4111-8111-111111111116";
+await db.exec(`create role authenticated; create table official_stage_simulations(stage_id uuid references stages);`);
+await db.exec(functionSql("public.provision_season_race_calendar",compactSource));
+await db.query("insert into seasons values($1,5,'planned',1)",[s5]);
+await db.query("insert into season_days(season_id,day_number,calendar_date) select $1,n,date '2026-11-06'+n-1 from generate_series(1,28)n",[s5]);
+await addTour("opening-blocker-2-3",s5,2,2);
+await addTour("opening-blocker-4",s5,4,1);
+const openingEdition = await addTour("opening-meuse-fixture",s5,1,1);
+await db.query(`update races set race_format='one_day' where slug='opening-meuse-fixture';
+  `);
+await db.query(`update stages set day_slot='late',departure_at=timestamptz '2026-11-06 18:00 Europe/Paris' where race_edition_id=$1`,[openingEdition]);
+await db.query(`update race_editions set registration_closes_at=timestamptz '2026-11-06 12:00 Europe/Paris',
+  withdrawal_closes_at=timestamptz '2026-11-06 12:00 Europe/Paris' where id=$1`,[openingEdition]);
+await db.query("update seasons set status='active' where id=$1",[s4]);
+const currentCalendarBefore = (await readStages()).filter(row=>beforeRepair.some(original=>original.id===row.id));
+await db.exec(openingFix);
+assert.deepEqual((await readStages()).filter(row=>beforeRepair.some(original=>original.id===row.id)),currentCalendarBefore);
+assert.deepEqual((await db.query(`select d.day_number,t.day_slot,to_char(t.departure_at at time zone 'Europe/Paris','HH24:MI') departure,
+  to_char(e.registration_closes_at at time zone 'Europe/Paris','HH24:MI') registration
+  from stages t join race_editions e on e.id=t.race_edition_id join season_days d on d.id=t.season_day_id where e.id=$1`,[openingEdition])).rows,
+  [{day_number:5,day_slot:"late",departure:"18:00",registration:"12:00"}]);
+const afterOpeningRepair = await readStages();
+await db.exec(openingFix);
+assert.deepEqual(await readStages(),afterOpeningRepair);
+await assert.rejects(()=>db.query(`update stages set season_day_id=(select id from season_days where season_id=$1 and day_number=1)
+  where race_edition_id=$2`,[s5,openingEdition]),/J1 est réservé/);
+assert.equal((await db.query("select private.find_free_standard_race_start_day($1,gen_random_uuid(),1,1,null) day_number",[s5])).rows[0].day_number,2);
+const provisioningDefinition = (await db.query("select pg_get_functiondef('public.provision_season_race_calendar(uuid,uuid)'::regprocedure) d")).rows[0].d;
+assert.ok(provisioningDefinition.includes("perform private.reserve_future_season_opening_day(p_target_season_id);"));
+assert.equal((await db.query("select private.reserve_future_season_opening_day($1) n",[s4])).rows[0].n,0);
+console.log("Opening-day SQL checks passed: S4 unchanged, S5 relocated to first free country day at 18:00, deadlines retained, no-J1 allocation and constraint, future provisioning hook, idempotence.");
 await db.close();

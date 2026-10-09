@@ -38,6 +38,7 @@ begin
           target_day.calendar_date::timestamp + case stage.day_slot
             when 'early' then time '14:00' else time '18:00' end
         ) at time zone 'Europe/Paris'$replacement$;
+  v_new := replace(v_new, E'\r\n', E'\n');
   if position(v_old in v_definition) > 0 then
     v_definition := replace(v_definition, v_old, v_new);
   elsif position(v_new in v_definition) = 0 then
@@ -47,6 +48,7 @@ begin
   v_new := $replacement$registration_closes_at = (
       (registration_closes_at at time zone 'Europe/Paris') + make_interval(days => v_offset)
     ) at time zone 'Europe/Paris'$replacement$;
+  v_new := replace(v_new, E'\r\n', E'\n');
   if position(v_old in v_definition) > 0 then
     v_definition := replace(v_definition, v_old, v_new);
   elsif position(v_new in v_definition) = 0 then
@@ -56,6 +58,7 @@ begin
   v_new := $replacement$withdrawal_closes_at = (
       (withdrawal_closes_at at time zone 'Europe/Paris') + make_interval(days => v_offset)
     ) at time zone 'Europe/Paris'$replacement$;
+  v_new := replace(v_new, E'\r\n', E'\n');
   if position(v_old in v_definition) > 0 then
     v_definition := replace(v_definition, v_old, v_new);
   elsif position(v_new in v_definition) = 0 then
