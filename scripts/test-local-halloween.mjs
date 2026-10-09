@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { verifyHalloweenMobileReplays } from './test-local-halloween-replays.mjs';
 if (!process.argv[2]?.endsWith('/dist/index.js')) throw new Error('Pass a local PGlite module path.');
 const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
 const db = new PGlite();
@@ -41,7 +42,7 @@ try {
         v_balance := v_progress.balance_milli + v_training_milli - v_decline_milli;
     return v_decline_milli;end$$;
   `);
-  for(let n=1;n<=6;n++){
+  for(let n=1;n<=8;n++){
     await q('insert into auth.users values($1)',[id(n)]);
     await q("insert into sporting_directors values($1,$2,'active',$3,'director_m_01')",[id(100+n),id(n),'DS '+n]);
     await q("insert into team_manager_assignments values($1,$2,'active','general_manager')",[id(100+n),id(200+n)]);
@@ -55,7 +56,7 @@ try {
     await q('insert into rider_season_ratings values($1,$2,35,now())',[id(500+n),id(400)]);
     await q("insert into rider_condition_states values($1,$2,80,9,'daily_reward',now())",[id(500+n),id(401)]);
   }
-  for(const file of ['20261008210000_create_halloween_event.sql','20261008210100_halloween_items_and_state.sql','20261008210200_halloween_catalog.sql','20261008210300_halloween_settlement.sql','20261008210400_halloween_avatars_and_longevity.sql']) {
+  for(const file of ['20261008210000_create_halloween_event.sql','20261008210100_halloween_items_and_state.sql','20261008210200_halloween_catalog.sql','20261008210300_halloween_settlement.sql','20261008210400_halloween_avatars_and_longevity.sql','20261009110000_halloween_mobile_replays.sql']) {
     try { await db.exec(await readFile('supabase/migrations/'+file,'utf8')); }
     catch(error) { error.message=file+': '+error.message; throw error; }
   }
@@ -177,6 +178,7 @@ try {
   for(let n=3;n<=6;n++){
     const session=await action('start',{},id(n));await action('finish',{runId:session.id,distance:n*200,coins:10,score:n*200+250,proof:{}},id(n));
   }
+  await verifyHalloweenMobileReplays(db, { id, action, check, fail, q, scalar, wallet });
   await db.exec("update halloween_editions set starts_at=now()-interval '2 days',ends_at=now()-interval '10 minutes',shop_ends_at=now()+interval '7 days'");
   await scalar('select settle_halloween_event() as value');
   const after=await q('select user_id,coins from halloween_wallets order by user_id');

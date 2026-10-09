@@ -29,6 +29,15 @@ describe("écran de jeu dédié", () => {
     const legacy = readFileSync("app/jeu/halloween/page.tsx", "utf8");
     expect(legacy).toContain('if (onglet === "poursuite") redirect("/jeu/halloween/poursuite")');
   });
+  it("affiche l’essai restitué même après deux essais ordinaires, sans changer les commandes", () => {
+    const html = renderToStaticMarkup(createElement(HalloweenRunner, { state: { ...state, attempts: 2, tickets: 0, replayAvailable: true } }));
+    expect(html).toContain("Utiliser mon essai restitué");
+    expect(html).toContain("1 essai gratuit restitué · scores et gains conservés");
+    expect(html).toContain('data-runner-action="jump"');
+    expect(html).toContain('data-runner-action="duck"');
+    const ordinary = renderToStaticMarkup(createElement(HalloweenRunner, { state: { ...state, attempts: 2, replayAvailable: false } }));
+    expect(ordinary).not.toContain("essai restitué");
+  });
   it("la recette reste locale et les classements restent consultables hors du jeu", () => {
     const preview = readFileSync("app/apercus/halloween-recette/page.tsx", "utf8");
     expect(preview).toContain('process.env.NODE_ENV === "production"');
