@@ -46,6 +46,7 @@ import { SPIRITS_SPONSORS } from "./spirits";
 import { SPORTING_NATION_PRESTIGE_BATCH_01_SPONSORS } from "./sporting-nation-prestige-batch-01";
 import { SPORTSWEAR_BATCH_01_SPONSORS } from "./sportswear-batch-01";
 import { AIRLINE_SPONSORS, TOURISM_SPONSORS } from "./tourism-airlines";
+import { UNDERCOVERED_COUNTRY_BATCH_02_SPONSORS } from "./undercovered-country-batch-02";
 import { AMERICAN_SPONSORS } from "./united-states";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
@@ -98,6 +99,7 @@ const RAW_SPONSORS = [
   ...WELLNESS_HYGIENE_SPONSORS,
   ...TOURISM_SPONSORS,
   ...AIRLINE_SPONSORS,
+  ...UNDERCOVERED_COUNTRY_BATCH_02_SPONSORS,
 ] satisfies readonly Sponsor[];
 
 export const SPONSORS = RAW_SPONSORS.map((sponsor) => ({
