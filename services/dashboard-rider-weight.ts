@@ -13,6 +13,11 @@ type WeightRatingRow = {
     height_cm: number | string | null; weight_kg: number | string | null;
   };
 };
+type WeightProgramRow = {
+  rider_id: string;
+  applied_at: string;
+  season_days: { calendar_date: string } | null;
+};
 
 export async function getDashboardOverweightRiders(
   context: { teamId: string; seasonId: string },
@@ -37,7 +42,7 @@ export async function getDashboardOverweightRiders(
     .returns<WeightRatingRow[]>();
   if (ratings.error) throw new Error(`Lecture des profils de l’effectif : ${ratings.error.message}`);
 
-  return (ratings.data ?? []).flatMap((row): OverweightRiderSummary[] => {
+  const summaries = (ratings.data ?? []).flatMap((row): OverweightRiderSummary[] => {
     const weightKg = row.riders.weight_kg === null ? null : Number(row.riders.weight_kg);
     const status = getRiderWeightStatus({
       heightCm: row.riders.height_cm === null ? null : Number(row.riders.height_cm), weightKg,
@@ -56,4 +61,33 @@ export async function getDashboardOverweightRiders(
       ...(status.isUnderweight ? { isUnderweight: true, minimumWeightKg: status.minimumWeightKg! } : {}),
     }] : [];
   }).sort((left, right) => left.name.localeCompare(right.name, "fr"));
+
+  const overweightIds = summaries.filter(rider => !rider.isUnderweight).map(rider => rider.riderId);
+  if (overweightIds.length === 0) return summaries;
+
+  // Both weight programmes share a rider-wide cooldown, including programmes
+  // from a previous team/season. Supplements do not start that cooldown.
+  // Only load dates for this team's overweight riders, within the same timeout.
+  // 1,000 rows cover five days even at two programmes/day for all 100 riders.
+  const programs = await supabase.from("rider_weight_events")
+    .select("rider_id, applied_at, season_days(calendar_date)")
+    .in("rider_id", overweightIds).in("source", ["weight_cut", "weight_gain"])
+    .order("applied_at", { ascending: false }).limit(1_000).abortSignal(signal)
+    .returns<WeightProgramRow[]>();
+  if (programs.error) throw new Error(`Lecture des délais d’affûtage : ${programs.error.message}`);
+
+  const calendarDateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const latestDateByRiderId = new Map<string, string>();
+  for (const program of programs.data ?? []) {
+    const date = program.season_days?.calendar_date ?? calendarDateFormatter.format(new Date(program.applied_at));
+    if (date > (latestDateByRiderId.get(program.rider_id) ?? "")) {
+      latestDateByRiderId.set(program.rider_id, date);
+    }
+  }
+  return summaries.map(rider => {
+    const lastWeightProgramDate = latestDateByRiderId.get(rider.riderId);
+    return lastWeightProgramDate ? { ...rider, lastWeightProgramDate } : rider;
+  });
 }

@@ -32,6 +32,7 @@ export type OverweightRiderSummary = {
   overweightPhase?: RiderOverweightPhase;
   isUnderweight?: boolean;
   minimumWeightKg?: number;
+  lastWeightProgramDate?: string;
 };
 
 export function getRiderWeightStatus({

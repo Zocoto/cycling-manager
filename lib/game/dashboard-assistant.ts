@@ -6,6 +6,7 @@ import {
 } from "@/lib/game/race-calendar";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import type { OverweightRiderSummary } from "./rider-weight-status";
+import { getWeightProgramCooldownDays } from "./weight-program";
 import {
   getDashboardConstructionOpportunity,
   type DashboardConstructionContext,
@@ -289,7 +290,10 @@ export function buildDashboardAssistantLines({
   }
 
   if (snapshot.overweightRiders?.length) {
-    const riders = snapshot.overweightRiders.filter(rider => !rider.isUnderweight);
+    const riders = snapshot.overweightRiders.filter(rider =>
+      !rider.isUnderweight &&
+      getWeightProgramCooldownDays(rider.lastWeightProgramDate ?? null, snapshot.gameDate) === 0,
+    );
     const underweight = snapshot.overweightRiders.filter(rider => rider.isUnderweight);
     if (underweight.length > 0) alerts.push({
       id: "underweight-riders", tone: "alert", metric: String(underweight.length),
@@ -306,7 +310,7 @@ export function buildDashboardAssistantLines({
       id: "overweight-riders",
       tone: "alert",
       metric: String(riders.length),
-      title: pluralize(riders.length, "coureur en surpoids", "coureurs en surpoids"),
+      title: pluralize(riders.length, "affûtage possible pour coureur en surpoids", "affûtage possible pour coureurs en surpoids"),
       detail: `${names}${riders.length > 2 ? ` et ${riders.length - 2} autre${riders.length > 3 ? "s" : ""}` : ""} · poids trop élevé pour leur profil. ${weightImpact}`,
       href: `/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-${riders[0].riderId}`,
     });

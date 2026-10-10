@@ -60,6 +60,8 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "avec malus sur pavés, plat/sprint et CLM.": "with a penalty on cobbles, flat/sprint courses and time trials.",
   "coureur en surpoids": "overweight rider",
   "coureurs en surpoids": "overweight riders",
+  "affûtage possible pour coureur en surpoids": "weight cutting available for an overweight rider",
+  "affûtage possible pour coureurs en surpoids": "weight cutting available for overweight riders",
   "Surpoids pour le profil": "Overweight for the profile",
   "seuil de poids": "weight threshold",
   "bonus réduit sur pavés, plat/sprint et CLM": "reduced bonus on cobbles, flat/sprint courses and time trials",

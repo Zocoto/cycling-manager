@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { translateUiText, UI_TRANSLATIONS } from "@/lib/i18n/ui-translations";
 
 describe("French to English UI catalog", () => {
+  it("translates actionable weight-cutting alerts in singular and plural", () => {
+    expect(translateUiText("affûtage possible pour coureur en surpoids")).toBe("weight cutting available for an overweight rider");
+    expect(translateUiText("affûtage possible pour coureurs en surpoids")).toBe("weight cutting available for overweight riders");
+  });
   it("translates the staff market minimum-level threshold", () => {
     expect(translateUiText("Niveau minimum")).toBe("Minimum level");
     expect(translateUiText("Niveau 3 et plus")).toBe("Level 3 and above");

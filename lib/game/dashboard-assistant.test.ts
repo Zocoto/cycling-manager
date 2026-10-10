@@ -93,7 +93,7 @@ describe("dashboard DS assistant", () => {
       snapshot: { ...snapshot, overweightRiders }, rewardCount: 0, cashBalance: 100_000,
     }).alerts.find((line) => line.id === "overweight-riders");
     expect(alert).toEqual(expect.objectContaining({
-      tone: "alert", metric: "3", title: "coureurs en surpoids",
+      tone: "alert", metric: "3", title: "affûtage possible pour coureurs en surpoids",
       href: "/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-rider-1",
     }));
     expect(alert?.detail).toContain("Coureur 1 (Grimpeur), Coureur 2 (Grimpeur) et 1 autre");
@@ -108,6 +108,33 @@ describe("dashboard DS assistant", () => {
     }).alerts.find((line) => line.id === "overweight-riders");
     expect(alertFor("reduced_bonus")?.detail).toContain("Bonus réduit sur pavés, plat/sprint et CLM");
     expect(alertFor("penalty")?.detail).toContain("1 avec malus sur pavés, plat/sprint et CLM");
+  });
+  it.each([0, 1, 2, 3, 4, 5, 6])("only shows weight cutting after five calendar days (elapsed: %i)", elapsed => {
+    const rider = {
+      riderId: "climber", name: "Un Grimpeur", profileLabel: "Grimpeur",
+      weightKg: 61, maximumWeightKg: 60.4, lastWeightProgramDate: "2026-08-28",
+    };
+    const gameDate = new Date(Date.UTC(2026, 7, 28 + elapsed)).toISOString().slice(0, 10);
+    const alert = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, gameDate, overweightRiders: [rider] }, rewardCount: 0, cashBalance: 100_000,
+    }).alerts.find(line => line.id === "overweight-riders");
+    if (elapsed < 5) expect(alert).toBeUndefined();
+    else expect(alert).toMatchObject({ metric: "1", title: "affûtage possible pour coureur en surpoids" });
+  });
+  it("counts, names and links only eligible overweight riders without changing the underweight alert", () => {
+    const rider = { riderId: "blocked", name: "Bloqué", profileLabel: "Grimpeur", weightKg: 61, maximumWeightKg: 60.4 };
+    const alerts = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, gameDate: "2026-10-03", overweightRiders: [
+        { ...rider, lastWeightProgramDate: "2026-09-30" },
+        { ...rider, riderId: "ready", name: "Disponible", lastWeightProgramDate: "2026-09-28" },
+        { ...rider, riderId: "light", isUnderweight: true, lastWeightProgramDate: "2026-10-03" },
+      ] }, rewardCount: 0, cashBalance: 100_000,
+    }).alerts;
+    const alert = alerts.find(line => line.id === "overweight-riders");
+    expect(alert).toMatchObject({ metric: "1", href: "/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-ready" });
+    expect(alert?.detail).toContain("Disponible");
+    expect(alert?.detail).not.toContain("Bloqué");
+    expect(alerts.find(line => line.id === "underweight-riders")).toMatchObject({ metric: "1" });
   });
   it.each([1, 3])("signals %i free R&D engineers with a direct laboratory link", (count) => {
     const groups = buildDashboardAssistantLines({
