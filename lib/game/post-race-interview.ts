@@ -125,6 +125,10 @@ export type PostRaceInterviewSnapshot = {
   eventResolution: PostRaceInterviewEventResolution | null;
 };
 
+export type PostRaceInterviewSubmissionResult =
+  | { ok: true; interview: PostRaceInterviewSnapshot }
+  | { ok: false; message: string };
+
 export function concealZoneMixteEventOutcomes(
   context: PostRaceInterviewContext,
 ): PostRaceInterviewContext {

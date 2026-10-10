@@ -86,19 +86,19 @@ export function PostRaceInterviewPanel({
         const freeAnswers = standardQuestionIndexes.map(
           (index) => answers[index] ?? "",
         );
-        const updated = await submitPostRaceInterviewAction({
+        const result = await submitPostRaceInterviewAction({
           interviewId: interview.id,
           answers: freeAnswers,
           closingNote,
           eventChoiceId,
         });
-        setInterview(updated);
-      } catch (error) {
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "L’interview n’a pas pu être enregistrée.",
-        );
+        if (!result.ok) {
+          setErrorMessage(result.message);
+          return;
+        }
+        setInterview(result.interview);
+      } catch {
+        setErrorMessage("L’envoi a été interrompu. Vos réponses sont conservées ; réessayez dans un instant. Si le problème persiste, copiez vos réponses avant de recharger la page.");
       }
     });
   }
