@@ -17,7 +17,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentTeamEquipmentOverview } from "@/services/team-equipment";
 
 export const metadata: Metadata = {
-  title: "Équiper l’équipe",
+  title: "Équiper les coureurs",
   description:
     "Attribuez le matériel de tous les coureurs depuis une seule vue et une seule validation.",
 };
@@ -88,7 +88,7 @@ export default async function TeamEquipmentPage({
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-                  Équiper l’équipe
+                  Équiper les coureurs
                 </h1>
                 <TutorialLaunchButton
                   tutorialKey={EQUIPMENT_TUTORIAL_KEY}

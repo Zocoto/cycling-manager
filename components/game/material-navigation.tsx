@@ -11,7 +11,7 @@ const MATERIAL_ROUTES = [
     "Contrat et gamme partenaire",
   ],
   ["/jeu/materiel/laboratoire", "Labo R&D", "Recherche et développement"],
-  ["/jeu/materiel/equiper", "Équiper l’équipe", "Attributions aux coureurs"],
+  ["/jeu/materiel/equiper", "Équiper les coureurs", "Attributions aux coureurs"],
 ] as const;
 
 type MaterialRoute = (typeof MATERIAL_ROUTES)[number][0];

@@ -1305,7 +1305,8 @@ function TeamManagementSection() {
             "Chaussures, roue avant et roue arrière",
             "Cadre",
             "Bonus de notes, de chrono, de protection ou de réputation",
-            "Un exemplaire ne peut équiper qu’un seul coureur",
+            "Hors dotation équipementier, un exemplaire ne peut équiper qu’un seul coureur",
+            "Équiper les coureurs : cochez cadre et/ou roues pour compléter en masse les emplacements vides des coureurs affichés, puis validez les affectations. Le matériel équipé ou programmé est conservé.",
           ]}
         />
         <FeatureCard

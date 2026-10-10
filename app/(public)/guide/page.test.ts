@@ -23,6 +23,7 @@ describe("guide public", () => {
       "Équipe de développement",
       "Progression des coureurs libres",
       "Retraite des coureurs libres",
+      "Équiper les coureurs",
     ]) {
       expect(source).toContain(expected);
     }

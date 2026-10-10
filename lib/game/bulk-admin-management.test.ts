@@ -123,7 +123,7 @@ describe("administration groupée du matériel", () => {
       expect(page).toContain("<MaterialNavigation");
     }
     expect(materialNavigation).toContain('"/jeu/materiel/equiper"');
-    expect(materialNavigation).toContain("Équiper l’équipe");
+    expect(materialNavigation).toContain("Équiper les coureurs");
   });
 
   it("prépare les huit emplacements et donne priorité au changement programmé", () => {

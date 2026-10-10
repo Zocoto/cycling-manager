@@ -14,15 +14,17 @@ const desktopTable = read(
 );
 const equipmentActions = read("app/jeu/materiel/actions.ts");
 const equipmentService = read("services/team-equipment.ts");
+const materialNavigation = read("components/game/material-navigation.tsx");
 
 describe("gestion groupée des équipements", () => {
   it("rend la rubrique accessible depuis toutes les pages Matériel", () => {
     for (const page of [materialPage, partnerPage, managerPage]) {
-      expect(page).toContain('href="/jeu/materiel/equiper"');
-      expect(page).toContain("Équiper l’équipe");
+      expect(page).toContain("<MaterialNavigation");
     }
-
-    expect(managerPage).toContain('aria-current="page"');
+    expect(materialNavigation).toContain('"/jeu/materiel/equiper"');
+    expect(materialNavigation).toContain("Équiper les coureurs");
+    expect(managerPage).toContain('activeHref="/jeu/materiel/equiper"');
+    expect(managerPage).toContain("Équiper les coureurs");
   });
 
   it("charge l'effectif et conserve l'apparence du maillot de l'équipe", () => {

@@ -14,6 +14,12 @@ import {
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
+import {
+  buildPartnerBulkEquipmentAssignments,
+  getPartnerBulkEquipmentItems,
+  PARTNER_BULK_EQUIPMENT_SLOTS,
+  type PartnerBulkEquipmentSlot,
+} from "@/lib/game/partner-equipment-bulk";
 import type {
   TeamEquipmentAssignment,
   TeamEquipmentCatalogItem,
@@ -61,6 +67,13 @@ export function TeamEquipmentBulkEditor({
   const [valuesByKey, setValuesByKey] = useState(() => initialValues);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [partnerBulkSlots, setPartnerBulkSlots] = useState<PartnerBulkEquipmentSlot[]>(
+    [...PARTNER_BULK_EQUIPMENT_SLOTS],
+  );
+  const partnerItemsBySlot = useMemo(
+    () => getPartnerBulkEquipmentItems(catalog),
+    [catalog],
+  );
   const itemById = useMemo(
     () => new Map(catalog.map((item) => [item.id, item])),
     [catalog],
@@ -146,6 +159,13 @@ export function TeamEquipmentBulkEditor({
   });
   const totalEquipped = Object.values(valuesByKey).filter(Boolean).length;
   const totalSlots = riders.length * SLOT_ORDER.length;
+  const partnerBulkAssignments = buildPartnerBulkEquipmentAssignments({
+    riders: visibleRiders,
+    itemsBySlot: partnerItemsBySlot,
+    slots: partnerBulkSlots,
+    initialValues,
+    valuesByKey,
+  });
   const pendingKeys = useMemo(
     () =>
       new Set(
@@ -165,6 +185,26 @@ export function TeamEquipmentBulkEditor({
       ...current,
       [riderSlotKey(riderId, slot)]: equipmentItemId,
     }));
+  }
+
+  function preparePartnerBulkEquipment() {
+    setValuesByKey((current) => {
+      const assignments = buildPartnerBulkEquipmentAssignments({
+        riders: visibleRiders,
+        itemsBySlot: partnerItemsBySlot,
+        slots: partnerBulkSlots,
+        initialValues,
+        valuesByKey: current,
+      });
+      if (assignments.length === 0) return current;
+      return {
+        ...current,
+        ...Object.fromEntries(assignments.map((assignment) => [
+          riderSlotKey(assignment.riderId, assignment.slot),
+          assignment.equipmentItemId,
+        ])),
+      };
+    });
   }
 
   return (
@@ -211,6 +251,59 @@ export function TeamEquipmentBulkEditor({
             />
           </div>
         </div>
+
+        {Object.keys(partnerItemsBySlot).length > 0 ? (
+          <fieldset
+            aria-describedby="partner-bulk-help"
+            className="mt-4 rounded-xl border border-[#278B70]/20 bg-[#F8FBF9] px-3 py-2.5 sm:px-4"
+          >
+            <legend className="px-1 text-xs font-black text-[#183F37]">
+              Équiper le matériel de l’équipementier en masse
+            </legend>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2">
+                {PARTNER_BULK_EQUIPMENT_SLOTS.map((slot) => {
+                  const item = partnerItemsBySlot[slot];
+                  return (
+                    <label
+                      key={slot}
+                      title={item?.name ?? "Matériel indisponible"}
+                      className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 text-xs font-bold ${
+                        item ? "cursor-pointer border-[#315B3E]/15 bg-white text-[#183F37]" : "border-[#315B3E]/10 text-[#8B9C94]"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item) && partnerBulkSlots.includes(slot)}
+                        disabled={!item}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setPartnerBulkSlots((current) => checked
+                            ? [...new Set([...current, slot])]
+                            : current.filter((selectedSlot) => selectedSlot !== slot));
+                        }}
+                        className="h-4 w-4 accent-[#176951]"
+                      />
+                      {slot === "front_wheel" ? "Roue avant" : slot === "rear_wheel" ? "Roue arrière" : "Cadre"}
+                      <span className="sr-only"> · {item?.name ?? "indisponible"}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                disabled={partnerBulkAssignments.length === 0}
+                onClick={preparePartnerBulkEquipment}
+                className="min-h-10 rounded-lg bg-[#176951] px-3 text-xs font-black text-white transition hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Préparer {partnerBulkAssignments.length} attribution{partnerBulkAssignments.length > 1 ? "s" : ""}
+              </button>
+            </div>
+            <p id="partner-bulk-help" className="mt-1.5 text-[11px] font-semibold leading-5 text-[#60756E]">
+              Sur les coureurs affichés, uniquement les emplacements vides. Le matériel équipé ou programmé est conservé. Puis validez les affectations.
+            </p>
+          </fieldset>
+        ) : null}
 
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(220px,1fr)_auto]">
           <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[#315B3E]/15 bg-[#F8FBF9] px-4">
