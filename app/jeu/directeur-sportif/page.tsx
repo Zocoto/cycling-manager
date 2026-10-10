@@ -32,6 +32,7 @@ import { DEFAULT_AMATEUR_JERSEY } from "../../../lib/amateur-team";
 import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getCurrentReferralOverview } from "../../../services/referrals";
+import { getHalloweenAvatarWardrobe } from "@/services/halloween-avatar-wardrobe";
 import { getSportingDirectorSeasonAwards } from "../../../services/season-awards";
 import { getSportingDirectorReputationBreakdown } from "../../../services/sporting-director-reputation";
 import {
@@ -108,7 +109,7 @@ export default async function SportingDirectorProfilePage() {
     redirect("/connexion");
   }
 
-  const [profileResult, countriesResult, referralOverview] =
+  const [profileResult, countriesResult, referralOverview, halloweenWardrobe] =
     await Promise.all([
       supabase
         .from("sporting_directors")
@@ -144,6 +145,7 @@ export default async function SportingDirectorProfilePage() {
       getCurrentReferralOverview(supabase, getPublicSiteUrl() ?? "").catch(
         () => null,
       ),
+      getHalloweenAvatarWardrobe(user.id),
     ]);
 
   let teamSponsorIdentity:
@@ -391,6 +393,7 @@ export default async function SportingDirectorProfilePage() {
 
                 <div className="mt-8">
                   <SportingDirectorProfileForm
+                    halloweenWardrobe={halloweenWardrobe}
                     countries={countries}
                     initialDisplayName={
                       sportingDirector.display_name

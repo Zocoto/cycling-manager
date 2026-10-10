@@ -11,8 +11,10 @@ import {
 import { CountrySelect, type CountryOption } from "./country-select";
 import { SportingDirectorAvatar } from "./sporting-director-avatar";
 import { SportingDirectorAvatarEditor } from "./sporting-director-avatar-editor";
+import type { HalloweenAvatarItemId } from "@/lib/game/halloween-avatar";
 
 type SportingDirectorProfileFormProps = {
+  halloweenWardrobe?: { owned: HalloweenAvatarItemId[]; selected: HalloweenAvatarItemId[] };
   countries: CountryOption[];
   initialDisplayName: string;
   initialCountryId: string | null;
@@ -41,6 +43,7 @@ const profileFields: SportingDirectorProfileField[] = [
 ];
 
 export function SportingDirectorProfileForm({
+  halloweenWardrobe,
   countries,
   initialDisplayName,
   initialCountryId,
@@ -67,6 +70,7 @@ export function SportingDirectorProfileForm({
   const [selectedAvatarKey, setSelectedAvatarKey] = useState(
     initialAvatarKey ?? "",
   );
+  const [selectedHalloweenItems, setSelectedHalloweenItems] = useState(halloweenWardrobe?.selected ?? []);
   const [selectedAvatarFrameKey, setSelectedAvatarFrameKey] = useState<
     "alpha_tester" | null
   >(initialAvatarFrameKey);
@@ -181,8 +185,10 @@ export function SportingDirectorProfileForm({
   function selectAvatar(
     avatarKey: string,
     frameKey: "alpha_tester" | null,
+    halloweenItems: HalloweenAvatarItemId[],
   ) {
     setSelectedAvatarKey(avatarKey);
+    setSelectedHalloweenItems(halloweenItems);
     setSelectedAvatarFrameKey(frameKey);
     setIsAvatarModalOpen(false);
     dismissFieldError("avatarKey");
@@ -370,6 +376,7 @@ export function SportingDirectorProfileForm({
           </div>
 
           <input type="hidden" name="avatarKey" value={selectedAvatarKey} />
+          {halloweenWardrobe ? <input type="hidden" name="halloweenCosmetics" value={JSON.stringify(selectedHalloweenItems)} /> : null}
           <input
             type="hidden"
             name="alphaTesterFrameEnabled"
@@ -727,6 +734,8 @@ export function SportingDirectorProfileForm({
             </div>
 
             <SportingDirectorAvatarEditor
+              ownedHalloweenItems={halloweenWardrobe?.owned}
+              selectedHalloweenItems={selectedHalloweenItems}
               avatarKey={selectedAvatarKey || null}
               frameKey={selectedAvatarFrameKey}
               hasAlphaTesterTrophy={hasAlphaTesterTrophy}

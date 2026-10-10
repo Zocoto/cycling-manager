@@ -124,10 +124,10 @@ export function SportingDirectorAvatar({
         <g data-avatar-hair-front={avatar.hairStyle}>
           <AvatarHairFront avatar={avatar} color={hair.color} />
         </g>
-        {avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY ? (
+        {avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY && !halloweenArts.includes("cap") ? (
           <AvatarPatronHat />
         ) : null}
-        {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY ? (
+        {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY && !halloweenArts.includes("cap") ? (
           <AvatarNurseCap />
         ) : null}
         <AvatarEyebrows avatar={avatar} color={hair.color} />

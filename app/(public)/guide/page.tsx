@@ -83,7 +83,7 @@ const firstSteps = [
   {
     number: "01",
     title: "Finaliser votre profil",
-    text: "Choisissez le nom public, la nationalité et l’avatar de votre Directeur Sportif. La nationalité est un choix structurant de la carrière.",
+    text: "Choisissez le nom public, la nationalité et l’avatar de votre Directeur Sportif. La nationalité est un choix structurant de la carrière. Dans l’onglet Style de l’éditeur d’avatar, vos éléments Halloween acquis sont classés par catégorie et restent disponibles après l’événement. Les accessoires compatibles se cumulent ; cliquez à nouveau sur un élément pour le retirer.",
     href: "/jeu/directeur-sportif",
     linkLabel: "Profil du DS",
   },

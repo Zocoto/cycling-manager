@@ -31,6 +31,6 @@ export function HalloweenSkinPreview({ avatarKey, item, onClose }: {
       <figure><SportingDirectorAvatar avatarKey={avatarKey} size="xlarge" label="Votre portrait actuel" /><figcaption>Votre portrait actuel</figcaption></figure>
       <figure><SportingDirectorAvatar avatarKey={previewHalloweenAvatarKey(avatarKey, item.id)} size="xlarge" label={`Votre portrait avec ${item.name}`} /><figcaption>{item.kind === "transformation" ? "Avec la transformation" : "Avec cet élément"}</figcaption></figure>
     </div>
-    <p>{item.description}</p><p className="halloween-secondary">Aperçu sans malédiction préalable. Votre portrait et vos roues ne sont pas modifiés.{item.kind === "transformation" ? " Un sort acheté s’envoie ensuite à un autre DS." : " Pour porter cet élément, retrouvez-le dans « Mes trésors » après son acquisition."}</p>
+    <p>{item.description}</p><p className="halloween-secondary">Aperçu sans malédiction préalable. Votre portrait et vos roues ne sont pas modifiés.{item.kind === "transformation" ? " Un sort acheté s’envoie ensuite à un autre DS." : " Après acquisition, retrouvez cet élément dans l’onglet Style de votre éditeur d’avatar ou dans « Mes trésors »."}</p>
   </dialog>;
 }

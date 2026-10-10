@@ -14,9 +14,9 @@ describe("essayage Halloween sans sauvegarde", () => {
       expect(original).toBe("director_f_02~halloween~cap,web");
     });
   }
-  it("remplace le cadre et la tenue, sans empiler des éléments du même emplacement", () => {
+  it("cumule les cadres compatibles et remplace uniquement la tenue", () => {
     const key = "director_m_01~halloween~headless,web,cap,bat";
-    expect(halloweenAvatarArts(previewHalloweenAvatarKey(key, "spectral-wheel"))).toEqual(["headless", "cap", "bat", "wheel"]);
+    expect(halloweenAvatarArts(previewHalloweenAvatarKey(key, "spectral-wheel"))).toEqual(["headless", "web", "cap", "bat", "wheel"]);
     expect(halloweenAvatarArts(previewHalloweenAvatarKey(key, "lord-vlad"))).toEqual(["web", "cap", "bat", "vlad"]);
   });
   it("affiche l’accessoire hors malédiction et reproduit la transformation du serveur", () => {

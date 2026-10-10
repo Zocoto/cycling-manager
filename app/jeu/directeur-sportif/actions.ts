@@ -34,6 +34,7 @@ import {
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
+import { originalHalloweenAvatarKey, parseHalloweenAvatarSelection } from "@/lib/game/halloween-avatar";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { AmateurTeamCreationState } from "./amateur-team-state";
 import type { SportingDirectorProfileState } from "./profile-state";
@@ -144,10 +145,18 @@ export async function updateSportingDirectorProfile(
     "countryId"
   ).trim();
 
-  const avatarKey = getFormValue(
+  const avatarKey = originalHalloweenAvatarKey(getFormValue(
     formData,
     "avatarKey"
-  ).trim();
+  ).trim()) ?? "";
+
+  let halloweenCosmetics;
+  try {
+    halloweenCosmetics = parseHalloweenAvatarSelection(formData.get("halloweenCosmetics"));
+  } catch {
+    return { status: "error", message: "Vérifiez vos accessoires dans l’éditeur d’avatar.",
+      fieldErrors: { avatarKey: ["La sélection d’accessoires est invalide."] } };
+  }
 
   const hideEmail =
     getFormValue(formData, "hideEmail") === "true";
@@ -470,7 +479,7 @@ export async function updateSportingDirectorProfile(
     }
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = halloweenCosmetics === null ? await supabase
     .from("sporting_directors")
     .update({
       display_name: validationResult.data.displayName,
@@ -482,7 +491,15 @@ export async function updateSportingDirectorProfile(
       is_email_visible:
         !validationResult.data.hideEmail,
     })
-    .eq("auth_user_id", user.id);
+    .eq("auth_user_id", user.id) : await createSupabaseAdminClient().rpc("save_sporting_director_avatar_cosmetics", {
+      p_user: user.id,
+      p_display_name: validationResult.data.displayName,
+      p_country: validationResult.data.countryId,
+      p_avatar: validationResult.data.avatarKey,
+      p_frame: validationResult.data.alphaTesterFrameEnabled ? "alpha_tester" : null,
+      p_email_visible: !validationResult.data.hideEmail,
+      p_items: halloweenCosmetics,
+    });
 
   if (updateError) {
     console.error(

@@ -30,15 +30,22 @@ import {
   type SportingDirectorAvatarConfig,
 } from "@/lib/sporting-director-avatar";
 import { SportingDirectorAvatar } from "./sporting-director-avatar";
+import {
+  composeHalloweenAvatarKey, halloweenAvatarArts, HALLOWEEN_AVATAR_COSMETICS,
+  toggleHalloweenAvatarItem, type HalloweenAvatarItemId,
+} from "@/lib/game/halloween-avatar";
+import { HalloweenAvatarChoices, type AvatarStyleCategory } from "./halloween-avatar-choices";
 
 type SportingDirectorAvatarEditorProps = {
   avatarKey: string | null;
+  ownedHalloweenItems?: HalloweenAvatarItemId[];
+  selectedHalloweenItems?: HalloweenAvatarItemId[];
   frameKey?: "alpha_tester" | null;
   hasAlphaTesterTrophy?: boolean;
   hasAssiduTrophy?: boolean;
   hasHiddenSwitchbackTrophy?: boolean;
   onCancel: () => void;
-  onConfirm: (avatarKey: string, frameKey: "alpha_tester" | null) => void;
+  onConfirm: (avatarKey: string, frameKey: "alpha_tester" | null, halloweenItems: HalloweenAvatarItemId[]) => void;
   patronOutfitUnlocked?: boolean;
   patronHatUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
@@ -64,6 +71,8 @@ const editorTabs: Array<{
 
 export function SportingDirectorAvatarEditor({
   avatarKey,
+  ownedHalloweenItems = [],
+  selectedHalloweenItems = [],
   frameKey = null,
   hasAlphaTesterTrophy = false,
   hasAssiduTrophy = false,
@@ -86,7 +95,11 @@ export function SportingDirectorAvatarEditor({
     "alpha_tester" | null
   >(hasAlphaTesterTrophy ? frameKey : null);
   const [activeTab, setActiveTab] = useState<EditorTab>("face");
-  const previewKey = encodeSportingDirectorAvatar(config);
+  const [styleCategory, setStyleCategory] = useState<AvatarStyleCategory>("outfit");
+  const initialHalloweenItems = selectedHalloweenItems.filter(id => ownedHalloweenItems.includes(id));
+  const [halloweenItems, setHalloweenItems] = useState(initialHalloweenItems);
+  const curse = halloweenAvatarArts(avatarKey).find(art => art === "vampire" || art === "mummy");
+  const previewKey = composeHalloweenAvatarKey(encodeSportingDirectorAvatar(config), halloweenItems, curse);
   const availableGlassesStyles = getAvailableAvatarGlassesStyles({
     hasAssiduTrophy,
     hasHiddenSwitchbackTrophy,
@@ -114,6 +127,9 @@ export function SportingDirectorAvatarEditor({
     field: K,
     value: SportingDirectorAvatarConfig[K]
   ) {
+    if (field === "background" || field === "outfit") {
+      setHalloweenItems(current => current.filter(id => HALLOWEEN_AVATAR_COSMETICS[id].slot !== field));
+    }
     setConfig((currentConfig) => ({
       ...currentConfig,
       [field]: value,
@@ -171,6 +187,7 @@ export function SportingDirectorAvatarEditor({
                 type="button"
                 onClick={() => {
                   setConfig(initialConfig);
+                  setHalloweenItems(initialHalloweenItems);
                   setSelectedFrameKey(
                     hasAlphaTesterTrophy ? frameKey : null,
                   );
@@ -306,7 +323,13 @@ export function SportingDirectorAvatarEditor({
 
             {activeTab === "style" ? (
               <>
-                {hasAlphaTesterTrophy ? (
+                <div className="flex flex-wrap gap-2" aria-label="Catégories de style">
+                  {([ ["background", "Fonds"], ["glasses", "Lunettes"], ["hat", "Chapeaux"], ["outfit", "Maillots et tenues"], ["accessories", "Accessoires"] ] as const).map(([key, label]) => (
+                    <button key={key} type="button" aria-pressed={styleCategory === key} onClick={() => setStyleCategory(key)}
+                      className={avatarFrameChoiceClass(styleCategory === key)}>{label}</button>
+                  ))}
+                </div>
+                {hasAlphaTesterTrophy && styleCategory === "accessories" ? (
                   <fieldset>
                     <legend className="text-sm font-black text-[#183F37]">
                       Liseré du portrait
@@ -350,7 +373,7 @@ export function SportingDirectorAvatarEditor({
                     </div>
                   </fieldset>
                 ) : null}
-                <AvatarChoiceGroup
+                {styleCategory === "glasses" ? <AvatarChoiceGroup
                   title="Lunettes"
                   description={[
                     hasAssiduTrophy
@@ -364,9 +387,9 @@ export function SportingDirectorAvatarEditor({
                   value={config.glasses}
                   options={availableGlassesStyles}
                   onSelect={updateField}
-                />
-                <AvatarChoiceGroup
-                  title="Tenue"
+                /> : null}
+                {styleCategory === "outfit" ? <AvatarChoiceGroup
+                  title="Maillots et tenues"
                   description={[
                     patronOutfitUnlocked
                       ? "La tenue du Parrain est débloquée grâce à vos filleuls."
@@ -396,8 +419,11 @@ export function SportingDirectorAvatarEditor({
                   onSelect={updateField}
                   disabledKeys={disabledOutfitKeys}
                   swatches
-                />
-                <AvatarChoiceGroup title="Fond du portrait" field="background" value={config.background} options={AVATAR_BACKGROUNDS} onSelect={updateField} swatches />
+                /> : null}
+                {styleCategory === "background" ? <AvatarChoiceGroup title="Fond du portrait" field="background" value={config.background} options={AVATAR_BACKGROUNDS} onSelect={updateField} swatches /> : null}
+                {styleCategory !== "glasses" ? <HalloweenAvatarChoices category={styleCategory} owned={ownedHalloweenItems}
+                  selected={halloweenItems} baseKey={encodeSportingDirectorAvatar(config)} curse={curse}
+                  onToggle={id => setHalloweenItems(current => toggleHalloweenAvatarItem(current, id))} /> : null}
               </>
             ) : null}
           </div>
@@ -415,7 +441,7 @@ export function SportingDirectorAvatarEditor({
 
         <button
           type="button"
-          onClick={() => onConfirm(previewKey, selectedFrameKey)}
+          onClick={() => onConfirm(previewKey, selectedFrameKey, halloweenItems)}
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#176951] px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-[#0E5141] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2"
         >
           Valider ce portrait
