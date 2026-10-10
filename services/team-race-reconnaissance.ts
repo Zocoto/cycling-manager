@@ -26,6 +26,15 @@ import {
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  collectChunkedPaginatedRows,
+  collectPaginatedRows,
+} from "@/lib/supabase/pagination";
+
+// Le calendrier dépasse 800 courses : un filtre unique de UUID produit une
+// URL refusée par PostgREST. Limiter aussi la concurrence et paginer les lignes.
+const UUID_FILTER_CHUNK_SIZE = 40;
+const QUERY_MAX_CONCURRENCY = 2;
 
 type DirectorRow = {
   id: string;
@@ -299,30 +308,45 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       .eq("team_id", teamSeason.team_id)
       .eq("status", "active")
       .returns<StaffContractRow[]>(),
-    admin
-      .from("race_editions")
-      .select("id, race_id, race_category_id, display_name, status")
-      .eq("season_id", season.id)
-      .neq("status", "cancelled")
-      .returns<EditionRow[]>(),
-    admin
-      .from("race_registrations")
-      .select("id, race_edition_id, status, entry_method")
-      .eq("team_season_id", teamSeason.id)
-      .returns<RegistrationRow[]>(),
+    collectPaginatedRows<EditionRow, { message: string }>({
+      fetchPage: async (from, to) =>
+        await admin
+          .from("race_editions")
+          .select("id, race_id, race_category_id, display_name, status")
+          .eq("season_id", season.id)
+          .neq("status", "cancelled")
+          .order("id")
+          .range(from, to)
+          .returns<EditionRow[]>(),
+    }),
+    collectPaginatedRows<RegistrationRow, { message: string }>({
+      fetchPage: async (from, to) =>
+        await admin
+          .from("race_registrations")
+          .select("id, race_edition_id, status, entry_method")
+          .eq("team_season_id", teamSeason.id)
+          .order("id")
+          .range(from, to)
+          .returns<RegistrationRow[]>(),
+    }),
     admin
       .from("race_categories")
       .select("id, code, name")
       .returns<CategoryRow[]>(),
-    admin
-      .from("stage_reconnaissances")
-      .select(
-        "id, target_stage_id, preparer_contract_id, preparer_level, bonus_points, start_day_number, end_day_number, total_price, status, created_at, interruption_requested_at, interruption_effective_day_number",
-      )
-      .eq("team_season_id", teamSeason.id)
-      .or("status.neq.cancelled,interruption_requested_at.not.is.null")
-      .order("created_at", { ascending: false })
-      .returns<ReconnaissanceRow[]>(),
+    collectPaginatedRows<ReconnaissanceRow, { message: string }>({
+      fetchPage: async (from, to) =>
+        await admin
+          .from("stage_reconnaissances")
+          .select(
+            "id, target_stage_id, preparer_contract_id, preparer_level, bonus_points, start_day_number, end_day_number, total_price, status, created_at, interruption_requested_at, interruption_effective_day_number",
+          )
+          .eq("team_season_id", teamSeason.id)
+          .or("status.neq.cancelled,interruption_requested_at.not.is.null")
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(from, to)
+          .returns<ReconnaissanceRow[]>(),
+    }),
     admin
       .from("team_sponsor_contracts")
       .select("id")
@@ -458,29 +482,48 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .in("staff_member_id", staffMemberIds)
           .returns<StaffTalentRow[]>()
       : emptyResult<StaffTalentRow>(),
-    raceIds.length
-      ? admin
+    collectChunkedPaginatedRows<RaceRow, { message: string }, string>({
+      values: raceIds,
+      chunkSize: UUID_FILTER_CHUNK_SIZE,
+      maxConcurrency: QUERY_MAX_CONCURRENCY,
+      fetchPage: async (chunk, from, to) =>
+        await admin
           .from("races")
           .select("id, country_id, name, slug, race_format")
-          .in("id", raceIds)
-          .returns<RaceRow[]>()
-      : emptyResult<RaceRow>(),
-    editionIds.length
-      ? admin
+          .in("id", chunk)
+          .order("id")
+          .range(from, to)
+          .returns<RaceRow[]>(),
+    }),
+    collectChunkedPaginatedRows<StageRow, { message: string }, string>({
+      values: editionIds,
+      chunkSize: UUID_FILTER_CHUNK_SIZE,
+      maxConcurrency: QUERY_MAX_CONCURRENCY,
+      fetchPage: async (chunk, from, to) =>
+        await admin
           .from("stages")
           .select(
             "id, race_edition_id, season_day_id, stage_number, name, profile_type, distance_km, status",
           )
-          .in("race_edition_id", editionIds)
-          .returns<StageRow[]>()
-      : emptyResult<StageRow>(),
-    missionIds.length
-      ? admin
+          .in("race_edition_id", chunk)
+          .order("id")
+          .range(from, to)
+          .returns<StageRow[]>(),
+    }),
+    collectChunkedPaginatedRows<ParticipantRow, { message: string }, string>({
+      values: missionIds,
+      chunkSize: UUID_FILTER_CHUNK_SIZE,
+      maxConcurrency: QUERY_MAX_CONCURRENCY,
+      fetchPage: async (chunk, from, to) =>
+        await admin
           .from("stage_reconnaissance_riders")
           .select("reconnaissance_id, rider_id")
-          .in("reconnaissance_id", missionIds)
-          .returns<ParticipantRow[]>()
-      : emptyResult<ParticipantRow>(),
+          .in("reconnaissance_id", chunk)
+          .order("reconnaissance_id")
+          .order("rider_id")
+          .range(from, to)
+          .returns<ParticipantRow[]>(),
+    }),
     riderIds.length && preparatoryRegistrationIds.length
       ? loadSelectedRosters(admin, riderIds, preparatoryRegistrationIds)
       : Promise.resolve([] as RosterRow[]),
@@ -506,13 +549,23 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       teamSeason.registration_country_id,
     ]),
   ];
-  const countriesResult = countryIds.length
-    ? await admin
+  const countriesResult = await collectChunkedPaginatedRows<
+    CountryRow,
+    { message: string },
+    string
+  >({
+    values: countryIds,
+    chunkSize: UUID_FILTER_CHUNK_SIZE,
+    maxConcurrency: QUERY_MAX_CONCURRENCY,
+    fetchPage: async (chunk, from, to) =>
+      await admin
         .from("countries")
         .select("id, name, iso_alpha2, continent_code")
-        .in("id", countryIds)
-        .returns<CountryRow[]>()
-    : emptyResult<CountryRow>();
+        .in("id", chunk)
+        .order("id")
+        .range(from, to)
+        .returns<CountryRow[]>(),
+  });
   assertQuery(countriesResult.error, "les pays");
 
   const dayById = new Map(days.map((day) => [day.id, day]));
@@ -908,22 +961,28 @@ async function loadSelectedRosters(
   riderIds: string[],
   registrationIds: string[],
 ) {
-  const rosters: RosterRow[] = [];
-  for (let offset = 0; ; offset += 500) {
-    const result = await admin
-      .from("race_rosters")
-      .select("rider_id, race_registration_id, status")
-      .in("rider_id", riderIds)
-      .in("race_registration_id", registrationIds)
-      .in("status", ["selected", "confirmed"])
-      .order("id")
-      .range(offset, offset + 499)
-      .returns<RosterRow[]>();
-    assertQuery(result.error, "les engagements en course");
-    const page = result.data ?? [];
-    rosters.push(...page);
-    if (page.length < 500) return rosters;
-  }
+  const result = await collectChunkedPaginatedRows<
+    RosterRow,
+    { message: string },
+    string
+  >({
+    values: registrationIds,
+    chunkSize: UUID_FILTER_CHUNK_SIZE,
+    maxConcurrency: QUERY_MAX_CONCURRENCY,
+    pageSize: 500,
+    fetchPage: async (chunk, from, to) =>
+      await admin
+        .from("race_rosters")
+        .select("rider_id, race_registration_id, status")
+        .in("rider_id", riderIds)
+        .in("race_registration_id", chunk)
+        .in("status", ["selected", "confirmed"])
+        .order("id")
+        .range(from, to)
+        .returns<RosterRow[]>(),
+  });
+  assertQuery(result.error, "les engagements en course");
+  return result.data;
 }
 
 function groupCampsByRider(rows: CampRow[]) {
