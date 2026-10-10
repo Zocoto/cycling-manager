@@ -47,9 +47,9 @@ export type FederationEquipmentOffer = {
 
 export type FederationEquipmentContract = {
   id: string;
-  offerKey: string;
+  offerKey: string | null;
   offerName: string;
-  supplierKey: string;
+  supplierKey: string | null;
   pricePaid: number;
   signedAt: string;
   items: FederationEquipmentItem[];
@@ -88,8 +88,8 @@ type SupplierRow = {
 };
 type ContractRow = {
   id: string;
-  offer_key: string;
-  supplier_key: string;
+  offer_key: string | null;
+  supplier_key: string | null;
   offer_name: string;
   price_paid: number | string;
   signed_at: string;

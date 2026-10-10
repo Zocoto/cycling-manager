@@ -79,7 +79,7 @@ export function FederationEquipmentPreparationPanel({
       ) : null}
       {choiceConfirmed ? (
         <p className="mt-5 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
-          Le contrat équipementier est signé et verrouillé pour toute la saison.
+          Le choix d’équipement est enregistré et verrouillé pour toute la saison.
         </p>
       ) : null}
       {saved ? (
@@ -128,7 +128,7 @@ function EquipmentOffers({
             </p>
             <h2 className="mt-2 text-2xl font-black">Choisir la dotation des sélections</h2>
             <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
-              L’offre est indivisible et définitive. Elle équipe automatiquement les coureurs professionnels et juniors uniquement lorsqu’ils représentent leur nation ; leur matériel de club reprend effet sur toutes les autres courses.
+              Le choix est définitif pour la saison. Vous pouvez choisir « Sans équipement » ou une offre indivisible, qui équipe automatiquement les coureurs professionnels et juniors uniquement lorsqu’ils représentent leur nation ; leur matériel de club reprend effet sur toutes les autres courses.
             </p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-white/8 px-5 py-3 text-right">
@@ -144,7 +144,7 @@ function EquipmentOffers({
         <article className="rounded-3xl border border-[#278B70]/25 bg-[#EAF5F0] p-5 shadow-sm sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#278B70]">Contrat actif · choix verrouillé</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#278B70]">Choix saisonnier enregistré · choix verrouillé</p>
               <h3 className="mt-1 text-xl font-black text-[#0B302B]">{state.contract.offerName}</h3>
               <p className="mt-1 text-xs font-semibold text-[#66877C]">
                 {moneyFormatter.format(state.contract.pricePaid)} engagés pour la saison.
@@ -156,11 +156,31 @@ function EquipmentOffers({
               </span>
             ) : null}
           </div>
-          <EquipmentList items={state.contract.items} />
+          {state.contract.offerKey === null ? (
+            <p className="mt-4 text-sm font-semibold text-[#397A67]">
+              Aucune dotation ni bonus d’équipement fédéral cette saison. Le choix est enregistré et l’alerte est levée.
+            </p>
+          ) : <EquipmentList items={state.contract.items} />}
         </article>
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
+        <article className="rounded-3xl border border-[#315B3E]/14 bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#397A67]">Choix gratuit · 0 €</p>
+          <h3 className="mt-2 text-xl font-black text-[#0B302B]">Sans équipement</h3>
+          <p className="mt-3 text-sm font-semibold leading-6 text-[#66877C]">
+            Les sélections ne reçoivent aucune dotation ni bonus d’équipement fédéral. Ce choix lève l’alerte et reste définitif pour la saison.
+          </p>
+          {!state.contract && state.canManage ? (
+            <form action={chooseFederationEquipmentOfferAction} className="mt-5">
+              <input type="hidden" name="countryCode" value={countryCode} />
+              <input type="hidden" name="offerKey" value="sans-equipement" />
+              <button type="submit" className="min-h-11 w-full rounded-xl bg-[#176951] px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-[#0F5542]">
+                Choisir sans équipement pour la saison
+              </button>
+            </form>
+          ) : null}
+        </article>
         {state.offers.map((offer) => {
           const selected = offer.key === state.contract?.offerKey;
           const affordable = state.balance !== null && state.balance >= offer.seasonPrice;
