@@ -10,6 +10,13 @@ function NightRider({ x, y, demon = false }: { x: number; y: number; demon?: boo
   </g>;
 }
 
+/** The same approved rider, isolated for compact, static event decorations. */
+export function HalloweenHeadlessRider({ decorative = false }: { decorative?: boolean }) {
+  return <svg viewBox="-86 -143 156 150" role={decorative ? undefined : "img"} aria-label={decorative ? undefined : "L’équipier sans tête sur son vélo, à tête de citrouille."} aria-hidden={decorative || undefined} focusable="false" className="h-full w-full">
+    <NightRider x={0} y={0} demon />
+  </svg>;
+}
+
 export function HalloweenNightRide({ decorative = false }: { decorative?: boolean }) {
   return <svg viewBox="0 0 620 340" role={decorative ? undefined : "img"} aria-label={decorative ? undefined : "Deux cyclistes traversent une route nocturne sous la lune, dont un poursuivant à tête de citrouille."} aria-hidden={decorative || undefined} focusable="false">
     <rect width="620" height="340" fill="#29232E" />
