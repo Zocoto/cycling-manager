@@ -543,7 +543,7 @@ export function buildDashboardAssistantLines({
         "juniors de 18 ans à recruter",
       ),
       detail: "Le passage professionnel doit être programmé avant la fin de saison.",
-      href: "/jeu/centre-de-formation?onglet=ecole",
+      href: "/jeu/centre-de-formation?onglet=ecole&age=18",
     });
   }
 

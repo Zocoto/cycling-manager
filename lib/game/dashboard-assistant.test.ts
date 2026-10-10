@@ -194,6 +194,7 @@ describe("dashboard DS assistant", () => {
       expect.objectContaining({
         id: "youth-alerts",
         title: "junior de 18 ans à recruter",
+        href: "/jeu/centre-de-formation?onglet=ecole&age=18",
       }),
     );
     expect(groups.information.map((line) => line.id)).toEqual([
