@@ -79,7 +79,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-rules",
       title: "Un engagement technique de deux saisons",
       content:
-        "Le contrat ne coûte rien, mais il est irrévocable, dure deux saisons et ne peut pas être prolongé avec la même marque. Toute la dotation du partenaire est retirée à son terme.\n\nLa rubrique équipementier ne comporte plus de R&D ni d’offres aléatoires : les recherches se mènent uniquement dans votre propre laboratoire sur les pièces de votre stock.",
+        "Le contrat ne coûte rien, mais il est irrévocable, dure deux saisons et ne peut pas être prolongé immédiatement avec la même marque. Après deux saisons avec un autre équipementier, vous pouvez revenir à un ancien partenaire. Toute la dotation du partenaire est retirée à son terme.\n\nLa rubrique équipementier ne comporte plus de R&D ni d’offres aléatoires : les recherches se mènent uniquement dans votre propre laboratoire sur les pièces de votre stock.",
       placement: "bottom",
       highlightPadding: 8,
     },

@@ -165,7 +165,7 @@ export default async function EquipmentPartnerPage({
           <RuleCard
             eyebrow="Engagement"
             title="Deux saisons fermes"
-            body="Le contrat est irrévocable et ne peut pas être prolongé avec la même marque."
+            body="Le contrat est irrévocable et dure deux saisons. Changez de marque à son terme ; un ancien partenaire redevient disponible après un contrat avec une autre marque."
           />
           <RuleCard
             eyebrow="Signature technique"
@@ -267,7 +267,7 @@ function ContractSelectionSection({
   }
 
   const availableSuppliers = overview.suppliers.filter(
-    (supplier) => !supplier.alreadyUsed,
+    (supplier) => !supplier.isPreviousPartner,
   );
 
   return (
@@ -309,7 +309,7 @@ function SupplierContractCard({
   return (
     <article
       className={
-        supplier.alreadyUsed
+        supplier.isPreviousPartner
           ? "overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-[#F0F3F0] opacity-75"
           : "overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.09)]"
       }
@@ -373,15 +373,15 @@ function SupplierContractCard({
           <input type="hidden" name="supplierKey" value={supplier.key} />
           <EquipmentPartnerSubmitButton
             label={
-              supplier.alreadyUsed
-                ? "Contrat déjà réalisé"
+              supplier.isPreviousPartner
+                ? "Dernier partenaire : alternance requise"
                 : `Signer avec ${supplier.name}`
             }
             pendingLabel="Signature…"
-            disabled={supplier.alreadyUsed}
+            disabled={supplier.isPreviousPartner}
           />
         </form>
-        {!supplier.alreadyUsed ? (
+        {!supplier.isPreviousPartner ? (
           <p className="mt-3 text-[11px] font-bold text-[#936A21]">
             Signature définitive : aucune rupture ni prolongation possible.
           </p>

@@ -65,7 +65,7 @@ export type EquipmentPartnerSupplierOption = {
   secondaryColor: string;
   accentColor: string;
   strengths: string[];
-  alreadyUsed: boolean;
+  isPreviousPartner: boolean;
   products: EquipmentPartnerProduct[];
 };
 
@@ -126,6 +126,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
       )
       .eq("team_id", equipment.teamId)
       .order("signed_at", { ascending: false })
+      .order("id", { ascending: false })
       .returns<ContractRow[]>(),
     admin
       .from("seasons")
@@ -171,9 +172,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
   );
   const activeContract =
     contracts.find((contract) => contract.status === "active") ?? null;
-  const usedSupplierKeys = new Set(
-    contracts.map((contract) => contract.supplierKey),
-  );
+  const previousSupplierKey = contracts[0]?.supplierKey ?? null;
   const supplierKeys = new Set(
     (contractSuppliersResult.data ?? []).map((supplier) => supplier.supplier_key),
   );
@@ -185,7 +184,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
       return {
         ...supplier,
         strengths: getSupplierStrengths(products),
-        alreadyUsed: usedSupplierKeys.has(supplier.key),
+        isPreviousPartner: supplier.key === previousSupplierKey,
         products,
       } satisfies EquipmentPartnerSupplierOption;
     });
