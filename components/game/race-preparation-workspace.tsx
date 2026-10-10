@@ -520,7 +520,8 @@ function StagePreparationForm({
     !isTimeTrial &&
     isPreparationAvailable;
   const hasUniqueRoles =
-    Object.values(roles).filter(isRaceLeaderRole).length <= 1 &&
+    // Le rôle combiné protège le sprinteur sans occuper la place du leader.
+    Object.values(roles).filter((role) => role === "leader").length <= 1 &&
     Object.values(roles).filter(isRaceProtectedRiderRole).length <= 1 &&
     Object.values(roles).filter(isRaceSprinterRole).length <= 1;
   const assignedMissionIds = Object.values(missions).filter(Boolean);
@@ -711,8 +712,8 @@ function StagePreparationForm({
                           if (candidate.riderId === rider.riderId) return false;
                           const selectedRole = roles[candidate.riderId];
                           if (!selectedRole) return false;
-                          if (isRaceLeaderRole(candidateRole)) {
-                            return isRaceLeaderRole(selectedRole);
+                          if (candidateRole === "leader") {
+                            return selectedRole === "leader";
                           }
                           if (candidateRole === "protected_rider") {
                             return selectedRole === "protected_rider";
@@ -723,7 +724,7 @@ function StagePreparationForm({
                           );
                         });
                         const isReservedTourLeaderRole =
-                          isRaceLeaderRole(candidateRole) &&
+                          candidateRole === "leader" &&
                           Boolean(lockedTourLeaderRiderId) &&
                           !isLockedTourLeader;
                         return (
@@ -1601,7 +1602,7 @@ function TimeTrialPreparationForm({
     0,
   );
   const hasUniqueTeamTimeTrialRoles =
-    Object.values(roles).filter(isRaceLeaderRole).length <= 1 &&
+    Object.values(roles).filter((role) => role === "leader").length <= 1 &&
     Object.values(roles).filter(isRaceProtectedRiderRole).length <= 1 &&
     Object.values(roles).filter(isRaceSprinterRole).length <= 1;
   const isValid =
@@ -1813,8 +1814,8 @@ function TimeTrialPreparationForm({
                             if (candidate.riderId === rider.riderId) return false;
                             const selectedRole = roles[candidate.riderId];
                             if (!selectedRole) return false;
-                            if (isRaceLeaderRole(candidateRole)) {
-                              return isRaceLeaderRole(selectedRole);
+                            if (candidateRole === "leader") {
+                              return selectedRole === "leader";
                             }
                             if (candidateRole === "protected_rider") {
                               return selectedRole === "protected_rider";
@@ -1825,7 +1826,7 @@ function TimeTrialPreparationForm({
                             );
                           });
                           const isReservedTourLeaderRole =
-                            isRaceLeaderRole(candidateRole) &&
+                            candidateRole === "leader" &&
                             Boolean(lockedTourLeaderRiderId) &&
                             !isLockedTourLeader;
                           return (
