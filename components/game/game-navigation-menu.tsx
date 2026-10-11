@@ -3,7 +3,6 @@
 import Link from "@/components/ui/app-link";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { canAccessPrivateAdmin } from "@/lib/game/private-admin-access";
-import { SeasonFinaleGalaMenuLink } from "@/components/game/season-finale-gala-menu-link";
 
 export const NAVIGATION_GROUPS_FR = [
   {
@@ -164,7 +163,6 @@ export function GameNavigationMenu({
           aria-label={isEnglish ? "Main game navigation" : "Navigation principale du jeu"}
           className="grid max-h-[min(70vh,42rem)] gap-5 overflow-y-auto p-4 sm:grid-cols-2 sm:p-5"
         >
-          <SeasonFinaleGalaMenuLink isEnglish={isEnglish} />
           {federationCountryCode ? (
             <Link
               href={`/jeu/federations/${federationCountryCode.toLowerCase()}`}
