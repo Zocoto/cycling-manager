@@ -12,18 +12,20 @@
 
 ## Potentiel
 
-Le potentiel possède huit paliers, de 0,5 à 4 étoiles. Il plafonne la moyenne des treize caractéristiques du coureur et améliore l’efficacité de sa progression.
+Le potentiel possède huit paliers, de 0,5 à 4 étoiles. Il plafonne individuellement les gains d’entraînement de chacune des treize caractéristiques et améliore l’efficacité de la progression. La moyenne ne sert pas de plafond.
 
-| Potentiel | Plafond de moyenne |
+| Potentiel | Plafond d’entraînement par statistique |
 |---:|---:|
-| 0,5 étoile | 65 |
-| 1 étoile | 70 |
-| 1,5 étoile | 75 |
-| 2 étoiles | 80 |
-| 2,5 étoiles | 85 |
-| 3 étoiles | 90 |
-| 3,5 étoiles | 95 |
+| 0,5 étoile | 70 |
+| 1 étoile | 75 |
+| 1,5 étoile | 80 |
+| 2 étoiles | 85 |
+| 2,5 étoiles | 90 |
+| 3 étoiles | 95 |
+| 3,5 étoiles | 100 |
 | 4 étoiles | 100 |
+
+La correction du 11 octobre 2026 ne diminue aucune note déjà acquise et ne rejoue aucune séance. Une note déjà au-dessus du plafond ne progresse plus par entraînement ; les autres continuent normalement. Les objets de statistiques peuvent dépasser ce plafond de talent, dans la limite absolue de 100. Un objet augmentant le potentiel relève aussi le plafond des entraînements futurs. Les bonus d’entraîneur, d’école et d’infrastructure ne contournent pas le plafond, y compris chez les jeunes.
 
 Distribution initiale :
 
@@ -63,7 +65,7 @@ Les gains sont accumulés en millipoints afin qu’aucune fraction quotidienne n
 
 Un entraîneur apporte +4 % par niveau sur les statistiques correspondant à sa spécialité. S’il possède la même nationalité que le coureur, toute la séance reçoit en plus un bonus de +5 %.
 
-Les plafonds de gain saisonnier par statistique sont de +18 sous 60, +12 de 60 à 69, +8 de 70 à 79, +4 de 80 à 89 et +2 à partir de 90. Le plafond de moyenne lié au potentiel reste prioritaire.
+Les plafonds de gain saisonnier par statistique sont de +18 sous 60, +12 de 60 à 69, +8 de 70 à 79, +4 de 80 à 89 et +2 à partir de 90. Le plafond individuel lié au potentiel reste prioritaire.
 
 ## Déclin
 

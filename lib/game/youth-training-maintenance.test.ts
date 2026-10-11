@@ -12,6 +12,10 @@ const maintenance = readFileSync(
 );
 
 describe("automatic youth training maintenance", () => {
+  it("applies the final talent clamp without lowering existing ratings", () => {
+    expect(youthDevelopment).toContain("const next = getYouthTrainingNextRawRating({");
+    expect(youthDevelopment).toContain("potentialSteps: rider.potential_steps");
+  });
   it("does not generate the current youth session before 08:00 Paris", () => {
     expect(youthDevelopment).toContain(
       "export async function settleDueYouthAutomaticTrainingSessions",

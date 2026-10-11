@@ -78,19 +78,23 @@ l'énergie en course, l'équipement et le rôle tactique restent déterminants.
 
 ### Potentiel
 
-Le potentiel va de 0,5 à 4 étoiles. Il plafonne la moyenne possible sur les
-treize notes :
+Le potentiel va de 0,5 à 4 étoiles. Il plafonne les gains d’entraînement de
+chaque note, et non la moyenne des treize notes :
 
-| Potentiel | Plafond de moyenne |
+| Potentiel | Plafond d’entraînement par note |
 | --- | --- |
-| 0,5 étoile | 65 |
-| 1 étoile | 70 |
-| 1,5 étoile | 75 |
-| 2 étoiles | 80 |
-| 2,5 étoiles | 85 |
-| 3 étoiles | 90 |
-| 3,5 étoiles | 95 |
+| 0,5 étoile | 70 |
+| 1 étoile | 75 |
+| 1,5 étoile | 80 |
+| 2 étoiles | 85 |
+| 2,5 étoiles | 90 |
+| 3 étoiles | 95 |
+| 3,5 étoiles | 100 |
 | 4 étoiles | 100 |
+
+Les notes déjà acquises sont conservées, même au-dessus du plafond. Les objets
+peuvent dépasser le plafond de talent, sans dépasser 100. Les bonus des
+entraîneurs et des infrastructures restent soumis au plafond d’entraînement.
 
 Les jeunes progressent plus vite. À partir de 32 ans, une pression de déclin
 s'applique. L'entraînement peut limiter cette baisse, mais le coureur ne peut

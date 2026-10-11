@@ -280,7 +280,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "rider-experience-potential": {
         title: "Experience and talent shape a rider",
         content:
-          "Race Days (JDC in French) count only events actually ridden: a classic is 1 day and each completed stage is 1 day; a non-starter gains none. Each day gives 0.2 experience, reaching 100 after 500 race days, and experience provides a measured race bonus.\n\nPotential sets the growth ceiling: every half-star adds 5 points to the AVG ceiling and improves training efficiency. It indicates how far a rider can develop, not their current strength.",
+          "Race Days (JDC in French) count only events actually ridden: a classic is 1 day and each completed stage is 1 day; a non-starter gains none. Each day gives 0.2 experience, reaching 100 after 500 race days, and experience provides a measured race bonus.\n\nPotential caps each training attribute: 70 at half a star, then +5 per half-star up to 100. It also improves training efficiency. Existing attributes are preserved, even above the ceiling. Items can exceed the talent ceiling, but never 100. Potential indicates how far a rider can develop, not their current strength.",
       },
       "rider-ratings": {
         title: "Attributes and radar tell the same story",

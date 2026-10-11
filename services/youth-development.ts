@@ -81,15 +81,14 @@ import {
 } from "@/lib/game/staff-talents";
 import {
   YOUTH_COACH_NATIONALITY_BONUS_PERCENTAGE,
-  YOUTH_RAW_RATING_MAX,
   calculateYouthAutomaticTrainingGain,
   getYouthAutomaticFirstDay,
   getYouthManualTrainingSlot,
   getYouthTrainingGameType,
   getYouthTrainingSessionVariance,
+  getYouthTrainingNextRawRating,
   isYouthAutomaticTrainingDue,
   projectYouthRating,
-  projectedGainToRawGain,
   summarizeYouthSeasonTraining,
   type YouthManualTrainingSlot,
   type YouthSeasonTrainingSummary,
@@ -2039,12 +2038,11 @@ async function settleAcademyTrainingSessions(
           domain: rider.training_priority,
           ratingKey: key,
         });
-        const next = Math.min(
-          YOUTH_RAW_RATING_MAX,
-          Math.round(
-            (ratings[key] + projectedGainToRawGain(projectedGain)) * 1_000,
-          ) / 1_000,
-        );
+        const next = getYouthTrainingNextRawRating({
+          currentRawRating: ratings[key],
+          projectedGain,
+          potentialSteps: rider.potential_steps,
+        });
         if (next > ratings[key]) {
           changes[key] = Math.round((next - ratings[key]) * 1_000) / 1_000;
         }

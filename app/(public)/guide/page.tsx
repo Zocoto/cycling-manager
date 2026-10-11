@@ -552,16 +552,20 @@ function RidersSection() {
             De 0,5 à 4 étoiles
           </h3>
           <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
-            Le potentiel plafonne la moyenne possible sur les treize
-            caractéristiques. Chaque demi-étoile ajoute cinq points au plafond
-            de base de 60.
+            Le potentiel plafonne l’entraînement de chaque caractéristique,
+            pas la moyenne : 70 à 0,5 étoile, puis cinq points par demi-étoile,
+            jusqu’à 100. Les notes déjà acquises sont conservées. Les objets
+            peuvent dépasser ce plafond de talent, sans dépasser 100.
           </p>
           <div className="mt-5 grid grid-cols-2 gap-2 text-sm font-bold text-[#315B3E]">
             {[
-              ["0,5 ★", "65 max."],
-              ["1 ★", "70 max."],
-              ["2 ★", "80 max."],
-              ["3 ★", "90 max."],
+              ["0,5 ★", "70 max."],
+              ["1 ★", "75 max."],
+              ["1,5 ★", "80 max."],
+              ["2 ★", "85 max."],
+              ["2,5 ★", "90 max."],
+              ["3 ★", "95 max."],
+              ["3,5 ★", "100 max."],
               ["4 ★", "100 max."],
             ].map(([stars, cap]) => (
               <div

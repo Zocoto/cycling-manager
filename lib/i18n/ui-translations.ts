@@ -1,6 +1,7 @@
 import generatedCatalog from "@/lib/i18n/generated-fr-en.json";
 
 const REVIEWED_TRANSLATIONS: Record<string, string> = {
+  "Le potentiel plafonne l’entraînement de chaque caractéristique, pas la moyenne : 70 à 0,5 étoile, puis cinq points par demi-étoile, jusqu’à 100. Les notes déjà acquises sont conservées. Les objets peuvent dépasser ce plafond de talent, sans dépasser 100.": "Potential caps training for each attribute, not the average: 70 at half a star, then five points per half-star up to 100. Existing attributes are preserved. Items can exceed the talent ceiling, but never 100.",
   "Sous-poids": "Underweight",
   "Sous-poids pour le profil": "Underweight for the profile",
   "poids minimal": "minimum weight",

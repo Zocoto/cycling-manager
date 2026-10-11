@@ -1,5 +1,6 @@
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
 import {
+  getPotentialStatCap,
   getTrainingDomainWeight,
   trainerSpecialtySupportsRating,
   type TrainingDomain,
@@ -350,7 +351,7 @@ export function calculateYouthManualTrainingGain({
   const normalizedScore = Math.min(1_000, Math.max(0, Math.round(score)));
   const performanceFactor = 0.25 + (normalizedScore / 1_000) * 0.75;
 
-  return (
+  const gain =
     YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN *
     getYouthDevelopmentFactor({
       potentialSteps,
@@ -373,7 +374,10 @@ export function calculateYouthManualTrainingGain({
       talentSpecialties: youthCoachTalentSpecialties,
       countryMatch: youthCoachCountryMatch,
       ratingKey,
-    })
+    });
+  return Math.min(
+    gain,
+    Math.max(0, getPotentialStatCap(potentialSteps) - currentProjectedRating),
   );
 }
 
@@ -407,7 +411,7 @@ export function calculateYouthAutomaticTrainingGain({
 }) {
   // Les jeunes de 15 à 18 ans partagent la même fenêtre physiologique : leur
   // talent, leur profil et la qualité de la séance font la différence.
-  return (
+  const gain =
     YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN *
     getYouthDevelopmentFactor({
       potentialSteps,
@@ -428,7 +432,10 @@ export function calculateYouthAutomaticTrainingGain({
       talentSpecialties: youthCoachTalentSpecialties,
       countryMatch: youthCoachCountryMatch,
       ratingKey,
-    })
+    });
+  return Math.min(
+    gain,
+    Math.max(0, getPotentialStatCap(potentialSteps) - currentProjectedRating),
   );
 }
 
@@ -492,6 +499,27 @@ export function unprojectYouthRating(projectedRating: number) {
 
 export function projectedGainToRawGain(projectedGain: number) {
   return Math.max(0, projectedGain) / YOUTH_RATING_PROJECTION_SCALE;
+}
+
+// Clamp only NEW training gains. Existing over-cap ratings (including items)
+// must never be reduced by a training session or a season change.
+export function getYouthTrainingNextRawRating({
+  currentRawRating,
+  projectedGain,
+  potentialSteps,
+}: {
+  currentRawRating: number;
+  projectedGain: number;
+  potentialSteps: number;
+}): number {
+  const rawCap = unprojectYouthRating(getPotentialStatCap(potentialSteps));
+  return Math.max(
+    currentRawRating,
+    Math.min(
+      rawCap,
+      roundToThousandth(currentRawRating + projectedGainToRawGain(projectedGain)),
+    ),
+  );
 }
 
 export function calculateYouthMiniGameScore({

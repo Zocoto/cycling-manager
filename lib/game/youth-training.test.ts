@@ -54,6 +54,7 @@ import {
   getYouthPuncheurScoredOpportunities,
   getYouthRatingProgressFactor,
   getYouthTrainingRatingProgressFactor,
+  getYouthTrainingNextRawRating,
   getYouthReflexTargetInterval,
   getYouthRhythmCursorPosition,
   getYouthTimeTrialWindDrift,
@@ -151,6 +152,19 @@ function simulateYouthCareer({
 }
 
 describe("youth training", () => {
+  it("caps both session types after all bonuses without lowering existing notes", () => {
+    const context = { age: 17, potentialSteps: 1, currentProjectedRating: 70,
+      schoolTrainingBonusPercentage: 100, youthCoachLevel: 5,
+      youthCoachSpecialty: "mountain" as const, youthCoachCountryMatch: true,
+      domain: "climber" as const, ratingKey: "mountain" as const };
+    expect(calculateYouthAutomaticTrainingGain(context)).toBe(0);
+    expect(calculateYouthManualTrainingGain({ ...context, score: 1000 })).toBe(0);
+    expect(calculateYouthAutomaticTrainingGain({ ...context, currentProjectedRating: 69.99 })).toBeLessThanOrEqual(0.01 + 1e-12);
+    expect(getYouthTrainingNextRawRating({ currentRawRating: 4.499, projectedGain: 20, potentialSteps: 1 })).toBe(4.5);
+    expect(getYouthTrainingNextRawRating({ currentRawRating: 5, projectedGain: 20, potentialSteps: 1 })).toBe(5);
+    expect(getYouthTrainingNextRawRating({ currentRawRating: 4.5, projectedGain: 1, potentialSteps: 2 })).toBeGreaterThan(4.5);
+  });
+
   it("associe chaque profil junior au bon minijeu", () => {
     expect(getYouthTrainingGameType("climber")).toBe("rhythm");
     expect(getYouthTrainingGameType("puncheur")).toBe("puncheur");

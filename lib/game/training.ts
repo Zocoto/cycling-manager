@@ -384,8 +384,8 @@ export function getPotentialStars(potentialSteps: number): number {
   return normalizePotentialSteps(potentialSteps) / 2;
 }
 
-export function getPotentialOverallCap(potentialSteps: number): number {
-  return 60 + normalizePotentialSteps(potentialSteps) * 5;
+export function getPotentialStatCap(potentialSteps: number): number {
+  return Math.min(100, 65 + normalizePotentialSteps(potentialSteps) * 5);
 }
 
 export function getPotentialEfficiency(potentialSteps: number): number {
@@ -561,6 +561,8 @@ export function calculateDailyTrainingProgressMilli({
   hasFirstInClass?: boolean;
   trainingCenterSpecialization?: TrainingCenterSpecialization | null;
 }): number {
+  // Veterans still train to counter natural decline; this is not a rating gain.
+  if (age < 32 && rating >= getPotentialStatCap(potentialSteps)) return 0;
   const intensityFactor = Math.min(100, Math.max(0, intensity)) / 100;
   const raw =
     (10_000 / 28) *
@@ -597,9 +599,7 @@ export function canIncreaseWithinPotentialCap({
   ratingKey: RiderRatingKey;
   potentialSteps: number;
 }): boolean {
-  if (ratings[ratingKey] >= 100) return false;
-  const total = Object.values(ratings).reduce((sum, value) => sum + value, 0);
-  return total + 1 <= getPotentialOverallCap(potentialSteps) * 13;
+  return ratings[ratingKey] + 1 <= getPotentialStatCap(potentialSteps);
 }
 
 export function formatPotential(potentialSteps: number): string {

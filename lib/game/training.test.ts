@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildRiderTrainingSeasonReport,
   calculateDailyTrainingProgressMilli,
+  canIncreaseWithinPotentialCap,
   getDailyDeclineMilli,
   formatTrainingProgressMilli,
   getPotentialEfficiency,
-  getPotentialOverallCap,
+  getPotentialStatCap,
   getPotentialStars,
   getLongevityTier,
   getNaturalDeclineMultiplierFromRoll,
@@ -127,14 +128,39 @@ describe("recognition camp scheduling", () => {
 });
 
 describe("rider potential", () => {
-  it("maps the eight half-star steps to the expected overall caps", () => {
+  it("maps the eight half-star steps to individual training caps", () => {
     expect(
-      Array.from({ length: 8 }, (_, index) => getPotentialOverallCap(index + 1)),
-    ).toEqual([65, 70, 75, 80, 85, 90, 95, 100]);
+      Array.from({ length: 8 }, (_, index) => getPotentialStatCap(index + 1)),
+    ).toEqual([70, 75, 80, 85, 90, 95, 100, 100]);
     expect(getPotentialStars(1)).toBe(0.5);
     expect(getPotentialStars(8)).toBe(4);
     expect(getPotentialEfficiency(1)).toBeCloseTo(0.65);
     expect(getPotentialEfficiency(8)).toBe(1);
+  });
+
+  it("does not let a low overall average bypass an individual ceiling", () => {
+    const ratings = {
+      mountain: 69, hills: 40, flat: 40, timeTrial: 40, cobbles: 40,
+      sprint: 40, acceleration: 40, downhill: 40, endurance: 40,
+      resistance: 40, recovery: 40, breakaway: 40, prologue: 40,
+    };
+    expect(canIncreaseWithinPotentialCap({ ratings, ratingKey: "mountain", potentialSteps: 1 })).toBe(true);
+    ratings.mountain = 70;
+    expect(canIncreaseWithinPotentialCap({ ratings, ratingKey: "mountain", potentialSteps: 1 })).toBe(false);
+    ratings.mountain = 82;
+    expect(canIncreaseWithinPotentialCap({ ratings, ratingKey: "mountain", potentialSteps: 1 })).toBe(false);
+    expect(canIncreaseWithinPotentialCap({ ratings, ratingKey: "hills", potentialSteps: 1 })).toBe(true);
+    expect(ratings.mountain).toBe(82);
+  });
+
+  it("clamps invalid half-star steps and honours a permanent potential boost", () => {
+    expect(getPotentialStatCap(0)).toBe(70);
+    expect(getPotentialStatCap(9)).toBe(100);
+    const input = { intensity: 100, age: 20, rating: 70, potentialSteps: 1,
+      domain: "climber" as const, ratingKey: "mountain" as const };
+    expect(calculateDailyTrainingProgressMilli(input)).toBe(0);
+    expect(calculateDailyTrainingProgressMilli({ ...input, potentialSteps: 2 })).toBeGreaterThan(0);
+    expect(calculateDailyTrainingProgressMilli({ ...input, age: 35 })).toBeGreaterThan(0);
   });
 });
 
