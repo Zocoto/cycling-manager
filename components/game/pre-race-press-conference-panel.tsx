@@ -15,6 +15,7 @@ import {
   REPUTATION_FEATURE_THRESHOLDS,
 } from "@/lib/game/reputation";
 import type { RaceRosterOption } from "@/services/race-calendar";
+import { PreRacePressResult } from "@/components/game/pre-race-press-result";
 
 export function PreRacePressConferencePanel({
   editionId,
@@ -104,7 +105,7 @@ export function PreRacePressConferencePanel({
                 Renforcer l’engagement
               </legend>
               <p className="mt-1 text-[10px] font-bold leading-4 text-[#6F6650]">
-                Les points sont réservés jusqu’à l’arrivée : rendus si l’objectif est tenu, perdus sinon. Le bonus sponsor s’ajoute aux +25 liés aux résultats.
+                Les points sont réservés jusqu’à l’arrivée : rendus si l’objectif est tenu, préservés à 40 % ou 20 % en cas de réussite partielle, perdus sinon. La satisfaction de cet engagement reste dans son enveloppe dédiée (+8 maximum), séparée des +25 liés aux résultats.
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {PRESS_REPUTATION_COMMITMENTS.map((option) => {
@@ -157,12 +158,19 @@ export function PreRacePressConferencePanel({
                       <span className="mt-0.5 block text-[10px] font-bold text-[#6F6650]">
                         {detail.target} · +{detail.success} / {detail.failure} réputation
                       </span>
+                      {gameYear >= 4 ? <span className="mt-1 block text-[10px] font-semibold text-[#936A21]">Réussite partielle : {detail.partial}</span> : null}
                     </span>
                   </label>
                 );
               })}
             </div>
           </fieldset>
+
+          {gameYear >= 4 ? (
+            <p className="text-[10px] font-bold leading-4 text-[#6F6650]">
+              Seul le classement final du leader annoncé compte. En réussite partielle : 40 % ou 20 % du gain de réputation, arrondi à au moins 1 point ; le bonus sponsor renforcé est arrondi, sans minimum garanti. L’objectif public reste non rempli.
+            </p>
+          ) : null}
 
           <label className="block">
             <span className="text-xs font-black uppercase tracking-[0.14em] text-[#174C3E]">
@@ -251,13 +259,8 @@ function PublishedConference({
           Engagement renforcé : {conference.commitmentAmount} points · bonus sponsor +{conference.sponsorBonus} si réussi
         </p>
       ) : null}
-      {conference.status === "settled" ? (
-        <p className={`mt-2 text-xs font-black ${conference.targetMet ? "text-[#176951]" : "text-[#9C234A]"}`}>
-          {conference.targetMet ? "Objectif tenu" : "Objectif manqué"}
-          {conference.leaderFinalRank ? ` · ${conference.leaderFinalRank}e` : " · non classé"}
-          {conference.reputationDelta !== null ? ` · ${conference.reputationDelta >= 0 ? "+" : ""}${conference.reputationDelta} réputation` : ""}
-        </p>
-      ) : conference.isOwn ? (
+      <PreRacePressResult conference={conference} />
+      {conference.status !== "settled" && conference.isOwn ? (
         <p className="mt-2 text-xs font-black text-[#B57B00]">Déclaration publiée · verdict à l’arrivée</p>
       ) : null}
     </article>

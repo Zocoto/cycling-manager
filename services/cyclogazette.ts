@@ -66,6 +66,8 @@ type InterviewRow = {
 
 type PreRaceStageRow = { race_edition_id: string };
 type PreRacePressRow = {
+  achievement_level: "full" | "partial" | "missed" | null;
+  achievement_percent: number;
   id: string;
   race_edition_id: string;
   team_id: string;
@@ -701,7 +703,7 @@ async function loadDailyPreRacePress(
   const conferencesResult = await admin
     .from("pre_race_press_conferences")
     .select(
-      "id,race_edition_id,team_id,sporting_director_id,leader_rider_id,race_name,team_name,director_name,leader_name,ambition,race_intent,public_statement,status,target_met,leader_final_rank,reputation_delta",
+      "id,race_edition_id,team_id,sporting_director_id,leader_rider_id,race_name,team_name,director_name,leader_name,ambition,race_intent,public_statement,status,target_met,leader_final_rank,reputation_delta,achievement_level,achievement_percent",
     )
     .in("race_edition_id", editionIds)
     .neq("status", "cancelled")
@@ -746,6 +748,8 @@ async function loadDailyPreRacePress(
 
   return rows.map((conference) => ({
     conferenceId: conference.id,
+    achievementLevel: conference.achievement_level ?? null,
+    achievementPercent: Number(conference.achievement_percent ?? 0),
     directorName: conference.director_name,
     directorAvatarKey:
       avatarByDirectorId.get(conference.sporting_director_id) ?? null,

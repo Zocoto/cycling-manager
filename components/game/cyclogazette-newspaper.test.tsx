@@ -335,6 +335,19 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("/jeu/coureurs/rider-1");
   });
 
+  it("publie une réussite partielle sans annoncer une promesse tenue", () => {
+    const partialEdition = { ...edition, content: { ...edition.content,
+      preRacePressConferences: (edition.content.preRacePressConferences ?? []).map((conference) => ({
+        ...conference, targetMet: false, leaderFinalRank: 2, reputationDelta: 3,
+        achievementLevel: "partial" as const, achievementPercent: 40,
+      })),
+    } };
+    const markup = renderToStaticMarkup(<CyclogazetteNewspaper edition={partialEdition} />);
+    expect(markup).toContain("Réussite partielle · 40 %");
+    expect(markup).not.toContain("Promesse tenue");
+    expect(markup).toContain("classé 2e");
+  });
+
   it("devient Cyclo Gazetta sur papier rose de J2 à J7", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 7 }} />,

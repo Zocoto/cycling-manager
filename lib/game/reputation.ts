@@ -30,19 +30,19 @@ export const PRESS_REPUTATION_COMMITMENTS = [
     amount: 15,
     sponsorBonus: 1,
     label: "Engagement mesuré",
-    description: "15 points réservés ; rendus si l’objectif est atteint, perdus sinon.",
+    description: "15 points réservés ; rendus en totalité ou en partie selon le résultat.",
   },
   {
     amount: 35,
     sponsorBonus: 2,
     label: "Engagement fort",
-    description: "35 points réservés ; rendus si l’objectif est atteint, perdus sinon.",
+    description: "35 points réservés ; rendus en totalité ou en partie selon le résultat.",
   },
   {
     amount: 60,
     sponsorBonus: 4,
     label: "Engagement total",
-    description: "60 points réservés ; rendus si l’objectif est atteint, perdus sinon.",
+    description: "60 points réservés ; rendus en totalité ou en partie selon le résultat.",
   },
 ] as const;
 

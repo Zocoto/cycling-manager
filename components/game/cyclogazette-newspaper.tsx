@@ -1959,13 +1959,16 @@ function PreRacePressCard({
         development: "Develop the team",
       }[conference.raceIntent]
     : PRE_RACE_INTENT_LABELS[conference.raceIntent];
-  const resultLabel = conference.targetMet
-    ? isEnglish
-      ? "Promise kept"
-      : "Promesse tenue"
-    : isEnglish
-      ? "Target missed"
-      : "Objectif manqué";
+  const partial = !conference.targetMet && conference.achievementLevel === "partial";
+  const resultLabel = partial
+    ? `${isEnglish ? "Partial success" : "Réussite partielle"} · ${conference.achievementPercent} %`
+    : conference.targetMet
+      ? isEnglish
+        ? "Promise kept"
+        : "Promesse tenue"
+      : isEnglish
+        ? "Target missed"
+        : "Objectif manqué";
   const leaderRank = conference.leaderFinalRank
     ? isEnglish
       ? `#${conference.leaderFinalRank}`
@@ -1993,7 +1996,9 @@ function PreRacePressCard({
             className={`border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${
               conference.targetMet
                 ? "border-emerald-700/40 text-emerald-800"
-                : "border-[var(--gazette-accent)]/40 text-[var(--gazette-accent)]"
+                : partial
+                  ? "border-amber-700/40 text-amber-800"
+                  : "border-[var(--gazette-accent)]/40 text-[var(--gazette-accent)]"
             }`}
           >
             {resultLabel}

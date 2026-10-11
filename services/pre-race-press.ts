@@ -25,6 +25,9 @@ type ConferenceRow = {
   reputation_delta: number | null;
   commitment_amount: number;
   sponsor_bonus: number;
+  achievement_level: PreRacePressConference["achievementLevel"];
+  achievement_percent: number;
+  sponsor_bonus_awarded: number;
   submitted_at: string;
   is_own: boolean;
 };
@@ -64,6 +67,9 @@ export async function getPreRacePressConferences(
           reputationDelta: row.reputation_delta,
           commitmentAmount: Number(row.commitment_amount ?? 0),
           sponsorBonus: Number(row.sponsor_bonus ?? 0),
+          achievementLevel: row.achievement_level ?? null,
+          achievementPercent: Number(row.achievement_percent ?? 0),
+          sponsorBonusAwarded: Number(row.sponsor_bonus_awarded ?? 0),
           submittedAt: row.submitted_at,
           isOwn: row.is_own,
         }]

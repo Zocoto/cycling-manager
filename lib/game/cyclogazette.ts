@@ -7,6 +7,8 @@ import type {
 } from "@/lib/game/pre-race-press";
 
 export type CyclogazettePreRacePressConference = {
+  achievementLevel?: "full" | "partial" | "missed" | null;
+  achievementPercent?: number;
   conferenceId: string;
   directorName: string;
   directorAvatarKey: string | null;
