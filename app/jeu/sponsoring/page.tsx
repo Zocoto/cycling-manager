@@ -15,6 +15,7 @@ import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
 import { getSponsorObjectiveProgressDisplay } from "@/lib/game/sponsor-objective-progress";
+import { SponsorPartialObjectiveResult } from "@/components/game/sponsor-partial-objective-result";
 import {
   SPONSOR_COMMITMENT_SATISFACTION_MAXIMUM,
   SPONSOR_PERFORMANCE_SATISFACTION_MAXIMUM,
@@ -988,12 +989,6 @@ function ActiveSponsorSection({
 
       <ContractObjectivesSection contract={contract} />
 
-      <aside className="mt-6 rounded-2xl border border-[#315B3E]/15 bg-white/80 px-5 py-4 text-sm leading-7 text-[#60756E]">
-        Le suivi sportif détaillé des objectifs sera connecté aux courses,
-        résultats et classements lors de la future US de complétude des
-        objectifs sponsors.
-      </aside>
-
       <EarlyTerminationSection contract={contract} />
     </section>
   );
@@ -1234,6 +1229,15 @@ function ContractObjectivesSection({
         ))}
       </ol>
 
+      <p className="px-5 pb-5 text-[11px] font-semibold leading-5 text-[#72847E] sm:px-6">
+        Au terme de la course visée, un objectif au général manqué peut quand même
+        apporter une réussite partielle : classement proche de la cible,
+        victoire d’étape ou classement annexe
+        gagné (40 %), super-combatif (30 %), podium d’étape ou annexe (25 %),
+        combatif d’étape (20 %), top 5 d’étape (15 %) ou top 10 (10 %).
+        Seul le meilleur bonus est retenu, arrondi en points, sans valider l’objectif principal.
+      </p>
+
       {contract.performanceSatisfactionEnabled ? (
         <SponsorPerformanceSatisfactionSection contract={contract} />
       ) : null}
@@ -1432,16 +1436,14 @@ function ContractObjectiveItem({
                 {" "}· objectif : {formatSponsorRaceTarget(raceResult.targetRank)}
               </span>
             </p>
-            {objective.achievementLevel === "partial" &&
-            objective.partialSatisfactionPoints > 0 ? (
-              <p className="mt-1 text-[10px] font-extrabold text-[#B66A14]">
-                Petite satisfaction : +{objective.partialSatisfactionPoints} point
-                {objective.partialSatisfactionPoints > 1 ? "s" : ""} sur les{" "}
-                {objective.satisfactionPoints} prévus.
-              </p>
-            ) : null}
           </div>
         ) : null}
+        <SponsorPartialObjectiveResult
+          level={objective.achievementLevel}
+          points={objective.partialSatisfactionPoints}
+          weight={objective.satisfactionPoints}
+          achievements={objective.partialAchievements}
+        />
         {rankingResult ? (
           <p className="mt-2 text-[11px] font-bold text-[#526A62]">
             Classement actuel : {formatSponsorRank(rankingResult.rank)}

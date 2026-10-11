@@ -23,9 +23,10 @@ function contract(status = "active", duration = 1) {
     termination_reason: null, reputation_penalty: 0, reputation_investment_cost: 0, reputation_budget_bonus_percent: 0, satisfaction_score: 50,
   };
 }
-function client({ current = null, planned = null, terminated = null, reputation = 100, day = 25, nextSeasonError = null, currentContractError = null }: {
+function client({ current = null, planned = null, terminated = null, reputation = 100, day = 25, nextSeasonError = null, currentContractError = null, objectiveScore = 0, objectiveScoreError = null, progressDetails = { targetValue: 5 } }: {
   current?: ReturnType<typeof contract> | null; planned?: ReturnType<typeof contract> | null; terminated?: ReturnType<typeof contract> | null;
   reputation?: number; day?: number; nextSeasonError?: string | null; currentContractError?: string | null;
+  objectiveScore?: number; objectiveScoreError?: string | null; progressDetails?: Record<string, unknown>;
 } = {}) {
   const from = vi.fn((table: string) => {
     const filters = new Map<string, unknown>();
@@ -44,7 +45,7 @@ function client({ current = null, planned = null, terminated = null, reputation 
       }
       if (table === "sponsors") return { data: { catalog_key: SPONSORS[0].id }, error: null };
       if (table === "sponsor_satisfaction_events") return { data: [], error: null };
-      if (table === "objective_progress") return { data: [{ sponsor_objective_id: "objective", current_value: 3, status: "in_progress", details: { targetValue: 5 } }], error: null };
+      if (table === "objective_progress") return { data: [{ sponsor_objective_id: "objective", current_value: 3, status: "in_progress", details: progressDetails }], error: null };
       throw new Error(`Unexpected sponsor query: ${table}`);
     };
     const query = {
@@ -54,7 +55,9 @@ function client({ current = null, planned = null, terminated = null, reputation 
     for (const method of [query.select, query.in, query.order, query.limit]) method.mockReturnValue(query);
     return query;
   });
-  const rpc = vi.fn(async () => ({ data: null, error: null }));
+  const rpc = vi.fn(async (name: string) => name === "get_sponsor_objective_satisfaction_score"
+    ? { data: objectiveScore, error: objectiveScoreError ? { message: objectiveScoreError } : null }
+    : { data: null, error: null });
   mocks.admin.mockReturnValue({ from, rpc });
   return { from, rpc };
 }
@@ -68,6 +71,26 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("sponsor page future-season fault isolation", () => {
+  it("uses canonical partial satisfaction after evaluation, including the media multiplier", async () => {
+    const { rpc } = client({ current: contract(), objectiveScore: 9, progressDetails: {
+      targetValue: 1, achievementLevel: "partial", partialSatisfactionPoints: 8,
+      partialAchievements: [{ code: "stage_win", rank: 1, count: 2 }],
+    } });
+    mocks.objectives.mockResolvedValue(new Map([["current-offer", [{ ...persistedObjective, status: "failed" }]]]));
+    expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ contract: {
+      objectiveSatisfactionScore: 9, satisfactionScore: 9, objectives: [{
+        status: "failed", achievementLevel: "partial", partialSatisfactionPoints: 8,
+        partialAchievements: [{ code: "stage_win", rank: 1, count: 2 }],
+      }],
+    } });
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      "evaluate_sponsor_objectives_for_contract", "get_sponsor_objective_satisfaction_score",
+    ]);
+  });
+  it("does not silently replace a canonical score failure with zero satisfaction", async () => {
+    client({ current: contract(), objectiveScoreError: "score unavailable" });
+    await expect(getSponsoringStateForAuthUser("player")).rejects.toThrow("score unavailable");
+  });
   it("keeps the active contract, objectives, progress and budgets when future team enrollment fails", async () => {
     client({ current: contract() });
     const error = new Error('record "v_catalog" has no field "tour_name"');

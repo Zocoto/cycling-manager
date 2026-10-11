@@ -32,6 +32,10 @@ import {
 } from "@/lib/game/sponsor-performance-satisfaction";
 import type { SponsorBudgetHistoryPoint } from "@/lib/game/sponsor-budget-history";
 import { getSponsorBudgetHistoryForTeam } from "@/services/sponsor-budget-history";
+import {
+  readSponsorPartialAchievements,
+  type SponsorPartialAchievement,
+} from "@/lib/game/sponsor-partial-achievements";
 
 
 
@@ -59,6 +63,7 @@ export type SponsorContractObjective = {
   progressStatus: "not_started" | "in_progress" | "achieved" | "failed" | null;
   achievementLevel: SponsorObjectiveAchievementLevel | null;
   partialSatisfactionPoints: number;
+  partialAchievements?: SponsorPartialAchievement[];
   mainObjectiveTerms: SponsorMainObjectiveTerms | null;
 };
 
@@ -274,6 +279,7 @@ type SponsorObjectiveProgress = {
   status: SponsorObjectiveProgressRow["status"];
   achievementLevel: SponsorObjectiveAchievementLevel | null;
   partialSatisfactionPoints: number;
+  partialAchievements: SponsorPartialAchievement[];
 };
 
 type SponsorSatisfactionEventRow = {
@@ -917,6 +923,7 @@ async function hydrateSponsorContract({
         progressStatus: progress?.status ?? null,
         achievementLevel: progress?.achievementLevel ?? null,
         partialSatisfactionPoints: progress?.partialSatisfactionPoints ?? 0,
+        partialAchievements: progress?.partialAchievements ?? [],
         mainObjectiveTerms: objective.mainObjectiveTerms,
       };
     });
@@ -951,14 +958,20 @@ async function hydrateSponsorContract({
     contractRow.contract_duration_seasons -
     1;
 
-  const objectiveSatisfactionScore = objectives.reduce(
-    (total, objective) =>
-      total +
-      (objective.status === "completed"
-        ? objective.satisfactionPoints
-        : 0),
-    0,
-  );
+  // Read after evaluation: the database includes partial credit and the media
+  // center multiplier. Summing only completed objectives hid these points.
+  const objectiveScoreResult = contractRow.sponsor_offer_id
+    ? await supabase.rpc("get_sponsor_objective_satisfaction_score", {
+        p_contract_id: contractRow.id,
+      })
+    : { data: 0, error: null };
+  if (objectiveScoreResult.error) {
+    throw new Error(`Impossible de charger la satisfaction des objectifs sponsor : ${objectiveScoreResult.error.message}`);
+  }
+  const objectiveSatisfactionScore = Number(objectiveScoreResult.data);
+  if (objectiveScoreResult.data === null || !Number.isFinite(objectiveSatisfactionScore)) {
+    throw new Error("La satisfaction des objectifs sponsor est invalide.");
+  }
   const satisfactionEvents = (satisfactionEventsResult.data ?? []).map(
     (event): SponsorSatisfactionEvent => ({
       id: event.id,
@@ -1078,6 +1091,7 @@ async function loadSponsorObjectiveProgress({
           status: progress.status,
           achievementLevel,
           partialSatisfactionPoints,
+          partialAchievements: readSponsorPartialAchievements(progress.details?.partialAchievements),
         },
       ] as const];
     }),
