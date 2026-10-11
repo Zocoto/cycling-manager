@@ -189,6 +189,8 @@ export async function getCurrentDashboardAssistantSummary(
     overweightRiders,
     completedScoutingCount: row.completed_scouting_count,
     availableScoutCount: assistantPayload.availableScoutCount,
+    availablePhysiotherapistSlotCount: assistantPayload.availablePhysiotherapistSlotCount,
+    ridersWithoutPhysiotherapistCount: assistantPayload.ridersWithoutPhysiotherapistCount,
     availableRndEngineerCount: rndOpportunityResult.error
       ? 0
       : normalizeCount(rndOpportunityResult.data),
@@ -363,6 +365,8 @@ function normalizeAssistantPayload(value: unknown): {
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
   availableScoutCount: number;
+  availablePhysiotherapistSlotCount: number;
+  ridersWithoutPhysiotherapistCount: number;
   juniorManualTrainingDueCount: number;
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
   federationSelectionReminderCount: number;
@@ -384,6 +388,8 @@ function normalizeAssistantPayload(value: unknown): {
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
+      availablePhysiotherapistSlotCount: 0,
+      ridersWithoutPhysiotherapistCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
       federationSelectionReminderCount: 0,
@@ -407,6 +413,8 @@ function normalizeAssistantPayload(value: unknown): {
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
+      availablePhysiotherapistSlotCount: 0,
+      ridersWithoutPhysiotherapistCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
       federationSelectionReminderCount: 0,
@@ -426,6 +434,11 @@ function normalizeAssistantPayload(value: unknown): {
   }
 
   const payload = value as Record<string, unknown>;
+  const physiotherapistOpportunity =
+    payload.physiotherapistOpportunity &&
+    typeof payload.physiotherapistOpportunity === "object"
+      ? (payload.physiotherapistOpportunity as Record<string, unknown>)
+      : {};
   const rosterProjection =
     payload.nextSeasonRosterProjection &&
     typeof payload.nextSeasonRosterProjection === "object"
@@ -454,6 +467,8 @@ function normalizeAssistantPayload(value: unknown): {
       payload.staffRecruitmentMatchCount,
     ),
     availableScoutCount: normalizeCount(payload.availableScoutCount),
+    availablePhysiotherapistSlotCount: normalizeCount(physiotherapistOpportunity.freeSlotCount),
+    ridersWithoutPhysiotherapistCount: normalizeCount(physiotherapistOpportunity.unassignedRiderCount),
     juniorManualTrainingDueCount: normalizeCount(
       payload.juniorManualTrainingDueCount,
     ),

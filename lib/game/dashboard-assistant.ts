@@ -71,6 +71,8 @@ export type DashboardAssistantSnapshot = {
   completedScoutingCount: number;
   availableScoutCount: number;
   availableRndEngineerCount: number;
+  availablePhysiotherapistSlotCount: number;
+  ridersWithoutPhysiotherapistCount: number;
   zeroTrainingCount: number;
   seniorSessionCount: number;
   seniorCompletedCount: number;
@@ -165,6 +167,7 @@ const ALERT_PRIORITY = [
   "infrastructure-orientation",
   "low-reputation-registrations",
   "untreated-injuries",
+  "physiotherapist-assignments",
   "overweight-riders",
   "junior-manual-training",
   "federation-selection-reminder",
@@ -275,6 +278,22 @@ export function buildDashboardAssistantLines({
       title: pluralize(snapshot.untreatedInjuryCount, "blessé sans soins", "blessés sans soins"),
       detail: "Un protocole médical reste à choisir.",
       href: "/jeu/centre-de-soin?onglet=blessures",
+    });
+  }
+
+  if (
+    snapshot.availablePhysiotherapistSlotCount > 0 &&
+    snapshot.ridersWithoutPhysiotherapistCount > 0
+  ) {
+    const riderCount = snapshot.ridersWithoutPhysiotherapistCount;
+    const slotCount = snapshot.availablePhysiotherapistSlotCount;
+    alerts.push({
+      id: "physiotherapist-assignments",
+      tone: "alert",
+      metric: String(riderCount),
+      title: pluralize(riderCount, "coureur sans kiné", "coureurs sans kiné"),
+      detail: `${slotCount} ${pluralize(slotCount, "place disponible", "places disponibles")} chez vos kinés. Affectez vos coureurs pour protéger leur forme.`,
+      href: "/jeu/centre-de-soin?onglet=kines",
     });
   }
 

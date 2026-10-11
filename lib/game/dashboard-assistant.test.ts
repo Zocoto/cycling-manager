@@ -22,6 +22,8 @@ const snapshot: DashboardAssistantSnapshot = {
   completedScoutingCount: 1,
   availableScoutCount: 2,
   availableRndEngineerCount: 0,
+  availablePhysiotherapistSlotCount: 0,
+  ridersWithoutPhysiotherapistCount: 0,
   zeroTrainingCount: 4,
   seniorSessionCount: 20,
   seniorCompletedCount: 17,
@@ -74,6 +76,28 @@ const snapshot: DashboardAssistantSnapshot = {
 };
 
 describe("dashboard DS assistant", () => {
+  it.each([
+    [1, 1, "coureur sans kiné", "1 place disponible"],
+    [8, 3, "coureurs sans kiné", "3 places disponibles"],
+    [1, 12, "coureur sans kiné", "12 places disponibles"],
+  ])("signals %i unassigned riders when %i physio slots are free", (riders, slots, title, detail) => {
+    const alerts = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, ridersWithoutPhysiotherapistCount: riders, availablePhysiotherapistSlotCount: slots },
+      rewardCount: 0, cashBalance: 100_000,
+    }).alerts;
+    expect(alerts.filter(line => line.id === "physiotherapist-assignments")).toEqual([
+      expect.objectContaining({ tone: "alert", metric: String(riders), title, detail: expect.stringContaining(detail), href: "/jeu/centre-de-soin?onglet=kines" }),
+    ]);
+    expect(alerts.findIndex(line => line.id === "untreated-injuries")).toBeLessThan(alerts.findIndex(line => line.id === "physiotherapist-assignments"));
+  });
+
+  it.each([[0, 4], [4, 0], [0, 0]])("does not signal physio assignments with %i riders and %i slots", (riders, slots) => {
+    expect(buildDashboardAssistantLines({
+      snapshot: { ...snapshot, ridersWithoutPhysiotherapistCount: riders, availablePhysiotherapistSlotCount: slots },
+      rewardCount: 0, cashBalance: 100_000,
+    }).alerts.some(line => line.id === "physiotherapist-assignments")).toBe(false);
+  });
+
   it("separates underweight from overweight with a direct nutrition link", () => {
     const tooLight = {riderId:"light",name:"Un Sprinteur",profileLabel:"Sprinteur",weightKg:68,maximumWeightKg:79.3,isUnderweight:true,minimumWeightKg:73};
     const tooHeavy = {...tooLight,riderId:"heavy",weightKg:86,isUnderweight:false};

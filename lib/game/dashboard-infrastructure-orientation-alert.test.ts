@@ -15,6 +15,8 @@ const quietSnapshot = {
   completedScoutingCount: 0,
   availableScoutCount: 0,
   availableRndEngineerCount: 0,
+  availablePhysiotherapistSlotCount: 0,
+  ridersWithoutPhysiotherapistCount: 0,
   zeroTrainingCount: 0,
   seniorSessionCount: 0,
   seniorCompletedCount: 0,
