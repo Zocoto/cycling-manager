@@ -60,7 +60,7 @@ begin
   ) then
     raise exception 'Un coureur ne peut apparaître deux fois dans la même liste.';
   end if;
-  
+
   -- This nation-wide lock must be acquired before reading the other slots.
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(
