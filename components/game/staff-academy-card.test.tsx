@@ -9,6 +9,7 @@ import { StaffAcademyCard } from "./staff-academy-card";
 vi.mock("@/app/jeu/infrastructures/actions", () => ({
   startInfrastructureProjectAction: () => undefined,
   startStaffAcademyTrainingAction: () => undefined,
+  chooseStaffAcademyTalentAction: () => undefined,
 }));
 
 function academy(educators = 1): StaffAcademyOverview {
@@ -24,6 +25,7 @@ function academy(educators = 1): StaffAcademyOverview {
       extraCapacity: 0,
     },
     activeTrainings: [],
+    pendingTalentChoices: [],
     recentTrainings: [],
     members: [{
       contractId: "contract-1", memberId: "member-1",
@@ -100,11 +102,38 @@ describe("free staff academy courses", () => {
       awardedTalentLabel: null, completedAt: null,
       educatorCostReductionPercentage: 10, educatorDurationReductionPercentage: 15,
       federalDurationReductionPercentage: 0,
+      educatorMentorshipReductionDays: 0, educatorTalentChoiceCount: 1, talentChoices: [],
     };
     value.recentTrainings = [historic, { ...historic, id: "free", cost: 0, educatorCostReductionPercentage: 0 }];
     const html = render(value);
     expect(html).toContain("525");
     expect(html).toContain("Stage gratuit");
     expect(html.match(/coût −/g)).toHaveLength(1);
+  });
+
+  it("shows fixed talent choices inline without charging or consuming a training slot", () => {
+    const value = academy();
+    value.pendingTalentChoices = [{
+      id: "pending", contractId: "contract-1", memberId: "member-1", memberName: "Jean Test",
+      improvementType: "talent", improvementLabel: "Nouveau talent", previousLevel: 1, previousTalentCount: 1,
+      cost: 0, durationDays: 6, remainingDays: 0, completionGameYear: 4,
+      completionDayNumber: 10, progressPercentage: 100, status: "active",
+      awardedTalentLabel: null, completedAt: null,
+      educatorCostReductionPercentage: 0, educatorDurationReductionPercentage: 0,
+      federalDurationReductionPercentage: 0, educatorMentorshipReductionDays: 0,
+      educatorTalentChoiceCount: 2,
+      talentChoices: [
+        {code: "mechanic_wheel_efficiency",label: "Roues",description: "Bonus roues"},
+        {code: "mechanic_frame_efficiency",label: "Cadre",description: "Bonus cadre"},
+      ],
+    }];
+    value.members[0].activeTrainingId = "pending";
+    const html = render(value);
+    expect(html).toContain("place de formation libérée");
+    expect(html).toContain("Les propositions sont définitives");
+    expect(html).toContain('name="talentCode" value="mechanic_wheel_efficiency"');
+    expect(html).toContain('name="talentCode" value="mechanic_frame_efficiency"');
+    expect(html.match(/Choisir ce talent/g)).toHaveLength(2);
+    expect(html).toContain("1 emplacement(s) disponible(s)");
   });
 });

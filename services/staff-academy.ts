@@ -72,6 +72,9 @@ type TrainingRow = {
   educator_cost_reduction_percentage: number | string;
   educator_duration_reduction_percentage: number | string;
   federal_duration_reduction_percentage: number | string;
+  educator_mentorship_reduction_days: number;
+  educator_talent_choice_count: number;
+  talent_choice_codes: string[];
 };
 
 export type StaffAcademyTalentLine = {
@@ -102,6 +105,9 @@ export type StaffAcademyTraining = {
   educatorCostReductionPercentage: number;
   educatorDurationReductionPercentage: number;
   federalDurationReductionPercentage: number;
+  educatorMentorshipReductionDays: number;
+  educatorTalentChoiceCount: number;
+  talentChoices: { code: StaffTalentCode; label: string; description: string }[];
 };
 
 export type StaffAcademyMember = {
@@ -133,6 +139,7 @@ export type StaffAcademyOverview = {
   educatorBonuses: StaffAcademyEducatorBonuses;
   members: StaffAcademyMember[];
   activeTrainings: StaffAcademyTraining[];
+  pendingTalentChoices: StaffAcademyTraining[];
   recentTrainings: StaffAcademyTraining[];
 };
 
@@ -148,6 +155,7 @@ export async function getStaffAcademyOverview(
     infrastructureResult,
     contractsResult,
     trainingsResult,
+    activeTrainingsResult,
     educatorBonusesResult,
     federalStaffInstituteResult,
     federalStaffSpecializationResult,
@@ -168,11 +176,20 @@ export async function getStaffAcademyOverview(
       admin
         .from("staff_academy_trainings")
         .select(
-          "id, staff_contract_id, staff_member_id, improvement_type, previous_level, previous_talent_count, cost, duration_days, starts_game_day_index, completes_game_day_index, status, awarded_talent_code, completed_at, created_at, educator_cost_reduction_percentage, educator_duration_reduction_percentage, federal_duration_reduction_percentage",
+          STAFF_ACADEMY_TRAINING_COLUMNS,
         )
         .eq("team_id", context.teamId)
+        .neq("status", "active")
         .order("created_at", { ascending: false })
         .limit(30)
+        .returns<TrainingRow[]>(),
+      admin
+        .from("staff_academy_trainings")
+        .select(STAFF_ACADEMY_TRAINING_COLUMNS)
+        .eq("team_id", context.teamId)
+        .eq("status", "active")
+        .order("created_at", { ascending: true })
+        .limit(100)
         .returns<TrainingRow[]>(),
       admin.rpc("get_team_staff_academy_educator_bonuses", {
         p_team_id: context.teamId,
@@ -194,6 +211,7 @@ export async function getStaffAcademyOverview(
   assertQuery(infrastructureResult.error, "l’Académie des métiers");
   assertQuery(contractsResult.error, "les contrats du staff");
   assertQuery(trainingsResult.error, "les stages de l’Académie");
+  assertQuery(activeTrainingsResult.error, "les stages actifs de l’Académie");
   assertQuery(educatorBonusesResult.error, "les bonus des formateurs");
   assertQuery(federalStaffInstituteResult.error, "l’Institut fédéral du staff");
   assertQuery(
@@ -202,10 +220,11 @@ export async function getStaffAcademyOverview(
   );
 
   const contracts = contractsResult.data ?? [];
+  const trainingRows = [...(activeTrainingsResult.data ?? []), ...(trainingsResult.data ?? [])];
   const memberIds = [
     ...new Set([
       ...contracts.map((contract) => contract.staff_member_id),
-      ...(trainingsResult.data ?? []).map((training) => training.staff_member_id),
+      ...trainingRows.map((training) => training.staff_member_id),
     ]),
   ];
   const [membersResult, talentsResult] = memberIds.length
@@ -240,7 +259,7 @@ export async function getStaffAcademyOverview(
     (talent) => talent.staff_member_id,
   );
   const activeTrainingByMemberId = new Map(
-    (trainingsResult.data ?? [])
+    trainingRows
       .filter((training) => training.status === "active")
       .map((training) => [training.staff_member_id, training]),
   );
@@ -361,7 +380,7 @@ export async function getStaffAcademyOverview(
     ];
   });
 
-  const trainings = (trainingsResult.data ?? []).flatMap(
+  const trainings = trainingRows.flatMap(
     (training): StaffAcademyTraining[] => {
       const member = memberById.get(training.staff_member_id);
       if (!member) return [];
@@ -375,16 +394,15 @@ export async function getStaffAcademyOverview(
     academyLevel,
     baseCapacity,
     capacity: baseCapacity + educatorBonuses.extraCapacity,
-    activeTrainingCount: trainings.filter(
-      (training) => training.status === "active",
-    ).length,
+    activeTrainingCount: trainings.filter(isTrainingInProgress).length,
     educatorBonuses,
     members: members.sort((left, right) =>
       left.roleLabel.localeCompare(right.roleLabel, "fr") ||
       left.fullName.localeCompare(right.fullName, "fr"),
     ),
-    activeTrainings: trainings.filter(
-      (training) => training.status === "active",
+    activeTrainings: trainings.filter(isTrainingInProgress),
+    pendingTalentChoices: trainings.filter(
+      (training) => training.status === "active" && training.talentChoices.length > 1,
     ),
     recentTrainings: trainings.filter(
       (training) => training.status !== "active",
@@ -468,7 +486,9 @@ function toTraining(
     improvementLabel:
       training.improvement_type === "level"
         ? `Passage au niveau ${training.previous_level + 1}`
-        : "Nouvelle ligne de bonus aléatoire",
+        : training.educator_talent_choice_count > 1
+          ? "Nouvelle ligne de bonus · choix à la fin du stage"
+          : "Nouvelle ligne de bonus aléatoire",
     previousLevel: training.previous_level,
     previousTalentCount: training.previous_talent_count,
     cost: toNumber(training.cost),
@@ -497,6 +517,15 @@ function toTraining(
     federalDurationReductionPercentage: toNumber(
       training.federal_duration_reduction_percentage,
     ),
+    educatorMentorshipReductionDays: toNumber(training.educator_mentorship_reduction_days),
+    educatorTalentChoiceCount: Math.max(1, toNumber(training.educator_talent_choice_count)),
+    talentChoices: (training.talent_choice_codes ?? []).flatMap((code) =>
+      isStaffTalentCode(code) ? [{
+        code,
+        label: STAFF_TALENT_DEFINITIONS[code].label,
+        description: describeStaffTalent(code, member.level),
+      }] : [],
+    ),
   };
 }
 
@@ -521,8 +550,16 @@ function normalizeEducatorBonuses(value: unknown): StaffAcademyEducatorBonuses {
       1,
       Math.max(0, Math.floor(toNumber(record.extraCapacity))),
     ),
+    mentorshipReductionDays: Math.min(3, Math.max(0, Math.floor(toNumber(record.mentorshipReductionDays)))),
+    talentChoiceCount: Math.min(3, Math.max(1, Math.floor(toNumber(record.talentChoiceCount)))),
   };
 }
+
+function isTrainingInProgress(training: StaffAcademyTraining) {
+  return training.status === "active" && training.talentChoices.length < 2;
+}
+
+const STAFF_ACADEMY_TRAINING_COLUMNS = "id, staff_contract_id, staff_member_id, improvement_type, previous_level, previous_talent_count, cost, duration_days, starts_game_day_index, completes_game_day_index, status, awarded_talent_code, completed_at, created_at, educator_cost_reduction_percentage, educator_duration_reduction_percentage, federal_duration_reduction_percentage, educator_mentorship_reduction_days, educator_talent_choice_count, talent_choice_codes";
 
 function clampPercentage(value: number) {
   return Math.min(50, Math.max(0, value));

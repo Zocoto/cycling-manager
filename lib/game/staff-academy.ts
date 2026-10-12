@@ -9,6 +9,8 @@ export type StaffAcademyEducatorBonuses = {
   costReductionPercentage: number;
   durationReductionPercentage: number;
   extraCapacity: number;
+  mentorshipReductionDays?: number;
+  talentChoiceCount?: number;
 };
 
 export const EMPTY_STAFF_ACADEMY_EDUCATOR_BONUSES: StaffAcademyEducatorBonuses =
@@ -100,18 +102,36 @@ export function calculateStaffAcademyTraining({
   const durationReductionPercentage = normalizeReduction(
     educatorBonuses.durationReductionPercentage,
   );
+  const percentageDuration = Math.ceil(
+    baseTraining.durationDays * (1 - durationReductionPercentage / 100),
+  );
+  const mentorshipDays = improvementType === "level"
+    ? Math.min(3, Math.max(0, Math.floor(educatorBonuses.mentorshipReductionDays ?? 0)))
+    : 0;
+  const durationDays = Math.max(
+    1,
+    Math.ceil(baseTraining.durationDays / 2),
+    percentageDuration - mentorshipDays,
+  );
 
   return {
     cost: 0,
-    durationDays: Math.max(
-      1,
-      Math.ceil(
-        baseTraining.durationDays * (1 - durationReductionPercentage / 100),
-      ),
-    ),
+    durationDays,
+    mentorshipReductionDays: percentageDuration - durationDays,
+    talentChoiceCount: improvementType === "talent"
+      ? Math.min(3, Math.max(1, Math.floor(educatorBonuses.talentChoiceCount ?? 1)))
+      : 1,
     costReductionPercentage: 0,
     durationReductionPercentage,
   };
+}
+
+export function getStaffEducatorMentorshipReductionDays(level: number) {
+  return Math.ceil(Math.min(5, Math.max(1, Math.floor(level))) / 2);
+}
+
+export function getStaffEducatorTalentChoiceCount(level: number) {
+  return level >= 4 ? 3 : 2;
 }
 
 export function isStaffAcademyImprovementType(

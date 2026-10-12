@@ -103,6 +103,10 @@ export default async function RacePreparationPage({
         : [];
     }) ?? []).sort(compareRacePreparationEditionsByDate);
   const requestedCourse = readSingleSearchParam(resolvedSearchParams.course);
+  const requestedStageValue = readSingleSearchParam(resolvedSearchParams.etape);
+  const requestedStageNumber = requestedStageValue && /^[1-9]\d*$/.test(requestedStageValue)
+    ? Number(requestedStageValue)
+    : undefined;
   const requestedEdition = requestedCourse
     ? preparableCalendarEditions.find(
         (edition) => edition.slug === requestedCourse,
@@ -250,7 +254,9 @@ export default async function RacePreparationPage({
 
         {saved ? (
           <div className="mt-5 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
-            Le plan de course a été enregistré pour cette étape.
+            Le plan de course a été enregistré
+            {requestedStageNumber ? ` pour l’étape ${requestedStageNumber}` : " pour cette étape"}.
+            {" "}Chaque étape possède son propre plan.
           </div>
         ) : null}
         {readSingleSearchParam(resolvedSearchParams.tactique) ===
@@ -274,6 +280,7 @@ export default async function RacePreparationPage({
             />
           ) : editions.length > 0 ? (
             <RacePreparationWorkspace
+              key={`${selectedCalendarEdition?.id}:${requestedStageNumber ?? "auto"}`}
               action={saveRacePreparationAction}
               tacticalAction={saveRaceTacticalBriefingAction}
               timeTrialAction={saveTimeTrialPreparationAction}
@@ -285,6 +292,7 @@ export default async function RacePreparationPage({
               tacticalError={false}
               nowIso={now.toISOString()}
               initialSlug={requestedCourse}
+              initialStageNumber={requestedStageNumber}
               equipmentError={Boolean(equipmentPlanningResult.error)}
               equipmentSaveStatus={readSingleSearchParam(
                 resolvedSearchParams.materiel,

@@ -302,6 +302,37 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Pédagogie accélérée": "Accelerated teaching",
   "Double cursus": "Dual course",
   "Excellence pédagogique": "Teaching excellence",
+  "Mentorat ciblé": "Targeted mentoring",
+  "Orientation professionnelle": "Career guidance",
+  "Mentorat étoile": "Star mentoring",
+  "Choix du talent": "Talent choice",
+  "Aléatoire": "Random",
+  "propositions": "options",
+  "Stage terminé · place de formation libérée. Les propositions sont définitives.":
+    "Course finished · training slot freed. The options are final.",
+  "Choisir ce talent": "Choose this talent",
+  "Validation du talent…": "Confirming talent…",
+  "Ajouter un talent au choix": "Add a chosen talent",
+  "Le talent choisi est désormais actif sur ce membre du staff.":
+    "The selected talent is now active for this staff member.",
+  "Le choix de talent est invalide.": "Invalid talent choice.",
+  "choisissez son nouveau talent": "choose their new talent",
+  "Nouvelle ligne de bonus · choix à la fin du stage": "New bonus line · choice at the end of the course",
+  "Permet de choisir le nouveau talent parmi": "Choose the new talent from",
+  "propositions compatibles à la fin du stage": "compatible options at the end of the course",
+  "jour(s) sur les stages d’étoile ; réduction totale des formateurs plafonnée à 50 %":
+    "day(s) off star courses; total educator reduction capped at 50%",
+  "À la fin du stage, choisissez parmi": "At the end of the course, choose from",
+  "proposition(s) compatible(s). Un seul talent disponible sera attribué automatiquement.":
+    "compatible option(s). If only one talent is available, it will be awarded automatically.",
+  "jour(s) gagné(s), déjà inclus dans la durée.": "day(s) saved, already included in the duration.",
+  "Ce stage ne fait pas partie de votre équipe.": "This course does not belong to your team.",
+  "Aucun choix de talent n’est attendu pour ce stage.": "No talent choice is pending for this course.",
+  "Choisissez un talent parmi les propositions du stage.": "Choose a talent from the course options.",
+  "Ce membre du staff ne fait plus partie de votre équipe active.": "This staff member is no longer part of your active team.",
+  "Ce talent n’est plus compatible avec ce membre du staff.": "This talent is no longer compatible with this staff member.",
+  "Le métier se débloque dès la construction de l’Académie. Les stages sont gratuits. Un formateur actif est obligatoire ; sa pédagogie accélérée et son mentorat se combinent dans la limite de 50 % de réduction. Les propositions de talent sont figées à la fin du stage.":
+    "This profession unlocks once the Academy is built. Courses are free. An active staff educator is required; accelerated teaching and mentoring combine up to a 50% reduction. Talent options are fixed at the end of the course.",
   "Formateurs de l’équipe": "Team staff educators",
   "Aucun formateur actif": "No active staff educator",
   "Les stages sont gratuits et nécessitent un formateur actif. Le staff conserve ses fonctions ; son étoile ou son nouveau bonus s’active à la fin du stage.":

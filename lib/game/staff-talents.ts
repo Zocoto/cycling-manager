@@ -6,6 +6,10 @@ import {
   type StaffRole,
   type TrainerSpecialty,
 } from "@/lib/game/staff";
+import {
+  getStaffEducatorMentorshipReductionDays,
+  getStaffEducatorTalentChoiceCount,
+} from "@/lib/game/staff-academy";
 
 export const STAFF_TALENT_SLOTS_MAX = 3;
 export const STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE = 10;
@@ -378,9 +382,9 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   },
   educator_training_cost: {
     role: "educator",
-    label: "Réseau de formation",
-    description: () =>
-      "Ancien bonus de coût : sans effet financier depuis la gratuité des stages de l’Académie",
+    label: "Orientation professionnelle",
+    description: (level) =>
+      `Permet de choisir le nouveau talent parmi ${getStaffEducatorTalentChoiceCount(level)} propositions compatibles à la fin du stage`,
   },
   educator_parallel_training: {
     role: "educator",
@@ -391,9 +395,9 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   },
   educator_training_effectiveness: {
     role: "educator",
-    label: "Excellence pédagogique",
+    label: "Mentorat ciblé",
     description: (level) =>
-      `−${percentage(level, 5)} % sur la durée des stages de l’Académie (stages gratuits)`,
+      `−${getStaffEducatorMentorshipReductionDays(level)} jour(s) sur les stages d’étoile ; réduction totale des formateurs plafonnée à 50 %`,
   },
 };
 

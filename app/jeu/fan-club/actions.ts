@@ -77,6 +77,28 @@ export async function purchaseFanClubStockAction({
   }, "Le stock a été acheté et ajouté au magasin.");
 }
 
+export async function updateFanClubAutoRestockAction({
+  enabled,
+  allowNegativeProjection,
+  minimumStocks,
+}: {
+  enabled: boolean;
+  allowNegativeProjection: boolean;
+  minimumStocks: Record<string, number>;
+}): Promise<FanClubActionResult> {
+  if (typeof enabled !== "boolean" || typeof allowNegativeProjection !== "boolean" ||
+      !minimumStocks || typeof minimumStocks !== "object" || Array.isArray(minimumStocks) ||
+      Object.entries(minimumStocks).some(([id, minimum]) =>
+        !PRODUCT_IDS.has(id) || !Number.isInteger(minimum) || minimum < 0 || minimum > 5_000)) {
+    return invalidRequest();
+  }
+  return runRpc("set_current_team_fan_club_auto_restock", {
+    p_enabled: enabled,
+    p_allow_negative_projection: allowNegativeProjection,
+    p_minimum_stocks: minimumStocks,
+  }, "Le réapprovisionnement automatique a été enregistré.");
+}
+
 export async function updateFanClubSalePriceAction({
   productId,
   salePrice,
@@ -100,7 +122,7 @@ export async function updateFanClubSalePriceAction({
 
 async function runRpc(
   functionName: string,
-  parameters: Record<string, string | number>,
+  parameters: Record<string, string | number | boolean | Record<string, number>>,
   successMessage: string,
 ): Promise<FanClubActionResult> {
   const supabase = await createSupabaseServerClient();

@@ -1,0 +1,100 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+
+const { PGlite } = await import(pathToFileURL(process.env.SHOP_SQL_TEST_MODULE).href);
+const db = new PGlite();
+const team = '00000000-0000-0000-0000-000000000001';
+const season = '00000000-0000-0000-0000-000000000002';
+const ts = '00000000-0000-0000-0000-000000000003';
+try {
+  await db.exec(`
+    create role anon; create role authenticated; create role service_role;
+    create schema auth; create schema private;
+    create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.user',true),'')::uuid$$;
+    create function public.current_fan_club_team_id() returns uuid language sql as $$select auth.uid()$$;
+    create table teams(id uuid primary key); insert into teams values('${team}');
+    create table seasons(id uuid primary key,status text,game_year integer,current_day_number integer);
+    insert into seasons values('${season}','active',4,3);
+    create table season_days(id uuid primary key,season_id uuid,day_number integer);
+    insert into season_days select gen_random_uuid(),'${season}',n from generate_series(1,28) n;
+    create table team_seasons(id uuid primary key,team_id uuid,season_id uuid,status text,cash_balance numeric,opening_cash_balance numeric);
+    insert into team_seasons values('${ts}','${team}','${season}','active',1000,1000);
+    create table team_infrastructures(team_id uuid,infrastructure_code text,level integer);
+    insert into team_infrastructures values('${team}','club_shop',5);
+    create table fan_club_profiles(team_id uuid primary key,last_settled_game_day integer,updated_at timestamptz);
+    insert into fan_club_profiles values('${team}',113,now());
+    create table fan_club_shop_inventory(team_id uuid,product_code text,quantity integer check(quantity>=0),average_unit_cost numeric,sale_price numeric,collector_season_id uuid,updated_at timestamptz,primary key(team_id,product_code));
+    create table team_finance_transactions(team_season_id uuid,season_day_id uuid,day_number integer,amount numeric,category text,description text,status text,source_reference text unique,posted_at timestamptz);
+    create table fan_club_wholesale_prices(season_id uuid,day_number integer,product_code text,unit_cost numeric);
+    insert into fan_club_wholesale_prices values('${season}',3,'team-jersey',10),('${season}',3,'bottle',2);
+    create function get_fan_club_shop_product_config(p text) returns table(required_level integer,suggested_price numeric,is_collector boolean,wholesale_product_code text)
+      language sql as $$select l,price,c,w from (values('team-jersey',1,69::numeric,false,'team-jersey'),('bottle',2,12::numeric,false,'bottle'),('collector',1,99::numeric,true,'team-jersey')) x(code,l,price,c,w) where code=p$$;
+    create function team_won_fan_club_collector_gt(uuid,uuid,text) returns boolean language sql as $$select coalesce(current_setting('test.collector',true),'false')='true'$$;
+    create function get_team_club_shop_wholesale_cost_multiplier(uuid) returns numeric language sql as $$select coalesce(nullif(current_setting('test.discount',true),''),'1')::numeric$$;
+    create function ensure_fan_club_wholesale_prices(uuid,integer) returns void language plpgsql as $$begin end$$;
+    create function expire_fan_club_collector_stock(uuid,uuid) returns void language plpgsql as $$begin end$$;
+    create function sync_active_season_day() returns void language plpgsql as $$begin end$$;
+    create function settle_team_fan_club_sales_for_day(uuid,integer) returns integer language plpgsql as $$begin return 0; end$$;
+    select set_config('test.user','${team}',false);
+  `);
+  const extract = (source,name) => {
+    const start = source.indexOf(`create or replace function public.${name}(`);
+    assert.ok(start>=0,name);
+    const end = source.indexOf('$$;',source.indexOf('as $$',start));
+    return source.slice(start,end+3);
+  };
+  let purchase = extract(readFileSync('supabase/migrations/20260824123000_add_gt_collector_jerseys.sql','utf8'),'purchase_current_team_fan_club_stock');
+  let settlement = extract(readFileSync('supabase/migrations/20260905101500_schedule_daily_fan_club_shop_sales.sql','utf8'),'settle_due_fan_club_shop_sales');
+  if(process.env.SHOP_FUNCTION_SNAPSHOT) {
+    const { rows }=JSON.parse(readFileSync(process.env.SHOP_FUNCTION_SNAPSHOT,'utf8').replace(/^\uFEFF/,''));
+    purchase=rows.find(r=>r.proname==='purchase_current_team_fan_club_stock').definition;
+    settlement=rows.find(r=>r.proname==='settle_due_fan_club_shop_sales').definition;
+  }
+  await db.exec(purchase); await db.exec(settlement);
+  await db.exec(readFileSync('supabase/migrations/20261012120000_add_fan_club_auto_restock.sql','utf8'));
+  const scalar=async(sql)=>{const value=(await db.query(sql)).rows[0].n;return typeof value==='string' && /^-?[0-9]+(\.[0-9]+)?$/.test(value) ? Number(value) : value;};
+  const reset=async(cash=1000,projection=cash)=>{
+    await db.exec(`delete from fan_club_shop_inventory;delete from team_finance_transactions;delete from fan_club_shop_restock_settings;
+      update team_seasons set cash_balance=${cash},opening_cash_balance=${projection};
+      update team_infrastructures set level=5;update fan_club_profiles set last_settled_game_day=113;
+      select set_config('test.user','${team}',false);select set_config('test.collector','false',false);select set_config('test.discount','1',false);`);
+  };
+  const configure=async(enabled=true,allow=false,targets={'team-jersey':20})=>db.query('select set_current_team_fan_club_auto_restock($1,$2,$3::jsonb)',[enabled,allow,JSON.stringify(targets)]);
+  const restock=()=>scalar(`select private.restock_fan_club_shop('${ts}',3) as n`);
+  await configure(); assert.equal(await restock(),20); assert.equal(await scalar('select cash_balance as n from team_seasons'),800);
+  assert.equal(await restock(),0); assert.equal(await scalar('select count(*)::integer as n from team_finance_transactions'),1);
+  await reset(-1);await configure(true,true);assert.equal(await restock(),0);
+  await reset(1000,-50);await configure();assert.equal(await restock(),0);
+  await reset(1000,-50);await configure(true,true);assert.equal(await restock(),20);
+  await reset(1000,55);await configure();assert.equal(await restock(),5);assert.equal(await scalar('select opening_cash_balance+sum(amount) as n from team_seasons cross join team_finance_transactions group by opening_cash_balance'),5);
+  await reset(35,1000);await configure(true,true);assert.equal(await restock(),3);assert.equal(await scalar('select cash_balance as n from team_seasons'),5);
+  await reset();await configure(false);assert.equal(await restock(),0);
+  await reset();await configure(true,false,{'team-jersey':0});assert.equal(await restock(),0);
+  await reset();await configure();await db.exec(`insert into fan_club_shop_inventory values('${team}','team-jersey',10,5,85,null,now());select set_config('test.discount','0.9',false)`);
+  assert.equal(await restock(),10);assert.equal(await scalar('select average_unit_cost as n from fan_club_shop_inventory'),7);assert.equal(await scalar('select sale_price as n from fan_club_shop_inventory'),85);
+  await reset();await configure();await db.exec(`insert into fan_club_shop_inventory values('${team}','bottle',4995,2,12,null,now())`);assert.equal(await restock(),5);
+  await reset(1000,1000);await configure();await db.exec(`insert into team_finance_transactions(team_season_id,day_number,amount,status) values('${ts}',3,-990,'pending')`);assert.equal(await restock(),1);
+  await reset();await configure();await db.exec(`insert into team_finance_transactions(team_season_id,day_number,amount,status) values('${ts}',3,-1001,'pending')`);assert.equal(await restock(),0);
+  await reset();await assert.rejects(configure(true,false,{unknown:2}),/disponible/);
+  await assert.rejects(configure(true,false,{'team-jersey':-1}),/minimum/);
+  await assert.rejects(configure(true,false,{'team-jersey':1.5}),/minimum/);
+  await assert.rejects(configure(true,false,{'team-jersey':3000,bottle:3000}),/capacité/);
+  await db.exec('update team_infrastructures set level=1');await assert.rejects(configure(true,false,{bottle:2}),/disponible/);
+  await db.exec('update team_infrastructures set level=0');await assert.rejects(configure(),/Construisez/);
+  await reset();await assert.rejects(configure(true,false,{collector:5}),/collector/);
+  await db.exec(`select set_config('test.collector','true',false)`);await configure(true,false,{collector:5});
+  await db.exec(`select set_config('test.collector','false',false)`);assert.equal(await restock(),0);
+  await reset();await db.exec(`select set_config('test.collector','true',false)`);await configure(true,false,{collector:5});assert.equal(await restock(),5);
+  assert.equal(await scalar(`select collector_season_id::text as n from fan_club_shop_inventory`),season);
+  await reset();await db.exec(`select set_config('test.user','',false)`);await assert.rejects(configure(),/Directeur/);
+  await reset();await configure();const result=(await db.query('select * from settle_due_fan_club_shop_sales()')).rows[0];assert.equal(result.failed_teams,0);
+  assert.equal(await scalar('select sum(quantity)::integer as n from fan_club_shop_inventory'),20);
+  await db.query('select * from settle_due_fan_club_shop_sales()');assert.equal(await scalar('select count(*)::integer as n from team_finance_transactions'),1);
+  await reset();await configure(true,false,{'team-jersey':20,bottle:10});assert.equal(await restock(),30);
+  assert.equal(await scalar('select cash_balance as n from team_seasons'),780);
+  assert.equal(await scalar(`select has_function_privilege('authenticated','private.restock_fan_club_shop(uuid,integer)','execute') as n`),false);
+  assert.equal(await scalar(`select has_table_privilege('authenticated','fan_club_shop_restock_settings','update') as n`),false);
+  assert.equal(await scalar(`select has_function_privilege('authenticated','set_current_team_fan_club_auto_restock(boolean,boolean,jsonb)','execute') as n`),true);
+  console.log('PASS: daily integration, disabled/zero targets, negative cash/projection, override, partial budget, due charges, capacity, costs, collectors, authentication, permissions and retry idempotence.');
+} catch(error) { console.error(error.message, error.where ?? '', error.detail ?? '');process.exitCode=1; } finally { await db.close(); }

@@ -32,7 +32,7 @@ try {
       select jsonb_build_object('activeEducatorCount',educators,'durationReductionPercentage',duration,
         'extraCapacity',capacity,'costReductionPercentage',40) from test_bonuses $$;
     create function settle_due_infrastructure_projects() returns void language plpgsql as $$ begin end $$;
-    create function settle_due_staff_academy_trainings() returns void language plpgsql as $$ begin end $$;
+    create function settle_due_staff_academy_trainings() returns integer language plpgsql as $$ begin return 0; end $$;
     create table staff_academy_trainings(
       id uuid default gen_random_uuid(),team_id uuid,team_season_id uuid,started_season_id uuid,
       staff_contract_id uuid,staff_member_id uuid,improvement_type text,previous_level integer,
@@ -113,6 +113,141 @@ try {
   await assert.rejects(db.exec("insert into staff_academy_trainings(cost) values(-1)"), /cost_nonnegative/);
   await assertMoneyUnchanged();
   console.log("PASS: free level/talent courses, negative balance, no ledger/debit, required educator, duration/federal bonuses, capacity, eligibility, ownership and paid history.");
+
+  // The approved affix conversion is tested on the same isolated database,
+  // including courses started before the conversion and real completion hooks.
+  await db.exec(`
+    alter table staff_members add column first_name text default 'Test', add column last_name text default 'Staff';
+    alter table staff_member_talents add column unlocked_by text default 'market',
+      add unique(staff_member_id,slot_number), add unique(staff_member_id,talent_code);
+    alter table staff_talent_catalog add column display_name text default '';
+    alter table staff_academy_trainings add column created_at timestamptz default now(),
+      add column updated_at timestamptz default now(), add column completed_at timestamptz,
+      add column awarded_talent_code text;
+    create unique index one_active_course on staff_academy_trainings(staff_member_id) where status='active';
+    create schema private;
+    create table test_messages(reference text unique,subject text,link text);
+    create function private.create_team_operational_message(uuid,text,text,text,text,text,text,text,text,boolean,timestamptz)
+    returns uuid language plpgsql as $$ begin
+      insert into public.test_messages values($9,$4,$7) on conflict do nothing;
+      return gen_random_uuid();
+    end $$;
+    create function sync_active_season_day() returns void language plpgsql as $$ begin end $$;
+    create function get_staff_contract_nationality_multiplier(uuid) returns numeric language sql as $$ select 1::numeric $$;
+    create function get_staff_contract_federal_institute_multiplier(uuid) returns numeric language sql as $$ select 1::numeric $$;
+    update team_manager_assignments set status='active';
+    update team_infrastructures set level=2;
+    update staff_members set level=1;
+    delete from staff_member_talents where slot_number>1;
+    update test_bonuses set educators=1,duration=0,capacity=0,federal=0;
+    insert into staff_members(id,role,level) values('${id(13)}','educator',2);
+    insert into staff_contracts values('${id(14)}','${id(13)}','${id(2)}','active');
+    insert into staff_member_talents(staff_member_id,talent_code,slot_number) values
+      ('${id(13)}','educator_training_cost',1),('${id(13)}','educator_training_effectiveness',2),
+      ('${id(13)}','educator_training_time',3);
+    insert into staff_talent_catalog(code,role,is_active,minimum_level,display_name) values
+      ('educator_training_cost','educator',true,1,'Réseau de formation'),
+      ('educator_training_effectiveness','educator',true,1,'Excellence pédagogique'),
+      ('educator_training_time','educator',true,1,'Pédagogie accélérée'),
+      ('educator_parallel_training','educator',true,3,'Double cursus'),
+      ('mechanic_frame_efficiency','mechanic',true,1,'Cadre'),
+      ('mechanic_wheel_interchangeability','mechanic',true,1,'Roues interchangeables');
+  `);
+  const historicalTalent = (await start("talent")).rows[0].id;
+  const historicalLevel = (await start("level",7)).rows[0].id;
+  const beforeConversion = (await db.query("select id,duration_days,completes_game_day_index from staff_academy_trainings where status='active' order by id")).rows;
+  const notifications = readFileSync("supabase/migrations/20260828200000_add_dashboard_ds_assistant.sql", "utf8");
+  const notificationStart = notifications.indexOf("create or replace function private.notify_completed_staff_academy_training()");
+  await db.exec(notifications.slice(notificationStart, notifications.indexOf("$$;", notificationStart)+3));
+  await db.exec(`create trigger notify_completed after update of status on staff_academy_trainings
+    for each row execute function private.notify_completed_staff_academy_training();`);
+  await db.exec(readFileSync("supabase/migrations/20261012190000_rework_staff_educator_talents.sql", "utf8"));
+  assert.deepEqual((await db.query("select id,duration_days,completes_game_day_index from staff_academy_trainings where status='active' order by id")).rows, beforeConversion);
+  assert.equal(Number(await scalar("select count(*) from staff_academy_trainings where status='active' and educator_talent_choice_count=1 and educator_mentorship_reduction_days=0")),2);
+  assert.equal(await scalar("select display_name from staff_talent_catalog where code='educator_training_cost'"), "Orientation professionnelle");
+  const settle = () => db.query("select settle_due_staff_academy_trainings() processed");
+  const choose = (training, code) => db.query("select choose_current_team_staff_academy_talent($1,$2) id",[training,code]);
+  await db.exec("update seasons set current_day_number=28");
+  await settle();
+  for (const historic of [historicalTalent,historicalLevel]) {
+    const row = (await db.query("select status,talent_choice_codes from staff_academy_trainings where id=$1",[historic])).rows[0];
+    assert.equal(row.status,"completed");
+    assert.deepEqual(row.talent_choice_codes,[]);
+  }
+  await assertMoneyUnchanged();
+  await db.exec(`delete from staff_member_talents where staff_member_id='${id(6)}' and slot_number>1;
+    update team_infrastructures set level=1; update seasons set current_day_number=1;`);
+
+  for (let teacherLevel=1;teacherLevel<=5;teacherLevel++) {
+    await db.exec(`update staff_members set level=${teacherLevel} where id='${id(13)}'`);
+    const bonuses = await scalar(`select get_team_staff_academy_educator_bonuses('${id(2)}')`);
+    assert.equal(Number(bonuses.costReductionPercentage),0);
+    assert.equal(Number(bonuses.durationReductionPercentage),teacherLevel*3);
+    assert.equal(Number(bonuses.mentorshipReductionDays),Math.ceil(teacherLevel/2));
+    assert.equal(Number(bonuses.talentChoiceCount),teacherLevel>=4 ? 3 : 2);
+    const row=await created("level");
+    assert.equal(row.duration_days,[4,4,3,3,3][teacherLevel-1]);
+    assert.equal(Number(row.educator_mentorship_reduction_days),[1,1,2,2,2][teacherLevel-1]);
+    assert.equal(Number(row.educator_talent_choice_count),1);
+    await clearNew();
+  }
+  const oriented=await created("talent");
+  assert.equal(Number(oriented.educator_talent_choice_count),3);
+  assert.equal(Number(oriented.educator_mentorship_reduction_days),0);
+  await assert.rejects(choose(oriented.id,"mechanic_wheel_efficiency"),/Aucun choix/);
+  await db.exec("update seasons set current_day_number=28");
+  await settle();
+  const pending=(await db.query("select * from staff_academy_trainings where id=$1",[oriented.id])).rows[0];
+  assert.equal(pending.status,"active");
+  assert.equal(pending.talent_choice_codes.length,3);
+  assert.equal(new Set(pending.talent_choice_codes).size,3);
+  assert.ok(!pending.talent_choice_codes.includes("mechanic_incident_time"));
+  assert.equal(Number(await scalar(`select count(*) from staff_member_talents where staff_member_id='${id(6)}'`)),1);
+  assert.equal(Number(await scalar(`select count(*) from test_messages where reference='dashboard-staff-training-choice:${oriented.id}'`)),1);
+  await settle();
+  assert.deepEqual((await db.query("select talent_choice_codes from staff_academy_trainings where id=$1",[oriented.id])).rows[0].talent_choice_codes,pending.talent_choice_codes);
+  await assert.rejects(choose(oriented.id,"doctor_recovery_time"),/parmi les propositions/);
+  await assert.rejects(choose(oriented.id,null),/parmi les propositions/);
+  await assert.rejects(start(),/déjà une formation/);
+  await start("level",7); // waiting choice no longer consumes the Academy's only slot
+  await db.exec(`create or replace function auth.uid() returns uuid language sql as $$ select '${id(99)}'::uuid $$`);
+  await assert.rejects(choose(oriented.id,pending.talent_choice_codes[0]),/votre équipe/);
+  await db.exec(`create or replace function auth.uid() returns uuid language sql as $$ select '${id(1)}'::uuid $$`);
+  const selected=pending.talent_choice_codes[0];
+  await choose(oriented.id,selected);
+  await choose(oriented.id,selected); // network retries / double clicks are idempotent
+  await assert.rejects(choose(oriented.id,pending.talent_choice_codes[1]),/Aucun choix/);
+  assert.equal(Number(await scalar(`select count(*) from staff_member_talents where staff_member_id='${id(6)}'`)),2);
+  assert.equal(Number(await scalar(`select count(*) from test_messages where reference='dashboard-staff-training-completed:${oriented.id}'`)),1);
+  await clearNew();
+
+  // If one compatible talent remains, it is applied automatically.
+  await db.exec(`insert into staff_member_talents(staff_member_id,talent_code,slot_number)
+    values('${id(6)}','${pending.talent_choice_codes[1]}',3); update seasons set current_day_number=1;`);
+  // A separate unowned one-line staff can learn its only compatible talent.
+  await db.exec(`insert into staff_talent_catalog(code,role,is_active,minimum_level) values('youth_coach_flat','youth_coach',true,1)`);
+  const oneChoice=(await start("talent",7)).rows[0].id;
+  await db.exec("update seasons set current_day_number=28");
+  await settle();
+  const auto=(await db.query("select status,awarded_talent_code,talent_choice_codes from staff_academy_trainings where id=$1",[oneChoice])).rows[0];
+  assert.equal(auto.status,"completed");
+  assert.equal(auto.awarded_talent_code,"youth_coach_flat");
+  assert.deepEqual(auto.talent_choice_codes,[]);
+
+  // Double cursus does not stack, and the educator requirement stays in force.
+  await db.exec(`insert into staff_members(id,role,level) values('${id(17)}','educator',3),('${id(19)}','educator',5);
+    insert into staff_contracts values('${id(18)}','${id(17)}','${id(2)}','active'),('${id(20)}','${id(19)}','${id(2)}','active');
+    insert into staff_member_talents(staff_member_id,talent_code,slot_number)
+    values('${id(17)}','educator_parallel_training',1),('${id(19)}','educator_parallel_training',1);`);
+  assert.equal(Number((await scalar(`select get_team_staff_academy_educator_bonuses('${id(2)}')`)).extraCapacity),1);
+  await db.exec(`update staff_contracts set status='inactive' where staff_member_id in ('${id(13)}','${id(17)}','${id(19)}')`);
+  await assert.rejects(start("level",7),/formateur actif/);
+  assert.equal(Number(await scalar("select cash_balance from team_seasons")),-402000);
+  assert.equal(Number(await scalar("select count(*) from team_finance_transactions")),1);
+  console.log("PASS: educator tiers, existing affix conversion, unchanged ongoing courses, fixed choices, available capacity, mail, ownership, duplicate prevention, automatic single choice and double-click idempotency.");
+} catch (error) {
+  console.error(JSON.stringify({ message: error.message, code: error.code, detail: error.detail, where: error.where }));
+  process.exitCode = 1;
 } finally {
   await db.close();
 }

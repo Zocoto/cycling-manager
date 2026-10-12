@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import {
   startInfrastructureProjectAction,
   startStaffAcademyTrainingAction,
+  chooseStaffAcademyTalentAction,
 } from "@/app/jeu/infrastructures/actions";
 import { InfrastructureArchitectSelect } from "@/components/game/infrastructure-architect-select";
 import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
@@ -171,11 +172,13 @@ export function StaffAcademyCard({
               </p>
               <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-[#60756E]">
                 Le métier se débloque dès la construction de l’Académie. Les
-                stages sont gratuits. Un formateur actif est obligatoire ; ses
-                bonus de délai se cumulent dans la limite de 50 %.
+                stages sont gratuits. Un formateur actif est obligatoire ; sa
+                pédagogie accélérée et son mentorat se combinent dans la limite
+                de 50 % de réduction. Les propositions de talent sont figées à
+                la fin du stage.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <QuoteMetric
                 label="Délai"
                 value={`−${formatPercentage(academy.educatorBonuses.durationReductionPercentage)}`}
@@ -184,6 +187,12 @@ export function StaffAcademyCard({
                 label="Places"
                 value={`+${academy.educatorBonuses.extraCapacity}`}
               />
+              <QuoteMetric label="Mentorat étoile" value={`−${academy.educatorBonuses.mentorshipReductionDays ?? 0} j`} />
+              <QuoteMetric label="Choix du talent" value={
+                (academy.educatorBonuses.talentChoiceCount ?? 1) > 1
+                  ? `${academy.educatorBonuses.talentChoiceCount} propositions`
+                  : "Aléatoire"
+              } />
             </div>
           </div>
         </div>
@@ -288,6 +297,28 @@ export function StaffAcademyCard({
               </span>
             </div>
 
+            {academy.pendingTalentChoices.length ? (
+              <div className="mt-5 space-y-3">
+                {academy.pendingTalentChoices.map((training) => (
+                  <div key={training.id} className="rounded-2xl border border-[#8B5FA8]/25 bg-[#F6F0FA] p-5">
+                    <p className="font-black text-[#183F37]">{training.memberName} · choisissez son nouveau talent</p>
+                    <p className="mt-1 text-xs font-semibold text-[#60756E]">Stage terminé · place de formation libérée. Les propositions sont définitives.</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {training.talentChoices.map((choice) => (
+                        <form key={choice.code} action={chooseStaffAcademyTalentAction} className="rounded-xl bg-white p-4">
+                          <input type="hidden" name="trainingId" value={training.id} />
+                          <input type="hidden" name="talentCode" value={choice.code} />
+                          <p className="text-sm font-black text-[#183F37]">{choice.label}</p>
+                          <p className="mt-2 min-h-10 text-xs font-semibold leading-5 text-[#60756E]">{choice.description}</p>
+                          <div className="mt-3"><StaffAcademySubmitButton pendingLabel="Validation du talent…">Choisir ce talent</StaffAcademySubmitButton></div>
+                        </form>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
             {academy.activeTrainings.length ? (
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {academy.activeTrainings.map((training) => (
@@ -338,6 +369,9 @@ export function StaffAcademyCard({
                           training.federalDurationReductionPercentage,
                         )}
                       </p>
+                    ) : null}
+                    {training.educatorMentorshipReductionDays > 0 ? (
+                      <p className="mt-1 text-[10px] font-black text-[#8B5FA8]">Mentorat ciblé · −{training.educatorMentorshipReductionDays} jour(s)</p>
                     ) : null}
                   </div>
                 ))}
@@ -435,6 +469,7 @@ export function StaffAcademyCard({
                     }
                     description="La nouvelle étoile augmente l’efficacité de toutes les compétences actuelles du staff."
                     durationDays={member.levelTraining.durationDays}
+                    mentorshipReductionDays={member.levelTraining.mentorshipReductionDays}
                     disabled={
                       missingEducator ||
                       capacityReached ||
@@ -454,10 +489,12 @@ export function StaffAcademyCard({
                     contractId={member.contractId}
                     improvementType="talent"
                     eyebrow="Spécialisation"
-                    title="Ajouter un bonus aléatoire"
+                    title={member.talentTraining.talentChoiceCount > 1 ? "Ajouter un talent au choix" : "Ajouter un bonus aléatoire"}
                     description={
                       member.availableTalentLabels.length
-                        ? `Tirage parmi les domaines manquants : ${member.availableTalentLabels.join(", ")}.`
+                        ? member.talentTraining.talentChoiceCount > 1
+                          ? `À la fin du stage, choisissez parmi ${Math.min(member.availableTalentLabels.length, member.talentTraining.talentChoiceCount)} proposition(s) compatible(s). Un seul talent disponible sera attribué automatiquement.`
+                          : `Tirage parmi les domaines manquants : ${member.availableTalentLabels.join(", ")}.`
                         : "Aucun domaine compatible supplémentaire n’est disponible."
                     }
                     durationDays={member.talentTraining.durationDays}
@@ -543,6 +580,9 @@ export function StaffAcademyCard({
                       )}
                     </p>
                   ) : null}
+                  {training.educatorMentorshipReductionDays > 0 ? (
+                    <p className="mt-1 text-[10px] font-black text-[#8B5FA8]">Mentorat ciblé · −{training.educatorMentorshipReductionDays} jour(s)</p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -561,6 +601,7 @@ function TrainingOption({
   title,
   description,
   durationDays,
+  mentorshipReductionDays = 0,
   disabled,
   disabledReason,
   buttonLabel,
@@ -571,6 +612,7 @@ function TrainingOption({
   title: string;
   description: string;
   durationDays: number;
+  mentorshipReductionDays?: number;
   disabled: boolean;
   disabledReason: string | null;
   buttonLabel: string;
@@ -593,6 +635,9 @@ function TrainingOption({
         <QuoteMetric label="Stage" value="Gratuit" />
         <QuoteMetric label="Durée" value={`${durationDays} jours`} />
       </dl>
+      {mentorshipReductionDays > 0 ? (
+        <p className="mt-2 text-[10px] font-bold text-[#8B5FA8]">Mentorat ciblé : {mentorshipReductionDays} jour(s) gagné(s), déjà inclus dans la durée.</p>
+      ) : null}
       <div className="mt-4">
         <StaffAcademySubmitButton
           disabled={disabled}
