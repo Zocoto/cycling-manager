@@ -8,6 +8,7 @@ import { HalloweenItemIllustration, SpiderWeb } from "./halloween-art";
 import { HalloweenCandyGame, type CandyColor } from "./halloween-candy-game";
 import { HalloweenSkinPortrait, HalloweenSkinPreview } from "./halloween-skin-preview";
 import { HalloweenNightRide } from "./halloween-night-ride";
+import { HalloweenRunnerRanking } from "./halloween-runner-ranking";
 import { HalloweenEventHome } from "./halloween-event-home";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { DemonicWheel } from "./halloween-wheel";
@@ -62,7 +63,7 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
     {state.curse ? <section className="halloween-card"><h2>{state.curse.kind === "vampire" ? "Le baiser du vampire" : "La malédiction de la momie"}</h2><p>Un sort envoyé par {state.curse.sender}. {curseCopy[state.curse.kind as keyof typeof curseCopy]} Expiration : {new Date(state.curse.expiresAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.</p><button disabled={busy} className="halloween-button" onClick={() => action("dispel")}>Sel anti-malédiction · lever gratuitement</button>
       {state.pendingGift ? <div><p>Cinq bandelettes à retirer, du dessus vers le dessous. {state.bandages}/5 retirées.</p><button disabled={busy} className="halloween-button" onClick={() => action("unwrap", { bandage: state.bandages })}>Retirer la bandelette {state.bandages + 1}</button></div> : null}
     </section> : null}
-    {tab === "accueil" ? <HalloweenEventHome onSelect={selectActivity} /> : null}
+    {tab === "accueil" ? <><HalloweenEventHome onSelect={selectActivity} /><HalloweenRunnerRanking state={state} /></> : null}
     {tab === "classements" ? <HalloweenRunnerOverview state={state} /> : null}
     {tab === "bonbons" ? <HalloweenCandyGame disabled={busy || !open || !state.joined || state.drawn || state.coins < 5 || !!state.pendingGift} busy={busy} drawn={state.drawn} pendingGift={!!state.pendingGift} coins={state.coins} chosen={chosenCandy} result={drawResult} onChoose={color => { if (actionLock.current || drawResult) return; setChosenCandy(color); action("draw"); }} /> : null}
     {tab === "boutique" || tab === "collection" ? <section><div className="halloween-section-heading"><div><p className="halloween-eyebrow">{tab === "collection" ? "Votre collection persistante" : "Roues démoniaques uniquement"}</p><h2>{tab === "collection" ? "Mes trésors" : "La boutique de minuit"}</h2></div><div className="halloween-filter">{["all", "cosmetic", "consumable", "transformation"].map(key => <button key={key} onClick={() => setFilter(key)} aria-pressed={filter === key}>{({ all: "Tout", cosmetic: "Portrait", consumable: "Objets", transformation: "Sorts" })[key]}</button>)}</div></div>

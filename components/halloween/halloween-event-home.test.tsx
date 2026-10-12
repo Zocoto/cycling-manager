@@ -15,6 +15,8 @@ describe("accueil Halloween illustré", () => {
     expect(html).toContain("Choisir un bonbon");
     expect(html).toContain("Explorer la boutique");
     expect(html).not.toMatch(/fictif|démonstration|\/apercus\/|24 roues/);
+    expect(html).not.toContain("Une parenthèse hors des courses");
+    expect(html).not.toContain("Des frissons, pas de fatigue.");
   });
   it("conserve le header natif même si l’événement est momentanément indisponible", () => {
     const page = readFileSync(resolve("app/jeu/halloween/page.tsx"), "utf8");
