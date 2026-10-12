@@ -109,7 +109,6 @@ export function SitePresenceIndicator() {
     >
       <p className="font-semibold">{presence?.total ?? "—"} {en ? "online" : "en ligne"}</p>
       <p className="mt-1 text-[#D6DFD2]">{presence?.players.length ?? "—"} {en ? "players" : "joueurs"} · {presence?.visitors ?? "—"} {en ? "visitors" : "visiteurs"}</p>
-      <p className="mt-1 text-[10px] text-[#D6DFD2]/60">{en ? "Active in the last 15 minutes" : "Actifs au cours des 15 dernières minutes"}</p>
       <div className="mt-2 border-t border-white/10 pt-2">
         {!presence ? <p>{en ? "Loading…" : "Chargement…"}</p> : presence.players.length ? <ul className="space-y-1.5">{presence.players.map(player => <li key={player.id} className="break-words">{player.name}</li>)}</ul> : <p className="text-[#D6DFD2]/70">{en ? "No players online" : "Aucun joueur en ligne"}</p>}
       </div>
