@@ -39,7 +39,7 @@ describe("collection personnelle Halloween", () => {
     const prices = Object.fromEntries([...migration.matchAll(/\('([a-z-]+)',(\d+)\)/g)].map(match => [match[1], Number(match[2])]));
     for (const item of HALLOWEEN_PREVIEW_ITEMS.filter(item => item.kind === "cosmetic" && item.price)) expect(prices[item.id]).toBe(item.price);
     expect(Object.keys(prices)).toHaveLength(8);
-    expect(HALLOWEEN_PREVIEW_ITEMS.find(item => item.id === "pumpkin-juice")?.price).toBe(6);
+    expect(HALLOWEEN_PREVIEW_ITEMS.find(item => item.id === "pumpkin-juice")?.price).toBe(12);
   });
   it("valide toujours les récompenses sur la configuration native, sans suffixe", () => {
     const action = readFileSync("app/jeu/directeur-sportif/actions.ts", "utf8");

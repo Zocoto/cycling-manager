@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { verifyHalloweenMobileReplays } from './test-local-halloween-replays.mjs';
+import { verifyHalloweenRepeatConsumables } from './test-local-halloween-repeat-consumables.mjs';
 if (!process.argv[2]?.endsWith('/dist/index.js')) throw new Error('Pass a local PGlite module path.');
 const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
 const db = new PGlite();
@@ -179,6 +180,7 @@ try {
     const session=await action('start',{},id(n));await action('finish',{runId:session.id,distance:n*200,coins:10,score:n*200+250,proof:{}},id(n));
   }
   await verifyHalloweenMobileReplays(db, { id, action, check, fail, q, scalar, wallet });
+  await verifyHalloweenRepeatConsumables(db, { id, action, check, fail, q, scalar, wallet });
   await db.exec("update halloween_editions set starts_at=now()-interval '2 days',ends_at=now()-interval '10 minutes',shop_ends_at=now()+interval '7 days'");
   await scalar('select settle_halloween_event() as value');
   const after=await q('select user_id,coins from halloween_wallets order by user_id');
