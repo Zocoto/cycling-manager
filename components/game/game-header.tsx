@@ -21,6 +21,7 @@ import { MobilePageRefreshControl } from "@/components/game/mobile-page-refresh-
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "@/components/ui/wheel-logo";
+import { SitePresenceIndicator } from "@/components/layout/site-presence";
 import {
   GLOBAL_SEARCH_MAX_LENGTH,
   GLOBAL_SEARCH_MIN_LENGTH,
@@ -90,6 +91,7 @@ export function GameHeader({
       <div
         className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 sm:gap-x-3 sm:gap-y-2 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
       >
+        <div className="relative shrink-0">
         <Link
           href="/jeu"
           prefetchOnIntent
@@ -131,6 +133,8 @@ export function GameHeader({
             </span>
           </span>
         </Link>
+        <SitePresenceIndicator />
+        </div>
 
         <GameNavigationMenu
           viewerEmail={simulatorEmail}

@@ -5,6 +5,7 @@ import Link from "@/components/ui/app-link";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "../ui/wheel-logo";
+import { SitePresenceIndicator } from "./site-presence";
 
 export function PublicHeader() {
   const { locale } = useLocale();
@@ -23,6 +24,7 @@ export function PublicHeader() {
       />
 
       <div className="mx-auto flex max-w-375 items-center justify-between gap-3 px-3 pb-4 pt-5 sm:gap-6 sm:px-8">
+        <div className="relative shrink-0">
         <Link
           href="/"
           className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
@@ -61,6 +63,8 @@ export function PublicHeader() {
             </span>
           </span>
         </Link>
+        <SitePresenceIndicator />
+        </div>
 
         <nav
           aria-label={isEnglish ? "Main navigation" : "Navigation principale"}

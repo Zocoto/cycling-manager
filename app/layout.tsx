@@ -9,6 +9,7 @@ import { WebVitalsReporter } from "../components/monitoring/web-vitals-reporter"
 import { getRequestLocale } from "../lib/i18n/server";
 import { getActiveSiteTheme } from "../lib/site-theme";
 import { SeasonalThemeSync } from "../components/layout/seasonal-theme-sync";
+import { SitePresenceProvider } from "../components/layout/site-presence";
 
 import "./globals.css";
 import "./seasonal-theme.css";
@@ -147,8 +148,10 @@ export default async function RootLayout({
           }}
         />
         <LocaleProvider initialLocale={locale}>
-          <ScrollToTop />
-          {children}
+          <SitePresenceProvider>
+            <ScrollToTop />
+            {children}
+          </SitePresenceProvider>
         </LocaleProvider>
         <WebVitalsReporter />
         <SpeedInsights />
