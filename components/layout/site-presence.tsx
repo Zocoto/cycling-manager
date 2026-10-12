@@ -46,6 +46,7 @@ export function SitePresenceIndicator() {
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pinned = useRef(false);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   function cancelClose() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -57,17 +58,21 @@ export function SitePresenceIndicator() {
   }
   function closeSoon() {
     cancelClose();
+    if (pinned.current) return;
     closeTimer.current = setTimeout(() => setPosition(null), 150);
+  }
+  function dismiss() {
+    pinned.current = false;
+    setPosition(null);
   }
   useEffect(() => {
     if (!position) return;
     function outside(event: PointerEvent) {
-      if (!trigger.current?.contains(event.target as Node) && !panel.current?.contains(event.target as Node)) setPosition(null);
+      if (!trigger.current?.contains(event.target as Node) && !panel.current?.contains(event.target as Node)) dismiss();
     }
     function escape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setPosition(null); trigger.current?.focus(); }
+      if (event.key === "Escape") { dismiss(); }
     }
-    function dismiss() { setPosition(null); }
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
     window.addEventListener("resize", dismiss);
@@ -87,7 +92,10 @@ export function SitePresenceIndicator() {
       aria-expanded={Boolean(position)} aria-controls={position ? id : undefined}
       onMouseEnter={open} onMouseLeave={closeSoon}
       onFocus={event => { if (event.currentTarget.matches(":focus-visible")) open(); }} onBlur={closeSoon}
-      onClick={() => { if (position) setPosition(null); else open(); }}
+      onClick={() => {
+        if (pinned.current) { cancelClose(); dismiss(); }
+        else { pinned.current = true; open(); }
+      }}
       className="absolute -bottom-1 left-0 z-10 inline-flex h-4 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-full border border-[#78947D]/40 bg-[#071A17] px-1 text-[9px] font-semibold leading-none text-[#D6DFD2] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:left-1 sm:min-w-10"
     >
       <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${presence ? "bg-[#42B99A]" : "bg-[#78947D]"}`} />
