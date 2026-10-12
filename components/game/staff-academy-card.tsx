@@ -101,6 +101,7 @@ export function StaffAcademyCard({
           : null;
   const capacityReached =
     academy.activeTrainingCount >= academy.capacity;
+  const missingEducator = academy.educatorBonuses.activeEducatorCount <= 0;
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_18px_50px_rgba(19,60,46,0.1)]">
@@ -112,7 +113,7 @@ export function StaffAcademyCard({
         description={
           mode === "construction"
             ? "Construisez puis améliorez l’Académie. Chaque niveau ouvre une place de formation supplémentaire dans la rubrique Staff."
-            : "Formez un membre du staff sans l’écarter de ses fonctions. Son étoile ou son nouveau bonus s’active à la fin du stage."
+            : "Les stages sont gratuits et nécessitent un formateur actif. Le staff conserve ses fonctions ; son étoile ou son nouveau bonus s’active à la fin du stage."
         }
       />
 
@@ -170,15 +171,11 @@ export function StaffAcademyCard({
               </p>
               <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-[#60756E]">
                 Le métier se débloque dès la construction de l’Académie. Les
-                meilleurs bonus de coût et de délai se cumulent, dans la limite
-                de 50 %.
+                stages sont gratuits. Un formateur actif est obligatoire ; ses
+                bonus de délai se cumulent dans la limite de 50 %.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <QuoteMetric
-                label="Coût"
-                value={`−${formatPercentage(academy.educatorBonuses.costReductionPercentage)}`}
-              />
+            <div className="grid grid-cols-2 gap-2">
               <QuoteMetric
                 label="Délai"
                 value={`−${formatPercentage(academy.educatorBonuses.durationReductionPercentage)}`}
@@ -321,13 +318,14 @@ export function StaffAcademyCard({
                       Fin prévue en saison {training.completionGameYear}, J
                       {training.completionDayNumber} · le staff reste actif
                     </p>
-                    {training.educatorCostReductionPercentage > 0 ||
+                    {(training.cost > 0 &&
+                      training.educatorCostReductionPercentage > 0) ||
                     training.educatorDurationReductionPercentage > 0 ? (
                       <p className="mt-1 text-[10px] font-black text-[#8B5FA8]">
-                        Formateur · coût −
-                        {formatPercentage(
-                          training.educatorCostReductionPercentage,
-                        )} · délai −
+                        Formateur · {training.cost > 0 &&
+                        training.educatorCostReductionPercentage > 0
+                          ? `coût −${formatPercentage(training.educatorCostReductionPercentage)} · `
+                          : ""}délai −
                         {formatPercentage(
                           training.educatorDurationReductionPercentage,
                         )}
@@ -436,20 +434,18 @@ export function StaffAcademyCard({
                         : "Niveau maximal atteint"
                     }
                     description="La nouvelle étoile augmente l’efficacité de toutes les compétences actuelles du staff."
-                    cost={member.levelTraining.cost}
                     durationDays={member.levelTraining.durationDays}
-                    currency={currency}
                     disabled={
+                      missingEducator ||
                       capacityReached ||
                       Boolean(member.activeTrainingId) ||
-                      !member.canImproveLevel ||
-                      balance < member.levelTraining.cost
+                      !member.canImproveLevel
                     }
                     disabledReason={getTrainingBlockReason({
+                      missingEducator,
                       capacityReached,
                       alreadyTraining: Boolean(member.activeTrainingId),
                       eligible: member.canImproveLevel,
-                      insufficientFunds: balance < member.levelTraining.cost,
                       ineligibleReason: "Ce membre possède déjà cinq étoiles.",
                     })}
                     buttonLabel="Ajouter une étoile"
@@ -464,20 +460,18 @@ export function StaffAcademyCard({
                         ? `Tirage parmi les domaines manquants : ${member.availableTalentLabels.join(", ")}.`
                         : "Aucun domaine compatible supplémentaire n’est disponible."
                     }
-                    cost={member.talentTraining.cost}
                     durationDays={member.talentTraining.durationDays}
-                    currency={currency}
                     disabled={
+                      missingEducator ||
                       capacityReached ||
                       Boolean(member.activeTrainingId) ||
-                      !member.canAddTalent ||
-                      balance < member.talentTraining.cost
+                      !member.canAddTalent
                     }
                     disabledReason={getTrainingBlockReason({
+                      missingEducator,
                       capacityReached,
                       alreadyTraining: Boolean(member.activeTrainingId),
                       eligible: member.canAddTalent,
-                      insufficientFunds: balance < member.talentTraining.cost,
                       ineligibleReason:
                         "Le maximum de trois bonus ou tous les domaines compatibles sont atteints.",
                     })}
@@ -524,15 +518,18 @@ export function StaffAcademyCard({
                       : training.awardedTalentLabel ?? "Nouveau bonus obtenu"}
                   </p>
                   <p className="mt-2 text-[10px] font-semibold text-[#60756E]">
-                    {training.durationDays} jours · {formatMoney(training.cost, currency)}
+                    {training.durationDays} jours · {training.cost > 0
+                      ? formatMoney(training.cost, currency)
+                      : "Stage gratuit"}
                   </p>
-                  {training.educatorCostReductionPercentage > 0 ||
+                  {(training.cost > 0 &&
+                    training.educatorCostReductionPercentage > 0) ||
                   training.educatorDurationReductionPercentage > 0 ? (
                     <p className="mt-1 text-[10px] font-black text-[#8B5FA8]">
-                      Bonus formateur : coût −
-                      {formatPercentage(
-                        training.educatorCostReductionPercentage,
-                      )} · délai −
+                      Bonus formateur : {training.cost > 0 &&
+                      training.educatorCostReductionPercentage > 0
+                        ? `coût −${formatPercentage(training.educatorCostReductionPercentage)} · `
+                        : ""}délai −
                       {formatPercentage(
                         training.educatorDurationReductionPercentage,
                       )}
@@ -563,9 +560,7 @@ function TrainingOption({
   eyebrow,
   title,
   description,
-  cost,
   durationDays,
-  currency,
   disabled,
   disabledReason,
   buttonLabel,
@@ -575,9 +570,7 @@ function TrainingOption({
   eyebrow: string;
   title: string;
   description: string;
-  cost: number;
   durationDays: number;
-  currency: string;
   disabled: boolean;
   disabledReason: string | null;
   buttonLabel: string;
@@ -586,8 +579,6 @@ function TrainingOption({
     <form
       action={startStaffAcademyTrainingAction}
       className="flex flex-col rounded-2xl border border-[#315B3E]/12 bg-[#F6F8F6] p-5"
-      data-financial-expense={cost}
-      data-financial-label="ce stage de perfectionnement"
     >
       <input type="hidden" name="staffContractId" value={contractId} />
       <input type="hidden" name="improvementType" value={improvementType} />
@@ -599,7 +590,7 @@ function TrainingOption({
         {description}
       </p>
       <dl className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-white p-3">
-        <QuoteMetric label="Prix" value={formatMoney(cost, currency)} />
+        <QuoteMetric label="Stage" value="Gratuit" />
         <QuoteMetric label="Durée" value={`${durationDays} jours`} />
       </dl>
       <div className="mt-4">
@@ -620,22 +611,22 @@ function TrainingOption({
 }
 
 function getTrainingBlockReason({
+  missingEducator,
   capacityReached,
   alreadyTraining,
   eligible,
-  insufficientFunds,
   ineligibleReason,
 }: {
+  missingEducator: boolean;
   capacityReached: boolean;
   alreadyTraining: boolean;
   eligible: boolean;
-  insufficientFunds: boolean;
   ineligibleReason: string;
 }) {
   if (alreadyTraining) return "Ce membre suit déjà un stage.";
+  if (missingEducator) return "Recrutez un formateur actif pour lancer un stage.";
   if (capacityReached) return "Tous les emplacements sont occupés.";
   if (!eligible) return ineligibleReason;
-  if (insufficientFunds) return "Trésorerie insuffisante.";
   return null;
 }
 

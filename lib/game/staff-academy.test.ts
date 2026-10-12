@@ -23,7 +23,7 @@ describe("staff academy", () => {
         talentCount: 1,
       }),
     ).toEqual({
-      cost: 525_000,
+      cost: 0,
       durationDays: 5,
       costReductionPercentage: 0,
       durationReductionPercentage: 0,
@@ -38,14 +38,14 @@ describe("staff academy", () => {
         talentCount: 2,
       }),
     ).toEqual({
-      cost: 1_750_000,
+      cost: 0,
       durationDays: 20,
       costReductionPercentage: 0,
       durationReductionPercentage: 0,
     });
   });
 
-  it("makes additional levels and talent lines progressively expensive", () => {
+  it("keeps complex courses longer but free", () => {
     const beginner = calculateStaffAcademyTraining({
       improvementType: "level",
       staffLevel: 1,
@@ -57,7 +57,8 @@ describe("staff academy", () => {
       talentCount: 3,
     });
 
-    expect(expert.cost).toBeGreaterThan(beginner.cost);
+    expect(expert.cost).toBe(0);
+    expect(beginner.cost).toBe(0);
     expect(expert.durationDays).toBeGreaterThan(beginner.durationDays);
   });
 
@@ -75,9 +76,9 @@ describe("staff academy", () => {
         },
       }),
     ).toEqual({
-      cost: 1_050_000,
+      cost: 0,
       durationDays: 13,
-      costReductionPercentage: 40,
+      costReductionPercentage: 0,
       durationReductionPercentage: 35,
     });
   });
@@ -96,10 +97,34 @@ describe("staff academy", () => {
         },
       }),
     ).toEqual({
-      cost: 275_000,
+      cost: 0,
       durationDays: 3,
-      costReductionPercentage: 50,
+      costReductionPercentage: 0,
       durationReductionPercentage: 50,
     });
+  });
+
+  it("never charges for any level or talent course, even with legacy cost bonuses", () => {
+    for (const improvementType of ["level", "talent"] as const) {
+      for (let staffLevel = 1; staffLevel <= 5; staffLevel++) {
+        for (let talentCount = 0; talentCount <= 3; talentCount++) {
+          const course = calculateStaffAcademyTraining({
+            improvementType,
+            staffLevel,
+            talentCount,
+            educatorBonuses: {
+              activeEducatorCount: 1,
+              costReductionPercentage: 40,
+              durationReductionPercentage: 0,
+              extraCapacity: 0,
+            },
+          });
+          expect(course.cost).toBe(0);
+          expect(course.costReductionPercentage).toBe(0);
+          expect(course.durationDays).toBeGreaterThanOrEqual(5);
+          expect(course.durationDays).toBeLessThanOrEqual(20);
+        }
+      }
+    }
   });
 });

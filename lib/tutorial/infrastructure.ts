@@ -64,7 +64,7 @@ export const infrastructureTutorialDefinition = {
       targetId: "infrastructure-staff-academy",
       title: "L’Académie des métiers développe le staff",
       content:
-        "Cette infrastructure de haut niveau permet d’envoyer un membre du staff ou un entraîneur en stage pour lui ajouter une étoile ou une nouvelle ligne de talent disponible. Le nouveau bonus est attribué à la fin du stage ; jusque-là, la personne continue d’exercer normalement avec ses effets actuels.\n\nChaque niveau de l’Académie ajoute un stage simultané, jusqu’à cinq. Le prix et la durée augmentent avec le niveau du membre et la complexité de l’amélioration.",
+        "Cette infrastructure de haut niveau permet d’envoyer un membre du staff ou un entraîneur en stage gratuit pour lui ajouter une étoile ou une nouvelle ligne de talent disponible. Un formateur actif dans l’équipe est obligatoire. Le nouveau bonus est attribué à la fin du stage ; jusque-là, la personne continue d’exercer normalement avec ses effets actuels.\n\nChaque niveau de l’Académie ajoute un stage simultané, jusqu’à cinq. La durée augmente avec le niveau du membre et la complexité de l’amélioration. La construction et l’agrandissement du bâtiment restent payants.",
       placement: "top",
       highlightPadding: 8,
     },

@@ -304,6 +304,17 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Excellence pédagogique": "Teaching excellence",
   "Formateurs de l’équipe": "Team staff educators",
   "Aucun formateur actif": "No active staff educator",
+  "Les stages sont gratuits et nécessitent un formateur actif. Le staff conserve ses fonctions ; son étoile ou son nouveau bonus s’active à la fin du stage.":
+    "Courses are free and require an active staff educator. Staff remain on duty; their new star or bonus activates when the course ends.",
+  "Le métier se débloque dès la construction de l’Académie. Les stages sont gratuits. Un formateur actif est obligatoire ; ses bonus de délai se cumulent dans la limite de 50 %.":
+    "This profession unlocks once the Academy is built. Courses are free. An active staff educator is required; duration bonuses stack up to 50%.",
+  "Recrutez un formateur actif pour lancer un stage.":
+    "Hire an active staff educator to start a course.",
+  "Stage gratuit": "Free course",
+  "Ancien bonus de coût : sans effet financier depuis la gratuité des stages de l’Académie":
+    "Legacy cost bonus: no financial effect since Academy courses became free",
+  "% sur la durée des stages de l’Académie (stages gratuits)":
+    "% off Trades Academy course duration (free courses)",
   "· Académie des métiers requise": "· Trades Academy required",
   "Ajoute une place de formation simultanée à l’Académie des métiers":
     "Adds one simultaneous course slot to the Trades Academy",
