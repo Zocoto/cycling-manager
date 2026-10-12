@@ -34,3 +34,9 @@ Vérifications locales du correctif : 57 assertions PostgreSQL isolées avec l'e
 Migration `20261012160000` appliquée et enregistrée le 12 octobre vers 12h24 Paris : une course mondiale, 194 km, 21 tronçons, 60 nations, 220 places. Japon : quota 2, rang 67, une convocation confirmée conservée ; 60e nation : quota 0. Reçu d'intégrité : zéro membre changé, zéro roster changé, zéro affectation Nations Cup changée, zéro lien incorrect, aucun résultat. Connexion SQL vérifiée après application. Départ le 1er novembre à 18h Paris.
 
 Premier build Vercel (`dpl_4itzKFrCaHUPUjF5HL9SdmsczBcA`) arrêté sur le typage `.returns` du nouveau RPC Supabase : aucun remplacement du site actif. Correction du type de réponse avec contrôle explicite du tableau. Ajout d'un test moteur local avec les 220 partants répartis sur 60 nations : toutes les entrées restituées une seule fois, un vainqueur et temps finis. Aucun changement du moteur.
+
+## Livraison vérifiée
+
+Code publié sur main : `a5921c3f`. Déploiement production `dpl_EErafojqCsyeDasWjCBR7Ztf5sqL`, URL technique `https://cyclostratege-64378w30r-zocotos-projects.vercel.app`, état READY et alias `https://cyclostratege.fr` vérifiés. Accueil et guide HTTP 200 ; le guide servi contient les quotas, la qualification figée et les délais anticipés. La route JO privée redirige vers la connexion sans session. Aucun log d'erreur sur ce déploiement dans la fenêtre de contrôle de cinq minutes. Dernière passe : 91 tests applicatifs ciblés réussis.
+
+Dernier contrôle SQL en lecture seule : Japon rang 67, quota 2, une convocation confirmée ; Cap-Vert rang 60, quota 0, aucune convocation confirmée. Les comptes joueurs n'ont été ni créés ni utilisés pour des actions de test. Ce reçu de livraison est une mise à jour documentaire locale, sans nouveau déploiement inutile.
