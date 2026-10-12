@@ -149,6 +149,7 @@ export function GlobalChatSharePreview({
             (riderDetails || riderDetailsUnavailable) ? (
               <RiderPotentialChip
                 potentialSteps={riderDetails?.potentialSteps ?? null}
+                scoutedPotential={riderDetails?.scoutedPotential}
               />
             ) : null}
             {preview.type === "rider" && !preview.teamId ? (

@@ -38,4 +38,12 @@ describe("branchement de la Loupe du recruteur", () => {
       'rider.status === "free_agent" && scoutingVisibility.active',
     );
   });
+
+  it("applique le niveau du DS connecté à la fiche et à l’aperçu", () => {
+    for (const path of ["services/public-rider-profile.ts", "services/rider-quick-preview.ts"]) {
+      const service = read(path);
+      expect(service).toContain("dataRoomLevel: scoutingVisibility.dataRoomLevel");
+    }
+    expect(read("services/rider-quick-preview.ts")).toContain("scoutedPotential: scoutingReport?.potential ?? null");
+  });
 });

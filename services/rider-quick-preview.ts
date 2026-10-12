@@ -144,7 +144,7 @@ export async function getRiderQuickPreview({
             authUserId: viewerAuthUserId,
             seasonId: activeSeason.id,
           })
-        : Promise.resolve({ active: false, activeUntil: null }),
+        : Promise.resolve({ active: false, activeUntil: null, dataRoomLevel: 0 }),
     ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -196,7 +196,7 @@ export async function getRiderQuickPreview({
     Boolean(exactRatings);
   const revealExactScouting =
     rider.status === "free_agent" && scoutingVisibility.active;
-  const ratings =
+  const scoutingReport =
     exactRatings && activeSeason
       ? mustUseScouting && !revealExactScouting
         ? createStandardTransferScoutingReport({
@@ -204,12 +204,14 @@ export async function getRiderQuickPreview({
             seasonId: activeSeason.id,
             ratings: exactRatings,
             potentialSteps: rider.potential_steps,
-          }).ratings
+            dataRoomLevel: scoutingVisibility.dataRoomLevel,
+          })
         : createExactTransferScoutingReport({
             ratings: exactRatings,
             potentialSteps: rider.potential_steps,
-          }).ratings
+          })
       : null;
+  const ratings = scoutingReport?.ratings ?? null;
   const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
     equipmentEffectsByRiderId.get(rider.id) ?? EMPTY_EQUIPMENT_EFFECTS,
   );
@@ -220,6 +222,7 @@ export async function getRiderQuickPreview({
     age: ratingResult.data?.age ?? null,
     potentialSteps:
       mustUseScouting && !revealExactScouting ? null : rider.potential_steps,
+    scoutedPotential: scoutingReport?.potential ?? null,
     country: {
       name: countryResult.data.name,
       code: countryResult.data.iso_alpha2,

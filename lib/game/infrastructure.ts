@@ -171,14 +171,14 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         cost: 200_000,
         durationDays: 7,
         effect:
-          "3 notes exactes, 8 fourchettes, 2 inconnues et potentiel toujours estimé.",
+          "3 notes exactes, 8 fourchettes, 2 inconnues et potentiel toujours estimé, avec une marge de 0,5 à 1 étoile.",
       },
       {
         level: 2,
         cost: 350_000,
         durationDays: 14,
         effect:
-          "5 notes exactes, 8 fourchettes resserrées et plus aucune note inconnue.",
+          "5 notes exactes, 8 fourchettes resserrées et plus aucune note inconnue ; potentiel estimé à une demi-étoile près.",
       },
       {
         level: 3,

@@ -1,11 +1,15 @@
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
-import type { ScoutedNumericValue } from "@/lib/game/transfer-scouting";
+import type {
+  ScoutedNumericValue,
+  ScoutedPotentialValue,
+} from "@/lib/game/transfer-scouting";
 
 export type RiderQuickPreview = {
   id: string;
   name: string;
   age: number | null;
   potentialSteps: number | null;
+  scoutedPotential: ScoutedPotentialValue | null;
   country: {
     name: string;
     code: string;

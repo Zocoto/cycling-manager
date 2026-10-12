@@ -651,7 +651,7 @@ export async function getPublicRiderProfile({
         authUserId: viewerAuthUserId,
         seasonId: activeSeason.id,
       })
-    : Promise.resolve({ active: false, activeUntil: null });
+    : Promise.resolve({ active: false, activeUntil: null, dataRoomLevel: 0 });
 
   const teamIds = [...new Set(contracts.map((contract) => contract.team_id))];
   const equipmentItemIds = [
@@ -868,6 +868,7 @@ export async function getPublicRiderProfile({
               activeSeason?.id ?? currentRating?.season_id ?? "hors-saison",
             ratings: exactRatings,
             potentialSteps: rider.potential_steps,
+            dataRoomLevel: scoutingVisibility.dataRoomLevel,
           })
       : null;
 

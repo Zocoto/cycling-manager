@@ -10,6 +10,7 @@ const details: RiderQuickPreview = {
   name: "Coureur exemple",
   age: 24,
   potentialSteps: 6,
+  scoutedPotential: { kind: "exact", steps: 6 },
   country: { name: "France", code: "FR" },
   team: { id: "team-1", name: "Équipe exemple" },
   ratings: Object.fromEntries(
