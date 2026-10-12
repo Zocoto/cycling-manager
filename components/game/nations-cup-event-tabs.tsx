@@ -82,7 +82,7 @@ export function NationsCupEventTabs({
             {olympic ? "Jeux quadriennaux" : "Nations Cup"} · {selectedEvent.name}
           </h3>
           <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-            {olympic ? "Un coureur par nation, dans sa division et son groupe. Montagne, vallons et pavés précèdent un final plat." : "Une sélection différente par nation. Cette épreuve compte dans le classement cumulé de la Nations Cup."}
+            {olympic ? "Un seul peloton mondial, sans divisions : jusqu’à 8, 4 ou 2 coureurs par nation invitée, dans la limite de 220. Montagne, vallons et pavés précèdent un final plat." : "Une sélection différente par nation. Cette épreuve compte dans le classement cumulé de la Nations Cup."}
           </p>
         </div>
         <Link

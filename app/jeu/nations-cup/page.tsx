@@ -6,6 +6,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { NationsCupAutoRefresh } from "@/components/game/nations-cup-auto-refresh";
 import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
 import { NationsCupStandings } from "@/components/game/nations-cup-standings";
+import { OlympicNations } from "@/components/game/olympic-nations";
 import { isOlympicSeason } from "@/lib/game/federation-olympic-programme";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -15,7 +16,7 @@ import { getNationsCupOverview } from "@/services/nations-cup";
 export const metadata: Metadata = {
   title: "Classement Nations Cup",
   description:
-    "Classements par division et groupe de la Nations Cup et des Jeux quadriennaux.",
+    "Nations Cup par division et groupe, ou course mondiale des Jeux quadriennaux.",
 };
 
 export default async function NationsCupPage() {
@@ -49,7 +50,7 @@ export default async function NationsCupPage() {
               {olympic ? "Jeux quadriennaux · Course en ligne" : "Nations Cup professionnelle"}
             </h1>
             <p className="mt-4 max-w-4xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
-              {olympic ? "Un coureur par nation sur un parcours complet : montagne, vallons, pavés et final plat." : "Cinq coureurs différents par nation, cinq terrains et un seul classement cumulé."} Les places donnent de 50 à 1 point au top 16.
+              {olympic ? "Un seul peloton mondial, jusqu’à 220 coureurs : montagne, vallons, pavés et final plat. Chaque nation invitée dispose d’un quota de places." : "Cinq coureurs différents par nation, cinq terrains et un seul classement cumulé. Les places donnent de 50 à 1 point au top 16."}
             </p>
           </div>
         </header>
@@ -70,14 +71,14 @@ export default async function NationsCupPage() {
               }
             />
             <NationsCupEventTabs events={overview.events} olympic={olympic} />
-            <NationsCupStandings
+            {olympic && overview.olympics ? <OlympicNations overview={overview.olympics} /> : <NationsCupStandings
               events={overview.events}
               olympic={olympic}
               initialDivision={overview.viewerFederation?.division}
               initialGroup={overview.viewerFederation?.groupCode}
               standings={overview.standings}
               viewerCountryId={overview.viewerFederation?.countryId}
-            />
+            />}
           </>
         )}
       </section>

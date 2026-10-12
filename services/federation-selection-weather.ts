@@ -194,6 +194,7 @@ async function loadOfficialInternationalStages({
     juniorEditionsResult,
     nationsCupHeatsResult,
     nationsCupAssignmentResult,
+    olympicEventResult,
   ] = await Promise.all([
     admin
       .from("races")
@@ -230,11 +231,16 @@ async function loadOfficialInternationalStages({
       .eq("season_id", seasonId)
       .eq("country_id", federationCountryId)
       .maybeSingle<NationsCupAssignmentRow>(),
+    slots.some((slot) => slot.slotKey === OLYMPIC_ROAD_SLOT && slot.profileLabel === "Mixte")
+      ? admin.from("national_federation_olympic_events").select("race_edition_id")
+          .eq("season_id", seasonId).maybeSingle<{ race_edition_id: string }>()
+      : Promise.resolve({ data: null, error: null }),
   ]);
   if (racesResult.error) throw racesResult.error;
   if (juniorEditionsResult.error) throw juniorEditionsResult.error;
   if (nationsCupHeatsResult.error) throw nationsCupHeatsResult.error;
   if (nationsCupAssignmentResult.error) throw nationsCupAssignmentResult.error;
+  if (olympicEventResult.error) throw olympicEventResult.error;
 
   const races = (racesResult.data ?? []).filter(
     (race) => race.competition_type !== "continental_championship" ||
@@ -263,6 +269,7 @@ async function loadOfficialInternationalStages({
       )
       .map((heat) => [heat.slot_key, heat.race_edition_id]),
   );
+  if (olympicEventResult.data) nationsCupEditionBySlot.set(OLYMPIC_ROAD_SLOT, olympicEventResult.data.race_edition_id);
   const juniorEditions = (juniorEditionsResult.data ?? []).filter(
     (edition) => !edition.competition_type.startsWith("continental_") ||
       edition.championship_continent_code === federationContinentCode,
@@ -572,6 +579,7 @@ function profileLabelToExactProfile(profileLabel: string): RaceProfileType {
     Sprint: "sprint",
     Pavés: "cobbles",
     Chrono: "time_trial",
+    Mixte: "mixed",
   }[profileLabel] as RaceProfileType;
 }
 

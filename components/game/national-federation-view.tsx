@@ -553,7 +553,9 @@ function OverviewPanel({
             </p>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
               {objectiveMetrics?.nationsCupEvents
-                ? `${numberFormatter.format(objectiveMetrics.nationsCupPoints)} points · Division ${objectiveMetrics.nationsCupDivision}${objectiveMetrics.nationsCupGroup ? `, groupe ${objectiveMetrics.nationsCupGroup}` : ""} · ${objectiveMetrics.nationsCupEvents}/${snapshot.season.gameYear % 4 === 0 ? 1 : 5} épreuve(s)`
+                ? snapshot.season.gameYear % 4 === 0
+                  ? `Meilleur résultat : #${objectiveMetrics.nationsCupOverallRank} · Course mondiale unique`
+                  : `${numberFormatter.format(objectiveMetrics.nationsCupPoints)} points · Division ${objectiveMetrics.nationsCupDivision}${objectiveMetrics.nationsCupGroup ? `, groupe ${objectiveMetrics.nationsCupGroup}` : ""} · ${objectiveMetrics.nationsCupEvents}/5 épreuve(s)`
                 : snapshot.season.gameYear % 4 === 0 ? "La course en ligne des Jeux aura lieu à J24." : "Les cinq épreuves professionnelles auront lieu à J24."}
             </p>
             <Link

@@ -6,6 +6,7 @@ import {
   PROFESSIONAL_NATIONS_CUP_EVENTS,
 } from "@/lib/game/nations-cup-heats";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getOlympicOverview, type OlympicOverview } from "@/services/olympic-games";
 
 export type NationsCupEvent = {
   id: string;
@@ -45,6 +46,7 @@ export type NationsCupRiderResult = {
 };
 
 export type NationsCupOverview = {
+  olympics?: OlympicOverview;
   seasonName: string;
   gameYear: number;
   currentDayNumber: number;
@@ -120,6 +122,12 @@ export async function getNationsCupOverview(
   if (seasonResult.error) throw seasonResult.error;
   const season = seasonResult.data;
   if (!season) return null;
+
+  if (isOlympicSeason(season.game_year)) {
+    const olympic = await getOlympicOverview(season.id);
+    return { seasonName: season.name, gameYear: season.game_year, currentDayNumber: season.current_day_number ?? 1,
+      viewerFederation: null, standings: [], ...olympic };
+  }
 
   const [standingsResult, heatsResult, teamSeasonResult] = await Promise.all([
     admin.rpc("get_national_federation_nations_cup_movement_projection", {

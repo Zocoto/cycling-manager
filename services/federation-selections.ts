@@ -25,6 +25,7 @@ export type FederationPendingConfirmation = {
 };
 
 export type FederationSelectionState = {
+  olympicQuota?: number;
   canManage: boolean;
   automaticSelection: boolean;
   competitionHosts: Partial<
@@ -89,7 +90,7 @@ export async function getFederationSelectionState({
 
   try {
     const admin = createSupabaseAdminClient();
-    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult, scheduleResult, slotsResult] = await Promise.all([
+    const [listsResult, assignmentResult, termResult, preferenceResult, hostsResult, scheduleResult, slotsResult, olympicResult] = await Promise.all([
       admin
         .from("national_federation_selection_lists")
         .select("id, slot_key, status, revision")
@@ -130,6 +131,11 @@ export async function getFederationSelectionState({
         .from("national_federation_selection_slots")
         .select("slot_key, competition_code, rider_category")
         .returns<SlotRow[]>(),
+      gameYear >= 4 && gameYear % 4 === 0
+        ? admin.from("national_federation_olympic_qualifications").select("rider_quota")
+            .eq("season_id", seasonId).eq("country_id", countryId)
+            .maybeSingle<{ rider_quota: number }>()
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (listsResult.error) throw listsResult.error;
@@ -139,6 +145,7 @@ export async function getFederationSelectionState({
     if (hostsResult.error) throw hostsResult.error;
     if (scheduleResult.error) throw scheduleResult.error;
     if (slotsResult.error) throw slotsResult.error;
+    if (olympicResult.error) throw olympicResult.error;
     const schedules = Object.fromEntries((Array.isArray(scheduleResult.data) ? scheduleResult.data : []).map((schedule) => [schedule.slot_key, schedule]));
     const slotsByKey = new Map(
       (slotsResult.data ?? []).map((slot) => [slot.slot_key, slot]),
@@ -184,7 +191,8 @@ export async function getFederationSelectionState({
           responses: Object.fromEntries(members.filter((member) => member.selection_list_id === list.id)
             .map((member) => [member.professional_rider_id ?? member.junior_rider_id, member.response_status])),
           riderIds: members
-            .filter((member) => member.selection_list_id === list.id)
+            .filter((member) => member.selection_list_id === list.id
+              && (!(gameYear >= 4 && gameYear % 4 === 0) || member.response_status !== "declined"))
             .map(
               (member) =>
                 member.professional_rider_id ?? member.junior_rider_id,
@@ -229,6 +237,7 @@ export async function getFederationSelectionState({
     });
 
     return {
+      olympicQuota: gameYear >= 4 && gameYear % 4 === 0 ? olympicResult.data?.rider_quota ?? 0 : undefined,
       canManage:
         gameYear >= 3 &&
         Boolean(assignmentResult.data?.sporting_director_id) &&

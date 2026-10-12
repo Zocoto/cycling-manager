@@ -152,10 +152,14 @@ describe("official federation selection courses", () => {
       ...["nc-mountain","nc-hills","nc-sprint","nc-cobbles","nc-time-trial"].map(key=>slot(key,"nations_cup","Vallons")),
       slot("nc-junior-road","nations_cup_junior","Route","junior"),
     ];
+    proRace("olympic-global", "nations_cup", null);
+    stage("olympic-stage", "olympic-global", "mixed");
+    database.rows.national_federation_olympic_events = [{ season_id: "s3", race_edition_id: "olympic-global-edition" }];
     const forecasts = await getFederationSelectionForecasts({countryId:"nl",seasonId:"s3",gameYear:4,currentDayNumber:1});
     expect(Object.keys(forecasts).sort()).toEqual(["nc-hills","nc-junior-road"]);
     expect(forecasts["nc-hills"].slotKey).toBe("nc-hills");
     expect(forecasts["nc-hills"].weather).toBeNull();
+    expect(forecasts["nc-hills"].course).toMatchObject({ stageId: "olympic-stage", href: "/jeu/courses/olympic-global" });
     expect(database.filters.every(filter=>filter.values.length<=100)).toBe(true);
   });
 

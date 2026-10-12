@@ -1641,7 +1641,9 @@ function StructuresSection() {
           bullets={[
             "Président affiché sur la page publique du pays",
             "Sélections nationales et internationales",
-            "Jeux quadriennaux à J24 : une course en ligne mêlant montagne, vallons et pavés, avec un final plat et un coureur par nation dans sa division et son groupe",
+            "Jeux quadriennaux à J24 : un seul peloton mondial de 220 coureurs maximum, sans divisions, sur un parcours mêlant montagne, vallons, pavés et final plat",
+            "Invitations olympiques figées à J4 : 70 % classement UCI national final de la saison précédente, 30 % niveau des quatre meilleurs coureurs sur le parcours. Rangs 1–10 : jusqu’à 8 places ; 11–30 : 4 ; 31–60 : 2, dans la limite des coureurs disponibles",
+            "Aux Jeux, le président choisit dans le quota national. Convocations automatiques dès 7 jours avant la course, nouveaux envois jusqu’à H−24 et réponses des DS jusqu’à H−1. Sans accord, aucune inscription ni retrait d’une autre course. Les résultats des Jeux ne changent pas les divisions de la Nations Cup",
             "Chaque convocation d’un coureur sous contrat exige l’accord de son DS, quelle que soit sa nationalité ; réponse jusqu’à une heure avant les Jeux",
             "Trésorerie, solidarité, objectifs et projets nationaux",
             "Équipements, préparation, organisation de courses et bâtiments fédéraux",

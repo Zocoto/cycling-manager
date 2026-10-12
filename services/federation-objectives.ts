@@ -100,7 +100,7 @@ export async function getFederationObjectiveMetrics({
           .eq("season_id", seasonId)
           .not("manually_submitted_at", "is", null)
           .in("status", ["pending_confirmation", "finalized"]),
-        admin.rpc("get_national_federation_nations_cup_standings", {
+        admin.rpc(gameYear >= 4 && gameYear % 4 === 0 ? "get_olympic_nation_standings" : "get_national_federation_nations_cup_standings", {
           p_season_id: seasonId,
         }),
       ]);
@@ -114,7 +114,13 @@ export async function getFederationObjectiveMetrics({
       if (error) console.error(`Impossible de charger les ${label} de la fédération :`, error);
     }
 
-    const standings = (nationsCup.data ?? []) as NationsCupStandingRow[];
+    const standings = gameYear >= 4 && gameYear % 4 === 0
+      ? ((nationsCup.data ?? []) as { country_id: string; best_finish: number | null }[]).map((nation): NationsCupStandingRow => ({
+          country_id: nation.country_id, division: 0, group_code: null, points: 0,
+          events_count: nation.best_finish == null ? 0 : 1, overall_rank: nation.best_finish ?? 0,
+          division_rank: nation.best_finish ?? 0, group_rank: nation.best_finish ?? 0,
+        }))
+      : (nationsCup.data ?? []) as NationsCupStandingRow[];
     const nationsCupStanding = standings.find((entry) => entry.country_id === countryId);
     const hasNationsCupResult = (nationsCupStanding?.events_count ?? 0) > 0;
     const nationsCupPoolSize = nationsCupStanding
@@ -213,7 +219,7 @@ export async function getFederationObjectiveMetrics({
       nationsCupOverallRank: hasNationsCupResult
         ? (nationsCupStanding?.overall_rank ?? null)
         : null,
-      nationsCupDivision: nationsCupStanding?.division ?? null,
+      nationsCupDivision: gameYear % 4 === 0 ? null : nationsCupStanding?.division ?? null,
       nationsCupGroup: nationsCupStanding?.group_code ?? null,
       nationsCupPoolSize,
       nationsCupPoints: nationsCupStanding?.points ?? 0,

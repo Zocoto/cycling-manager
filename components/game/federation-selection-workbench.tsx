@@ -102,13 +102,14 @@ function getFederationSelectionCompetitions(
   ];
 }
 
-export function getFederationSelectionSlots(gameYear: number): SelectionSlot[] {
+export function getFederationSelectionSlots(gameYear: number, olympicQuota = 0): SelectionSlot[] {
   if (!isOlympicSeason(gameYear)) return SELECTION_SLOTS;
 
   return SELECTION_SLOTS.filter((slot) => isFederationSelectionSlotAvailable(slot.id, gameYear)).map((slot) =>
     slot.category === "professional" && slot.competition === "Nations Cup"
       ? {
           ...slot,
+          limit: olympicQuota,
           label: OLYMPIC_ROAD_LABEL,
           competition: "Jeux quadriennaux",
           subRaceLabel: "En ligne",
@@ -195,8 +196,8 @@ export function FederationSelectionWorkbench({
   selectionState: FederationSelectionState | null;
 }) {
   const selectionSlots = useMemo(
-    () => getFederationSelectionSlots(gameYear),
-    [gameYear],
+    () => getFederationSelectionSlots(gameYear, selectionState?.olympicQuota ?? 0),
+    [gameYear, selectionState?.olympicQuota],
   );
   const competitions = useMemo(
     () => getFederationSelectionCompetitions(gameYear),
@@ -358,6 +359,14 @@ export function FederationSelectionWorkbench({
 
   return (
     <div className="space-y-6">
+      {isOlympicSeason(gameYear) ? (
+        <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-5 text-sm leading-6">
+          <h2 className="font-black">Jeux quadriennaux · un seul peloton mondial</h2>
+          <p>Votre quota : {selectionState?.olympicQuota ?? 0} place(s). Qualification figée à J4 : 70 % classement UCI national final de la saison précédente, 30 % niveau des quatre meilleurs coureurs sur ce parcours.</p>
+          <p>Rangs 1–10 : jusqu’à 8 places · 11–30 : 4 · 31–60 : 2. Maximum 220 coureurs, sans divisions.</p>
+          <p>Convocations automatiques à partir de 7 jours avant la course. Envoi et remplacement jusqu’à H−24 ; réponse du DS jusqu’à H−1. Sans accord, le coureur ne participe pas et ses autres inscriptions sont conservées.</p>
+        </section>
+      ) : null}
       <section className="rounded-[2rem] border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">
         <SelectionAutomaticModeControl
           countryCode={countryCode}

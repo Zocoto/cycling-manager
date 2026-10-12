@@ -25,6 +25,13 @@ const rider = (id: string, overrides: Partial<RiderSimulationInput["ratings"]> =
 });
 
 describe("single Olympic road programme", () => {
+  it("requires a frozen national quota instead of a hardcoded selection limit", () => {
+    for (const quota of [0,2,4,8]) {
+      expect(getFederationSelectionSlots(4,quota).find(slot=>slot.id==='nc-hills')?.limit).toBe(quota);
+    }
+    expect(getFederationSelectionSlots(4).find(slot=>slot.id==='nc-hills')?.limit).toBe(0);
+    expect(getFederationSelectionSlots(5,8).find(slot=>slot.id==='nc-hills')?.limit).toBe(1);
+  });
   it("retains five professional disciplines outside Olympic seasons", () => {
     for (const year of [3,5,6,7]) {
       expect(isOlympicSeason(year)).toBe(false);
@@ -34,9 +41,9 @@ describe("single Olympic road programme", () => {
   });
   it("exposes one hybrid slot, with no Olympic time trial, without touching juniors/CC/CM", () => {
     for (const year of [4,8]) {
-      const slots = getFederationSelectionSlots(year);
+      const slots = getFederationSelectionSlots(year, 8);
       expect(slots.filter(slot => slot.competitionId === "nations-pro")).toMatchObject([
-        {id:"nc-hills",label:"Jeux quadriennaux · Course en ligne",limit:1,nationsCupProfile:"Polyvalent"},
+        {id:"nc-hills",label:"Jeux quadriennaux · Course en ligne",limit:8,nationsCupProfile:"Polyvalent"},
       ]);
       expect(getProfessionalNationsEventCount(year)).toBe(1);
       expect(slots.filter(slot => slot.competitionId !== "nations-pro")).toEqual(getFederationSelectionSlots(3).filter(slot => slot.competitionId !== "nations-pro"));

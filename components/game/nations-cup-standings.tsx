@@ -156,7 +156,7 @@ export function NationsCupStandings({
           {olympic ? "Classements des Jeux quadriennaux" : "Classements Nations Cup"}
         </h2>
         <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-          {olympic ? "La course en ligne détermine le classement des Jeux et les montées et descentes de fin de saison." : "Le général cumule les cinq épreuves et détermine seul les montées et descentes de fin de saison."}
+          {olympic ? "Les Jeux ont un classement mondial indépendant, sans divisions ni montées ou descentes." : "Le général cumule les cinq épreuves et détermine seul les montées et descentes de fin de saison."}
         </p>
         <div className="mt-4 max-w-3xl rounded-2xl border border-[#D5AC18]/25 bg-[#FFFBEB] px-4 py-3">
           <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#8A6810]">
