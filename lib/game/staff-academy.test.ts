@@ -4,6 +4,8 @@ import {
   STAFF_ACADEMY_LEVELS,
   calculateStaffAcademyTraining,
   getStaffAcademyCapacity,
+  getStaffEducatorMentorshipReductionDays,
+  getStaffEducatorTalentChoiceCount,
 } from "@/lib/game/staff-academy";
 
 describe("staff academy", () => {
@@ -25,6 +27,8 @@ describe("staff academy", () => {
     ).toEqual({
       cost: 0,
       durationDays: 5,
+      mentorshipReductionDays: 0,
+      talentChoiceCount: 1,
       costReductionPercentage: 0,
       durationReductionPercentage: 0,
     });
@@ -40,6 +44,8 @@ describe("staff academy", () => {
     ).toEqual({
       cost: 0,
       durationDays: 20,
+      mentorshipReductionDays: 0,
+      talentChoiceCount: 1,
       costReductionPercentage: 0,
       durationReductionPercentage: 0,
     });
@@ -78,6 +84,8 @@ describe("staff academy", () => {
     ).toEqual({
       cost: 0,
       durationDays: 13,
+      mentorshipReductionDays: 0,
+      talentChoiceCount: 1,
       costReductionPercentage: 0,
       durationReductionPercentage: 35,
     });
@@ -99,6 +107,8 @@ describe("staff academy", () => {
     ).toEqual({
       cost: 0,
       durationDays: 3,
+      mentorshipReductionDays: 0,
+      talentChoiceCount: 1,
       costReductionPercentage: 0,
       durationReductionPercentage: 50,
     });
@@ -126,5 +136,23 @@ describe("staff academy", () => {
         }
       }
     }
+  });
+
+  it("uses the approved educator tiers", () => {
+    expect([1,2,3,4,5].map(getStaffEducatorMentorshipReductionDays)).toEqual([1,1,2,2,3]);
+    expect([1,2,3,4,5].map(getStaffEducatorTalentChoiceCount)).toEqual([2,2,2,3,3]);
+  });
+
+  it("applies mentorship only to stars and caps the combined reduction at half the base duration", () => {
+    const educatorBonuses = { activeEducatorCount: 1, costReductionPercentage: 0,
+      durationReductionPercentage: 15, extraCapacity: 0, mentorshipReductionDays: 3, talentChoiceCount: 3 };
+    const level = calculateStaffAcademyTraining({ improvementType: "level", staffLevel: 1, talentCount: 1, educatorBonuses });
+    expect(level.durationDays).toBe(3);
+    expect(level.mentorshipReductionDays).toBe(2);
+    expect(level.talentChoiceCount).toBe(1);
+    const talent = calculateStaffAcademyTraining({ improvementType: "talent", staffLevel: 1, talentCount: 1, educatorBonuses });
+    expect(talent.durationDays).toBe(8);
+    expect(talent.mentorshipReductionDays).toBe(0);
+    expect(talent.talentChoiceCount).toBe(3);
   });
 });

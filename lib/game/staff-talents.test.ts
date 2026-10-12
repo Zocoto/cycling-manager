@@ -18,6 +18,15 @@ import {
 import { STAFF_ROLES } from "@/lib/game/staff";
 
 describe("staff talents", () => {
+  it("converts legacy educator talents without removing their codes", () => {
+    expect(STAFF_TALENT_DEFINITIONS.educator_training_cost.label).toBe("Orientation professionnelle");
+    expect(describeStaffTalent("educator_training_cost", 2)).toContain("2 propositions");
+    expect(describeStaffTalent("educator_training_cost", 4)).toContain("3 propositions");
+    expect(STAFF_TALENT_DEFINITIONS.educator_training_effectiveness.label).toBe("Mentorat ciblé");
+    expect(describeStaffTalent("educator_training_effectiveness", 1)).toContain("−1 jour");
+    expect(describeStaffTalent("educator_training_effectiveness", 3)).toContain("−2 jour");
+    expect(describeStaffTalent("educator_training_effectiveness", 5)).toContain("−3 jour");
+  });
   it("propose la pédagogie junior aux scouts", () => {
     expect(getStaffTalentCodes("scout")).toContain(
       "scout_academy_training",

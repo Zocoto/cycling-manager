@@ -9,6 +9,7 @@ import {
 } from "@/lib/game/infrastructure";
 import { isInfrastructureSpecializationChoice } from "@/lib/game/infrastructure-specializations";
 import { isStaffAcademyImprovementType } from "@/lib/game/staff-academy";
+import { isStaffTalentCode } from "@/lib/game/staff-talents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const INFRASTRUCTURE_PATH = "/jeu/infrastructures";
@@ -166,6 +167,23 @@ function redirectStaffTrainingWithMessage(
       message.slice(0, 280),
     )}`,
   );
+}
+
+export async function chooseStaffAcademyTalentAction(formData: FormData) {
+  const trainingId = readValue(formData, "trainingId");
+  const talentCode = readValue(formData, "talentCode");
+  if (!isUuid(trainingId) || !isStaffTalentCode(talentCode)) {
+    redirectStaffTrainingWithMessage("erreur", "Le choix de talent est invalide.");
+  }
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc("choose_current_team_staff_academy_talent", {
+    p_training_id: trainingId,
+    p_talent_code: talentCode,
+  });
+  if (result.error) redirectStaffTrainingWithMessage("erreur", result.error.message);
+  revalidateInfrastructurePages();
+  revalidatePath("/jeu/staff");
+  redirectStaffTrainingWithMessage("succes", "Le talent choisi est désormais actif sur ce membre du staff.");
 }
 export async function markInfrastructureNotificationsReadAction() {
   const supabase = await authenticatedClient();
