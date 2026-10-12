@@ -86,4 +86,20 @@ describe("single Olympic road programme", () => {
     }
     expect(completeRanks).toBeLessThan(specialistRanks);
   });
+  it("handles the full 220-rider Olympic field without losing or duplicating starters", () => {
+    const riders = Array.from({ length: 60 }, (_, nation) => {
+      const quota = nation < 10 ? 8 : nation < 30 ? 4 : 2;
+      return Array.from({ length: quota }, (_, index) => ({
+        ...rider(`nation-${nation}-rider-${index}`),
+        teamId: `nation-${nation}`, teamName: `nation-${nation}`,
+        role: index === 0 ? "leader" as const : "domestique" as const,
+      }));
+    }).flat();
+    const simulation = simulateRaceStage({ id: stage.id, name: stage.name, stageType: "road", profileType: "mixed", isStageRace: false, seed: "olympic-full-field", segments, riders });
+    expect(riders).toHaveLength(220);
+    expect(simulation.results).toHaveLength(220);
+    expect(new Set(simulation.results.map(result => result.riderId)).size).toBe(220);
+    expect(simulation.results.filter(result => result.rank === 1)).toHaveLength(1);
+    expect(simulation.results.every(result => Number.isFinite(result.elapsedTimeSeconds) && result.gapToWinnerSeconds >= 0)).toBe(true);
+  });
 });

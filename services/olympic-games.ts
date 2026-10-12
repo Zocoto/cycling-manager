@@ -24,11 +24,12 @@ export async function getOlympicOverview(seasonId: string): Promise<{ events: Na
   const [event, nations] = await Promise.all([
     admin.from("national_federation_olympic_events").select("race_edition_id, qualification_frozen_at")
       .eq("season_id", seasonId).maybeSingle<{ race_edition_id: string; qualification_frozen_at: string | null }>(),
-    admin.rpc("get_olympic_nation_standings", { p_season_id: seasonId }).returns<OlympicNation[]>(),
+    admin.rpc("get_olympic_nation_standings", { p_season_id: seasonId }),
   ]);
   if (event.error) throw event.error;
   if (nations.error) throw nations.error;
   if (!event.data) return { events: [], olympics: { nations: [], qualificationFrozenAt: null } };
+  if (!Array.isArray(nations.data)) throw new Error("Le classement olympique n’est pas disponible.");
   const edition = await admin.from("race_editions").select("id,race_id,status")
     .eq("id", event.data.race_edition_id).single<{ id: string; race_id: string; status: string }>();
   if (edition.error) throw edition.error;
@@ -37,6 +38,6 @@ export async function getOlympicOverview(seasonId: string): Promise<{ events: Na
   return {
     events: [{ id: "nc-hills", slug: "olympic-road", hrefSlug: race.data.slug, name: "Course en ligne",
       profileType: "mixed", status: edition.data.status }],
-    olympics: { nations: nations.data ?? [], qualificationFrozenAt: event.data.qualification_frozen_at },
+    olympics: { nations: nations.data as OlympicNation[], qualificationFrozenAt: event.data.qualification_frozen_at },
   };
 }
