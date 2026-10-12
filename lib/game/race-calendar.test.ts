@@ -98,6 +98,17 @@ describe("consolidateNationalChampionshipEvents", () => {
 });
 
 describe("consolidateFederationCalendarEditions", () => {
+  it("affiche une seule discipline olympique sans compter les huit séries comme huit épreuves", () => {
+    const editions = Array.from({length:8},(_,i)=>({
+      ...createEdition(`olympic-${i}`,[24],"late"),
+      competitionType:"nations_cup" as const,name:`Jeux quadriennaux · Course en ligne · D${i+1}`,
+      currentTeamInternationalRiderCount:i===1 ? 1 : 0,
+    }));
+    const [group] = consolidateFederationCalendarEditions(editions);
+    expect(group).toMatchObject({name:"Jeux quadriennaux",currentTeamInternationalRiderCount:1,
+      calendarGroup:{editionCount:1,locationLabel:"1 épreuve",profileLabel:"Montagne · Vallons · Pavés · Final plat"}});
+    expect(editions[0].name).toContain("Course en ligne");
+  });
   it("remplace les cinq courses de Nations Cup par une entrée unique en J24", () => {
     const editions = Array.from({ length: 5 }, (_, index) => {
       const edition = createEdition(`nations-cup-${index + 1}`, [24], "late");

@@ -1641,6 +1641,8 @@ function StructuresSection() {
           bullets={[
             "Président affiché sur la page publique du pays",
             "Sélections nationales et internationales",
+            "Jeux quadriennaux à J24 : une course en ligne mêlant montagne, vallons et pavés, avec un final plat et un coureur par nation dans sa division et son groupe",
+            "Chaque convocation d’un coureur sous contrat exige l’accord de son DS, quelle que soit sa nationalité ; réponse jusqu’à une heure avant les Jeux",
             "Trésorerie, solidarité, objectifs et projets nationaux",
             "Équipements, préparation, organisation de courses et bâtiments fédéraux",
           ]}

@@ -111,6 +111,8 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain("Jeux quadriennaux");
     expect(markup).toContain("Nations Cup juniors");
     expect(markup).not.toContain("Nations Cup · Montagne");
+    expect(markup).toContain("Une course en ligne");
+    expect(markup).not.toContain("Cinq épreuves professionnelles exceptionnelles");
   });
 
   it("uses six competition tiles as navigation and summarizes selection maturity", () => {

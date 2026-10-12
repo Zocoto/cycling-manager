@@ -97,7 +97,7 @@ export function buildFederationObjectives(
         ? `Atteindre le top ${rankTarget} aux Jeux quadriennaux`
         : `Atteindre le top ${nationsCupTarget} ${nationsCupLocation}`,
       detail: quadriennial
-        ? "Le classement cumulé du programme professionnel quadriennal de J24 est retenu."
+        ? "Le classement de la course en ligne des Jeux quadriennaux de J24 est retenu."
         : "Le classement cumulé des cinq épreuves professionnelles de J24 est retenu.",
       currentRank: quadriennial ? input.nationsCupOverallRank : input.nationsCupRank,
       targetRank: quadriennial ? rankTarget : nationsCupTarget,

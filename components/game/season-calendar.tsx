@@ -1591,7 +1591,7 @@ function MobileCalendarDay({
 
 function getCalendarEditionActionLabel(edition: RaceCalendarEdition) {
   if (edition.isJuniorChampionship) return "Résultats juniors";
-  if (edition.calendarGroup) return `Ouvrir les ${edition.calendarGroup.editionCount} épreuves`;
+  if (edition.calendarGroup) return edition.calendarGroup.editionCount === 1 ? "Ouvrir l’épreuve" : `Ouvrir les ${edition.calendarGroup.editionCount} épreuves`;
   if (isProfessionalNationsCupEdition(edition)) return "Voir la Nations Cup";
   if (isInternationalChampionshipEdition(edition)) return "Voir les CC & CM";
   return "Ouvrir la course";

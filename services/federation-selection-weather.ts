@@ -1,6 +1,7 @@
 import "server-only";
 
 import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
+import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_SLOT } from "@/lib/game/federation-olympic-programme";
 import type { RaceFormat, RaceProfileType, RaceStageType } from "@/lib/game/race-calendar";
 import {
   ensureCompleteRaceSegments,
@@ -141,11 +142,12 @@ export async function getFederationSelectionForecasts({
   if (countryResult.error) throw countryResult.error;
   if (targetSeasonResult.error) throw targetSeasonResult.error;
 
-  const slots = (slotsResult.data ?? []).map((row) => ({
+  const slots = (slotsResult.data ?? []).filter((row) =>
+    isFederationSelectionSlotAvailable(row.slot_key, targetGameYear)).map((row) => ({
     slotKey: row.slot_key,
     competitionCode: row.competition_code,
     riderCategory: row.rider_category,
-    profileLabel: row.profile_label,
+    profileLabel: isOlympicSeason(targetGameYear) && row.slot_key === OLYMPIC_ROAD_SLOT ? "Mixte" : row.profile_label,
     hostCountryCode:
       hostCountryCodeByEventType[getSlotEventType(row, targetGameYear)] ??
       row.host_country_code,

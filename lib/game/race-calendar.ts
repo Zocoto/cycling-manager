@@ -301,6 +301,11 @@ function createFederationCalendarGroup(
   configuration: FederationCalendarGroupConfiguration,
 ): RaceCalendarEdition {
   const representative = sourceEditions[0]!;
+  // The programme is edition-specific; never rename shared historical races.
+  const olympic = configuration.kind === "nations_cup" && sourceEditions.every(
+    (edition) => edition.name.startsWith("Jeux quadriennaux"));
+  if (olympic) configuration = { ...configuration, name: "Jeux quadriennaux", shortName: "Jeux quadriennaux",
+    profileLabel: "Montagne · Vallons · Pavés · Final plat", locationLabel: "1 épreuve" };
   const sourceStages = sourceEditions
     .flatMap((edition) => edition.stages)
     .sort(
@@ -352,7 +357,7 @@ function createFederationCalendarGroup(
     isJuniorChampionship: false,
     calendarGroup: {
       kind: configuration.kind,
-      editionCount: sourceEditions.length,
+      editionCount: olympic ? 1 : sourceEditions.length,
       profileLabel: configuration.profileLabel,
       locationLabel: configuration.locationLabel,
     },

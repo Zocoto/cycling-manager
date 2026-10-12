@@ -21,6 +21,7 @@ import {
 import { initialFederationSelectionActionState } from "@/lib/game/federation-action-states";
 import { formatFederationSelectionDeadline } from "@/lib/game/federation-callups";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
+import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_LABEL } from "@/lib/game/federation-olympic-programme";
 import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
 import {
   FEDERATION_SELECTION_SORT_OPTIONS,
@@ -89,27 +90,29 @@ type SelectionCompetition = {
 function getFederationSelectionCompetitions(
   gameYear: number,
 ): SelectionCompetition[] {
-  const quadriennialSeason = gameYear % 4 === 0;
+  const quadriennialSeason = isOlympicSeason(gameYear);
 
   return [
     { id: "continental-pro", day: 15, name: "Championnats continentaux", detail: "Professionnels · en ligne et contre-la-montre" },
     { id: "continental-junior", day: 15, name: "Championnats continentaux juniors", detail: "Juniors · en ligne et contre-la-montre" },
-    { id: "nations-pro", day: 24, name: quadriennialSeason ? "Jeux quadriennaux" : "Nations Cup", detail: quadriennialSeason ? "Cinq épreuves professionnelles exceptionnelles" : "Cinq épreuves · classement de division et de groupe" },
+    { id: "nations-pro", day: 24, name: quadriennialSeason ? "Jeux quadriennaux" : "Nations Cup", detail: quadriennialSeason ? "Une course en ligne · montagne, vallons, pavés et final plat" : "Cinq épreuves · classement de division et de groupe" },
     { id: "nations-junior", day: 24, name: "Nations Cup juniors", detail: "Sélection fédérale · 6 juniors issus des écoles ou DevTeams" },
     { id: "world-pro", day: 26, name: "Championnats du monde", detail: "Professionnels · en ligne et contre-la-montre" },
     { id: "world-junior", day: 26, name: "Championnats du monde juniors", detail: "Juniors · en ligne et contre-la-montre" },
   ];
 }
 
-function getFederationSelectionSlots(gameYear: number): SelectionSlot[] {
-  if (gameYear % 4 !== 0) return SELECTION_SLOTS;
+export function getFederationSelectionSlots(gameYear: number): SelectionSlot[] {
+  if (!isOlympicSeason(gameYear)) return SELECTION_SLOTS;
 
-  return SELECTION_SLOTS.map((slot) =>
+  return SELECTION_SLOTS.filter((slot) => isFederationSelectionSlotAvailable(slot.id, gameYear)).map((slot) =>
     slot.category === "professional" && slot.competition === "Nations Cup"
       ? {
           ...slot,
-          label: slot.label.replace("Nations Cup", "Jeux quadriennaux"),
+          label: OLYMPIC_ROAD_LABEL,
           competition: "Jeux quadriennaux",
+          subRaceLabel: "En ligne",
+          nationsCupProfile: "Polyvalent" as const,
         }
       : slot,
   );

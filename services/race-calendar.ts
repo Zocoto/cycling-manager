@@ -3687,7 +3687,8 @@ const loadCachedStageSegmentBatch = unstable_cache(
 
     return result.data;
   },
-  ["race-calendar-stage-segments-v2"],
+  // S4 Olympic stage IDs are preserved while their route changes in-place.
+  ["race-calendar-stage-segments-v3-olympic-road"],
   {
     revalidate: 900,
     tags: ["race-calendar-stage-segments"],

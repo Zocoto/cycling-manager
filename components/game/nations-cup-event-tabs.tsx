@@ -15,8 +15,10 @@ type NationsCupEventTab = {
 
 export function NationsCupEventTabs({
   events,
+  olympic = false,
 }: {
   events: NationsCupEventTab[];
+  olympic?: boolean;
 }) {
   const [selectedSlug, setSelectedSlug] = useState(events[0]?.slug ?? "");
   const selectedEvent =
@@ -37,12 +39,12 @@ export function NationsCupEventTabs({
           id="nations-cup-events-title"
           className="mt-1 text-2xl font-black text-[#183F37]"
         >
-          Les cinq épreuves
+          {olympic ? "La course en ligne" : "Les cinq épreuves"}
         </h2>
         <div
           className="mt-4 flex gap-2 overflow-x-auto pb-1"
           role="tablist"
-          aria-label="Épreuves de la Nations Cup"
+          aria-label={olympic ? "Épreuve des Jeux quadriennaux" : "Épreuves de la Nations Cup"}
         >
           {events.map((event) => {
             const selected = event.slug === selectedEvent.slug;
@@ -77,11 +79,10 @@ export function NationsCupEventTabs({
             {formatProfile(selectedEvent.profileType)}
           </p>
           <h3 className="mt-2 text-2xl font-black text-[#183F37]">
-            Nations Cup · {selectedEvent.name}
+            {olympic ? "Jeux quadriennaux" : "Nations Cup"} · {selectedEvent.name}
           </h3>
           <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-            Une sélection différente par nation. Cette épreuve compte dans le
-            classement cumulé de la Nations Cup.
+            {olympic ? "Un coureur par nation, dans sa division et son groupe. Montagne, vallons et pavés précèdent un final plat." : "Une sélection différente par nation. Cette épreuve compte dans le classement cumulé de la Nations Cup."}
           </p>
         </div>
         <Link

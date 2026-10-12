@@ -544,7 +544,7 @@ function OverviewPanel({
           />
           <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--federation-secondary)]">
-              Nations Cup
+              {snapshot.season.gameYear % 4 === 0 ? "Jeux quadriennaux" : "Nations Cup"}
             </p>
             <p className="mt-3 text-2xl font-black text-[#183F37]">
               {objectiveMetrics?.nationsCupEvents
@@ -553,8 +553,8 @@ function OverviewPanel({
             </p>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
               {objectiveMetrics?.nationsCupEvents
-                ? `${numberFormatter.format(objectiveMetrics.nationsCupPoints)} points · Division ${objectiveMetrics.nationsCupDivision}${objectiveMetrics.nationsCupGroup ? `, groupe ${objectiveMetrics.nationsCupGroup}` : ""} · ${objectiveMetrics.nationsCupEvents}/5 épreuves`
-                : "Les cinq épreuves professionnelles auront lieu à J24."}
+                ? `${numberFormatter.format(objectiveMetrics.nationsCupPoints)} points · Division ${objectiveMetrics.nationsCupDivision}${objectiveMetrics.nationsCupGroup ? `, groupe ${objectiveMetrics.nationsCupGroup}` : ""} · ${objectiveMetrics.nationsCupEvents}/${snapshot.season.gameYear % 4 === 0 ? 1 : 5} épreuve(s)`
+                : snapshot.season.gameYear % 4 === 0 ? "La course en ligne des Jeux aura lieu à J24." : "Les cinq épreuves professionnelles auront lieu à J24."}
             </p>
             <Link
               href="/jeu/nations-cup"

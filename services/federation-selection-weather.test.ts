@@ -147,6 +147,18 @@ describe("official federation selection courses", () => {
     }
   });
 
+  it("only loads the road forecast at the Olympics, keeping the junior programme", async () => {
+    database.rows.national_federation_selection_slots = [
+      ...["nc-mountain","nc-hills","nc-sprint","nc-cobbles","nc-time-trial"].map(key=>slot(key,"nations_cup","Vallons")),
+      slot("nc-junior-road","nations_cup_junior","Route","junior"),
+    ];
+    const forecasts = await getFederationSelectionForecasts({countryId:"nl",seasonId:"s3",gameYear:4,currentDayNumber:1});
+    expect(Object.keys(forecasts).sort()).toEqual(["nc-hills","nc-junior-road"]);
+    expect(forecasts["nc-hills"].slotKey).toBe("nc-hills");
+    expect(forecasts["nc-hills"].weather).toBeNull();
+    expect(database.filters.every(filter=>filter.values.length<=100)).toBe(true);
+  });
+
   it("selects junior CC, world and Nations Cup courses with a stable display profile", async () => {
     const events = [
       ["cc", "continental_championship_junior", "continental_road", "europe"],

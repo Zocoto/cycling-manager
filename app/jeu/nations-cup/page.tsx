@@ -6,6 +6,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { NationsCupAutoRefresh } from "@/components/game/nations-cup-auto-refresh";
 import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
 import { NationsCupStandings } from "@/components/game/nations-cup-standings";
+import { isOlympicSeason } from "@/lib/game/federation-olympic-programme";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -14,7 +15,7 @@ import { getNationsCupOverview } from "@/services/nations-cup";
 export const metadata: Metadata = {
   title: "Classement Nations Cup",
   description:
-    "Classement général, divisions, groupes et résultats des cinq épreuves de la Nations Cup.",
+    "Classements par division et groupe de la Nations Cup et des Jeux quadriennaux.",
 };
 
 export default async function NationsCupPage() {
@@ -27,6 +28,7 @@ export default async function NationsCupPage() {
 
   const headerData = await getGameHeaderData(supabase, user.id);
   const overview = await getNationsCupOverview({ teamId: headerData.teamId });
+  const olympic = isOlympicSeason(overview?.gameYear ?? 0);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -44,11 +46,10 @@ export default async function NationsCupPage() {
               {overview?.seasonName ?? "Saison active"} · rendez-vous J24
             </p>
             <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-              Nations Cup professionnelle
+              {olympic ? "Jeux quadriennaux · Course en ligne" : "Nations Cup professionnelle"}
             </h1>
             <p className="mt-4 max-w-4xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
-              Cinq coureurs différents par nation, cinq terrains et un seul
-              classement cumulé. Les places donnent de 50 à 1 point au top 16.
+              {olympic ? "Un coureur par nation sur un parcours complet : montagne, vallons, pavés et final plat." : "Cinq coureurs différents par nation, cinq terrains et un seul classement cumulé."} Les places donnent de 50 à 1 point au top 16.
             </p>
           </div>
         </header>
@@ -68,9 +69,10 @@ export default async function NationsCupPage() {
                 && overview.events.some((event) => event.status !== "completed")
               }
             />
-            <NationsCupEventTabs events={overview.events} />
+            <NationsCupEventTabs events={overview.events} olympic={olympic} />
             <NationsCupStandings
               events={overview.events}
+              olympic={olympic}
               initialDivision={overview.viewerFederation?.division}
               initialGroup={overview.viewerFederation?.groupCode}
               standings={overview.standings}

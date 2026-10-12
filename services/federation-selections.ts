@@ -5,6 +5,7 @@ import {
 } from "@/lib/game/federation-callups";
 
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
+import { isFederationSelectionSlotAvailable } from "@/lib/game/federation-olympic-programme";
 import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getFederationSelectionForecasts } from "@/services/federation-selection-weather";
@@ -143,7 +144,8 @@ export async function getFederationSelectionState({
       (slotsResult.data ?? []).map((slot) => [slot.slot_key, slot]),
     );
 
-    const lists = listsResult.data ?? [];
+    const lists = (listsResult.data ?? []).filter((list) =>
+      isFederationSelectionSlotAvailable(list.slot_key, gameYear));
     const listIds = lists.map((list) => list.id);
     const hostCountryIds = [
       ...new Set((hostsResult.data ?? []).map((host) => host.country_id)),

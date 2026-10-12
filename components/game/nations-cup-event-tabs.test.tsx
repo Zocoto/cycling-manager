@@ -4,6 +4,16 @@ import { describe, expect, it } from "vitest";
 import { NationsCupEventTabs } from "./nations-cup-event-tabs";
 
 describe("NationsCupEventTabs", () => {
+  it("présente une seule épreuve hybride pour les Jeux", () => {
+    const markup = renderToStaticMarkup(<NationsCupEventTabs olympic events={[{
+      id:"nc-hills",slug:"nations-cup-vallons",hrefSlug:"nations-cup-vallons-d2-a",name:"Course en ligne",profileType:"mixed",status:"planned",
+    }]} />);
+    expect(markup.match(/role="tab"/g)).toHaveLength(1);
+    expect(markup).toContain("La course en ligne");
+    expect(markup).toContain("Jeux quadriennaux · Course en ligne");
+    expect(markup).not.toContain("Les cinq épreuves");
+    expect(markup).toContain('href="/jeu/courses/nations-cup-vallons-d2-a"');
+  });
   it("présente les cinq courses comme des onglets dans une page commune", () => {
     const events = [
       ["montagne", "Montagne", "mountain"],

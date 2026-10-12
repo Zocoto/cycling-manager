@@ -1,0 +1,187 @@
+// Real selection SQL in an isolated PostgreSQL runtime, never on Supabase.
+// Only unrelated hosting/race-camp/qualification hooks use local test doubles.
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+if (!process.argv[2]?.endsWith('/dist/index.js')) throw new Error('Pass the local PGlite module path.');
+const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
+const db = new PGlite();
+const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+let assertions = 0, phase = 'schema';
+const check = (actual, expected, message) => { assert.deepEqual(actual, expected, message); assertions++; };
+const rows = async sql => (await db.query(sql)).rows;
+const scalar = async sql => Object.values((await rows(sql))[0])[0];
+const rejects = async (sql, pattern) => { await assert.rejects(db.query(sql), pattern); assertions++; };
+const read = path => readFile(new URL(path, import.meta.url), 'utf8');
+try {
+  await db.exec(`create role anon; create role authenticated; create role service_role;
+    create schema auth;
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.user',true),'')::uuid $$;
+    create table seasons(id uuid primary key,game_year int,status text,current_day_number int);
+    create table countries(id uuid primary key,iso_alpha2 text,name text,continent_code text,is_active boolean);
+    create table season_days(id uuid primary key,season_id uuid,day_number int,calendar_date date);
+    create table teams(id uuid primary key,status text,amateur_name text,internal_name text,country_id uuid);
+    create table sporting_directors(id uuid primary key,auth_user_id uuid,status text);
+    create table team_manager_assignments(id uuid default gen_random_uuid(),sporting_director_id uuid,team_id uuid,role text,status text,created_at timestamptz default now());
+    create table riders(id uuid primary key,country_id uuid,status text,first_name text,last_name text);
+    create table rider_contracts(id uuid default gen_random_uuid(),rider_id uuid,team_id uuid,status text,created_at timestamptz default now());
+    create table rider_season_ratings(rider_id uuid,season_id uuid,mountain numeric,hills numeric,flat numeric,cobbles numeric,sprint numeric,acceleration numeric,endurance numeric,resistance numeric,recovery numeric,time_trial numeric,prologue numeric);
+    create table youth_academy_riders(id uuid,team_id uuid,country_id uuid,status text,birth_game_year int,first_name text,last_name text);
+    create table rider_injuries(rider_id uuid,status text,started_at timestamptz,expected_recovery_at timestamptz);
+    create table race_categories(id uuid primary key,code text,is_active boolean);
+    create table races(id uuid primary key default gen_random_uuid(),country_id uuid,name text,short_name text,race_format text,status text,slug text unique,competition_type text,championship_continent_code text);
+    create table race_editions(id uuid primary key default gen_random_uuid(),race_id uuid,season_id uuid,race_category_id uuid,edition_number int,display_name text,status text,registration_closes_at timestamptz,withdrawal_closes_at timestamptz,minimum_reputation int,registration_policy text,field_limit int,host_country_id uuid,unique(race_id,season_id));
+    create table stages(id uuid primary key default gen_random_uuid(),race_edition_id uuid,season_day_id uuid,stage_number int,name text,stage_type text,distance_km numeric,status text,departure_at timestamptz,profile_type text,day_slot text,unique(race_edition_id,stage_number));
+    create table stage_segments(id uuid default gen_random_uuid(),stage_id uuid,segment_number smallint,distance_km numeric,terrain_type text,surface_type text,average_gradient_pct numeric,unique(stage_id,segment_number));
+    create table stage_results(stage_id uuid);
+    create table race_results(race_edition_id uuid,race_roster_id uuid,final_rank int,status text);
+    create table official_stage_simulations(stage_id uuid);
+    create table official_stage_simulation_claims(stage_id uuid);
+    create table development_race_editions(id uuid,season_id uuid,slug text,status text,competition_type text,start_day_number int,championship_continent_code text);
+    create table national_federation_nations_cup_assignments(country_id uuid,season_id uuid,division smallint,group_code text,source_season_id uuid,source_division smallint,movement text,source_overall_rank int,primary key(country_id,season_id));
+    create table national_federation_nations_cup_heats(season_id uuid,slot_key text,pool_key text,division smallint,group_code text,race_id uuid,race_edition_id uuid,primary key(season_id,slot_key,pool_key));
+    create table national_federation_accounts(country_id uuid,season_id uuid,uci_rank int,nations_cup_division smallint);
+    create table national_federation_hosting_awards(id uuid default gen_random_uuid(),selected_at timestamptz default now(),target_game_year int,event_type text,status text,country_id uuid);
+    create table international_nation_qualification_snapshots(season_id uuid,competition_code text,country_id uuid,is_qualified boolean);
+    create table national_federation_selection_slots(slot_key text primary key,label text,rider_category text,competition_code text,profile_label text,rider_limit int,day_number int,active_from_game_year int);
+    create table national_federation_terms(country_id uuid,start_game_year int,end_game_year int,governance_mode text,president_director_id uuid);
+    create table national_federation_selection_preferences(country_id uuid,season_id uuid,automatic_selection boolean);
+    create table national_federation_selection_lists(id uuid primary key default gen_random_uuid(),country_id uuid,season_id uuid,slot_key text,status text,revision int,created_by_director_id uuid,published_at timestamptz,manually_submitted_at timestamptz,updated_at timestamptz default now(),created_at timestamptz default now(),unique(country_id,season_id,slot_key));
+    create table national_federation_selection_members(id uuid primary key default gen_random_uuid(),selection_list_id uuid,professional_rider_id uuid,junior_rider_id uuid,owner_team_id uuid,owner_director_id uuid,response_status text,responded_at timestamptz,created_at timestamptz default now(),unique(selection_list_id,professional_rider_id));
+    create table national_federation_journal_entries(country_id uuid,season_id uuid,day_number int,category text,title text,detail text,source_reference text unique);
+    create table sporting_director_messages(id uuid default gen_random_uuid(),sporting_director_id uuid,season_id uuid,message_type text,sender_name text,subject text,preview text,body text,action_href text,action_label text,source_reference text,is_important boolean,archived_at timestamptz,unique(sporting_director_id,source_reference));
+    create table race_registrations(id uuid primary key default gen_random_uuid(),race_edition_id uuid,team_season_id uuid,historical_team_name text,entry_method text,status text,registered_at timestamptz,decided_at timestamptz);
+    create table race_rosters(id uuid primary key default gen_random_uuid(),race_registration_id uuid,rider_id uuid,race_role text,status text,selected_at timestamptz,unique(race_registration_id,rider_id));
+    create table national_federation_selection_race_links(selection_list_id uuid primary key,race_edition_id uuid,race_registration_id uuid,synced_at timestamptz);
+    create function get_current_federation_identity(p_country_code text) returns table(country_id uuid,team_id uuid,sporting_director_id uuid) language sql stable as $$
+      select t.country_id,t.id,d.id from public.sporting_directors d join public.team_manager_assignments a on a.sporting_director_id=d.id and a.status='active' join public.teams t on t.id=a.team_id join public.countries c on c.id=t.country_id where d.auth_user_id=auth.uid() and c.iso_alpha2=p_country_code $$;
+    create function freeze_due_international_nation_qualifications(timestamptz) returns int language sql as $$ select 0 $$;
+    create function prioritize_federation_championship_rider(uuid,uuid) returns void language plpgsql as $$ begin if current_setting('test.locked',true)='yes' then raise exception 'Locked tour'; end if; end; $$;
+    create function get_national_championship_country_rankings(uuid) returns table(country_id uuid,uci_points int) language sql as $$ select null::uuid,0 where false $$;
+    create function get_nations_cup_group_code(integer,integer) returns text language sql immutable as $$ select case when $2=1 then null else 'A' end $$;
+    create function get_nations_cup_projected_division(integer,integer,integer,integer,integer) returns smallint language sql immutable as $$ select $1::smallint $$;
+    insert into seasons values('${id(4)}',4,'active',4),('${id(3)}',3,'completed',28),('${id(5)}',5,'planned',1);
+    insert into season_days values('${id(24)}','${id(4)}',24,current_date+20),('${id(34)}','${id(3)}',24,current_date+20),('${id(54)}','${id(5)}',24,current_date+48);
+    insert into countries values('${id(101)}','FR','France','europe',true),('${id(102)}','BE','Belgique','europe',true),('${id(103)}','CH','Suisse','europe',true),('${id(104)}','DE','Allemagne','europe',true),('${id(105)}','IT','Italie','europe',true),('${id(106)}','ES','Espagne','europe',true),('${id(107)}','GB','Royaume-Uni','europe',true),('${id(108)}','NL','Pays-Bas','europe',true);
+    insert into national_federation_nations_cup_assignments values
+      ('${id(101)}','${id(4)}',1,null,'${id(3)}',1,'held',1),('${id(102)}','${id(4)}',2,'A','${id(3)}',2,'held',2),('${id(103)}','${id(4)}',2,'B','${id(3)}',2,'held',3),('${id(104)}','${id(4)}',3,'A','${id(3)}',3,'held',4),('${id(105)}','${id(4)}',3,'B','${id(3)}',3,'held',5),('${id(106)}','${id(4)}',4,'A','${id(3)}',4,'held',6),('${id(107)}','${id(4)}',4,'B','${id(3)}',4,'held',7),('${id(108)}','${id(4)}',4,'C','${id(3)}',4,'held',8);
+    insert into national_federation_hosting_awards(target_game_year,event_type,status,country_id) values(4,'quadrennial_games_pro','scheduled','${id(104)}');
+    insert into race_categories values('${id(150)}','world',true);
+    insert into teams values('${id(201)}','active','FR Team','FR Team','${id(101)}'),('${id(202)}','active','BE Team','BE Team','${id(102)}');
+    insert into sporting_directors values('${id(301)}','${id(301)}','active'),('${id(302)}','${id(302)}','active');
+    insert into team_manager_assignments(sporting_director_id,team_id,role,status) values('${id(301)}','${id(201)}','general_manager','active'),('${id(302)}','${id(202)}','general_manager','active');
+    insert into national_federation_terms values('${id(101)}',3,6,'elected','${id(301)}');
+    insert into riders values('${id(401)}','${id(101)}','active','Complete','One'),('${id(402)}','${id(101)}','active','Complete','Two'),('${id(403)}','${id(101)}','active','Hills','Only'),('${id(404)}','${id(101)}','active','Reserve','Four');
+    insert into rider_contracts(rider_id,team_id,status) values('${id(401)}','${id(202)}','active'),('${id(402)}','${id(202)}','active'),('${id(403)}','${id(202)}','active'),('${id(404)}','${id(202)}','active');
+    insert into rider_season_ratings values('${id(401)}','${id(4)}',80,80,75,80,75,75,80,80,75,70,70),('${id(402)}','${id(4)}',78,78,75,78,75,75,78,78,75,70,70),('${id(403)}','${id(4)}',40,95,70,40,60,85,55,55,60,60,60),('${id(404)}','${id(4)}',72,72,72,72,72,72,72,72,72,72,72);
+    select set_config('test.user','${id(301)}',false);`);
+  const oldHeatMigration = await read('../supabase/migrations/20260914121000_split_professional_nations_cup_heats.sql');
+  await db.exec(oldHeatMigration.match(/create or replace function public\.get_professional_nations_cup_profile_segments[\s\S]*?\$\$;/i)[0]);
+  const movementMigration = await read('../supabase/migrations/20260913143000_wire_nations_cup_movements.sql');
+  await db.exec(movementMigration.match(/create or replace function public\.get_nations_cup_group_code_for_seed[\s\S]*?\$\$;/i)[0]);
+  const beforeFunctions = await read('./fixtures/olympic-selection-functions-before-20261012.sql');
+  const functions = new Map(Array.from(beforeFunctions.matchAll(/CREATE OR REPLACE FUNCTION public\.([^\(]+)[\s\S]*?\$function\$[\s\S]*?\$function\$;/g), match => [match[1], match[0]]));
+  const dependencyOrder = ['get_national_federation_selection_target','get_national_federation_selection_schedule','get_national_federation_callup_response_closes_at','get_national_federation_nations_cup_standings','get_national_federation_nations_cup_movement_projection','get_current_director_federation_callups'];
+  for (const [name, definition] of functions) if (!dependencyOrder.includes(name)) await db.exec(definition);
+  for (const name of dependencyOrder) await db.exec(functions.get(name));
+  phase = 'original programme';
+  check(await scalar(`select ensure_professional_nations_cup('${id(4)}')`),40,'original five disciplines / eight heats');
+  const hill = (await rows(`select h.race_edition_id,e.race_id,t.id stage_id from national_federation_nations_cup_heats h join race_editions e on e.id=h.race_edition_id join stages t on t.race_edition_id=e.id where h.season_id='${id(4)}' and h.slot_key='nc-hills' and h.pool_key='d1'`))[0];
+  const slots = ['nc-mountain','nc-hills','nc-sprint','nc-cobbles','nc-time-trial'];
+  for (let i=0;i<slots.length;i++) {
+    const key=slots[i], list=id(500+i), member=id(600+i);
+    await db.exec(`insert into national_federation_selection_slots values('${key}','Nations Cup · ${key==='nc-hills'?'Vallons':key}','professional','nations_cup','${key==='nc-hills'?'Vallons':'Sprint'}',1,24,3);
+      insert into national_federation_selection_lists(id,country_id,season_id,slot_key,status,revision,published_at) values('${list}','${id(101)}','${id(4)}','${key}','finalized',1,now());
+      insert into national_federation_selection_members(id,selection_list_id,professional_rider_id,owner_team_id,owner_director_id,response_status,responded_at) values('${member}','${list}','${key==='nc-hills'?id(401):id(402)}','${id(202)}','${id(302)}','confirmed',now());
+      insert into sporting_director_messages(sporting_director_id,season_id,source_reference) values('${id(302)}','${id(4)}','federation-auto-callup:${member}');
+      select sync_national_federation_championship_lineup('${list}');`);
+  }
+  await db.exec(`insert into national_federation_selection_slots values('nc-junior-road','Nations Cup Juniors','junior','nations_cup_junior','Route',6,24,3),('cc-pro-road','CC Route','professional','continental_championship','Route',8,15,3),('world-pro-road','CM Route','professional','world_championship','Route',8,26,3);
+    insert into national_federation_selection_preferences values('${id(101)}','${id(4)}',false);`);
+  const confirmedBefore = await rows(`select * from national_federation_selection_members where id='${id(601)}'`);
+  const registrationBefore = await rows(`select * from national_federation_selection_race_links where selection_list_id='${id(501)}'`);
+  const raceNameBefore = await scalar(`select name from races where id='${hill.race_id}'`);
+  phase = 'migration';
+  const migration=await read('../supabase/migrations/20261012130000_single_hybrid_olympic_road_event.sql');
+  const preflight = migration.match(/do \$preflight\$[\s\S]*?\$preflight\$;/)[0];
+  for (const table of ['official_stage_simulations','official_stage_simulation_claims','stage_results']) {
+    await db.exec(`begin; insert into ${table} values('${hill.stage_id}');`);
+    await assert.rejects(db.exec(preflight),/already started, claimed or simulated/); assertions++;
+    await db.exec('rollback');
+  }
+  await db.exec(migration);
+  check(await scalar("select count(*)::int from race_editions where status<>'cancelled'"),8,'only the eight road heats survive');
+  check(await scalar("select count(*)::int from stages where status='cancelled'"),32,'old disciplines cancelled');
+  check(await rows(`select * from national_federation_selection_members where id='${id(601)}'`),confirmedBefore,'existing confirmation/ID preserved');
+  check(await rows(`select * from national_federation_selection_race_links where selection_list_id='${id(501)}'`),registrationBefore,'existing registration/ID preserved');
+  check(await scalar(`select id from stages where race_edition_id='${hill.race_edition_id}'`),hill.stage_id,'stage ID preserved');
+  check(await scalar(`select name from races where id='${hill.race_id}'`),raceNameBefore,'historical shared race name preserved');
+  check(await scalar('select count(*)::int from national_federation_selection_members where response_status=\'confirmed\''),1,'cancelled calls no longer mobilize riders');
+  check(await scalar('select count(*)::int from sporting_director_messages where archived_at is not null'),4,'cancelled notifications archived');
+  check(await scalar(`select count(*)::int from get_national_federation_selection_schedule('${id(101)}','${id(4)}') where slot_key like 'nc-%' and rider_category='professional'`),1,'one professional callup slot');
+  check(await scalar(`select count(*)::int from get_national_federation_selection_schedule('${id(101)}','${id(4)}') where slot_key in('cc-pro-road','world-pro-road','nc-junior-road')`),3,'CC, CM, junior programme unchanged');
+  check(await scalar(`select count(*)::int from get_national_federation_selection_target('${id(101)}','${id(4)}','nc-sprint')`),0,'obsolete direct target unavailable');
+  check(await scalar(`select h.pool_key from get_national_federation_selection_target('${id(102)}','${id(4)}','nc-hills') t join national_federation_nations_cup_heats h on h.race_edition_id=t.race_edition_id`),'d2-a','federation resolves its own division/group, not D1');
+  check(await scalar(`select sum(distance_km)::int from stage_segments where stage_id='${hill.stage_id}'`),194,'complete authored route');
+  check(await scalar(`select sum(distance_km)::int from stage_segments where stage_id='${hill.stage_id}' and surface_type='cobbles'`),19,'meaningful distributed cobbles');
+  check(await scalar("select count(*)::int from race_editions where status<>'cancelled' and host_country_id='"+id(104)+"'"),8,'actual Olympic host respected');
+  await db.query(`select ensure_professional_nations_cup('${id(4)}')`);
+  check(await scalar("select count(*)::int from race_editions where status<>'cancelled'"),8,'maintenance cannot resurrect old events');
+  await rejects(`select save_national_federation_preselection('FR','nc-sprint',array['${id(402)}'::uuid])`,/pas disponible/);
+  await rejects(`select save_national_federation_preselection('FR','nc-hills',array['${id(401)}'::uuid,'${id(402)}'::uuid])`,/quota/);
+  await rejects(`select save_national_federation_preselection('FR','nc-hills',array['${id(402)}'::uuid])`,/confirmé/);
+  // Start a new list to exercise real manual save/publication/response/refill.
+  await db.exec(`delete from national_federation_selection_members where selection_list_id='${id(501)}'; update national_federation_selection_lists set status='draft',published_at=null where id='${id(501)}'; update race_rosters set status='withdrawn';`);
+  phase='manual selection';
+  await db.query(`select save_national_federation_preselection('FR','nc-hills',array['${id(401)}'::uuid])`);
+  check(await scalar("select publish_national_federation_preselection('FR','nc-hills')"),1,'one owned rider notification');
+  check(await scalar("select publish_national_federation_preselection('FR','nc-hills')"),0,'republication is idempotent');
+  const newMember=await scalar(`select id from national_federation_selection_members where selection_list_id='${id(501)}'`);
+  await rejects(`select respond_to_national_federation_preselection('${newMember}',true)`,/votre équipe/);
+  await db.exec(`select set_config('test.user','${id(302)}',false);`);
+  check(await scalar('select count(*)::int from get_current_director_federation_callups()'),1,'foreign DS sees the French rider only on active programme');
+  check(await scalar('select competition_label from get_current_director_federation_callups()'),'Jeux quadriennaux · Course en ligne','callup label matches race');
+  await db.exec("select set_config('test.locked','yes',false)");
+  await rejects(`select respond_to_national_federation_preselection('${newMember}',true)`,/participation ne peut/);
+  check(await scalar(`select response_status from national_federation_selection_members where id='${newMember}'`),'pending','failed locked-tour acceptance rolls back');
+  await db.exec("select set_config('test.locked','no',false)");
+  check(await scalar(`select respond_to_national_federation_preselection('${newMember}',true)`),'confirmed','foreign nationality DS can accept');
+  check(await scalar(`select sync_national_federation_championship_lineup('${id(501)}')`),1,'exactly one confirmed starter');
+  await rejects(`select respond_to_national_federation_preselection('${newMember}',true)`,/déjà été traitée/);
+  // Automatic callups/refusals: no implicit DS agreement, no re-invitation.
+  phase='automatic selection';
+  // Run the verified real generator, then pin its departure relative to the
+  // local clock. This makes H-24 tests deterministic at any time of day.
+  await db.exec(`alter function ensure_professional_nations_cup(uuid) rename to ensure_professional_nations_cup_verified;
+    create function ensure_professional_nations_cup(p_season_id uuid) returns int language plpgsql as $$
+    declare n int; begin n:=public.ensure_professional_nations_cup_verified(p_season_id);
+      update public.stages set departure_at=now()+interval '20 hours' where profile_type='mixed' and status='planned';
+      return n; end; $$;`);
+  await db.exec(`delete from national_federation_selection_members where selection_list_id='${id(501)}'; update national_federation_selection_preferences set automatic_selection=true; update stages set departure_at=now()+interval '20 hours';`);
+  check(await scalar('select prepare_due_automatic_federation_professional_lineups(now())'),1,'single automatic callup');
+  const auto=(await rows(`select * from national_federation_selection_members where selection_list_id='${id(501)}'`))[0];
+  check(auto.professional_rider_id,id(401),'complete profile beats one-dimensional hill specialist');
+  check(auto.response_status,'pending','owned rider still requires DS agreement');
+  check(await scalar('select prepare_due_automatic_federation_professional_lineups(now())'),0,'automatic job is idempotent');
+  check(await scalar(`select respond_to_national_federation_preselection('${auto.id}',false)`),'declined','DS refusal honored');
+  const replacement=(await rows(`select * from national_federation_selection_members where selection_list_id='${id(501)}' and response_status='pending'`))[0];
+  check(replacement.professional_rider_id,id(402),'balanced replacement, not refused rider');
+  check(await scalar(`select respond_to_national_federation_preselection('${replacement.id}',true)`),'confirmed','replacement acceptance');
+  check(await scalar(`select sync_national_federation_championship_lineup('${id(501)}')`),1,'replacement is the single starter');
+  check(await scalar(`select count(*)::int from race_rosters r join race_registrations g on g.id=r.race_registration_id where g.race_edition_id='${hill.race_edition_id}' and r.status='confirmed'`),1,'no old starter left alongside replacement');
+  await db.exec(`update national_federation_selection_members set response_status='pending' where id='${replacement.id}'; update stages set departure_at=now()+interval '30 minutes';`);
+  await rejects(`select respond_to_national_federation_preselection('${replacement.id}',true)`,/date limite/);
+  // Normal seasons retain all five slots/profiles, future JO remain singular.
+  phase='other seasons and rollover';
+  check(await scalar(`select count(*)::int from get_national_federation_selection_schedule('${id(101)}','${id(3)}') where slot_key in('nc-mountain','nc-hills','nc-sprint','nc-cobbles','nc-time-trial')`),5,'S3 five slots preserved');
+  check(await scalar(`select count(*)::int from get_national_federation_selection_schedule('${id(101)}','${id(5)}') where slot_key in('nc-mountain','nc-hills','nc-sprint','nc-cobbles','nc-time-trial')`),5,'S5 five slots preserved');
+  check(await scalar("select sum(distance_km)::int from get_federation_professional_event_profile_segments('nc-hills',5)"),55,'normal hills course unchanged');
+  check(await scalar("select count(*)::int from get_federation_professional_event_profile_segments('nc-time-trial',4)"),0,'no Olympic ITT');
+  check(await scalar("select count(*)::int from get_federation_professional_event_profile_segments('nc-hills',8)"),21,'next quadrennial uses same complete programme');
+  check(await scalar(`select seed_nations_cup_assignments_for_season('${id(5)}')`),0,'future divisions not frozen before the JO finish');
+  await db.exec("update race_editions set status='completed' where status<>'cancelled'");
+  check(await scalar(`select seed_nations_cup_assignments_for_season('${id(5)}')`),8,'S5 rollover accepts one completed discipline, ignores cancelled ones');
+  check(await scalar(`select count(*)::int from national_federation_nations_cup_assignments where season_id='${id(5)}' and source_season_id='${id(4)}'`),8,'divisions linked to Olympic season');
+  console.log(JSON.stringify({isolated:true,productionActions:false,assertions,manualAndAutomaticCallups:true,foreignNationalityOwnership:true,refusalReplacementAndDeadlines:true,rollover:true}));
+} catch(error) { console.error(JSON.stringify({phase,message:error.message,where:error.where,internalQuery:error.internalQuery?.slice(0,1000)})); process.exitCode=1; }
+finally { await db.close(); }

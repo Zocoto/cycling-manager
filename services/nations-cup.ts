@@ -1,4 +1,5 @@
 import "server-only";
+import { isFederationSelectionSlotAvailable, isOlympicSeason } from "@/lib/game/federation-olympic-programme";
 
 import {
   getNationsCupPoolKey,
@@ -161,7 +162,7 @@ export async function getNationsCupOverview(
       )
     : "d1";
 
-  const heats = heatsResult.data ?? [];
+  const heats = (heatsResult.data ?? []).filter((heat) => isFederationSelectionSlotAvailable(heat.slot_key, season.game_year));
   const raceIds = [...new Set(heats.map((heat) => heat.race_id))];
   const editionIds = [
     ...new Set(heats.map((heat) => heat.race_edition_id)),
@@ -334,7 +335,7 @@ export async function getNationsCupOverview(
           id: definition.slotKey,
           slug: definition.slug,
           hrefSlug: selectedRace.slug,
-          name: definition.name,
+          name: isOlympicSeason(season.game_year) ? "Course en ligne" : definition.name,
           profileType:
             stageByEditionId.get(selectedEdition.id)?.profile_type ??
             definition.profileType,
