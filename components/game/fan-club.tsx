@@ -10,6 +10,7 @@ import {
   purchaseFanClubStockAction,
   sellFanClubCarAction,
   updateFanClubSalePriceAction,
+  updateFanClubAutoRestockAction,
   type FanClubActionResult,
 } from "@/app/jeu/fan-club/actions";
 import {
@@ -642,6 +643,15 @@ function StorePanel({
     products.map((product) => [product.id, inventoryByProduct.get(product.id)?.salePrice ?? product.suggestedSalePrice]),
   ));
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [autoRestockEnabled, setAutoRestockEnabled] = useState(management.autoRestock?.enabled ?? false);
+  const [allowNegativeProjection, setAllowNegativeProjection] = useState(management.autoRestock?.allowNegativeProjection ?? false);
+  const [minimumStocks, setMinimumStocks] = useState<Record<string, number>>(
+    () => ({ ...management.autoRestock?.minimumStocks }),
+  );
+  const restockDirty = autoRestockEnabled !== (management.autoRestock?.enabled ?? false) ||
+    allowNegativeProjection !== (management.autoRestock?.allowNegativeProjection ?? false) ||
+    products.some((product) => (minimumStocks[product.id] ?? 0) !== (management.autoRestock?.minimumStocks[product.id] ?? 0));
+  const minimumTotal = products.reduce((sum, product) => sum + (minimumStocks[product.id] ?? 0), 0);
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity] = useState(20);
   const level = FAN_CLUB_SHOP_LEVELS.find((candidate) => candidate.level === shopLevel) ?? FAN_CLUB_SHOP_LEVELS[0];
@@ -682,6 +692,28 @@ function StorePanel({
             <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[var(--fan-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--fan-secondary)]">Acheter du stock</button>
           </div>
         </div>
+        <section aria-label="Réapprovisionnement automatique" className="mt-5 rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-soft)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex min-h-10 cursor-pointer items-center gap-3 text-sm font-black text-[var(--fan-ink)]">
+              <input type="checkbox" checked={autoRestockEnabled} onChange={(event) => setAutoRestockEnabled(event.target.checked)} className="h-5 w-5 accent-[var(--fan-primary)]" />
+              Réapprovisionnement automatique
+            </label>
+            <button type="button" disabled={isPending || !restockDirty || minimumTotal > level.capacity}
+              onClick={() => execute(() => updateFanClubAutoRestockAction({ enabled: autoRestockEnabled, allowNegativeProjection,
+                minimumStocks: Object.fromEntries(products.map((product) => [product.id, minimumStocks[product.id] ?? 0])),
+              }))}
+              className="min-h-10 rounded-xl bg-[var(--fan-primary)] px-4 text-xs font-black text-white disabled:opacity-40">
+              {isPending ? "Enregistrement…" : "Enregistrer les réglages"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs font-semibold leading-5 text-[var(--fan-muted)]">Après les ventes quotidiennes, la boutique complète chaque article jusqu’au minimum choisi, dans la limite de sa capacité et du budget disponible. Aucun achat si la trésorerie est négative. Minimum à 0 : aucun achat automatique pour cet article.</p>
+          <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs font-bold leading-5 text-[var(--fan-muted)]">
+            <input type="checkbox" checked={allowNegativeProjection} onChange={(event) => setAllowNegativeProjection(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--fan-primary)]" />
+            Autoriser les achats malgré une projection de fin de saison négative
+          </label>
+          {!allowNegativeProjection ? <p className="mt-1 pl-6 text-xs text-[var(--fan-muted)]">Les achats doivent préserver une projection de fin de saison positive ou nulle.</p> : null}
+          {minimumTotal > level.capacity ? <p role="alert" className="mt-2 text-xs font-bold text-[#B34A42]">Les minimums cumulés ({minimumTotal}) dépassent la capacité du magasin ({level.capacity}).</p> : null}
+        </section>
         {purchaseOpen && selectedProduct ? (
           <section
             aria-live="polite"
@@ -801,6 +833,13 @@ function StorePanel({
                     <StoreMetric label="Marge / unité" value={formatStoreMargin(price - averageCost, marginRate)} tone={price - averageCost >= 0 ? "green" : "red"} />
                     <StoreMetric label="Ventes prévues" value={[Math.min(stock, forecast.low), " à ", Math.min(stock, forecast.high), " / jour"].join("")} />
                   </dl>
+                  <label className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--fan-muted)]">
+                    Minimum à maintenir
+                    <input aria-label={"Stock minimum de " + product.name} type="number" min={0} max={level.capacity} step={1}
+                      value={minimumStocks[product.id] ?? 0}
+                      onChange={(event) => setMinimumStocks((current) => ({ ...current, [product.id]: Math.max(0, Math.min(level.capacity, Math.floor(Number(event.target.value) || 0))) }))}
+                      className="min-h-10 w-24 rounded-xl border border-[var(--fan-line)] bg-white px-3 font-black text-[var(--fan-ink)] outline-none focus:border-[var(--fan-secondary)] focus:ring-2 focus:ring-[var(--fan-secondary)]" />
+                  </label>
                   <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-soft)] p-3">
                     <div className="min-w-0 flex-1">
                       <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[var(--fan-muted)]">Prix en boutique</span>

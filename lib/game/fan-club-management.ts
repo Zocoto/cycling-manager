@@ -45,6 +45,11 @@ export type FanClubWholesalePrice = {
 };
 
 export type FanClubManagementState = {
+  autoRestock?: {
+    enabled: boolean;
+    allowNegativeProjection: boolean;
+    minimumStocks: Readonly<Record<string, number>>;
+  };
   shopSpecialization: ClubShopSpecialization | null;
   fleet: Readonly<Record<string, number>>;
   trips: ReadonlyArray<FanClubTripAllocation>;

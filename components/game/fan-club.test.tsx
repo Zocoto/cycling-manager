@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -98,6 +98,28 @@ function renderFanClub(
 }
 
 describe("Fan Club de production", () => {
+  it("charge les seuils et les options de réapprovisionnement dans le magasin", () => {
+    const markup = renderToStaticMarkup(<FanClub headquartersLevel={1} shopLevel={5} data={LIVE_DATA}
+      management={{ ...MANAGEMENT, autoRestock: { enabled: true, allowNegativeProjection: true,
+        minimumStocks: { "team-jersey": 120, bottle: 45 } } }} sponsorIdentity={null} initialTab="store" />);
+    expect(markup).toContain('aria-label="Réapprovisionnement automatique"');
+    expect(markup).toContain('aria-label="Stock minimum de Maillot de l’équipe"');
+    expect(markup).toContain('value="120"');
+    expect(markup).toContain('value="45"');
+    expect(markup.match(/checked=""/g)).toHaveLength(2);
+    expect(markup).toContain("Aucun achat si la trésorerie est négative");
+    expect(markup).toContain("Enregistrer les réglages");
+    if (process.env.SHOP_PREVIEW_HTML) {
+      writeFileSync(process.env.SHOP_PREVIEW_HTML, `<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><style>body{background:#f4f8f6;margin:0;font-family:Arial,sans-serif}main{max-width:1120px;margin:auto;padding:24px}@media(max-width:640px){main{padding:12px}}</style><main>${markup}</main></html>`);
+    }
+  });
+  it("désactive le réapprovisionnement par défaut et le masque sans boutique", () => {
+    const renderStore = (level: number) => renderToStaticMarkup(<FanClub headquartersLevel={1} shopLevel={level}
+      data={LIVE_DATA} management={MANAGEMENT} sponsorIdentity={null} initialTab="store" />);
+    expect(renderStore(1)).not.toContain('checked=""');
+    expect(renderStore(1)).toContain("projection de fin de saison positive ou nulle");
+    expect(renderStore(0)).not.toContain('aria-label="Réapprovisionnement automatique"');
+  });
   it("affiche les espaces de gestion sans plafond ni tuile pédagogique", () => {
     const markup = renderFanClub();
 

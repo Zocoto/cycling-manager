@@ -82,6 +82,7 @@ export async function getFanClubManagementState({
     salesResult,
     wholesaleMarketResult,
     collectorProductsResult,
+    restockResult,
   ] =
     await Promise.all([
       supabase
@@ -114,9 +115,13 @@ export async function getFanClubManagementState({
         .returns<SaleRow[]>(),
       supabase.rpc("get_current_fan_club_wholesale_market"),
       supabase.rpc("get_current_team_fan_club_collector_products"),
+      supabase.from("fan_club_shop_restock_settings")
+        .select("enabled, allow_negative_projection, minimum_stocks")
+        .eq("team_id", teamId).maybeSingle(),
     ]);
 
   assertQuery(fleetResult.error, "le parc de cars du Fan Club");
+  assertQuery(restockResult.error, "le réapprovisionnement de la boutique");
   assertQuery(tripsResult.error, "les déplacements du Fan Club");
   assertQuery(inventoryResult.error, "le stock du Fan Club");
   assertQuery(salesResult.error, "les ventes du Fan Club");
@@ -172,6 +177,11 @@ export async function getFanClubManagementState({
   );
 
   return {
+    autoRestock: {
+      enabled: restockResult.data?.enabled ?? false,
+      allowNegativeProjection: restockResult.data?.allow_negative_projection ?? false,
+      minimumStocks: restockResult.data?.minimum_stocks ?? {},
+    },
     shopSpecialization,
     fleet: Object.fromEntries(
       (fleetResult.data ?? []).map((row) => [row.model_code, row.quantity]),
