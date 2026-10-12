@@ -191,6 +191,33 @@ describe("transfer scouting", () => {
     ).toBe(true);
   });
 
+  it.each([1, 2, 3])("ne laisse aucun potentiel inconnu avec une Data Room de niveau %i", (dataRoomLevel) => {
+    for (let index = 0; index < 240; index += 1) {
+      const potentialSteps = (index % 8) + 1;
+      const report = createStandardTransferScoutingReport({
+        riderId: `data-room-potential-${index}`,
+        seasonId: "season-4",
+        ratings,
+        potentialSteps,
+        dataRoomLevel,
+      });
+      expect(report.potential.kind).toBe("range");
+      if (report.potential.kind !== "range") continue;
+      expect(report.potential.minimumSteps).toBeLessThanOrEqual(potentialSteps);
+      expect(report.potential.maximumSteps).toBeGreaterThanOrEqual(potentialSteps);
+      const maximumSpread = dataRoomLevel === 1 ? 2 : 1;
+      expect(potentialSteps - report.potential.minimumSteps).toBeLessThanOrEqual(maximumSpread);
+      expect(report.potential.maximumSteps - potentialSteps).toBeLessThanOrEqual(maximumSpread);
+    }
+  });
+
+  it("conserve la même précision du potentiel aux niveaux 2 et 3", () => {
+    const input = { riderId: "same-potential", seasonId: "season-4", ratings, potentialSteps: 6 };
+    expect(createStandardTransferScoutingReport({ ...input, dataRoomLevel: 2 }).potential).toEqual(
+      createStandardTransferScoutingReport({ ...input, dataRoomLevel: 3 }).potential,
+    );
+  });
+
   it("réserve le rapport totalement exact au DS propriétaire", () => {
     const report = createExactTransferScoutingReport({
       ratings,

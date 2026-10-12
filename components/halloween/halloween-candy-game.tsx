@@ -27,7 +27,7 @@ export function HalloweenCandyGame({ disabled, busy, drawn, pendingGift, coins, 
     <div className="halloween-candy-rule"><strong>50 % de récompense · 50 % de mauvaise pioche.</strong><p>Les deux couleurs ont les mêmes chances. Vous risquez uniquement les 5 roues misées : aucun malus sur votre équipe.</p></div>
     <details className="halloween-candy-probabilities"><summary>Récompenses et probabilités</summary>
       <p>50 % sans cadeau ; 30 % pour 8 roues ; 12 % pour 15 roues ; 5 % pour un consommable ; 1 % pour un cosmétique ; 1,9 % pour un ticket bonus ; 0,1 % pour l’Étoile de la sorcière.</p>
-      <p className="halloween-secondary">Les gains de roues sont indiqués avant déduction de la mise. Chaque objet d’une même famille a la même chance. Un cosmétique déjà possédé est remplacé par la moitié de son prix, avec un minimum de 5 roues. Après votre première Étoile de la sorcière, ce tirage rare donne 15 roues. Les autres reliques et les récompenses exclusives du vainqueur ne figurent pas dans les tirages.</p>
+      <p className="halloween-secondary">Les gains de roues sont indiqués avant déduction de la mise. Chaque objet d’une même famille a la même chance. Un cosmétique déjà possédé est remplacé par la moitié de son prix, avec un minimum de 5 roues. Après 5 Étoiles de la sorcière obtenues, achats et tirages confondus, ce tirage rare donne 15 roues. Les autres reliques et les récompenses exclusives du vainqueur ne figurent pas dans les tirages.</p>
     </details>
   </section>;
 }

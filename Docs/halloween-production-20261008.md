@@ -55,3 +55,12 @@ Contrôle après minuit : état et dates de l'édition, disponibilité du site, 
 - Remplacement du seul emplacement concerné (cadre, tenue, etc.), conservation du portrait natif et des autres accessoires. Les transformations sont également prévisualisables ; les malédictions préexistantes sont ignorées dans l'essayage, comme indiqué à l'écran.
 - 59 tests ciblés réussis, lint des fichiers modifiés, contrôle visuel bureau et mobile 320 / 390 px sans débordement. Un clic dans la recette locale est refusé par l'API avec 403, sans débit, puis les deux choix se réactivent.
 - Aucun changement SQL ni réinitialisation des bonbons déjà choisis ; soldes, inventaires et probabilités conservés.
+
+## Consommables réutilisables du 12 octobre
+
+- Tous les consommables payants doublent de prix, sauf la tisane et le sirop qui passent de 25 à 100 roues. Nouveaux prix : jus 12, bandage 16, clairvoyance 20, sablier 24, chocolat 16, tisane 100, sirop 100, pacte 1 800, résurrection 720, élixir 560, sceau 900, étoile 3 600, fontaine 6 000. Cosmétiques, sorts et sel gratuit inchangés.
+- Suppression du verrou à vie sur un coureur : plusieurs doses peuvent être utilisées, même après un transfert. Chaque dose est consommée séparément, hors course, sans changer les seuils physiques, le potentiel maximal de 4 étoiles ou l'âge minimal de 24 ans après une fontaine.
+- Cinq achats par DS et par événement pour chaque relique. Les autres consommables restent à trente exemplaires obtenus, achats et cadeaux compris. Un emplacement supplémentaire pour un cadeau de podium est conservé pour les reliques hors étoile ; celle-ci est limitée à cinq exemplaires obtenus, achats et tirages confondus. Ensuite le tirage rapporte 15 roues, probabilité rare inchangée.
+- Chaque pacte ajoute 84 matinées à la protection encore active ; si elle a expiré, il repart à la prochaine matinée de 08:00, heure de Paris. Aucun effet multiplicatif ou rétroactif. Le calcul suit les jours calendaires, y compris les changements d'heure.
+- Migration atomique et bornée `20261012120000_repeat_halloween_consumables` : catalogue et routines Halloween uniquement. Historique des doses conservé avec une clé par application. Aucun solde, inventaire, achat antérieur ni résultat de jeu réécrit ; entraînement et probabilités de tirage inchangés.
+- Régression exécutée dans PostgreSQL isolé : prix, conservation, réutilisations, transfert, doublons HTTP, limites physiques/potentiel/âge, courses, extension et expiration du pacte, quotas et droits. Aucune fixture en production.

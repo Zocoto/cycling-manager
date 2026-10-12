@@ -379,8 +379,8 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   educator_training_cost: {
     role: "educator",
     label: "Réseau de formation",
-    description: (level) =>
-      `−${percentage(level, 4)} % sur le coût des stages de l’Académie`,
+    description: () =>
+      "Ancien bonus de coût : sans effet financier depuis la gratuité des stages de l’Académie",
   },
   educator_parallel_training: {
     role: "educator",
@@ -393,7 +393,7 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     role: "educator",
     label: "Excellence pédagogique",
     description: (level) =>
-      `−${percentage(level, 5)} % sur le coût et la durée des stages de l’Académie`,
+      `−${percentage(level, 5)} % sur la durée des stages de l’Académie (stages gratuits)`,
   },
 };
 

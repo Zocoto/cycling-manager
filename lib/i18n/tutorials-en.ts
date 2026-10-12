@@ -615,7 +615,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "staff-academy": {
         title: "The Skills Academy develops staff",
         content:
-          "This high-level building sends staff or coaches on courses to add a star or available talent line. The new bonus arrives at course end while existing effects remain active.\n\nEach Academy level adds a simultaneous course, up to five; price and duration rise with member level and improvement complexity.",
+          "This high-level building sends staff or coaches on free courses to add a star or available talent line. An active staff educator is required. The new bonus arrives at course end while existing effects remain active.\n\nEach Academy level adds a simultaneous course, up to five; duration rises with member level and improvement complexity. Building construction and upgrades still cost money.",
       },
       "international-school-effect": {
         title: "Schools improve youth from their country",

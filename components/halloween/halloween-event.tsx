@@ -8,12 +8,14 @@ import { HalloweenItemIllustration, SpiderWeb } from "./halloween-art";
 import { HalloweenCandyGame, type CandyColor } from "./halloween-candy-game";
 import { HalloweenSkinPortrait, HalloweenSkinPreview } from "./halloween-skin-preview";
 import { HalloweenNightRide } from "./halloween-night-ride";
+import { HalloweenRunnerRanking } from "./halloween-runner-ranking";
 import { HalloweenEventHome } from "./halloween-event-home";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { DemonicWheel } from "./halloween-wheel";
 import { halloweenRequest } from "./halloween-client";
 import { HALLOWEEN_PREVIEW_ITEMS, halloweenPresentationEffect, type HalloweenPreviewItem } from "@/lib/game/halloween-catalog";
 import type { HalloweenState } from "@/lib/game/halloween-event";
+import { getHalloweenPurchaseLimit, isHalloweenPurchaseLimitReached } from "@/lib/game/halloween-shop";
 
 const curseCopy = { vampire: "Votre prochaine poursuite garde son score complet, mais 10 % de ses roues sont retenues. Le sort disparaît ensuite.", mummy: "Votre prochain cadeau sera emballé dans cinq bandelettes. Déballez-le pour tout récupérer." };
 type Tab = "accueil" | "classements" | "bonbons" | "boutique" | "collection";
@@ -62,7 +64,7 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
     {state.curse ? <section className="halloween-card"><h2>{state.curse.kind === "vampire" ? "Le baiser du vampire" : "La malédiction de la momie"}</h2><p>Un sort envoyé par {state.curse.sender}. {curseCopy[state.curse.kind as keyof typeof curseCopy]} Expiration : {new Date(state.curse.expiresAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.</p><button disabled={busy} className="halloween-button" onClick={() => action("dispel")}>Sel anti-malédiction · lever gratuitement</button>
       {state.pendingGift ? <div><p>Cinq bandelettes à retirer, du dessus vers le dessous. {state.bandages}/5 retirées.</p><button disabled={busy} className="halloween-button" onClick={() => action("unwrap", { bandage: state.bandages })}>Retirer la bandelette {state.bandages + 1}</button></div> : null}
     </section> : null}
-    {tab === "accueil" ? <HalloweenEventHome onSelect={selectActivity} /> : null}
+    {tab === "accueil" ? <><HalloweenEventHome onSelect={selectActivity} /><HalloweenRunnerRanking state={state} /></> : null}
     {tab === "classements" ? <HalloweenRunnerOverview state={state} /> : null}
     {tab === "bonbons" ? <HalloweenCandyGame disabled={busy || !open || !state.joined || state.drawn || state.coins < 5 || !!state.pendingGift} busy={busy} drawn={state.drawn} pendingGift={!!state.pendingGift} coins={state.coins} chosen={chosenCandy} result={drawResult} onChoose={color => { if (actionLock.current || drawResult) return; setChosenCandy(color); action("draw"); }} /> : null}
     {tab === "boutique" || tab === "collection" ? <section><div className="halloween-section-heading"><div><p className="halloween-eyebrow">{tab === "collection" ? "Votre collection persistante" : "Roues démoniaques uniquement"}</p><h2>{tab === "collection" ? "Mes trésors" : "La boutique de minuit"}</h2></div><div className="halloween-filter">{["all", "cosmetic", "consumable", "transformation"].map(key => <button key={key} onClick={() => setFilter(key)} aria-pressed={filter === key}>{({ all: "Tout", cosmetic: "Portrait", consumable: "Objets", transformation: "Sorts" })[key]}</button>)}</div></div>
@@ -70,11 +72,11 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
       {filter === "all" || filter === "cosmetic" ? <p className="halloween-secondary">Vos éléments de portrait acquis sont aussi disponibles dans l’onglet Style de votre <Link href="/jeu/directeur-sportif" className="halloween-text-link">éditeur d’avatar ↗</Link>, même après Halloween.</p> : null}
       <div className="halloween-shop-grid">{HALLOWEEN_PREVIEW_ITEMS.filter(item => (item.price !== null || tab === "collection") && item.id !== "anti-curse-salt" && (filter === "all" || item.kind === filter) && (tab !== "collection" || (state.inventory[item.id] ?? 0) > 0)).map(item => {
         const owned = state.inventory[item.id] ?? 0;
-        const max = item.kind === "cosmetic" || item.relic ? 1 : item.kind === "transformation" ? 10 : 30;
+        const max = getHalloweenPurchaseLimit(item);
         const projectItem = ["gravediggers-hourglass", "cursed-builders-seal"].includes(item.id);
         return <article key={item.id} id={`halloween-item-${item.id}`} className="halloween-card">{item.kind === "cosmetic" || item.kind === "transformation" ? <><HalloweenSkinPortrait avatarKey={state.avatarKey} item={item} /><button type="button" className="halloween-skin-try halloween-text-link" onClick={() => setPreviewItem(item)}>Essayer sur mon portrait ↗</button></> : <HalloweenItemIllustration art={item.art} name={item.name} />}<h3>{item.name}</h3><p>{item.description}</p><details className="halloween-secondary"><summary>Effet et conditions</summary><p>{halloweenPresentationEffect(item, true)}</p>{item.bodyChange ? <p>{item.bodyChange.limit}</p> : null}{item.relic ? <p>{item.relic.limit}</p> : <p>{item.kind === "cosmetic" ? "Acquisition unique, conservée après Halloween." : `${max} achats maximum sur cette édition. Les cadeaux s’ajoutent dans la limite prévue pour l’objet.`}</p>}</details>
           <p className="halloween-item-price">{item.price !== null ? <><DemonicWheel size={20} /> {item.price} roues · </> : null}{owned} possédé{owned > 1 ? "s" : ""}</p>
-          {tab === "boutique" ? <button className="halloween-button" disabled={busy || !state.joined || !shopOpen || state.coins < item.price! || (state.purchases[item.id] ?? 0) >= max || (item.kind === "cosmetic" && (state.obtained[item.id] ?? 0) > 0) || (item.id === "witches-star" && (state.obtained[item.id] ?? 0) > 0)} onClick={() => action("buy", { item: item.id })}>Acquérir</button> : item.kind === "cosmetic" ? <button className="halloween-button" disabled={busy || state.state === "paused"} onClick={() => action("equip", { item: item.id })}>Porter</button> : <>
+          {tab === "boutique" ? <button className="halloween-button" disabled={busy || !state.joined || !shopOpen || state.coins < item.price! || isHalloweenPurchaseLimitReached(item, state.purchases[item.id] ?? 0, state.obtained[item.id] ?? 0)} onClick={() => action("buy", { item: item.id })}>Acquérir</button> : item.kind === "cosmetic" ? <button className="halloween-button" disabled={busy || state.state === "paused"} onClick={() => action("equip", { item: item.id })}>Porter</button> : <>
             {item.id !== "scouts-candy" ? <label>Choisir {item.kind === "transformation" ? "un autre DS" : projectItem ? "le chantier" : "un coureur"}<select value={target[item.id] ?? ""} onChange={event => setTarget({ ...target, [item.id]: event.target.value })}><option value="">Sélectionner…</option>{(item.kind === "transformation" ? state.targets : projectItem ? (state.projects ?? []) : state.riders).map(entry => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label> : null}
             <button className="halloween-button" disabled={busy || state.state === "paused" || (item.kind === "transformation" && !open) || (item.id !== "scouts-candy" && !target[item.id])} onClick={() => action(item.kind === "transformation" ? "curse" : "use", { item: item.id, ...(target[item.id] ? { target: target[item.id] } : {}) })}>{item.kind === "transformation" ? "Envoyer le sort" : "Utiliser"}</button>
           </>}

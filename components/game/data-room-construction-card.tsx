@@ -84,7 +84,7 @@ export function DataRoomConstructionCard({
         definition={TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room}
         currency={currency}
         levelLabel={`Niveau actuel · ${currentLevel}/3`}
-        description="Le bâtiment affine automatiquement tous les rapports incomplets du marché, sans révéler totalement les coureurs."
+        description="Le bâtiment affine les rapports du marché, des fiches coureurs et des aperçus, sans révéler totalement les coureurs."
       />
 
       {currentEfficiencyBonusPercentage > 0 ? (
@@ -97,10 +97,10 @@ export function DataRoomConstructionCard({
       <div className="p-6 sm:p-8">
         <div className="grid gap-3 md:grid-cols-3">
           {[
-            "3 exactes · 8 fourchettes · 2 inconnues",
-            "5 exactes · aucune inconnue",
-            "7 exactes · fourchettes ±1",
-          ].map((label, index) => {
+            { label: "3 exactes · 8 fourchettes · 2 inconnues", potential: "Potentiel toujours estimé · marge de 0,5 à 1★" },
+            { label: "5 exactes · aucune inconnue", potential: "Potentiel estimé · marge de 0,5★" },
+            { label: "7 exactes · fourchettes ±1", potential: "Potentiel estimé · marge de 0,5★" },
+          ].map(({ label, potential }, index) => {
             const level = index + 1;
             return (
               <div
@@ -117,10 +117,18 @@ export function DataRoomConstructionCard({
                 <p className="mt-2 text-sm font-black text-[#183F37]">
                   {label}
                 </p>
+                <p className="mt-1.5 text-xs font-semibold leading-5 text-[#60756E]">
+                  {potential}
+                </p>
               </div>
             );
           })}
         </div>
+        <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
+          Dès le niveau 1, le potentiel n’est plus inconnu. La précision du
+          potentiel est la même aux niveaux 2 et 3 ; la Data Room seule ne le
+          révèle jamais exactement.
+        </p>
 
         {nextLevel && quote ? (
           <form

@@ -84,10 +84,6 @@ export function calculateStaffAcademyTraining({
   const baseTraining =
     improvementType === "level"
       ? {
-          cost: roundToNearest(
-            200_000 + safeLevel * 200_000 + safeTalentCount * 125_000,
-            25_000,
-          ),
           durationDays: Math.min(
             20,
             5 +
@@ -96,39 +92,24 @@ export function calculateStaffAcademyTraining({
           ),
         }
       : {
-          cost: roundToNearest(
-            250_000 +
-              safeLevel * 150_000 +
-              (safeTalentCount + 1) * 250_000,
-            25_000,
-          ),
           durationDays: Math.min(
             20,
             6 + (safeLevel - 1) * 2 + safeTalentCount * 3,
           ),
         };
-  const costReductionPercentage = normalizeReduction(
-    educatorBonuses.costReductionPercentage,
-  );
   const durationReductionPercentage = normalizeReduction(
     educatorBonuses.durationReductionPercentage,
   );
 
   return {
-    cost: Math.max(
-      25_000,
-      roundToNearest(
-        baseTraining.cost * (1 - costReductionPercentage / 100),
-        25_000,
-      ),
-    ),
+    cost: 0,
     durationDays: Math.max(
       1,
       Math.ceil(
         baseTraining.durationDays * (1 - durationReductionPercentage / 100),
       ),
     ),
-    costReductionPercentage,
+    costReductionPercentage: 0,
     durationReductionPercentage,
   };
 }
@@ -137,10 +118,6 @@ export function isStaffAcademyImprovementType(
   value: string,
 ): value is StaffAcademyImprovementType {
   return value === "level" || value === "talent";
-}
-
-function roundToNearest(value: number, step: number) {
-  return Math.round(value / step) * step;
 }
 
 function normalizeReduction(value: number) {

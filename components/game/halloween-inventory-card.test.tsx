@@ -14,7 +14,8 @@ describe("carte d’objet Halloween", () => {
     expect(html).toContain("Possédé : 2");
     expect(html).toContain("Disponible : 2");
     expect(html).toContain('data-halloween-art="slimming-tea"');
-    expect(html).toContain("Une seule dose");
+    expect(html).toContain("Plusieurs doses possibles sur le même coureur");
+    expect(html).not.toContain("Une seule dose");
     expect(html).toContain('href="/jeu/halloween?onglet=collection#halloween-item-spectres-tea"');
     expect(html).toContain("Utiliser cet objet");
     expect(html).not.toMatch(/Acquérir|Nouvelle idée|non activée|à valider/);

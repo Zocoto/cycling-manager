@@ -45,7 +45,7 @@ export type HalloweenState = {
   cosmetics: Record<string, string>; purchases: Record<string, number>; curse: { kind: string; expiresAt: string; sender: string; id: string } | null;
   pendingGift: Record<string, unknown> | null; bandages: number;
   attempts: number; replayAvailable?: boolean; drawn: boolean; activeRun: { id: string; seed: number; startedAt: string; expiresAt: string } | null;
-  ranking: { name: string; userId: string; score: number; distance: number; coins: number }[];
-  dailyRanking: { name: string; userId: string; score: number; distance: number; coins: number }[];
+  ranking: { name: string; userId: string; score: number; distance: number; coins: number; attempts?: number }[];
+  dailyRanking: { name: string; userId: string; score: number; distance: number; coins: number; attempts?: number }[];
   riders: { id: string; name: string }[]; targets: { id: string; name: string }[]; projects: { id: string; name: string }[];
 };

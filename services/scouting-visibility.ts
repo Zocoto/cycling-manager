@@ -9,6 +9,10 @@ export type ScoutingVisibilityStatus = {
   activeUntil: string | null;
 };
 
+export type ViewerScoutingVisibilityStatus = ScoutingVisibilityStatus & {
+  dataRoomLevel: number;
+};
+
 export async function getTeamSeasonScoutingVisibility(
   admin: AdminClient,
   teamSeasonId: string,
@@ -36,7 +40,7 @@ export async function getViewerScoutingVisibility({
   admin: AdminClient;
   authUserId: string;
   seasonId: string;
-}): Promise<ScoutingVisibilityStatus> {
+}): Promise<ViewerScoutingVisibilityStatus> {
   const directorResult = await admin
     .from("sporting_directors")
     .select("id")
@@ -49,7 +53,9 @@ export async function getViewerScoutingVisibility({
       `Impossible d’identifier le Directeur Sportif : ${directorResult.error.message}`,
     );
   }
-  if (!directorResult.data) return { active: false, activeUntil: null };
+  if (!directorResult.data) {
+    return { active: false, activeUntil: null, dataRoomLevel: 0 };
+  }
 
   const assignmentResult = await admin
     .from("team_manager_assignments")
@@ -64,15 +70,25 @@ export async function getViewerScoutingVisibility({
       `Impossible d’identifier l’équipe du Directeur Sportif : ${assignmentResult.error.message}`,
     );
   }
-  if (!assignmentResult.data) return { active: false, activeUntil: null };
+  if (!assignmentResult.data) {
+    return { active: false, activeUntil: null, dataRoomLevel: 0 };
+  }
 
-  const teamSeasonResult = await admin
-    .from("team_seasons")
-    .select("scouting_reports_revealed_until")
-    .eq("team_id", assignmentResult.data.team_id)
-    .eq("season_id", seasonId)
-    .in("status", ["planned", "active"])
-    .maybeSingle<{ scouting_reports_revealed_until: string | null }>();
+  const [teamSeasonResult, dataRoomResult] = await Promise.all([
+    admin
+      .from("team_seasons")
+      .select("scouting_reports_revealed_until")
+      .eq("team_id", assignmentResult.data.team_id)
+      .eq("season_id", seasonId)
+      .in("status", ["planned", "active"])
+      .maybeSingle<{ scouting_reports_revealed_until: string | null }>(),
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", assignmentResult.data.team_id)
+      .eq("infrastructure_code", "recruitment_data_room")
+      .maybeSingle<{ level: number }>(),
+  ]);
 
   if (teamSeasonResult.error) {
     throw new Error(
@@ -80,9 +96,18 @@ export async function getViewerScoutingVisibility({
     );
   }
 
-  return normalizeScoutingVisibility(
-    teamSeasonResult.data?.scouting_reports_revealed_until,
-  );
+  if (dataRoomResult.error) {
+    throw new Error(
+      `Impossible de charger la Data Room de recrutement : ${dataRoomResult.error.message}`,
+    );
+  }
+
+  return {
+    ...normalizeScoutingVisibility(
+      teamSeasonResult.data?.scouting_reports_revealed_until,
+    ),
+    dataRoomLevel: dataRoomResult.data?.level ?? 0,
+  };
 }
 
 export function normalizeScoutingVisibility(

@@ -392,7 +392,10 @@ function PreviewContent({
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <RiderPotentialChip potentialSteps={preview.potentialSteps} />
+                <RiderPotentialChip
+                  potentialSteps={preview.potentialSteps}
+                  scoutedPotential={preview.scoutedPotential}
+                />
                 {preview.ratingVisibility === "scouted" ? (
                   <span className="rounded-full bg-[#E9E2F4] px-2.5 py-1 text-[9px] font-black uppercase text-[#684397]">
                     Scouting

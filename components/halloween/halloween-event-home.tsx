@@ -33,11 +33,5 @@ export function HalloweenEventHome({ onSelect }: { onSelect: (tab: "poursuite" |
         </div>
       </article>
     </div>
-    <div className="halloween-event-bottom">
-      <div><p className="halloween-eyebrow">Une parenthèse hors des courses</p><h3>Des frissons, pas de fatigue.</h3>
-        <p>Les jeux ne modifient ni la forme de vos coureurs, ni les classements cyclistes. Les objets ont les effets indiqués sur leur fiche, uniquement lorsque vous décidez de les utiliser.</p>
-        <p>Journées renouvelées à minuit à Paris. Les podiums quotidiens suivent la sauvegarde des derniers essais ; les lots finaux suivent la clôture du 2 novembre. La boutique reste ouverte jusqu’au 9 novembre inclus. Les tickets expirent à la fin des jeux ; les roues restantes, à la fermeture de la boutique.</p>
-      </div>
-    </div>
   </section>;
 }
