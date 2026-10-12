@@ -23,7 +23,8 @@ describe("réglages du réapprovisionnement", () => {
     expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/fan-club");
   });
   it("rejette les produits inconnus et les seuils négatifs ou fractionnaires", async () => {
-    for (const minimumStocks of [{ unknown: 10 }, { bottle: -1 }, { bottle: 1.5 }, { bottle: 5001 }]) {
+    const invalidStocks: Record<string, number>[] = [{ unknown: 10 }, { bottle: -1 }, { bottle: 1.5 }, { bottle: 5001 }];
+    for (const minimumStocks of invalidStocks) {
       expect((await updateFanClubAutoRestockAction({ enabled: true, allowNegativeProjection: false, minimumStocks })).ok).toBe(false);
     }
     expect(mocks.rpc).not.toHaveBeenCalled();
