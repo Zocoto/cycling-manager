@@ -137,6 +137,7 @@ type RacePreparationWorkspaceProps = {
   tacticalError: boolean;
   nowIso: string;
   initialSlug?: string;
+  initialStageNumber?: number;
   equipmentError: boolean;
   equipmentSaveStatus?: string;
   savedEquipmentStageId?: string;
@@ -182,6 +183,7 @@ export function RacePreparationWorkspace({
   tacticalError,
   nowIso,
   initialSlug,
+  initialStageNumber,
   equipmentError,
   equipmentSaveStatus,
   savedEquipmentStageId,
@@ -271,6 +273,10 @@ export function RacePreparationWorkspace({
     orderedStages.find(
       (stage) => getStageLiveState(stage, now).status === "scheduled",
     )?.id;
+  const requestedStageId = selectedEdition.slug === initialSlug
+    ? orderedStages.find((stage) => stage.stageNumber === initialStageNumber)?.id
+    : undefined;
+  const initiallyOpenedStageId = requestedStageId ?? nextEditableStageId;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -406,8 +412,8 @@ export function RacePreparationWorkspace({
                     : null
                 }
                 initiallyOpen={
-                  stage.id === nextEditableStageId ||
-                  (!nextEditableStageId && stage.id === orderedStages[0]?.id)
+                  stage.id === initiallyOpenedStageId ||
+                  (!initiallyOpenedStageId && stage.id === orderedStages[0]?.id)
                 }
                 mode={mode}
                 federationCountryCode={federationCountryCode}
