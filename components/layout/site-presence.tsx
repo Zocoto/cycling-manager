@@ -38,10 +38,15 @@ export function SitePresenceProvider({ children }: { children: ReactNode }) {
   return <PresenceContext.Provider value={presence}>{children}</PresenceContext.Provider>;
 }
 
-export function SitePresenceIndicator() {
+export function SitePresenceIndicator({ header = "game" }: { header?: "game" | "public" }) {
   const presence = useContext(PresenceContext);
   const { locale } = useLocale();
   const en = locale === "en";
+  // Stay absolutely positioned inside the existing brand slot: no header action moves.
+  // The game header needs a compact badge until its search shares the desktop row.
+  const placement = header === "public"
+    ? "left-13 -bottom-1.5 sm:left-15 sm:-bottom-4 sm:h-4 sm:min-w-10 sm:text-[9px]"
+    : "left-10 -bottom-1.5 sm:left-15 sm:-bottom-2 xl:-bottom-4 xl:h-4 xl:min-w-10 xl:text-[9px]";
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -96,7 +101,7 @@ export function SitePresenceIndicator() {
         if (pinned.current) { cancelClose(); dismiss(); }
         else { pinned.current = true; open(); }
       }}
-      className="absolute -bottom-1 left-0 z-10 inline-flex h-4 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-full border border-[#78947D]/40 bg-[#071A17] px-1 text-[9px] font-semibold leading-none text-[#D6DFD2] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:left-1 sm:min-w-10"
+      className={`absolute ${placement} z-10 inline-flex h-2.5 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-full border border-[#78947D]/40 bg-[#071A17] px-1 text-[8px] font-semibold leading-none text-[#D6DFD2] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]`}
     >
       <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${presence ? "bg-[#42B99A]" : "bg-[#78947D]"}`} />
       <span className="tabular-nums">{presence ? (presence.total > 999 ? "999+" : presence.total) : "—"}</span>

@@ -63,7 +63,7 @@ export function PublicHeader() {
             </span>
           </span>
         </Link>
-        <SitePresenceIndicator />
+        <SitePresenceIndicator header="public" />
         </div>
 
         <nav
