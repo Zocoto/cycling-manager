@@ -1,4 +1,5 @@
 import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
+import { createRaceTeamWorkRecorder } from "./race-team-work";
 import type { RaceProfileType } from "./race-calendar";
 import type { StageEquipmentChange, StageEquipmentSnapshot } from "./race-stage-equipment";
 import type {
@@ -395,6 +396,7 @@ export type RacePrimeResult = {
 };
 
 export type StageSimulationResult = {
+  teamWork?: import("./race-team-work").RaceTeamWorkPeriod[];
   stageId: string;
   seed: string;
   resolvedRiders: RiderSimulationInput[];
@@ -2086,6 +2088,7 @@ function canTriggerRaceTacticalDoctrine({
 }
 
 function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
+  const teamWorkRecorder = createRaceTeamWorkRecorder();
   const random = createSeededRandom(`${input.id}:${input.seed}:road`);
   const dynamicAttackRandom = createSeededRandom(
     `${input.id}:${input.seed}:road:dynamic-attacks`,
@@ -3167,6 +3170,29 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           state.rider.role === "leadout" &&
           totalDistanceKm - energyCompletedDistanceKm <=
             LEADOUT_FINAL_WORK_DISTANCE_KM;
+        const workPeriod = {
+          riderId: state.rider.id,
+          startKm: energyCompletedDistanceKm - tick.distanceKm,
+          endKm: energyCompletedDistanceKm,
+        };
+        if (supportingDetachedLeader) {
+          teamWorkRecorder.record({ ...workPeriod, kind: "recovery",
+            targetRiderIds: state.supportingLeaderId ? [state.supportingLeaderId] : [] });
+        }
+        if (protectingLeader) {
+          teamWorkRecorder.record({ ...workPeriod, kind: "protection",
+            targetRiderIds: [...states.values()].filter((teammate) =>
+              teammate.rider.teamId === state.rider.teamId && teammate.group === state.group &&
+              (isRaceLeaderRole(teammate.rider.role) || isRaceProtectedRiderRole(teammate.rider.role) ||
+                teammate.rider.generalClassificationProtected === true),
+            ).map((teammate) => teammate.rider.id) });
+        }
+        if (pelotonWorker) {
+          teamWorkRecorder.record({ ...workPeriod, kind: "peloton", targetRiderIds: [] });
+        }
+        if (leadoutFinalWork) {
+          teamWorkRecorder.record({ ...workPeriod, kind: "leadout", targetRiderIds: [] });
+        }
         state.energy = updateRiderEnergy({
           state,
           segment: tick,
@@ -3817,6 +3843,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     mountainPoints,
     sprintPoints,
     tacticalReports: tacticalResolution.reports,
+    teamWork: teamWorkRecorder.periods,
   };
 }
 

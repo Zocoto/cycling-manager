@@ -13,6 +13,7 @@ import {
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { buildRaceCourseJournal } from "@/lib/game/race-course-journal";
+import { buildTeamStageReport } from "@/lib/game/race-team-stage-report";
 import { getRaceWeather, getRaceWeatherLabel } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -203,6 +204,14 @@ export default async function RaceLivePage({
   const experienceLockedSimulations = shouldLoadReplay
     ? lockedSimulations
     : [];
+  const teamStageReport = state.status === "finished" && officialResults
+    ? buildTeamStageReport({
+        teamId: headerData.teamId,
+        stageId: stage.id,
+        results: officialResults.stages.find((result) => result.stageId === stage.id)?.results ?? [],
+        simulation: selectedLockedSimulation?.simulation,
+      })
+    : null;
   if (shouldLoadReplay && !selectedSimulationAvailable) {
     after(async () => {
       try {
@@ -344,6 +353,7 @@ export default async function RaceLivePage({
             initialMessages={initialMessages}
             lockedSimulations={experienceLockedSimulations}
             courseJournal={courseJournal}
+            teamStageReport={teamStageReport}
             postRaceInterview={postRaceInterview}
             replayRequested={replayRequested}
             initialClassification={

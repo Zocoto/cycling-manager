@@ -4,6 +4,8 @@ import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import { RaceCourseJournal } from "@/components/game/race-course-journal";
+import { RaceTeamStageReport } from "@/components/game/race-team-stage-report";
+import type { TeamStageReport } from "@/lib/game/race-team-stage-report";
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceStageEquipmentBadge } from "@/components/game/race-stage-equipment-badge";
@@ -41,6 +43,7 @@ export function RaceOfficialResults({
   selectedStageId,
   officialResults,
   courseJournal = [],
+  teamStageReport = null,
   postRaceInterview = null,
   initialClassification,
 }: {
@@ -49,6 +52,7 @@ export function RaceOfficialResults({
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
   courseJournal?: RaceCourseJournalEntry[];
+  teamStageReport?: TeamStageReport | null;
   postRaceInterview?: PostRaceInterviewSnapshot | null;
   initialClassification?: ClassificationKey;
 }) {
@@ -134,6 +138,7 @@ export function RaceOfficialResults({
         />
       </header>
 
+      <RaceTeamStageReport report={teamStageReport} />
       <RaceCourseJournal entries={courseJournal} />
 
       <CombativityTrophies
