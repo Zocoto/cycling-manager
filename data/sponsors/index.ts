@@ -49,6 +49,7 @@ import { AIRLINE_SPONSORS, TOURISM_SPONSORS } from "./tourism-airlines";
 import { UNDERCOVERED_COUNTRY_BATCH_02_SPONSORS } from "./undercovered-country-batch-02";
 import { UNDERCOVERED_COUNTRY_BATCH_03_SPONSORS } from "./undercovered-country-batch-03";
 import { UNDERCOVERED_COUNTRY_BATCH_04_SPONSORS } from "./undercovered-country-batch-04";
+import { UNDERCOVERED_COUNTRY_BATCH_05_SPONSORS } from "./undercovered-country-batch-05";
 import { AMERICAN_SPONSORS } from "./united-states";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
@@ -104,6 +105,7 @@ const RAW_SPONSORS = [
   ...UNDERCOVERED_COUNTRY_BATCH_02_SPONSORS,
   ...UNDERCOVERED_COUNTRY_BATCH_03_SPONSORS,
   ...UNDERCOVERED_COUNTRY_BATCH_04_SPONSORS,
+  ...UNDERCOVERED_COUNTRY_BATCH_05_SPONSORS,
 ] satisfies readonly Sponsor[];
 
 export const SPONSORS = RAW_SPONSORS.map((sponsor) => ({
