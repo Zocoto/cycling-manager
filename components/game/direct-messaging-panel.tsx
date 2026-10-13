@@ -114,6 +114,7 @@ export function DirectMessagingPanel({
   const overviewRefreshTimerRef = useRef<number | null>(null);
   const markReadTimerRef = useRef<number | null>(null);
   const conversationsRef = useRef(conversations);
+  const initialConversationHandledRef = useRef(false);
 
   const activeConversation =
     conversations.find(
@@ -256,6 +257,7 @@ export function DirectMessagingPanel({
         identity.sportingDirectorId,
         conversationId,
       );
+      activeConversationIdRef.current = conversationId;
       setActiveConversationId(conversationId);
       setDraft(window.localStorage.getItem(draftStorageKey) ?? "");
       setDraftConversationId(conversationId);
@@ -350,13 +352,18 @@ export function DirectMessagingPanel({
     if (
       !active ||
       !overviewLoaded ||
+      initialConversationHandledRef.current ||
       activeConversationId !== null ||
       conversations.length === 0
     ) {
       return;
     }
     const timer = window.setTimeout(() => {
-      void loadConversationMessages(conversations[0].id);
+      initialConversationHandledRef.current = true;
+      // On phones the list is the entry point; opening a thread hides it.
+      if (window.matchMedia("(min-width: 1024px)").matches) {
+        void loadConversationMessages(conversations[0].id);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [
@@ -366,6 +373,21 @@ export function DirectMessagingPanel({
     loadConversationMessages,
     overviewLoaded,
   ]);
+
+  function returnToConversations() {
+    initialConversationHandledRef.current = true;
+    // Ignore a thread request that finishes after the user has left it.
+    messageRequestVersionRef.current += 1;
+    activeConversationIdRef.current = null;
+    if (markReadTimerRef.current !== null) {
+      window.clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = null;
+    }
+    setActiveConversationId(null);
+    setLoadedConversationId(null);
+    setIsLoadingMessages(false);
+    setError(null);
+  }
 
   useEffect(() => {
     if (!requestedRecipientId) {
@@ -898,7 +920,7 @@ export function DirectMessagingPanel({
             <header className="flex min-h-[4.75rem] min-w-0 items-center gap-3 border-b border-[#315B3E]/12 bg-white px-4 py-3 sm:px-7">
               <button
                 type="button"
-                onClick={() => setActiveConversationId(null)}
+                onClick={returnToConversations}
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#EAF7F1] text-lg font-black text-[#176951] transition hover:bg-[#DDF3E7] lg:hidden"
                 aria-label="Retour aux conversations"
               >

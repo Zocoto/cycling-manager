@@ -87,7 +87,7 @@ describe("game header responsive layout", () => {
     expect(headerSource).not.toContain('href="/guide"');
     expect(headerSource).not.toContain("<PushNotificationControl");
     expect(headerSource).not.toContain("<LanguageSwitcher");
-    expect(headerSource).toContain("<GameUserMenu displayName={displayName} />");
+    expect(headerSource).toMatch(/<GameUserMenu\s+displayName=\{displayName\}\s+viewerEmail=\{simulatorEmail\}/);
   });
 
   it("keeps the global search visibly expanded without querying while typing", () => {

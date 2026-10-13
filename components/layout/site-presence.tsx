@@ -1,0 +1,122 @@
+"use client";
+
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useLocale } from "@/components/i18n/locale-provider";
+
+export type SitePresence = { total: number; visitors: number; players: { id: string; name: string }[] };
+const PresenceContext = createContext<SitePresence | null>(null);
+
+export function SitePresenceProvider({ children }: { children: ReactNode }) {
+  const [presence, setPresence] = useState<SitePresence | null>(null);
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+    const controller = new AbortController();
+    async function refresh() {
+      if (!active || pending || document.visibilityState !== "visible") return;
+      pending = true;
+      try {
+        const response = await fetch("/api/site-presence", { method: "POST", signal: controller.signal });
+        if (response.ok && response.status !== 204) {
+          const data = await response.json() as SitePresence;
+          if (active && Array.isArray(data.players) && Number.isInteger(data.total) && Number.isInteger(data.visitors)) setPresence(data);
+        }
+      } catch { /* Keep the last successful snapshot during a temporary outage. */ }
+      finally { pending = false; }
+    }
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
+  return <PresenceContext.Provider value={presence}>{children}</PresenceContext.Provider>;
+}
+
+export function SitePresenceIndicator({ header = "game" }: { header?: "game" | "public" }) {
+  const presence = useContext(PresenceContext);
+  const { locale } = useLocale();
+  const en = locale === "en";
+  // Stay absolutely positioned inside the existing brand slot: no header action moves.
+  // The game header needs a compact badge until its search shares the desktop row.
+  const placement = header === "public"
+    ? "left-13 -bottom-1.5 sm:left-15 sm:-bottom-4 sm:h-4 sm:min-w-10 sm:text-[9px]"
+    : "left-10 -bottom-1.5 sm:left-15 sm:-bottom-2 xl:-bottom-4 xl:h-4 xl:min-w-10 xl:text-[9px]";
+  const id = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pinned = useRef(false);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  function cancelClose() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }
+  function open() {
+    cancelClose();
+    const rect = trigger.current?.getBoundingClientRect();
+    if (rect) setPosition({ left: Math.max(12, Math.min(rect.left, window.innerWidth - 300)), top: rect.bottom + 6 });
+  }
+  function closeSoon() {
+    cancelClose();
+    if (pinned.current) return;
+    closeTimer.current = setTimeout(() => setPosition(null), 150);
+  }
+  function dismiss() {
+    pinned.current = false;
+    setPosition(null);
+  }
+  useEffect(() => {
+    if (!position) return;
+    function outside(event: PointerEvent) {
+      if (!trigger.current?.contains(event.target as Node) && !panel.current?.contains(event.target as Node)) dismiss();
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") { dismiss(); }
+    }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    window.addEventListener("resize", dismiss);
+    window.addEventListener("scroll", dismiss);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+      window.removeEventListener("resize", dismiss);
+      window.removeEventListener("scroll", dismiss);
+    };
+  }, [position]);
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
+  return <>
+    <button ref={trigger} type="button" data-site-presence="true"
+      aria-label={presence ? `${presence.total} ${en ? "online, players and visitors" : "en ligne, joueurs et visiteurs"}` : (en ? "Online presence loading" : "Chargement des présences")}
+      aria-expanded={Boolean(position)} aria-controls={position ? id : undefined}
+      onMouseEnter={open} onMouseLeave={closeSoon}
+      onFocus={event => { if (event.currentTarget.matches(":focus-visible")) open(); }} onBlur={closeSoon}
+      onClick={() => {
+        if (pinned.current) { cancelClose(); dismiss(); }
+        else { pinned.current = true; open(); }
+      }}
+      className={`absolute ${placement} z-10 inline-flex h-2.5 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-full border border-[#78947D]/40 bg-[#071A17] px-1 text-[8px] font-semibold leading-none text-[#D6DFD2] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]`}
+    >
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${presence ? "bg-[#42B99A]" : "bg-[#78947D]"}`} />
+      <span className="tabular-nums">{presence ? (presence.total > 999 ? "999+" : presence.total) : "—"}</span>
+    </button>
+    {position && createPortal(<div ref={panel} id={id} role="region"
+      aria-label={en ? "Online players and visitors" : "Joueurs et visiteurs en ligne"}
+      onMouseEnter={cancelClose} onMouseLeave={closeSoon} onFocus={cancelClose} onBlur={closeSoon}
+      className="fixed z-[100] w-72 max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border border-[#78947D]/40 bg-[#071A17] p-3 text-xs text-[#FFFDF4] shadow-xl shadow-black/30"
+      style={{ left: position.left, top: position.top, maxHeight: `min(320px, calc(100dvh - ${position.top + 12}px))` }}
+    >
+      <p className="font-semibold">{presence?.total ?? "—"} {en ? "online" : "en ligne"}</p>
+      <p className="mt-1 text-[#D6DFD2]">{presence?.players.length ?? "—"} {en ? "players" : "joueurs"} · {presence?.visitors ?? "—"} {en ? "visitors" : "visiteurs"}</p>
+      <div className="mt-2 border-t border-white/10 pt-2">
+        {!presence ? <p>{en ? "Loading…" : "Chargement…"}</p> : presence.players.length ? <ul className="space-y-1.5">{presence.players.map(player => <li key={player.id} className="break-words">{player.name}</li>)}</ul> : <p className="text-[#D6DFD2]/70">{en ? "No players online" : "Aucun joueur en ligne"}</p>}
+      </div>
+    </div>, document.body)}
+  </>;
+}
