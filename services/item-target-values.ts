@@ -9,9 +9,10 @@ import {
 } from "@/lib/game/item-target-values";
 
 export async function getCurrentTeamItemTargetRiders(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  halloween = false,
 ): Promise<ItemTargetRider[]> {
-  const result = await supabase.rpc("get_current_team_item_target_values");
+  const result = await supabase.rpc(halloween ? "get_current_halloween_item_target_values" : "get_current_team_item_target_values");
 
   if (result.error) {
     throw new Error(
@@ -44,7 +45,7 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
       lastName,
       name: readString(row.name) || `${firstName} ${lastName}`,
       countryName: readNullableString(row.countryName),
-      form: readBoundedInteger(row.form, 75, 0, 100),
+      form: row.weightKg !== undefined ? Math.max(0, Math.min(100, readOptionalNumber(row.form) ?? 75)) : readBoundedInteger(row.form, 75, 0, 100),
       experienceDays: readBoundedInteger(
         row.experienceDays,
         0,
@@ -56,6 +57,12 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
       abilityCodes: readArray(row.abilityCodes)
         .map(readString)
         .filter(Boolean),
+      ...(row.weightKg !== undefined ? {
+        weightKg: readOptionalNumber(row.weightKg),
+        heightCm: readOptionalNumber(row.heightCm),
+        age: readOptionalNumber(row.age),
+        protectionExpiresAt: readNullableString(row.protectionExpiresAt),
+      } : {}),
       injury: injuryId
         ? {
             id: injuryId,
@@ -73,6 +80,12 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
         : null,
     },
   ];
+}
+
+function readOptionalNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function readArray(value: unknown): unknown[] {

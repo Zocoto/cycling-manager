@@ -28,6 +28,10 @@ export type ItemTargetRider = {
   potentialSteps: number;
   ratings: Record<ItemTargetRatingKey, number>;
   abilityCodes: string[];
+  weightKg?: number | null;
+  heightCm?: number | null;
+  age?: number | null;
+  protectionExpiresAt?: string | null;
   injury?: {
     id: string;
     diagnosisCode: string;

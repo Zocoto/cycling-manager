@@ -2,8 +2,11 @@ import Link from "@/components/ui/app-link";
 import { HalloweenItemIllustration } from "@/components/halloween/halloween-art";
 import { halloweenInventoryItemHref } from "@/lib/game/halloween-inventory";
 import { getInventoryCategory, type TeamInventoryItem } from "@/lib/game/inventory";
+import { HalloweenConsumableForm } from "./halloween-consumable-form";
+import type { ItemTargetRider } from "@/lib/game/item-target-values";
+import type { DailyRewardConstructionProject } from "@/lib/game/daily-rewards";
 
-export function HalloweenInventoryCard({ item }: { item: TeamInventoryItem }) {
+export function HalloweenInventoryCard({ item, riders = [], projects = [], revealUntil }: { item: TeamInventoryItem; riders?: ItemTargetRider[]; projects?: DailyRewardConstructionProject[]; revealUntil?: string | null }) {
   const halloween = item.halloween;
   if (!halloween) return null;
   return <article id={`inventory-halloween-${item.sourceId}`} className="overflow-hidden rounded-[2rem] border border-orange-300/60 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
@@ -24,10 +27,10 @@ export function HalloweenInventoryCard({ item }: { item: TeamInventoryItem }) {
         <span>Possédé : {item.quantity}</span><span>Disponible : {item.availableQuantity}</span>
         {item.equippedQuantity > 0 ? <span>Porté sur votre portrait</span> : null}
       </div>
-      <Link href={halloweenInventoryItemHref(item.sourceId)} prefetch={false} className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#9A431C] px-4 py-3 text-sm font-black text-white hover:bg-[#713116]">
-        {halloween.kind === "cosmetic" ? "Gérer cet accessoire" : halloween.kind === "transformation" ? "Envoyer ce sort" : "Utiliser cet objet"} →
-      </Link>
-      <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">Objet conservé après Halloween, lié à votre compte de DS. Utilisation dans « Mes trésors ».</p>
+      {halloween.kind === "consumable" ? <HalloweenConsumableForm item={item.sourceId} stock={item.availableQuantity} riders={riders} projects={projects} revealUntil={revealUntil} /> : <Link href={halloweenInventoryItemHref(item.sourceId)} prefetch={false} className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#9A431C] px-4 py-3 text-sm font-black text-white hover:bg-[#713116]">
+        {halloween.kind === "cosmetic" ? "Gérer cet accessoire" : "Envoyer ce sort"} →
+      </Link>}
+      <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">Objet conservé après Halloween, lié à votre compte de DS.</p>
     </div>
   </article>;
 }

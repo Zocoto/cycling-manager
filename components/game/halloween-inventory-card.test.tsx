@@ -6,6 +6,7 @@ import { halloweenToInventoryItems } from "@/lib/game/halloween-inventory";
 import { HalloweenInventoryCard } from "./halloween-inventory-card";
 
 vi.mock("@/components/ui/app-link", () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => createElement("a", { href }, children) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 describe("carte d’objet Halloween", () => {
   it("montre le stock acheté, l’illustration, les limites et l’accès direct", () => {
@@ -16,8 +17,9 @@ describe("carte d’objet Halloween", () => {
     expect(html).toContain('data-halloween-art="slimming-tea"');
     expect(html).toContain("Plusieurs doses possibles sur le même coureur");
     expect(html).not.toContain("Une seule dose");
-    expect(html).toContain('href="/jeu/halloween?onglet=collection#halloween-item-spectres-tea"');
-    expect(html).toContain("Utiliser cet objet");
+    expect(html).toContain("Coureur bénéficiaire");
+    expect(html).toContain("Quantité à utiliser");
+    expect(html).toContain("Utiliser 1 exemplaire");
     expect(html).not.toMatch(/Acquérir|Nouvelle idée|non activée|à valider/);
   });
   it("permet de gérer un accessoire déjà porté", () => {
@@ -27,7 +29,8 @@ describe("carte d’objet Halloween", () => {
   });
   it("relie la page principale, les compteurs du bureau et les ancres de collection", () => {
     const page = readFileSync("app/jeu/inventaire/page.tsx", "utf8");
-    expect(page).toContain('<HalloweenInventoryCard key={item.id} item={item} />');
+    expect(page).toContain('<HalloweenInventoryCard key={item.id} item={item} riders={riders}');
+    expect(page).toContain('getCurrentTeamItemTargetRiders(supabase, true)');
     const dashboard = readFileSync("app/jeu/page.tsx", "utf8");
     expect(dashboard).toContain("getCurrentHalloweenInventory(user.id)");
     expect(dashboard).toContain("summary.inventoryTotalUnits + halloweenSummary.totalUnits");

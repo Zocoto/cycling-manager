@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateHalloweenRun } from "@/lib/game/halloween-event";
+import { revalidatePath } from "next/cache";
 
 export const maxDuration = 20;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -31,11 +32,24 @@ export async function POST(request: Request) {
       const result = validateHalloweenRun(Number(run.seed), payload.proof, (Date.now() - new Date(run.started_at).getTime()) / 1000);
       payload = { runId: run.id, proof: payload.proof, score: result.score, distance: result.distance, coins: result.coins };
     } else {
-      const allowed = new Set(["item", "target", "bandage"]);
+      const allowed = new Set(["item", "target", "bandage", ...(input.kind === "use" ? ["quantity"] : [])]);
+      if (payload.quantity !== undefined && (!Number.isSafeInteger(payload.quantity) || Number(payload.quantity) < 1 || Number(payload.quantity) > 30)) throw new Error("Choisissez une quantité entière entre 1 et 30.");
       if (Object.keys(payload).some(key => !allowed.has(key)) || (payload.item !== undefined && (typeof payload.item !== "string" || payload.item.length > 80)) || (payload.target !== undefined && !uuid.test(String(payload.target))) || (payload.bandage !== undefined && (!Number.isInteger(payload.bandage) || Number(payload.bandage) < 0 || Number(payload.bandage) > 4))) throw new Error("Demande invalide.");
     }
     const { data, error } = await admin.rpc("halloween_action", { p_user: user.id, p_id: input.id, p_kind: input.kind, p_payload: payload });
     if (error) throw new Error(error.message);
+    if (input.kind === "use") {
+      try {
+        revalidatePath("/jeu/inventaire");
+        revalidatePath("/jeu/halloween");
+        revalidatePath("/jeu/effectif");
+        revalidatePath("/jeu");
+        if (typeof payload.target === "string") revalidatePath(`/jeu/coureurs/${payload.target}`);
+      } catch (cacheError) {
+        // The action has committed: a cache failure must not invite a second use.
+        console.error("Actualisation après consommable Halloween indisponible.", cacheError);
+      }
+    }
     return Response.json(data, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Action indisponible." }, { status: 400 });

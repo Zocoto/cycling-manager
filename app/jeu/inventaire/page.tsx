@@ -106,7 +106,7 @@ export default async function InventoryPage({
         );
         return null;
       }),
-      getCurrentTeamItemTargetRiders(supabase)
+      getCurrentTeamItemTargetRiders(supabase, true)
         .then((data) => ({ data, error: null }))
         .catch((error: unknown) => ({
           data: [] as InventoryRiderOption[],
@@ -350,7 +350,7 @@ export default async function InventoryPage({
           {visibleItems.length > 0 ? (
             <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {visibleItems.map((item) => item.source === "halloween" ? (
-                <HalloweenInventoryCard key={item.id} item={item} />
+                <HalloweenInventoryCard key={item.id} item={item} riders={riders} projects={dailyRewardOverview?.constructionProjects ?? []} revealUntil={overview.scoutingRevealActiveUntil} />
               ) : (
                 <InventoryItemCard
                   key={item.id}

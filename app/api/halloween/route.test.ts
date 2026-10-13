@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRunnerPreview, stepRunnerPreview, runnerSnapshot } from "@/lib/game/halloween-runner";
 
 const mock = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), maybeSingle: vi.fn(), eq: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mock.getUser } }) }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => {
   const query = { select: () => query, eq: (...args: unknown[]) => { mock.eq(...args); return query; }, maybeSingle: mock.maybeSingle };
@@ -47,6 +48,14 @@ describe("Halloween mutation boundary", () => {
   it("uses the authenticated identity and carries the idempotency key", async () => {
     expect((await POST(request("buy", { item: "pumpkin-juice" }))).status).toBe(200);
     expect(mock.rpc).toHaveBeenCalledWith("halloween_action", { p_user: userId, p_id: userId, p_kind: "buy", p_payload: { item: "pumpkin-juice" } });
+  });
+  it("accepts bulk use only, with strictly bounded integer quantities", async () => {
+    expect((await POST(request("use", { item: "pumpkin-juice", target: runId, quantity: 6 }))).status).toBe(200);
+    expect(mock.rpc).toHaveBeenCalledWith("halloween_action", expect.objectContaining({ p_payload: { item: "pumpkin-juice", target: runId, quantity: 6 } }));
+    mock.rpc.mockClear();
+    for (const quantity of [0, -1, 31, 1.5, "6", null, Number.MAX_SAFE_INTEGER]) expect((await POST(request("use", { item: "pumpkin-juice", target: runId, quantity }))).status).toBe(400);
+    expect((await POST(request("buy", { item: "pumpkin-juice", quantity: 6 }))).status).toBe(400);
+    expect(mock.rpc).not.toHaveBeenCalled();
   });
   it("checks ownership and never credits an unknown run", async () => {
     mock.maybeSingle.mockResolvedValue({ data: null, error: null });
