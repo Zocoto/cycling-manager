@@ -17,7 +17,7 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain('data-mobile-header-action-row="true"');
     expect(headerSource).toContain('data-mobile-header-shortcuts="true"');
     expect(headerSource).toContain(
-      'className="order-1 ml-auto flex shrink-0 items-center gap-1.5 sm:contents"',
+      'className="order-1 ml-auto flex shrink-0 items-center gap-1.5 max-[360px]:gap-0.5 sm:contents"',
     );
     expect(headerSource).not.toContain("grid-cols-2");
     expect(headerSource).not.toContain("w-[calc(100%+1.5rem)]");
@@ -62,7 +62,7 @@ describe("game header responsive layout", () => {
     expect(mobileActionsPosition).toBeGreaterThan(shortcutsPosition);
     expect(userMenuPosition).toBeGreaterThan(mobileActionsPosition);
     expect(logoutPosition).toBeGreaterThan(userMenuPosition);
-    expect(headerSource).toContain("order-2 w-full min-w-0");
+    expect(headerSource).toContain("order-2 w-[calc(100%-4rem)] min-w-0 sm:w-full");
     expect(headerSource).toContain(
       'className={`${compactMobile ? "hidden sm:flex" : "flex"} items-center gap-1',
     );

@@ -30,7 +30,9 @@ describe("LanguageSwitcher integration", () => {
     );
 
     expect(publicHeader).toContain("gap-3 px-3");
-    expect(publicHeader).toContain("h-10 w-10 sm:h-12 sm:w-12");
+    expect(publicHeader).toContain("h-10 w-10 max-[360px]:h-8 max-[360px]:w-8 sm:h-12 sm:w-12");
+    expect(publicHeader).toContain("max-[360px]:gap-2 max-[360px]:px-2");
+    expect(publicHeader).toContain("max-[360px]:px-2 max-[360px]:text-xs");
     expect(publicHeader).toContain('data-mobile-public-app-name="true"');
     expect(publicHeader).toContain("sm:hidden");
     expect(publicHeader).toContain("sm:inline-flex");
