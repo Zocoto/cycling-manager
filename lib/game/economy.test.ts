@@ -351,6 +351,7 @@ describe("calculateRiderSeasonSalary", () => {
       calculateRiderSeasonSalary({
         overall: 100,
         previousSeasonPerformancePercentile: 1,
+        previousSeasonPoints: 1000,
       })
     ).toBe(400_000);
   });
@@ -360,6 +361,7 @@ describe("calculateRiderSeasonSalary", () => {
     const established = calculateRiderSeasonSalary({
       overall: 72,
       previousSeasonPerformancePercentile: 0.96,
+      previousSeasonPoints: 300,
     });
 
     expect(established).toBeGreaterThan(emerging);
@@ -370,26 +372,29 @@ describe("calculateRiderSeasonSalary", () => {
       calculateRiderSeasonSalary({
         overall: 59,
         previousSeasonPerformancePercentile: 0.9,
+        previousSeasonPoints: 100,
       }),
-    ).toBe(19_000);
+    ).toBe(9_500);
     expect(
       calculateRiderSeasonSalary({
         overall: 59,
         previousSeasonPerformancePercentile: 0.97,
+        previousSeasonPoints: 300,
       }),
-    ).toBe(21_000);
+    ).toBe(10_000);
     expect(
       calculateRiderSeasonSalary({
         overall: 59,
         previousSeasonPerformancePercentile: 1,
+        previousSeasonPoints: 1000,
       }),
-    ).toBe(24_000);
+    ).toBe(11_000);
   });
 
   it("rend les leaders nettement plus coûteux que les équipiers", () => {
-    expect(calculateRiderSeasonSalary({ overall: 55 })).toBe(9_000);
-    expect(calculateRiderSeasonSalary({ overall: 70 })).toBe(36_000);
-    expect(calculateRiderSeasonSalary({ overall: 85 })).toBe(157_500);
+    expect(calculateRiderSeasonSalary({ overall: 55 })).toBe(7_500);
+    expect(calculateRiderSeasonSalary({ overall: 70 })).toBe(18_500);
+    expect(calculateRiderSeasonSalary({ overall: 85 })).toBe(90_000);
   });
 });
 

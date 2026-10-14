@@ -1041,8 +1041,8 @@ function ContractRenewalCard({
               <p className="mb-3 text-xs font-bold text-[#7E7043]">
                 {formatMoney(option.salaryPerSeason, contract.currencyCode)} / saison
                 dès S{option.startSeasonYear}
-                {option.premiumPercent > 0
-                  ? ` · +${option.premiumPercent} % pour deux saisons garanties`
+                {option.premiumPercent !== 0
+                  ? ` · ${option.premiumPercent > 0 ? "+" : ""}${option.premiumPercent} % pour deux saisons garanties`
                   : " · une saison supplémentaire"}
               </p>
               <TransferSubmitButton pendingLabel="Prolongation…" tone="green">

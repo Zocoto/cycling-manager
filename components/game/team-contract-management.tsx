@@ -80,8 +80,8 @@ export function TeamContractManagement({
                 : "Aucun contrat n’expire cette saison sans solution."}
             </p>
             <p className="mt-1 text-xs font-semibold text-[#60756E]">
-              Le salaire définitif est recalculé au moment de la signature selon
-              le niveau et les résultats du coureur.
+              Le salaire définitif dépend du profil et des résultats du coureur.
+              Pour deux saisons supplémentaires : +25 % avant 25 ans, +10 % de 25 à 30 ans et −25 % après 30 ans.
             </p>
           </div>
           <form action={renewAllTeamRiderContractsAction}>
@@ -244,8 +244,8 @@ function ContractRiderRow({
                 />
                 <p className="mb-1.5 text-[10px] font-bold text-[#60756E]">
                   {formatMoney(offer.salaryPerSeason, rider.nextCurrency)} / saison
-                  {offer.premiumPercent > 0
-                    ? ` · +${offer.premiumPercent} %`
+                  {offer.premiumPercent !== 0
+                    ? ` · ${offer.premiumPercent > 0 ? "+" : ""}${offer.premiumPercent} %`
                     : ""}
                 </p>
                 <TransferSubmitButton

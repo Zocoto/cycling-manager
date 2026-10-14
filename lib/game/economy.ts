@@ -1,3 +1,5 @@
+import { getRiderSalaryProfileScore, getRiderSalaryResultMultiplier, RIDER_PROFILE_SALARY_KNOTS, type SalaryRiderRatings } from "./rider-salary";
+
 export type RaceTier =
   | "local"
   | "regional"
@@ -1037,10 +1039,14 @@ export function calculateCombativityReward({
 
 export function calculateRiderSeasonSalary({
   overall,
+  ratings,
+  previousSeasonPoints = 0,
   previousSeasonPerformancePercentile = null,
   isAmateur = false,
 }: {
   overall: number;
+  ratings?: SalaryRiderRatings;
+  previousSeasonPoints?: number;
   previousSeasonPerformancePercentile?: number | null;
   isAmateur?: boolean;
 }): number {
@@ -1048,10 +1054,8 @@ export function calculateRiderSeasonSalary({
     return 0;
   }
 
-  const baseSalary = interpolateRiderSalaryBase(overall);
-  const performanceMultiplier = getRiderSalaryPerformanceMultiplier(
-    previousSeasonPerformancePercentile,
-  );
+  const baseSalary = interpolateRiderSalaryBase(ratings ? getRiderSalaryProfileScore(ratings) : overall);
+  const performanceMultiplier = getRiderSalaryResultMultiplier(previousSeasonPerformancePercentile, previousSeasonPoints);
 
   return (
     Math.round(
@@ -1060,38 +1064,12 @@ export function calculateRiderSeasonSalary({
   );
 }
 
-export function getRiderSalaryPerformanceMultiplier(
-  percentile: number | null | undefined,
-): number {
-  if (percentile === null || percentile === undefined) return 0.9;
-
-  const safePercentile = clamp(percentile, 0, 1);
-  if (safePercentile >= 0.99) return 1.7;
-  if (safePercentile >= 0.95) return 1.5;
-  if (safePercentile >= 0.85) return 1.35;
-  if (safePercentile >= 0.7) return 1.2;
-  if (safePercentile >= 0.5) return 1.1;
-  if (safePercentile >= 0.2) return 1;
-  return 0.9;
+export function getRiderSalaryPerformanceMultiplier(percentile: number | null | undefined, points = 0): number {
+  return getRiderSalaryResultMultiplier(percentile, points);
 }
 
-const RIDER_SALARY_BASE_KNOTS = [
-  { overall: 0, salary: 6_000 },
-  { overall: 45, salary: 6_000 },
-  { overall: 50, salary: 7_000 },
-  { overall: 55, salary: 10_000 },
-  { overall: 59, salary: 14_000 },
-  { overall: 60, salary: 16_000 },
-  { overall: 65, salary: 25_000 },
-  { overall: 70, salary: 40_000 },
-  { overall: 75, salary: 65_000 },
-  { overall: 80, salary: 105_000 },
-  { overall: 85, salary: 175_000 },
-  { overall: 90, salary: 240_000 },
-  { overall: 100, salary: 260_000 },
-] as const;
-
 function interpolateRiderSalaryBase(overall: number): number {
+  const RIDER_SALARY_BASE_KNOTS = RIDER_PROFILE_SALARY_KNOTS;
   const safeOverall = clamp(overall, 0, 100);
   const upperIndex = RIDER_SALARY_BASE_KNOTS.findIndex(
     (knot) => knot.overall >= safeOverall,
