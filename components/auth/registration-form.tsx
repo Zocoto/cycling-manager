@@ -202,9 +202,10 @@ export function RegistrationForm({
             type="text"
             placeholder="DS-XXXXXXXXXXXX"
             autoComplete="off"
+            required={false}
             disabled={pending || registrationSucceeded}
             errors={getVisibleErrors("referralCode")}
-            helpText="Si vous avez reçu une invitation mais perdu le lien, saisissez ici le code communiqué par votre parrain."
+            helpText="Pas de parrain ? Laissez ce champ vide : vous pouvez créer votre compte sans code. Si un joueur vous a invité, saisissez son code ici."
             onChange={() => dismissFieldError("referralCode")}
           />
         )}
@@ -436,6 +437,7 @@ type FormFieldProps = {
   placeholder: string;
   autoComplete: string;
   disabled: boolean;
+  required?: boolean;
   errors?: string[];
   helpText?: string;
   minLength?: number;
@@ -450,6 +452,7 @@ function FormField({
   placeholder,
   autoComplete,
   disabled,
+  required = true,
   errors,
   helpText,
   minLength,
@@ -481,7 +484,7 @@ function FormField({
         type={type}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        required
+        required={required}
         minLength={minLength}
         maxLength={maxLength}
         disabled={disabled}
