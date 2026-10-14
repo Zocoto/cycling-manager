@@ -4566,8 +4566,24 @@ describe("simulateRaceStage", () => {
     expect(rider.ratings.hills).toBe(64);
   });
 
-  it("raréfie très fortement les chutes en montée", () => {
+  it("interdit les chutes en montée sur toutes les chaussées et par tous les temps", () => {
     const input = createDemoSimulationInput("haute-montagne", 1);
+    for (const condition of ["clear", "rain", "storm", "snow"] as const) {
+      for (const surface of ["asphalt", "cobbles"] as const) {
+        for (const finalMassSprint of [false, true]) {
+          expect(getRoadCrashRiskProfile({
+            segment: { terrain: "climb", surface },
+            weather: { ...input.weather!, condition, rainIntensity: "heavy", isWet: condition !== "clear" },
+            finalMassSprint,
+            pelotonSize: 180,
+          })).toEqual({ individualCrashProbability: 0, massCrashProbability: 0 });
+        }
+      }
+    }
+  });
+
+  it("augmente modestement le risque sur route sèche hors montée", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 1);
     const weather = {
       ...input.weather!,
       condition: "clear" as const,
@@ -4578,18 +4594,29 @@ describe("simulateRaceStage", () => {
       segment: { terrain: "flat", surface: "asphalt" },
       weather,
     });
-    const climbRisk = getRoadCrashRiskProfile({
-      segment: { terrain: "climb", surface: "asphalt" },
-      weather,
-    });
     const flatTotal =
       flatRisk.individualCrashProbability + flatRisk.massCrashProbability;
-    const climbTotal =
-      climbRisk.individualCrashProbability + climbRisk.massCrashProbability;
 
-    expect(flatTotal).toBeCloseTo(0.0135);
-    expect(climbTotal).toBeCloseTo(0.0003375);
-    expect(climbTotal).toBeLessThanOrEqual(flatTotal / 40);
+    expect(flatTotal).toBeCloseTo(0.0155);
+    expect(flatTotal / 0.0135).toBeGreaterThan(1.1);
+    expect(flatTotal / 0.0135).toBeLessThan(1.2);
+  });
+
+  it("ne produit aucune chute sur les segments en montée des simulations pluvieuses", () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const input = createDemoSimulationInput("haute-montagne", seed);
+      const simulation = simulateRaceStage({
+        ...input,
+        weather: { ...input.weather!, condition: "storm", rainIntensity: "heavy", isWet: true },
+      });
+      const climbingSnapshots = simulation.timeline.filter(
+        (snapshot) => input.segments[snapshot.segmentNumber - 1]?.terrain === "climb",
+      );
+      expect(climbingSnapshots.length).toBeGreaterThan(0);
+      expect(climbingSnapshots.flatMap((snapshot) => snapshot.incidents).filter(
+        (incident) => incident.type === "crash_individual" || incident.type === "crash_mass",
+      )).toHaveLength(0);
+    }
   });
 
   it("réserve un risque collectif spécifique aux véritables sprints massifs", () => {
@@ -4615,7 +4642,32 @@ describe("simulateRaceStage", () => {
 
     expect(smallGroup.massCrashProbability).toBe(0);
     expect(massSprint.individualCrashProbability).toBe(0);
-    expect(massSprint.massCrashProbability).toBeCloseTo(0.05);
+    expect(massSprint.massCrashProbability).toBeCloseTo(0.08);
+  });
+
+  it("borne le risque de sprint dense et mouillé, sans l'appliquer aux autres arrivées", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 1);
+    const dry = { ...input.weather!, condition: "clear" as const, rainIntensity: "none" as const, isWet: false };
+    const wet = { ...dry, condition: "storm" as const, rainIntensity: "heavy" as const, isWet: true };
+    const risk = (pelotonSize: number, weather: NonNullable<typeof input.weather> = dry) => getRoadCrashRiskProfile({
+      segment: { terrain: "flat", surface: "asphalt" }, weather,
+      finalMassSprint: true, pelotonSize,
+    }).massCrashProbability;
+
+    expect(risk(16)).toBeCloseTo(0.055);
+    expect(risk(40)).toBeGreaterThan(risk(16));
+    expect(risk(80)).toBeCloseTo(0.08);
+    expect(risk(1_000)).toBeCloseTo(risk(80));
+    expect(risk(80, wet)).toBeGreaterThan(risk(80));
+    expect(risk(1_000, wet)).toBeLessThanOrEqual(0.11);
+
+    for (const segment of [
+      { terrain: "descent", surface: "asphalt" },
+      { terrain: "flat", surface: "cobbles" },
+    ] as const) {
+      expect(getRoadCrashRiskProfile({ segment, weather: wet, finalMassSprint: true, pelotonSize: 180 })
+        .massCrashProbability).toBe(0);
+    }
   });
 
   it("matérialise une chute dans l'emballage final sans infliger de temps au général", () => {
@@ -5116,7 +5168,9 @@ describe("simulateRaceStage", () => {
       expect(winnerCounts.size).toBeGreaterThanOrEqual(6);
       expect(Math.max(...winnerCounts.values())).toBeLessThanOrEqual(36);
     },
-    10_000,
+    // This is a 120-race statistical regression, not a single unit operation.
+    // Keep its sample and assertions intact on slower development machines.
+    60_000,
   );
 
   it("matérialise aussi des écarts après une attaque sur une arrivée vallonnée en montée", () => {

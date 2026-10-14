@@ -8379,13 +8379,18 @@ export function getRoadCrashRiskProfile({
   finalMassSprint?: boolean;
   pelotonSize?: number;
 }) {
+  // Climbs are never crash zones, even on wet cobbles or at the finish.
+  if (segment.terrain === "climb") {
+    return { individualCrashProbability: 0, massCrashProbability: 0 };
+  }
+
   const rainCrashRisk = getRaceWeatherCrashRiskBonus(weather);
 
   if (finalMassSprint) {
     const densityRisk = clamp(
-      (pelotonSize - FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS) * 0.0004,
+      (pelotonSize - FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS) * 0.0005,
       0,
-      0.015,
+      0.025,
     );
 
     return {
@@ -8394,29 +8399,24 @@ export function getRoadCrashRiskProfile({
         pelotonSize >= FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS &&
         segment.terrain === "flat" &&
         segment.surface === "asphalt"
-          ? clamp(0.035 + densityRisk + rainCrashRisk * 0.35, 0, 0.085)
+          ? clamp(0.055 + densityRisk + rainCrashRisk * 0.35, 0, 0.11)
           : 0,
     };
   }
 
-  // Une montée étire le peloton et réduit fortement les contacts. Les rares
-  // exceptions conservées couvrent une chaussée humide, pavée ou un contact
-  // isolé, sans transformer la pente en zone d'incidents récurrents.
+  // About +15% on dry roads outside climbs; the larger increase is reserved
+  // for the one final mass-sprint draw, not every segment of a sprint race.
   const terrainMultiplier =
-    segment.terrain === "climb"
-      ? segment.surface === "cobbles"
-        ? 0.1
-        : 0.025
-      : segment.terrain === "descent"
-        ? 1.25
-        : segment.surface === "cobbles"
-          ? 1.35
-          : 1;
+    segment.terrain === "descent"
+      ? 1.25
+      : segment.surface === "cobbles"
+        ? 1.35
+        : 1;
 
   return {
     individualCrashProbability:
-      (0.01 + rainCrashRisk * 0.14) * terrainMultiplier,
-    massCrashProbability: (0.0035 + rainCrashRisk * 0.07) * terrainMultiplier,
+      (0.0115 + rainCrashRisk * 0.14) * terrainMultiplier,
+    massCrashProbability: (0.004 + rainCrashRisk * 0.07) * terrainMultiplier,
   };
 }
 
