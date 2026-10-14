@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const page = read("app/jeu/transferts/page.tsx");
+const auctionList = read("components/game/transfer-auction-list.tsx");
 const service = read("services/transfer-market.ts");
 
 describe("historique journalier des enchères terminées", () => {
@@ -21,17 +22,17 @@ describe("historique journalier des enchères terminées", () => {
     expect(service).toContain(
       "if (leftIsOpen !== rightIsOpen) return leftIsOpen ? -1 : 1",
     );
-    expect(page.indexOf("activeListings.map")).toBeLessThan(
-      page.indexOf("finishedListings.map"),
+    expect(auctionList.indexOf("activeListings.map")).toBeLessThan(
+      auctionList.indexOf("finishedListings.map"),
     );
   });
 
   it("grise et estampille explicitement les enchères terminées", () => {
     expect(page).toContain('data-auction-status={isFinished ? "finished" : "active"}');
     expect(page).toContain("Enchère terminée");
-    expect(page).toContain("Enchères terminées");
+    expect(auctionList).toContain("Enchères terminées");
     expect(page).toContain("Équipe gagnante");
-    expect(page).toContain("bg-[#E9ECEA]/70");
+    expect(auctionList).toContain("bg-[#E9ECEA]/70");
   });
 
   it("affiche le résultat officiel et garde la console vendeur active uniquement", () => {

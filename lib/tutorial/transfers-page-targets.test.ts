@@ -7,6 +7,10 @@ const transferPage = readFileSync(
   join(process.cwd(), "app/jeu/transferts/page.tsx"),
   "utf8",
 );
+const transferAuctionList = readFileSync(
+  join(process.cwd(), "components/game/transfer-auction-list.tsx"),
+  "utf8",
+);
 
 const tutorialCenter = readFileSync(
   join(
@@ -29,7 +33,7 @@ describe("transfer tutorial integration", () => {
       "transfer-free-agent-filters",
       "transfer-free-agent-listings",
     ]) {
-      expect(transferPage).toContain(`data-tutorial-id="${targetId}"`);
+      expect(`${transferPage}\n${transferAuctionList}`).toContain(`data-tutorial-id="${targetId}"`);
     }
   });
 
