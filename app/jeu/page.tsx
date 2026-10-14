@@ -1227,7 +1227,10 @@ function DirectorProfileCard({
         </div>
       </div>
 
-      <div className="mt-3 grid gap-4 sm:mt-4 sm:gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+      <div
+        data-dashboard-director-overview="true"
+        className="mt-4 grid gap-5 sm:mt-5 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] md:items-center"
+      >
         <DirectorIdentity
           sportingDirector={sportingDirector}
           profileName={profileName}
@@ -1235,7 +1238,10 @@ function DirectorProfileCard({
           selectedCountry={selectedCountry}
         />
 
-        <div className="flex items-start gap-3 sm:gap-5 md:justify-self-end">
+        <div
+          data-dashboard-director-team="true"
+          className="flex min-w-0 items-start gap-3"
+        >
           <TeamJerseyPreview
             amateurJersey={
               teamAmateurIdentity?.jersey ?? DEFAULT_AMATEUR_JERSEY
@@ -1245,10 +1251,10 @@ function DirectorProfileCard({
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
             secondarySponsor={teamSponsorIdentity?.secondarySponsor}
             secondaryLogoPlacement={teamSponsorIdentity?.secondaryLogoPlacement}
-            className="h-20 w-16 shrink-0 drop-shadow-lg sm:h-24 sm:w-20"
+            className="h-20 w-16 shrink-0 drop-shadow-lg sm:h-22 sm:w-18"
           />
 
-          <div className="min-w-0 flex-1 pt-1 sm:min-w-40">
+          <div className="min-w-0 flex-1 pt-1">
             <TeamSponsorInformation
               teamSummary={teamSummary}
               teamSponsorIdentity={teamSponsorIdentity}
@@ -1345,30 +1351,35 @@ function DirectorIdentity({
   selectedCountry: CountryRow | null;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-4">
+    <div
+      data-dashboard-director-identity="true"
+      className="flex min-w-0 items-center gap-4 sm:gap-5"
+    >
       {sportingDirector?.avatar_key ? (
         <SportingDirectorAvatar
           avatarKey={sportingDirector.avatar_key}
           frameKey={sportingDirector.avatar_frame_key}
-          size="medium"
+          size="dashboard"
           label={`Avatar de ${profileName}`}
         />
       ) : (
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-xl font-black text-[#07302A]">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-3xl font-black text-[#07302A] sm:h-32 sm:w-32 sm:text-4xl">
           {getInitials(profileName)}
         </div>
       )}
 
-      <div className="min-w-0">
-        <h3 className="truncate text-xl font-black">{profileName}</h3>
+      <div className="min-w-0 flex-1">
+        <h3 className="break-words text-xl font-black leading-tight sm:text-2xl">
+          {profileName}
+        </h3>
 
-        <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
+        <p className="mt-1 break-words text-sm font-semibold text-[#BFD1C6]">
           {sportingDirector?.username
             ? `@${sportingDirector.username}`
             : "Identifiant indisponible"}
         </p>
 
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
           {selectedCountry ? (
             <>
               <CountryFlag
@@ -1376,7 +1387,7 @@ function DirectorIdentity({
                 countryName={selectedCountry.name}
               />
 
-              <span className="font-semibold text-[#FFFDF4]">
+              <span className="min-w-0 break-words font-semibold text-[#FFFDF4]">
                 {selectedCountry.name}
               </span>
             </>
@@ -1387,7 +1398,7 @@ function DirectorIdentity({
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
+        <div className="mt-3 flex items-start gap-2 text-xs font-semibold text-[#9FB5A8]">
           {sportingDirector?.is_email_visible ? (
             <span className="break-all">
               {email ?? "Adresse e-mail non disponible"}
@@ -1447,7 +1458,7 @@ function TeamSponsorInformation({
       ) : null}
 
       {teamSummary ? (
-        <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#7CCF9C]">
+        <p className="mt-3 text-xs font-bold uppercase tracking-wide text-[#7CCF9C]">
           {teamSummary.season_name} · Jour {teamSummary.season_day_number} / 28
         </p>
       ) : null}

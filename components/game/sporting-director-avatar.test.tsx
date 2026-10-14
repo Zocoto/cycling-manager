@@ -17,6 +17,25 @@ import {
 } from "@/lib/sporting-director-avatar";
 
 describe("SportingDirectorAvatar", () => {
+  it("gives the dashboard a large responsive portrait without changing other avatar sizes", () => {
+    const dashboard = renderToStaticMarkup(
+      <SportingDirectorAvatar
+        avatarKey="director_m_01"
+        size="dashboard"
+        frameKey="alpha_tester"
+        label="Avatar du bureau"
+      />,
+    );
+    const standard = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey="director_m_01" />,
+    );
+    expect(dashboard).toContain("h-24 w-24 sm:h-32 sm:w-32");
+    expect(dashboard).toContain('data-avatar-frame="alpha_tester"');
+    expect(dashboard).toContain('aria-label="Avatar du bureau"');
+    expect(standard).toContain("h-16 w-16");
+    expect(standard).not.toContain("sm:h-32");
+  });
+
   it("renders the subtle Alphatesteur frame only when it is activated", () => {
     const framed = renderToStaticMarkup(
       <SportingDirectorAvatar

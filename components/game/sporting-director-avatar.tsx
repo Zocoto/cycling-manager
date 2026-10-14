@@ -29,7 +29,7 @@ export { SPORTING_DIRECTOR_AVATARS, isSportingDirectorAvatarKey };
 
 type SportingDirectorAvatarProps = {
   avatarKey?: string | null;
-  size?: "small" | "chat" | "medium" | "large" | "xlarge" | "hero";
+  size?: "small" | "chat" | "medium" | "large" | "dashboard" | "xlarge" | "hero";
   label?: string;
   className?: string;
   frameKey?: SportingDirectorAvatarFrameKey | null;
@@ -40,6 +40,7 @@ const avatarSizeClasses = {
   chat: "h-12 w-12 sm:h-14 sm:w-14",
   medium: "h-16 w-16",
   large: "h-24 w-24",
+  dashboard: "h-24 w-24 sm:h-32 sm:w-32",
   xlarge: "h-44 w-44",
   hero: "h-44 w-44 sm:h-56 sm:w-56",
 };
