@@ -10,7 +10,6 @@ import type {
 import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
-import type { OverweightRiderSummary } from "@/lib/game/rider-weight-status";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -74,10 +73,29 @@ type DashboardInfrastructureSpecializationRow = {
   infrastructure_code: string;
 };
 
+async function readAssistantCore(supabase: SupabaseServerClient, signal: AbortSignal) {
+  return supabase.rpc("get_current_dashboard_assistant_summary")
+    .abortSignal(signal).maybeSingle<DashboardAssistantSummaryRow>();
+}
+
+export function getCurrentDashboardAssistantSummaries(supabase: SupabaseServerClient) {
+  const signal = AbortSignal.timeout(3000);
+  const core = readAssistantCore(supabase, signal);
+  return {
+    initial: getCurrentDashboardAssistantSummary(supabase, { core, signal, enrich: false }),
+    complete: getCurrentDashboardAssistantSummary(supabase, { core, signal }),
+  };
+}
+
 export async function getCurrentDashboardAssistantSummary(
   supabase: SupabaseServerClient,
-  overweightRidersPromise: Promise<OverweightRiderSummary[]> = Promise.resolve([]),
+  { core, signal = AbortSignal.timeout(3000), enrich = true }: {
+    core?: ReturnType<typeof readAssistantCore>;
+    signal?: AbortSignal;
+    enrich?: boolean;
+  } = {},
 ): Promise<DashboardAssistantSnapshot | null> {
+  const empty = { data: null, error: null };
   const [
     result,
     sponsoringAlertResult,
@@ -88,33 +106,34 @@ export async function getCurrentDashboardAssistantSummary(
     infrastructureLevelsResult,
     infrastructureSpecializationsResult,
     rndOpportunityResult,
-    overweightRiders,
   ] = await Promise.all([
-    supabase
-      .rpc("get_current_dashboard_assistant_summary")
-      .maybeSingle<DashboardAssistantSummaryRow>(),
-    supabase
+    core ?? readAssistantCore(supabase, signal),
+    enrich ? supabase
       .rpc("get_current_sponsoring_alerts")
-      .maybeSingle<SponsoringAlertRow>(),
-    supabase
+      .abortSignal(signal)
+      .maybeSingle<SponsoringAlertRow>() : empty,
+    enrich ? supabase
       .rpc("get_current_fan_club_assistant_summary")
-      .maybeSingle<FanClubAssistantSummaryRow>(),
-    supabase.rpc("get_current_dashboard_construction_context"),
-    supabase.rpc("get_current_newcomer_journey"),
-    supabase
+      .abortSignal(signal)
+      .maybeSingle<FanClubAssistantSummaryRow>() : empty,
+    enrich ? supabase.rpc("get_current_dashboard_construction_context").abortSignal(signal) : empty,
+    enrich ? supabase.rpc("get_current_newcomer_journey").abortSignal(signal) : empty,
+    enrich ? supabase
       .rpc("get_current_federation_equipment_alert")
-      .maybeSingle<FederationEquipmentAlertRow>(),
-    supabase
+      .abortSignal(signal)
+      .maybeSingle<FederationEquipmentAlertRow>() : empty,
+    enrich ? supabase
       .from("team_infrastructures")
       .select("infrastructure_code, level")
       .gte("level", INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL)
-      .returns<DashboardInfrastructureLevelRow[]>(),
-    supabase
+      .abortSignal(signal)
+      .returns<DashboardInfrastructureLevelRow[]>() : empty,
+    enrich ? supabase
       .from("team_infrastructure_specializations")
       .select("infrastructure_code")
-      .returns<DashboardInfrastructureSpecializationRow[]>(),
-    supabase.rpc("get_current_equipment_rnd_opportunity"),
-    overweightRidersPromise,
+      .abortSignal(signal)
+      .returns<DashboardInfrastructureSpecializationRow[]>() : empty,
+    enrich ? supabase.rpc("get_current_equipment_rnd_opportunity").abortSignal(signal) : empty,
   ]);
 
   if (result.error) {
@@ -124,9 +143,7 @@ export async function getCurrentDashboardAssistantSummary(
   }
 
   if (sponsoringAlertResult.error) {
-    throw new Error(
-      `Impossible de charger les alertes sponsoring : ${sponsoringAlertResult.error.message}`,
-    );
+    console.error("Impossible de charger les alertes sponsoring :", sponsoringAlertResult.error.message);
   }
 
   if (fanClubResult.error) {
@@ -186,7 +203,7 @@ export async function getCurrentDashboardAssistantSummary(
     minimumForm: row.minimum_form,
     untreatedInjuryCount: row.untreated_injury_count,
     lowFormCount: row.low_form_count,
-    overweightRiders,
+    overweightRiders: [],
     completedScoutingCount: row.completed_scouting_count,
     availableScoutCount: assistantPayload.availableScoutCount,
     availablePhysiotherapistSlotCount: assistantPayload.availablePhysiotherapistSlotCount,

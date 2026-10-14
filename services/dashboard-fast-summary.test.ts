@@ -3,7 +3,11 @@ import { getCurrentDashboardFastSummary, getCurrentDashboardObjectiveSummary } f
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function client(data: unknown, error: { message: string } | null = null) {
-  const rpc = vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({ data, error }) }));
+  const rpc = vi.fn(() => {
+    const query = { abortSignal: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error }) };
+    query.abortSignal.mockReturnValue(query);
+    return query;
+  });
   return { rpc, supabase: { rpc } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>> };
 }
 const row = { sporting_director_id: "ds", team_id: "team", team_season_id: "team-season", team_name: "Team",

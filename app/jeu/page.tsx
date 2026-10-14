@@ -5,8 +5,8 @@ import { Suspense } from "react";
 
 import {
   DashboardAssistant,
-  DashboardAssistantSkeleton,
 } from "../../components/game/dashboard-assistant";
+import { DashboardAssistantBoundary } from "@/components/game/dashboard-assistant-boundary";
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
@@ -65,7 +65,7 @@ import {
   type DashboardObjectiveSummary,
   type DashboardFastSummary,
 } from "../../services/dashboard-fast-summary";
-import { getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
+import { getCurrentDashboardAssistantSummaries, type getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
 import { getDashboardOverweightRiders } from "@/services/dashboard-rider-weight";
 import {
   DASHBOARD_ASSISTANT_ENABLED,
@@ -437,9 +437,16 @@ export default async function GamePage() {
         "Impossible de récupérer les alertes de poids :",
       )
     : Promise.resolve([]);
+  const assistantSummaries = DASHBOARD_ASSISTANT_ENABLED
+    ? getCurrentDashboardAssistantSummaries(supabase)
+    : { initial: Promise.resolve(null), complete: Promise.resolve(null) };
+  const initialDashboardAssistantPromise = loadDashboardValue(
+    assistantSummaries.initial, null,
+    "Impossible de récupérer les alertes principales de l’assistant du DS :",
+  );
   const dashboardAssistantPromise = DASHBOARD_ASSISTANT_ENABLED
     ? loadDashboardValue(
-        getCurrentDashboardAssistantSummary(supabase, overweightRidersPromise),
+        assistantSummaries.complete,
         null,
         "Impossible de récupérer le point quotidien de l’assistant du DS :",
       )
@@ -769,9 +776,19 @@ export default async function GamePage() {
           ) : null}
 
           {DASHBOARD_ASSISTANT_ENABLED ? (
-            <Suspense fallback={<DashboardAssistantSkeleton />}>
+            <DashboardAssistantBoundary ready={initialDashboardAssistantPromise} initial={
+              <DashboardAssistant
+                summaryPromise={initialDashboardAssistantPromise}
+                raceRosterAlerts={[]}
+                raceRegistrationAlerts={[]}
+                rewardCount={baseReadyRewardCount}
+                cashBalance={financeOverview?.balance ?? null}
+                hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
+              />
+            }>
               <DashboardAssistantDeferred
                 summaryPromise={dashboardAssistantPromise}
+                overweightRidersPromise={overweightRidersPromise}
                 raceCalendarPromise={raceCalendarPromise}
                 reputationPoints={reputationPoints}
                 rewardCount={baseReadyRewardCount}
@@ -779,7 +796,7 @@ export default async function GamePage() {
                 cashBalance={financeOverview?.balance ?? null}
                 hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
               />
-            </Suspense>
+            </DashboardAssistantBoundary>
           ) : null}
 
           <section
@@ -977,6 +994,7 @@ export default async function GamePage() {
 
 async function DashboardAssistantDeferred({
   summaryPromise,
+  overweightRidersPromise,
   raceCalendarPromise,
   reputationPoints,
   rewardCount,
@@ -985,6 +1003,7 @@ async function DashboardAssistantDeferred({
   hasTeam,
 }: {
   summaryPromise: ReturnType<typeof getCurrentDashboardAssistantSummary>;
+  overweightRidersPromise: ReturnType<typeof getDashboardOverweightRiders>;
   raceCalendarPromise: Promise<SeasonRaceCalendar | null>;
   reputationPoints: number;
   rewardCount: number;
@@ -992,15 +1011,16 @@ async function DashboardAssistantDeferred({
   cashBalance: number | null;
   hasTeam: boolean;
 }) {
-  const [summary, calendar, objectives] = await Promise.all([
+  const [summary, calendar, objectives, overweightRiders] = await Promise.all([
     summaryPromise,
     raceCalendarPromise,
     objectiveSummaryPromise,
+    overweightRidersPromise,
   ]);
 
   return (
     <DashboardAssistant
-      summaryPromise={Promise.resolve(summary)}
+      summaryPromise={Promise.resolve(summary ? { ...summary, overweightRiders } : null)}
       raceRosterAlerts={getDashboardRaceRosterAlerts(calendar)}
       raceRegistrationAlerts={getDashboardLowReputationRegistrationAlerts(
         calendar,

@@ -62,6 +62,7 @@ export async function getCurrentDashboardFastSummary(
 ): Promise<DashboardFastSummary | null> {
   const result = await supabase
     .rpc(deferObjectives ? "get_current_dashboard_core_summary_v2" : "get_current_dashboard_fast_summary_v2")
+    .abortSignal(AbortSignal.timeout(3000))
     .maybeSingle<DashboardFastSummaryRow>();
 
   if (result.error) {
@@ -104,6 +105,7 @@ export async function getCurrentDashboardObjectiveSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardObjectiveSummary> {
   const result = await supabase.rpc("get_current_game_objective_summary_cached")
+    .abortSignal(AbortSignal.timeout(3000))
     .maybeSingle<{ total_count: number; ready_count: number }>();
   if (result.error) throw new Error(`Impossible de charger les compteurs d’objectifs : ${result.error.message}`);
   return { totalCount: result.data?.total_count ?? 0, readyCount: result.data?.ready_count ?? 0 };

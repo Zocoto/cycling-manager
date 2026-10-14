@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { getCurrentDashboardAssistantSummary } from "./dashboard-assistant";
+import { getCurrentDashboardAssistantSummary, getCurrentDashboardAssistantSummaries } from "./dashboard-assistant";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function client(payload: unknown) {
@@ -9,23 +9,44 @@ function client(payload: unknown) {
     const response = name === "get_current_dashboard_assistant_summary"
       ? { data: { game_date: "2026-10-11", journal_items: payload }, error: null }
       : result;
-    return Object.assign(Promise.resolve(response), { maybeSingle: vi.fn().mockResolvedValue(response) });
+    const query = Object.assign(Promise.resolve(response), { maybeSingle: vi.fn().mockResolvedValue(response), abortSignal: vi.fn() });
+    query.abortSignal.mockReturnValue(query);
+    return query;
   });
   const from = vi.fn((table: string) => {
     if (!["team_infrastructures", "team_infrastructure_specializations"].includes(table)) {
       throw new Error(`Unexpected dashboard query: ${table}`);
     }
-    return {
-      select: () => ({
-        gte: () => ({ returns: () => Promise.resolve({ data: [], error: null }) }),
-        returns: () => Promise.resolve({ data: [], error: null }),
-      }),
-    };
+    const query = { select: vi.fn(), gte: vi.fn(), abortSignal: vi.fn(), returns: () => Promise.resolve({ data: [], error: null }) };
+    query.select.mockReturnValue(query);
+    query.gte.mockReturnValue(query);
+    query.abortSignal.mockReturnValue(query);
+    return query;
   });
   return { rpc, from, supabase: { rpc, from } as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>> };
 }
 
 describe("dashboard physiotherapist payload", () => {
+  it("does not wait for slow supplemental RPCs or issue the core request twice", async () => {
+    const mock = client({ physiotherapistOpportunity: { freeSlotCount: 4, unassignedRiderCount: 7 } });
+    const rpc = mock.rpc.getMockImplementation()!;
+    let finish!: (result: { data: null; error: null }) => void;
+    const pending = new Promise<{ data: null; error: null }>((resolve) => { finish = resolve; });
+    mock.rpc.mockImplementation(name => {
+      if (name !== "get_current_sponsoring_alerts") return rpc(name);
+      const query = Object.assign(pending, { maybeSingle: vi.fn(() => pending), abortSignal: vi.fn() });
+      query.abortSignal.mockReturnValue(query);
+      return query;
+    });
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    try {
+      expect(await summaries.initial).toMatchObject({ availablePhysiotherapistSlotCount: 4 });
+      expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+    } finally {
+      finish({ data: null, error: null });
+    }
+    expect(await summaries.complete).toMatchObject({ availablePhysiotherapistSlotCount: 4 });
+  });
   it("reads the opportunity from the existing summary without an extra staff query", async () => {
     const mock = client({ physiotherapistOpportunity: { freeSlotCount: 4, unassignedRiderCount: 7 }, availableScoutCount: 2, items: [] });
     expect(await getCurrentDashboardAssistantSummary(mock.supabase)).toMatchObject({

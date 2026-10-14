@@ -118,12 +118,14 @@ export async function getDashboardRaceCalendar(
     currentDayNumber: number;
   },
 ): Promise<SeasonRaceCalendar> {
+  // One deadline for the complete read, not a fresh timeout for each round trip.
+  const signal = AbortSignal.timeout(4000);
   const [visibleEditionIdsResult, regionalRaceContextResult] =
     await Promise.all([
       supabase.rpc("get_current_team_visible_calendar_edition_ids", {
         p_season_id: seasonId,
-      }),
-      supabase.rpc("get_current_team_race_access_context"),
+      }).abortSignal(signal),
+      supabase.rpc("get_current_team_race_access_context").abortSignal(signal),
     ]);
 
   assertQuery(
@@ -161,6 +163,7 @@ export async function getDashboardRaceCalendar(
                 "registration_open",
                 "registration_closed",
               ])
+              .abortSignal(signal)
               .returns<EditionRow[]>(),
           ),
         ).then((results) => ({
@@ -173,9 +176,10 @@ export async function getDashboardRaceCalendar(
       .select("id, day_number, calendar_date, label")
       .eq("season_id", seasonId)
       .order("day_number", { ascending: true })
+      .abortSignal(signal)
       .returns<DayRow[]>(),
-    supabase.rpc("get_current_team_calendar_registrations"),
-    supabase.rpc("get_current_team_sponsor_objective_races"),
+    supabase.rpc("get_current_team_calendar_registrations").abortSignal(signal),
+    supabase.rpc("get_current_team_sponsor_objective_races").abortSignal(signal),
   ]);
 
   assertQuery(editionsResult.error, "les courses du bureau");
@@ -195,13 +199,14 @@ export async function getDashboardRaceCalendar(
 
   const [racesResult, categoriesResult, stagesResult] = await Promise.all([
     raceIds.length
-      ? supabase
+      ? collectChunks(raceIds, (ids) => supabase
           .from("races")
           .select(
             "id, country_id, name, short_name, race_format, slug, competition_type, is_grand_tour, is_monument",
           )
-          .in("id", raceIds)
-          .returns<RaceRow[]>()
+          .in("id", ids)
+          .abortSignal(signal)
+          .returns<RaceRow[]>())
       : emptyResult<RaceRow>(),
     categoryIds.length
       ? supabase
@@ -210,17 +215,19 @@ export async function getDashboardRaceCalendar(
             "id, code, name, prestige_rank, minimum_roster_size, maximum_roster_size",
           )
           .in("id", categoryIds)
+          .abortSignal(signal)
           .returns<CategoryRow[]>()
       : emptyResult<CategoryRow>(),
     editionIds.length
-      ? supabase
+      ? collectChunks(editionIds, (ids) => supabase
           .from("stages")
           .select(
             "id, race_edition_id, season_day_id, stage_number, name, stage_type, status, profile_type, distance_km, day_slot, departure_at",
           )
-          .in("race_edition_id", editionIds)
+          .in("race_edition_id", ids)
           .neq("status", "cancelled")
-          .returns<StageRow[]>()
+          .abortSignal(signal)
+          .returns<StageRow[]>())
       : emptyResult<StageRow>(),
   ]);
 
@@ -240,6 +247,7 @@ export async function getDashboardRaceCalendar(
         .from("countries")
         .select("id, name, iso_alpha2, continent_code")
         .in("id", countryIds)
+        .abortSignal(signal)
         .returns<CountryRow[]>()
     : emptyResult<CountryRow>();
 
@@ -397,6 +405,17 @@ function chunkValues<T>(values: readonly T[], size: number) {
 
 function unique(values: string[]) {
   return [...new Set(values)];
+}
+
+async function collectChunks<T>(
+  ids: string[],
+  read: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+) {
+  const results = await Promise.all(chunkValues(ids, 120).map(read));
+  return {
+    data: results.flatMap((result) => result.data ?? []),
+    error: results.find((result) => result.error)?.error ?? null,
+  };
 }
 
 function emptyResult<T>() {
