@@ -120,6 +120,69 @@ describe("Fan Club de production", () => {
     expect(renderStore(1)).toContain("projection de fin de saison positive ou nulle");
     expect(renderStore(0)).not.toContain('aria-label="Réapprovisionnement automatique"');
   });
+  it("regroupe tous les minimums dans les réglages automatiques, pas dans les tuiles de vente", () => {
+    const markup = renderToStaticMarkup(
+      <FanClub
+        headquartersLevel={1}
+        shopLevel={5}
+        data={LIVE_DATA}
+        management={{ ...MANAGEMENT, autoRestock: {
+          enabled: true,
+          allowNegativeProjection: false,
+          minimumStocks: { "team-jersey": 120, bottle: 45 },
+        } }}
+        sponsorIdentity={null}
+        initialTab="store"
+      />,
+    );
+    const restockSection = markup.match(
+      /<section aria-label="Réapprovisionnement automatique"[\s\S]*?<\/section>/,
+    )?.[0] ?? "";
+    const salesCards = markup.match(/<article[\s\S]*?<\/article>/g) ?? [];
+
+    expect(restockSection).toContain("Minimum à maintenir par article");
+    expect(restockSection).toContain('aria-label="Stock minimum de Maillot de l’équipe"');
+    expect(restockSection).toContain('aria-label="Stock minimum de Bidon"');
+    expect(restockSection).toContain('value="120"');
+    expect(restockSection).toContain('value="45"');
+    expect(restockSection.match(/aria-label="Stock minimum de /g)).toHaveLength(salesCards.length);
+    expect(salesCards.length).toBeGreaterThan(1);
+    for (const card of salesCards) {
+      expect(card).not.toContain("Stock minimum de");
+      expect(card).not.toContain("Minimum à maintenir");
+      expect(card).toContain("Stock restant");
+      expect(card).toContain("Ventes prévues");
+      expect(card).toContain("Prix en boutique");
+    }
+  });
+  it("inclut les collectors disponibles et conserve le blocage des minimums cumulés", () => {
+    const markup = renderToStaticMarkup(
+      <FanClub
+        headquartersLevel={1}
+        shopLevel={1}
+        data={LIVE_DATA}
+        management={{ ...MANAGEMENT,
+          eligibleCollectorProductIds: ["collector-jersey-france"],
+          autoRestock: {
+            enabled: true,
+            allowNegativeProjection: false,
+            minimumStocks: { "team-jersey": 200, "collector-jersey-france": 150 },
+          },
+        }}
+        sponsorIdentity={null}
+        initialTab="store"
+      />,
+    );
+    const restockSection = markup.match(
+      /<section aria-label="Réapprovisionnement automatique"[\s\S]*?<\/section>/,
+    )?.[0] ?? "";
+
+    expect(restockSection).toContain('aria-label="Stock minimum de Maillot jaune collector"');
+    expect(restockSection).not.toContain('aria-label="Stock minimum de Bidon"');
+    expect(restockSection).toContain('min="0" max="300" step="1"');
+    expect(restockSection).toContain("Les minimums cumulés (350) dépassent la capacité du magasin (300).");
+    expect(restockSection).toMatch(/<button[^>]*disabled=""[^>]*>Enregistrer les réglages<\/button>/);
+  });
   it("affiche les espaces de gestion sans plafond ni tuile pédagogique", () => {
     const markup = renderFanClub();
 

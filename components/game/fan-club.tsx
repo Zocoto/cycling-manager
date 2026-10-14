@@ -712,6 +712,30 @@ function StorePanel({
             Autoriser les achats malgré une projection de fin de saison négative
           </label>
           {!allowNegativeProjection ? <p className="mt-1 pl-6 text-xs text-[var(--fan-muted)]">Les achats doivent préserver une projection de fin de saison positive ou nulle.</p> : null}
+          <fieldset className="mt-4 border-t border-[var(--fan-line)] pt-4">
+            <legend className="px-1 text-xs font-black text-[var(--fan-ink)]">
+              Minimum à maintenir par article
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {products.map((product) => (
+                <label
+                  key={product.id}
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-3"
+                >
+                  <span className="min-w-0 flex-1 text-xs font-bold text-[var(--fan-ink)]">
+                    {product.name}
+                  </span>
+                  <input
+                    aria-label={"Stock minimum de " + product.name}
+                    type="number" min={0} max={level.capacity} step={1}
+                    value={minimumStocks[product.id] ?? 0}
+                    onChange={(event) => setMinimumStocks((current) => ({ ...current, [product.id]: Math.max(0, Math.min(level.capacity, Math.floor(Number(event.target.value) || 0))) }))}
+                    className="min-h-11 w-20 shrink-0 rounded-xl border border-[var(--fan-line)] bg-white px-3 font-black text-[var(--fan-ink)] outline-none focus:border-[var(--fan-secondary)] focus:ring-2 focus:ring-[var(--fan-secondary)]"
+                  />
+                </label>
+              ))}
+            </div>
+          </fieldset>
           {minimumTotal > level.capacity ? <p role="alert" className="mt-2 text-xs font-bold text-[#B34A42]">Les minimums cumulés ({minimumTotal}) dépassent la capacité du magasin ({level.capacity}).</p> : null}
         </section>
         {purchaseOpen && selectedProduct ? (
@@ -833,13 +857,6 @@ function StorePanel({
                     <StoreMetric label="Marge / unité" value={formatStoreMargin(price - averageCost, marginRate)} tone={price - averageCost >= 0 ? "green" : "red"} />
                     <StoreMetric label="Ventes prévues" value={[Math.min(stock, forecast.low), " à ", Math.min(stock, forecast.high), " / jour"].join("")} />
                   </dl>
-                  <label className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--fan-muted)]">
-                    Minimum à maintenir
-                    <input aria-label={"Stock minimum de " + product.name} type="number" min={0} max={level.capacity} step={1}
-                      value={minimumStocks[product.id] ?? 0}
-                      onChange={(event) => setMinimumStocks((current) => ({ ...current, [product.id]: Math.max(0, Math.min(level.capacity, Math.floor(Number(event.target.value) || 0))) }))}
-                      className="min-h-10 w-24 rounded-xl border border-[var(--fan-line)] bg-white px-3 font-black text-[var(--fan-ink)] outline-none focus:border-[var(--fan-secondary)] focus:ring-2 focus:ring-[var(--fan-secondary)]" />
-                  </label>
                   <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-soft)] p-3">
                     <div className="min-w-0 flex-1">
                       <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[var(--fan-muted)]">Prix en boutique</span>
