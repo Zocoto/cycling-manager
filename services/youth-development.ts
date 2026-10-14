@@ -105,6 +105,10 @@ import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
 import { loadTeamRosterCapacitySummary } from "@/services/team-roster-capacity";
 import { getTeamSeasonScoutingVisibility } from "@/services/scouting-visibility";
+import {
+  getYouthScoutingCandidateAge,
+  getYouthScoutingCandidateStatus,
+} from "@/lib/game/youth-scouting-candidate-age";
 
 type ServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -882,15 +886,31 @@ async function loadOverview(admin: AdminClient, context: Context) {
       : null;
 
   const missionIds = (missionsResult.data ?? []).map((mission) => mission.id);
-  const candidateResult = missionIds.length
-    ? await admin
+  const reportSeasonIds = [
+    ...new Set((missionsResult.data ?? []).map((mission) => mission.season_id)),
+  ];
+  const [candidateResult, reportSeasonsResult] = await Promise.all([
+    missionIds.length
+      ? admin
         .from("youth_scouting_candidates")
         .select("*")
         .in("mission_id", missionIds)
         .order("report_slot")
         .returns<CandidateRow[]>()
-    : { data: [], error: null };
+      : { data: [], error: null },
+    reportSeasonIds.length
+      ? admin
+          .from("seasons")
+          .select("id, game_year")
+          .in("id", reportSeasonIds)
+          .returns<Array<{ id: string; game_year: number }>>()
+      : { data: [], error: null },
+  ]);
   assertQuery(candidateResult.error, "les jeunes repérés");
+  assertQuery(reportSeasonsResult.error, "les saisons des rapports de scouting");
+  const reportGameYearById = new Map(
+    (reportSeasonsResult.data ?? []).map((season) => [season.id, season.game_year]),
+  );
   const candidatesByMission = groupBy(
     candidateResult.data ?? [],
     (candidate) => candidate.mission_id,
@@ -933,6 +953,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
         ? STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE
         : 0;
     const missionCandidates = candidatesByMission.get(mission.id) ?? [];
+    const reportGameYear = reportGameYearById.get(mission.season_id);
+    if (reportGameYear === undefined) {
+      throw new Error("La saison du rapport de scouting est introuvable.");
+    }
     return {
       id: mission.id,
       scoutName: scout ? `${scout.firstName} ${scout.lastName}` : "Scout",
@@ -988,6 +1012,11 @@ async function loadOverview(admin: AdminClient, context: Context) {
       candidates: missionCandidates.map((candidate) =>
         toCandidate(
           candidate,
+          getYouthScoutingCandidateAge({
+            reportedAge: candidate.age,
+            reportGameYear,
+            currentGameYear: context.gameYear,
+          }),
           countryById.get(candidate.country_id),
           scout?.level ?? 1,
           mission.duration_days,
@@ -2491,6 +2520,7 @@ async function loadContext(
 
 function toCandidate(
   row: CandidateRow,
+  currentAge: number,
   country: CountryRow | undefined,
   scoutLevel: number,
   durationDays: number,
@@ -2503,9 +2533,9 @@ function toCandidate(
     id: row.id,
     firstName: row.first_name,
     lastName: row.last_name,
-    age: row.age,
-    heightCm: getVisibleYouthHeight(row, row.age),
-    weightKg: getVisibleYouthWeight(row, row.age),
+    age: currentAge,
+    heightCm: getVisibleYouthHeight(row, currentAge),
+    weightKg: getVisibleYouthWeight(row, currentAge),
     countryName: country?.name ?? "Pays inconnu",
     countryCode: country?.iso_alpha2 ?? "--",
     archetype: row.archetype,
@@ -2536,7 +2566,7 @@ function toCandidate(
         }),
     signingFee: toNumber(row.signing_fee),
     tuitionPerSeason: toNumber(row.tuition_per_season),
-    status: row.status,
+    status: getYouthScoutingCandidateStatus(row.status, currentAge),
     internationalCenterBonusApplied: row.international_center_bonus_applied,
     internationalCenterBonusPercentage:
       row.international_center_bonus_percentage,

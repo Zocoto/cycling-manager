@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
-  signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
@@ -28,6 +27,7 @@ import { SpecialAbilityMedallion } from "@/components/game/special-ability-medal
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
+import { YouthCandidateRecruitment } from "@/components/game/youth-candidate-recruitment";
 import { YouthPromotionForm } from "@/components/game/youth-promotion-form";
 import {
   YouthDismissalSelectionField,
@@ -1648,25 +1648,7 @@ function CandidateCard({
             />
           </div>
         </div>
-        {candidate.status === "spotted" ? (
-          <form
-            action={signYouthCandidateAction}
-            data-financial-expense={candidate.signingFee}
-            data-financial-label={`la signature de ${candidate.firstName} ${candidate.lastName}`}
-          >
-            <input type="hidden" name="candidateId" value={candidate.id} />
-            <button
-              disabled={balance < candidate.signingFee}
-              className="rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-[#D5D6CE]"
-            >
-              Signer le jeune
-            </button>
-          </form>
-        ) : (
-          <span className="rounded-full bg-[#72D4B7]/15 px-3 py-2 text-[9px] font-black uppercase text-[#176951]">
-            À l’école
-          </span>
-        )}
+        <YouthCandidateRecruitment candidate={candidate} balance={balance} />
       </div>
     </div>
   );
