@@ -3,9 +3,11 @@ import {
   filterFederationCallupsByCategory,
   formatFederationSelectionDeadline,
   getFederationCallupResponseClosesAt,
+  getFederationPreselectionAvailabilityMessage,
   isFederationCallupResponseOpen,
   splitFederationCallups,
   type FederationCallup,
+  type FederationSelectionSchedule,
 } from "./federation-callups";
 
 const callup: FederationCallup = {
@@ -17,6 +19,18 @@ const callup: FederationCallup = {
 };
 
 describe("federation call-ups", () => {
+  it("explains qualification independently from missing or expired calendar dates", () => {
+    const schedule: FederationSelectionSchedule = {
+      slot_key: "cc-pro-road", label: "CC", rider_category: "professional", race_edition_id: null,
+      race_href: null, departure_at: null, closes_at: null, is_open: false,
+    };
+    expect(getFederationPreselectionAvailabilityMessage(undefined)).toContain("calendrier");
+    expect(getFederationPreselectionAvailabilityMessage(schedule)).toContain("calendrier");
+    expect(getFederationPreselectionAvailabilityMessage({ ...schedule, qualification_status: "not_qualified" })).toContain("pas qualifiée");
+    expect(getFederationPreselectionAvailabilityMessage({ ...schedule, closes_at: "2026-10-22T16:00:00Z", qualification_status: "pending", can_prepare: true, qualification_day_number: 8 })).toContain("J8");
+    expect(getFederationPreselectionAvailabilityMessage({ ...schedule, closes_at: "2026-10-22T16:00:00Z", is_open: true })).toContain("18:00");
+    expect(getFederationPreselectionAvailabilityMessage({ ...schedule, closes_at: "2026-10-22T16:00:00Z", can_prepare: false })).toContain("Date limite dépassée");
+  });
   it("shows an early manually published invitation without applying an automatic publication window", () => {
     expect(splitFederationCallups([callup]).pending).toEqual([callup]);
   });
