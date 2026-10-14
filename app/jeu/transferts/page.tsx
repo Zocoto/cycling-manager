@@ -16,6 +16,7 @@ import {
 } from "@/components/game/game-section-tabs";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
+import { TransferAuctionList } from "@/components/game/transfer-auction-list";
 import { TransferCountdown } from "@/components/game/transfer-countdown";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
@@ -31,6 +32,7 @@ import {
 import { buildTransferMarketReturnPath } from "@/lib/game/filtered-page-paths";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
 import { formatPotentialStars } from "@/lib/game/recruitment-alerts";
+import { getTransferAuctionSource } from "@/lib/game/transfer-auction-sources";
 import {
   isTransferRiderProfileFilter,
   TRANSFER_RIDER_PROFILE_FILTERS,
@@ -284,52 +286,27 @@ function Auctions({ listings, overview, jerseys, sponsors, returnPath }: {
   sponsors: Map<string, Sponsor>;
   returnPath: string;
 }) {
-  const activeListings = listings.filter((listing) => listing.status === "open");
-  const finishedListings = listings.filter(
-    (listing) => listing.status !== "open",
-  );
-
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
       <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="Toutes les enchères" detail="Retrouvez ici la sélection quotidienne, les profils des fêtes nationales et les coureurs mis en vente par les autres DS. Les enchères DS restent ouvertes 24 heures ; toute offre placée dans les 10 dernières minutes repousse la fin de 30 minutes. Ce report peut s’appliquer autant de fois que nécessaire." />
-      {overview.nationalDayFeatures.length > 0 ? (
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          {overview.nationalDayFeatures.map((feature) => (
-            <NationalDayAuctionBanner
-              key={feature.countryCode}
-              feature={feature}
-            />
-          ))}
-        </div>
-      ) : null}
-      <div data-tutorial-id="transfer-daily-listings">
-        {listings.length > 0 ? (
-          <div className="space-y-8">
-            {activeListings.length > 0 ? (
-              <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {activeListings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
-              </div>
-            ) : null}
-            {finishedListings.length > 0 ? (
-              <section aria-labelledby="finished-auctions-title" className="rounded-[2rem] border border-[#315B3E]/12 bg-[#E9ECEA]/70 p-5 sm:p-6">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#71807B]">Historique du jour</p>
-                    <h3 id="finished-auctions-title" className="mt-1 text-xl font-black text-[#44534F]">Enchères terminées</h3>
-                    <p className="mt-1 text-xs font-semibold leading-5 text-[#71807B]">Ces résultats restent visibles jusqu’au renouvellement du marché demain.</p>
-                  </div>
-                  <span className="rounded-full border border-[#71807B]/20 bg-white/70 px-3 py-1 text-xs font-black text-[#53615D]">{finishedListings.length}</span>
-                </div>
-                <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {finishedListings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
-                </div>
-              </section>
-            ) : null}
+      <TransferAuctionList
+        listings={listings.map((listing) => ({
+          id: listing.id,
+          source: getTransferAuctionSource(listing),
+          isFinished: listing.status !== "open",
+          card: <AuctionCard listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />,
+        }))}
+        nationalDayBanner={overview.nationalDayFeatures.length > 0 ? (
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {overview.nationalDayFeatures.map((feature) => (
+              <NationalDayAuctionBanner
+                key={feature.countryCode}
+                feature={feature}
+              />
+            ))}
           </div>
-        ) : (
-          <EmptyState title="Aucune enchère ouverte" detail="La prochaine sélection quotidienne apparaîtra à 9 h, ou dès qu’un DS publiera un coureur." />
-        )}
-      </div>
+        ) : null}
+      />
     </section>
   );
 }
