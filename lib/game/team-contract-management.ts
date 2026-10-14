@@ -4,7 +4,7 @@ export type TeamContractRiderStatus =
   | "covered"
   | "leaving";
 
-export const TWO_SEASON_RENEWAL_PREMIUM_PERCENT = 25;
+export const TWO_SEASON_RENEWAL_PREMIUM_PERCENT = 10;
 
 export function getRiderRenewalTargetYears({
   effectiveContractEndYear,
@@ -37,14 +37,16 @@ export function getRiderRenewalPremiumPercent({
   activeContractEndYear,
   currentSeasonYear,
   targetEndYear,
+  age,
 }: {
   activeContractEndYear: number;
   currentSeasonYear: number;
   targetEndYear: number;
+  age: number;
 }): number {
   return activeContractEndYear === currentSeasonYear &&
     targetEndYear === currentSeasonYear + 2
-    ? TWO_SEASON_RENEWAL_PREMIUM_PERCENT
+    ? age > 30 ? -25 : age < 25 ? 25 : TWO_SEASON_RENEWAL_PREMIUM_PERCENT
     : 0;
 }
 

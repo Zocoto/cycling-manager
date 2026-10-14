@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-profile-weight-balance-v44";
+  "2026.10-moderate-sprint-crashes-v45";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

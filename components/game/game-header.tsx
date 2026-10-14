@@ -89,9 +89,9 @@ export function GameHeader({
         />
 
       <div
-        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 sm:gap-x-3 sm:gap-y-2 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
+        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 max-[360px]:px-2 sm:gap-x-3 sm:gap-y-2 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
       >
-        <div className="relative shrink-0">
+        <div className="shrink-0">
         <Link
           href="/jeu"
           prefetchOnIntent
@@ -133,7 +133,6 @@ export function GameHeader({
             </span>
           </span>
         </Link>
-        <SitePresenceIndicator />
         </div>
 
         <GameNavigationMenu
@@ -142,8 +141,15 @@ export function GameHeader({
         />
 
         <div
+          data-header-presence-slot="true"
+          className={`${compactMobile ? "order-none" : "order-2"} shrink-0 sm:order-none`}
+        >
+          <SitePresenceIndicator />
+        </div>
+
+        <div
           data-global-header-search="true"
-          className={`${compactMobile ? "hidden sm:block" : "block"} order-2 w-full min-w-0 xl:order-none xl:flex-1`}
+          className={`${compactMobile ? "hidden sm:block" : "block"} order-2 w-[calc(100%-4rem)] min-w-0 sm:w-full xl:order-none xl:flex-1`}
         >
           <GameHeaderSearch
             id="game-global-search"
@@ -155,11 +161,11 @@ export function GameHeader({
 
         <div
           data-mobile-header-action-row="true"
-          className="order-1 ml-auto flex shrink-0 items-center gap-1.5 sm:contents"
+          className="order-1 ml-auto flex shrink-0 items-center gap-1.5 max-[360px]:gap-0.5 sm:contents"
         >
           <div
             data-mobile-header-shortcuts="true"
-            className={`${compactMobile ? "hidden sm:flex" : "flex"} items-center gap-1 sm:order-3 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:border-t sm:border-white/10 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0`}
+            className={`${compactMobile ? "hidden sm:flex" : "flex"} items-center gap-1 max-[360px]:gap-0.5 sm:order-3 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:border-t sm:border-white/10 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0`}
           >
             <span className="hidden sm:contents">
               <HeaderMenuLink
@@ -212,7 +218,7 @@ export function GameHeader({
 
           <div
             data-mobile-header-primary-actions="true"
-            className="flex min-w-0 shrink-0 items-center gap-1 sm:ml-auto sm:gap-2 lg:ml-0"
+            className="flex min-w-0 shrink-0 items-center gap-1 max-[360px]:gap-0.5 sm:ml-auto sm:gap-2 lg:ml-0"
           >
             <MobilePageRefreshControl isEnglish={isEnglish} />
             <GameUserMenu

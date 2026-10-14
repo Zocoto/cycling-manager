@@ -102,11 +102,6 @@ type CountryRow = {
   name: string;
   iso_alpha2: string;
 };
-type SalaryPerformanceRow = {
-  rider_id: string;
-  performance_percentile: number | string | null;
-};
-
 export async function getTeamContractManagementOverview(
   authUserId: string,
 ): Promise<TeamContractManagementOverview | null> {
@@ -182,6 +177,8 @@ export async function getTeamContractManagementOverview(
   }
 
   const riderIds = [...new Set(activeContracts.map((row) => row.rider_id))];
+  const futureSeasonResult = await admin.from("seasons").select("id").eq("game_year", currentSeason.game_year + 1).maybeSingle<{ id: string }>();
+  assertQuery(futureSeasonResult.error, "la saison des prolongations");
   const [
     contractsResult,
     ridersResult,
@@ -221,11 +218,11 @@ export async function getTeamContractManagementOverview(
       .returns<CountryRow[]>(),
     admin.from("seasons").select("id, name, game_year").returns<SeasonRow[]>(),
     admin
-      .rpc("get_rider_salary_performance_percentiles", {
+      .rpc("calculate_rider_season_salary_quotes", {
         p_rider_ids: riderIds,
-        p_season_id: currentSeason.id,
+        p_season_id: futureSeasonResult.data?.id ?? currentSeason.id,
       })
-      .returns<SalaryPerformanceRow[]>(),
+      .returns<Array<{ rider_id: string; salary_per_season: number | string }>>(),
     admin
       .from("rider_special_abilities")
       .select("rider_id")
@@ -265,17 +262,8 @@ export async function getTeamContractManagementOverview(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
   const contractsByRiderId = groupByRiderId(contractsResult.data ?? []);
-  const performanceRows = Array.isArray(performanceResult.data)
-    ? (performanceResult.data as SalaryPerformanceRow[])
-    : [];
-  const performanceByRiderId = new Map(
-    performanceRows.map((performance) => [
-      performance.rider_id,
-      performance.performance_percentile === null
-        ? null
-        : toNumber(performance.performance_percentile),
-    ]),
-  );
+  const salaryQuotes = Array.isArray(performanceResult.data) ? performanceResult.data as unknown as Array<{ rider_id: string; salary_per_season: number | string }> : [];
+  const salaryByRiderId = new Map(salaryQuotes.map((quote) => [quote.rider_id, toNumber(quote.salary_per_season)]));
   const homegrownAbilityRiderIds = new Set(
     (homegrownAbilitiesResult.data ?? []).map((row) => row.rider_id),
   );
@@ -326,11 +314,7 @@ export async function getTeamContractManagementOverview(
       successorContractEndYear: successorEndSeason?.game_year ?? null,
     });
     const overall = getOverall(rating);
-    const estimatedSalary = calculateRiderSeasonSalary({
-      overall,
-      previousSeasonPerformancePercentile:
-        performanceByRiderId.get(rider.id) ?? null,
-    });
+    const estimatedSalary = salaryByRiderId.get(rider.id) ?? calculateRiderSeasonSalary({ overall, ratings: rating });
     const currentSalary = toNumber(activeContract.salary_per_season);
     const estimatedSalaryAfterHomegrown =
       homegrownAbilityRiderIds.has(rider.id) && promotedRiderIds.has(rider.id)
@@ -365,6 +349,7 @@ export async function getTeamContractManagementOverview(
         activeContractEndYear: activeEndYear,
         currentSeasonYear: currentSeason.game_year,
         targetEndYear: targetEndSeasonYear,
+        age: rating.age,
       });
       const baseSalary =
         successor?.team_id === teamId &&

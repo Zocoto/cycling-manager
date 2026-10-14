@@ -23,16 +23,16 @@ export function PublicHeader() {
         className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]"
       />
 
-      <div className="mx-auto flex max-w-375 items-center justify-between gap-3 px-3 pb-4 pt-5 sm:gap-6 sm:px-8">
-        <div className="relative shrink-0">
+      <div className="mx-auto flex max-w-375 items-center justify-between gap-3 px-3 pb-4 pt-5 max-[360px]:gap-2 max-[360px]:px-2 sm:gap-6 sm:px-8">
+        <div className="shrink-0">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+          className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] max-[360px]:gap-2"
           aria-label={
             isEnglish ? "Back to the Cyclo Stratège homepage" : "Retour à l’accueil de Cyclo Stratège"
           }
         >
-          <WheelLogo className="h-10 w-10 sm:h-12 sm:w-12" />
+          <WheelLogo className="h-10 w-10 max-[360px]:h-8 max-[360px]:w-8 sm:h-12 sm:w-12" />
 
           <span
             data-mobile-public-app-name="true"
@@ -63,7 +63,10 @@ export function PublicHeader() {
             </span>
           </span>
         </Link>
-        <SitePresenceIndicator header="public" />
+        </div>
+
+        <div data-header-presence-slot="true" className="hidden shrink-0 lg:block">
+          <SitePresenceIndicator />
         </div>
 
         <nav
@@ -81,13 +84,13 @@ export function PublicHeader() {
           ))}
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 max-[360px]:gap-1 sm:gap-3">
           <LanguageSwitcher compact />
 
           <Link
             href="/connexion"
             aria-label={isEnglish ? "Log in" : "Se connecter"}
-            className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-3 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:px-4"
+            className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-3 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] max-[360px]:px-2 sm:px-4"
           >
             <svg
               aria-hidden="true"
@@ -107,7 +110,7 @@ export function PublicHeader() {
 
           <Link
             href="/inscription"
-            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-3 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4] sm:px-4"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-3 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4] max-[360px]:px-2 max-[360px]:text-xs sm:px-4"
           >
             {isEnglish ? "Sign up" : "S’inscrire"}
           </Link>
@@ -123,11 +126,14 @@ export function PublicHeader() {
             <Link
               key={href}
               href={href}
-              className="rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C]"
+              className="whitespace-nowrap rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] max-[360px]:px-2"
             >
               {label}
             </Link>
           ))}
+          <div data-header-presence-slot="true" className="ml-2 shrink-0 border-l border-[#78947D]/25 pl-3">
+            <SitePresenceIndicator compact />
+          </div>
         </nav>
       </div>
     </header>

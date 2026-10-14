@@ -836,11 +836,11 @@ export async function getRiderTransferManagement(
     admin
       .from("rider_season_ratings")
       .select(
-        "mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+        "age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
       )
       .eq("rider_id", riderId)
       .eq("season_id", context.season.id)
-      .maybeSingle<Omit<RatingRow, "rider_id" | "age">>(),
+      .maybeSingle<Omit<RatingRow, "rider_id">>(),
     admin
       .from("rider_contracts")
       .select(
@@ -897,6 +897,7 @@ export async function getRiderTransferManagement(
   if (!riderResult.data || !ratingResult.data) return null;
 
   const ratings = toRatings(ratingResult.data);
+  const riderAge = ratingResult.data.age;
   const overall = calculateOverall(ratings);
   const contracts = contractsResult.data ?? [];
   const rosterSize = new Set(
@@ -1014,6 +1015,7 @@ export async function getRiderTransferManagement(
             activeContractEndYear: activeContractEndSeasonYear,
             currentSeasonYear: context.season.game_year,
             targetEndYear: targetEndSeasonYear,
+            age: riderAge,
           });
           const upgradedSalary =
             nextSeasonContract?.team_id === context.teamSeason.team_id &&

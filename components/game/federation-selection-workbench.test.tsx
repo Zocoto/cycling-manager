@@ -8,6 +8,7 @@ import {
 } from "@/components/game/federation-selection-course";
 import type { FederationSelectionCourse } from "@/lib/game/federation-selection-weather";
 import { getRaceWeather } from "@/lib/game/race-weather";
+import type { FederationSelectionSchedule } from "@/lib/game/federation-callups";
 
 const course: FederationSelectionCourse = {
   raceEditionId: "edition-cc",
@@ -28,6 +29,35 @@ const course: FederationSelectionCourse = {
 };
 
 describe("FederationSelectionWorkbench hosting", () => {
+  it.each([
+    { state: "pending", canPrepare: true, canPublish: false, message: "gel prévu à J8" },
+    { state: "qualified", canPrepare: true, canPublish: true, message: "Modifications possibles" },
+    { state: "not_qualified", canPrepare: false, canPublish: false, message: "pas qualifiée" },
+    { state: "qualified", canPrepare: false, canPublish: false, message: "Date limite dépassée" },
+  ] as const)("separates draft and dispatch availability: $state / $canPrepare", ({ state, canPrepare, canPublish, message }) => {
+    const schedule: FederationSelectionSchedule = {
+      slot_key: "cc-pro-road", label: "CC Route", rider_category: "professional",
+      race_edition_id: "edition-cc", race_href: "/jeu/courses/cc", departure_at: "2026-10-23T16:00:00Z",
+      closes_at: "2026-10-22T16:00:00Z", is_open: canPublish, can_prepare: canPrepare,
+      qualification_status: state, qualification_day_number: 8,
+    };
+    const markup = renderToStaticMarkup(<FederationSelectionWorkbench
+      countryCode="FR" countryName="France" riders={[]} gameYear={4}
+      selectionState={{ canManage: true, automaticSelection: false, competitionHosts: {}, forecasts: {},
+        schedules: { "cc-pro-road": schedule }, pendingConfirmations: [],
+        selections: { "cc-pro-road": { status: "draft", revision: 1, riderIds: [], confirmedRiderIds: [], responses: {} } },
+      }} />);
+    const save = markup.match(/<button\b[^>]*>Enregistrer le brouillon<\/button>/)?.[0];
+    const publish = markup.match(/<button\b[^>]*>Soumettre aux DS<\/button>/)?.[0];
+    expect(save).toBeDefined();
+    expect(publish).toBeDefined();
+    expect(save?.includes("disabled=\"\"")).toBe(!canPrepare);
+    expect(publish?.includes("disabled=\"\"")).toBe(!canPublish);
+    expect(markup).toContain(message);
+    expect(markup).not.toContain("lorsque le calendrier sera confirmé");
+    if (state === "pending") expect(markup).toContain("préparer et enregistrer votre brouillon dès maintenant");
+  });
+
   it("shows the actual course at J1 while weather and automatic selection stay locked", () => {
     const markup = renderToStaticMarkup(
       <FederationSelectionWorkbench

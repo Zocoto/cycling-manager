@@ -32,9 +32,17 @@ describe("team contract management", () => {
   });
 
   it("charges 25% for two extra seasons, including an upgrade of a planned one-season renewal", () => {
-    expect(getRiderRenewalPremiumPercent({ activeContractEndYear: 3, currentSeasonYear: 3, targetEndYear: 5 })).toBe(25);
-    expect(getRiderRenewalPremiumPercent({ activeContractEndYear: 4, currentSeasonYear: 3, targetEndYear: 5 })).toBe(0);
+    expect(getRiderRenewalPremiumPercent({ activeContractEndYear: 3, currentSeasonYear: 3, targetEndYear: 5, age: 24 })).toBe(25);
+    expect(getRiderRenewalPremiumPercent({ activeContractEndYear: 4, currentSeasonYear: 3, targetEndYear: 5, age: 31 })).toBe(0);
     expect(calculateRiderRenewalSalary(18_500, 25)).toBe(23_125);
+  });
+
+  it("réduit de 25 % après 30 ans et conserve les frontières d’âge", () => {
+    const renewal = { activeContractEndYear: 4, currentSeasonYear: 4, targetEndYear: 6 };
+    expect(getRiderRenewalPremiumPercent({ ...renewal, age: 25 })).toBe(10);
+    expect(getRiderRenewalPremiumPercent({ ...renewal, age: 30 })).toBe(10);
+    expect(getRiderRenewalPremiumPercent({ ...renewal, age: 31 })).toBe(-25);
+    expect(calculateRiderRenewalSalary(16000, -25)).toBe(12000);
   });
 
   it("marks an expiring contract without successor as eligible", () => {

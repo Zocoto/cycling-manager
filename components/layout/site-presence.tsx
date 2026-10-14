@@ -38,15 +38,10 @@ export function SitePresenceProvider({ children }: { children: ReactNode }) {
   return <PresenceContext.Provider value={presence}>{children}</PresenceContext.Provider>;
 }
 
-export function SitePresenceIndicator({ header = "game" }: { header?: "game" | "public" }) {
+export function SitePresenceIndicator({ compact = false }: { compact?: boolean }) {
   const presence = useContext(PresenceContext);
   const { locale } = useLocale();
   const en = locale === "en";
-  // Stay absolutely positioned inside the existing brand slot: no header action moves.
-  // The game header needs a compact badge until its search shares the desktop row.
-  const placement = header === "public"
-    ? "left-13 -bottom-1.5 sm:left-15 sm:-bottom-4 sm:h-4 sm:min-w-10 sm:text-[9px]"
-    : "left-10 -bottom-1.5 sm:left-15 sm:-bottom-2 xl:-bottom-4 xl:h-4 xl:min-w-10 xl:text-[9px]";
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -101,9 +96,15 @@ export function SitePresenceIndicator({ header = "game" }: { header?: "game" | "
         if (pinned.current) { cancelClose(); dismiss(); }
         else { pinned.current = true; open(); }
       }}
-      className={`absolute ${placement} z-10 inline-flex h-2.5 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-full border border-[#78947D]/40 bg-[#071A17] px-1 text-[8px] font-semibold leading-none text-[#D6DFD2] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]`}
+      className={`inline-flex ${compact ? "h-8" : "h-10"} w-14 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-[#78947D]/35 bg-[#42B99A]/8 px-1 text-[11px] font-semibold leading-none text-[#D6DFD2] transition hover:border-[#42B99A]/65 hover:bg-[#42B99A]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:w-auto sm:min-w-16 sm:gap-2 sm:px-3`}
     >
-      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${presence ? "bg-[#42B99A]" : "bg-[#78947D]"}`} />
+      <span aria-hidden="true" className="relative h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-full w-full">
+          <circle cx="7" cy="6.5" r="2.5" />
+          <path d="M2.5 16v-1.5a4.5 4.5 0 0 1 9 0V16M13 4.5a2.5 2.5 0 0 1 0 5M14 11a4 4 0 0 1 3.5 4v1" />
+        </svg>
+        <span className={`absolute -right-1 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-[#071A17] ${presence ? "bg-[#42B99A]" : "bg-[#78947D]"}`} />
+      </span>
       <span className="tabular-nums">{presence ? (presence.total > 999 ? "999+" : presence.total) : "—"}</span>
     </button>
     {position && createPortal(<div ref={panel} id={id} role="region"

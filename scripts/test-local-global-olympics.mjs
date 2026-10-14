@@ -13,7 +13,8 @@ const check = (actual, expected, message) => { assert.deepEqual(actual, expected
 const rows = async sql => (await db.query(sql)).rows;
 const scalar = async sql => Object.values((await rows(sql))[0])[0];
 const rejects = async (sql, pattern) => { await assert.rejects(db.query(sql), pattern); assertions++; };
-const read = path => readFile(new URL(path, import.meta.url), 'utf8');
+// Git's Windows checkout may use CRLF; pg_get_functiondef normalizes to LF.
+const read = async path => (await readFile(new URL(path, import.meta.url), 'utf8')).replaceAll('\r\n','\n');
 try {
   await db.exec(`create role anon; create role authenticated; create role service_role;
     create schema auth;
@@ -251,6 +252,11 @@ try {
   check(await rows(`select qualification_rank,rider_quota,exception_reason from national_federation_olympic_qualifications where season_id='${id(8)}' and country_id='${id(1065)}'`),
     [{qualification_rank:67,rider_quota:0,exception_reason:null}], 'S4 exception never renews, even with another old confirmed call');
   check(await scalar(`select rider_quota from national_federation_olympic_qualifications where season_id='${id(8)}' and qualification_rank=60`),2,'future rank sixty keeps standard entitlement');
-  console.log(JSON.stringify({isolated:true,productionActions:false,assertions,japanException,globalRace:true,max220:true,explicitDSApproval:true,silencePreservesRegistrations:true,normalNationsCupPreserved:true}));
+  if (process.argv.includes('--federation-qualification')) {
+    phase='federation prequalification regression';
+    const { verifyFederationPrequalification } = await import('./fixtures/verify-federation-prequalification.mjs');
+    await verifyFederationPrequalification(db, { id, check, rows, scalar, rejects });
+  }
+  console.log(JSON.stringify({isolated:true,productionActions:false,assertions,japanException,globalRace:true,max220:true,explicitDSApproval:true,silencePreservesRegistrations:true,normalNationsCupPreserved:true,federationQualification:process.argv.includes('--federation-qualification')}));
 } catch(error) { console.error(JSON.stringify({phase,message:error.message,where:error.where,internalQuery:error.internalQuery?.slice(0,1500)})); process.exitCode=1; }
 finally { await db.close(); }

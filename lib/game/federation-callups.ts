@@ -7,7 +7,23 @@ export type FederationSelectionSchedule = {
   departure_at: string | null;
   closes_at: string | null;
   is_open: boolean;
+  can_prepare?: boolean;
+  qualification_status?: "pending" | "qualified" | "not_qualified" | "not_applicable";
+  qualification_day_number?: number | null;
 };
+
+export function getFederationPreselectionAvailabilityMessage(schedule: FederationSelectionSchedule | undefined) {
+  if (schedule?.qualification_status === "not_qualified") {
+    return "Cette fédération n’est pas qualifiée pour cette compétition. Les convocations sont fermées.";
+  }
+  if (!schedule?.closes_at) return "Les modifications seront disponibles lorsque le calendrier sera confirmé.";
+  if (schedule.qualification_status === "pending" && schedule.can_prepare) {
+    return `Qualification nationale en attente · gel prévu à J${schedule.qualification_day_number ?? 8}. Vous pouvez préparer et enregistrer votre brouillon dès maintenant. L’envoi aux DS sera disponible après qualification, jusqu’au ${formatFederationSelectionDeadline(schedule.closes_at)} (heure de Paris).`;
+  }
+  return (schedule.can_prepare ?? schedule.is_open)
+    ? `Modifications possibles jusqu’au ${formatFederationSelectionDeadline(schedule.closes_at)} (heure de Paris).`
+    : "Date limite dépassée : les convocations sont verrouillées.";
+}
 
 export type FederationSelectionSlotTiming = {
   competitionCode: string;
