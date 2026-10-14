@@ -4,13 +4,8 @@ import { summarizeSponsorObjectives } from "@/lib/game/sponsor-objective-summary
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type ObjectiveProgressRow = {
-  sponsor_objective_id: string;
   status: string;
-};
-
-type SponsorObjectiveWeightRow = {
-  id: string;
-  satisfaction_points: number;
+  sponsor_objectives: { satisfaction_points: number } | null;
 };
 
 type SponsorContractSatisfactionRow = {
@@ -43,7 +38,7 @@ export async function getSponsorObjectiveSummary(contractId: string) {
     contractResult.data.objective_season_id ?? contractResult.data.start_season_id;
   const { data, error } = await supabase
     .from("objective_progress")
-    .select("sponsor_objective_id, status")
+    .select("status, sponsor_objectives(satisfaction_points)")
     .eq("team_sponsor_contract_id", normalizedContractId)
     .eq("season_id", objectiveSeasonId)
     .returns<ObjectiveProgressRow[]>();
@@ -62,42 +57,13 @@ export async function getSponsorObjectiveSummary(contractId: string) {
   );
 
   const progressRows = data ?? [];
-  const objectiveIds = progressRows.map(
-    (objective) => objective.sponsor_objective_id,
-  );
-
-  if (objectiveIds.length === 0) {
-    return {
-      ...summarizeSponsorObjectives([]),
-      satisfactionScore: persistedSatisfactionScore,
-    };
-  }
-
-  const { data: weightRows, error: weightError } = await supabase
-    .from("sponsor_objectives")
-    .select("id, satisfaction_points")
-    .in("id", objectiveIds)
-    .returns<SponsorObjectiveWeightRow[]>();
-
-  if (weightError) {
-    throw new Error(
-      `Impossible de charger les poids de satisfaction sponsor : ${weightError.message}`,
-    );
-  }
-
-  const weightByObjectiveId = new Map(
-    (weightRows ?? []).map((objective) => [
-      objective.id,
-      Number(objective.satisfaction_points),
-    ]),
-  );
 
   return {
     ...summarizeSponsorObjectives(
       progressRows.map((objective) => ({
         status: objective.status,
         satisfactionPoints:
-          weightByObjectiveId.get(objective.sponsor_objective_id) ?? 0,
+          Number(objective.sponsor_objectives?.satisfaction_points ?? 0),
       })),
     ),
     satisfactionScore: persistedSatisfactionScore,

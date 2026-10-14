@@ -65,6 +65,10 @@ export default async function RacePreparationPage({
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {
       includeEngagedRiders: false,
+      // The workspace uses its preparation RPC for plans and the equipment
+      // planner for inventory. Simulation-only bonuses are not displayed here.
+      // Keep complete stage segments for profiles and attack orders.
+      includeSimulationEnhancements: false,
     })
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),

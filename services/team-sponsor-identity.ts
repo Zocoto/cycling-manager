@@ -255,10 +255,10 @@ export async function getActiveTeamSponsorIdentity(
     activeSeasonResult.data?.id ??
     contract.start_season_id;
 
-  const {
-    data: teamSeason,
-    error: teamSeasonError,
-  } = await supabase
+  // Independent reads: keep the same season and identity without serializing
+  // the secondary sponsor behind the team display name.
+  const [teamSeasonResult, secondaryIdentityResult] = await Promise.allSettled([
+    supabase
     .from("team_seasons")
     .select(
       `
@@ -268,7 +268,16 @@ export async function getActiveTeamSponsorIdentity(
     )
     .eq("team_id", normalizedTeamId)
     .eq("season_id", seasonId)
-    .maybeSingle<TeamSeasonRow>();
+    .maybeSingle<TeamSeasonRow>(),
+    loadActiveSecondaryIdentity({
+      supabase,
+      teamId: normalizedTeamId,
+      seasonId,
+    }),
+  ]);
+
+  if (teamSeasonResult.status === "rejected") throw teamSeasonResult.reason;
+  const { data: teamSeason, error: teamSeasonError } = teamSeasonResult.value;
 
   if (teamSeasonError) {
     throw new Error(
@@ -276,11 +285,10 @@ export async function getActiveTeamSponsorIdentity(
     );
   }
 
-  const secondaryIdentity = await loadActiveSecondaryIdentity({
-    supabase,
-    teamId: normalizedTeamId,
-    seasonId,
-  });
+  if (secondaryIdentityResult.status === "rejected") {
+    throw secondaryIdentityResult.reason;
+  }
+  const secondaryIdentity = secondaryIdentityResult.value;
 
   const budgetPerSeason = Number(
     contract.budget_per_season
