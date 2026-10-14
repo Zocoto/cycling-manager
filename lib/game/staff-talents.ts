@@ -354,7 +354,7 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     role: "research_engineer",
     label: "Optimisation des ressources",
     description: (level) =>
-      `−${percentage(level, 5)} % sur le coût de chaque recherche R&D`,
+      `−${percentage(level, 5)} % sur la durée de chaque recherche R&D (recherche gratuite)`,
   },
   research_success: {
     role: "research_engineer",

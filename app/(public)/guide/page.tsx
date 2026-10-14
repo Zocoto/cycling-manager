@@ -1451,6 +1451,24 @@ function TeamManagementSection() {
           amélioration l’allonge ; les talents de l’ingénieur réduisent la durée,
           avec un minimum d’un jour. L’assistant du DS signale lorsqu’un
           ingénieur et une pièce éligible sont disponibles.
+          Les effets acquis s’additionnent : une recherche peut augmenter une
+          ligne existante ou ajouter une nouvelle statistique. Le laboratoire
+          affiche le matériel, le staff, les chances de réussite et l’historique
+          avant/après. Les gains apparaissent en vert et les pertes en rouge ;
+          le cumul est distingué de la dernière modification.
+        </RuleCard>
+        <RuleCard title="Orienter une recherche R&D">
+          Vous pouvez choisir Montagne, Vallons, Pavés ou Plaine, ou rester en
+          recherche libre. L’orientation ne change pas le taux de réussite :
+          60 % des tirages concernent les statistiques principales du groupe,
+          20 % ses secondaires et 20 % les autres. Montagne privilégie MON,
+          puis END, RES, REC et DES ; Vallons privilégie VAL et ACC, puis RES,
+          END et BAR ; Pavés privilégie PAV et RES, puis PLA, END et ACC ;
+          Plaine privilégie PLA, SPR et CLM, puis ACC, END et PRO. Un revers
+          peut également toucher la statistique tirée. Les talents du staff,
+          l’affinité nationale ou d’accueil et l’Institut fédéral sont détaillés
+          dans l’aperçu. Ces bonus et les statistiques de départ sont enregistrés
+          au lancement des nouvelles recherches, pour garder un historique fiable.
         </RuleCard>
       </div>
     </GuideSection>

@@ -9,6 +9,8 @@ import {
   getEquipmentRndExceptionalChancePercentage,
   isEquipmentPrototypeNameValid,
   normalizeEquipmentPrototypeName,
+  EQUIPMENT_RND_FOCUSES,
+  isEquipmentRndFocus,
   type EquipmentRndEngineer,
 } from "@/lib/game/equipment-rnd";
 
@@ -26,6 +28,17 @@ const engineer = (overrides: Partial<EquipmentRndEngineer> = {}) => ({
 }) satisfies EquipmentRndEngineer;
 
 describe("equipment R&D engineer talents", () => {
+  it("matches national and federal server bonuses without changing the lab contribution",()=>{
+    expect(estimateEquipmentRndResearch({labLevel:1,existingBonusTotal:4,engineer:engineer({nationalityMultiplier:1.1,federalMultiplier:1.05})})).toEqual({successRate:57,durationDays:6,cost:0});
+    expect(getEquipmentRndExceptionalChancePercentage(engineer({level:2,specialties:["research_exceptional_chance"],nationalityMultiplier:1.1}))).toBe(2.1);
+    expect(estimateEquipmentRndResearch({labLevel:7,engineer:engineer({level:5,nationalityMultiplier:1.1,federalMultiplier:1.2})}).successRate).toBe(95);
+  });
+  it("uses four coherent focus groups and allows free research",()=>{
+    expect(EQUIPMENT_RND_FOCUSES.map(focus=>focus.key)).toEqual(["mountain","hills","cobbles","plain"]);
+    expect(EQUIPMENT_RND_FOCUSES[0].secondary).toContain("endurance");
+    for(const focus of EQUIPMENT_RND_FOCUSES) expect(new Set([...focus.primary,...focus.secondary]).size).toBe(focus.primary.length+focus.secondary.length);
+    expect(isEquipmentRndFocus("mountain")).toBe(true);expect(isEquipmentRndFocus("invalid")).toBe(false);
+  });
   it("normalizes and validates the custom prototype name", () => {
     expect(normalizeEquipmentPrototypeName("  Aquila   RS-X  ")).toBe(
       "Aquila RS-X",

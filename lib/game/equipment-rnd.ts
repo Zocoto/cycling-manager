@@ -3,6 +3,7 @@ import {
   getEquipmentRatingBonusTotals,
   type EquipmentEffects,
 } from "@/lib/game/equipment";
+import { RIDER_RATING_AXES, type RiderRatingKey } from "./rider-profile";
 
 export type EquipmentRndSpecialty =
   | "research_time"
@@ -44,6 +45,12 @@ export type EquipmentRndEngineer = {
   specialties: EquipmentRndSpecialty[];
   /** Conservé pour les anciens appels internes ne connaissant qu'un talent. */
   specialty: EquipmentRndSpecialty | null;
+  countryName?: string | null;
+  countryCode?: string | null;
+  nationalityMultiplier?: number;
+  federalMultiplier?: number;
+  setbackProtected?: boolean;
+  exceptionalChancePercentage?: number;
 };
 
 export function isEquipmentRndSpecialty(
@@ -67,12 +74,14 @@ function getEngineerSpecialties(
 export function getEquipmentRndExceptionalChancePercentage(
   engineer?: EquipmentRndEngineer | null,
 ): number {
+  if (engineer?.exceptionalChancePercentage !== undefined) return engineer.exceptionalChancePercentage;
   return (
     EQUIPMENT_RND_BASE_EXCEPTIONAL_CHANCE_PERCENTAGE +
     (engineer &&
     getEngineerSpecialties(engineer).includes("research_exceptional_chance")
       ? Math.min(5, Math.max(1, Math.floor(engineer.level))) *
         EQUIPMENT_RND_EXCEPTIONAL_CHANCE_PER_ENGINEER_LEVEL
+        * (engineer.nationalityMultiplier ?? 1)
       : 0)
   );
 }
@@ -87,6 +96,8 @@ export function estimateEquipmentRndResearch(args: {
   const specialties = getEngineerSpecialties(engineer);
   const hasSpecialty = (specialty: EquipmentRndSpecialty) =>
     specialties.includes(specialty);
+  const affinity = engineer?.nationalityMultiplier ?? 1;
+  const federal = engineer?.federalMultiplier ?? 1;
   const successRate = Math.min(
     95,
     45 +
@@ -96,20 +107,19 @@ export function estimateEquipmentRndResearch(args: {
           args.labEfficiencyBonusPercentage ?? 0,
         ),
       ) +
-      (engineer && hasSpecialty("research_success") ? engineer.level * 3 : 0),
+      (engineer && hasSpecialty("research_success") ? Math.round(engineer.level * 3 * affinity * federal) : 0),
   );
   const baseDurationDays = getEquipmentRndBaseDurationDays(
     args.existingBonusTotal ?? 0,
   );
   const durationEfficiency =
     engineer && hasSpecialty("research_cost")
-      ? Math.min(0.9, engineer.level * 0.05)
+      ? Math.min(0.9, engineer.level * 0.05 * affinity)
       : 0;
-  const durationDays = Math.max(
-    1,
-    Math.ceil(baseDurationDays * (1 - durationEfficiency)) -
-      (engineer && hasSpecialty("research_time") ? engineer.level : 0),
-  );
+  const durationDays = Math.max(1, Math.ceil(Math.max(1,
+    Math.ceil(Math.ceil(baseDurationDays * (1 - durationEfficiency)) -
+      (engineer && hasSpecialty("research_time") ? engineer.level * affinity : 0)),
+  ) / federal));
 
   return { successRate, durationDays, cost: 0 };
 }
@@ -145,16 +155,43 @@ export function getEquipmentRndBaseDurationDays(
 export function describeEquipmentRndEngineerEffects(
   engineer: EquipmentRndEngineer,
 ): string[] {
-  return getEngineerSpecialties(engineer).map((specialty) => {
+  const affinity = engineer.nationalityMultiplier ?? 1;
+  const fmt = (value: number) => value.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  const effects = getEngineerSpecialties(engineer).map((specialty) => {
     switch (specialty) {
       case "research_time":
-        return `−${engineer.level} jour${engineer.level > 1 ? "s" : ""}`;
+        return `−${fmt(engineer.level * affinity)} jour${engineer.level > 1 ? "s" : ""}`;
       case "research_cost":
-        return `−${engineer.level * 5} % sur la durée`;
+        return `−${fmt(Math.min(90, engineer.level * 5 * affinity))} % sur la durée`;
       case "research_success":
-        return `+${engineer.level * 3} points de réussite`;
+        return `+${Math.round(engineer.level * 3 * affinity * (engineer.federalMultiplier ?? 1))} points de réussite`;
       case "research_exceptional_chance":
         return `${getEquipmentRndExceptionalChancePercentage(engineer).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % de chance de prototype +3`;
     }
   });
+  if (engineer.setbackProtected) effects.push("Revers sans malus");
+  return effects;
+}
+
+export const EQUIPMENT_RND_FOCUSES = [
+  { key: "mountain", label: "Montagne", symbol: "△", primary: ["mountain"], secondary: ["endurance", "resistance", "recovery", "downhill"] },
+  { key: "hills", label: "Vallons", symbol: "∿", primary: ["hills", "acceleration"], secondary: ["resistance", "endurance", "breakaway"] },
+  { key: "cobbles", label: "Pavés", symbol: "▦", primary: ["cobbles", "resistance"], secondary: ["flat", "endurance", "acceleration"] },
+  { key: "plain", label: "Plaine", symbol: "↗", primary: ["flat", "sprint", "timeTrial"], secondary: ["acceleration", "endurance", "prologue"] },
+] as const satisfies readonly { key: string; label: string; symbol: string; primary: readonly RiderRatingKey[]; secondary: readonly RiderRatingKey[] }[];
+export type EquipmentRndFocus = typeof EQUIPMENT_RND_FOCUSES[number]["key"];
+export function isEquipmentRndFocus(value: unknown): value is EquipmentRndFocus {
+  return EQUIPMENT_RND_FOCUSES.some(focus => focus.key === value);
+}
+export function equipmentRndStatsSummary(effects: EquipmentEffects) {
+  return RIDER_RATING_AXES.flatMap(axis => {
+    const value = effects.ratingBonuses[axis.key] ?? 0;
+    const tt = effects.timeTrialRatingBonuses[axis.key] ?? 0;
+    return [...(value ? [`${value > 0 ? "+" : ""}${value} ${axis.shortLabel}`] : []), ...(tt ? [`${tt > 0 ? "+" : ""}${tt} ${axis.shortLabel} (CLM)`] : [])];
+  }).join(" · ") || "Aucun bonus de statistique";
+}
+export function equipmentRndAffinitySummary(engineer: EquipmentRndEngineer) {
+  const affinity = Math.round(((engineer.nationalityMultiplier ?? 1) - 1) * 10000) / 100;
+  const federal = Math.round(((engineer.federalMultiplier ?? 1) - 1) * 10000) / 100;
+  return [affinity > 0 ? `Affinité nationale/accueil +${affinity.toLocaleString("fr-FR")}% sur les talents` : "Pas de bonus d’affinité", ...(federal > 0 ? [`Institut fédéral +${federal.toLocaleString("fr-FR")}% d’efficacité`] : [])].join(" · ");
 }

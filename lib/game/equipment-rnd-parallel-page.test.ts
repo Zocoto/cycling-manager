@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const page = readFileSync(
   resolve(process.cwd(), "app/jeu/materiel/laboratoire/page.tsx"),
   "utf8",
-);
+) + readFileSync(resolve(process.cwd(), "components/game/equipment-rnd-workbench.tsx"), "utf8");
 const service = readFileSync(
   resolve(process.cwd(), "services/team-equipment-rnd.ts"),
   "utf8",

@@ -10,6 +10,7 @@ import {
   EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH,
   isEquipmentPrototypeNameValid,
   normalizeEquipmentPrototypeName,
+  isEquipmentRndFocus,
 } from "@/lib/game/equipment-rnd";
 
 const UUID_PATTERN =
@@ -23,6 +24,8 @@ export async function startEquipmentRndAction(formData: FormData) {
   const prototypeName = normalizeEquipmentPrototypeName(
     formData.get("prototypeName"),
   );
+  const focus = String(formData.get("researchFocus") ?? "").trim();
+  if (focus && !isEquipmentRndFocus(focus)) redirect("/jeu/materiel/laboratoire?erreur=Orientation%20invalide.");
   if (!UUID_PATTERN.test(equipmentItemId)) {
     redirect("/jeu/materiel/laboratoire?erreur=Équipement%20invalide.");
   }
@@ -52,6 +55,7 @@ export async function startEquipmentRndAction(formData: FormData) {
     p_equipment_item_id: equipmentItemId,
     p_engineer_contract_id: engineerContractId,
     p_prototype_name: prototypeName || null,
+    p_research_focus: focus || null,
   });
   if (error) {
     redirect(
@@ -60,6 +64,7 @@ export async function startEquipmentRndAction(formData: FormData) {
   }
 
   revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel/equiper");
   revalidatePath("/jeu/materiel/laboratoire");
   revalidatePath("/jeu");
