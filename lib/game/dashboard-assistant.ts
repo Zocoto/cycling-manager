@@ -309,11 +309,11 @@ export function buildDashboardAssistantLines({
   }
 
   if (snapshot.overweightRiders?.length) {
-    const riders = snapshot.overweightRiders.filter(rider =>
-      !rider.isUnderweight &&
+    const availableRiders = snapshot.overweightRiders.filter(rider =>
       getWeightProgramCooldownDays(rider.lastWeightProgramDate ?? null, snapshot.gameDate) === 0,
     );
-    const underweight = snapshot.overweightRiders.filter(rider => rider.isUnderweight);
+    const riders = availableRiders.filter(rider => !rider.isUnderweight);
+    const underweight = availableRiders.filter(rider => rider.isUnderweight);
     if (underweight.length > 0) alerts.push({
       id: "underweight-riders", tone: "alert", metric: String(underweight.length),
       title: pluralize(underweight.length, "coureur trop léger pour son profil", "coureurs trop légers pour leur profil"),

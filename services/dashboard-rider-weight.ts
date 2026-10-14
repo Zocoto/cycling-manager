@@ -62,16 +62,16 @@ export async function getDashboardOverweightRiders(
     }] : [];
   }).sort((left, right) => left.name.localeCompare(right.name, "fr"));
 
-  const overweightIds = summaries.filter(rider => !rider.isUnderweight).map(rider => rider.riderId);
-  if (overweightIds.length === 0) return summaries;
+  const weightAlertRiderIds = summaries.map(rider => rider.riderId);
+  if (weightAlertRiderIds.length === 0) return summaries;
 
   // Both weight programmes share a rider-wide cooldown, including programmes
   // from a previous team/season. Supplements do not start that cooldown.
-  // Only load dates for this team's overweight riders, within the same timeout.
+  // Only load dates for this team's weight alerts, within the same timeout.
   // 1,000 rows cover five days even at two programmes/day for all 100 riders.
   const programs = await supabase.from("rider_weight_events")
     .select("rider_id, applied_at, season_days(calendar_date)")
-    .in("rider_id", overweightIds).in("source", ["weight_cut", "weight_gain"])
+    .in("rider_id", weightAlertRiderIds).in("source", ["weight_cut", "weight_gain"])
     .order("applied_at", { ascending: false }).limit(1_000).abortSignal(signal)
     .returns<WeightProgramRow[]>();
   if (programs.error) throw new Error(`Lecture des délais d’affûtage : ${programs.error.message}`);

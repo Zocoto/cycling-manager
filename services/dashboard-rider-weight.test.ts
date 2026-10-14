@@ -24,7 +24,7 @@ const row = {
 const context = { teamId: "team", seasonId: "season" };
 
 describe("dashboard weight reads", () => {
-  it("bounds weight reads to active teammates and only loads shared programme dates for overweight riders", async () => {
+  it("bounds weight reads to active teammates and loads shared programme dates for both weight alerts", async () => {
     const { input, query, supabase } = client([
       { data: [{ rider_id: "climber" }, { rider_id: "sprinter" }], error: null },
       { data: [row, { ...row, rider_id: "sprinter", mountain: 50, sprint: 95 }], error: null },
@@ -42,7 +42,6 @@ describe("dashboard weight reads", () => {
     expect(query.eq).toHaveBeenCalledWith("status", "active");
     expect(query.eq).toHaveBeenCalledWith("season_id", "season");
     expect(query.in).toHaveBeenCalledWith("rider_id", ["climber", "sprinter"]);
-    expect(query.in).toHaveBeenCalledWith("rider_id", ["climber"]);
     expect(query.in).toHaveBeenCalledWith("source", ["weight_cut", "weight_gain"]);
     expect(query.eq.mock.calls).toEqual([["team_id", "team"], ["status", "active"], ["season_id", "season"]]);
     expect(query.order).toHaveBeenCalledWith("applied_at", { ascending: false });
@@ -65,13 +64,16 @@ describe("dashboard weight reads", () => {
     expect(normalized.supabase.from).toHaveBeenCalledTimes(2);
   });
 
-  it("does not load programme history when only the underweight alert applies", async () => {
-    const { input, supabase } = client([
+  it("loads the shared cooldown when only the underweight alert applies", async () => {
+    const { input, supabase, query } = client([
       { data: [{ rider_id: "sprinter" }], error: null },
       { data: [{ ...row, rider_id: "sprinter", mountain: 50, sprint: 95 }], error: null },
+      { data: [{ rider_id: "sprinter", applied_at: "2026-10-14T09:00:00Z", season_days: { calendar_date: "2026-10-14" } }], error: null },
     ]);
-    expect(await getDashboardOverweightRiders(context, input)).toMatchObject([{ riderId: "sprinter", isUnderweight: true }]);
-    expect(supabase.from).toHaveBeenCalledTimes(2);
+    expect(await getDashboardOverweightRiders(context, input)).toMatchObject([{ riderId: "sprinter", isUnderweight: true, lastWeightProgramDate: "2026-10-14" }]);
+    expect(supabase.from).toHaveBeenCalledTimes(3);
+    expect(query.in).toHaveBeenCalledWith("rider_id", ["sprinter"]);
+    expect(query.in).toHaveBeenCalledWith("source", ["weight_cut", "weight_gain"]);
   });
 
   it("uses the most recent programme's calendar date even from another team or season", async () => {

@@ -145,7 +145,7 @@ describe("dashboard DS assistant", () => {
     if (elapsed < 5) expect(alert).toBeUndefined();
     else expect(alert).toMatchObject({ metric: "1", title: "affûtage possible pour coureur en surpoids" });
   });
-  it("counts, names and links only eligible overweight riders without changing the underweight alert", () => {
+  it("counts, names and links only eligible riders for both weight alerts", () => {
     const rider = { riderId: "blocked", name: "Bloqué", profileLabel: "Grimpeur", weightKg: 61, maximumWeightKg: 60.4 };
     const alerts = buildDashboardAssistantLines({
       snapshot: { ...snapshot, gameDate: "2026-10-03", overweightRiders: [
@@ -158,7 +158,28 @@ describe("dashboard DS assistant", () => {
     expect(alert).toMatchObject({ metric: "1", href: "/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-ready" });
     expect(alert?.detail).toContain("Disponible");
     expect(alert?.detail).not.toContain("Bloqué");
-    expect(alerts.find(line => line.id === "underweight-riders")).toMatchObject({ metric: "1" });
+    expect(alerts.find(line => line.id === "underweight-riders")).toBeUndefined();
+  });
+  it.each([0, 1, 2, 3, 4, 5, 6])("only shows underweight after five calendar days (elapsed: %i)", elapsed => {
+    const gameDate = new Date(Date.UTC(2026, 9, 14 + elapsed)).toISOString().slice(0, 10);
+    const alert = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, gameDate, overweightRiders: [{ riderId: "light", name: "Sprinteur", profileLabel: "Sprinteur", weightKg: 61, maximumWeightKg: 70.8, isUnderweight: true, lastWeightProgramDate: "2026-10-14" }] },
+      rewardCount: 0, cashBalance: 100_000,
+    }).alerts.find(line => line.id === "underweight-riders");
+    if (elapsed < 5) expect(alert).toBeUndefined();
+    else expect(alert).toMatchObject({ metric: "1", href: "/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-light" });
+  });
+  it("links and names only the underweight riders whose programme is available", () => {
+    const rider = { name: "Bloqué", profileLabel: "Sprinteur", weightKg: 61, maximumWeightKg: 70.8, isUnderweight: true };
+    const alert = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, gameDate: "2026-10-14", overweightRiders: [
+        { ...rider, riderId: "blocked", lastWeightProgramDate: "2026-10-10" },
+        { ...rider, riderId: "ready", name: "Disponible", lastWeightProgramDate: "2026-10-09" },
+      ] }, rewardCount: 0, cashBalance: 100_000,
+    }).alerts.find(line => line.id === "underweight-riders");
+    expect(alert).toMatchObject({ metric: "1", href: "/jeu/centre-de-soin?onglet=nutrition#nutrition-rider-ready" });
+    expect(alert?.detail).toContain("Disponible");
+    expect(alert?.detail).not.toContain("Bloqué");
   });
   it.each([1, 3])("signals %i free R&D engineers with a direct laboratory link", (count) => {
     const groups = buildDashboardAssistantLines({
