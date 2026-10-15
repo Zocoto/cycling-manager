@@ -3,6 +3,7 @@
 import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 import { RaceImportanceBadge } from "@/components/game/race-importance-badge";
+import gamesTile from "./games-tile.module.css";
 
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { getInternationalChampionshipDirectoryHref } from "@/lib/game/international-championship-navigation";
@@ -35,6 +36,9 @@ import {
 } from "@/lib/game/race-calendar";
 
 const DEFAULT_VISIBLE_LANES = 5;
+export function isQuadrennialGamesCalendarEdition(edition: RaceCalendarEdition) {
+  return isProfessionalNationsCupEdition(edition) && edition.name.startsWith("Jeux quadriennaux");
+}
 const CLOSED_RACE_PATTERN_ON_LIGHT =
   "repeating-linear-gradient(135deg, rgba(11, 48, 43, 0.11) 0, rgba(11, 48, 43, 0.11) 1px, transparent 1px, transparent 7px)";
 const CLOSED_RACE_PATTERN_ON_DARK =
@@ -705,7 +709,8 @@ function RaceCalendarList({
                     : `${displayName} · Inscriptions closes`
                   : displayName
               }
-              className={`relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#F5EEFF] outline outline-2 outline-offset-[-2px] outline-[#8B5CF6]" : ""}`}
+              data-quadrennial-games-tile={isQuadrennialGamesCalendarEdition(edition) ? "true" : undefined}
+              className={`${isQuadrennialGamesCalendarEdition(edition) ? gamesTile.tile : ""} relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#F5EEFF] outline outline-2 outline-offset-[-2px] outline-[#8B5CF6]" : ""}`}
               style={{
                 backgroundImage:
                   registrationClosed
@@ -1162,7 +1167,8 @@ function DesktopCalendarWeek({
                     isFederationSelection ? "true" : undefined
                   }
                   title={`${displayName} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${editionIsPast ? " · Voir les résultats" : registrationClosed ? " · Inscriptions closes" : ""}`}
-                  className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
+                  data-quadrennial-games-tile={isQuadrennialGamesCalendarEdition(segment.edition) ? "true" : undefined}
+                  className={`${isQuadrennialGamesCalendarEdition(segment.edition) ? gamesTile.tile : ""} relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
                   } ${
                     segment.startsBeforeWeek ? "rounded-l-sm" : "rounded-l-lg"
@@ -1510,7 +1516,8 @@ function MobileCalendarDay({
                     : `${displayName} · Inscriptions closes`
                   : displayName
               }
-              className={`relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
+              data-quadrennial-games-tile={isQuadrennialGamesCalendarEdition(edition) ? "true" : undefined}
+              className={`${isQuadrennialGamesCalendarEdition(edition) ? gamesTile.tile : ""} relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
               style={{
                 borderColor:
                   grandTourAccent?.color ??

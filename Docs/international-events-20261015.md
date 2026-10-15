@@ -13,9 +13,10 @@ Aucune décision de DS ni qualification n’a été inventée ou acceptée à sa
 ## Jeux quadriennaux
 
 Bandeau dédié fond nuit / or, cinq couleurs et rubans, sur la page des Jeux.
-Accès permanent sur le bureau pendant les saisons quadriennales, chargé en
-streaming sans bloquer les données essentielles du bureau. Présentation
-renforcée dans le panneau de sélection fédérale. Aucun changement du moteur,
+Sur demande du propriétaire, aucun bandeau ni accès supplémentaire sur le bureau.
+Les tuiles des Jeux sont mises en valeur par un fond cinq couleurs et un liseré
+dédié dans les vues grille/liste/mobile du calendrier et les sélections fédérales.
+Présentation renforcée dans le panneau de sélection fédérale. Aucun changement du moteur,
 des quotas ou des règles d’engagement.
 
 ## Retrait de la Nations Cup junior

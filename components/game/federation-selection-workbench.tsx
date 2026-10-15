@@ -20,6 +20,7 @@ import {
 
 import { initialFederationSelectionActionState } from "@/lib/game/federation-action-states";
 import { GamesColors } from "@/components/game/quadrennial-games-banner";
+import gamesTile from "./games-tile.module.css";
 import { getFederationPreselectionAvailabilityMessage } from "@/lib/game/federation-callups";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_LABEL } from "@/lib/game/federation-olympic-programme";
@@ -401,11 +402,12 @@ export function FederationSelectionWorkbench({
               key={competition.id}
               type="button"
               data-selection-competition={competition.id}
+              data-quadrennial-games-tile={competition.id === "nations-pro" && isOlympicSeason(gameYear) ? "true" : undefined}
               aria-label={maturityLabel}
               aria-pressed={isActive}
               aria-controls="federation-selection-detail"
               onClick={() => changeCompetition(competition.id)}
-              className={`group relative min-h-64 overflow-hidden rounded-[1.65rem] border bg-white p-6 text-left shadow-[0_14px_36px_rgba(19,60,46,0.07)] transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--federation-secondary)] ${
+              className={`${competition.id === "nations-pro" && isOlympicSeason(gameYear) ? gamesTile.tile : ""} group relative min-h-64 overflow-hidden rounded-[1.65rem] border bg-white p-6 text-left shadow-[0_14px_36px_rgba(19,60,46,0.07)] transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--federation-secondary)] ${
                 isActive
                   ? "border-[var(--federation-secondary)] shadow-[0_18px_44px_rgba(19,60,46,0.14)]"
                   : "border-[#315B3E]/12 hover:-translate-y-0.5 hover:border-[var(--federation-secondary)]/45"

@@ -8,7 +8,6 @@ import {
 } from "../../components/game/dashboard-assistant";
 import { DashboardAssistantBoundary } from "@/components/game/dashboard-assistant-boundary";
 import { DeferredDashboardValue } from "@/components/game/deferred-dashboard-value";
-import { DashboardGamesShortcut } from "@/components/game/dashboard-games-shortcut";
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
@@ -745,7 +744,6 @@ export default async function GamePage() {
           {/* eslint-disable-next-line react-hooks/purity -- Dynamic server request clock for the gala's fixed expiry. */}
           <DashboardGalaShortcut now={Date.now()} />
           <Suspense fallback={null}><DashboardHalloweenShortcut /></Suspense>
-          <Suspense fallback={null}><DashboardGamesShortcut /></Suspense>
           <DashboardReferralInvite />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}

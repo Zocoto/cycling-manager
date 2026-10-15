@@ -139,6 +139,7 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain("Pays hôte : Allemagne");
     expect(markup).toContain("fi-de");
     expect(markup).toContain("Jeux quadriennaux");
+    expect(markup.match(/data-quadrennial-games-tile="true"/g)).toHaveLength(1);
     expect(markup).not.toContain("Nations Cup juniors");
     expect(markup).not.toContain("Nations Cup · Montagne");
     expect(markup).toContain("Une course en ligne");

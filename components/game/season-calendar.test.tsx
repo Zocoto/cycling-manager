@@ -10,6 +10,7 @@ import {
 
 import {
   SeasonCalendar,
+  isQuadrennialGamesCalendarEdition,
   getCalendarEditionHref,
   getVisibleCalendarRaceEditions,
   getVisibleStandardCalendarEditions,
@@ -21,6 +22,15 @@ const calendarSource = readFileSync(
 );
 
 describe("SeasonCalendar", () => {
+  it("highlights only actual Games editions, not the ordinary Nations Cup", () => {
+    const edition = { competitionType: "nations_cup", name: "Jeux quadriennaux · Course en ligne" } as RaceCalendarEdition;
+    expect(isQuadrennialGamesCalendarEdition(edition)).toBe(true);
+    expect(isQuadrennialGamesCalendarEdition({ ...edition, name: "Nations Cup · Vallons" })).toBe(false);
+    expect(isQuadrennialGamesCalendarEdition({ ...edition, competitionType: "standard" })).toBe(false);
+    expect(calendarSource.match(/data-quadrennial-games-tile=/g)).toHaveLength(3);
+    const dashboard = readFileSync(new URL("../../app/jeu/page.tsx", import.meta.url), "utf8");
+    expect(dashboard).not.toContain("DashboardGamesShortcut");
+  });
   it("abrège Grand Tour en GT dans le calendrier mobile", () => {
     const mobileCalendarSource = calendarSource.slice(
       calendarSource.indexOf("function MobileCalendarDay"),
