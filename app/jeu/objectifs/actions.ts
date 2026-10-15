@@ -77,6 +77,7 @@ export async function claimGameObjectiveAction(formData: FormData) {
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/directeur-sportif");
 
 
   redirectWithMessage(

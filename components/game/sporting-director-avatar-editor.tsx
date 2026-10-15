@@ -30,6 +30,7 @@ import {
   type SportingDirectorAvatarConfig,
 } from "@/lib/sporting-director-avatar";
 import { SportingDirectorAvatar } from "./sporting-director-avatar";
+import { CAREER_AVATAR_OUTFITS } from "@/lib/game/prospective-achievements";
 import {
   composeHalloweenAvatarKey, halloweenAvatarArts, HALLOWEEN_AVATAR_COSMETICS,
   toggleHalloweenAvatarItem, type HalloweenAvatarItemId,
@@ -54,6 +55,7 @@ type SportingDirectorAvatarEditorProps = {
   inveteratePlayerOutfitUnlocked?: boolean;
   nightAuctionSkinUnlocked?: boolean;
   elPresidenteOutfitUnlocked?: boolean;
+  unlockedCareerOutfits?: string[];
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -87,6 +89,7 @@ export function SportingDirectorAvatarEditor({
   inveteratePlayerOutfitUnlocked = false,
   nightAuctionSkinUnlocked = false,
   elPresidenteOutfitUnlocked = false,
+  unlockedCareerOutfits = [],
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -108,6 +111,7 @@ export function SportingDirectorAvatarEditor({
     hasNightAuctionTrophy: nightAuctionSkinUnlocked,
   });
   const disabledOutfitKeys = [
+    ...CAREER_AVATAR_OUTFITS.filter(key => !unlockedCareerOutfits.includes(key)),
     patronOutfitUnlocked ? null : "patron",
     patronHatUnlocked ? null : PATRON_HAT_AVATAR_OUTFIT_KEY,
     sponsorAmbassadorOutfitUnlocked
@@ -391,6 +395,7 @@ export function SportingDirectorAvatarEditor({
                 {styleCategory === "outfit" ? <AvatarChoiceGroup
                   title="Maillots et tenues"
                   description={[
+                    "Les tenues Commerçant, Mentor et Formation maison récompensent le palier Or des nouveaux succès correspondants.",
                     patronOutfitUnlocked
                       ? "La tenue du Parrain est débloquée grâce à vos filleuls."
                       : "La tenue du Parrain se débloque avec 5 filleuls qualifiés.",

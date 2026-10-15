@@ -620,6 +620,18 @@ async function settleEditionRaceResults({
     rosterByRiderId,
   });
 
+  if (edition.competitionType === "standard" && edition.slug !== "criterium-de-la-decouverte") {
+    const researchRiderIds = [...new Set(finishedSimulations.flatMap(simulation =>
+      simulation.resolvedRiders.filter(rider => rider.ownResearchBonusApplied).map(rider => rider.id),
+    ))];
+    const { error: achievementError } = await admin.rpc("record_prospective_career_race", {
+      p_race_edition_id: edition.id,
+      p_frozen_favorites: editionSimulations[0]?.input.careerAchievementFavorites ?? null,
+      p_research_rider_ids: researchRiderIds,
+    });
+    assertQuery(achievementError, `les nouveaux succès de ${edition.name}`);
+  }
+
   const { error: editionError } = await admin
     .from("race_editions")
     .update({ status: "completed" })

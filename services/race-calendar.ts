@@ -59,6 +59,7 @@ import type {
 import {
   combineEquipmentEffects,
   normalizeEquipmentEffects,
+  scaleEquipmentEffect,
   type EquipmentEffects,
 } from "@/lib/game/equipment";
 import {
@@ -2658,28 +2659,6 @@ function combineEquipmentEffectsWithStaff({
     Math.max(0, combined.injuryRiskReductionPct + injuryPreventionPercentage),
   );
   return combined;
-}
-
-function scaleEquipmentEffect(
-  effect: EquipmentEffects,
-  percentage: number,
-): EquipmentEffects {
-  const multiplier = 1 + Math.max(0, percentage) / 100;
-  const scaleRatings = (ratings: EquipmentEffects["ratingBonuses"]) =>
-    Object.fromEntries(
-      Object.entries(ratings).map(([key, value]) => [
-        key,
-        Number(value ?? 0) * multiplier,
-      ]),
-    ) as EquipmentEffects["ratingBonuses"];
-
-  return {
-    ratingBonuses: scaleRatings(effect.ratingBonuses),
-    timeTrialRatingBonuses: scaleRatings(effect.timeTrialRatingBonuses),
-    injuryRiskReductionPct: effect.injuryRiskReductionPct * multiplier,
-    breakawayReputationBonus: effect.breakawayReputationBonus * multiplier,
-    victoryReputationBonus: effect.victoryReputationBonus * multiplier,
-  };
 }
 
 type RaceInfrastructureSpecializations = {

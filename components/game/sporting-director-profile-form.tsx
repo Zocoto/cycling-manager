@@ -32,6 +32,7 @@ type SportingDirectorProfileFormProps = {
   inveteratePlayerOutfitUnlocked?: boolean;
   nightAuctionSkinUnlocked?: boolean;
   elPresidenteOutfitUnlocked?: boolean;
+  unlockedCareerOutfits?: string[];
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -61,6 +62,7 @@ export function SportingDirectorProfileForm({
   inveteratePlayerOutfitUnlocked = false,
   nightAuctionSkinUnlocked = false,
   elPresidenteOutfitUnlocked = false,
+  unlockedCareerOutfits = [],
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -755,6 +757,7 @@ export function SportingDirectorProfileForm({
               }
               nightAuctionSkinUnlocked={nightAuctionSkinUnlocked}
               elPresidenteOutfitUnlocked={elPresidenteOutfitUnlocked}
+              unlockedCareerOutfits={unlockedCareerOutfits}
             />
           </div>
         </div>

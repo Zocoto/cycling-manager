@@ -206,6 +206,9 @@ export default async function SportingDirectorProfilePage() {
           .eq("sporting_director_id", sportingDirector.id)
           .in("trophy_key", [
             "alpha_tester",
+            "journey_shopkeeper",
+            "journey_mentor",
+            "journey_homegrown",
             "virage_cache",
             AMBULANCIER_TROPHY_KEY,
             EMERGENCY_DOCTOR_TROPHY_KEY,
@@ -429,6 +432,11 @@ export default async function SportingDirectorProfilePage() {
                     }
                     nightAuctionSkinUnlocked={hasNightAuctionTrophy}
                     elPresidenteOutfitUnlocked={hasElPresidenteTrophy}
+                    unlockedCareerOutfits={[
+                      ...(careerTrophyKeys.has("journey_shopkeeper") ? ["career-shopkeeper"] : []),
+                      ...(careerTrophyKeys.has("journey_mentor") ? ["career-mentor"] : []),
+                      ...(careerTrophyKeys.has("journey_homegrown") ? ["career-homegrown"] : []),
+                    ]}
                   />
                 </div>
               </article>

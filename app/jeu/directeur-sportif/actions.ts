@@ -13,6 +13,7 @@ import {
 } from "../../../lib/amateur-team";
 import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
 import { ALPHA_TESTER_TROPHY_KEY } from "../../../lib/game/trophy-gallery";
+import { getCareerOutfitObjective } from "@/lib/game/prospective-achievements";
 import {
   EL_PRESIDENTE_TROPHY_KEY,
   NIGHT_AUCTION_TROPHY_KEY,
@@ -241,6 +242,16 @@ export async function updateSportingDirectorProfile(
   const selectedAvatar = decodeCustomSportingDirectorAvatar(
     validationResult.data.avatarKey,
   );
+  const careerOutfitObjective = selectedAvatar ? getCareerOutfitObjective(selectedAvatar.outfit) : null;
+  if (careerOutfitObjective) {
+    const { data: claim, error } = await supabase.from("game_objective_claims")
+      .select("id").eq("sporting_director_id", currentProfile.id)
+      .eq("objective_key", careerOutfitObjective).maybeSingle<{ id: string }>();
+    if (error || !claim) return {
+      status: "error", message: "Cette tenue nécessite le palier Or du succès correspondant.",
+      fieldErrors: { avatarKey: ["Récupérez d’abord la récompense du palier Or."] },
+    };
+  }
 
   const referralOutfitRequirement =
     selectedAvatar?.outfit === "patron"

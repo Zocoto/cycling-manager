@@ -11,12 +11,14 @@ import {
 } from "@/components/game/game-section-tabs";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
+import { ProspectiveAchievementMilestones } from "@/components/game/prospective-achievement-milestones";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
 import { TrophyNotificationsSeenMarker } from "@/components/game/trophy-notifications-seen-marker";
 import Link from "@/components/ui/app-link";
 import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
+import { getProspectiveAchievement, groupProspectiveAchievementCards } from "@/lib/game/prospective-achievements";
 import {
   filterGameObjectives,
   getGameObjectiveLongTermTier,
@@ -412,12 +414,13 @@ function ObjectiveSection({
           featured ? "xl:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-3"
         }`}
       >
-        {objectives.map((objective) => (
+        {groupProspectiveAchievementCards(objectives).map((objective) => (
           <ObjectiveCard
             key={objective.key}
             objective={objective}
             featured={featured}
             returnPath={returnPath}
+            familyObjectives={objectives.filter(candidate => getProspectiveAchievement(candidate.key)?.familyKey === getProspectiveAchievement(objective.key)?.familyKey && getProspectiveAchievement(candidate.key))}
           />
         ))}
       </div>
@@ -429,10 +432,12 @@ function ObjectiveCard({
   objective,
   featured,
   returnPath,
+  familyObjectives = [],
 }: {
   objective: GameObjective;
   featured: boolean;
   returnPath: string;
+  familyObjectives?: GameObjective[];
 }) {
   const ready = objective.completed && !objective.claimedAt;
   const claimed = Boolean(objective.claimedAt);
@@ -505,6 +510,7 @@ function ObjectiveCard({
       <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
         {objective.description}
       </p>
+      <ProspectiveAchievementMilestones objective={objective} members={familyObjectives} />
 
       <div className="mt-5">
         <div className="flex items-center justify-between gap-3 text-xs font-black">

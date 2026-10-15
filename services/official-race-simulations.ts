@@ -17,6 +17,7 @@ import {
   type RiderUnavailabilityWindow,
 } from "@/lib/game/official-race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
+import { buildRaceFavorites } from "@/lib/game/race-favorites";
 import {
   getMountainObjectiveRiderIdsByTeam,
   simulateRaceStage,
@@ -210,6 +211,11 @@ export async function ensureLockedOfficialRaceSimulations(
               );
             const officialInput: StageSimulationInput = {
               ...input,
+              careerAchievementFavorites: buildRaceFavorites({
+                edition,
+                riders: input.riders.filter(rider => !unavailableRiderIds.has(rider.id)),
+                limit: 10,
+              }).map(favorite => favorite.rider.id),
               generalClassification: standingsBeforeStage?.general,
               unavailableRiderIds: [...unavailableRiderIds].sort(),
               ...(Object.keys(mountainObjectiveRiderIds).length > 0

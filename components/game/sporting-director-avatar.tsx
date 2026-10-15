@@ -137,11 +137,33 @@ export function SportingDirectorAvatar({
         <AvatarMouth avatar={avatar} />
         <AvatarFacialHair avatar={avatar} color={hair.color} />
         <AvatarGlasses avatar={avatar} />
+        <CareerAchievementAvatarOutfit outfit={avatar.outfit} />
         <HalloweenAvatarOverlay arts={halloweenArts} />
         </svg>
       </span>
     </span>
   );
+}
+
+function CareerAchievementAvatarOutfit({ outfit }: { outfit: string }) {
+  if (outfit === "career-shopkeeper") return <g data-avatar-career-outfit="shopkeeper">
+    <path d="M43 81L48 96H72L77 81M47 95H73L83 120H37Z" fill="#D6B480" stroke="#735530" strokeWidth="2" />
+    <path d="M49 106H71V116H49Z" fill="#F2DBAE" stroke="#735530" strokeWidth="1.5" />
+    <circle cx="60" cy="110" r="3" fill="#D5A12D" />
+  </g>;
+  if (outfit === "career-mentor") return <g data-avatar-career-outfit="mentor">
+    <path d="M31 15L60 3L89 15L60 28Z" fill="#293856" stroke="#D7BA6F" strokeWidth="1.5" />
+    <path d="M42 21V29Q60 37 78 29V21" fill="#293856" />
+    <path d="M87 16V35" stroke="#D7BA6F" strokeWidth="2" />
+    <path d="M85 33H89L91 41H83Z" fill="#D7BA6F" />
+    <path d="M76 96L84 93V109L76 112L68 109V93Z" fill="#FFF7DF" stroke="#D7BA6F" strokeWidth="1.2" />
+  </g>;
+  if (outfit === "career-homegrown") return <g data-avatar-career-outfit="homegrown">
+    <path d="M79 89L90 94V108L79 115L68 108V94Z" fill="#176951" stroke="#F2C94C" strokeWidth="2" />
+    <path d="M72 102L79 96L86 102M75 102V108H83V102" fill="none" stroke="#FFF7DF" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M24 109H48M26 114H47" stroke="#F2C94C" strokeWidth="2" />
+  </g>;
+  return null;
 }
 
 function AlphaTesterAvatarFrame() {

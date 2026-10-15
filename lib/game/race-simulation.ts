@@ -18,6 +18,7 @@ import {
 } from "./race-strategy";
 import {
   applyEquipmentRatingBonuses,
+  hasEffectiveOwnResearchBonus,
   type EquipmentEffects,
 } from "./equipment";
 import {
@@ -274,6 +275,7 @@ export type RiderSimulationInput = {
   equipmentEffectsByStageId?: Record<string, EquipmentEffects>;
   stageEquipmentChangesByStageId?: Record<string, StageEquipmentChange>;
   stageEquipmentSnapshot?: StageEquipmentSnapshot;
+  ownResearchBonusApplied?: boolean;
   mechanicalIncidentTimeReductionPct?: number;
   weatherCenterSpecialization?: WeatherCenterSpecialization | null;
   weatherCenterEnergyCostReductionPercentage?: number;
@@ -288,6 +290,8 @@ export type RiderSimulationInput = {
 };
 
 export type StageSimulationInput = {
+  /** Public pre-race favorite ranking, frozen before running the engine. */
+  careerAchievementFavorites?: string[];
   id: string;
   name: string;
   stageType: SimulationStageType;
@@ -1245,6 +1249,10 @@ function normalizeStageSimulationInput(
 
         return {
           ...rider,
+          ownResearchBonusApplied: hasEffectiveOwnResearchBonus(
+            federalSpecializationAdjustedRatings, rider.equipmentEffects,
+            { isTimeTrial: input.stageType !== "road" },
+          ),
           ...(rider.physiology ? {
             physiology: {
               ...rider.physiology,

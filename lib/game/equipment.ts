@@ -78,6 +78,8 @@ export type EquipmentEffects = {
   /** Amplifies an ability already owned; equipment never grants the ability. */
   specialAbilityMultipliers?: Partial<Record<"bottle_carrier" | "locomotive", number>>;
   leaderProtectionContributionMultiplier?: number;
+  /** Frozen provenance only; never an additional sporting bonus. */
+  ownResearchRatingBonuses?: Partial<Record<RiderRatingKey, number>>;
 };
 
 export const EMPTY_EQUIPMENT_EFFECTS: EquipmentEffects = {
@@ -163,6 +165,11 @@ export function combineEquipmentEffects(
   };
 
   for (const effect of effects) {
+    for (const [key, value] of Object.entries(effect.ownResearchRatingBonuses ?? {})) {
+      combined.ownResearchRatingBonuses ??= {};
+      const axis = key as RiderRatingKey;
+      combined.ownResearchRatingBonuses[axis] = (combined.ownResearchRatingBonuses[axis] ?? 0) + Number(value);
+    }
     for (const [key, value] of Object.entries(effect.ratingBonuses ?? {})) {
       const ratingKey = key as RiderRatingKey;
       combined.ratingBonuses[ratingKey] =
@@ -258,6 +265,13 @@ export function normalizeEquipmentEffects(value: unknown): EquipmentEffects {
     breakawayReputationBonus: toFiniteNumber(payload.breakawayReputationBonus),
     victoryReputationBonus: toFiniteNumber(payload.victoryReputationBonus),
   };
+  const research = payload._careerResearch;
+  if (research && typeof research === "object" && !Array.isArray(research)) {
+    const { ratingKey, delta } = research as Record<string, unknown>;
+    if (RIDER_RATING_AXES.some(axis => axis.key === ratingKey) && Number.isFinite(Number(delta)) && Number(delta) > 0) {
+      effects.ownResearchRatingBonuses = { [String(ratingKey)]: Number(delta) };
+    }
+  }
   const rawMultipliers = payload.specialAbilityMultipliers;
   if (rawMultipliers && typeof rawMultipliers === "object" && !Array.isArray(rawMultipliers)) {
     for (const ability of ["bottle_carrier", "locomotive"] as const) {
@@ -301,6 +315,42 @@ export function applyEquipmentRatingBonuses(
       ),
     ])
   ) as RiderRatings;
+}
+
+/** Compare the real equipment calculation with/without the lab's extra delta.
+ * Metadata never adds a second bonus; ordinary equipment may exceed 100.
+ */
+export function hasEffectiveOwnResearchBonus(
+  ratings: RiderRatings,
+  effects: EquipmentEffects | undefined,
+  options: { isTimeTrial?: boolean } = {},
+): boolean {
+  if (!effects) return false;
+  const applied = applyEquipmentRatingBonuses(ratings, effects, options);
+  return Object.entries(effects.ownResearchRatingBonuses ?? {}).some(([key, delta]) => {
+    const axis = key as RiderRatingKey;
+    if (!Number.isFinite(delta) || delta <= 0) return false;
+    const without = applyEquipmentRatingBonuses(ratings, {
+      ...effects, ratingBonuses: { ...effects.ratingBonuses, [axis]: (effects.ratingBonuses[axis] ?? 0) - delta },
+    }, options);
+    return applied[axis] > without[axis];
+  });
+}
+
+/** The calendar's staff adjustment, also preserving scaled lab provenance. */
+export function scaleEquipmentEffect(effect: EquipmentEffects, percentage: number): EquipmentEffects {
+  const multiplier = 1 + Math.max(0, percentage) / 100;
+  const scaleRatings = (ratings: EquipmentEffects["ratingBonuses"]) => Object.fromEntries(
+    Object.entries(ratings).map(([key, value]) => [key, Number(value ?? 0) * multiplier]),
+  ) as EquipmentEffects["ratingBonuses"];
+  return {
+    ratingBonuses: scaleRatings(effect.ratingBonuses),
+    timeTrialRatingBonuses: scaleRatings(effect.timeTrialRatingBonuses),
+    injuryRiskReductionPct: effect.injuryRiskReductionPct * multiplier,
+    breakawayReputationBonus: effect.breakawayReputationBonus * multiplier,
+    victoryReputationBonus: effect.victoryReputationBonus * multiplier,
+    ...(effect.ownResearchRatingBonuses ? { ownResearchRatingBonuses: scaleRatings(effect.ownResearchRatingBonuses) } : {}),
+  };
 }
 
 export function isEquipmentChangeFrozenForRace({

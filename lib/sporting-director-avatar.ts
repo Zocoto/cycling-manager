@@ -208,6 +208,9 @@ export const AVATAR_OUTFITS = [
   { key: "teal", label: "Sarcelle", jacket: "#14736A", shirt: "#F2C94C" },
   { key: "rust", label: "Terracotta", jacket: "#A85F3C", shirt: "#FFF8E5" },
   { key: "violet", label: "Prune", jacket: "#62445F", shirt: "#F7F3E8" },
+  { key: "career-shopkeeper", label: "Boutique bien tenue · tablier du commerçant", jacket: "#315F56", shirt: "#FFF7DF" },
+  { key: "career-mentor", label: "Maître d’apprentissage · tenue du mentor", jacket: "#293856", shirt: "#FFF8DF" },
+  { key: "career-homegrown", label: "Pur produit maison · école du club", jacket: "#176951", shirt: "#F2C94C" },
   { key: "patron", label: "Tenue du Parrain", jacket: "#171514", shirt: "#FFFDF4" },
   {
     key: PATRON_HAT_AVATAR_OUTFIT_KEY,
@@ -249,6 +252,7 @@ export const AVATAR_OUTFITS = [
 
 const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
   ({ key }) =>
+    !key.startsWith("career-") &&
     key !== "patron" &&
     key !== PATRON_HAT_AVATAR_OUTFIT_KEY &&
     key !== SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY &&

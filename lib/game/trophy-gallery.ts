@@ -18,6 +18,7 @@ import {
   type MedicalTrophyKey,
   type MedicalTrophyVisualVariant,
 } from "@/lib/game/medical-trophies";
+import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
 
 export type TrophyKind =
   | "grand_tour"
@@ -408,6 +409,10 @@ export function getLockedTrophyTargets(
   const achievementTargets = Object.entries(
     ACHIEVEMENT_TROPHY_DEFINITIONS,
   ).flatMap<CareerTrophy>(([key, definition]) => {
+    const journey = definition.objectiveKey
+      ? getProspectiveAchievement(definition.objectiveKey)
+      : null;
+    if (journey && "secret" in journey.definition && journey.definition.secret) return [];
     if (
       definition.objectiveKey === null &&
       key !== NIGHT_AUCTION_TROPHY_KEY

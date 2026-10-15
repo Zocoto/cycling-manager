@@ -1,4 +1,20 @@
 import type { TrophyPalette } from "@/lib/game/trophy-gallery";
+import { PROSPECTIVE_ACHIEVEMENTS, PROSPECTIVE_ACHIEVEMENT_KEYS, type ProspectiveAchievementKey } from "./prospective-achievements";
+
+const prospectiveTrophies = Object.fromEntries(PROSPECTIVE_ACHIEVEMENT_KEYS.map(key => {
+  const definition = PROSPECTIVE_ACHIEVEMENTS[key];
+  return [`journey_${key}`, {
+    objectiveKey: `journey_${key}_gold`, title: definition.title,
+    competitionName: "Succès de carrière · Or", seasonName: "Depuis le 15 octobre 2026",
+    inscription: "Un parcours · Une histoire", description: definition.descriptions.at(-1)!,
+    href: `/jeu/objectifs?onglet=objectifs&groupe=${definition.group}`,
+    visualVariant: "panorama" as const,
+    palette: { primary: "#D5AC43", secondary: "#FFF5D8", accent: "#176951", glow: "rgba(213,172,67,0.35)" },
+  }];
+})) as { [K in ProspectiveAchievementKey as `journey_${K}`]: {
+  objectiveKey: string; title: string; competitionName: string; seasonName: string;
+  inscription: string; description: string; href: string; visualVariant: "panorama"; palette: TrophyPalette;
+} };
 
 export type AchievementTrophyVisualVariant =
   | "astrolabe"
@@ -16,6 +32,7 @@ export const EL_PRESIDENTE_TROPHY_KEY = "el_presidente";
 export const NEWCOMER_JOURNEY_TROPHY_KEY = "premiers_tours_de_roue";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
+  ...prospectiveTrophies,
   atlas_peloton: {
     objectiveKey: "roster_all_continents",
     title: "Atlas du peloton",
