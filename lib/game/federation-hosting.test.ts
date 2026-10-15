@@ -18,7 +18,6 @@ describe("federation hosting", () => {
       "nations_cup_pro",
       "world_championship_junior",
       "continental_championship_junior",
-      "nations_cup_junior",
     ]);
     expect(getFederationHostingEventsForGameYear(4).map((event) => event.type)).toEqual([
       "world_championship_pro",
@@ -26,7 +25,6 @@ describe("federation hosting", () => {
       "quadrennial_games_pro",
       "world_championship_junior",
       "continental_championship_junior",
-      "nations_cup_junior",
     ]);
   });
 

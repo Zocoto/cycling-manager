@@ -95,7 +95,7 @@ describe("federation junior championship registrations", () => {
     expect(loaderStart).toBeGreaterThan(-1);
     expect(filterStart).toBeGreaterThan(loaderStart);
     expect(filterEnd).toBeGreaterThan(filterStart);
-    expect(raceCalendar.slice(filterStart, filterEnd)).toContain(
+    expect(raceCalendar.slice(filterStart, filterEnd)).not.toContain(
       '"nations_cup_junior"',
     );
     expect(juniorInternationalPage).toContain('audience="junior"');

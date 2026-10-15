@@ -112,7 +112,6 @@ export async function getJuniorChampionshipResultPage(
       "continental_time_trial",
       "world_road",
       "world_time_trial",
-      "nations_cup_junior",
     ])
     .maybeSingle<EditionRow>();
   assertQuery(editionResult.error, "le championnat junior");

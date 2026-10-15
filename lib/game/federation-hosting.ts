@@ -103,8 +103,8 @@ export function getFederationHostingEventsForGameYear(gameYear: number) {
   const isQuadriennial = Math.max(1, Math.trunc(gameYear)) % 4 === 0;
   return FEDERATION_HOSTING_EVENTS.filter((event) =>
     isQuadriennial
-      ? event.type !== "nations_cup_pro"
-      : event.type !== "quadrennial_games_pro",
+      ? event.type !== "nations_cup_pro" && event.type !== "nations_cup_junior"
+      : event.type !== "quadrennial_games_pro" && event.type !== "nations_cup_junior",
   );
 }
 

@@ -24,7 +24,6 @@ const hostingEventTypeSchema = z.enum([
   "quadrennial_games_pro",
   "world_championship_junior",
   "continental_championship_junior",
-  "nations_cup_junior",
 ]);
 const raceNameSchema = z
   .string()

@@ -19,6 +19,7 @@ import {
 } from "@/components/game/rider-climate-profile-card";
 
 import { initialFederationSelectionActionState } from "@/lib/game/federation-action-states";
+import { GamesColors } from "@/components/game/quadrennial-games-banner";
 import { getFederationPreselectionAvailabilityMessage } from "@/lib/game/federation-callups";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
 import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_LABEL } from "@/lib/game/federation-olympic-programme";
@@ -73,7 +74,6 @@ const SELECTION_SLOTS: SelectionSlot[] = [
   { id: "nc-sprint", label: "Nations Cup · Sprint", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Sprint", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Sprint" },
   { id: "nc-cobbles", label: "Nations Cup · Pavés", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Pavés", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Pavés" },
   { id: "nc-time-trial", label: "Nations Cup · Chrono", competition: "Nations Cup", competitionId: "nations-pro", subRaceLabel: "Chrono", category: "professional", hostName: "Suisse", hostCode: "ch", day: 24, limit: 1, nationsCupProfile: "Chrono" },
-  { id: "nc-junior-road", label: "Nations Cup Juniors · Route", competition: "Nations Cup juniors", competitionId: "nations-junior", subRaceLabel: "En ligne", category: "junior", hostName: "Suisse", hostCode: "ch", day: 24, limit: 6 },
   { id: "world-pro-road", label: "Mondiaux Pros · Route", competition: "Championnats du monde", competitionId: "world-pro", subRaceLabel: "En ligne", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 8 },
   { id: "world-pro-itt", label: "Mondiaux Pros · CLM", competition: "Championnats du monde", competitionId: "world-pro", subRaceLabel: "Contre-la-montre", category: "professional", hostName: "Canada", hostCode: "ca", day: 26, limit: 2 },
   { id: "world-junior-road", label: "Mondiaux Juniors · Route", competition: "Championnats du monde juniors", competitionId: "world-junior", subRaceLabel: "En ligne", category: "junior", hostName: "Canada", hostCode: "ca", day: 26, limit: 6 },
@@ -96,7 +96,6 @@ function getFederationSelectionCompetitions(
     { id: "continental-pro", day: 15, name: "Championnats continentaux", detail: "Professionnels · en ligne et contre-la-montre" },
     { id: "continental-junior", day: 15, name: "Championnats continentaux juniors", detail: "Juniors · en ligne et contre-la-montre" },
     { id: "nations-pro", day: 24, name: quadriennialSeason ? "Jeux quadriennaux" : "Nations Cup", detail: quadriennialSeason ? "Une course en ligne · montagne, vallons, pavés et final plat" : "Cinq épreuves · classement de division et de groupe" },
-    { id: "nations-junior", day: 24, name: "Nations Cup juniors", detail: "Sélection fédérale · 6 juniors issus des écoles ou DevTeams" },
     { id: "world-pro", day: 26, name: "Championnats du monde", detail: "Professionnels · en ligne et contre-la-montre" },
     { id: "world-junior", day: 26, name: "Championnats du monde juniors", detail: "Juniors · en ligne et contre-la-montre" },
   ];
@@ -361,8 +360,10 @@ export function FederationSelectionWorkbench({
   return (
     <div className="space-y-6">
       {isOlympicSeason(gameYear) ? (
-        <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-5 text-sm leading-6">
-          <h2 className="font-black">Jeux quadriennaux · un seul peloton mondial</h2>
+        <section className="relative overflow-hidden rounded-2xl border border-[#ECD797]/60 bg-[#080E1D] p-6 pt-8 text-sm leading-6 text-[#CDD5E4] shadow-xl sm:p-8">
+          <GamesColors className="absolute inset-x-0 top-0 h-1.5" />
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[.2em] text-[#ECD797]">Le grand rendez-vous mondial · J24</p>
+          <h2 className="mb-4 text-2xl font-black text-white">Jeux quadriennaux · un seul peloton mondial</h2>
           <p>Votre quota : {selectionState?.olympicQuota ?? 0} place(s). Qualification figée à J4 : 70 % classement UCI national final de la saison précédente, 30 % niveau des quatre meilleurs coureurs sur ce parcours.</p>
           <p>Rangs 1–10 : jusqu’à 8 places · 11–30 : 4 · 31–60 : 2. Maximum 220 coureurs, sans divisions.</p>
           <p>Convocations automatiques à partir de 7 jours avant la course. Envoi et remplacement jusqu’à H−24 ; réponse du DS jusqu’à H−1. Sans accord, le coureur ne participe pas et ses autres inscriptions sont conservées.</p>
@@ -588,7 +589,7 @@ export function FederationSelectionWorkbench({
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
                 <button type="submit" disabled={publishPending || !storedSelection || !canPublish} className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
-                  {publishPending ? "Envoi…" : "Soumettre aux DS"}
+                  {publishPending ? "Envoi…" : schedule?.qualification_status === "pending" ? "Qualifications à J8 · brouillon conservé" : "Soumettre aux DS"}
                 </button>
               </form>
             </div>

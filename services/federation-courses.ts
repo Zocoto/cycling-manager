@@ -368,6 +368,7 @@ export async function getFederationCoursesState({
             "id, country_id, target_game_year, event_type, event_key, hosting_cost, last_hosted_game_year, uci_rank, renown_score, recency_points, ranking_points, renown_points, specialization_bonus_points, selection_score, status, created_at",
           )
           .eq("target_game_year", targetGameYear)
+          .neq("event_type", "nations_cup_junior")
           .order("selection_score", { ascending: false })
           .order("created_at", { ascending: true })
           .returns<CandidacyRow[]>(),

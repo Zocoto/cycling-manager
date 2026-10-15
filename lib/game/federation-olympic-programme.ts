@@ -10,6 +10,7 @@ export function isOlympicSeason(gameYear: number) {
 }
 
 export function isFederationSelectionSlotAvailable(slotKey: string, gameYear: number) {
+  if (slotKey === "nc-junior-road") return false;
   return !isOlympicSeason(gameYear) || !PROFESSIONAL_CUP_SLOTS.has(slotKey)
     || slotKey === OLYMPIC_ROAD_SLOT;
 }

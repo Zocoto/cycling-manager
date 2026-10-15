@@ -48,7 +48,7 @@ describe("single Olympic road programme", () => {
       expect(getProfessionalNationsEventCount(year)).toBe(1);
       expect(slots.filter(slot => slot.competitionId !== "nations-pro")).toEqual(getFederationSelectionSlots(3).filter(slot => slot.competitionId !== "nations-pro"));
       expect(isFederationSelectionSlotAvailable("nc-time-trial",year)).toBe(false);
-      expect(isFederationSelectionSlotAvailable("nc-junior-road",year)).toBe(true);
+      expect(isFederationSelectionSlotAvailable("nc-junior-road",year)).toBe(false);
     }
   });
   it("authors a continuous 194km course, three long climbs, repeated hills and distributed cobbles", () => {

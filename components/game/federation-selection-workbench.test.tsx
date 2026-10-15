@@ -48,7 +48,7 @@ describe("FederationSelectionWorkbench hosting", () => {
         selections: { "cc-pro-road": { status: "draft", revision: 1, riderIds: [], confirmedRiderIds: [], responses: {} } },
       }} />);
     const save = markup.match(/<button\b[^>]*>Enregistrer le brouillon<\/button>/)?.[0];
-    const publish = markup.match(/<button\b[^>]*>Soumettre aux DS<\/button>/)?.[0];
+    const publish = markup.match(/<button\b[^>]*>(?:Soumettre aux DS|Qualifications à J8 · brouillon conservé)<\/button>/)?.[0];
     expect(save).toBeDefined();
     expect(publish).toBeDefined();
     expect(save?.includes("disabled=\"\"")).toBe(!canPrepare);
@@ -139,7 +139,7 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup).toContain("Pays hôte : Allemagne");
     expect(markup).toContain("fi-de");
     expect(markup).toContain("Jeux quadriennaux");
-    expect(markup).toContain("Nations Cup juniors");
+    expect(markup).not.toContain("Nations Cup juniors");
     expect(markup).not.toContain("Nations Cup · Montagne");
     expect(markup).toContain("Une course en ligne");
     expect(markup).not.toContain("Cinq épreuves professionnelles exceptionnelles");
@@ -177,7 +177,7 @@ describe("FederationSelectionWorkbench hosting", () => {
       />,
     );
 
-    expect(markup.match(/data-selection-competition=/g)).toHaveLength(6);
+    expect(markup.match(/data-selection-competition=/g)).toHaveLength(5);
     expect(markup).toContain(
       "Championnats continentaux : 10 convocations envoyées, 10 confirmées, 0 en attente, sélection finalisée",
     );

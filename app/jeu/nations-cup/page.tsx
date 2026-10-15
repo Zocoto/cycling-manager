@@ -7,6 +7,7 @@ import { NationsCupAutoRefresh } from "@/components/game/nations-cup-auto-refres
 import { NationsCupEventTabs } from "@/components/game/nations-cup-event-tabs";
 import { NationsCupStandings } from "@/components/game/nations-cup-standings";
 import { OlympicNations } from "@/components/game/olympic-nations";
+import { QuadrennialGamesBanner } from "@/components/game/quadrennial-games-banner";
 import { isOlympicSeason } from "@/lib/game/federation-olympic-programme";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -41,7 +42,7 @@ export default async function NationsCupPage() {
       />
       <section className="mx-auto max-w-[1500px] px-5 py-9 sm:px-8 sm:py-12">
         <BackToOfficeLink />
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.18)] sm:px-10 sm:py-10">
+        {olympic ? <QuadrennialGamesBanner seasonName={overview?.seasonName ?? "Saison active"} /> : <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.18)] sm:px-10 sm:py-10">
           <div className="relative">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#F2C94C]">
               {overview?.seasonName ?? "Saison active"} · rendez-vous J24
@@ -53,7 +54,7 @@ export default async function NationsCupPage() {
               {olympic ? "Un seul peloton mondial, jusqu’à 220 coureurs : montagne, vallons, pavés et final plat. Chaque nation invitée dispose d’un quota de places." : "Cinq coureurs différents par nation, cinq terrains et un seul classement cumulé. Les places donnent de 50 à 1 point au top 16."}
             </p>
           </div>
-        </header>
+        </header>}
 
         {!overview || overview.gameYear < 3 ? (
           <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-8 shadow-[0_16px_45px_rgba(19,60,46,0.07)]">

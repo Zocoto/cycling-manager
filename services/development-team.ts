@@ -370,6 +370,7 @@ export async function getDevelopmentTeamOverview(
       .from("development_race_editions")
       .select("*")
       .eq("season_id", context.seasonId)
+      .neq("competition_type", "nations_cup_junior")
       .order("start_day_number")
       .returns<EditionRow[]>(),
   ]);

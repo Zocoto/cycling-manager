@@ -12,7 +12,7 @@ import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 export const metadata: Metadata = {
   title: "Compétitions internationales juniors",
   description:
-    "Consultez les profils et les sélections des CC, CM et Nations Cup juniors.",
+    "Consultez les profils et les sélections des CC et CM juniors.",
 };
 
 export default async function JuniorInternationalChampionshipsPage() {
@@ -59,7 +59,7 @@ export default async function JuniorInternationalChampionshipsPage() {
           />
           <div className="relative max-w-4xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#F2C94C]">
-              CC · CM · Nations Cup juniors
+              CC · CM juniors
             </p>
             <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
               Compétitions internationales juniors

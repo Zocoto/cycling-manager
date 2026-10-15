@@ -156,7 +156,7 @@ export default async function InternationalSelectionsPage({
               </h1>
               <p className="mt-4 text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
                 {audience === "junior"
-                  ? "Répondez aux convocations des CM, CC et Nations Cup juniors sans les mélanger avec l’effectif professionnel. Une participation confirmée ne peut plus être retirée de la liste fédérale."
+                  ? "Répondez aux convocations des CM et CC juniors sans les mélanger avec l’effectif professionnel. Une participation confirmée ne peut plus être retirée de la liste fédérale."
                   : "Répondez aux convocations professionnelles dès leur publication. Une participation confirmée ne peut plus être retirée de la liste fédérale. Sans réponse explicite avant la clôture, le coureur n’est pas mobilisé."}
               </p>
             </div>

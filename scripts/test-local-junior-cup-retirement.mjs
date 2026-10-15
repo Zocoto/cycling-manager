@@ -1,0 +1,68 @@
+// Integration rehearsal exclusively in isolated PGlite, never in production.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
+const db = new PGlite();
+let checks=0;
+const check=async(sql,expected)=>{assert.deepEqual((await db.query(sql)).rows[0].value,expected,sql);checks++;};
+const reject=async(sql,pattern)=>{await assert.rejects(db.query(sql),pattern);checks++;};
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+try {
+ await db.exec(`create role anon;create role authenticated;create role service_role;
+ create table seasons(id uuid primary key,game_year int,status text);
+ create table countries(id uuid primary key,continent_code text);
+ create table national_federation_selection_slots(slot_key text primary key,rider_category text,competition_code text,profile_label text);
+ create table national_federation_selection_lists(id uuid primary key,season_id uuid,country_id uuid,slot_key text,status text,updated_at timestamptz);
+ create table national_federation_selection_members(id uuid primary key,selection_list_id uuid,professional_rider_id uuid,junior_rider_id uuid,response_status text,responded_at timestamptz,created_at timestamptz);
+ create table national_federation_junior_race_registrations(id uuid primary key default gen_random_uuid(),selection_list_id uuid unique,race_edition_id uuid,country_id uuid,status text,synced_at timestamptz);
+ create table national_federation_junior_race_registration_riders(registration_id uuid,academy_rider_id uuid,development_team_id uuid,selected_at timestamptz);
+ create table development_race_registrations(id uuid primary key,race_edition_id uuid,status text,updated_at timestamptz);
+ create table development_race_results(id uuid primary key,race_edition_id uuid);
+ create table development_race_editions(id uuid primary key default gen_random_uuid(),season_id uuid,slug text,name text,short_name text,location_name text,country_code text,start_day_number int,end_day_number int,profile_type text,race_format text,is_world_championship boolean,selection_minimum int,selection_maximum int,competition_type text,selection_mode text,points_scale text,reward_pool numeric,championship_continent_code text,status text default 'planned',updated_at timestamptz,unique(season_id,slug));
+ create table development_race_stages(race_edition_id uuid,stage_number int,day_number int,name text,stage_type text,profile_type text,distance_km numeric,unique(race_edition_id,stage_number));
+ create table national_federation_hosting_awards(id uuid,event_type text,target_game_year int,status text);
+ create table national_federation_hosting_candidacies(id uuid,event_type text,target_game_year int,status text,decided_at timestamptz,updated_at timestamptz);
+ create table sporting_director_messages(id uuid,season_id uuid,message_type text,subject text,preview text,source_reference text,archived_at timestamptz);
+ create function repair_legacy_junior_world_championships(uuid) returns int language sql as $$select 0$$;
+ insert into seasons values('${id(3)}',3,'completed'),('${id(4)}',4,'active'),('${id(5)}',5,'planned');
+ insert into national_federation_selection_slots values('nc-junior-road','junior','nations_cup_junior','Route');
+ insert into development_race_editions(id,season_id,slug,competition_type,status) values('${id(31)}','${id(3)}','nations-cup-juniors','nations_cup_junior','completed'),('${id(41)}','${id(4)}','nations-cup-juniors','nations_cup_junior','planned');
+ insert into development_race_results values('${id(32)}','${id(31)}');
+ insert into national_federation_selection_lists(id,season_id,slot_key,status) values('${id(33)}','${id(3)}','nc-junior-road','finalized'),('${id(43)}','${id(4)}','nc-junior-road','finalized');
+ insert into national_federation_selection_members(id,selection_list_id,response_status) values('${id(34)}','${id(33)}','confirmed'),('${id(44)}','${id(43)}','confirmed');
+ insert into national_federation_junior_race_registrations(id,selection_list_id,race_edition_id,status) values('${id(35)}','${id(33)}','${id(31)}','completed'),('${id(45)}','${id(43)}','${id(41)}','registered');
+ insert into development_race_registrations values('${id(46)}','${id(41)}','registered',now());
+ insert into national_federation_hosting_candidacies(id,event_type,target_game_year,status) values('${id(47)}','nations_cup_junior',5,'pending');
+ insert into sporting_director_messages values('${id(48)}','${id(4)}','international_selection','Convocation','Nations Cup juniors','federation-auto-callup:${id(44)}',null);`);
+ const captured=JSON.parse(readFileSync('.tmp-international-events/functions.json','utf8'));
+ for(const name of ['ensure_federation_junior_championship_calendar','sync_national_federation_junior_lineup','ensure_automatic_federation_junior_lineups']) {
+   const source=captured.find(row=>row.signature.startsWith(name+'('));
+   if(!source) throw new Error('Capture the reviewed production metadata first.');
+   await db.exec(source.definition);
+ }
+ const migration=readFileSync('supabase/migrations/20261015160000_retire_junior_nations_cup.sql','utf8');
+ await db.exec(migration);
+ await check(`select status value from development_race_editions where id='${id(41)}'`,'cancelled');
+ await check(`select status value from development_race_editions where id='${id(31)}'`,'completed');
+ await check(`select count(*)::int value from development_race_results`,1);
+ await check(`select response_status value from national_federation_selection_members where id='${id(44)}'`,'declined');
+ await check(`select response_status value from national_federation_selection_members where id='${id(34)}'`,'confirmed');
+ await check(`select status value from national_federation_junior_race_registrations where id='${id(45)}'`,'withdrawn');
+ await check(`select status value from development_race_registrations where id='${id(46)}'`,'withdrawn');
+ await check(`select archived_at is not null value from sporting_director_messages`,true);
+ await check(`select status value from national_federation_hosting_candidacies`,'withdrawn');
+ await check(`select federation_selection_slot_is_available('nc-junior-road',4) value`,false);
+ await check(`select federation_selection_slot_is_available('cc-pro-road',4) value`,true);
+ await check(`select federation_selection_slot_is_available('nc-hills',4) value`,true);
+ await check(`select federation_selection_slot_is_available('nc-sprint',4) value`,false);
+ await check(`select sync_national_federation_junior_lineup('${id(43)}') value`,0);
+ await check(`select ensure_automatic_federation_junior_lineups('${id(41)}') value`,0);
+ await db.query(`select ensure_federation_junior_championship_calendar('${id(5)}')`);
+ await check(`select count(*)::int value from development_race_editions where season_id='${id(5)}' and competition_type='nations_cup_junior'`,0);
+ await check(`select count(*)::int value from development_race_editions where season_id='${id(5)}' and competition_type like 'continental_%'`,10);
+ await reject(`insert into national_federation_hosting_candidacies(id,event_type,target_game_year,status) values('${id(49)}','nations_cup_junior',5,'pending')`,/retirée/);
+ await reject(`insert into national_federation_hosting_awards(id,event_type,target_game_year,status) values('${id(50)}','nations_cup_junior',5,'scheduled')`,/retirée/);
+ await check(`select count(*)::int value from junior_nations_cup_retirement_audits`,5);
+ console.log(JSON.stringify({isolated:true,checks}));
+} finally {await db.close();}
