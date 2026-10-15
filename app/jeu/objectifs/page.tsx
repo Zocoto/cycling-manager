@@ -317,8 +317,8 @@ export default async function ObjectivesPage({
                 initialType={selectedType}
                 initialStatus={selectedStatus}
                 initialGroup={selectedGroup}
-                totalCount={objectives.length}
-                visibleCount={visibleObjectives.length}
+                totalCount={groupProspectiveAchievementCards(objectives).length}
+                visibleCount={groupProspectiveAchievementCards(visibleObjectives).length}
               />
             </div>
 
@@ -327,6 +327,7 @@ export default async function ObjectivesPage({
               title="Objectifs primaires"
               description="Les quatre jalons qui installent les bases de votre carrière et débloquent rapidement vos premiers moyens."
               objectives={primaryObjectives}
+              allObjectives={objectives}
               returnPath={returnPath}
               featured
             />
@@ -336,6 +337,7 @@ export default async function ObjectivesPage({
               title="Objectifs secondaires"
               description="Des paliers durables dans toutes les dimensions du club. Les niveaux supérieurs offrent les objets les plus rares."
               objectives={secondaryObjectives}
+              allObjectives={objectives}
               returnPath={returnPath}
             />
 
@@ -372,6 +374,7 @@ function ObjectiveSection({
   title,
   description,
   objectives,
+  allObjectives,
   returnPath,
   featured = false,
 }: {
@@ -379,6 +382,7 @@ function ObjectiveSection({
   title: string;
   description: string;
   objectives: GameObjective[];
+  allObjectives: GameObjective[];
   returnPath: string;
   featured?: boolean;
 }) {
@@ -420,7 +424,7 @@ function ObjectiveSection({
             objective={objective}
             featured={featured}
             returnPath={returnPath}
-            familyObjectives={objectives.filter(candidate => getProspectiveAchievement(candidate.key)?.familyKey === getProspectiveAchievement(objective.key)?.familyKey && getProspectiveAchievement(candidate.key))}
+            familyObjectives={allObjectives.filter(candidate => getProspectiveAchievement(candidate.key)?.familyKey === getProspectiveAchievement(objective.key)?.familyKey && getProspectiveAchievement(candidate.key))}
           />
         ))}
       </div>
@@ -450,6 +454,10 @@ function ObjectiveCard({
       : groupLinks[objective.group];
   const trophyReward = getAchievementTrophyForObjective(objective.key);
   const longTermTier = getGameObjectiveLongTermTier(objective.key);
+  const journey = getProspectiveAchievement(objective.key);
+  const description = journey
+    ? journey.definition.descriptions[journey.tier === "gold" ? 2 : journey.tier === "silver" ? 1 : 0] ?? journey.definition.descriptions[0]
+    : objective.description;
 
   return (
     <article
@@ -508,7 +516,7 @@ function ObjectiveCard({
         {objective.title}
       </h3>
       <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-        {objective.description}
+        {description}
       </p>
       <ProspectiveAchievementMilestones objective={objective} members={familyObjectives} />
 
