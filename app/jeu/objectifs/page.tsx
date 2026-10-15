@@ -144,9 +144,9 @@ export default async function ObjectivesPage({
   const [headerData, objectives, trophyGallery, dailyRewards] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
-      getCurrentGameObjectives(supabase),
-      getSportingDirectorTrophyGallery(user.id),
-      getCurrentDailyRewardOverview(supabase),
+      selectedTab === "objectifs" ? getCurrentGameObjectives(supabase) : Promise.resolve([] as GameObjective[]),
+      selectedTab === "trophees" ? getSportingDirectorTrophyGallery(user.id) : Promise.resolve(null),
+      selectedTab === "quotidiennes" ? getCurrentDailyRewardOverview(supabase) : Promise.resolve(null),
     ]);
 
   const availableGroups = Array.from(
@@ -225,7 +225,8 @@ export default async function ObjectivesPage({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-4 xl:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-3 xl:grid-cols-2">
+              {selectedTab === "objectifs" ? <>
               <HeroMetric
                 label="Terminés"
                 value={`${completedCount}/${objectives.length}`}
@@ -236,11 +237,13 @@ export default async function ObjectivesPage({
                 highlight
               />
               <HeroMetric label="Réclamés" value={String(claimedCount)} />
-              <HeroMetric
+              </> : null}
+              {trophyGallery ? <HeroMetric
                 label="Trophées"
                 value={String(trophyGallery.counts.total)}
                 highlight={trophyGallery.counts.total > 0}
-              />
+              /> : null}
+              {selectedTab === "quotidiennes" ? <HeroMetric label="Cycle quotidien" value={`${dailyRewards?.consecutiveDays ?? 0}/${DAILY_REWARD_CYCLE_LENGTH}`} /> : null}
             </div>
           </div>
         </header>
@@ -262,7 +265,7 @@ export default async function ObjectivesPage({
             description={
               dailyRewards?.availableToday
                 ? "Cadeau du jour à ouvrir"
-                : `Cycle ${dailyRewards?.consecutiveDays ?? 0}/${DAILY_REWARD_CYCLE_LENGTH}`
+                : dailyRewards ? `Cycle ${dailyRewards.consecutiveDays}/${DAILY_REWARD_CYCLE_LENGTH}` : "Votre cadeau quotidien"
             }
             active={selectedTab === "quotidiennes"}
           />
@@ -270,9 +273,9 @@ export default async function ObjectivesPage({
             href="/jeu/objectifs?onglet=trophees"
             label="Galerie des trophées"
             description={
-              trophyGallery.claimableTrophies.length > 0
+              trophyGallery ? trophyGallery.claimableTrophies.length > 0
                 ? `${trophyGallery.claimableTrophies.length} cadeau à ouvrir`
-                : `${trophyGallery.counts.total} pièce${trophyGallery.counts.total > 1 ? "s" : ""} au palmarès`
+                : `${trophyGallery.counts.total} pièce${trophyGallery.counts.total > 1 ? "s" : ""} au palmarès` : "Votre palmarès et vos distinctions"
             }
             active={selectedTab === "trophees"}
           />
@@ -362,7 +365,7 @@ export default async function ObjectivesPage({
             <DailyRewardsPanel overview={dailyRewards} />
           </>
         ) : (
-          <TrophyGallery gallery={trophyGallery} />
+          trophyGallery ? <TrophyGallery gallery={trophyGallery} /> : null
         )}
       </section>
     </main>

@@ -7,6 +7,7 @@ import {
   DashboardAssistant,
 } from "../../components/game/dashboard-assistant";
 import { DashboardAssistantBoundary } from "@/components/game/dashboard-assistant-boundary";
+import { DeferredDashboardValue } from "@/components/game/deferred-dashboard-value";
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
@@ -585,26 +586,7 @@ export default async function GamePage() {
     emptyActiveChampionshipTitles(),
     "Impossible de récupérer les maillots de champions du bureau :",
   );
-  const [
-    sponsorIdentityResult,
-    teamAmateurIdentity,
-    financeOverview,
-    inventoryOverview,
-    reputationBreakdown,
-    sponsorObjectiveSummary,
-    fanClubBuildings,
-  ] = await Promise.all([
-    sponsorIdentityPromise,
-    loadDashboardValue(
-      dashboardTeamId
-        ? getTeamAmateurIdentity(dashboardTeamId)
-        : Promise.resolve(null),
-      null as TeamAmateurIdentity | null,
-      "Impossible de récupérer l’identité amateur de l’équipe :",
-    ),
-    financeOverviewPromise,
-    inventoryOverviewPromise,
-    loadDashboardValue(
+  const reputationBreakdownPromise = loadDashboardValue(
       dashboardSportingDirector
         ? getSportingDirectorReputationBreakdown(
             supabase,
@@ -614,15 +596,22 @@ export default async function GamePage() {
         : Promise.resolve(null),
       null as SportingDirectorReputationBreakdown | null,
       "Impossible de r\u00e9cup\u00e9rer le d\u00e9tail de la r\u00e9putation :",
-    ),
-    sponsorObjectiveSummaryPromise,
-    loadDashboardValue(
+    );
+  const fanClubBuildingsPromise = loadDashboardValue(
       dashboardTeamId
         ? getTeamFanClubBuildings(supabase, dashboardTeamId)
         : Promise.resolve({ headquartersLevel: 0, shopLevel: 0 }),
       { headquartersLevel: 0, shopLevel: 0 } satisfies TeamFanClubBuildings,
       "Impossible de récupérer les bâtiments du Fan Club :",
+    );
+  const [sponsorIdentityResult, teamAmateurIdentity, financeOverview] = await Promise.all([
+    sponsorIdentityPromise,
+    loadDashboardValue(
+      dashboardTeamId ? getTeamAmateurIdentity(dashboardTeamId) : Promise.resolve(null),
+      null as TeamAmateurIdentity | null,
+      "Impossible de récupérer l’identité amateur de l’équipe :",
     ),
+    financeOverviewPromise,
   ]);
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
@@ -730,10 +719,9 @@ export default async function GamePage() {
               data-mobile-scroll-rail="true"
               className="-mx-1 flex w-[calc(100%+0.5rem)] flex-nowrap items-stretch gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-full sm:flex-wrap sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0 xl:w-auto xl:justify-self-end"
             >
-              <DashboardInventoryShortcut
-                totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
-                availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
-              />
+              <DeferredDashboardValue promise={inventoryOverviewPromise} fallback={<DashboardInventoryShortcut totalUnits={dashboardFastSummary?.inventoryTotalUnits ?? 0} availableUnits={dashboardFastSummary?.inventoryAvailableUnits ?? 0} />}>
+                {inventory => <DashboardInventoryShortcut totalUnits={inventory?.summary.totalUnits ?? 0} availableUnits={inventory?.summary.availableUnits ?? 0} />}
+              </DeferredDashboardValue>
               <Suspense fallback={<ObjectivesShortcut
                 pending
                 totalCount={0}
@@ -802,7 +790,20 @@ export default async function GamePage() {
           <section
             className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
           >
-            <DirectorProfileCard
+            <DeferredDashboardValue promise={reputationBreakdownPromise} fallback={<DirectorProfileCard
+              sportingDirector={sportingDirector}
+              email={user.email ?? null}
+              selectedCountry={selectedCountry}
+              isProfileComplete={isProfileComplete}
+              teamSummary={teamSummary}
+              teamSponsorIdentity={teamSponsorIdentity}
+              teamAmateurIdentity={teamAmateurIdentity}
+              financeOverview={financeOverview}
+              reputationBreakdown={null}
+              calendarPromise={raceCalendarPromise}
+              riderCount={riderCount}
+            />}>
+            {reputationBreakdown => <DirectorProfileCard
               sportingDirector={sportingDirector}
               email={user.email ?? null}
               selectedCountry={selectedCountry}
@@ -814,11 +815,19 @@ export default async function GamePage() {
               reputationBreakdown={reputationBreakdown}
               calendarPromise={raceCalendarPromise}
               riderCount={riderCount}
-            />
+            />}
+            </DeferredDashboardValue>
 
             <div className="grid gap-4 sm:gap-6 xl:h-full xl:grid-rows-[auto_1fr]">
               {teamSponsorIdentity ? (
-                <DashboardSponsorCard
+                <DeferredDashboardValue promise={sponsorObjectiveSummaryPromise} fallback={<DashboardSponsorCard
+                  sponsor={teamSponsorIdentity.sponsor}
+                  jersey={teamSponsorIdentity.selectedJersey}
+                  budgetLabel={formatDashboardCurrency(teamSponsorIdentity.budgetPerSeason,teamSponsorIdentity.currencyCode)}
+                  secondarySponsor={teamSponsorIdentity.secondarySponsor}
+                  secondaryLogoPlacement={teamSponsorIdentity.secondaryLogoPlacement}
+                />}>
+                {sponsorObjectiveSummary => <DashboardSponsorCard
                   sponsor={teamSponsorIdentity.sponsor}
                   jersey={teamSponsorIdentity.selectedJersey}
                   budgetLabel={formatDashboardCurrency(
@@ -828,7 +837,8 @@ export default async function GamePage() {
                   secondarySponsor={teamSponsorIdentity.secondarySponsor}
                   secondaryLogoPlacement={teamSponsorIdentity.secondaryLogoPlacement}
                   objectiveSummary={sponsorObjectiveSummary}
-                />
+                />}
+                </DeferredDashboardValue>
               ) : (
                 <ManagementModuleCard
                   href="/jeu/sponsoring"
@@ -976,7 +986,8 @@ export default async function GamePage() {
               description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
             />
 
-            {fanClubBuildings.headquartersLevel > 0 ? (
+            <DeferredDashboardValue promise={fanClubBuildingsPromise} fallback={null}>
+            {fanClubBuildings => fanClubBuildings.headquartersLevel > 0 ? (
               <ManagementModuleCard
                 href="/jeu/fan-club"
                 icon="fanclub"
@@ -985,6 +996,7 @@ export default async function GamePage() {
                 description="Gérez la popularité des coureurs, les déplacements de supporters et, si elle est construite, la boutique officielle."
               />
             ) : null}
+            </DeferredDashboardValue>
           </section>
         </div>
       </section>

@@ -80,8 +80,8 @@ import {
   type RacePastWinner,
   type RaceRosterOption,
 } from "@/services/race-calendar";
-import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
-import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
+import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
+import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import {
   getCurrentTeamWeatherCenterLevel,
   getWeatherForecastHorizon,
@@ -123,15 +123,24 @@ export async function RaceProfileContent({
     redirect("/connexion");
   }
 
-  const [headerData, calendar, weatherCenterLevel, raceAccessContext] =
+  // Reuse the authenticated team resolution; portraits load alongside the
+  // scoped calendar instead of resolving the director/team twice afterwards.
+  const headerPromise = getGameHeaderData(supabase, user.id);
+  const sponsorPromise = headerPromise.then(header => header.teamId ? getActiveTeamSponsorIdentity(header.teamId) : null)
+    .catch((error: unknown) => { console.error("Impossible de charger le maillot sponsor pour les portraits :", error); return null; });
+  const amateurPromise = headerPromise.then(header => header.teamId ? getTeamAmateurIdentity(header.teamId) : null)
+    .catch((error: unknown) => { console.error("Impossible de charger le maillot amateur pour les portraits :", error); return null; });
+  const [headerData, calendar, weatherCenterLevel, raceAccessContext, teamSponsorIdentity, teamAmateurIdentity] =
     await Promise.all([
-      getGameHeaderData(supabase, user.id),
+      headerPromise,
       getActiveSeasonRaceCalendar(supabase, new Date(), {
         raceSlug: slug,
         includeIneligibleRegionalRaces: true,
       }),
       getCurrentTeamWeatherCenterLevel(user.id),
       getCurrentTeamRaceAccessContext(supabase),
+      sponsorPromise,
+      amateurPromise,
     ]);
   const edition = calendar?.editions.find(
     (candidate) => candidate.slug === slug,
@@ -155,23 +164,6 @@ export async function RaceProfileContent({
   const isInternationalChampionship =
     isInternationalChampionshipEdition(edition);
   const isFederationSelection = isFederationSelectionEdition(edition);
-
-  const [teamSponsorIdentity, teamAmateurIdentity] = await Promise.all([
-    getActiveTeamSponsorIdentityForAuthUser(user.id).catch((error: unknown) => {
-      console.error(
-        "Impossible de charger le maillot sponsor pour les portraits :",
-        error,
-      );
-      return null;
-    }),
-    getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
-      console.error(
-        "Impossible de charger le maillot amateur pour les portraits :",
-        error,
-      );
-      return null;
-    }),
-  ]);
 
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({
