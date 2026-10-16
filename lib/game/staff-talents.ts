@@ -19,6 +19,12 @@ export const COMMUNITY_GROWTH_BONUS_PERCENTAGE_PER_LEVEL = 3;
 export const YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL = 1;
 
 export const STAFF_TALENTS_BY_ROLE = {
+  financial_director: [
+    "finance_race_prizes",
+    "finance_daily_income",
+    "finance_main_sponsor",
+    "finance_secondary_sponsor",
+  ],
   physiotherapist: [
     "physio_race_recovery",
     "physio_training_recovery",
@@ -118,6 +124,22 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   StaffTalentCode,
   StaffTalentDefinition
 > = {
+  finance_race_prizes: {
+    role: "financial_director", label: "Primes de performance",
+    description: (level) => `+${percentage(level, 2)} % sur les prochaines dotations financières en course, hors XP et points UCI`,
+  },
+  finance_daily_income: {
+    role: "financial_director", label: "Réseau d’affaires",
+    description: (level) => `+${percentage(level, 150)} € par jour de jeu, sans rattrapage des jours précédents`,
+  },
+  finance_main_sponsor: {
+    role: "financial_director", label: "Valorisation du partenaire principal",
+    description: (level) => `+${percentage(level, 0.5)} % sur les prochaines échéances du sponsor principal, hors primes d’objectifs`,
+  },
+  finance_secondary_sponsor: {
+    role: "financial_director", label: "Développement des partenaires secondaires",
+    description: (level) => `+${percentage(level, 1)} % sur les prochaines primes du sponsor secondaire`,
+  },
   physio_race_recovery: {
     role: "physiotherapist",
     label: "Récupération après course",

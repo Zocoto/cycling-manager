@@ -179,8 +179,8 @@ describe("staff economy", () => {
 });
 
 describe("daily staff pool", () => {
-  it("contains exactly 27 weighted jobs and exposes every profession", () => {
-    expect(STAFF_DAILY_ROLE_DISTRIBUTION).toHaveLength(27);
+  it("contains exactly 28 weighted jobs and exposes every profession", () => {
+    expect(STAFF_DAILY_ROLE_DISTRIBUTION).toHaveLength(28);
     for (const role of STAFF_ROLES) {
       expect(STAFF_DAILY_ROLE_DISTRIBUTION).toContain(role);
     }

@@ -5,6 +5,7 @@ import { pruneChatImages } from "@/services/chat-image-maintenance";
 export const maxDuration = 300;
 
 const MAINTENANCE_TASKS = [
+  "settle_due_financial_director_income",
   "settle_due_infrastructure_projects",
   "settle_due_elite_wildcards",
   "sync_junior_pro_national_fallback",

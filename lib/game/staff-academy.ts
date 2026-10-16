@@ -2,6 +2,12 @@ export const STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL = 10;
 export const STAFF_ACADEMY_MAX_LEVEL = 5;
 export const STAFF_ACADEMY_MAX_TALENT_LINES = 3;
 
+export function getStaffAcademyTalentCapacity(role: string, level: number): number {
+  return role === "financial_director"
+    ? Math.min(STAFF_ACADEMY_MAX_TALENT_LINES, Math.max(1, Math.floor(Number.isFinite(level) ? level : 1)))
+    : STAFF_ACADEMY_MAX_TALENT_LINES;
+}
+
 export type StaffAcademyImprovementType = "level" | "talent";
 
 export type StaffAcademyEducatorBonuses = {

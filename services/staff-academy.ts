@@ -5,7 +5,7 @@ import {
   isFederalStaffInstituteSpecializationCode,
 } from "@/lib/game/federation-infrastructure-effects";
 import {
-  STAFF_ACADEMY_MAX_TALENT_LINES,
+  getStaffAcademyTalentCapacity,
   calculateStaffAcademyTraining,
   getStaffAcademyCapacity,
   type StaffAcademyEducatorBonuses,
@@ -371,7 +371,7 @@ export async function getStaffAcademyOverview(
         talentTraining,
         canImproveLevel: member.level < 5,
         canAddTalent:
-          talents.length < STAFF_ACADEMY_MAX_TALENT_LINES &&
+          talents.length < getStaffAcademyTalentCapacity(role, member.level) &&
           availableTalentCodes.length > 0,
         activeTrainingId:
           activeTrainingByMemberId.get(member.id)?.id ?? null,

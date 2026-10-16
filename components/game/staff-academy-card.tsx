@@ -510,7 +510,9 @@ export function StaffAcademyCard({
                       alreadyTraining: Boolean(member.activeTrainingId),
                       eligible: member.canAddTalent,
                       ineligibleReason:
-                        "Le maximum de trois bonus ou tous les domaines compatibles sont atteints.",
+                        member.role === "financial_director"
+                          ? "Augmentez son niveau pour débloquer un emplacement supplémentaire (trois maximum), puis formez-le à l’Académie."
+                          : "Le maximum de trois bonus ou tous les domaines compatibles sont atteints.",
                     })}
                     buttonLabel="Ajouter une ligne"
                   />

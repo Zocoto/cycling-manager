@@ -17,6 +17,7 @@ export const STAFF_ROLES = [
   "community_manager",
   "research_engineer",
   "educator",
+  "financial_director",
 ] as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
@@ -42,6 +43,13 @@ export type StaffRoleDefinition = {
 };
 
 export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
+  financial_director: {
+    label: "Directeur financier",
+    pluralLabel: "Directeurs financiers",
+    shortDescription: "Valorise les recettes de l’équipe grâce à ses affixes financiers. Un seul par équipe.",
+    salaryBase: 18_000,
+    accent: "#A88739",
+  },
   trainer: {
     label: "Entraîneur",
     pluralLabel: "Entraîneurs",
@@ -145,6 +153,7 @@ export const TRAINER_SPECIALTY_LABELS: Record<TrainerSpecialty, string> = {
 };
 
 export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
+  "financial_director",
   "trainer",
   "trainer",
   "trainer",
@@ -417,6 +426,8 @@ export function getStaffEffectPercentage(
   const safeLevel = normalizeStaffLevel(level);
 
   switch (role) {
+    case "financial_director":
+      return 0; // No automatic income boost: every effect requires its affix.
     case "trainer":
       return safeLevel * 4;
     case "youth_coach":
@@ -535,6 +546,8 @@ export function describeStaffEffect({
     }
     case "research_engineer":
       return ["Spécialité R&D unique : temps, coût ou probabilité de réussite"];
+    case "financial_director":
+      return ["Un seul par équipe · un affixe au recrutement · affixes supplémentaires via l’Académie des métiers uniquement"];
     case "educator":
       return [
         "Pilote les stages de l’Académie des métiers ; ses talents déterminent les bonus appliqués",

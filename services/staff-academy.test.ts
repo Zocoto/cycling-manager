@@ -17,7 +17,7 @@ function training(overrides: Row = {}): Row {
   };
 }
 
-function fixture(trainings: Row[]) {
+function fixture(trainings: Row[], role = "mechanic", level = 1) {
   const tables: Record<string, Row[]> = {
     sporting_directors: [{id: "director", auth_user_id: "owner", status: "active"}],
     team_manager_assignments: [{sporting_director_id: "director", team_id: "team", role: "general_manager", status: "active"}],
@@ -25,8 +25,8 @@ function fixture(trainings: Row[]) {
     team_seasons: [{team_id: "team", season_id: "season", registration_country_id: "fr"}],
     team_infrastructures: [{team_id: "team", infrastructure_code: "staff_academy", level: 1}],
     staff_contracts: [{id: "contract", staff_member_id: "member", team_id: "team", status: "active"}],
-    staff_members: [{id: "member", first_name: "Jean", last_name: "Test", role: "mechanic", level: 1, country_id: "fr", trainer_specialty: null}],
-    staff_member_talents: [{staff_member_id: "member", slot_number: 1, talent_code: "mechanic_incident_time"}],
+    staff_members: [{id: "member", first_name: "Jean", last_name: "Test", role, level, country_id: "fr", trainer_specialty: null}],
+    staff_member_talents: [{staff_member_id: "member", slot_number: 1, talent_code: role === "financial_director" ? "finance_race_prizes" : "mechanic_incident_time"}],
     staff_academy_trainings: trainings,
     national_federation_infrastructures: [], national_federation_infrastructure_specializations: [],
   };
@@ -55,6 +55,13 @@ const overview = () => getStaffAcademyOverview({} as Parameters<typeof getStaffA
 beforeEach(() => vi.clearAllMocks());
 
 describe("staff academy overview", () => {
+  it.each([[1,false],[2,true],[3,true],[4,true],[5,true]] as const)("respects financial director level %i before proposing another affix", async (level, eligible) => {
+    fixture([], "financial_director", level);
+    const result = await overview();
+    expect(result?.members[0].roleLabel).toBe("Directeur financier");
+    expect(result?.members[0].canAddTalent).toBe(eligible);
+    expect(result?.members[0].talents).toHaveLength(1);
+  });
   it("shows a pending choice without consuming capacity and still reserves its member", async () => {
     fixture([training({talent_choice_codes: ["mechanic_wheel_efficiency","mechanic_frame_efficiency"]})]);
     const result = await overview();

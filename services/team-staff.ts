@@ -447,6 +447,9 @@ export async function getTeamStaffOverview(
     (contract) =>
       membersById.get(contract.staff_member_id)?.role === "youth_coach",
   ).length;
+  const activeFinancialDirectorCount = contracts.filter(
+    (contract) => membersById.get(contract.staff_member_id)?.role === "financial_director",
+  ).length;
   const commonBlockReason = getCommonHireBlockReason({
     activeStaffCount,
     staffCapacity,
@@ -486,6 +489,9 @@ export async function getTeamStaffOverview(
         : null) ??
       (member.role === "youth_coach" && activeYouthCoachCount >= 1
         ? "Limite atteinte : un seul responsable de formation peut encadrer l’école de cyclisme."
+        : null) ??
+      (member.role === "financial_director" && activeFinancialDirectorCount >= 1
+        ? "Limite atteinte : une équipe ne peut employer qu’un seul Directeur financier actif."
         : null) ??
       (balance < member.signingFee + dueSalary
         ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."

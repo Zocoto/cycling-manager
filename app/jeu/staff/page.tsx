@@ -843,6 +843,7 @@ function StaffTalentBlock({ member }: { member: TeamStaffMember }) {
 
 function StaffRoleIcon({ role }: { role: StaffRole }) {
   const paths: Record<StaffRole, React.ReactNode> = {
+    financial_director: <><path d="M4 4h16v16H4zM8 8h8M8 12h3M8 16h3M15 12v4M13 14h4" /></>,
     trainer: (
       <>
         <path d="M5 8v8M19 8v8M2 10v4M22 10v4M5 12h14" />
