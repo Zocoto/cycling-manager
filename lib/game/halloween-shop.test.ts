@@ -21,9 +21,16 @@ describe("Halloween consumable economy", () => {
     expect(rows).toHaveLength(13);
     for (const [, id, price, obtained, purchase] of rows) {
       expect(item(id).price).toBe(Number(price));
+      if (id === "pumpkin-juice") continue; // Its quota was subsequently removed.
       expect(getHalloweenObtainedLimit(item(id))).toBe(Number(obtained));
       expect(getHalloweenPurchaseLimit(item(id))).toBe(Number(purchase));
     }
+  });
+  it("keeps pumpkin juice purchasable beyond thirty purchases or gifts without changing its price", () => {
+    expect(getHalloweenPurchaseLimit(item("pumpkin-juice"))).toBe(Infinity);
+    expect(getHalloweenObtainedLimit(item("pumpkin-juice"))).toBe(Infinity);
+    for (const count of [30,31,100,10000]) expect(isHalloweenPurchaseLimitReached(item("pumpkin-juice"),count,count)).toBe(false);
+    expect(item("pumpkin-juice").price).toBe(12);
   });
   it("allows buying a relic again after its first use, up to five purchases", () => {
     for (const entry of HALLOWEEN_PREVIEW_ITEMS.filter((entry) => entry.relic)) {

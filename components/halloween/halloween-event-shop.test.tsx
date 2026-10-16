@@ -17,6 +17,14 @@ const card = (initial: HalloweenState, id: string) => {
 };
 
 describe("boutique Halloween réutilisable", () => {
+  it("keeps the juice purchase enabled above the old quota, but still requires enough coins", () => {
+    const initial = { ...state, purchases: { "pumpkin-juice": 30 }, obtained: { "pumpkin-juice": 35 } };
+    const html = card(initial,"pumpkin-juice");
+    expect(html).not.toContain('disabled=""');
+    expect(html).toContain("Sans limite d’achat");
+    expect(html).not.toContain("Infinity");
+    expect(card({ ...initial, coins: 11 },"pumpkin-juice")).toContain('disabled=""');
+  });
   it("permits another relic purchase after obtaining or using the first dose", () => {
     for (const id of ["witches-star", "immortality-pact", "youth-fountain"]) {
       const html = card({ ...state, purchases: { [id]: 1 }, obtained: { [id]: 1 } }, id);

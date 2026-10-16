@@ -1,6 +1,7 @@
 import type { HalloweenPreviewItem } from "./halloween-catalog";
 
 export function getHalloweenPurchaseLimit(item: HalloweenPreviewItem): number {
+  if (item.id === "pumpkin-juice") return Number.POSITIVE_INFINITY;
   if (item.kind === "cosmetic") return 1;
   if (item.kind === "transformation") return 10;
   return item.relic ? 5 : 30;
