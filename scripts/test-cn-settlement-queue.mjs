@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+const {PGlite}=await import(pathToFileURL(process.argv[2]).href);
+const db=new PGlite();let assertions=0;
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const rows=async sql=>(await db.query(sql)).rows;
+const check=(a,b)=>{assert.deepEqual(a,b);assertions++;};
+try{
+  await db.exec(`create role anon;create role authenticated;create role service_role;
+    create table seasons(id uuid,status text);create table races(id uuid,competition_type text);
+    create table race_editions(id uuid,race_id uuid,season_id uuid,status text);
+    create table stages(id uuid,race_edition_id uuid,status text,departure_at timestamptz,distance_km numeric);
+    create table race_registrations(id uuid,race_edition_id uuid,status text);
+    create table race_rosters(race_registration_id uuid,rider_id uuid,status text);
+    create table stage_rider_condition_effects(stage_id uuid,rider_id uuid);
+    insert into seasons values('${id(1)}','active');
+    insert into races values('${id(2)}','national_time_trial'),('${id(3)}','national_road');`);
+  for(let n=10;n<=14;n++)await db.exec(`insert into race_editions values('${id(n)}','${id(n===14?3:2)}','${id(1)}','${n===12?'cancelled':n===13?'completed':'registration_open'}');
+    insert into stages values('${id(n+100)}','${id(n)}','planned',now()+interval '${n===11||n===14?'1 hour':'-2 hours'}',30);`);
+  await db.exec(await readFile(new URL('../supabase/migrations/20261016210000_bound_national_championship_settlement_queue.sql',import.meta.url),'utf8'));
+  const queue=()=>rows(`select race_edition_id from get_due_national_championship_edition_ids('${id(1)}','national_time_trial')`);
+  check(await queue(),[{race_edition_id:id(10)}]);
+  await db.exec(`insert into race_registrations values('${id(20)}','${id(13)}','accepted');
+    insert into race_rosters values('${id(20)}','${id(30)}','confirmed');`);
+  check(await queue(),[{race_edition_id:id(10)},{race_edition_id:id(13)}]);
+  await db.exec(`insert into stage_rider_condition_effects values('${id(113)}','${id(30)}');`);
+  check(await queue(),[{race_edition_id:id(10)}]);
+  check(await rows(`select * from get_due_national_championship_edition_ids('${id(1)}','standard')`),[]);
+  check(await rows(`select * from get_due_national_championship_edition_ids('${id(1)}','national_road')`),[]);
+  check((await rows(`select has_function_privilege('authenticated','get_due_national_championship_edition_ids(uuid,text,timestamptz)','execute') ok`))[0].ok,false);
+  console.log(JSON.stringify({isolated:true,assertions,recoverCompletedConditions:true,futureRoadExcluded:true}));
+}finally{await db.close();}

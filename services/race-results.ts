@@ -308,8 +308,15 @@ export async function settleFinishedRaceResults(
   );
 
   if (needsDeferredConditionSettlement) {
-    const { error } = await admin.rpc("settle_finished_race_conditions");
-    assertQuery(error, "la consolidation groupée des conditions après les CN");
+    // Never scan every finished race after a CN batch. The existing scoped
+    // ledger is idempotent and also repairs a country interrupted after results.
+    for (const edition of nationalChampionshipEditions) {
+      for (const stage of edition.stages) {
+        if (getStageLiveState(stage, now).status !== "finished") continue;
+        const { error } = await admin.rpc("settle_finished_stage_conditions", {p_stage_id:stage.id});
+        assertQuery(error, `les conditions du CN ${edition.name}`);
+      }
+    }
   }
 
   return { processedStages, completedEditions, failedEditions };

@@ -233,7 +233,7 @@ export async function settleDueStandardRaceResults({
   };
 }
 
-async function cancelUnviableRaceEditions({
+export async function cancelUnviableRaceEditions({
   admin,
   editions,
 }: {

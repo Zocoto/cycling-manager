@@ -39,7 +39,7 @@ describe("national championship settlement resilience", () => {
     );
   });
 
-  it("runs discipline-specific crons only on national day", () => {
+  it("runs discipline-specific crons from national day, including delayed catch-up", () => {
     const route = readSource(
       "app/api/cron/national-championship-settlements/[discipline]/route.ts",
     );
@@ -47,8 +47,10 @@ describe("national championship settlement resilience", () => {
 
     expect(route).toContain('"time-trial-summer": "national_time_trial"');
     expect(route).toContain('"road-summer": "national_road"');
-    expect(route).toContain("season.current_day_number !== 8");
-    expect(route).toContain("edition.competitionType === competitionType");
+    expect(route).toContain("season.current_day_number < 8");
+    expect(route).toContain("settleDueNationalChampionshipResults");
+    expect(vercel).toContain("time-trial-recovery");
+    expect(vercel).toContain("road-recovery");
     expect(route).toContain("synchronizationError");
     expect(route).toContain("la consolidation des startlists déjà gelées continue");
     expect(vercel).toContain(

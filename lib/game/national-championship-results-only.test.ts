@@ -102,7 +102,8 @@ describe("intégration résultats seuls des CN", () => {
     "utf8",
   );
   it("écarte les CN S2+ du verrouillage des scénarios de replay", () => {
-    expect(service).toContain("replayCalendar");
+    expect(service).toContain("const lockedSimulations = resultsOnly");
+    expect(service).toContain("? createNationalChampionshipResultsOnlySimulations({ edition, now })");
     expect(service).toContain("simulateRaceStageResultsOnly(input)");
     expect(resultPage).toContain("!resultsOnlyNationalChampionship");
     expect(resultPage).toContain("getLockedOfficialRaceSimulations");
@@ -113,5 +114,7 @@ describe("intégration résultats seuls des CN", () => {
     expect(service).toContain("if (!resultsOnly)");
     expect(service).toContain("persistStageAttackParticipants");
     expect(service).toContain("persistPostRaceNewsEvents");
+    expect(service).toContain('admin.rpc("settle_finished_stage_conditions", {p_stage_id:stage.id})');
+    expect(service).not.toContain('admin.rpc("settle_finished_race_conditions")');
   });
 });
