@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type FederationSelectionActionState = {
   status: "idle" | "success" | "error";
@@ -84,9 +83,9 @@ export async function publishFederationPreselectionAction(
   });
   if (result.error) return actionError(result.error.message);
 
-  await syncFederationChampionshipStartlists();
-
   revalidateFederation(countryCode.data);
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/courses/[slug]", "page");
   return {
     status: "success",
     message: `${Number(result.data ?? 0)} DS notifié(s).`,
@@ -111,25 +110,10 @@ export async function respondFederationPreselectionAction(formData: FormData) {
     console.error("Échec de réponse à la présélection fédérale :", result.error.message);
     redirect(`/jeu/selections-internationales?erreur=${encodeURIComponent(result.error.message.slice(0, 240))}`);
   }
-  await syncFederationChampionshipStartlists();
+  // The response RPC synchronizes this selection atomically. Never force a
+  // second rebuild of every country's startlists after one rider's response.
   revalidateFederation(countryCode.data);
   revalidatePath("/jeu/selections-internationales");
-  revalidatePath("/jeu/calendrier");
-  revalidatePath("/jeu/courses/[slug]", "page");
-}
-
-async function syncFederationChampionshipStartlists() {
-  const admin = createSupabaseAdminClient();
-  const result = await admin.rpc(
-    "sync_due_national_federation_championship_lineups",
-    { p_now: new Date().toISOString(), p_force: true },
-  );
-  if (result.error) {
-    console.error(
-      "Échec de synchronisation de la startlist fédérale :",
-      result.error.message,
-    );
-  }
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/courses/[slug]", "page");
 }

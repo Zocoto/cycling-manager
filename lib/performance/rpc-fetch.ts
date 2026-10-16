@@ -11,6 +11,7 @@ const TRACKED_RPCS: Record<string, string> = {
   get_current_newcomer_journey: "/jeu",
   get_current_federation_equipment_alert: "/jeu",
   get_current_equipment_rnd_opportunity: "/jeu",
+  get_current_director_federation_callups: "/jeu/selections-internationales",
   get_current_team_visible_calendar_edition_ids: "/jeu",
   get_current_team_race_access_context: "/jeu",
   get_current_team_calendar_registrations: "/jeu",

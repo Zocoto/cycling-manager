@@ -46,4 +46,10 @@ describe("transparent RPC timing", () => {
     for (const path of [`${origin}/auth/v1/user`, `${origin}/rest/v1/riders`, `${origin}/rest/v1/rpc/other`, url.replace(origin, "https://other.test")]) await timed(path);
     expect(record).not.toHaveBeenCalled();
   });
+  it("measures call-up loading without storing player data", async () => {
+    const samples: PerformanceSample[]=[];
+    const timed=createTimedRpcFetch(vi.fn<typeof fetch>().mockResolvedValue(new Response()),origin,sample=>samples.push(sample));
+    await timed(`${origin}/rest/v1/rpc/get_current_director_federation_callups`,{method:"POST",body:"{}"});
+    expect(samples[0]).toMatchObject({route:"/jeu/selections-internationales",metric:"get_current_director_federation_callups",ok:true});
+  });
 });
