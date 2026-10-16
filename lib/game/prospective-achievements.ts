@@ -1,9 +1,9 @@
-import type { GameObjective } from "./objectives";
+import { SOCIAL_ACHIEVEMENTS } from "./social-achievements";
 
 export const PROSPECTIVE_ACHIEVEMENTS_START_LABEL = "15 octobre 2026";
-export const ACHIEVEMENT_TIER_LABELS = ["Bronze", "Argent", "Or"] as const;
 
 export const PROSPECTIVE_ACHIEVEMENTS = {
+  ...SOCIAL_ACHIEVEMENTS,
   natural_progress: { title: "Ça progresse !", group: "training", targets: [1, 3, 5],
     descriptions: [1, 3, 5].map(n => `Gagner ${n} point${n > 1 ? "s nets" : " net"} dans une même note principale d’un même coureur grâce aux entraînements réalisés dans votre équipe, hors objets bonus.`) },
   tailored_setup: { title: "Le sens du détail", group: "equipment", targets: [1, 5, 20],
@@ -38,21 +38,6 @@ export function getProspectiveAchievement(key: string) {
   const familyKey = match[1] as ProspectiveAchievementKey;
   return { familyKey, definition: PROSPECTIVE_ACHIEVEMENTS[familyKey],
     tier: match[2] as "bronze" | "silver" | "gold" };
-}
-
-/** Keep a family's next claim in the existing filters, not three extra tiles. */
-export function groupProspectiveAchievementCards(objectives: GameObjective[]) {
-  const grouped = new Map<string, GameObjective[]>();
-  for (const objective of objectives) {
-    const family = getProspectiveAchievement(objective.key);
-    const group = family?.familyKey ?? objective.key;
-    grouped.set(group, [...(grouped.get(group) ?? []), objective]);
-  }
-  return [...grouped.values()].map(members => {
-    const ordered = members.sort((a, b) => a.displayOrder - b.displayOrder);
-    return ordered.find(o => o.completed && !o.claimedAt)
-      ?? ordered.find(o => !o.claimedAt) ?? ordered.at(-1)!;
-  });
 }
 
 export function getCareerOutfitObjective(outfit: string) {

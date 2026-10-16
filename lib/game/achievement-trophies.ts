@@ -5,7 +5,7 @@ const prospectiveTrophies = Object.fromEntries(PROSPECTIVE_ACHIEVEMENT_KEYS.map(
   const definition = PROSPECTIVE_ACHIEVEMENTS[key];
   return [`journey_${key}`, {
     objectiveKey: `journey_${key}_gold`, title: definition.title,
-    competitionName: "Succès de carrière · Or", seasonName: "Depuis le 15 octobre 2026",
+    competitionName: "Objectif de carrière accompli", seasonName: "Carrière",
     inscription: "Un parcours · Une histoire", description: definition.descriptions.at(-1)!,
     href: `/jeu/objectifs?onglet=objectifs&groupe=${definition.group}`,
     visualVariant: "panorama" as const,

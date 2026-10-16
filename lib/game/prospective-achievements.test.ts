@@ -1,35 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { getProspectiveAchievement, groupProspectiveAchievementCards, getCareerOutfitObjective, PROSPECTIVE_ACHIEVEMENTS, PROSPECTIVE_ACHIEVEMENT_KEYS, CAREER_AVATAR_OUTFITS } from "./prospective-achievements";
+import { getProspectiveAchievement, getCareerOutfitObjective, PROSPECTIVE_ACHIEVEMENTS, PROSPECTIVE_ACHIEVEMENT_KEYS, CAREER_AVATAR_OUTFITS } from "./prospective-achievements";
 import { getLockedTrophyTargets } from "./trophy-gallery";
 import { ACHIEVEMENT_TROPHY_DEFINITIONS } from "./achievement-trophies";
-import { careerObjective } from "@/test/career-achievement-fixtures";
 import { applyEquipmentRatingBonuses, combineEquipmentEffects, hasEffectiveOwnResearchBonus, normalizeEquipmentEffects, scaleEquipmentEffect } from "./equipment";
 import { createDemoSimulationInput } from "./race-simulation-demo";
 import { simulateRaceStage } from "./race-simulation";
 
 describe("prospective career achievements", () => {
   it("contains nine three-tier journeys and two secrets, matching the migration", () => {
-    const sql = readFileSync("supabase/migrations/20261015130000_prospective_career_achievements.sql", "utf8");
-    expect(PROSPECTIVE_ACHIEVEMENT_KEYS).toHaveLength(11);
-    expect(Object.values(PROSPECTIVE_ACHIEVEMENTS).reduce((n,d) => n+d.targets.length,0)).toBe(29);
+    const sql = readFileSync("supabase/migrations/20261015130000_prospective_career_achievements.sql", "utf8") + readFileSync("supabase/migrations/20261016150000_rebalance_objectives_and_social_achievements.sql", "utf8");
+    expect(PROSPECTIVE_ACHIEVEMENT_KEYS).toHaveLength(21);
+    expect(Object.values(PROSPECTIVE_ACHIEVEMENTS).reduce((n,d) => n+d.targets.length,0)).toBe(50);
     for (const [key,definition] of Object.entries(PROSPECTIVE_ACHIEVEMENTS)) {
       expect(sql).toContain(`('${key}','${definition.group}','${definition.title}',array[${definition.targets.join(",")}]`);
     }
     expect(getProspectiveAchievement("random_gold")).toBeNull();
     expect(getProspectiveAchievement("journey_missing_gold")).toBeNull();
   });
-  it("shows one next-to-claim tile, preserving existing objectives and source order", () => {
-    const bronze = careerObjective("bronze", "claimed");
-    const silver = careerObjective("silver", "ready");
-    const gold = careerObjective("gold");
-    const legacy = { ...bronze, key: "legacy_goal" };
-    const source = [gold,bronze,silver,legacy];
-    expect(groupProspectiveAchievementCards(source)).toEqual([silver,legacy]);
-    expect(source).toEqual([gold,bronze,silver,legacy]);
-    expect(groupProspectiveAchievementCards([careerObjective("bronze"),silver,gold])).toEqual([silver]);
-    expect(groupProspectiveAchievementCards([bronze,careerObjective("silver","claimed"),gold])).toEqual([gold]);
-    expect(groupProspectiveAchievementCards([bronze,careerObjective("silver","claimed"),careerObjective("gold","claimed")])[0].key).toBe(gold.key);
+  it("renders every objective independently without the extra journey interface", () => {
+    const page = readFileSync("app/jeu/objectifs/page.tsx", "utf8");
+    expect(page).toContain("objectives.map((objective)");
+    expect(page).toContain("totalCount={objectives.length}");
+    expect(page).not.toContain("groupProspectiveAchievementCards");
+    expect(page).not.toContain("ProspectiveAchievementMilestones");
   });
   it("does not reveal secret trophies in the locked catalogue", () => {
     const targets = getLockedTrophyTargets([]);

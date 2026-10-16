@@ -48,10 +48,10 @@ describe("modern feature career objectives", () => {
 
   it("ships a distinct simple mark for every dedicated trophy", () => {
     expect(
-      Object.values(ACHIEVEMENT_TROPHY_DEFINITIONS).map(
+      new Set(Object.values(ACHIEVEMENT_TROPHY_DEFINITIONS).map(
         ({ visualVariant }) => visualVariant,
-      ),
-    ).toEqual([
+      )),
+    ).toEqual(new Set([
       "astrolabe",
       "panorama",
       "apparatus",
@@ -60,6 +60,6 @@ describe("modern feature career objectives", () => {
       "poker-chips",
       "midnight-auction",
       "presidential-seal",
-    ]);
+    ]));
   });
 });

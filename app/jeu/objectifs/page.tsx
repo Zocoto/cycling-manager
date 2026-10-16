@@ -11,14 +11,13 @@ import {
 } from "@/components/game/game-section-tabs";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
-import { ProspectiveAchievementMilestones } from "@/components/game/prospective-achievement-milestones";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
 import { TrophyNotificationsSeenMarker } from "@/components/game/trophy-notifications-seen-marker";
 import Link from "@/components/ui/app-link";
 import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
-import { getProspectiveAchievement, groupProspectiveAchievementCards } from "@/lib/game/prospective-achievements";
+import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
 import {
   filterGameObjectives,
   getGameObjectiveLongTermTier,
@@ -46,6 +45,7 @@ type ObjectivesPageProps = {
 };
 
 const groupLabels: Record<string, string> = {
+  transfers: "Transferts",
   onboarding: "Début de carrière",
   victories: "Victoires",
   roster: "Effectif",
@@ -166,12 +166,6 @@ export default async function ObjectivesPage({
     status: selectedStatus,
     group: selectedGroup,
   });
-  const primaryObjectives = visibleObjectives.filter(
-    (objective) => objective.type === "primary",
-  );
-  const secondaryObjectives = visibleObjectives.filter(
-    (objective) => objective.type === "secondary",
-  );
   const groupOptions = availableGroups
     .map((group) => ({ value: group, label: groupLabels[group] ?? group }))
     .sort((left, right) => left.label.localeCompare(right.label, "fr"));
@@ -320,27 +314,16 @@ export default async function ObjectivesPage({
                 initialType={selectedType}
                 initialStatus={selectedStatus}
                 initialGroup={selectedGroup}
-                totalCount={groupProspectiveAchievementCards(objectives).length}
-                visibleCount={groupProspectiveAchievementCards(visibleObjectives).length}
+                totalCount={objectives.length}
+                visibleCount={visibleObjectives.length}
               />
             </div>
 
             <ObjectiveSection
-              eyebrow="Parcours fondateur"
-              title="Objectifs primaires"
-              description="Les quatre jalons qui installent les bases de votre carrière et débloquent rapidement vos premiers moyens."
-              objectives={primaryObjectives}
-              allObjectives={objectives}
-              returnPath={returnPath}
-              featured
-            />
-
-            <ObjectiveSection
-              eyebrow="Développement de carrière"
-              title="Objectifs secondaires"
-              description="Des paliers durables dans toutes les dimensions du club. Les niveaux supérieurs offrent les objets les plus rares."
-              objectives={secondaryObjectives}
-              allObjectives={objectives}
+              eyebrow="Catalogue"
+              title="Objectifs de carrière"
+              description="Chaque objectif a sa condition et sa récompense. Ils se récupèrent indépendamment, sans parcours supplémentaire à suivre."
+              objectives={visibleObjectives}
               returnPath={returnPath}
             />
 
@@ -377,7 +360,6 @@ function ObjectiveSection({
   title,
   description,
   objectives,
-  allObjectives,
   returnPath,
   featured = false,
 }: {
@@ -385,7 +367,6 @@ function ObjectiveSection({
   title: string;
   description: string;
   objectives: GameObjective[];
-  allObjectives: GameObjective[];
   returnPath: string;
   featured?: boolean;
 }) {
@@ -421,13 +402,12 @@ function ObjectiveSection({
           featured ? "xl:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-3"
         }`}
       >
-        {groupProspectiveAchievementCards(objectives).map((objective) => (
+        {objectives.map((objective) => (
           <ObjectiveCard
             key={objective.key}
             objective={objective}
             featured={featured}
             returnPath={returnPath}
-            familyObjectives={allObjectives.filter(candidate => getProspectiveAchievement(candidate.key)?.familyKey === getProspectiveAchievement(objective.key)?.familyKey && getProspectiveAchievement(candidate.key))}
           />
         ))}
       </div>
@@ -439,12 +419,10 @@ function ObjectiveCard({
   objective,
   featured,
   returnPath,
-  familyObjectives = [],
 }: {
   objective: GameObjective;
   featured: boolean;
   returnPath: string;
-  familyObjectives?: GameObjective[];
 }) {
   const ready = objective.completed && !objective.claimedAt;
   const claimed = Boolean(objective.claimedAt);
@@ -454,17 +432,17 @@ function ObjectiveCard({
   const groupLink =
     objective.key === "complete_tutorial"
       ? groupLinks.tutorials
+      : objective.group === "transfers" ? { href: "/jeu/transferts", label: "Voir les transferts" }
+      : /^journey_(community_days|private_contacts)_/.test(objective.key) ? { href: "/jeu/chat", label: "Ouvrir le chat et les MP" }
       : groupLinks[objective.group];
   const trophyReward = getAchievementTrophyForObjective(objective.key);
+  const achievement = getProspectiveAchievement(objective.key);
+  const outfitReward = achievement?.tier === "gold" && "cosmetic" in achievement.definition;
   const longTermTier = getGameObjectiveLongTermTier(objective.key);
-  const journey = getProspectiveAchievement(objective.key);
-  const description = journey
-    ? journey.definition.descriptions[journey.tier === "gold" ? 2 : journey.tier === "silver" ? 1 : 0] ?? journey.definition.descriptions[0]
-    : objective.description;
 
   return (
     <article
-      className={`relative flex min-h-full flex-col overflow-hidden rounded-[1.65rem] border p-5 shadow-[0_16px_42px_rgba(19,60,46,0.08)] sm:p-6 ${
+      className={`relative flex min-h-full flex-col overflow-hidden rounded-[1.65rem] border p-5 shadow-[0_16px_42px_rgba(19,60,46,0.08)] [contain-intrinsic-size:auto_28rem] [content-visibility:auto] sm:p-6 ${
         ready
           ? "border-[#D5AC18]/45 bg-[#FFFDF4] ring-2 ring-[#F2C94C]/25"
           : claimed
@@ -505,7 +483,7 @@ function ObjectiveCard({
                   : "bg-[#FFF1BF] text-[#806300]"
               }`}
             >
-              Palier {longTermTier}
+              {longTermTier === "THL" ? "Très longue durée" : "Longue durée"}
             </span>
           ) : null}
         </div>
@@ -519,9 +497,8 @@ function ObjectiveCard({
         {objective.title}
       </h3>
       <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-        {description}
+        {objective.description}
       </p>
-      <ProspectiveAchievementMilestones objective={objective} members={familyObjectives} />
 
       <div className="mt-5">
         <div className="flex items-center justify-between gap-3 text-xs font-black">
@@ -569,6 +546,9 @@ function ObjectiveCard({
               label={`Trophée · ${trophyReward.title}`}
               rare
             />
+          ) : null}
+          {outfitReward ? (
+            <RewardChip icon="★" label="Tenue d’avatar exclusive" rare />
           ) : null}
           {objective.reward.itemName ? (
             <RewardChip

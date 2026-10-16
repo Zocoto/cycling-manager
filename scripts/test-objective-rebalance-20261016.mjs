@@ -1,0 +1,111 @@
+// Executes actual task SQL and claim/progress functions in isolated PGlite.
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+const {PGlite}=await import(pathToFileURL(process.argv[2]).href);
+const db=new PGlite();let checks=0;
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const scalar=async sql=>Object.values((await db.query(sql)).rows[0])[0];
+const check=async(sql,expected)=>{const actual=await scalar(sql);assert.deepEqual(typeof expected==='number'?Number(actual):actual,expected,sql);checks++;};
+const rejects=async(sql,re)=>{await assert.rejects(db.query(sql),re);checks++;};
+const schema=JSON.parse(readFileSync('.tmp-objectives-20261016/schema.json','utf8'));
+const catalog=JSON.parse(readFileSync('.tmp-objectives-20261016/catalog.json','utf8'));
+try {
+ await db.exec(`create role anon;create role authenticated;create role service_role;create schema private;create schema auth;
+ create table teams(id uuid primary key);
+ create table sporting_directors(id uuid primary key,auth_user_id uuid,status text,experience_points int default 0,reputation_points numeric default 0);
+ create table team_manager_assignments(id uuid default gen_random_uuid(),team_id uuid,sporting_director_id uuid,status text,role text,created_at timestamptz default now());
+ create table career_achievement_progress(sporting_director_id uuid,metric_key text,subject_key text,value numeric,peak numeric,updated_at timestamptz,primary key(sporting_director_id,metric_key,subject_key));
+ create table game_objective_summary_cache(sporting_director_id uuid);
+ create table seasons(id uuid primary key,status text,current_day_number int);
+ create table season_days(id uuid primary key,season_id uuid,day_number int);
+ create table team_seasons(id uuid primary key,team_id uuid,season_id uuid,cash_balance numeric default 0);
+ create table reward_events(id uuid primary key default gen_random_uuid(),source_reference text unique,source_type text,sporting_director_id uuid,team_season_id uuid,reputation_points numeric,experience_points int,cash_prize numeric,description text);
+ create table team_finance_transactions(team_season_id uuid,season_day_id uuid,day_number int,amount numeric,category text,status text,description text,source_reference text,posted_at timestamptz);
+ create function auth.uid() returns uuid language sql stable as $$select '${id(1)}'::uuid$$;
+ create function calculate_game_objective_progress_pre_prospective(text,uuid,uuid,numeric) returns int language sql as $$select 17$$;`);
+ const tables=new Map();
+ for(const col of schema.filter(r=>r.kind==='column')) {
+  const [table,column]=col.signature.split('.');const cols=tables.get(table)??[];
+  cols.push(`"${column}" ${col.definition}${column==='id'?' default gen_random_uuid()':''}`);tables.set(table,cols);
+ }
+ for(const [table,cols] of tables)await db.exec(`create table ${table}(${cols.join(',')});`);
+ await db.exec(`alter table game_objective_definitions add primary key(objective_key);
+ alter table game_objective_claims add unique(sporting_director_id,objective_key);`);
+ await db.query(`insert into game_objective_definitions select * from jsonb_populate_recordset(null::game_objective_definitions,$1::jsonb)`,[JSON.stringify(catalog)]);
+ for(const name of ['calculate_game_objective_progress(text,uuid,uuid,numeric)','claim_current_game_objective(text)'])
+  await db.exec(schema.find(r=>r.signature===name).definition);
+ await db.exec(`insert into sporting_directors(id,auth_user_id,status) values('${id(1)}','${id(1)}','active'),('${id(2)}','${id(2)}','active'),('${id(3)}','${id(3)}','active'),('${id(4)}','${id(4)}','inactive');
+ insert into teams values('${id(11)}'),('${id(12)}'),('${id(13)}');
+ insert into team_manager_assignments(team_id,sporting_director_id,status,role) values('${id(11)}','${id(1)}','active','general_manager'),('${id(12)}','${id(2)}','active','general_manager'),('${id(13)}','${id(3)}','active','general_manager');
+ insert into seasons values('${id(20)}','active',8);insert into season_days values('${id(21)}','${id(20)}',8);
+ insert into team_seasons values('${id(22)}','${id(11)}','${id(20)}',1000);
+ insert into game_objective_claims(id,sporting_director_id,objective_key,claimed_at) values('${id(30)}','${id(1)}','first_steps',now()-interval '1 day');
+ insert into career_achievement_progress values('${id(1)}','future_natural_progress','old',3,3,now());
+ insert into global_chat_messages(id,sporting_director_id,message,created_at) values('${id(31)}','${id(1)}','An old message that must not give a reward',now()-interval '1 day');
+ insert into direct_messages(id,conversation_id,sender_id,recipient_id,body,message_type,created_at) values('${id(32)}','${id(33)}','${id(2)}','${id(1)}','Old private reply','user',now()-interval '1 day');`);
+ await db.exec(readFileSync('supabase/migrations/20261016150000_rebalance_objectives_and_social_achievements.sql','utf8'));
+ await check(`select count(*)::int from game_objective_definitions where is_active`,202);
+ await check(`select count(*)::int from private.social_achievement_receipts`,0);
+ await check(`select count(*)::int from game_objective_claims`,1);
+ await check(`select cash_balance from team_seasons`,1000);
+ await check(`select count(*)::int from reward_events`,0);
+ await check(`select peak from career_achievement_progress where metric_key='future_natural_progress'`,3);
+ await check(`select reward_cash from game_objective_definitions where objective_key='journey_three_tours_gold'`,600000);
+ await check(`select reward_cash from game_objective_definitions where objective_key='youth_promotion_10'`,200000);
+ await check(`select count(*)::int from private.objective_catalog_audit_20261016`,182);
+ await check(`select count(*)::int from private.objective_catalog_audit_20261016 where
+ before_definition->'reward_inventory_item_key' is distinct from after_definition->'reward_inventory_item_key'
+ or before_definition->'reward_random_special_ability' is distinct from after_definition->'reward_random_special_ability'
+ or before_definition->'reward_equipment_catalog_key' is distinct from after_definition->'reward_equipment_catalog_key'`,0);
+ await check(`select count(*)::int from(select lag(reward_cash) over(partition by metric_key order by target_value) prev,reward_cash from game_objective_definitions where is_active) t where reward_cash<prev`,0);
+ const progress=(metric,director=1)=>`select calculate_game_objective_progress('future_social_${metric}','${id(director)}','${id(11)}',0)`;
+ await db.exec(`insert into global_chat_messages(sporting_director_id,message,created_at) values('${id(1)}','short',clock_timestamp()),('${id(1)}','A substantial contribution to the general chat',clock_timestamp()),('${id(1)}','Another contribution on the same real day',clock_timestamp());`);
+ await check(progress('community_days'),1);
+ await db.exec(`insert into global_chat_messages(sporting_director_id,message,created_at) values('${id(1)}','A backdated message should not count at all',now()-interval '1 day');`);
+ await check(progress('community_days'),1);
+ await db.exec(`insert into direct_messages(conversation_id,sender_id,recipient_id,body,message_type,created_at) values('${id(33)}','${id(1)}','${id(2)}','A new private message','user',clock_timestamp());`);
+ await check(progress('private_contacts'),0);
+ await db.exec(`insert into direct_messages(conversation_id,sender_id,recipient_id,body,message_type,created_at) values('${id(33)}','${id(2)}','${id(1)}','A system offer message','transfer_offer',clock_timestamp());`);
+ await check(progress('private_contacts'),0);
+ await db.exec(`insert into direct_messages(conversation_id,sender_id,recipient_id,body,message_type,created_at) values('${id(33)}','${id(2)}','${id(1)}','A genuine new reply','user',clock_timestamp());`);
+ await check(progress('private_contacts'),1);await check(progress('private_contacts',2),1);
+ await db.exec(`insert into direct_messages(conversation_id,sender_id,recipient_id,body,message_type,created_at) values('${id(33)}','${id(1)}','${id(2)}','Another genuine reply','user',clock_timestamp());`);
+ await check(progress('private_contacts'),1);
+ for(let n=40;n<43;n++) await db.exec(`insert into direct_transfer_offers(id,rider_id,buyer_team_id,seller_team_id,offered_amount,status,created_at) values('${id(n)}','${id(80)}','${id(11)}','${id(12)}',5000,'pending',clock_timestamp());`);
+ await check(progress('transfer_sent'),1);await check(progress('transfer_received',2),1);
+ await db.exec(`update direct_transfer_offers set status='accepted',responded_at=clock_timestamp() where id='${id(40)}';`);
+ await check(progress('first_deal'),1);
+ await db.exec(`update direct_transfer_offers set status='accepted' where id='${id(40)}';`);
+ await check(progress('first_deal'),1);
+ await db.exec(`insert into direct_transfer_offers(rider_id,buyer_team_id,seller_team_id,offered_amount,status,created_at) values('${id(81)}','${id(13)}','${id(12)}',5000,'pending',clock_timestamp());`);
+ await check(progress('transfer_received',2),2);
+ await db.exec(`insert into post_race_interviews(id,sporting_director_id,status,submitted_at) values('${id(90)}','${id(2)}','submitted',now()-interval '1 day');
+ insert into post_race_interview_answer_reactions(interview_id,sporting_director_id,question_id,emoji,created_at) values('${id(90)}','${id(1)}','q1','❤️',clock_timestamp()),('${id(90)}','${id(1)}','q2','👏',clock_timestamp()),('${id(90)}','${id(2)}','q1','❤️',clock_timestamp());`);
+ await check(progress('interview_support_given'),1);await check(progress('interview_support_received',2),1);
+ await db.exec(`delete from post_race_interview_answer_reactions where sporting_director_id='${id(1)}';
+ insert into post_race_interview_answer_reactions(interview_id,sporting_director_id,created_at) values('${id(90)}','${id(1)}',clock_timestamp());`);
+ await check(progress('interview_support_given'),1);
+ await db.exec(`insert into cyclogazette_comments(sporting_director_id,message,created_at) values('${id(1)}','A meaningful comment about the daily race results',clock_timestamp()),('${id(1)}','Another meaningful comment on the same day',clock_timestamp());`);
+ await check(progress('gazette_days'),1);
+ await db.exec(`insert into cyclogazette_game_completions(sporting_director_id,game_type,completed_at) values('${id(1)}','sudoku',clock_timestamp()),('${id(1)}','sudoku',clock_timestamp()),('${id(1)}','crossword',clock_timestamp());`);
+ await check(progress('game_variety'),2);
+ await db.exec(`insert into post_race_interviews(id,sporting_director_id,status,submitted_at) values('${id(91)}','${id(1)}','submitted',clock_timestamp());update post_race_interviews set status='submitted' where id='${id(91)}';`);
+ await check(progress('interview_regular'),1);
+ await db.query(`select claim_current_game_objective('journey_community_days_bronze')`);
+ await check(`select cash_balance from team_seasons`,6000);
+ await check(`select count(*)::int from game_objective_claims`,2);
+ await rejects(`select claim_current_game_objective('journey_community_days_bronze')`,/déjà été récupérée/);
+ await check(`select count(*)::int from team_finance_transactions`,1);
+ await rejects(`select claim_current_game_objective('journey_community_days_gold')`,/pas encore terminé/);
+ await check(`select has_function_privilege('authenticated','private.record_social_achievement(uuid,text,text,timestamptz)','execute')`,false);
+ await check(`select has_table_privilege('authenticated','private.social_achievement_receipts','insert')`,false);
+ await check(`select calculate_game_objective_progress('legacy','${id(1)}','${id(11)}',0)`,17);
+ await db.exec(`insert into global_chat_messages(sporting_director_id,message,created_at) values('${id(4)}','An inactive director cannot farm rewards',clock_timestamp());`);
+ await check(progress('community_days',4),0);
+ await check(`select count(*)::int from private.objective_catalog_audit_20261016 where (before_definition->>'target_value')::int<>(after_definition->>'target_value')::int`,0);
+ await check(`select count(*)::int from game_objective_definitions where metric_key like 'future_social_%' and objective_type<>'secondary'`,0);
+ await check(`select count(*)::int from game_objective_definitions where metric_key like 'future_social_%' and (title ilike '%bronze%' or title ilike '%argent%' or title ilike '%parcours%')`,0);
+ console.log(JSON.stringify({isolated:true,checks,allPassed:true}));
+} catch(error){console.error(JSON.stringify({checks,error:error.message,where:error.where,query:error.query?.slice(0,350)}));process.exitCode=1;}
+finally{await db.close();}
