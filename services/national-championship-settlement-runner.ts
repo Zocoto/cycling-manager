@@ -24,7 +24,7 @@ export function getDueNationalEditionIds(editions: NationalEdition[], now: Date)
 // Loading all 174 startlists first overflowed PostgREST URL/row limits and
 // aborted both CN crons before a single country could be homologated.
 export async function settleDueNationalChampionshipResults({
-  seasonId, competitionType, now = new Date(), maxEditions = 16, timeBudgetMs = 180_000,
+  seasonId, competitionType, now = new Date(), maxEditions = 48, timeBudgetMs = 180_000,
 }: {
   seasonId: string;
   competitionType: "national_time_trial" | "national_road";
@@ -69,6 +69,13 @@ export async function settleDueNationalChampionshipResults({
         result.processedStages += settled.processedStages;
         result.completedEditions += settled.completedEditions;
         result.failedEditions += settled.failedEditions;
+        if (settled.failedEditions === 0 && settled.completedEditions === 0) {
+          // A previous invocation may have committed the full classification
+          // but failed the final edition UPDATE. Count its successful closure.
+          const state = await admin.from("race_editions").select("status").eq("id",id).maybeSingle<{status:string}>();
+          if (state.error) throw new Error(state.error.message);
+          if (state.data?.status === "completed") result.completedEditions++;
+        }
       }
     } catch (error) {
       result.failedEditions++;

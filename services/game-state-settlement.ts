@@ -28,6 +28,7 @@ type MaintenanceRunRow = {
 export type GameMaintenanceHealth = {
   checkedAt: string;
   healthy: boolean;
+  nationalChampionships: {healthy:boolean;timeTrialOverdue:number;roadOverdue:number;error:string|null};
   seasonRollover: {
     healthy: boolean;
     activeSeasonCount: number;
@@ -218,6 +219,14 @@ export async function getGameMaintenanceHealth(
     provisionalDivisionCount: Number(rolloverData.provisionalDivisionCount ?? 0),
     error: rollover.error?.message ?? null,
   };
+  const cnHealth = await admin.rpc("get_national_championship_settlement_health", {p_now:now.toISOString()});
+  const cnData = isRecord(cnHealth.data) ? cnHealth.data : {};
+  const nationalChampionships: GameMaintenanceHealth["nationalChampionships"] = {
+    healthy:!cnHealth.error && cnData.healthy === true,
+    timeTrialOverdue:Number(cnData.timeTrialOverdue ?? 0),
+    roadOverdue:Number(cnData.roadOverdue ?? 0),
+    error:cnHealth.error?.message ?? null,
+  };
   const tasks: GameMaintenanceHealth["tasks"] = GAME_MAINTENANCE_TASKS.map((task) => {
     const row = rowsByTask.get(task);
     const lastSucceededAt = row?.last_succeeded_at ?? null;
@@ -240,11 +249,12 @@ export async function getGameMaintenanceHealth(
 
   return {
     checkedAt: now.toISOString(),
-    healthy: seasonRollover.healthy && tasks.every(
+    healthy: nationalChampionships.healthy && seasonRollover.healthy && tasks.every(
       (task) => task.status === "succeeded" && !task.stale,
     ),
     tasks,
     seasonRollover,
+    nationalChampionships,
   };
 }
 

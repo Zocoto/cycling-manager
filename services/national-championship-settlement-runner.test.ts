@@ -55,7 +55,7 @@ describe("bounded national championship settlement",()=>{
       return {processedStages:1,completedEditions:1,failedEditions:0};
     });
     let completed=0;
-    for(let batch=0;batch<11;batch++) completed+=(await settleDueNationalChampionshipResults({seasonId:"s4",competitionType:"national_time_trial",now})).completedEditions;
+    for(let batch=0;batch<11;batch++) completed+=(await settleDueNationalChampionshipResults({seasonId:"s4",competitionType:"national_time_trial",now,maxEditions:16})).completedEditions;
     expect(completed).toBe(174);expect(mocks.metadata).toEqual([]);
     expect(new Set(mocks.calendar.mock.calls.map(c=>c[2].raceEditionIds[0])).size).toBe(174);
   });

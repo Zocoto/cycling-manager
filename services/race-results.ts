@@ -307,7 +307,7 @@ export async function settleFinishedRaceResults(
     (settlement) => settlement.needsDeferredConditionSettlement,
   );
 
-  if (needsDeferredConditionSettlement) {
+  if (needsDeferredConditionSettlement || nationalChampionshipEditions.length > 0) {
     // Never scan every finished race after a CN batch. The existing scoped
     // ledger is idempotent and also repairs a country interrupted after results.
     for (const edition of nationalChampionshipEditions) {

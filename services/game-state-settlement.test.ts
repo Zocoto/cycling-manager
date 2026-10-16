@@ -40,4 +40,11 @@ describe("season rollover maintenance health", () => {
     expect(health.healthy).toBe(false);
     expect(health.seasonRollover.error).toBe("unavailable");
   });
+  it("rejects overdue CN even when maintenance jobs and the season clock are healthy",async()=>{
+    rpc.mockImplementation(async(name)=>({error:null,data:name === "get_national_championship_settlement_health"
+      ? {healthy:false,timeTrialOverdue:12,roadOverdue:0} : {healthy:true,activeSeasonCount:1}}));
+    const health=await getGameMaintenanceHealth(new Date("2026-10-09T06:10:00Z"));
+    expect(health.healthy).toBe(false);
+    expect(health.nationalChampionships.timeTrialOverdue).toBe(12);
+  });
 });

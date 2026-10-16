@@ -29,5 +29,9 @@ try{
   check(await rows(`select * from get_due_national_championship_edition_ids('${id(1)}','standard')`),[]);
   check(await rows(`select * from get_due_national_championship_edition_ids('${id(1)}','national_road')`),[]);
   check((await rows(`select has_function_privilege('authenticated','get_due_national_championship_edition_ids(uuid,text,timestamptz)','execute') ok`))[0].ok,false);
+  await db.exec(await readFile(new URL('../supabase/migrations/20261016213000_monitor_national_championship_backlog.sql',import.meta.url),'utf8'));
+  check((await rows('select get_national_championship_settlement_health() health'))[0].health.healthy,false);
+  await db.exec(`update race_editions set status='completed' where id='${id(10)}'`);
+  check((await rows('select get_national_championship_settlement_health() health'))[0].health.healthy,true);
   console.log(JSON.stringify({isolated:true,assertions,recoverCompletedConditions:true,futureRoadExcluded:true}));
 }finally{await db.close();}
