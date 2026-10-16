@@ -168,10 +168,15 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Dès J1");
     expect(markup).toContain("Championnats continentaux");
     expect(markup).toContain("Nations Cup");
-    expect(markup).toContain("Nations Cup juniors");
+    expect(markup).toContain("Championnats continentaux juniors");
+    expect(markup).toContain("Championnats du monde juniors");
+    expect(markup).not.toContain("Nations Cup juniors");
+    expect(markup.match(/data-selection-competition=/g)).toHaveLength(5);
+    expect(markup).toContain("La composition des listes est verrouillée en mode automatique");
     expect(markup).toContain("Sélection automatique");
-    expect(markup).toContain('name="automatic"');
-    expect(markup).toContain('checked=""');
+    const automaticControl = markup.match(/<input[^>]*name="automatic"[^>]*>/)?.[0];
+    expect(automaticControl).toContain('checked=""');
+    expect(automaticControl).toContain('disabled=""');
     expect(markup).toContain("<fieldset disabled");
     expect(markup).toContain("Championnats du monde");
     expect(markup).toContain("Nationalité verrouillée");

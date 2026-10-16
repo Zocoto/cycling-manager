@@ -265,12 +265,66 @@ export async function getPublicTeam(
 
 export async function getPublicCountryDirectory(
   supabase: SupabaseServerClient,
-  countryCode: string
+  countryCode: string,
+  {
+    includeMembers = true,
+    includePresident = true,
+  }: {
+    includeMembers?: boolean;
+    includePresident?: boolean;
+  } = {},
 ): Promise<PublicCountryDirectory | null> {
   const normalizedCode = countryCode.trim().toLowerCase();
 
   if (!/^[a-z]{2,3}$/.test(normalizedCode)) {
     return null;
+  }
+
+  // Most management tabs only need the country's identity. Do not run the
+  // global search (riders, historic team names and portrait/division enrichment)
+  // when none of its member results will be rendered.
+  if (!includeMembers) {
+    const countryResult = await supabase
+      .from("countries")
+      .select("id, name, iso_alpha2")
+      .eq(
+        normalizedCode.length === 3 ? "iso_alpha3" : "iso_alpha2",
+        normalizedCode.toUpperCase(),
+      )
+      .eq("is_active", true)
+      .maybeSingle<CountryRow & { id: string }>();
+    assertDirectoryQuery(countryResult.error, "le pays de la fédération");
+    if (!countryResult.data) return null;
+
+    const row = countryResult.data;
+    const country: GlobalSearchResult = {
+      result_type: "country",
+      entity_id: row.id,
+      public_identifier: row.iso_alpha2.toLowerCase(),
+      display_name: row.name,
+      avatar_key: null,
+      avatar_frame_key: null,
+      reputation_points: null,
+      country_code: row.iso_alpha2,
+      country_name: row.name,
+      team_name: null,
+      team_id: null,
+      division_code: null,
+      division_name: null,
+      is_professional: null,
+      sponsor_name: null,
+      sporting_director_username: null,
+      sporting_director_name: null,
+      sporting_director_count: null,
+      team_count: null,
+    };
+    return {
+      country,
+      members: groupGlobalSearchResults([country]),
+      president: includePresident
+        ? await getPublicCountryPresident(row.id)
+        : null,
+    };
   }
 
   const results = await searchGameDirectory(
@@ -293,7 +347,9 @@ export async function getPublicCountryDirectory(
       result.country_code.toLowerCase() ===
       country.country_code.toLowerCase()
   );
-  const president = await getPublicCountryPresident(country.entity_id);
+  const president = includePresident
+    ? await getPublicCountryPresident(country.entity_id)
+    : null;
 
   return {
     country,

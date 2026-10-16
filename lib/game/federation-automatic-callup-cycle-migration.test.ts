@@ -79,9 +79,21 @@ describe("automatic international federation call-ups", () => {
   });
 
   it("refills and synchronizes only the affected list after a call-up response", () => {
-    expect(federationActions).toContain(
-      "await syncFederationChampionshipStartlists();",
+    const responseAction = federationActions
+      .split("export async function respondFederationPreselectionAction(")[1]
+      .split("function revalidateFederation(")[0];
+    expect(responseAction).toContain(
+      '"respond_to_national_federation_preselection"',
     );
+    expect(responseAction).toContain("p_member_id: memberId.data");
+    expect(responseAction).toContain('p_accept: decision.data === "confirm"');
+    expect(responseAction).toContain("revalidateFederation(countryCode.data)");
+    expect(responseAction).toContain('revalidatePath("/jeu/courses/[slug]", "page")');
+    expect(federationActions).not.toContain("syncFederationChampionshipStartlists");
+    expect(callupActions).toContain(
+      'supabase.rpc("respond_to_national_federation_preselection",',
+    );
+    expect(callupActions).toContain("p_member_id: input.data.memberId");
     expect(callupActions).not.toContain(
       "syncDueNationalFederationChampionshipLineups",
     );

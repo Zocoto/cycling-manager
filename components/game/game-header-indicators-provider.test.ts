@@ -59,7 +59,10 @@ describe("game header indicators provider", () => {
   });
 
   it("coalesces bursts and ignores stale refreshes", () => {
-    expect(provider).toContain("if (refreshTimer !== null) window.clearTimeout(refreshTimer)");
+    expect(provider).toContain("createVisibleRefreshScheduler({");
+    expect(provider).toContain('isVisible: () => document.visibilityState === "visible"');
+    expect(provider).toContain("refreshScheduler.request(delayMs)");
+    expect(provider).toContain("refreshScheduler.dispose()");
     expect(provider).toContain("requestVersion !== requestVersionRef.current");
   });
 

@@ -167,10 +167,14 @@ export async function getNationalFederationSnapshot({
   countryId,
   countryCode,
   viewerTeamId,
+  includeChampions = true,
+  includeAcademies = true,
 }: {
   countryId: string;
   countryCode: string;
   viewerTeamId: string | null;
+  includeChampions?: boolean;
+  includeAcademies?: boolean;
 }): Promise<NationalFederationSnapshot> {
   const admin = createSupabaseAdminClient();
   const seasonResult = await admin
@@ -195,30 +199,36 @@ export async function getNationalFederationSnapshot({
     accountResult,
   ] =
     await Promise.all([
-      admin
-        .from("rider_national_championship_titles")
-        .select(
-          "rider_id, season_id, championship_type, won_at, relinquished_at",
-        )
-        .eq("country_id", countryId)
-        .in("championship_type", ["road", "time_trial"])
-        .order("won_at", { ascending: false })
-        .returns<ProfessionalTitleRow[]>(),
-      admin
-        .from("junior_championship_titles")
-        .select("academy_rider_id, season_id, championship_type, won_at")
-        .eq("country_code", countryCode.trim().toUpperCase())
-        .eq("title_level", "national")
-        .order("won_at", { ascending: false })
-        .returns<JuniorTitleRow[]>(),
-      admin
-        .from("international_youth_centers")
-        .select(
-          "team_id, quality_level, efficiency_bonus_percentage, completed_at",
-        )
-        .eq("country_id", countryId)
-        .order("quality_level", { ascending: false })
-        .returns<AcademyRow[]>(),
+      includeChampions
+        ? admin
+            .from("rider_national_championship_titles")
+            .select(
+              "rider_id, season_id, championship_type, won_at, relinquished_at",
+            )
+            .eq("country_id", countryId)
+            .in("championship_type", ["road", "time_trial"])
+            .order("won_at", { ascending: false })
+            .returns<ProfessionalTitleRow[]>()
+        : Promise.resolve({ data: [] as ProfessionalTitleRow[], error: null }),
+      includeChampions
+        ? admin
+            .from("junior_championship_titles")
+            .select("academy_rider_id, season_id, championship_type, won_at")
+            .eq("country_code", countryCode.trim().toUpperCase())
+            .eq("title_level", "national")
+            .order("won_at", { ascending: false })
+            .returns<JuniorTitleRow[]>()
+        : Promise.resolve({ data: [] as JuniorTitleRow[], error: null }),
+      includeAcademies
+        ? admin
+            .from("international_youth_centers")
+            .select(
+              "team_id, quality_level, efficiency_bonus_percentage, completed_at",
+            )
+            .eq("country_id", countryId)
+            .order("quality_level", { ascending: false })
+            .returns<AcademyRow[]>()
+        : Promise.resolve({ data: [] as AcademyRow[], error: null }),
       viewerTeamId
         ? admin
             .from("team_seasons")

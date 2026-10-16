@@ -72,8 +72,17 @@ export default async function FederationPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
+  const selectedTab = parseNationalFederationTab(query.onglet);
+  const needsMemberDirectory =
+    selectedTab === "overview" ||
+    selectedTab === "races" ||
+    selectedTab === "finances";
   const [directory, headerData] = await Promise.all([
-    getPublicCountryDirectory(supabase, codePays),
+    getPublicCountryDirectory(supabase, codePays, {
+      includeMembers: needsMemberDirectory,
+      // The management snapshot already loads the presidency used on this page.
+      includePresident: false,
+    }),
     getGameHeaderData(supabase, user.id),
   ]);
 
@@ -93,7 +102,6 @@ export default async function FederationPage({
     redirect(`/jeu/nations/${country.country_code.toLowerCase()}`);
   }
 
-  const selectedTab = parseNationalFederationTab(query.onglet);
   const equipmentView =
     readSingleSearchParam(query.volet) === "preparation"
       ? "preparation"
@@ -105,6 +113,9 @@ export default async function FederationPage({
       countryId: country.entity_id,
       countryCode: country.country_code,
       viewerTeamId: headerData.teamId,
+      includeChampions: selectedTab === "overview",
+      includeAcademies:
+        selectedTab === "overview" || selectedTab === "infrastructures",
     }),
   ]);
   const [

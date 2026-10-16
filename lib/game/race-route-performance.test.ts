@@ -48,4 +48,12 @@ describe("race route performance", () => {
     expect(stagePage).toContain("[stage.id]");
     expect(stageExperience).toContain("waitingForSimulation ? 15_000 : 5_000");
   });
+
+  it("does not refresh a hidden race page or overlap a pending route refresh", () => {
+    expect(stageExperience).toContain('if (document.visibilityState !== "visible") return;');
+    expect(stageExperience).toMatch(/!simulationAvailable\s*\|\|\s*isRefreshPending\s*\|\|/);
+    expect(stageExperience).toContain('document.addEventListener("visibilitychange", refreshWhenVisible)');
+    expect(stageExperience).toContain('document.removeEventListener("visibilitychange", refreshWhenVisible)');
+    expect(stageExperience).toMatch(/\}, \[\s*isRefreshPending,/);
+  });
 });

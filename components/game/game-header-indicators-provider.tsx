@@ -16,6 +16,7 @@ import {
 } from "@/lib/game/director-mailbox-sync";
 import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
+import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
 
 type SupabaseBrowserClient = ReturnType<
   (typeof import("@/lib/supabase/client"))["createSupabaseBrowserClient"]
@@ -57,8 +58,18 @@ export function GameHeaderIndicatorsProvider({
 
   useEffect(() => {
     let active = true;
-    let refreshTimer: number | null = null;
     let supabase: SupabaseBrowserClient | null = null;
+    let subscribedChannel: ReturnType<SupabaseBrowserClient["channel"]> | null = null;
+    const refreshScheduler = createVisibleRefreshScheduler({
+      isVisible: () => document.visibilityState === "visible",
+      refresh: async () => {
+        if (!supabase) return;
+        const row = await refreshIndicators();
+        if (active && row?.current_sporting_director_id && !subscribedChannel) {
+          subscribeToIndicators(row);
+        }
+      },
+    });
 
     async function refreshIndicators() {
       if (!supabase) return null;
@@ -92,11 +103,7 @@ export function GameHeaderIndicatorsProvider({
     }
 
     function scheduleRefresh(delayMs = 150) {
-      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
-      refreshTimer = window.setTimeout(() => {
-        refreshTimer = null;
-        void refreshIndicators();
-      }, delayMs);
+      refreshScheduler.request(delayMs);
     }
 
     function refreshWhenVisible() {
@@ -158,8 +165,6 @@ export function GameHeaderIndicatorsProvider({
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
-    let subscribedChannel: ReturnType<SupabaseBrowserClient["channel"]> | null = null;
-
     async function initialize() {
       const { createSupabaseBrowserClient } = await import(
         "@/lib/supabase/client"
@@ -167,8 +172,11 @@ export function GameHeaderIndicatorsProvider({
       if (!active) return;
 
       supabase = createSupabaseBrowserClient();
-      const row = await refreshIndicators();
-      if (!active || !supabase) return;
+      scheduleRefresh(0);
+    }
+
+    function subscribeToIndicators(row: GameHeaderIndicatorsRow | null) {
+      if (!supabase) return;
 
       let channel = supabase
         .channel("game-header-indicators:v2")
@@ -251,7 +259,7 @@ export function GameHeaderIndicatorsProvider({
     return () => {
       active = false;
       requestVersionRef.current += 1;
-      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      refreshScheduler.dispose();
       window.removeEventListener(
         DIRECTOR_MAILBOX_CHANGED_EVENT,
         handleDirectorMailboxChanged,

@@ -31,8 +31,9 @@ describe("Bureau du Directeur Sportif allégé", () => {
   });
 
   it("scinde la tuile fédération avec la Nations Cup à J24 et J25", () => {
-    expect(dashboard).toContain(
-      "teamSummary?.season_day_number === 24\n                || teamSummary?.season_day_number === 25",
+    const visibilityCondition = dashboard.match(/showNationsCup=\{([\s\S]*?)\}/)?.[1] ?? "";
+    expect(visibilityCondition).toMatch(
+      /^\s*teamSummary\?\.season_day_number\s*===\s*24\s*\|\|\s*teamSummary\?\.season_day_number\s*===\s*25\s*$/,
     );
     expect(dashboard).toContain('data-dashboard-nations-cup="j24-j25"');
     expect(dashboard).toContain(

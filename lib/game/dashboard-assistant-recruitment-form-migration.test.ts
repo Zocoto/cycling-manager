@@ -43,9 +43,18 @@ describe("dashboard recruitment and form alerts migration", () => {
   it("keeps recruitment counters in the existing assistant RPC payload", () => {
     expect(migration).toContain("'riderRecruitmentMatchCount'");
     expect(migration).toContain("'staffRecruitmentMatchCount'");
-    expect(service).toContain(
+    const assistantCore = service
+      .split("async function readAssistantCore(")[1]
+      .split("export function getCurrentDashboardAssistantSummaries(")[0];
+    expect(assistantCore).toContain(
       '.rpc("get_current_dashboard_assistant_summary")',
     );
-    expect(service.match(/\.rpc\(/g)).toHaveLength(1);
+    expect(assistantCore.match(/\.rpc\(/g)).toHaveLength(1);
+    expect(service).toContain(
+      "riderRecruitmentMatchCount: assistantPayload.riderRecruitmentMatchCount",
+    );
+    expect(service).toContain(
+      "staffRecruitmentMatchCount: assistantPayload.staffRecruitmentMatchCount",
+    );
   });
 });

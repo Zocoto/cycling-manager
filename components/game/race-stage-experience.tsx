@@ -140,16 +140,31 @@ export function RaceStageExperience({
   );
 
   useEffect(() => {
-    if (!simulationAvailable || (!waitingForResults && !waitingForSimulation)) {
+    if (
+      !simulationAvailable ||
+      isRefreshPending ||
+      (!waitingForResults && !waitingForSimulation)
+    ) {
       return;
     }
 
-    const refreshTimer = window.setInterval(() => {
+    function refreshWhenVisible() {
+      if (document.visibilityState !== "visible") return;
       startRefreshTransition(() => router.refresh());
-    }, waitingForSimulation ? 15_000 : 5_000);
+    }
 
-    return () => window.clearInterval(refreshTimer);
+    const refreshTimer = window.setInterval(
+      refreshWhenVisible,
+      waitingForSimulation ? 15_000 : 5_000,
+    );
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [
+    isRefreshPending,
     router,
     simulationAvailable,
     waitingForResults,
