@@ -101,6 +101,16 @@ export async function runGameMaintenanceTask(
         ...(isRecord(result.data) ? result.data : {}),
         youth_training: youthTraining,
       };
+    } else if (task === "staff-academy") {
+      // Reuse the existing 15-minute staff cadence: daily income must not
+      // depend on a page visit or on the single nightly fallback (200/call).
+      const financialIncome = await admin.rpc("settle_due_financial_director_income")
+        .abortSignal(AbortSignal.timeout(6000));
+      assertSettlement(financialIncome.error, "les recettes du Directeur financier");
+      resolvedResult = {
+        ...(isRecord(result.data) ? result.data : {}),
+        financial_director_income: financialIncome.data,
+      };
     } else if (task === "health") {
       const rosterRotation = await admin.rpc(
         "settle_due_roster_rotation_recovery",
