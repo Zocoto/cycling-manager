@@ -1,7 +1,7 @@
 import "server-only";
 
 import { buildDevelopmentRaceDisplaySegments } from "@/lib/game/development-race-profile";
-import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_SLOT } from "@/lib/game/federation-olympic-programme";
+import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_SLOT, OLYMPIC_TIME_TRIAL_SLOT } from "@/lib/game/federation-olympic-programme";
 import type { RaceFormat, RaceProfileType, RaceStageType } from "@/lib/game/race-calendar";
 import {
   ensureCompleteRaceSegments,
@@ -232,8 +232,8 @@ async function loadOfficialInternationalStages({
       .eq("country_id", federationCountryId)
       .maybeSingle<NationsCupAssignmentRow>(),
     slots.some((slot) => slot.slotKey === OLYMPIC_ROAD_SLOT && slot.profileLabel === "Mixte")
-      ? admin.from("national_federation_olympic_events").select("race_edition_id")
-          .eq("season_id", seasonId).maybeSingle<{ race_edition_id: string }>()
+      ? admin.from("national_federation_olympic_events").select("race_edition_id,time_trial_race_edition_id")
+          .eq("season_id", seasonId).maybeSingle<{ race_edition_id: string; time_trial_race_edition_id: string | null }>()
       : Promise.resolve({ data: null, error: null }),
   ]);
   if (racesResult.error) throw racesResult.error;
@@ -269,7 +269,12 @@ async function loadOfficialInternationalStages({
       )
       .map((heat) => [heat.slot_key, heat.race_edition_id]),
   );
-  if (olympicEventResult.data) nationsCupEditionBySlot.set(OLYMPIC_ROAD_SLOT, olympicEventResult.data.race_edition_id);
+  if (olympicEventResult.data) {
+    nationsCupEditionBySlot.set(OLYMPIC_ROAD_SLOT, olympicEventResult.data.race_edition_id);
+    if (olympicEventResult.data.time_trial_race_edition_id) {
+      nationsCupEditionBySlot.set(OLYMPIC_TIME_TRIAL_SLOT, olympicEventResult.data.time_trial_race_edition_id);
+    }
+  }
   const juniorEditions = (juniorEditionsResult.data ?? []).filter(
     (edition) => !edition.competition_type.startsWith("continental_") ||
       edition.championship_continent_code === federationContinentCode,

@@ -26,6 +26,7 @@ export type FederationPendingConfirmation = {
 
 export type FederationSelectionState = {
   olympicQuota?: number;
+  olympicTimeTrialQuota?: number;
   canManage: boolean;
   automaticSelection: boolean;
   competitionHosts: Partial<
@@ -132,9 +133,9 @@ export async function getFederationSelectionState({
         .select("slot_key, competition_code, rider_category")
         .returns<SlotRow[]>(),
       gameYear >= 4 && gameYear % 4 === 0
-        ? admin.from("national_federation_olympic_qualifications").select("rider_quota")
+        ? admin.from("national_federation_olympic_qualifications").select("rider_quota,time_trial_rider_quota")
             .eq("season_id", seasonId).eq("country_id", countryId)
-            .maybeSingle<{ rider_quota: number }>()
+            .maybeSingle<{ rider_quota: number; time_trial_rider_quota: number }>()
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -238,6 +239,7 @@ export async function getFederationSelectionState({
 
     return {
       olympicQuota: gameYear >= 4 && gameYear % 4 === 0 ? olympicResult.data?.rider_quota ?? 0 : undefined,
+      olympicTimeTrialQuota: gameYear >= 4 && gameYear % 4 === 0 ? olympicResult.data?.time_trial_rider_quota ?? 0 : undefined,
       canManage:
         gameYear >= 3 &&
         Boolean(assignmentResult.data?.sporting_director_id) &&

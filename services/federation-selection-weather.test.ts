@@ -147,16 +147,19 @@ describe("official federation selection courses", () => {
     }
   });
 
-  it("only loads the road forecast at the Olympics, keeping the junior programme", async () => {
+  it("loads both Olympic disciplines without additional registry queries", async () => {
     database.rows.national_federation_selection_slots = [
-      ...["nc-mountain","nc-hills","nc-sprint","nc-cobbles","nc-time-trial"].map(key=>slot(key,"nations_cup","Vallons")),
+      ...["nc-mountain","nc-hills","nc-sprint","nc-cobbles","nc-time-trial"].map(key=>slot(key,"nations_cup",key === "nc-time-trial" ? "Chrono" : "Vallons")),
       slot("nc-junior-road","nations_cup_junior","Route","junior"),
     ];
     proRace("olympic-global", "nations_cup", null);
     stage("olympic-stage", "olympic-global", "mixed");
-    database.rows.national_federation_olympic_events = [{ season_id: "s3", race_edition_id: "olympic-global-edition" }];
+    proRace("olympic-clm", "nations_cup", null);
+    stage("olympic-clm-stage", "olympic-clm", "time_trial", "individual_time_trial");
+    database.rows.national_federation_olympic_events = [{ season_id: "s3", race_edition_id: "olympic-global-edition", time_trial_race_edition_id: "olympic-clm-edition" }];
     const forecasts = await getFederationSelectionForecasts({countryId:"nl",seasonId:"s3",gameYear:4,currentDayNumber:1});
-    expect(Object.keys(forecasts).sort()).toEqual(["nc-hills"]);
+    expect(Object.keys(forecasts).sort()).toEqual(["nc-hills", "nc-time-trial"]);
+    expect(forecasts["nc-time-trial"].course).toMatchObject({ stageId: "olympic-clm-stage", stageType: "individual_time_trial", href: "/jeu/courses/olympic-clm" });
     expect(forecasts["nc-hills"].slotKey).toBe("nc-hills");
     expect(forecasts["nc-hills"].weather).toBeNull();
     expect(forecasts["nc-hills"].course).toMatchObject({ stageId: "olympic-stage", href: "/jeu/courses/olympic-global" });

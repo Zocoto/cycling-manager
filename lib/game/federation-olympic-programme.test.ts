@@ -39,15 +39,16 @@ describe("single Olympic road programme", () => {
       expect(getFederationSelectionSlots(year).filter(slot => slot.competitionId === "nations-pro")).toHaveLength(5);
     }
   });
-  it("exposes one hybrid slot, with no Olympic time trial, without touching juniors/CC/CM", () => {
+  it("exposes road and time trial with independent quotas, without touching juniors/CC/CM", () => {
     for (const year of [4,8]) {
-      const slots = getFederationSelectionSlots(year, 8);
+      const slots = getFederationSelectionSlots(year, 8, 2);
       expect(slots.filter(slot => slot.competitionId === "nations-pro")).toMatchObject([
         {id:"nc-hills",label:"Jeux quadriennaux · Course en ligne",limit:8,nationsCupProfile:"Polyvalent"},
+        {id:"nc-time-trial",label:"Jeux quadriennaux · Contre-la-montre",limit:2,nationsCupProfile:"Chrono"},
       ]);
-      expect(getProfessionalNationsEventCount(year)).toBe(1);
+      expect(getProfessionalNationsEventCount(year)).toBe(2);
       expect(slots.filter(slot => slot.competitionId !== "nations-pro")).toEqual(getFederationSelectionSlots(3).filter(slot => slot.competitionId !== "nations-pro"));
-      expect(isFederationSelectionSlotAvailable("nc-time-trial",year)).toBe(false);
+      expect(isFederationSelectionSlotAvailable("nc-time-trial",year)).toBe(true);
       expect(isFederationSelectionSlotAvailable("nc-junior-road",year)).toBe(false);
     }
   });

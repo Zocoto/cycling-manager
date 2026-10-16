@@ -23,7 +23,7 @@ import { GamesColors } from "@/components/game/quadrennial-games-banner";
 import gamesTile from "./games-tile.module.css";
 import { getFederationPreselectionAvailabilityMessage } from "@/lib/game/federation-callups";
 import type { FederationHostingEventType } from "@/lib/game/federation-hosting";
-import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_LABEL } from "@/lib/game/federation-olympic-programme";
+import { isFederationSelectionSlotAvailable, isOlympicSeason, OLYMPIC_ROAD_LABEL, OLYMPIC_TIME_TRIAL_LABEL, OLYMPIC_TIME_TRIAL_SLOT } from "@/lib/game/federation-olympic-programme";
 import type { FederationSelectionForecast } from "@/lib/game/federation-selection-weather";
 import {
   FEDERATION_SELECTION_SORT_OPTIONS,
@@ -96,24 +96,24 @@ function getFederationSelectionCompetitions(
   return [
     { id: "continental-pro", day: 15, name: "Championnats continentaux", detail: "Professionnels · en ligne et contre-la-montre" },
     { id: "continental-junior", day: 15, name: "Championnats continentaux juniors", detail: "Juniors · en ligne et contre-la-montre" },
-    { id: "nations-pro", day: 24, name: quadriennialSeason ? "Jeux quadriennaux" : "Nations Cup", detail: quadriennialSeason ? "Une course en ligne · montagne, vallons, pavés et final plat" : "Cinq épreuves · classement de division et de groupe" },
+    { id: "nations-pro", day: 24, name: quadriennialSeason ? "Jeux quadriennaux" : "Nations Cup", detail: quadriennialSeason ? "Course en ligne et contre-la-montre · quotas propres à chaque épreuve" : "Cinq épreuves · classement de division et de groupe" },
     { id: "world-pro", day: 26, name: "Championnats du monde", detail: "Professionnels · en ligne et contre-la-montre" },
     { id: "world-junior", day: 26, name: "Championnats du monde juniors", detail: "Juniors · en ligne et contre-la-montre" },
   ];
 }
 
-export function getFederationSelectionSlots(gameYear: number, olympicQuota = 0): SelectionSlot[] {
+export function getFederationSelectionSlots(gameYear: number, olympicQuota = 0, olympicTimeTrialQuota = 0): SelectionSlot[] {
   if (!isOlympicSeason(gameYear)) return SELECTION_SLOTS;
 
   return SELECTION_SLOTS.filter((slot) => isFederationSelectionSlotAvailable(slot.id, gameYear)).map((slot) =>
     slot.category === "professional" && slot.competition === "Nations Cup"
       ? {
           ...slot,
-          limit: olympicQuota,
-          label: OLYMPIC_ROAD_LABEL,
+          limit: slot.id === OLYMPIC_TIME_TRIAL_SLOT ? olympicTimeTrialQuota : olympicQuota,
+          label: slot.id === OLYMPIC_TIME_TRIAL_SLOT ? OLYMPIC_TIME_TRIAL_LABEL : OLYMPIC_ROAD_LABEL,
           competition: "Jeux quadriennaux",
-          subRaceLabel: "En ligne",
-          nationsCupProfile: "Polyvalent" as const,
+          subRaceLabel: slot.id === OLYMPIC_TIME_TRIAL_SLOT ? "Contre-la-montre" : "En ligne",
+          nationsCupProfile: slot.id === OLYMPIC_TIME_TRIAL_SLOT ? "Chrono" as const : "Polyvalent" as const,
         }
       : slot,
   );
@@ -196,8 +196,8 @@ export function FederationSelectionWorkbench({
   selectionState: FederationSelectionState | null;
 }) {
   const selectionSlots = useMemo(
-    () => getFederationSelectionSlots(gameYear, selectionState?.olympicQuota ?? 0),
-    [gameYear, selectionState?.olympicQuota],
+    () => getFederationSelectionSlots(gameYear, selectionState?.olympicQuota ?? 0, selectionState?.olympicTimeTrialQuota ?? 0),
+    [gameYear, selectionState?.olympicQuota, selectionState?.olympicTimeTrialQuota],
   );
   const competitions = useMemo(
     () => getFederationSelectionCompetitions(gameYear),
@@ -365,7 +365,7 @@ export function FederationSelectionWorkbench({
           <GamesColors className="absolute inset-x-0 top-0 h-1.5" />
           <p className="mb-2 text-[10px] font-black uppercase tracking-[.2em] text-[#ECD797]">Le grand rendez-vous mondial · J24</p>
           <h2 className="mb-4 text-2xl font-black text-white">Jeux quadriennaux · un seul peloton mondial</h2>
-          <p>Votre quota : {selectionState?.olympicQuota ?? 0} place(s). Qualification figée à J4 : 70 % classement UCI national final de la saison précédente, 30 % niveau des quatre meilleurs coureurs sur ce parcours.</p>
+          <p>Vos quotas : route {selectionState?.olympicQuota ?? 0} place(s) · CLM {selectionState?.olympicTimeTrialQuota ?? 0} place(s). Le CLM invite les 100 premières nations du classement olympique figé à J4 : 2 places pour les 20 premières, puis 1 jusqu’au 100e rang, dans la limite des coureurs disponibles.</p>
           <p>Rangs 1–10 : jusqu’à 8 places · 11–30 : 4 · 31–60 : 2. Maximum 220 coureurs, sans divisions.</p>
           <p>Convocations automatiques à partir de 7 jours avant la course. Envoi et remplacement jusqu’à H−24 ; réponse du DS jusqu’à H−1. Sans accord, le coureur ne participe pas et ses autres inscriptions sont conservées.</p>
         </section>

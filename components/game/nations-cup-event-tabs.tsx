@@ -39,12 +39,12 @@ export function NationsCupEventTabs({
           id="nations-cup-events-title"
           className="mt-1 text-2xl font-black text-[#183F37]"
         >
-          {olympic ? "La course en ligne" : "Les cinq épreuves"}
+          {olympic ? "Les deux épreuves" : "Les cinq épreuves"}
         </h2>
         <div
           className="mt-4 flex gap-2 overflow-x-auto pb-1"
           role="tablist"
-          aria-label={olympic ? "Épreuve des Jeux quadriennaux" : "Épreuves de la Nations Cup"}
+          aria-label={olympic ? "Épreuves des Jeux quadriennaux" : "Épreuves de la Nations Cup"}
         >
           {events.map((event) => {
             const selected = event.slug === selectedEvent.slug;
@@ -82,7 +82,10 @@ export function NationsCupEventTabs({
             {olympic ? "Jeux quadriennaux" : "Nations Cup"} · {selectedEvent.name}
           </h3>
           <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-            {olympic ? "Un seul peloton mondial, sans divisions : jusqu’à 8, 4 ou 2 coureurs par nation invitée, dans la limite de 220. Montagne, vallons et pavés précèdent un final plat." : "Une sélection différente par nation. Cette épreuve compte dans le classement cumulé de la Nations Cup."}
+            {olympic ? selectedEvent.profileType === "time_trial"
+              ? "J24 à 14 h · 36 km contre le chrono. Jusqu’à 100 nations et 120 partants : 2 places pour les 20 premières nations, puis 1 jusqu’au 100e rang. Convocations distinctes de la course en ligne."
+              : "J24 à 18 h. Un seul peloton mondial, sans divisions : jusqu’à 8, 4 ou 2 coureurs par nation invitée, dans la limite de 220. Montagne, vallons et pavés précèdent un final plat."
+              : "Une sélection différente par nation. Cette épreuve compte dans le classement cumulé de la Nations Cup."}
           </p>
         </div>
         <Link
