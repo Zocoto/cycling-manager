@@ -424,6 +424,7 @@ export default async function TeamRosterPage({
       createNationalChampionRiderJersey({
         countryCode: title.countryCode,
         championshipType: title.championshipType,
+        nationalDesign: title.nationalDesign,
       }),
     ]),
   );

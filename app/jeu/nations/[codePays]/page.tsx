@@ -30,6 +30,8 @@ import { getPublicCountryDirectory } from "@/services/public-directory";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import { getNationRankingEntry } from "@/services/uci-rankings";
+import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
+import { NationalFederationJersey } from "@/components/game/national-federation-jersey";
 
 export const metadata: Metadata = {
   title: "Fiche nation",
@@ -70,6 +72,10 @@ export default async function PublicCountryPage({
   }
 
   const { country, members, president } = directory;
+  const [selectionDesigns, championDesigns] = await Promise.all([
+    loadNationalFederationJerseyDesigns([country.entity_id]),
+    loadNationalFederationJerseyDesigns([country.entity_id], "national_champion"),
+  ]);
   const viewerFederationCountryCode = headerData.teamId
     ? await getCurrentTeamFederationCountryCode(headerData.teamId)
     : null;
@@ -161,6 +167,16 @@ export default async function PublicCountryPage({
             </div>
           </div>
 
+          <section aria-label="Les maillots officiels de la nation" className="grid gap-4 border-b border-[#315B3E]/10 bg-[#F5F9F7] p-6 sm:grid-cols-2 sm:px-10">
+            {(["national_team", "national_champion"] as const).map((kind) => <div key={kind} className="flex items-center gap-5 rounded-2xl border border-[#315B3E]/10 bg-white p-5">
+              <NationalFederationJersey countryCode={country.country_code} countryName={country.display_name} kind={kind}
+                design={(kind === "national_team" ? selectionDesigns : championDesigns).get(country.entity_id)} className="h-28 w-24 shrink-0 drop-shadow-lg" />
+              <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">Maillot officiel</p>
+                <h2 className="mt-1 text-lg font-black text-[#183F37]">{kind === "national_team" ? "Sélection nationale" : "Champions nationaux"}</h2>
+                <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">{kind === "national_team" ? "La tenue commune de la nation lors des rendez-vous internationaux." : "La distinction des champions sur route et contre-la-montre, portée en club."}</p>
+              </div>
+            </div>)}
+          </section>
           <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-2">
             <DirectorySection
               eyebrow="Personnes"

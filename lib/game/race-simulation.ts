@@ -1,4 +1,5 @@
 import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
+import type { NationalJerseyDraft } from "./national-jersey-preview";
 import { createRaceTeamWorkRecorder } from "./race-team-work";
 import type { RaceProfileType } from "./race-calendar";
 import type { StageEquipmentChange, StageEquipmentSnapshot } from "./race-stage-equipment";
@@ -202,6 +203,7 @@ export type RiderSimulationRatings = {
 export type RiderNationalChampionship = {
   countryCode: string;
   championshipType: "road" | "time_trial";
+  nationalDesign?: NationalJerseyDraft;
 };
 export type RiderWorldChampionship = {
   championshipType: "road" | "time_trial";

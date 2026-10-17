@@ -33,7 +33,8 @@ const nationalJerseyElementSchema = z.object({
   height: z.number().finite().min(4).max(220),
   rotation: z.number().finite().min(-180).max(180),
   opacity: z.number().finite().min(0.15).max(1),
-});
+  text: z.string().max(32).optional(),
+}).refine((element) => element.kind !== "text" || Boolean(element.text?.trim()), { message: "Le texte ne peut pas être vide." });
 const nationalJerseySchema = z.object({
   schemaVersion: z.literal(2),
   baseColor: colorSchema,
@@ -50,8 +51,9 @@ export async function publishNationalFederationJersey(
     .trim()
     .toUpperCase();
   const rawDesign = readFormValue(formData, "design");
+  const jerseyKind = readFormValue(formData, "jerseyKind") || "national_team";
 
-  if (!/^[A-Z]{2}$/.test(countryCode) || rawDesign.length > 20_000) {
+  if (!/^[A-Z]{2}$/.test(countryCode) || rawDesign.length > 20_000 || !["national_team", "national_champion"].includes(jerseyKind)) {
     return failure("Le maillot transmis est invalide.");
   }
 
@@ -85,6 +87,7 @@ export async function publishNationalFederationJersey(
     {
       p_country_code: countryCode,
       p_design: design,
+      p_jersey_kind: jerseyKind,
     },
   );
 
@@ -105,6 +108,15 @@ export async function publishNationalFederationJersey(
 
   revalidatePath(`/jeu/federations/${countryCode.toLowerCase()}`);
   updateTag("national-federation-jerseys");
+  revalidatePath("/jeu");
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  revalidatePath("/jeu/coureurs/[identifiant]/comparer/[comparaison]", "page");
+  revalidatePath("/jeu/equipes/[identifiant]", "page");
+  revalidatePath("/jeu/centre-de-formation");
+  revalidatePath("/jeu/centre-de-formation/development/[academyRiderId]", "page");
+  revalidatePath(`/jeu/nations/${countryCode.toLowerCase()}`);
+  revalidatePath("/jeu/classements");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/resultats");
   revalidatePath("/jeu/courses/[slug]", "page");

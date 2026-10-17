@@ -152,6 +152,7 @@ async function resolveComparisonJersey(
     return createNationalChampionRiderJersey({
       countryCode: activeNationalTitle.countryCode,
       championshipType: activeNationalTitle.type,
+      nationalDesign: activeNationalTitle.nationalDesign,
     });
   }
 

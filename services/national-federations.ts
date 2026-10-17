@@ -6,6 +6,8 @@ import {
   type InternationalCenterNetworkEffects,
 } from "@/lib/game/infrastructure";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
+import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
 
 export type FederationChampion = {
   riderId: string;
@@ -19,6 +21,7 @@ export type FederationChampion = {
   teamId?: string | null;
   teamName?: string | null;
   age?: number;
+  nationalDesign?: NationalJerseyDraft;
 };
 
 export type FederationAcademy = {
@@ -482,6 +485,14 @@ export async function getNationalFederationSnapshot({
       {},
     );
   const juniorCurrent = collectLatestChampions(juniorPalmares);
+  if (includeChampions) {
+    const nationalDesign = (await loadNationalFederationJerseyDesigns([countryId], "national_champion")).get(countryId);
+    if (nationalDesign) {
+      for (const champion of [...Object.values(professionalCurrent), ...Object.values(juniorCurrent)]) {
+        if (champion) champion.nationalDesign = nationalDesign;
+      }
+    }
+  }
   const academies = academyRows.map(
     (academy): FederationAcademy => ({
       teamId: academy.team_id,

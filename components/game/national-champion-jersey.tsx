@@ -1,12 +1,15 @@
 import { useId } from "react";
 
 import { getNationalChampionPalette } from "@/lib/rider-jersey";
+import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
+import { NationalJerseyDesignPattern } from "./national-jersey-design-artwork";
 import { SvgCountryFlag } from "./svg-country-flag";
 
 type NationalChampionJerseyProps = {
   countryCode: string;
   countryName: string;
   championshipType: "road" | "time_trial";
+  nationalDesign?: NationalJerseyDraft | null;
   className?: string;
 };
 
@@ -14,6 +17,7 @@ export function NationalChampionJersey({
   countryCode,
   countryName,
   championshipType,
+  nationalDesign,
   className = "h-64 w-56 drop-shadow-xl",
 }: NationalChampionJerseyProps) {
   const rawId = useId();
@@ -46,13 +50,19 @@ export function NationalChampionJersey({
       />
 
       <g clipPath={`url(#${jerseyClipId})`}>
-        <SvgCountryFlag
+        {nationalDesign ? <NationalJerseyDesignPattern
+          countryCode={countryCode}
+          design={nationalDesign}
+          idPrefix={`${jerseyClipId}-design`}
+          clipPathId={jerseyClipId}
+          x={0} y={22} width={260} height={260}
+        /> : <SvgCountryFlag
           countryCode={countryCode}
           x="0"
           y="0"
           width={260}
           height={300}
-        />
+        />}
         <path
           d="M22 100 55 58 88 42 107 62H72v43l-17 21Z"
           fill="#FFFFFF"

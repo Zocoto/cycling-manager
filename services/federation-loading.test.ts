@@ -7,6 +7,10 @@ const database = vi.hoisted(() => ({
   queriedTables: [] as string[],
 }));
 const searchDirectory = vi.hoisted(() => vi.fn());
+const loadJerseys = vi.hoisted(() => vi.fn(async () => new Map()));
+vi.mock("@/services/national-federation-jerseys", () => ({
+  loadNationalFederationJerseyDesigns: loadJerseys,
+}));
 
 function from(table: string) {
   database.queriedTables.push(table);
@@ -54,6 +58,7 @@ const client = { from } as unknown as Parameters<typeof getPublicCountryDirector
 beforeEach(() => {
   database.queriedTables = [];
   searchDirectory.mockReset();
+  loadJerseys.mockClear();
   database.rows = {
     seasons: [{ id: "s4", name: "Saison 4", game_year: 4, current_day_number: 8, status: "active" }],
     countries: [{ id: countryId, name: "France", iso_alpha2: "FR", iso_alpha3: "FRA", is_active: true }],

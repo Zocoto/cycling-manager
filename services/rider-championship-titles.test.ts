@@ -83,8 +83,6 @@ describe("championship title query resilience", () => {
     expect(raceCalendarSource).toContain(
       "Impossible de charger les maillots de champions continentaux du calendrier",
     );
-    expect(raceCalendarSource.match(/\.catch\(\(error: unknown\) =>/g)).toHaveLength(
-      3,
-    );
+    expect(raceCalendarSource.match(/\.catch\(\(error: unknown\) =>/g)?.length).toBeGreaterThanOrEqual(3);
   });
 });

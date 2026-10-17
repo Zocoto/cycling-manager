@@ -17,6 +17,8 @@ import {
 } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
+import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
+import { loadNationalFederationJerseyDesignsByCountryCode } from "@/services/national-federation-jerseys";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -218,6 +220,7 @@ export type JuniorChampionshipTitle = {
   level: JuniorChampionshipTitleRow["title_level"];
   discipline: JuniorChampionshipTitleRow["championship_type"];
   countryCode: string;
+  nationalDesign?: NationalJerseyDraft;
 };
 
 export type DevelopmentTeamIdentity = {
@@ -519,7 +522,7 @@ export async function getDevelopmentTeamOverview(
   const raceNumberByRiderId = new Map(
     rosterRows.map((row) => [row.academy_rider_id, row.race_number]),
   );
-  const titleByRiderId = indexJuniorTitles(titlesResult.data ?? []);
+  const titleByRiderId = await indexJuniorTitles(titlesResult.data ?? []);
   const proCallupRiderIds = new Set(
     (callupsResult.data ?? []).map((link) => link.academy_rider_id),
   );
@@ -817,7 +820,7 @@ export async function getDevelopmentRiderProfile(
     country ?? undefined,
     context.gameYear,
     currentRoster?.race_number ?? null,
-    indexJuniorTitles(titlesResult.data ?? []).get(academyRiderId) ?? null,
+    (await indexJuniorTitles(titlesResult.data ?? [])).get(academyRiderId) ?? null,
     Boolean(callupResult.data?.length),
   );
   const seasonById = new Map(
@@ -974,7 +977,7 @@ export async function getPublicDevelopmentTeam(
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
-  const titleByRiderId = indexJuniorTitles(titlesResult.data ?? []);
+  const titleByRiderId = await indexJuniorTitles(titlesResult.data ?? []);
   const proCallupRiderIds = new Set(
     (callupsResult.data ?? []).map((link) => link.academy_rider_id),
   );
@@ -1107,7 +1110,10 @@ function toDevelopmentResult(
   };
 }
 
-function indexJuniorTitles(rows: JuniorChampionshipTitleRow[]) {
+async function indexJuniorTitles(rows: JuniorChampionshipTitleRow[]) {
+  const nationalDesigns = await loadNationalFederationJerseyDesignsByCountryCode([
+    ...new Set(rows.filter((row) => row.title_level === "national").map((row) => row.country_code)),
+  ], "national_champion");
   const priority = (row: JuniorChampionshipTitleRow) =>
     row.title_level === "world"
       ? row.championship_type === "road"
@@ -1126,6 +1132,7 @@ function indexJuniorTitles(rows: JuniorChampionshipTitleRow[]) {
       level: row.title_level,
       discipline: row.championship_type,
       countryCode: row.country_code,
+      nationalDesign: row.title_level === "national" ? nationalDesigns.get(row.country_code.toUpperCase()) : undefined,
     });
   }
   return indexed;

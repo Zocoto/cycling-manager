@@ -16,7 +16,7 @@ import { FederationCoursesPanel } from "@/components/game/federation-courses-pan
 import { FederationInfrastructureCatalog } from "@/components/game/federation-infrastructure-catalog";
 import { FederationLounge } from "@/components/game/federation-lounge";
 import { FederationSelectionWorkbench } from "@/components/game/federation-selection-workbench";
-import { NationalJerseyPreviewEditor } from "@/components/game/national-jersey-preview-editor";
+import { NationalFederationJerseyWorkshop } from "@/components/game/national-federation-jersey-workshop";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { FederationChatOverview } from "@/lib/game/federation-chat";
 import {
@@ -69,6 +69,7 @@ type NationalFederationViewProps = {
   memberTeamCount: number;
   selectedTab: NationalFederationTab;
   publishedJersey: PublishedNationalJersey | null;
+  publishedChampionJersey?: PublishedNationalJersey | null;
   federationChat: FederationChatOverview | null;
   financeBaseline: FederationFinanceBaseline | null;
   selectionRiders: FederationSelectionRider[];
@@ -139,7 +140,7 @@ const TAB_CONTENT: Array<{
   {
     id: "governance",
     label: "Gouvernance",
-    description: "Présidence, maillot et journal",
+    description: "Présidence, maillots et journal",
   },
   {
     id: "lounge",
@@ -156,6 +157,7 @@ export function NationalFederationView({
   memberTeamCount,
   selectedTab,
   publishedJersey,
+  publishedChampionJersey = null,
   federationChat,
   financeBaseline,
   selectionRiders,
@@ -365,6 +367,7 @@ export function NationalFederationView({
             country={country}
             snapshot={snapshot}
             publishedJersey={publishedJersey}
+            publishedChampionJersey={publishedChampionJersey}
             governanceOverview={governanceOverview}
           />
         ) : snapshot.viewer.isAffiliated &&
@@ -834,11 +837,13 @@ function GovernancePanel({
   country,
   snapshot,
   publishedJersey,
+  publishedChampionJersey,
   governanceOverview,
 }: {
   country: NationalFederationViewProps["country"];
   snapshot: NationalFederationSnapshot;
   publishedJersey: PublishedNationalJersey | null;
+  publishedChampionJersey: PublishedNationalJersey | null;
   governanceOverview: FederationGovernanceOverview | null;
 }) {
   return (
@@ -878,10 +883,11 @@ function GovernancePanel({
         </section>
       </div>
 
-      <NationalJerseyPreviewEditor
+      <NationalFederationJerseyWorkshop
         countryCode={country.code}
         countryName={country.name}
-        publishedJersey={publishedJersey}
+        selectionJersey={publishedJersey}
+        championJersey={publishedChampionJersey}
         canEdit={governanceOverview?.viewerIsPresident === true}
       />
     </div>
@@ -1116,6 +1122,7 @@ function ChampionCard({
           jersey={createNationalChampionRiderJersey({
             countryCode,
             championshipType: champion.discipline,
+            nationalDesign: champion.nationalDesign,
           })}
           label={`Portrait de ${champion.riderName}, champion national`}
           className="h-28 w-28 border-4 border-white shadow-lg"

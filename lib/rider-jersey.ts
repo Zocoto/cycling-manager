@@ -171,19 +171,17 @@ export function getNationalChampionPalette(
 export function createNationalChampionRiderJersey({
   countryCode,
   championshipType,
+  nationalDesign,
 }: {
   countryCode: string;
   championshipType: "road" | "time_trial";
+  nationalDesign?: NationalJerseyDraft | null;
 }): RiderJerseyAppearance {
-  const palette = getNationalChampionPalette(countryCode);
+  const nationalJersey = createNationalTeamRiderJersey(countryCode, nationalDesign);
 
   return {
-    primaryColor: palette.primary,
-    secondaryColor: palette.secondary,
-    accentColor: palette.accent,
-    pattern: palette.pattern,
+    ...nationalJersey,
     status: "national-champion",
-    countryCode: countryCode.toUpperCase(),
     championshipType,
   };
 }

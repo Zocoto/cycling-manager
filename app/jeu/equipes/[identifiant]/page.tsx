@@ -521,6 +521,7 @@ function DevelopmentTeamCard({
                 ? createNationalChampionRiderJersey({
                     countryCode: rider.championshipTitle.countryCode,
                     championshipType: rider.championshipTitle.discipline,
+                    nationalDesign: rider.championshipTitle.nationalDesign,
                   })
                 : juniorJersey;
 

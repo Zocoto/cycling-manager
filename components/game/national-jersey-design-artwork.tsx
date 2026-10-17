@@ -87,6 +87,16 @@ function NationalJerseyElementArtwork({
   const left = -element.width / 2;
   const top = -element.height / 2;
 
+  if (element.kind === "text") {
+    return <g data-national-jersey-element={element.id} transform={transform} opacity={element.opacity}>
+      <text textAnchor="middle" dominantBaseline="central" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800"
+        fontSize={Math.max(4, Math.min(48, element.height))} textLength={element.width} lengthAdjust="spacingAndGlyphs"
+        fill={element.color} stroke={element.secondaryColor} strokeWidth="0.25" paintOrder="stroke">
+        {element.text ?? "NATION"}
+      </text>
+    </g>;
+  }
+
   if (element.kind === "band") {
     return (
       <g

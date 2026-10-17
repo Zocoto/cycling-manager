@@ -56,6 +56,7 @@ export default async function DevelopmentRiderPage({ params }: Props) {
       ? createNationalChampionRiderJersey({
           countryCode: profile.championshipTitle.countryCode,
           championshipType: profile.championshipTitle.discipline,
+          nationalDesign: profile.championshipTitle.nationalDesign,
         })
       : team
         ? createAmateurRiderJersey(team.jersey)

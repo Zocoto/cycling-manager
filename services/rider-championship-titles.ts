@@ -11,6 +11,7 @@ import type {
   ActiveWorldChampionshipTitle,
 } from "@/services/rider-national-championship-titles";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -116,6 +117,7 @@ export async function getActiveChampionshipTitlesForRiders(
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
+  const nationalDesigns = await loadNationalFederationJerseyDesigns(countryIds, "national_champion");
   const result = empty();
 
   for (const title of titleRows) {
@@ -133,6 +135,7 @@ export async function getActiveChampionshipTitlesForRiders(
         countryCode: country.iso_alpha2,
         countryName: country.name,
         championshipType: title.championship_type,
+        nationalDesign: nationalDesigns.get(title.country_id!),
       });
       continue;
     }

@@ -1121,6 +1121,7 @@ function buildChampionJerseyMap(
       createNationalChampionRiderJersey({
         countryCode: title.countryCode,
         championshipType: title.championshipType,
+        nationalDesign: title.nationalDesign,
       }),
     ]),
   );

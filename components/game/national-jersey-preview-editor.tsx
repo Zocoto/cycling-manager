@@ -1,15 +1,17 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import {
   publishNationalFederationJersey,
+  type NationalJerseyPublishState,
 } from "@/app/jeu/federations/actions";
 import {
   NationalJerseyDesignArtwork,
   NATIONAL_JERSEY_SHIRT_PATH,
 } from "@/components/game/national-jersey-design-artwork";
 import { initialNationalJerseyPublishState } from "@/lib/game/federation-action-states";
+import { getNationalTeamJerseyPreset } from "@/lib/game/national-team-jersey-presets";
 import {
   decodeNationalJerseyDraft,
   DEFAULT_NATIONAL_JERSEY_DRAFT,
@@ -21,6 +23,8 @@ import {
   type NationalJerseyElementKind,
   type NationalJerseyElementShape,
   type PublishedNationalJersey,
+  type NationalJerseyKind,
+  NATIONAL_JERSEY_KIND_LABELS,
 } from "@/lib/game/national-jersey-preview";
 
 type NationalJerseyPreviewEditorProps = {
@@ -28,6 +32,10 @@ type NationalJerseyPreviewEditorProps = {
   countryName: string;
   publishedJersey: PublishedNationalJersey | null;
   canEdit: boolean;
+  jerseyKind?: NationalJerseyKind;
+  previewOnly?: boolean;
+  initialDraft?: NationalJerseyDraft;
+  onDraftChange?: (draft: NationalJerseyDraft) => void;
 };
 
 const SHAPES: Array<{ value: NationalJerseyElementShape; label: string }> = [
@@ -43,6 +51,7 @@ const ELEMENT_LABELS: Record<NationalJerseyElementKind, string> = {
   emblem: "Emblème national",
   band: "Bande de couleur",
   shape: "Forme libre",
+  text: "Texte",
 };
 
 const publicationDateFormatter = new Intl.DateTimeFormat("fr-FR", {
@@ -59,9 +68,14 @@ export function NationalJerseyPreviewEditor({
   countryName,
   publishedJersey,
   canEdit,
+  jerseyKind = "national_team",
+  previewOnly = false,
+  initialDraft,
+  onDraftChange,
 }: NationalJerseyPreviewEditorProps) {
+  const hasInitialDraft = useRef(Boolean(initialDraft));
   const [draft, setDraft] = useState<NationalJerseyDraft>(
-    publishedJersey?.design ?? DEFAULT_NATIONAL_JERSEY_DRAFT,
+    initialDraft ?? publishedJersey?.design ?? DEFAULT_NATIONAL_JERSEY_DRAFT,
   );
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
@@ -70,7 +84,7 @@ export function NationalJerseyPreviewEditor({
     "idle" | "restored" | "saved" | "unavailable"
   >("idle");
   const [publishState, publishAction, publishPending] = useActionState(
-    publishNationalFederationJersey,
+    previewOnly ? previewPublication : publishNationalFederationJersey,
     initialNationalJerseyPublishState,
   );
   const generatedId = useId().replaceAll(":", "");
@@ -93,15 +107,18 @@ export function NationalJerseyPreviewEditor({
   const hasStoredPendingJersey = publishedJersey?.isActive === false;
   const selectedElement =
     draft.elements.find((element) => element.id === selectedElementId) ?? null;
+  const selectionPreset = jerseyKind === "national_team" ? getNationalTeamJerseyPreset(countryCode) : null;
+
+  useEffect(() => { onDraftChange?.(draft); }, [draft, onDraftChange]);
 
   useEffect(() => {
-    if (hasStoredPendingJersey) return;
+    if (hasStoredPendingJersey || hasInitialDraft.current) return;
 
     const restorationTimer = window.setTimeout(() => {
       try {
         const storedDraft = decodeNationalJerseyDraft(
           window.localStorage.getItem(
-            getNationalJerseyDraftStorageKey(countryCode),
+            getNationalJerseyDraftStorageKey(countryCode, jerseyKind),
           ),
         );
         if (!storedDraft) return;
@@ -115,7 +132,7 @@ export function NationalJerseyPreviewEditor({
     }, 0);
 
     return () => window.clearTimeout(restorationTimer);
-  }, [countryCode, hasStoredPendingJersey]);
+  }, [countryCode, jerseyKind, hasStoredPendingJersey]);
 
   function updateDraft(patch: Partial<NationalJerseyDraft>) {
     setDraft((current) => normalizeNationalJerseyDraft({ ...current, ...patch }));
@@ -174,7 +191,7 @@ export function NationalJerseyPreviewEditor({
   function saveDraftLocally() {
     try {
       window.localStorage.setItem(
-        getNationalJerseyDraftStorageKey(countryCode),
+        getNationalJerseyDraftStorageKey(countryCode, jerseyKind),
         JSON.stringify(draft),
       );
       setStorageStatus("saved");
@@ -188,7 +205,7 @@ export function NationalJerseyPreviewEditor({
     setSelectedElementId(null);
     try {
       window.localStorage.removeItem(
-        getNationalJerseyDraftStorageKey(countryCode),
+        getNationalJerseyDraftStorageKey(countryCode, jerseyKind),
       );
       setStorageStatus("idle");
     } catch {
@@ -233,7 +250,7 @@ export function NationalJerseyPreviewEditor({
         className={`min-w-0 border-0 p-0 ${!canEdit ? "opacity-55 grayscale-[0.25]" : ""}`}
       >
         <legend className="sr-only">
-          Atelier présidentiel du maillot national
+          Atelier présidentiel · {NATIONAL_JERSEY_KIND_LABELS[jerseyKind]}
         </legend>
       <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-center">
         <JerseyArtwork
@@ -245,7 +262,7 @@ export function NationalJerseyPreviewEditor({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
-              Atelier du maillot national
+              Atelier · {NATIONAL_JERSEY_KIND_LABELS[jerseyKind]}
             </p>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/85">
               Toutes fédérations
@@ -255,14 +272,23 @@ export function NationalJerseyPreviewEditor({
             </span>
           </div>
           <h2 className="mt-3 text-3xl font-black">
-            Composez librement l’identité de {countryName}
+            {jerseyKind === "national_team" ? "La nation, un même maillot" : "Le maillot des champions"}
           </h2>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-            Le brouillon démarre sur un maillot blanc. Drapeau, emblème, formes
-            et bandes peuvent se superposer, pivoter et dépasser du patron :
-            seule leur partie située dans le maillot sera conservée à l’écran.
+            {jerseyKind === "national_team" ? "Porté par les sélections lors des Mondiaux, des championnats continentaux et des rendez-vous internationaux." : "Porté en club par les champions nationaux sur route et contre-la-montre, professionnels et juniors."}
+            {" "}Drapeau, emblème, bandes et texte : chaque calque se place librement sur le patron.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
+            {selectionPreset ? (
+              <button type="button" onClick={() => {
+                setDraft(selectionPreset);
+                setSelectedElementId(selectionPreset.elements.at(-1)?.id ?? null);
+                setStorageStatus("idle");
+              }} title="Reprendre le modèle conservé pour la sélection mauricienne, sans le publier"
+                className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15">
+                Modèle Maurice
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={saveDraftLocally}
@@ -350,6 +376,7 @@ export function NationalJerseyPreviewEditor({
               <AddElementButton label="Emblème" icon="♜" onClick={() => addElement("emblem")} />
               <AddElementButton label="Bande" icon="▬" onClick={() => addElement("band")} />
               <AddElementButton label="Forme" icon="◆" onClick={() => addElement("shape")} />
+              <AddElementButton label="Texte" icon="T" onClick={() => addElement("text")} />
             </div>
           </EditorGroup>
 
@@ -367,7 +394,7 @@ export function NationalJerseyPreviewEditor({
                           : "border-[#315B3E]/12 bg-[#F8FBF9] text-[#4F665E] hover:border-[var(--federation-secondary)]/40"
                       }`}
                     >
-                      <span>{ELEMENT_LABELS[element.kind]}</span>
+                      <span>{element.kind === "text" ? `Texte · ${element.text?.slice(0, 18)}` : ELEMENT_LABELS[element.kind]}</span>
                       <span className="text-[9px] uppercase tracking-[0.1em] opacity-65">
                         calque {draft.elements.length - reverseIndex}
                       </span>
@@ -403,7 +430,14 @@ export function NationalJerseyPreviewEditor({
                   </div>
                 </div>
 
-                {selectedElement.kind !== "band" ? (
+                {selectedElement.kind === "text" ? (
+                  <label className="block text-sm font-black text-[#183F37]">Texte du maillot
+                    <input type="text" maxLength={32} value={selectedElement.text ?? ""} onChange={(event) => updateSelectedElement({ text: event.target.value })} placeholder={countryName.toUpperCase()}
+                      className="mt-2 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-[#42B99A]/30" />
+                    <span className="mt-1 block text-xs font-semibold text-[#789087]">32 caractères maximum · nom du pays, devise ou signature de la sélection.</span>
+                  </label>
+                ) : null}
+                {selectedElement.kind !== "band" && selectedElement.kind !== "text" ? (
                   <EditorSelect
                     label="Forme du cadre"
                     value={selectedElement.shape}
@@ -416,12 +450,12 @@ export function NationalJerseyPreviewEditor({
 
                 <div className="grid grid-cols-2 gap-3">
                   <ColorControl
-                    label={selectedElement.kind === "shape" || selectedElement.kind === "band" ? "Couleur" : "Contour / motif"}
+                    label={selectedElement.kind === "text" ? "Couleur du texte" : selectedElement.kind === "shape" || selectedElement.kind === "band" ? "Couleur" : "Contour / motif"}
                     value={selectedElement.color}
                     onChange={(color) => updateSelectedElement({ color })}
                   />
                   <ColorControl
-                    label="Accent"
+                    label={selectedElement.kind === "text" ? "Contour du texte" : "Accent"}
                     value={selectedElement.secondaryColor}
                     onChange={(secondaryColor) =>
                       updateSelectedElement({ secondaryColor })
@@ -433,7 +467,7 @@ export function NationalJerseyPreviewEditor({
                   <EditorRange label="Horizontal" value={selectedElement.x} minimum={-60} maximum={180} display={`${Math.round(selectedElement.x)}`} onChange={(x) => updateSelectedElement({ x })} />
                   <EditorRange label="Vertical" value={selectedElement.y} minimum={-60} maximum={190} display={`${Math.round(selectedElement.y)}`} onChange={(y) => updateSelectedElement({ y })} />
                   <EditorRange label="Largeur" value={selectedElement.width} minimum={4} maximum={220} display={`${Math.round(selectedElement.width)}`} onChange={(width) => updateSelectedElement({ width })} />
-                  <EditorRange label="Hauteur" value={selectedElement.height} minimum={4} maximum={220} display={`${Math.round(selectedElement.height)}`} onChange={(height) => updateSelectedElement({ height })} />
+                  <EditorRange label={selectedElement.kind === "text" ? "Taille du texte" : "Hauteur"} value={selectedElement.height} minimum={4} maximum={selectedElement.kind === "text" ? 48 : 220} display={`${Math.round(selectedElement.height)}`} onChange={(height) => updateSelectedElement({ height })} />
                   <EditorRange label="Rotation" value={selectedElement.rotation} minimum={-180} maximum={180} display={`${Math.round(selectedElement.rotation)}°`} onChange={(rotation) => updateSelectedElement({ rotation })} />
                   <EditorRange label="Opacité" value={selectedElement.opacity} minimum={0.15} maximum={1} step={0.05} display={`${Math.round(selectedElement.opacity * 100)} %`} onChange={(opacity) => updateSelectedElement({ opacity })} />
                 </div>
@@ -449,6 +483,7 @@ export function NationalJerseyPreviewEditor({
           <form action={publishAction} className="mt-6 rounded-2xl bg-[var(--federation-primary)] p-5 text-white">
             <input type="hidden" name="countryCode" value={countryCode} />
             <input type="hidden" name="design" value={JSON.stringify(draft)} />
+            <input type="hidden" name="jerseyKind" value={jerseyKind} />
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-black">Publication officielle</p>
@@ -463,7 +498,7 @@ export function NationalJerseyPreviewEditor({
                 disabled={!canEdit || publishPending}
                 className="shrink-0 rounded-xl bg-[var(--federation-accent)] px-5 py-3 text-sm font-black text-[#19352E] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {publishPending
+                {previewOnly ? "Tester la validation · aperçu local" : publishPending
                   ? "Publication…"
                   : pendingJersey
                     ? "Mettre à jour la composition réservée"
@@ -545,9 +580,18 @@ function createNationalJerseyElement(
   };
 
   if (kind === "band") return { ...common, width: 170, height: 18 };
+  if (kind === "text") return { ...common, text: "NATION", width: 50, height: 10, y: 54, color: "#FFFFFF", secondaryColor: "#111111" };
   if (kind === "emblem") return { ...common, shape: "shield", width: 48, height: 58 };
   if (kind === "shape") return { ...common, shape: "roundel", width: 46, height: 46 };
   return common;
+}
+
+async function previewPublication(_previous: NationalJerseyPublishState, formData: FormData): Promise<NationalJerseyPublishState> {
+  const design = normalizeNationalJerseyDraft(JSON.parse(String(formData.get("design"))));
+  if (design.elements.some(element => element.kind === "text" && !element.text?.trim())) {
+    return { ...initialNationalJerseyPublishState, status: "error", message: "Le texte ne peut pas être vide." };
+  }
+  return { ...initialNationalJerseyPublishState, status: "success" as const, message: "Aperçu validé localement : aucun envoi ni changement en production.", publishedDesign: design, version: 2, activationGameYear: 5 };
 }
 
 function EditorGroup({ title, children }: { title: string; children: React.ReactNode }) {

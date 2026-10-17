@@ -8,6 +8,8 @@ import {
   TopRaceCyclist,
 } from "./race-cyclist";
 import type { RiderSimulationInput } from "@/lib/game/race-simulation";
+import { PREVIEW_MAURITIUS_SELECTION as selection, PREVIEW_MAURITIUS_CHAMPION as champion } from "@/lib/game/federation-jersey-preview-fixtures";
+import { createNationalTeamRiderJersey } from "@/lib/rider-jersey";
 
 const baseRider: RiderSimulationInput = {
   id: "rider-west-africa",
@@ -39,6 +41,18 @@ const baseRider: RiderSimulationInput = {
 };
 
 describe("race cyclist visuals", () => {
+  it("renders the independent champion design in both live views", () => {
+    const rider = { ...baseRider, activeNationalChampion: { countryCode: "MU", championshipType: "road" as const, nationalDesign: champion } };
+    const markup = renderToStaticMarkup(<><SideRaceCyclist rider={rider} /><TopRaceCyclist rider={rider} /></>);
+    expect(markup.match(/data-national-jersey-element="champion-flag"/g)).toHaveLength(2);
+  });
+  it("wears the selection kit internationally even when the rider holds world/national titles", () => {
+    const rider = { ...baseRider, teamJersey: createNationalTeamRiderJersey("MU", selection),
+      activeWorldChampion: { championshipType: "road" as const }, activeNationalChampion: { countryCode: "MU", championshipType: "road" as const, nationalDesign: champion } };
+    expect(getRaceCyclistJerseyVisual(rider)).toMatchObject({ status: "national-team", nationalDesign: selection });
+    const markup = renderToStaticMarkup(<SideRaceCyclist rider={rider} />);
+    expect(markup).toContain("selection-name"); expect(markup).not.toContain('data-national-jersey-element="champion-flag"');
+  });
   it("réutilise la carnation unique de l'avatar dans les deux vues live", () => {
     const palette = getRaceCyclistSkinPalette(baseRider);
     const markup = renderToStaticMarkup(

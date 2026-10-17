@@ -257,6 +257,7 @@ export default async function RiderProfilePage({
         ? createNationalChampionRiderJersey({
             countryCode: activeNationalTitle.countryCode,
             championshipType: activeNationalTitle.type,
+            nationalDesign: activeNationalTitle.nationalDesign,
           })
         : sponsorIdentity
           ? createSponsoredRiderJersey({
@@ -1339,6 +1340,7 @@ function CurrentTeamCard({
                   countryCode={title.countryCode}
                   countryName={title.countryName}
                   championshipType={title.type}
+                  nationalDesign={title.nationalDesign}
                   className="mx-auto h-24 w-20 drop-shadow-xl"
                 />
                 <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">

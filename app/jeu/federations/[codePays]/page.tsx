@@ -120,6 +120,7 @@ export default async function FederationPage({
   ]);
   const [
     publishedJersey,
+    publishedChampionJersey,
     federationChat,
     financeBaseline,
     selectionRiders,
@@ -135,6 +136,7 @@ export default async function FederationPage({
     amateurAffiliationState,
   ] = await Promise.all([
     getNationalFederationJersey(supabase, country.entity_id),
+    selectedTab === "governance" ? getNationalFederationJersey(supabase, country.entity_id, "national_champion") : Promise.resolve(null),
     selectedTab === "lounge" && snapshot.viewer.isAffiliated
       ? getFederationChatOverview(supabase, country.entity_id)
       : Promise.resolve(null),
@@ -402,6 +404,7 @@ export default async function FederationPage({
           memberTeamCount={country.team_count ?? 0}
           selectedTab={selectedTab}
           publishedJersey={publishedJersey}
+          publishedChampionJersey={publishedChampionJersey}
           federationChat={federationChat}
           financeBaseline={financeBaseline}
           selectionRiders={selectionRiders}

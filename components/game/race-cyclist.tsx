@@ -16,6 +16,7 @@ import {
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
 import { NationalJerseyDesignPattern } from "./national-jersey-design-artwork";
+import { getNationalJerseyPalette } from "@/lib/game/national-jersey-preview";
 
 export function SideRaceCyclist({
   rider,
@@ -116,7 +117,7 @@ export function SideRaceCyclist({
           width={72}
           height={48}
         />
-      ) : jerseyVisual.status === "national-team" &&
+      ) : (jerseyVisual.status === "national-team" || jerseyVisual.status === "national-champion") &&
         jerseyVisual.nationalDesign ? (
         <NationalJerseyDesignPattern
           countryCode={jerseyVisual.countryCode}
@@ -284,7 +285,7 @@ export function TopRaceCyclist({
           width={72}
           height={34}
         />
-      ) : jerseyVisual.status === "national-team" &&
+      ) : (jerseyVisual.status === "national-team" || jerseyVisual.status === "national-champion") &&
         jerseyVisual.nationalDesign ? (
         <NationalJerseyDesignPattern
           countryCode={jerseyVisual.countryCode}
@@ -377,6 +378,15 @@ export function getRaceCyclistJerseyVisual(
       countryCode: null,
     };
   }
+  if (rider.teamJersey?.status === "national-team" && rider.teamJersey.countryCode) {
+    return {
+      label: "Maillot de sélection nationale", shortLabel: "Sélection nationale",
+      primaryColor: rider.teamJersey.primaryColor, secondaryColor: rider.teamJersey.secondaryColor,
+      accentColor: rider.teamJersey.accentColor, pattern: "national-flag" as const,
+      status: "national-team" as const, countryCode: rider.teamJersey.countryCode,
+      nationalDesign: rider.teamJersey.nationalDesign ?? null,
+    };
+  }
   if (rider.activeWorldChampion) {
     return {
       label: `Champion du monde ${
@@ -419,32 +429,18 @@ export function getRaceCyclistJerseyVisual(
     const palette = getNationalChampionPalette(
       rider.activeNationalChampion.countryCode,
     );
+    const nationalDesign = rider.activeNationalChampion.nationalDesign;
+    const designPalette = nationalDesign ? getNationalJerseyPalette(nationalDesign) : null;
     return {
       label: `Champion national ${rider.activeNationalChampion.championshipType === "road" ? "route" : "contre-la-montre"}`,
       shortLabel: "Champion national",
-      primaryColor: palette.primary,
-      secondaryColor: palette.secondary,
-      accentColor: palette.accent,
+      primaryColor: designPalette?.primaryColor ?? palette.primary,
+      secondaryColor: designPalette?.secondaryColor ?? palette.secondary,
+      accentColor: designPalette?.accentColor ?? palette.accent,
       pattern: "national-flag" as const,
       status: "national-champion" as const,
       countryCode: rider.activeNationalChampion.countryCode.toUpperCase(),
-    };
-  }
-
-  if (
-    rider.teamJersey?.status === "national-team" &&
-    rider.teamJersey.countryCode
-  ) {
-    return {
-      label: "Maillot de s\u00e9lection nationale",
-      shortLabel: "S\u00e9lection nationale",
-      primaryColor: rider.teamJersey.primaryColor,
-      secondaryColor: rider.teamJersey.secondaryColor,
-      accentColor: rider.teamJersey.accentColor,
-      pattern: "national-flag" as const,
-      status: "national-team" as const,
-      countryCode: rider.teamJersey.countryCode,
-      nationalDesign: rider.teamJersey.nationalDesign ?? null,
+      nationalDesign: nationalDesign ?? null,
     };
   }
 

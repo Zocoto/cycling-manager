@@ -18,6 +18,8 @@ import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { NationalFederationJersey } from "@/components/game/national-federation-jersey";
+import { loadNationalFederationJerseyDesignsByCountryCode } from "@/services/national-federation-jerseys";
 import {
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOT_CONFIG,
@@ -1450,7 +1452,7 @@ function RaceExperienceLink({
   );
 }
 
-function EngagedRidersSection({
+async function EngagedRidersSection({
   edition,
   riders,
   hasError,
@@ -1487,6 +1489,9 @@ function EngagedRidersSection({
     edition.categoryCode === "continental"
       ? 30
       : 24);
+  const nationJerseys = isFederationSelection
+    ? await loadNationalFederationJerseyDesignsByCountryCode([...teams.values()].map((team) => team.teamCountryCode))
+    : new Map();
 
   return (
     <section
@@ -1532,6 +1537,8 @@ function EngagedRidersSection({
               className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4"
             >
               <div className="flex items-center gap-2">
+                {isFederationSelection ? <NationalFederationJersey countryCode={team.teamCountryCode} countryName={team.teamName}
+                  design={nationJerseys.get(team.teamCountryCode.toUpperCase())} className="mr-1 h-16 w-14 shrink-0 drop-shadow-md" /> : null}
                 <span
                   className={`fi fi-${team.teamCountryCode.toLowerCase()} shrink-0 rounded shadow-sm`}
                   role="img"

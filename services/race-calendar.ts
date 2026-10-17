@@ -103,7 +103,7 @@ import {
 } from "@/lib/supabase/pagination";
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
 import { getFavoriteRaceRiderIdsByRace } from "@/services/rider-favorite-races";
-import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
+import { loadNationalFederationJerseyDesigns, loadNationalFederationJerseyDesignsByCountryCode } from "@/services/national-federation-jerseys";
 import { loadFederationEquipmentEffectsByCountry } from "@/services/federation-equipment";
 import {
   loadRaceStaffEffects,
@@ -1718,6 +1718,17 @@ export async function getActiveSeasonRaceCalendar(
           riderCountryRows.map((rider) => rider.country_id),
         )
       : new Map();
+  // Fast RPC context titles do not include artwork; enrich all national titles
+  // in one cached lookup, including ordinary club races, before serializing.
+  const championDesigns = await loadNationalFederationJerseyDesignsByCountryCode([
+    ...new Set([...nationalChampionshipTitlesByRiderId.values()].flatMap((titles) =>
+      Object.values(titles).flatMap((title) => title ? [title.countryCode] : []))),
+  ], "national_champion");
+  for (const titles of nationalChampionshipTitlesByRiderId.values()) {
+    for (const title of Object.values(titles)) {
+      if (title) title.nationalDesign = championDesigns.get(title.countryCode.toUpperCase());
+    }
+  }
   const federationEquipmentEffectsByCountryId =
     nationalInternationalEditionIds.size > 0 && includeSimulationEnhancements
       ? await loadFederationEquipmentEffectsByCountry({

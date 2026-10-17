@@ -128,7 +128,7 @@ export function RiderAvatar({
             width={96}
             height={96}
           />
-        ) : resolvedJersey.status === "national-team" &&
+        ) : (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion") &&
           resolvedJersey.countryCode &&
           resolvedJersey.nationalDesign ? (
           <NationalJerseyDesignPattern
@@ -253,6 +253,8 @@ function CompactRiderAvatar({
   className: string;
   championshipBorder: RiderChampionshipBorder | null;
 }) {
+  const compactJerseyId = `compact-national-${useId().replace(/:/g, "")}`;
+  const hasNationalDesign = (jersey.status === "national-champion" || jersey.status === "national-team") && jersey.countryCode && jersey.nationalDesign;
   const faceRadiusX = Math.max(18, Math.min(25, design.faceWidth / 2));
   const faceRadiusY = Math.max(23, Math.min(29, design.faceHeight / 2));
   const eyeDistance = Math.max(7, Math.min(11, design.eyeSpacing / 2));
@@ -283,6 +285,12 @@ function CompactRiderAvatar({
           d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z"
           fill={jersey.primaryColor}
         />
+        {hasNationalDesign ? (
+          <>
+            <defs><clipPath id={compactJerseyId}><path d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z" /></clipPath></defs>
+            <NationalJerseyDesignPattern countryCode={jersey.countryCode!} design={jersey.nationalDesign!} idPrefix={`${compactJerseyId}-design`} clipPathId={compactJerseyId} x={0} y={54} width={96} height={72} />
+          </>
+        ) : <>
         <path
           d="M 17 88 Q 48 78 79 88"
           fill="none"
@@ -295,6 +303,7 @@ function CompactRiderAvatar({
           stroke={jersey.accentColor}
           strokeWidth="2.5"
         />
+        </>}
         <path d="M 40 59 H 56 L 58 75 Q 48 81 38 75 Z" fill={design.skinShadow} />
         <ellipse cx="25" cy="46" rx="3.2" ry="7" fill={design.skinShadow} />
         <ellipse cx="71" cy="46" rx="3.2" ry="7" fill={design.skinShadow} />

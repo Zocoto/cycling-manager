@@ -8,6 +8,14 @@ import {
 } from "./national-jersey-preview";
 
 describe("national jersey preview draft", () => {
+  it("keeps the two role drafts separate without losing the old selection draft key", () => {
+    expect(getNationalJerseyDraftStorageKey("MU", "national_champion")).not.toBe(getNationalJerseyDraftStorageKey("MU"));
+  });
+  it("bounds and normalizes text without treating it as markup", () => {
+    const result = normalizeNationalJerseyDraft({ elements: [{ id: "text", kind: "text", text: "MAURITIUS\n" + "X".repeat(40) }] as never });
+    expect(result.elements[0].text).toHaveLength(32);
+    expect(result.elements[0].text).not.toContain("\n");
+  });
   it("isolates a local draft by country", () => {
     expect(getNationalJerseyDraftStorageKey(" FR ")).toBe(
       "cyclostratege:federation-jersey-draft:v2:fr",

@@ -146,6 +146,7 @@ function getDevelopmentRiderJersey(
     return createNationalChampionRiderJersey({
       countryCode: rider.championshipTitle.countryCode,
       championshipType: rider.championshipTitle.discipline,
+      nationalDesign: rider.championshipTitle.nationalDesign,
     });
   }
   return createAmateurRiderJersey(teamJersey);

@@ -3,6 +3,7 @@ export const NATIONAL_JERSEY_ELEMENT_KINDS = [
   "emblem",
   "band",
   "shape",
+  "text",
 ] as const;
 
 export const NATIONAL_JERSEY_ELEMENT_SHAPES = [
@@ -30,6 +31,14 @@ export type NationalJerseyElement = {
   height: number;
   rotation: number;
   opacity: number;
+  text?: string;
+};
+
+export type NationalJerseyKind = "national_team" | "national_champion";
+
+export const NATIONAL_JERSEY_KIND_LABELS: Record<NationalJerseyKind, string> = {
+  national_team: "Sélection nationale",
+  national_champion: "Champions nationaux",
 };
 
 export type NationalJerseyDraft = {
@@ -57,9 +66,9 @@ export const NATIONAL_JERSEY_MAX_ELEMENTS = 16;
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 const ELEMENT_ID_PATTERN = /^[a-zA-Z0-9_-]{1,48}$/;
 
-export function getNationalJerseyDraftStorageKey(countryCode: string): string {
+export function getNationalJerseyDraftStorageKey(countryCode: string, kind: NationalJerseyKind = "national_team"): string {
   const normalizedCountryCode = countryCode.trim().toLowerCase();
-  return `cyclostratege:federation-jersey-draft:v2:${normalizedCountryCode}`;
+  return `cyclostratege:federation-jersey-draft:v2:${normalizedCountryCode}${kind === "national_champion" ? ":national_champion" : ""}`;
 }
 
 export function normalizeNationalJerseyDraft(
@@ -161,9 +170,10 @@ function normalizeNationalJerseyElement(
     x: clampNumber(element.x, -60, 180, 60),
     y: clampNumber(element.y, -60, 190, 76),
     width: clampNumber(element.width, 4, 220, kind === "band" ? 160 : 54),
-    height: clampNumber(element.height, 4, 220, kind === "band" ? 18 : 54),
+    height: clampNumber(element.height, 4, kind === "text" ? 48 : 220, kind === "text" ? 12 : kind === "band" ? 18 : 54),
     rotation: clampNumber(element.rotation, -180, 180, 0),
     opacity: clampNumber(element.opacity, 0.15, 1, 1),
+    ...(kind === "text" ? { text: String(element.text ?? "NATION").replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 32) } : {}),
   };
 }
 

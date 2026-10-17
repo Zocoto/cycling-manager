@@ -2,6 +2,8 @@ import "server-only";
 
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
+import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -12,6 +14,7 @@ export type ActiveNationalChampionshipTitle = {
   countryCode: string;
   countryName: string;
   championshipType: "road" | "time_trial";
+  nationalDesign?: NationalJerseyDraft;
 };
 
 export type ActiveNationalChampionshipTitlesByDiscipline = Partial<
@@ -126,6 +129,7 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
+  const nationalDesigns = await loadNationalFederationJerseyDesigns(countryIds, "national_champion");
   const titleByRiderId = new Map<
     string,
     ActiveNationalChampionshipTitlesByDiscipline
@@ -140,6 +144,7 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
       countryCode: country.iso_alpha2,
       countryName: country.name,
       championshipType: title.championship_type,
+      nationalDesign: nationalDesigns.get(title.country_id),
     };
     titleByRiderId.set(title.rider_id, currentTitles);
   }

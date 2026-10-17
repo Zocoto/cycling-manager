@@ -7,8 +7,20 @@ import {
 } from "@/lib/rider-jersey";
 import { NationalChampionJersey } from "./national-champion-jersey";
 import { RiderAvatar } from "./rider-avatar";
+import { PREVIEW_MAURITIUS_CHAMPION as champion } from "@/lib/game/federation-jersey-preview-fixtures";
 
 describe("rendu du maillot de champion national", () => {
+  it.each(["detailed", "compact"] as const)("uses the published champion design on the %s portrait", (renderMode) => {
+    const markup = renderToStaticMarkup(<RiderAvatar profileKey={null} seed={42} renderMode={renderMode}
+      jersey={createNationalChampionRiderJersey({ countryCode: "MU", championshipType: "road", nationalDesign: champion })} />);
+    expect(markup).toContain('data-national-jersey-element="champion-flag"');
+    expect(markup).toContain('href="/images/flags/4x3/mu.svg"');
+  });
+  it("uses the identical published design on the full champion jersey", () => {
+    const markup = renderToStaticMarkup(<NationalChampionJersey countryCode="MU" countryName="Maurice" championshipType="time_trial" nationalDesign={champion} />);
+    expect(markup).toContain('data-national-jersey-element="champion-flag"');
+    expect(markup).toContain("champion national du contre-la-montre");
+  });
   it("injecte le drapeau bulgare complet dans le maillot", () => {
     const markup = renderToStaticMarkup(
       <NationalChampionJersey

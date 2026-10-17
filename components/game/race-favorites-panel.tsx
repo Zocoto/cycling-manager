@@ -572,6 +572,8 @@ function getFavoriteJersey(
   rider: RiderSimulationInput,
   edition: RaceFavoritesPanelProps["edition"],
 ): RiderJerseyAppearance {
+  // International events use the nation's kit, never the rider's club title kit.
+  if (rider.teamJersey?.status === "national-team") return rider.teamJersey;
   const firstStage = [...edition.stages].sort(
     (first, second) =>
       first.stageNumber - second.stageNumber ||
@@ -604,6 +606,7 @@ function getFavoriteJersey(
     return createNationalChampionRiderJersey({
       countryCode: nationalChampionship.countryCode,
       championshipType,
+      nationalDesign: nationalChampionship.nationalDesign,
     });
   }
 

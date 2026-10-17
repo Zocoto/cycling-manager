@@ -11,6 +11,9 @@ import {
 } from "@/components/game/game-section-tabs";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { TeamRankingJersey } from "@/components/game/team-ranking-jersey";
+import { NationalFederationJersey } from "@/components/game/national-federation-jersey";
+import { loadNationalFederationJerseyDesignsByCountryCode } from "@/services/national-federation-jerseys";
+import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
 import { DIVISION_RULES } from "@/lib/game/economy";
 import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -77,6 +80,9 @@ export default async function UciRankingsPage({
   ]);
   const rankings = circuit === "uci" ? rankingData as Awaited<ReturnType<typeof getUciRankings>> : null;
   const juniorRankings = circuit === "juniors" ? rankingData as JuniorRankings | null : null;
+  const nationJerseys = circuit === "uci" && view === "nations" && rankings
+    ? await loadNationalFederationJerseyDesignsByCountryCode(rankings.nations.map((entry) => entry.countryCode))
+    : new Map<string, NationalJerseyDraft>();
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -167,7 +173,7 @@ export default async function UciRankingsPage({
           ) : view === "rookies" ? (
             <RookieRanking entries={rankings.rookies} />
           ) : (
-            <NationsTable entries={rankings.nations} />
+            <NationsTable entries={rankings.nations} jerseys={nationJerseys} />
           )}
         </section>
 
@@ -352,14 +358,14 @@ function RidersTable({ entries }: { entries: RiderRankingEntry[] }) {
   );
 }
 
-function NationsTable({ entries }: { entries: NationRankingEntry[] }) {
+function NationsTable({ entries, jerseys }: { entries: NationRankingEntry[]; jerseys: Map<string, NationalJerseyDraft> }) {
   return (
     <div className="overflow-x-auto"><table className="w-full min-w-[660px] border-collapse text-left">
       <caption className="sr-only">Classement UCI des nations</caption>
       <TableHead labels={["Rang", "Nation", "Coureurs", "Points"]} />
       <tbody>{entries.map((entry) => <tr key={entry.countryCode} className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">
         <RankCell rank={entry.rank} />
-        <td className="px-5 py-4"><Link href={`/jeu/nations/${entry.countryCode.toLowerCase()}`} className="inline-flex items-center gap-3 font-black text-[#183F37] hover:text-[#278B70]"><span className={`fi fi-${entry.countryCode.toLowerCase()} text-2xl`} />{entry.countryName}</Link></td>
+        <td className="px-5 py-3"><Link href={`/jeu/nations/${entry.countryCode.toLowerCase()}`} className="inline-flex items-center gap-3 font-black text-[#183F37] hover:text-[#278B70]"><NationalFederationJersey countryCode={entry.countryCode} countryName={entry.countryName} design={jerseys.get(entry.countryCode)} className="h-14 w-12 shrink-0 drop-shadow-sm" /><span className={`fi fi-${entry.countryCode.toLowerCase()} text-xl`} />{entry.countryName}</Link></td>
         <td className="px-5 py-4 text-center font-bold text-[#60756E]">{entry.riderCount}</td>
         <PointsCell points={entry.points} />
       </tr>)}</tbody>

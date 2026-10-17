@@ -47,6 +47,8 @@ import { parseContinentalChampionshipTitleType } from "@/services/rider-continen
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
+import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
+import { loadNationalFederationJerseyDesigns } from "@/services/national-federation-jerseys";
 import { getRiderDevelopmentHistory } from "@/services/rider-development-history";
 import { getViewerScoutingVisibility } from "@/services/scouting-visibility";
 
@@ -109,6 +111,7 @@ export type PublicRiderProfile = {
     countryName: string;
     countryCode: string;
     isActive: boolean;
+    nationalDesign?: NationalJerseyDraft;
   }>;
   worldTitles: Array<{
     type: "road" | "time_trial";
@@ -598,6 +601,11 @@ export async function getPublicRiderProfile({
   const contracts = contractsResult.data ?? [];
   const summaries = summariesResult.data ?? [];
   const nationalTitleRows = nationalTitlesResult.data ?? [];
+  const nationalDesigns = await loadNationalFederationJerseyDesigns([
+    ...new Set(nationalTitleRows.filter((title) => title.relinquished_at === null &&
+      (title.championship_type === "road" || title.championship_type === "time_trial"))
+      .map((title) => title.country_id)),
+  ], "national_champion");
   const equipmentAssignments = equipmentAssignmentsResult.data ?? [];
   const specialAbilities = (specialAbilitiesResult.data ?? [])
     .map((row) => row.ability_code)
@@ -1286,6 +1294,7 @@ export async function getPublicRiderProfile({
               countryName: countryResult.data!.name,
               countryCode: countryResult.data!.iso_alpha2,
               isActive: title.relinquished_at === null,
+              nationalDesign: title.relinquished_at === null ? nationalDesigns.get(title.country_id) : undefined,
             },
           ]
         : [],

@@ -252,9 +252,13 @@ describe("NationalFederationView", () => {
       />,
     );
 
-    expect(markup).toContain("Atelier du maillot national");
+    expect(markup).toContain("Maillots de la fédération");
+    expect(markup).not.toContain("Deux maillots, deux fiertés");
+    expect(markup).toContain("Sélection nationale");
+    expect(markup).toContain("Champions nationaux");
     expect(markup).toContain("Toutes fédérations");
-    expect(markup).toContain("Composez librement");
+    expect(markup).toContain("chaque calque se place librement");
+    expect(markup).toContain("Texte");
     expect(markup).toContain("Bande");
     expect(markup).toContain("Forme");
     expect(markup).toContain("Repartir de zéro");
