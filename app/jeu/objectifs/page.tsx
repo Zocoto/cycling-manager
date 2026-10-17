@@ -437,6 +437,13 @@ function ObjectiveCard({
       : groupLinks[objective.group];
   const trophyReward = getAchievementTrophyForObjective(objective.key);
   const achievement = getProspectiveAchievement(objective.key);
+  // Les dates de mise en service sont internes au suivi des succès.
+  const description = achievement
+    ? objective.description
+        .replace(/ Seuls les accomplissements postérieurs à l’activation du 15 octobre 2026 comptent\.$/u, "")
+        .replace(/ Actions réalisées depuis le 16 octobre 2026 uniquement\.$/u, "")
+        .replace(/ (?:après|depuis) (?:l’)?activation(?: de ces succès)?/gu, "")
+    : objective.description;
   const outfitReward = achievement?.tier === "gold" && "cosmetic" in achievement.definition;
   const longTermTier = getGameObjectiveLongTermTier(objective.key);
 
@@ -497,7 +504,7 @@ function ObjectiveCard({
         {objective.title}
       </h3>
       <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-        {objective.description}
+        {description}
       </p>
 
       <div className="mt-5">
