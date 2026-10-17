@@ -1,0 +1,75 @@
+// Hermetic PostgreSQL in memory: no Supabase client or network connection.
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+if (!process.env.ARCHITECT_SQL_TEST_MODULE) throw new Error('Isolated PGlite module required');
+const {PGlite} = await import(pathToFileURL(process.env.ARCHITECT_SQL_TEST_MODULE).href);
+const db = new PGlite();
+const id = n => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+let checks = 0;
+const equal = (actual, expected) => { assert.deepEqual(actual, expected); checks++; };
+const scalar = async sql => Object.values((await db.query(sql)).rows[0])[0];
+const context = () => scalar('select public.get_current_dashboard_construction_context()');
+try {
+  await db.exec(`
+    create schema auth;create role anon;create role authenticated;create role service_role;
+    create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+    create table sporting_directors(id uuid,auth_user_id uuid,experience_points integer,status text);
+    create table team_manager_assignments(sporting_director_id uuid,team_id uuid,role text,status text);
+    create table teams(id uuid,status text);
+    create table seasons(id uuid,status text);
+    create table team_seasons(team_id uuid,season_id uuid,status text,cash_balance numeric);
+    create table team_infrastructures(team_id uuid,infrastructure_code text,level integer);
+    create table infrastructure_projects(id uuid,team_id uuid,infrastructure_code text,architect_contract_id uuid,status text,created_at timestamptz default now());
+    create table staff_members(id uuid,role text,level integer,architect_specialty text);
+    create table staff_contracts(id uuid,staff_member_id uuid,team_id uuid,status text);
+    create table staff_member_talents(staff_member_id uuid,talent_code text);
+    create table national_federation_infrastructure_projects(id uuid,status text);
+    create table national_federation_project_architects(project_id uuid,staff_contract_id uuid);
+    create index federal_architect_contract_idx on national_federation_project_architects(staff_contract_id);
+    create function get_architect_adjusted_reduction(uuid,integer,text) returns integer language sql as $$ select $2 $$;
+    insert into sporting_directors values('${id(1)}','${id(2)}',10000,'active');
+    insert into team_manager_assignments values('${id(1)}','${id(3)}','general_manager','active');
+    insert into teams values('${id(3)}','active'),('${id(4)}','active');
+    insert into seasons values('${id(5)}','active');
+    insert into team_seasons values('${id(3)}','${id(5)}','active',1000000);
+    insert into team_infrastructures values('${id(3)}','training_center',2);
+    insert into staff_members values('${id(10)}','architect',5,'balanced'),('${id(11)}','architect',5,'economist'),('${id(12)}','architect',4,'foreman');
+    insert into staff_contracts values('${id(20)}','${id(10)}','${id(3)}','active'),('${id(21)}','${id(11)}','${id(3)}','active'),('${id(22)}','${id(12)}','${id(4)}','active');
+    insert into staff_member_talents values('${id(10)}','architect_parallel_construction');
+    insert into infrastructure_projects values('${id(30)}','${id(3)}','training_center','${id(21)}','active',now());
+    insert into national_federation_infrastructure_projects values('${id(40)}','active');
+    insert into national_federation_project_architects values('${id(40)}','${id(20)}');
+    select set_config('request.jwt.claim.sub','${id(2)}',false);
+  `);
+  await db.exec(readFileSync('supabase/migrations/20260919010000_add_dashboard_construction_opportunity_context.sql','utf8'));
+  const before = await context();
+  const migration = readFileSync('supabase/migrations/20261017130000_include_federal_architect_occupancy_in_dashboard.sql','utf8');
+  await db.exec(migration);
+  const after = await context();
+  equal(after.architects.length,2);
+  equal(after.architects[0].isFederationBusy,true);
+  equal(after.architects[1].isFederationBusy,false);
+  equal(after.architects[0].hasParallelConstructionTalent,true);
+  equal(after.architects[0].costReductionPercentage,20);
+  equal(after.architects[1].costReductionPercentage,30);
+  equal({...after,architects:after.architects.map(({isFederationBusy,...rest})=>rest)},before);
+  equal(await scalar(`select has_function_privilege('anon','get_current_dashboard_construction_context()','EXECUTE')`),false);
+  equal(await scalar(`select has_function_privilege('authenticated','get_current_dashboard_construction_context()','EXECUTE')`),true);
+  equal(await scalar(`select 'statement_timeout=2000ms'=any(proconfig) from pg_proc where oid='get_current_dashboard_construction_context()'::regprocedure`),true);
+  await db.exec(migration);equal(await context(),after);
+  for (const status of ['completed','cancelled']) {
+    await db.exec(`update national_federation_infrastructure_projects set status='${status}'`);
+    equal((await context()).architects[0].isFederationBusy,false);
+  }
+  await db.exec(`update national_federation_infrastructure_projects set status='active'`);
+  equal((await context()).architects[0].isFederationBusy,true);
+  await db.exec(`update staff_contracts set status='expired' where id='${id(20)}'`);
+  equal((await context()).architects.map(a=>a.contractId),[id(21)]);
+  await db.exec(`update staff_contracts set status='active';select set_config('request.jwt.claim.sub','${id(99)}',false)`);
+  equal(await context(),null);
+  await db.exec(`select set_config('request.jwt.claim.sub','',false)`);equal(await context(),null);
+  equal(await scalar(`select count(*)::integer from infrastructure_projects`),1);
+  equal(await scalar(`select count(*)::integer from national_federation_project_architects`),1);
+  console.log(JSON.stringify({isolatedPostgres:true,checks,productionFixtures:false}));
+} finally { await db.close(); }

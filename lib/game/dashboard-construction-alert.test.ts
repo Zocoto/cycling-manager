@@ -102,6 +102,58 @@ describe("dashboard construction opportunity", () => {
     ).toBeNull();
   });
 
+  it("suppresses the first-line reminder when the only architect works for a federation", () => {
+    expect(getDashboardConstructionOpportunity({
+      ...context,
+      architects: [{ ...regularArchitect, isFederationBusy: true }],
+    })).toBeNull();
+  });
+
+  it("never uses a federally busy Double chantier architect to unlock the second line", () => {
+    expect(getDashboardConstructionOpportunity({
+      ...context,
+      activeProjects: [{ code: "training_center", architectContractId: null }],
+      architects: [regularArchitect, { ...parallelArchitect, isFederationBusy: true }],
+    })).toBeNull();
+  });
+
+  it("stays quiet when the remaining architect runs the first line and the other works federally", () => {
+    expect(getDashboardConstructionOpportunity({
+      ...context,
+      activeProjects: [{ code: "training_center", architectContractId: parallelArchitect.contractId }],
+      architects: [parallelArchitect, { ...regularArchitect, isFederationBusy: true }],
+    })).toBeNull();
+  });
+
+  it("keeps legitimate opportunities when another architect is really available", () => {
+    const architects = [regularArchitect, { ...parallelArchitect, isFederationBusy: true }];
+    expect(getDashboardConstructionOpportunity({ ...context, architects })?.slotNumber).toBe(1);
+    expect(getDashboardConstructionOpportunity({
+      ...context,
+      activeProjects: [{ code: "training_center", architectContractId: null }],
+      architects: [{ ...regularArchitect, isFederationBusy: true }, parallelArchitect],
+    })?.slotNumber).toBe(2);
+  });
+
+  it("does not make a building affordable using a federally occupied architect's discount", () => {
+    const levels = maxedLevels();
+    levels.training_center = 0;
+    const baseCost = TEAM_INFRASTRUCTURE_DEFINITIONS.training_center.levels[0]!.cost;
+    expect(getDashboardConstructionOpportunity({
+      ...context,
+      levels,
+      balance: Math.round(baseCost * 0.7),
+      architects: [regularArchitect, { ...parallelArchitect, isFederationBusy: true, costReductionPercentage: 40 }],
+    })).toBeNull();
+  });
+
+  it("restores reminders once the federal assignment has ended", () => {
+    expect(getDashboardConstructionOpportunity({
+      ...context,
+      architects: [{ ...regularArchitect, isFederationBusy: false }],
+    })?.slotNumber).toBe(1);
+  });
+
   it("respects active building projects and the Fan Club shop prerequisite", () => {
     const levels = maxedLevels();
     levels.training_center = 0;
@@ -154,11 +206,12 @@ describe("dashboard construction opportunity", () => {
           specialty: "balanced",
           costReductionPercentage: 12,
           hasParallelConstructionTalent: true,
+          isFederationBusy: true,
         }],
       }),
     ).toEqual(expect.objectContaining({
       levels: { training_center: 1 },
-      architects: [expect.objectContaining({ hasParallelConstructionTalent: true })],
+      architects: [expect.objectContaining({ hasParallelConstructionTalent: true, isFederationBusy: true })],
     }));
   });
 

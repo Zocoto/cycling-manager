@@ -134,6 +134,26 @@ describe("federation infrastructures", () => {
     expect(balanced.durationReductionPercentage).toBe(15);
   });
 
+  it("explains why one architect cannot shorten a fourteen-day time-priority project", () => {
+    const catalogLevel = FEDERATION_INFRASTRUCTURE_DEFINITIONS.find(
+      (definition) => definition.code === "national_performance_center",
+    )!.levels[0];
+    // Existing projects keep their initial quote when the catalogue is rebalanced.
+    const level = { ...catalogLevel, durationDays: 14 };
+    expect(calculateFederationConstructionPreview({level, architectCount: 1, priority: "time"})).toMatchObject({
+      cost: 1_400_000, durationDays: 14, savedAmount: 0, savedDays: 0, durationReductionPercentage: 6,
+    });
+    expect(calculateFederationConstructionPreview({level, architectCount: 2, priority: "time"})).toMatchObject({
+      cost: 1_400_000, durationDays: 13, savedDays: 1, durationReductionPercentage: 12,
+    });
+    expect(calculateFederationConstructionPreview({level, architectCount: 1, priority: "balanced"})).toMatchObject({
+      cost: 1_370_000, durationDays: 14, costReductionPercentage: 2, durationReductionPercentage: 3,
+    });
+    expect(calculateFederationConstructionPreview({level, architectCount: 1, priority: "cost"})).toMatchObject({
+      cost: 1_345_000, durationDays: 14, costReductionPercentage: 4, durationReductionPercentage: 0,
+    });
+  });
+
   it("persists S3 projects without permanently locking contributed architects", () => {
     expect(migration).toContain(
       "start_national_federation_infrastructure_project",

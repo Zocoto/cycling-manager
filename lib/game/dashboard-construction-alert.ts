@@ -18,6 +18,7 @@ type DashboardConstructionArchitect = {
   specialty: ArchitectSpecialty;
   costReductionPercentage: number;
   hasParallelConstructionTalent: boolean;
+  isFederationBusy?: boolean;
 };
 
 type DashboardConstructionProject = {
@@ -99,6 +100,7 @@ export function parseDashboardConstructionContext(
           costReductionPercentage: Math.max(0, Math.min(45, reduction)),
           hasParallelConstructionTalent:
             architect.hasParallelConstructionTalent === true,
+          isFederationBusy: architect.isFederationBusy === true,
         }];
       })
     : [];
@@ -112,12 +114,16 @@ export function getDashboardConstructionOpportunity(
   if (!context || context.activeProjects.length >= 2) return null;
 
   const options = getInfrastructureConstructionOptions({
-    architects: context.architects,
+    architects: context.architects.filter((architect) => !architect.isFederationBusy),
     activeProjects: context.activeProjects,
   });
+  // Silence the reminder when federal assignments consume the remaining staff;
+  // manual architect-free construction keeps its existing capacity rules.
   if (
     options.capacityBlockReason ||
-    (!options.canStartWithoutArchitect && options.eligibleArchitects.length === 0)
+    (!options.canStartWithoutArchitect && options.eligibleArchitects.length === 0) ||
+    (context.architects.some((architect) => architect.isFederationBusy) &&
+      options.eligibleArchitects.length === 0)
   ) {
     return null;
   }
