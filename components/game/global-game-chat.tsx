@@ -2279,6 +2279,7 @@ function OnlineDirectorsContent({
   onDirectMessage: (recipientId: string) => void;
   onClose?: () => void;
 }) {
+  const { locale } = useLocale();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [scrollAvailability, setScrollAvailability] = useState({
     up: false,
@@ -2377,7 +2378,7 @@ function OnlineDirectorsContent({
                       label={`Avatar de ${director.displayName}`}
                     />
                     <span
-                      aria-label="En ligne"
+                      aria-label={locale === "en" ? "Online" : "En ligne"}
                       className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#071A17] bg-[#42B99A]"
                     />
                   </span>
