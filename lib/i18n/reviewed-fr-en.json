@@ -905,5 +905,7 @@
   "janv.": "Jan", "févr.": "Feb", "avr.": "Apr", "juil.": "Jul", "sept.": "Sep",
   "oct.": "Oct", "nov.": "Nov", "déc.": "Dec",
   "lun.": "Mon", "mar.": "Tue", "mer.": "Wed", "jeu.": "Thu", "ven.": "Fri", "sam.": "Sat", "dim.": "Sun",
-  "enregistré": "saved", "lu": "read", "récent": "recent", "débloqué": "unlocked", "trophée": "award"
+  "enregistré": "saved", "lu": "read", "récent": "recent", "débloqué": "unlocked", "trophée": "award",
+  "Le guide complet du": "The complete guide for the",
+  "Guide complet du Directeur Sportif": "Complete Sporting Director guide"
 }

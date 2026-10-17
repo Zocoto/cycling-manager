@@ -17,6 +17,9 @@ describe("French to English UI catalog", () => {
     ["Maillot officiel de Abbaye du Lion", "Abbaye du Lion's official jersey"],
     ["2 inscriptions ont dû être retirées et devront être recomposées.", "2 registrations have had to be withdrawn and will need to be entered again."],
     ["a", "a"], ["Course profile", "Course profile"],
+    ["Le guide complet du", "The complete guide for the"],
+    ["BECOME A SPORTS DIRECTOR", "BECOME A SPORTING DIRECTOR"],
+    ["sport director", "sporting director"],
     ["Chandler Davis", "Chandler Davis"], ["Nisos Energiaia", "Nisos Energiaia"],
   ])("translates %s consistently", (source, target) => expect(translateUiText(source)).toBe(target));
 

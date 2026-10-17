@@ -722,9 +722,12 @@ function getTranslationAnchor(value: string): string | null {
 }
 
 function normalizeEnglishTerminology(value: string): string {
-  return value
-    .replace(/\bSports Directors\b/g, "Sporting Directors")
-    .replace(/\bSports Director\b/g, "Sporting Director");
+  return value.replace(/\bSports? Directors?\b/gi, match => {
+    const plural = match.toLowerCase().endsWith('s');
+    if (match === match.toUpperCase()) return plural ? 'SPORTING DIRECTORS' : 'SPORTING DIRECTOR';
+    if (/^[A-Z]/.test(match)) return plural ? 'Sporting Directors' : 'Sporting Director';
+    return plural ? 'sporting directors' : 'sporting director';
+  });
 }
 
 function preserveOuterWhitespace(source: string, translated: string): string {
