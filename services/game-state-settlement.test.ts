@@ -47,4 +47,29 @@ describe("season rollover maintenance health", () => {
     expect(health.healthy).toBe(false);
     expect(health.nationalChampionships.timeTrialOverdue).toBe(12);
   });
+  it("reports slow player requests even if all scheduled work succeeded", async () => {
+    rpc.mockImplementation(async (name) => ({ error: null, data:
+      name === "get_recent_site_performance_health"
+        ? { healthy: false, status: "degraded", sampleCount: 40, windowMinutes: 15,
+            breaches: [{ route: "get_current_dashboard_assistant_summary", p95Ms: 2800 }] }
+        : { healthy: true, activeSeasonCount: 1 } }));
+    const health = await getGameMaintenanceHealth(new Date("2026-10-09T06:10:00Z"));
+    expect(health.healthy).toBe(false);
+    expect(health.sitePerformance.status).toBe("degraded");
+    expect(health.sitePerformance.breaches).toHaveLength(1);
+  });
+  it("distinguishes insufficient traffic from an unavailable performance check", async () => {
+    rpc.mockImplementation(async (name) => ({ error: null, data:
+      name === "get_recent_site_performance_health"
+        ? { healthy: true, status: "insufficient_data", sampleCount: 0 }
+        : { healthy: true, activeSeasonCount: 1 } }));
+    const health = await getGameMaintenanceHealth(new Date("2026-10-09T06:10:00Z"));
+    expect(health.healthy).toBe(true);
+    expect(health.sitePerformance.status).toBe("insufficient_data");
+    rpc.mockImplementation(async (name) => name === "get_recent_site_performance_health"
+      ? { data: null, error: { message: "timeout" } }
+      : { data: { healthy: true }, error: null });
+    expect((await getGameMaintenanceHealth(new Date("2026-10-09T06:10:00Z"))).sitePerformance)
+      .toMatchObject({ healthy: false, status: "unavailable", error: "timeout" });
+  });
 });
