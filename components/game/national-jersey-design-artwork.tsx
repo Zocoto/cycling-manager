@@ -91,7 +91,7 @@ function NationalJerseyElementArtwork({
     return <g data-national-jersey-element={element.id} transform={transform} opacity={element.opacity}>
       <text textAnchor="middle" dominantBaseline="central" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800"
         fontSize={Math.max(4, Math.min(48, element.height))} textLength={element.width} lengthAdjust="spacingAndGlyphs"
-        fill={element.color} stroke={element.secondaryColor} strokeWidth="0.25" paintOrder="stroke">
+        fill={element.color} stroke={element.border === false ? "none" : element.secondaryColor} strokeWidth="0.25" paintOrder="stroke">
         {element.text ?? "NATION"}
       </text>
     </g>;
@@ -166,7 +166,7 @@ function NationalJerseyElementArtwork({
           />
         )}
       </g>
-      {getShapeOutline(element)}
+      {element.border !== false ? getShapeOutline(element) : null}
     </g>
   );
 }
@@ -181,9 +181,44 @@ function getShapeArtwork(
     ? { fill: "#000000" }
     : {
         fill: element.color,
-        stroke: element.secondaryColor,
+        stroke: element.border === false ? "none" : element.secondaryColor,
         strokeWidth: Math.max(1.5, Math.min(4, element.width / 18)),
       };
+
+  if (["stripes", "dots", "checkerboard"].includes(element.shape) && !clipOnly) {
+    return <g data-jersey-pattern={element.shape}>
+      <svg x={left} y={top} width={element.width} height={element.height} viewBox="0 0 100 100" preserveAspectRatio="none" overflow="hidden">
+        {element.shape === "stripes" ? Array.from({length: 8}, (_, i) => <path key={i} d={`M${i * 28 - 110} 0h12l100 100h-12Z`} fill={element.color} />) : null}
+        {element.shape === "dots" ? Array.from({length: 20}, (_, i) => <ellipse key={i} cx={10 + (i % 5) * 20} cy={12.5 + Math.floor(i / 5) * 25} rx="4" ry="5" fill={element.color} />) : null}
+        {element.shape === "checkerboard" ? Array.from({length: 24}, (_, i) => <rect key={i} x={(i % 6) * 100 / 6} y={Math.floor(i / 6) * 25} width={100 / 6 + 0.05} height="25.05" fill={(i % 6 + Math.floor(i / 6)) % 2 === 0 ? element.color : element.secondaryColor} />) : null}
+      </svg>
+      {element.border !== false ? <rect x={left} y={top} width={element.width} height={element.height} fill="none" stroke={element.secondaryColor} strokeWidth={common.strokeWidth} /> : null}
+    </g>;
+  }
+
+  if (element.shape === "triangle") {
+    return <path d={`M0 ${top} ${-left} ${-top} ${left} ${-top}Z`} {...common} />;
+  }
+  if (element.shape === "star") {
+    const points = Array.from({length: 10}, (_, i) => {
+      const angle = -Math.PI / 2 + i * Math.PI / 5;
+      const radius = i % 2 === 0 ? 1 : 0.43;
+      return `${Math.cos(angle) * -left * radius},${Math.sin(angle) * -top * radius}`;
+    }).join(" ");
+    return <polygon points={points} {...common} />;
+  }
+  if (element.shape === "chevron") {
+    return <path d={`M${left} ${top} 0 ${top * 0.25} ${-left} ${top}V${-top * 0.25}L0 ${-top} ${left} ${-top * 0.25}Z`} {...common} />;
+  }
+  if (element.shape === "lightning") {
+    return <path d={`M${-left * 0.25} ${top} ${left} ${-top * 0.15} ${-left * 0.08} ${-top * 0.15} ${left * 0.3} ${-top} ${-left} ${top * 0.12} ${left * 0.05} ${top * 0.12}Z`} {...common} />;
+  }
+  if (element.shape === "line") {
+    return <rect x={left} y={top} width={element.width} height={element.height} rx={element.height / 2} {...common} />;
+  }
+  if (element.shape === "wave") {
+    return <path d={`M${left} ${top * 0.4}C${left * 0.5} ${top * 1.5} ${left * 0.5} ${-top * 0.7} 0 ${top * 0.4}S${-left * 0.5} ${-top * 0.7} ${-left} ${top * 0.4}V${-top * 0.4}C${-left * 0.5} ${-top * 1.5} ${-left * 0.5} ${top * 0.7} 0 ${-top * 0.4}S${left * 0.5} ${top * 0.7} ${left} ${-top * 0.4}Z`} {...common} />;
+  }
 
   if (element.shape === "roundel") {
     return <ellipse cx="0" cy="0" rx={element.width / 2} ry={element.height / 2} {...common} />;

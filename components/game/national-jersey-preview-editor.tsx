@@ -12,6 +12,7 @@ import {
 } from "@/components/game/national-jersey-design-artwork";
 import { initialNationalJerseyPublishState } from "@/lib/game/federation-action-states";
 import { getNationalTeamJerseyPreset } from "@/lib/game/national-team-jersey-presets";
+import { NationalJerseyEditingCanvas } from "./national-jersey-editing-canvas";
 import {
   decodeNationalJerseyDraft,
   DEFAULT_NATIONAL_JERSEY_DRAFT,
@@ -44,6 +45,15 @@ const SHAPES: Array<{ value: NationalJerseyElementShape; label: string }> = [
   { value: "shield", label: "Blason" },
   { value: "diamond", label: "Losange" },
   { value: "hexagon", label: "Hexagone" },
+  { value: "triangle", label: "Triangle" },
+  { value: "star", label: "Étoile" },
+  { value: "chevron", label: "Chevron" },
+  { value: "lightning", label: "Éclair" },
+  { value: "line", label: "Ligne" },
+  { value: "wave", label: "Vague" },
+  { value: "stripes", label: "Motif · rayures diagonales" },
+  { value: "dots", label: "Motif · pois" },
+  { value: "checkerboard", label: "Motif · damier" },
 ];
 
 const ELEMENT_LABELS: Record<NationalJerseyElementKind, string> = {
@@ -80,6 +90,8 @@ export function NationalJerseyPreviewEditor({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
+  const [canvasView, setCanvasView] = useState<"edit" | "preview">("edit");
+  const canvasDialogRef = useRef<HTMLDialogElement>(null);
   const [storageStatus, setStorageStatus] = useState<
     "idle" | "restored" | "saved" | "unavailable"
   >("idle");
@@ -139,10 +151,10 @@ export function NationalJerseyPreviewEditor({
     setStorageStatus("idle");
   }
 
-  function addElement(kind: NationalJerseyElementKind) {
+  function addElement(kind: NationalJerseyElementKind, shape?: NationalJerseyElementShape) {
     if (draft.elements.length >= NATIONAL_JERSEY_MAX_ELEMENTS) return;
 
-    const element = createNationalJerseyElement(kind);
+    const element = createNationalJerseyElement(kind, shape);
     updateDraft({ elements: [...draft.elements, element] });
     setSelectedElementId(element.id);
   }
@@ -154,6 +166,11 @@ export function NationalJerseyPreviewEditor({
         element.id === selectedElementId ? { ...element, ...patch } : element,
       ),
     });
+  }
+
+  function moveElement(id: string, position: { x: number; y: number }) {
+    setDraft(current => normalizeNationalJerseyDraft({ ...current, elements: current.elements.map(element => element.id === id ? { ...element, ...position } : element) }));
+    setStorageStatus("idle");
   }
 
   function moveSelectedElement(offset: -1 | 1) {
@@ -221,7 +238,7 @@ export function NationalJerseyPreviewEditor({
   }
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
+    <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
       {!canEdit ? (
         <aside
           role="note"
@@ -252,13 +269,7 @@ export function NationalJerseyPreviewEditor({
         <legend className="sr-only">
           Atelier présidentiel · {NATIONAL_JERSEY_KIND_LABELS[jerseyKind]}
         </legend>
-      <div className="grid gap-6 bg-[var(--federation-primary)] p-6 text-white sm:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-center">
-        <JerseyArtwork
-          countryCode={countryCode}
-          countryName={countryName}
-          draft={draft}
-          generatedId={generatedId}
-        />
+      <div className="rounded-t-[2rem] bg-[var(--federation-primary)] p-5 text-white sm:p-6">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
@@ -271,13 +282,10 @@ export function NationalJerseyPreviewEditor({
               {canEdit ? "Accès présidentiel" : "Consultation uniquement"}
             </span>
           </div>
-          <h2 className="mt-3 text-3xl font-black">
+          <h2 className="mt-3 text-2xl font-black">
             {jerseyKind === "national_team" ? "La nation, un même maillot" : "Le maillot des champions"}
           </h2>
-          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-            {jerseyKind === "national_team" ? "Porté par les sélections lors des Mondiaux, des championnats continentaux et des rendez-vous internationaux." : "Porté en club par les champions nationaux sur route et contre-la-montre, professionnels et juniors."}
-            {" "}Drapeau, emblème, bandes et texte : chaque calque se place librement sur le patron.
-          </p>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">Composez votre maillot dans la zone d’édition, puis vérifiez son rendu avant publication.</p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             {selectionPreset ? (
               <button type="button" onClick={() => {
@@ -360,7 +368,35 @@ export function NationalJerseyPreviewEditor({
         </div>
       ) : null}
 
-      <div className="grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(19rem,0.72fr)_minmax(0,1.28fr)]">
+      </fieldset>
+      <div className="relative grid items-start gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.2fr)]">
+        <aside className="sticky top-3 z-20 min-w-0 space-y-3 rounded-2xl bg-white p-2 shadow-[0_12px_32px_rgba(19,60,46,0.12)] lg:shadow-none [@media(max-height:420px)]:static" aria-label="Édition et aperçu du maillot">
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#EAF0ED] p-1 lg:hidden" role="group" aria-label="Vue du maillot">
+            {(["edit", "preview"] as const).map(view => <button key={view} type="button" onClick={() => setCanvasView(view)} aria-pressed={canvasView === view}
+              className={`min-h-10 rounded-lg px-2 text-xs font-black ${canvasView === view ? "bg-white text-[#176951] shadow-sm" : "text-[#60756E]"}`}>{view === "edit" ? "Zone d’édition" : "Aperçu final"}</button>)}
+          </div>
+          <section aria-label="Zone d’édition du maillot" className={`${canvasView === "edit" ? "block" : "hidden"} rounded-xl border-2 border-[#6E9FBB] bg-[#EEF5FC] p-3 lg:block`}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#234E69]">Zone d’édition</h3>
+              <button type="button" onClick={() => canvasDialogRef.current?.showModal()} className="min-h-8 rounded-lg border border-[#6E9FBB]/50 bg-white px-2 text-[10px] font-black text-[#234E69]">Voir en grand</button>
+            </div>
+            <NationalJerseyEditingCanvas countryCode={countryCode} countryName={countryName} draft={draft} selectedId={selectedElementId} idPrefix={generatedId} disabled={!canEdit} onSelect={setSelectedElementId} onMove={moveElement} />
+            <p className="text-[11px] font-semibold leading-4 text-[#476879]">Glissez pour déplacer · flèches pour ajuster.</p>
+          </section>
+          <section aria-label="Aperçu final du maillot" className={`${canvasView === "preview" ? "block" : "hidden"} rounded-xl border border-[#315B3E]/15 bg-[#F8FAF8] p-3 lg:block`}>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#60756E]">Aperçu final</h3>
+            <JerseyArtwork countryCode={countryCode} countryName={countryName} draft={draft} generatedId={generatedId} />
+            <p className="text-center text-[11px] font-semibold text-[#60756E]">Votre composition, sans les repères d’édition.</p>
+          </section>
+          <dialog ref={canvasDialogRef} aria-label="Zone d’édition agrandie" className="fixed inset-0 m-auto max-h-[calc(100dvh_-_1rem)] w-[calc(100%_-_1rem)] max-w-3xl overflow-auto rounded-2xl border-2 border-[#6E9FBB] bg-[#EEF5FC] p-4 text-[#183F37] shadow-2xl backdrop:bg-[#071A17]/70">
+            <div className="mb-3 flex items-center justify-between gap-3"><h3 className="font-black">Zone d’édition agrandie</h3>
+              <button type="button" onClick={() => canvasDialogRef.current?.close()} aria-label="Fermer la vue agrandie" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#6E9FBB]/50 bg-white text-xl font-black">×</button></div>
+            <NationalJerseyEditingCanvas large countryCode={countryCode} countryName={countryName} draft={draft} selectedId={selectedElementId} idPrefix={`${generatedId}-large`} disabled={!canEdit} onSelect={setSelectedElementId} onMove={moveElement} />
+            <p className="mt-3 text-xs font-semibold text-[#476879]">Glissez les éléments pour les placer, puis revenez aux réglages.</p>
+          </dialog>
+        </aside>
+        <fieldset disabled={!canEdit} aria-disabled={!canEdit} className={`min-w-0 space-y-6 border-0 p-0 ${!canEdit ? "opacity-55" : ""}`}>
+        <legend className="sr-only">Outils de composition</legend>
         <div className="space-y-6">
           <EditorGroup title="Fond du maillot">
             <ColorControl
@@ -371,22 +407,28 @@ export function NationalJerseyPreviewEditor({
           </EditorGroup>
 
           <EditorGroup title={`Ajouter un élément · ${draft.elements.length}/${NATIONAL_JERSEY_MAX_ELEMENTS}`}>
-            <div className="grid grid-cols-2 gap-2">
+            <fieldset disabled={draft.elements.length >= NATIONAL_JERSEY_MAX_ELEMENTS} className="grid min-w-0 grid-cols-2 gap-2 border-0 p-0 sm:grid-cols-3">
+              <legend className="sr-only">Choisir un élément à ajouter</legend>
               <AddElementButton label="Drapeau" icon="⚑" onClick={() => addElement("flag")} />
               <AddElementButton label="Emblème" icon="♜" onClick={() => addElement("emblem")} />
               <AddElementButton label="Bande" icon="▬" onClick={() => addElement("band")} />
               <AddElementButton label="Forme" icon="◆" onClick={() => addElement("shape")} />
+              <AddElementButton label="Ligne" icon="╱" onClick={() => addElement("shape", "line")} />
+              <AddElementButton label="Motif" icon="▧" onClick={() => addElement("shape", "stripes")} />
               <AddElementButton label="Texte" icon="T" onClick={() => addElement("text")} />
-            </div>
+            </fieldset>
           </EditorGroup>
 
-          <EditorGroup title="Calques">
+          <details className="rounded-xl border border-[#315B3E]/15 p-3">
+            <summary className="cursor-pointer text-xs font-black uppercase tracking-wider text-[#176951]">Calques · {draft.elements.length}</summary>
+            <div className="mt-3 max-h-48 overflow-y-auto">
             {draft.elements.length > 0 ? (
               <ol className="space-y-2">
                 {[...draft.elements].reverse().map((element, reverseIndex) => (
                   <li key={element.id}>
                     <button
                       type="button"
+                      aria-pressed={selectedElementId === element.id}
                       onClick={() => setSelectedElementId(element.id)}
                       className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-xs font-black transition ${
                         selectedElementId === element.id
@@ -404,10 +446,11 @@ export function NationalJerseyPreviewEditor({
               </ol>
             ) : (
               <p className="rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F8FBF9] px-4 py-6 text-center text-xs font-bold text-[#789087]">
-                Aucun élément : le maillot est entièrement blanc.
+                Ajoutez un premier élément à votre maillot.
               </p>
             )}
-          </EditorGroup>
+            </div>
+          </details>
         </div>
 
         <div>
@@ -439,29 +482,36 @@ export function NationalJerseyPreviewEditor({
                 ) : null}
                 {selectedElement.kind !== "band" && selectedElement.kind !== "text" ? (
                   <EditorSelect
-                    label="Forme du cadre"
+                    label={selectedElement.kind === "shape" ? "Forme ou motif" : "Découpe de l’élément"}
                     value={selectedElement.shape}
-                    options={SHAPES}
+                    options={selectedElement.kind === "shape" ? SHAPES : SHAPES.filter(option => !["line", "wave", "stripes", "dots", "checkerboard"].includes(option.value))}
                     onChange={(shape) =>
                       updateSelectedElement({ shape: shape as NationalJerseyElementShape })
                     }
                   />
                 ) : null}
 
-                <div className="grid grid-cols-2 gap-3">
+                {selectedElement.kind !== "band" ? <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#315B3E]/15 bg-white p-3 text-sm font-bold text-[#183F37]">
+                  <input type="checkbox" checked={selectedElement.border !== false} onChange={event => updateSelectedElement({ border: event.target.checked })} className="h-5 w-5 accent-[#176951]" />
+                  {selectedElement.kind === "text" ? "Afficher le contour du texte" : "Afficher un contour"}
+                </label> : null}
+
+                {selectedElement.kind !== "flag" || selectedElement.border !== false ? <div className="grid grid-cols-2 gap-3">
+                  {selectedElement.kind !== "flag" ?
                   <ColorControl
-                    label={selectedElement.kind === "text" ? "Couleur du texte" : selectedElement.kind === "shape" || selectedElement.kind === "band" ? "Couleur" : "Contour / motif"}
+                    label={selectedElement.kind === "text" ? "Couleur du texte" : selectedElement.kind === "shape" || selectedElement.kind === "band" ? "Couleur" : "Couleur du motif"}
                     value={selectedElement.color}
                     onChange={(color) => updateSelectedElement({ color })}
-                  />
+                  /> : null}
+                  {selectedElement.border !== false || selectedElement.kind === "band" || selectedElement.kind === "emblem" || selectedElement.shape === "checkerboard" ?
                   <ColorControl
-                    label={selectedElement.kind === "text" ? "Contour du texte" : "Accent"}
+                    label={selectedElement.kind === "flag" ? "Couleur du contour" : selectedElement.kind === "text" ? "Contour du texte" : "Couleur secondaire"}
                     value={selectedElement.secondaryColor}
                     onChange={(secondaryColor) =>
                       updateSelectedElement({ secondaryColor })
                     }
-                  />
-                </div>
+                  /> : null}
+                </div> : null}
 
                 <div className="grid gap-5 sm:grid-cols-2">
                   <EditorRange label="Horizontal" value={selectedElement.x} minimum={-60} maximum={180} display={`${Math.round(selectedElement.x)}`} onChange={(x) => updateSelectedElement({ x })} />
@@ -512,8 +562,8 @@ export function NationalJerseyPreviewEditor({
             </p>
           </form>
         </div>
+        </fieldset>
       </div>
-      </fieldset>
     </section>
   );
 }
@@ -532,12 +582,12 @@ function JerseyArtwork({
   const jerseyClipId = `national-jersey-${generatedId}`;
 
   return (
-    <div className="rounded-[1.7rem] border border-white/15 bg-[radial-gradient(circle_at_top,#FFFFFF20,transparent_65%)] p-5">
+    <div className="py-2">
       <svg
         viewBox="0 0 120 132"
         role="img"
-        aria-label={`Brouillon du maillot national de ${countryName}`}
-        className="mx-auto h-56 w-full max-w-52 drop-shadow-[0_18px_18px_rgba(0,0,0,0.3)]"
+        aria-label={`Aperçu du maillot national de ${countryName}`}
+        className="mx-auto h-[clamp(3rem,calc(50svh_-_11rem),11rem)] w-full max-w-52 drop-shadow-md lg:h-36"
       >
         <defs>
           <clipPath id={jerseyClipId}>
@@ -560,6 +610,7 @@ function JerseyArtwork({
 
 function createNationalJerseyElement(
   kind: NationalJerseyElementKind,
+  shape?: NationalJerseyElementShape,
 ): NationalJerseyElement {
   const id = `layer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const common = {
@@ -574,12 +625,13 @@ function createNationalJerseyElement(
     height: 52,
     rotation: 0,
     opacity: 1,
+    border: false,
   };
 
   if (kind === "band") return { ...common, width: 170, height: 18 };
   if (kind === "text") return { ...common, text: "NATION", width: 50, height: 10, y: 54, color: "#FFFFFF", secondaryColor: "#111111" };
   if (kind === "emblem") return { ...common, shape: "shield", width: 48, height: 58 };
-  if (kind === "shape") return { ...common, shape: "roundel", width: 46, height: 46 };
+  if (kind === "shape") return { ...common, shape: shape ?? "roundel", width: shape === "line" ? 90 : shape === "stripes" ? 100 : 46, height: shape === "line" ? 4 : shape === "stripes" ? 50 : 46 };
   return common;
 }
 
@@ -602,7 +654,7 @@ function EditorGroup({ title, children }: { title: string; children: React.React
 
 function AddElementButton({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex min-h-12 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] px-3 text-xs font-black text-[#183F37] transition hover:border-[var(--federation-secondary)]/45 hover:bg-[#EEF8F3]">
+    <button type="button" onClick={onClick} className="flex min-h-12 items-center gap-2 rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] px-3 text-xs font-black text-[#183F37] transition hover:border-[var(--federation-secondary)]/45 hover:bg-[#EEF8F3] disabled:cursor-not-allowed disabled:opacity-40">
       <span className="text-lg text-[var(--federation-secondary)]" aria-hidden="true">{icon}</span>
       {label}
     </button>

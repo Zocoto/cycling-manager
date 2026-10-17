@@ -33,6 +33,7 @@ const nationalJerseyElementSchema = z.object({
   height: z.number().finite().min(4).max(220),
   rotation: z.number().finite().min(-180).max(180),
   opacity: z.number().finite().min(0.15).max(1),
+  border: z.boolean().optional(),
   text: z.string().max(32).optional(),
 }).refine((element) => element.kind !== "text" || Boolean(element.text?.trim()), { message: "Le texte ne peut pas être vide." });
 const nationalJerseySchema = z.object({

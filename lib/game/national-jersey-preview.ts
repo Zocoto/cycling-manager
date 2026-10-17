@@ -12,6 +12,15 @@ export const NATIONAL_JERSEY_ELEMENT_SHAPES = [
   "shield",
   "diamond",
   "hexagon",
+  "triangle",
+  "star",
+  "chevron",
+  "lightning",
+  "line",
+  "wave",
+  "stripes",
+  "dots",
+  "checkerboard",
 ] as const;
 
 export type NationalJerseyElementKind =
@@ -31,6 +40,8 @@ export type NationalJerseyElement = {
   height: number;
   rotation: number;
   opacity: number;
+  /** Omitted on existing designs: preserve their original outline. */
+  border?: boolean;
   text?: string;
 };
 
@@ -173,6 +184,7 @@ function normalizeNationalJerseyElement(
     height: clampNumber(element.height, 4, kind === "text" ? 48 : 220, kind === "text" ? 12 : kind === "band" ? 18 : 54),
     rotation: clampNumber(element.rotation, -180, 180, 0),
     opacity: clampNumber(element.opacity, 0.15, 1, 1),
+    ...(typeof element.border === "boolean" ? { border: element.border } : {}),
     ...(kind === "text" ? { text: String(element.text ?? "NATION").replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 32) } : {}),
   };
 }

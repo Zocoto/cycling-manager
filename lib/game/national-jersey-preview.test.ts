@@ -4,10 +4,22 @@ import {
   decodeNationalJerseyDraft,
   DEFAULT_NATIONAL_JERSEY_DRAFT,
   getNationalJerseyDraftStorageKey,
+  NATIONAL_JERSEY_ELEMENT_SHAPES,
   normalizeNationalJerseyDraft,
 } from "./national-jersey-preview";
 
 describe("national jersey preview draft", () => {
+  it("préserve les anciens contours et conserve un choix explicite sans cadre après relecture", () => {
+    const legacy = normalizeNationalJerseyDraft({ elements: [{ id: "flag", kind: "flag" }] as never });
+    expect(legacy.elements[0].border).toBeUndefined();
+    const borderless = normalizeNationalJerseyDraft({ elements: [{ ...legacy.elements[0], border: false }] });
+    expect(decodeNationalJerseyDraft(JSON.stringify(borderless))?.elements[0].border).toBe(false);
+    expect(normalizeNationalJerseyDraft({ elements: [{ ...legacy.elements[0], border: "false" }] as never }).elements[0].border).not.toBe(false);
+  });
+  it.each(NATIONAL_JERSEY_ELEMENT_SHAPES)("conserve la forme %s lors de l’enregistrement du brouillon", shape => {
+    const design = normalizeNationalJerseyDraft({ elements: [{ id: "pattern", kind: "shape", shape, border: false }] as never });
+    expect(decodeNationalJerseyDraft(JSON.stringify(design))?.elements[0]).toMatchObject({ shape, border: false });
+  });
   it("keeps the two role drafts separate without losing the old selection draft key", () => {
     expect(getNationalJerseyDraftStorageKey("MU", "national_champion")).not.toBe(getNationalJerseyDraftStorageKey("MU"));
   });
