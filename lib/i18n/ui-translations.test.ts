@@ -22,6 +22,7 @@ describe("French to English UI catalog", () => {
 
   it("keeps proper names intact inside generated messages", () => {
     expect(translateUiText("Que représente cette victoire de Chandler Davis pour Abbaye du Lion ?")).toBe("What does Chandler Davis's victory mean for Abbaye du Lion?");
+    expect(translateUiText("Que représente cette victoire de peut pour ont ?")).toBe("What does peut's victory mean for ont?");
   });
 
   it("does not replace French fragments inside longer words", () => {

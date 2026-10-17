@@ -1,6 +1,7 @@
 const PLACEHOLDER = /\{\{(?:\d+|[A-Za-z]\w*)\}\}|%(?:\d+\$)?[sIL]/g;
 
 export type UiTranslationTemplate = {
+  source: string;
   pattern: RegExp;
   target: string;
   placeholders: string[];
@@ -28,13 +29,13 @@ export function compileUiTranslationTemplate(source: string, target: string): Ui
   if (specificity < 8) return null;
   const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`^${literals.map(escape).join('(.{0,500}?)')}$`, 'u');
-  return {pattern, target, placeholders, literals: literals.filter(Boolean), specificity};
+  return {source, pattern, target, placeholders, literals: literals.filter(Boolean), specificity};
 }
 
 export function applyUiTranslationTemplate(
   template: UiTranslationTemplate,
   value: string,
-  translateParameter: (value: string) => string = value => value,
+  translateParameter: (value: string, placeholder: string) => string = value => value,
 ): string | null {
   if (!template.literals.every(literal => value.includes(literal))) return null;
   const match = template.pattern.exec(value);
@@ -55,6 +56,6 @@ export function applyUiTranslationTemplate(
     const index = placeholder.startsWith('{{')
       ? template.placeholders.indexOf(placeholder)
       : sqlIndex++;
-    return translateParameter(match[index + 1]);
+    return translateParameter(match[index + 1], placeholder);
   });
 }

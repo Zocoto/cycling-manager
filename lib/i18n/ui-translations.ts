@@ -588,6 +588,15 @@ const TEMPLATE_GRAMMAR: Readonly<Record<string, string>> = {
   ', sélection finalisée': ', selection finalised',
   officiel: 'official', officielle: 'official', provisoire: 'provisional',
 };
+const LOCALIZED_TEMPLATE_SLOTS: Readonly<Record<string, readonly string[]>> = {
+  '{{0}} inscription{{1}} dû être retirée{{grammar2}} et {{3}} être recomposée{{grammar4}}.': ['{{1}}', '{{3}}'],
+  '{{0}} contrat{{1}} été prolongé{{grammar2}} pour la saison suivante.': ['{{1}}'],
+  '{{0}} jour{{grammar1}} de présence dans la structure manque{{2}} encore.': ['{{2}}'],
+  '{{0}} stage{{grammar1}} de staff {{2}} être mené{{grammar3}} simultanément.': ['{{2}}'],
+  '{{0}} : {{1}} convocations envoyées, {{2}} confirmées, {{3}} en attente{{4}}': ['{{4}}'],
+  'Maillot {{0}} de {{1}}': ['{{0}}'],
+  'Aperçu provisoire du maillot {{0}} de {{1}}': ['{{0}}'],
+};
 
 for (const [source, target] of Object.entries(UI_TRANSLATIONS)) {
   const template = compileUiTranslationTemplate(source, target);
@@ -633,7 +642,8 @@ export function translateUiText(value: string): string {
     for (const template of UI_TEMPLATES_BY_ANCHOR.get(token) ?? []) templates.add(template);
   }
   for (const template of [...templates].sort((a, b) => b.specificity - a.specificity || Number(REVIEWED_TEMPLATES.has(b)) - Number(REVIEWED_TEMPLATES.has(a)))) {
-    const translated = applyUiTranslationTemplate(template, normalized, parameter => {
+    const translated = applyUiTranslationTemplate(template, normalized, (parameter, placeholder) => {
+      if (!LOCALIZED_TEMPLATE_SLOTS[template.source]?.includes(placeholder)) return parameter;
       const grammar = TEMPLATE_GRAMMAR[parameter.trim()];
       return grammar === undefined ? parameter : preserveOuterWhitespace(parameter, grammar);
     });
