@@ -141,27 +141,32 @@ export function GameHeader({
         />
 
         <div
-          data-header-presence-slot="true"
-          className={`${compactMobile ? "order-none" : "order-2"} shrink-0 sm:order-none`}
+          data-mobile-header-search-row="true"
+          className={compactMobile ? "contents" : "order-2 flex w-full min-w-0 items-center gap-2 sm:contents"}
         >
-          <SitePresenceIndicator />
-        </div>
+          <div
+            data-header-presence-slot="true"
+            className={`order-1 ${compactMobile ? "ml-auto" : ""} flex shrink-0 items-center [&>button]:h-8 sm:order-none sm:ml-0 sm:[&>button]:h-10`}
+          >
+            <SitePresenceIndicator />
+          </div>
 
-        <div
-          data-global-header-search="true"
-          className={`${compactMobile ? "hidden sm:block" : "block"} order-2 w-[calc(100%-4rem)] min-w-0 sm:w-full xl:order-none xl:flex-1`}
-        >
-          <GameHeaderSearch
-            id="game-global-search"
-            searchQuery={searchQuery}
-            className="flex"
-            isEnglish={isEnglish}
-          />
+          <div
+            data-global-header-search="true"
+            className={`${compactMobile ? "hidden sm:block" : "block"} min-w-0 flex-1 sm:order-2 sm:w-full sm:flex-initial xl:order-none xl:flex-1`}
+          >
+            <GameHeaderSearch
+              id="game-global-search"
+              searchQuery={searchQuery}
+              className="flex"
+              isEnglish={isEnglish}
+            />
+          </div>
         </div>
 
         <div
           data-mobile-header-action-row="true"
-          className="order-1 ml-auto flex shrink-0 items-center gap-1.5 max-[360px]:gap-0.5 sm:contents"
+          className={`order-1 ${compactMobile ? "" : "ml-auto"} flex shrink-0 items-center gap-1 max-[360px]:gap-0.5 sm:contents`}
         >
           <div
             data-mobile-header-shortcuts="true"
@@ -293,7 +298,7 @@ function GameHeaderSearch({
           : "Rechercher un joueur, une équipe ou un coureur"}
       </label>
 
-      <div className="flex w-full items-center overflow-hidden rounded-xl border border-[#78947D]/55 bg-[#FFFDF4]/8 shadow-inner shadow-black/20 transition focus-within:border-[var(--game-header-accent)] focus-within:ring-2 focus-within:ring-[var(--game-header-accent-soft)]">
+      <div className="flex h-8 w-full items-center overflow-hidden rounded-lg border border-[#78947D]/55 bg-[#FFFDF4]/8 shadow-inner shadow-black/20 transition focus-within:border-[var(--game-header-accent)] focus-within:ring-2 focus-within:ring-[var(--game-header-accent-soft)] sm:h-auto sm:rounded-xl">
         <span aria-hidden="true" className="ml-3 text-[#D6DFD2]">
           <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
             <circle
@@ -325,14 +330,14 @@ function GameHeaderSearch({
               : "Rechercher joueur / équipe / coureur"
           }
           autoComplete="off"
-          className="min-w-0 flex-1 bg-transparent px-2.5 py-1.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-xs placeholder:text-[#D6DFD2]/65 sm:px-3 sm:py-2 sm:placeholder:text-sm xl:py-2.5"
+          className="min-w-0 flex-1 bg-transparent px-2.5 py-1 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-xs placeholder:text-[#D6DFD2]/65 sm:px-3 sm:py-2 sm:placeholder:text-sm xl:py-2.5"
         />
 
         <button
           type="submit"
           aria-label={isEnglish ? "Start search" : "Lancer la recherche"}
           title={isEnglish ? "Search" : "Rechercher"}
-          className="m-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-9 sm:w-9"
+          className="m-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:m-1 sm:h-9 sm:w-9 sm:rounded-lg"
         >
           <svg
             aria-hidden="true"

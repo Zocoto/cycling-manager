@@ -17,7 +17,7 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain('data-mobile-header-action-row="true"');
     expect(headerSource).toContain('data-mobile-header-shortcuts="true"');
     expect(headerSource).toContain(
-      'className="order-1 ml-auto flex shrink-0 items-center gap-1.5 max-[360px]:gap-0.5 sm:contents"',
+      'className={`order-1 ${compactMobile ? "" : "ml-auto"} flex shrink-0 items-center gap-1 max-[360px]:gap-0.5 sm:contents`}',
     );
     expect(headerSource).not.toContain("grid-cols-2");
     expect(headerSource).not.toContain("w-[calc(100%+1.5rem)]");
@@ -43,7 +43,7 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain("floatingOnMobile");
   });
 
-  it("place la recherche sous la ligne unique des actions sur mobile", () => {
+  it("remplit la seconde ligne avec la recherche et la présence sans largeur réservée vide", () => {
     const mobileActionsPosition = headerSource.indexOf(
       'data-mobile-header-primary-actions="true"',
     );
@@ -62,7 +62,12 @@ describe("game header responsive layout", () => {
     expect(mobileActionsPosition).toBeGreaterThan(shortcutsPosition);
     expect(userMenuPosition).toBeGreaterThan(mobileActionsPosition);
     expect(logoutPosition).toBeGreaterThan(userMenuPosition);
-    expect(headerSource).toContain("order-2 w-[calc(100%-4rem)] min-w-0 sm:w-full");
+    expect(headerSource).toContain('data-mobile-header-search-row="true"');
+    expect(headerSource).toContain('compactMobile ? "contents" : "order-2 flex w-full min-w-0 items-center gap-2 sm:contents"');
+    expect(headerSource).toContain("min-w-0 flex-1 sm:order-2 sm:w-full sm:flex-initial");
+    expect(headerSource).not.toContain("w-[calc(100%-4rem)]");
+    expect(headerSource).toContain("[&>button]:h-8 sm:order-none sm:ml-0 sm:[&>button]:h-10");
+    expect(headerSource).toContain("flex h-8 w-full items-center overflow-hidden rounded-lg");
     expect(headerSource).toContain(
       'className={`${compactMobile ? "hidden sm:flex" : "flex"} items-center gap-1',
     );
