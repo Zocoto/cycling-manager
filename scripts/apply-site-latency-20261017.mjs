@@ -15,9 +15,16 @@ const inspect=()=>query(`select replace(pg_get_functiondef(p.oid),chr(13),'') de
   pg_get_userbyid(p.proowner) owner,p.proconfig settings,p.prorettype::text return_type
   from pg_proc p where oid='public.get_current_game_objective_summary_cached()'::regprocedure`)[0];
 const initial=inspect();
+const inspectAssistant=()=>query(`select replace(pg_get_functiondef(p.oid),chr(13),'') definition,p.proacl::text privileges,
+  pg_get_userbyid(p.proowner) owner,p.proconfig settings,p.prorettype::text return_type
+  from pg_proc p where oid='public.get_current_dashboard_assistant_summary()'::regprocedure`)[0];
+const initialAssistant=inspectAssistant();
+if(!initialAssistant.definition.includes('assistant_selection_window_gate_v1')) assert.equal(createHash('sha256').update(initialAssistant.definition).digest('hex'),
+  '9162bf202cff03689ca31de50dbb6b071de7eccf8c3af8f5f8d2047304c27203','Live assistant changed since review');
 if(!initial.definition.includes('objective_refresh_contention_v1')) assert.equal(createHash('sha256').update(initial.definition).digest('hex'),
   'e2e9274510e6401eb8983d99ed9c30b14bca8df359b01c522bbefec6882ad28a','Live objective cache changed since review');
-for (const [version,name] of [['20261017090000','bound_training_history_and_objective_refresh'],['20261017091000','monitor_recent_site_latency']]) {
+for (const [version,name] of [['20261017090000','bound_training_history_and_objective_refresh'],['20261017091000','monitor_recent_site_latency'],
+  ['20261017092000','skip_irrelevant_assistant_selection_calendars']]) {
   const recorded=query(`select exists(select 1 from supabase_migrations.schema_migrations where version='${version}') recorded`)[0].recorded;
   if(!recorded) {
     call(['db','query','--linked','--file',`supabase/migrations/${version}_${name}.sql`,'--output','json'],20000);
@@ -29,6 +36,9 @@ const installed=inspect();
 const metadata=row=>Object.fromEntries(Object.entries(row).filter(([key])=>key!=='definition'));
 assert.deepEqual(metadata(installed),metadata(initial),'Cache function security or return type changed');
 assert.ok(installed.definition.includes('objective_refresh_contention_v1'));
+const installedAssistant=inspectAssistant();
+assert.deepEqual(metadata(installedAssistant),metadata(initialAssistant),'Assistant security or return type changed');
+assert.ok(installedAssistant.definition.includes('assistant_selection_window_gate_v1'));
 const indexes=query(`select indexname,indexdef from pg_indexes where schemaname='public'
   and indexname in('rider_training_sessions_completed_team_idx','rider_training_sessions_eligible_history_idx','federation_selection_members_pending_owner_idx')`);
 assert.equal(indexes.length,3);console.log(JSON.stringify({indexes}));
