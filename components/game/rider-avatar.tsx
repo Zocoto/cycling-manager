@@ -296,7 +296,12 @@ function CompactRiderAvatar({
         {hasNationalDesign ? (
           <>
             <defs><clipPath id={compactJerseyId}><path d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z" /></clipPath></defs>
-            <NationalJerseyDesignPattern countryCode={jersey.countryCode!} design={jersey.nationalDesign!} idPrefix={`${compactJerseyId}-design`} clipPathId={compactJerseyId} x={0} y={54} width={96} height={72} />
+            <g clipPath={`url(#${compactJerseyId})`}>
+              <svg data-avatar-jersey-viewport="upper-body" x="0" y="64" width="96" height="34"
+                viewBox="0 6 120 42.5" preserveAspectRatio="xMidYMid meet" overflow="hidden">
+                <NationalJerseyDesignArtwork countryCode={jersey.countryCode!} design={jersey.nationalDesign!} idPrefix={`${compactJerseyId}-design`} />
+              </svg>
+            </g>
           </>
         ) : <>
         <path

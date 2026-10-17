@@ -6,6 +6,8 @@ node_modules
 .env*
 !.env.example
 artifacts
+scripts/audit-*.mjs
+scripts/explain-local-*.mjs
 app/local-halloween-qa
 .codex-tools
 .tmp-*

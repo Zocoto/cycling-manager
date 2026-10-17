@@ -89,5 +89,47 @@ try {
  await db.exec('update seasons set game_year=6');
  check(await scalar('select public.activate_due_national_federation_jerseys()'),1);
  check(await scalar('select design from national_federation_champion_jerseys'),champion);
- console.log(JSON.stringify({isolated:true,checks,independentRoles:true,presidentGuardPreserved:true,nextSeasonActivation:true,legacyApiCompatible:true}));
+ // The subsequent, explicitly requested policy change makes both roles immediate.
+ await db.exec(`update national_federation_terms set president_director_id='${id(2)}'`);
+ await db.query("select set_config('test.auth_uid',$1,false)",[id(2)]);
+ await publish(selection,'national_team'); await publish(champion,'national_champion');
+ check((await snapshot()).every(row=>row.pending_design!==null),true);
+ await db.exec(read('20261017121000_publish_federation_jerseys_immediately.sql'));
+ check((await snapshot()).every(row=>row.pending_design===null&&row.active_from_game_year===6),true);
+ check(await scalar("select has_function_privilege('authenticated','private.publish_federation_jersey_now(text,jsonb,text)','execute')"),false);
+ check(await scalar("select has_function_privilege('anon','public.publish_national_federation_jersey(text,jsonb,text)','execute')"),false);
+ const teamBefore=(await snapshot())[1];
+ const championBefore=(await snapshot())[0];
+ const immediateChampion={...champion,baseColor:'#FEDCBA'};
+ const result=(await publish(immediateChampion,'national_champion')).rows[0];
+ check(result.activation_game_year,6);
+ check(result.version,championBefore.version+1);
+ check((await snapshot())[0].design,immediateChampion);
+ check((await snapshot())[1],teamBefore);
+ const legacy=(await db.query('select * from public.publish_national_federation_jersey($1,$2)',['MU',JSON.stringify(selection)])).rows[0];
+ check(legacy.activation_game_year,6); check(legacy.version,teamBefore.version+1);
+ check((await snapshot()).every(row=>row.pending_design===null),true);
+ const good=await snapshot();
+ await db.query("select set_config('test.auth_uid',$1,false)",[id(4)]);
+ for(const kind of ['national_team','national_champion']) await reject('select * from public.publish_national_federation_jersey($1,$2,$3)',['MU',JSON.stringify(selection),kind],/affiliée/);
+ await db.query("select set_config('test.auth_uid',$1,false)",['']);
+ await reject('select * from public.publish_national_federation_jersey($1,$2,$3)',['MU',JSON.stringify(selection),'national_team'],/connecté/);
+ await db.query("select set_config('test.auth_uid',$1,false)",[id(2)]);
+ for(const text of ['', 'A'.repeat(33), 'bad\ntext']) await reject('select * from public.publish_national_federation_jersey($1,$2,$3)',
+  ['MU',JSON.stringify({...selection,elements:[{...selection.elements[0],text}]}),'national_team'],/texte du maillot/);
+ await reject('select * from public.publish_national_federation_jersey($1,$2,$3)',['MU',JSON.stringify(selection),'bad'],/type de maillot/);
+ await reject('select * from public.publish_national_federation_jersey($1,$2,$3)',['MU',JSON.stringify({...selection,elements:Array(17).fill(selection.elements[0])}),'national_team'],/trop de calques/);
+ check(await snapshot(),good);
+ check(await scalar('select public.activate_due_national_federation_jerseys()'),0);
+ await db.exec('update seasons set game_year=7');
+ check(await scalar('select public.activate_due_national_federation_jerseys()'),0);
+ check(await snapshot(),good);
+ await db.exec(read('20261017121000_publish_federation_jerseys_immediately.sql'));
+ check(await snapshot(),good);
+ await db.exec(`insert into sporting_directors values('${id(3)}')`);
+ await db.query("select set_config('test.auth_uid',$1,false)",[id(3)]);
+ for(const kind of ['national_team','national_champion']) await reject('select * from public.publish_national_federation_jersey($1,$2,$3)',['MU',JSON.stringify(selection),kind],/président élu/);
+ check(await snapshot(),good);
+ await db.query("select set_config('test.auth_uid',$1,false)",[id(2)]);
+ console.log(JSON.stringify({isolated:true,checks,independentRoles:true,presidentGuardPreserved:true,immediatePublication:true,legacyApiCompatible:true}));
 } finally {await db.close();}

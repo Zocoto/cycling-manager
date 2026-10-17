@@ -97,7 +97,7 @@ export function NationalJerseyPreviewEditor({
           publishState.activationGameYear ??
           publishedJersey?.activationGameYear ??
           3,
-        isActive: false,
+        isActive: true,
       }
     : publishedJersey;
   const pendingJersey =
@@ -323,7 +323,7 @@ export function NationalJerseyPreviewEditor({
                   : effectivePublishedJersey
                     ? effectivePublishedJersey.isActive
                       ? `Version officielle ${effectivePublishedJersey.version} actuellement utilisée.`
-                      : `Maillot composé pour la Saison ${effectivePublishedJersey.activationGameYear}. Une seule composition future est active.`
+                      : "Ancienne composition réservée : publiez-la pour l’appliquer dès maintenant."
                     : "Le maillot actuel reste inchangé tant que vous ne publiez pas."}
           </p>
         </div>
@@ -342,12 +342,12 @@ export function NationalJerseyPreviewEditor({
               Composition réservée · version {pendingJersey.version}
             </p>
             <p className="mt-1 text-lg font-black text-[#183F37]">
-              Activation automatique au début de la Saison {pendingJersey.activationGameYear}
+              Publication immédiate dès validation
             </p>
             <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
               Validée le {publicationDateFormatter.format(new Date(pendingJersey.publishedAt))}.
-              Vous pouvez encore la modifier : une nouvelle validation remplacera
-              cette composition, sans changer le maillot de la saison en cours.
+              Vous pouvez la modifier puis la publier : elle sera appliquée
+              immédiatement, sans attendre le changement de saison.
             </p>
           </div>
           <button
@@ -488,9 +488,8 @@ export function NationalJerseyPreviewEditor({
               <div>
                 <p className="font-black">Publication officielle</p>
                 <p className="mt-1 max-w-xl text-xs font-semibold leading-5 text-[#BFD1C6]">
-                  La validation remplace l’unique composition en attente. Elle
-                  ne s’activera qu’au début de la saison suivante ; le maillot
-                  de la saison en cours reste inchangé.
+                  La validation applique immédiatement ce maillot, dès la saison
+                  en cours. La tenue de sélection et celle des champions restent indépendantes.
                 </p>
               </div>
               <button
@@ -500,9 +499,7 @@ export function NationalJerseyPreviewEditor({
               >
                 {previewOnly ? "Tester la validation · aperçu local" : publishPending
                   ? "Publication…"
-                  : pendingJersey
-                    ? "Mettre à jour la composition réservée"
-                    : "Valider et publier"}
+                  : "Valider et publier"}
               </button>
             </div>
             <p
@@ -591,7 +588,7 @@ async function previewPublication(_previous: NationalJerseyPublishState, formDat
   if (design.elements.some(element => element.kind === "text" && !element.text?.trim())) {
     return { ...initialNationalJerseyPublishState, status: "error", message: "Le texte ne peut pas être vide." };
   }
-  return { ...initialNationalJerseyPublishState, status: "success" as const, message: "Aperçu validé localement : aucun envoi ni changement en production.", publishedDesign: design, version: 2, activationGameYear: 5 };
+  return { ...initialNationalJerseyPublishState, status: "success" as const, message: "Aperçu validé localement : aucun envoi ni changement en production.", publishedDesign: design, version: 2, activationGameYear: 4 };
 }
 
 function EditorGroup({ title, children }: { title: string; children: React.ReactNode }) {

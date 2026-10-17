@@ -123,7 +123,7 @@ export async function publishNationalFederationJersey(
 
   return {
     status: "success",
-    message: `Maillot composé${version ? ` · version ${version}` : ""}${activationGameYear ? ` pour la Saison ${activationGameYear}` : " pour la saison suivante"}.`,
+    message: `Maillot publié et appliqué immédiatement${version ? ` · version ${version}` : ""}.`,
     publishedDesign: design,
     version,
     activationGameYear,

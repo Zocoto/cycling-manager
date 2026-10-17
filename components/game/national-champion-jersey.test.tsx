@@ -112,8 +112,8 @@ describe("rendu du maillot de champion national", () => {
     expect(markup).not.toContain('data-national-champion-flag="be"');
   });
 
-  it("keeps the upper motif of a custom jersey in the bust instead of pulling its lower decorations upward", async () => {
-    const markup = renderToStaticMarkup(<RiderAvatar profileKey="europe_west" seed={42}
+  it.each(["detailed", "compact"] as const)("keeps the upper motif in the %s bust instead of pulling lower decorations upward", async (renderMode) => {
+    const markup = renderToStaticMarkup(<RiderAvatar profileKey="europe_west" seed={42} renderMode={renderMode}
       jersey={createNationalTeamRiderJersey("BE", {
         schemaVersion: 2, baseColor: "#FFFFFF", elements: [
           { id: "upper", kind: "band", shape: "rectangle", x: 60, y: 35, width: 120, height: 26,

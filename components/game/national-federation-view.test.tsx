@@ -330,9 +330,10 @@ describe("NationalFederationView", () => {
     );
 
     expect(markup).toContain("Composition réservée · version 2");
-    expect(markup).toContain("Activation automatique au début de la Saison 3");
+    expect(markup).toContain("Publication immédiate dès validation");
     expect(markup).toContain("Modifier cette composition");
-    expect(markup).toContain("Mettre à jour la composition réservée");
+    expect(markup).toContain("La validation applique immédiatement ce maillot");
+    expect(markup).toContain("Valider et publier");
     expect(markup).toContain("Accès présidentiel");
     expect(markup).not.toContain("Modification réservée à la présidence");
     expect(markup).not.toContain("<fieldset disabled");

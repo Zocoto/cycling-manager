@@ -11,6 +11,7 @@ function from(table: string) {
     select() { return q; }, eq(key: string, value: unknown) { rows = rows.filter(r => r[key] === value); return q; },
     in(key: string, values: unknown[]) { rows = rows.filter(r => values.includes(r[key])); return q; },
     is(key: string, value: unknown) { rows = rows.filter(r => r[key] === value); return q; },
+    not(key: string, _operator: string, value: unknown) { rows = rows.filter(r => r[key] !== value); return q; },
     range(start: number, end: number) { rows = rows.slice(start, end + 1); return q; },
     async returns() { return { data: rows, error: null }; },
     async maybeSingle() { return { data: rows[0] ?? null, error: null }; },

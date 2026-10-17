@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 import {
   normalizeNationalJerseyDraft,
@@ -107,12 +108,13 @@ export async function loadNationalFederationJerseyDesignsByCountryCode(
   }));
 }
 
-const getCachedNationalFederationJerseys = unstable_cache(
+const getCachedNationalFederationJerseys = cache(unstable_cache(
   async (kind: NationalJerseyKind): Promise<ActiveJerseyRow[]> => {
     const admin = createSupabaseAdminClient();
     const result = await admin
       .from(jerseyTable(kind))
       .select("country_id, design, active_from_game_year, country:countries(iso_alpha2)")
+      .not("active_from_game_year", "is", null)
       .returns<ActiveJerseyRow[]>();
 
     if (result.error) {
@@ -126,7 +128,7 @@ const getCachedNationalFederationJerseys = unstable_cache(
   },
   ["national-federation-jerseys-by-role-v3"],
   { revalidate: 300, tags: ["national-federation-jerseys"] },
-);
+));
 
 function jerseyTable(kind: NationalJerseyKind) {
   return kind === "national_champion" ? "national_federation_champion_jerseys" : "national_federation_jerseys";

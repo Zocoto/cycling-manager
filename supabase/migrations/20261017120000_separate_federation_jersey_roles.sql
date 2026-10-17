@@ -1,4 +1,4 @@
--- PREPARED ONLY: do not apply before the owner approves the local preview.
+-- Owner approved the preview and production deployment on 17 October 2026.
 begin;
 set local lock_timeout='2s';
 set local statement_timeout='10s';
