@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadTeamTrainingHistory } from "@/services/team-training-history";
 import {
   TRAINER_SPECIALTY_LABELS,
   isTrainerSpecialty,
@@ -25,7 +26,6 @@ import {
   type RiderTrainingSeasonReport,
   type TrainingDomain,
   type TrainingSeasonStatProgressRow,
-  type TrainingSessionStatus,
 } from "@/lib/game/training";
 import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
 import {
@@ -136,26 +136,6 @@ type StaffTalentRow = {
   slot_number: number;
   talent_code: string;
 };
-type SessionRow = {
-  rider_id: string;
-  season_day_id: string;
-  status: TrainingSessionStatus;
-  intensity: number;
-  domain: string;
-  minimum_form: number;
-  trainer_level: number;
-  trainer_specialty: string | null;
-  trainer_country_match: boolean;
-  physiotherapist_level: number;
-  form_before: number;
-  form_delta: number;
-  form_after: number;
-  progress_milli: Record<string, number>;
-  decline_milli: Record<string, number>;
-  rating_changes: Record<string, number>;
-  processed_at: string;
-};
-
 type StatProgressRow = TrainingSeasonStatProgressRow & {
   rider_id: string;
 };
@@ -337,18 +317,7 @@ export async function getCurrentTeamTrainingOverview(
             .in("season_day_id", conditionDayIds)
             .returns<ConditionRow[]>()
         : Promise.resolve({ data: [] as ConditionRow[], error: null }),
-      riderIds.length
-        ? admin
-            .from("rider_training_sessions")
-            .select(
-              "rider_id, season_day_id, status, intensity, domain, minimum_form, trainer_level, trainer_specialty, trainer_country_match, physiotherapist_level, form_before, form_delta, form_after, progress_milli, decline_milli, rating_changes, processed_at",
-            )
-            .eq("season_id", season.id)
-            .eq("is_contract_eligible", true)
-            .in("rider_id", riderIds)
-            .order("processed_at", { ascending: false })
-            .returns<SessionRow[]>()
-        : Promise.resolve({ data: [] as SessionRow[], error: null }),
+      loadTeamTrainingHistory(admin, season.id, riderIds),
       riderIds.length
         ? admin
             .from("rider_training_stat_progress")

@@ -28,6 +28,14 @@ type MaintenanceRunRow = {
 export type GameMaintenanceHealth = {
   checkedAt: string;
   healthy: boolean;
+  sitePerformance: {
+    healthy: boolean;
+    status: string;
+    sampleCount: number;
+    windowMinutes: number;
+    breaches: unknown[];
+    error: string | null;
+  };
   nationalChampionships: {healthy:boolean;timeTrialOverdue:number;roadOverdue:number;error:string|null};
   seasonRollover: {
     healthy: boolean;
@@ -227,6 +235,18 @@ export async function getGameMaintenanceHealth(
     roadOverdue:Number(cnData.roadOverdue ?? 0),
     error:cnHealth.error?.message ?? null,
   };
+  // A successful HTTP response can still contain timed-out assistant sections.
+  // Check recent real-user samples independently of job freshness.
+  const performance = await admin.rpc("get_recent_site_performance_health");
+  const performanceData = isRecord(performance.data) ? performance.data : {};
+  const sitePerformance: GameMaintenanceHealth["sitePerformance"] = {
+    healthy: !performance.error && performanceData.healthy === true,
+    status: typeof performanceData.status === "string" ? performanceData.status : "unavailable",
+    sampleCount: Number(performanceData.sampleCount ?? 0),
+    windowMinutes: Number(performanceData.windowMinutes ?? 15),
+    breaches: Array.isArray(performanceData.breaches) ? performanceData.breaches : [],
+    error: performance.error?.message ?? null,
+  };
   const tasks: GameMaintenanceHealth["tasks"] = GAME_MAINTENANCE_TASKS.map((task) => {
     const row = rowsByTask.get(task);
     const lastSucceededAt = row?.last_succeeded_at ?? null;
@@ -249,12 +269,13 @@ export async function getGameMaintenanceHealth(
 
   return {
     checkedAt: now.toISOString(),
-    healthy: nationalChampionships.healthy && seasonRollover.healthy && tasks.every(
+    healthy: sitePerformance.healthy && nationalChampionships.healthy && seasonRollover.healthy && tasks.every(
       (task) => task.status === "succeeded" && !task.stale,
     ),
     tasks,
     seasonRollover,
     nationalChampionships,
+    sitePerformance,
   };
 }
 
