@@ -199,6 +199,29 @@ type TeamRiderContractRow = {
   status: "planned" | "active";
 };
 
+export async function loadSignedSponsorObjectives({
+  supabase,
+  seasonId,
+  offerId,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+  offerId: string;
+}): Promise<PersistedSponsorObjective[]> {
+  // A signed contract is a snapshot, including its weights and rewards.
+  // Reading it must never generate, repair or complete its requirements.
+  const rows = await loadSponsorObjectiveRows(supabase, [offerId], seasonId);
+  const terms = await loadSponsorMainObjectiveTerms({
+    supabase,
+    objectiveIds: rows.map((objective) => objective.id),
+  });
+  return rows
+    .map((objective) =>
+      hydrateSponsorObjective(objective, terms.get(objective.id) ?? null),
+    )
+    .sort((first, second) => first.displayOrder - second.displayOrder);
+}
+
 export async function ensureAndLoadSponsorObjectives({
   supabase,
   seasonId,
@@ -640,7 +663,8 @@ async function modernizeLegacyObjectiveWeights({
         renewal_bonus_percent: matchedObjective.renewalBonusPercent,
         satisfaction_points: matchedObjective.satisfactionPoints,
       })
-      .eq("id", existingRow.id);
+      .eq("id", existingRow.id)
+      .eq("status", "draft");
 
     if (error) {
       throw new Error(
@@ -746,6 +770,7 @@ async function normalizeObjectiveSatisfactionWeights(
 
   for (const rows of rowsByOfferId.values()) {
     if (rows.length !== OBJECTIVE_COUNT_PER_OFFER) continue;
+    if (rows.some((row) => row.status !== "draft")) continue;
 
     const weightedRows = rows.filter(
       (row) =>
@@ -809,7 +834,8 @@ async function normalizeObjectiveSatisfactionWeights(
           renewal_bonus_percent: renewalBonusPercent,
           priority,
         })
-        .eq("id", allocation.row.id);
+        .eq("id", allocation.row.id)
+        .eq("status", "draft");
 
       if (error) {
         throw new Error(
@@ -935,7 +961,13 @@ async function ensureSponsorMainObjectiveTerms({
   if (targetSeasonGameYear < SPONSOR_MAIN_OBJECTIVE_START_GAME_YEAR) return;
 
   const eligibleOffers = offers.filter(
-    (offer) => offer.neutralizeMissingObjectives !== true,
+    (offer) =>
+      offer.neutralizeMissingObjectives !== true &&
+      !objectiveRows.some(
+        (objective) =>
+          objective.sponsor_offer_id === offer.offerId &&
+          objective.status !== "draft",
+      ),
   );
   const selectedOfferId = selectSponsorMainObjectiveOfferId(
     eligibleOffers.map((offer) => offer.offerId),

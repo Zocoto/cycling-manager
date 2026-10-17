@@ -14,7 +14,7 @@ import {
   type FutureSponsorSeason,
 } from "@/services/future-sponsor-offers";
 import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
-import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
+import { loadSignedSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
 import type {
   SponsorObjectiveStatus,
@@ -358,8 +358,6 @@ export async function getSponsoringStateForAuthUser(
         supabase,
         contractRow: currentPlannedContract,
         currentGameYear: activeSeason.game_year,
-        teamReputationPoints: sportingDirector.reputation_points,
-        neutralizeMissingObjectives: true,
       }),
     };
   }
@@ -375,8 +373,6 @@ export async function getSponsoringStateForAuthUser(
       supabase,
       contractRow: activeContractRow,
       currentGameYear: activeSeason.game_year,
-      teamReputationPoints: sportingDirector.reputation_points,
-      neutralizeMissingObjectives: true,
     });
 
     return {
@@ -411,8 +407,6 @@ export async function getSponsoringStateForAuthUser(
         supabase,
         contractRow: terminatedContractRow,
         currentGameYear: activeSeason.game_year,
-        teamReputationPoints: sportingDirector.reputation_points,
-        neutralizeMissingObjectives: true,
       });
 
     return {
@@ -524,8 +518,6 @@ async function resolveFutureSponsoringState({
         supabase,
         contractRow: futureContractRow,
         currentGameYear: activeSeason.game_year,
-        teamReputationPoints: currentReputation,
-        neutralizeMissingObjectives: false,
       });
 
       const mode = resolveFutureSponsorOfferMode({
@@ -774,14 +766,10 @@ async function hydrateSponsorContract({
   supabase,
   contractRow,
   currentGameYear,
-  teamReputationPoints,
-  neutralizeMissingObjectives,
 }: {
   supabase: SupabaseAdminClient;
   contractRow: SponsorContractRow;
   currentGameYear: number;
-  teamReputationPoints: number;
-  neutralizeMissingObjectives: boolean;
 }): Promise<PersistedSponsorContract> {
   const satisfactionSeasonId =
     contractRow.objective_season_id ?? contractRow.start_season_id;
@@ -853,18 +841,10 @@ async function hydrateSponsorContract({
     const objectiveContext = {
       supabase,
       seasonId: objectiveSeasonId,
-      teamReputationPoints,
-      offers: [
-        {
-          offerId: contractRow.sponsor_offer_id,
-          sponsor,
-          proposedBudget: Number(contractRow.budget_per_season),
-          neutralizeMissingObjectives,
-        },
-      ],
+      offerId: contractRow.sponsor_offer_id,
     } as const;
-    let objectivesByOffer =
-      await ensureAndLoadSponsorObjectives(objectiveContext);
+    let persistedObjectives =
+      await loadSignedSponsorObjectives(objectiveContext);
 
     if (contractRow.status === "active") {
       const { error: evaluationError } = await supabase.rpc(
@@ -881,28 +861,22 @@ async function hydrateSponsorContract({
         );
       }
 
-      [objectivesByOffer, progressByObjectiveId] = await Promise.all([
-        ensureAndLoadSponsorObjectives(objectiveContext),
+      [persistedObjectives, progressByObjectiveId] = await Promise.all([
+        loadSignedSponsorObjectives(objectiveContext),
         loadSponsorObjectiveProgress({
           supabase,
           contractId: contractRow.id,
-          objectiveIds: (
-            objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
-          ).map((objective) => objective.id),
+          objectiveIds: persistedObjectives.map((objective) => objective.id),
         }),
       ]);
     } else {
       progressByObjectiveId = await loadSponsorObjectiveProgress({
         supabase,
         contractId: contractRow.id,
-        objectiveIds: (
-          objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
-        ).map((objective) => objective.id),
+        objectiveIds: persistedObjectives.map((objective) => objective.id),
       });
     }
 
-    const persistedObjectives =
-      objectivesByOffer.get(contractRow.sponsor_offer_id) ?? [];
     sportingPhilosophy =
       persistedObjectives.find(
         (objective) => objective.targetDetails.sportingPhilosophy,

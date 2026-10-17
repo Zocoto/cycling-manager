@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }));
 vi.mock("@/services/future-sponsor-offers", () => ({ getOrCreateFutureSponsorOffersForAuthUser: mocks.future }));
 vi.mock("@/services/continuing-sponsor-objectives", () => ({ ensureContinuingSponsorObjectivePlan: mocks.continuing }));
-vi.mock("@/services/persisted-sponsor-objectives", () => ({ ensureAndLoadSponsorObjectives: mocks.objectives }));
+vi.mock("@/services/persisted-sponsor-objectives", () => ({ loadSignedSponsorObjectives: mocks.objectives }));
 vi.mock("@/services/sponsor-budget-history", () => ({ getSponsorBudgetHistoryForTeam: mocks.history }));
 import { getSponsoringStateForAuthUser } from "./sponsoring-workflow";
 
@@ -64,7 +64,7 @@ function client({ current = null, planned = null, terminated = null, reputation 
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.history.mockResolvedValue(history);
-  mocks.objectives.mockResolvedValue(new Map([["current-offer", [persistedObjective]]]));
+  mocks.objectives.mockResolvedValue([persistedObjective]);
   mocks.future.mockResolvedValue({ mode: "first-contract", season: { id: "s4", name: "Saison 4", gameYear: 4 }, offers: [] });
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -76,7 +76,7 @@ describe("sponsor page future-season fault isolation", () => {
       targetValue: 1, achievementLevel: "partial", partialSatisfactionPoints: 8,
       partialAchievements: [{ code: "stage_win", rank: 1, count: 2 }],
     } });
-    mocks.objectives.mockResolvedValue(new Map([["current-offer", [{ ...persistedObjective, status: "failed" }]]]));
+    mocks.objectives.mockResolvedValue([{ ...persistedObjective, status: "failed" }]);
     expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ contract: {
       objectiveSatisfactionScore: 9, satisfactionScore: 9, objectives: [{
         status: "failed", achievementLevel: "partial", partialSatisfactionPoints: 8,
@@ -149,5 +149,21 @@ describe("sponsor page future-season fault isolation", () => {
     client({ planned: contract("planned") });
     expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ kind: "jersey-selection", contract: { id: "contract" } });
     expect(mocks.future).not.toHaveBeenCalled();
+    expect(mocks.objectives).toHaveBeenCalledWith({
+      supabase: expect.anything(), seasonId: "s3", offerId: "current-offer",
+    });
+  });
+
+  it("relit les engagements signés après évaluation sans régénérer leurs conditions", async () => {
+    client({ current: contract(), day: 20 });
+    mocks.objectives
+      .mockResolvedValueOnce([persistedObjective])
+      .mockResolvedValueOnce([{ ...persistedObjective, status: "completed" }]);
+    const state = await getSponsoringStateForAuthUser("player");
+    expect(state).toMatchObject({ contract: { objectives: [{ id: "objective", status: "completed", satisfactionPoints: 15 }] } });
+    expect(mocks.objectives).toHaveBeenCalledTimes(2);
+    for (const [context] of mocks.objectives.mock.calls) {
+      expect(context).toEqual({ supabase: expect.anything(), seasonId: "s3", offerId: "current-offer" });
+    }
   });
 });

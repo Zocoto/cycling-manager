@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { repairLegacyRaceObjectives } from "./persisted-sponsor-objectives";
+import { loadSignedSponsorObjectives, repairLegacyRaceObjectives } from "./persisted-sponsor-objectives";
 
 type RepairOptions = Parameters<typeof repairLegacyRaceObjectives>[0];
 
@@ -53,5 +53,76 @@ describe("stabilité des courses des objectifs sponsor signés", () => {
     expect(updates).toHaveLength(1);
     expect(updates[0]).toMatchObject({ target_details: { raceId: "valid", targetRank: 8 } });
     expect(filters).toEqual([["id", "draft"], ["status", "draft"]]);
+  });
+});
+
+describe("lecture des engagements sponsor signés", () => {
+  function signedClient(rows: RepairOptions["objectiveRows"], error: { message: string } | null = null) {
+    const queries: { table: string; filters: unknown[] }[] = [];
+    const from = vi.fn((table: string) => {
+      if (!["sponsor_objectives", "sponsor_main_objective_terms"].includes(table)) {
+        throw new Error(`Un contrat signé ne doit pas charger un catalogue ni générer des objectifs : ${table}`);
+      }
+      const filters: unknown[] = [];
+      queries.push({ table, filters });
+      const query = {
+        select: vi.fn(() => query),
+        eq: vi.fn((key: string, value: unknown) => { filters.push([key, value]); return query; }),
+        in: vi.fn((key: string, value: unknown) => { filters.push([key, value]); return query; }),
+        order: vi.fn(() => query),
+        returns: vi.fn(async () => table === "sponsor_objectives"
+          ? { data: rows, error }
+          : { data: [{ sponsor_objective_id: rows[0]?.id, cash_reward: "14000", currency_code: "EUR", reputation_penalty: "7", race_category_code: "continental", settlement_status: "pending" }], error: null }),
+      };
+      // No mutation methods: the test fails if the read path attempts a write.
+      return query;
+    });
+    return { supabase: { from } as unknown as RepairOptions["supabase"], from, queries };
+  }
+
+  it.each(["draft", "active", "completed", "failed", "cancelled"] as const)(
+    "préserve les cibles, les poids et les récompenses d’un contrat signé (statut %s)",
+    async (status) => {
+      const rows = Array.from({ length: 10 }, (_, index) => ({
+        ...raceObjective(`signed-${index}`, status, `signed-race-${index}`),
+        display_order: 10 - index, satisfaction_points: 3 + index,
+        renewal_bonus_percent: 2, is_provisional: false,
+      }));
+      const before = structuredClone(rows);
+      const { supabase, from, queries } = signedClient(rows);
+      const first = await loadSignedSponsorObjectives({ supabase, seasonId: "signed-season", offerId: "offer" });
+      const second = await loadSignedSponsorObjectives({ supabase, seasonId: "signed-season", offerId: "offer" });
+      expect(second).toEqual(first);
+      expect(rows).toEqual(before);
+      expect(first.map((objective) => objective.displayOrder)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      for (const row of before) {
+        expect(first.find((objective) => objective.id === row.id)).toMatchObject({
+          name: row.name, description: row.description, priority: row.priority,
+          status: row.status, satisfactionPoints: row.satisfaction_points,
+          renewalBonusPercent: row.renewal_bonus_percent, targetDetails: row.target_details,
+        });
+      }
+      expect(first.find((objective) => objective.id === rows[0].id)?.mainObjectiveTerms).toEqual({
+        cashReward: 14000, currencyCode: "EUR", reputationPenalty: 7,
+        raceCategoryCode: "continental", settlementStatus: "pending",
+      });
+      expect(from.mock.calls.map(([table]) => table)).toEqual([
+        "sponsor_objectives", "sponsor_main_objective_terms", "sponsor_objectives", "sponsor_main_objective_terms",
+      ]);
+      expect(queries[0].filters).toEqual([["sponsor_offer_id", ["offer"]], ["season_id", "signed-season"]]);
+    },
+  );
+
+  it("n’ajoute aucun engagement à un ancien contrat qui en possède moins de dix", async () => {
+    const rows = [raceObjective("historical", "active", "adriatique")];
+    const { supabase } = signedClient(rows);
+    const objectives = await loadSignedSponsorObjectives({ supabase, seasonId: "signed-season", offerId: "offer" });
+    expect(objectives).toHaveLength(1);
+    expect(objectives[0].targetDetails).toEqual(rows[0].target_details);
+  });
+
+  it("remonte une erreur de lecture sans inventer de nouveaux objectifs", async () => {
+    const { supabase } = signedClient([], { message: "unavailable" });
+    await expect(loadSignedSponsorObjectives({ supabase, seasonId: "signed-season", offerId: "offer" })).rejects.toThrow("unavailable");
   });
 });
