@@ -6,11 +6,12 @@ import ts from "typescript";
 
 const ROOT = process.cwd();
 const OUTPUT = path.join(ROOT, "lib", "i18n", "generated-fr-en.json");
-const SCAN_ROOTS = ["app", "components", "lib"];
+const SCAN_ROOTS = ["app", "components", "lib", "services"];
 const TRANSLATABLE_ATTRIBUTES = new Set([
   "alt",
   "aria-description",
   "aria-label",
+  "aria-valuetext",
   "placeholder",
   "title",
 ]);
@@ -57,6 +58,8 @@ const MANUAL_TRANSLATIONS = {
   SPR: "SP",
   VAL: "HIL",
 };
+const candidateLocations = new Map();
+let currentSourceFile = "";
 
 function normalizeText(value) {
   return decodeHtmlEntities(value).replace(/\s+/g, " ").trim();
@@ -91,12 +94,15 @@ function decodeHtmlEntities(value) {
 function isCandidate(value, visible = false) {
   if (value.length < 2 || value.length > 1_500) return false;
   if (!/[A-Za-zÀ-ÿ]/.test(value)) return false;
-  if (/^(?:https?:|mailto:|tel:|\/|\.\/|\.\.\/)/i.test(value)) {
+  if (/^(?:https?:|mailto:|tel:|@\/|\/|\.\/|\.\.\/|\?[\w-]+=|#[\w-])/i.test(value) || /<\/?[a-z][^>]*>/i.test(value)) {
     return false;
   }
 
   const languageSample = value.replace(KNOWN_PROPER_NAMES, " ");
+  if (!/[A-Za-zÀ-ÿ]/.test(languageSample)) return false;
   const hasFrenchWords = FRENCH_WORD_MARKERS.test(languageSample);
+  if (ENGLISH_MARKERS.test(languageSample) && !FRENCH_ACCENTS.test(languageSample) &&
+      !/\b(?:coureurs?|votre|vous|aucun|aucune|choisir|afficher|inscrire|consulter|les|des|une|pour|avec|sur|dans|du|vos)\b/i.test(languageSample)) return false;
   if (ENGLISH_MARKERS.test(languageSample) && !hasFrenchWords) return false;
   if (hasFrenchWords || FRENCH_ACCENTS.test(languageSample)) return true;
   return visible && !ENGLISH_MARKERS.test(languageSample);
@@ -109,8 +115,10 @@ function collectCandidates() {
     walk(path.join(ROOT, scanRoot), (filePath) => {
       if (!/\.(?:ts|tsx)$/.test(filePath)) return;
       if (/\.(?:test|spec)\.(?:ts|tsx)$/.test(filePath)) return;
+      if (filePath.startsWith(path.join(ROOT, "lib", "i18n") + path.sep)) return;
 
       const sourceText = fs.readFileSync(filePath, "utf8");
+      currentSourceFile = path.relative(ROOT, filePath).replaceAll(path.sep, "/");
       const sourceFile = ts.createSourceFile(
         filePath,
         sourceText,
@@ -123,10 +131,32 @@ function collectCandidates() {
     });
   }
 
+  walk(path.join(ROOT, "supabase/migrations"), (filePath) => {
+    if (!filePath.endsWith(".sql")) return;
+    currentSourceFile = path.relative(ROOT, filePath).replaceAll(path.sep, "/");
+    const source = fs.readFileSync(filePath, "utf8");
+    // Player-facing RPC exceptions only, never arbitrary SQL literals or data.
+    for (const match of source.matchAll(/(?:raise\s+exception\s+|message\s*=\s*(?:format\s*\(\s*)?)'((?:''|[^'])*)'/gi)) {
+      const message = match[1].replaceAll("''", "'");
+      addCandidate(candidates, message);
+      if (/^raise/i.test(match[0])) {
+        let index = 0;
+        addCandidate(candidates, message.replace(/%%|%/g, token => token === '%%' ? '%' : `{{${index++}}}`));
+      }
+    }
+  });
+
   return [...candidates].sort((left, right) => left.localeCompare(right, "fr"));
 }
 
 function visit(node, candidates) {
+  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
+  if (ts.isJsxAttribute(node) && !TRANSLATABLE_ATTRIBUTES.has(node.name.text)) return;
+  if (ts.isTemplateExpression(node)) {
+    const fullTemplate = node.head.text + node.templateSpans.map((span, index) =>
+      `{{${isGrammarSuffix(span.expression) ? "grammar" : ""}${index}}}${span.literal.text}`).join("");
+    addCandidate(candidates, fullTemplate);
+  }
   if (ts.isJsxText(node)) {
     addCandidate(candidates, node.text, true);
   } else if (
@@ -149,9 +179,21 @@ function visit(node, candidates) {
   ts.forEachChild(node, (child) => visit(child, candidates));
 }
 
+function isGrammarSuffix(expression) {
+  if (ts.isParenthesizedExpression(expression)) return isGrammarSuffix(expression.expression);
+  if (!ts.isConditionalExpression(expression)) return false;
+  return [expression.whenTrue, expression.whenFalse].every(branch =>
+    ts.isStringLiteralLike(branch) && /^(?:s|e|es|x)?$/.test(branch.text));
+}
+
 function addCandidate(candidates, rawValue, visible = false) {
   const value = normalizeText(rawValue);
-  if (isCandidate(value, visible)) candidates.add(value);
+  if (isCandidate(value, visible)) {
+    candidates.add(value);
+    const locations = candidateLocations.get(value) ?? new Set();
+    locations.add(currentSourceFile);
+    candidateLocations.set(value, locations);
+  }
 }
 
 function getPropertyName(node) {
@@ -177,12 +219,16 @@ function readCatalog() {
 async function main() {
   const candidates = collectCandidates();
   const catalog = { ...readCatalog(), ...MANUAL_TRANSLATIONS };
+  const reviewedPath = path.join(ROOT, "lib/i18n/reviewed-fr-en.json");
+  if (fs.existsSync(reviewedPath)) Object.assign(catalog, JSON.parse(fs.readFileSync(reviewedPath, "utf8")));
   const missing = candidates.filter((candidate) => !catalog[candidate]);
 
   if (process.argv.includes("--export-candidates")) {
     const candidateOutput = path.join(ROOT, ".codex-tools", "i18n-candidates.json");
     fs.mkdirSync(path.dirname(candidateOutput), { recursive: true });
     fs.writeFileSync(candidateOutput, `${JSON.stringify(candidates, null, 2)}\n`);
+    fs.writeFileSync(path.join(ROOT, ".codex-tools/i18n-locations.json"), JSON.stringify(Object.fromEntries(
+      [...candidateLocations].map(([key, locations]) => [key, [...locations]])), null, 2));
     console.log(`Exported ${candidates.length} candidates to ${path.relative(ROOT, candidateOutput)}.`);
     return;
   }
@@ -195,6 +241,18 @@ async function main() {
       return;
     }
     console.log(`${candidates.length} French UI strings are covered by the English catalog.`);
+    const invalidTemplates = candidates.filter(source => {
+      // Only AST-verified grammatical suffixes may disappear in English.
+      const slots = text => text.match(/\{\{(?:\d+|[A-Za-z]\w*)\}\}|%(?:\d+\$)?[sIL]/g) ?? [];
+      const required = text => slots(text).filter(slot => !/^\{\{grammar\d+\}\}$/.test(slot)).sort().join("|");
+      const target = catalog[source] ?? "";
+      return required(source) !== required(target) || slots(target).some(slot => !slots(source).includes(slot));
+    });
+    if (invalidTemplates.length) {
+      console.error(`${invalidTemplates.length} translations do not preserve their dynamic placeholders.`);
+      for (const source of invalidTemplates.slice(0, 12)) console.error(`- ${source}`);
+      process.exitCode = 1;
+    }
     return;
   }
 

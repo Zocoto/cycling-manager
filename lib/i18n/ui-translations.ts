@@ -1,4 +1,6 @@
 import generatedCatalog from "@/lib/i18n/generated-fr-en.json";
+import reviewedCatalog from "@/lib/i18n/reviewed-fr-en.json";
+import { applyUiTranslationTemplate, compileUiTranslationTemplate, type UiTranslationTemplate } from "./dynamic-ui-translation";
 
 const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Le potentiel plafonne l’entraînement de chaque caractéristique, pas la moyenne : 70 à 0,5 étoile, puis cinq points par demi-étoile, jusqu’à 100. Les notes déjà acquises sont conservées. Les objets peuvent dépasser ce plafond de talent, sans dépasser 100.": "Potential caps training for each attribute, not the average: 70 at half a star, then five points per half-star up to 100. Existing attributes are preserved. Items can exceed the talent ceiling, but never 100.",
@@ -555,13 +557,14 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {
   ...(generatedCatalog as Record<string, string>),
   ...REVIEWED_TRANSLATIONS,
+  ...reviewedCatalog,
 };
 
 const EMBEDDED_TRANSLATIONS = Object.entries(UI_TRANSLATIONS)
   .filter(([source, target]) => {
-    if (source === target || source.length < 4 || source.length > 180) return false;
+    if (source === target || source.length < (Object.hasOwn(reviewedCatalog, source) ? 3 : 4) || source.length > 180) return false;
     return (
-      Object.hasOwn(REVIEWED_TRANSLATIONS, source) ||
+      Object.hasOwn(REVIEWED_TRANSLATIONS, source) || Object.hasOwn(reviewedCatalog, source) ||
       /[\s·:;,.!?«»'’()/%+−–—-]/.test(source)
     );
   })
@@ -574,6 +577,28 @@ const EMBEDDED_TRANSLATIONS_BY_ANCHOR = new Map<
 const UNANCHORED_EMBEDDED_TRANSLATIONS: Array<
   (typeof EMBEDDED_TRANSLATIONS)[number]
 > = [];
+const UI_TEMPLATES_BY_ANCHOR = new Map<string, UiTranslationTemplate[]>();
+const REVIEWED_TEMPLATES = new WeakSet<UiTranslationTemplate>();
+const TRANSLATION_CACHE = new Map<string, string>();
+const MAX_CACHED_TRANSLATIONS = 4_000;
+// Do not translate arbitrary captures: these may be rider, sponsor or team names.
+const TEMPLATE_GRAMMAR: Readonly<Record<string, string>> = {
+  a: 'has', ont: 'have', 's ont': 's have', devra: 'will', devront: 'will',
+  peut: 'can', peuvent: 'can', nt: '',
+  ', sélection finalisée': ', selection finalised',
+  officiel: 'official', officielle: 'official', provisoire: 'provisional',
+};
+
+for (const [source, target] of Object.entries(UI_TRANSLATIONS)) {
+  const template = compileUiTranslationTemplate(source, target);
+  if (!template) continue;
+  if (Object.hasOwn(reviewedCatalog, source)) REVIEWED_TEMPLATES.add(template);
+  const anchor = getTranslationAnchor(template.literals.join(' '));
+  if (!anchor) continue;
+  const templates = UI_TEMPLATES_BY_ANCHOR.get(anchor) ?? [];
+  templates.push(template);
+  UI_TEMPLATES_BY_ANCHOR.set(anchor, templates);
+}
 
 for (const translation of EMBEDDED_TRANSLATIONS) {
   const anchor = getTranslationAnchor(translation[0]);
@@ -600,15 +625,59 @@ export function translateUiText(value: string): string {
     return preserveOuterWhitespace(value, normalizeEnglishTerminology(directTranslation));
   }
 
+  const cached = TRANSLATION_CACHE.get(normalized);
+  if (cached !== undefined) return cached === normalized ? value : preserveOuterWhitespace(value, cached);
+
+  const templates = new Set<UiTranslationTemplate>();
+  for (const token of getLookupTokens(normalized)) {
+    for (const template of UI_TEMPLATES_BY_ANCHOR.get(token) ?? []) templates.add(template);
+  }
+  for (const template of [...templates].sort((a, b) => b.specificity - a.specificity || Number(REVIEWED_TEMPLATES.has(b)) - Number(REVIEWED_TEMPLATES.has(a)))) {
+    const translated = applyUiTranslationTemplate(template, normalized, parameter => {
+      const grammar = TEMPLATE_GRAMMAR[parameter.trim()];
+      return grammar === undefined ? parameter : preserveOuterWhitespace(parameter, grammar);
+    });
+    if (translated !== null) {
+      const result = normalizeEnglishTerminology(translated);
+      cacheTranslation(normalized, result);
+      return preserveOuterWhitespace(value, result);
+    }
+  }
+
   let translated = normalized;
   for (const [source, target] of getEmbeddedTranslationCandidates(normalized)) {
-    if (translated.includes(source)) translated = translated.replaceAll(source, target);
+    if (!translated.includes(source)) continue;
+    const escaped = source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const start = /^[\p{L}\p{N}]/u.test(source) ? '(?<![\\p{L}\\p{N}_])' : '';
+    const end = /[\p{L}\p{N}]$/u.test(source) ? '(?![\\p{L}\\p{N}_])' : '';
+    translated = translated.replace(new RegExp(`${start}${escaped}${end}`, 'gu'), () => target);
   }
 
   const normalizedEnglish = normalizeEnglishTerminology(translated);
+  cacheTranslation(normalized, normalizedEnglish);
   return normalizedEnglish === normalized
     ? value
     : preserveOuterWhitespace(value, normalizedEnglish);
+}
+
+function getLookupTokens(value: string): Set<string> {
+  const tokens = new Set<string>();
+  for (const word of value.match(/[\p{L}\p{N}]+/gu) ?? []) {
+    const token = word.toLocaleLowerCase('fr');
+    tokens.add(token);
+    // Templates split French agreement suffixes into their own slots.
+    for (const suffix of ['s', 'e', 'es', 'x']) {
+      if (token.endsWith(suffix) && token.length > suffix.length + 2) tokens.add(token.slice(0, -suffix.length));
+    }
+  }
+  return tokens;
+}
+
+function cacheTranslation(source: string, target: string) {
+  if (TRANSLATION_CACHE.size >= MAX_CACHED_TRANSLATIONS) {
+    TRANSLATION_CACHE.delete(TRANSLATION_CACHE.keys().next().value!);
+  }
+  TRANSLATION_CACHE.set(source, target);
 }
 
 function getEmbeddedTranslationCandidates(

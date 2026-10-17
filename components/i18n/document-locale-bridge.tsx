@@ -9,8 +9,10 @@ const TRANSLATABLE_ATTRIBUTES = [
   "alt",
   "aria-description",
   "aria-label",
+  "aria-valuetext",
   "placeholder",
   "title",
+  "value",
 ] as const;
 const SKIPPED_ELEMENTS = new Set([
   "CODE",
@@ -22,11 +24,12 @@ const SKIPPED_ELEMENTS = new Set([
   "TEXTAREA",
 ]);
 const originalText = new WeakMap<Text, string>();
+const appliedText = new WeakMap<Text, string>();
 const originalAttributes = new WeakMap<Element, Map<string, string>>();
 
 export function DocumentLocaleBridge({ locale }: { locale: AppLocale }) {
   useLayoutEffect(() => {
-    const root = document.body;
+    const root = document.documentElement;
     let isApplying = false;
 
     const applyLocale = (target: Node = root) => {
@@ -48,6 +51,9 @@ export function DocumentLocaleBridge({ locale }: { locale: AppLocale }) {
       for (const mutation of mutations) {
         if (mutation.type === "characterData") {
           applyLocale(mutation.target);
+          let next = mutation.target.nextSibling;
+          while (next?.nodeType === Node.COMMENT_NODE) next = next.nextSibling;
+          if (next instanceof Text && /^(?:s|e|es|x)$/.test(originalText.get(next) ?? next.data)) applyLocale(next);
           continue;
         }
         if (mutation.type === "attributes") {
@@ -129,19 +135,32 @@ function translateTextNode(node: Text) {
   let source = originalText.get(node);
   if (
     source === undefined ||
-    (node.data !== source && node.data !== translateUiText(source))
+    (node.data !== source && node.data !== appliedText.get(node))
   ) {
     source = node.data;
     originalText.set(node, source);
   }
-  const translated = translateUiText(source);
+  const translated = isFrenchAgreementSuffix(node, source) ? "" : translateUiText(source);
+  appliedText.set(node, translated);
   if (translated !== node.data) node.data = translated;
+}
+
+function isFrenchAgreementSuffix(node: Text, source: string): boolean {
+  if (!/^(?:s|e|es|x)$/.test(source)) return false;
+  let previous = node.previousSibling;
+  while (previous?.nodeType === Node.COMMENT_NODE) previous = previous.previousSibling;
+  if (!(previous instanceof Text)) return false;
+  const original = originalText.get(previous);
+  if (!original || previous.data === original) return false;
+  // React renders conditional agreement suffixes as separate text nodes.
+  // English adjectives do not take them; noun plurals (rider/day/etc.) do.
+  return /(?:engagé|sélectionné|confirmé|inscrit|requis|ajouté|affecté|blessé|classé|attendu|retiré|terminé|disponible|entraîné|lu|enregistré|réalisé|récent|nouveau|prolongé|suivi|débloqué|programmé|intermédiaire|revendu|mené)e?$/u.test(original);
 }
 
 function restoreTextNode(node: Text) {
   const source = originalText.get(node);
   if (source === undefined) return;
-  const translated = translateUiText(source);
+  const translated = appliedText.get(node);
   if (node.data !== source && node.data !== translated) {
     originalText.set(node, node.data);
     return;
@@ -152,6 +171,9 @@ function restoreTextNode(node: Text) {
 function translateElement(element: Element) {
   let originals = originalAttributes.get(element);
   for (const attribute of TRANSLATABLE_ATTRIBUTES) {
+    // Submit labels are interface copy; editable form values belong to the user.
+    if (attribute === "value" && (element.tagName !== "INPUT" ||
+      !["submit", "reset", "button"].includes(element.getAttribute("type") ?? ""))) continue;
     const current = element.getAttribute(attribute);
     if (!current) continue;
     if (!originals) {
