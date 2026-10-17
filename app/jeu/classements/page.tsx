@@ -365,7 +365,7 @@ function NationsTable({ entries, jerseys }: { entries: NationRankingEntry[]; jer
       <TableHead labels={["Rang", "Nation", "Coureurs", "Points"]} />
       <tbody>{entries.map((entry) => <tr key={entry.countryCode} className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">
         <RankCell rank={entry.rank} />
-        <td className="px-5 py-3"><Link href={`/jeu/nations/${entry.countryCode.toLowerCase()}`} className="inline-flex items-center gap-3 font-black text-[#183F37] hover:text-[#278B70]"><NationalFederationJersey countryCode={entry.countryCode} countryName={entry.countryName} design={jerseys.get(entry.countryCode)} className="h-14 w-12 shrink-0 drop-shadow-sm" /><span className={`fi fi-${entry.countryCode.toLowerCase()} text-xl`} />{entry.countryName}</Link></td>
+        <td className="px-5 py-3"><Link href={`/jeu/nations/${entry.countryCode.toLowerCase()}`} className="inline-flex items-center gap-3 font-black text-[#183F37] hover:text-[#278B70]">{jerseys.has(entry.countryCode) ? <NationalFederationJersey countryCode={entry.countryCode} countryName={entry.countryName} design={jerseys.get(entry.countryCode)} className="h-14 w-12 shrink-0 drop-shadow-sm" /> : <span aria-hidden="true" className="h-14 w-12 shrink-0" />}<span className={`fi fi-${entry.countryCode.toLowerCase()} text-xl`} />{entry.countryName}</Link></td>
         <td className="px-5 py-4 text-center font-bold text-[#60756E]">{entry.riderCount}</td>
         <PointsCell points={entry.points} />
       </tr>)}</tbody>
