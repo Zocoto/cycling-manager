@@ -558,9 +558,9 @@ function InjuryCard({
               </p>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#702E2E]">
                 Cette blessure survient lorsque la forme devait passer sous zéro.
-                Sa durée de base est fixée à trois jours. Seul un kiné spécialiste
+                Sa durée de base est fixée à trois jours. Un kiné spécialiste
                 de la fatigue déjà affecté au coureur peut la raccourcir ; le
-                médecin et les protocoles restent sans effet.
+                médecin, les protocoles et les soins ordinaires restent sans effet.
               </p>
             </div>
           ) : (
