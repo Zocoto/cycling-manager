@@ -9,7 +9,7 @@ const actions = readFileSync(
 );
 
 describe("actions du centre de soin", () => {
-  it("ne réactualise que le centre après une validation nutritionnelle", () => {
+  it("réactualise le centre et ses indicateurs au bureau après une validation nutritionnelle", () => {
     const helper = actions.slice(
       actions.indexOf("function revalidateHealthPaths()"),
       actions.indexOf("function redirectWithError"),
@@ -18,7 +18,7 @@ describe("actions du centre de soin", () => {
     expect(helper).toContain('revalidatePath("/jeu/centre-de-soin")');
     expect(helper).not.toContain('revalidatePath("/jeu/effectif")');
     expect(helper).not.toContain('revalidatePath("/jeu/calendrier")');
-    expect(helper).not.toContain('revalidatePath("/jeu")');
+    expect(helper).toContain('revalidatePath("/jeu")');
   });
 
   it("journalise la durée du lot sans exposer les coureurs", () => {
