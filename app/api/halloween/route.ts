@@ -43,6 +43,7 @@ export async function POST(request: Request) {
         revalidatePath("/jeu/inventaire");
         revalidatePath("/jeu/halloween");
         revalidatePath("/jeu/effectif");
+        revalidatePath("/jeu/centre-de-soin");
         revalidatePath("/jeu");
         if (typeof payload.target === "string") revalidatePath(`/jeu/coureurs/${payload.target}`);
       } catch (cacheError) {
