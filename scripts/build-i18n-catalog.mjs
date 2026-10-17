@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
@@ -15,6 +16,7 @@ const TRANSLATABLE_ATTRIBUTES = new Set([
   "placeholder",
   "title",
 ]);
+const TECHNICAL_JSX_ATTRIBUTES = new Set(["className", "href", "src", "id", "key", "style", "name", "type", "value"]);
 const VISIBLE_PROPERTY_NAMES = new Set([
   "actionLabel",
   "alt",
@@ -119,15 +121,7 @@ function collectCandidates() {
 
       const sourceText = fs.readFileSync(filePath, "utf8");
       currentSourceFile = path.relative(ROOT, filePath).replaceAll(path.sep, "/");
-      const sourceFile = ts.createSourceFile(
-        filePath,
-        sourceText,
-        ts.ScriptTarget.Latest,
-        true,
-        filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-      );
-
-      visit(sourceFile, candidates);
+      for (const candidate of extractUiStrings(sourceText, filePath)) candidates.add(candidate);
     });
   }
 
@@ -149,9 +143,21 @@ function collectCandidates() {
   return [...candidates].sort((left, right) => left.localeCompare(right, "fr"));
 }
 
-function visit(node, candidates) {
+export function extractUiStrings(sourceText, filePath = "fixture.tsx") {
+  const candidates = new Set();
+  const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true,
+    filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  visit(sourceFile, candidates);
+  return candidates;
+}
+
+function visit(node, candidates, visibleAncestor = false) {
   if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
-  if (ts.isJsxAttribute(node) && !TRANSLATABLE_ATTRIBUTES.has(node.name.text)) return;
+  // Custom component props often contain whole visible lists/cards. Only skip
+  // known technical props, not every non-standard HTML attribute.
+  if (ts.isJsxAttribute(node) && TECHNICAL_JSX_ATTRIBUTES.has(node.name.text)) return;
+  const visible = visibleAncestor || (ts.isJsxAttribute(node) &&
+    (VISIBLE_PROPERTY_NAMES.has(node.name.text) || ["items", "rows", "cards", "steps", "options"].includes(node.name.text)));
   if (ts.isTemplateExpression(node)) {
     const fullTemplate = node.head.text + node.templateSpans.map((span, index) =>
       `{{${isGrammarSuffix(span.expression) ? "grammar" : ""}${index}}}${span.literal.text}`).join("");
@@ -173,10 +179,10 @@ function visit(node, candidates) {
     ts.isTemplateTail(node)
   ) {
     const propertyName = getPropertyName(node.parent);
-    addCandidate(candidates, node.text, Boolean(propertyName && VISIBLE_PROPERTY_NAMES.has(propertyName)));
+    addCandidate(candidates, node.text, visible || Boolean(propertyName && VISIBLE_PROPERTY_NAMES.has(propertyName)));
   }
 
-  ts.forEachChild(node, (child) => visit(child, candidates));
+  ts.forEachChild(node, (child) => visit(child, candidates, visible));
 }
 
 function isGrammarSuffix(expression) {
@@ -262,4 +268,4 @@ async function main() {
   );
 }
 
-await main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

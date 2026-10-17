@@ -20,6 +20,9 @@ describe("French to English UI catalog", () => {
     ["Le guide complet du", "The complete guide for the"],
     ["BECOME A SPORTS DIRECTOR", "BECOME A SPORTING DIRECTOR"],
     ["sport director", "sporting director"],
+    ["Un seul changement et deux équipes maximum par coureur et par saison", "One transfer and no more than two teams per rider per season"],
+    ["Hors dotation équipementier, un exemplaire ne peut équiper qu’un seul coureur", "Except for supplier-provided equipment, each item can be equipped by only one rider"],
+    ["Les inscriptions de la course de 18 h sont figées.", "Entries for the 18:00 race are locked."],
     ["Chandler Davis", "Chandler Davis"], ["Nisos Energiaia", "Nisos Energiaia"],
   ])("translates %s consistently", (source, target) => expect(translateUiText(source)).toBe(target));
 
