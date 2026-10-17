@@ -16,7 +16,7 @@ import {
 } from "@/lib/game/rider-championship-border";
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
-import { NationalJerseyDesignPattern } from "./national-jersey-design-artwork";
+import { NationalJerseyDesignArtwork } from "./national-jersey-design-artwork";
 
 type RiderAvatarProps = {
   profileKey: string | null | undefined;
@@ -131,16 +131,24 @@ export function RiderAvatar({
         ) : (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion") &&
           resolvedJersey.countryCode &&
           resolvedJersey.nationalDesign ? (
-          <NationalJerseyDesignPattern
-            countryCode={resolvedJersey.countryCode}
-            design={resolvedJersey.nationalDesign}
-            idPrefix={`avatar-national-${svgId}`}
-            clipPathId={shoulderClipId}
-            x={0}
-            y={54}
-            width={96}
-            height={72}
-          />
+          <g clipPath={`url(#${shoulderClipId})`}>
+            <svg
+              data-avatar-jersey-viewport="upper-body"
+              x="0"
+              y="64"
+              width="96"
+              height="34"
+              viewBox="0 6 120 42.5"
+              preserveAspectRatio="xMidYMid meet"
+              overflow="hidden"
+            >
+              <NationalJerseyDesignArtwork
+                countryCode={resolvedJersey.countryCode}
+                design={resolvedJersey.nationalDesign}
+                idPrefix={`avatar-national-${svgId}`}
+              />
+            </svg>
+          </g>
         ) : (resolvedJersey.status === "national-champion" ||
             resolvedJersey.status === "national-team") &&
           resolvedJersey.countryCode ? (
@@ -485,13 +493,20 @@ function NationalChampionFlagPattern({
 }) {
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <SvgCountryFlag
-        countryCode={countryCode}
+      {/* Use the same flag plane as the full 260 × 300 champion jersey.
+          Only its upper body is visible; never fit the whole flag to the bust. */}
+      <svg
+        data-avatar-jersey-viewport="upper-body"
         x="0"
         y="64"
         width={96}
         height={34}
-      />
+        viewBox={`0 36 260 ${260 * 34 / 96}`}
+        preserveAspectRatio="xMidYMid meet"
+        overflow="hidden"
+      >
+        <SvgCountryFlag countryCode={countryCode} x="0" y="0" width={260} height={300} />
+      </svg>
       <path d="M0 66h96v8c-24 5-72 5-96 0Z" fill="#FFFFFF" opacity="0.1" />
     </g>
   );

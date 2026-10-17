@@ -737,7 +737,7 @@ export default async function GamePage() {
                   unreadTrophyCount={unreadTrophyCount}
                 />
               </Suspense>
-              <JerseyShortcut />
+              {!teamSponsorIdentity ? <JerseyShortcut /> : null}
             </div>
           </header>
 

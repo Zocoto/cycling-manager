@@ -319,6 +319,8 @@ function redirectDailyRewardError(
 
 function readDailyRewardReturnPath(formData: FormData) {
   const value = readValue(formData, "returnPath");
+  if (value === "/jeu/centre-de-soin?onglet=blessures" &&
+    readValue(formData, "effectKind") === "injury_care") return value;
   return value.startsWith("/jeu/inventaire")
     ? sanitizeInventoryReturnPath(value)
     : "/jeu/objectifs?onglet=quotidiennes";

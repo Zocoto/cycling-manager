@@ -15,6 +15,9 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
+import { InjuryCareItemForm } from "@/components/game/injury-care-item-form";
+import type { InjuryCareItem } from "@/lib/game/injury-care";
+import { getCurrentInjuryCareItems } from "@/services/injury-care-items";
 import { PhysiotherapistAssignmentMatrix } from "@/components/game/physiotherapist-assignment-matrix";
 import {
   NutritionInterventionFields,
@@ -120,6 +123,7 @@ type HealthCenterPageProps = {
     interruption?: string | string[];
     effet?: string | string[];
     erreur?: string | string[];
+    succes?: string | string[];
   }>;
 };
 
@@ -169,6 +173,16 @@ export default async function HealthCenterPage({
     ]);
 
   if (!overview) redirect("/jeu");
+
+  const careItemsResult = activeTab === "blessures" &&
+    overview.riders.some(rider => rider.injury)
+    ? await getCurrentInjuryCareItems({ supabase, authUserId: user.id, teamSeasonId: overview.teamSeasonId, gameYear: overview.gameYear })
+      .then(items => ({ items, error: false }))
+      .catch((error: unknown) => {
+        console.error("Objets de soin indisponibles :", error);
+        return { items: [] as InjuryCareItem[], error: true };
+      })
+    : { items: [] as InjuryCareItem[], error: false };
 
   const sponsorIdentity = headerData.teamSponsorIdentity;
   const jersey = sponsorIdentity
@@ -287,6 +301,7 @@ export default async function HealthCenterPage({
         ) : null}
         {readQuery(query.plan) === "confirme" ? <SuccessMessage>Tous les choix nutritionnels ont été appliqués : forme, poids et trésorerie sont à jour.</SuccessMessage> : null}
         {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
+        {readQuery(query.succes) ? <SuccessMessage>{readQuery(query.succes).slice(0, 500)}</SuccessMessage> : null}
 
         <GameSectionTabs
           ariaLabel="Rubriques du centre de soin"
@@ -305,7 +320,7 @@ export default async function HealthCenterPage({
         </GameSectionTabs>
 
         {activeTab === "blessures" ? (
-          <InjuriesPanel overview={overview} jersey={jersey} />
+          <InjuriesPanel overview={overview} jersey={jersey} careItems={careItemsResult.items} careItemsError={careItemsResult.error} />
         ) : null}
         {activeTab === "forme" ? (
           riderPlanning ? (
@@ -329,9 +344,13 @@ export default async function HealthCenterPage({
 function InjuriesPanel({
   overview,
   jersey,
+  careItems,
+  careItemsError,
 }: {
   overview: TeamHealthOverview;
   jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+  careItems: InjuryCareItem[];
+  careItemsError: boolean;
 }) {
   const injuredRiders = overview.riders.filter(
     (rider): rider is TeamHealthRider & { injury: NonNullable<TeamHealthRider["injury"]> } =>
@@ -369,6 +388,8 @@ function InjuriesPanel({
               rider={rider}
               overview={overview}
               jersey={jersey}
+              careItems={careItems}
+              careItemsError={careItemsError}
             />
           ))}
         </div>
@@ -432,12 +453,16 @@ function InjuryCard({
   rider,
   overview,
   jersey,
+  careItems,
+  careItemsError,
 }: {
   rider: TeamHealthRider & {
     injury: NonNullable<TeamHealthRider["injury"]>;
   };
   overview: TeamHealthOverview;
   jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+  careItems: InjuryCareItem[];
+  careItemsError: boolean;
 }) {
   const remaining = getRemainingDuration(rider.injury.expectedRecoveryAt);
   const treatment = rider.injury.treatment;
@@ -533,9 +558,9 @@ function InjuryCard({
               </p>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#702E2E]">
                 Cette blessure survient lorsque la forme devait passer sous zéro.
-                Sa durée de base est fixée à trois jours. Seul un kiné spécialiste
+                Sa durée de base est fixée à trois jours. Un kiné spécialiste
                 de la fatigue déjà affecté au coureur peut la raccourcir ; le
-                médecin et les protocoles restent sans effet.
+                médecin, les protocoles et les soins ordinaires restent sans effet.
               </p>
             </div>
           ) : (
@@ -603,6 +628,8 @@ function InjuryCard({
               </div>
             </>
           )}
+          <InjuryCareItemForm riderId={rider.id} riderName={`${rider.firstName} ${rider.lastName}`}
+            diagnosisCode={rider.injury.diagnosisCode} items={careItems} loadError={careItemsError} />
         </div>
       </div>
     </article>

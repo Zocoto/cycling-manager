@@ -20,8 +20,10 @@ describe("dedicated header presence slot", () => {
   });
 
   it("reserves the mobile search space and keeps compact routes on one row", () => {
-    expect(gameHeader).toContain("order-2 w-[calc(100%-4rem)] min-w-0 sm:w-full");
-    expect(gameHeader).toContain('compactMobile ? "order-none" : "order-2"');
+    expect(gameHeader).toContain('data-mobile-header-search-row="true"');
+    expect(gameHeader).toContain('compactMobile ? "contents" : "order-2 flex w-full min-w-0 items-center gap-2 sm:contents"');
+    expect(gameHeader).toContain("[&>button]:h-8 sm:order-none sm:ml-0 sm:[&>button]:h-10");
+    expect(gameHeader).not.toContain("w-[calc(100%-4rem)]");
     expect(gameHeader.match(/<SitePresenceIndicator/g)).toHaveLength(1);
     const slot = gameHeader.indexOf('data-header-presence-slot="true"');
     expect(slot).toBeGreaterThan(gameHeader.indexOf("<GameNavigationMenu"));
