@@ -52,4 +52,13 @@ describe("alignement des cartes principales du bureau", () => {
     expect(dashboardPage).toContain('title="Fanclub / Boutique"');
     expect(dashboardPage).not.toContain('title="Fan Club"');
   });
+
+  it("réserve le raccourci du maillot amateur aux équipes sans sponsor actif", () => {
+    expect(dashboardPage).toContain(
+      "{!teamSponsorIdentity ? <JerseyShortcut /> : null}",
+    );
+    expect(dashboardPage.match(/<JerseyShortcut \/>/g)).toHaveLength(1);
+    expect(dashboardPage).toContain('href="/jeu/maillot"');
+    expect(dashboardPage).toContain("getActiveTeamSponsorIdentity(dashboardTeamId)");
+  });
 });
