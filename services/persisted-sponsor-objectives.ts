@@ -1866,6 +1866,7 @@ async function loadRaceEditionRows(
     )
     .eq("season_id", seasonId)
     .neq("status", "cancelled")
+    .order("id")
     .returns<RaceEditionRow[]>();
 
   if (error) {
@@ -1877,7 +1878,7 @@ async function loadRaceEditionRows(
   return data ?? [];
 }
 
-async function repairLegacyRaceObjectives({
+export async function repairLegacyRaceObjectives({
   supabase,
   objectiveRows,
   sponsorCountryCode,
@@ -1897,7 +1898,9 @@ async function repairLegacyRaceObjectives({
   random: () => number;
 }): Promise<void> {
   const raceObjectiveRows = objectiveRows.filter(
-    (objective) => objective.objective_type === "race_result"
+    // Une offre peut être réparée avant signature. Un contrat signé conserve
+    // ses courses, même si un nouveau tirage ou la réputation a changé.
+    (objective) => objective.objective_type === "race_result" && objective.status === "draft"
   );
 
   if (raceObjectiveRows.length === 0) {
@@ -2003,7 +2006,8 @@ async function repairLegacyRaceObjectives({
           requiredCount,
         },
       })
-      .eq("id", objective.id);
+      .eq("id", objective.id)
+      .eq("status", "draft");
 
     if (error) {
       throw new Error(
