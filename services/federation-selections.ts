@@ -50,7 +50,7 @@ type MemberRow = {
   professional_rider_id: string | null;
   junior_rider_id: string | null;
   owner_team_id: string | null;
-  response_status: "draft" | "pending" | "confirmed" | "declined";
+  response_status: "draft" | "pending" | "confirmed" | "declined" | "ineligible";
 };
 type AssignmentRow = { sporting_director_id: string };
 type TermRow = { president_director_id: string | null };
@@ -192,7 +192,7 @@ export async function getFederationSelectionState({
           responses: Object.fromEntries(members.filter((member) => member.selection_list_id === list.id)
             .map((member) => [member.professional_rider_id ?? member.junior_rider_id, member.response_status])),
           riderIds: members
-            .filter((member) => member.selection_list_id === list.id
+            .filter((member) => member.selection_list_id === list.id && member.response_status !== "ineligible"
               && (!(gameYear >= 4 && gameYear % 4 === 0) || member.response_status !== "declined"))
             .map(
               (member) =>

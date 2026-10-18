@@ -39,6 +39,7 @@ describe("federation call-ups", () => {
       { ...callup, can_respond: false },
       { ...callup, response_status: "confirmed" as const },
       { ...callup, response_status: "declined" as const },
+      { ...callup, response_status: "ineligible" as const },
     ];
     expect(splitFederationCallups(history)).toEqual({ pending: [], history });
   });

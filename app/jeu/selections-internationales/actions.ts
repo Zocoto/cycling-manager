@@ -26,7 +26,7 @@ export async function answerFederationCallupAction(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
-  const { error } = await supabase.rpc("respond_to_national_federation_preselection", {
+  const { data, error } = await supabase.rpc("respond_to_national_federation_preselection", {
     p_member_id: input.data.memberId, p_accept: input.data.decision === "confirm",
   });
   if (error) redirect(`${returnHref}${returnHref.includes("?") ? "&" : "?"}erreur=${encodeURIComponent(error.message.slice(0, 240))}`);
@@ -38,6 +38,7 @@ export async function answerFederationCallupAction(formData: FormData) {
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/courses/[slug]", "page");
   revalidatePath("/jeu/boite-mail");
+  if (data === "ineligible") redirect(`${returnHref}${returnHref.includes("?") ? "&" : "?"}erreur=${encodeURIComponent("Cette convocation n’est plus valable : le coureur n’est plus éligible.")}`);
   redirect(returnHref);
 }
 

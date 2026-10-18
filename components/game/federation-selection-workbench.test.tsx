@@ -142,7 +142,7 @@ describe("FederationSelectionWorkbench hosting", () => {
     expect(markup.match(/data-quadrennial-games-tile="true"/g)).toHaveLength(1);
     expect(markup).not.toContain("Nations Cup juniors");
     expect(markup).not.toContain("Nations Cup · Montagne");
-    expect(markup).toContain("Une course en ligne");
+    expect(markup).toContain("Jeux quadriennaux · un seul peloton mondial");
     expect(markup).not.toContain("Cinq épreuves professionnelles exceptionnelles");
   });
 

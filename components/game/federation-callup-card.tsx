@@ -7,6 +7,7 @@ export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
   const canRespond = callup.response_status === "pending" && callup.can_respond;
   const label = callup.response_status === "confirmed" ? "Participation confirmée"
     : callup.response_status === "declined" ? "Participation refusée"
+    : callup.response_status === "ineligible" ? "Convocation devenue inéligible"
     : canRespond ? "Réponse attendue" : "Délai de réponse dépassé";
   return (
     <article className="rounded-[2rem] border border-[#315B3E]/15 bg-white p-6 shadow-sm sm:p-8">
@@ -36,15 +37,21 @@ export function FederationCallupCard({ callup }: { callup: FederationCallup }) {
             Après confirmation, le président ne pourra plus retirer ce coureur.
             {callup.rider_category === "professional" ? " La sélection est prioritaire sur tous les engagements et stages en conflit, y compris un tour verrouillé ou commencé." : " La participation sera inscrite dans la sélection nationale junior."}
           </p>
-          <form action={answerFederationCallupAction} className="mt-5 flex flex-wrap gap-3">
-            <input type="hidden" name="memberId" value={callup.member_id} />
-            <input type="hidden" name="audience" value={callup.rider_category} />
-            <InternationalSelectionSubmitButton variant="confirm" pendingLabel="Enregistrement…" name="decision" value="confirm">Confirmer la participation</InternationalSelectionSubmitButton>
-            <InternationalSelectionSubmitButton variant="decline" pendingLabel="Enregistrement…" name="decision" value="decline">Refuser</InternationalSelectionSubmitButton>
-          </form>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {(["confirm", "decline"] as const).map((decision) => (
+              <form key={decision} action={answerFederationCallupAction}>
+                <input type="hidden" name="memberId" value={callup.member_id} />
+                <input type="hidden" name="audience" value={callup.rider_category} />
+                <input type="hidden" name="decision" value={decision} />
+                <InternationalSelectionSubmitButton variant={decision} pendingLabel="Enregistrement…">{decision === "confirm" ? "Confirmer la participation" : "Refuser"}</InternationalSelectionSubmitButton>
+              </form>
+            ))}
+          </div>
         </>
       ) : callup.response_status === "confirmed" ? (
         <p className="mt-4 text-sm font-semibold text-[#60756E]">La participation est enregistrée et verrouillée dans la liste du président.</p>
+      ) : callup.response_status === "ineligible" ? (
+        <p className="mt-4 text-sm font-semibold text-[#60756E]">Le coureur ne remplit plus les conditions de cette sélection. Aucune réponse n’est attendue.</p>
       ) : null}
     </article>
   );

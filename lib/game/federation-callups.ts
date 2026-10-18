@@ -40,7 +40,7 @@ export type FederationCallup = {
   rider_id: string;
   rider_name: string;
   rider_category: "professional" | "junior";
-  response_status: "pending" | "confirmed" | "declined";
+  response_status: "pending" | "confirmed" | "declined" | "ineligible";
   published_at: string;
   closes_at: string | null;
   can_respond: boolean;

@@ -36,14 +36,28 @@ describe("federation call-up interface", () => {
   it("offers real confirm and decline submissions for an early published invitation", () => {
     const html = renderToStaticMarkup(<FederationCallupCard callup={callup} />);
     expect(html).toContain('name="memberId" value="member"');
-    expect(html).toMatch(/<button(?=[^>]*name="decision")(?=[^>]*value="confirm")[^>]*>/);
-    expect(html).toMatch(/<button(?=[^>]*name="decision")(?=[^>]*value="decline")[^>]*>/);
+    const forms = html.match(/<form\b[\s\S]*?<\/form>/g) ?? [];
+    expect(forms).toHaveLength(2);
+    for (const [index, decision] of ["confirm", "decline"].entries()) {
+      // Successful hidden controls survive submission without a submitter.
+      expect(forms[index]).toContain(`type="hidden" name="decision" value="${decision}"`);
+      expect(forms[index]).toContain('type="hidden" name="memberId" value="member"');
+      expect(forms[index]).toContain('type="hidden" name="audience" value="professional"');
+      expect(forms[index]).not.toContain('name="decision" value="' + decision + '" disabled');
+    }
     expect(html).toContain("Vous pouvez répondre dès maintenant");
   });
   it("does not offer a second decision for a confirmed or closed invitation", () => {
-    for (const value of [{ ...callup, response_status: "confirmed" as const }, { ...callup, can_respond: false }]) {
+    for (const value of [{ ...callup, response_status: "confirmed" as const }, { ...callup, can_respond: false }, { ...callup, response_status: "ineligible" as const }]) {
       expect(renderToStaticMarkup(<FederationCallupCard callup={value} />)).not.toContain('<form');
     }
+  });
+  it("explains an ineligible call-up without describing it as a player refusal or expired deadline", () => {
+    const html = renderToStaticMarkup(<FederationCallupCard callup={{ ...callup, response_status: "ineligible", can_respond: false }} />);
+    expect(html).toContain("Convocation devenue inéligible");
+    expect(html).toContain("Aucune réponse n’est attendue");
+    expect(html).not.toContain("Participation refusée");
+    expect(html).not.toContain("Délai de réponse dépassé");
   });
   it("names the conflicting race and explains the automatic withdrawal", () => {
     const html = renderToStaticMarkup(<FederationCallupCard callup={{ ...callup, conflicting_race_names: ["Tour des Alpes"] }} />);

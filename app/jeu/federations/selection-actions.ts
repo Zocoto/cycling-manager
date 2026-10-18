@@ -116,6 +116,9 @@ export async function respondFederationPreselectionAction(formData: FormData) {
   revalidatePath("/jeu/selections-internationales");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/courses/[slug]", "page");
+  if (result.data === "ineligible") {
+    redirect(`/jeu/selections-internationales?erreur=${encodeURIComponent("Cette convocation n’est plus valable : le coureur n’est plus éligible.")}`);
+  }
 }
 
 function revalidateFederation(countryCode: string) {

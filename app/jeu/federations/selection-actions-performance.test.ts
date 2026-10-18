@@ -20,4 +20,11 @@ describe("bounded federation selection actions", () => {
     expect(rpc.mock.calls).toEqual([["respond_to_national_federation_preselection",{p_member_id:"00000000-0000-4000-8000-000000000001",p_accept:decision==="confirm"}]]);
     expect(revalidatePath).toHaveBeenCalledWith("/jeu/selections-internationales");
   });
+  it("reports an invalidation after refreshing the federation without a global rebuild", async () => {
+    rpc.mockResolvedValue({data:"ineligible",error:null});
+    const data=new FormData();data.set("countryCode","FR");data.set("memberId","00000000-0000-4000-8000-000000000001");data.set("decision","confirm");
+    await expect(respondFederationPreselectionAction(data)).rejects.toThrow(encodeURIComponent("Cette convocation n’est plus valable : le coureur n’est plus éligible."));
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledWith("/jeu/selections-internationales");
+  });
 });

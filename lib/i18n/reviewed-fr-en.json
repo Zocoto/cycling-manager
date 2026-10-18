@@ -1005,5 +1005,8 @@
   "flag": "flag",
   "line": "line",
   "stripes": "stripes",
-  "wave": "wave"
+  "wave": "wave",
+  "Convocation devenue inéligible": "Call-up no longer eligible",
+  "Le coureur ne remplit plus les conditions de cette sélection. Aucune réponse n’est attendue.": "The rider no longer meets the conditions for this selection. No response is required.",
+  "Cette convocation n’est plus valable : le coureur n’est plus éligible.": "This call-up is no longer valid: the rider is no longer eligible."
 }
