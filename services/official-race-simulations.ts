@@ -137,6 +137,9 @@ export async function ensureLockedOfficialRaceSimulations(
 
   for (const edition of calendar.editions) {
     const unavailableRiderIds = new Set<string>();
+    const editionRiderIds = new Set(
+      edition.engagedRiders.map((rider) => rider.id),
+    );
     const editionSimulations: LockedOfficialStageSimulation[] = [];
     const orderedStages = [...edition.stages].sort(
       (first, second) =>
@@ -156,7 +159,9 @@ export async function ensureLockedOfficialRaceSimulations(
         departureAt: stage.departureAt,
         windows: persistedUnavailabilityWindows,
       })) {
-        unavailableRiderIds.add(riderId);
+        // Les fenêtres médicales sont chargées pour tout le lot de courses.
+        // Le scénario d'une édition ne conserve que ses propres partants.
+        if (editionRiderIds.has(riderId)) unavailableRiderIds.add(riderId);
       }
 
       let lockedSimulation = lockedByStageId.get(stage.id) ?? null;

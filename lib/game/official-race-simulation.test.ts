@@ -163,6 +163,22 @@ describe("normalizeOfficialStageResultRanks", () => {
 });
 
 describe("officialStageSimulationCoversRoster", () => {
+  it("ignore les indisponibilités médicales extérieures à la startlist", () => {
+    expect(officialStageSimulationCoversRoster({
+      resultRiderIds: ["starter-1", "starter-2"],
+      unavailableRiderIds: ["rider-in-another-race", "removed-non-starter"],
+      rosterRiderIds: ["starter-1", "starter-2"],
+    })).toBe(true);
+  });
+
+  it("refuse un résultat appartenant à un coureur extérieur à la startlist", () => {
+    expect(officialStageSimulationCoversRoster({
+      resultRiderIds: ["starter-1", "foreign-result"],
+      unavailableRiderIds: ["foreign-result"],
+      rosterRiderIds: ["starter-1"],
+    })).toBe(false);
+  });
+
   it("compte les non-partants explicitement indisponibles dans la startlist verrouillée", () => {
     expect(
       officialStageSimulationCoversRoster({

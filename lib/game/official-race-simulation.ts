@@ -439,11 +439,14 @@ export function officialStageSimulationCoversRoster({
   unavailableRiderIds: readonly string[];
   rosterRiderIds: readonly string[];
 }) {
+  const rosterIds = new Set(rosterRiderIds);
+  // Le registre médical peut contenir des coureurs d'autres courses. Les
+  // non-partants déjà retirés du contexte de classement n'en font plus partie
+  // non plus : seuls les indisponibles de cette startlist restent à couvrir.
   const accountedRiderIds = new Set([
     ...resultRiderIds,
-    ...unavailableRiderIds,
+    ...unavailableRiderIds.filter((riderId) => rosterIds.has(riderId)),
   ]);
-  const rosterIds = new Set(rosterRiderIds);
   return (
     accountedRiderIds.size === rosterIds.size &&
     [...accountedRiderIds].every((riderId) => rosterIds.has(riderId))
