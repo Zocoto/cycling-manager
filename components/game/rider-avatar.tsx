@@ -127,6 +127,19 @@ export function RiderAvatar({
 
         {fullJersey ? (
           <g transform="translate(0 66) scale(0.8)" data-full-jersey-artwork="true">
+            <g data-full-jersey-arms="true" strokeLinecap="round" strokeLinejoin="round">
+              {[false, true].map(mirrored => (
+                <g key={mirrored ? "right" : "left"} transform={mirrored ? "translate(120 0) scale(-1 1)" : undefined}>
+                  <path
+                    d="M8 44 25 55C24 68 20 78 17 87L21 111C25 113 27 117 25 120C24 122 21 118 20 117L22 130C22.5 134 20.5 136 17.5 136C13.5 136 11 134 10.5 130L8 113 4 90C1 81 3 68 4 57Z"
+                    fill={design.skinTone} stroke={design.skinShadow} strokeWidth="0.8"
+                  />
+                  <path d="M20 62C18 74 14 82 14 89L18 112 19 129" fill="none" stroke={design.skinShadow} strokeWidth="2.2" opacity="0.16" />
+                  <path d="M6 70C5 77 5 83 7 88L11 110" fill="none" stroke={design.skinHighlight} strokeWidth="0.9" opacity="0.5" />
+                  <path d="M8 88Q11 86 14 88M13 128 13.8 133M16 128 16.8 134M20 117 19 113" fill="none" stroke={design.skinShadow} strokeWidth="0.65" opacity="0.55" />
+                </g>
+              ))}
+            </g>
             <defs><clipPath id={`${shoulderClipId}-full`}><path d={NATIONAL_JERSEY_SHIRT_PATH} /></clipPath></defs>
             <g clipPath={`url(#${shoulderClipId}-full)`}>
               <NationalJerseyDesignArtwork countryCode={resolvedJersey.countryCode!} design={resolvedJersey.nationalDesign!} idPrefix={`${shoulderClipId}-full-design`} />
