@@ -1008,5 +1008,21 @@
   "wave": "wave",
   "Convocation devenue inéligible": "Call-up no longer eligible",
   "Le coureur ne remplit plus les conditions de cette sélection. Aucune réponse n’est attendue.": "The rider no longer meets the conditions for this selection. No response is required.",
-  "Cette convocation n’est plus valable : le coureur n’est plus éligible.": "This call-up is no longer valid: the rider is no longer eligible."
+  "Cette convocation n’est plus valable : le coureur n’est plus éligible.": "This call-up is no longer valid: the rider is no longer eligible.",
+  ": le nouveau maillot de sélection dévoilé": ": the new national team jersey revealed",
+  ": une nouvelle tunique pour les champions nationaux": ": a new jersey for the national champions",
+  "{{0}} : le nouveau maillot de sélection dévoilé": "{{0}}: the new national team jersey revealed",
+  "{{0}} : une nouvelle tunique pour les champions nationaux": "{{0}}: a new jersey for the national champions",
+  "{{0}} porte le nouveau maillot": "{{0}} wearing the new jersey",
+  "porte le nouveau maillot": "wearing the new jersey",
+  "Champion national du contre-la-montre": "National time trial champion",
+  "Champion national sur route": "National road champion",
+  "Coureur de la nation": "National rider",
+  "Impossible de charger les nouveaux maillots :": "Unable to load the new jerseys:",
+  "Impossible de charger les nouveaux maillots : {{0}}": "Unable to load the new jerseys: {{0}}",
+  "La fédération dévoile la nouvelle tenue de ses champions nationaux, sur route et contre la montre. Une tunique qui les accompagnera dans le peloton jusqu’à la prochaine passation du titre.": "The federation unveils a new kit for its national road and time trial champions. They will wear it in the peloton until the title changes hands.",
+  "La sélection nationale change de couleurs. Voici le nouveau maillot qui représentera la nation lors des compétitions internationales.": "A fresh look for the national team. This is the new jersey that will represent the nation in international competitions.",
+  "La nouvelle tunique": "The new kit",
+  "Le vestiaire des champions": "The champions’ wardrobe",
+  "Les couleurs des nations": "National colours"
 }

@@ -7,6 +7,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { CyclogazetteJerseyReveal } from "@/components/game/cyclogazette-jersey-reveal";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { CyclogazetteCommunityPanel } from "@/components/game/cyclogazette-community";
 import {
@@ -1125,7 +1126,8 @@ function EditorialFeatureSection({
                   <span className="absolute -right-1 -top-1 h-16 w-16 rounded-full bg-[#17100D]" />
                 </span>
               ) : null}
-              <div className="relative z-10 max-w-4xl">
+              <div className={`relative z-10 ${story.jerseyReveal ? "xl:grid xl:grid-cols-[minmax(0,1fr)_11rem] xl:items-center xl:gap-5" : "max-w-4xl"}`}>
+                <div className="min-w-0">
                 <p
                   className={`text-[9px] font-black uppercase tracking-[0.18em] ${
                     isHalloweenTeaser
@@ -1160,6 +1162,8 @@ function EditorialFeatureSection({
                     {isEnglish ? "Read the full story" : "Ouvrir le dossier"} →
                   </p>
                 ) : null}
+                </div>
+                {story.jerseyReveal ? <CyclogazetteJerseyReveal reveal={story.jerseyReveal} isEnglish={isEnglish} /> : null}
               </div>
             </article>
           );

@@ -16,7 +16,7 @@ import {
 } from "@/lib/game/rider-championship-border";
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
-import { NationalJerseyDesignArtwork } from "./national-jersey-design-artwork";
+import { NATIONAL_JERSEY_SHIRT_PATH, NationalJerseyDesignArtwork } from "./national-jersey-design-artwork";
 
 type RiderAvatarProps = {
   profileKey: string | null | undefined;
@@ -28,6 +28,8 @@ type RiderAvatarProps = {
   className?: string;
   renderMode?: "detailed" | "compact";
   championshipBorder?: RiderChampionshipBorder | null;
+  /** Gazette kit portraits keep the complete shirt below the usual face. */
+  presentation?: "avatar" | "jersey";
 };
 
 export function RiderAvatar({
@@ -40,6 +42,7 @@ export function RiderAvatar({
   className = "h-12 w-12",
   renderMode = "detailed",
   championshipBorder = null,
+  presentation = "avatar",
 }: RiderAvatarProps) {
   const rawId = useId();
   const svgId = rawId.replace(/:/g, "");
@@ -51,6 +54,8 @@ export function RiderAvatar({
     age,
   });
   const resolvedJersey = jersey ?? FREE_AGENT_RIDER_JERSEY;
+  const fullJersey = presentation === "jersey" && resolvedJersey.nationalDesign && resolvedJersey.countryCode
+    && (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion");
 
   if (renderMode === "compact") {
     return (
@@ -95,7 +100,9 @@ export function RiderAvatar({
       data-championship-border={championshipBorder?.kind}
       title={championshipBorder?.label}
       className={[
-        "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:paint]",
+        fullJersey
+          ? "relative inline-flex shrink-0 overflow-hidden rounded-xl [contain:paint]"
+          : "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:paint]",
         className,
       ].join(" ")}
       style={getChampionshipBorderStyle(championshipBorder)}
@@ -103,7 +110,8 @@ export function RiderAvatar({
       <svg
         aria-label={label}
         role="img"
-        viewBox="0 0 96 96"
+        viewBox={fullJersey ? "0 0 96 178" : "0 0 96 96"}
+        data-rider-presentation={fullJersey ? "full-jersey" : undefined}
         className="block h-full w-full overflow-hidden"
         style={championshipBorder ? { borderRadius: "inherit" } : undefined}
       >
@@ -113,10 +121,19 @@ export function RiderAvatar({
           </clipPath>
         </defs>
 
-        <rect width="96" height="96" fill={design.backgroundColor} />
+        <rect width="96" height={fullJersey ? "178" : "96"} fill={design.backgroundColor} />
         <circle cx="18" cy="17" r="15" fill="#FFFFFF" opacity="0.18" />
         <circle cx="84" cy="36" r="21" fill="#315B3E" opacity="0.035" />
 
+        {fullJersey ? (
+          <g transform="translate(0 66) scale(0.8)" data-full-jersey-artwork="true">
+            <defs><clipPath id={`${shoulderClipId}-full`}><path d={NATIONAL_JERSEY_SHIRT_PATH} /></clipPath></defs>
+            <g clipPath={`url(#${shoulderClipId}-full)`}>
+              <NationalJerseyDesignArtwork countryCode={resolvedJersey.countryCode!} design={resolvedJersey.nationalDesign!} idPrefix={`${shoulderClipId}-full-design`} />
+            </g>
+            <path d={NATIONAL_JERSEY_SHIRT_PATH} fill="none" stroke="#213B36" strokeWidth="1.5" strokeLinejoin="round" />
+          </g>
+        ) : <>
         <path d={shouldersPath} fill={resolvedJersey.primaryColor} />
         {resolvedJersey.status === "world-champion" ? (
           <WorldChampionAvatarPattern clipPathId={shoulderClipId} />
@@ -172,6 +189,8 @@ export function RiderAvatar({
           </>
         )}
 
+        </>}
+
         <path
           d={`M ${centerX - design.neckWidth / 2} 60 L ${centerX - design.neckWidth / 2 - 0.8} 75 Q 48 82 ${centerX + design.neckWidth / 2 + 0.8} 75 L ${centerX + design.neckWidth / 2} 60 Z`}
           fill={design.skinShadow}
@@ -181,7 +200,7 @@ export function RiderAvatar({
           fill={design.skinTone}
         />
 
-        {resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath ? (
+        {!fullJersey && (resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath) ? (
           <>
             <path
               d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"

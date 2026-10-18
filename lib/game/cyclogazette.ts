@@ -1,4 +1,5 @@
 import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
+import type { CyclogazetteJerseyReveal } from "@/lib/game/cyclogazette-jerseys";
 import type { PostRaceInterviewAnswer } from "@/lib/game/post-race-interview";
 import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
 import type {
@@ -85,6 +86,8 @@ export type CyclogazetteFeatureKind =
   | "injury"
   | "rivalry"
   | "federation_race"
+  | "national_team_jersey"
+  | "national_champion_jersey"
   | "event_teaser";
 
 export type CyclogazetteFeatureStory = {
@@ -97,6 +100,7 @@ export type CyclogazetteFeatureStory = {
   body: string;
   bodyEn: string;
   href?: string;
+  jerseyReveal?: CyclogazetteJerseyReveal;
 };
 
 export type CyclogazetteNationsCupMovement = {
