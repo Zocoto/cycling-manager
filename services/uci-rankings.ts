@@ -10,7 +10,7 @@ import {
   type AmateurJerseyConfig,
 } from "@/lib/amateur-team";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
+import { collectChunkedPaginatedRows, collectPaginatedRows } from "@/lib/supabase/pagination";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
 import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
 import {
@@ -39,7 +39,7 @@ type RiderRow = {
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
 };
-type RiderSummaryRow = { rider_id: string; points: number | null };
+type RiderSummaryRow = { rider_id: string; points: number | null; uci_rank: number | null };
 type RiderAgeRow = { rider_id: string; age: number };
 type ContractRow = { rider_id: string; team_id: string };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
@@ -116,7 +116,7 @@ export type UciRankings = {
   nations: NationRankingEntry[];
 };
 
-const getCachedUciRankings = unstable_cache(loadUciRankings, ["uci-rankings"], {
+const getCachedUciRankings = unstable_cache(loadUciRankings, ["uci-rankings-complete-v2"], {
   revalidate: 60,
   tags: ["uci-rankings"],
 });
@@ -148,12 +148,19 @@ async function loadUciRankings(): Promise<UciRankings | null> {
         .neq("status", "withdrawn")
         .gt("points", 0)
         .returns<TeamSeasonRow[]>(),
-      supabase
-        .from("rider_season_summaries")
-        .select("rider_id, points")
-        .eq("season_id", season.id)
-        .gt("points", 0)
-        .returns<RiderSummaryRow[]>(),
+      collectPaginatedRows<RiderSummaryRow, { message: string }>({
+        fetchPage: async (from, to) => {
+          const result = await supabase
+            .from("rider_season_summaries")
+            .select("rider_id, points, uci_rank")
+            .eq("season_id", season.id)
+            .gt("points", 0)
+            .order("rider_id", { ascending: true })
+            .range(from, to)
+            .returns<RiderSummaryRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
       supabase.rpc("get_rookie_team_eligibility", {
         p_season_id: season.id,
       }),
@@ -175,7 +182,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
         .filter((divisionId): divisionId is string => Boolean(divisionId))
     ),
   ];
-  const riderIds = (summariesResult.data ?? []).map((summary) => summary.rider_id);
+  const riderIds = [...new Set((summariesResult.data ?? []).map((summary) => summary.rider_id))];
 
   const [
     assignmentsResult,
@@ -197,6 +204,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
       : Promise.resolve({ data: [] as AssignmentRow[], error: null }),
     collectChunkedPaginatedRows<RiderRow, { message: string }, string>({
       values: riderIds,
+      maxConcurrency: 4,
       fetchPage: async (riderIdChunk, from, to) => {
         const result = await supabase
           .from("riders")
@@ -212,6 +220,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     }),
     collectChunkedPaginatedRows<ContractRow, { message: string }, string>({
       values: riderIds,
+      maxConcurrency: 4,
       fetchPage: async (riderIdChunk, from, to) => {
         const result = await supabase
           .from("rider_contracts")
@@ -252,6 +261,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
       : Promise.resolve({ data: [] as SponsorContractRow[], error: null }),
     collectChunkedPaginatedRows<RiderAgeRow, { message: string }, string>({
       values: riderIds,
+      maxConcurrency: 4,
       fetchPage: async (riderIdChunk, from, to) => {
         const result = await supabase
           .from("rider_season_ratings")
@@ -326,6 +336,9 @@ async function loadUciRankings(): Promise<UciRankings | null> {
   const countryById = new Map((countriesResult.data ?? []).map((row) => [row.id, row]));
   const pointsByRiderId = new Map(
     (summariesResult.data ?? []).map((row) => [row.rider_id, row.points ?? 0])
+  );
+  const rankByRiderId = new Map(
+    (summariesResult.data ?? []).map((summary) => [summary.rider_id, summary.uci_rank]),
   );
   const divisionCodeById = new Map(
     (divisionsResult.data ?? []).map((division) => [division.id, division.code])
@@ -404,7 +417,7 @@ async function loadUciRankings(): Promise<UciRankings | null> {
       }
 
       return {
-        rank: 0,
+        rank: rankByRiderId.get(rider.id) ?? 0,
         riderId: rider.id,
         riderName: `${rider.first_name} ${rider.last_name}`,
         avatarProfileKey: rider.avatar_profile_key,
@@ -425,7 +438,9 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     )
     .sort(
       (left, right) =>
-        right.points - left.points || left.riderName.localeCompare(right.riderName, "fr")
+        right.points - left.points ||
+        (left.rank || Infinity) - (right.rank || Infinity) ||
+        left.riderName.localeCompare(right.riderName, "fr")
     )
     .map((rider, index) => ({ ...rider, rank: index + 1 }));
 

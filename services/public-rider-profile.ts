@@ -71,6 +71,7 @@ export type PublicRiderProfile = {
     name: string;
     gameYear: number;
   } | null;
+  currentUciRanking: { rank: number | null; points: number } | null;
   age: number | null;
   physique: {
     heightCm: number;
@@ -613,6 +614,9 @@ export async function getPublicRiderProfile({
   const rewardEvents = rewardEventsResult.data ?? [];
   const activeSeason =
     seasons.find((season) => season.status === "active") ?? null;
+  const currentSummary = activeSeason
+    ? summaries.find((summary) => summary.season_id === activeSeason.id)
+    : null;
   const currentContract =
     contracts.find((contract) => contract.status === "active") ?? null;
   const currentRating =
@@ -1236,6 +1240,10 @@ export async function getPublicRiderProfile({
     },
     avatarProfileKey: rider.avatar_profile_key,
     avatarSeed: rider.avatar_seed,
+    currentUciRanking: currentSummary ? {
+      rank: Number(currentSummary.points ?? 0) > 0 ? currentSummary.uci_rank : null,
+      points: Number(currentSummary.points ?? 0),
+    } : null,
     activeSeason: activeSeason
       ? {
           id: activeSeason.id,

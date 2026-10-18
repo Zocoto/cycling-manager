@@ -82,6 +82,26 @@ function fixture({ level = 1, teamId = null, revealUntil = null, director = true
 beforeEach(() => vi.clearAllMocks());
 
 describe("cohérence du scouting Data Room", () => {
+  it("expose le classement officiel de la saison active sans charger le classement global", async () => {
+    const f = fixture();
+    f.tables.rider_season_summaries = [
+      { rider_id: riderId, season_id: "past", points: 2000, uci_rank: 1 },
+      { rider_id: riderId, season_id: seasonId, points: 840, uci_rank: 13 },
+    ];
+    const profile = await getPublicRiderProfile({ riderIdentifier: riderId, viewerAuthUserId: "viewer" });
+    expect(profile?.currentUciRanking).toEqual({ rank: 13, points: 840 });
+    const summaryQueries = f.queries.filter(q => q.table === "rider_season_summaries");
+    expect(summaryQueries).toHaveLength(1);
+    expect(summaryQueries[0].filters).toContainEqual(["rider_id", riderId]);
+  });
+  it("ne reprend pas le classement d’une autre saison et ne classe pas un zéro point", async () => {
+    const f = fixture();
+    f.tables.rider_season_summaries = [{ rider_id: riderId, season_id: "past", points: 840, uci_rank: 13 }];
+    const input = { riderIdentifier: riderId, viewerAuthUserId: "viewer" };
+    expect((await getPublicRiderProfile(input))?.currentUciRanking).toBeNull();
+    f.tables.rider_season_summaries.push({ rider_id: riderId, season_id: seasonId, points: 0, uci_rank: 1500 });
+    expect((await getPublicRiderProfile(input))?.currentUciRanking).toEqual({ rank: null, points: 0 });
+  });
   it.each([
     [0, 3, 6, 4], [1, 3, 8, 2], [2, 5, 8, 0], [3, 7, 6, 0],
   ])("applique le niveau %i à la fiche et au survol comme au marché", async (level, exact, range, unknown) => {

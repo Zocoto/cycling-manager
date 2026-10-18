@@ -78,6 +78,7 @@ function createProfile({
     avatarProfileKey: `avatar-${id}`,
     avatarSeed: id,
     activeSeason: { id: "season", name: "Saison 2", gameYear: 2 },
+    currentUciRanking: null,
     age: 26,
     physique: null,
     careerRaceDays: 125,

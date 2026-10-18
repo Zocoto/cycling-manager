@@ -264,6 +264,7 @@ export async function getArchivedRiderProfile(
     avatarProfileKey: archive.avatar_profile_key,
     avatarSeed: archive.avatar_seed,
     activeSeason: null,
+    currentUciRanking: null,
     age: archive.retirement_age,
     physique: null,
     careerRaceDays: archive.career_race_days,

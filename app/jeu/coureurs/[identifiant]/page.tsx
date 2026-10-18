@@ -98,7 +98,6 @@ import {
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { RiderTransferListingCard } from "@/components/game/rider-transfer-listing-card";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
-import { getRiderRankingEntry } from "@/services/uci-rankings";
 import { getCurrentTeamRiderComparisonOptions } from "@/services/rider-comparison";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
@@ -151,7 +150,6 @@ export default async function RiderProfilePage({
   const [
     profile,
     headerData,
-    riderRanking,
     rosterTutorialProgress,
     comparisonOptions,
   ] = await Promise.all([
@@ -160,7 +158,6 @@ export default async function RiderProfilePage({
         viewerAuthUserId: user.id,
       }),
       getGameHeaderData(supabase, user.id),
-      getRiderRankingEntry(identifiant),
       getAuthenticatedTutorialProgress(supabase, ROSTER_TUTORIAL_KEY).catch(
         (error: unknown) => {
           console.error(
@@ -538,8 +535,8 @@ export default async function RiderProfilePage({
 
             <div className="space-y-3 lg:col-span-2 xl:col-span-1">
               <RankingBadge
-                rank={riderRanking?.rank ?? null}
-                points={riderRanking?.points ?? 0}
+                rank={profile.currentUciRanking?.rank ?? null}
+                points={profile.currentUciRanking?.points ?? 0}
                 label="Classement individuel"
                 href="/jeu/classements?vue=individuel"
                 dark

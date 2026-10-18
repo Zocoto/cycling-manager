@@ -15,6 +15,7 @@ import { NationalFederationJersey } from "@/components/game/national-federation-
 import { loadNationalFederationJerseyDesignsByCountryCode } from "@/services/national-federation-jerseys";
 import type { NationalJerseyDraft } from "@/lib/game/national-jersey-preview";
 import { DIVISION_RULES } from "@/lib/game/economy";
+import { paginateUciRiders } from "@/lib/game/uci-rankings";
 import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -80,6 +81,7 @@ export default async function UciRankingsPage({
   ]);
   const rankings = circuit === "uci" ? rankingData as Awaited<ReturnType<typeof getUciRankings>> : null;
   const juniorRankings = circuit === "juniors" ? rankingData as JuniorRankings | null : null;
+  const individualRankings = rankings && view === "individuel" ? paginateUciRiders(rankings.riders, page) : null;
   const nationJerseys = circuit === "uci" && view === "nations" && rankings
     ? await loadNationalFederationJerseyDesignsByCountryCode(rankings.nations.map((entry) => entry.countryCode))
     : new Map<string, NationalJerseyDraft>();
@@ -169,7 +171,7 @@ export default async function UciRankingsPage({
           ) : view === "equipes" ? (
             <TeamsTable entries={rankings.teams} />
           ) : view === "individuel" ? (
-            <RidersTable entries={rankings.riders} />
+            <RidersTable entries={individualRankings?.entries ?? []} />
           ) : view === "rookies" ? (
             <RookieRanking entries={rankings.rookies} />
           ) : (
@@ -180,6 +182,7 @@ export default async function UciRankingsPage({
         {circuit === "juniors" && juniorRankings?.enabled ? (
           <RankingPagination rankings={juniorRankings} />
         ) : null}
+        {individualRankings ? <RankingPagination rankings={individualRankings} circuit="uci" /> : null}
 
         {circuit === "uci" && view === "equipes" ? <DivisionAdvantages /> : null}
       </section>
@@ -421,15 +424,18 @@ function JuniorTable({ entries, view }: { entries: JuniorRankingEntry[]; view: J
   );
 }
 
-function RankingPagination({ rankings }: { rankings: JuniorRankings }) {
+function RankingPagination({ rankings, circuit = "juniors" }: {
+  rankings: Pick<JuniorRankings, "page" | "pageCount" | "totalEntries" | "view">;
+  circuit?: "juniors" | "uci";
+}) {
   if (rankings.pageCount <= 1) return null;
   const previous = Math.max(1, rankings.page - 1);
   const next = Math.min(rankings.pageCount, rankings.page + 1);
   return (
-    <nav aria-label="Pagination du classement junior" className="mt-5 flex items-center justify-between rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 text-sm font-black text-[#315B3E]">
-      <Link aria-disabled={rankings.page === 1} href={`/jeu/classements?circuit=juniors&vue=${rankings.view}&page=${previous}`} className={rankings.page === 1 ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>← Précédent</Link>
-      <span>Page {rankings.page} / {rankings.pageCount} · {rankings.totalEntries} classés</span>
-      <Link aria-disabled={rankings.page === rankings.pageCount} href={`/jeu/classements?circuit=juniors&vue=${rankings.view}&page=${next}`} className={rankings.page === rankings.pageCount ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>Suivant →</Link>
+    <nav aria-label={circuit === "uci" ? "Pagination du classement individuel" : "Pagination du classement junior"} className="mt-5 grid grid-cols-2 items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 text-sm font-black text-[#315B3E] sm:flex sm:justify-between">
+      <Link aria-disabled={rankings.page === 1} href={`/jeu/classements?circuit=${circuit}&vue=${rankings.view}&page=${previous}`} className={rankings.page === 1 ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>← Précédent</Link>
+      <span className="order-first col-span-2 text-center sm:order-none">Page {rankings.page} / {rankings.pageCount} · {rankings.totalEntries} classés</span>
+      <Link aria-disabled={rankings.page === rankings.pageCount} href={`/jeu/classements?circuit=${circuit}&vue=${rankings.view}&page=${next}`} className={`justify-self-end ${rankings.page === rankings.pageCount ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}`}>Suivant →</Link>
     </nav>
   );
 }
