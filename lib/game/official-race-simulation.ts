@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-moderate-sprint-crashes-v45";
+  "2026.10-prepared-stage-leaders-v46";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

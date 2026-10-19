@@ -183,7 +183,10 @@ export function createCalendarSimulationInput({
         const lockedLeaderRiderId = tourLeaderByTeamId.get(rider.teamId);
         const stableGeneralRole = lockedLeaderRiderId
           ? rider.id === lockedLeaderRiderId
-            ? "leader"
+            ? rider.role !== "leader" &&
+              stage.riderRoleOverrides?.[rider.id] === "leader_sprinter"
+              ? "leader_sprinter"
+              : "leader"
             : rider.role === "leader"
               ? "auto"
               : rider.role
@@ -346,15 +349,21 @@ export function getTourLeaderByTeamId({
     const stageLeaders = teammates.filter(
       (rider) => roleOverrides?.[rider.id] === "leader",
     );
+    const stageSprinterLeaders = teammates.filter(
+      (rider) => roleOverrides?.[rider.id] === "leader_sprinter",
+    );
     const automaticCandidates = teammates.filter(
-      (rider) => rider.role === "auto",
+      (rider) => rider.role === "auto" &&
+        (!roleOverrides?.[rider.id] || roleOverrides[rider.id] === "auto"),
     );
     const candidates =
       declaredLeaders.length > 0
         ? declaredLeaders
         : stageLeaders.length > 0
           ? stageLeaders
-          : automaticCandidates;
+          : stageSprinterLeaders.length > 0
+            ? stageSprinterLeaders
+            : automaticCandidates;
     const leader = [...candidates].sort(
       (first, second) =>
         getRaceFavoriteScore(edition, second) -

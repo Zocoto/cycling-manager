@@ -348,6 +348,56 @@ describe("createCalendarSimulationInput", () => {
     ).toBe("leader");
   });
 
+  it("respects a prepared leader/sprinter instead of promoting an explicitly assigned domestique", () => {
+    const favorite = { ...createRider("favorite", "team-a"), ratings: { ...createRider("favorite", "team-a").ratings, mountain: 95, hills: 95, cobbles: 95, timeTrial: 95, endurance: 95 } };
+    const edition = createEdition({ slug: "prepared-combined-leader", riders: [favorite, createRider("sprinter", "team-a"), createRider("helper", "team-a")] });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = { favorite: "domestique", sprinter: "leader_sprinter", helper: "domestique" };
+    const input = createCalendarSimulationInput({ edition, stage: edition.stages[0], seed: "prepared-combined-leader" });
+    expect(input.riders.map(rider => [rider.id, rider.role])).toEqual([
+      ["favorite", "domestique"], ["helper", "domestique"], ["sprinter", "leader_sprinter"],
+    ]);
+    const result = simulateRaceStageResultsOnly(input);
+    expect(result.resolvedRiders.find(rider => rider.id === "favorite")?.role).toBe("domestique");
+    expect(result.resolvedRiders.find(rider => rider.id === "sprinter")?.role).toBe("leader_sprinter");
+  });
+
+  it("chooses an automatic tour leader only among riders still configured as automatic for the stage", () => {
+    const favorite = { ...createRider("favorite", "team-a"), ratings: { ...createRider("favorite", "team-a").ratings, mountain: 95, hills: 95, timeTrial: 95 } };
+    const edition = createEdition({ slug: "manual-support-role", riders: [favorite, createRider("available", "team-a")] });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = { favorite: "domestique" };
+    const input = createCalendarSimulationInput({ edition, stage: edition.stages[0], seed: "manual-support-role" });
+    expect(input.riders.find(rider => rider.id === "favorite")?.role).toBe("domestique");
+    expect(input.riders.find(rider => rider.id === "available")?.role).toBe("leader");
+  });
+
+  it("retains a declared GC leader together with the stage leader/sprinter", () => {
+    const edition = createEdition({ slug: "declared-gc-and-sprint", riders: [
+      { ...createRider("gc", "team-a"), role: "leader" }, createRider("sprint", "team-a"), createRider("helper", "team-a"),
+    ] });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = { gc: "leadout", sprint: "leader_sprinter", helper: "domestique" };
+    const input = createCalendarSimulationInput({ edition, stage: edition.stages[0], seed: "declared-gc-and-sprint" });
+    expect(input.riders.map(rider => [rider.id, rider.role])).toEqual([["gc", "leader"], ["helper", "domestique"], ["sprint", "leader_sprinter"]]);
+  });
+
+  it("gives the explicit stage GC leader priority while preserving a separate leader/sprinter", () => {
+    const edition = createEdition({ slug: "stage-gc-and-sprint", riders: [createRider("gc", "team-a"), createRider("sprint", "team-a")] });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = { gc: "leader", sprint: "leader_sprinter" };
+    const input = createCalendarSimulationInput({ edition, stage: edition.stages[0], seed: "stage-gc-and-sprint" });
+    expect(input.riders.map(rider => [rider.id, rider.role])).toEqual([["gc", "leader"], ["sprint", "leader_sprinter"]]);
+  });
+
+  it("does not invent a GC leader when all stage roles were manually assigned", () => {
+    const edition = createEdition({ slug: "all-stage-support", riders: [createRider("helper", "team-a"), createRider("protected", "team-a")] });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = { helper: "domestique", protected: "protected_rider" };
+    const input = createCalendarSimulationInput({ edition, stage: edition.stages[0], seed: "all-stage-support" });
+    expect(input.riders.map(rider => [rider.id, rider.role])).toEqual([["helper", "domestique"], ["protected", "protected_rider"]]);
+  });
+
   it("promeut le favori général disponible suivant après l'abandon du leader automatique", () => {
     const first = {
       ...createRider("premier-general", "team-a"),
@@ -785,7 +835,7 @@ describe("createCalendarSimulationInput", () => {
     expect(context.input.seed).toBe(run.input.seed);
   });
 
-  it("réaffiche les rôles préparés dans un ancien scénario verrouillé sans modifier ses résultats", () => {
+  it.each(["leader", "leader_sprinter"] as const)("réaffiche le rôle préparé %s dans un ancien scénario sans modifier ses résultats", (preparedRole) => {
     const riders = [
       createRider("favori-automatique", "team-a"),
       {
@@ -800,7 +850,7 @@ describe("createCalendarSimulationInput", () => {
     edition.raceFormat = "stage_race";
     edition.stages[0].riderRoleOverrides = {
       "favori-automatique": "domestique",
-      "leader-prepare": "leader",
+      "leader-prepare": preparedRole,
     };
     const run = simulateOfficialRaceEdition(edition)[0];
     const staleRoleByRiderId = new Map([
@@ -846,8 +896,9 @@ describe("createCalendarSimulationInput", () => {
       context.simulation.resolvedRiders.find(
         (rider) => rider.id === "leader-prepare",
       )?.role,
-    ).toBe("leader");
+    ).toBe(preparedRole);
     expect(context.simulation.results).toBe(lockedSimulation.results);
+    expect(context.simulation.timeline).toBe(lockedSimulation.timeline);
   });
 
   it("porte les maillots acquis la veille et laisse le champion national dessous", () => {
