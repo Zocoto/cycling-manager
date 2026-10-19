@@ -88,6 +88,10 @@ import {
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import { addFavoriteRaceBonusToRiders } from "@/lib/game/rider-favorite-races";
 import {
+  resolveRaceViewerTeamId,
+} from "@/lib/game/race-viewer-riders";
+import { loadViewerRaceRiderIdsByEdition } from "@/services/race-viewer-riders";
+import {
   getFederalMedicalNetworkEffects,
   getFederationInfrastructureEffectPercentage,
   isFederalMedicalNetworkSpecializationCode,
@@ -496,6 +500,8 @@ type ActiveSeasonCalendarLoadOptions = {
   includeCancelledEditions?: boolean;
   includeEngagedCounts?: boolean;
   includeEngagedRiders?: boolean;
+  /** Resolved late so the header and calendar can keep loading in parallel. */
+  viewerTeamId?: string | null | Promise<string | null>;
   includeIneligibleRegionalRaces?: boolean;
   includeJuniorChampionships?: boolean;
   /**
@@ -834,6 +840,7 @@ export async function getActiveSeasonRaceCalendar(
   now = new Date(),
   options: ActiveSeasonCalendarLoadOptions = {},
 ): Promise<SeasonRaceCalendar | null> {
+  const viewerTeamIdPromise = resolveRaceViewerTeamId(options.viewerTeamId);
   if (options.raceSlug && options.raceEditionIds !== undefined) {
     throw new Error(
       "Le calendrier ne peut pas être ciblé à la fois par course et par édition.",
@@ -1325,6 +1332,31 @@ export async function getActiveSeasonRaceCalendar(
   assertQuerySucceeded(categoriesResult.error, "les catégories de course");
   assertQuerySucceeded(stagesResult.error, "les étapes");
 
+  const raceRows = racesResult.data ?? [];
+  const raceById = new Map(raceRows.map((race) => [race.id, race]));
+  const nationalInternationalEditionIds = new Set(
+    season.game_year >= 2
+      ? editionRows
+          .filter((edition) => {
+            const competition = raceById.get(edition.race_id)?.competition_type;
+            return competition === "world_championship" ||
+              competition === "continental_championship" ||
+              competition === "nations_cup";
+          })
+          .map((edition) => edition.id)
+      : [],
+  );
+  // Optional view metadata loads alongside the remaining enrichments. Federal
+  // registration IDs must never be mistaken for original club ownership.
+  const viewerRiderIdsByEditionPromise = includeEngagedRiders
+    ? loadViewerRaceRiderIdsByEdition(
+        supabase,
+        viewerTeamIdPromise,
+        engagedRiderRows,
+        nationalInternationalEditionIds,
+      )
+    : Promise.resolve(null);
+
   const stageRows = stagesResult.data ?? [];
   const stageIds = stageRows.map((stage) => stage.id);
   const admin = createSupabaseAdminClient();
@@ -1529,7 +1561,6 @@ export async function getActiveSeasonRaceCalendar(
     timeTrialPlansResult.data ?? [],
   );
 
-  const raceRows = racesResult.data ?? [];
   const countryIds = unique([
     ...raceRows.map((race) => race.country_id),
     ...editionRows.flatMap((edition) =>
@@ -1646,7 +1677,6 @@ export async function getActiveSeasonRaceCalendar(
       condition.morale,
     ]),
   );
-  const raceById = new Map(raceRows.map((race) => [race.id, race]));
   const categoryById = new Map(
     (categoriesResult.data ?? []).map((category) => [category.id, category]),
   );
@@ -1697,21 +1727,6 @@ export async function getActiveSeasonRaceCalendar(
       (registration) => [registration.race_edition_id, registration],
     ),
   );
-  const nationalInternationalEditionIds = new Set(
-    season.game_year >= 2
-      ? editionRows
-          .filter(
-            (edition) =>
-              raceById.get(edition.race_id)?.competition_type ===
-                "world_championship" ||
-              raceById.get(edition.race_id)?.competition_type ===
-                "continental_championship" ||
-              raceById.get(edition.race_id)?.competition_type ===
-                "nations_cup",
-          )
-          .map((edition) => edition.id)
-      : [],
-  );
   const nationalJerseyDesignByCountryId =
     nationalInternationalEditionIds.size > 0
       ? await loadNationalFederationJerseyDesigns(
@@ -1759,6 +1774,8 @@ export async function getActiveSeasonRaceCalendar(
     fanClubRaceBoosts,
     federationEquipmentEffectsByCountryId,
   );
+
+  const viewerRiderIdsByEdition = await viewerRiderIdsByEditionPromise;
 
   const editions = editionRows
     .map((edition): RaceCalendarEdition | null => {
@@ -1866,6 +1883,9 @@ export async function getActiveSeasonRaceCalendar(
           engagedRidersByEditionId.get(edition.id) ?? [],
           favoriteRaceRiderIdsByRace.get(race.id),
         ),
+        ...(viewerRiderIdsByEdition
+          ? { currentTeamRiderIds: viewerRiderIdsByEdition.get(edition.id) ?? [] }
+          : {}),
         currentTeamInternationalRiderCount:
           race.competition_type === "world_championship" ||
           race.competition_type === "continental_championship" ||

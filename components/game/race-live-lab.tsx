@@ -57,6 +57,7 @@ import {
   getFrozenRaceFavoriteRiders,
 } from "@/lib/game/race-favorites";
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
+import { prioritizeOwnRaceGroupRiders } from "@/lib/game/race-group-display";
 import {
   getIntermediateSprintVisualProgress,
   getRareClimbSprinterSupporterRun,
@@ -120,6 +121,7 @@ type PlaybackSpeed = 1 | 2 | 4;
 const REPLAY_STEP_DURATION_MS = 6_000;
 const RACE_RENDER_FRAME_INTERVAL_MS = 1_000 / 30;
 const FINISH_MEDIA_GROUP_POSITIONS = [58, 76] as const;
+const EMPTY_OWN_RIDER_IDS: ReadonlySet<string> = new Set();
 
 export function RaceLiveLab({
   edition,
@@ -259,6 +261,10 @@ export function RaceLiveLab({
   const riderById = useMemo(
     () => new Map(simulation.resolvedRiders.map((rider) => [rider.id, rider])),
     [simulation.resolvedRiders]
+  );
+  const ownRiderIds = useMemo(
+    () => new Set(edition.currentTeamRiderIds ?? []),
+    [edition.currentTeamRiderIds],
   );
   const liveState = getStageLiveState(stage, clock);
   const visualTimeline = useMemo(
@@ -712,6 +718,7 @@ export function RaceLiveLab({
               <RaceGapLine
                 groups={visualSnapshot.groups}
                 riderById={riderById}
+                ownRiderIds={ownRiderIds}
               />
             ) : null}
             <RaceCommentary commentary={snapshot.commentary} />
@@ -1793,7 +1800,7 @@ function formatPrimeLabel(primeResult: RacePrimeResult) {
   return `GPM${primeResult.prime.category ? ` · Cat. ${primeResult.prime.category}` : ""}`;
 }
 
-function RaceIncidentOverlay({
+export function RaceIncidentOverlay({
   incidents,
   riderById,
 }: {
@@ -1803,9 +1810,20 @@ function RaceIncidentOverlay({
   const incident = incidents[0];
   if (!incident) return null;
 
-  const affectedNames = incident.riderIds
+  const affectedDetails = incident.riderIds
     .slice(0, 3)
-    .map((riderId) => riderById.get(riderId)?.name)
+    .map((riderId) => {
+      const rider = riderById.get(riderId);
+      if (!rider) return null;
+      const name = rider.name.trim();
+      const teamName = rider.teamName?.trim();
+      // Individual incident labels already contain the rider's name. Keep
+      // historical/generic labels and collective incidents identifiable too.
+      if (incident.riderIds.length === 1 && name && incident.label.includes(name)) {
+        return teamName;
+      }
+      return [name, teamName].filter(Boolean).join(" · ");
+    })
     .filter(Boolean)
     .join(", ");
   const icon = {
@@ -1840,9 +1858,9 @@ function RaceIncidentOverlay({
       <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#FFF4C4]">
         {incident.label}
       </p>
-      {affectedNames ? (
-        <p className="mt-1 max-w-64 truncate text-[9px] font-bold text-white/75">
-          {affectedNames}
+      {affectedDetails ? (
+        <p title={affectedDetails} className="mt-1 max-w-64 truncate text-[9px] font-bold text-white/75">
+          {affectedDetails}
         </p>
       ) : null}
     </div>
@@ -2953,9 +2971,11 @@ function FinishDistanceCounter({
 export function RaceGapLine({
   groups,
   riderById,
+  ownRiderIds = EMPTY_OWN_RIDER_IDS,
 }: {
   groups: RaceGroupSnapshot[];
   riderById: Map<string, RiderSimulationInput>;
+  ownRiderIds?: ReadonlySet<string>;
 }) {
   const entries = buildRaceGapLine(groups);
   const compact =
@@ -3043,6 +3063,7 @@ export function RaceGapLine({
               <RaceGroupCard
                 group={entry.group}
                 riderById={riderById}
+                ownRiderIds={ownRiderIds}
                 gapToLeaderSeconds={
                   entry.gapToLeaderSeconds
                 }
@@ -3059,14 +3080,20 @@ export function RaceGapLine({
 function RaceGroupCard({
   group,
   riderById,
+  ownRiderIds,
   gapToLeaderSeconds,
   compact,
 }: {
   group: RaceGroupSnapshot;
   riderById: Map<string, RiderSimulationInput>;
+  ownRiderIds: ReadonlySet<string>;
   gapToLeaderSeconds: number;
   compact: boolean;
 }) {
+  const displayRiderIds = useMemo(
+    () => prioritizeOwnRaceGroupRiders(group.riderIds, ownRiderIds),
+    [group.riderIds, ownRiderIds],
+  );
   const isRaceLeader =
     gapToLeaderSeconds === 0;
   const displayLabel = getRaceGroupDisplayLabel({
@@ -3112,7 +3139,7 @@ function RaceGroupCard({
             : "mt-3 max-h-44 space-y-1.5 text-xs"
         }`}
       >
-        {group.riderIds.map((id) => {
+        {displayRiderIds.map((id) => {
           const rider = riderById.get(id);
 
           if (!rider) {
@@ -3122,6 +3149,8 @@ function RaceGroupCard({
           return (
             <li
               key={id}
+              data-race-group-rider={id}
+              data-race-group-own-rider={ownRiderIds.has(id) ? "true" : undefined}
               className="flex items-center gap-2"
               title={`${rider.name} · ${rider.teamName}`}
             >
@@ -3133,7 +3162,7 @@ function RaceGroupCard({
                   borderColor: rider.teamSecondaryColor,
                 }}
               />
-              <span className="min-w-0 truncate">{rider.name}</span>
+              <span className={`min-w-0 truncate ${ownRiderIds.has(id) ? "font-black text-[#FFF4C4]" : ""}`}>{rider.name}</span>
               <span
                 className="shrink-0 text-[9px] font-black uppercase text-[#78978A]"
                 title={rider.teamName}
