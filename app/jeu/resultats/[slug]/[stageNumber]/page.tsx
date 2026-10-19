@@ -14,6 +14,8 @@ import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-
 import { getStageLiveState } from "@/lib/game/race-live";
 import { buildRaceCourseJournal } from "@/lib/game/race-course-journal";
 import { buildTeamStageReport } from "@/lib/game/race-team-stage-report";
+import { getTeamSponsorProject } from "@/services/sponsor-project";
+import { buildSponsorRaceBrief, isSponsorRaceReportFinal } from "@/lib/game/sponsor-project";
 import { getRaceWeather, getRaceWeatherLabel } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -212,6 +214,9 @@ export default async function RaceLivePage({
         simulation: selectedLockedSimulation?.simulation,
       })
     : null;
+  const sponsorProject = teamStageReport && isSponsorRaceReportFinal(edition, officialResults, stage.id) && headerData.teamSponsorIdentity
+    ? await getTeamSponsorProject(headerData.teamId) : null;
+  const sponsorRaceBrief = sponsorProject?.seasonId === calendar.seasonId ? buildSponsorRaceBrief(sponsorProject, edition) : null;
   if (shouldLoadReplay && !selectedSimulationAvailable) {
     after(async () => {
       try {
@@ -354,6 +359,7 @@ export default async function RaceLivePage({
             lockedSimulations={experienceLockedSimulations}
             courseJournal={courseJournal}
             teamStageReport={teamStageReport}
+            sponsorRaceBrief={sponsorRaceBrief}
             postRaceInterview={postRaceInterview}
             replayRequested={replayRequested}
             initialClassification={

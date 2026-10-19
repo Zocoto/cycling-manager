@@ -22,6 +22,9 @@ import {
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getTeamSponsorProject } from "@/services/sponsor-project";
+import { buildSponsorRaceBrief } from "@/lib/game/sponsor-project";
+import { SponsorRaceBriefPanel } from "@/components/game/sponsor-project-panel";
 import { getRaceEquipmentPlanningDataBatch } from "@/services/race-equipment-planning";
 import {
   getActiveSeasonRaceCalendar,
@@ -61,8 +64,10 @@ export default async function RacePreparationPage({
   }
 
   const now = new Date();
-  const [headerData, calendarResult, preparationResult] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
+  const headerPromise = getGameHeaderData(supabase, user.id);
+  const projectPromise = headerPromise.then(header => header.teamSponsorIdentity ? getTeamSponsorProject(header.teamId) : null);
+  const [headerData, calendarResult, preparationResult, sponsorProject] = await Promise.all([
+    headerPromise,
     getActiveSeasonRaceCalendar(supabase, now, {
       includeEngagedRiders: false,
       // The workspace uses its preparation RPC for plans and the equipment
@@ -75,6 +80,7 @@ export default async function RacePreparationPage({
     getCurrentTeamRacePreparation(supabase)
       .then((preparations) => ({ preparations, error: null }))
       .catch((error: unknown) => ({ preparations: [], error })),
+    projectPromise,
   ]);
 
   if (calendarResult.error) {
@@ -277,6 +283,7 @@ export default async function RacePreparationPage({
         ) : null}
 
         <div className="mt-6">
+          {selectedCalendarEdition && sponsorProject?.seasonId === calendarResult.calendar?.seasonId ? <SponsorRaceBriefPanel brief={buildSponsorRaceBrief(sponsorProject, selectedCalendarEdition)} /> : null}
           {calendarResult.error || preparationResult.error ? (
             <EmptyState
               title="La préparation n’a pas pu être chargée"

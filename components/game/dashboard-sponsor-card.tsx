@@ -7,6 +7,9 @@ import type {
   SecondarySponsorLogoPlacement,
 } from "@/lib/game/secondary-sponsor";
 import type { Sponsor } from "@/types/sponsor";
+import { getSponsorProjectLabel, type SponsorProject } from "@/lib/game/sponsor-project";
+import type { SponsorContractObjective } from "@/services/sponsoring-workflow";
+import { SponsorObjectiveName } from "./sponsor-objective-name";
 
 import Link from "../ui/app-link";
 import { SponsorLogoMark } from "./sponsor-logo";
@@ -17,6 +20,8 @@ type DashboardSponsorCardProps = {
   jersey: Sponsor["jerseys"][number];
   budgetLabel: string;
   objectiveSummary?: SponsorObjectiveSummary | null;
+  project?: SponsorProject | null;
+  focusObjective?: SponsorContractObjective | null;
   secondarySponsor?: SecondarySponsorIdentity | null;
   secondaryLogoPlacement?: SecondarySponsorLogoPlacement | null;
 };
@@ -26,6 +31,8 @@ export function DashboardSponsorCard({
   jersey,
   budgetLabel,
   objectiveSummary = null,
+  project = null,
+  focusObjective = null,
   secondarySponsor = null,
   secondaryLogoPlacement = null,
 }: DashboardSponsorCardProps) {
@@ -103,6 +110,11 @@ export function DashboardSponsorCard({
               </span>
             ) : null}
           </div>
+
+          {project ? <div className="mt-3 min-w-0 border-t border-white/15 pt-2 text-[11px] leading-5 text-white/80" data-dashboard-sponsor-project>
+            <p className="line-clamp-1 font-bold">Cap sportif : {getSponsorProjectLabel(project)}</p>
+            {focusObjective ? <p className="line-clamp-2">À suivre : <SponsorObjectiveName objective={focusObjective} /></p> : null}
+          </div> : null}
 
           <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[var(--dashboard-sponsor-accent)] drop-shadow-sm">
             Ouvrir

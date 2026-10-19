@@ -423,6 +423,7 @@ export function SeasonCalendar({
               <SponsorObjectiveBadge compact />
               Objectif sponsor
             </span>
+            <span className="inline-flex items-center gap-2"><SponsorObjectiveBadge compact affinity />Affinité sportive — sans prime dédiée</span>
             <span className="inline-flex items-center gap-2">
               <RaceImportanceBadge importance="grand_tour" compact />
               Grand Tour
@@ -742,7 +743,7 @@ function RaceCalendarList({
                   >
                     {style.shortLabel}
                   </span>
-                  {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
+                  {edition.isSponsorObjective || edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge affinity={!edition.isSponsorObjective} /> : null}
                   {importance ? (
                     <RaceImportanceBadge importance={importance} />
                   ) : null}
@@ -1204,7 +1205,7 @@ function DesktopCalendarWeek({
                   <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[8px] tracking-wider">
                     {style.shortLabel}
                   </span>
-                  {segment.edition.isSponsorObjective ? <SponsorObjectiveBadge compact /> : null}
+                  {segment.edition.isSponsorObjective || segment.edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge compact affinity={!segment.edition.isSponsorObjective} /> : null}
                   {importance ? (
                     <RaceImportanceBadge importance={importance} compact />
                   ) : null}
@@ -1362,7 +1363,7 @@ function DesktopCalendarWeek({
                                 countryCode={segment.edition.countryCode}
                                 countryName={segment.edition.countryName}
                               />
-                              {segment.edition.isSponsorObjective ? <SponsorObjectiveBadge compact /> : null}
+                              {segment.edition.isSponsorObjective || segment.edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge compact affinity={!segment.edition.isSponsorObjective} /> : null}
                               {importance ? (
                                 <RaceImportanceBadge importance={importance} compact />
                               ) : null}
@@ -1542,7 +1543,7 @@ function MobileCalendarDay({
                 {style.shortLabel}
               </span>
 
-              {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
+              {edition.isSponsorObjective || edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge affinity={!edition.isSponsorObjective} /> : null}
               {importance ? (
                 <RaceImportanceBadge importance={importance} compact />
               ) : null}
@@ -1604,15 +1605,15 @@ function getCalendarEditionActionLabel(edition: RaceCalendarEdition) {
   return "Ouvrir la course";
 }
 
-function SponsorObjectiveBadge({ compact = false }: { compact?: boolean }) {
+function SponsorObjectiveBadge({ compact = false, affinity = false }: { compact?: boolean; affinity?: boolean }) {
   return (
     <span
       role="img"
-      aria-label="Objectif sponsor"
-      title="Objectif sponsor"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#8B5CF6] font-black text-white shadow-sm ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
+      aria-label={affinity ? "Affinité sportive" : "Objectif sponsor"}
+      title={affinity ? "Affinité sportive — aucune prime contractuelle dédiée" : "Objectif sponsor"}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-black shadow-sm ${affinity ? "border border-[#71548D]/50 bg-white text-[#71548D]" : "bg-[#8B5CF6] text-white"} ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
     >
-      !
+      {affinity ? "♡" : "!"}
     </span>
   );
 }

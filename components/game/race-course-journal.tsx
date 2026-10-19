@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { RaceTeamStageReport } from "./race-team-stage-report";
+import { SponsorRaceBriefPanel } from "./sponsor-project-panel";
+import type { SponsorRaceBrief } from "@/lib/game/sponsor-project";
 import { RACE_JOURNAL_VIEW_STORAGE_KEY, resolveRaceJournalView, type RaceJournalView } from "@/lib/game/race-journal-view";
 import type { TeamStageReport } from "@/lib/game/race-team-stage-report";
 import type { RaceCourseJournalEntry, RaceCourseJournalEntryKind } from "@/lib/game/race-course-journal";
@@ -18,9 +20,10 @@ const KIND_STYLES: Record<RaceCourseJournalEntryKind, { dot: string; fr: string;
   finish: { dot: "bg-[#F2C94C]", fr: "Arrivée", en: "Finish" },
 };
 
-export function RaceCourseJournal({ entries, teamReport = null }: {
+export function RaceCourseJournal({ entries, teamReport = null, sponsorRaceBrief = null }: {
   entries: RaceCourseJournalEntry[];
   teamReport?: TeamStageReport | null;
+  sponsorRaceBrief?: SponsorRaceBrief | null;
 }) {
   const { locale } = useLocale();
   const en = locale === "en";
@@ -72,7 +75,7 @@ export function RaceCourseJournal({ entries, teamReport = null }: {
             {next === "race" ? en ? "Whole race" : "Toute la course" : en ? "My team" : "Mon équipe"}
           </button>)}
         </div> : null}
-        {view === "team" && teamReport ? <RaceTeamStageReport report={teamReport} /> : <RaceJournalTimeline entries={entries} />}
+        {view === "team" && teamReport ? <><SponsorRaceBriefPanel brief={sponsorRaceBrief} final /><RaceTeamStageReport report={teamReport} /></> : <RaceJournalTimeline entries={entries} />}
       </div> : null}
     </details>
   );

@@ -1527,6 +1527,14 @@ function SponsoringSection() {
         <article className="rounded-[1.75rem] border border-[#315B3E]/15 bg-white p-6 shadow-[0_16px_42px_rgba(19,60,46,0.08)] sm:p-8">
           <SectionLabel>Satisfaction du sponsor principal</SectionLabel>
           <h3 className="mt-2 text-2xl font-black text-[#082A2A]">Un score sur 100</h3>
+          <p className="mt-4 text-sm leading-6 text-[#48665F]">
+            Le projet du partenaire met en avant les priorités du contrat signé.
+            Dans le calendrier, le symbole ! indique un objectif contractuel ;
+            le cœur indique seulement une affinité sportive, sans prime dédiée.
+            La préparation rappelle les enjeux sans imposer de rôle ni de consigne.
+            Le bilan sponsor figure dans « Mon équipe » du journal après les résultats
+            définitifs ; un objectif de général attend la fin du tour.
+          </p>
           <ul className="mt-5 space-y-3 text-sm font-semibold leading-6 text-[#48665F]">
             <li>• Les objectifs peuvent fournir jusqu’à 100 points de satisfaction.</li>
             <li>• Les résultats de course ajoutent au maximum 25 points.</li>

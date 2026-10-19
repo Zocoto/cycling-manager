@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { RaceCourseJournal } from "@/components/game/race-course-journal";
 import type { TeamStageReport } from "@/lib/game/race-team-stage-report";
+import { isSponsorRaceReportFinal, type SponsorRaceBrief } from "@/lib/game/sponsor-project";
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceStageEquipmentBadge } from "@/components/game/race-stage-equipment-badge";
@@ -43,6 +44,7 @@ export function RaceOfficialResults({
   officialResults,
   courseJournal = [],
   teamStageReport = null,
+  sponsorRaceBrief = null,
   postRaceInterview = null,
   initialClassification,
 }: {
@@ -52,6 +54,7 @@ export function RaceOfficialResults({
   officialResults: OfficialRaceEditionResults;
   courseJournal?: RaceCourseJournalEntry[];
   teamStageReport?: TeamStageReport | null;
+  sponsorRaceBrief?: SponsorRaceBrief | null;
   postRaceInterview?: PostRaceInterviewSnapshot | null;
   initialClassification?: ClassificationKey;
 }) {
@@ -137,7 +140,8 @@ export function RaceOfficialResults({
         />
       </header>
 
-      <RaceCourseJournal key={selectedStageId} entries={courseJournal} teamReport={teamStageReport} />
+      <RaceCourseJournal key={selectedStageId} entries={courseJournal} teamReport={teamStageReport}
+        sponsorRaceBrief={teamStageReport && isSponsorRaceReportFinal(edition, officialResults, selectedStageId) ? sponsorRaceBrief : null} />
 
       <CombativityTrophies
         awards={officialResults.combativityAwards ?? []}

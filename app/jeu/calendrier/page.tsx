@@ -19,6 +19,8 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
+import { getTeamSponsorProject } from "@/services/sponsor-project";
+import { annotateSponsorCalendar } from "@/lib/game/sponsor-project";
 
 export const metadata: Metadata = {
   title: "Calendrier des courses",
@@ -55,14 +57,17 @@ export default async function RaceCalendarPage({
     redirect("/connexion");
   }
 
+  const headerPromise = getGameHeaderData(supabase, user.id);
+  const projectPromise = headerPromise.then(header => header.teamSponsorIdentity ? getTeamSponsorProject(header.teamId) : null);
   const [
     headerData,
     calendarResult,
     reputationResult,
     teamDivision,
     criteriumProgress,
+    sponsorProject,
   ] = await Promise.all([
-      getGameHeaderData(supabase, user.id),
+      headerPromise,
       getActiveSeasonRaceCalendar(supabase, new Date(), {
         includeEngagedRiders: false,
         includeJuniorChampionships: false,
@@ -87,6 +92,7 @@ export default async function RaceCalendarPage({
         supabase,
         CRITERIUM_DISCOVERY_KEY,
       ),
+      projectPromise,
     ]);
 
   if (calendarResult.error) {
@@ -298,7 +304,7 @@ export default async function RaceCalendarPage({
             {calendar ? (
               <div data-tutorial-id="calendar-races">
                 <SeasonCalendar
-                  calendar={calendar}
+                  calendar={annotateSponsorCalendar(calendar, sponsorProject)}
                   reputationPoints={
                     reputationResult.data
                       ?.reputation_points ?? 0

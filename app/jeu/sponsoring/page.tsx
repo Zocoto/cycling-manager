@@ -22,6 +22,8 @@ import {
 } from "@/lib/game/sponsor-performance-satisfaction";
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
+import { sponsorProjectFromContract } from "@/lib/game/sponsor-project";
+import { SponsorProjectPanel } from "@/components/game/sponsor-project-panel";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
@@ -1218,6 +1220,8 @@ function ContractObjectivesSection({
           textColor={sponsor.colors.text}
         />
       </div>
+
+      {contract.status === "active" ? <div className="px-5 sm:px-6"><SponsorProjectPanel project={sponsorProjectFromContract(contract)} /></div> : null}
 
       <ol className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
         {contract.objectives.map((objective) => (

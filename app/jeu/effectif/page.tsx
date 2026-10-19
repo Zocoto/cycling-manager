@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { SponsorProjectSlot } from "@/components/game/sponsor-project-slot";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { CollapsibleMobileRiderRatings } from "@/components/game/collapsible-mobile-rider-ratings";
@@ -533,6 +534,7 @@ export default async function TeamRosterPage({
           {rosterResult.error ? <RosterErrorMessage /> : null}
 
           <RosterViewTabs activeView={activeView} />
+          {teamSponsorIdentity ? <Suspense fallback={null}><SponsorProjectSlot teamId={headerDataResult.data.teamId} scope="roster" /></Suspense> : null}
 
           {getFirstSearchParam(rosterQuery.succes) ? (
             <p className="mt-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">

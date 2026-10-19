@@ -76,6 +76,7 @@ export function RaceStageExperience({
   lockedSimulations,
   courseJournal,
   teamStageReport = null,
+  sponsorRaceBrief = null,
   postRaceInterview,
   replayRequested = false,
   initialClassification,
@@ -89,6 +90,7 @@ export function RaceStageExperience({
   lockedSimulations: LockedOfficialStageSimulation[];
   courseJournal: RaceCourseJournalEntry[];
   teamStageReport?: import("@/lib/game/race-team-stage-report").TeamStageReport | null;
+  sponsorRaceBrief?: import("@/lib/game/sponsor-project").SponsorRaceBrief | null;
   postRaceInterview: PostRaceInterviewSnapshot | null;
   replayRequested?: boolean;
   initialClassification?: "general";
@@ -409,6 +411,7 @@ export function RaceStageExperience({
               officialResults={officialResults}
               courseJournal={courseJournal}
               teamStageReport={teamStageReport}
+              sponsorRaceBrief={sponsorRaceBrief}
               postRaceInterview={postRaceInterview}
               initialClassification={initialClassification}
             />

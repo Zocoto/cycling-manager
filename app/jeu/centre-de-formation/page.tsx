@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { SponsorProjectSlot } from "@/components/game/sponsor-project-slot";
 
 import {
   markYouthScoutingReportViewedAction,
@@ -245,6 +247,8 @@ export default async function YouthDevelopmentPage({
             ) : null}
           </div>
         </header>
+
+        {headerData.teamSponsorIdentity ? <Suspense fallback={null}><SponsorProjectSlot teamId={headerData.teamId} scope="youth" /></Suspense> : null}
 
         <GameSectionTabs
           ariaLabel="Rubriques du centre de formation"

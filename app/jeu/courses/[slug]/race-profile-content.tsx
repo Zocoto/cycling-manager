@@ -84,6 +84,9 @@ import {
 } from "@/services/race-calendar";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
+import { getTeamSponsorProject } from "@/services/sponsor-project";
+import { buildSponsorRaceBrief } from "@/lib/game/sponsor-project";
+import { SponsorRaceBriefPanel } from "@/components/game/sponsor-project-panel";
 import {
   getCurrentTeamWeatherCenterLevel,
   getWeatherForecastHorizon,
@@ -128,11 +131,12 @@ export async function RaceProfileContent({
   // Reuse the authenticated team resolution; portraits load alongside the
   // scoped calendar instead of resolving the director/team twice afterwards.
   const headerPromise = getGameHeaderData(supabase, user.id);
+  const projectPromise = headerPromise.then(header => header.teamSponsorIdentity ? getTeamSponsorProject(header.teamId) : null);
   const sponsorPromise = headerPromise.then(header => header.teamId ? getActiveTeamSponsorIdentity(header.teamId) : null)
     .catch((error: unknown) => { console.error("Impossible de charger le maillot sponsor pour les portraits :", error); return null; });
   const amateurPromise = headerPromise.then(header => header.teamId ? getTeamAmateurIdentity(header.teamId) : null)
     .catch((error: unknown) => { console.error("Impossible de charger le maillot amateur pour les portraits :", error); return null; });
-  const [headerData, calendar, weatherCenterLevel, raceAccessContext, teamSponsorIdentity, teamAmateurIdentity] =
+  const [headerData, calendar, weatherCenterLevel, raceAccessContext, teamSponsorIdentity, teamAmateurIdentity, sponsorProject] =
     await Promise.all([
       headerPromise,
       getActiveSeasonRaceCalendar(supabase, new Date(), {
@@ -143,6 +147,7 @@ export async function RaceProfileContent({
       getCurrentTeamRaceAccessContext(supabase),
       sponsorPromise,
       amateurPromise,
+      projectPromise,
     ]);
   const edition = calendar?.editions.find(
     (candidate) => candidate.slug === slug,
@@ -672,6 +677,7 @@ export async function RaceProfileContent({
 
               <aside className="space-y-5">
                 <div id="inscription" className="scroll-mt-24">
+                  {sponsorProject?.seasonId === calendar.seasonId ? <SponsorRaceBriefPanel brief={buildSponsorRaceBrief(sponsorProject, edition)} /> : null}
                   <RegistrationPanel
                     edition={edition}
                     currentDayNumber={calendar.currentDayNumber}

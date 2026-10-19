@@ -8,7 +8,7 @@ import {
 } from "../../components/game/dashboard-assistant";
 import { DashboardAssistantBoundary } from "@/components/game/dashboard-assistant-boundary";
 import { DeferredDashboardValue } from "@/components/game/deferred-dashboard-value";
-import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
+import { DashboardEligibleRaces, getOpenEligibleDashboardRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
 import { DashboardHalloweenShortcut } from "../../components/game/dashboard-halloween-shortcut";
@@ -58,7 +58,8 @@ import type { TeamFinanceOverview } from "../../services/team-finances";
 import type { TeamInventoryOverview } from "../../services/team-inventory";
 import { getCurrentHalloweenInventory } from "@/services/halloween-inventory";
 import { summarizeInventory, type TeamInventoryItem } from "@/lib/game/inventory";
-import { getSponsorObjectiveSummary } from "../../services/sponsor-objective-summary";
+import { getTeamSponsorProject } from "@/services/sponsor-project";
+import { getSponsorDashboardFocus } from "@/lib/game/sponsor-project";
 import { getSportingDirectorReputationBreakdown } from "../../services/sporting-director-reputation";
 import {
   getCurrentDashboardFastSummary,
@@ -561,21 +562,9 @@ export default async function GamePage() {
       };
     });
 
-  const sponsorObjectiveSummaryPromise = sponsorIdentityPromise.then(
-    ({ identity }) =>
-      identity?.contractId
-        ? loadDashboardValue(
-            getSponsorObjectiveSummary(identity.contractId),
-            {
-              completed: 0,
-              total: 0,
-              satisfactionScore: 0,
-              satisfactionMaximum: 0,
-            },
-            "Impossible de récupérer le résumé des objectifs sponsor :",
-          )
-        : null,
-  );
+  // Replaces the former two-read summary, rather than adding another loader.
+  const sponsorProjectPromise = sponsorIdentityPromise.then(({ identity }) =>
+    identity ? getTeamSponsorProject(identity.teamId) : null);
   const activeChampionshipTitlesPromise = loadDashboardValue(
     rosterPromise.then((riders) =>
       getActiveChampionshipTitlesForRiders(
@@ -685,6 +674,17 @@ export default async function GamePage() {
       : FREE_AGENT_RIDER_JERSEY;
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
+  const sponsorObjectiveSummaryPromise = Promise.all([sponsorProjectPromise, raceCalendarPromise]).then(([project, calendar]) => {
+    if (!project) return null;
+    const eligibleEditions = calendar?.seasonId === project.seasonId ? getOpenEligibleDashboardRaces({
+      calendar, reputationPoints, riderCount, divisionCode: financeOverview?.divisionCode, horizonDays: 28,
+    }).map(race => race.edition) : [];
+    const focus = getSponsorDashboardFocus(project, calendar, eligibleEditions);
+    return { completed: project.objectives.filter(objective => objective.status === "completed").length,
+      total: project.objectives.length, satisfactionScore: project.satisfactionScore,
+      satisfactionMaximum: project.objectives.reduce((sum, objective) => sum + objective.satisfactionPoints, 0),
+      project, focusObjective: focus ?? null };
+  });
   const trophyRewardCount = dashboardFastSummary?.trophyRewardCount ?? 0;
   const unreadTrophyCount = dashboardFastSummary?.unreadTrophyCount ?? 0;
   const dailyRewardAvailable =
@@ -837,6 +837,8 @@ export default async function GamePage() {
                   secondarySponsor={teamSponsorIdentity.secondarySponsor}
                   secondaryLogoPlacement={teamSponsorIdentity.secondaryLogoPlacement}
                   objectiveSummary={sponsorObjectiveSummary}
+                  project={sponsorObjectiveSummary?.project}
+                  focusObjective={sponsorObjectiveSummary?.focusObjective}
                 />}
                 </DeferredDashboardValue>
               ) : (
