@@ -677,7 +677,7 @@ export default async function GamePage() {
   const sponsorObjectiveSummaryPromise = Promise.all([sponsorProjectPromise, raceCalendarPromise]).then(([project, calendar]) => {
     if (!project) return null;
     const eligibleEditions = calendar?.seasonId === project.seasonId ? getOpenEligibleDashboardRaces({
-      calendar, reputationPoints, riderCount, divisionCode: financeOverview?.divisionCode, horizonDays: 28,
+      calendar, reputationPoints, riderCount, divisionCode: financeOverview?.divisionCode, now: new Date(), horizonDays: 28,
     }).map(race => race.edition) : [];
     const focus = getSponsorDashboardFocus(project, calendar, eligibleEditions);
     return { completed: project.objectives.filter(objective => objective.status === "completed").length,
