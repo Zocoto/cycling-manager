@@ -482,7 +482,7 @@ export function RiderTrainingPlanFields({
               Talents de l’entraîneur
             </span>
             <span className="mt-2 flex items-center justify-between gap-3 text-[11px] font-black text-[#183F37]">
-              <span>Talent de base · {selectedTrainer.specialtyLabel}</span>
+              <span>Compétence de base · {selectedTrainer.specialtyLabel}</span>
               <span className="shrink-0 text-[#176951]">
                 +{selectedTrainer.efficiencyBonus}%
               </span>

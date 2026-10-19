@@ -1,5 +1,8 @@
 "use client";
 
+import { StaffAdditionalSkills } from "./staff-skills";
+import { getStaffAcademyTalentCapacity } from "@/lib/game/staff-academy";
+
 import { useState, type ReactNode } from "react";
 
 import {
@@ -13,7 +16,6 @@ import { InfrastructureSubmitButton } from "@/components/game/infrastructure-sub
 import { StaffAcademySubmitButton } from "@/components/game/staff-academy-submit-button";
 import {
   STAFF_ACADEMY_LEVELS,
-  STAFF_ACADEMY_MAX_TALENT_LINES,
 } from "@/lib/game/staff-academy";
 import {
   TEAM_INFRASTRUCTURE_DEFINITIONS,
@@ -421,39 +423,14 @@ export function StaffAcademyCard({
                         </span>
                       </span>
                     </div>
-                    <p className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
-                      Bonus actuels · {member.talents.length}/{STAFF_ACADEMY_MAX_TALENT_LINES}
-                    </p>
+                    <StaffAdditionalSkills talents={member.talents}
+                      capacity={getStaffAcademyTalentCapacity(member.role, member.level)} />
                     {member.federalDurationReductionPercentage > 0 ? (
                       <p className="mt-2 text-[10px] font-black text-[#F2C94C]">
                         Institut fédéral · formations −
-                        {formatPercentage(
-                          member.federalDurationReductionPercentage,
-                        )}
+                        {formatPercentage(member.federalDurationReductionPercentage)}
                       </p>
                     ) : null}
-                    <div className="mt-3 space-y-2">
-                      {member.talents.length ? (
-                        member.talents.map((talent) => (
-                          <div
-                            key={talent.code}
-                            className="rounded-xl bg-white/10 px-3 py-3"
-                          >
-                            <p className="text-xs font-black text-white">
-                              {talent.label}
-                            </p>
-                            <p className="mt-1 text-[10px] font-semibold leading-4 text-[#BFD1C6]">
-                              {talent.description}
-                            </p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs font-semibold leading-5 text-[#BFD1C6]">
-                          Aucun bonus d’Académie enregistré pour ce staff
-                          historique. Il peut recevoir sa première ligne ici.
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </div>
 

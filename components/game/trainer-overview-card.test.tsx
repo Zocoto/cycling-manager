@@ -37,10 +37,10 @@ describe("TrainerOverviewCard", () => {
       <TrainerOverviewCard trainer={trainer} />,
     );
 
-    expect(markup).toContain("Talent de base");
+    expect(markup).toContain("Compétence de base · niveau 5");
     expect(markup).toContain("Montagne");
-    expect(markup).toContain("Lignes de talent supplémentaires");
-    expect(markup).toContain("Ligne 1 · Sprint");
+    expect(markup).toContain("Compétences supplémentaires · 1/3");
+    expect(markup).toContain("Domaine Sprint");
     expect(markup).toContain(
       "+20 % d’efficacité sur les entraînements sprint, cumulable avec la spécialité principale",
     );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { StaffAdditionalSkills, StaffBaseSkills } from "@/components/game/staff-skills";
 import { getRiderWeightStatus, getRiderWeightStatusLabel } from "@/lib/game/rider-weight-status";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
@@ -60,7 +61,6 @@ import {
   getCurrentTeamHealthOverview,
   type TeamHealthOverview,
   type TeamHealthRider,
-  type TeamMedicalStaffMember,
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
@@ -958,10 +958,10 @@ function NutritionPanel({
                       {used}/{capacity} aujourd’hui
                     </span>
                   </div>
-                  <MedicalStaffBaseSkills
+                  <StaffBaseSkills level={nutritionist.level}
                     rows={getNutritionistBaseSkillRows(nutritionist.level)}
                   />
-                  <MedicalStaffAdditionalSkills member={nutritionist} />
+                  <StaffAdditionalSkills talents={nutritionist.talents} />
                 </article>
               );
             })}
@@ -1160,7 +1160,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       −{doctor.level * 6} %
                     </span>
                   </div>
-                  <MedicalStaffBaseSkills
+                  <StaffBaseSkills level={doctor.level}
                     rows={[
                       {
                         label: "Traitement des blessures",
@@ -1172,7 +1172,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       },
                     ]}
                   />
-                  <MedicalStaffAdditionalSkills member={doctor} />
+                  <StaffAdditionalSkills talents={doctor.talents} />
                 </article>
               ))
             ) : (
@@ -1203,10 +1203,10 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       −{nutritionist.level * 5} %
                     </span>
                   </div>
-                  <MedicalStaffBaseSkills
+                  <StaffBaseSkills level={nutritionist.level}
                     rows={getNutritionistBaseSkillRows(nutritionist.level)}
                   />
-                  <MedicalStaffAdditionalSkills member={nutritionist} />
+                  <StaffAdditionalSkills talents={nutritionist.talents} />
                   <Link
                     href="/jeu/centre-de-soin?onglet=nutrition"
                     className="mt-5 inline-flex text-sm font-black text-[#527633] hover:text-[#183F37]"
@@ -1249,7 +1249,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                         {physiotherapist.assignedRiderIds.length}/{capacity}
                       </span>
                     </div>
-                    <MedicalStaffBaseSkills
+                    <StaffBaseSkills level={physiotherapist.level}
                       rows={[
                         {
                           label: "Suivi des coureurs affectés",
@@ -1257,7 +1257,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                         },
                       ]}
                     />
-                    <MedicalStaffAdditionalSkills member={physiotherapist} />
+                    <StaffAdditionalSkills talents={physiotherapist.talents} />
                     <Link
                       href="/jeu/centre-de-soin?onglet=kines"
                       className="mt-5 inline-flex text-sm font-black text-[#684390] hover:text-[#183F37]"
@@ -1407,55 +1407,6 @@ function getNutritionistBaseSkillRows(level: number) {
   ];
 }
 
-function MedicalStaffBaseSkills({
-  rows,
-}: {
-  rows: Array<{ label: string; description: string }>;
-}) {
-  return (
-    <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
-      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
-        Compétence de base
-      </p>
-      <div className="mt-2 space-y-3">
-        {rows.map((row) => (
-          <div key={row.label}>
-            <p className="text-xs font-black text-[#183F37]">{row.label}</p>
-            <p className="mt-0.5 text-xs font-semibold leading-5 text-[#60756E]">
-              {row.description}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MedicalStaffAdditionalSkills({
-  member,
-}: {
-  member: TeamMedicalStaffMember;
-}) {
-  if (member.talents.length === 0) return null;
-
-  return (
-    <div className="mt-3 rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
-      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
-        Compétences supplémentaires · {member.talents.length}/3
-      </p>
-      <div className="mt-2 space-y-3">
-        {member.talents.map((talent) => (
-          <div key={talent.code}>
-            <p className="text-xs font-black text-[#5E4A18]">{talent.label}</p>
-            <p className="mt-0.5 text-xs font-bold leading-5 text-[#6D5A27]">
-              {talent.description}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function MedicalStaffEmpty({ label }: { label: string }) {
   return (

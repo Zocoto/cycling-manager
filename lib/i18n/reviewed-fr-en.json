@@ -1306,5 +1306,10 @@
   "Voir et ouvrir dans l’album →": "View and open in the album →",
   "XP ·": "XP ·",
   "Ranger et coller dans l’album →": "Sort and stick in the album →",
-  "Choisis deux cartes différentes pour proposer un échange.": "Choose two different cards to propose a trade."
+  "Choisis deux cartes différentes pour proposer un échange.": "Choose two different cards to propose a trade.",
+  "Aperçu local fictif · aucune lecture ou écriture dans la base de jeu.": "Fictional local preview · no game database reads or writes.",
+  "Aucune compétence supplémentaire.": "No additional skills.",
+  "Audit local · 13 métiers du staff": "Local audit · 13 staff professions",
+  "Compétence de base ·": "Base skill ·",
+  "Staff · 13 métiers, un même modèle": "Staff · 13 professions, one shared template"
 }

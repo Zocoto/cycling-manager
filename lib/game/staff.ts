@@ -545,9 +545,10 @@ export function describeStaffEffect({
       ];
     }
     case "research_engineer":
-      return ["Spécialité R&D unique : temps, coût ou probabilité de réussite"];
     case "financial_director":
-      return ["Un seul par équipe · un affixe au recrutement · affixes supplémentaires via l’Académie des métiers uniquement"];
+      // These professions have no automatic base bonus: their actual effects
+      // are already described by their talents, in the same panel as other jobs.
+      return [];
     case "educator":
       return [
         "Pilote les stages de l’Académie des métiers ; ses talents déterminent les bonus appliqués",

@@ -72,7 +72,7 @@ describe("RiderTrainingPlanFields", () => {
     );
 
     expect(markup).toContain("Talents de l’entraîneur");
-    expect(markup).toContain("Talent de base · Montagne");
+    expect(markup).toContain("Compétence de base · Montagne");
     expect(markup).toContain("Ligne 1 · Sprint");
     expect(markup).toContain("Ligne 2 · Chrono &amp; prologue");
     expect(markup).toContain("Affinité nationale active · +10 %");
