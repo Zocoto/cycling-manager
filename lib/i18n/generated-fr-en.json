@@ -17792,5 +17792,7 @@
   "Vous devez être connecté pour partager un GIF.": "You must be signed in to share a GIF.",
   "Vous devez diriger une équipe active pour partager un GIF.": "You must manage an active team to share a GIF.",
   "· KLIPY": "· KLIPY",
-  "KLIPY": "KLIPY"
+  "KLIPY": "KLIPY",
+  "Votre Directeur Sportif gagne de l’expérience et des niveaux tout au long de sa carrière.": "Your Sporting Director gains experience and levels throughout their career.",
+  "Calcule le niveau du Directeur Sportif sans plafond de gameplay, avec le barème historique de 100 XP puis 50 XP supplémentaires par palier.": "Calculates the Sporting Director level without a gameplay cap, using the historical scale of 100 XP followed by an extra 50 XP per threshold."
 }

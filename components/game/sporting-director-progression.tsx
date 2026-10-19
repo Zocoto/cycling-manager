@@ -67,24 +67,10 @@ export function SportingDirectorProgression({
             width: `${progression.progressPercentage}%`,
           }}
           role="progressbar"
-          aria-label={
-            progression.isMaxLevel
-              ? "Niveau maximum atteint"
-              : `Progression d’expérience vers le niveau ${
-                  progression.level + 1
-                }`
-          }
+          aria-label={`Progression d’expérience vers le niveau ${progression.level + 1}`}
           aria-valuemin={0}
-          aria-valuemax={
-            progression.isMaxLevel
-              ? 100
-              : progression.experienceRequiredForNextLevel
-          }
-          aria-valuenow={
-            progression.isMaxLevel
-              ? 100
-              : progression.experienceIntoLevel
-          }
+          aria-valuemax={progression.experienceRequiredForNextLevel}
+          aria-valuenow={progression.experienceIntoLevel}
         />
       </div>
 
@@ -95,37 +81,15 @@ export function SportingDirectorProgression({
             : "mt-2 flex justify-between gap-4 text-xs font-semibold text-[#60756E]"
         }
       >
-        {progression.isMaxLevel ? (
-          <>
-            <span>
-              {progression.totalExperiencePoints} XP
-            </span>
-            <span>Niveau maximum</span>
-          </>
-        ) : (
-          <>
-            <span>
-              {progression.experienceIntoLevel} /{" "}
-              {
-                progression.experienceRequiredForNextLevel
-              }{" "}
-              XP
-            </span>
-
-            <span>
-              Niveau {progression.level + 1}
-            </span>
-          </>
-        )}
+        <span>
+          {progression.experienceIntoLevel} / {progression.experienceRequiredForNextLevel} XP
+        </span>
+        <span>Niveau {progression.level + 1}</span>
       </div>
 
       {!compact ? (
         <p className="mt-4 text-sm leading-6 text-[#60756E]">
-          Votre Directeur Sportif gagnera de
-          l’expérience au fil de sa carrière, jusqu’au
-          niveau maximum 50. Son niveau pourra plus tard
-          débloquer des équipements, bâtiments et nouvelles
-          possibilités de gestion.
+          Votre Directeur Sportif gagne de l’expérience et des niveaux tout au long de sa carrière.
         </p>
       ) : null}
     </div>

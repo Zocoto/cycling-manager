@@ -4,10 +4,8 @@ import {
   calculateSportingDirectorProgression,
   getExperienceRequiredForNextLevel,
 } from "./sporting-director-progression";
-import {
-  MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
-  MAX_SPORTING_DIRECTOR_LEVEL,
-} from "./sporting-director-limits";
+import { getStaffCapacityForDirectorLevel } from "./staff";
+import { canDirectorBuildInfrastructureLevel } from "./infrastructure";
 
 describe("calculateSportingDirectorProgression", () => {
   it("commence au niveau 1 avec zéro point d’expérience", () => {
@@ -19,7 +17,6 @@ describe("calculateSportingDirectorProgression", () => {
       experienceIntoLevel: 0,
       experienceRequiredForNextLevel: 100,
       progressPercentage: 0,
-      isMaxLevel: false,
     });
   });
 
@@ -96,33 +93,67 @@ describe("calculateSportingDirectorProgression", () => {
     ).toBe(74);
   });
 
-  it("plafonne la progression au niveau 50", () => {
+  it("continues the existing curve at the former level-50 cap", () => {
     const progression =
       calculateSportingDirectorProgression(
-        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+        63_700,
       );
 
     expect(progression).toMatchObject({
-      level: MAX_SPORTING_DIRECTOR_LEVEL,
-      totalExperiencePoints:
-        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+      level: 50,
+      totalExperiencePoints: 63_700,
       experienceIntoLevel: 0,
-      experienceRequiredForNextLevel: 0,
-      progressPercentage: 100,
-      isMaxLevel: true,
+      experienceRequiredForNextLevel: 2_550,
+      progressPercentage: 0,
     });
   });
 
-  it("ignore l'expérience gagnée au-delà du niveau maximum", () => {
-    expect(
-      calculateSportingDirectorProgression(
-        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS + 50_000,
-      ),
-    ).toEqual(
-      calculateSportingDirectorProgression(
-        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
-      ),
-    );
+  it.each([
+    [64_700, 50, 1_000, 2_550],
+    [66_249, 50, 2_549, 2_550],
+    [66_250, 51, 0, 2_600],
+    [68_850, 52, 0, 2_650],
+    [113_700, 66, 3_200, 3_350],
+    [252_450, 100, 0, 5_050],
+  ])("keeps %i XP and shows level %i", (xp, level, into, required) => {
+    expect(calculateSportingDirectorProgression(xp)).toMatchObject({
+      totalExperiencePoints: xp, level, experienceIntoLevel: into,
+      experienceRequiredForNextLevel: required,
+    });
+  });
+
+  it("matches the historical step-by-step curve on both sides of 10,000 thresholds", () => {
+    let consumed = 0;
+    for (let level = 1; level <= 10_000; level += 1) {
+      const atThreshold = calculateSportingDirectorProgression(consumed);
+      expect(atThreshold.level).toBe(level);
+      expect(atThreshold.experienceIntoLevel).toBe(0);
+      if (level > 1) expect(calculateSportingDirectorProgression(consumed - 1).level).toBe(level - 1);
+      consumed += getExperienceRequiredForNextLevel(level);
+    }
+  });
+
+  it.each([NaN, Infinity, -Infinity])("handles invalid input %s without invalid progress", xp => {
+    expect(calculateSportingDirectorProgression(xp)).toEqual(calculateSportingDirectorProgression(0));
+  });
+
+  it.each([2_147_483_647, Number.MAX_SAFE_INTEGER])("keeps valid progress for a large integer %i", xp => {
+    const value = calculateSportingDirectorProgression(xp);
+    expect(value.totalExperiencePoints).toBe(xp);
+    expect(value.level).toBeGreaterThan(50);
+    expect(value.experienceIntoLevel).toBeGreaterThanOrEqual(0);
+    expect(value.experienceIntoLevel).toBeLessThan(value.experienceRequiredForNextLevel);
+    expect(value.progressPercentage).toBeGreaterThanOrEqual(0);
+    expect(value.progressPercentage).toBeLessThan(100);
+  });
+
+  it("adds no staff capacity or building access beyond the existing level-50 rules", () => {
+    for (const level of [51, 66, 100, 9267]) {
+      expect(getStaffCapacityForDirectorLevel(level)).toBe(getStaffCapacityForDirectorLevel(50));
+      for (let buildingLevel = 1; buildingLevel <= 10; buildingLevel += 1) {
+        expect(canDirectorBuildInfrastructureLevel(level, buildingLevel)).toBe(canDirectorBuildInfrastructureLevel(50, buildingLevel));
+      }
+    }
   });
 });
 
@@ -141,15 +172,15 @@ describe("getExperienceRequiredForNextLevel", () => {
     ).toBe(300);
   });
 
-  it("conserve un plafond XP cohérent avec le niveau 50", () => {
+  it("keeps the historical total needed to reach level 50", () => {
     const experienceRequiredForLevel50 = Array.from(
-      { length: MAX_SPORTING_DIRECTOR_LEVEL - 1 },
+      { length: 49 },
       (_, index) =>
         getExperienceRequiredForNextLevel(index + 1),
     ).reduce((total, threshold) => total + threshold, 0);
 
     expect(experienceRequiredForLevel50).toBe(
-      MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+      63_700,
     );
   });
 });

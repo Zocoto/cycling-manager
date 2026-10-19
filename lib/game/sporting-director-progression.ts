@@ -1,67 +1,30 @@
-import {
-  MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
-  MAX_SPORTING_DIRECTOR_LEVEL,
-} from "./sporting-director-limits";
-
 export type SportingDirectorProgression = {
   level: number;
   totalExperiencePoints: number;
   experienceIntoLevel: number;
   experienceRequiredForNextLevel: number;
   progressPercentage: number;
-  isMaxLevel: boolean;
 };
 
 export function calculateSportingDirectorProgression(
   experiencePoints: number
 ): SportingDirectorProgression {
-  const safeExperiencePoints = Math.min(
-    MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
-    Math.max(0, Math.floor(experiencePoints))
-  );
+  // Keep integer arithmetic exact in JavaScript, without a gameplay level cap.
+  const safeExperiencePoints = Number.isFinite(experiencePoints)
+    ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(experiencePoints)))
+    : 0;
 
-  let level = 1;
-  let experienceConsumed = 0;
-  let experienceRequiredForNextLevel =
-    getExperienceRequiredForNextLevel(level);
+  // The existing 100, 150, 200... thresholds sum to 25 * (L - 1) * (L + 2).
+  // Invert that sum instead of walking through every level on each page load.
+  let level = Math.max(1, Math.floor((Math.sqrt(4 * safeExperiencePoints + 225) - 5) / 10));
+  const consumedAtLevel = (value: number) => 25 * (value - 1) * (value + 2);
+  // Correct possible floating-point rounding at an exact threshold.
+  if (consumedAtLevel(level) > safeExperiencePoints) level -= 1;
+  if (consumedAtLevel(level + 1) <= safeExperiencePoints) level += 1;
 
-  while (
-    level < MAX_SPORTING_DIRECTOR_LEVEL &&
-    safeExperiencePoints >=
-    experienceConsumed +
-      experienceRequiredForNextLevel
-  ) {
-    experienceConsumed +=
-      experienceRequiredForNextLevel;
-
-    level += 1;
-
-    experienceRequiredForNextLevel =
-      getExperienceRequiredForNextLevel(level);
-  }
-
-  const isMaxLevel =
-    level >= MAX_SPORTING_DIRECTOR_LEVEL;
-
-  const experienceIntoLevel = isMaxLevel
-    ? 0
-    : safeExperiencePoints - experienceConsumed;
-
-  if (isMaxLevel) {
-    experienceRequiredForNextLevel = 0;
-  }
-
-  const progressPercentage = isMaxLevel
-    ? 100
-    : Math.min(
-        100,
-        Math.max(
-          0,
-          (experienceIntoLevel /
-            experienceRequiredForNextLevel) *
-            100
-        )
-      );
+  const experienceIntoLevel = safeExperiencePoints - consumedAtLevel(level);
+  const experienceRequiredForNextLevel = getExperienceRequiredForNextLevel(level);
+  const progressPercentage = (experienceIntoLevel / experienceRequiredForNextLevel) * 100;
 
   return {
     level,
@@ -69,17 +32,14 @@ export function calculateSportingDirectorProgression(
     experienceIntoLevel,
     experienceRequiredForNextLevel,
     progressPercentage,
-    isMaxLevel,
   };
 }
 
 export function getExperienceRequiredForNextLevel(
   currentLevel: number
 ): number {
-  const safeCurrentLevel = Math.max(
-    1,
-    Math.floor(currentLevel)
-  );
+  const safeCurrentLevel = Number.isFinite(currentLevel)
+    ? Math.max(1, Math.floor(currentLevel)) : 1;
 
   return 100 + (safeCurrentLevel - 1) * 50;
 }
