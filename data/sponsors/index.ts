@@ -56,6 +56,7 @@ import { UNDERCOVERED_COUNTRY_BATCH_08_SPONSORS } from "./undercovered-country-b
 import { UNDERCOVERED_COUNTRY_BATCH_09_SPONSORS } from "./undercovered-country-batch-09";
 import { UNDERCOVERED_COUNTRY_BATCH_10_SPONSORS } from "./undercovered-country-batch-10";
 import { AMERICAN_SPONSORS } from "./united-states";
+import { AMERICAN_EXPANSION_BATCH_02_SPONSORS } from "./united-states-batch-02";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
 const RAW_SPONSORS = [
@@ -77,6 +78,7 @@ const RAW_SPONSORS = [
   ...SPANISH_SPONSORS,
   ...PORTUGUESE_SPONSORS,
   ...AMERICAN_SPONSORS,
+  ...AMERICAN_EXPANSION_BATCH_02_SPONSORS,
   ...JAPANESE_SPONSORS,
   ...COUNTRY_EXPANSION_BATCH_01_SPONSORS,
   ...COUNTRY_EXPANSION_BATCH_02_SPONSORS,
