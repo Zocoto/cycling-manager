@@ -1,0 +1,1703 @@
+{
+  "source": {
+    "stageId": "92f2682e-40af-44ab-858d-81f3c8ae912a",
+    "engine": "2026.10-prepared-stage-leaders-v46",
+    "description": "Frozen final-sector inputs, before finish postprocessing, from the audited 2026-10-19 Boucle des Provinces stage 6."
+  },
+  "groups": [
+    {
+      "type": "peloton",
+      "riderIds": [
+        "0ba36e0d-498b-4a57-80a6-f387289b9476",
+        "2856644f-3612-4e0a-ac73-44df175d4c11",
+        "42c32356-3821-4422-9e48-49481210165f",
+        "4dda2ae0-a560-4bd4-b1bb-b906ee8a3fc0",
+        "6e5ace56-87e4-4576-a67b-8e6448a6c15c",
+        "bebbc858-c850-4136-a5ad-4044a3398a57",
+        "d9367235-e732-4d63-a9dc-bce86feec2b7",
+        "f6d38453-43ee-4e84-bf30-a864a8f2b05a"
+      ],
+      "gapToLeaderSeconds": 0
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "7d5a2f1f-51e2-4d20-9401-5fa1d009c776",
+        "c72b6cc6-a43b-4c69-af5c-43885fd385c8",
+        "bf951b12-452d-4c13-a59d-7c6d6a3d195d",
+        "2e7d40b9-5160-422a-9643-b05b7222d492",
+        "0bbc8bca-3613-46bb-bfa8-d7baec4d86f4",
+        "a2437cbd-2a34-44a3-a201-ac1cf193107c",
+        "b9895ac0-8f12-4243-8803-4e3cc2ae72a9",
+        "64452c48-1876-468b-a8c0-18ff6407e974",
+        "d681c693-3950-43cc-a1a5-19212b895fca",
+        "bf0a6f0c-4b30-42f0-a581-0288218981d3",
+        "c602980e-39b8-48d9-8c66-54b36ad3ecfb",
+        "7c957034-b988-49a4-83cb-c69c95ec13ff",
+        "d37db25c-d59d-4f55-b0a7-2af6c79aff38",
+        "aef851ae-9d4b-4be2-986c-cf837e8e687b",
+        "c1aa6c5d-efa3-4eeb-ae00-b4587e048062"
+      ],
+      "gapToLeaderSeconds": 27
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "3504b28f-db03-4258-8eb2-f06faf811d20"
+      ],
+      "gapToLeaderSeconds": 41
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "f669e5b3-0830-4a54-af98-be1d9950cde7"
+      ],
+      "gapToLeaderSeconds": 76
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "3beb50f4-b431-4c16-ad92-89d610c2eefe",
+        "b51bc1e3-43c6-4858-bc50-d943d6859ad6",
+        "c71e1d55-a68b-4f52-8732-b69ef373df71",
+        "71fb4315-111d-4d4c-b0c5-b2c07668963d",
+        "72d6beb8-cf9a-4d90-a8f1-292eaffe4e27"
+      ],
+      "gapToLeaderSeconds": 115
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "b40d9adb-9a92-4dca-87a5-ca6fdb60fbea",
+        "35257cfc-7ad5-499e-88d1-586d371577b5"
+      ],
+      "gapToLeaderSeconds": 144
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "9854b7c6-3b6e-4763-af75-7c812b2e5ca1",
+        "cfd71d54-e6ae-4487-8b5f-ad63120f5a43",
+        "b0c990e0-f6f0-4b8b-865c-ea6b9c234792"
+      ],
+      "gapToLeaderSeconds": 177
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "22e8ef30-9478-4e58-9ad6-2ea2fdc6c575",
+        "5bf875a6-7ef7-4a81-b44a-4e489f259648",
+        "ecfaaf6d-b7b0-4fd9-a2d0-d3c481c36a5f"
+      ],
+      "gapToLeaderSeconds": 205
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "fdea988d-a1ed-4a19-9a9e-2248e5034501",
+        "ed560026-792d-456c-b4d6-484e46d9020a",
+        "cdded1c2-56a9-42a5-8a62-c0165eb58dbc"
+      ],
+      "gapToLeaderSeconds": 229
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "d77a4f48-251a-4f4f-9b80-c97f7f7cf125",
+        "e6fd4dc2-769c-4267-9dee-967973b91d3e",
+        "a3ae8c84-68f4-4864-9ccf-94e228da5d74",
+        "50a9fac0-d2ef-4b11-aea7-03cb6fa57ec7",
+        "7c14f7ba-6624-4bdc-b01d-f4fab9b91415",
+        "f3c65a08-229a-4c0d-86ed-7e71a97af0a2"
+      ],
+      "gapToLeaderSeconds": 270
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "e10b04b6-ba5d-4940-8b2b-ff78c4ac1c17",
+        "591f15cd-4310-4c6a-b4ca-c6d25597e2af",
+        "11847d19-c817-456c-9798-f2d6a86eeabb",
+        "d1c6534f-ec1e-46a9-a171-f7cb0ee5e779",
+        "d9d7dc46-a7aa-4eaa-a3df-86898fb934c7"
+      ],
+      "gapToLeaderSeconds": 312
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "1b5fc8e1-22bc-4334-9b7a-87a5693450be",
+        "ae49cff5-2f15-4469-837a-3b6a323582db",
+        "427e1ca2-5ae1-4e0a-943d-d0353e598e13"
+      ],
+      "gapToLeaderSeconds": 338
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "ba1d01fc-3df7-4f9b-84d0-c61ac9e8c829",
+        "e9ae82f0-e6d3-479f-af4c-7fc36fb5ec23"
+      ],
+      "gapToLeaderSeconds": 362
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "5a9dd612-b561-419d-b866-14798787957f",
+        "db2f23be-4db5-4c08-9abd-f1e0fc734df9",
+        "ec7b4789-33a1-4b35-aee9-118f61afc09e"
+      ],
+      "gapToLeaderSeconds": 421
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "08191e62-24d0-414f-960f-213fdae7ef1b",
+        "b42b8eb8-4e8d-4052-afd4-a78239b1dc15",
+        "5fbbf242-cec3-47f1-a864-0b2567998c73"
+      ],
+      "gapToLeaderSeconds": 439
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "1006129e-54a6-4c26-b785-605956e6df68",
+        "b6ac4c96-848c-4dd6-a24c-b7c1d5227f86"
+      ],
+      "gapToLeaderSeconds": 481
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "30540942-e88b-40cf-9004-a2b3854bbb80",
+        "6e59716d-0ba3-4d8f-97ae-56708dbc8b3a",
+        "03ba3200-b1d9-4921-8865-725472d4efdc",
+        "9ae5e40f-1503-4537-9469-5232529db373",
+        "545c9195-ebb5-494c-937b-87585d4c1134",
+        "75373f26-4ff2-4296-81a8-bb614b886e5e",
+        "c838dfbd-b9ce-4724-bd6c-ac291a939977",
+        "8b69856f-dc01-4a72-9397-e88cb1e28ae6"
+      ],
+      "gapToLeaderSeconds": 508
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "0aca8c22-4c90-4ea0-a51d-e3ddde793ad4",
+        "81878057-a2cb-472e-86c5-6fbbd37808fb",
+        "b1144086-4b9c-4bbe-bfb1-350d9bb347f0",
+        "13d5afe6-02f7-4ddc-9fc4-0637e99d349b",
+        "53ba1117-4d8b-482c-9934-7a9d6618de6e",
+        "37f75961-1a07-49dc-a0e3-4604f90863b5",
+        "1ce46a2e-3d91-4332-8826-046a9646b692",
+        "889f04b4-7676-441d-8d94-7e27dc9e843d",
+        "ce797adf-2de6-47f9-bfb0-760146442fc9",
+        "68b9e24a-054b-4852-8d21-6cb37be068d6",
+        "a06a204c-a86a-4d99-9c03-6ca74342f76c",
+        "2fb0bc33-a060-4886-b959-58e585bb90fb"
+      ],
+      "gapToLeaderSeconds": 543
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "46a7cfef-ca05-4898-a1d0-76fff8a76842",
+        "258a7f61-3a0c-4d11-aa1a-93165bd6cdb1",
+        "908dc930-613a-43e0-9273-0903a8bb9990",
+        "b9d30550-6a19-49b7-8848-b65d5dbfbf64",
+        "6f381187-8066-416a-a905-1946beca060b",
+        "0addb9d0-1d01-44f6-aeec-fe1554815729",
+        "01600ca7-5961-4876-a97b-59b967d6498d",
+        "12ce2726-ee37-490e-953d-e8d4a0cd5c9f",
+        "4d440f19-bf62-4193-aade-3d4623483aa5"
+      ],
+      "gapToLeaderSeconds": 578
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "1dbdeb1d-2b68-4710-9543-e6b56651ed24",
+        "06441adf-bb9f-4ba0-8a4a-331d2c3ed0e5",
+        "7a3e37e4-96ef-438a-b6b3-084d5f32bdf6",
+        "91214744-cb69-4ca8-b094-2e0fd354a1da",
+        "3624a44a-5ea4-4ca3-a5c7-b6ac91a0e012",
+        "361e09fd-b9bd-4fb8-b5fb-c9b13951a636",
+        "347353e0-adcf-495f-9ad1-7b4f1b9b92f5",
+        "3f52bc89-e08c-4adc-aafa-6c7ac007d588"
+      ],
+      "gapToLeaderSeconds": 596
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "496d06d9-31f8-48d2-8572-cc02605f0f95",
+        "06513c03-02e7-4a9c-b3c6-f70eaebafd68",
+        "1183ae92-23b3-42f9-8d2d-63cf6c680c12",
+        "ee7556aa-db92-4a21-9e20-5ae16e6431e5",
+        "1c9c2471-5bd2-4fd7-be26-7eff9d1724c2",
+        "97688216-947c-4906-9de4-6bc70555d086",
+        "bb6becdd-e029-46e5-88ae-62004bac4269",
+        "0deb71ed-2518-4e14-9ead-10b842c618bc",
+        "3753351d-223f-42cb-8e5f-31c151f4d4fe",
+        "324bfc16-d21c-47f8-925a-5c6f53ae8b98",
+        "82263de5-e3a0-4a16-a559-0995e735946a",
+        "13ef8f4e-b4d8-4626-bc73-e4218754f975"
+      ],
+      "gapToLeaderSeconds": 633
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "ed700588-e2f6-4425-ae1a-01b71bb58bce",
+        "aa979df4-f927-4382-b327-7191936775b4",
+        "bc590b29-a84c-4212-b165-1967788ef340",
+        "3bb8a416-2cef-4d4d-9d4d-09b6573b46fd",
+        "172209b3-8134-4be4-adbf-85faa6faa41f",
+        "6cfbdaeb-f48d-426a-8193-15b2befd899b",
+        "e19d58c5-6a31-4f91-8473-39a0df218334"
+      ],
+      "gapToLeaderSeconds": 659
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "ba79a19c-c1f9-4cef-b75f-2afec6ccfc65",
+        "9ffaf065-e861-467b-91aa-a0c4a6d97774",
+        "2cb4fa34-4859-49d8-bf34-d8aba751abc9",
+        "89c553fd-6aca-49ed-8919-bc03465b41a5",
+        "f3926e85-eced-4e73-904e-25b8973e5ca5"
+      ],
+      "gapToLeaderSeconds": 695
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "dd415d12-3d63-437f-8848-ef1b3072c384",
+        "183dc062-0e51-4baa-a48a-7cf2abb4f5f1",
+        "e76eb943-bba5-43d7-b680-70216fad1f0e",
+        "8e866757-6fb6-48d7-95ef-05675b62655e",
+        "be7c3574-d3f9-4d45-aa77-7799a60773d0",
+        "3fb74aa4-acfe-4094-adba-2a8d3959a952",
+        "6afe8943-083c-46e0-b236-c7d4510c8546",
+        "9c6bd3b5-f251-43c7-9063-9b28ffc5aedf"
+      ],
+      "gapToLeaderSeconds": 727
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "e267923c-0efd-4615-866e-690bf34c7c2a",
+        "64d0bc81-714b-428b-a6bf-01d346cf27d4",
+        "43144497-46d9-442b-82c8-e7e3c35e24ce",
+        "b1808269-6495-4ec6-9ecc-c3439ebde167"
+      ],
+      "gapToLeaderSeconds": 748
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "eb93c454-a127-40ad-ac1b-57e67f04836f",
+        "e6ea0284-8f47-4bb9-ac1e-e7099e7a59a8",
+        "e345f0fc-066c-4a6f-b633-8fcf14f7fc1d",
+        "e781b417-f0f0-4e68-a8e6-306ed8f4bfab",
+        "a6ba0109-ab36-40bd-aeab-34b89cbfcbac",
+        "bec5a600-54dd-4a19-a9b4-ffd8e2e37564"
+      ],
+      "gapToLeaderSeconds": 785
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "8a610b2d-8e11-4128-bd0c-2206c60feb26",
+        "9169a614-dd7d-4518-be04-d4121e4854c0"
+      ],
+      "gapToLeaderSeconds": 810
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "cdb678bd-092e-46f3-bde3-17d5ee5a9296"
+      ],
+      "gapToLeaderSeconds": 833
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "dcd070ec-a665-4dfc-b848-fe0f7c37347e",
+        "669e984b-70d5-49f2-b5fc-e9042f1900a7"
+      ],
+      "gapToLeaderSeconds": 895
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "1d99eada-3496-4567-bf3e-669ce9caf8d3"
+      ],
+      "gapToLeaderSeconds": 896
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "29feff6a-c17c-4e19-a9eb-ae2751d0b341",
+        "7f75545d-1d51-4d53-918d-b39b96cea60d",
+        "27ec6274-9acd-41d7-93ca-cf0841cd4609",
+        "8718a76b-1dc7-44a0-8079-2c5959a2889f",
+        "f5621b42-3801-4a00-b912-66d70fc58752",
+        "ff91bdf3-4b74-45da-9fbd-b593cd3a2777",
+        "1fa8f5a4-db92-41bf-adf5-aa4ddb761c86",
+        "ff024253-0fe9-4f73-b54b-24236cf3965c",
+        "76fe6897-f6ee-42b8-8c51-ba1cae6916a0",
+        "4d051f6f-890e-45c7-9d98-68e3527afcd0",
+        "144b22ff-255b-4624-a77c-9970dc03e1cd"
+      ],
+      "gapToLeaderSeconds": 920
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "cbcddb9f-2447-456e-9763-8e2d87030230",
+        "5c9adff5-8227-4dc0-aeba-8363a54c303a",
+        "55225274-1cad-4e16-9d73-d88bb4f5af96",
+        "3b2b70b3-6b83-47d7-bbb3-1271cc40f06b",
+        "2d03f6a4-67e5-4e1f-a1a6-ed4a59ea5bf6",
+        "f05c622a-7da1-4409-89ee-f4b6e67e2777"
+      ],
+      "gapToLeaderSeconds": 922
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "1458ba87-2780-400b-8891-8edbca42164d",
+        "958d3d38-f098-453d-b321-1f58a1b7c557",
+        "80e5127f-a530-4419-a308-3a733db9e6d1"
+      ],
+      "gapToLeaderSeconds": 955
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "a7fc01e3-f964-4624-8408-1b6225989231"
+      ],
+      "gapToLeaderSeconds": 967
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "578c67ec-1c09-4e11-90ec-b2b29d5af4d8",
+        "7177c29d-59a7-4a1b-8d10-aaf96396e210"
+      ],
+      "gapToLeaderSeconds": 975
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "110c918c-23a1-4278-80f0-32e422b37340"
+      ],
+      "gapToLeaderSeconds": 1022
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "97e38003-3af6-4f57-bc85-f1916cdfe516"
+      ],
+      "gapToLeaderSeconds": 1065
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "bb14a72a-bd71-4dd9-a4f5-21bad5263ced"
+      ],
+      "gapToLeaderSeconds": 1126
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "79b84f3e-53e0-4a31-9ca6-02b1757e680f"
+      ],
+      "gapToLeaderSeconds": 1187
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "5dc12b20-eb5c-465b-867a-94466b7e8b83"
+      ],
+      "gapToLeaderSeconds": 1229
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "9f7f626e-63f7-49ab-8c27-e16dfff0b48e"
+      ],
+      "gapToLeaderSeconds": 1311
+    },
+    {
+      "type": "dropped",
+      "riderIds": [
+        "13803ba7-0ee0-4d54-afaa-7eed73342bd3"
+      ],
+      "gapToLeaderSeconds": 1359
+    }
+  ],
+  "riders": [
+    {
+      "riderId": "06441adf-bb9f-4ba0-8a4a-331d2c3ed0e5",
+      "name": "Farba Tamba",
+      "score": 28.82709062644051,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "08191e62-24d0-414f-960f-213fdae7ef1b",
+      "name": "Modou Tankoano",
+      "score": 55.79776760021952,
+      "elapsedTimeSeconds": 21328,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "29feff6a-c17c-4e19-a9eb-ae2751d0b341",
+      "name": "Yoann Chevalier",
+      "score": 52.8097412679292,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3f52bc89-e08c-4adc-aafa-6c7ac007d588",
+      "name": "Jon Dahl",
+      "score": 34.06905882337011,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "4d440f19-bf62-4193-aade-3d4623483aa5",
+      "name": "Tafadzwa Marais",
+      "score": 71.64797824613548,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "5dc12b20-eb5c-465b-867a-94466b7e8b83",
+      "name": "Mario Guerrero",
+      "score": 5.421105267418383,
+      "elapsedTimeSeconds": 22118,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "75373f26-4ff2-4296-81a8-bb614b886e5e",
+      "name": "Youssouph Bodian",
+      "score": 41.54595550011907,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "958d3d38-f098-453d-b321-1f58a1b7c557",
+      "name": "Yevhen Golubev",
+      "score": 21.75250885172344,
+      "elapsedTimeSeconds": 21844,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "dcd070ec-a665-4dfc-b848-fe0f7c37347e",
+      "name": "Philippe Nsoki",
+      "score": 8.143166970542175,
+      "elapsedTimeSeconds": 21784,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "0ba36e0d-498b-4a57-80a6-f387289b9476",
+      "name": "Byron Buthelezi",
+      "score": 85.93971565675407,
+      "elapsedTimeSeconds": 20889.000760013772,
+      "effortGapSeconds": 34.65468057866042
+    },
+    {
+      "riderId": "30540942-e88b-40cf-9004-a2b3854bbb80",
+      "name": "Jimmy Boshoff",
+      "score": 37.05846446727831,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "53ba1117-4d8b-482c-9934-7a9d6618de6e",
+      "name": "Martín Barrientos",
+      "score": 32.12676751783119,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "591f15cd-4310-4c6a-b4ca-c6d25597e2af",
+      "name": "Leonard Bholah",
+      "score": 50.624302721778975,
+      "elapsedTimeSeconds": 21201,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "6e59716d-0ba3-4d8f-97ae-56708dbc8b3a",
+      "name": "Jose Daniel Archuleta",
+      "score": 41.64129478988907,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "7a3e37e4-96ef-438a-b6b3-084d5f32bdf6",
+      "name": "Abı Akın",
+      "score": 61.039709783471714,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "a7fc01e3-f964-4624-8408-1b6225989231",
+      "name": "Albert Fuller",
+      "score": 26.344738669041156,
+      "elapsedTimeSeconds": 21856,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b42b8eb8-4e8d-4052-afd4-a78239b1dc15",
+      "name": "Martin Cerda",
+      "score": 65.34270051393914,
+      "elapsedTimeSeconds": 21328,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "2856644f-3612-4e0a-ac73-44df175d4c11",
+      "name": "Gocha Vashadze",
+      "score": 101.30728777597112,
+      "elapsedTimeSeconds": 20877.000760013772,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3beb50f4-b431-4c16-ad92-89d610c2eefe",
+      "name": "Alexis Thomas",
+      "score": 68.25873496839344,
+      "elapsedTimeSeconds": 21004,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "5bf875a6-7ef7-4a81-b44a-4e489f259648",
+      "name": "Diego Mina",
+      "score": 67.33093595943326,
+      "elapsedTimeSeconds": 21094,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "a3ae8c84-68f4-4864-9ccf-94e228da5d74",
+      "name": "Yannis Asimopoulos",
+      "score": 49.613207153222646,
+      "elapsedTimeSeconds": 21159,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bebbc858-c850-4136-a5ad-4044a3398a57",
+      "name": "Ángel Jiménez",
+      "score": 69.07270026536538,
+      "elapsedTimeSeconds": 20889.000760013772,
+      "effortGapSeconds": 69.39755707149149
+    },
+    {
+      "riderId": "d9367235-e732-4d63-a9dc-bce86feec2b7",
+      "name": "Hernán Burgos",
+      "score": 89.88696477311981,
+      "elapsedTimeSeconds": 20889.000760013772,
+      "effortGapSeconds": 24.089157853876745
+    },
+    {
+      "riderId": "ed560026-792d-456c-b4d6-484e46d9020a",
+      "name": "Hemant Pawar",
+      "score": 56.58249206923065,
+      "elapsedTimeSeconds": 21118,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "f6d38453-43ee-4e84-bf30-a864a8f2b05a",
+      "name": "Anthony Oosthuizen",
+      "score": 76.3333865478421,
+      "elapsedTimeSeconds": 20889.000760013772,
+      "effortGapSeconds": 56.500271442416654
+    },
+    {
+      "riderId": "01600ca7-5961-4876-a97b-59b967d6498d",
+      "name": "Lue Graham",
+      "score": 60.37949822254367,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "06513c03-02e7-4a9c-b3c6-f70eaebafd68",
+      "name": "Herbert Albertsson",
+      "score": 26.212548566434176,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "2d03f6a4-67e5-4e1f-a1a6-ed4a59ea5bf6",
+      "name": "Bergur Örnólfsson",
+      "score": 32.090543979664346,
+      "elapsedTimeSeconds": 21811,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "2e7d40b9-5160-422a-9643-b05b7222d492",
+      "name": "Ange Coly",
+      "score": 61.29235863906548,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "427e1ca2-5ae1-4e0a-943d-d0353e598e13",
+      "name": "Yordi Romero",
+      "score": 60.20075896563026,
+      "elapsedTimeSeconds": 21227,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "43144497-46d9-442b-82c8-e7e3c35e24ce",
+      "name": "George Mtei",
+      "score": 41.94321639129873,
+      "elapsedTimeSeconds": 21637,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "64452c48-1876-468b-a8c0-18ff6407e974",
+      "name": "Henrique Jesus",
+      "score": 46.75457885431274,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "79b84f3e-53e0-4a31-9ca6-02b1757e680f",
+      "name": "Ruslan Baranov",
+      "score": 13.241297543743894,
+      "elapsedTimeSeconds": 22076,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "d681c693-3950-43cc-a1a5-19212b895fca",
+      "name": "Youssef Lamrani",
+      "score": 75.21925087635843,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "0bbc8bca-3613-46bb-bfa8-d7baec4d86f4",
+      "name": "Mario Sorrentino",
+      "score": 71.22279764517255,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "13d5afe6-02f7-4ddc-9fc4-0637e99d349b",
+      "name": "Diogo Santos",
+      "score": 57.59848092474601,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "4dda2ae0-a560-4bd4-b1bb-b906ee8a3fc0",
+      "name": "Shamyrat Burkhanov",
+      "score": 85.03195091854057,
+      "elapsedTimeSeconds": 20889.000760013772,
+      "effortGapSeconds": 34.65468057866042
+    },
+    {
+      "riderId": "a2437cbd-2a34-44a3-a201-ac1cf193107c",
+      "name": "Hrvoje Kranjc",
+      "score": 57.34550305376115,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b6ac4c96-848c-4dd6-a24c-b7c1d5227f86",
+      "name": "Alex Chumba",
+      "score": 70.34737194445326,
+      "elapsedTimeSeconds": 21370,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ba1d01fc-3df7-4f9b-84d0-c61ac9e8c829",
+      "name": "Katleho Mutsvangwa",
+      "score": 75.81371016934455,
+      "elapsedTimeSeconds": 21251,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ba79a19c-c1f9-4cef-b75f-2afec6ccfc65",
+      "name": "Tapiwa Letsie",
+      "score": 42.3753621872349,
+      "elapsedTimeSeconds": 21584,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bf951b12-452d-4c13-a59d-7c6d6a3d195d",
+      "name": "Mile Marić",
+      "score": 47.699852129630095,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "c72b6cc6-a43b-4c69-af5c-43885fd385c8",
+      "name": "Theuns Visser",
+      "score": 65.9099951236246,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "37f75961-1a07-49dc-a0e3-4604f90863b5",
+      "name": "Ben Mondlane",
+      "score": 42.7204504304529,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "5a9dd612-b561-419d-b866-14798787957f",
+      "name": "Sam Sothy",
+      "score": 64.97925394507239,
+      "elapsedTimeSeconds": 21310,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b9895ac0-8f12-4243-8803-4e3cc2ae72a9",
+      "name": "Chrysole Blanc",
+      "score": 58.19676169338588,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bf0a6f0c-4b30-42f0-a581-0288218981d3",
+      "name": "Janek Albert",
+      "score": 70.53555837932916,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "c602980e-39b8-48d9-8c66-54b36ad3ecfb",
+      "name": "Sergio Baca",
+      "score": 45.47540170400626,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "d77a4f48-251a-4f4f-9b80-c97f7f7cf125",
+      "name": "Yann Girard",
+      "score": 77.92497803701715,
+      "elapsedTimeSeconds": 21159,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e19d58c5-6a31-4f91-8473-39a0df218334",
+      "name": "Nizom Anasova",
+      "score": 54.147370423056806,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e345f0fc-066c-4a6f-b633-8fcf14f7fc1d",
+      "name": "Hannes Delonge",
+      "score": 21.878445509262374,
+      "elapsedTimeSeconds": 21674,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "f05c622a-7da1-4409-89ee-f4b6e67e2777",
+      "name": "Nolan Boucher",
+      "score": 37.782841998112914,
+      "elapsedTimeSeconds": 21811,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1183ae92-23b3-42f9-8d2d-63cf6c680c12",
+      "name": "José Miguel Almanza",
+      "score": 54.9700997440441,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1458ba87-2780-400b-8891-8edbca42164d",
+      "name": "Ronald Baloyi",
+      "score": 22.015691371512087,
+      "elapsedTimeSeconds": 21844,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1c9c2471-5bd2-4fd7-be26-7eff9d1724c2",
+      "name": "Tawanda Guebuza",
+      "score": 11.924333505199488,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "669e984b-70d5-49f2-b5fc-e9042f1900a7",
+      "name": "Karabo Douglas",
+      "score": 17.056737148057714,
+      "elapsedTimeSeconds": 21784,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "7f75545d-1d51-4d53-918d-b39b96cea60d",
+      "name": "Hadley Bode",
+      "score": 7.254231556902191,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "91214744-cb69-4ca8-b094-2e0fd354a1da",
+      "name": "Anthony Fisher",
+      "score": 41.587975843744175,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "cdb678bd-092e-46f3-bde3-17d5ee5a9296",
+      "name": "Angus Murray",
+      "score": 26.116862475653374,
+      "elapsedTimeSeconds": 21722,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "eb93c454-a127-40ad-ac1b-57e67f04836f",
+      "name": "Oscar Gibson",
+      "score": 33.758842182914954,
+      "elapsedTimeSeconds": 21674,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "fdea988d-a1ed-4a19-9a9e-2248e5034501",
+      "name": "Blake Champlin",
+      "score": 73.7391944363912,
+      "elapsedTimeSeconds": 21118,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "03ba3200-b1d9-4921-8865-725472d4efdc",
+      "name": "Bogdan Dabčević",
+      "score": 44.89421662568998,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "0addb9d0-1d01-44f6-aeec-fe1554815729",
+      "name": "Sinimo Hidig",
+      "score": 56.94726232052703,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "12ce2726-ee37-490e-953d-e8d4a0cd5c9f",
+      "name": "Jacobo Adorno",
+      "score": 49.6755780869055,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1b5fc8e1-22bc-4334-9b7a-87a5693450be",
+      "name": "Akinola Ademayowa",
+      "score": 28.89648943098728,
+      "elapsedTimeSeconds": 21227,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1ce46a2e-3d91-4332-8826-046a9646b692",
+      "name": "Fodé Tandia",
+      "score": 35.11614085583088,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "545c9195-ebb5-494c-937b-87585d4c1134",
+      "name": "Andris Bergmane",
+      "score": 40.34871638992736,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b0c990e0-f6f0-4b8b-865c-ea6b9c234792",
+      "name": "Karl Vestergaard",
+      "score": 79.3413867516068,
+      "elapsedTimeSeconds": 21066,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "c71e1d55-a68b-4f52-8732-b69ef373df71",
+      "name": "José Romero",
+      "score": 82.60197889187933,
+      "elapsedTimeSeconds": 21004,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e9ae82f0-e6d3-479f-af4c-7fc36fb5ec23",
+      "name": "Yssouf Seydi",
+      "score": 62.44274150724431,
+      "elapsedTimeSeconds": 21251,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "110c918c-23a1-4278-80f0-32e422b37340",
+      "name": "Rainandriamampandry Ravelomanantsoa",
+      "score": 14.227842212792481,
+      "elapsedTimeSeconds": 21911,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "347353e0-adcf-495f-9ad1-7b4f1b9b92f5",
+      "name": "Carson Rogers",
+      "score": 40.08956492654608,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3753351d-223f-42cb-8e5f-31c151f4d4fe",
+      "name": "Mohammad-Amin Haddadi",
+      "score": 45.476404232948816,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "50a9fac0-d2ef-4b11-aea7-03cb6fa57ec7",
+      "name": "Chandler Davis",
+      "score": 77.4716820164458,
+      "elapsedTimeSeconds": 21159,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "889f04b4-7676-441d-8d94-7e27dc9e843d",
+      "name": "Taniela Parata",
+      "score": 65.49994050549273,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ae49cff5-2f15-4469-837a-3b6a323582db",
+      "name": "Christophe Tessier",
+      "score": 50.9484064562501,
+      "elapsedTimeSeconds": 21227,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b9d30550-6a19-49b7-8848-b65d5dbfbf64",
+      "name": "Cristián Herrera",
+      "score": 35.55286303507927,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bb14a72a-bd71-4dd9-a4f5-21bad5263ced",
+      "name": "Tristan Rousseau",
+      "score": 4.644913509131342,
+      "elapsedTimeSeconds": 22015,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "5c9adff5-8227-4dc0-aeba-8363a54c303a",
+      "name": "Kaito Yokoyama",
+      "score": 18.48405900223573,
+      "elapsedTimeSeconds": 21811,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "6afe8943-083c-46e0-b236-c7d4510c8546",
+      "name": "Noriaki Sakamoto",
+      "score": 24.38243768620556,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "7c957034-b988-49a4-83cb-c69c95ec13ff",
+      "name": "Octavio Almaráz",
+      "score": 78.6952346724575,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "8b69856f-dc01-4a72-9397-e88cb1e28ae6",
+      "name": "Noah Van der Linden",
+      "score": 36.39967853301666,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "9ae5e40f-1503-4537-9469-5232529db373",
+      "name": "Babacar Sow",
+      "score": 61.22574126298434,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ce797adf-2de6-47f9-bfb0-760146442fc9",
+      "name": "Sipho Ratsimandresy",
+      "score": 42.96137501866931,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "d37db25c-d59d-4f55-b0a7-2af6c79aff38",
+      "name": "Nthabiseng Botha",
+      "score": 51.30516378714856,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "d9d7dc46-a7aa-4eaa-a3df-86898fb934c7",
+      "name": "Sardar Khattak",
+      "score": 69.91049026154653,
+      "elapsedTimeSeconds": 21201,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "27ec6274-9acd-41d7-93ca-cf0841cd4609",
+      "name": "Mumba Gumede",
+      "score": 43.526381209769475,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "46a7cfef-ca05-4898-a1d0-76fff8a76842",
+      "name": "Garry Vosloo",
+      "score": 13.28983934654034,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "68b9e24a-054b-4852-8d21-6cb37be068d6",
+      "name": "Kondwani Mnangagwa",
+      "score": 36.12067787063956,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "7177c29d-59a7-4a1b-8d10-aaf96396e210",
+      "name": "Louis Visser",
+      "score": 19.47983829684351,
+      "elapsedTimeSeconds": 21864,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "72d6beb8-cf9a-4d90-a8f1-292eaffe4e27",
+      "name": "Blessing Bwalya",
+      "score": 86.69814620867615,
+      "elapsedTimeSeconds": 21004,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "81878057-a2cb-472e-86c5-6fbbd37808fb",
+      "name": "Thibault Dubois",
+      "score": 52.9527238779814,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "9169a614-dd7d-4518-be04-d4121e4854c0",
+      "name": "Roy Chikowore",
+      "score": 24.24522730561187,
+      "elapsedTimeSeconds": 21699,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "9ffaf065-e861-467b-91aa-a0c4a6d97774",
+      "name": "Herman Scholtz",
+      "score": 62.23999214886704,
+      "elapsedTimeSeconds": 21584,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "dd415d12-3d63-437f-8848-ef1b3072c384",
+      "name": "Lesego Banda",
+      "score": 30.039079697242748,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "361e09fd-b9bd-4fb8-b5fb-c9b13951a636",
+      "name": "Sora Uchiyama",
+      "score": 46.23182599841644,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3bb8a416-2cef-4d4d-9d4d-09b6573b46fd",
+      "name": "Kenichi Tateyama",
+      "score": 26.46254073588935,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "7c14f7ba-6624-4bdc-b01d-f4fab9b91415",
+      "name": "Marcel Etoa",
+      "score": 71.99407736744863,
+      "elapsedTimeSeconds": 21159,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "8718a76b-1dc7-44a0-8079-2c5959a2889f",
+      "name": "Taiga Miki",
+      "score": 21.590993738312974,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "a06a204c-a86a-4d99-9c03-6ca74342f76c",
+      "name": "Gino Ebouaney",
+      "score": 56.25226673607579,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b51bc1e3-43c6-4858-bc50-d943d6859ad6",
+      "name": "Long Nugroho",
+      "score": 84.1090554944347,
+      "elapsedTimeSeconds": 21004,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "cbcddb9f-2447-456e-9763-8e2d87030230",
+      "name": "Ilham Nersisyan",
+      "score": 10.370623791272912,
+      "elapsedTimeSeconds": 21811,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "cfd71d54-e6ae-4487-8b5f-ad63120f5a43",
+      "name": "Olumide Tarawally",
+      "score": 39.713289012368776,
+      "elapsedTimeSeconds": 21066,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "0aca8c22-4c90-4ea0-a51d-e3ddde793ad4",
+      "name": "Pablo Campos",
+      "score": 53.27635740184438,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1006129e-54a6-4c26-b785-605956e6df68",
+      "name": "Nuriddin G'afforova",
+      "score": 48.32125068288598,
+      "elapsedTimeSeconds": 21370,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "2fb0bc33-a060-4886-b959-58e585bb90fb",
+      "name": "Ernesto López",
+      "score": 35.96079688358249,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "35257cfc-7ad5-499e-88d1-586d371577b5",
+      "name": "Asadullah Behzad",
+      "score": 82.08530501806952,
+      "elapsedTimeSeconds": 21033,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3624a44a-5ea4-4ca3-a5c7-b6ac91a0e012",
+      "name": "Sergio Quispe",
+      "score": 21.9723712055739,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "5fbbf242-cec3-47f1-a864-0b2567998c73",
+      "name": "Wali Joya",
+      "score": 40.789697151090955,
+      "elapsedTimeSeconds": 21328,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "82263de5-e3a0-4a16-a559-0995e735946a",
+      "name": "Juan Ramón Jiménez",
+      "score": 15.211101706587883,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "aa979df4-f927-4382-b327-7191936775b4",
+      "name": "Claudio Angulo",
+      "score": 26.36625947739875,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "c838dfbd-b9ce-4724-bd6c-ac291a939977",
+      "name": "Dayane Berge",
+      "score": 61.295380181005804,
+      "elapsedTimeSeconds": 21397,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3504b28f-db03-4258-8eb2-f06faf811d20",
+      "name": "Cleo Morales",
+      "score": 66.98780198888944,
+      "elapsedTimeSeconds": 20930,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3b2b70b3-6b83-47d7-bbb3-1271cc40f06b",
+      "name": "Lisandro Fuentes",
+      "score": 30.84284428976971,
+      "elapsedTimeSeconds": 21811,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "578c67ec-1c09-4e11-90ec-b2b29d5af4d8",
+      "name": "Germán Galeano",
+      "score": 26.022572455273377,
+      "elapsedTimeSeconds": 21864,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "6f381187-8066-416a-a905-1946beca060b",
+      "name": "Bobby Hjörleifsson",
+      "score": 43.22032951913728,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "80e5127f-a530-4419-a308-3a733db9e6d1",
+      "name": "Gísli Ágústsson",
+      "score": 11.487709660389559,
+      "elapsedTimeSeconds": 21844,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "9854b7c6-3b6e-4763-af75-7c812b2e5ca1",
+      "name": "Jules Morin",
+      "score": 62.792099861087834,
+      "elapsedTimeSeconds": 21066,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "f5621b42-3801-4a00-b912-66d70fc58752",
+      "name": "Hugo Árnason",
+      "score": 3.321473112006057,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ff91bdf3-4b74-45da-9fbd-b593cd3a2777",
+      "name": "Rodrigo Suárez",
+      "score": 16.76583418146169,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1fa8f5a4-db92-41bf-adf5-aa4ddb761c86",
+      "name": "Philipp Schäfer",
+      "score": 37.38586652634933,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "6cfbdaeb-f48d-426a-8193-15b2befd899b",
+      "name": "Bernd Brettschneider",
+      "score": 29.896127187943847,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "908dc930-613a-43e0-9273-0903a8bb9990",
+      "name": "Carlos Burkhardt",
+      "score": 65.59003088216167,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "9f7f626e-63f7-49ab-8c27-e16dfff0b48e",
+      "name": "Elijah Benner",
+      "score": 11.238309696071063,
+      "elapsedTimeSeconds": 22200,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "a6ba0109-ab36-40bd-aeab-34b89cbfcbac",
+      "name": "Ferdinand Dautzenberg",
+      "score": 22.633611719382397,
+      "elapsedTimeSeconds": 21674,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ec7b4789-33a1-4b35-aee9-118f61afc09e",
+      "name": "Georg Sommer",
+      "score": 63.616863797219835,
+      "elapsedTimeSeconds": 21310,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ed700588-e2f6-4425-ae1a-01b71bb58bce",
+      "name": "Henning Balkow",
+      "score": 16.386132564543022,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ff024253-0fe9-4f73-b54b-24236cf3965c",
+      "name": "Heinrich Schröder",
+      "score": 44.759535656685955,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b1144086-4b9c-4bbe-bfb1-350d9bb347f0",
+      "name": "Mario Hernández",
+      "score": 59.50305141246018,
+      "elapsedTimeSeconds": 21432,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b1808269-6495-4ec6-9ecc-c3439ebde167",
+      "name": "Iván García",
+      "score": 37.65023427929174,
+      "elapsedTimeSeconds": 21637,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bec5a600-54dd-4a19-a9b4-ffd8e2e37564",
+      "name": "Ben Blanckenberg",
+      "score": 23.410042622708005,
+      "elapsedTimeSeconds": 21674,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "cdded1c2-56a9-42a5-8a62-c0165eb58dbc",
+      "name": "Farhan Rai",
+      "score": 52.96541348574321,
+      "elapsedTimeSeconds": 21118,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e10b04b6-ba5d-4940-8b2b-ff78c4ac1c17",
+      "name": "Andrés Tipán",
+      "score": 73.57250965700801,
+      "elapsedTimeSeconds": 21201,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e781b417-f0f0-4e68-a8e6-306ed8f4bfab",
+      "name": "Nayeem Kapoor",
+      "score": 28.105595657677732,
+      "elapsedTimeSeconds": 21674,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "f3926e85-eced-4e73-904e-25b8973e5ca5",
+      "name": "Xiaogang Xia",
+      "score": 42.2279187685955,
+      "elapsedTimeSeconds": 21584,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "f669e5b3-0830-4a54-af98-be1d9950cde7",
+      "name": "Yash Patel",
+      "score": 85.23720020808754,
+      "elapsedTimeSeconds": 20965,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "172209b3-8134-4be4-adbf-85faa6faa41f",
+      "name": "Enrique Sepúlveda",
+      "score": 42.26186498131359,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "183dc062-0e51-4baa-a48a-7cf2abb4f5f1",
+      "name": "Ariel Bravo",
+      "score": 66.5272346483186,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "2cb4fa34-4859-49d8-bf34-d8aba751abc9",
+      "name": "Mirko Grasso",
+      "score": 48.71903019294912,
+      "elapsedTimeSeconds": 21584,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "71fb4315-111d-4d4c-b0c5-b2c07668963d",
+      "name": "Simão Fidélis",
+      "score": 80.62192255773851,
+      "elapsedTimeSeconds": 21004,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "76fe6897-f6ee-42b8-8c51-ba1cae6916a0",
+      "name": "Teklemariam Osman",
+      "score": 35.74939687637955,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "97688216-947c-4906-9de4-6bc70555d086",
+      "name": "Marin Córdova",
+      "score": 21.90949824705534,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "97e38003-3af6-4f57-bc85-f1916cdfe516",
+      "name": "Andrew Tuitavake",
+      "score": 8.50636443602221,
+      "elapsedTimeSeconds": 21954,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e76eb943-bba5-43d7-b680-70216fad1f0e",
+      "name": "Casey Savea",
+      "score": 27.87885559416764,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ee7556aa-db92-4a21-9e20-5ae16e6431e5",
+      "name": "Faty Moreno",
+      "score": 53.98780535295559,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1d99eada-3496-4567-bf3e-669ce9caf8d3",
+      "name": "Cristin Shevchenko",
+      "score": 8.840125769515517,
+      "elapsedTimeSeconds": 21785,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "1dbdeb1d-2b68-4710-9543-e6b56651ed24",
+      "name": "Roger Eyenga",
+      "score": 66.17909793288774,
+      "elapsedTimeSeconds": 21485,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "324bfc16-d21c-47f8-925a-5c6f53ae8b98",
+      "name": "Tahina Manuel",
+      "score": 43.123929762210224,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "496d06d9-31f8-48d2-8572-cc02605f0f95",
+      "name": "Ilgmārs Podziņa",
+      "score": 69.2067714611256,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "55225274-1cad-4e16-9d73-d88bb4f5af96",
+      "name": "Valeriu Vītiņš",
+      "score": 13.994205986102877,
+      "elapsedTimeSeconds": 21811,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "8a610b2d-8e11-4128-bd0c-2206c60feb26",
+      "name": "Héctor Lambert",
+      "score": 29.660627811601195,
+      "elapsedTimeSeconds": 21699,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "9c6bd3b5-f251-43c7-9063-9b28ffc5aedf",
+      "name": "Martins Blinov",
+      "score": 37.620315491568476,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bc590b29-a84c-4212-b165-1967788ef340",
+      "name": "Sahil Qureshi",
+      "score": 24.445942551640492,
+      "elapsedTimeSeconds": 21548,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "11847d19-c817-456c-9798-f2d6a86eeabb",
+      "name": "Elias Tavares",
+      "score": 47.94440209472874,
+      "elapsedTimeSeconds": 21201,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "42c32356-3821-4422-9e48-49481210165f",
+      "name": "Sajid Poudel",
+      "score": 78.85782159355911,
+      "elapsedTimeSeconds": 20889.000760013772,
+      "effortGapSeconds": 46.24917815434825
+    },
+    {
+      "riderId": "4d051f6f-890e-45c7-9d98-68e3527afcd0",
+      "name": "Gaurav Kabir",
+      "score": 23.461687015654846,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "6e5ace56-87e4-4576-a67b-8e6448a6c15c",
+      "name": "Mesfin Deng",
+      "score": 97.18944237096692,
+      "elapsedTimeSeconds": 20889.00076001377,
+      "effortGapSeconds": 8.74434556578046
+    },
+    {
+      "riderId": "89c553fd-6aca-49ed-8919-bc03465b41a5",
+      "name": "Bekbolat Tajiev",
+      "score": 56.095682778262265,
+      "elapsedTimeSeconds": 21584,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "b40d9adb-9a92-4dca-87a5-ca6fdb60fbea",
+      "name": "Stipe Delić",
+      "score": 43.54654428835889,
+      "elapsedTimeSeconds": 21033,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "d1c6534f-ec1e-46a9-a171-f7cb0ee5e779",
+      "name": "Masoud Lotfi",
+      "score": 66.6886172015698,
+      "elapsedTimeSeconds": 21201,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e6fd4dc2-769c-4267-9dee-967973b91d3e",
+      "name": "Preecha Aung",
+      "score": 81.90633712987025,
+      "elapsedTimeSeconds": 21159,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "f3c65a08-229a-4c0d-86ed-7e71a97af0a2",
+      "name": "Mateus Bérenger",
+      "score": 35.993963642859484,
+      "elapsedTimeSeconds": 21159,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "0deb71ed-2518-4e14-9ead-10b842c618bc",
+      "name": "Anvar Nizomova",
+      "score": 43.734630191045305,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "13803ba7-0ee0-4d54-afaa-7eed73342bd3",
+      "name": "Mazbut Abduljalilova",
+      "score": -3.671203360231374,
+      "elapsedTimeSeconds": 22248,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "144b22ff-255b-4624-a77c-9970dc03e1cd",
+      "name": "Rizvon Serikov",
+      "score": 21.32720154781812,
+      "elapsedTimeSeconds": 21809,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "22e8ef30-9478-4e58-9ad6-2ea2fdc6c575",
+      "name": "Ahror Botiryeva",
+      "score": 80.44509200295029,
+      "elapsedTimeSeconds": 21094,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "3fb74aa4-acfe-4094-adba-2a8d3959a952",
+      "name": "Ma’ruf Shukrulloha",
+      "score": 33.06965042909067,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "8e866757-6fb6-48d7-95ef-05675b62655e",
+      "name": "Muhtor Kasymov",
+      "score": 28.21461353399919,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "bb6becdd-e029-46e5-88ae-62004bac4269",
+      "name": "G'affor Abdullayev",
+      "score": 60.68231238285346,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "be7c3574-d3f9-4d45-aa77-7799a60773d0",
+      "name": "Bo Bergmann",
+      "score": 37.68804099360764,
+      "elapsedTimeSeconds": 21616,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e6ea0284-8f47-4bb9-ac1e-e7099e7a59a8",
+      "name": "Ashraf Kholmatov",
+      "score": 8.622730447749419,
+      "elapsedTimeSeconds": 21674,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "13ef8f4e-b4d8-4626-bc73-e4218754f975",
+      "name": "Luke Blick",
+      "score": 34.90911665302802,
+      "elapsedTimeSeconds": 21522,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "258a7f61-3a0c-4d11-aa1a-93165bd6cdb1",
+      "name": "Tawfiq Akl",
+      "score": 53.07873078030311,
+      "elapsedTimeSeconds": 21467,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "64d0bc81-714b-428b-a6bf-01d346cf27d4",
+      "name": "Lewis Bosco",
+      "score": 41.098671915600406,
+      "elapsedTimeSeconds": 21637,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "7d5a2f1f-51e2-4d20-9401-5fa1d009c776",
+      "name": "Gabriel Postiga",
+      "score": 64.67050181650208,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "aef851ae-9d4b-4be2-986c-cf837e8e687b",
+      "name": "Pradeep Khaling",
+      "score": 73.72300911463586,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "c1aa6c5d-efa3-4eeb-ae00-b4587e048062",
+      "name": "Abshero Tolosa",
+      "score": 38.0291535201315,
+      "elapsedTimeSeconds": 20916,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "db2f23be-4db5-4c08-9abd-f1e0fc734df9",
+      "name": "Hasan Mohseni-Eje'i",
+      "score": 64.42146028230097,
+      "elapsedTimeSeconds": 21310,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "e267923c-0efd-4615-866e-690bf34c7c2a",
+      "name": "Levente Diviš",
+      "score": 46.3464502237981,
+      "elapsedTimeSeconds": 21637,
+      "effortGapSeconds": 0
+    },
+    {
+      "riderId": "ecfaaf6d-b7b0-4fd9-a2d0-d3c481c36a5f",
+      "name": "Bashar Abou Assi",
+      "score": 74.99129260153828,
+      "elapsedTimeSeconds": 21094,
+      "effortGapSeconds": 0
+    }
+  ]
+}
