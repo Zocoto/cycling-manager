@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import { ChatMediaDialog } from "./chat-media-dialog";
+import { ChatEmojiPanel } from "./chat-emoji-panel";
+import type { ChatGifAttachment } from "@/lib/game/chat-gifs";
+const ChatGifPanel = dynamic(() => import("./chat-gif-panel").then(module => module.ChatGifPanel), { loading: () => <p role="status" className="p-6 text-sm">Chargement…</p> });
 
 import {
   GLOBAL_CHAT_CYCLING_REACTIONS,
-  GLOBAL_CHAT_EMOJIS,
   type GlobalChatCyclingReactionKey,
 } from "@/lib/game/global-chat";
 
@@ -28,61 +32,22 @@ const CUSTOM_REACTION_SOURCES: Partial<
   snack_attack: "/images/chat/reactions/gel-spray.gif",
 };
 
-export function GlobalChatMediaPicker({
-  onEmojiSelect,
-}: {
+export function GlobalChatMediaPicker({ onEmojiSelect, onGifSelect, klipyAppKey = "", disabled = false }: {
   onEmojiSelect: (emoji: string) => void;
+  onGifSelect?: (media: ChatGifAttachment) => void;
+  klipyAppKey?: string;
+  disabled?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="relative flex items-center gap-1.5">
-      <button
-        type="button"
-        onClick={() => setIsOpen((current) => !current)}
-        className="grid h-9 w-9 place-items-center rounded-lg border border-[#315B3E]/15 bg-[#F3F8F6] text-lg transition hover:border-[#176951]/35 hover:bg-[#E4F4EC]"
-        aria-label="Ajouter un émoji"
-        aria-expanded={isOpen}
-      >
-        😊
-      </button>
-
-      {isOpen ? (
-        <div className="absolute bottom-12 left-0 z-30 w-[min(23rem,calc(100vw-3rem))] rounded-2xl border border-[#315B3E]/15 bg-white p-3 shadow-[0_18px_50px_rgba(7,26,23,0.2)]">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#176951]">
-              Émojis
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="grid h-7 w-7 place-items-center rounded-full bg-[#F3F8F6] text-xs font-black text-[#60756E] hover:bg-[#E4F4EC]"
-              aria-label="Fermer le sélecteur"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="grid max-h-52 grid-cols-7 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-8">
-            {GLOBAL_CHAT_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => {
-                  onEmojiSelect(emoji);
-                  setIsOpen(false);
-                }}
-                className="grid aspect-square place-items-center rounded-lg bg-[#F7FBF9] text-xl transition hover:scale-105 hover:bg-[#E4F4EC]"
-                aria-label={`Ajouter ${emoji}`}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
+  const [mode, setMode] = useState<"emoji" | "gif" | null>(null);
+  const buttonClass = "grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#315B3E]/15 bg-[#F3F8F6] transition hover:border-[#176951]/35 hover:bg-[#E4F4EC] disabled:opacity-50";
+  return <div className="flex items-center gap-1.5">
+    <button type="button" disabled={disabled} onClick={() => setMode("emoji")} className={buttonClass + " text-lg"} aria-label="Ajouter un émoji" aria-haspopup="dialog" aria-expanded={mode === "emoji"}>😊</button>
+    {onGifSelect ? <button type="button" disabled={disabled} onClick={() => setMode("gif")} className={buttonClass + " text-[10px] font-black text-[#176951]"} aria-label="Ajouter un GIF" aria-haspopup="dialog" aria-expanded={mode === "gif"}>GIF</button> : null}
+    {mode ? <ChatMediaDialog title={mode === "emoji" ? "Émojis" : "GIF et mèmes"} onClose={() => setMode(null)}>
+      {mode === "emoji" ? <ChatEmojiPanel onSelect={emoji => { onEmojiSelect(emoji); setMode(null); }} /> :
+        <ChatGifPanel appKey={klipyAppKey} onSelect={media => { onGifSelect?.(media); setMode(null); }} />}
+    </ChatMediaDialog> : null}
+  </div>;
 }
 
 export function CyclingReactionSticker({

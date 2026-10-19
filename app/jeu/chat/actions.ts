@@ -16,6 +16,28 @@ import {
   type GlobalChatMessageRow,
 } from "@/services/global-chat";
 import { resolveGlobalChatPreviewPalette } from "@/services/global-chat-preview";
+import { readChatGifAttachment, type ChatGifAttachment } from "@/lib/game/chat-gifs";
+
+export async function postGlobalChatGifMessageAction(
+  rawMessage: string, rawGif: ChatGifAttachment, requestId: string,
+  replyToMessageId: string | null = null, mentionedSportingDirectorIds: string[] = [],
+): Promise<GlobalChatMessage> {
+  const message = normalizeGlobalChatMessage(rawMessage);
+  const gif = readChatGifAttachment(rawGif);
+  const mentions = [...new Set(mentionedSportingDirectorIds)];
+  if (!gif || !isUuid(requestId) || message.length > GLOBAL_CHAT_MESSAGE_MAX_LENGTH || hasForbiddenGlobalChatLink(message) ||
+    (replyToMessageId !== null && !isUuid(replyToMessageId)) || mentions.length > GLOBAL_CHAT_MENTION_MAX_RECIPIENTS || mentions.some(id => !isUuid(id))) {
+    throw new Error("Le GIF ou son message est invalide.");
+  }
+  const supabase = await createSupabaseServerClient();
+  await requireAuthenticatedUser(supabase);
+  const { data, error } = await supabase.rpc("post_global_chat_gif_message", {
+    p_message: message, p_gif: gif, p_request_id: requestId,
+    p_reply_to_message_id: replyToMessageId, p_mentioned_sporting_director_ids: mentions,
+  });
+  if (error || !data) throw new Error(error?.message ?? "Le GIF n’a pas pu être envoyé. Votre brouillon est conservé.");
+  return mapGlobalChatMessage(data as GlobalChatMessageRow);
+}
 
 export async function postGlobalChatMessageAction(
   rawMessage: string,

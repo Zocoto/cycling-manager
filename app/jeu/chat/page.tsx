@@ -76,6 +76,7 @@ export default async function GlobalChatPage({
             initialDirectRecipientId={initialDirectRecipientId}
             initialDirectUnreadCount={directUnreadCount}
             translationEnabled={isChatTranslationConfigured()}
+            klipyAppKey={process.env.NEXT_PUBLIC_KLIPY_APP_KEY ?? ""}
           />
         </div>
       </section>

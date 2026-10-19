@@ -16,6 +16,9 @@ import {
 
 import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
 import { ChatImage, ChatImageDraftPreview } from "@/components/game/chat-image";
+import { ChatGif, ChatGifDraft } from "@/components/game/chat-gif";
+import { getKlipyCustomerId } from "@/lib/game/klipy-client";
+import { isChatGifOnlyMessage, readChatGifAttachment, registerKlipyShare, type ChatGifAttachment } from "@/lib/game/chat-gifs";
 import { useChatImageDraft } from "@/components/game/use-chat-image-draft";
 import { isChatImageOnlyMessage, readChatImageAttachment } from "@/lib/game/chat-images";
 import { readChatImageSendResponse } from "@/lib/game/chat-image-response";
@@ -29,6 +32,7 @@ import { useChatAutoTranslation } from "@/components/game/use-chat-auto-translat
 import {
   editGlobalChatMessageAction,
   postGlobalChatMessageAction,
+  postGlobalChatGifMessageAction,
 } from "@/app/jeu/chat/actions";
 import {
   CyclingReactionSticker,
@@ -130,12 +134,14 @@ export function GlobalGameChat({
   initialDirectRecipientId = null,
   initialDirectUnreadCount = 0,
   translationEnabled = false,
+  klipyAppKey = "",
 }: {
   identity: GlobalChatIdentity;
   initialOnlineDirectors: GlobalChatOnlineDirector[];
   initialMessages: GlobalChatMessage[];
   initialHasMore: boolean;
   initialCursor: GlobalChatCursor | null;
+  klipyAppKey?: string;
   initialLastReadAt?: string | null;
   initialDirectRecipientId?: string | null;
   initialDirectUnreadCount?: number;
@@ -218,6 +224,7 @@ export function GlobalGameChat({
   const [pendingLiveMessageCount, setPendingLiveMessageCount] = useState(0);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [draft, setDraft] = useState("");
+  const [gifDraft, setGifDraft] = useState<{ gif: ChatGifAttachment; requestId: string } | null>(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [selectedMentions, setSelectedMentions] = useState<
     GlobalChatMentionRecipient[]
@@ -388,7 +395,7 @@ export function GlobalGameChat({
   const timelineMessages = shouldCollapseReadHistory
     ? filteredMessages.slice(compactHistoryStartIndex)
     : filteredMessages;
-  const translationMessages = useMemo(() => timelineMessages.filter((message) => !isChatImageOnlyMessage(message)), [timelineMessages]);
+  const translationMessages = useMemo(() => timelineMessages.filter((message) => !isChatImageOnlyMessage(message) && !isChatGifOnlyMessage(message)), [timelineMessages]);
   const translationPreferences = useChatAutoTranslation({
     directorId: identity.sportingDirectorId, locale, enabled: translationEnabled,
     active: activeMode === "global", messages: translationMessages, viewportRef,
@@ -1024,9 +1031,14 @@ export function GlobalGameChat({
   }
 
   function appendEmoji(emoji: string) {
-    setDraft((current) => {
-      const separator = current.length > 0 && !/\s$/.test(current) ? " " : "";
-      return `${current}${separator}${emoji}`.slice(0, draftLimit);
+    const start = textareaRef.current?.selectionStart ?? draft.length;
+    const end = textareaRef.current?.selectionEnd ?? start;
+    const next = draft.slice(0, start) + emoji + draft.slice(end);
+    if (next.length > draftLimit) return;
+    setDraft(next);
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(start + emoji.length, start + emoji.length);
     });
   }
 
@@ -1122,7 +1134,7 @@ export function GlobalGameChat({
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = normalizeGlobalChatMessage(draft);
-    if ((!message && !imageDraft.image) || isPending || imageDraft.preparing || imageSendLock.current) return;
+    if ((!message && !imageDraft.image && !gifDraft) || isPending || imageDraft.preparing || imageSendLock.current) return;
     if (hasForbiddenGlobalChatLink(message)) {
       setError(
         "Seuls les liens Cyclo Stratège vers une fiche coureur, junior, équipe ou DS sont autorisés.",
@@ -1141,7 +1153,10 @@ export function GlobalGameChat({
     startTransition(async () => {
       try {
         let savedMessage: GlobalChatMessage;
-        if (imageDraft.image) {
+        if (gifDraft) {
+          savedMessage = await postGlobalChatGifMessageAction(message, gifDraft.gif, gifDraft.requestId, replyTo?.id ?? null, mentionedDirectorIds);
+          if (klipyAppKey) void registerKlipyShare(klipyAppKey, gifDraft.gif, getKlipyCustomerId());
+        } else if (imageDraft.image) {
           const form = new FormData();
           form.set("image", imageDraft.image.file);
           form.set("requestId", imageDraft.image.requestId);
@@ -1157,6 +1172,7 @@ export function GlobalGameChat({
         setMessages((current) => appendUniqueMessage(current, savedMessage));
         setDraft("");
         imageDraft.clear();
+        setGifDraft(null);
         setReplyTo(null);
         setSelectedMentions([]);
         setMentionQuery(null);
@@ -1594,6 +1610,7 @@ export function GlobalGameChat({
             Votre message
           </label>
           {imageDraft.image ? <ChatImageDraftPreview src={imageDraft.image.previewUrl} disabled={isPending} onRemove={imageDraft.clear} /> : null}
+          {gifDraft ? <ChatGifDraft gif={gifDraft.gif} disabled={isPending} onRemove={() => setGifDraft(null)} /> : null}
           {imageDraft.preparing ? <p role="status" className="mb-2 text-xs font-semibold text-[#60756E]">Préparation de l’image…</p> : null}
           {replyTo ? (
             <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/20 bg-[#EAF7F1] px-3 py-2">
@@ -1674,7 +1691,10 @@ export function GlobalGameChat({
               rows={1}
               value={draft}
               disabled={isPending}
-              onPaste={imageDraft.onPaste}
+              onPaste={(event) => {
+                if (Array.from(event.clipboardData.items).some(item => item.kind === "file" && item.type.startsWith("image/"))) setGifDraft(null);
+                imageDraft.onPaste(event);
+              }}
               onChange={updateDraftAndMentionSearch}
               onKeyDown={(event) => {
                 if (
@@ -1707,7 +1727,7 @@ export function GlobalGameChat({
             <button
               type="submit"
               disabled={
-                isPending || imageDraft.preparing || (draft.trim().length === 0 && !imageDraft.image)
+                isPending || imageDraft.preparing || (draft.trim().length === 0 && !imageDraft.image && !gifDraft)
               }
               className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
@@ -1722,11 +1742,14 @@ export function GlobalGameChat({
           <div className="mt-2 flex min-h-9 flex-wrap items-center gap-2">
             <GlobalChatMediaPicker
               onEmojiSelect={(emoji) => { if (!isPending) appendEmoji(emoji); }}
+              onGifSelect={(gif) => { imageDraft.clear(); setGifDraft({ gif, requestId: crypto.randomUUID() }); }}
+              klipyAppKey={klipyAppKey}
+              disabled={isPending || imageDraft.preparing}
             />
             <label className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full border border-[#176951]/15 text-[#176951] ${isPending || imageDraft.preparing ? "pointer-events-none opacity-50" : "hover:bg-[#EAF7F1]"}`} title="Joindre une image (ou Ctrl+V)">
               <span aria-hidden="true">＋</span>
               <span className="sr-only">Joindre une image</span>
-              <input type="file" accept="image/png,image/jpeg,image/webp" disabled={isPending || imageDraft.preparing} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void imageDraft.select(file); event.target.value = ""; }} />
+              <input type="file" accept="image/png,image/jpeg,image/webp" disabled={isPending || imageDraft.preparing} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setGifDraft(null); void imageDraft.select(file); } event.target.value = ""; }} />
             </label>
             <p
               role="alert"
@@ -1929,7 +1952,7 @@ function ChatMessage({
   const canTranslate =
     translationEnabled &&
     !isCurrentDirector &&
-    !isChatImageOnlyMessage(message) &&
+    !isChatImageOnlyMessage(message) && !isChatGifOnlyMessage(message) &&
     hasTranslatableChatText(splitChatMessageForTranslation(message.message));
 
   return (
@@ -2127,8 +2150,8 @@ function ChatMessage({
               </button>
             </div>
           </form>
-        ) : (
-          <div data-i18n-skip={isChatImageOnlyMessage(message) ? undefined : true} className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+        ) : isChatGifOnlyMessage(message) ? null : (
+          <div data-i18n-skip={isChatImageOnlyMessage(message) || isChatGifOnlyMessage(message) ? undefined : true} className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
             {renderMessageText(message.message, isCurrentDirector)}
           </div>
         )}
@@ -2186,6 +2209,7 @@ function ChatMessage({
           <GlobalChatSharePreview preview={message.preview} />
         ) : null}
         {message.image ? <ChatImage image={message.image} author={message.authorDisplayName} /> : null}
+        {message.gif ? <ChatGif gif={message.gif} /> : null}
         {!isEditing ? (
           <GlobalChatMessageReactions
             message={message}
@@ -2644,6 +2668,7 @@ function readRealtimeMessage(
     teamDisplayName: row.team_display_name,
     message: row.message,
     image: readChatImageAttachment(value),
+    gif: readChatGifAttachment(value.gif_attachment),
     preview: readRealtimePreview(row),
     replyTo:
       row.reply_to_author_display_name && row.reply_to_message_excerpt

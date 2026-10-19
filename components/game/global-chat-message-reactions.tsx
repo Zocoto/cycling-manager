@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { ChatMediaDialog } from "./chat-media-dialog";
+import { ChatEmojiPanel } from "./chat-emoji-panel";
 
 import Link from "@/components/ui/app-link";
 import {
-  GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS,
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import type {
@@ -81,40 +82,9 @@ export function GlobalChatMessageReactions({
         Réagir
       </button>
 
-      {isPickerOpen ? (
-        <div
-          className={[
-            "absolute bottom-9 z-30 grid grid-cols-6 gap-1 rounded-xl border p-2 shadow-xl",
-            isCurrentDirector
-              ? "right-0 border-white/15 bg-[#0B302B]"
-              : "left-0 border-[#176951]/15 bg-white",
-          ].join(" ")}
-          role="group"
-          aria-label="Réactions au message"
-        >
-          {GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS.map((emoji) => {
-            const reactionKey = message.id + ":" + emoji;
-            return (
-              <button
-                key={emoji}
-                type="button"
-                disabled={reactionsDisabled}
-                aria-busy={
-                  reactionsDisabled && pendingReactionKey === reactionKey
-                }
-                onClick={() => {
-                  onReaction(message.id, emoji);
-                  setIsPickerOpen(false);
-                }}
-                className="grid h-8 w-8 place-items-center rounded-lg text-lg transition hover:bg-[#DDF3E7] disabled:opacity-50"
-                aria-label={"Réagir avec " + emoji}
-              >
-                {emoji}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      {isPickerOpen ? <ChatMediaDialog title="Réagir au message" onClose={() => setIsPickerOpen(false)}>
+        <ChatEmojiPanel onSelect={(emoji) => { if (!reactionsDisabled) onReaction(message.id, emoji); setIsPickerOpen(false); }} />
+      </ChatMediaDialog> : null}
     </div>
   );
 }

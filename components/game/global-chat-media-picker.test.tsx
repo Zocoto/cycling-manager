@@ -7,14 +7,16 @@ import {
 } from "./global-chat-media-picker";
 
 describe("global chat media picker", () => {
-  it("exposes a compact emoji picker without the unused GIF control", () => {
+  it("exposes two equally sized controls when GIF selection is available", () => {
     const markup = renderToStaticMarkup(
-      <GlobalChatMediaPicker onEmojiSelect={() => undefined} />,
+      <GlobalChatMediaPicker onEmojiSelect={() => undefined} onGifSelect={() => undefined} />,
     );
 
     expect(markup).toContain("Ajouter un émoji");
     expect(markup).not.toContain("Ajouter un GIF cycliste");
-    expect(markup).not.toContain(">GIF<");
+    expect(markup).toContain("Ajouter un GIF");
+    expect(markup.match(/h-9 w-9/g)).toHaveLength(2);
+    expect(markup).not.toContain("api.klipy.com");
   });
 
   it("renders a local animated cycling sticker", () => {

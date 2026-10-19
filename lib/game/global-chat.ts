@@ -1,3 +1,4 @@
+import { CHAT_EMOJIS, CHAT_REACTION_EMOJIS } from "@/lib/game/chat-emojis";
 import { normalizeChatMessageText } from "@/lib/game/chat-message-text";
 
 export const GLOBAL_CHAT_MESSAGE_MAX_LENGTH = 500;
@@ -10,70 +11,8 @@ export const GLOBAL_CHAT_SEARCH_MIN_LENGTH = 2;
 export const GLOBAL_CHAT_SEARCH_MAX_LENGTH = 80;
 export const GLOBAL_CHAT_SEARCH_RESULT_LIMIT = 30;
 
-export const GLOBAL_CHAT_EMOJIS = [
-  "😀",
-  "😃",
-  "😄",
-  "😁",
-  "😂",
-  "🤣",
-  "😊",
-  "😉",
-  "😍",
-  "🥰",
-  "😎",
-  "🤔",
-  "😮",
-  "😱",
-  "😢",
-  "😭",
-  "😡",
-  "😤",
-  "🙃",
-  "😅",
-  "👍",
-  "👎",
-  "👏",
-  "🙌",
-  "💪",
-  "🤝",
-  "🙏",
-  "❤️",
-  "💔",
-  "🔥",
-  "⚡",
-  "🎉",
-  "🥳",
-  "🏆",
-  "🥇",
-  "🚴",
-  "🚵",
-  "🚲",
-  "⛰️",
-  "🌧️",
-  "💨",
-  "🚀",
-  "✅",
-  "❌",
-  "👀",
-  "🍌",
-  "🍼",
-] as const;
-
-export const GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS = [
-  "👍",
-  "❤️",
-  "😂",
-  "😮",
-  "👏",
-  "🔥",
-  "😢",
-  "😡",
-  "🎉",
-  "🤝",
-  "🚴",
-  "🏆",
-] as const;
+export const GLOBAL_CHAT_EMOJIS = CHAT_EMOJIS;
+export const GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS = CHAT_REACTION_EMOJIS;
 
 export type GlobalChatMessageReactionEmoji =
   (typeof GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS)[number];
