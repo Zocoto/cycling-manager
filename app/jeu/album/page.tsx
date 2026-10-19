@@ -10,7 +10,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 
 export const metadata: Metadata = { title: "L’Album du peloton · Aperçu privé", robots: {index: false, follow: false} };
 
-export default async function CollectorAlbumPage({searchParams}: {searchParams?: Promise<{saison?:string;onglet?:string}>} = {}) {
+export default async function CollectorAlbumPage({searchParams}: {searchParams?: Promise<{saison?:string;onglet?:string}>}) {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await getAuthenticatedUser(supabase);
   if (error || !user) redirect("/connexion");
