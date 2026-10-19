@@ -5,6 +5,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
 import { DailyRewardRedemptionForm } from "@/components/game/daily-reward-redemption-form";
 import { GameHeader } from "@/components/game/game-header";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
@@ -124,6 +125,10 @@ export default async function InventoryPage({
     ]);
 
   if (!overview) redirect("/jeu");
+  // This entry is private and presentation-only; never part of gameplay stock or totals.
+  const collectorPreview = canAccessCollectorAlbum(user.id)
+    ? await import("@/components/game/collector-album-inventory-preview").then(({CollectorAlbumInventoryPreview}) => <CollectorAlbumInventoryPreview storageOwnerId={user.id} />)
+    : null;
 
   if (rosterResult.error) {
     console.error(
@@ -179,6 +184,7 @@ export default async function InventoryPage({
 
       <section className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
+        {collectorPreview}
 
         {successMessage || equipmentConfirmed ? (
           <p className="mt-5 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">

@@ -24,4 +24,10 @@ describe("collector album server-side authorization",()=>{
     expect(await Page()).toBeTruthy();
     expect(mocks.header).toHaveBeenCalledTimes(1);
   });
+  it("does not mix another season into the current collection",async()=>{
+    mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
+    await expect(Page({searchParams:Promise.resolve({saison:"5"})})).rejects.toThrow("not-found");
+    expect(mocks.header).not.toHaveBeenCalled();
+    expect(await Page({searchParams:Promise.resolve({saison:"4",onglet:"boosters"})})).toBeTruthy();
+  });
 });
