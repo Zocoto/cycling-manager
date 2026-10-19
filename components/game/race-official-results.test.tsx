@@ -13,6 +13,7 @@ import type {
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 
 import { RaceOfficialResults } from "./race-official-results";
+import { createRaceJournalFixture } from "@/test/race-journal-fixture";
 
 const stage = {
   id: "stage-1",
@@ -230,6 +231,17 @@ describe("RaceOfficialResults", () => {
     expect(markup.indexOf("Journal de course")).toBeLessThan(
       markup.indexOf("Classements de la course"),
     );
+  });
+
+  it("n’affiche plus un bilan d’équipe séparé et ne monte pas ses détails dans la page fermée", () => {
+    const {entries, report} = createRaceJournalFixture();
+    const markup = renderToStaticMarkup(<RaceOfficialResults edition={edition} gameYear={3} selectedStageId="stage-1" officialResults={buildResults("team-active")} courseJournal={entries} teamStageReport={report} />);
+    expect(markup.match(/data-race-course-journal/g)).toHaveLength(1);
+    expect(markup).not.toContain("Le débrief du directeur sportif");
+    expect(markup).not.toContain("Bilan de votre équipe sur l’étape");
+    expect(markup).not.toContain("data-rider-journal");
+    expect(markup).toContain("Classements de la course");
+    expect(markup).toContain("Camille Rapide");
   });
 
   it("met en avant le plus combatif de la classique et sa prime", () => {

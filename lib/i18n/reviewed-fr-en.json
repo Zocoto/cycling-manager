@@ -1030,5 +1030,17 @@
   "Ciblage ambigu pour Sevrinovitch : {{0}} affectations actives trouvées.": "Ambiguous target for Sevrinovich: {{0}} active assignments found.",
   "Ciblage ambigu pour Sevrinovitch : % affectations actives trouvées.": "Ambiguous target for Sevrinovich: % active assignments found.",
   "La Cellule performance active de niveau 8 est introuvable.": "The active level 8 Performance Unit could not be found.",
-  "La compensation existante de Sevrinovitch est incohérente.": "Sevrinovich’s existing compensation is inconsistent."
+  "La compensation existante de Sevrinovitch est incohérente.": "Sevrinovich’s existing compensation is inconsistent.",
+  "Aucun fait détaillé disponible pour cette étape. Les résultats officiels restent accessibles ci-dessous.": "No detailed race events are available for this stage. Official results remain available below.",
+  "Détail des coureurs": "Rider details",
+  "Écart indisponible": "Gap unavailable",
+  "En tête du peloton": "At the front of the peloton",
+  "Le déroulement de l’épreuve et les faits marquants de votre équipe": "The race story and your team's key moments",
+  "Lecture du journal": "Report view",
+  "Les faits principaux sont présentés ici. Tous les événements enregistrés restent disponibles dans le détail de chaque coureur.": "The key moments are shown here. All recorded events remain available in each rider's details.",
+  "Ouvrir la fiche du coureur": "Open rider profile",
+  "Relais dans l’échappée": "Breakaway turns",
+  "Réserve à l’arrivée": "Energy at the finish",
+  "Toute la course": "Whole race",
+  "Vers le km": "Around km"
 }

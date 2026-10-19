@@ -4,7 +4,6 @@ import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import { RaceCourseJournal } from "@/components/game/race-course-journal";
-import { RaceTeamStageReport } from "@/components/game/race-team-stage-report";
 import type { TeamStageReport } from "@/lib/game/race-team-stage-report";
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
@@ -138,8 +137,7 @@ export function RaceOfficialResults({
         />
       </header>
 
-      <RaceTeamStageReport report={teamStageReport} />
-      <RaceCourseJournal entries={courseJournal} />
+      <RaceCourseJournal key={selectedStageId} entries={courseJournal} teamReport={teamStageReport} />
 
       <CombativityTrophies
         awards={officialResults.combativityAwards ?? []}

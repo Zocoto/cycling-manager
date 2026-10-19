@@ -1,74 +1,144 @@
-import Link from "@/components/ui/app-link";
-import type { TeamStageReport } from "@/lib/game/race-team-stage-report";
+"use client";
 
-const distance = (km: number) => new Intl.NumberFormat("fr", { maximumFractionDigits: 1 }).format(km);
-const gap = (ms: number) => {
-  const seconds = Math.round(ms / 1000);
-  return seconds >= 60 ? `${Math.floor(seconds / 60)} min ${seconds % 60} s` : `${seconds} s`;
+import { useMemo, useState } from "react";
+import Link from "@/components/ui/app-link";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { buildTeamJournalView } from "@/lib/game/race-journal-view";
+import type { TeamStageEvent, TeamStageReport, TeamStageRiderReport } from "@/lib/game/race-team-stage-report";
+
+const NUMBERS = {
+  fr: new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }),
+  en: new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }),
 };
 const STATUS_LABELS = {
-  finished: "Arrivée", did_not_start: "Non-partant", did_not_finish: "Abandon",
-  disqualified: "Disqualifié", outside_time_limit: "Hors délai", withdrawn: "Retiré",
+  finished: ["Arrivée", "Finished"], did_not_start: ["Non-partant", "DNS"],
+  did_not_finish: ["Abandon", "DNF"], disqualified: ["Disqualifié", "Disqualified"],
+  outside_time_limit: ["Hors délai", "Outside time limit"], withdrawn: ["Retiré", "Withdrawn"],
+} as const;
+const ENGLISH_ROLES: Record<string, string> = {
+  "Leader": "Leader", "Leader sprinteur": "Sprint leader", "Sprinteur": "Sprinter",
+  "Coureur protégé": "Protected rider", "Équipier": "Domestique", "Électron libre": "Free role",
+  "Poisson-pilote": "Lead-out rider", "Poisson pilote": "Lead-out rider",
+  "Leader / sprinteur": "Leader / sprinter", "Automatique": "Automatic", "Classement montagne": "Mountains classification",
+};
+const ENGLISH_EVENT_TITLES: Record<string, string> = {
+  "Protection": "Protection", "Aide au retour": "Chase support", "Travail en tête du peloton": "Work at the front of the peloton",
+  "Lancement du sprint": "Sprint lead-out", "En échappée": "In the breakaway",
+  "En contre-attaque / poursuite": "Counter-attack / chase", "Décrochage": "Dropped",
+  "Retour dans le peloton": "Back in the peloton", "Crevaison / avarie": "Puncture / mechanical",
+  "Bordure": "Crosswind split", "Chute collective": "Mass crash", "Chute": "Crash", "Abandon sur chute": "DNF after a crash",
+  "Attaque / accélération": "Attack / acceleration", "Soutien / retour": "Support / return", "Perte de contact": "Losing contact",
+  "Fait de course": "Race event", "Passage au GPM": "Mountain prime", "Sprint intermédiaire": "Intermediate sprint",
 };
 
-export function RaceTeamStageReport({ report }: { report: TeamStageReport | null }) {
-  if (!report) return null;
-  const best = [...report.riders].filter((rider) => rider.result.rank !== null)
-    .sort((a, b) => a.result.rank! - b.result.rank!)[0];
-  const finished = report.riders.filter((rider) => rider.result.status === "finished").length;
-  return (
-    <section aria-label="Bilan de votre équipe sur l’étape" className="min-w-0 border-b border-[#315B3E]/12 bg-[#F3F8F5] px-4 py-5 sm:px-8 sm:py-6">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#176951]">Le débrief du directeur sportif</p>
-      <h3 className="mt-1 text-xl font-black text-[#0B302B]">Votre équipe sur l’étape</h3>
-      <p className="mt-1 break-words text-sm font-semibold text-[#60756E]">{report.teamName} · {finished} / {report.riders.length} coureurs à l’arrivée</p>
-      {best ? <p className="mt-3 rounded-xl border border-[#176951]/15 bg-white px-4 py-3 text-sm font-bold text-[#0B302B]">
-        Meilleur résultat : <Link href={`/jeu/coureurs/${best.result.riderId}`} className="text-[#176951] underline decoration-[#176951]/30 underline-offset-4">{best.result.riderName}</Link>
-        {" · "}{best.result.rank === 1 ? "Victoire" : `${best.result.rank}e`}
-        {best.result.gapToWinnerMs ? ` · +${gap(best.result.gapToWinnerMs)}` : ""}
-      </p> : null}
+function rankLabel(rank: number, en: boolean) {
+  if (!en) return `${rank}e`;
+  const last = rank % 100;
+  return `${rank}${last >= 11 && last <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[rank % 10] ?? "th"}`;
+}
+function gap(ms: number) {
+  const seconds = Math.round(ms / 1000);
+  return seconds >= 60 ? `${Math.floor(seconds / 60)} min ${seconds % 60} s` : `${seconds} s`;
+}
+function resultLabel(rider: TeamStageRiderReport, en: boolean) {
+  return rider.result.status === "finished" && rider.result.rank !== null
+    ? rankLabel(rider.result.rank, en) : STATUS_LABELS[rider.result.status][en ? 1 : 0];
+}
 
-      <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
-        {report.riders.map((rider) => {
-          const work = rider.workKm;
-          const metrics = [
-            rider.breakawayKm && `Échappée : ${distance(rider.breakawayKm)} km`,
-            rider.relayKm && `Relais dans l’échappée : ${distance(rider.relayKm)} km`,
-            work?.protection && `Protection : ${distance(work.protection)} km`,
-            work?.recovery && `Aide au retour : ${distance(work.recovery)} km`,
-            work?.peloton && `En tête du peloton : ${distance(work.peloton)} km`,
-            work?.leadout && `Lancement du sprint : ${distance(work.leadout)} km`,
-          ].filter(Boolean);
-          return <article key={rider.result.riderId} className="min-w-0 rounded-xl border border-[#315B3E]/12 bg-white p-3 sm:p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <Link href={`/jeu/coureurs/${rider.result.riderId}`} className="break-words text-sm font-black text-[#176951] hover:underline">{rider.result.riderName}</Link>
-                {rider.role ? <p className="mt-1 text-xs font-semibold text-[#60756E]">Rôle au départ : {rider.role}</p> : null}
-              </div>
-              <span className="rounded-lg bg-[#EAF5F3] px-2 py-1 text-xs font-black text-[#0B302B]">{rider.result.rank !== null ? `${rider.result.rank}e` : STATUS_LABELS[rider.result.status]}</span>
-            </div>
-            <p className="mt-2 text-xs font-semibold text-[#60756E]">
-              {rider.result.status === "finished" ? `${rider.result.gapToWinnerMs ? `+${gap(rider.result.gapToWinnerMs)}` : "Dans le temps du vainqueur"}` : rider.result.abandonmentReason ?? STATUS_LABELS[rider.result.status]}
-              {rider.energyAfter !== null ? ` · Réserve à l’arrivée : ${Math.round(rider.energyAfter)} %` : ""}
-            </p>
-            {metrics.length ? <ul className="mt-2 space-y-1 text-xs font-semibold text-[#315B3E]">{metrics.map((metric) => <li key={String(metric)}>{metric}</li>)}</ul> : null}
-            {report.events.some((event) => event.riderIds.includes(rider.result.riderId)) ? <details className="mt-3 border-t border-[#315B3E]/10 pt-2">
-              <summary className="cursor-pointer py-1 text-xs font-black text-[#176951]">Voir ses faits de course</summary>
-              <ul className="mt-2 space-y-2 text-xs leading-5 text-[#315B3E]">{report.events.filter((event) => event.riderIds.includes(rider.result.riderId)).map((event) => <li key={event.id} className="[overflow-wrap:anywhere]"><strong>Km {distance(event.distanceKm)}{event.endKm !== undefined ? `–${distance(event.endKm)}` : ""} · {event.title}</strong><br />{event.detail}</li>)}</ul>
-            </details> : null}
-          </article>;
-        })}
-      </div>
-      {report.tactics.length ? <div className="mt-4 rounded-xl border border-[#315B3E]/12 bg-white p-4"><h4 className="text-sm font-black text-[#0B302B]">Bilan du briefing tactique</h4>{report.tactics.map((text, index) => <p key={index} className="mt-2 text-xs leading-5 text-[#315B3E]">{text}</p>)}</div> : null}
-      <details className="mt-4 rounded-xl border border-[#315B3E]/15 bg-white p-3 sm:p-4">
-        <summary className="cursor-pointer text-sm font-black text-[#0B302B]">Chronologie de l’équipe · {report.events.length} faits enregistrés</summary>
-        {report.events.length ? <ol className="mt-4 space-y-3">{report.events.map((event) => <li key={event.id} className="min-w-0 border-l-2 border-[#72D4B7] pl-3 text-xs leading-5 [overflow-wrap:anywhere]">
-          <p className="font-black text-[#176951]">Km {distance(event.distanceKm)}{event.endKm !== undefined ? `–${distance(event.endKm)}` : ""} · {event.title}</p>
-          <p className="text-[#315B3E]">{event.detail}</p>
-        </li>)}</ol> : <p className="mt-3 text-xs text-[#60756E]">Aucun fait détaillé disponible pour cette étape.</p>}
-      </details>
-      <p className="mt-3 text-[11px] leading-5 text-[#60756E]">{report.hasTimeline ? "Les changements de groupe sont repérés aux points enregistrés du parcours ; les distances sont estimées entre ces observations." : "Le scénario détaillé de cette étape n’est pas disponible. Le bilan présente les résultats officiels."}
-        {!report.hasWorkRecording ? " Le détail des distances de protection, de poursuite et de lancement n’a pas été enregistré sur cette étape." : " Les actions de soutien proviennent du travail enregistré pendant la simulation."}
+/** Mounted only when the unified journal's team view is opened. */
+export function RaceTeamStageReport({ report }: { report: TeamStageReport | null }) {
+  const { locale } = useLocale();
+  const en = locale === "en";
+  const model = useMemo(() => report ? buildTeamJournalView(report) : null, [report]);
+  if (!report || !model) return null;
+  return <div data-race-team-journal className="min-w-0 space-y-4">
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-[#315B3E]/10 pb-3">
+      <p className="min-w-0 text-sm font-bold text-[#0B302B] [overflow-wrap:anywhere]">
+        <span data-i18n-skip>{report.teamName}</span>
+        <span className="ml-2 text-xs font-semibold text-[#60756E]">{model.finishedCount} / {report.riders.length} {en ? "riders finished" : "coureurs à l’arrivée"}</span>
       </p>
-    </section>
-  );
+      {model.best ? <p className="min-w-0 text-xs font-semibold text-[#60756E]">
+        {en ? "Best result: " : "Meilleur résultat : "}
+        <Link href={`/jeu/coureurs/${model.best.result.riderId}`} className="font-black text-[#176951] underline decoration-[#176951]/30 underline-offset-4"><span data-i18n-skip>{model.best.result.riderName}</span></Link>
+        {" · "}{model.best.result.rank === 1 ? en ? "Victory" : "Victoire" : rankLabel(model.best.result.rank!, en)}
+        {model.best.result.gapToWinnerMs !== null && model.best.result.gapToWinnerMs > 0 ? ` · +${gap(model.best.result.gapToWinnerMs)}` : ""}
+      </p> : null}
+    </div>
+
+    {model.overview.length ? <TeamJournalEvents events={model.overview} riderNames={model.riderNames} en={en} /> : <p className="rounded-xl bg-white/70 p-3 text-sm leading-6 text-[#60756E]">
+      {en ? "No detailed race events are available for this stage. Official results remain available below." : "Aucun fait détaillé disponible pour cette étape. Les résultats officiels restent accessibles ci-dessous."}
+    </p>}
+    {model.overview.length < model.eventCount ? <p className="text-xs leading-5 text-[#60756E]">
+      {en ? "The key moments are shown here. All recorded events remain available in each rider's details." : "Les faits principaux sont présentés ici. Tous les événements enregistrés restent disponibles dans le détail de chaque coureur."}
+    </p> : null}
+
+    <div className="min-w-0 rounded-xl border border-[#315B3E]/12 bg-white/70">
+      <p className="border-b border-[#315B3E]/10 px-3 py-3 text-xs font-black text-[#0B302B]">{en ? "Rider details" : "Détail des coureurs"}</p>
+      {report.riders.map(rider => <RiderJournalDetails key={rider.result.riderId} rider={rider} events={model.eventsByRider.get(rider.result.riderId) ?? []} riderNames={model.riderNames} en={en} />)}
+    </div>
+    {report.tactics.length ? <details className="rounded-xl border border-[#315B3E]/12 bg-white/70 px-3">
+      <summary className="flex min-h-11 cursor-pointer items-center py-3 text-xs font-black text-[#176951]">{en ? "Tactical briefing review" : "Bilan du briefing tactique"}</summary>
+      <div className="space-y-2 pb-3">{report.tactics.map((text, index) => <p key={index} className="text-xs leading-5 text-[#315B3E] [overflow-wrap:anywhere]">{text}</p>)}</div>
+    </details> : null}
+    <p className="text-[11px] leading-5 text-[#60756E]">
+      {report.hasTimeline
+        ? en ? "Group changes are located at recorded course checkpoints; distances between observations are estimates." : "Les changements de groupe sont repérés aux points enregistrés du parcours ; les distances sont estimées entre ces observations."
+        : en ? "The detailed scenario is unavailable. This report uses official results only." : "Le scénario détaillé de cette étape n’est pas disponible. Le bilan présente les résultats officiels."}
+      {report.hasWorkRecording
+        ? en ? " Support actions come from work recorded during the simulation." : " Les actions de soutien proviennent du travail enregistré pendant la simulation."
+        : en ? " Protection, chase and lead-out distances were not recorded for this stage." : " Le détail des distances de protection, de poursuite et de lancement n’a pas été enregistré sur cette étape."}
+    </p>
+  </div>;
+}
+
+function RiderJournalDetails({ rider, events, riderNames, en }: { rider: TeamStageRiderReport; events: TeamStageEvent[]; riderNames: Map<string, string>; en: boolean }) {
+  const [open, setOpen] = useState(false);
+  const number = NUMBERS[en ? "en" : "fr"];
+  const work = rider.workKm;
+  const metrics: Array<[string, number | null | undefined, boolean]> = [
+    [en ? "Breakaway" : "Échappée", rider.breakawayKm, true],
+    [en ? "Breakaway turns" : "Relais dans l’échappée", rider.relayKm, true],
+    [en ? "Protection" : "Protection", work?.protection, false],
+    [en ? "Chase support" : "Aide au retour", work?.recovery, false],
+    [en ? "At the front of the peloton" : "En tête du peloton", work?.peloton, false],
+    [en ? "Sprint lead-out" : "Lancement du sprint", work?.leadout, false],
+  ];
+  const gapMs = rider.result.gapToWinnerMs;
+  return <details data-rider-journal={rider.result.riderId} className="min-w-0 border-b border-[#315B3E]/10 last:border-0" onToggle={event => {
+    if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
+  }}>
+    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 focus-visible:outline-2 focus-visible:outline-[#176951] [&::-webkit-details-marker]:hidden">
+      <span className="min-w-0 text-sm font-bold text-[#0B302B] [overflow-wrap:anywhere]" data-i18n-skip>{rider.result.riderName}</span>
+      <span className="flex shrink-0 items-center gap-2 text-xs font-black text-[#176951]">{resultLabel(rider, en)}<span aria-hidden="true">{open ? "−" : "＋"}</span></span>
+    </summary>
+    {open ? <div className="min-w-0 space-y-3 px-3 pb-4" data-rider-journal-content>
+      <p className="text-xs font-semibold leading-5 text-[#60756E]">
+        {rider.role ? <span className="block">{en ? "Starting role: " : "Rôle au départ : "}{en ? ENGLISH_ROLES[rider.role] ?? rider.role : rider.role}</span> : null}
+        {rider.result.status === "finished"
+          ? gapMs !== null && Number.isFinite(gapMs) ? gapMs > 0 ? `+${gap(gapMs)}` : en ? "Same time as the winner" : "Dans le temps du vainqueur"
+            : en ? "Gap unavailable" : "Écart indisponible"
+          : rider.result.abandonmentReason ?? STATUS_LABELS[rider.result.status][en ? 1 : 0]}
+        {rider.energyAfter !== null ? ` · ${en ? "Energy at the finish" : "Réserve à l’arrivée"} : ${Math.round(rider.energyAfter)} %` : ""}
+      </p>
+      <ul className="space-y-1 text-xs leading-5 text-[#315B3E]">{metrics.filter(([, value]) => value !== null && value !== undefined && Number.isFinite(value) && value > 0).map(([label, value, estimated]) => <li key={label}>{label} : {estimated ? "≈ " : ""}{number.format(value!)} km</li>)}</ul>
+      {events.length ? <TeamJournalEvents events={events} riderNames={riderNames} en={en} /> : null}
+      <Link href={`/jeu/coureurs/${rider.result.riderId}`} className="inline-flex min-h-11 items-center text-xs font-black text-[#176951] underline underline-offset-4">{en ? "Open rider profile" : "Ouvrir la fiche du coureur"}</Link>
+    </div> : null}
+  </details>;
+}
+
+function TeamJournalEvents({ events, riderNames, en }: { events: TeamStageEvent[]; riderNames: Map<string, string>; en: boolean }) {
+  const number = NUMBERS[en ? "en" : "fr"];
+  return <ol className="ml-2 min-w-0 border-l border-[#315B3E]/15" data-team-journal-events>
+    {events.map(event => <li key={event.id} className="relative grid min-w-0 gap-1 py-2.5 pl-4 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-3">
+      <span aria-hidden="true" className="absolute -left-[4px] top-4 h-2 w-2 rounded-full bg-[#278B70] ring-4 ring-[#F3F8F5]" />
+      <span className="text-[10px] font-black leading-6 text-[#176951]">{event.id.startsWith("work-") ? "Km" : en ? "Around km" : "Vers le km"} {number.format(event.distanceKm)}{event.endKm !== undefined ? `–${number.format(event.endKm)}` : ""}</span>
+      <p className="min-w-0 text-sm leading-6 text-[#48665F] [overflow-wrap:anywhere]"><strong className="text-[#0B302B]">{en ? ENGLISH_EVENT_TITLES[event.title] ?? event.title : event.title}.</strong>{" "}
+        {event.id.startsWith("work-") && riderNames.has(event.riderIds[0]) ? <>
+          <span data-i18n-skip>{riderNames.get(event.riderIds[0])}</span>
+          {event.riderIds.length > 1 ? <>{en ? " for " : " pour "}<span data-i18n-skip>{event.riderIds.slice(1).map(id => riderNames.get(id)).filter(Boolean).join(", ")}</span></> : null}.
+        </> : event.detail}
+      </p>
+    </li>)}
+  </ol>;
 }
