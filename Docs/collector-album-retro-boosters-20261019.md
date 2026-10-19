@@ -6,6 +6,8 @@ Ce document complète le pilote initial du 19 octobre. Le périmètre reste stri
 
 Couverture évoquant une édition cycliste des années 1980 : impression crème / rouge brique / bleu ardoise, lettrage sportif, légère trame, illustration vectorielle originale de deux cyclistes en montagne. Aucun logo Panini ni illustration raster générée. La saison de collection est affichée en grand, distincte de la saison du classement source.
 
+Affinage du 19 octobre : vignettes à bord crème, numérotation de catalogue, emblème cycliste imprimé, portrait encadré légèrement de biais, cartouche bleu ardoise et notes en rouge brique. Les finitions or / argent / bronze restent reconnaissables par leur filet et leur mention. Chaque carte affiche le drapeau national local du coureur derrière son portrait, à 16 % d’opacité ; noms et notes restent sur des aplats opaques. Pages à trame papier, cadre d’impression et repères de collage. Aucun changement du composant d’avatar partagé, aucune nouvelle police ou bibliothèque distante, aucune requête de base supplémentaire. Les 50 fichiers de drapeau sont contrôlés par test, les codes invalides ne construisent pas d’URL. Le pilote conserve exactement ses accès privés, son état local, ses tirages et ses gains simulés.
+
 L’édition disponible est S4, issue du top 50 final S3. Chaque saison doit conserver son propre instantané, sa clé de collection, ses sachets et ses récompenses uniques. L’URL accepte `saison=4` ; toute saison non disponible est refusée, jamais remplacée silencieusement par S4. Aucun album historique fictif ni catalogue S5 inventé. L’automatisation des instantanés des saisons suivantes reste à raccorder au système persistant lors de son développement.
 
 ## Sachets

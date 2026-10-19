@@ -86,14 +86,14 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album" 
     {tab === "album" ? <>
       <nav className={styles.profiles} aria-label="Profils de coureurs">{ALBUM_PROFILES.map(entry => <button type="button" key={entry.id} aria-pressed={profile === entry.id} onClick={()=>switchProfile(entry.id)}><span aria-hidden="true">{entry.symbol}</span>{entry.label}<small>{snapshot.cards.filter(c=>c.profileKey === entry.id && state.pasted.includes(c.number)).length}/{snapshot.cards.filter(c=>c.profileKey === entry.id).length}</small></button>)}</nav>
       <div className={styles.layout}>
-        <section className={styles.book} aria-label={`Page ${selectedProfile.label}`}>
+        <section className={`${styles.book} ${retro.albumPage}`} aria-label={`Page ${selectedProfile.label}`}>
           <header className={styles.bookHeading}><div><p className={styles.eyebrow}>CHAPITRE {String(ALBUM_PROFILES.indexOf(selectedProfile)+1).padStart(2,"0")} / {selectedProfile.label}</p><h2>{selectedProfile.subtitle}</h2></div><span aria-hidden="true">{selectedProfile.symbol}</span></header>
           <div className={styles.slots}>{visibleCards.map(card => {
             const pasted = state.pasted.includes(card.number);
             const owned = state.owned.includes(card.number);
             const reserved = getLooseAlbumCardCount(state,card.number) < 1 && state.pending?.give === card.number;
             return <div key={card.id} className={styles.slotWrap}>
-              {pasted ? <><CollectorCardFace card={card} season={snapshot.sourceSeason} /><button type="button" className={styles.textButton} onClick={()=>send({type:"unpaste",card:card.number},`${card.name} rejoint les cartes à coller.`)}>Décoller pour le test</button></> : <div className={`${styles.emptySlot} ${owned ? styles.readySlot : ""}`}>
+              {pasted ? <><CollectorCardFace card={card} season={snapshot.sourceSeason} /><button type="button" className={styles.textButton} onClick={()=>send({type:"unpaste",card:card.number},`${card.name} rejoint les cartes à coller.`)}>Décoller pour le test</button></> : <div className={`${styles.emptySlot} ${retro.stickerSpace} ${owned ? styles.readySlot : ""}`}>
                 <span className={styles.slotNumber}>{String(card.number).padStart(2,"0")}</span><span className={styles.slotSymbol} aria-hidden="true">{selectedProfile.symbol}</span><h3>{card.name}</h3><p>{card.country} · {CARD_RARITY_LABELS[getCardRarity(card.rank)]}</p>
                 {owned ? <button type="button" className={styles.primaryButton} disabled={!store.ready || reserved} onClick={()=>send({type:"paste",card:card.number},`${card.name} est collé dans ton album.`)}>{reserved ? "Réservée à l’échange" : "Coller cette carte"}</button> : <span className={styles.toFind}>À collectionner</span>}
               </div>}

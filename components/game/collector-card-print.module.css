@@ -1,0 +1,133 @@
+/* Spot-colour sticker printing. Scoped to the private collector card, never avatars elsewhere. */
+.sticker.sticker {
+  padding: 7px;
+  border: 1px solid #c9ba96;
+  border-radius: 1px;
+  background: #fff8e7;
+  box-shadow: 1px 2px 0 #c6b68e, 0 4px 9px #3e321e25;
+  color: #263e49;
+}
+
+.sticker.sticker::after {
+  inset: 7px;
+  z-index: 3;
+  mix-blend-mode: multiply;
+  opacity: .35;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, #79653e0c 3px 4px);
+  box-shadow: inset 0 0 0 1px #6e553b30;
+}
+
+.sticker .imprint {
+  position: relative;
+  align-items: center;
+  background: #f8efd7;
+  border-bottom: 3px solid var(--foil-mid);
+  padding: 7px 7px 6px;
+  min-height: 36px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .025em;
+}
+
+.catalogueNumber {
+  padding: 4px 5px;
+  border: 1px solid #263e49;
+  color: #263e49;
+  white-space: nowrap;
+}
+
+.cycleMark { width: 38px; height: 20px; flex: none; color: #a54835; }
+.sticker .rarity { color: var(--foil-dark); white-space: nowrap; font-size: 8px; }
+
+.sticker .printedArt {
+  isolation: isolate;
+  background: #efe6cd;
+}
+
+.flagBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .16;
+  filter: saturate(.8);
+  pointer-events: none;
+}
+
+.printedArt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: radial-gradient(#513e23 18%, transparent 22%);
+  background-size: 3px 3px;
+  opacity: .07;
+  box-shadow: inset 0 0 16px #7d62321a;
+}
+
+.sticker .portraitPrint {
+  border-radius: 3px !important;
+  border: 4px solid #fff8e7 !important;
+  box-shadow: 2px 3px 0 #77603d33 !important;
+  transform: rotate(-2deg);
+}
+
+.sticker .countryLabel {
+  background: #fbf1dbea;
+  border-bottom: 1px solid #927d4b77;
+  padding: 3px 4px;
+  bottom: 7px;
+  left: 6px;
+  font-family: 'Courier New', monospace;
+}
+
+.editionSeal {
+  position: absolute;
+  top: 9px;
+  right: 7px;
+  z-index: 2;
+  border: 2px double var(--foil-dark);
+  color: var(--foil-dark);
+  background: #f8efd7eb;
+  padding: 4px 3px;
+  font: 900 13px/1 'Arial Narrow', Arial, sans-serif;
+  transform: rotate(7deg);
+}
+
+.sticker .nameplate {
+  position: relative;
+  padding: 9px 10px 10px;
+  background: #294650;
+  color: #fff5db;
+  border-top: 3px solid var(--foil-mid);
+  min-height: 88px;
+}
+
+.sticker .nameplate p {
+  color: #ebd3a0;
+  font: 8px/1.5 'Courier New', monospace;
+  letter-spacing: .03em;
+  margin-bottom: 5px;
+}
+
+.sticker .nameplate h3 {
+  font-family: 'Arial Narrow', Impact, Arial, sans-serif;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.025em;
+  text-transform: uppercase;
+  color: #fff5db;
+}
+
+.sticker .nameplate > span { font-size: 9px; line-height: 1.4; color: #eee2c6; }
+.sticker .statStrip { background: #fbf1d9; padding-block: 9px; border-block-color: #ac916850; }
+.sticker .statStrip dt { color: #62604d; font: 800 7px/1.3 'Courier New', monospace; }
+.sticker .statStrip dd { color: #923f2e; font-family: Georgia, serif; }
+
+@media (max-width: 950px) and (min-width: 761px) {
+  .cycleMark { width: 29px; }
+  .sticker .imprint { padding-inline: 4px; font-size: 7px; gap: 3px; }
+  .catalogueNumber { padding-inline: 3px; }
+  .sticker .nameplate h3 { font-size: 20px; }
+}
