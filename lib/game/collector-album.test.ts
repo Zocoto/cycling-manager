@@ -37,8 +37,8 @@ describe("private collector pilot", () => {
   it("reserves an offer without moving cards; prevents sticking or offering it twice", () => {
     const pending=updateAlbumPilot(createAlbumPilotState(),{type:"propose",give:8,receive:9});
     expect(pending.owned).toEqual([1,8]);
-    expect(pending.partner).toEqual([9]);
-    expect(pending.pending).toEqual({give:8,receive:9});
+    expect(pending.partners["collector-demo"]).toEqual([9]);
+    expect(pending.pending).toEqual({give:[8],receive:9,partnerId:"collector-demo"});
     expect(updateAlbumPilot(pending,{type:"paste",card:8})).toBe(pending);
     expect(updateAlbumPilot(pending,{type:"propose",give:1,receive:9})).toBe(pending);
   });
@@ -53,7 +53,7 @@ describe("private collector pilot", () => {
     const pending=updateAlbumPilot(createAlbumPilotState(),{type:"propose",give:8,receive:9});
     const accepted=updateAlbumPilot(pending,{type:"accept"});
     expect(accepted.owned).toEqual([1,9]);
-    expect(accepted.partner).toEqual([8]);
+    expect(accepted.partners["collector-demo"]).toEqual([8]);
     expect(accepted.pending).toBeNull();
     expect(updateAlbumPilot(accepted,{type:"accept"})).toBe(accepted);
     expect(accepted.history[0].outcome).toBe("accepted");
@@ -62,7 +62,7 @@ describe("private collector pilot", () => {
   it.each(["cancel","decline"] as const)("%s releases the reserved card without transferring ownership", type=>{
     const result=updateAlbumPilot(updateAlbumPilot(createAlbumPilotState(),{type:"propose",give:8,receive:9}),{type});
     expect(result.owned).toEqual([1,8]);
-    expect(result.partner).toEqual([9]);
+    expect(result.partners["collector-demo"]).toEqual([9]);
     expect(result.pending).toBeNull();
     expect(updateAlbumPilot(result,{type:"paste",card:8}).pasted).toEqual([8]);
   });

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import snapshot from "@/data/collector-album-pilot.json";
 import type { CollectorCard } from "@/lib/game/collector-album";
-import { CollectorCardFace } from "./collector-card-face";
+import { CollectorCardBack, CollectorCardFace, formatCollectorHonour } from "./collector-card-face";
 
 const cards = snapshot.cards as CollectorCard[];
 
@@ -30,5 +30,20 @@ describe("printed collector cards", () => {
     const markup = renderToStaticMarkup(<CollectorCardFace card={{...cards[0], countryCode:"../invalid"}} season={3} />);
     expect(markup).not.toContain("/images/flags/");
     expect(markup).toContain(cards[0].name);
+  });
+
+  it.each(cards)("shows only the frozen S3 honours on the back of $name",card=>{
+    const markup=renderToStaticMarkup(<CollectorCardBack card={card} season={3}/>);
+    expect(markup).toContain("SAISON 3");
+    expect(markup.match(/<li>/g)?.length??0).toBe(card.honours.length);
+    expect(markup).toContain("Résultats et notes figés en fin de saison 3");
+    expect(markup).not.toContain("SAISON 4");
+  });
+  it("reserves the rainbow and white jersey for verified source-season world champions",()=>{
+    const champion=cards.find(c=>c.name==="Mathieu Laurent")!;
+    expect(renderToStaticMarkup(<CollectorCardFace card={champion} season={3}/>)).toContain("Champion du monde · Route · S3");
+    expect(renderToStaticMarkup(<CollectorCardFace card={cards[0]} season={3}/>)).not.toContain("Champion du monde");
+    expect(formatCollectorHonour({...cards[0].honours[0],kind:"stages",count:3})).toBe("3 victoires d’étapes");
+    expect(formatCollectorHonour({...cards[0].honours[0],kind:"mountain"})).toBe("Meilleur grimpeur");
   });
 });

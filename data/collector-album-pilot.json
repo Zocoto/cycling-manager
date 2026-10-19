@@ -41,7 +41,114 @@
         "timeTrial": 74
       },
       "points": 7684,
-      "victories": 19
+      "victories": 19,
+      "honours": [
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2f0862cb-3a3c-41e3-863b-af6d46650a95",
+          "raceName": "Championnat de Tanzanie - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "419c1beb-5e4e-466f-bcd2-028a899e705b",
+          "raceName": "La Cime du Tyrol",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 4
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 4
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 5
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "cbfba386-73e3-42a4-b9fc-2e59dc9fd31e",
@@ -80,7 +187,143 @@
         "timeTrial": 64
       },
       "points": 5784,
-      "victories": 10
+      "victories": 10,
+      "honours": [
+        {
+          "raceEditionId": "a4dfa487-1dc3-4537-af20-32213498331c",
+          "raceName": "Championnats du monde en ligne",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "c11af760-2123-4d03-a66d-8bb3890512bd",
+          "raceName": "Prague–Karlovy",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "967cc133-e510-4e72-a62f-ec7204020f16",
+          "raceName": "Tour des Hauts du Laos",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "627cfeb9-24fb-449b-91cd-f5c417d6fdd5",
+          "raceName": "Wachau Hügelklassik",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "419c1beb-5e4e-466f-bcd2-028a899e705b",
+          "raceName": "La Cime du Tyrol",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "a04719c9-ca5b-4849-af68-d62f21ec93c9",
+          "raceName": "Le Mur de Catalogne",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "4fae01bf-563a-4a32-b131-ecb2a3b01a5b",
+          "raceName": "Nations Cup · Montagne · D1",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "55e247f5-9658-4467-9b9b-ad574e9308c8",
+          "raceName": "Volta do Atlântico",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "d713e9e1-c924-4c82-b480-e5e58ebafa5a",
+          "raceName": "Himalayan Gateway Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        }
+      ],
+      "worldTitles": [
+        "road"
+      ]
     },
     {
       "id": "2856644f-3612-4e0a-ac73-44df175d4c11",
@@ -119,7 +362,157 @@
         "timeTrial": 62
       },
       "points": 4796,
-      "victories": 13
+      "victories": 13,
+      "honours": [
+        {
+          "raceEditionId": "5e0cd5b6-494d-456d-9714-e31d21601c0b",
+          "raceName": "Bergpreis im Harz",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "35857235-f0e2-4c97-9d28-32ddbaff0cca",
+          "raceName": "Championnat de Arménie - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "a0e29cf2-d988-4afe-9a2e-d0aadebb90db",
+          "raceName": "Clásica de Navarra",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "a0f03171-680e-4adf-a2ee-eb2197865bb2",
+          "raceName": "Cordillera Challenge",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "e7ac1c37-57ba-421e-a01a-407bc87046f6",
+          "raceName": "Desert to Sky Classic",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "de8bd8e3-b5d6-48c5-9848-45c33c34b11a",
+          "raceName": "La Classique du Caucase",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "c3d1711e-dcd9-4031-855f-62554d10e0d4",
+          "raceName": "La Couronne des Ardennes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "cad7a22f-5cf7-459b-b668-cd09ca6b818c",
+          "raceName": "Patagonia Fin del Mundo",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "b99bfbfc-65a5-4eee-8196-8c65c7e59567",
+          "raceName": "Tasman Sea Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "a4dfa487-1dc3-4537-af20-32213498331c",
+          "raceName": "Championnats du monde en ligne",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "c55d21dc-49ab-4ae0-9190-0c74f50f8e27",
+          "raceName": "Tour du Rift",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 6
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "c55d21dc-49ab-4ae0-9190-0c74f50f8e27",
+          "raceName": "Tour du Rift",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "c55d21dc-49ab-4ae0-9190-0c74f50f8e27",
+          "raceName": "Tour du Rift",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "4dda2ae0-a560-4bd4-b1bb-b906ee8a3fc0",
@@ -158,7 +551,95 @@
         "timeTrial": 71
       },
       "points": 4575,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "8b730f45-1505-408c-b146-0cf92da0f718",
+          "raceName": "Trophée des Volcans",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "e7ac1c37-57ba-421e-a01a-407bc87046f6",
+          "raceName": "Desert to Sky Classic",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "cad7a22f-5cf7-459b-b668-cd09ca6b818c",
+          "raceName": "Patagonia Fin del Mundo",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 4
+        },
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "mountain",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "4140f9ee-687f-4162-9c67-bf6b0dae2042",
@@ -197,7 +678,111 @@
         "timeTrial": 49
       },
       "points": 3650,
-      "victories": 6
+      "victories": 6,
+      "honours": [
+        {
+          "raceEditionId": "7f2a137c-f970-466e-b0b8-c1217181b03e",
+          "raceName": "Championnat de Éthiopie - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "8c664a3b-79c3-4634-aa13-b07dd4850de8",
+          "raceName": "Grand Prix des Carpathes",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "76626fb7-3ac8-48da-93e9-ec8750614f9a",
+          "raceName": "Route des Cèdres",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "c55d21dc-49ab-4ae0-9190-0c74f50f8e27",
+          "raceName": "Tour du Rift",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "d713e9e1-c924-4c82-b480-e5e58ebafa5a",
+          "raceName": "Himalayan Gateway Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "de8bd8e3-b5d6-48c5-9848-45c33c34b11a",
+          "raceName": "La Classique du Caucase",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "c3d1711e-dcd9-4031-855f-62554d10e0d4",
+          "raceName": "La Couronne des Ardennes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "a04719c9-ca5b-4849-af68-d62f21ec93c9",
+          "raceName": "Le Mur de Catalogne",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 6
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "c55d21dc-49ab-4ae0-9190-0c74f50f8e27",
+          "raceName": "Tour du Rift",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "b59c2eb0-8f9e-4efe-8d43-01eeaf8b4a19",
@@ -236,7 +821,124 @@
         "timeTrial": 61
       },
       "points": 3331,
-      "victories": 6
+      "victories": 6,
+      "honours": [
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "292c8c76-3357-4501-af1f-aac059a294e0",
+          "raceName": "Nations Cup · Vallons · D3A",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "203ef052-57fb-4d61-8547-7a2afa2011d5",
+          "raceName": "Routes Blanches de Maurice",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "65eb0794-9dee-4595-b473-924f36897fe7",
+          "raceName": "Classique de la Route de Pierre du Thé",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "3869c95a-128a-42f8-b864-17e5cc558062",
+          "raceName": "Grand Prix du Bosphore",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "3ae77316-889a-4f20-aba7-9c2b353bb9af",
+          "raceName": "La Traversée des Flandres",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 4
+        },
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "c722479d-b734-44e7-a620-e846bbeb43e7",
@@ -275,7 +977,73 @@
         "timeTrial": 65
       },
       "points": 2956,
-      "victories": 6
+      "victories": 6,
+      "honours": [
+        {
+          "raceEditionId": "fd415cbb-d13c-4761-b305-5f2471d43243",
+          "raceName": "Altiplano Boliviano",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "ce984043-9cf6-46d1-9835-499f3e533fce",
+          "raceName": "Giro dell'Appennino",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2ad03c1b-447b-4b56-8727-2a23072a73a5",
+          "raceName": "Semaine de l’Adriatique",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "419c1beb-5e4e-466f-bcd2-028a899e705b",
+          "raceName": "La Cime du Tyrol",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 4
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "43d8cfba-7e4f-4066-9695-853b7e270dbc",
@@ -314,7 +1082,96 @@
         "timeTrial": 52
       },
       "points": 2849,
-      "victories": 7
+      "victories": 7,
+      "honours": [
+        {
+          "raceEditionId": "0a92f5cc-cb2c-4d5a-816b-4a790e960cbe",
+          "raceName": "Classic Riviera Croate",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "a04719c9-ca5b-4849-af68-d62f21ec93c9",
+          "raceName": "Le Mur de Catalogne",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "0c2e5c6d-c2f8-40cf-8c2e-babec801b747",
+          "raceName": "Nations Cup · Vallons · D1",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "3e257624-e466-4675-8fc6-bdf1b5cd32b1",
+          "raceName": "Route des Cafés du Timor",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "e7ac1c37-57ba-421e-a01a-407bc87046f6",
+          "raceName": "Desert to Sky Classic",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "58d5f59f-a1fd-457c-ab75-a0fc04681cdb",
+          "raceName": "Kyoto Hills Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "c3d1711e-dcd9-4031-855f-62554d10e0d4",
+          "raceName": "La Couronne des Ardennes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "c11af760-2123-4d03-a66d-8bb3890512bd",
+          "raceName": "Prague–Karlovy",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "ea77d31c-c4c5-46f5-ba64-9c5e5d1c9e76",
@@ -353,7 +1210,85 @@
         "timeTrial": 63
       },
       "points": 2719,
-      "victories": 8
+      "victories": 8,
+      "honours": [
+        {
+          "raceEditionId": "bc443a63-ad7e-4df4-8539-c2fe45d8f80d",
+          "raceName": "Mekong Delta Tour",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "3e7c49cb-4fe9-4232-bb7a-ba5c75619f09",
+          "raceName": "Silk Road Tour",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "cad7a22f-5cf7-459b-b668-cd09ca6b818c",
+          "raceName": "Patagonia Fin del Mundo",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 4
+        },
+        {
+          "raceEditionId": "3e7c49cb-4fe9-4232-bb7a-ba5c75619f09",
+          "raceName": "Silk Road Tour",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "3e7c49cb-4fe9-4232-bb7a-ba5c75619f09",
+          "raceName": "Silk Road Tour",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "3e7c49cb-4fe9-4232-bb7a-ba5c75619f09",
+          "raceName": "Silk Road Tour",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "f669e5b3-0830-4a54-af98-be1d9950cde7",
@@ -392,7 +1327,34 @@
         "timeTrial": 62
       },
       "points": 2407,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 5
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 5
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 5
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "9cb34caa-52de-4d3a-8e86-cce7d379ab2a",
@@ -431,7 +1393,130 @@
         "timeTrial": 48
       },
       "points": 2081,
-      "victories": 12
+      "victories": 12,
+      "honours": [
+        {
+          "raceEditionId": "419662b1-9b19-4f1a-b788-5ac6bbc40890",
+          "raceName": "Baltic Cobbles",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "e1f67969-1e81-4209-95b1-ab3f8a58979a",
+          "raceName": "Caminos Blancos de Tandil",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "b8b54ffb-b990-4079-bb60-1bb38a9b7201",
+          "raceName": "Cape Cobbles",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "92b105eb-95ed-4591-ad70-ad98f0da5d5a",
+          "raceName": "Ceylon White Roads",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "696634c3-b04e-45cc-afb1-56494cde3102",
+          "raceName": "Clásica de Barichara",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "d13c347f-c9dc-4ec5-a44a-be8cd24a3724",
+          "raceName": "Clásica Empedrada de Trinidad",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "65eb0794-9dee-4595-b473-924f36897fe7",
+          "raceName": "Classique de la Route de Pierre du Thé",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "525c6e4c-7199-4994-8c9a-5509ee4c00bd",
+          "raceName": "Kalldrëmi i Beratit",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "27950730-5d8f-46fd-ad72-a529efc93b43",
+          "raceName": "Les Pavés de Zélande",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "72cd9375-d313-4489-87b4-370dfe6b79d7",
+          "raceName": "Mur de Kigali",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "93078559-7ca6-4c59-89a8-04ee73ec343d",
+          "raceName": "Ronde du Jutland",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "cea57b78-ec69-4408-8cc8-6d8df385091e",
+          "raceName": "Trophée des Chemins d’Armor",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "203ef052-57fb-4d61-8547-7a2afa2011d5",
+          "raceName": "Routes Blanches de Maurice",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "3ae77316-889a-4f20-aba7-9c2b353bb9af",
+          "raceName": "La Traversée des Flandres",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 5
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "3beb50f4-b431-4c16-ad92-89d610c2eefe",
@@ -470,7 +1555,57 @@
         "timeTrial": 50
       },
       "points": 1670,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "d713e9e1-c924-4c82-b480-e5e58ebafa5a",
+          "raceName": "Himalayan Gateway Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "4fae01bf-563a-4a32-b131-ecb2a3b01a5b",
+          "raceName": "Nations Cup · Montagne · D1",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "a0f03171-680e-4adf-a2ee-eb2197865bb2",
+          "raceName": "Cordillera Challenge",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 6
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 7
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "25c0514f-b1c8-41d3-b80e-7eac8e0268cf",
@@ -509,7 +1644,64 @@
         "timeTrial": 65
       },
       "points": 1640,
-      "victories": 12
+      "victories": 12,
+      "honours": [
+        {
+          "raceEditionId": "182a0685-8d63-4f00-abaa-603ed7998bcb",
+          "raceName": "Championnat de Suriname - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2ab69103-378e-4865-8144-7dc9e89dfa5e",
+          "raceName": "Championnat de Suriname - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "22605504-2c7d-471d-94d3-56e090bc9424",
+          "raceName": "Kasseien van Limburg",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "4d4d9886-0603-44d3-9810-abf008ed7327",
+          "raceName": "Tour des Pavés Baltiques",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f13fd718-8f5e-4261-bd62-0c86b98dd371",
+          "raceName": "Caribbean Trade Winds",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 3
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "01c4ec3c-a1ac-4617-a745-e55f966e094d",
@@ -548,7 +1740,55 @@
         "timeTrial": 72
       },
       "points": 1575,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "91959851-8608-4a9e-820b-d8d53c5a9ba7",
+          "raceName": "Tour de Mazovie",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "6ec23adc-0ad8-4c07-a1c8-a5c6d942f7ca",
+          "raceName": "Le Chrono des Fjords",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "youth",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "f3c65a08-229a-4c0d-86ed-7e71a97af0a2",
@@ -587,7 +1827,61 @@
         "timeTrial": 68
       },
       "points": 1545,
-      "victories": 5
+      "victories": 5,
+      "honours": [
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 7
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "9e0c1374-77f7-42c2-8c96-14bd021a7207",
@@ -626,7 +1920,88 @@
         "timeTrial": 48
       },
       "points": 1503,
-      "victories": 8
+      "victories": 8,
+      "honours": [
+        {
+          "raceEditionId": "59b278b2-fbca-40f9-8396-308c9922fe2c",
+          "raceName": "Cape Wind Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f13fd718-8f5e-4261-bd62-0c86b98dd371",
+          "raceName": "Caribbean Trade Winds",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "9775c1dd-76ff-4c60-8671-7ba0448919a3",
+          "raceName": "Desert Pearl Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "ae23121d-5be6-462f-a9d8-0493916de22d",
+          "raceName": "Grand Prix de la Meuse",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "33cc0ee2-fe39-421c-99bb-57d950401d97",
+          "raceName": "Le Grand Prix du Littoral",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "48255789-4df0-4a9c-9ab9-760b5a626680",
+          "raceName": "Nations Cup · Sprint · D1",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "475bfd8e-acfd-41de-a399-1957487cb5d8",
+          "raceName": "Sprint de Busan",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "bec16021-ea87-413c-95ac-5c199ba4985a",
+          "raceName": "Great Lakes Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "d681c693-3950-43cc-a1a5-19212b895fca",
@@ -665,7 +2040,55 @@
         "timeTrial": 69
       },
       "points": 1308,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "ce136a79-2e3c-4c0c-bd76-a8b715d8c2b5",
+          "raceName": "Tour des Volcans du Pacifique",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "55e247f5-9658-4467-9b9b-ad574e9308c8",
+          "raceName": "Volta do Atlântico",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "42c32356-3821-4422-9e48-49481210165f",
@@ -704,7 +2127,42 @@
         "timeTrial": 62
       },
       "points": 1281,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "c11af760-2123-4d03-a66d-8bb3890512bd",
+          "raceName": "Prague–Karlovy",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 9
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 9
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 9
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "50a9fac0-d2ef-4b11-aea7-03cb6fa57ec7",
@@ -743,7 +2201,26 @@
         "timeTrial": 65
       },
       "points": 1245,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 4
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 8
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "c9a44ff6-4e4d-4cd2-a54e-249a1af501ea",
@@ -782,7 +2259,42 @@
         "timeTrial": 59
       },
       "points": 1230,
-      "victories": 3
+      "victories": 3,
+      "honours": [
+        {
+          "raceEditionId": "0a24a494-7240-4c7a-b480-08fe0c6ced3c",
+          "raceName": "Championnat de Pakistan - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "55e247f5-9658-4467-9b9b-ad574e9308c8",
+          "raceName": "Volta do Atlântico",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "0c2e5c6d-c2f8-40cf-8c2e-babec801b747",
+          "raceName": "Nations Cup · Vallons · D1",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "3e7c49cb-4fe9-4232-bb7a-ba5c75619f09",
+          "raceName": "Silk Road Tour",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "fadaf7eb-9f62-44c8-ace0-1e7ca50c0d56",
@@ -821,7 +2333,56 @@
         "timeTrial": 74
       },
       "points": 1199,
-      "victories": 5
+      "victories": 5,
+      "honours": [
+        {
+          "raceEditionId": "42aedc28-2bca-42fa-b612-a3f3f284b916",
+          "raceName": "Championnat de Égypte - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "e9b3e496-10fc-43a1-8dae-7263a3b92907",
+          "raceName": "Chrono du Cap",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "6ec23adc-0ad8-4c07-a1c8-a5c6d942f7ca",
+          "raceName": "Le Chrono des Fjords",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "2066c4b8-36d2-4912-85fb-a49305a2b892",
@@ -860,7 +2421,58 @@
         "timeTrial": 52
       },
       "points": 1101,
-      "victories": 3
+      "victories": 3,
+      "honours": [
+        {
+          "raceEditionId": "61bc6e03-0ce8-48b5-a0cd-ed7e3496b83a",
+          "raceName": "Championnat de Pakistan - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "b95b347a-7b73-4205-a88e-ad04312b54e3",
+          "raceName": "Strade del Monferrato",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "419662b1-9b19-4f1a-b788-5ac6bbc40890",
+          "raceName": "Baltic Cobbles",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "696634c3-b04e-45cc-afb1-56494cde3102",
+          "raceName": "Clásica de Barichara",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "27950730-5d8f-46fd-ad72-a529efc93b43",
+          "raceName": "Les Pavés de Zélande",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "0ba36e0d-498b-4a57-80a6-f387289b9476",
@@ -899,7 +2511,42 @@
         "timeTrial": 59
       },
       "points": 1099,
-      "victories": 3
+      "victories": 3,
+      "honours": [
+        {
+          "raceEditionId": "7bd4d0bf-fddd-46c3-9c3a-8ab452726a8c",
+          "raceName": "Championnat de Eswatini - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f3be3934-7968-4bd5-a1ee-8fb4cc9c04e6",
+          "raceName": "Vuelta de los Cafetales",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 5
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 8
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "34f0d1ab-a777-445e-89ac-e534ddc8fe81",
@@ -938,7 +2585,40 @@
         "timeTrial": 49
       },
       "points": 1090,
-      "victories": 5
+      "victories": 5,
+      "honours": [
+        {
+          "raceEditionId": "48a60608-4a78-494d-98b3-34fa385d8c32",
+          "raceName": "Championnat de Kirghizstan - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "0e616aa3-255e-4885-9449-28a2da2de7db",
+          "raceName": "Championnat de Kirghizstan - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "588ab986-9811-4640-b6d8-043d03e0cc88",
@@ -977,7 +2657,70 @@
         "timeTrial": 68
       },
       "points": 1044,
-      "victories": 8
+      "victories": 8,
+      "honours": [
+        {
+          "raceEditionId": "25d45ac8-b3d5-4796-8622-0e2d81abb1a2",
+          "raceName": "Championnat de Cap-Vert - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2a9ca40b-93c3-43ee-9f04-89012992b4fe",
+          "raceName": "Championnat de Cap-Vert - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "06075248-87d0-4a24-9824-32efc69258af",
+          "raceName": "Critérium de Singapour",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "33cc0ee2-fe39-421c-99bb-57d950401d97",
+          "raceName": "Le Grand Prix du Littoral",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "1035cd15-dcbf-4f9d-bf45-9d5b130b40d7",
+          "raceName": "Southern Coast Tour",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "mountain",
+          "count": 1
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "d7439115-66aa-4020-8ceb-c428088f610e",
@@ -1016,7 +2759,34 @@
         "timeTrial": 72
       },
       "points": 1017,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "3b8df7db-ed41-4f00-88a0-cce961490d2a",
+          "raceName": "Championnat de Uruguay - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "bc6de6b5-244d-4cb6-8188-d589053d6a14",
+          "raceName": "Championnat de Uruguay - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 7
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "48440064-2dac-4aab-a962-bd9ada1360f1",
@@ -1055,7 +2825,48 @@
         "timeTrial": 50
       },
       "points": 920,
-      "victories": 3
+      "victories": 3,
+      "honours": [
+        {
+          "raceEditionId": "a1125de4-d941-4dab-9bbd-f0f786c9f6bf",
+          "raceName": "Nations Cup · Sprint · D4C",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "9775c1dd-76ff-4c60-8671-7ba0448919a3",
+          "raceName": "Desert Pearl Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "33cc0ee2-fe39-421c-99bb-57d950401d97",
+          "raceName": "Le Grand Prix du Littoral",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 2
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "ba79a19c-c1f9-4cef-b75f-2afec6ccfc65",
@@ -1094,7 +2905,64 @@
         "timeTrial": 51
       },
       "points": 900,
-      "victories": 7
+      "victories": 7,
+      "honours": [
+        {
+          "raceEditionId": "74b8bb1f-d2d9-4059-915c-4b0ddba5a66f",
+          "raceName": "Boucle de l'Hexagone",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "c51b1b80-95f1-46bb-b3b3-51b0c97cac0e",
+          "raceName": "Circuit des Lacs de Mazurie",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "b495265f-1ad4-48f6-a736-d619d2166791",
+          "raceName": "Danube Classic",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "d1350f71-6b12-481d-a5d9-a48eb0707d65",
+          "raceName": "Trofeo de Valencia",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "bec16021-ea87-413c-95ac-5c199ba4985a",
+          "raceName": "Great Lakes Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "b295a428-db49-4006-9a3b-f669e12190e8",
+          "raceName": "Andes del Sur",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "0a9158d8-1c95-414c-9429-bf6f1db20231",
@@ -1133,7 +3001,33 @@
         "timeTrial": 50
       },
       "points": 882,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "b99bfbfc-65a5-4eee-8196-8c65c7e59567",
+          "raceName": "Tasman Sea Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "3699a6a9-9ec2-4be5-b349-3bcf37861ec1",
@@ -1172,7 +3066,26 @@
         "timeTrial": 59
       },
       "points": 866,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "1f980a13-48a0-409f-ace2-2d21a3c57a9c",
+          "raceName": "Aurora Borealis Tour",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "28c77776-5940-4394-9b24-a7d9f7cbf4f2",
@@ -1211,7 +3124,42 @@
         "timeTrial": 73
       },
       "points": 820,
-      "victories": 5
+      "victories": 5,
+      "honours": [
+        {
+          "raceEditionId": "566e6939-23ee-4779-ab5c-60bc091d41b9",
+          "raceName": "Championnat de Afghanistan - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "88adb46a-63e1-4f87-9797-125d356ae913",
+          "raceName": "Championnat de Afghanistan - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "6ec23adc-0ad8-4c07-a1c8-a5c6d942f7ca",
+          "raceName": "Le Chrono des Fjords",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "84930ef5-6313-4c45-871e-aa10484d6784",
+          "raceName": "Tour de Han",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "e175cca5-a2f7-4ea8-8f79-5a84b4f30cd5",
@@ -1250,7 +3198,26 @@
         "timeTrial": 52
       },
       "points": 797,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "740569f2-048b-4024-99f9-8a282d61895c",
+          "raceName": "Circuit des Cévennes",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 8
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "65886cdc-f745-4ff5-8ac8-47c1a48a91b7",
@@ -1289,7 +3256,26 @@
         "timeTrial": 52
       },
       "points": 774,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "83868667-aee5-4b06-86ec-e26ca7aafb81",
+          "raceName": "Championnat de Colombie - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 10
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "212cc3db-d0cb-4a02-9126-71285bdd879c",
@@ -1328,7 +3314,26 @@
         "timeTrial": 62
       },
       "points": 750,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "b99bfbfc-65a5-4eee-8196-8c65c7e59567",
+          "raceName": "Tasman Sea Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "716dad06-c144-47a7-afbc-68bff48f8e57",
+          "raceName": "Boucle des Provinces",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 10
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "d9367235-e732-4d63-a9dc-bce86feec2b7",
@@ -1367,7 +3372,26 @@
         "timeTrial": 69
       },
       "points": 739,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "2515af45-bb5b-49be-8a7c-8440e9a61e14",
+          "raceName": "Championnat de Costa Rica - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 6
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "e781b417-f0f0-4e68-a8e6-306ed8f4bfab",
@@ -1406,7 +3430,54 @@
         "timeTrial": 62
       },
       "points": 737,
-      "victories": 4
+      "victories": 4,
+      "honours": [
+        {
+          "raceEditionId": "59b278b2-fbca-40f9-8396-308c9922fe2c",
+          "raceName": "Cape Wind Classic",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "2fac9046-0c12-4a1f-958d-114048117ec7",
+          "raceName": "Tour du Saint-Laurent",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 3
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "sprint",
+          "count": 1
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "ae32212a-db75-4b5a-96ba-436365faba32",
@@ -1445,7 +3516,57 @@
         "timeTrial": 68
       },
       "points": 704,
-      "victories": 4
+      "victories": 4,
+      "honours": [
+        {
+          "raceEditionId": "1daa276b-0038-421e-866f-c0d94a57437b",
+          "raceName": "Championnat de Bulgarie - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "73344bea-0b8d-4dfc-9f7a-149f54093415",
+          "raceName": "Championnat de Bulgarie - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "3869c95a-128a-42f8-b864-17e5cc558062",
+          "raceName": "Grand Prix du Bosphore",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "dd2196ac-29ba-4fcf-9a72-7ab009df622a",
+          "raceName": "Nations Cup · Pavés · D2A",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "f6d38453-43ee-4e84-bf30-a864a8f2b05a",
@@ -1484,7 +3605,25 @@
         "timeTrial": 47
       },
       "points": 692,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "bebbc858-c850-4136-a5ad-4044a3398a57",
@@ -1523,7 +3662,26 @@
         "timeTrial": 56
       },
       "points": 685,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "a0f03171-680e-4adf-a2ee-eb2197865bb2",
+          "raceName": "Cordillera Challenge",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 9
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "d18ca677-dc0e-4b6e-b85d-d7802c28a4ec",
@@ -1562,7 +3720,26 @@
         "timeTrial": 49
       },
       "points": 677,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "b9dc5ce1-3217-47dd-9bdf-5e3cc0fd9150",
+          "raceName": "Championnat de Macédoine du Nord - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "3ae77316-889a-4f20-aba7-9c2b353bb9af",
+          "raceName": "La Traversée des Flandres",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "cdabfa30-fd80-498f-8edb-ddcffcb21d0f",
@@ -1601,7 +3778,66 @@
         "timeTrial": 69
       },
       "points": 671,
-      "victories": 3
+      "victories": 3,
+      "honours": [
+        {
+          "raceEditionId": "9dc480b2-886b-44a9-bc40-b209803f8812",
+          "raceName": "Championnat de Éthiopie - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "055409c2-8301-4968-a3a4-d5aafdf98e6f",
+          "raceName": "Chronomètre de l'Île",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "6848c8f5-3563-47f1-83c8-1d3d5708760e",
+          "raceName": "Tour des Provinces Belges",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "0c575fc9-b368-477d-9c39-2feedf028d9d",
+          "raceName": "Championnats du monde CLM",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "e9b3e496-10fc-43a1-8dae-7263a3b92907",
+          "raceName": "Chrono du Cap",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "c55d21dc-49ab-4ae0-9190-0c74f50f8e27",
+          "raceName": "Tour du Rift",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "3e4dd138-dc00-4a61-b035-564b0338d9f7",
+          "raceName": "Vuelta de los Caminos Blancos",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "2e7d40b9-5160-422a-9643-b05b7222d492",
@@ -1640,7 +3876,9 @@
         "timeTrial": 47
       },
       "points": 660,
-      "victories": 0
+      "victories": 0,
+      "honours": [],
+      "worldTitles": []
     },
     {
       "id": "47a6adf2-2a22-49e1-8f6a-5fe7e9432a27",
@@ -1679,7 +3917,18 @@
         "timeTrial": 61
       },
       "points": 627,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "2ce45e0e-0acc-4bc9-a763-01b35ddd92ea",
+          "raceName": "Ruta de las Sierras",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 8
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "d767816e-08ea-415b-9be0-38004a0160f1",
@@ -1718,7 +3967,65 @@
         "timeTrial": 56
       },
       "points": 624,
-      "victories": 3
+      "victories": 3,
+      "honours": [
+        {
+          "raceEditionId": "29f3d42f-aff1-4c0c-b76f-e406797156fe",
+          "raceName": "Championnat de Maurice - Route",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "572e707b-4f00-4323-b7e8-a01d2bc9a379",
+          "raceName": "Madagascar Red Earth",
+          "categoryCode": "continental",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "21ddd16d-f820-4968-92c2-124f0d55ef28",
+          "raceName": "Nations Cup · Vallons · D2B",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "a4dfa487-1dc3-4537-af20-32213498331c",
+          "raceName": "Championnats du monde en ligne",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "3869c95a-128a-42f8-b864-17e5cc558062",
+          "raceName": "Grand Prix du Bosphore",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 3
+        },
+        {
+          "raceEditionId": "f69381ab-e361-4d76-a26c-d38aa1b7d7d7",
+          "raceName": "Tour du Sakura",
+          "categoryCode": "world",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "93b6ec35-b5c6-4850-b4e7-544b244664e9",
@@ -1757,7 +4064,18 @@
         "timeTrial": 51
       },
       "points": 607,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "185b9d24-2af7-4091-936a-bff04026224d",
+          "raceName": "La Classique des Lacs",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "8e8f5aa5-ed3f-47fa-b792-84603f9cc08f",
@@ -1796,7 +4114,26 @@
         "timeTrial": 63
       },
       "points": 589,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "1b24333c-4751-46c0-a7ef-23255889f143",
+          "raceName": "Tour des Horlogers Helvétiques",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 7
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "89c553fd-6aca-49ed-8919-bc03465b41a5",
@@ -1835,7 +4172,25 @@
         "timeTrial": 70
       },
       "points": 577,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "cd2521c2-f4fd-4e2d-abe1-cb1ab88537ae",
+          "raceName": "Championnat de Ouzbékistan - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "d62c5b5b-1552-473a-89a5-5747496c9a21",
+          "raceName": "Corsa delle Regioni",
+          "categoryCode": "elite",
+          "kind": "stages",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "b51bc1e3-43c6-4858-bc50-d943d6859ad6",
@@ -1874,7 +4229,33 @@
         "timeTrial": 70
       },
       "points": 575,
-      "victories": 2
+      "victories": 2,
+      "honours": [
+        {
+          "raceEditionId": "23ef3580-4d3d-49a1-b402-84f9d0488869",
+          "raceName": "Championnat de Cambodge - Contre-la-montre",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "1a970243-8f45-498f-9d2e-9b7f028a3e3e",
+          "raceName": "Tour des Hauts Plateaux",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "1a970243-8f45-498f-9d2e-9b7f028a3e3e",
+          "raceName": "Tour des Hauts Plateaux",
+          "categoryCode": "world",
+          "kind": "youth",
+          "count": 1
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "5bce9ad3-1d47-4a45-9252-78bc9a364810",
@@ -1913,7 +4294,50 @@
         "timeTrial": 51
       },
       "points": 561,
-      "victories": 1
+      "victories": 1,
+      "honours": [
+        {
+          "raceEditionId": "6d36e5fc-be4e-494e-bf3d-fc360e88ac4c",
+          "raceName": "Estrada Real de Minas",
+          "categoryCode": "national",
+          "kind": "race",
+          "count": 1,
+          "rank": 1
+        },
+        {
+          "raceEditionId": "696634c3-b04e-45cc-afb1-56494cde3102",
+          "raceName": "Clásica de Barichara",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "707cec4f-d2ca-45de-8587-ad8d19d9ce3d",
+          "raceName": "Nations Cup · Pavés · D1",
+          "categoryCode": "world",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 6
+        },
+        {
+          "raceEditionId": "27950730-5d8f-46fd-ad72-a529efc93b43",
+          "raceName": "Les Pavés de Zélande",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 10
+        }
+      ],
+      "worldTitles": []
     },
     {
       "id": "1e6809a5-16dc-4ec6-a725-606d7e3d0d85",
@@ -1952,7 +4376,28 @@
         "timeTrial": 61
       },
       "points": 560,
-      "victories": 0
+      "victories": 0,
+      "honours": [
+        {
+          "raceEditionId": "27950730-5d8f-46fd-ad72-a529efc93b43",
+          "raceName": "Les Pavés de Zélande",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 2
+        },
+        {
+          "raceEditionId": "f398984e-4ad5-4707-ad26-ebb1a79a7547",
+          "raceName": "L'Enfer des Dunes",
+          "categoryCode": "elite",
+          "kind": "race",
+          "count": 1,
+          "rank": 8
+        }
+      ],
+      "worldTitles": []
     }
-  ]
+  ],
+  "sourceSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+  "ratingsFrozenFromSeason": 3
 }
