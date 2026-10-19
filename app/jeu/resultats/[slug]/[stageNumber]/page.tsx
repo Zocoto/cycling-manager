@@ -73,12 +73,14 @@ export default async function RaceLivePage({
   if (authenticationError || !user) redirect("/connexion");
 
   const now = new Date();
+  const headerDataPromise = getGameHeaderData(supabase, user.id);
   const [headerData, calendar] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
+    headerDataPromise,
     getActiveSeasonRaceCalendar(supabase, now, {
       raceSlug: slug,
       includeEngagedRiders: true,
       includeIneligibleRegionalRaces: true,
+      viewerTeamId: headerDataPromise.then((header) => header.teamId),
     }),
   ]);
   const edition = calendar?.editions.find(

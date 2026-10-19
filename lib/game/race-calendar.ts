@@ -189,6 +189,8 @@ export type RaceCalendarEdition = {
   maximumRosterSize: number;
   engagedRiderCount: number;
   engagedRiders: RiderSimulationInput[];
+  /** Rendering-only club membership for list ordering; never used by simulations. */
+  currentTeamRiderIds?: string[];
   /**
    * Nombre de coureurs appartenant à l'équipe du DS courant et présents sur
    * la start-list fédérale. Les inscriptions de club continuent d'utiliser

@@ -101,7 +101,10 @@ export default async function CriteriumDiscoveryResultsPage() {
 
         <div data-tutorial-id="criterium-live-replay" className="mt-8">
           <RaceLiveLab
-            edition={run.edition}
+            edition={{
+              ...run.edition,
+              currentTeamRiderIds: run.roster.map((rider) => rider.riderId),
+            }}
             stage={stage}
             mode="replay"
             nowIso={new Date().toISOString()}
