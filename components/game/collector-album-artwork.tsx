@@ -44,10 +44,10 @@ function PrintedCyclist({jersey, shorts, skin}: {jersey:string; shorts:string; s
   </g>;
 }
 
-export function AlbumBoosterArtwork({ season, compact = false }: {season:number; compact?:boolean}) {
+export function AlbumBoosterArtwork({ season, sourceSeason = season-1, compact = false }: {season:number; sourceSeason?:number; compact?:boolean}) {
   return <div className={`${styles.pack} ${compact ? styles.compactPack : ""}`} aria-label={`Sachet fermé de deux cartes, saison ${season}`}>
     <div className={styles.packCrimp} />
-    <div className={styles.packPrint}><span className={styles.packPublisher}>CYCLO STRATÈGE · COLLECTION OFFICIELLE</span><strong className={styles.packSeason}>SAISON <b>{season}</b></strong><span className={styles.packTitle}>LE GRAND<br /><em>PELOTON</em></span><VintageCyclingArtwork className={styles.packArtwork} /><span className={styles.packCaption}>2 VIGNETTES À COLLECTIONNER</span><span className={styles.packBottom}>TOP 50 UCI · OR · ARGENT · BRONZE</span></div>
+    <div className={styles.packPrint}><span className={styles.packPublisher}>CYCLO STRATÈGE · COLLECTION OFFICIELLE</span><strong className={styles.packSeason}>ÉDITION <b>S{season}</b></strong><span className={styles.packTitle}>LE GRAND<br /><em>PELOTON</em></span><VintageCyclingArtwork className={styles.packArtwork} /><span className={styles.packCaption}>LES CHAMPIONS DE LA SAISON {sourceSeason}</span><span className={styles.packBottom}>2 VIGNETTES · NOTES FIGÉES S{sourceSeason} · TOP 50 UCI</span></div>
     <div className={styles.packCrimp} />
   </div>;
 }
