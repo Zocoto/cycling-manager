@@ -11,6 +11,8 @@ import { CyclogazetteRivalries } from "@/components/game/cyclogazette-rivalries"
 import { CyclogazetteSeasonQuiz } from "@/components/game/cyclogazette-season-quiz";
 import { CyclogazetteSectionNavigation } from "@/components/game/cyclogazette-section-navigation";
 import { GameHeader } from "@/components/game/game-header";
+import Link from "@/components/ui/app-link";
+import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
 import {
   getCyclogazetteOpeningSourceGameYear,
@@ -190,6 +192,12 @@ export default async function CyclogazettePage({
       />
       <div className="px-2 py-5 sm:px-5 sm:py-9 lg:px-8">
         <CyclogazetteSectionNavigation activeSection={activeSection} />
+        {canAccessCollectorAlbum(user.id) ? (
+          <Link href="/jeu/album" className="mx-auto mb-5 flex max-w-[1100px] flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b59a59]/50 bg-[#f6edcf] px-5 py-4 text-[#263d33]">
+            <span><strong className="font-serif text-xl">L’Album du peloton</strong><span className="ml-3 text-xs font-bold">Aperçu privé · 2 cartes & échanges de démonstration</span></span>
+            <span className="text-sm font-black">Ouvrir l’album →</span>
+          </Link>
+        ) : null}
         {activeSection === "awards" ? (
           <CyclogazetteAwards awards={awards} />
         ) : activeSection === "rivalries" ? (
