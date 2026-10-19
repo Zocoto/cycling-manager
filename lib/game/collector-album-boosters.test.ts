@@ -52,6 +52,11 @@ describe("seasonal booster preview",()=>{
     const state=updateAlbumPilot(createAlbumPilotState(),{type:"open-pack",id:packs[0].id,season:4,cards:[21,22]});
     for(const corrupt of [{...state,owned:[...state.owned,50]},{...state,openedPacks:[...state.openedPacks,...state.openedPacks]},{...state,claimedAchievements:["not-known"]},{...state,acceptedTradeCount:-1}]) expect(readAlbumPilotState(JSON.stringify(corrupt))).toEqual(createAlbumPilotState());
   });
+  it("does not treat two identical cards as a meaningful trade",()=>{
+    const state=updateAlbumPilot(createAlbumPilotState(),{type:"open-pack",id:packs[0].id,season:4,cards:[9,21]});
+    expect(updateAlbumPilot(state,{type:"propose",give:9,receive:9})).toBe(state);
+    expect(state.acceptedTradeCount).toBe(0);
+  });
 });
 describe("seasonal collection achievement preview",()=>{
   it("has 19 unique achievements and an explicit large final reward, without rewarding cards or boosters",()=>{

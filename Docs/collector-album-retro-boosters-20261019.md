@@ -58,7 +58,7 @@ Les données de course, calendriers, crons, classements et finances des joueurs 
 
 ## Recette
 
-- 72 tests ciblés sur huit fichiers : ancien pilote, migration locale, autorisation serveur, séparation de saison, inventaire existant, profils, avatars, maillots, tirages, doublons, réservations, conservation des copies et succès idempotents.
+- 73 tests ciblés sur huit fichiers : ancien pilote, migration locale, autorisation serveur, séparation de saison, inventaire existant, profils, avatars, maillots, tirages, doublons, réservations, conservation des copies, refus d’échange entre deux cartes identiques et succès idempotents.
 - Tests déterministes des frontières de rareté et de 10 000 tirages stratifiés ; distribution exacte 80 / 17 / 3.
-- TypeScript sans émission, lint ciblé et couverture des 17 222 textes français par le catalogue anglais, placeholders compris.
+- TypeScript sans émission, lint ciblé et couverture des 17 223 textes français par le catalogue anglais, placeholders compris.
 - Recette du composant réel dans le navigateur : couverture ordinateur / 320 / 390 pixels, sachet fermé en 320 pixels, ouverture effective de deux cartes, compteur de l’inventaire cohérent, premier gain simulé puis bouton désactivé.

@@ -133,7 +133,7 @@ export function updateAlbumPilot(state: AlbumPilotState, action: AlbumPilotActio
   }
   if (action.type === "unpaste") return { ...state, pasted: state.pasted.filter(id => id !== action.card) };
   if (action.type === "propose") {
-    if (state.pending || getLooseAlbumCardCount(state, action.give) < 1 || !state.partner.includes(action.receive)) return state;
+    if (state.pending || action.give === action.receive || getLooseAlbumCardCount(state, action.give) < 1 || !state.partner.includes(action.receive)) return state;
     return { ...state, pending: { give: action.give, receive: action.receive } };
   }
   if (!state.pending) return state;
@@ -164,7 +164,7 @@ export function readAlbumPilotState(raw: string | null, season = ALBUM_PILOT_SEA
     const expected = [...INITIAL_OWNED, ...INITIAL_PARTNER, ...value.openedPacks.flatMap(p => p.cards)].sort((a,b)=>a-b).join(",");
     if (value.owned.length !== 2 + value.openedPacks.length * 2 || value.partner.length !== 1 || [...value.owned, ...value.partner].sort((a,b)=>a-b).join(",") !== expected) return initial;
     if (new Set(value.pasted).size !== value.pasted.length || value.pasted.some(id => !value.owned.includes(id))) return initial;
-    if (value.pending && (getLooseAlbumCardCount(value, value.pending.give, true) < 1 || !value.partner.includes(value.pending.receive))) return initial;
+    if (value.pending && (value.pending.give === value.pending.receive || getLooseAlbumCardCount(value, value.pending.give, true) < 1 || !value.partner.includes(value.pending.receive))) return initial;
     if (value.history.length > 10 || value.history.some(h => !h || !Number.isInteger(h.give) || h.give < 1 || h.give > 50 || !Number.isInteger(h.receive) || h.receive < 1 || h.receive > 50 || !["accepted","cancelled","declined"].includes(h.outcome))) return initial;
     if (new Set(value.claimedAchievements).size !== value.claimedAchievements.length || value.claimedAchievements.some(id => !ALBUM_ACHIEVEMENTS.some(a => a.id === id))) return initial;
     if (!Number.isSafeInteger(value.acceptedTradeCount) || value.acceptedTradeCount < 0) return initial;
