@@ -1025,5 +1025,10 @@
   "La nouvelle tunique": "The new kit",
   "Le vestiaire des champions": "The champions’ wardrobe",
   "Les couleurs des nations": "National colours",
-  "Pagination du classement individuel": "Individual ranking pagination"
+  "Pagination du classement individuel": "Individual ranking pagination",
+  "Aucun compte actif et aucune équipe active trouvés pour Sevrinovitch.": "No active account or active team found for Sevrinovich.",
+  "Ciblage ambigu pour Sevrinovitch : {{0}} affectations actives trouvées.": "Ambiguous target for Sevrinovich: {{0}} active assignments found.",
+  "Ciblage ambigu pour Sevrinovitch : % affectations actives trouvées.": "Ambiguous target for Sevrinovich: % active assignments found.",
+  "La Cellule performance active de niveau 8 est introuvable.": "The active level 8 Performance Unit could not be found.",
+  "La compensation existante de Sevrinovitch est incohérente.": "Sevrinovich’s existing compensation is inconsistent."
 }
