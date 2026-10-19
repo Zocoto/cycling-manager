@@ -76,6 +76,20 @@ const snapshot: DashboardAssistantSnapshot = {
 };
 
 describe("dashboard DS assistant", () => {
+  it("keeps urgent actions visible before routine reports without adding categories", () => {
+    const groups = buildDashboardAssistantLines({ snapshot, rewardCount: 0, cashBalance: -500 });
+    expect(groups.alerts[0].id).toBe("negative-cash");
+    expect(groups.information.slice(0, 2).map(line => line.id)).toEqual(["watched-auctions-closing", "race-preparation-reminder"]);
+    expect(groups.information[1].href).toBe("/jeu/preparation-course?priorite=prochaine");
+    expect(groups.alerts.find(line => line.id === "zero-training")?.href).toBe("/jeu/entrainement?filtre=sans-entrainement");
+  });
+  it("promotes a real federation deadline only when it is approaching", () => {
+    const next = { ...snapshot, federationSelectionReminderCount: 1, federationSelectionReminderCountryCode: "BE", federationSelectionReminderNextLabel: "JO", federationSelectionReminderNextClosesAt: "2026-10-19T18:00:00Z" };
+    const options = { snapshot: next, rewardCount: 0, cashBalance: -500 };
+    expect(buildDashboardAssistantLines({ ...options, now: new Date("2026-10-19T17:00:00Z") }).alerts[0].id).toBe("federation-selection-reminder");
+    expect(buildDashboardAssistantLines({ ...options, now: new Date("2026-10-19T12:00:00Z") }).alerts[0].id).toBe("negative-cash");
+    expect(buildDashboardAssistantLines({ ...options, now: new Date("2026-10-19T19:00:00Z") }).alerts[0].id).toBe("negative-cash");
+  });
   it.each([
     [1, 1, "coureur sans kiné", "1 place disponible"],
     [8, 3, "coureurs sans kiné", "3 places disponibles"],
@@ -86,7 +100,7 @@ describe("dashboard DS assistant", () => {
       rewardCount: 0, cashBalance: 100_000,
     }).alerts;
     expect(alerts.filter(line => line.id === "physiotherapist-assignments")).toEqual([
-      expect.objectContaining({ tone: "alert", metric: String(riders), title, detail: expect.stringContaining(detail), href: "/jeu/centre-de-soin?onglet=kines" }),
+      expect.objectContaining({ tone: "alert", metric: String(riders), title, detail: expect.stringContaining(detail), href: "/jeu/centre-de-soin?onglet=kines&filtre=sans-kine" }),
     ]);
     expect(alerts.findIndex(line => line.id === "untreated-injuries")).toBeLessThan(alerts.findIndex(line => line.id === "physiotherapist-assignments"));
   });
@@ -270,16 +284,16 @@ describe("dashboard DS assistant", () => {
       }),
     );
     expect(groups.information.map((line) => line.id)).toEqual([
+      "watched-auctions-closing",
+      "race-preparation-reminder",
       "senior-training",
       "junior-training",
       "auctions",
-      "watched-auctions-closing",
       "staff-market",
-      "race-preparation-reminder",
       "rewards",
     ]);
-    expect(groups.information[0]?.detail).toContain("17/20 séances");
-    expect(groups.information[2]?.detail).toContain("10 quotidiennes");
+    expect(groups.information.find(line => line.id === "senior-training")?.detail).toContain("17/20 séances");
+    expect(groups.information.find(line => line.id === "auctions")?.detail).toContain("10 quotidiennes");
   });
 
   it("replaces empty alert categories with one all-clear line", () => {

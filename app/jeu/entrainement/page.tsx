@@ -78,6 +78,7 @@ type TrainingPageProps = {
     preparation?: string;
     progression?: string;
     coureur?: string;
+    filtre?: string;
   }>;
 };
 
@@ -335,6 +336,9 @@ export default async function TrainingPage({
               </div>
 
               <TrainingPlansEditor
+                draftScope={`training:${user.id}:${overview.teamId}:${overview.seasonId}`}
+                draftRevision={JSON.stringify({ day: overview.currentDayNumber, trainers: overview.trainers })}
+                trainerIds={overview.trainers.map(trainer => trainer.contractId)}
                 key={overview.riders
                   .map(
                     (rider) =>
@@ -349,11 +353,13 @@ export default async function TrainingPage({
                 }))}
               >
                 <TrainingRosterList
+                  initialUnscheduledOnly={query.filtre === "sans-entrainement"}
                   riders={overview.riders.map((rider) => ({
                     id: rider.id,
                     firstName: rider.firstName,
                     lastName: rider.lastName,
                     squadStatus: rider.squadStatus,
+                    intensity: rider.plan.intensity,
                   }))}
                 >
                   {overview.riders.map((rider, riderIndex) => (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useUnsavedManagementChanges } from "@/components/game/use-management-draft";
 
 import { assignPhysiotherapistMatrixAction } from "@/app/jeu/centre-de-soin/actions";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
@@ -26,12 +27,14 @@ type PhysiotherapistAssignmentMatrixProps = {
   riders: TeamHealthRider[];
   physiotherapists: TeamMedicalStaffMember[];
   jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+  initialUnassignedOnly?: boolean;
 };
 
 export function PhysiotherapistAssignmentMatrix({
   riders,
   physiotherapists,
   jersey,
+  initialUnassignedOnly = false,
 }: PhysiotherapistAssignmentMatrixProps) {
   const initialAssignments = useMemo(
     () => createInitialAssignments(riders, physiotherapists),
@@ -54,9 +57,18 @@ export function PhysiotherapistAssignmentMatrix({
       (assignments[rider.id] ?? null) !==
       (initialAssignments[rider.id] ?? null),
   );
+  useUnsavedManagementChanges(hasChanges);
+  const [unassignedOnly, setUnassignedOnly] = useState(initialUnassignedOnly);
+  // Keep newly assigned riders visible until the DS has saved the changes.
+  const visibleRiders = unassignedOnly ? riders.filter(rider => !initialAssignments[rider.id]) : riders;
 
   return (
     <form action={assignPhysiotherapistMatrixAction} className="mt-5">
+      <label className="mb-3 flex min-h-11 items-center gap-2 text-xs font-bold text-[#315B3E]">
+        <input type="checkbox" checked={unassignedOnly} onChange={event => setUnassignedOnly(event.target.checked)} className="h-4 w-4 accent-[#7856A4]" />
+        Coureurs sans kiné à l’ouverture de la page
+      </label>
+      {!visibleRiders.length ? <p className="mb-4 rounded-xl bg-white p-4 text-sm font-bold text-[#176951]">Aucun coureur concerné. Affichez tout l’effectif pour modifier un suivi.</p> : null}
       <input
         type="hidden"
         name="assignments"
@@ -89,7 +101,7 @@ export function PhysiotherapistAssignmentMatrix({
         data-mobile-physiotherapist-assignments
         className="grid gap-3 lg:hidden"
       >
-        {riders.map((rider) => {
+        {visibleRiders.map((rider) => {
           const assignedContractId = assignments[rider.id] ?? null;
           const assignedPhysio = physiotherapists.find(
             (physio) => physio.contractId === assignedContractId,
@@ -232,7 +244,7 @@ export function PhysiotherapistAssignmentMatrix({
             </tr>
           </thead>
           <tbody>
-            {riders.map((rider, riderIndex) => {
+            {visibleRiders.map((rider, riderIndex) => {
               const assignedContractId = assignments[rider.id] ?? null;
               const assignedPhysio = physiotherapists.find(
                 (physio) => physio.contractId === assignedContractId,

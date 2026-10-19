@@ -124,6 +124,7 @@ type HealthCenterPageProps = {
     effet?: string | string[];
     erreur?: string | string[];
     succes?: string | string[];
+    filtre?: string | string[];
   }>;
 };
 
@@ -328,10 +329,10 @@ export default async function HealthCenterPage({
           ) : null
         ) : null}
         {activeTab === "nutrition" ? (
-          <NutritionPanel overview={overview} jersey={jersey} />
+          <NutritionPanel overview={overview} jersey={jersey} draftScope={`nutrition:${user.id}:${overview.teamSeasonId}`} />
         ) : null}
         {activeTab === "kines" ? (
-          <PhysiotherapistsPanel overview={overview} jersey={jersey} />
+          <PhysiotherapistsPanel overview={overview} jersey={jersey} initialUnassignedOnly={readQuery(query.filtre) === "sans-kine"} />
         ) : null}
         {activeTab === "staff" ? (
           <MedicalStaffPanel overview={overview} />
@@ -798,9 +799,11 @@ function FormPanel({
 function NutritionPanel({
   overview,
   jersey,
+  draftScope,
 }: {
   overview: TeamHealthOverview;
   jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+  draftScope: string;
 }) {
   const nutritionists = overview.medicalStaff
     .filter((member) => member.role === "nutritionist")
@@ -966,6 +969,9 @@ function NutritionPanel({
 
 
           <NutritionInterventionsEditor
+            draftScope={draftScope}
+            draftRevision={String(overview.currentDayNumber)}
+            appliedRiderIds={overview.nutritionInterventionsToday.map(intervention => intervention.riderId)}
             riderIds={nutritionRiders.map((rider) => rider.id)}
             weightRiders={nutritionRiders.map(rider => ({
               riderId: rider.id, heightCm: rider.heightCm, weightKg: rider.weightKg, form: rider.form,
@@ -1274,9 +1280,11 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
 function PhysiotherapistsPanel({
   overview,
   jersey,
+  initialUnassignedOnly,
 }: {
   overview: TeamHealthOverview;
   jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+  initialUnassignedOnly: boolean;
 }) {
   const physiotherapists = overview.medicalStaff.filter(
     (member) => member.role === "physiotherapist",
@@ -1298,6 +1306,7 @@ function PhysiotherapistsPanel({
           data-tutorial-id="medical-center-physiotherapist-assignments"
         >
           <PhysiotherapistAssignmentMatrix
+            initialUnassignedOnly={initialUnassignedOnly}
             riders={overview.riders}
             physiotherapists={physiotherapists}
             jersey={jersey}

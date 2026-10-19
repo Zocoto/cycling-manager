@@ -3,6 +3,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
+import { useUnsavedManagementChanges } from "@/components/game/use-management-draft";
+import { confirmManagementDraftNavigation } from "@/lib/game/management-navigation";
 
 import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
@@ -342,7 +344,7 @@ export function RacePreparationWorkspace({
               <button
                 key={edition.id}
                 type="button"
-                onClick={() => setSelectedEditionId(edition.id)}
+                onClick={() => { if (confirmManagementDraftNavigation(`/jeu/preparation-course?course=${edition.slug}`)) setSelectedEditionId(edition.id); }}
                 className={className}
               >
                 {content}
@@ -473,7 +475,7 @@ function StagePreparationForm({
       ? (riders.find((rider) => rider.generalRole === "leader")?.riderId ??
         null)
       : null;
-  const [roles, setRoles] = useState<Record<string, RaceRole>>(() =>
+  const initialRoles = useMemo<Record<string, RaceRole>>(() =>
     Object.fromEntries(
       riders.map((rider) => [
         rider.riderId,
@@ -486,8 +488,9 @@ function StagePreparationForm({
           lockedLeaderRiderId: lockedTourLeaderRiderId,
         }),
       ]),
-    ),
+    ), [riders, stage.id, lockedTourLeaderRiderId],
   );
+  const [roles, setRoles] = useState<Record<string, RaceRole>>(() => initialRoles);
   const [objective, setObjective] = useState<RaceStrategyObjective>(
     strategy.objective,
   );
@@ -564,10 +567,18 @@ function StagePreparationForm({
     hasUniqueMissions &&
     missionsUseTeammates &&
     attacksAreValid;
+  const hasUnsavedChanges = JSON.stringify({ roles, objective, collectivePosture, breakawayPolicy, chasePolicy, missions, attackOrders }) !== JSON.stringify({
+    roles: initialRoles, objective: strategy.objective, collectivePosture: strategy.collectivePosture,
+    breakawayPolicy: strategy.breakawayPolicy, chasePolicy: strategy.chasePolicy,
+    missions: { lieutenantRiderId: strategy.lieutenantRiderId ?? strategy.protectorRiderId ?? "", dangerPacerRiderId: strategy.dangerPacerRiderId ?? "", breakawayRiderId: strategy.breakawayRiderId ?? "" },
+    attackOrders: strategy.attackOrders.slice(0, MAX_RACE_ATTACK_ORDERS),
+  });
+  useUnsavedManagementChanges(isEditable && hasUnsavedChanges);
 
   if (isTimeTrial) {
     return (
       <TimeTrialPreparationForm
+        initialRoles={initialRoles}
         action={timeTrialAction}
         edition={edition}
         stage={stage}
@@ -624,7 +635,7 @@ function StagePreparationForm({
           }`}
         >
           {isEditable
-            ? strategy.updatedAt
+            ? hasUnsavedChanges ? "Modifications non enregistrées" : strategy.updatedAt
               ? "Plan enregistré"
               : "À préparer"
             : liveState.status === "live"
@@ -1132,6 +1143,13 @@ function TacticalBriefingSection({
           weather,
         }) &&
         validateRaceTacticalAssignments(backupDoctrine, backupRiderIds)));
+  const hasUnsavedChanges = JSON.stringify({ primaryDoctrine, primaryRiderIds, backupDoctrine, backupRiderIds }) !== JSON.stringify({
+    primaryDoctrine: initialPrimaryDoctrine,
+    primaryRiderIds: fillTacticalAssignments(initialPrimaryDoctrine, briefing?.primaryRiderIds ?? [], riders),
+    backupDoctrine: briefing?.backupDoctrine ?? "",
+    backupRiderIds: briefing?.backupDoctrine ? fillTacticalAssignments(briefing.backupDoctrine, briefing.backupRiderIds, riders) : [],
+  });
+  useUnsavedManagementChanges(isEditable && centerLevel >= 1 && hasUnsavedChanges);
 
   if (gameYear < 3 && centerLevel < 1) {
     return (
@@ -1352,14 +1370,16 @@ function TacticalBriefingSection({
 
         {centerLevel >= 5 ? (
           <p className="mt-4 rounded-xl border border-[#278B70]/20 bg-[#EAF5F0] px-4 py-3 text-xs font-bold text-[#176951]">
-            Diagnostic N5 · déclencheur {primaryIsEligible ? "compatible" : "absent"} · affectations {primaryRiderIds.filter(Boolean).length}/{primaryDefinition.assignmentSlots.length} · aucune caractéristique permanente modifiée.
+            {primaryIsEligible ? "Le profil et les conditions permettent ce plan." : "Ce plan ne correspond pas au profil ou aux conditions de l’étape."}{" "}
+            {primaryRiderIds.filter(Boolean).length}/{primaryDefinition.assignmentSlots.length} coureurs affectés. Les effets sont limités à cette course.
           </p>
         ) : null}
 
         <footer className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#0B302B] px-5 py-4 text-white">
           <p className="max-w-2xl text-xs font-semibold leading-5 text-[#BFD1C6]">
+            {isEditable && hasUnsavedChanges ? <span className="mb-1 block font-black text-[#F2C94C]">Modifications non enregistrées</span> : null}
             {isEditable
-              ? "Le briefing est figé au départ et rejoué à l’identique par tous les spectateurs."
+              ? "Enregistrez vos choix avant le départ. Le briefing s’applique uniquement à cette étape."
               : "Le départ est passé : ce briefing est consultable mais verrouillé."}
           </p>
           {isEditable ? (
@@ -1563,6 +1583,7 @@ function TimeTrialPreparationForm({
   roles,
   setRoles,
   lockedTourLeaderRiderId,
+  initialRoles,
 }: {
   action: (formData: FormData) => Promise<void>;
   edition: RacePreparationWorkspaceEdition;
@@ -1582,13 +1603,14 @@ function TimeTrialPreparationForm({
   roles: Record<string, RaceRole>;
   setRoles: Dispatch<SetStateAction<Record<string, RaceRole>>>;
   lockedTourLeaderRiderId: string | null;
+  initialRoles: Record<string, RaceRole>;
 }) {
   const initializeDetailsElement = useInitialDetailsOpen(initiallyOpen);
   const isTeamTimeTrial = stage.stageType === "team_time_trial";
   const defaultRelayShares = getDefaultTeamTimeTrialRelayShares(
     riders.map((rider) => rider.riderId),
   );
-  const [plans, setPlans] = useState<Record<string, TimeTrialRiderPlan>>(() =>
+  const initialPlans: Record<string, TimeTrialRiderPlan> =
     Object.fromEntries(
       riders.map((rider) => [
         rider.riderId,
@@ -1599,10 +1621,12 @@ function TimeTrialPreparationForm({
             : null,
         },
       ]),
-    ),
-  );
+    );
+  const [plans, setPlans] = useState<Record<string, TimeTrialRiderPlan>>(() => initialPlans);
   const liveState = getStageLiveState(stage, now);
   const isEditable = !readOnly && liveState.status === "scheduled";
+  const hasUnsavedChanges = JSON.stringify({ plans, roles }) !== JSON.stringify({ plans: initialPlans, roles: initialRoles });
+  useUnsavedManagementChanges(isEditable && hasUnsavedChanges);
   const relayTotal = riders.reduce(
     (total, rider) => total + (plans[rider.riderId]?.relaySharePct ?? 0),
     0,
@@ -1656,7 +1680,7 @@ function TimeTrialPreparationForm({
           }`}
         >
           {isEditable
-            ? strategy.timeTrialUpdatedAt
+            ? hasUnsavedChanges ? "Modifications non enregistrées" : strategy.timeTrialUpdatedAt
               ? "Plan enregistré"
               : "À préparer"
             : liveState.status === "live"

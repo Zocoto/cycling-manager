@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useManagementDraft } from "@/components/game/use-management-draft";
+import { isDraftRecord } from "@/lib/game/management-drafts";
 
 import { saveTeamEquipmentAssignmentsAction } from "@/app/jeu/materiel/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
@@ -47,6 +49,8 @@ export function TeamEquipmentBulkEditor({
   pendingAssignments,
   canSwapWheelSlots,
   jersey,
+  draftScope,
+  draftRevision = "",
 }: {
   riders: TeamEquipmentRider[];
   catalog: TeamEquipmentCatalogItem[];
@@ -54,6 +58,8 @@ export function TeamEquipmentBulkEditor({
   pendingAssignments: TeamEquipmentPendingAssignment[];
   canSwapWheelSlots: boolean;
   jersey: RiderJerseyAppearance;
+  draftScope?: string;
+  draftRevision?: string;
 }) {
   const initialValues = useMemo(
     () =>
@@ -142,6 +148,22 @@ export function TeamEquipmentBulkEditor({
     changedAssignments.map((assignment) => assignment.riderId),
   ).size;
   const hasStockError = hasEquipmentStockError(catalog, usageByItemId);
+  const draft = useManagementDraft({
+    scope: draftScope,
+    baseline: JSON.stringify({ initialValues, catalog: catalog.map(item => [item.id, item.ownedQuantity, item.isUnlimited]), canSwapWheelSlots, revision: draftRevision }),
+    value: valuesByKey,
+    dirty: changedAssignments.length > 0,
+    restore(value) {
+      if (!isDraftRecord(value) || Object.keys(value).length !== Object.keys(initialValues).length) return false;
+      for (const [key, itemId] of Object.entries(value)) {
+        if (!Object.hasOwn(initialValues, key) || typeof itemId !== "string") return false;
+        const slot = key.slice(key.lastIndexOf(":") + 1) as EquipmentSlot;
+        if (itemId && !itemsBySlot[slot]?.some(item => item.id === itemId)) return false;
+      }
+      setValuesByKey(value as Record<string, string>);
+      return true;
+    },
+  });
   const normalizedSearch = search.trim().toLocaleLowerCase("fr");
   const visibleRiders = riders.filter((rider) => {
     const equippedCount = SLOT_ORDER.filter(
@@ -209,6 +231,7 @@ export function TeamEquipmentBulkEditor({
 
   return (
     <form action={saveTeamEquipmentAssignmentsAction} className="mt-6">
+      {draft.recovery}
       <input
         type="hidden"
         name="assignments"
@@ -500,7 +523,7 @@ export function TeamEquipmentBulkEditor({
               <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
                 <button
                   type="button"
-                  onClick={() => setValuesByKey({ ...initialValues })}
+                  onClick={() => { draft.discard(); setValuesByKey({ ...initialValues }); }}
                   className="min-h-11 rounded-xl px-3 text-xs font-black uppercase tracking-[0.08em] text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
                 >
                   Annuler

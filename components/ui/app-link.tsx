@@ -24,6 +24,7 @@ import {
   type TeamPreviewLinkComponent,
 } from "@/components/ui/lazy-preview-links";
 import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
+import { confirmManagementDraftNavigation } from "@/lib/game/management-navigation";
 import { getRaceQuickPreviewTargetFromHref } from "@/lib/game/race-quick-preview";
 import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
 import { getTeamIdFromProfileHref } from "@/lib/game/team-quick-preview";
@@ -52,6 +53,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     children,
     showPendingIndicator = true,
     prefetchOnIntent = false,
+    onNavigate,
     ...props
   },
   ref,
@@ -71,6 +73,13 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   const teamId = getTeamIdFromProfileHref(hrefForIntent);
   const requiresDocumentNavigation =
     typeof href === "string" && isRaceRegistrationHref(href);
+  const guardedNavigate: AppLinkProps["onNavigate"] = (event) => {
+    if (!confirmManagementDraftNavigation(typeof href === "string" ? href : `${href.pathname ?? ""}${href.search ?? ""}${normalizeHash(href.hash)}`, typeof href !== "string" && Boolean(href.query))) {
+      event.preventDefault();
+      return;
+    }
+    onNavigate?.(event);
+  };
   const linkChildren = (
     <>
       {children}
@@ -105,6 +114,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         prefetch={prefetch ?? false}
         scroll={scroll ?? usesAnchor}
         {...props}
+        onNavigate={guardedNavigate}
       >
         {linkChildren}
       </NextLink>
@@ -124,6 +134,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       teamId={teamId}
       usesAnchor={usesAnchor}
       {...props}
+      onNavigate={guardedNavigate}
     >
       {children}
     </InteractiveAppLink>

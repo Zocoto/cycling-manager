@@ -1929,6 +1929,14 @@ function PagesSection() {
       title="À quoi sert chaque page ?"
       introduction="Le bureau est le point de départ. Toutes les rubriques ci-dessous restent accessibles directement avec leur adresse et disposent d’un retour vers le bureau du DS."
     >
+      <StrategyNote title="Assistant et réglages">
+        L’assistant fait remonter les échéances proches et les problèmes importants.
+        Ses liens ouvrent les réglages concernés ; les filtres permettent ensuite
+        de retrouver tout l’effectif. Pour l’entraînement, la nutrition et
+        l’équipement, un brouillon peut être repris sur le même appareil pendant
+        24 heures, si la situation de l’équipe n’a pas changé. Un brouillon ne
+        réserve ni matériel ni staff : seuls les choix validés sont appliqués.
+      </StrategyNote>
       <div className="grid gap-6 lg:grid-cols-2">
         {pageDirectory.map((section) => (
           <article

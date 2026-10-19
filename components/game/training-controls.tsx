@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { useManagementDraft, useUnsavedManagementChanges } from "@/components/game/use-management-draft";
+import { isDraftRecord } from "@/lib/game/management-drafts";
 
 import {
   saveRiderTrainingPlansAction,
@@ -21,6 +23,7 @@ import {
   TRAINING_DOMAINS,
   getTrainingDomainChoiceLabel,
   getTrainingFormDelta,
+  isTrainingDomain,
   type TrainingDomain,
 } from "@/lib/game/training";
 import {
@@ -54,26 +57,31 @@ export type TrainingRosterSortRider = {
   firstName: string;
   lastName: string;
   squadStatus: SquadStatus | null;
+  intensity?: number;
 };
 
 export function TrainingRosterList({
   riders,
   children,
+  initialUnscheduledOnly = false,
 }: {
   riders: TrainingRosterSortRider[];
   children: ReactNode;
+  initialUnscheduledOnly?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<TrainingRosterSortKey>("default");
+  const [unscheduledOnly, setUnscheduledOnly] = useState(initialUnscheduledOnly);
   const childRows = Children.toArray(children);
   const rows = riders.map((rider, index) => ({
     rider,
     child: childRows[index] ?? null,
   }));
+  const filteredRows = unscheduledOnly ? rows.filter(({ rider }) => rider.intensity === 0) : rows;
   const sortedRows =
     sortKey === "default"
-      ? rows
+      ? filteredRows
       : sortRosterItems({
-          items: rows,
+          items: filteredRows,
           direction: sortKey === "squad_status" ? "desc" : "asc",
           getValue: ({ rider }) =>
             sortKey === "squad_status"
@@ -102,6 +110,10 @@ export function TrainingRosterList({
             <option value="rider">Nom du coureur</option>
           </select>
         </label>
+        <label className="flex min-h-11 items-center gap-2 text-xs font-bold text-[#315B3E]">
+          <input type="checkbox" checked={unscheduledOnly} onChange={event => setUnscheduledOnly(event.target.checked)} className="h-4 w-4 accent-[#176951]" />
+          Sans entraînement programmé
+        </label>
         <p className="text-[10px] font-bold text-[#60756E]">
           {sortKey === "squad_status"
             ? "Leaders en premier, équipiers ensuite, statuts non définis à la fin."
@@ -112,6 +124,7 @@ export function TrainingRosterList({
       </div>
 
       <div className="space-y-4">
+        {unscheduledOnly && !sortedRows.length ? <p className="rounded-2xl bg-white p-5 text-sm font-bold text-[#176951]">Aucun coureur sans entraînement programmé.</p> : null}
         {sortedRows.map(({ rider, child }) => (
           <Fragment key={rider.id}>{child}</Fragment>
         ))}
@@ -123,9 +136,15 @@ export function TrainingRosterList({
 export function TrainingPlansEditor({
   initialPlans,
   children,
+  draftScope,
+  draftRevision = "",
+  trainerIds,
 }: {
   initialPlans: TrainingPlanDraft[];
   children: ReactNode;
+  draftScope?: string;
+  draftRevision?: string;
+  trainerIds?: string[];
 }) {
   const initialPlansByRiderId = useMemo(
     () =>
@@ -177,6 +196,25 @@ export function TrainingPlansEditor({
     () => ({ plansByRiderId, trainerAssignmentCounts, updatePlan }),
     [plansByRiderId, trainerAssignmentCounts, updatePlan],
   );
+  const draft = useManagementDraft({
+    scope: draftScope,
+    baseline: JSON.stringify({ initialPlans, revision: draftRevision }),
+    value: currentPlans,
+    dirty: changedPlans.length > 0,
+    restore(value) {
+      if (!Array.isArray(value) || value.length !== initialPlans.length) return false;
+      const seen = new Set<string>();
+      for (const plan of value) {
+        if (!isDraftRecord(plan) || typeof plan.riderId !== "string" || !Object.hasOwn(initialPlansByRiderId, plan.riderId) || seen.has(plan.riderId) ||
+            !Number.isInteger(plan.intensity) || Number(plan.intensity) < 0 || Number(plan.intensity) > 100 ||
+            typeof plan.domain !== "string" || !isTrainingDomain(plan.domain) || !(plan.trainerContractId === null || typeof plan.trainerContractId === "string") ||
+            (plan.trainerContractId && trainerIds && !trainerIds.includes(plan.trainerContractId))) return false;
+        seen.add(plan.riderId);
+      }
+      setPlansByRiderId(Object.fromEntries(value.map(plan => [plan.riderId, plan])));
+      return true;
+    },
+  });
 
   return (
     <TrainingPlansEditorContext.Provider value={editorContext}>
@@ -184,6 +222,7 @@ export function TrainingPlansEditor({
         action={saveRiderTrainingPlansAction}
         data-tutorial-id="training-plan-save"
       >
+        {draft.recovery}
         <input
           type="hidden"
           name="plans"
@@ -214,9 +253,7 @@ export function TrainingPlansEditor({
                 <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
                   <button
                     type="button"
-                    onClick={() =>
-                      setPlansByRiderId({ ...initialPlansByRiderId })
-                    }
+                    onClick={() => { draft.discard(); setPlansByRiderId({ ...initialPlansByRiderId }); }}
                     className="min-h-11 rounded-xl px-3 text-xs font-black uppercase tracking-[0.08em] text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
                   >
                     Annuler
@@ -234,6 +271,7 @@ export function TrainingPlansEditor({
 
 export function TrainingThresholdForm({ minimumForm }: { minimumForm: number }) {
   const [value, setValue] = useState(minimumForm);
+  useUnsavedManagementChanges(value !== minimumForm);
 
   return (
     <form

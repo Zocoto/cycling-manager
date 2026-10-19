@@ -1,4 +1,19 @@
-import type { RaceCalendarStage } from "@/lib/game/race-calendar";
+import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-calendar";
+import { getStageLiveState } from "@/lib/game/race-live";
+import { isRaceStagePreparationPending } from "@/lib/game/race-preparation";
+
+export function getNextPendingPreparationTarget(
+  editions: readonly RaceCalendarEdition[],
+  plans: ReadonlyMap<string, { stages: Record<string, { updatedAt: string | null; timeTrialUpdatedAt: string | null }> }>,
+  now: Date,
+) {
+  const candidates = editions.filter(edition => plans.has(edition.id)).flatMap(edition => edition.stages.flatMap(stage =>
+    isRaceStagePreparationPending({ edition, stage, plan: plans.get(edition.id)?.stages[stage.id], scheduled: getStageLiveState(stage, now).status === "scheduled" })
+      ? [{ slug: edition.slug, stageNumber: stage.stageNumber, dayNumber: stage.dayNumber, slot: stage.daySlot, departureAt: stage.departureAt }]
+      : []));
+  candidates.sort((a, b) => departureTimestamp(a.departureAt) - departureTimestamp(b.departureAt) || a.dayNumber - b.dayNumber || (a.slot === "late" ? 1 : 0) - (b.slot === "late" ? 1 : 0) || a.slug.localeCompare(b.slug) || a.stageNumber - b.stageNumber);
+  return candidates[0] ?? null;
+}
 
 type DatedRacePreparationEdition = {
   name: string;

@@ -14,7 +14,7 @@ import {
   type RacePreparationWorkspaceNavigationEdition,
 } from "@/components/game/race-preparation-workspace";
 import { getStageLiveState } from "@/lib/game/race-live";
-import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
+import { compareRacePreparationEditionsByDate, getNextPendingPreparationTarget } from "@/lib/game/race-preparation-ordering";
 import {
   isRacePreparationStageAvailable,
   isRaceStagePreparationPending,
@@ -39,6 +39,7 @@ export const metadata: Metadata = {
 
 type RacePreparationPageProps = {
   searchParams: Promise<{
+    priorite?: string | string[];
     course?: string | string[];
     etape?: string | string[];
     enregistrement?: string | string[];
@@ -112,11 +113,14 @@ export default async function RacePreparationPage({
         ? [{ ...edition, stages }]
         : [];
     }) ?? []).sort(compareRacePreparationEditionsByDate);
-  const requestedCourse = readSingleSearchParam(resolvedSearchParams.course);
+  const nextPending = readSingleSearchParam(resolvedSearchParams.priorite) === "prochaine"
+    ? getNextPendingPreparationTarget(preparableCalendarEditions, plansByEditionId, now)
+    : null;
+  const requestedCourse = readSingleSearchParam(resolvedSearchParams.course) ?? nextPending?.slug;
   const requestedStageValue = readSingleSearchParam(resolvedSearchParams.etape);
   const requestedStageNumber = requestedStageValue && /^[1-9]\d*$/.test(requestedStageValue)
     ? Number(requestedStageValue)
-    : undefined;
+    : nextPending?.stageNumber;
   const requestedEdition = requestedCourse
     ? preparableCalendarEditions.find(
         (edition) => edition.slug === requestedCourse,

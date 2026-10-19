@@ -161,6 +161,7 @@ export type DashboardRaceRegistrationAlert = {
 
 const ALERT_PRIORITY = [
   "race-roster-alerts",
+  "negative-cash",
   "development-race-registration-reminder",
   "development-team-setup",
   "infrastructure-construction",
@@ -169,6 +170,7 @@ const ALERT_PRIORITY = [
   "untreated-injuries",
   "physiotherapist-assignments",
   "overweight-riders",
+  "underweight-riders",
   "junior-manual-training",
   "federation-selection-reminder",
   "pending-selections",
@@ -177,6 +179,7 @@ const ALERT_PRIORITY = [
   "sponsor-renewal",
   "sponsor-jersey-change",
   "equipment-partner-signature",
+  "federation-equipment-selection",
   "rider-recruitment-matches",
   "staff-recruitment-matches",
   "completed-scouting",
@@ -196,12 +199,14 @@ export function buildDashboardAssistantLines({
   raceRegistrationAlerts = [],
   rewardCount,
   cashBalance,
+  now = new Date(),
 }: {
   snapshot: DashboardAssistantSnapshot;
   raceRosterAlerts?: DashboardRaceRosterAlert[];
   raceRegistrationAlerts?: DashboardRaceRegistrationAlert[];
   rewardCount: number;
   cashBalance: number | null;
+  now?: Date;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
   const alerts: DashboardAssistantLine[] = [];
 
@@ -293,7 +298,7 @@ export function buildDashboardAssistantLines({
       metric: String(riderCount),
       title: pluralize(riderCount, "coureur sans kiné", "coureurs sans kiné"),
       detail: `${slotCount} ${pluralize(slotCount, "place disponible", "places disponibles")} chez vos kinés. Affectez vos coureurs pour protéger leur forme.`,
-      href: "/jeu/centre-de-soin?onglet=kines",
+      href: "/jeu/centre-de-soin?onglet=kines&filtre=sans-kine",
     });
   }
 
@@ -588,7 +593,7 @@ export function buildDashboardAssistantLines({
       metric: String(snapshot.zeroTrainingCount),
       title: pluralize(snapshot.zeroTrainingCount, "coureur à 0 % d’entraînement", "coureurs à 0 % d’entraînement"),
       detail: "Aucun travail programmé au prochain passage.",
-      href: "/jeu/entrainement",
+      href: "/jeu/entrainement?filtre=sans-entrainement",
     });
   }
 
@@ -639,9 +644,14 @@ export function buildDashboardAssistantLines({
     });
   }
 
-  alerts.sort(
-    (left, right) => getAlertPriority(left.id) - getAlertPriority(right.id),
-  );
+  const priority = (line: DashboardAssistantLine) => {
+    // Use the real deadline already returned by the summary, never another read.
+    const closesAt = snapshot.federationSelectionReminderNextClosesAt;
+    const remaining = closesAt ? Date.parse(closesAt) - now.getTime() : NaN;
+    if (line.id === "federation-selection-reminder" && remaining > 0 && remaining <= 2 * 60 * 60 * 1000) return -1;
+    return getAlertPriority(line.id);
+  };
+  alerts.sort((left, right) => priority(left) - priority(right));
 
   if (!alerts.length) {
     alerts.push({
@@ -732,7 +742,7 @@ export function buildDashboardAssistantLines({
       metric: String(snapshot.preparationReminderCount),
       title: pluralize(snapshot.preparationReminderCount, "course proche à préparer", "courses proches à préparer"),
       detail: "Rappel : vérifiez stratégie, rôles et matériel.",
-      href: "/jeu/preparation-course",
+      href: "/jeu/preparation-course?priorite=prochaine",
     });
   }
 
@@ -747,6 +757,10 @@ export function buildDashboardAssistantLines({
     });
   }
 
+  // Near-term actions precede routine reports without adding more alert rows.
+  const informationPriority = (line: DashboardAssistantLine) =>
+    line.id === "watched-auctions-closing" ? 0 : line.id === "race-preparation-reminder" ? 1 : 2;
+  information.sort((left, right) => informationPriority(left) - informationPriority(right));
   return { alerts, information };
 }
 

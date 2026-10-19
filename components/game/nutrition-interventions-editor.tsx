@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { useManagementDraft } from "@/components/game/use-management-draft";
+import { isDraftRecord } from "@/lib/game/management-drafts";
 
 import { applyNutritionPlanAction } from "@/app/jeu/centre-de-soin/actions";
 import { WEIGHT_PROGRAM_STEPS, getWeightProgramQuote, type WeightProgramDraft, type WeightProgramRider } from "@/lib/game/weight-program";
@@ -87,6 +89,9 @@ export function NutritionInterventionsEditor({
   balance,
   currency,
   weightRiders = [],
+  draftScope,
+  appliedRiderIds = [],
+  draftRevision = "",
   children,
 }: {
   riderIds: string[];
@@ -94,6 +99,9 @@ export function NutritionInterventionsEditor({
   balance: number;
   currency: string;
   weightRiders?: WeightProgramRider[];
+  draftScope?: string;
+  appliedRiderIds?: string[];
+  draftRevision?: string;
   children: ReactNode;
 }) {
   const initialDrafts = useMemo(
@@ -239,9 +247,48 @@ export function NutritionInterventionsEditor({
     }),
     [draftsByRiderId, nutritionists, updateDraft, usageByNutritionist, weightDrafts, weightRiders, supplementFormGain],
   );
+  const draftRecovery = useManagementDraft({
+    scope: draftScope,
+    baseline: JSON.stringify({ riderIds, nutritionists, balance, weightRiders, appliedRiderIds, revision: draftRevision }),
+    value: { draftsByRiderId, weightDrafts },
+    dirty: activeDrafts.length + weightPrograms.length > 0,
+    restore(value) {
+      if (!isDraftRecord(value) || !isDraftRecord(value.draftsByRiderId) || !isDraftRecord(value.weightDrafts)) return false;
+      const restored = value.draftsByRiderId;
+      if (Object.keys(restored).length !== riderIds.length) return false;
+      const usage: Record<string, number> = {};
+      let cost = 0;
+      for (const [riderId, entry] of Object.entries(restored)) {
+        if (!riderIds.includes(riderId) || !isDraftRecord(entry) || entry.riderId !== riderId) return false;
+        if (entry.interventionCode === null && entry.nutritionistContractId === null) continue;
+        if (appliedRiderIds.includes(riderId) || typeof entry.interventionCode !== "string" || !INTERVENTION_CODES.includes(entry.interventionCode as NutritionInterventionCode)) return false;
+        if (entry.nutritionistContractId === null) continue; // An incomplete choice can still be edited.
+        const specialist = nutritionists.find(option => option.contractId === entry.nutritionistContractId);
+        const code = entry.interventionCode as NutritionInterventionCode;
+        if (!specialist || specialist.level < NUTRITION_INTERVENTIONS[code].minimumNutritionistLevel) return false;
+        usage[specialist.contractId] = (usage[specialist.contractId] ?? 0) + 1;
+        if (usage[specialist.contractId] > specialist.remainingCapacity) return false;
+        cost += getNutritionInterventionOutcome({ code, nutritionistLevel: specialist.level, additionalFormBonus: specialist.additionalFormBonus, effectivePrice: specialist.interventionPrices?.[code] }).price;
+      }
+      if (cost > balance) return false;
+      for (const [riderId, delta] of Object.entries(value.weightDrafts)) {
+        if (!riderIds.includes(riderId) || typeof delta !== "number" || !Number.isFinite(delta)) return false;
+        if (delta === 0) continue;
+        const rider = weightRiders.find(option => option.riderId === riderId);
+        const entry = restored[riderId] as NutritionInterventionDraft;
+        const specialist = nutritionists.find(option => option.contractId === entry.nutritionistContractId);
+        const gain = specialist && entry.interventionCode ? getNutritionInterventionOutcome({ code: entry.interventionCode, nutritionistLevel: specialist.level, additionalFormBonus: specialist.additionalFormBonus, effectivePrice: specialist.interventionPrices?.[entry.interventionCode] }).formGain : 0;
+        if (!rider || !getWeightProgramQuote(rider, delta, gain).allowed) return false;
+      }
+      setDraftsByRiderId(restored as Record<string, NutritionInterventionDraft>);
+      setWeightDrafts(value.weightDrafts as Record<string, number>);
+      return true;
+    },
+  });
 
   return (
     <NutritionEditorContext.Provider value={context}>
+      {draftRecovery.recovery}
       {/* One atomic payload, no nested forms or independent weight submissions. */}
       {children}
       <form
@@ -281,7 +328,7 @@ export function NutritionInterventionsEditor({
                 <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
                   <button
                     type="button"
-                    onClick={() => { setDraftsByRiderId({ ...initialDrafts }); setWeightDrafts({}); }}
+                    onClick={() => { draftRecovery.discard(); setDraftsByRiderId({ ...initialDrafts }); setWeightDrafts({}); }}
                     className="min-h-11 rounded-xl px-3 text-xs font-black uppercase tracking-[0.08em] text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
                   >
                     Annuler

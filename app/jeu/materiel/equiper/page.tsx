@@ -124,6 +124,8 @@ export default async function TeamEquipmentPage({
         ) : null}
 
         <TeamEquipmentBulkEditor
+          draftScope={`equipment:${user.id}:${overview.teamSeasonId}`}
+          draftRevision={String(overview.currentDayNumber)}
           riders={overview.riders}
           catalog={overview.catalog}
           assignments={overview.assignments}

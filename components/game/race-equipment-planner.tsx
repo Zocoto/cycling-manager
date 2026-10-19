@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useUnsavedManagementChanges } from "@/components/game/use-management-draft";
 import { useFormStatus } from "react-dom";
 
 import { saveRaceEquipmentPlanAction } from "@/app/jeu/preparation-course/actions";
@@ -80,7 +81,7 @@ export function RaceEquipmentPlanner({
     riders[0]?.riderId ?? "",
   );
   const [group, setGroup] = useState<EquipmentGroup>("bike");
-  const [selections, setSelections] = useState(() => {
+  const initialSelections = useMemo(() => {
     const initial = new Map<string, RaceEquipmentPlanSelection>();
     for (const assignment of planning.plannedAssignments) {
       initial.set(
@@ -93,7 +94,10 @@ export function RaceEquipmentPlanner({
       );
     }
     return initial;
-  });
+  }, [planning.plannedAssignments]);
+  const [selections, setSelections] = useState(() => initialSelections);
+  const hasUnsavedChanges = selections.size !== initialSelections.size || [...selections].some(([key, value]) => initialSelections.get(key) !== value);
+  useUnsavedManagementChanges(hasUnsavedChanges && planning.stages.some(stage => stage.isEditable));
 
   const selectedStage = planning.stages.find(
     (stage) => stage.id === selectedStageId,
