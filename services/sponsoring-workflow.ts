@@ -32,6 +32,7 @@ import {
 } from "@/lib/game/sponsor-performance-satisfaction";
 import type { SponsorBudgetHistoryPoint } from "@/lib/game/sponsor-budget-history";
 import { getSponsorBudgetHistoryForTeam } from "@/services/sponsor-budget-history";
+import type { SponsorRenewalAssessment } from "@/lib/game/sponsor-renewal-assessment";
 import {
   readSponsorPartialAchievements,
   type SponsorPartialAchievement,
@@ -120,6 +121,7 @@ export type FutureSponsoringState =
     }
   | {
       kind: "locked";
+      renewalPending?: boolean;
       currentDayNumber: number;
       opensOnDay: number;
       targetGameYear: number;
@@ -148,6 +150,7 @@ export type FutureSponsoringState =
       season: FutureSponsorSeason;
       offers: PersistedSponsorOffer[];
       renewalBudgetIsFinal: boolean;
+      renewalAssessment?: SponsorRenewalAssessment;
     }
   | {
       kind: "jersey-selection";
@@ -591,6 +594,7 @@ async function resolveFutureSponsoringState({
   if (!isFutureSponsoringWindowOpen(activeSeason.current_day_number)) {
     return {
       kind: "locked",
+      renewalPending: currentContract !== null,
       currentDayNumber: activeSeason.current_day_number,
       opensOnDay: GAMEPLAY_RULES.futureSponsoringOpeningDay,
       targetGameYear: nextGameYear,
@@ -628,6 +632,7 @@ async function resolveFutureSponsoringState({
         endsOn: activeSeason.ends_on,
       },
       mode,
+      currentContractId: currentContract?.id ?? null,
       currentSponsorCatalogKey:
         currentContract?.sponsor.id ?? null,
       currentSponsorBudget:
@@ -643,6 +648,7 @@ async function resolveFutureSponsoringState({
     mode: offerPackage.mode,
     season: offerPackage.season,
     offers: offerPackage.offers,
+    renewalAssessment: offerPackage.renewalAssessment,
     renewalBudgetIsFinal:
       activeSeason.current_day_number >=
       GAMEPLAY_RULES.sponsorRenewalBudgetFinalizationDay,

@@ -151,6 +151,11 @@ function FutureLockedNotice({
         signature ne peut activer un nouveau sponsor pendant la saison en
         cours.
       </p>
+      {state.renewalPending ? (
+        <p className="mt-2 text-sm leading-6">
+          À l’échéance, la reconduction dépend du bilan moyen du contrat, du prestige du sponsor et de votre réputation.
+        </p>
+      ) : null}
     </aside>
   );
 }
@@ -342,11 +347,7 @@ function FutureOffersSection({
     <>
       <aside className="mt-7 rounded-2xl border border-[#278B70]/20 bg-white/85 px-5 py-4 text-sm leading-7 text-[#48665F] shadow-[0_12px_30px_rgba(19,60,46,0.05)]">
         {state.mode === "renewal" ? (
-          <>
-            Une proposition de renouvellement de votre sponsor actuel est
-            garantie. Les deux autres offres permettent de changer de
-            partenaire pour {state.season.name}.
-          </>
+          <RenewalAssessmentNotice state={state} />
         ) : state.mode === "first-contract" ? (
           <>
             Trois partenaires vous proposent le premier contrat professionnel
@@ -362,7 +363,7 @@ function FutureOffersSection({
         )}
       </aside>
 
-      <div className="mt-7 grid items-stretch gap-6 xl:grid-cols-3">
+      <div className={`mt-7 grid items-stretch gap-6 ${state.offers.length === 4 ? "xl:grid-cols-2" : "xl:grid-cols-3"}`}>
         {state.offers.map((offer) => (
           <FutureSponsorOfferCard
             key={offer.id}
@@ -386,6 +387,39 @@ function FutureOffersSection({
         voisins et enfin son continent. Les courses Continentales deviennent
         accessibles à 100 points de réputation, les Mondiales à 200 points.
       </p>
+    </>
+  );
+}
+
+function RenewalAssessmentNotice({ state }: {
+  state: Extract<FutureSponsoringState, { kind: "offers" }>;
+}) {
+  const assessment = state.renewalAssessment;
+  return (
+    <>
+      <p className="font-extrabold">
+        {assessment?.refused
+          ? "Votre sponsor refuse la reconduction à ce stade."
+          : state.offers.some((offer) => offer.isRenewal)
+            ? "Votre sponsor vous propose une reconduction."
+            : "D’autres partenaires vous proposent un contrat."}
+      </p>
+      {assessment ? (
+        <p>
+          Bilan moyen du contrat : {assessment.averageSatisfaction.toLocaleString("fr-FR")} %
+          {" · "}Minimum requis : {assessment.minimumSatisfaction} %
+          {" · "}{assessment.seasonsEvaluated} saison(s) évaluée(s).
+        </p>
+      ) : null}
+      <p>
+        {assessment?.refused
+          ? "Les autres offres restent disponibles. Une amélioration du bilan peut rouvrir la reconduction avant signature."
+          : "Vous pouvez aussi choisir un autre partenaire pour la saison suivante."}
+        {" "}Votre contrat actuel reste respecté.
+      </p>
+      {state.offers.length === 0 ? (
+        <p>Aucun partenaire éligible n’est disponible pour le moment. Consultez à nouveau les offres ultérieurement.</p>
+      ) : null}
     </>
   );
 }
@@ -431,7 +465,7 @@ function FutureSponsorOfferCard({
             }}
           >
             {offer.isRenewal
-              ? "Renouvellement garanti"
+              ? "Reconduction proposée"
               : "Offre saison suivante"}
           </span>
 
