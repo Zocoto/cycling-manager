@@ -1,5 +1,6 @@
 import { useId } from "react";
 import type { AlbumProfile } from "@/lib/game/collector-album";
+import { RoadPerspectiveCyclist } from "./collector-album-road-cyclist";
 
 type AlbumProfileArtworkProps = {
   profile: AlbumProfile;
@@ -69,7 +70,7 @@ export function AlbumProfileArtwork({ profile, className = "", decorative = true
       {profile === "mountain" && <MountainScene lines={ids.lines} />}
       {profile === "hills" && <HillsScene dots={ids.dots} />}
       {profile === "sprint" && <SprintScene dots={ids.dots} checks={ids.checks} />}
-      {profile === "cobbles" && <CobblesScene stones={ids.stones} lines={ids.lines} />}
+      {profile === "cobbles" && <CobblesScene lines={ids.lines} />}
       {profile === "timeTrial" && <TimeTrialScene lines={ids.lines} />}
       {profile === "breakaway" && <BreakawayScene dots={ids.dots} />}
       <path d="M18 18H1182V682H18Z" fill="none" stroke={INK.blue} strokeWidth="2" opacity=".22" />
@@ -128,22 +129,24 @@ function MountainScene({ lines }: { lines: string }) {
 
 function HillsScene({ dots }: { dots: string }) {
   return (
-    <g>
-      <path d="M0 0H1200V353H0Z" fill={INK.sage} opacity=".19" />
-      <circle cx="213" cy="145" r="89" fill={INK.yellow} />
-      <path d="M0 343c99-127 206-130 327-29s178 23 277-65 198-84 309 10 188 81 287-7v448H0Z" fill={INK.sage} />
-      <path d="M0 465c165-33 221-231 392-145 152 77 177 232 337 102 174-141 270-141 471-22v300H0Z" fill={INK.blue} />
-      <path d="M0 534c184-116 329-89 485 9s289 43 407-41 215-17 308 51v147H0Z" fill={INK.yellow} />
-      <path d="M0 534c184-116 329-89 485 9s289 43 407-41 215-17 308 51v147H0Z" fill={`url(#${dots})`} />
-      <path d="M0 655c160-105 269-87 375-47 100 38 158 27 206-23 58-59-132-129-103-178 22-36 124-61 178-64" fill="none" stroke={INK.paper} strokeWidth="42" />
-      <path d="M0 655c160-105 269-87 375-47 100 38 158 27 206-23 58-59-132-129-103-178 22-36 124-61 178-64" fill="none" stroke={INK.brick} strokeWidth="27" />
-      <path d="M0 655c160-105 269-87 375-47 100 38 158 27 206-23 58-59-132-129-103-178 22-36 124-61 178-64" fill="none" stroke={INK.paper} strokeWidth="2" strokeDasharray="20 22" />
-      <g transform="translate(802 208)"><Village /></g>
-      <g fill="none" stroke={INK.paper} strokeWidth="3" opacity=".45"><path d="M723 594q170-137 385-34M762 622q163-130 378-28M800 652q157-121 340-25" /></g>
-      {[78, 158, 247, 340].map((x, i) => <OrchardTree key={x} x={x} y={402 - i * 8} scale={.74} />)}
-      <OrchardTree x={1091} y={390} scale={1.2} />
-      <g transform="translate(507 628) rotate(-11) scale(.49) translate(-110 -130)"><PosterCyclist jersey={INK.yellow} /></g>
-      <g transform="translate(151 586) rotate(-14) scale(.48) translate(-110 -130)"><PosterCyclist jersey={INK.blue} /></g>
+    <g data-road-scene="hills">
+      <path d="M0 0H1200V353H0Z" fill={INK.sage} opacity=".14" />
+      <path d="M68 136h169m-118 17h159m480-57h141m-98 17h172" stroke={INK.paper} strokeWidth="10" strokeLinecap="round" />
+      <path d="M0 250C190 137 346 155 524 252S887 305 1200 170V700H0Z" fill={INK.sage} opacity=".55" />
+      <path d="M0 344C201 237 383 264 560 346S916 226 1200 264V700H0Z" fill={INK.sage} />
+      <g transform="translate(839 227) scale(.92)"><Village /></g>
+      <path d="M0 494C210 500 388 464 574 394S946 279 1200 332V700H0Z" fill={INK.blue} />
+      <path d="M0 652C230 646 394 588 570 500S949 355 1200 394V700H0Z" fill={INK.yellow} />
+      <path d="M0 652C230 646 394 588 570 500S949 355 1200 394V700H0Z" fill={`url(#${dots})`} />
+      <g fill="none" stroke={INK.paper} strokeWidth="3" opacity=".4"><path d="M12 376q173-68 334-17M-12 402q183-68 367-15M739 574q192-105 455-63M789 608q175-94 418-48M850 645q156-77 341-37" /></g>
+      {[57, 127, 215].map((x, i) => <OrchardTree key={x} x={x} y={468 - i * 9} scale={.73} />)}
+      <OrchardTree x={1082} y={362} scale={.87} />
+      <path d="M-40 655C220 650 395 590 570 500S950 367 1245 390" fill="none" stroke={INK.paper} strokeWidth="74" />
+      <path data-road-riding-line="hills" d="M-40 655C220 650 395 590 570 500S950 367 1245 390" fill="none" stroke={INK.brick} strokeWidth="56" />
+      <path d="M-40 655C220 650 395 590 570 500S950 367 1245 390" fill="none" stroke={INK.paper} strokeWidth="2.5" strokeDasharray="24 25" />
+      <g transform="translate(786 369)"><path d="M0 42V-38h55V-4H0" fill={INK.paper} stroke={INK.blue} strokeWidth="3" /><path d="m11-13 12-14 18 14" fill="none" stroke={INK.brick} strokeWidth="3" /></g>
+      <g data-art-cyclist-view="side-climbing" transform="translate(386 581) rotate(-20) scale(.72) translate(-110 -174)"><PuncherCyclist jersey={INK.paper} /></g>
+      <g data-art-cyclist-view="side-climbing" transform="translate(570 500) rotate(-27) scale(1.12) translate(-110 -174)"><PuncherCyclist jersey={INK.yellow} /></g>
     </g>
   );
 }
@@ -175,43 +178,57 @@ function SprintScene({ dots, checks }: { dots: string; checks: string }) {
   );
 }
 
-function CobblesScene({ stones, lines }: { stones: string; lines: string }) {
+function CobblesScene({ lines }: { lines: string }) {
+  const stoneDepths = [0, .035, .08, .135, .205, .29, .39, .51, .65, .81, 1];
+  const project = (across: number, depth: number) => [610 - 80 * depth + (across - .5) * (80 + 500 * depth), 270 + 430 * depth];
   return (
-    <g>
-      <path d="M0 0H1200V354H0Z" fill={INK.sage} opacity=".24" />
-      <circle cx="244" cy="138" r="88" fill={INK.yellow} />
-      <path d="M0 327q202-43 367-4t368-7 465 9v375H0Z" fill={INK.sage} />
-      <path d="m0 389 454-55-206 366H0Zm1200-18-470-38 227 367h243Z" fill={INK.yellow} />
-      <path d="m0 389 454-55-206 366H0Zm1200-18-470-38 227 367h243Z" fill={`url(#${lines})`} />
-      <path d="m0 511 427-145m773 166L764 366M0 629l388-234m812 259L799 398" fill="none" stroke={INK.sage} strokeWidth="4" />
-      <path d="m494 325 175 0 322 375H174Z" fill={INK.paper} />
-      <path d="m517 325 130 0 282 375H233Z" fill={INK.blue} />
-      <path d="m517 325 130 0 282 375H233Z" fill={`url(#${stones})`} />
-      <path d="m444 437 33-48m248 55-36-48M330 589l49-66m459 80-53-68" stroke={INK.yellow} strokeWidth="6" />
-      <g transform="translate(958 242)"><Windmill /></g>
-      <g transform="translate(143 302) scale(.67)"><Village /></g>
-      {[373, 418, 454].map((x, index) => <Poplar key={x} x={x} y={331 - index * 4} scale={.72 - index * .12} />)}
-      {[832, 886, 958, 1060].map((x, index) => <Poplar key={x} x={x} y={363 + index * 15} scale={.66 + index * .16} />)}
-      <g transform="translate(441 430) scale(.66)"><PosterCyclist jersey={INK.brick} /></g>
-      <g transform="translate(553 334) scale(.3)"><PosterCyclist jersey={INK.yellow} /></g>
-      <path d="M58 126h91m-62 13h81m844-65h74m-55 13h80" stroke={INK.paper} strokeWidth="6" strokeLinecap="round" opacity=".8" />
+    <g data-road-scene="cobbles" data-road-vanishing-x="610" data-road-vanishing-y="270">
+      <path d="M0 0H1200V310H0Z" fill={INK.sage} opacity=".21" />
+      <path d="M61 132h221m-165 18h245m337-64h203m-143 18h280" stroke={INK.paper} strokeWidth="13" strokeLinecap="round" opacity=".8" />
+      <path d="M0 284q210-50 418-11t363-6 419 18V700H0Z" fill={INK.sage} />
+      <g transform="translate(107 234) scale(.7)"><Village /></g>
+      <g transform="translate(961 220) scale(1.13)"><Windmill /></g>
+      <path d="M0 371 570 270 240 700H0Zm1200-39L650 270 820 700h380Z" fill={INK.yellow} />
+      <path d="M0 371 570 270 240 700H0Zm1200-39L650 270 820 700h380Z" fill={`url(#${lines})`} />
+      <path d="M0 490 483 350m717 108L708 350M0 623l399-163m801 170L755 466" fill="none" stroke={INK.sage} strokeWidth="4" />
+      {[812, 867, 1060, 1149].map((x, index) => <Poplar key={x} x={x} y={323 + index * 24} scale={.48 + index * .13} />)}
+      <path d="M557 270h106l180 430H216Z" fill={INK.paper} />
+      <path data-road-riding-line="cobbles" d="M570 270h80l170 430H240Z" fill={INK.blue} />
+      {stoneDepths.slice(0, -1).flatMap((near, row) => {
+        const far = stoneDepths[row + 1];
+        const margin = (far - near) * .1;
+        return Array.from({ length: 9 }, (_, column) => {
+          const offset = row % 2 === 0 ? 0 : .5;
+          const left = Math.max(0, (column - offset) / 8) + .007;
+          const right = Math.min(1, (column + 1 - offset) / 8) - .007;
+          if (left >= right) return null;
+          return <polygon key={`${row}-${column}`} data-road-stone="" points={[project(left, near + margin), project(right, near + margin), project(right, far - margin), project(left, far - margin)].map((point) => point.join(",")).join(" ")} fill={INK.paper} opacity={[.8, .56, .7][(row + column) % 3]} />;
+        });
+      })}
+      {[.22, .42, .67, .91].map((depth) => {
+        const [x, y] = project(0, depth);
+        const height = 13 + 26 * depth;
+        return <g key={depth} transform={`translate(${x - 30} ${y})`}><path d={`M-4 0V-${height}h8V0`} fill={INK.paper} stroke={INK.blue} strokeWidth="2" /><path d={`M-4 -${height - 7}h8`} stroke={INK.brick} strokeWidth="4" /></g>;
+      })}
+      <RoadPerspectiveCyclist x={590} y={400} scale={.45} headingDeg={roadHeading(590, 400, 610, 270)} jersey={INK.yellow} />
+      <RoadPerspectiveCyclist x={550} y={570} scale={1.04} headingDeg={roadHeading(550, 570, 610, 270)} jersey={INK.brick} />
     </g>
   );
 }
 
 function TimeTrialScene({ lines }: { lines: string }) {
   return (
-    <g>
-      <path d="M0 0H1200V355H0Z" fill={INK.sage} opacity=".23" />
-      <circle cx="223" cy="145" r="91" fill={INK.yellow} />
-      <path d="M0 353c173-72 291-81 471-37s365-63 729 4v380H0Z" fill={INK.sage} />
-      <path d="M0 394 520 325 328 700H0Zm1200-15-543-54 251 375h292Z" fill={INK.yellow} />
-      <path d="M0 394 520 325 328 700H0Zm1200-15-543-54 251 375h292Z" fill={`url(#${lines})`} />
-      <path d="m527 322 91 0 274 378H249Z" fill={INK.paper} />
-      <path d="m539 322 67 0 237 378H299Z" fill={INK.blue} />
-      <path d="m572 342-3 25m-6 32-5 37m-7 45-8 55m-10 64-11 86" fill="none" stroke={INK.paper} strokeWidth="6" />
-      <path d="M0 500 456 372m744 169L690 373M0 624l409-210m791 257L747 410" fill="none" stroke={INK.brick} strokeWidth="3" opacity=".6" />
-      <g transform="translate(960 158)">
+    <g data-road-scene="timeTrial" data-road-vanishing-x="820" data-road-vanishing-y="255">
+      <path d="M0 0H1200V305H0Z" fill={INK.sage} opacity=".19" />
+      <path d="M565 111h215m-158 17h253m69 43h179" stroke={INK.paper} strokeWidth="9" strokeLinecap="round" />
+      <path d="M0 305c217-76 352-26 548-15s339-70 652-5v415H0Z" fill={INK.sage} />
+      <path d="M0 407 782 255 180 700H0Zm1200-52L858 255 940 700h260Z" fill={INK.yellow} />
+      <path d="M0 407 782 255 180 700H0Zm1200-52L858 255 940 700h260Z" fill={`url(#${lines})`} />
+      <path d="M0 516 609 358m591 123L887 373M0 638l443-136m757 122L909 493" fill="none" stroke={INK.brick} strokeWidth="3" opacity=".5" />
+      <path d="M767 255h106l88 445H158Z" fill={INK.paper} />
+      <path data-road-riding-line="timeTrial" d="M782 255h76l82 445H180Z" fill={INK.blue} />
+      <path d="m816 265-9 15m-9 15-14 24m-12 22-22 37m-17 29-29 50m-71 122-53 91" fill="none" stroke={INK.paper} strokeWidth="4" />
+      <g transform="translate(235 173)">
         <path d="M-15-93h30v22h-30Zm-30-6h60v12h-60Z" fill={INK.blue} />
         <circle r="79" fill={INK.paper} stroke={INK.blue} strokeWidth="8" />
         <circle r="65" fill="none" stroke={INK.sage} strokeWidth="2" />
@@ -219,12 +236,35 @@ function TimeTrialScene({ lines }: { lines: string }) {
         <path d="M0 0V-39M0 0l27 17" stroke={INK.brick} strokeWidth="5" strokeLinecap="round" />
         <circle r="5" fill={INK.blue} />
       </g>
-      <g fill="none" stroke={INK.blue} strokeWidth="3"><path d="M141 547V267m-29 25h58m-23-22h-11m192 147V283m-16 18h32m61 71v-77m-12 12h24" /><path d="M141 286q97 48 187 11 37 23 77 5" strokeWidth="1.5" /></g>
-      <path d="M1009 549V348h72v201" fill={INK.paper} stroke={INK.blue} strokeWidth="4" />
-      <path d="M1020 364h50v35h-50Z" fill={INK.brick} />
-      <path d="M1026 425h38m-38 14h38m-38 14h24" stroke={INK.blue} strokeWidth="3" />
-      <g transform="translate(455 412) scale(.9)"><PosterCyclist jersey={INK.brick} aero /></g>
-      <path d="m346 500-80 14m71 8-119 24m112 3-66 16" stroke={INK.paper} strokeWidth="3" />
+      <g fill="none" stroke={INK.blue} opacity=".7"><path d="M78 591V309m-25 24h50m193 149V306m-18 20h36m145 80V289m-13 16h26" strokeWidth="3" /><path d="M78 333q111 38 218-7 72 23 163-21" strokeWidth="1.5" /></g>
+      {[.18, .38, .65, .92].map((depth) => {
+        const height = 15 + 28 * depth;
+        return <g key={depth} transform={`translate(${879 + 82 * depth} ${255 + 445 * depth})`}><path d={`M-4 0V-${height}h8V0`} fill={INK.paper} stroke={INK.blue} strokeWidth="2" /><path d={`M-4 -${height - 8}h8`} stroke={INK.brick} strokeWidth="5" /></g>;
+      })}
+      <RoadPerspectiveCyclist x={645} y={555} scale={1.17} headingDeg={roadHeading(645, 555, 820, 255)} jersey={INK.brick} aero />
+    </g>
+  );
+}
+
+/** A rider's forward axis points from the rear tyre contact towards the horizon. */
+function roadHeading(x: number, y: number, vanishingX: number, vanishingY: number) {
+  return Math.atan2(vanishingX - x, y - vanishingY) * 180 / Math.PI;
+}
+
+function PuncherCyclist({ jersey }: { jersey: string }) {
+  return (
+    <g strokeLinecap="round" strokeLinejoin="round">
+      <g fill="none" stroke={INK.paper} strokeWidth="10"><circle cx="40" cy="140" r="34" /><circle cx="180" cy="140" r="34" /></g>
+      <g fill="none" stroke={INK.blue} strokeWidth="6"><circle cx="40" cy="140" r="34" /><circle cx="180" cy="140" r="34" /></g>
+      <path d="M6 140h68m-34-34v68m-24-58 48 48m-48 0 48-48M146 140h68m-34-34v68m-24-58 48 48m-48 0 48-48" fill="none" stroke={INK.paper} strokeWidth="1.2" />
+      <path d="M40 140 82 79 104 140H40l65-49h50l25 49m-25-49-8-23m-74 11h21m53-11h18l6 10-8 8" fill="none" stroke={INK.sage} strokeWidth="5" />
+      <path d="m92 64 28 36-17 39m-15-74-22 40 33 29" fill="none" stroke={INK.paper} strokeWidth="10" />
+      <path d="m87 57 22 21-17 17-20-22Z" fill={INK.blue} />
+      <path d="m89 59 18-36 23-4 18 21-18 25-21-15-12 22Z" fill={jersey} stroke={INK.blue} strokeWidth="2" />
+      <path d="m138 40 9 26 22 7m-42-42 25 18 18 18" fill="none" stroke={INK.paper} strokeWidth="7" />
+      <circle cx="149" cy="15" r="12" fill={INK.paper} />
+      <path d="M135 14q2-20 24-12l11 15-22-5-14 5Z" fill={jersey} stroke={INK.blue} strokeWidth="2" />
+      <path d="m103 139 13 3m-18-7-6 6" stroke={INK.blue} strokeWidth="5" />
     </g>
   );
 }
