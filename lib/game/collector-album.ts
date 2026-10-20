@@ -12,6 +12,11 @@ export const ALBUM_PROFILES = [
 ] as const;
 
 export type AlbumProfile = typeof ALBUM_PROFILES[number]["id"];
+export type CollectorHonour = {
+  raceEditionId: string; raceName: string; categoryCode: string;
+  kind: "race" | "stages" | "mountain" | "sprint" | "youth";
+  count: number; rank?: number;
+};
 export type CollectorCard = {
   id: string; number: number; rank: number; name: string;
   country: string; countryCode: string; age: number;
@@ -19,10 +24,13 @@ export type CollectorCard = {
   teamName: string; jersey: RiderJerseyAppearance;
   profile: string; profileKey: AlbumProfile; ratings: RiderRatings;
   points: number; victories: number;
+  honours: CollectorHonour[];
+  worldTitles: ("road" | "time_trial")[];
 };
 export type CollectorAlbumSnapshot = {
   edition: string; collectionSeason: number; sourceSeason: number;
   capturedAt: string; cards: CollectorCard[];
+  sourceSeasonId: string; ratingsFrozenFromSeason: number;
 };
 
 export function getCardRarity(rank: number): "gold" | "silver" | "bronze" {
@@ -33,6 +41,12 @@ export const CARD_RARITY_LABELS = { gold: "Or", silver: "Argent", bronze: "Bronz
 // Presentation-only inventory: never written to gameplay tables or exposed as rewards.
 const INITIAL_OWNED = [1, 8];
 const INITIAL_PARTNER = [9];
+export const ALBUM_DEMO_COLLECTORS = [
+  {id:"collector-demo",name:"Collectionneur démo",initialCards:INITIAL_PARTNER},
+  {id:"collector-cols",name:"Collectionneuse des cols · démo",initialCards:[12,27]},
+  {id:"collector-sprints",name:"Collectionneur des sprints · démo",initialCards:[9,42]},
+] as const;
+export const ALBUM_SOURCE_SEASON = 3;
 export const ALBUM_BOOSTER_ODDS = { bronze: 80, silver: 17, gold: 3 } as const;
 export const ALBUM_PILOT_SEASON = 4;
 export const ALBUM_PILOT_EDITION = "s4-top50-s3-private-v1";
@@ -73,33 +87,45 @@ export const ALBUM_ACHIEVEMENTS: readonly AlbumAchievement[] = [
   {id:"mixed",name:"Toutes les couleurs du vélo",description:"Coller au moins une carte bronze, une argent et une or.",kind:"mixed",target:3,cash:5000,xp:50,reputation:5},
   {id:"trade",name:"À la récré",description:"Terminer un premier échange de cartes.",kind:"trade",target:1,cash:5000,xp:50,reputation:0},
 ];
-type Offer = { give: number; receive: number };
-type TradeRecord = Offer & { outcome: "accepted" | "cancelled" | "declined" };
+export type AlbumOffer = { give: number[]; receive: number; partnerId: string };
+type TradeRecord = AlbumOffer & { outcome: "accepted" | "cancelled" | "declined" };
 export type AlbumPilotState = {
-  version: 2;
+  version: 3;
   season: number;
   owned: number[];
-  partner: number[];
+  partners: Record<string, number[]>;
   pasted: number[];
-  pending: Offer | null;
+  pending: AlbumOffer | null;
   history: TradeRecord[];
   openedPacks: {id: string; cards: [number, number]}[];
   claimedAchievements: string[];
   acceptedTradeCount: number;
 };
 export function createAlbumPilotState(season = ALBUM_PILOT_SEASON): AlbumPilotState {
-  return { version: 2, season, owned: [...INITIAL_OWNED], partner: [...INITIAL_PARTNER], pasted: [], pending: null, history: [], openedPacks: [], claimedAchievements: [], acceptedTradeCount: 0 };
+  return { version: 3, season, owned: [...INITIAL_OWNED], partners: Object.fromEntries(ALBUM_DEMO_COLLECTORS.map(p=>[p.id,[...p.initialCards]])), pasted: [], pending: null, history: [], openedPacks: [], claimedAchievements: [], acceptedTradeCount: 0 };
 }
 export type AlbumPilotAction =
   | { type: "paste" | "unpaste"; card: number }
-  | { type: "propose"; give: number; receive: number }
+  | { type: "propose"; give: number | number[]; receive: number; partnerId?: string }
   | { type: "accept" | "cancel" | "decline" }
   | { type: "open-pack"; id: string; season: number; cards: [number, number] }
   | { type: "claim-achievement"; id: string }
   | { type: "reset" };
 
 export function getLooseAlbumCardCount(state: AlbumPilotState, id: number, includeReserved = false): number {
-  return state.owned.filter(n => n === id).length - Number(state.pasted.includes(id)) - Number(!includeReserved && state.pending?.give === id);
+  return state.owned.filter(n => n === id).length - Number(state.pasted.includes(id)) - (includeReserved ? 0 : state.pending?.give.filter(n=>n===id).length ?? 0);
+}
+
+export function canOfferAlbumCards(state: AlbumPilotState, offer: AlbumOffer): boolean {
+  if (!Array.isArray(offer.give) || offer.give.length<1 || offer.give.length>3 || !ALBUM_DEMO_COLLECTORS.some(p=>p.id===offer.partnerId) || !state.partners[offer.partnerId]?.includes(offer.receive)) return false;
+  if (!Number.isInteger(offer.receive) || offer.receive<1 || offer.receive>50 || offer.give.some(id=>!Number.isInteger(id)||id<1||id>50||id===offer.receive)) return false;
+  return [...new Set(offer.give)].every(id=>getLooseAlbumCardCount(state,id,true)>=offer.give.filter(n=>n===id).length);
+}
+
+function removeAlbumCopies(cards: number[], copies: readonly number[]): number[] {
+  const result=[...cards];
+  for(const id of copies) { const index=result.indexOf(id); if(index>=0) result.splice(index,1); }
+  return result;
 }
 
 export function getAlbumAchievementProgress(achievement: AlbumAchievement, state: AlbumPilotState, cards: readonly CollectorCard[]) {
@@ -133,18 +159,19 @@ export function updateAlbumPilot(state: AlbumPilotState, action: AlbumPilotActio
   }
   if (action.type === "unpaste") return { ...state, pasted: state.pasted.filter(id => id !== action.card) };
   if (action.type === "propose") {
-    if (state.pending || action.give === action.receive || getLooseAlbumCardCount(state, action.give) < 1 || !state.partner.includes(action.receive)) return state;
-    return { ...state, pending: { give: action.give, receive: action.receive } };
+    const offer: AlbumOffer={give:Array.isArray(action.give)?[...action.give]:[action.give],receive:action.receive,partnerId:action.partnerId??ALBUM_DEMO_COLLECTORS[0].id};
+    if (state.pending || !canOfferAlbumCards(state,offer)) return state;
+    return { ...state, pending: offer };
   }
-  if (!state.pending) return state;
+  if (!state.pending || !["accept","cancel","decline"].includes(action.type)) return state;
   const offer = state.pending;
   // Both sides move in one transition. Repeated acceptance cannot duplicate cards.
-  if (getLooseAlbumCardCount(state, offer.give, true) < 1 || !state.partner.includes(offer.receive)) return state;
+  if (action.type === "accept" && !canOfferAlbumCards(state,offer)) return state;
   const outcome: TradeRecord["outcome"] = action.type === "accept" ? "accepted" : action.type === "cancel" ? "cancelled" : "declined";
   return {
     ...state,
-    owned: action.type === "accept" ? state.owned.map((id, index) => index === state.owned.indexOf(offer.give) ? offer.receive : id) : state.owned,
-    partner: action.type === "accept" ? state.partner.map(id => id === offer.receive ? offer.give : id) : state.partner,
+    owned: action.type === "accept" ? [...removeAlbumCopies(state.owned,offer.give),offer.receive] : state.owned,
+    partners: action.type === "accept" ? {...state.partners,[offer.partnerId]:[...removeAlbumCopies(state.partners[offer.partnerId],[offer.receive]),...offer.give]} : state.partners,
     pending: null,
     acceptedTradeCount: state.acceptedTradeCount + Number(action.type === "accept"),
     history: [{ ...offer, outcome }, ...state.history].slice(0, 10),
@@ -153,22 +180,25 @@ export function updateAlbumPilot(state: AlbumPilotState, action: AlbumPilotActio
 
 export function readAlbumPilotState(raw: string | null, season = ALBUM_PILOT_SEASON): AlbumPilotState {
   const initial = createAlbumPilotState(season);
-  if (!raw || raw.length > 8000) return initial;
+  if (!raw || raw.length > 16000) return initial;
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed || ![1, 2].includes(parsed.version)) return initial;
-    const value: AlbumPilotState = parsed.version === 1 ? {...parsed, version: 2, season, openedPacks: [], claimedAchievements: [], acceptedTradeCount: Array.isArray(parsed.history) ? parsed.history.filter((h: TradeRecord) => h?.outcome === "accepted").length : 0} : parsed;
-    if (value.season !== season || !Array.isArray(value.owned) || !Array.isArray(value.partner) || !Array.isArray(value.pasted) || !Array.isArray(value.history) || !Array.isArray(value.openedPacks) || !Array.isArray(value.claimedAchievements)) return initial;
-    if ([...value.owned, ...value.partner].some(id => !Number.isInteger(id) || id < 1 || id > 50)) return initial;
+    if (!parsed || ![1, 2, 3].includes(parsed.version)) return initial;
+    const legacy = parsed.version === 1 ? {...parsed, season, openedPacks: [], claimedAchievements: [], acceptedTradeCount: Array.isArray(parsed.history) ? parsed.history.filter((h: TradeRecord) => h?.outcome === "accepted").length : 0} : parsed;
+    const upgradeOffer=(h: {give:number;receive:number})=>({give:[h.give],receive:h.receive,partnerId:ALBUM_DEMO_COLLECTORS[0].id});
+    const value: AlbumPilotState = parsed.version===3 ? parsed : {...legacy,version:3,partners:{...initial.partners,[ALBUM_DEMO_COLLECTORS[0].id]:legacy.partner},pending:legacy.pending?upgradeOffer(legacy.pending):null,history:legacy.history.map((h: {give:number;receive:number;outcome:TradeRecord["outcome"]})=>({...upgradeOffer(h),outcome:h.outcome}))};
+    if (value.season !== season || !Array.isArray(value.owned) || !value.partners || typeof value.partners!=="object" || Object.keys(value.partners).length!==ALBUM_DEMO_COLLECTORS.length || ALBUM_DEMO_COLLECTORS.some(p=>!Array.isArray(value.partners[p.id])) || !Array.isArray(value.pasted) || !Array.isArray(value.history) || !Array.isArray(value.openedPacks) || !Array.isArray(value.claimedAchievements)) return initial;
+    const partnerCards=ALBUM_DEMO_COLLECTORS.flatMap(p=>value.partners[p.id]);
+    if ([...value.owned, ...partnerCards].some(id => !Number.isInteger(id) || id < 1 || id > 50)) return initial;
     if (value.openedPacks.length > ALBUM_PILOT_PACK_COUNT || new Set(value.openedPacks.map(p => p.id)).size !== value.openedPacks.length || value.openedPacks.some(p => !getAlbumPilotPacks(season).some(known => known.id === p.id) || !Array.isArray(p.cards) || p.cards.length !== 2 || p.cards.some(id => !Number.isInteger(id) || id < 1 || id > 50))) return initial;
-    const expected = [...INITIAL_OWNED, ...INITIAL_PARTNER, ...value.openedPacks.flatMap(p => p.cards)].sort((a,b)=>a-b).join(",");
-    if (value.owned.length !== 2 + value.openedPacks.length * 2 || value.partner.length !== 1 || [...value.owned, ...value.partner].sort((a,b)=>a-b).join(",") !== expected) return initial;
+    const expected = [...INITIAL_OWNED, ...ALBUM_DEMO_COLLECTORS.flatMap(p=>[...p.initialCards]), ...value.openedPacks.flatMap(p => p.cards)].sort((a,b)=>a-b).join(",");
+    if ([...value.owned, ...partnerCards].sort((a,b)=>a-b).join(",") !== expected) return initial;
     if (new Set(value.pasted).size !== value.pasted.length || value.pasted.some(id => !value.owned.includes(id))) return initial;
-    if (value.pending && (value.pending.give === value.pending.receive || getLooseAlbumCardCount(value, value.pending.give, true) < 1 || !value.partner.includes(value.pending.receive))) return initial;
-    if (value.history.length > 10 || value.history.some(h => !h || !Number.isInteger(h.give) || h.give < 1 || h.give > 50 || !Number.isInteger(h.receive) || h.receive < 1 || h.receive > 50 || !["accepted","cancelled","declined"].includes(h.outcome))) return initial;
+    if (value.pending && !canOfferAlbumCards(value,value.pending)) return initial;
+    if (value.history.length > 10 || value.history.some(h => !h || !Array.isArray(h.give) || h.give.length<1 || h.give.length>3 || h.give.some(id=>!Number.isInteger(id)||id<1||id>50||id===h.receive) || !ALBUM_DEMO_COLLECTORS.some(p=>p.id===h.partnerId) || !Number.isInteger(h.receive) || h.receive < 1 || h.receive > 50 || !["accepted","cancelled","declined"].includes(h.outcome))) return initial;
     if (new Set(value.claimedAchievements).size !== value.claimedAchievements.length || value.claimedAchievements.some(id => !ALBUM_ACHIEVEMENTS.some(a => a.id === id))) return initial;
     if (!Number.isSafeInteger(value.acceptedTradeCount) || value.acceptedTradeCount < 0) return initial;
-    return { version: 2, season, owned: value.owned, partner: value.partner, pasted: value.pasted, pending: value.pending ? {give: value.pending.give, receive: value.pending.receive} : null, history: value.history, openedPacks: value.openedPacks, claimedAchievements: value.claimedAchievements, acceptedTradeCount: value.acceptedTradeCount };
+    return { version: 3, season, owned: value.owned, partners: value.partners, pasted: value.pasted, pending: value.pending ? {give: [...value.pending.give], receive: value.pending.receive,partnerId:value.pending.partnerId} : null, history: value.history, openedPacks: value.openedPacks, claimedAchievements: value.claimedAchievements, acceptedTradeCount: value.acceptedTradeCount };
   } catch { return initial; }
 }
 

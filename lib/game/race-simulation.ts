@@ -2413,16 +2413,18 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const grupettoAtSegmentStart = dropped.filter(
       (state) => state.grupettoStatus === "active",
     );
+    // Physical shelter and pace belong to the group on the road, not to
+    // the reason each rider originally lost contact. A mixed catch group
+    // keeps cooperating without promoting dropped riders into "delayed".
+    const detachedGroupsAtSegmentStart = splitElapsedRiderGroups(
+      [...delayed, ...dropped],
+      DROPPED_GROUP_MAX_GAP_SECONDS,
+    );
     const delayedGroupByRiderId = indexRiderStateGroupsByRiderId(
-      delayedGroupsAtSegmentStart,
+      detachedGroupsAtSegmentStart,
     );
-    const droppedGroupByRiderId = indexRiderStateGroupsByRiderId(
-      droppedGroupsAtSegmentStart,
-    );
-    const detachedGroupSnapshotsAtSegmentStart = [
-      ...delayedGroupsAtSegmentStart,
-      ...droppedGroupsAtSegmentStart,
-    ]
+    const droppedGroupByRiderId = delayedGroupByRiderId;
+    const detachedGroupSnapshotsAtSegmentStart = detachedGroupsAtSegmentStart
       .filter((group) => group.length >= 2)
       .map((group) => ({
         riderIds: new Set(group.map((state) => state.rider.id)),
@@ -3018,7 +3020,14 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         state.elapsedTimeSeconds += chaseSeconds;
       } else if (state.group === "peloton") {
         state.elapsedTimeSeconds += pelotonSeconds;
-      } else if (state.group === "delayed") {
+      } else if (
+        state.group === "delayed" &&
+        segment.terrain !== "climb" &&
+        segment.surface !== "cobbles"
+      ) {
+        // Flat-road and descending incident recovery already accounts for
+        // shelter and the chase. Retain that behavior; the missing physical
+        // terrain selection concerned climbs and cobbled sectors.
         state.elapsedTimeSeconds += pelotonSeconds;
       } else {
         const survivalEscortFactor =
@@ -3041,13 +3050,20 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           frontTerrainRating,
           input.profileType,
           hillyClimbLoad,
-          random,
+          // Adding physical losses for incident-delayed riders must not
+          // consume the shared event rolls of otherwise unchanged races.
+          state.group === "delayed"
+            ? createSeededRandom(
+                `${input.id}:${input.seed}:detached-loss:${segmentIndex}:${state.rider.id}`,
+              )
+            : random,
         );
         const pursuit =
           state.leaderRecoveryStatus === undefined &&
           state.grupettoStatus !== "active" &&
           (segment.terrain === "climb" || segment.surface === "cobbles")
             ? getDetachedRiderPursuitOutcome({
+                terrainLossSeconds: rawExtraLoss,
                 riderTerrainRating: getStateSelectionTerrainRating(
                   state,
                   segment,
@@ -3078,7 +3094,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           survivalEscortFactor *
           grupettoFactor *
           pursuit.lossMultiplier;
-        if (pursuit.canPursue) {
+        if (pursuit.canPursue && rawExtraLoss > 0) {
           state.energy = Math.max(0, state.energy - pursuit.energyCost);
           state.lateRecoveryEffortSeconds =
             (state.lateRecoveryEffortSeconds ?? 0) +
@@ -3733,33 +3749,27 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       .filter((group) => group.type === "dropped")
       .flatMap((group) => group.riderIds),
   );
-  const rawResults = [...states.values()]
-    .filter((state) => state.group !== "abandoned")
-    .map((state) => {
-      const fixedGroupFinishTimeSeconds = fixedRoadGroupFinishTimes.get(
-        state.rider.id,
-      );
-      return {
+  const rawResults = applyChronologicalRoadFinishEffort({
+    groups: finalRoadGroups,
+    effortGapSecondsByRiderId: new Map(
+      [...finalEffortGapSecondsByRiderId].filter(
+        ([riderId]) => !preservedDroppedRiderIds.has(riderId),
+      ),
+    ),
+    results: [...states.values()]
+      .filter((state) => state.group !== "abandoned")
+      .map((state) => ({
         riderId: state.rider.id,
         score: finishScores.get(state.rider.id) ?? 0,
-        elapsedTimeSeconds:
-          getRoadFinishTime(
-            state,
-            states,
-            massSprintFinish,
-            fixedGroupFinishTimeSeconds,
-          ) +
-          (preservedDroppedRiderIds.has(state.rider.id)
-            ? 0
-            : (finalEffortGapSecondsByRiderId.get(state.rider.id) ?? 0)),
+        elapsedTimeSeconds: getRoadFinishTime(
+          state,
+          states,
+          massSprintFinish,
+          fixedRoadGroupFinishTimes.get(state.rider.id),
+        ),
         energyAfter: round(state.energy, 1),
-      };
-    });
-  rawResults.sort(
-    (first, second) =>
-      first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
-      second.score - first.score,
-  );
+      })),
+  });
   const winnerTime = rawResults[0].elapsedTimeSeconds;
   const results: StageSimulationResult["results"] = rawResults.map(
     (result, index) => ({
@@ -5931,6 +5941,7 @@ export function getDetachedRiderLatchOutcome({
 }
 
 export function getDetachedRiderPursuitOutcome({
+  terrainLossSeconds = Number.POSITIVE_INFINITY,
   riderTerrainRating,
   fieldTerrainRating,
   resistanceRating,
@@ -5943,6 +5954,7 @@ export function getDetachedRiderPursuitOutcome({
   surface,
   isPriorityRider,
 }: {
+  terrainLossSeconds?: number;
   riderTerrainRating: number;
   fieldTerrainRating: number;
   resistanceRating: number;
@@ -5972,6 +5984,7 @@ export function getDetachedRiderPursuitOutcome({
       )
     : 16;
   const canPursue =
+    terrainLossSeconds > 0 &&
     energy >= (selectiveTerrain ? 18 : 12) &&
     form >= (selectiveTerrain ? 45 : 35) &&
     terrainDeficit <= maximumPursuitDeficit;
@@ -7265,6 +7278,12 @@ function resolveDelayedRiders({
 
   const pelotonTime = average(peloton.map((state) => state.elapsedTimeSeconds));
   const rejoined: RiderState[] = [];
+  const fieldTerrainRating = getFrontTerrainRating(
+    peloton,
+    segment,
+    profileType,
+    hillyClimbLoad,
+  );
 
   for (const state of getStatesInGroup(states, "delayed").filter(
     (candidate) =>
@@ -7290,6 +7309,13 @@ function resolveDelayedRiders({
       state.rider.ratings.resistance * 0.15 +
       state.energy * 0.1;
     const pursuit = getDelayedRiderPursuitOutcome({
+      riderTerrainRating: getStateSelectionTerrainRating(
+        state,
+        segment,
+        profileType,
+        hillyClimbLoad,
+      ),
+      fieldTerrainRating,
       energy: state.energy,
       selectionDifficulty,
       terrain: segment.terrain,
@@ -7317,6 +7343,7 @@ function resolveDelayedRiders({
       0,
       state.lostTimeSeconds - pursuit.recoveredSeconds,
     );
+    state.energy = Math.max(0, state.energy - pursuit.energyCost);
 
     if (remainingGapSeconds <= 3) {
       state.group = "peloton";
@@ -7335,6 +7362,8 @@ function resolveDelayedRiders({
 }
 
 export function getDelayedRiderPursuitOutcome({
+  riderTerrainRating,
+  fieldTerrainRating,
   energy,
   selectionDifficulty,
   terrain,
@@ -7343,6 +7372,8 @@ export function getDelayedRiderPursuitOutcome({
   gapSeconds,
   recoveryRoll,
 }: {
+  riderTerrainRating: number;
+  fieldTerrainRating: number;
   energy: number;
   selectionDifficulty: number;
   terrain: RaceStageSegment["terrain"];
@@ -7360,6 +7391,7 @@ export function getDelayedRiderPursuitOutcome({
     return {
       shouldDrop: true,
       recoveredSeconds: 0,
+      energyCost: 0,
       additionalLossSeconds: clamp(
         2 +
           selectionDifficulty * 4 +
@@ -7383,6 +7415,12 @@ export function getDelayedRiderPursuitOutcome({
       : surface === "cobbles"
         ? clamp(0.9 - selectionDifficulty * 0.25, 0.5, 0.8)
         : 1;
+  // Closing a gap on selective terrain requires an actual pace advantage.
+  // The incident label and spare energy alone do not make a weaker climber
+  // faster than the riders setting the pace ahead.
+  const relativePaceFactor = selectiveTerrain
+    ? clamp((riderTerrainRating - fieldTerrainRating) / 6, 0, 1)
+    : 1;
   const recoveredSeconds = Math.min(
     gapSeconds,
     clamp(
@@ -7391,12 +7429,16 @@ export function getDelayedRiderPursuitOutcome({
       12,
     ) *
       energyFactor *
-      terrainFactor,
+      terrainFactor *
+      relativePaceFactor,
   );
 
   return {
     shouldDrop: false,
     recoveredSeconds,
+    energyCost: selectiveTerrain && recoveredSeconds > 0
+      ? clamp(0.25 + recoveredSeconds * 0.09, 0.25, 1.5)
+      : 0,
     additionalLossSeconds: 0,
   };
 }
@@ -7625,7 +7667,7 @@ export function findDroppedRiderIdsCaughtByDelayedGroup({
     .map((rider) => rider.riderId);
 }
 
-function mergeDetachedGroupsAfterCatch({
+export function mergeDetachedGroupsAfterCatch({
   states,
   segment,
   segmentIndex,
@@ -7675,8 +7717,12 @@ function mergeDetachedGroupsAfterCatch({
       );
       const caughtRiderIds = findDroppedRiderIdsCaughtByDelayedGroup({
         delayedGroupSize: detachedGroupAtSegmentEnd.length,
-        delayedGroupStartElapsedTimeSeconds:
-          detachedGroupAtSegmentStart.elapsedTimeSeconds,
+        delayedGroupStartElapsedTimeSeconds: average(
+          detachedGroupAtSegmentEnd.map((state) =>
+            detachedElapsedTimeAtSegmentStartByRiderId.get(state.rider.id) ??
+            detachedGroupAtSegmentStart.elapsedTimeSeconds,
+          ),
+        ),
         delayedGroupEndElapsedTimeSeconds: detachedGroupEndElapsedTimeSeconds,
         droppedRiders: [...detachedElapsedTimeAtSegmentStartByRiderId]
           .map(([riderId, startElapsedTimeSeconds]) => {
@@ -7743,20 +7789,19 @@ function mergeDetachedGroupsAfterCatch({
           physicallyAbleCaughtRiderIds.has(state.supportingLeaderId),
       );
       if (caughtStates.length === 0) continue;
-      const mergedStates = [...detachedGroupAtSegmentEnd, ...caughtStates];
-      const mergedGroupType = detachedGroupAtSegmentEnd.some(
-        (state) => state.group === "delayed",
-      )
-        ? "delayed"
-        : "dropped";
-
-      for (const state of mergedStates) {
-        state.group = mergedGroupType;
+      // The catch can shelter a rider for the rest of this sector, but it
+      // cannot rewrite the pursuers' own clocks or transfer an incident
+      // label to physically dropped riders. Both labels now use the same
+      // terrain loss on the following sector.
+      for (const state of caughtStates) {
         state.groupSinceSegment = segmentIndex;
-        state.elapsedTimeSeconds = detachedGroupEndElapsedTimeSeconds;
+        state.elapsedTimeSeconds = Math.max(
+          detachedGroupEndElapsedTimeSeconds,
+          detachedElapsedTimeAtSegmentStartByRiderId.get(state.rider.id) ?? 0,
+        );
         state.lostTimeSeconds = Math.max(
           0,
-          detachedGroupEndElapsedTimeSeconds -
+          state.elapsedTimeSeconds -
             (referenceTimeSeconds ?? detachedGroupEndElapsedTimeSeconds),
         );
       }
@@ -7770,7 +7815,7 @@ function mergeDetachedGroupsAfterCatch({
   }
 }
 
-function resolveNearbyDetachedGroupLatching({
+export function resolveNearbyDetachedGroupLatching({
   states,
   segment,
   segmentIndex,
@@ -7891,11 +7936,7 @@ function resolveNearbyDetachedGroupLatching({
       );
       if (followers.length === 0) continue;
 
-      const targetGroup = frontGroup.some((state) => state.group === "peloton")
-        ? "peloton"
-        : frontGroup.some((state) => state.group === "delayed")
-          ? "delayed"
-          : "dropped";
+      const targetIsPeloton = frontGroup.some((state) => state.group === "peloton");
       for (const state of followers) {
         if (state.leaderRecoveryStatus !== undefined) {
           clearLeaderRecoveryAssignment(state, states);
@@ -7903,11 +7944,13 @@ function resolveNearbyDetachedGroupLatching({
       }
       for (const state of followers) {
         const outcome = outcomes.get(state.rider.id)!;
-        state.group = targetGroup;
+        // Sharing wheels does not change the cause of detachment. Only an
+        // actual return to the peloton clears the detached state.
+        if (targetIsPeloton) state.group = "peloton";
         state.groupSinceSegment = segmentIndex;
         state.elapsedTimeSeconds = frontTime;
         state.lostTimeSeconds =
-          targetGroup === "peloton" || pelotonTime === null
+          targetIsPeloton || pelotonTime === null
             ? 0
             : Math.max(0, frontTime - pelotonTime);
         state.energy = Math.max(0, state.energy - outcome.energyCost);
@@ -10197,6 +10240,110 @@ export function buildPreservedRoadGroupFinishTimes({
   return allGroupFinishTimes;
 }
 
+/**
+ * Finish scores may separate riders still in the same physical road group.
+ * They cannot manufacture a catch of another group after the last simulated
+ * sector. Limit only the added effort, using the next group's existing clock;
+ * never move a trailing group or erase a gap already earned on the road.
+ *
+ * Use individual base clocks rather than snapshot averages here: a dispersed
+ * escape can already straddle a chaser's clock, and a successful final climb
+ * attack has already advanced its rider's clock before this calculation.
+ */
+export function applyChronologicalRoadFinishEffort<
+  Result extends { riderId: string; elapsedTimeSeconds: number; score: number },
+>({
+  results,
+  groups,
+  effortGapSecondsByRiderId,
+}: {
+  results: readonly Result[];
+  groups: ReadonlyArray<Pick<RaceGroupSnapshot, "riderIds" | "gapToLeaderSeconds">>;
+  effortGapSecondsByRiderId: ReadonlyMap<string, number>;
+}): Result[] {
+  const hasAddedEffort = results.some(
+    (result) => (effortGapSecondsByRiderId.get(result.riderId) ?? 0) > 0,
+  );
+  // Neutralized descents and bunch sprints keep the exact historical timing
+  // and score order, without introducing a new tie-break between groups.
+  if (!hasAddedEffort) {
+    return [...results].sort(
+      (first, second) =>
+        first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+        second.score - first.score,
+    );
+  }
+  const roadGroupByRiderId = new Map<string, number>();
+  [...groups]
+    .sort((first, second) => first.gapToLeaderSeconds - second.gapToLeaderSeconds)
+    .forEach((group, groupIndex) => {
+      for (const riderId of group.riderIds) {
+        roadGroupByRiderId.set(riderId, groupIndex);
+      }
+    });
+  const physicalRows = results.map((result, index) => ({
+    result,
+    // An ungrouped rider must not accidentally share a physical group with
+    // another missing rider. Normal road simulations include every finisher.
+    groupIndex: roadGroupByRiderId.get(result.riderId) ?? groups.length + index,
+  }));
+  const finishedRows = physicalRows.map((row) => {
+    const baseTime = row.result.elapsedTimeSeconds;
+    const effortGap = Math.max(
+      0,
+      effortGapSecondsByRiderId.get(row.result.riderId) ?? 0,
+    );
+    let latestFinishTime = Number.POSITIVE_INFINITY;
+    if (effortGap > 0) {
+      for (const other of physicalRows) {
+        if (other.groupIndex === row.groupIndex) continue;
+        const physicalOrder =
+          baseTime - other.result.elapsedTimeSeconds ||
+          row.groupIndex - other.groupIndex;
+        if (physicalOrder < 0) {
+          latestFinishTime = Math.min(
+            latestFinishTime,
+            other.result.elapsedTimeSeconds,
+          );
+        }
+      }
+    }
+    return {
+      ...row,
+      finishTime: Math.min(baseTime + effortGap, latestFinishTime),
+    };
+  });
+  finishedRows.sort(
+    (first, second) =>
+      first.finishTime - second.finishTime ||
+      first.result.elapsedTimeSeconds - second.result.elapsedTimeSeconds ||
+      first.groupIndex - second.groupIndex,
+  );
+  // A single comparator mixing same-group scores and cross-group clocks is
+  // not transitive if a dispersed escape straddles another group's clock.
+  // Establish the physical tie order first, then score only contiguous riders
+  // from the same group. No score comparison can cross another road group.
+  for (let start = 0; start < finishedRows.length;) {
+    let end = start + 1;
+    while (
+      end < finishedRows.length &&
+      finishedRows[end].finishTime === finishedRows[start].finishTime &&
+      finishedRows[end].groupIndex === finishedRows[start].groupIndex
+    ) {
+      end += 1;
+    }
+    const rankedGroup = finishedRows.slice(start, end).sort(
+      (first, second) => second.result.score - first.result.score,
+    );
+    finishedRows.splice(start, end - start, ...rankedGroup);
+    start = end;
+  }
+  return finishedRows.map((row) => ({
+    ...row.result,
+    elapsedTimeSeconds: row.finishTime,
+  }));
+}
+
 export function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
   let distanceKm = 0;
   let weightedGradient = 0;
@@ -11958,42 +12105,73 @@ function getDroppedRiderLoss(
   hillyClimbLoad: number,
   random: () => number,
 ) {
-  const terrainDeficit = Math.max(
-    0,
-    frontTerrainRating -
-      getStateSelectionTerrainRating(
-        state,
-        segment,
-        profileType,
-        hillyClimbLoad,
-      ),
-  );
-
-  if (segment.terrain === "climb") {
-    const difficulty = getSegmentSelectionDifficulty(
+  return getDetachedRiderTerrainLoss({
+    energy: state.energy,
+    riderTerrainRating: getStateSelectionTerrainRating(
+      state,
       segment,
       profileType,
       hillyClimbLoad,
-    );
-    return (
-      2 +
-      difficulty * 8 +
-      terrainDeficit * (1.4 + difficulty * 2.6) +
-      random() * (2 + difficulty * 4)
+    ),
+    fieldTerrainRating: frontTerrainRating,
+    selectionDifficulty: getSegmentSelectionDifficulty(
+      segment,
+      profileType,
+      hillyClimbLoad,
+    ),
+    terrain: segment.terrain,
+    surface: segment.surface,
+    recoveryRoll: random(),
+  });
+}
+
+export function getDetachedRiderTerrainLoss({
+  energy = 100,
+  riderTerrainRating,
+  fieldTerrainRating,
+  selectionDifficulty,
+  terrain,
+  surface,
+  recoveryRoll,
+}: {
+  energy?: number;
+  riderTerrainRating: number;
+  fieldTerrainRating: number;
+  selectionDifficulty: number;
+  terrain: RaceStageSegment["terrain"];
+  surface: RaceStageSegment["surface"];
+  recoveryRoll: number;
+}) {
+  const terrainDeficit = Math.max(0, fieldTerrainRating - riderTerrainRating);
+  const roll = clamp(recoveryRoll, 0, 1);
+  const exhaustionLoss = terrain === "climb" || surface === "cobbles"
+    ? Math.max(0, ABSOLUTE_EXHAUSTION_ENERGY - energy) *
+      (2 + selectionDifficulty * 3)
+    : 0;
+
+  if (terrain === "climb") {
+    // Detachment does not itself make an equally strong rider slower. This
+    // preserves physically viable recovery after a mechanical or a wait,
+    // while every weaker rider pays the same terrain deficit regardless
+    // of whether their original detachment was physical or accidental.
+    const deficitFactor = clamp(terrainDeficit / 4, 0, 1);
+    return Math.max(exhaustionLoss,
+      (2 + selectionDifficulty * 8 + roll * (2 + selectionDifficulty * 4)) *
+        deficitFactor +
+      terrainDeficit * (1.4 + selectionDifficulty * 2.6),
     );
   }
 
-  if (segment.terrain === "descent") {
-    const descentDeficit = Math.max(
-      0,
-      frontTerrainRating - getStateTerrainRating(state, segment),
-    );
-    return 0.5 + descentDeficit * 0.4 + random() * 1.5;
+  if (terrain === "descent") {
+    return 0.5 + terrainDeficit * 0.4 + roll * 1.5;
   }
 
   // Une fois distancé, le coureur ne continue pas à perdre des dizaines de
   // secondes sur chaque portion roulante : le gruppetto limite les dégâts.
-  return 1 + terrainDeficit * 0.25 + random() * 2;
+  const flatLoss = 1 + terrainDeficit * 0.25 + roll * 2;
+  return surface === "cobbles"
+    ? Math.max(exhaustionLoss, flatLoss * clamp(terrainDeficit / 4, 0, 1))
+    : flatLoss;
 }
 
 function getFrontTerrainRating(

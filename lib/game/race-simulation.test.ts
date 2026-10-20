@@ -19,6 +19,7 @@ import {
   getFinalBattleScenario,
   findDroppedRiderIdsCaughtByDelayedGroup,
   getDelayedRiderPursuitOutcome,
+  getDetachedRiderTerrainLoss,
   getDetachedRiderLatchOutcome,
   getDetachedRiderPursuitOutcome,
   getDroppedGroupPursuitOutcome,
@@ -933,6 +934,33 @@ describe("getDetachedRiderLatchOutcome", () => {
 });
 
 describe("getDetachedRiderPursuitOutcome", () => {
+  it("ne dépense pas une réserve pour atténuer une perte de terrain inexistante", () => {
+    const terrainLossSeconds = getDetachedRiderTerrainLoss({
+      riderTerrainRating: 84,
+      fieldTerrainRating: 84,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      recoveryRoll: 0.5,
+    });
+    const outcome = getDetachedRiderPursuitOutcome({
+      terrainLossSeconds,
+      riderTerrainRating: 84,
+      fieldTerrainRating: 84,
+      resistanceRating: 75,
+      enduranceRating: 75,
+      energy: 60,
+      form: 98,
+      segmentDistanceKm: 17,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      isPriorityRider: true,
+    });
+    expect(terrainLossSeconds).toBe(0);
+    expect(outcome).toEqual({ canPursue: false, lossMultiplier: 1, energyCost: 0 });
+  });
+
   it("fait utiliser sa réserve à un bon grimpeur isolé pour limiter les dégâts", () => {
     const outcome = getDetachedRiderPursuitOutcome({
       riderTerrainRating: 82,
@@ -1031,6 +1059,8 @@ describe("spreadRoadGroupTransitionsAcrossFrames", () => {
 describe("getDelayedRiderPursuitOutcome", () => {
   it("fait décrocher un groupe épuisé dans une ascension exigeante", () => {
     const outcome = getDelayedRiderPursuitOutcome({
+      riderTerrainRating: 86,
+      fieldTerrainRating: 80,
       energy: 2,
       selectionDifficulty: 1.1,
       terrain: "climb",
@@ -1047,6 +1077,8 @@ describe("getDelayedRiderPursuitOutcome", () => {
 
   it("réserve les vrais retours en montagne aux poursuivants qui ont encore des réserves", () => {
     const exhausted = getDelayedRiderPursuitOutcome({
+      riderTerrainRating: 86,
+      fieldTerrainRating: 80,
       energy: 12,
       selectionDifficulty: 1.1,
       terrain: "climb",
@@ -1056,6 +1088,8 @@ describe("getDelayedRiderPursuitOutcome", () => {
       recoveryRoll: 0.8,
     });
     const fresh = getDelayedRiderPursuitOutcome({
+      riderTerrainRating: 86,
+      fieldTerrainRating: 80,
       energy: 55,
       selectionDifficulty: 1.1,
       terrain: "climb",
@@ -1070,6 +1104,106 @@ describe("getDelayedRiderPursuitOutcome", () => {
     expect(fresh.recoveredSeconds).toBeGreaterThan(
       exhausted.recoveredSeconds * 5,
     );
+  });
+
+  it.each([
+    { terrain: "climb" as const, surface: "asphalt" as const },
+    { terrain: "flat" as const, surface: "cobbles" as const },
+  ])("ne récupère pas sur $terrain/$surface sans avantage réel de terrain", ({ terrain, surface }) => {
+    const base = {
+      energy: 65,
+      selectionDifficulty: 1.1,
+      terrain,
+      surface,
+      catchUpScore: 90,
+      gapSeconds: 45,
+      recoveryRoll: 1,
+      fieldTerrainRating: 84,
+    };
+    const weaker = getDelayedRiderPursuitOutcome({ ...base, riderTerrainRating: 62 });
+    const matching = getDelayedRiderPursuitOutcome({ ...base, riderTerrainRating: 84 });
+    const stronger = getDelayedRiderPursuitOutcome({ ...base, riderTerrainRating: 92 });
+
+    expect(weaker.recoveredSeconds).toBe(0);
+    expect(matching.recoveredSeconds).toBe(0);
+    expect(stronger.recoveredSeconds).toBeGreaterThan(0);
+    expect(stronger.energyCost).toBeGreaterThan(0);
+    expect(stronger.recoveredSeconds).toBeLessThanOrEqual(base.gapSeconds);
+  });
+
+  it("conserve les retours mesurés après incident sur le plat et en descente", () => {
+    for (const terrain of ["flat", "descent"] as const) {
+      const outcome = getDelayedRiderPursuitOutcome({
+        energy: 45,
+        selectionDifficulty: 0,
+        terrain,
+        surface: "asphalt",
+        catchUpScore: 75,
+        gapSeconds: 6,
+        recoveryRoll: 0.8,
+        riderTerrainRating: 71,
+        fieldTerrainRating: 75,
+      });
+      expect(outcome.shouldDrop).toBe(false);
+      expect(outcome.recoveredSeconds).toBe(6);
+      expect(outcome.energyCost).toBe(0);
+    }
+  });
+});
+
+describe("allure physique des attardés", () => {
+  it("applique le déficit de terrain même avec une énergie et un score de poursuite élevés", () => {
+    const loss = getDetachedRiderTerrainLoss({
+      riderTerrainRating: 62,
+      fieldTerrainRating: 88,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      recoveryRoll: 0.5,
+    });
+    const pursuit = getDelayedRiderPursuitOutcome({
+      riderTerrainRating: 62,
+      fieldTerrainRating: 88,
+      selectionDifficulty: 1.1,
+      terrain: "climb",
+      surface: "asphalt",
+      energy: 65,
+      catchUpScore: 90,
+      gapSeconds: 30,
+      recoveryRoll: 1,
+    });
+    expect(loss - pursuit.recoveredSeconds).toBeGreaterThan(100);
+  });
+
+  it.each([
+    { terrain: "climb" as const, surface: "asphalt" as const },
+    { terrain: "flat" as const, surface: "cobbles" as const },
+  ])("n'invente pas de perte de capacité pour une victime d'incident forte sur $terrain/$surface", ({ terrain, surface }) => {
+    const base = {
+      fieldTerrainRating: 80,
+      selectionDifficulty: 1,
+      terrain,
+      surface,
+      recoveryRoll: 0.5,
+    };
+    expect(getDetachedRiderTerrainLoss({ ...base, riderTerrainRating: 86 })).toBe(0);
+    expect(getDetachedRiderTerrainLoss({ ...base, riderTerrainRating: 80 })).toBe(0);
+    expect(getDetachedRiderTerrainLoss({ ...base, riderTerrainRating: 79.9 })).toBeGreaterThan(0);
+    expect(getDetachedRiderTerrainLoss({ ...base, riderTerrainRating: 74 })).toBeGreaterThan(
+      getDetachedRiderTerrainLoss({ ...base, riderTerrainRating: 79 }),
+    );
+  });
+
+  it("conserve les pertes limitées du plat et de la descente", () => {
+    const base = {
+      riderTerrainRating: 70,
+      fieldTerrainRating: 80,
+      selectionDifficulty: 0,
+      surface: "asphalt" as const,
+      recoveryRoll: 0.5,
+    };
+    expect(getDetachedRiderTerrainLoss({ ...base, terrain: "flat" })).toBe(4.5);
+    expect(getDetachedRiderTerrainLoss({ ...base, terrain: "descent" })).toBe(5.25);
   });
 });
 
@@ -3930,7 +4064,9 @@ describe("simulateRaceStage", () => {
   });
 
   it("ne fabrique pas un retard pour un grimpeur resté au contact sur les bosses", () => {
-    const baseInput = createDemoSimulationInput("collines-ardennes", 37);
+    // Keep this finish-selection fixture free from mechanicals and crashes:
+    // changing a legitimate pursuit must not turn it into an incident test.
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const flat = (
       segmentNumber: number,
       distanceKm = 10,
@@ -3990,7 +4126,7 @@ describe("simulateRaceStage", () => {
     }));
     const result = simulateRaceStage({
       ...baseInput,
-      seed: 37,
+      seed: 1,
       segments,
       riders: [climber, ...punchers],
     });
@@ -4004,6 +4140,7 @@ describe("simulateRaceStage", () => {
       (row) => row.riderId === climber.id,
     )!;
 
+    expect(result.timeline.flatMap((snapshot) => snapshot.incidents)).toHaveLength(0);
     expect(firstDropIndex).toBe(-1);
     expect(climberResult.rank).not.toBe(1);
     expect(climberResult.gapToWinnerSeconds).toBeLessThanOrEqual(12);

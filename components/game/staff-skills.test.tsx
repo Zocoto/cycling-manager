@@ -17,7 +17,7 @@ describe("shared staff presentation audit", () => {
       const markup = renderToStaticMarkup(<>
         <StaffCardHeader member={{ role, level, firstName: "Camille", lastName: "Nom très long sans troncature",
           countryCode: "FR", countryName: "France", trainerSpecialty: null, architectSpecialty: null }} />
-        <StaffSkills level={level} effects={effects} talents={talents} nationalityAffinity
+        <StaffSkills role={role} level={level} effects={effects} talents={talents} nationalityAffinity
           talentCapacity={getStaffAcademyTalentCapacity(role, level)} />
       </>);
       expect(markup).toContain(`Niveau ${level} sur 5`);
@@ -30,6 +30,24 @@ describe("shared staff presentation audit", () => {
       expect(markup.includes('data-staff-section="base"')).toBe(effects.length > 0);
       expect(markup).not.toContain("un affixe au recrutement");
       expect(markup).not.toContain("Talents R&amp;D actifs");
+    }
+  });
+
+  it("keeps youth-coach nationality information outside its only base skill", () => {
+    for (const nationalityAffinity of [false, true]) {
+      const markup = renderToStaticMarkup(<StaffSkills role="youth_coach" level={2}
+        effects={describeStaffEffect({ role: "youth_coach", level: 2, trainerSpecialty: "hills" })}
+        talents={[]} nationalityAffinity={nationalityAffinity} />);
+      const base = markup.match(/<section data-staff-section="base"[\s\S]*?<\/section>/)?.[0] ?? "";
+      const affinity = markup.match(/<section data-staff-section="affinity"[\s\S]*?<\/section>/)?.[0] ?? "";
+      expect(base).toContain("+4 % d’efficacité sur les entraînements juniors vallons");
+      expect(base.match(/<li\b/g)).toHaveLength(1);
+      expect(base).not.toContain("nationalité");
+      expect(markup).not.toContain("Effet collectif");
+      expect(affinity).toContain("Bonus d’affinité nationale");
+      expect(affinity).toContain("+5 % supplémentaires pour chaque junior de la même nationalité");
+      expect(affinity).not.toContain("+10 %");
+      expect(markup.match(/data-staff-section="affinity"/g)).toHaveLength(1);
     }
   });
 

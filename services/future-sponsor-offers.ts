@@ -13,6 +13,10 @@ import {
   type SponsorObjectiveDifficulty,
 } from "@/lib/game/sponsor-negotiation";
 import { calculateSponsorRenewalBudget } from "@/lib/game/sponsor-renewal-budget";
+import {
+  readSponsorRenewalAssessment,
+  type SponsorRenewalAssessment,
+} from "@/lib/game/sponsor-renewal-assessment";
 import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -33,7 +37,6 @@ import type { Sponsor } from "@/types/sponsor";
 
 
 const DEFAULT_PROPOSAL_COUNT = 3;
-const RENEWAL_ALTERNATIVE_COUNT = 2;
 const SPONSOR_OFFER_GENERATION_VERSION = 6;
 const PREFERRED_SPONSOR_OFFER_GENERATION_VERSION = 7;
 const INTERNATIONAL_SCHOOL_OFFER_GENERATION_VERSION = 9;
@@ -54,6 +57,7 @@ export type FutureSponsorOfferPackage = {
   mode: FutureSponsorOfferMode;
   season: FutureSponsorSeason;
   offers: PersistedSponsorOffer[];
+  renewalAssessment?: SponsorRenewalAssessment;
 };
 
 export type FutureSponsorOfferRequest = {
@@ -68,6 +72,7 @@ export type FutureSponsorOfferRequest = {
     endsOn: string;
   };
   mode: FutureSponsorOfferMode;
+  currentContractId?: string | null;
   currentSponsorCatalogKey: string | null;
   currentSponsorBudget: number | null;
   currentSponsorSatisfactionScore: number | null;
@@ -141,16 +146,21 @@ type ReservedSponsorOfferRow = {
   sponsor_id: string;
 };
 
-export async function getOrCreateFutureSponsorOffersForAuthUser({
-  authUserId,
-  teamId,
-  activeSeason,
-  mode,
-  currentSponsorCatalogKey,
-  currentSponsorBudget,
-  currentSponsorSatisfactionScore,
-  excludedSponsorCatalogKey,
-}: FutureSponsorOfferRequest): Promise<FutureSponsorOfferPackage> {
+export async function getOrCreateFutureSponsorOffersForAuthUser(
+  request: FutureSponsorOfferRequest,
+  attempt = 0,
+): Promise<FutureSponsorOfferPackage> {
+  const {
+    authUserId,
+    teamId,
+    activeSeason,
+    mode,
+    currentContractId,
+    currentSponsorCatalogKey,
+    currentSponsorBudget,
+    currentSponsorSatisfactionScore,
+    excludedSponsorCatalogKey,
+  } = request;
   const normalizedAuthUserId = authUserId.trim();
   const normalizedTeamId = teamId.trim();
 
@@ -207,6 +217,18 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     activeSeasonId: activeSeason.id,
     targetSeasonId: targetSeason.id,
   });
+
+  let renewalAssessment: SponsorRenewalAssessment | undefined;
+  if (mode === "renewal") {
+    if (!currentContractId) throw new Error("Le contrat à renouveler est introuvable.");
+    const { data, error } = await supabase.rpc("get_sponsor_renewal_assessment", {
+      p_contract_id: currentContractId,
+      p_sporting_director_id: sportingDirector.id,
+      p_target_season_id: targetSeason.id,
+    });
+    if (error) throw new Error(`Impossible de vérifier la reconduction : ${error.message}`);
+    renewalAssessment = readSponsorRenewalAssessment(data);
+  }
 
   const { data: existingOfferRows, error: existingOffersError } =
     await supabase
@@ -266,57 +288,36 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       : 0,
   );
 
-  if (
-    existingOfferRows?.length === DEFAULT_PROPOSAL_COUNT &&
-    existingOfferRows.every(
-      (offer) => offer.generation_version >= generationVersion
-    )
-  ) {
-    const existingOffers = await hydrateFutureSponsorOffersWithObjectives({
-      supabase,
-      seasonId: targetSeason.id,
-      teamReputationPoints: sportingDirector.reputation_points,
-      teamId: normalizedTeamId,
-      offerRows: existingOfferRows,
-      renewalSponsorCatalogKey:
-        mode === "renewal" ? currentSponsorCatalogKey : null,
-    });
+  const existingOffers = await hydrateFutureSponsorOffers({
+    supabase,
+    offerRows: existingOfferRows ?? [],
+    renewalSponsorCatalogKey: mode === "renewal" ? currentSponsorCatalogKey : null,
+  });
+  const rowById = new Map((existingOfferRows ?? []).map((row) => [row.id, row]));
+  const retainedOffers = existingOffers.filter((offer) =>
+    (rowById.get(offer.id)?.generation_version ?? 0) >= generationVersion &&
+    !(offer.isRenewal && renewalAssessment?.refused) &&
+    isSponsorEligibleForTeamAffinity({
+      sponsor: offer.sponsor,
+      reputationPoints: sportingDirector.reputation_points,
+      teamCountryCode: countryAffinity.teamCountryCode,
+      rosterMajorityCountryCode: countryAffinity.rosterMajorityCountryCode,
+    }) &&
+    (!unavailableSponsorCatalogKeySet.has(offer.sponsor.id) || offer.isRenewal)
+  );
+  const retainedIds = new Set(retainedOffers.map((offer) => offer.id));
+  const discardedIds = (existingOfferRows ?? []).filter((row) => !retainedIds.has(row.id)).map((row) => row.id);
 
-    if (
-      existingOffers.every(
-        (offer) =>
-          isSponsorEligibleForTeamAffinity({
-            sponsor: offer.sponsor,
-            reputationPoints: sportingDirector.reputation_points,
-            teamCountryCode: countryAffinity.teamCountryCode,
-            rosterMajorityCountryCode:
-              countryAffinity.rosterMajorityCountryCode,
-          }) &&
-          (!unavailableSponsorCatalogKeySet.has(offer.sponsor.id) ||
-            (mode === "renewal" &&
-              offer.sponsor.id === currentSponsorCatalogKey))
-      )
-    ) {
-      return {
-        mode,
-        season: targetSeason,
-        offers: existingOffers,
-      };
-    }
-  }
-
-  if (existingOfferRows && existingOfferRows.length > 0) {
+  if (discardedIds.length > 0) {
     const { error: withdrawIncompleteOffersError } = await supabase
       .from("sponsor_offers")
       .update({ status: "withdrawn" })
-      .in(
-        "id",
-        existingOfferRows.map((offer) => offer.id)
-      );
+      .in("id", discardedIds)
+      .in("status", ["draft", "open"]);
 
     if (withdrawIncompleteOffersError) {
       throw new Error(
-        `Impossible de réinitialiser le lot incomplet d’offres : ${withdrawIncompleteOffersError.message}`
+        `Impossible d’actualiser les offres disponibles : ${withdrawIncompleteOffersError.message}`
       );
     }
   }
@@ -330,12 +331,30 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     currentSponsorSatisfactionScore,
     excludedSponsorCatalogKey,
     countryAffinity,
+    renewalAllowed: !renewalAssessment?.refused,
+    retainedSponsorKeys: retainedOffers.map((offer) => offer.sponsor.id),
+    // Concurrent visits choose the same missing slots; uniqueness then permits a bounded retry.
+    random: createOfferRandom(`${sportingDirector.id}:${targetSeason.id}:${retainedOffers.map((offer) => offer.sponsor.id).sort().join(",")}`),
   });
 
-  if (generatedProposals.length < DEFAULT_PROPOSAL_COUNT) {
+  // A refused renewal must not hide one or two usable alternatives when the market is scarce.
+  if (mode !== "renewal" && generatedProposals.length + retainedOffers.length < DEFAULT_PROPOSAL_COUNT) {
     throw new Error(
-      `Le catalogue ne contient que ${generatedProposals.length} sponsor(s) éligible(s), alors que ${DEFAULT_PROPOSAL_COUNT} offres sont nécessaires.`
+      `Le catalogue ne contient que ${generatedProposals.length + retainedOffers.length} sponsor(s) éligible(s), alors que ${DEFAULT_PROPOSAL_COUNT} offres sont nécessaires.`
     );
+  }
+
+  const retainedRows = (existingOfferRows ?? []).filter((row) => retainedIds.has(row.id));
+  if (generatedProposals.length === 0) {
+    return {
+      mode, season: targetSeason, renewalAssessment,
+      offers: await hydrateFutureSponsorOffersWithObjectives({
+        supabase, seasonId: targetSeason.id, teamId: normalizedTeamId,
+        teamReputationPoints: sportingDirector.reputation_points,
+        offerRows: retainedRows, hydratedOffers: retainedOffers,
+        renewalSponsorCatalogKey: mode === "renewal" ? currentSponsorCatalogKey : null,
+      }),
+    };
   }
 
   const proposedCatalogKeys = generatedProposals.map(
@@ -440,6 +459,9 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     .returns<SponsorOfferRow[]>();
 
   if (insertOffersError) {
+    if (insertOffersError.code === "23505" && attempt < 1) {
+      return getOrCreateFutureSponsorOffersForAuthUser(request, attempt + 1);
+    }
     throw new Error(
       `Impossible d’enregistrer les offres de la saison suivante : ${insertOffersError.message}`
     );
@@ -448,12 +470,13 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
   return {
     mode,
     season: targetSeason,
+    renewalAssessment,
     offers: await hydrateFutureSponsorOffersWithObjectives({
       supabase,
       seasonId: targetSeason.id,
       teamReputationPoints: sportingDirector.reputation_points,
       teamId: normalizedTeamId,
-      offerRows: insertedOfferRows ?? [],
+      offerRows: [...retainedRows, ...(insertedOfferRows ?? [])],
       renewalSponsorCatalogKey:
         mode === "renewal"
           ? currentSponsorCatalogKey
@@ -471,6 +494,9 @@ function createFutureProposals({
   currentSponsorSatisfactionScore,
   excludedSponsorCatalogKey,
   countryAffinity,
+  renewalAllowed,
+  retainedSponsorKeys,
+  random,
 }: {
   mode: FutureSponsorOfferMode;
   directorReputation: number;
@@ -480,9 +506,12 @@ function createFutureProposals({
   currentSponsorSatisfactionScore: number | null;
   excludedSponsorCatalogKey: string | null;
   countryAffinity: TeamSponsorCountryAffinity;
+  renewalAllowed: boolean;
+  retainedSponsorKeys: readonly string[];
+  random: () => number;
 }): GeneratedFutureProposal[] {
   const unavailableSponsorIds = new Set(
-    unavailableSponsorCatalogKeys
+    [...unavailableSponsorCatalogKeys, ...retainedSponsorKeys]
   );
 
   if (excludedSponsorCatalogKey) {
@@ -516,14 +545,16 @@ function createFutureProposals({
     }
 
     unavailableSponsorIds.add(currentSponsorCatalogKey);
-    const renewalIsEligible = isSponsorEligibleForTeamAffinity({
+    const renewalIsEligible = renewalAllowed && isSponsorEligibleForTeamAffinity({
       sponsor: currentSponsor,
       reputationPoints: directorReputation,
       teamCountryCode: countryAffinity.teamCountryCode,
       rosterMajorityCountryCode: countryAffinity.rosterMajorityCountryCode,
     });
+    const includeRenewal = renewalIsEligible && !retainedSponsorKeys.includes(currentSponsorCatalogKey);
+    const alternativeCount = Math.max(0, DEFAULT_PROPOSAL_COUNT - retainedSponsorKeys.length - (includeRenewal ? 1 : 0));
 
-    const alternativeProposals = generateSponsorProposals({
+    const alternativeProposals = alternativeCount === 0 ? [] : generateSponsorProposals({
       directorCountryCode: countryAffinity.directorCountryCode,
       teamCountryCode: countryAffinity.teamCountryCode,
       leaderCountryCodes: countryAffinity.leaderCountryCodes,
@@ -534,18 +565,18 @@ function createFutureProposals({
         countryAffinity.internationalSchoolAffinities,
       directorReputation,
       unavailableSponsorIds: [...unavailableSponsorIds],
-      proposalCount: renewalIsEligible
-        ? RENEWAL_ALTERNATIVE_COUNT
-        : DEFAULT_PROPOSAL_COUNT,
+      proposalCount: alternativeCount,
+      random,
     });
 
     return [
-      ...(renewalIsEligible
+      ...(includeRenewal
         ? [
             createRenewalProposal(
               currentSponsor,
               currentSponsorBudget,
               currentSponsorSatisfactionScore,
+              random,
             ),
           ]
         : []),
@@ -559,7 +590,8 @@ function createFutureProposals({
     ];
   }
 
-  const replacementProposals = generateSponsorProposals({
+  const missingCount = Math.max(0, DEFAULT_PROPOSAL_COUNT - retainedSponsorKeys.length);
+  const replacementProposals = missingCount === 0 ? [] : generateSponsorProposals({
     directorCountryCode: countryAffinity.directorCountryCode,
     teamCountryCode: countryAffinity.teamCountryCode,
     leaderCountryCodes: countryAffinity.leaderCountryCodes,
@@ -570,7 +602,8 @@ function createFutureProposals({
       countryAffinity.internationalSchoolAffinities,
     directorReputation,
     unavailableSponsorIds: [...unavailableSponsorIds],
-    proposalCount: DEFAULT_PROPOSAL_COUNT,
+    proposalCount: missingCount,
+    random,
   });
 
   return replacementProposals.map((proposal) => ({
@@ -586,6 +619,7 @@ function createRenewalProposal(
   sponsor: Sponsor,
   currentBudget: number,
   satisfactionScore: number,
+  random: () => number,
 ): GeneratedFutureProposal {
   return {
     sponsor,
@@ -593,10 +627,8 @@ function createRenewalProposal(
       currentBudget,
       satisfactionScore,
     }),
-    contractDurationSeasons: randomIntegerBetween(
-      sponsor.contractDurationRange.min,
-      sponsor.contractDurationRange.max
-    ),
+    contractDurationSeasons: sponsor.contractDurationRange.min + Math.floor(random() *
+      (sponsor.contractDurationRange.max - sponsor.contractDurationRange.min + 1)),
     isRenewal: true,
   };
 }
@@ -958,6 +990,7 @@ async function hydrateFutureSponsorOffersWithObjectives({
   teamId,
   offerRows,
   renewalSponsorCatalogKey,
+  hydratedOffers: suppliedOffers,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
@@ -965,8 +998,9 @@ async function hydrateFutureSponsorOffersWithObjectives({
   teamId: string;
   offerRows: readonly SponsorOfferRow[];
   renewalSponsorCatalogKey: string | null;
+  hydratedOffers?: Omit<PersistedSponsorOffer, "objectives">[];
 }): Promise<PersistedSponsorOffer[]> {
-  const hydratedOffers = await hydrateFutureSponsorOffers({
+  const hydratedOffers = suppliedOffers ?? await hydrateFutureSponsorOffers({
     supabase,
     offerRows,
     renewalSponsorCatalogKey,
@@ -1133,13 +1167,13 @@ function addDays(value: string, dayCount: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function randomIntegerBetween(min: number, max: number): number {
-  const lowerBound = Math.ceil(min);
-  const upperBound = Math.floor(max);
-
-  return (
-    Math.floor(
-      Math.random() * (upperBound - lowerBound + 1)
-    ) + lowerBound
-  );
+function createOfferRandom(seed: string): () => number {
+  let state = 2166136261;
+  for (const character of seed) state = Math.imul(state ^ character.charCodeAt(0), 16777619);
+  return () => {
+    state = Math.imul(state ^ (state >>> 16), 2246822507);
+    state = Math.imul(state ^ (state >>> 13), 3266489909);
+    state ^= state >>> 16;
+    return (state >>> 0) / 4294967296;
+  };
 }

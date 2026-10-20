@@ -1,4 +1,5 @@
 import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
+import type { StaffRole } from "@/lib/game/staff";
 
 export type StaffSkillRow = { label?: string; description: string };
 export type StaffSkillTalent = { code: string; label: string; description: string };
@@ -50,24 +51,27 @@ export function StaffAdditionalSkills({ talents, capacity = 3 }: {
   );
 }
 
-export function StaffNationalityAffinity() {
+export function StaffNationalityAffinity({ description = getStaffNationalityAffinityDescription() }: { description?: string }) {
   return (
     <section data-staff-section="affinity" className="mt-3 min-w-0 rounded-2xl border border-[#42B99A]/20 bg-[#EFF9F5] px-4 py-3">
       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#278B70]">Bonus d’affinité nationale</p>
       <p className="mt-1 text-[10px] font-black leading-5 text-[#176951] [overflow-wrap:anywhere]">
-        {getStaffNationalityAffinityDescription()}
+        {description}
       </p>
     </section>
   );
 }
 
-export function StaffSkills({ level, effects, talents, nationalityAffinity, talentCapacity = 3 }: {
+export function StaffSkills({ role, level, effects, talents, nationalityAffinity, talentCapacity = 3 }: {
+  role?: StaffRole;
   level: number; effects: string[]; talents: StaffSkillTalent[];
   nationalityAffinity: boolean; talentCapacity?: number;
 }) {
   return <>
     <StaffBaseSkills level={level} rows={effects.map(description => ({ description }))} />
     <StaffAdditionalSkills talents={talents} capacity={talentCapacity} />
-    {nationalityAffinity ? <StaffNationalityAffinity /> : null}
+    {role === "youth_coach" ? (
+      <StaffNationalityAffinity description="+5 % supplémentaires pour chaque junior de la même nationalité" />
+    ) : nationalityAffinity ? <StaffNationalityAffinity /> : null}
   </>;
 }

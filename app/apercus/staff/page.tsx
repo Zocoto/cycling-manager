@@ -21,7 +21,7 @@ export default function StaffPreview() {
         return <article key={role} data-staff-role={role} className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
           <div className="h-1.5" style={{ backgroundColor: STAFF_ROLE_DEFINITIONS[role].accent }} />
           <div className="p-5"><StaffCardHeader member={member} />
-            <StaffSkills level={member.level} effects={describeStaffEffect(member)}
+            <StaffSkills role={role} level={member.level} effects={describeStaffEffect(member)}
               talents={[{ code, label: STAFF_TALENT_DEFINITIONS[code].label, description: describeStaffTalent(code, member.level) }]}
               nationalityAffinity={role !== "trainer" && role !== "youth_coach"}
               talentCapacity={getStaffAcademyTalentCapacity(role, member.level)} />

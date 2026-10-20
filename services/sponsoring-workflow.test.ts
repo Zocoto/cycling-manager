@@ -40,6 +40,7 @@ function client({ current = null, planned = null, terminated = null, reputation 
       if (table === "team_sponsor_contracts") {
         const status = filters.get("status");
         const selected = status === "active" ? current : status === "terminated" ? terminated : planned;
+        if (selected && filters.has("start_season_id") && selected.start_season_id !== filters.get("start_season_id")) return { data: [], error: null };
         const error = status === "active" && currentContractError ? { message: currentContractError } : null;
         return { data: selected ? [selected] : [], error };
       }
@@ -138,6 +139,23 @@ describe("sponsor page future-season fault isolation", () => {
     expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ future: { kind: "locked" } });
     client({ reputation: 0 });
     expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ kind: "locked" });
+    expect(mocks.future).not.toHaveBeenCalled();
+  });
+  it("forwards only the expiring contract ID and its canonical renewal bilan", async () => {
+    client({ current: contract() });
+    const renewalAssessment = { contractId: "contract", sponsorId: "sponsor", averageSatisfaction: 25,
+      minimumSatisfaction: 35, seasonsEvaluated: 2, reputationDiscount: 10, refused: true };
+    mocks.future.mockResolvedValue({ mode: "renewal", season: nextSeason, offers: [], renewalAssessment });
+    expect(await getSponsoringStateForAuthUser("player")).toMatchObject({
+      kind: "active", future: { kind: "offers", renewalAssessment },
+    });
+    expect(mocks.future).toHaveBeenCalledWith(expect.objectContaining({ currentContractId: "contract" }));
+  });
+  it("never assesses continuing or already signed future contracts", async () => {
+    client({ current: contract("active", 2), day: 20 });
+    expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ future: { kind: "continuing" } });
+    client({ current: contract(), planned: { ...contract("planned"), start_season_id: "s4" } });
+    expect(await getSponsoringStateForAuthUser("player")).toMatchObject({ future: { kind: "planned" } });
     expect(mocks.future).not.toHaveBeenCalled();
   });
   it("does not conceal a failure to load the current contract", async () => {

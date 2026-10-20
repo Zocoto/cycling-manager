@@ -487,8 +487,6 @@ export function describeStaffEffect({
             ? TRAINER_SPECIALTY_LABELS[trainerSpecialty].toLocaleLowerCase("fr")
             : "de sa spécialité"
         }`,
-        "+5 % supplémentaires pour chaque junior de la même nationalité",
-        "Effet collectif sur toute l’école · un seul responsable actif par équipe",
       ];
     case "scout": {
       const youthBonuses = getScoutYouthBonuses(safeLevel);

@@ -36,7 +36,7 @@ describe("seasonal booster preview",()=>{
   it("preserves the previously deployed v1 album and exchange state when migrating",()=>{
     const legacy={version:1,owned:[1,9],partner:[8],pasted:[1],pending:null,history:[{give:8,receive:9,outcome:"accepted"}]};
     const migrated=readAlbumPilotState(JSON.stringify(legacy));
-    expect(migrated.version).toBe(2);expect(migrated.pasted).toEqual([1]);expect(migrated.owned).toEqual([1,9]);expect(migrated.openedPacks).toEqual([]);expect(migrated.acceptedTradeCount).toBe(1);
+    expect(migrated.version).toBe(3);expect(migrated.pasted).toEqual([1]);expect(migrated.owned).toEqual([1,9]);expect(migrated.openedPacks).toEqual([]);expect(migrated.acceptedTradeCount).toBe(1);
   });
   it("keeps the pasted copy when a spare is traded, and never trades both duplicates",()=>{
     let state=updateAlbumPilot(createAlbumPilotState(),{type:"open-pack",id:packs[0].id,season:4,cards:[8,21]});

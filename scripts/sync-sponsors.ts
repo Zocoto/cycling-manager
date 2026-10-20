@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 
 import { SPONSORS } from "../data/sponsors";
+import { getSponsorMinimumReputation } from "../lib/game/sponsor-prestige";
 
 config({
   path: ".env.local",
@@ -190,6 +191,18 @@ async function synchronizeSponsors(): Promise<void> {
       throw new Error(
         `Échec du lot ${batchIndex + 1}/${batches.length} : ${upsertError.message}`
       );
+    }
+
+    const batchKeys = new Set(batch.map((row) => row.catalog_key));
+    const { error: profileError } = await supabase
+      .from("sponsor_renewal_profiles")
+      .upsert(SPONSORS.filter((sponsor) => batchKeys.has(sponsor.id)).map((sponsor) => ({
+        catalog_key: sponsor.id,
+        prestige: sponsor.prestige,
+        minimum_reputation: getSponsorMinimumReputation(sponsor),
+      })), { onConflict: "catalog_key" });
+    if (profileError) {
+      throw new Error(`Impossible de synchroniser les profils de reconduction : ${profileError.message}`);
     }
 
     synchronizedSponsorCount += batch.length;

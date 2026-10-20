@@ -52,6 +52,20 @@ La complétude porte sur les cartes distinctes collées, pas le nombre de copies
 
 ## Conservation et sécurité
 
+### Recto / verso, saison source et échanges multiples — 19 octobre
+
+Les cinquante notes S3 initiales ont été revérifiées contre les lignes de la saison terminée : aucune note changée. Leur empreinte est figée par test. L’édition de collection demeure S4 (clé de stockage et sachets conservés), mais couverture, bandeau et sachets précisent explicitement que les champions et les notes sont ceux de S3. Les résultats ne suivent pas les performances S4.
+
+Le dos des cartes présente 296 lignes regroupées issues exclusivement de S3 : toutes les victoires finales, podiums élite / mondial et championnats internationaux, top 10 des Grands Tours / Monuments, étapes gagnées et maillots finaux montagne / points / jeunes des tours élite ou mondiaux. Les maillots intermédiaires ne sont pas des titres. Une carte sans grand résultat dans cette sélection l’indique, sans palmarès inventé. Le titre mondial S3 vérifié de Mathieu Laurent déclenche le liseré arc-en-ciel et le maillot blanc de champion dans le portrait ; le mini-maillot de son équipe reste visible.
+
+L’intérieur de l’album reprend l’illustration et la palette des sachets. Retournement clavier / tactile, liste de résultats défilante bornée visuellement, sans lecture DB par retournement. Aucun nouvel appel de base au chargement de l’album.
+
+Le test des échanges reste **local et privé**, avec trois collectionneurs explicitement fictifs. Recherche par DS ou par carte, seconde liste dépendante, un à trois exemplaires contre une carte, doublons possibles seulement si le stock le permet. Chaque copie collée est protégée, les exemplaires proposés sont réservés, une seule offre active dans ce pilote. Acceptation atomique dans le modèle local, refus, annulation et conservation globale de chaque carte vérifiés ; acceptation répétée sans effet. Le schéma local v3 reprend les versions v1/v2 sans perdre cartes, collages, sachets, succès ni offres. Les nouveaux exemplaires des partenaires fictifs ne sont pas donnés au propriétaire.
+
+Le courrier du destinataire est **un aperçu non envoyé**, pas une intégration de messagerie ou d’e-mail. Aucun vrai DS ne possède d’inventaire partagé tant que le pilote n’est pas ouvert. Pour le marché réel : réservation transactionnelle côté serveur, acceptation conditionnée aux stocks et à l’édition, expiration d’offre et boîte d’envoi idempotente après création validée. Réutiliser la messagerie interne plutôt qu’envoyer des e-mails externes sans préférence du joueur ; limiter les offres actives / notifications et proposer refus ou blocage des sollicitations. Ces raccordements persistants ne sont pas prétendus livrés par le pilote.
+
+Une première extraction REST des résultats a atteint la limite locale de cinq secondes et a été arrêtée ; disponibilité du site et de la base confirmées immédiatement. L’absence de transaction de résultat restante a été vérifiée avant l’extraction SQL ciblée, séquentielle, en lecture seule, avec statement_timeout 5s et lock_timeout 500ms. Aucune fixture, migration ni écriture de gameplay.
+
 L’état v1 de l’aperçu précédent est migré localement vers v2 sans perdre cartes, collage ou échanges. Les reçus d’ouverture sont uniques, bornés aux deux sachets autorisés et à la saison correspondante. Le total de copies doit correspondre aux deux cartes initiales plus deux par sachet ouvert, échanges inclus. Un état corrompu ou gonflé est rejeté.
 
 La collection reste une démonstration locale, non synchronisée entre appareils. La réservation et l’idempotence du vrai marché multijoueur, les versements de succès, les stocks persistants et les drops Gazette requièrent toujours un inventaire transactionnel côté serveur. Ils ne sont pas prétendus livrés par cette extension visuelle.
@@ -60,7 +74,8 @@ Les données de course, calendriers, crons, classements et finances des joueurs 
 
 ## Recette
 
-- 73 tests ciblés sur huit fichiers : ancien pilote, migration locale, autorisation serveur, séparation de saison, inventaire existant, profils, avatars, maillots, tirages, doublons, réservations, conservation des copies, refus d’échange entre deux cartes identiques et succès idempotents.
+- 192 tests ciblés sur dix fichiers : ancien pilote, migrations locales v1/v2/v3, autorisation serveur, séparation de saison, inventaire existant, profils, avatars, maillots, tirages, doublons, réservations multiples, conservation des copies, refus d’échange entre cartes identiques, palmarès S3 et succès idempotents.
 - Tests déterministes des frontières de rareté et de 10 000 tirages stratifiés ; distribution exacte 80 / 17 / 3.
 - TypeScript sans émission, lint ciblé et couverture des 17 223 textes français par le catalogue anglais, placeholders compris.
 - Recette du composant réel dans le navigateur : couverture ordinateur / 320 / 390 pixels, sachet fermé en 320 pixels, ouverture effective de deux cartes, compteur de l’inventaire cohérent, premier gain simulé puis bouton désactivé.
+- Recette complémentaire : recto mondial S3 et verso détaillé, retournement en 320 pixels, recherches par DS puis par carte, listes dépendantes, offre trois-contre-une, courrier simulé, acceptation puis rechargement conservant stocks et collage.
