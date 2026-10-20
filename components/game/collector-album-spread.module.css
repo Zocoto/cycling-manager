@@ -95,6 +95,7 @@
   .walletShelf>div:last-child{grid-column:1/-1}
 }
 @media(max-width:760px){
+  .book[data-mobile-leaf="1"] .leaf[data-album-leaf="2"],.book[data-mobile-leaf="2"] .leaf[data-album-leaf="1"]{display:none}
   .chapterHeading{grid-template-columns:1fr minmax(190px,40%);padding:23px;gap:18px}
   .chapterHeading h2{font-size:34px}
   .publisher{font-size:6px;letter-spacing:.1em;margin-bottom:13px}

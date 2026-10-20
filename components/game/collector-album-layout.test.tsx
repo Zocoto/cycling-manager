@@ -64,7 +64,9 @@ describe("illustrated collector album profile spreads", () => {
     const html = renderToStaticMarkup(<CollectorAlbum snapshot={snapshot} storageOwnerId={ownerId} />);
     expect(html).toContain("<strong>S3</strong>");
     expect(html).toContain("Édition saison 3 · Les champions du peloton");
-    expect(html).toContain("COLLECTION SAISON 3");
+    expect(html).toContain('data-album-cover=""');
+    expect(html).toContain("Ouvrir mon album");
+    expect(html).not.toContain("data-album-slot=");
     expect(html).not.toContain("ÉDITION S4");
     expect(snapshot.sourceSeason).toBe(3);
     expect(snapshot.collectionSeason).toBe(ALBUM_PILOT_SEASON);
