@@ -12,7 +12,7 @@ if (process.argv.length !== 3 || process.argv[2] !== "--apply-reviewed-fix" ||
 }
 
 const migrations = [
-  { version: "20261020120000", name: "guard_cancelled_performance_preparations", applicationName: "cyclostratege-preparation-postcheck-20261020" },
+  { version: "20261020120500", name: "guard_cancelled_performance_preparations", applicationName: "cyclostratege-preparation-postcheck-20261020" },
   { version: "20261020121000", name: "bound_performance_preparation_context", applicationName: "cyclostratege-preparation-context-window-20261020" },
 ].map((migration) => {
   const file = `supabase/migrations/${migration.version}_${migration.name}.sql`;
@@ -66,7 +66,7 @@ function inspect(applicationName) {
     set local statement_timeout='4s'; set local lock_timeout='500ms';
     set local application_name=${literal(applicationName)};
     select 1 as database_ok,
-      exists(select 1 from supabase_migrations.schema_migrations where version='20261020120000') as cancellation_recorded,
+      exists(select 1 from supabase_migrations.schema_migrations where version='20261020120500') as cancellation_recorded,
       exists(select 1 from supabase_migrations.schema_migrations where version='20261020121000') as context_recorded,
       (select md5(regexp_replace(prosrc,'[[:space:]]','','g')) from pg_catalog.pg_proc where oid=to_regprocedure('public.start_current_team_rider_performance_preparation(uuid,text)')) as booking_hash,
       (select md5(regexp_replace(prosrc,'[[:space:]]','','g')) from pg_catalog.pg_proc where oid=to_regprocedure('public.cancel_performance_preparation_from_camp()')) as cancellation_hash,
@@ -125,7 +125,7 @@ try {
     expectedCoreHash = hash(baseline.legacy_body.replace(predicate, `$&\n      ${coreMarker}\n      and ${lowerBound}\n      and ${upperBound}`));
   }
   for (const migration of migrations) {
-    const isCancellation = migration.version === "20261020120000";
+    const isCancellation = migration.version === "20261020120500";
     const installed = (state) => isCancellation ? cancellationInstalled(state) : contextInstalled(state, expectedCoreHash);
     const recorded = (state) => isCancellation ? state.cancellation_recorded : state.context_recorded;
     const before = inspect(migration.applicationName);

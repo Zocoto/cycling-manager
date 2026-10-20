@@ -205,7 +205,7 @@ try {
     assert.deepEqual((await database.query("select * from public.official_stage_simulations order by id")).rows, frozenBefore);
   });
 
-  const cancellationMigration = await readFile(new URL("../supabase/migrations/20261020120000_guard_cancelled_performance_preparations.sql", import.meta.url), "utf8");
+  const cancellationMigration = await readFile(new URL("../supabase/migrations/20261020120500_guard_cancelled_performance_preparations.sql", import.meta.url), "utf8");
   await test("cancellation migration repairs only current/future ghosts and leaves expired history, dates, ratings and frozen races intact", async () => {
     const current = await oldPreparation({ rider: RIDERS[1], bonusStart: GAME_DAY - 1, bonusEnd: GAME_DAY });
     const future = await oldPreparation({ rider: RIDERS[2], bonusStart: START, bonusEnd: START + 5 });

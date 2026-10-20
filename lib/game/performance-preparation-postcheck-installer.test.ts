@@ -9,7 +9,7 @@ describe("reviewed preparation postcheck installer safety", () => {
     expect(source).toContain('process.argv.length !== 3 || process.argv[2] !== "--apply-reviewed-fix"');
     expect(source).toContain('readFileSync("supabase/.temp/project-ref", "utf8").trim() !== "ikagfuchasnsakpouosg"');
     expect(source.indexOf('process.argv.length !== 3')).toBeLessThan(source.indexOf('const binary ='));
-    expect([...source.matchAll(/version: "(\d+)"/g)].map((match) => match[1])).toEqual(["20261020120000", "20261020121000"]);
+    expect([...source.matchAll(/version: "(\d+)"/g)].map((match) => match[1])).toEqual(["20261020120500", "20261020121000"]);
     expect(source).not.toContain('"push"');
     expect(source).not.toMatch(/dotenv|process\.env|writeFile|createSupabase/);
   });
