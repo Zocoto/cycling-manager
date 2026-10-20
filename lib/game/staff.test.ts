@@ -195,8 +195,6 @@ describe("daily staff pool", () => {
       }),
     ).toEqual([
       "+10 % d’efficacité sur les entraînements juniors montagne",
-      "+5 % supplémentaires pour chaque junior de la même nationalité",
-      "Effet collectif sur toute l’école · un seul responsable actif par équipe",
     ]);
   });
 

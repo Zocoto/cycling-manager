@@ -23,7 +23,9 @@ import { StaffSubmitButton } from "@/components/game/staff-submit-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
-import { ARCHITECT_SPECIALTY_LABELS } from "@/lib/game/infrastructure";
+import { StaffCardHeader } from "@/components/game/staff-card-header";
+import { StaffSkills } from "@/components/game/staff-skills";
+import { getStaffAcademyTalentCapacity } from "@/lib/game/staff-academy";
 import {
   STAFF_ROLES,
   STAFF_ROLE_DEFINITIONS,
@@ -31,7 +33,6 @@ import {
   TRAINER_SPECIALTY_LABELS,
   isStaffRole,
   isTrainerSpecialty,
-  type StaffRole,
 } from "@/lib/game/staff";
 import { buildStaffMarketReturnPath } from "@/lib/game/filtered-page-paths";
 import {
@@ -39,7 +40,6 @@ import {
   STAFF_MARKET_WAVE_INTERVAL_HOURS,
   STAFF_MARKET_WAVE_SIZE,
 } from "@/lib/game/staff-market-waves";
-import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
@@ -390,49 +390,11 @@ function StaffMarketCard({
     <article id={`staff-${listing.id}`} className="min-w-0 max-w-full scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] target:ring-4 target:ring-[#F2C94C]/60">
       <div className="h-1.5" style={{ backgroundColor: definition.accent }} />
       <div className="p-5">
-        <div className="flex items-start gap-4">
-          <span
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
-            style={{ backgroundColor: definition.accent }}
-          >
-            <StaffRoleIcon role={member.role} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
-                  {definition.label}
-                </p>
-                <h3 className="mt-1 truncate text-xl font-black text-[#183F37]">
-                  {member.firstName} {member.lastName}
-                </h3>
-              </div>
-              <LevelStars level={member.level} />
-            </div>
-            <p className="mt-2 text-xs font-bold text-[#60756E]">
-              <CountryFlag
-                code={member.countryCode}
-                name={member.countryName}
-              />
-              {member.countryName}
-            </p>
-          </div>
-        </div>
-
-        {member.trainerSpecialty ? (
-          <p className="mt-4 inline-flex rounded-full bg-[#FFF4D0] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#71580A]">
-            Spécialité · {TRAINER_SPECIALTY_LABELS[member.trainerSpecialty]}
-          </p>
-        ) : null}
-        {member.architectSpecialty ? (
-          <p className="mt-4 inline-flex rounded-full bg-[#F4E9DD] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#7A4E28]">
-            Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
-          </p>
-        ) : null}
-
-        <StaffEffectBlock member={member} />
-
-        <StaffTalentBlock member={member} />
+        <StaffCardHeader member={member} />
+        <StaffSkills
+          {...member}
+          talentCapacity={getStaffAcademyTalentCapacity(member.role, member.level)}
+        />
 
         <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2">
           <PriceBlock
@@ -586,7 +548,6 @@ function TeamStaffCard({
   currentBalance: number;
   naturalization: TeamStaffOverview["staffNaturalization"];
 }) {
-  const definition = STAFF_ROLE_DEFINITIONS[member.role];
   const mutualAgreement = isMutualAgreementDismissal(currentBalance);
   const dismissalCompensation = resolveDismissalCost(
     currentBalance,
@@ -596,40 +557,11 @@ function TeamStaffCard({
 
   return (
     <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white p-4 shadow-[0_14px_38px_rgba(19,60,46,0.08)] sm:p-5">
-      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-        <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
-          style={{ backgroundColor: definition.accent }}
-        >
-          <StaffRoleIcon role={member.role} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
-            {definition.label}
-          </p>
-          <h3 className="mt-1 truncate text-lg font-black text-[#183F37]">
-            {member.firstName} {member.lastName}
-          </h3>
-          <p className="mt-1 text-xs font-bold text-[#60756E]">
-            <CountryFlag code={member.countryCode} name={member.countryName} />
-            {member.countryName}
-          </p>
-        </div>
-        <LevelStars level={member.level} compact />
-      </div>
-
-      {member.trainerSpecialty ? (
-        <p className="mt-4 text-xs font-black text-[#8A6714]">
-          Spécialité · {TRAINER_SPECIALTY_LABELS[member.trainerSpecialty]}
-        </p>
-      ) : null}
-      {member.architectSpecialty ? (
-        <p className="mt-4 text-xs font-black text-[#7A4E28]">
-          Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
-        </p>
-      ) : null}
-      <StaffEffectBlock member={member} />
-      <StaffTalentBlock member={member} />
+      <StaffCardHeader member={member} />
+      <StaffSkills
+        {...member}
+        talentCapacity={getStaffAcademyTalentCapacity(member.role, member.level)}
+      />
       <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
         {member.salaryWaivedThisSeason ? (
           <p className="mb-2 inline-flex rounded-full bg-[#EAF8F2] px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#176951]">
@@ -768,196 +700,6 @@ function StaffNaturalizationPanel({
   ) : null;
 }
 
-function StaffEffectBlock({ member }: { member: TeamStaffMember }) {
-  const isResearchEngineer = member.role === "research_engineer";
-  const effects = isResearchEngineer
-    ? member.talents.map(
-        (talent) => `${talent.label} · ${talent.description}`,
-      )
-    : member.effects;
-
-  return (
-    <div className="mt-4 min-w-0 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
-      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
-        {isResearchEngineer
-          ? `Talents R&D actifs · ${member.talents.length}/3`
-          : `Compétence de base · niveau ${member.level}`}
-      </p>
-      {effects.length > 0 ? (
-        <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
-          {effects.map((effect) => (
-            <li key={effect} className="flex min-w-0 gap-2">
-              <span aria-hidden="true">◆</span>
-              <span className="min-w-0 [overflow-wrap:anywhere]">{effect}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-2 text-sm font-bold leading-5 text-[#A12E2E]">
-          Aucun talent R&D actif. Ce membre doit être régularisé.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function StaffTalentBlock({ member }: { member: TeamStaffMember }) {
-  const displayedTalents =
-    member.role === "research_engineer" ? [] : member.talents;
-  if (displayedTalents.length === 0 && !member.nationalityAffinity) return null;
-
-  return (
-    <div className="mt-3 space-y-3">
-      {displayedTalents.length > 0 ? (
-        <div className="rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
-            Compétences supplémentaires · {displayedTalents.length}/3
-          </p>
-          <div className="mt-2 space-y-3">
-            {displayedTalents.map((talent) => (
-              <div key={talent.code}>
-                <p className="text-xs font-black text-[#5E4A18]">
-                  {talent.label}
-                </p>
-                <p className="mt-0.5 min-w-0 text-xs font-bold leading-5 text-[#6D5A27] [overflow-wrap:anywhere]">
-                  {talent.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {member.nationalityAffinity ? (
-        <div className="rounded-2xl border border-[#42B99A]/20 bg-[#EFF9F5] px-4 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#278B70]">
-            Bonus d’affinité nationale
-          </p>
-          <p className="mt-1 text-[10px] font-black leading-5 text-[#176951]">
-            {getStaffNationalityAffinityDescription()}
-          </p>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function StaffRoleIcon({ role }: { role: StaffRole }) {
-  const paths: Record<StaffRole, React.ReactNode> = {
-    financial_director: <><path d="M4 4h16v16H4zM8 8h8M8 12h3M8 16h3M15 12v4M13 14h4" /></>,
-    trainer: (
-      <>
-        <path d="M5 8v8M19 8v8M2 10v4M22 10v4M5 12h14" />
-      </>
-    ),
-    youth_coach: (
-      <>
-        <path d="M4 6h16v12H4zM8 21h8M12 18v3" />
-        <path d="M8 10h8M8 14h5M18 3v6" />
-      </>
-    ),
-    scout: (
-      <>
-        <circle cx="11" cy="11" r="6" />
-        <path d="m16 16 5 5M11 8v6M8 11h6" />
-      </>
-    ),
-    doctor: (
-      <>
-        <path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5V4Z" />
-      </>
-    ),
-    mechanic: (
-      <>
-        <path d="m14 6 4-4 4 4-4 4M3 21l9-9M7 17l-3-3" />
-        <circle cx="14" cy="10" r="4" />
-      </>
-    ),
-    community_manager: (
-      <>
-        <path d="M4 5h16v11H9l-5 4V5Z" />
-        <path d="M8 9h8M8 12h5" />
-      </>
-    ),
-    nutritionist: (
-      <>
-        <path d="M12 21c-5-3-7-7-7-11 4 0 7 2 7 6" />
-        <path d="M12 21c5-3 7-7 7-11-4 0-7 2-7 6V6" />
-      </>
-    ),
-    physiotherapist: (
-      <>
-        <path d="M7 4v7a5 5 0 0 0 10 0V4M7 7h4M13 7h4" />
-        <path d="M12 16v5" />
-      </>
-    ),
-    race_preparer: (
-      <>
-        <path d="M4 18 9 7l4 8 3-6 4 9" />
-        <path d="M3 21h18M6 5h6M9 2v6" />
-      </>
-    ),
-    architect: (
-      <>
-        <path d="M4 21 12 3l8 18M7 15h10M9 10h6" />
-      </>
-    ),
-    research_engineer: (
-      <>
-        <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" />
-        <path d="M8 15h8M10 18h4" />
-      </>
-    ),
-    educator: (
-      <>
-        <path d="M4 5h16v12H4zM8 21h8M12 17v4" />
-        <path d="m8 11 2.5 2.5L16 8" />
-      </>
-    ),
-  };
-
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-7 w-7"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {paths[role]}
-    </svg>
-  );
-}
-
-function LevelStars({
-  level,
-  compact = false,
-}: {
-  level: number;
-  compact?: boolean;
-}) {
-  return (
-    <span
-      className="inline-flex shrink-0 gap-0.5"
-      aria-label={`Niveau ${level} sur 5`}
-      title={`Niveau ${level} sur 5`}
-    >
-      {Array.from({ length: 5 }, (_, index) => (
-        <span
-          key={index}
-          aria-hidden="true"
-          className={`${compact ? "text-[10px]" : "text-xs"} ${
-            index < level ? "text-[#E2A63B]" : "text-[#D7E1DD]"
-          }`}
-        >
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}
 
 function SectionHeading({
   eyebrow,
@@ -1040,15 +782,6 @@ function FilterField({
   );
 }
 
-function CountryFlag({ code, name }: { code: string; name: string }) {
-  return (
-    <span
-      role="img"
-      aria-label={`Drapeau : ${name}`}
-      className={`fi fi-${code.toLowerCase()} mr-2 overflow-hidden rounded-sm shadow-sm`}
-    />
-  );
-}
 
 function Notice({
   tone,

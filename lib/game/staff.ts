@@ -487,8 +487,6 @@ export function describeStaffEffect({
             ? TRAINER_SPECIALTY_LABELS[trainerSpecialty].toLocaleLowerCase("fr")
             : "de sa spécialité"
         }`,
-        "+5 % supplémentaires pour chaque junior de la même nationalité",
-        "Effet collectif sur toute l’école · un seul responsable actif par équipe",
       ];
     case "scout": {
       const youthBonuses = getScoutYouthBonuses(safeLevel);
@@ -545,9 +543,10 @@ export function describeStaffEffect({
       ];
     }
     case "research_engineer":
-      return ["Spécialité R&D unique : temps, coût ou probabilité de réussite"];
     case "financial_director":
-      return ["Un seul par équipe · un affixe au recrutement · affixes supplémentaires via l’Académie des métiers uniquement"];
+      // These professions have no automatic base bonus: their actual effects
+      // are already described by their talents, in the same panel as other jobs.
+      return [];
     case "educator":
       return [
         "Pilote les stages de l’Académie des métiers ; ses talents déterminent les bonus appliqués",
