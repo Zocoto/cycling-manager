@@ -24,10 +24,17 @@ describe("collector album server-side authorization",()=>{
     expect(await Page({})).toBeTruthy();
     expect(mocks.header).toHaveBeenCalledTimes(1);
   });
-  it("does not mix another season into the current collection",async()=>{
+  it("accepts source-season edition S3 and the legacy S4 URL without mixing another catalogue",async()=>{
     mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
     await expect(Page({searchParams:Promise.resolve({saison:"5"})})).rejects.toThrow("not-found");
     expect(mocks.header).not.toHaveBeenCalled();
+    expect(await Page({searchParams:Promise.resolve({saison:"3",onglet:"boosters"})})).toBeTruthy();
     expect(await Page({searchParams:Promise.resolve({saison:"4",onglet:"boosters"})})).toBeTruthy();
+    expect(mocks.header).toHaveBeenCalledTimes(2);
+  });
+  it.each(["3", "4"])("keeps the private owner guard for edition URL %s",async(saison)=>{
+    mocks.auth.mockResolvedValue({data:{user:{id:"another-player"}},error:null});
+    await expect(Page({searchParams:Promise.resolve({saison})})).rejects.toThrow("not-found");
+    expect(mocks.header).not.toHaveBeenCalled();
   });
 });

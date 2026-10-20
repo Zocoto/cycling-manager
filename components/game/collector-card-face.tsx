@@ -17,10 +17,10 @@ export function CollectorCardFace({ card, season }: { card: CollectorCard; seaso
   const back=backId===card.id;
   const worldTitle=card.worldTitles?.includes("road")?"road":card.worldTitles?.includes("time_trial")?"time_trial":null;
   const championJersey=worldTitle?createWorldChampionRiderJersey({championshipType:worldTitle}):card.jersey;
-  return <article className={`${styles.card} ${styles[rarity]} ${print.sticker} ${worldTitle?print.worldChampion:""}`} aria-label={`${card.name}, carte ${CARD_RARITY_LABELS[rarity]}`}>
+  return <article data-album-card className={`${styles.card} ${styles[rarity]} ${print.sticker} ${worldTitle?print.worldChampion:""}`} aria-label={`${card.name}, carte ${CARD_RARITY_LABELS[rarity]}`}>
     {back ? <CollectorCardBack card={card} season={season} /> : <>
-    <div className={`${styles.cardTop} ${print.imprint}`}><span className={print.catalogueNumber}>CS / {String(card.number).padStart(2,"0")}</span><svg className={print.cycleMark} viewBox="0 0 54 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="15" r="8"/><circle cx="42" cy="15" r="8"/><path d="m12 15 9-13 8 13H12L25 6h12l5 9M18 2h7m7 0h4l1 4"/></g></svg><span className={print.rarity}>{CARD_RARITY_LABELS[rarity]} <span aria-hidden="true">✦</span></span></div>
-    <div className={`${styles.art} ${print.printedArt}`}>
+    <div className={`${styles.cardTop} ${print.imprint}`}><span className={print.catalogueNumber}>CS / {String(card.number).padStart(2,"0")}</span><svg className={print.cycleMark} viewBox="0 0 54 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="15" r="8"/><circle cx="42" cy="15" r="8"/><path d="m12 15 9-13 8 13H12L25 6h12l5 9M18 2h7m7 0h4l1 4"/></g></svg></div>
+    <div data-album-portrait-panel className={`${styles.art} ${print.printedArt}`}>
       <svg className={print.flagBackdrop} viewBox="0 0 280 170" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <SvgCountryFlag countryCode={card.countryCode} x={0} y={0} width={280} height={170} preserveAspectRatio="xMidYMid slice" />
       </svg>
@@ -29,13 +29,13 @@ export function CollectorCardFace({ card, season }: { card: CollectorCard; seaso
       <RiderAvatar riderId={card.id} profileKey={card.avatarProfileKey} seed={card.avatarSeed} age={card.age} jersey={championJersey} label={`Portrait de ${card.name}`} className={`${styles.portrait} ${print.portraitPrint}`} />
       {card.jersey.imagePath ? <Image src={card.jersey.imagePath} alt={`Maillot de ${card.teamName}, saison ${season}`} width={72} height={84} sizes="72px" className={styles.jersey} /> : null}
       <span className={`${styles.country} ${print.countryLabel}`}>{card.countryCode.toUpperCase()} <span aria-hidden="true">/</span> {card.age} ans</span>
-      <span className={print.editionSeal} aria-hidden="true">S{season + 1}</span>
+      <span className={print.editionSeal} aria-hidden="true">S{season}</span>
     </div>
-    <div className={`${styles.cardIdentity} ${print.nameplate}`}><p>{card.profile}</p><h3>{card.name}</h3><span>{card.teamName}</span></div>
+    <div data-album-identity className={`${styles.cardIdentity} ${print.nameplate}`}><p>{card.profile}</p><h3>{card.name}</h3><span>{card.teamName}</span></div>
     {worldTitle?<p className={print.worldTitle}>Champion du monde · {worldTitle==="road"?"Route":"CLM"} · S{season}</p>:null}
-    <dl className={`${styles.stats} ${print.statStrip}`}>{PRIMARY_STATS.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{card.ratings[key]}</dd></div>)}</dl>
+    <dl data-album-stats className={`${styles.stats} ${print.statStrip}`}>{PRIMARY_STATS.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{card.ratings[key]}</dd></div>)}</dl>
     <div className={styles.achievements}><span><strong>{card.rank === 1 ? "1er" : `${card.rank}e`}</strong> UCI S{season}</span><span><strong>{card.victories}</strong> victoires</span></div>
-    <footer className={styles.cardFoot}><span>{card.points.toLocaleString("fr-FR")} pts UCI</span><span>ÉDITION S{season + 1}</span></footer>
+    <footer className={styles.cardFoot}><span>{card.points.toLocaleString("fr-FR")} pts UCI</span><span>ÉDITION S{season}</span></footer>
     </>}
     <button type="button" className={print.turnCard} aria-label={back?`Revoir le portrait de ${card.name}`:`Voir le palmarès de ${card.name}`} aria-pressed={back} onClick={()=>setBackId(back?null:card.id)}>{back?"← Le portrait":"Le palmarès au dos ↻"}</button>
   </article>;

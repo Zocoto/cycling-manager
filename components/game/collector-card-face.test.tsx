@@ -21,7 +21,8 @@ describe("printed collector cards", () => {
     for (const [stat, label] of [["mountain", "MO"], ["hills", "VAL"], ["flat", "PLA"], ["timeTrial", "CLM"], ["cobbles", "PAV"], ["sprint", "SPR"]] as const) {
       expect(markup).toContain(`<dt>${label}</dt><dd>${card.ratings[stat]}</dd>`);
     }
-    expect(markup).toContain("ÉDITION S4");
+    expect(markup).toContain("ÉDITION S3");
+    expect(markup).not.toContain("ÉDITION S4");
     expect(markup).toContain("UCI S3");
     expect(JSON.stringify(card)).toBe(before);
   });

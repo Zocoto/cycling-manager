@@ -1,15 +1,18 @@
 /* Spot-colour sticker printing. Scoped to the private collector card, never avatars elsewhere. */
 .sticker.sticker {
-  padding: 7px;
-  border: 1px solid #c9ba96;
+  --face: #fffaf0;
+  padding: 8px;
+  border: 1px solid var(--foil-dark);
   border-radius: 1px;
-  background: #fff8e7;
-  box-shadow: 1px 2px 0 #c6b68e, 0 4px 9px #3e321e25;
+  background:
+    repeating-linear-gradient(0deg, #ffffff1c 0 1px, #263e4908 1px 2px, transparent 2px 4px),
+    linear-gradient(115deg, var(--foil-light), var(--foil-mid) 28%, var(--foil-light) 48%, var(--foil-mid) 72%, var(--foil-dark));
+  box-shadow: inset 0 0 0 1px var(--foil-light), inset 0 0 0 3px var(--foil-mid), inset 0 0 0 4px var(--foil-dark), 1px 2px 0 var(--foil-dark), 0 4px 9px #3e321e25;
   color: #263e49;
 }
 
 .sticker.sticker::after {
-  inset: 7px;
+  inset: 8px;
   z-index: 3;
   mix-blend-mode: multiply;
   opacity: .35;
@@ -36,8 +39,6 @@
 }
 
 .cycleMark { width: 38px; height: 20px; flex: none; color: #a54835; }
-.sticker .rarity { color: var(--foil-dark); white-space: nowrap; font-size: 8px; }
-
 .sticker .printedArt {
   isolation: isolate;
   background: #efe6cd;
