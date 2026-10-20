@@ -1,4 +1,10 @@
 import { STAFF_ACADEMY_LEVELS } from "@/lib/game/staff-academy";
+import { getPerformancePreparationPolicy } from "@/lib/game/performance-preparation";
+
+function getPerformancePreparationEffect(level: number, stats: string): string {
+  const policy = getPerformancePreparationPolicy(level)!;
+  return `Après 2 jours de préparation : +${policy.ratingBonus.toLocaleString("fr-FR")} sur ${stats} pendant ${policy.bonusDays} jours · ${policy.capacity} coureur${policy.capacity > 1 ? "s" : ""} en parallèle.`;
+}
 
 export const INFRASTRUCTURE_UNLOCK_LEVEL = 10;
 export const INFRASTRUCTURE_MANAGER_LEVEL_PER_BUILDING_LEVEL = 10;
@@ -300,7 +306,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     name: "Piste indoor",
     domain: "Préparation · Sprint",
     summary:
-      "Débloque des préparations de deux jours qui renforcent temporairement le sprint et l’accélération.",
+      "Préparez le sprinteur et ses lanceurs : deux jours de travail pour un bonus temporaire de sprint et d’accélération, avec plusieurs places aux niveaux supérieurs.",
     illustration: {
       src: "/images/infrastructure/indoor-track.webp",
       alt: "Piste cycliste indoor moderne au sein du campus de l’équipe",
@@ -310,36 +316,31 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         level: 1,
         cost: 180_000,
         durationDays: 7,
-        effect:
-          "Après 2 jours de préparation : +1 SPR et +1 ACC pendant 2 jours.",
+        effect: getPerformancePreparationEffect(1, "SPR et ACC"),
       },
       {
         level: 2,
         cost: 450_000,
         durationDays: 11,
-        effect:
-          "Après 2 jours de préparation : +1 SPR et +1 ACC pendant 3 jours.",
+        effect: getPerformancePreparationEffect(2, "SPR et ACC"),
       },
       {
         level: 3,
         cost: 900_000,
         durationDays: 16,
-        effect:
-          "Après 2 jours de préparation : +2 SPR et +2 ACC pendant 2 jours.",
+        effect: getPerformancePreparationEffect(3, "SPR et ACC"),
       },
       {
         level: 4,
         cost: 1_550_000,
         durationDays: 22,
-        effect:
-          "Après 2 jours de préparation : +2 SPR et +2 ACC pendant 3 jours.",
+        effect: getPerformancePreparationEffect(4, "SPR et ACC"),
       },
       {
         level: 5,
         cost: 2_400_000,
         durationDays: 28,
-        effect:
-          "Après 2 jours de préparation : +3 SPR et +3 ACC pendant 2 jours.",
+        effect: getPerformancePreparationEffect(5, "SPR et ACC"),
       },
     ],
   },
@@ -365,7 +366,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     name: "Soufflerie",
     domain: "Préparation · Aérodynamisme",
     summary:
-      "Débloque des préparations de deux jours qui renforcent temporairement le CLM, le PRO et l’END.",
+      "Préparez vos spécialistes du chrono et vos rouleurs : deux jours de travail pour un bonus temporaire de CLM, de PRO et d’END, avec plusieurs places aux niveaux supérieurs.",
     illustration: {
       src: "/images/infrastructure/wind-tunnel.webp",
       alt: "Soufflerie cycliste avec vélo de contre-la-montre sur banc d’essai",
@@ -375,36 +376,31 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         level: 1,
         cost: 400_000,
         durationDays: 9,
-        effect:
-          "Après 2 jours de préparation : +1 CLM, +1 PRO et +1 END pendant 2 jours.",
+        effect: getPerformancePreparationEffect(1, "CLM, PRO et END"),
       },
       {
         level: 2,
         cost: 850_000,
         durationDays: 14,
-        effect:
-          "Après 2 jours de préparation : +1 CLM, +1 PRO et +1 END pendant 3 jours.",
+        effect: getPerformancePreparationEffect(2, "CLM, PRO et END"),
       },
       {
         level: 3,
         cost: 1_500_000,
         durationDays: 20,
-        effect:
-          "Après 2 jours de préparation : +2 CLM, +2 PRO et +2 END pendant 2 jours.",
+        effect: getPerformancePreparationEffect(3, "CLM, PRO et END"),
       },
       {
         level: 4,
         cost: 2_400_000,
         durationDays: 27,
-        effect:
-          "Après 2 jours de préparation : +2 CLM, +2 PRO et +2 END pendant 3 jours.",
+        effect: getPerformancePreparationEffect(4, "CLM, PRO et END"),
       },
       {
         level: 5,
         cost: 3_600_000,
         durationDays: 35,
-        effect:
-          "Après 2 jours de préparation : +3 CLM, +3 PRO et +3 END pendant 2 jours.",
+        effect: getPerformancePreparationEffect(5, "CLM, PRO et END"),
       },
     ],
   },
