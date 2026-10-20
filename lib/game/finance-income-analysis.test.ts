@@ -18,6 +18,7 @@ describe("finance income analysis", () => {
     ["other", "fan-club:car:sale:vehicle", "asset_sales"],
     ["other", "financial-director:bonus:receipt", "financial_director"],
     ["other", "financial-director:daily:day", "financial_director"],
+    ["other", "financial-director:salary-savings:receipt", "financial_director"],
     ["race_prize", "reward:hidden-switchback:director", "rewards"],
     ["race_prize", "reward:longevity-trophy:director", "rewards"],
     ["other", "trophy:award", "rewards"],

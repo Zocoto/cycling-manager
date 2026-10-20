@@ -185,6 +185,10 @@ const riderRatings = [
 
 const staffRoles = [
   {
+    title: "Directeur financier",
+    text: "Un seul par équipe. Revenu de base quotidien de 200 / 450 / 850 / 1 600 / 2 900 € selon ses 1 à 5 étoiles, sans rattrapage. Un affixe aléatoire parmi cinq au recrutement : primes de course, sponsor principal, sponsor secondaire, salaires du staff ou salaires des coureurs. L’Académie des métiers permet d’en acquérir d’autres, dans la limite de son niveau et de trois affixes.",
+  },
+  {
     title: "Entraîneur",
     text: "Améliore la séance du coureur auquel il est affecté : +4 % par niveau sur sa spécialité, plus +10 % si les nationalités correspondent.",
   },
