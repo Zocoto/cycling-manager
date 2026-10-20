@@ -17,7 +17,7 @@ describe("FederationElectionPanel", () => {
     const markup = renderToStaticMarkup(<FederationElectionPanel countryCode="RW" overview={overview} />);
     expect(markup).toContain("Président en fonction");
     expect(markup).toContain("sevrinovitch préside la fédération jusqu’à la fin de la Saison 4");
-    expect(markup).toContain("l’unique DS est nommé automatiquement");
+    expect(markup).toContain("l’unique DS humain actif est nommé automatiquement");
     expect(markup).not.toContain("Aucun candidat n’a réuni de voix");
     expect(markup).not.toContain("sevrinovitch a été élu");
     expect(markup).not.toContain("Vote des équipes");
@@ -59,5 +59,17 @@ describe("FederationElectionPanel", () => {
     expect(markup).toContain("48 h suivantes");
     expect(markup).toContain("vous ne pouvez pas vous présenter");
     expect(markup).toContain("disabled");
+    const claimMarkup = renderToStaticMarkup(<FederationElectionPanel countryCode="BW" overview={{
+      phase: "automatic", electionType: "regular", termStartGameYear: 3, termEndGameYear: 4,
+      applicationsCloseAt: null, votingCloseAt: null, eligibleTeamCount: 0, voteCount: 0,
+      viewerIsEligible: false, viewerCandidateId: null, viewerVotedCandidateId: null, canApply: false,
+      canVote: false, candidacyBlockReason: null, viewerIsPresident: false, presidentName: null,
+      canClaimPresidency: true, candidates: [], journal: [],
+    }} />);
+    expect(claimMarkup).toContain("Revendiquer la présidence");
+    expect(claimMarkup).toContain("24 heures");
+    expect(claimMarkup).toContain('name="manifesto"');
+    expect(claimMarkup).toContain('name="countryCode"');
+    expect(claimMarkup).toContain("Pensez à voter");
   });
 });

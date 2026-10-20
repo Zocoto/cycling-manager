@@ -152,6 +152,36 @@ const raceBlueprintSchema = z
     }
   });
 
+export async function claimFederationPresidencyAction(
+  _previousState: FederationGovernanceActionState,
+  formData: FormData,
+): Promise<FederationGovernanceActionState> {
+  const countryCode = countryCodeSchema.safeParse(formData.get("countryCode"));
+  const manifesto = manifestoSchema.safeParse(formData.get("manifesto"));
+  if (!countryCode.success || !manifesto.success) {
+    return { status: "error", message: "La profession de foi doit contenir entre 40 et 800 caractères." };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return { status: "error", message: "Votre session a expiré." };
+  const result = await supabase.rpc("claim_national_federation_presidency", {
+    p_country_code: countryCode.data,
+    p_manifesto: manifesto.data.replace(/\s+/g, " "),
+  });
+  if (result.error) {
+    console.error("Échec de revendication fédérale :", { code: result.error.code });
+    if (result.error.code === "P0002") {
+      revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
+      refresh();
+    }
+    return { status: "error", message: result.error.message || "L’élection n’a pas pu être ouverte." };
+  }
+  revalidatePath(`/jeu/federations/${countryCode.data.toLowerCase()}`);
+  revalidatePath(`/jeu/nations/${countryCode.data.toLowerCase()}`);
+  refresh();
+  return { status: "success", message: "Le scrutin est ouvert : 24 heures de candidatures, puis 48 heures de vote. Consultez les candidatures et pensez à voter." };
+}
+
 export async function submitFederationCandidacyAction(
   _previousState: FederationGovernanceActionState,
   formData: FormData,

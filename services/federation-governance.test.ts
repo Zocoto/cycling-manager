@@ -55,4 +55,20 @@ describe("federation presidency without a fabricated election", () => {
       presidentName: "sevrinovitch", viewerIsPresident: true,
     });
   });
+  it("offers a claim for the current AI mandate without another data request", async () => {
+    fixtures.tables.national_federation_terms = [{ governance_mode: "automatic", president_director_id: null, start_game_year: 3, end_game_year: 4 }];
+    expect(await getFederationGovernanceOverview(context)).toMatchObject({ phase: "automatic", termStartGameYear: 3, canClaimPresidency: true });
+    expect(await getFederationGovernanceOverview({ ...context, viewerTeamId: null })).toMatchObject({ canClaimPresidency: false });
+    expect(await getFederationGovernanceOverview({ ...context, season: { ...context.season, currentDayNumber: 26 } })).toMatchObject({ canClaimPresidency: false });
+  });
+  it("does not show a future elected president as the current president or block a vacant current mandate", async () => {
+    fixtures.tables.national_federation_terms = [{ governance_mode: "automatic", president_director_id: null, start_game_year: 3, end_game_year: 4 }];
+    fixtures.tables.national_federation_elections = [{ id: "future", election_type: "regular", status: "finalized", term_start_game_year: 5, term_end_game_year: 6, elected_director_id: "future-president" }];
+    expect(await getFederationGovernanceOverview(context)).toMatchObject({ presidentName: null, viewerIsPresident: false, canClaimPresidency: true });
+  });
+  it("exposes the short ballot and prevents a second claim while it is open", async () => {
+    fixtures.tables.national_federation_terms = [{ governance_mode: "automatic", president_director_id: null, start_game_year: 3, end_game_year: 4 }];
+    fixtures.tables.national_federation_elections = [{ id: "claim", status: "applications", election_type: "exceptional", is_presidency_claim: true, term_start_game_year: 3, term_end_game_year: 4 }];
+    expect(await getFederationGovernanceOverview(context)).toMatchObject({ phase: "applications", isPresidencyClaim: true, canClaimPresidency: false });
+  });
 });
