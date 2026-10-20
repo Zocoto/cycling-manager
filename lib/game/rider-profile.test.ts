@@ -155,6 +155,60 @@ describe("rider profile radar", () => {
     ).toBe("Coureur de tour");
   });
 
+  it("keeps Vashadze's mountain specialty despite his qualifying time trial rating", () => {
+    expect(
+      getRiderSportingProfile({
+        mountain: 83,
+        hills: 79,
+        flat: 64,
+        timeTrial: 64,
+        cobbles: 59,
+        sprint: 67,
+        acceleration: 83,
+        downhill: 72,
+        endurance: 80,
+        resistance: 71,
+        recovery: 75,
+        breakaway: 70,
+        prologue: 62,
+      }),
+    ).toBe("Grimpeur / Puncheur");
+  });
+
+  it.each([
+    [{ mountain: 83, timeTrial: 64 }, "Grimpeur"],
+    [{ mountain: 64, timeTrial: 83 }, "Rouleur"],
+    [{ mountain: 83, timeTrial: 64, hills: 79 }, "Grimpeur / Puncheur"],
+    [{ mountain: 64, timeTrial: 83, hills: 79 }, "Rouleur / Puncheur"],
+    [{ mountain: 70, timeTrial: 62 }, "Coureur de tour"],
+    [{ mountain: 62, timeTrial: 70 }, "Coureur de tour"],
+    [{ mountain: 71, timeTrial: 62 }, "Grimpeur"],
+    [{ mountain: 62, timeTrial: 71 }, "Rouleur"],
+    [{ mountain: 69, timeTrial: 67, hills: 70 }, "Puncheur / Coureur de tour"],
+  ] as const)(
+    "only lets the tour average replace a representative specialty for %s",
+    (overrides, expectedProfile) => {
+      expect(getRiderSportingProfile(createRatings(overrides))).toBe(
+        expectedProfile,
+      );
+    },
+  );
+
+  it("does not lose a dominant specialty when the weaker tour rating crosses 62", () => {
+    for (let weakerRating = 61; weakerRating <= 74; weakerRating += 1) {
+      expect(
+        getRiderSportingProfile(
+          createRatings({ mountain: 83, hills: 79, timeTrial: weakerRating }),
+        ),
+      ).toBe("Grimpeur / Puncheur");
+      expect(
+        getRiderSportingProfile(
+          createRatings({ mountain: weakerRating, hills: 79, timeTrial: 83 }),
+        ),
+      ).toBe("Rouleur / Puncheur");
+    }
+  });
+
   it("creates a two-profile hybrid within a four-point gap", () => {
     expect(
       getRiderSportingProfile(
