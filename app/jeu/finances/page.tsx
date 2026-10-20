@@ -4,12 +4,14 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { FinanceExpenseAnalysisPanel } from "@/components/game/finance-expense-analysis";
+import { FinanceIncomeAnalysisPanel } from "@/components/game/finance-income-analysis";
 import { GameHeader } from "@/components/game/game-header";
 import {
   GameSectionTabLink,
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { buildFinanceExpenseAnalysis } from "@/lib/game/finance-expense-analysis";
+import { buildFinanceIncomeAnalysis } from "@/lib/game/finance-income-analysis";
 import {
   getDebtAmount,
   getNextFinancialCheckpointDay,
@@ -52,6 +54,8 @@ export default async function TeamFinancesPage({
   const activeTab =
     readSearchValue(query.onglet) === "analyse-depenses"
       ? "expenses"
+      : readSearchValue(query.onglet) === "analyse-recettes"
+      ? "income"
       : "treasury";
   const supabase = await createSupabaseServerClient();
   const {
@@ -88,7 +92,6 @@ export default async function TeamFinancesPage({
     (transaction) => !settledTransactionIds.has(transaction.id)
   );
   const latestAlert = overview.alerts[0] ?? null;
-  const expenseAnalysis = buildFinanceExpenseAnalysis(overview.transactions);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -150,7 +153,13 @@ export default async function TeamFinancesPage({
 
         {activeTab === "expenses" ? (
           <FinanceExpenseAnalysisPanel
-            analysis={expenseAnalysis}
+            analysis={buildFinanceExpenseAnalysis(overview.transactions)}
+            currency={overview.currency}
+            seasonName={overview.seasonName}
+          />
+        ) : activeTab === "income" ? (
+          <FinanceIncomeAnalysisPanel
+            analysis={buildFinanceIncomeAnalysis(overview.transactions)}
             currency={overview.currency}
             seasonName={overview.seasonName}
           />
@@ -235,7 +244,7 @@ export default async function TeamFinancesPage({
 function FinanceTabs({
   activeTab,
 }: {
-  activeTab: "treasury" | "expenses";
+  activeTab: "treasury" | "expenses" | "income";
 }) {
   const tabs = [
     {
@@ -250,12 +259,18 @@ function FinanceTabs({
       label: "Analyse des dépenses",
       detail: "Répartition complète des charges",
     },
+    {
+      key: "income" as const,
+      href: "/jeu/finances?onglet=analyse-recettes",
+      label: "Analyse des recettes",
+      detail: "Origine des revenus de l’équipe",
+    },
   ];
 
   return (
     <GameSectionTabs
       ariaLabel="Rubriques financières"
-      columns={2}
+      columns={3}
       className="mt-7"
     >
       {tabs.map((tab) => {
