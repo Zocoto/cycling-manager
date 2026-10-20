@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 
 import {
+  claimFederationPresidencyAction,
   submitFederationCandidacyAction,
   voteFederationPresidentAction,
 } from "@/app/jeu/federations/governance-actions";
@@ -37,6 +38,10 @@ export function FederationElectionPanel({
     voteFederationPresidentAction,
     initialFederationGovernanceActionState,
   );
+  const [claimState, claimAction, claimPending] = useActionState(
+    claimFederationPresidencyAction,
+    initialFederationGovernanceActionState,
+  );
   const effectivePhase =
     overview.phase === "automatic" ? "finalized" : overview.phase;
   const hasAppointedPresident = overview.phase === "automatic" && Boolean(overview.presidentName);
@@ -59,8 +64,9 @@ export function FederationElectionPanel({
             électorale. Un DS dont l’équipe changera de fédération pendant le
             mandat peut voter, mais ne peut pas se présenter. Sans élu,
             l’administration automatique prend le relais. Dans une fédération
-            sans président, l’unique DS est nommé automatiquement ; à plusieurs,
-            une élection est organisée.
+            sans président, l’unique DS humain actif est nommé automatiquement ;
+            à plusieurs, une élection est organisée. Les bots et les membres sans
+            activité depuis 30 jours ne bloquent pas cette nomination.
           </p>
         </div>
         {!hasAppointedPresident ? <div className="grid grid-cols-3 gap-2 text-center">
@@ -110,6 +116,30 @@ export function FederationElectionPanel({
       </div> : null}
 
       <div className="space-y-6 p-6 sm:p-8">
+        {overview.canClaimPresidency ? (
+          <form action={claimAction} className="rounded-2xl border border-[var(--federation-secondary)]/25 bg-[#E8F7F1] p-5">
+            <input type="hidden" name="countryCode" value={countryCode} />
+            <h3 className="text-xl font-black text-[#183F37]">Reprendre une présidence gérée par l’IA</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
+              Ouvrez un scrutin accéléré pour terminer le mandat en cours : 24 heures
+              de candidatures, puis 48 heures de vote. Votre candidature sera déposée.
+              Les autres membres éligibles pourront se présenter et chaque équipe
+              disposera d’une voix. Pensez à voter pendant le scrutin.
+            </p>
+            <label className="mt-4 block text-sm font-bold text-[#183F37]">
+              Votre profession de foi
+              <textarea name="manifesto" required minLength={40} maxLength={800} rows={3}
+                disabled={claimPending}
+                placeholder="Présentez votre projet pour la fédération (40 à 800 caractères)…"
+                className="mt-2 block w-full resize-y rounded-xl border border-[#315B3E]/18 bg-white p-3 text-sm font-semibold leading-6 outline-none focus:border-[var(--federation-secondary)] disabled:opacity-60" />
+            </label>
+            <button type="submit" disabled={claimPending}
+              className="mt-4 w-full rounded-xl bg-[var(--federation-secondary)] px-5 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60 sm:w-auto">
+              {claimPending ? "Ouverture du scrutin…" : "Revendiquer la présidence"}
+            </button>
+            <ActionFeedback status={claimState.status} message={claimState.message} />
+          </form>
+        ) : null}
         {overview.phase === "scheduled" ? (
           <ElectionNotice tone="neutral">
             L’appel à candidatures s’ouvrira automatiquement à J21. La liste
@@ -436,7 +466,7 @@ function getPhaseTiming(
     return "J1";
   }
 
-  if (phase === "applications") return "48 h";
+  if (phase === "applications") return overview.isPresidencyClaim ? "24 h" : "48 h";
   if (phase === "voting") return "48 h suivantes";
   return "Immédiate";
 }

@@ -32,6 +32,8 @@ export type FederationJournalEntry = {
 export type FederationGovernanceOverview = {
   phase: FederationElectionPhase;
   electionType: FederationElectionType;
+  isPresidencyClaim?: boolean;
+  canClaimPresidency?: boolean;
   termStartGameYear: number;
   termEndGameYear: number;
   applicationsCloseAt: string | null;
@@ -54,6 +56,7 @@ type ElectionRow = {
   id: string;
   status: FederationElectionPhase;
   election_type: FederationElectionType;
+  is_presidency_claim?: boolean;
   term_start_game_year: number;
   term_end_game_year: number;
   elected_director_id: string | null;
@@ -136,7 +139,7 @@ export async function getFederationGovernanceOverview({
       admin
         .from("national_federation_elections")
         .select(
-          "id, status, election_type, term_start_game_year, term_end_game_year, elected_director_id, applications_close_at, voting_close_at, created_at",
+          "id, status, election_type, is_presidency_claim, term_start_game_year, term_end_game_year, elected_director_id, applications_close_at, voting_close_at, created_at",
         )
         .eq("country_id", countryId)
         .gte("term_end_game_year", season.gameYear)
@@ -195,12 +198,25 @@ export async function getFederationGovernanceOverview({
     const election =
       activeExceptionalElection ?? regularElection ?? latestExceptionalElection;
     const journal = (journalResult.data ?? []).map(toJournalEntry);
-    const presidentDirectorId =
-      termResult.data?.president_director_id ??
-      election?.elected_director_id ??
-      null;
+    const presidentDirectorId = termResult.data
+      ? termResult.data.president_director_id
+      : election && election.term_start_game_year <= season.gameYear
+        ? election.elected_director_id
+        : null;
     const viewerDirectorId =
       viewerAssignmentResult.data?.sporting_director_id ?? null;
+    // The route supplies a viewer team only after checking its affiliation.
+    // Reuse those reads here; the claim RPC rechecks every rule atomically.
+    const canClaimPresidency = Boolean(
+      viewerTeamId && viewerDirectorId &&
+      termResult.data?.governance_mode === "automatic" &&
+      !termResult.data.president_director_id &&
+      (season.gameYear < termResult.data.end_game_year || season.currentDayNumber <= 25) &&
+      !elections.some((item) =>
+        (item.status === "applications" || item.status === "voting") &&
+        item.term_start_game_year <= season.gameYear && item.term_end_game_year >= season.gameYear,
+      ),
+    );
     const viewerIsPresident = Boolean(
       viewerDirectorId && viewerDirectorId === presidentDirectorId,
     );
@@ -216,7 +232,7 @@ export async function getFederationGovernanceOverview({
     if (!election) {
       return {
         ...scheduled,
-        ...(termResult.data?.president_director_id
+        ...(termResult.data
           ? {
               phase: "automatic" as const,
               termStartGameYear: termResult.data.start_game_year,
@@ -224,6 +240,7 @@ export async function getFederationGovernanceOverview({
             }
           : {}),
         viewerIsPresident,
+        canClaimPresidency,
         presidentName: presidentResult.data?.display_name ?? null,
         journal,
       };
@@ -329,6 +346,8 @@ export async function getFederationGovernanceOverview({
     return {
       phase: election.status,
       electionType: election.election_type,
+      isPresidencyClaim: election.is_presidency_claim === true,
+      canClaimPresidency,
       termStartGameYear: election.term_start_game_year,
       termEndGameYear: election.term_end_game_year,
       applicationsCloseAt: election.applications_close_at,

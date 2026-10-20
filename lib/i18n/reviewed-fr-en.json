@@ -1529,5 +1529,20 @@
   "Après 2 jours de préparation : +1,5 sur CLM, PRO et END pendant 4 jours · 1 coureur en parallèle.": "After 2 days of preparation: +1.5 to TT, PRL and STA for 4 days · 1 rider in parallel.",
   "Après 2 jours de préparation : +2 sur CLM, PRO et END pendant 4 jours · 2 coureurs en parallèle.": "After 2 days of preparation: +2 to TT, PRL and STA for 4 days · 2 riders in parallel.",
   "Après 2 jours de préparation : +2,5 sur CLM, PRO et END pendant 5 jours · 2 coureurs en parallèle.": "After 2 days of preparation: +2.5 to TT, PRL and STA for 5 days · 2 riders in parallel.",
-  "Après 2 jours de préparation : +3 sur CLM, PRO et END pendant 6 jours · 3 coureurs en parallèle.": "After 2 days of preparation: +3 to TT, PRL and STA for 6 days · 3 riders in parallel."
+  "Après 2 jours de préparation : +3 sur CLM, PRO et END pendant 6 jours · 3 coureurs en parallèle.": "After 2 days of preparation: +3 to TT, PRL and STA for 6 days · 3 riders in parallel.",
+  "Cette action est réservée aux joueurs actifs de la fédération.": "This action is reserved for active players in the federation.",
+  "Échec de revendication fédérale :": "Federation presidency claim failed:",
+  "L’élection n’a pas pu être ouverte.": "The election could not be opened.",
+  "La présidence du Botswana a changé ; nomination administrative interrompue.": "Botswana's presidency has changed; administrative appointment cancelled.",
+  "La présidence n’est pas vacante sous administration automatique.": "The presidency is not vacant under automatic administration.",
+  "Le mandat se termine dans moins de trois jours. Participez à l’élection ordinaire.": "The term ends in less than three days. Take part in the regular election.",
+  "Le scrutin est ouvert : 24 heures de candidatures, puis 48 heures de vote. Consultez les candidatures et pensez à voter.": "The election is open: 24 hours for applications, then 48 hours of voting. Review the candidates and remember to vote.",
+  "Ouverture du scrutin…": "Opening the election…",
+  "Ouvrez un scrutin accéléré pour terminer le mandat en cours : 24 heures de candidatures, puis 48 heures de vote. Votre candidature sera déposée. Les autres membres éligibles pourront se présenter et chaque équipe disposera d’une voix. Pensez à voter pendant le scrutin.": "Open an accelerated election to complete the current term: 24 hours for applications, then 48 hours of voting. Your candidacy will be submitted. Other eligible members may stand and each team will have one vote. Remember to vote during the ballot.",
+  "Présentez votre projet pour la fédération (40 à 800 caractères)…": "Describe your plans for the federation (40 to 800 characters)…",
+  "Reprendre une présidence gérée par l’IA": "Take over an AI-managed presidency",
+  "Revendiquer la présidence": "Claim the presidency",
+  "Un scrutin est déjà ouvert : vous pouvez y déposer votre candidature pendant la phase de candidatures.": "An election is already open: you may apply during the application phase.",
+  "Une seule voix est accordée à chaque équipe présente sur la liste électorale. Un DS dont l’équipe changera de fédération pendant le mandat peut voter, mais ne peut pas se présenter. Sans élu, l’administration automatique prend le relais. Dans une fédération sans président, l’unique DS humain actif est nommé automatiquement ; à plusieurs, une élection est organisée. Les bots et les membres sans activité depuis 30 jours ne bloquent pas cette nomination.": "Each team on the electoral roll has one vote. A sporting director whose team will change federations during the term may vote but cannot stand. Without an elected president, automatic administration takes over. In a federation without a president, the only active human sporting director is appointed automatically; with several active members, an election is held. Bots and members inactive for 30 days do not block this appointment.",
+  "Votre profession de foi": "Your manifesto"
 }
