@@ -100,6 +100,29 @@ async function oldPreparation({
     prepStart, prepEnd, bonusStart, bonusEnd, status])).rows[0];
 }
 
+async function attachCamp(preparation, status = "cancelled") {
+  await database.query(`
+    insert into public.rider_form_camps (
+      id, rider_id, team_season_id, season_id, camp_type,
+      start_day_number, end_day_number, form_gain_per_day,
+      price_per_day, total_price, status
+    ) values ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, $8)
+  `, [preparation.form_camp_id, preparation.rider_id, preparation.team_season_id,
+    preparation.season_id,
+    preparation.preparation_type === "indoor_track" ? "indoor_preparation" : "wind_tunnel_preparation",
+    DAY - 3, DAY - 2, status]);
+}
+
+async function raceConflict({
+  registrationStatus = "pending", rosterStatus = "selected",
+  stageStatus = "scheduled", offset = 1,
+} = {}) {
+  await database.query("insert into public.race_rosters (rider_id, race_registration_id, status) values ($1, $2, $3)", [RIDERS[0], uuid(50), rosterStatus]);
+  await database.query("insert into public.race_registrations values ($1, $2, $3)", [uuid(50), registrationStatus, uuid(51)]);
+  await database.query("insert into public.stages (race_edition_id, season_day_id, status) values ($1, $2, $3)", [uuid(51), uuid(52), stageStatus]);
+  await database.query("insert into public.season_days values ($1, $2, $3)", [uuid(52), SEASON, DAY + offset]);
+}
+
 try {
   await database.exec(`
     create role anon;
@@ -140,13 +163,18 @@ try {
     );
     create unique index rider_performance_preparations_facility_active_idx
       on public.rider_performance_preparations(team_id, preparation_type) where status = 'planned';
-    create table public.race_rosters (rider_id uuid, race_registration_id uuid);
+    create table public.race_rosters (rider_id uuid, race_registration_id uuid, status text not null default 'selected');
     create table public.race_registrations (id uuid, status text, race_edition_id uuid);
-    create table public.stages (race_edition_id uuid, season_day_id uuid);
+    create table public.stages (race_edition_id uuid, season_day_id uuid, status text not null default 'scheduled');
     create table public.season_days (id uuid, season_id uuid, day_number integer);
+    create table public.official_stage_simulations (id uuid primary key, input jsonb, results jsonb);
   `);
   await reset();
   const legacy = await oldPreparation({ status: "planned" });
+  await database.query("insert into public.official_stage_simulations values ($1, $2::jsonb, $3::jsonb)", [uuid(90),
+    JSON.stringify({ note: "Frozen before the facility rebalance", riders: [{ id: RIDERS[0], sprint: 73.5 }], gameDayIndex: GAME_DAY - 1 }),
+    JSON.stringify({ winner: RIDERS[0], elapsedSeconds: 15432, recordedAt: "2026-10-19T14:00:00Z" })]);
+  const frozenBefore = (await database.query("select * from public.official_stage_simulations order by id")).rows;
   const ridersBefore = (await database.query("select * from public.riders order by id")).rows;
   const migration = await readFile(new URL("../supabase/migrations/20261020090000_rebalance_performance_preparations.sql", import.meta.url), "utf8");
   await database.exec(migration);
@@ -174,6 +202,42 @@ try {
     assert.deepEqual((await database.query("select * from public.riders order by id")).rows, ridersBefore);
     assert.equal((await database.query("select to_regclass('public.rider_performance_preparations_facility_active_idx') as name")).rows[0].name, null);
     assert.ok((await database.query("select to_regclass('public.rider_performance_preparations_facility_planned_idx') as name")).rows[0].name);
+    assert.deepEqual((await database.query("select * from public.official_stage_simulations order by id")).rows, frozenBefore);
+  });
+
+  const cancellationMigration = await readFile(new URL("../supabase/migrations/20261020120000_guard_cancelled_performance_preparations.sql", import.meta.url), "utf8");
+  await test("cancellation migration repairs only current/future ghosts and leaves expired history, dates, ratings and frozen races intact", async () => {
+    const current = await oldPreparation({ rider: RIDERS[1], bonusStart: GAME_DAY - 1, bonusEnd: GAME_DAY });
+    const future = await oldPreparation({ rider: RIDERS[2], bonusStart: START, bonusEnd: START + 5 });
+    const expired = await oldPreparation({ rider: RIDERS[3], bonusStart: GAME_DAY - 5, bonusEnd: GAME_DAY - 1 });
+    const valid = await oldPreparation({ rider: RIDERS[4] });
+    for (const row of [current, future, expired]) await attachCamp(row);
+    await attachCamp(valid, "completed");
+    const before = (await database.query("select * from public.rider_performance_preparations order by id")).rows;
+    await database.exec(cancellationMigration);
+    const after = (await database.query("select * from public.rider_performance_preparations order by id")).rows;
+    assert.deepEqual(after, before.map((row) => [current.id, future.id].includes(row.id) ? { ...row, status: "cancelled" } : row));
+    assert.deepEqual((await database.query("select * from public.riders order by id")).rows, ridersBefore);
+    assert.deepEqual((await database.query("select * from public.official_stage_simulations order by id")).rows, frozenBefore);
+    assert.ok((await database.query("select to_regclass('public.rider_performance_preparations_camp_active_idx') as name")).rows[0].name);
+  });
+
+  await test("postcheck changes only the booking race guard and has an exact cancellation-function receipt", async () => {
+    const literal = (name) => cancellationMigration.match(new RegExp(`${name} constant text := E'((?:''|[^'])*)';`))?.[1].replaceAll("\\n", "\n").replaceAll("''", "'");
+    const oldGuard = literal("v_old");
+    const newGuard = literal("v_new");
+    assert.ok(oldGuard && newGuard);
+    const baseBody = migration.match(/create or replace function public\.start_current_team_rider_performance_preparation\([\s\S]*?as \$\$([\s\S]*?)\$\$;/i)?.[1];
+    assert.equal(baseBody.split(oldGuard).length, 2);
+    const expected = baseBody.replace(oldGuard, newGuard);
+    const actual = (await database.query("select prosrc from pg_catalog.pg_proc where oid=to_regprocedure('public.start_current_team_rider_performance_preparation(uuid,text)')")).rows[0].prosrc;
+    assert.equal(actual, expected);
+    const triggerBody = cancellationMigration.match(/create or replace function public\.cancel_performance_preparation_from_camp\([\s\S]*?as \$\$([\s\S]*?)\$\$;/i)?.[1];
+    const receipt = (await database.query("select md5(regexp_replace(prosrc, '[[:space:]]', '', 'g')) as hash from pg_catalog.pg_proc where oid=to_regprocedure('public.cancel_performance_preparation_from_camp()')")).rows[0].hash;
+    assert.equal(receipt, createHash("md5").update(triggerBody.replace(/\s/g, "")).digest("hex"));
+    const before = (await database.query("select * from public.rider_performance_preparations order by id")).rows;
+    await database.exec(cancellationMigration);
+    assert.deepEqual((await database.query("select * from public.rider_performance_preparations order by id")).rows, before);
   });
 
   await test("five exact policies and invalid levels", async () => {
@@ -261,9 +325,9 @@ try {
   await test("accepted race in either preparation day blocks the camp; rejected or later race does not", async () => {
     for (const offset of [1, 2]) {
       await reset();
-      await database.query("insert into public.race_rosters values ($1, $2)", [RIDERS[0], uuid(50)]);
+      await database.query("insert into public.race_rosters (rider_id, race_registration_id) values ($1, $2)", [RIDERS[0], uuid(50)]);
       await database.query("insert into public.race_registrations values ($1, 'accepted', $2)", [uuid(50), uuid(51)]);
-      await database.query("insert into public.stages values ($1, $2)", [uuid(51), uuid(52)]);
+      await database.query("insert into public.stages (race_edition_id, season_day_id) values ($1, $2)", [uuid(51), uuid(52)]);
       await database.query("insert into public.season_days values ($1, $2, $3)", [uuid(52), SEASON, DAY + offset]);
       await rejected("engagé en course");
       if (offset === 1) {
@@ -336,6 +400,89 @@ try {
     } finally {
       await database.exec("reset role");
     }
+  });
+
+  await test("pending WildCards reserve selected/confirmed riders on both preparation days", async () => {
+    for (const rosterStatus of ["selected", "confirmed"]) {
+      for (const offset of [1, 2]) {
+        await reset();
+        await raceConflict({ rosterStatus, offset });
+        await rejected("engagé en course");
+      }
+    }
+  });
+
+  await test("withdrawn/cancelled rosters and cancelled stages do not reserve a rider", async () => {
+    for (const statuses of [
+      { rosterStatus: "withdrawn" }, { rosterStatus: "cancelled" }, { stageStatus: "cancelled" },
+    ]) {
+      for (const registrationStatus of ["pending", "accepted"]) {
+        await reset();
+        await raceConflict({ ...statuses, registrationStatus });
+        await start();
+      }
+    }
+  });
+
+  await test("call-up or transfer cancellation releases exactly its linked bonus and facility slot", async () => {
+    for (const reason of ["federation call-up", "rider transfer"]) {
+      await reset({ level: 3 });
+      const cancelled = await start();
+      const untouched = await start(RIDERS[1]);
+      await rejected("Toutes les places", RIDERS[2]);
+      const frozenRatings = (await database.query("select * from public.riders order by id")).rows;
+      // This is the same camp status transition made by the real call-up and
+      // transfer paths; it runs only in this ephemeral in-memory fixture.
+      await database.query("update public.rider_form_camps set status = 'cancelled' where id = $1", [cancelled.form_camp_id]);
+      const cancelledAfter = (await database.query("select * from public.rider_performance_preparations where id = $1", [cancelled.id])).rows[0];
+      assert.deepEqual(cancelledAfter, { ...cancelled, status: "cancelled" }, reason);
+      assert.deepEqual((await database.query("select * from public.rider_performance_preparations where id = $1", [untouched.id])).rows[0], untouched);
+      await start(RIDERS[2]);
+      assert.deepEqual((await database.query("select * from public.riders order by id")).rows, frozenRatings);
+      await database.query("update public.rider_form_camps set status = 'cancelled' where id = $1", [cancelled.form_camp_id]);
+      assert.deepEqual((await database.query("select * from public.rider_performance_preparations where id = $1", [cancelled.id])).rows[0], cancelledAfter);
+    }
+  });
+
+  await test("normal camp completion preserves its bonus; cancellation also neutralizes a completed preparation", async () => {
+    await reset();
+    const row = await start();
+    await database.query("update public.rider_form_camps set status = 'completed' where id = $1", [row.form_camp_id]);
+    assert.deepEqual((await database.query("select * from public.rider_performance_preparations where id = $1", [row.id])).rows[0], row);
+    await database.query("update public.rider_performance_preparations set status = 'completed' where id = $1", [row.id]);
+    await database.query("update public.rider_form_camps set status = 'cancelled' where id = $1", [row.form_camp_id]);
+    assert.deepEqual((await database.query("select * from public.rider_performance_preparations where id = $1", [row.id])).rows[0], { ...row, status: "cancelled" });
+  });
+
+  await test("more than 200 applicable ghosts aborts the entire replayed migration without partial repair", async () => {
+    await reset();
+    await database.query(`
+      with camps as (
+        insert into public.rider_form_camps (rider_id, status)
+        select $1::uuid, 'cancelled' from generate_series(1, 201)
+        returning id
+      )
+      insert into public.rider_performance_preparations (
+        team_id, team_season_id, season_id, rider_id, form_camp_id,
+        preparation_type, building_level, preparation_start_game_day,
+        preparation_end_game_day, bonus_start_game_day, bonus_end_game_day,
+        rating_bonus, status
+      ) select $2::uuid, $3::uuid, $4::uuid, $1::uuid, camp.id,
+        'indoor_track', 3, $5::integer - 4, $5::integer - 3,
+        $5::integer, $5::integer + 2, 2.2, 'completed'
+      from camps as camp
+    `, [RIDERS[0], TEAM, TEAM_SEASON, SEASON, GAME_DAY]);
+    const before = (await database.query("select * from public.rider_performance_preparations order by id")).rows;
+    assert.equal(before.length, 201);
+    try {
+      await assert.rejects(() => database.exec(cancellationMigration), /Too many cancelled preparations/);
+    } finally {
+      await database.exec("rollback");
+    }
+    assert.deepEqual((await database.query("select * from public.rider_performance_preparations order by id")).rows, before);
+    const triggers = (await database.query("select count(*)::integer as count from pg_catalog.pg_trigger where tgname = 'cancel_performance_preparation_after_camp_cancellation' and not tgisinternal")).rows[0].count;
+    assert.equal(triggers, 1);
+    assert.deepEqual((await database.query("select * from public.official_stage_simulations order by id")).rows, frozenBefore);
   });
 
   console.log(`Isolated in-memory SQL harness: ${passed} cases passed. No external database was accessed.`);

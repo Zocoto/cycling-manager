@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { isFederationSelectionEdition } from "./race-calendar";
+
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 const preparationPage = read("app/jeu/preparation-course/page.tsx");
@@ -34,14 +36,33 @@ describe("international race preparation boundaries", () => {
 
   it("keeps international profiles routed through federation selections", () => {
     const internationalPanelIndex = raceProfile.indexOf(
-      "if (isInternationalChampionshipEdition(edition))",
+      "if (isFederationSelectionEdition(edition))",
+    );
+    const internationalPanelEndIndex = raceProfile.indexOf(
+      "if (restrictedAccessDenied)",
+      internationalPanelIndex,
     );
     const preparationLinkIndex = raceProfile.indexOf(
       "`/jeu/preparation-course?course=${edition.slug}`",
     );
 
     expect(internationalPanelIndex).toBeGreaterThan(-1);
-    expect(preparationLinkIndex).toBeGreaterThan(internationalPanelIndex);
+    expect(internationalPanelEndIndex).toBeGreaterThan(internationalPanelIndex);
+    const internationalPanel = raceProfile.slice(
+      internationalPanelIndex,
+      internationalPanelEndIndex,
+    );
+    expect(internationalPanel).toMatch(/return\s*\(/);
+    expect(internationalPanel).toContain("Inscription gérée par les fédérations");
+    expect(internationalPanel).not.toContain("/jeu/preparation-course");
+    expect(preparationLinkIndex).toBeGreaterThan(internationalPanelEndIndex);
+  });
+
+  it.each([
+    "continental_championship", "world_championship", "nations_cup",
+  ] as const)("keeps %s under the same federation-only profile guard", (competitionType) => {
+    expect(isFederationSelectionEdition({ competitionType })).toBe(true);
+    expect(isFederationSelectionEdition({ competitionType: "standard" })).toBe(false);
   });
 
   it("keeps club tactics blocked while allowing linked federation road plans", () => {

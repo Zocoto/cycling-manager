@@ -150,15 +150,16 @@ export function createCalendarSimulationInput({
   const sourceRiders = [
     ...new Map(rawSourceRiders.map((rider) => [rider.id, rider])).values(),
   ];
+  const preliminaryTeamStrategies = sanitizeCalendarTeamStrategies({
+    stage,
+    sourceRiders,
+  });
   const tourLeaderByTeamId = getTourLeaderByTeamId({
     edition,
     riders: sourceRiders,
     roleOverrides: stage.riderRoleOverrides,
     unavailableRiderIds,
-  });
-  const preliminaryTeamStrategies = sanitizeCalendarTeamStrategies({
-    stage,
-    sourceRiders,
+    teamStrategies: preliminaryTeamStrategies,
   });
 
   const ridersWithoutDuties = sanitizeUniqueCalendarRaceRoles(
@@ -320,11 +321,13 @@ export function getTourLeaderByTeamId({
   riders,
   roleOverrides,
   unavailableRiderIds = [],
+  teamStrategies = [],
 }: {
   edition: Pick<RaceCalendarEdition, "raceFormat" | "stages">;
   riders: readonly RiderSimulationInput[];
   roleOverrides?: RaceCalendarStage["riderRoleOverrides"];
   unavailableRiderIds?: ReadonlySet<string> | readonly string[];
+  teamStrategies?: readonly RaceTeamStrategy[];
 }) {
   const leaders = new Map<string, string>();
   if (edition.raceFormat !== "stage_race") return leaders;
@@ -334,6 +337,9 @@ export function getTourLeaderByTeamId({
       ? unavailableRiderIds
       : new Set(unavailableRiderIds);
   const ridersByTeam = new Map<string, RiderSimulationInput[]>();
+  const strategiesByTeamId = new Map(
+    teamStrategies.map((strategy) => [strategy.teamId, strategy]),
+  );
 
   for (const rider of riders) {
     if (unavailable.has(rider.id)) continue;
@@ -354,7 +360,12 @@ export function getTourLeaderByTeamId({
     );
     const automaticCandidates = teammates.filter(
       (rider) => rider.role === "auto" &&
-        (!roleOverrides?.[rider.id] || roleOverrides[rider.id] === "auto"),
+        (!roleOverrides?.[rider.id] || roleOverrides[rider.id] === "auto") &&
+        // An explicit mission must not be silently erased by the tour's
+        // automatic leader lock before stage roles and duties are resolved.
+        !(strategiesByTeamId.has(teamId)
+          ? getRiderRaceDuty(strategiesByTeamId.get(teamId), rider.id)
+          : rider.raceDuty),
     );
     const candidates =
       declaredLeaders.length > 0

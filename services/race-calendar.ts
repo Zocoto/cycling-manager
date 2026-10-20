@@ -1203,6 +1203,7 @@ export async function getActiveSeasonRaceCalendar(
     supabase,
     admin: raceDataAdmin,
     riderIds: engagedRiderIds,
+    gameYear: season.game_year,
   });
   const {
     continentalChampionshipTitlesByRiderId,
@@ -3771,18 +3772,26 @@ async function loadRaceCalendarRiderContext({
   supabase,
   admin,
   riderIds,
+  gameYear,
 }: {
   supabase: SupabaseServerClient;
   admin: SupabaseAdminClient;
   riderIds: string[];
+  gameYear: number;
 }) {
   if (riderIds.length === 0) {
     return createEmptyRaceCalendarRiderContext();
   }
 
+  // Use the whole requested season, not today's date: past-stage replays and
+  // preparations carried over from the previous season need the same bonuses.
+  const minGameDay = gameYear * 28;
+  const maxGameDay = minGameDay + 27;
   const contextResult = await loadCompactRaceCalendarRiderContext(
     admin,
     riderIds,
+    minGameDay,
+    maxGameDay,
   );
 
   if (!contextResult.error) {
@@ -3887,6 +3896,8 @@ async function loadRaceCalendarRiderContext({
           )
           .in("rider_id", chunk)
           .neq("status", "cancelled")
+          .lte("bonus_start_game_day", maxGameDay)
+          .gte("bonus_end_game_day", minGameDay)
           .order("rider_id", { ascending: true })
           .range(from, to)
           .returns<RiderPerformancePreparationRow[]>();
@@ -3923,6 +3934,8 @@ async function loadRaceCalendarRiderContext({
 async function loadCompactRaceCalendarRiderContext(
   admin: SupabaseAdminClient,
   riderIds: string[],
+  minGameDay: number,
+  maxGameDay: number,
 ) {
   const rows: RaceCalendarRiderContextRow[] = [];
   const riderIdChunks = chunkValues(riderIds, RIDER_CONTEXT_RPC_CHUNK_SIZE);
@@ -3935,6 +3948,8 @@ async function loadCompactRaceCalendarRiderContext(
       requestBatch.map(async (riderIdChunk) => {
         const result = await admin.rpc("get_race_calendar_rider_context", {
           p_rider_ids: riderIdChunk,
+          p_min_game_day: minGameDay,
+          p_max_game_day: maxGameDay,
         });
         return {
           data: result.data as RaceCalendarRiderContextRow[] | null,

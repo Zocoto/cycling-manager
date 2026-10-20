@@ -12,6 +12,7 @@ import type {
   RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import {
+  getRiderRaceDuty,
   MAX_RACE_ATTACK_ORDERS,
   type RaceAttackOrder,
   type RaceTeamStrategy,
@@ -1307,6 +1308,7 @@ function normalizeStageSimulationInput(
     eligibleInput.segments,
     eligibleInput.profileType,
     eligibleInput.generalClassification,
+    eligibleInput.teamStrategies,
   );
   const normalizedInput = {
     ...eligibleInput,
@@ -1689,6 +1691,7 @@ export function assignAutomaticRaceRoles(
   segments: RaceStageSegment[],
   profileType: RaceProfileType = "mixed",
   generalClassification?: StageSimulationInput["generalClassification"],
+  teamStrategies: readonly RaceTeamStrategy[] = [],
 ) {
   validateExplicitRoles(riders);
   const generalClassificationProtectedRiderIds =
@@ -1700,10 +1703,22 @@ export function assignAutomaticRaceRoles(
       generalClassificationProtectedRiderIds.has(rider.id),
   }));
   const teams = groupBy(resolved, (rider) => rider.teamId);
+  const strategiesByTeamId = new Map(
+    teamStrategies.map((strategy) => [strategy.teamId, strategy]),
+  );
   const likelySprint = isLikelyMassSprint(segments);
 
   for (const teamRiders of teams.values()) {
     const automatic = () => teamRiders.filter((rider) => rider.role === "auto");
+    // A booked preparation may improve this rider's ranking, but an explicit
+    // support/breakaway mission still outranks an automatic protected role.
+    // Leadout and other support roles remain eligible, as in mission validation.
+    const automaticProtected = () =>
+      automatic().filter(
+        (rider) =>
+          !rider.raceDuty &&
+          !getRiderRaceDuty(strategiesByTeamId.get(rider.teamId), rider.id),
+      );
     const automaticSupport = () =>
       automatic().filter(
         (rider) => rider.generalClassificationProtected !== true,
@@ -1715,7 +1730,7 @@ export function assignAutomaticRaceRoles(
 
     if (likelySprint && !hasSprinterRole()) {
       setBestAutomaticRole(
-        automatic(),
+        automaticProtected(),
         "leader_sprinter",
         (rider) =>
           rider.ratings.sprint * 0.62 +
@@ -1725,7 +1740,7 @@ export function assignAutomaticRaceRoles(
     }
 
     if (!hasRole("leader")) {
-      setBestAutomaticRole(automatic(), "leader", (rider) =>
+      setBestAutomaticRole(automaticProtected(), "leader", (rider) =>
         getAutomaticLeaderScore(rider, segments, profileType),
       );
     }
@@ -11353,7 +11368,9 @@ function getStrategyChaseModifier({
     if (activeTeamStates.length === 0) return 0;
 
     const dangerPacerIsAvailable = activeTeamStates.some(
-      (state) => state.rider.id === strategy.dangerPacerRiderId,
+      (state) =>
+        state.rider.id === strategy.dangerPacerRiderId &&
+        state.rider.generalClassificationProtected !== true,
     );
     const teamLeaderIsPresent = activeTeamStates.some((state) =>
       isRaceLeaderRole(state.rider.role),
