@@ -4,6 +4,17 @@ import { translateUiText, UI_TRANSLATIONS } from "@/lib/i18n/ui-translations";
 
 describe("French to English UI catalog", () => {
   it.each([
+    ["Belgique", "Belgium"],
+    ["Royaume-Uni", "United Kingdom"],
+    ["Belgique · BE", "Belgium · BE"],
+    ["Royaume-Uni · GB", "United Kingdom · GB"],
+    ["BE", "BE"],
+    ["GB", "GB"],
+  ])("preserves country identity when translating %s", (source, target) => {
+    expect(translateUiText(source)).toBe(target);
+  });
+
+  it.each([
     ["Parrainage", "Referrals"], ["Sponsor secondaire", "Secondary sponsor"],
     ["Soufflerie", "Wind tunnel"], ["Poisson pilote", "Lead-out rider"],
     ["Étape", "Stage"], ["Arrivée au sommet", "Summit finish"],

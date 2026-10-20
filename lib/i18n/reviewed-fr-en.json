@@ -1,4 +1,6 @@
 {
+  "Belgique": "Belgium",
+  "Royaume-Uni": "United Kingdom",
   "Assistant et réglages": "Assistant and settings",
   "L’assistant fait remonter les échéances proches et les problèmes importants. Ses liens ouvrent les réglages concernés ; les filtres permettent ensuite de retrouver tout l’effectif. Pour l’entraînement, la nutrition et l’équipement, un brouillon peut être repris sur le même appareil pendant 24 heures, si la situation de l’équipe n’a pas changé. Un brouillon ne réserve ni matériel ni staff : seuls les choix validés sont appliqués.": "The assistant highlights approaching deadlines and important issues. Its links open the relevant settings; filters let you return to the full squad. For training, nutrition and equipment, a draft can be restored on the same device for up to 24 hours if the team’s situation has not changed. A draft reserves neither equipment nor staff: only confirmed choices are applied.",
   "Aucun coureur concerné. Affichez tout l’effectif pour modifier un suivi.": "No riders match. Show the full squad to change an assignment.",
