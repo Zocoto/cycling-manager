@@ -24,6 +24,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "finance_daily_income",
     "finance_main_sponsor",
     "finance_secondary_sponsor",
+    "finance_rider_salary",
   ],
   physiotherapist: [
     "physio_race_recovery",
@@ -129,8 +130,10 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     description: (level) => `+${percentage(level, 2)} % sur les prochaines dotations financières en course, hors XP et points UCI`,
   },
   finance_daily_income: {
-    role: "financial_director", label: "Réseau d’affaires",
-    description: (level) => `+${percentage(level, 150)} € par jour de jeu, sans rattrapage des jours précédents`,
+    // Stable legacy identifier: preserve existing staff, slots and academy choices.
+    // Daily income is now a base effect; this slot becomes payroll savings.
+    role: "financial_director", label: "Optimisation des charges",
+    description: (level) => `−${percentage(level, 2)} % sur les prochaines échéances salariales du staff, hors salaire du Directeur financier`,
   },
   finance_main_sponsor: {
     role: "financial_director", label: "Valorisation du partenaire principal",
@@ -139,6 +142,10 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   finance_secondary_sponsor: {
     role: "financial_director", label: "Développement des partenaires secondaires",
     description: (level) => `+${percentage(level, 1)} % sur les prochaines primes du sponsor secondaire`,
+  },
+  finance_rider_salary: {
+    role: "financial_director", label: "Optimisation des salaires coureurs",
+    description: (level) => `−${percentage(level, 2)} % sur les prochaines échéances salariales des coureurs`,
   },
   physio_race_recovery: {
     role: "physiotherapist",

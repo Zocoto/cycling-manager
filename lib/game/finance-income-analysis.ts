@@ -4,7 +4,7 @@ export const FINANCE_INCOME_CATEGORY_DEFINITIONS = [
   { key: "shop", label: "Boutique", description: "Ventes de produits et de maillots aux supporters", color: "#42B99A" },
   { key: "transfers", label: "Transferts", description: "Recettes des ventes de coureurs", color: "#2E6F9E" },
   { key: "asset_sales", label: "Reventes de matériel et véhicules", description: "Reprises d’équipement et ventes de véhicules du Fan Club", color: "#E58B3A" },
-  { key: "financial_director", label: "Direction financière", description: "Réseau d’affaires et bonus du Directeur financier", color: "#7A68A6" },
+  { key: "financial_director", label: "Direction financière", description: "Revenus quotidiens, économies salariales et bonus du Directeur financier", color: "#7A68A6" },
   { key: "rewards", label: "Récompenses et parrainage", description: "Trophées, découvertes et autres récompenses hors courses", color: "#C76AA5" },
   { key: "refunds", label: "Remboursements", description: "Restitutions de dépenses, distinctes des revenus d’activité", color: "#72D4B7" },
   { key: "other", label: "Autres recettes", description: "Autres rentrées d’argent enregistrées dans la saison", color: "#789087" },
