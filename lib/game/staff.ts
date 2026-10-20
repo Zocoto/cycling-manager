@@ -46,7 +46,7 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
   financial_director: {
     label: "Directeur financier",
     pluralLabel: "Directeurs financiers",
-    shortDescription: "Valorise les recettes de l’équipe grâce à ses affixes financiers. Un seul par équipe.",
+    shortDescription: "Apporte un revenu quotidien et un affixe financier complémentaire. Un seul par équipe.",
     salaryBase: 18_000,
     accent: "#A88739",
   },
@@ -212,6 +212,14 @@ export function selectStaffLevelFromRoll(roll: number): number {
 
 const STAFF_LEVEL_SALARY_MULTIPLIERS = [1, 1.5, 2.2, 3.3, 5] as const;
 const STAFF_LEVEL_SIGNING_FEE_RATES = [0.15, 0.2, 0.3, 0.45, 0.65] as const;
+
+// Covers approximately 30/45/60/75/90% of the salary over 28 game days,
+// before national affinity; the complementary affix provides the upside.
+const FINANCIAL_DIRECTOR_DAILY_INCOME = [200, 450, 850, 1_600, 2_900] as const;
+
+export function getFinancialDirectorDailyIncome(level: number): number {
+  return FINANCIAL_DIRECTOR_DAILY_INCOME[normalizeStaffLevel(level) - 1];
+}
 
 export function normalizeStaffLevel(level: number): number {
   if (!Number.isFinite(level)) return 1;
@@ -427,7 +435,7 @@ export function getStaffEffectPercentage(
 
   switch (role) {
     case "financial_director":
-      return 0; // No automatic income boost: every effect requires its affix.
+      return 0; // The base effect is a fixed daily amount, not a generic percentage.
     case "trainer":
       return safeLevel * 4;
     case "youth_coach":
@@ -543,10 +551,13 @@ export function describeStaffEffect({
       ];
     }
     case "research_engineer":
-    case "financial_director":
       // These professions have no automatic base bonus: their actual effects
       // are already described by their talents, in the same panel as other jobs.
       return [];
+    case "financial_director":
+      return [
+        `+${getFinancialDirectorDailyIncome(safeLevel)} € par jour de jeu, sans rattrapage des jours précédents`,
+      ];
     case "educator":
       return [
         "Pilote les stages de l’Académie des métiers ; ses talents déterminent les bonus appliqués",
