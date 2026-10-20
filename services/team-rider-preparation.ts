@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getPerformancePreparationPolicy } from "@/lib/game/performance-preparation";
 
 type PreparationType = "indoor_track" | "wind_tunnel";
 
@@ -11,7 +12,12 @@ export type TeamRiderPreparationOverview = {
   currentGameDayIndex: number;
   facilities: Record<
     PreparationType,
-    { level: number; activePreparationId: string | null }
+    {
+      level: number;
+      activePreparationId: string | null;
+      activePreparationIds?: string[];
+      capacity?: number;
+    }
   >;
   riders: Array<{
     id: string;
@@ -21,6 +27,7 @@ export type TeamRiderPreparationOverview = {
   }>;
   preparations: Array<{
     id: string;
+    riderId?: string;
     type: PreparationType;
     riderName: string;
     buildingLevel: number;
@@ -76,6 +83,8 @@ export async function getCurrentTeamRiderPreparationOverview(
     .eq("season_id", season.data.id)
     .maybeSingle<{ id: string; display_name: string }>();
   if (teamSeason.error || !teamSeason.data) return null;
+  const currentGameDayIndex =
+    season.data.game_year * 28 + season.data.current_day_number - 1;
   const [infrastructures, contracts, preparations] = await Promise.all([
     admin
       .from("team_infrastructures")
@@ -92,12 +101,15 @@ export async function getCurrentTeamRiderPreparationOverview(
     admin
       .from("rider_performance_preparations")
       .select(
-        "id,rider_id,preparation_type,building_level,preparation_start_game_day,preparation_end_game_day,bonus_start_game_day,bonus_end_game_day,rating_bonus,status",
+        "id,rider_id,preparation_type,building_level,preparation_start_game_day,preparation_end_game_day,bonus_start_game_day,bonus_end_game_day,rating_bonus,status,created_at",
       )
       .eq("team_id", assignment.data.team_id)
       .neq("status", "cancelled")
+      // All occupied places (at most six) come before bounded history, even
+      // when more recent completed preparations would otherwise hide them.
+      .order("status", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(12)
+      .limit(40)
       .returns<
         Array<{
           id: string;
@@ -110,12 +122,21 @@ export async function getCurrentTeamRiderPreparationOverview(
           bonus_end_game_day: number;
           rating_bonus: number;
           status: "planned" | "completed" | "cancelled";
+          created_at: string;
         }>
       >(),
   ]);
   if (infrastructures.error || contracts.error || preparations.error)
     throw new Error("Impossible de charger les préparations coureurs.");
-  const riderIds = (contracts.data ?? []).map((row) => row.rider_id);
+  const contractedRiderIds = new Set(
+    (contracts.data ?? []).map((row) => row.rider_id),
+  );
+  const riderIds = [
+    ...new Set([
+      ...contractedRiderIds,
+      ...(preparations.data ?? []).map((row) => row.rider_id),
+    ]),
+  ];
   const ridersResult = riderIds.length
     ? await admin
         .from("riders")
@@ -151,48 +172,56 @@ export async function getCurrentTeamRiderPreparationOverview(
   const level = (code: PreparationType) =>
     (infrastructures.data ?? []).find((row) => row.infrastructure_code === code)
       ?.level ?? 0;
-  const mappedPreparations = (preparations.data ?? []).flatMap((row) => {
-    const rider = riderById.get(row.rider_id);
-    return rider
-      ? [
-          {
-            id: row.id,
-            type: row.preparation_type,
-            riderName: `${rider.first_name} ${rider.last_name}`,
-            buildingLevel: row.building_level,
-            preparationStartGameDay: row.preparation_start_game_day,
-            preparationEndGameDay: row.preparation_end_game_day,
-            bonusStartGameDay: row.bonus_start_game_day,
-            bonusEndGameDay: row.bonus_end_game_day,
-            ratingBonus: row.rating_bonus,
-            status: row.status,
-          },
-        ]
-      : [];
-  });
+  const mappedPreparations = [...(preparations.data ?? [])]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .map((row) => {
+      const rider = riderById.get(row.rider_id);
+      return {
+        id: row.id,
+        riderId: row.rider_id,
+        type: row.preparation_type,
+        riderName: rider
+          ? `${rider.first_name} ${rider.last_name}`
+          : "Coureur indisponible",
+        buildingLevel: row.building_level,
+        preparationStartGameDay: row.preparation_start_game_day,
+        preparationEndGameDay: row.preparation_end_game_day,
+        bonusStartGameDay: row.bonus_start_game_day,
+        bonusEndGameDay: row.bonus_end_game_day,
+        ratingBonus: row.rating_bonus,
+        status: row.status,
+      };
+    });
+  const facility = (code: PreparationType) => {
+    const facilityLevel = level(code);
+    // Count source rows, not the display roster: a transferred rider must not
+    // silently free a reserved place. Dates also tolerate a delayed settlement.
+    const activePreparationIds = (preparations.data ?? [])
+      .filter(
+        (row) =>
+          row.preparation_type === code &&
+          row.status === "planned" &&
+          row.preparation_end_game_day >= currentGameDayIndex,
+      )
+      .map((row) => row.id);
+    return {
+      level: facilityLevel,
+      capacity: getPerformancePreparationPolicy(facilityLevel)?.capacity ?? 0,
+      activePreparationId: activePreparationIds[0] ?? null,
+      activePreparationIds,
+    };
+  };
   return {
     teamName: teamSeason.data.display_name,
     seasonName: season.data.name,
     currentDayNumber: season.data.current_day_number,
-    currentGameDayIndex:
-      season.data.game_year * 28 + season.data.current_day_number - 1,
+    currentGameDayIndex,
     facilities: {
-      indoor_track: {
-        level: level("indoor_track"),
-        activePreparationId:
-          mappedPreparations.find(
-            (row) => row.type === "indoor_track" && row.status === "planned",
-          )?.id ?? null,
-      },
-      wind_tunnel: {
-        level: level("wind_tunnel"),
-        activePreparationId:
-          mappedPreparations.find(
-            (row) => row.type === "wind_tunnel" && row.status === "planned",
-          )?.id ?? null,
-      },
+      indoor_track: facility("indoor_track"),
+      wind_tunnel: facility("wind_tunnel"),
     },
     riders: (ridersResult.data ?? [])
+      .filter((rider) => contractedRiderIds.has(rider.id))
       .map((rider) => ({
         id: rider.id,
         firstName: rider.first_name,

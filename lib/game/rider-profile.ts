@@ -155,25 +155,29 @@ export function getRiderSportingProfile(
   const isTourRider =
     ratings.mountain >= RIDER_PROFILE_MINIMUM_RATING &&
     ratings.timeTrial >= RIDER_PROFILE_MINIMUM_RATING;
+  const tourRiderScore = (ratings.mountain + ratings.timeTrial) / 2;
 
   const profiles = [
     {
       label: "Coureur de tour",
       qualifies: isTourRider,
-      score: (ratings.mountain + ratings.timeTrial) / 2,
+      score: tourRiderScore,
     },
     {
       label: "Grimpeur",
+      // A mixed tour score must not hide a much stronger individual specialty.
       qualifies:
-        !isTourRider &&
-        ratings.mountain >= RIDER_PROFILE_MINIMUM_RATING,
+        ratings.mountain >= RIDER_PROFILE_MINIMUM_RATING &&
+        (!isTourRider ||
+          ratings.mountain - tourRiderScore > RIDER_PROFILE_HYBRID_MAX_GAP),
       score: ratings.mountain,
     },
     {
       label: "Rouleur",
       qualifies:
-        !isTourRider &&
-        ratings.timeTrial >= RIDER_PROFILE_MINIMUM_RATING,
+        ratings.timeTrial >= RIDER_PROFILE_MINIMUM_RATING &&
+        (!isTourRider ||
+          ratings.timeTrial - tourRiderScore > RIDER_PROFILE_HYBRID_MAX_GAP),
       score: ratings.timeTrial,
     },
     {

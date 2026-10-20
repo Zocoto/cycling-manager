@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 import { translateUiText, UI_TRANSLATIONS } from "@/lib/i18n/ui-translations";
 
 describe("French to English UI catalog", () => {
+  it("distinguishes the finance director's base income and two salary skills", () => {
+    expect(translateUiText("Optimisation des charges")).toBe("Cost optimisation");
+    expect(translateUiText("Optimisation des salaires coureurs")).toBe("Rider payroll optimisation");
+    expect(translateUiText("−10 % sur les prochaines échéances salariales du staff, hors salaire du Directeur financier")).toBe("−10% on upcoming staff salary instalments, excluding the finance director’s own salary");
+    expect(translateUiText("−10 % sur les prochaines échéances salariales des coureurs")).toBe("−10% on upcoming rider salary instalments");
+  });
   it.each([
     ["Belgique", "Belgium"],
     ["Royaume-Uni", "United Kingdom"],

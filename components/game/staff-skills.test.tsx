@@ -51,10 +51,18 @@ describe("shared staff presentation audit", () => {
     }
   });
 
-  it("does not invent an automatic financial or R&D base effect", () => {
-    for (const role of ["financial_director", "research_engineer"] as const) {
-      expect(describeStaffEffect({ role, level: 5 })).toEqual([]);
-    }
+  it("shows finance base income separately without inventing an R&D base effect", () => {
+    expect(describeStaffEffect({ role: "research_engineer", level: 5 })).toEqual([]);
+    const effects=describeStaffEffect({ role: "financial_director", level: 5 });
+    const code="finance_daily_income" as const;
+    const markup=renderToStaticMarkup(<StaffSkills role="financial_director" level={5} effects={effects}
+      talents={[{code,label:STAFF_TALENT_DEFINITIONS[code].label,description:describeStaffTalent(code,5)}]}
+      nationalityAffinity={false} />);
+    expect(markup).toContain("+2900 € par jour");
+    expect(markup).toContain("Optimisation des charges");
+    expect(markup).toContain("−10 %");
+    expect(markup.match(/data-staff-section="base"/g)).toHaveLength(1);
+    expect(markup.match(/data-staff-section="talents"/g)).toHaveLength(1);
     expect(renderToStaticMarkup(<StaffBaseSkills level={3} rows={[]} />)).toBe("");
   });
 
