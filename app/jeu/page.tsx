@@ -381,6 +381,7 @@ function toFinanceOverview(
         divisionName: summary.divisionCode,
         chart: [],
         transactions: [],
+        financialDirectorEffects: [],
         alerts: [],
       }
     : null;

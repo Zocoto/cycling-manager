@@ -5,6 +5,11 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { FinanceExpenseAnalysisPanel } from "@/components/game/finance-expense-analysis";
 import { FinanceIncomeAnalysisPanel } from "@/components/game/finance-income-analysis";
+import {
+  FinancialDirectorImpact,
+  FinancialDirectorSourceImpact,
+  getFinancialDirectorTransactionLabel,
+} from "@/components/game/financial-director-impact";
 import { GameHeader } from "@/components/game/game-header";
 import {
   GameSectionTabLink,
@@ -22,6 +27,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamFinanceOverview,
   type FinanceCategory,
+  type FinancialDirectorEffect,
   type TeamFinanceTransaction,
 } from "@/services/team-finances";
 
@@ -92,6 +98,7 @@ export default async function TeamFinancesPage({
     (transaction) => !settledTransactionIds.has(transaction.id)
   );
   const latestAlert = overview.alerts[0] ?? null;
+  const financialDirectorEffects = overview.financialDirectorEffects ?? [];
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -152,17 +159,23 @@ export default async function TeamFinancesPage({
         <FinanceTabs activeTab={activeTab} />
 
         {activeTab === "expenses" ? (
-          <FinanceExpenseAnalysisPanel
-            analysis={buildFinanceExpenseAnalysis(overview.transactions)}
-            currency={overview.currency}
-            seasonName={overview.seasonName}
-          />
+          <>
+            <FinanceExpenseAnalysisPanel
+              analysis={buildFinanceExpenseAnalysis(overview.transactions)}
+              currency={overview.currency}
+              seasonName={overview.seasonName}
+            />
+            <FinancialDirectorImpact effects={financialDirectorEffects} currency={overview.currency} />
+          </>
         ) : activeTab === "income" ? (
-          <FinanceIncomeAnalysisPanel
-            analysis={buildFinanceIncomeAnalysis(overview.transactions)}
-            currency={overview.currency}
-            seasonName={overview.seasonName}
-          />
+          <>
+            <FinanceIncomeAnalysisPanel
+              analysis={buildFinanceIncomeAnalysis(overview.transactions)}
+              currency={overview.currency}
+              seasonName={overview.seasonName}
+            />
+            <FinancialDirectorImpact effects={financialDirectorEffects} currency={overview.currency} />
+          </>
         ) : (
           <>
             <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -186,14 +199,16 @@ export default async function TeamFinancesPage({
           <FinanceMetric
             label="Gains prévus"
             value={formatCurrency(overview.totalIncome, overview.currency)}
-            detail="Sponsor et primes déjà enregistrées"
+            detail="Recettes connues et apports du DF inclus"
           />
           <FinanceMetric
             label="Charges prévues"
             value={formatCurrency(overview.totalExpenses, overview.currency)}
-            detail="Coureurs, staff et dépenses connues"
+            detail="Dépenses brutes, avant économies du DF"
           />
             </section>
+
+            <FinancialDirectorImpact effects={financialDirectorEffects} currency={overview.currency} />
 
             <section className="mt-7">
               <FinanceBalanceChart
@@ -207,6 +222,7 @@ export default async function TeamFinancesPage({
               <RacePrizeSettlements
                 settlements={raceSettlements}
                 currency={overview.currency}
+                financialDirectorEffects={financialDirectorEffects}
               />
             ) : null}
 
@@ -222,15 +238,17 @@ export default async function TeamFinancesPage({
 
           <div className="grid lg:grid-cols-2">
             <TransactionColumn
-              title="Gains"
+              title="Recettes"
               transactions={otherGains}
               currency={overview.currency}
               positive
+              financialDirectorEffects={financialDirectorEffects}
             />
             <TransactionColumn
-              title="Pertes"
+              title="Dépenses brutes"
               transactions={expenses}
               currency={overview.currency}
+              financialDirectorEffects={financialDirectorEffects}
             />
           </div>
             </section>
@@ -325,10 +343,19 @@ type RacePrizeSettlement = {
 function RacePrizeSettlements({
   settlements,
   currency,
+  financialDirectorEffects,
 }: {
   settlements: RacePrizeSettlement[];
   currency: string;
+  financialDirectorEffects: readonly FinancialDirectorEffect[];
 }) {
+  const effectsBySource = new Map<string, FinancialDirectorEffect[]>();
+  for (const effect of financialDirectorEffects) {
+    if (!effect.sourceTransactionId) continue;
+    const sourceEffects = effectsBySource.get(effect.sourceTransactionId) ?? [];
+    sourceEffects.push(effect);
+    effectsBySource.set(effect.sourceTransactionId, sourceEffects);
+  }
   return (
     <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#F2C94C]/35 bg-[#0B302B] text-[#FFFDF4] shadow-[0_20px_55px_rgba(7,26,23,0.16)]">
       <div className="border-b border-white/10 px-6 py-6 sm:px-8">
@@ -370,19 +397,22 @@ function RacePrizeSettlements({
               {settlement.transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-start justify-between gap-4 border-b border-white/10 py-3 last:border-b-0"
+                  className="border-b border-white/10 py-3 last:border-b-0"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold leading-6 text-[#E8F2ED]">
-                      {transaction.description}
-                    </p>
-                    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-[#89AA9D]">
-                      Prime de course · {formatStatus(transaction.status)}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold leading-6 text-[#E8F2ED]">
+                        {transaction.description}
+                      </p>
+                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-[#89AA9D]">
+                        Prime de course · {formatStatus(transaction.status)}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-black text-[#72D4B7]">
+                      +{formatCurrency(transaction.amount, currency)}
                     </p>
                   </div>
-                  <p className="shrink-0 font-black text-[#72D4B7]">
-                    +{formatCurrency(transaction.amount, currency)}
-                  </p>
+                  <FinancialDirectorSourceImpact effects={effectsBySource.get(transaction.id) ?? []} baseAmount={transaction.amount} currency={currency} expense={false} />
                 </div>
               ))}
             </div>
@@ -398,12 +428,24 @@ function TransactionColumn({
   transactions,
   currency,
   positive = false,
+  financialDirectorEffects,
 }: {
   title: string;
   transactions: TeamFinanceTransaction[];
   currency: string;
   positive?: boolean;
+  financialDirectorEffects: readonly FinancialDirectorEffect[];
 }) {
+  const effectsBySource = new Map<string, FinancialDirectorEffect[]>();
+  const creditEffects = new Map<string, FinancialDirectorEffect>();
+  for (const effect of financialDirectorEffects) {
+    creditEffects.set(effect.id, effect);
+    if (effect.sourceTransactionId) {
+      const sourceEffects = effectsBySource.get(effect.sourceTransactionId) ?? [];
+      sourceEffects.push(effect);
+      effectsBySource.set(effect.sourceTransactionId, sourceEffects);
+    }
+  }
   return (
     <div className="border-[#315B3E]/10 p-6 first:border-b lg:first:border-b-0 lg:first:border-r sm:p-8">
       <div className="flex items-center justify-between gap-4">
@@ -423,17 +465,20 @@ function TransactionColumn({
         {transactions.length > 0 ? (
           transactions.map((transaction) => {
             const isPending = transaction.status === "pending";
+            const sourceEffects = effectsBySource.get(transaction.id) ?? [];
+            const creditEffect = creditEffects.get(transaction.id);
 
             return (
               <div
                 key={transaction.id}
-                className={`flex items-start justify-between gap-4 border-b pb-3 last:border-b-0 last:pb-0 ${
+                className={`border-b pb-3 last:border-b-0 last:pb-0 ${
                   isPending
                     ? "rounded-xl border-[#A7B0AC]/25 bg-[#EEF1EF] px-3 py-3 last:pb-3"
                     : "border-[#315B3E]/10"
                 }`}
               >
-                <div className="min-w-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
                   <p
                     className={`font-bold ${
                       isPending ? "text-[#7B8581]" : "text-[#183F37]"
@@ -446,14 +491,14 @@ function TransactionColumn({
                       isPending ? "text-[#8D9692]" : "text-[#60756E]"
                     }`}
                   >
-                    J{transaction.dayNumber} · {CATEGORY_LABELS[transaction.category]} · {isPending
+                    J{transaction.dayNumber} · {creditEffect ? getFinancialDirectorTransactionLabel(creditEffect) : CATEGORY_LABELS[transaction.category]} · {isPending
                       ? positive
                         ? "Planifié · non perçu"
                         : "Planifié · non débité"
                       : formatStatus(transaction.status)}
                   </p>
-                </div>
-                <p
+                  </div>
+                  <p
                   className={`shrink-0 font-black ${
                     isPending
                       ? "text-[#8D9692]"
@@ -462,9 +507,17 @@ function TransactionColumn({
                         : "text-[#A44736]"
                   }`}
                 >
+                  {!positive && sourceEffects.length > 0 ? <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[#60756E]">Dépense brute</span> : null}
                   {positive ? "+" : "−"}
                   {formatCurrency(Math.abs(transaction.amount), currency)}
-                </p>
+                  </p>
+                </div>
+                <FinancialDirectorSourceImpact
+                  effects={sourceEffects}
+                  baseAmount={transaction.amount}
+                  currency={currency}
+                  expense={!positive}
+                />
               </div>
             );
           })
@@ -582,7 +635,8 @@ function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 

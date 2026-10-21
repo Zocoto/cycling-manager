@@ -15,7 +15,7 @@ vi.mock("@/components/ui/app-link",()=>({ default:({children,prefetchOnIntent,..
 import Page from "./page";
 const overview:TeamFinanceOverview={teamId:"team",teamName:"Équipe test",seasonName:"Saison 4",currentDayNumber:12,currency:"EUR",
   openingBalance:1000,balance:1070,projectedBalance:1110,totalIncome:140,totalExpenses:30,canSpend:true,
-  teamPoints:0,teamRank:null,divisionCode:"national",divisionName:"Nationale",chart:[],alerts:[],
+  teamPoints:0,teamRank:null,divisionCode:"national",divisionName:"Nationale",chart:[],alerts:[],financialDirectorEffects:[],
   transactions:[
     {id:"sponsor",dayNumber:7,amount:100,category:"sponsor",status:"posted",description:"Versement sponsor",sourceReference:"sponsor:contract:7",postedAt:null},
     {id:"race",dayNumber:28,amount:40,category:"race_prize",status:"pending",description:"Prime connue",sourceReference:"reward:official-race:edition",postedAt:null},
@@ -48,5 +48,27 @@ describe("finance tabs",()=>{
   it("protects financial data before loading it",async()=>{
     mocks.auth.mockResolvedValue({data:{user:null},error:null});
     await expect(render("analyse-recettes")).rejects.toThrow("redirect:/connexion");expect(mocks.overview).not.toHaveBeenCalled();
+  });
+  it("lists DF daily income and savings as receipts while retaining the gross expense",async()=>{
+    mocks.overview.mockResolvedValue({ ...overview, transactions:[
+      {id:"salary",dayNumber:14,amount:-1000,category:"staff_salary",status:"pending",description:"Salaires du staff",sourceReference:"staff-salary:contract:14",postedAt:null},
+      {id:"df-saving",dayNumber:14,amount:40,category:"other",status:"pending",description:"Crédit DF sur les salaires",sourceReference:"financial-director:staff_salary:salary",postedAt:null},
+      {id:"df-daily",dayNumber:14,amount:450,category:"other",status:"pending",description:"Revenu quotidien du DF",sourceReference:"financial-director:daily_income:14",postedAt:null},
+    ], financialDirectorEffects:[
+      {id:"df-saving",sourceTransactionId:"salary",dayNumber:14,amount:40,effect:"staff_salary",baseAmount:1000,bonusPercentage:4,status:"pending",description:"Crédit DF sur les salaires"},
+      {id:"df-daily",sourceTransactionId:null,dayNumber:14,amount:450,effect:"daily_income",baseAmount:null,bonusPercentage:null,status:"pending",description:"Revenu quotidien du DF"},
+    ] });
+    const html=(await render()).replace(/\s/g," ");
+    const receipts=html.slice(html.indexOf(">Recettes</h3>"),html.indexOf(">Dépenses brutes</h3>"));
+    const charges=html.slice(html.indexOf(">Dépenses brutes</h3>"));
+    expect(receipts).toContain("Revenu quotidien du DF");expect(receipts).toContain("DF · revenu quotidien");
+    expect(receipts).toContain("DF · crédit d’économie");expect(receipts).toContain("+450 €");expect(receipts).toContain("+40 €");
+    expect(charges).toContain("Dépense brute");expect(charges).toContain("−1 000 €");
+    expect(charges).toContain("DF · économie");expect(charges).toContain("4 % sur 1 000 €");expect(charges).toContain("960 €");
+    expect(charges).not.toContain("−960 €");expect(charges).not.toContain("Revenu quotidien du DF");
+    expect(mocks.overview).toHaveBeenCalledTimes(1);
+    const expenses=(await render("analyse-depenses")).replace(/\s/g," ");
+    expect(expenses).toContain("Charges engagées");expect(expenses).toContain("Crédit d’économie DF");
+    expect(expenses.indexOf("Charges engagées")).toBeLessThan(expenses.indexOf("Crédit d’économie DF"));
   });
 });

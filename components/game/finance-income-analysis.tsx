@@ -19,7 +19,7 @@ export function FinanceIncomeAnalysisPanel({
     <div className="mt-7 space-y-5">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <IncomeMetric
-          label="Recettes enregistrées"
+          label="Recettes de la saison"
           value={formatCurrency(analysis.totalAmount, currency)}
           detail={`Total encaissé et prévu · ${seasonName}`}
         />
@@ -31,7 +31,7 @@ export function FinanceIncomeAnalysisPanel({
         <IncomeMetric
           label="Encore à recevoir"
           value={formatCurrency(analysis.pendingAmount, currency)}
-          detail="Recettes connues restant à être versées"
+          detail="Versements planifiés et apports prévisibles du DF"
           accent="gold"
         />
         <IncomeMetric
@@ -51,9 +51,9 @@ export function FinanceIncomeAnalysisPanel({
             D’où vient l’argent de l’équipe ?
           </h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-            Le graphique regroupe les recettes encaissées ou planifiées de la saison,
+            Le graphique regroupe les recettes encaissées, planifiées et les apports prévisibles du DF,
             hors allocation de départ et mouvements annulés. Il présente les
-            revenus bruts, avant déduction des charges.
+            revenus bruts, avant déduction des charges. Les estimations du DF supposent des contrats inchangés.
           </p>
         </div>
 

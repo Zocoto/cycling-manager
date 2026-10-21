@@ -2,6 +2,13 @@ import "server-only";
 
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectPaginatedRows } from "@/lib/supabase/pagination";
+import {
+  buildFinancialDirectorProjection,
+  type FinancialDirectorEffect,
+  type FinancialDirectorProjectionRow,
+} from "@/lib/game/financial-director-projection";
+export type { FinancialDirectorEffect } from "@/lib/game/financial-director-projection";
 import {
   buildFinanceProjection,
   type FinanceChartPoint,
@@ -105,6 +112,7 @@ export type TeamFinanceOverview = {
   divisionName: string;
   chart: FinanceChartPoint[];
   transactions: TeamFinanceTransaction[];
+  financialDirectorEffects: FinancialDirectorEffect[];
   alerts: TeamFinanceAlert[];
 };
 
@@ -172,14 +180,23 @@ export async function getCurrentTeamFinanceOverview(
     return null;
   }
 
+  // Read estimates before receipts: a settlement in between will be deduplicated
+  // against the real ledger, never counted twice or removed from both snapshots.
+  const projectionResult = await supabase.rpc("get_current_team_financial_director_projection");
+  assertQuery(projectionResult.error, "la projection du directeur financier");
+
   const [transactionsResult, alertsResult, rankingTeamsResult, divisionResult] = await Promise.all([
-    admin
-      .from("team_finance_transactions")
-      .select("id, day_number, amount, category, status, description, source_reference, posted_at")
-      .eq("team_season_id", teamSeason.id)
-      .order("day_number", { ascending: false })
-      .order("created_at", { ascending: false })
-      .returns<TransactionRow[]>(),
+    collectPaginatedRows<TransactionRow, { message: string }>({
+      fetchPage: async (from, to) => await admin
+        .from("team_finance_transactions")
+        .select("id, day_number, amount, category, status, description, source_reference, posted_at")
+        .eq("team_season_id", teamSeason.id)
+        .order("day_number", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to)
+        .returns<TransactionRow[]>(),
+    }),
     admin
       .from("team_finance_alerts")
       .select(
@@ -209,7 +226,16 @@ export async function getCurrentTeamFinanceOverview(
   assertQuery(rankingTeamsResult.error, "le classement de l’équipe");
   assertQuery(divisionResult.error, "la division de l’équipe");
 
-  const transactions = (transactionsResult.data ?? []).map(toTransaction);
+  // Offset pagination can repeat a boundary row if a settlement inserts a new
+  // receipt between pages. Preserve each real ledger entry exactly once.
+  const ledger = [...new Map((transactionsResult.data ?? []).map((row) => [row.id, row])).values()]
+    .map(toTransaction);
+  const financialDirector = buildFinancialDirectorProjection(
+    ledger,
+    (projectionResult.data ?? []) as FinancialDirectorProjectionRow[],
+  );
+  const transactions: TeamFinanceTransaction[] = [...ledger, ...financialDirector.transactions]
+    .sort((left, right) => right.dayNumber - left.dayNumber);
   const activeTransactions = transactions.filter(
     (transaction) => transaction.status !== "cancelled"
   );
@@ -264,6 +290,7 @@ export async function getCurrentTeamFinanceOverview(
       })),
     }),
     transactions,
+    financialDirectorEffects: financialDirector.effects,
     alerts: (alertsResult.data ?? []).map((alert) => ({
       id: alert.id,
       checkpointDayNumber: alert.checkpoint_day_number,
