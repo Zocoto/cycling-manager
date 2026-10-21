@@ -11,6 +11,13 @@ import {
 import { useFormStatus } from "react-dom";
 import { useManagementDraft } from "@/components/game/use-management-draft";
 import { isDraftRecord } from "@/lib/game/management-drafts";
+import {
+  buildAutomaticNutritionDrafts,
+  type NutritionInterventionDraft,
+  type NutritionistInterventionOption,
+} from "@/lib/game/nutrition-auto-selection";
+
+export type { NutritionistInterventionOption } from "@/lib/game/nutrition-auto-selection";
 
 import { applyNutritionPlanAction } from "@/app/jeu/centre-de-soin/actions";
 import { WEIGHT_PROGRAM_STEPS, getWeightProgramQuote, type WeightProgramDraft, type WeightProgramRider } from "@/lib/game/weight-program";
@@ -20,15 +27,6 @@ import {
   getNutritionWeightGainRiskPct,
   type NutritionInterventionCode,
 } from "@/lib/game/health-center";
-
-export type NutritionistInterventionOption = {
-  contractId: string;
-  name: string;
-  level: number;
-  remainingCapacity: number;
-  additionalFormBonus?: number;
-  interventionPrices?: Partial<Record<NutritionInterventionCode, number>> | null;
-};
 
 export function canReserveNutritionistForDraft({
   nutritionist,
@@ -56,12 +54,6 @@ export function canReserveNutritionistForDraft({
 
   return keepsCurrentReservation || usage < nutritionist.remainingCapacity;
 }
-
-type NutritionInterventionDraft = {
-  riderId: string;
-  nutritionistContractId: string | null;
-  interventionCode: NutritionInterventionCode | null;
-};
 
 type EditorContextValue = {
   weightDrafts: Record<string, number>;
@@ -122,6 +114,13 @@ export function NutritionInterventionsEditor({
     () => initialDrafts,
   );
   const [weightDrafts, setWeightDrafts] = useState<Record<string, number>>({});
+  const [automaticSelectionPrepared, setAutomaticSelectionPrepared] = useState(false);
+  const automaticDrafts = useMemo(() => buildAutomaticNutritionDrafts({
+    riders: weightRiders.filter((rider) => riderIds.includes(rider.riderId)),
+    nutritionists,
+    appliedRiderIds,
+    balance,
+  }), [weightRiders, riderIds, nutritionists, appliedRiderIds, balance]);
   const weightPrograms: WeightProgramDraft[] = Object.entries(weightDrafts)
     .filter(([, delta]) => delta !== 0).map(([riderId, weightDeltaKg]) => ({ riderId, weightDeltaKg }));
   const supplementFormGain = useCallback((riderId: string) => {
@@ -172,15 +171,15 @@ export function NutritionInterventionsEditor({
         if (!nutritionist || !draft.interventionCode) return total;
         return (
           total +
-          getNutritionInterventionOutcome({
+          Math.round(getNutritionInterventionOutcome({
             code: draft.interventionCode,
             nutritionistLevel: nutritionist.level,
             additionalFormBonus: nutritionist.additionalFormBonus,
             effectivePrice:
               nutritionist.interventionPrices?.[draft.interventionCode],
-          }).price
+          }).price * 100)
         );
-      }, 0),
+      }, 0) / 100,
     [completeDrafts, nutritionists],
   );
   const hasCapacityError = nutritionists.some(
@@ -198,6 +197,7 @@ export function NutritionInterventionsEditor({
       riderId: string,
       patch: Partial<Omit<NutritionInterventionDraft, "riderId">>,
     ) => {
+      setAutomaticSelectionPrepared(false);
       setDraftsByRiderId((current) => {
         const draft = current[riderId];
         if (!draft) return current;
@@ -289,6 +289,33 @@ export function NutritionInterventionsEditor({
   return (
     <NutritionEditorContext.Provider value={context}>
       {draftRecovery.recovery}
+      {weightRiders.length > 0 ? (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-[#60756E]" role="status">
+            {automaticSelectionPrepared
+              ? "Répartition prête : ajustez les choix ou validez en bas de l’écran."
+              : "Les plus fatigués d’abord · sélection modifiable avant validation."}
+          </p>
+          <button
+            type="button"
+            disabled={automaticDrafts.length === 0}
+            title="Répartit les meilleurs compléments selon la fatigue, les places du jour et la trésorerie. Remplace les compléments sélectionnés, sans modifier les programmes de poids ni valider les soins."
+            onClick={() => {
+              setDraftsByRiderId({
+                ...initialDrafts,
+                ...Object.fromEntries(automaticDrafts.map((draft) => [draft.riderId, draft])),
+              });
+              setAutomaticSelectionPrepared(true);
+            }}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#315B3E]/20 bg-white/80 px-3 text-xs font-bold text-[#527633] transition hover:border-[#78A94E] hover:bg-[#EEF7E8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#527633] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden="true">
+              <path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z" />
+            </svg>
+            Répartir automatiquement
+          </button>
+        </div>
+      ) : null}
       {/* One atomic payload, no nested forms or independent weight submissions. */}
       {children}
       <form
@@ -328,7 +355,7 @@ export function NutritionInterventionsEditor({
                 <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
                   <button
                     type="button"
-                    onClick={() => { draftRecovery.discard(); setDraftsByRiderId({ ...initialDrafts }); setWeightDrafts({}); }}
+                    onClick={() => { draftRecovery.discard(); setDraftsByRiderId({ ...initialDrafts }); setWeightDrafts({}); setAutomaticSelectionPrepared(false); }}
                     className="min-h-11 rounded-xl px-3 text-xs font-black uppercase tracking-[0.08em] text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
                   >
                     Annuler
