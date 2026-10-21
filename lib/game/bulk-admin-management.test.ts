@@ -75,8 +75,9 @@ describe("administration groupée de la nutrition", () => {
     expect(nutritionEditor).toContain(
       "mobile-dock-clearance fixed inset-x-3 bottom-",
     );
-    expect(nutritionEditor).toContain("Valider les compléments");
-    expect(nutritionEditor).toContain("Application des ${count} compléments…");
+    expect(nutritionEditor).toContain("Tout valider");
+    expect(nutritionEditor).toContain("Application des ${count} choix…");
+    expect(nutritionEditor).toContain("Répartir automatiquement");
   });
 
   it("réserve immédiatement le contingent pendant la saisie groupée", () => {
