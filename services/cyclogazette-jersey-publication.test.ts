@@ -15,7 +15,7 @@ import { getCyclogazetteEditionById, publishCyclogazetteEdition } from "./cyclog
 function fixture() {
   let edition: Record<string, unknown> | null = null;
   const rows: GazetteJerseyChangeRow[] = ["national_team", "national_champion"].map(kind => ({ country_id: "country", country_code: "FR", country_name: "France", jersey_kind: kind as GazetteJerseyChangeRow["jersey_kind"], version: 2, design: normalizeNationalJerseyDraft({ baseColor: "#123456" }), previous_design: null, published_at: "2026-10-18T10:00:00Z", rider_id: "rider", rider_name: "Jean Martin", avatar_profile_key: "europe_west", avatar_seed: "123", championship_type: "road" }));
-  const rpc = vi.fn(async (name: string) => ({ data: name === "get_cyclogazette_jersey_changes" ? rows : 0, error: null }));
+  const rpc = vi.fn(async (name: string) => ({ data: name === "get_cyclogazette_jersey_changes" ? rows : name === "get_cyclogazette_human_race_editions" ? [] : 0, error: null }));
   const inserts = vi.fn();
   const from = vi.fn((table: string) => {
     const chain = {

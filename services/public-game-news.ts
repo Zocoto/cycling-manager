@@ -347,7 +347,7 @@ async function loadDashboardPelotonNews(): Promise<PublicGameNewsItem[]> {
 }
 
 
-export async function getCyclogazetteNewsItems(): Promise<PublicGameNewsItem[]> {
+export async function getCyclogazetteNewsItems(humanRaceEditionIds: readonly string[]): Promise<PublicGameNewsItem[]> {
   let admin: AdminClient;
 
   try {
@@ -357,8 +357,8 @@ export async function getCyclogazetteNewsItems(): Promise<PublicGameNewsItem[]> 
   }
 
   const results = await Promise.allSettled([
-    loadRecentPostRaceNews(admin),
-    loadRecentVictories(admin, 12, true),
+    loadRecentPostRaceNews(admin, humanRaceEditionIds),
+    loadRecentVictories(admin, 12, true, humanRaceEditionIds),
     loadRecentArrivals(admin),
     loadRecentRiderMovements(admin),
     loadRecentStaffMovements(admin),
@@ -373,19 +373,22 @@ export async function getCyclogazetteNewsItems(): Promise<PublicGameNewsItem[]> 
         new Date(second.happenedAt).getTime() - new Date(first.happenedAt).getTime(),
     );
 }
-async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
+async function loadRecentPostRaceNews(admin: AdminClient, humanRaceEditionIds: readonly string[]): Promise<LoadedNews> {
+  if (humanRaceEditionIds.length === 0) return { items: [], total: 0 };
   const [recentQuery, totalQuery] = await Promise.all([
     admin
       .from("post_race_news_events")
       .select(
         "id, race_edition_id, stage_id, event_kind, title, detail, featured_rider_id, featured_team_id, happened_at"
       )
+      .in("race_edition_id", humanRaceEditionIds)
       .order("happened_at", { ascending: false })
       .limit(10)
       .returns<PostRaceNewsRow[]>(),
     admin
       .from("post_race_news_events")
-      .select("id", { count: "exact", head: true }),
+      .select("id", { count: "exact", head: true })
+      .in("race_edition_id", humanRaceEditionIds),
   ]);
   assertQuery(recentQuery.error, "les résumés de course");
   assertQuery(totalQuery.error, "le total des résumés de course");
@@ -529,10 +532,12 @@ async function loadRecentVictories(
   admin: AdminClient,
   limit = 6,
   includePrestige = false,
+  humanRaceEditionIds?: readonly string[],
 ): Promise<LoadedNews> {
-  const victoryQuery = await admin.rpc("get_public_home_victories", {
-    p_limit: limit,
-  });
+  if (humanRaceEditionIds?.length === 0) return { items: [], total: 0 };
+  const victoryQuery = humanRaceEditionIds
+    ? await admin.rpc("get_cyclogazette_human_race_victories", { p_race_edition_ids: [...humanRaceEditionIds], p_limit: limit })
+    : await admin.rpc("get_public_home_victories", { p_limit: limit });
   assertQuery(victoryQuery.error, "les dernières victoires");
 
   const results: PublicHomeVictoryRow[] = Array.isArray(victoryQuery.data)

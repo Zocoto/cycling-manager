@@ -63,7 +63,7 @@ describe("bouclage éditorial de La Cyclogazette", () => {
 
   it("réserve le chargement du prestige étendu au bouclage quotidien", () => {
     expect(publicNewsService).toContain(
-      "loadRecentVictories(admin, 12, true)",
+      "loadRecentVictories(admin, 12, true, humanRaceEditionIds)",
     );
     expect(publicNewsService).toContain("includePrestige = false");
   });
