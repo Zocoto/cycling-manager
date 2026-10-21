@@ -42,6 +42,7 @@ import {
 } from "@/services/cyclogazette-editorial";
 import { getCyclogazetteNewsItems } from "@/services/public-game-news";
 import { loadCyclogazetteJerseyStories } from "@/services/cyclogazette-jerseys";
+import { loadCyclogazetteHumanRaceEditionIds } from "@/services/cyclogazette-participation";
 
 type SeasonRow = {
   id: string;
@@ -346,6 +347,7 @@ export async function publishCyclogazetteEdition(
     }
   }
 
+  const humanRaceEditionIds = await loadCyclogazetteHumanRaceEditionIds(admin, seasonDay.id);
   const [
     allNews,
     submittedReactions,
@@ -356,10 +358,10 @@ export async function publishCyclogazetteEdition(
     nationsCupSpecial,
     jerseyStories,
   ] = await Promise.all([
-      getCyclogazetteNewsItems(),
+      getCyclogazetteNewsItems(humanRaceEditionIds),
       loadDailyReactions(seasonDay.calendar_date),
-      loadDailyPreRacePress(admin, seasonDay.id),
-      loadDailyTourSummaries(admin, seasonDay.id),
+      loadDailyPreRacePress(admin, seasonDay.id, humanRaceEditionIds),
+      loadDailyTourSummaries(admin, seasonDay.id, humanRaceEditionIds),
       admin
         .from("media_center_articles")
         .select("id,title,body,team_name,sponsor_name,building_level")
@@ -683,11 +685,14 @@ async function loadDailyReactions(
 async function loadDailyPreRacePress(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   seasonDayId: string,
+  humanRaceEditionIds: readonly string[],
 ): Promise<CyclogazettePreRacePressConference[]> {
+  if (humanRaceEditionIds.length === 0) return [];
   const stagesResult = await admin
     .from("stages")
     .select("race_edition_id")
     .eq("season_day_id", seasonDayId)
+    .in("race_edition_id", humanRaceEditionIds)
     .eq("stage_number", 1)
     .returns<PreRaceStageRow[]>();
   if (stagesResult.error) {
@@ -774,13 +779,16 @@ async function loadDailyPreRacePress(
 async function loadDailyTourSummaries(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   seasonDayId: string,
+  humanRaceEditionIds: readonly string[],
 ): Promise<CyclogazetteTourSummary[]> {
+  if (humanRaceEditionIds.length === 0) return [];
   const stagesResult = await admin
     .from("stages")
     .select(
       "id, race_edition_id, stage_number, day_slot, name, race_editions(display_name, races(slug, race_format))",
     )
     .eq("season_day_id", seasonDayId)
+    .in("race_edition_id", humanRaceEditionIds)
     .eq("day_slot", "late")
     .returns<TourStageRow[]>();
   const stageCandidates = (stagesResult.data ?? [])

@@ -28,6 +28,28 @@ function renderNutritionWithWeightCuts() {
 }
 
 describe("nutrition form boundaries", () => {
+  it("offers an auto-fill button that never submits or preselects supplements on its own", () => {
+    const markup = renderToStaticMarkup(<NutritionInterventionsEditor riderIds={["one"]}
+      nutritionists={[{ contractId: "specialist", name: "Camille", level: 5, remainingCapacity: 1 }]}
+      weightRiders={[{ riderId: "one", heightCm: 180, weightKg: 68, form: 30, cooldownDays: 0 }]}
+      balance={10000} currency="EUR"><NutritionInterventionFields riderId="one" riderForm={30}
+        riderWeightKg={68} recentInterventionCount={0} currency="EUR" /></NutritionInterventionsEditor>);
+    expect(markup).toContain("Répartir automatiquement");
+    expect(markup).toMatch(/<button type="button"[^>]*>[\s\S]*?Répartir automatiquement/);
+    expect(markup).toContain('name="interventions" value="[]"');
+    expect(markup).not.toContain("Tout valider");
+    expect([...markup.matchAll(/<form\b/g)]).toHaveLength(1);
+  });
+
+  it("disables auto-fill when nobody can receive a supplement today", () => {
+    const markup = renderToStaticMarkup(<NutritionInterventionsEditor riderIds={["one"]}
+      nutritionists={[{ contractId: "specialist", name: "Camille", level: 5, remainingCapacity: 1 }]}
+      appliedRiderIds={["one"]}
+      weightRiders={[{ riderId: "one", heightCm: 180, weightKg: 68, form: 30, cooldownDays: 0 }]}
+      balance={10000} currency="EUR">No fields</NutritionInterventionsEditor>);
+    expect(markup).toMatch(/<button type="button" disabled=""[^>]*>[\s\S]*?Répartir automatiquement/);
+  });
+
   it("uses one atomic form and closed optional panels, even after supplement capacity is exhausted", () => {
     const markup = renderToStaticMarkup(<NutritionInterventionsEditor riderIds={["one"]} nutritionists={[]}
       weightRiders={[{riderId: "one", heightCm: 180, weightKg: 68, form: 80, cooldownDays: 0}]}

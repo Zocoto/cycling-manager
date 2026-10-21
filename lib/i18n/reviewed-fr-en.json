@@ -1,4 +1,6 @@
 {
+  "Impossible de vérifier la participation humaine pour La Cyclogazette.": "Unable to verify human participation for La Cyclogazette.",
+  "Impossible de vérifier la participation humaine des juniors.": "Unable to verify human participation in junior races.",
   "% sur les prochaines échéances salariales du staff, hors salaire du Directeur financier": "% on upcoming staff salary instalments, excluding the finance director’s own salary",
   "% sur les prochaines échéances salariales des coureurs": "% on upcoming rider salary instalments",
   "Apporte un revenu quotidien et un affixe financier complémentaire. Un seul par équipe.": "Provides daily income and one additional financial skill. One per team.",
@@ -1690,5 +1692,21 @@
   "DF · bonus": "FD · bonus",
   "· taux selon versement": "· rate varies by payment",
   "sur": "on",
-  "% sur": "% on"
+  "% sur": "% on",
+  "Répartir automatiquement": "Distribute automatically",
+  "Les plus fatigués d’abord · sélection modifiable avant validation.": "Most tired riders first · editable before confirmation.",
+  "Répartition prête : ajustez les choix ou validez en bas de l’écran.": "Distribution ready: adjust the choices or confirm at the bottom of the screen.",
+  "Répartit les meilleurs compléments selon la fatigue, les places du jour et la trésorerie. Remplace les compléments sélectionnés, sans modifier les programmes de poids ni valider les soins.": "Distributes the best supplements according to fatigue, today's capacity and available funds. Replaces selected supplements without changing weight programmes or confirming treatments.",
+  "Nutrition · aperçu local": "Nutrition · local preview",
+  "Coureurs fictifs · envoi du formulaire désactivé.": "Fictitious riders · form submission disabled.",
+  "Déjà supplémenté aujourd’hui": "Already given a supplement today",
+  "Alex Exemple": "Alex Example",
+  "Sam Exemple": "Sam Example",
+  "Morgan Exemple": "Morgan Example",
+  "Charlie Exemple": "Charlie Example",
+  "Robin Exemple": "Robin Example",
+  "Taylor Exemple": "Taylor Example",
+  "Camille Expert": "Camille Expert",
+  "Claude Senior": "Claude Senior",
+  "Max Junior": "Max Junior"
 }

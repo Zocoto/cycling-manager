@@ -12,6 +12,7 @@ import {
 } from "@/lib/game/cyclogazette";
 import { calculateNationRiderOverall } from "@/lib/game/nation-rider-ranking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadCyclogazetteHumanRaceEditionIds, loadCyclogazetteHumanDevelopmentEditionIds } from "@/services/cyclogazette-participation";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -524,11 +525,14 @@ async function loadStartlistPreviews(
     .eq("day_number", context.dayNumber + 1)
     .maybeSingle<{ id: string; day_number: number }>();
   if (nextDayResult.error || !nextDayResult.data) return [];
+  const humanRaceEditionIds = await loadCyclogazetteHumanRaceEditionIds(admin, nextDayResult.data.id, true);
+  if (humanRaceEditionIds.length === 0) return [];
 
   const stagesResult = await admin
     .from("stages")
     .select("id, race_edition_id, stage_number, name")
     .eq("season_day_id", nextDayResult.data.id)
+    .in("race_edition_id", humanRaceEditionIds)
     .returns<PreviewStageRow[]>();
   const stages = stagesResult.data ?? [];
   const editionIds = unique(stages.map((stage) => stage.race_edition_id));
@@ -703,8 +707,10 @@ async function loadDevelopmentStories(
     .eq("status", "completed")
     .order("end_day_number", { ascending: false })
     .returns<DevelopmentEditionRow[]>();
-  const editions = editionsResult.data ?? [];
-  if (editionsResult.error || editions.length === 0) return [];
+  if (editionsResult.error || !editionsResult.data?.length) return [];
+  const humanEditionIds = new Set(await loadCyclogazetteHumanDevelopmentEditionIds(admin, editionsResult.data.map(edition => edition.id)));
+  const editions = editionsResult.data.filter(edition => humanEditionIds.has(edition.id));
+  if (editions.length === 0) return [];
 
   const resultsResult = await admin
     .from("development_race_results")
