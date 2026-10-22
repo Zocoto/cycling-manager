@@ -10,7 +10,7 @@ if(process.argv.length!==3 || !['--inspect','--apply-reviewed-fix'].includes(mod
 const require=createRequire(import.meta.url);
 const binary=path.join(path.dirname(require.resolve('@supabase/cli-windows-x64/package.json')),'bin/supabase.exe');
 const version='20261022160000', name='create_recurring_season_draft';
-const sql=readFileSync(`supabase/migrations/${version}_${name}.sql`,'utf8');
+const sql=readFileSync(`supabase/migrations/${version}_${name}.sql`,'utf8').replaceAll('\r\n','\n');
 if(!sql.startsWith('begin;') || !sql.includes("set local lock_timeout = '1s'")
   || !sql.includes("set local statement_timeout = '8s'")
   || !sql.includes("set local application_name = 'cyclostratege-season-draft-20261022'") || !/commit;\s*$/.test(sql)) throw Error('Migration bounds changed.');
