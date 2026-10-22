@@ -1,4 +1,5 @@
 import type { RaceReward } from "./economy";
+import type { OfficialRiderResult } from "./race-results";
 
 export const QUADRENNIAL_GAMES_FEDERATION_PRIZE = 500_000;
 
@@ -20,4 +21,8 @@ export function calculateQuadrennialGamesReward(finalRank: number | null): RaceR
     ? QUADRENNIAL_GAMES_CLUB_PRIZES.find((rule) => finalRank <= rule.maxRank)!.cashPrize
     : 0;
   return { cashPrize, reputation: 0, experience: 0, uciPoints: 0 };
+}
+
+export function hasClassifiedGamesRiders(results: readonly Pick<OfficialRiderResult, "status" | "rank">[]) {
+  return results.some((result) => result.status === "finished" && result.rank !== null && result.rank > 0);
 }
