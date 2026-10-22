@@ -23,6 +23,7 @@ export type ItemTargetRider = {
   lastName: string;
   name: string;
   countryName: string | null;
+  canNaturalizeWithPassport?: boolean;
   form: number;
   experienceDays: number;
   potentialSteps: number;
@@ -106,6 +107,12 @@ export function formatItemTargetValue(
 
 export function canReceiveInjuryCareItem(rider: ItemTargetRider) {
   return Boolean(rider.injury?.canShorten && rider.injury.remainingHours > 0);
+}
+
+export function canUseNaturalizationPassport(rider: ItemTargetRider) {
+  // Eligibility is computed server-side from country IDs and national titles.
+  // Missing metadata must not offer an unverified target.
+  return rider.canNaturalizeWithPassport === true;
 }
 
 export function readItemTargetRatingKey(

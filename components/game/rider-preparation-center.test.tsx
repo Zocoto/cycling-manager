@@ -17,6 +17,9 @@ function createOverview(level = 3): TeamRiderPreparationOverview {
     facilities: {
       indoor_track: { level, activePreparationId: null, activePreparationIds: [] },
       wind_tunnel: { level, activePreparationId: null, activePreparationIds: [] },
+      cobbles_center: { level, activePreparationId: null, activePreparationIds: [] },
+      hills_circuit: { level, activePreparationId: null, activePreparationIds: [] },
+      mountain_base: { level, activePreparationId: null, activePreparationIds: [] },
     },
     riders: [
       { id: "a", firstName: "Alpha", lastName: "Sprinteur", countryCode: "FR" },

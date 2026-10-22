@@ -1,4 +1,5 @@
 import "server-only";
+import { getPerformancePreparationCampName } from "@/lib/game/performance-preparation";
 
 import {
   getRacePreparerBonusPercentage,
@@ -96,7 +97,7 @@ type CampRow = {
     | "premium"
     | "reconnaissance"
     | "indoor_preparation"
-    | "wind_tunnel_preparation";
+    | "wind_tunnel_preparation" | "cobbles_preparation" | "hills_preparation" | "mountain_preparation";
   start_day_number: number;
   end_day_number: number;
 };
@@ -664,10 +665,8 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           reason:
             camp.camp_type === "reconnaissance"
               ? `Reconnaissance J${camp.start_day_number}–J${camp.end_day_number}`
-              : camp.camp_type === "indoor_preparation"
-                ? `Préparation indoor J${camp.start_day_number}–J${camp.end_day_number}`
-                : camp.camp_type === "wind_tunnel_preparation"
-                  ? `Préparation en soufflerie J${camp.start_day_number}–J${camp.end_day_number}`
+              : getPerformancePreparationCampName(camp.camp_type)
+                ? `${getPerformancePreparationCampName(camp.camp_type)} J${camp.start_day_number}–J${camp.end_day_number}`
                   : `Stage de forme J${camp.start_day_number}–J${camp.end_day_number}`,
         })),
         ...(registeredRacesByRiderId.get(rider.id) ?? []).map((entry) => ({

@@ -50,6 +50,19 @@ const option = (
 ): InfrastructureSpecializationOption => ({ ...value, powerBudget: 100 });
 
 export const TEAM_INFRASTRUCTURE_SPECIALIZATION_PROPOSALS: readonly InfrastructureSpecializationProposal[] = [
+  ...([
+    ["cobbles_center", "Centre des classiques", "PAV", "cobbles", "Maîtrise des pavés", "Fond des classiques", "Atelier collectif"],
+    ["hills_circuit", "Circuit de côtes", "VAL", "hills", "Côtes explosives", "Répétition des efforts", "École des puncheurs"],
+    ["mountain_base", "Base montagne", "MO", "mountain", "Grands cols", "Enchaînement des cols", "Pôle des grimpeurs"],
+  ] as const).map(([buildingCode, buildingName, stat, prefix, precision, durability, group]): InfrastructureSpecializationProposal => ({
+    buildingCode, buildingName, domain: `Préparation · ${stat}`, scope: "team",
+    unlockRule: "Choix au niveau 3, effet progressif aux niveaux 4 et 5",
+    options: [
+      option({ code: `${prefix}_precision`, name: precision, identity: "Privilégier l’intensité de la préparation.", primaryEffect: `+0,3 / +0,4 / +0,5 point de ${stat} supplémentaire aux niveaux 3 / 4 / 5.`, guardrail: "Uniquement pour les nouvelles préparations, sans modifier les notes permanentes ni les bonus déjà réservés." }),
+      option({ code: `${prefix}_durability`, name: durability, identity: "Prolonger la fenêtre de forme spécifique.", primaryEffect: "+1 jour de bonus aux niveaux 3 et 4, +2 jours au niveau 5.", guardrail: "La préparation dure toujours 2 jours ; les dates des réservations existantes restent inchangées." }),
+      option({ code: `${prefix}_group`, name: group, identity: "Préparer davantage de coureurs ensemble.", primaryEffect: "+1 place simultanée dans ce bâtiment dès le niveau 3.", guardrail: "Les contrôles d’indisponibilité et de conflit avec les courses restent identiques." }),
+    ],
+  })),
   {
     buildingCode: "recruitment_data_room",
     buildingName: "Data Room du recrutement",

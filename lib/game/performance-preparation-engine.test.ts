@@ -18,6 +18,9 @@ const BONUS_END = BONUS_START + 5; // Six jours, y compris le passage de saison.
 const PREPARATION_STATS = {
   indoor_track: ["sprint", "acceleration"],
   wind_tunnel: ["timeTrial", "prologue", "endurance"],
+  cobbles_center: ["cobbles"],
+  hills_circuit: ["hills"],
+  mountain_base: ["mountain"],
 } as const;
 
 function createRider(id: string): RiderSimulationInput {
@@ -98,8 +101,8 @@ describe.each([
   { name: "moteur live", simulate: simulateRaceStage },
   { name: "moteur résultats seuls", simulate: simulateRaceStageResultsOnly },
 ])("préparations de performance — $name", ({ simulate }) => {
-  for (const type of ["indoor_track", "wind_tunnel"] as const) {
-    it.each([1.5, 2.5, 3.3])(
+  for (const type of Object.keys(PREPARATION_STATS) as Preparation["type"][]) {
+    it.each(type === "indoor_track" || type === "wind_tunnel" ? [1.5, 2.5, 3.3] : [1.5, 2.5, 3.3, 3.85])(
       `conserve le bonus décimal de %s point en ${type}, y compris l’architecte`,
       (bonus) => {
         const input = createInput([preparation(type, bonus)]);
@@ -117,8 +120,11 @@ describe.each([
             8,
           );
         }
-        expect(prepared.ratings.mountain).toBe(witness.ratings.mountain);
-        expect(prepared.ratings.flat).toBe(witness.ratings.flat);
+        for (const stat of Object.keys(witness.ratings) as Array<keyof typeof witness.ratings>) {
+          if (!(PREPARATION_STATS[type] as readonly string[]).includes(stat)) {
+            expect(prepared.ratings[stat]).toBe(witness.ratings[stat]);
+          }
+        }
         expect(prepared.role).toBe("domestique");
       },
     );
@@ -128,6 +134,9 @@ describe.each([
     const input = createInput([
       preparation("indoor_track", 2.5),
       preparation("wind_tunnel", 3.3),
+      preparation("cobbles_center", 3.85),
+      preparation("hills_circuit", 3.85),
+      preparation("mountain_base", 3.85),
     ]);
 
     for (let day = BONUS_START - 1; day <= BONUS_END + 1; day += 1) {
@@ -140,10 +149,10 @@ describe.each([
       )!;
       const active = day >= BONUS_START && day <= BONUS_END;
 
-      for (const type of ["indoor_track", "wind_tunnel"] as const) {
+      for (const type of Object.keys(PREPARATION_STATS) as Preparation["type"][]) {
         for (const stat of PREPARATION_STATS[type]) {
           expect(prepared.ratings[stat] - witness.ratings[stat]).toBeCloseTo(
-            active ? (type === "indoor_track" ? 2.5 : 3.3) : 0,
+            active ? (type === "indoor_track" ? 2.5 : type === "wind_tunnel" ? 3.3 : 3.85) : 0,
             8,
           );
         }

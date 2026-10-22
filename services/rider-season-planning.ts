@@ -1,4 +1,5 @@
 import "server-only";
+import { getPerformancePreparationCampName } from "@/lib/game/performance-preparation";
 
 import {
   FORM_CAMP_TYPES,
@@ -104,7 +105,7 @@ type CampRow = {
     | "premium"
     | "reconnaissance"
     | "indoor_preparation"
-    | "wind_tunnel_preparation";
+    | "wind_tunnel_preparation" | "cobbles_preparation" | "hills_preparation" | "mountain_preparation";
   start_day_number: number;
   end_day_number: number;
   form_gain_per_day: number;
@@ -434,9 +435,8 @@ export async function getCurrentTeamRiderSeasonPlanning({
 
   for (const camp of campsResult.data ?? []) {
     if (camp.camp_type === "reconnaissance") continue;
-    const isPerformancePreparation =
-      camp.camp_type === "indoor_preparation" ||
-      camp.camp_type === "wind_tunnel_preparation";
+    const performancePreparationName = getPerformancePreparationCampName(camp.camp_type);
+    const isPerformancePreparation = performancePreparationName !== null;
     const definition =
       camp.camp_type === "classic" || camp.camp_type === "premium"
         ? FORM_CAMP_TYPES[camp.camp_type]
@@ -446,9 +446,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
       riderId: camp.rider_id,
       type: "form_camp",
       title: isPerformancePreparation
-        ? camp.camp_type === "indoor_preparation"
-          ? "Préparation · Piste indoor"
-          : "Préparation · Soufflerie"
+        ? `Préparation · ${performancePreparationName}`
         : definition!.label,
       detail: isPerformancePreparation
         ? "Préparation de performance · entraînement suspendu"

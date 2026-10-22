@@ -1,4 +1,5 @@
 import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
+import { PERFORMANCE_PREPARATION_FACILITIES, type PerformancePreparationType } from "./performance-preparation";
 import type { NationalJerseyDraft } from "./national-jersey-preview";
 import { createRaceTeamWorkRecorder } from "./race-team-work";
 import type { RaceProfileType } from "./race-calendar";
@@ -262,7 +263,7 @@ export type RiderSimulationInput = {
     ratingBoost: number;
   };
   performancePreparations?: Array<{
-    type: "indoor_track" | "wind_tunnel";
+    type: PerformancePreparationType;
     bonusStartGameDay: number;
     bonusEndGameDay: number;
     ratingBonus: number;
@@ -12015,16 +12016,8 @@ function applyPerformancePreparationBonuses(
   if (!activePreparations.length) return ratings;
   const next = { ...ratings };
   for (const preparation of activePreparations) {
-    if (preparation.type === "indoor_track") {
-      next.sprint = Math.min(100, next.sprint + preparation.ratingBonus);
-      next.acceleration = Math.min(
-        100,
-        next.acceleration + preparation.ratingBonus,
-      );
-    } else {
-      next.timeTrial = Math.min(100, next.timeTrial + preparation.ratingBonus);
-      next.prologue = Math.min(100, next.prologue + preparation.ratingBonus);
-      next.endurance = Math.min(100, next.endurance + preparation.ratingBonus);
+    for (const key of PERFORMANCE_PREPARATION_FACILITIES[preparation.type]?.ratingKeys ?? []) {
+      next[key] = Math.min(100, next[key] + preparation.ratingBonus);
     }
   }
   return next;

@@ -111,10 +111,13 @@ describe("team infrastructure buildings", () => {
       "training_center",
       "club_shop",
       "cryotherapy_center",
+      "cobbles_center",
       "indoor_track",
       "recruitment_data_room",
       "fan_club_headquarters",
       "wind_tunnel",
+      "hills_circuit",
+      "mountain_base",
       "roster_management_center",
       "media_center",
       "international_welcome_center",
@@ -245,9 +248,10 @@ describe("infrastructure tariff parity", () => {
   );
 
   it("uses the exact same prices in the database and the displayed catalogue", () => {
+    const terrainMigration = readFileSync(join(process.cwd(), "supabase/migrations/20261022110000_add_terrain_preparation_facilities.sql"), "utf8");
     const schedules = new Map(
       [
-        ...`${migration}\n${rosterManagementMigration}`.matchAll(
+        ...`${migration}\n${rosterManagementMigration}\n${terrainMigration}`.matchAll(
           /when '([a-z_]+)' then v_costs := array\[([\d, ]+)\];/g,
         ),
       ].map(

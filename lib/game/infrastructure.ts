@@ -101,6 +101,9 @@ export type TeamInfrastructureCode =
   | "indoor_track"
   | "cryotherapy_center"
   | "wind_tunnel"
+  | "cobbles_center"
+  | "hills_circuit"
+  | "mountain_base"
   | "research_lab"
   | "international_welcome_center"
   | "weather_center"
@@ -343,6 +346,24 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         effect: getPerformancePreparationEffect(5, "SPR et ACC"),
       },
     ],
+  },
+  cobbles_center: {
+    code: "cobbles_center", name: "Centre des classiques", domain: "Préparation · Pavés",
+    summary: "Une boucle pavée aménagée pour travailler les trajectoires et le passage des secteurs irréguliers. Deux jours de préparation pour un bonus temporaire en PAV.",
+    illustration: { src: "/images/infrastructure/cobbles-center.webp", alt: "Base cycliste et boucle pavée d’entraînement" },
+    levels: [150_000, 375_000, 750_000, 1_300_000, 2_000_000].map((cost, index) => ({ level: index + 1, cost, durationDays: [7, 11, 16, 22, 28][index]!, effect: getPerformancePreparationEffect(index + 1, "PAV") })),
+  },
+  hills_circuit: {
+    code: "hills_circuit", name: "Circuit de côtes", domain: "Préparation · Vallons",
+    summary: "Une base technique au bord d’une boucle vallonnée pour répéter les côtes courtes et les changements de rythme. Deux jours de préparation pour un bonus temporaire en VAL.",
+    illustration: { src: "/images/infrastructure/hills-circuit.webp", alt: "Base cycliste donnant accès à un circuit de côtes dans les collines" },
+    levels: [450_000, 950_000, 1_650_000, 2_650_000, 4_000_000].map((cost, index) => ({ level: index + 1, cost, durationDays: [9, 14, 20, 27, 35][index]!, effect: getPerformancePreparationEffect(index + 1, "VAL") })),
+  },
+  mountain_base: {
+    code: "mountain_base", name: "Base montagne", domain: "Préparation · Montagne",
+    summary: "Une antenne délocalisée au pied de vrais cols, avec hébergement, atelier et encadrement spécialisé. Deux jours de préparation pour un bonus temporaire en MO.",
+    illustration: { src: "/images/infrastructure/mountain-base.webp", alt: "Base d’entraînement cycliste au pied de cols de montagne" },
+    levels: [500_000, 1_050_000, 1_850_000, 2_950_000, 4_400_000].map((cost, index) => ({ level: index + 1, cost, durationDays: [9, 14, 20, 27, 35][index]!, effect: getPerformancePreparationEffect(index + 1, "MO") })),
   },
   cryotherapy_center: {
     code: "cryotherapy_center",
@@ -884,6 +905,9 @@ export function isTeamInfrastructureCode(
     value === "indoor_track" ||
     value === "cryotherapy_center" ||
     value === "wind_tunnel" ||
+    value === "cobbles_center" ||
+    value === "hills_circuit" ||
+    value === "mountain_base" ||
     value === "research_lab" ||
     value === "international_welcome_center" ||
     value === "weather_center" ||

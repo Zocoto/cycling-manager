@@ -486,7 +486,7 @@ function TrainingSectionTabs({ activeTab }: { activeTab: TrainingPageTab }) {
     {
       id: "preparation",
       label: "Préparation coureurs",
-      description: "Piste indoor et soufflerie",
+      description: "Piste, soufflerie, pavés, vallons et montagne",
       href: "/jeu/entrainement?onglet=preparation",
     },
     {
