@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateQuadrennialGamesReward, QUADRENNIAL_GAMES_FEDERATION_PRIZE } from "./quadrennial-games-rewards";
+import { calculateQuadrennialGamesReward, hasClassifiedGamesRiders, QUADRENNIAL_GAMES_FEDERATION_PRIZE } from "./quadrennial-games-rewards";
 
 describe("Quadrennial Games cash prizes", () => {
   it.each([
@@ -14,5 +14,18 @@ describe("Quadrennial Games cash prizes", () => {
   });
   it("keeps the federation winner prize separate", () => {
     expect(QUADRENNIAL_GAMES_FEDERATION_PRIZE).toBe(500_000);
+  });
+  it("allows an empty or all-DNF race to close without requesting a winner prize", () => {
+    expect(hasClassifiedGamesRiders([])).toBe(false);
+    expect(hasClassifiedGamesRiders([
+      { status: "did_not_finish", rank: null }, { status: "outside_time_limit", rank: null },
+      { status: "did_not_start", rank: null }, { status: "disqualified", rank: null },
+    ])).toBe(false);
+  });
+  it("settles a race with a classified rider even when others abandon", () => {
+    expect(hasClassifiedGamesRiders([{ status: "did_not_finish", rank: null }, { status: "finished", rank: 1 }])).toBe(true);
+  });
+  it("ignores absent or invalid placings", () => {
+    expect(hasClassifiedGamesRiders([{ status: "finished", rank: null }, { status: "finished", rank: 0 }, { status: "disqualified", rank: 1 }])).toBe(false);
   });
 });

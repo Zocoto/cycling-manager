@@ -20,6 +20,7 @@ Cette livraison porte sur les primes financières demandées. Elle ne crée pas 
 ## Versement et intégration
 
 - Le circuit normal persiste tous les résultats et termine les étapes avant d’appeler une seule RPC dédiée, avant de clôturer l’édition.
+- Si aucun coureur n’est classé, aucun appel de primes n’est fait et la clôture normale continue.
 - La RPC vérifie le registre officiel des Jeux, la saison multiple de quatre, la fin des étapes, un vainqueur unique et la présence des classements finaux correspondant aux résultats d’étape.
 - Les inscriptions nationales n’ont pas de `team_season_id` de club. Le bénéficiaire est donc retrouvé via `national_federation_selection_members.owner_team_id`, dans la saison de l’épreuve. La fédération bénéficiaire vient de la liste de sélection liée à l’inscription, et non du pays du club ou de la nationalité actuelle du coureur.
 - Le barème UI et le barème SQL sont comparés sur les rangs 1 à 300, ainsi que les rangs absents et invalides.
