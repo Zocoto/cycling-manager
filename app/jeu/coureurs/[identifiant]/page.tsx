@@ -1,3 +1,5 @@
+import { QuadrennialChampionJersey, QuadrennialGamesEmblem } from "@/components/game/quadrennial-champion-jersey";
+import { getQuadrennialChampionLabel } from "@/lib/game/quadrennial-games";
 import type { Metadata } from "next";
 import { getRiderWeightStatus, getRiderWeightStatusLabel } from "@/lib/game/rider-weight-status";
 import Link from "@/components/ui/app-link";
@@ -66,6 +68,7 @@ import {
   createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   createWorldChampionRiderJersey,
+  createQuadrennialChampionRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   getNationalChampionPalette,
   type RiderJerseyAppearance,
@@ -211,6 +214,8 @@ export default async function RiderProfilePage({
         })
       : Promise.resolve([]),
   ]);
+  const activeQuadrennialTitles = (profile.quadrennialTitles ?? []).filter(title => title.isActive);
+  const activeQuadrennialTitle = activeQuadrennialTitles.find(title => title.type === "road") ?? activeQuadrennialTitles[0];
   const activeWorldTitles = profile.worldTitles.filter(
     (title) => title.isActive,
   );
@@ -241,7 +246,9 @@ export default async function RiderProfilePage({
       (title) => title.isActive && title.type === "time_trial",
     ) ??
     null;
-  const riderJersey = activeWorldTitle
+  const riderJersey = activeQuadrennialTitle
+    ? createQuadrennialChampionRiderJersey({ championshipType: activeQuadrennialTitle.type })
+    : activeWorldTitle
     ? createWorldChampionRiderJersey({
         championshipType: activeWorldTitle.type,
       })
@@ -266,7 +273,7 @@ export default async function RiderProfilePage({
             ? createAmateurRiderJersey(amateurIdentity.jersey)
             : FREE_AGENT_RIDER_JERSEY;
   const nationalPalette =
-    !activeWorldTitle && activeContinentalTitle
+    !activeQuadrennialTitle && !activeWorldTitle && activeContinentalTitle
       ? {
           ...CONTINENTAL_CHAMPION_PALETTES[
             activeContinentalTitle.continentCode
@@ -280,7 +287,7 @@ export default async function RiderProfilePage({
               .accent,
           ],
         }
-      : !activeWorldTitle && activeNationalTitle
+      : !activeQuadrennialTitle && !activeWorldTitle && activeNationalTitle
         ? getNationalChampionPalette(activeNationalTitle.countryCode)
         : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
@@ -397,7 +404,9 @@ export default async function RiderProfilePage({
                 label={`Portrait généré de ${fullName}`}
                 className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
               />
-              {activeWorldTitle ? (
+              {activeQuadrennialTitle ? (
+                <span className="absolute -bottom-3 -right-3 rounded-xl border-2 border-white/70 bg-white px-3 py-2 text-[10px] font-black text-[#102A36] shadow-xl">Jeux · {activeQuadrennialTitle.type === "road" ? "Route" : "CLM"}</span>
+              ) : activeWorldTitle ? (
                 <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
                   <RainbowMark />
                   CM {activeWorldTitle.type === "road" ? "Route" : "CLM"}
@@ -473,6 +482,9 @@ export default async function RiderProfilePage({
                 {profile.currentTeam ? (
                   <SquadStatusBadge status={profile.squadStatus} tone="dark" />
                 ) : null}
+                {(profile.quadrennialTitles ?? []).length > 0 ? <span className="rounded-xl bg-white p-2"><QuadrennialGamesEmblem className="h-5 w-auto" /></span> : null}
+                {(profile.quadrennialTitles ?? []).filter(title => !title.isActive).map(title => <IdentityBadge key={`former-games-${title.type}-${title.seasonId}`}>Jeux {title.type === "road" ? "Route" : "CLM"} · {title.seasonName}</IdentityBadge>)}
+                {activeQuadrennialTitles.map(title => <IdentityBadge key={`quadrennial-${title.type}`}>{getQuadrennialChampionLabel(title.type)}</IdentityBadge>)}
                 {profile.worldTitles
                   .filter((title) => title.isActive)
                   .map((title) => (
@@ -546,6 +558,7 @@ export default async function RiderProfilePage({
                 amateurJersey={amateurIdentity?.jersey ?? FREE_AGENT_JERSEY}
                 amateurTeamName={amateurIdentity?.amateurName ?? null}
                 sponsorIdentity={sponsorIdentity}
+                activeQuadrennialTitles={activeQuadrennialTitles}
                 activeNationalTitles={activeNationalTitles}
                 activeContinentalTitles={activeContinentalTitles}
                 activeWorldTitles={activeWorldTitles}
@@ -1267,6 +1280,7 @@ function CurrentTeamCard({
   amateurJersey,
   amateurTeamName,
   sponsorIdentity,
+  activeQuadrennialTitles,
   activeNationalTitles,
   activeContinentalTitles,
   activeWorldTitles,
@@ -1281,12 +1295,13 @@ function CurrentTeamCard({
   amateurJersey: AmateurJerseyConfig;
   amateurTeamName: string | null;
   sponsorIdentity: Awaited<ReturnType<typeof getActiveTeamSponsorIdentity>>;
+  activeQuadrennialTitles: NonNullable<PublicRiderProfile["quadrennialTitles"]>;
   activeNationalTitles: PublicRiderProfile["nationalTitles"];
   activeContinentalTitles: PublicRiderProfile["continentalTitles"];
   activeWorldTitles: PublicRiderProfile["worldTitles"];
 }) {
   const hasChampionTitles =
-    activeWorldTitles.length +
+    activeQuadrennialTitles.length + activeWorldTitles.length +
       activeContinentalTitles.length +
       activeNationalTitles.length >
     0;
@@ -1302,6 +1317,7 @@ function CurrentTeamCard({
             data-champion-jerseys
             className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-x-1.5 gap-y-3"
           >
+            {activeQuadrennialTitles.map(title => <span key={`games-${title.type}`} className="min-w-0 text-center"><QuadrennialChampionJersey championshipType={title.type} className="mx-auto h-24 w-20 drop-shadow-xl" /><span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">Jeux {title.type === "road" ? "Route" : "CLM"}</span></span>)}
             {activeWorldTitles.map((title) => (
               <span key={`world-${title.type}`} className="min-w-0 text-center">
                 <WorldChampionJersey
@@ -1524,6 +1540,7 @@ function CareerHistory({
                           discipline={title.type}
                         />
                       ))}
+                      {(entry.quadrennialTitles ?? []).map(title => <span key={`games-${title.type}`} className="inline-flex rounded-full bg-[#FFF6D8] px-2 py-1 text-[10px] font-black text-[#715214]">Jeux {title.type === "road" ? "Route" : "CLM"}</span>)}
                       {entry.worldTitles.map((title) => (
                         <WorldTitleBadge
                           key={`world-${title.type}`}
@@ -1539,7 +1556,7 @@ function CareerHistory({
                         />
                       ))}
                       {entry.nationalTitles.length === 0 &&
-                      entry.worldTitles.length === 0 &&
+                      entry.worldTitles.length === 0 && (entry.quadrennialTitles ?? []).length === 0 &&
                       entry.continentalTitles.length === 0 ? (
                         <span className="text-sm font-black text-[#48665F]">
                           —
@@ -1609,7 +1626,8 @@ function CareerHistory({
                             discipline={title.type}
                           />
                         ))}
-                        {entry.worldTitles.map((title) => (
+                        {(entry.quadrennialTitles ?? []).map(title => <span key={`games-${title.type}`} className="inline-flex rounded-full bg-[#FFF6D8] px-2 py-1 text-[10px] font-black text-[#715214]">Jeux {title.type === "road" ? "Route" : "CLM"}</span>)}
+                      {entry.worldTitles.map((title) => (
                           <WorldTitleBadge
                             key={`world-${title.type}`}
                             discipline={title.type}
@@ -1624,7 +1642,7 @@ function CareerHistory({
                           />
                         ))}
                         {entry.nationalTitles.length === 0 &&
-                        entry.worldTitles.length === 0 &&
+                        entry.worldTitles.length === 0 && (entry.quadrennialTitles ?? []).length === 0 &&
                         entry.continentalTitles.length === 0 ? (
                           <>{entry.nationalTitles.length === 0 ? "—" : null}</>
                         ) : null}

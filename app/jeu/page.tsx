@@ -38,6 +38,7 @@ import {
   createNationalChampionRiderJersey,
   createContinentalChampionRiderJersey,
   createWorldChampionRiderJersey,
+  createQuadrennialChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
@@ -1151,6 +1152,9 @@ function buildChampionJerseyMap(
     );
   }
 
+  for (const [riderId, title] of titles.quadrennial) {
+    jerseys.set(riderId, createQuadrennialChampionRiderJersey({ championshipType: title.championshipType }));
+  }
   return jerseys;
 }
 
@@ -1159,6 +1163,7 @@ function emptyActiveChampionshipTitles(): ActiveChampionshipTitlesForRiders {
     national: new Map(),
     continental: new Map(),
     world: new Map(),
+    quadrennial: new Map(),
   };
 }
 

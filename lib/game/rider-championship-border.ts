@@ -7,6 +7,7 @@ import {
 type ChampionshipDiscipline = "road" | "time_trial";
 
 type RiderChampionshipHistory = {
+  quadrennialTitles?: Array<{ type: ChampionshipDiscipline; seasonName: string; isActive: boolean }>;
   worldTitles: Array<{
     type: ChampionshipDiscipline;
     seasonName: string;
@@ -29,7 +30,7 @@ type RiderChampionshipHistory = {
 };
 
 export type RiderChampionshipBorder = {
-  kind: "world" | "continental" | "national";
+  kind: "world" | "continental" | "national" | "quadrennial";
   colors: readonly string[];
   label: string;
 };
@@ -50,6 +51,11 @@ const WORLD_CHAMPION_COLORS = [
 export function resolveFormerChampionshipBorder(
   profile: RiderChampionshipHistory,
 ): RiderChampionshipBorder | null {
+  const formerGamesTitles = (profile.quadrennialTitles ?? []).filter(title => !title.isActive);
+  if (formerGamesTitles.length > 0) {
+    return { kind: "quadrennial", colors: ["#0085C7", "#F4C300", "#20232B", "#009F6B", "#DF0024"],
+      label: `Ancien champion des Jeux quadriennaux ${formatDisciplines(formerGamesTitles)}` };
+  }
   const formerWorldTitles = profile.worldTitles.filter(
     (title) => !title.isActive,
   );

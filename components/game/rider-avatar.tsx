@@ -14,6 +14,7 @@ import {
   getRiderChampionshipBorderBackground,
   type RiderChampionshipBorder,
 } from "@/lib/game/rider-championship-border";
+import { QUADRENNIAL_CHAMPION_JERSEY } from "@/lib/game/quadrennial-games";
 import { SvgCountryFlag } from "./svg-country-flag";
 import { ContinentalChampionPattern } from "./continental-champion-pattern";
 import { NATIONAL_JERSEY_SHIRT_PATH, NationalJerseyDesignArtwork } from "./national-jersey-design-artwork";
@@ -148,7 +149,9 @@ export function RiderAvatar({
           </g>
         ) : <>
         <path d={shouldersPath} fill={resolvedJersey.primaryColor} />
-        {resolvedJersey.status === "world-champion" ? (
+        {resolvedJersey.status === "quadrennial-champion" ? (
+          <QuadrennialChampionAvatarPattern clipPathId={shoulderClipId} />
+        ) : resolvedJersey.status === "world-champion" ? (
           <WorldChampionAvatarPattern clipPathId={shoulderClipId} />
         ) : resolvedJersey.status === "continental-champion" &&
           resolvedJersey.continentCode ? (
@@ -213,7 +216,7 @@ export function RiderAvatar({
           fill={design.skinTone}
         />
 
-        {!fullJersey && (resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath) ? (
+        {!fullJersey && resolvedJersey.status !== "quadrennial-champion" && (resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath) ? (
           <>
             <path
               d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"
@@ -325,7 +328,12 @@ function CompactRiderAvatar({
           d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z"
           fill={jersey.primaryColor}
         />
-        {hasNationalDesign ? (
+        {jersey.status === "quadrennial-champion" ? (
+          <>
+            <defs><clipPath id={compactJerseyId}><path d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z" /></clipPath></defs>
+            <QuadrennialChampionAvatarPattern clipPathId={compactJerseyId} />
+          </>
+        ) : hasNationalDesign ? (
           <>
             <defs><clipPath id={compactJerseyId}><path d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z" /></clipPath></defs>
             <g clipPath={`url(#${compactJerseyId})`}>
@@ -565,6 +573,16 @@ function WorldChampionAvatarPattern({ clipPathId }: { clipPathId: string }) {
       ))}
     </g>
   );
+}
+
+function QuadrennialChampionAvatarPattern({ clipPathId }: { clipPathId: string }) {
+  return <g clipPath={`url(#${clipPathId})`}>
+    {/* Crop the upper chest at its natural ratio; never squeeze the complete jersey into the bust. */}
+    <svg data-avatar-jersey-viewport="upper-body" data-quadrennial-avatar-jersey x="0" y="64" width="96" height="34"
+      viewBox="0 120 900 318.75" preserveAspectRatio="xMidYMid meet" overflow="hidden">
+      <image href={QUADRENNIAL_CHAMPION_JERSEY} x="0" y="0" width="900" height="902" preserveAspectRatio="xMidYMid meet" />
+    </svg>
+  </g>;
 }
 
 function SponsorJerseyArtwork({

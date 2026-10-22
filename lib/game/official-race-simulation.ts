@@ -297,6 +297,7 @@ function decorateStageRaceJerseys({
       rider.nationalChampionships?.[nationalChampionshipDiscipline] ?? null;
     const activeContinentalChampion =
       rider.continentalChampionships?.[nationalChampionshipDiscipline] ?? null;
+    const activeQuadrennialChampion = rider.quadrennialChampionships?.[nationalChampionshipDiscipline] ?? null;
     const activeWorldChampion =
       rider.worldChampionships?.[nationalChampionshipDiscipline] ?? null;
     if (
@@ -305,6 +306,7 @@ function decorateStageRaceJerseys({
         (rider.classificationJerseyVisual ?? null) &&
       activeNationalChampion === (rider.activeNationalChampion ?? null) &&
       activeWorldChampion === (rider.activeWorldChampion ?? null) &&
+      activeQuadrennialChampion === (rider.activeQuadrennialChampion ?? null) &&
       activeContinentalChampion === (rider.activeContinentalChampion ?? null)
     ) {
       return rider;
@@ -315,6 +317,7 @@ function decorateStageRaceJerseys({
       classificationJerseyVisual,
       activeNationalChampion,
       activeWorldChampion,
+      activeQuadrennialChampion,
       activeContinentalChampion,
     };
   };

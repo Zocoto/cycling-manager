@@ -1,3 +1,4 @@
+import { QUADRENNIAL_GAMES_EMBLEM, getQuadrennialChampionLabel } from "@/lib/game/quadrennial-games";
 import { useId } from "react";
 
 import type { RiderSimulationInput } from "@/lib/game/race-simulation";
@@ -108,7 +109,9 @@ export function SideRaceCyclist({
         strokeWidth="0.75"
         strokeLinejoin="round"
       />
-      {jerseyVisual.status === "world-champion" ? (
+      {jerseyVisual.status === "quadrennial-champion" ? (
+        <QuadrennialChampionRacePattern clipPathId={jerseyClipId} mode="side" />
+      ) : jerseyVisual.status === "world-champion" ? (
         <WorldChampionRacePattern clipPathId={jerseyClipId} mode="side" />
       ) : jerseyVisual.status === "continental-champion" ? (
         <ContinentalChampionPattern
@@ -276,7 +279,9 @@ export function TopRaceCyclist({
         stroke="#F4F7F5"
         strokeWidth="0.85"
       />
-      {jerseyVisual.status === "world-champion" ? (
+      {jerseyVisual.status === "quadrennial-champion" ? (
+        <QuadrennialChampionRacePattern clipPathId={jerseyClipId} mode="top" />
+      ) : jerseyVisual.status === "world-champion" ? (
         <WorldChampionRacePattern clipPathId={jerseyClipId} mode="top" />
       ) : jerseyVisual.status === "continental-champion" ? (
         <ContinentalChampionPattern
@@ -365,6 +370,7 @@ export function getRaceCyclistJerseyVisual(
     | "classificationJerseyVisual"
     | "activeNationalChampion"
     | "activeWorldChampion"
+    | "activeQuadrennialChampion"
     | "activeContinentalChampion"
   >,
 ) {
@@ -386,6 +392,9 @@ export function getRaceCyclistJerseyVisual(
       status: "national-team" as const, countryCode: rider.teamJersey.countryCode,
       nationalDesign: rider.teamJersey.nationalDesign ?? null,
     };
+  }
+  if (rider.activeQuadrennialChampion) {
+    return { label: getQuadrennialChampionLabel(rider.activeQuadrennialChampion.championshipType), shortLabel: "Champion des Jeux", primaryColor: "#FFFFFF", secondaryColor: "#0085C7", accentColor: "#009F6B", pattern: "quadrennial" as const, status: "quadrennial-champion" as const, countryCode: null };
   }
   if (rider.activeWorldChampion) {
     return {
@@ -496,6 +505,10 @@ function NationalChampionRacePattern({
       preserveAspectRatio="xMidYMid slice"
     />
   );
+}
+
+function QuadrennialChampionRacePattern({ clipPathId, mode }: { clipPathId: string; mode: "side" | "top" }) {
+  return <g clipPath={`url(#${clipPathId})`}><image data-quadrennial-race-jersey href={QUADRENNIAL_GAMES_EMBLEM} x={mode === "side" ? 28 : 25} y={mode === "side" ? 15 : 13} width={mode === "side" ? 21 : 25} height="9" preserveAspectRatio="xMidYMid meet" /></g>;
 }
 
 function WorldChampionRacePattern({

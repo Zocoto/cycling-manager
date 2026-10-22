@@ -1,3 +1,4 @@
+import { QUADRENNIAL_CHAMPION_JERSEY } from "@/lib/game/quadrennial-games";
 import { NATIONAL_CHAMPION_COUNTRY_COLORS } from "@/data/national-champion-country-metadata";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
@@ -37,7 +38,8 @@ export type RiderJerseyAppearance = {
     | "national-team"
     | "national-champion"
     | "continental-champion"
-    | "world-champion";
+    | "world-champion"
+    | "quadrennial-champion";
   imagePath?: string;
   countryCode?: string;
   continentCode?: ContinentalChampionshipCode;
@@ -211,6 +213,10 @@ export function createNationalTeamRiderJersey(
     countryCode: countryCode.toUpperCase(),
     ...(normalizedDesign ? { nationalDesign: normalizedDesign } : {}),
   };
+}
+
+export function createQuadrennialChampionRiderJersey({ championshipType }: { championshipType: "road" | "time_trial" }): RiderJerseyAppearance {
+  return { primaryColor: "#FFFFFF", secondaryColor: "#0085C7", accentColor: "#009F6B", pattern: "solid", status: "quadrennial-champion", championshipType, imagePath: QUADRENNIAL_CHAMPION_JERSEY };
 }
 
 export function createWorldChampionRiderJersey({
