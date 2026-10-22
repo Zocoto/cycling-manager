@@ -1,6 +1,10 @@
 import type {ReactNode} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {beforeEach,describe,expect,it,vi} from "vitest";
+const releaseMocks = vi.hoisted(() => ({ read: vi.fn(), panel: vi.fn() }));
+vi.mock("@/services/site-release", () => ({ getSiteReleaseManagement: releaseMocks.read }));
+vi.mock("@/components/game/site-release-management", () => ({ SiteReleaseManagementPanel: (props: unknown) => { releaseMocks.panel(props); return <div>Version du site</div>; } }));
+vi.mock("./version-actions", () => ({ saveSiteReleaseAction: vi.fn() }));
 const mocks=vi.hoisted(()=>({client:vi.fn(),auth:vi.fn(),role:vi.fn(),header:vi.fn(),articles:vi.fn(),members:vi.fn(),editor:vi.fn(),management:vi.fn(),redirect:vi.fn((path:string)=>{throw Error(`redirect:${path}`);}),notFound:vi.fn(()=>{throw Error("not-found");})}));
 vi.mock("next/navigation",()=>({redirect:mocks.redirect,notFound:mocks.notFound}));
 vi.mock("@/lib/supabase/server",()=>({createSupabaseServerClient:mocks.client}));
@@ -19,6 +23,7 @@ const article={id:"news-id",draft:{title:"Un titre de brouillon"},published:null
 beforeEach(()=>{
   vi.clearAllMocks();mocks.client.mockResolvedValue({});mocks.auth.mockResolvedValue({data:{user:{id:"user",email:"staff@example.invalid"}},error:null});
   mocks.role.mockResolvedValue("game_staff");mocks.header.mockResolvedValue({displayName:"Équipier",teamSponsorVisual:null});mocks.articles.mockResolvedValue([article]);mocks.members.mockResolvedValue([]);
+  releaseMocks.read.mockResolvedValue({ version: "0.9.1", revision: 1, history: [] });
 });
 const render=async(id?:string)=>renderToStaticMarkup(await Page({searchParams:Promise.resolve({id})}));
 
@@ -41,6 +46,7 @@ describe("protected in-game news editor page",()=>{
     expect(html).toContain("Gérer les actualités");expect(html).toContain("Éditeur de nouveauté");expect(html).not.toContain("Gestion des membres habilités");
     expect(mocks.articles).toHaveBeenCalledOnce();expect(mocks.members).not.toHaveBeenCalled();
     expect(mocks.editor).toHaveBeenCalledWith(expect.objectContaining({initialArticle:null}));
+    expect(releaseMocks.read).not.toHaveBeenCalled(); expect(releaseMocks.panel).not.toHaveBeenCalled();
   });
   it("restores the selected article revision rather than starting a duplicate draft",async()=>{
     const html=await render("news-id");expect(html).toContain('aria-current="page"');
@@ -84,5 +90,16 @@ describe("protected in-game news editor page",()=>{
   });
   it("does not silently create a new article for an unknown selected id",async()=>{
     await expect(render("unknown-id")).rejects.toThrow("not-found");expect(mocks.editor).not.toHaveBeenCalled();
+  });
+  it("offers founder-only version management without changing the selected news draft", async () => {
+    mocks.role.mockResolvedValue("owner");
+    expect(await render("news-id")).toContain("Version du site");
+    expect(releaseMocks.read).toHaveBeenCalledOnce();
+    expect(mocks.editor).toHaveBeenCalledWith(expect.objectContaining({ initialArticle: article }));
+  });
+  it("keeps news usable if optional version management is unavailable", async () => {
+    mocks.role.mockResolvedValue("owner"); releaseMocks.read.mockRejectedValue(new Error("unavailable"));
+    expect(await render()).toContain("Éditeur de nouveauté");
+    expect(releaseMocks.panel).toHaveBeenCalledWith(expect.objectContaining({ initial: null }));
   });
 });
