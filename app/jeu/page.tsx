@@ -12,6 +12,7 @@ import { DashboardEligibleRaces, getOpenEligibleDashboardRaces } from "../../com
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
 import { DashboardHalloweenShortcut } from "../../components/game/dashboard-halloween-shortcut";
+import { DashboardDraftShortcut } from "@/components/game/dashboard-draft-shortcut";
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
 import { DashboardNewsTickerLoader } from "@/components/game/dashboard-news-ticker-loader";
 import { DashboardNewsTicker } from "@/components/game/dashboard-news-ticker";
@@ -749,6 +750,7 @@ export default async function GamePage() {
 
           {/* eslint-disable-next-line react-hooks/purity -- Dynamic server request clock for the gala's fixed expiry. */}
           <DashboardGalaShortcut now={Date.now()} />
+          <Suspense fallback={null}><DashboardDraftShortcut summaryPromise={fastSummaryPromise} /></Suspense>
           <Suspense fallback={null}><DashboardHalloweenShortcut /></Suspense>
           <DashboardReferralInvite />
 
