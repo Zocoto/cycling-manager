@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-explicit-missions-before-auto-leaders-v48";
+  "2026.10-time-trial-effort-balance-v50";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

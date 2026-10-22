@@ -28,7 +28,7 @@ export const TIME_TRIAL_EFFORT_DESCRIPTIONS: Record<
 > = {
   conserve: "Un chrono plus prudent pour limiter la perte de forme.",
   normal: "Le meilleur compromis entre performance et récupération.",
-  all_in: "Un gain chronométrique au prix d’une forte dépense de forme.",
+  all_in: "Un petit gain chronométrique pour un coût de forme doublé par rapport au rythme normal.",
 };
 
 export const TIME_TRIAL_EFFORT_EFFECTS: Record<
@@ -50,9 +50,12 @@ export const TIME_TRIAL_EFFORT_EFFECTS: Record<
     formCostMultiplier: 1,
   },
   all_in: {
-    paceMultiplier: 1.018,
+    // A marginal pacing advantage must not erase a large specialist gap.
+    // Persistent form loss is settled by calculate_prepared_stage_form_cost;
+    // keep its prospective policy aligned with this value.
+    paceMultiplier: 1.006,
     energyCostMultiplier: 1.4,
-    formCostMultiplier: 1.35,
+    formCostMultiplier: 2,
   },
 };
 

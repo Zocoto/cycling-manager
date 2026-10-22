@@ -1042,6 +1042,9 @@ export function simulateRaceStageResultsOnly(
     normalizedInput.stageType === "individual_time_trial" ||
     normalizedInput.stageType === "team_time_trial" ||
     normalizedInput.stageType === "prologue";
+  const isIndividualTimeTrial =
+    normalizedInput.stageType === "individual_time_trial" ||
+    normalizedInput.stageType === "prologue";
   const scoredRiders = normalizedInput.riders
     .map((rider) => {
       const random = createSeededRandom(
@@ -1055,10 +1058,18 @@ export function simulateRaceStageResultsOnly(
         swing: rawNoise,
         hasMetronome: hasSpecialAbility(rider, "metronome"),
       });
+      // CN gaps use a fixed seconds-per-rating-point scale. Apply effort to
+      // that rating, as for TTT relays, rather than scaling the whole elapsed
+      // time and accidentally erasing specialist gaps on longer courses.
+      const paceMultiplier = isIndividualTimeTrial
+        ? TIME_TRIAL_EFFORT_EFFECTS[
+            getTimeTrialPlan(normalizedInput, rider.id).effortMode
+          ].paceMultiplier
+        : 1;
 
       return {
         rider,
-        score: performanceRating + noise,
+        score: performanceRating * paceMultiplier + noise,
       };
     })
     .sort(
@@ -1078,40 +1089,72 @@ export function simulateRaceStageResultsOnly(
         time_trial: 5.5,
         mixed: 4,
       }[normalizedInput.profileType];
+  const winnerPaceMultiplier =
+    isIndividualTimeTrial && scoredRiders[0]
+      ? TIME_TRIAL_EFFORT_EFFECTS[
+          getTimeTrialPlan(normalizedInput, scoredRiders[0].rider.id).effortMode
+        ].paceMultiplier
+      : 1;
+  // Reflect the winner's effort in the reference time too, including when
+  // there is only one entrant. An all-normal race keeps its exact old clock.
+  const adjustedWinnerElapsedTimeSeconds = Math.max(
+    1,
+    Math.round(winnerElapsedTimeSeconds / winnerPaceMultiplier),
+  );
+
+  const results: StageSimulationResult["results"] = scoredRiders.map(
+    ({ rider, score }, index) => {
+      const gapToWinnerSeconds =
+        index === 0
+          ? 0
+          : Math.max(0, Math.round((winnerScore - score) * gapMultiplier));
+      const baselineEnergyAfter = round(
+        clamp(
+          rider.form -
+            applyWeatherCenterEnergyCostReduction(
+              distanceKm / 6,
+              (rider.weatherCenterEnergyCostReductionPercentage ?? 0) +
+                (rider.infrastructureEnergyCostReductionPercentage ?? 0),
+            ),
+          5,
+          100,
+        ),
+        2,
+      );
+      const effort = isIndividualTimeTrial
+        ? TIME_TRIAL_EFFORT_EFFECTS[
+            getTimeTrialPlan(normalizedInput, rider.id).effortMode
+          ]
+        : TIME_TRIAL_EFFORT_EFFECTS.normal;
+      return {
+        riderId: rider.id,
+        rank: index + 1,
+        status: "finished" as const,
+        elapsedTimeSeconds: adjustedWinnerElapsedTimeSeconds + gapToWinnerSeconds,
+        gapToWinnerSeconds,
+        energyAfter:
+          effort.energyCostMultiplier === 1
+            ? baselineEnergyAfter
+            : round(
+                applyTimeTrialEnergyCost(
+                  clamp(rider.form, 5, 100),
+                  baselineEnergyAfter,
+                  effort.energyCostMultiplier,
+                ),
+                2,
+              ),
+        injury: null,
+        abandonment: null,
+      };
+    },
+  );
 
   return {
     stageId: normalizedInput.id,
     seed: String(normalizedInput.seed),
     resolvedRiders: normalizedInput.riders,
     timeline: [],
-    results: scoredRiders.map(({ rider, score }, index) => {
-      const gapToWinnerSeconds =
-        index === 0
-          ? 0
-          : Math.max(0, Math.round((winnerScore - score) * gapMultiplier));
-      return {
-        riderId: rider.id,
-        rank: index + 1,
-        status: "finished" as const,
-        elapsedTimeSeconds: winnerElapsedTimeSeconds + gapToWinnerSeconds,
-        gapToWinnerSeconds,
-        energyAfter: round(
-          clamp(
-            rider.form -
-              applyWeatherCenterEnergyCostReduction(
-                distanceKm / 6,
-                (rider.weatherCenterEnergyCostReductionPercentage ?? 0) +
-                  (rider.infrastructureEnergyCostReductionPercentage ?? 0),
-              ),
-            5,
-            100,
-          ),
-          2,
-        ),
-        injury: null,
-        abandonment: null,
-      };
-    }),
+    results,
     primes: [],
     mountainPoints: {},
     sprintPoints: {},

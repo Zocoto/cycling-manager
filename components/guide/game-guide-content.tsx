@@ -964,7 +964,7 @@ function RacingSection() {
           <SectionLabel>Chronos</SectionLabel>
           <h3 className="mt-2 text-2xl font-black text-[#082A2A]">Effort individuel et cohésion collective</h3>
           <ul className="mt-5 space-y-3 text-sm font-semibold leading-6 text-[#48665F]">
-            <li>• En CLM et en prologue, « S’économiser » réduit le rythme et les coûts d’énergie et de forme ; « Tout donner » améliore le chrono mais augmente fortement ces coûts.</li>
+            <li>• En CLM et en prologue, « S’économiser » préserve l’énergie et la forme. « Tout donner » procure un petit gain de rythme et double le coût de forme par rapport au rythme normal, à charge de relais identique.</li>
             <li>• En CLM par équipes, les relais doivent totaliser exactement 100 %. Leur répartition fixe la contribution de chaque coureur au rythme collectif.</li>
             <li>• Le leader et le coureur protégé sont attendus par le collectif. Les autres peuvent cesser de relayer avant de décrocher réellement.</li>
             <li>• Une équipe complète peut sacrifier jusqu’à trois coureurs, mais le chrono conserve toujours un noyau minimal de quatre unités.</li>

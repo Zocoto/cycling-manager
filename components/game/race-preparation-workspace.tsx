@@ -1762,7 +1762,7 @@ function TimeTrialPreparationForm({
               description={
                 isTeamTimeTrial
                   ? "Le pourcentage de relais fixe la contribution de chacun au rythme collectif et sa dépense de forme."
-                  : "Un effort prudent coûte du temps mais préserve la forme ; tout donner améliore le chrono au prix d’une récupération plus lourde."
+                  : "Un effort prudent préserve la forme ; tout donner procure un petit gain chronométrique mais double le coût de forme par rapport au rythme normal."
               }
             />
             {isTeamTimeTrial ? (
