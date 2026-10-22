@@ -16,7 +16,16 @@ if(!sql.startsWith('begin;') || !sql.includes("set local lock_timeout = '1s'")
   || !sql.includes("set local application_name = 'cyclostratege-season-draft-20261022'") || !/commit;\s*$/.test(sql)) throw Error('Migration bounds changed.');
 const quote=value=>"'"+value.replaceAll("'","''")+"'";
 const query=statement=>{
-  const raw=execFileSync(binary,['db','query','--linked',statement,'--output','json'],{encoding:'utf8',timeout:25000,maxBuffer:150000});
+  let args=['db','query','--linked',statement,'--output','json'];
+  if(statement.length>12000){
+    mkdirSync('artifacts/season-draft-20261022',{recursive:true});
+    const payload=path.resolve('artifacts/season-draft-20261022/reviewed-install.sql');
+    writeFileSync(payload,statement);
+    args=['db','query','--linked','--file',payload,'--output','json'];
+  }
+  let raw;
+  try {raw=execFileSync(binary,args,{encoding:'utf8',timeout:25000,maxBuffer:150000});}
+  catch(error){throw Error(`Database command failed: ${error.code??error.status??'unknown'}; ${String(error.stderr??'').slice(0,1800)}`);}
   return JSON.parse(raw.slice(raw.indexOf('{'))).rows;
 };
 const bounded=body=>`begin read only; set local statement_timeout='4s';set local lock_timeout='500ms';
