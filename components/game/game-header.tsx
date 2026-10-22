@@ -40,7 +40,7 @@ type GameHeaderProps = {
   gazetteIsOpen?: boolean;
   mailboxIsOpen?: boolean;
   compactMobile?: boolean;
-  /** Opt-in only on the owner preview; public S5 release must pass server readiness gates. */
+  /** Standalone owner preview opt-in; other pages reuse account-bound shared auth state. */
   collectorAlbumAvailable?: boolean;
 };
 
@@ -63,7 +63,9 @@ export function GameHeader({
   collectorAlbumAvailable = false,
 }: GameHeaderProps) {
   const { locale } = useLocale();
-  const gameStaffRole = useGameHeaderIndicators()?.gameStaffRole ?? null;
+  const headerIndicators = useGameHeaderIndicators();
+  const gameStaffRole = headerIndicators?.gameStaffRole ?? null;
+  const hasCollectorAlbum = collectorAlbumAvailable || headerIndicators?.collectorAlbumAvailable === true;
   const isEnglish = locale === "en";
   const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
   const federationCountryCode = sponsor?.countryCode.trim().toUpperCase() || null;
@@ -112,7 +114,7 @@ export function GameHeader({
 
           <span
             data-mobile-app-name="true"
-            className={`flex min-w-0 flex-col justify-center leading-none sm:hidden ${collectorAlbumAvailable?"max-[360px]:hidden":""}`}
+            className={`flex min-w-0 flex-col justify-center leading-none sm:hidden ${hasCollectorAlbum?"max-[360px]:hidden":""}`}
           >
             <span className="text-[0.7rem] font-black uppercase tracking-[0.12em] text-[#FFFDF4]">
               Cyclo
@@ -224,7 +226,7 @@ export function GameHeader({
             ) : null}
 
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
-            {collectorAlbumAvailable?<CycloStickersShortcut isEnglish={isEnglish}/>:null}
+            {hasCollectorAlbum?<CycloStickersShortcut isEnglish={isEnglish}/>:null}
 
           </div>
 

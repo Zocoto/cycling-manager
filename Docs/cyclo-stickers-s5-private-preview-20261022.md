@@ -29,7 +29,7 @@ Barème **d’essai uniquement**, par vignette : bronze 80 %, argent 16,9 %, or 
 
 ## Header et performances
 
-Le raccordement est opt-in. Le vrai header de la page privée affiche le raccourci immédiatement après Gazette. Toutes les autres pages et tous les autres comptes conservent leur header actuel. Sur les très petits écrans, le logo seul remplace temporairement son libellé dans cet aperçu pour conserver la place des commandes. Aucun raccourci existant n’est retiré.
+Le raccourci est présent immédiatement après Gazette dans tous les headers du jeu pour le compte Zocoto uniquement. Le provider partagé réutilise le cycle de session local Supabase (`INITIAL_SESSION`, connexion et déconnexion), avec le même contrôle d’UUID que la route ; aucun nouveau lookup d’utilisateur, RPC, polling ou chargement de catalogue dans le header. Les autres comptes ne voient pas ce raccourci, même s’ils ont un rôle staff ou le même nom affiché. Le contrôle serveur de la page reste impératif et inchangé. L’icône est une vignette rectangulaire avec bordure, portrait casqué simplifié et lignes de légende. Sur les très petits écrans, le logo seul remplace son libellé pour conserver la place des commandes. Aucun raccourci existant n’est retiré.
 
 Aucune lecture de classement ni requête d’album dans le header. Les snapshots ne sont chargés que sur la route autorisée. Aucun polling, aucune modification des crons, des courses ou de la bascule saisonnière, aucune migration de production pour ce changement.
 
