@@ -1,15 +1,17 @@
 "use client";
 
 import { useActionState, useId, useRef, useState } from "react";
+import Image from "next/image";
 import {
   EMPTY_GAME_NEWS_DOCUMENT,
-  GAME_NEWS_IMAGES,
   GAME_NEWS_EMOJIS,
   type GameNewsDocument,
   type GameNewsEditorArticle,
   type GameNewsEditorState,
 } from "@/lib/game/game-product-news";
 import { GameNewsBody } from "./game-news-body";
+import { GameNewsIllustrationPicker } from "./game-news-illustration-picker";
+import { GAME_NEWS_IMAGE_PREFIX } from "@/lib/game/game-news-images";
 
 export type GameNewsEditorAction = (
   previous: GameNewsEditorState,
@@ -58,6 +60,7 @@ export function GameNewsEditor({
   const [draft, setDraft] = useState<GameNewsDocument>(initialArticle?.draft ?? EMPTY_GAME_NEWS_DOCUMENT);
   const [language, setLanguage] = useState<"fr" | "en">("fr");
   const [showPreview, setShowPreview] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [state, formAction, pending] = useActionState<GameNewsEditorState, FormData>(async (previous, formData) => preserveSavedNewsArticle(previous, await action(previous, formData)), {
     status: "idle",
     message: null,
@@ -94,7 +97,7 @@ export function GameNewsEditor({
   }
 
   return (
-    <form action={formAction} className="min-w-0 space-y-5" data-game-news-editor="true">
+    <form action={formAction} onSubmit={(event) => { if (imageUploading) event.preventDefault(); }} className="min-w-0 space-y-5" data-game-news-editor="true">
       <input type="hidden" name="id" value={article?.id ?? newDraftIdValue ?? ""} />
       <input type="hidden" name="revision" value={article?.revision ?? 0} />
 
@@ -112,17 +115,13 @@ export function GameNewsEditor({
             : "Préparez votre annonce à votre rythme. Un brouillon n’apparaît ni sur l’accueil ni dans le jeu."}
         </p>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-bold text-[#315B3E]">Rubrique
+        <div className="mt-5">
+          <label className="block text-xs font-bold text-[#315B3E]">Rubrique
             <input name="category" value={draft.category} onChange={(event) => update("category", event.target.value)} list={`${editorId}-categories`} maxLength={60} disabled={pending} className={fieldClass} />
             <datalist id={`${editorId}-categories`}><option value="Nouveauté" /><option value="Mise à jour" /><option value="Événement" /><option value="Communauté" /><option value="Maintenance" /></datalist>
           </label>
-          <label className="text-xs font-bold text-[#315B3E]">Illustration
-            <select name="image_path" value={draft.image_path} onChange={(event) => update("image_path", event.target.value)} disabled={pending} className={fieldClass}>
-              {GAME_NEWS_IMAGES.map((image) => <option key={image.path} value={image.path}>{image.label}</option>)}
-            </select>
-          </label>
         </div>
+        <GameNewsIllustrationPicker value={draft.image_path} alt={draft.image_alt} disabled={pending} onChange={(path) => update("image_path", path)} onBusyChange={setImageUploading} />
         <label className="mt-4 block text-xs font-bold text-[#315B3E]">Description de l’illustration · accessibilité
           <input name="image_alt" value={draft.image_alt} onChange={(event) => update("image_alt", event.target.value)} maxLength={180} disabled={pending} className={fieldClass} />
         </label>
@@ -178,8 +177,8 @@ export function GameNewsEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" aria-expanded={showPreview} aria-controls={`${editorId}-preview`} onClick={() => setShowPreview((previous) => !previous)} className="rounded-xl border border-[#C7D8CE] px-4 py-2.5 text-sm font-bold text-[#315B3E] hover:bg-[#EFF5F1]">{showPreview ? "Masquer l’aperçu" : "Prévisualiser"}</button>
         <div className="flex flex-wrap gap-2">
-          <button type="submit" name="intent" value="save_draft" formNoValidate disabled={pending} className="rounded-xl border border-[#C7D8CE] bg-white px-4 py-2.5 text-sm font-bold text-[#315B3E] hover:bg-[#EFF5F1] disabled:opacity-50">Enregistrer le brouillon</button>
-          <button type="submit" name="intent" value="publish" disabled={pending} className="rounded-xl bg-[#183F37] px-5 py-2.5 text-sm font-black text-white hover:bg-[#315B3E] disabled:opacity-50">{pending ? "Enregistrement…" : "Publier"}</button>
+          <button type="submit" name="intent" value="save_draft" formNoValidate disabled={pending || imageUploading} className="rounded-xl border border-[#C7D8CE] bg-white px-4 py-2.5 text-sm font-bold text-[#315B3E] hover:bg-[#EFF5F1] disabled:opacity-50">Enregistrer le brouillon</button>
+          <button type="submit" name="intent" value="publish" disabled={pending || imageUploading} className="rounded-xl bg-[#183F37] px-5 py-2.5 text-sm font-black text-white hover:bg-[#315B3E] disabled:opacity-50">{pending ? "Enregistrement…" : "Publier"}</button>
         </div>
       </div>
 
@@ -190,6 +189,7 @@ export function GameNewsEditor({
 
       <section id={`${editorId}-preview`} hidden={!showPreview} aria-label="Aperçu de l’actualité" className="rounded-2xl border border-[#D8E3DE] bg-[#FBFCFA] p-5 sm:p-7">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#A66F3D]">Aperçu · {language === "fr" ? "Français" : "English"}</p>
+        {draft.image_path ? <div className="relative mt-4 h-48 overflow-hidden rounded-xl bg-[#0B302B] sm:h-72"><Image src={draft.image_path} alt={draft.image_alt} unoptimized={draft.image_path.startsWith(GAME_NEWS_IMAGE_PREFIX)} fill sizes="(max-width:768px) 100vw, 1000px" className="object-cover" /></div> : null}
         <h3 className="mt-3 break-words text-2xl font-black text-[#183F37]">{activeTitle || "Le titre de votre actualité"}</h3>
         <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-[#60756E]">{activeSummary}</p>
         <div className="mt-5"><GameNewsBody body={activeBody} connected /></div>
