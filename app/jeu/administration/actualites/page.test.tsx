@@ -13,7 +13,7 @@ vi.mock("@/components/game/back-to-office-link",()=>({BackToOfficeLink:()=>null}
 vi.mock("@/components/game/game-news-editor",()=>({GameNewsEditor:(props:unknown)=>{mocks.editor(props);return <div>Éditeur de nouveauté</div>;}}));
 vi.mock("@/components/game/game-staff-management",()=>({GameStaffManagement:(props:unknown)=>{mocks.management(props);return <div>Gestion des membres habilités</div>;}}));
 vi.mock("@/components/ui/app-link",()=>({default:({children,...props}:{children:ReactNode})=><a {...props}>{children}</a>}));
-vi.mock("./actions",()=>({saveGameNewsAction:vi.fn(),searchGameStaffAction:vi.fn(),setGameStaffRoleAction:vi.fn()}));
+vi.mock("./actions",()=>({saveGameNewsAction:vi.fn()}));
 import Page from "./page";
 const article={id:"news-id",draft:{title:"Un titre de brouillon"},published:null,publishedAt:null,updatedAt:"2026-10-22",revision:4,hasUnpublishedChanges:true};
 beforeEach(()=>{
@@ -74,9 +74,13 @@ describe("protected in-game news editor page",()=>{
     }));
     expect(mocks.editor).not.toHaveBeenCalledWith(expect.objectContaining({newDraftId:invalidId}));
   });
-  it("shows member delegation to the owner only",async()=>{
-    mocks.role.mockResolvedValue("owner");const html=await render();expect(html).toContain("Gestion des membres habilités");
-    expect(mocks.members).toHaveBeenCalledOnce();expect(mocks.management).toHaveBeenCalledOnce();
+  it("keeps the news editor free of role management even for the founder",async()=>{
+    mocks.role.mockResolvedValue("owner");const html=await render();
+    expect(html).toContain("Gérer les actualités");expect(html).toContain("Éditeur de nouveauté");
+    expect(html).not.toContain("Gestion des membres habilités");
+    expect(mocks.members).not.toHaveBeenCalled();expect(mocks.management).not.toHaveBeenCalled();
+    expect(mocks.articles).toHaveBeenCalledOnce();
+    expect(mocks.editor).toHaveBeenCalledWith(expect.objectContaining({initialArticle:null}));
   });
   it("does not silently create a new article for an unknown selected id",async()=>{
     await expect(render("unknown-id")).rejects.toThrow("not-found");expect(mocks.editor).not.toHaveBeenCalled();

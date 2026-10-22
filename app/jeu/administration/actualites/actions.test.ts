@@ -1,25 +1,23 @@
 import {beforeEach,describe,expect,it,vi} from "vitest";
-import type {GameNewsEditorState,GameStaffActionState} from "@/lib/game/game-product-news";
-const mocks=vi.hoisted(()=>({client:vi.fn(),auth:vi.fn(),role:vi.fn(),rpc:vi.fn(),tag:vi.fn(),path:vi.fn(),members:vi.fn()}));
+import type {GameNewsEditorState} from "@/lib/game/game-product-news";
+const mocks=vi.hoisted(()=>({client:vi.fn(),auth:vi.fn(),role:vi.fn(),rpc:vi.fn(),tag:vi.fn(),path:vi.fn()}));
 vi.mock("next/cache",()=>({updateTag:mocks.tag,revalidatePath:mocks.path}));
 vi.mock("@/lib/supabase/server",()=>({createSupabaseServerClient:mocks.client}));
 vi.mock("@/lib/supabase/authenticated-user",()=>({getAuthenticatedUser:mocks.auth}));
 vi.mock("@/services/game-staff-access",()=>({getCurrentGameStaffRole:mocks.role}));
-vi.mock("@/services/game-product-news",()=>({getGameStaffMembers:mocks.members,toGameNewsEditorArticle:(row:Record<string,unknown>)=>({id:row.id,draft:row.draft,published:row.published,publishedAt:row.published_at,updatedAt:row.updated_at,revision:row.revision,hasUnpublishedChanges:row.has_unpublished_changes})}));
-import {saveGameNewsAction,searchGameStaffAction,setGameStaffRoleAction} from "./actions";
+vi.mock("@/services/game-product-news",()=>({toGameNewsEditorArticle:(row:Record<string,unknown>)=>({id:row.id,draft:row.draft,published:row.published,publishedAt:row.published_at,updatedAt:row.updated_at,revision:row.revision,hasUnpublishedChanges:row.has_unpublished_changes})}));
+import {saveGameNewsAction} from "./actions";
 
 const id="00000000-0000-4000-8000-000000000100";
 const userId="00000000-0000-4000-8000-000000000200";
 const document={title:"Une nouveauté du jeu",category:"Nouveauté",summary:"Un résumé suffisamment détaillé.",body:"Un texte complet pour annoncer la nouveauté."};
 const row={id,draft:document,published:null,published_at:null,updated_at:"2026-10-22T10:00:00Z",revision:1,has_unpublished_changes:true};
 const initial:GameNewsEditorState={status:"idle",message:null};
-const initialStaff:GameStaffActionState={status:"idle",message:null};
 function form(overrides:Partial<Record<string,string>>={}){const data=new FormData();for(const [key,value] of Object.entries({...document,id:"",revision:"0",intent:"save_draft",...overrides}))if(typeof value==="string")data.set(key,value);return data;}
-function staffForm(values:Record<string,string>){const data=new FormData();for(const [key,value] of Object.entries(values))data.set(key,value);return data;}
 beforeEach(()=>{
   vi.clearAllMocks();mocks.client.mockResolvedValue({rpc:mocks.rpc});
   mocks.auth.mockResolvedValue({data:{user:{id:userId,email:"member@example.invalid"}},error:null});
-  mocks.role.mockResolvedValue("game_staff");mocks.rpc.mockResolvedValue({data:[row],error:null});mocks.members.mockResolvedValue([]);
+  mocks.role.mockResolvedValue("game_staff");mocks.rpc.mockResolvedValue({data:[row],error:null});
 });
 
 describe("news mutation authorisation",()=>{
@@ -109,46 +107,5 @@ describe("draft and publication workflow",()=>{
     const result=await saveGameNewsAction(initial,form({intent:"publish"}));
     expect(result.status).toBe("error");expect(result.article).toMatchObject({id,revision:1});expect(mocks.tag).not.toHaveBeenCalled();
     log.mockRestore();
-  });
-});
-
-describe("owner-only staff management",()=>{
-  it.each([null,"game_staff"])("rejects assignment and candidate search for role %s",async role=>{
-    mocks.role.mockResolvedValue(role);
-    expect((await setGameStaffRoleAction(initialStaff,staffForm({user_id:userId,enabled:"true"}))).status).toBe("error");
-    expect((await searchGameStaffAction(initialStaff,staffForm({query:"membre"}))).status).toBe("error");expect(mocks.rpc).not.toHaveBeenCalled();
-  });
-  it("searches only names, with bounded query and result size",async()=>{
-    mocks.role.mockResolvedValue("owner");mocks.rpc.mockResolvedValue({data:[{user_id:userId,director_id:id,display_name:"Membre",username:"member"}],error:null});
-    const result=await searchGameStaffAction(initialStaff,staffForm({query:"  mem  "}));
-    expect(result).toMatchObject({status:"success",candidates:[{userId,directorId:id,displayName:"Membre",username:"member"}]});
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("search_game_staff_candidates",{p_query:"mem",p_limit:10});
-    expect(mocks.tag).not.toHaveBeenCalled();
-  });
-  it.each(["a","x".repeat(61)])("rejects invalid staff search length",async query=>{
-    mocks.role.mockResolvedValue("owner");expect((await searchGameStaffAction(initialStaff,staffForm({query}))).status).toBe("error");expect(mocks.rpc).not.toHaveBeenCalled();
-  });
-  it.each(["true","false"])("changes staff access only, then invalidates presentation badges: %s",async enabled=>{
-    mocks.role.mockResolvedValue("owner");mocks.members.mockResolvedValue([{userId,directorId:id,displayName:"Membre",role:"game_staff"}]);
-    const result=await setGameStaffRoleAction(initialStaff,staffForm({user_id:userId,enabled}));
-    expect(result.status).toBe("success");expect(result.members).toHaveLength(1);
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("set_game_staff_role",{p_auth_user_id:userId,p_enabled:enabled==="true"});
-    expect(mocks.tag).toHaveBeenCalledExactlyOnceWith("game-staff-directory");
-    expect(mocks.tag).not.toHaveBeenCalledWith("game-product-news");
-  });
-  it.each([{user_id:"bad",enabled:"true"},{user_id:userId,enabled:"owner"}])("rejects forged role fields: %j",async values=>{
-    mocks.role.mockResolvedValue("owner");expect((await setGameStaffRoleAction(initialStaff,staffForm(values))).status).toBe("error");expect(mocks.rpc).not.toHaveBeenCalled();
-  });
-  it("does not claim success or clear caches when SQL rejects a role change",async()=>{
-    mocks.role.mockResolvedValue("owner");mocks.rpc.mockResolvedValue({data:null,error:{code:"42501"}});
-    expect((await setGameStaffRoleAction(initialStaff,staffForm({user_id:userId,enabled:"true"}))).status).toBe("error");expect(mocks.tag).not.toHaveBeenCalled();
-  });
-  it("does not deny a confirmed role change when only the refreshed member list fails",async()=>{
-    mocks.role.mockResolvedValue("owner");mocks.members.mockRejectedValue(new Error("list temporarily unavailable"));
-    const result=await setGameStaffRoleAction(initialStaff,staffForm({user_id:userId,enabled:"true"}));
-    expect(result.status).toBe("success");
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("set_game_staff_role",{p_auth_user_id:userId,p_enabled:true});
-    expect(mocks.tag).toHaveBeenCalledExactlyOnceWith("game-staff-directory");
-    expect(result.message).not.toContain("n’a pas pu être modifié");
   });
 });

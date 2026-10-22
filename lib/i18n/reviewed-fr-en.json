@@ -1,4 +1,8 @@
 {
+  "Fondateur": "Founder",
+  "Gérer les admins": "Manage game admins",
+  "Nominations et accès réservés au Fondateur": "Appointments and access reserved for the founder",
+  "Les nominations et retraits d’accès sont réservés au compte fondateur Zocoto. Les admins disposent des outils du jeu, mais ne peuvent pas gérer les rôles.": "Appointments and access removals are restricted to the founder account Zocoto. Admins have access to game tools but cannot manage roles.",
   "Ignorer cette alerte de naturalisation": "Ignore this naturalisation alert",
   "· Ancienneté requise atteinte": "· Required tenure reached",
   "Naturalisations possibles": "Available naturalisations",

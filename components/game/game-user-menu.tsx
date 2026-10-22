@@ -172,6 +172,13 @@ export function GameUserMenu({
             <UserMenuLink href="/jeu/administration/actualites" label={isEnglish ? "Manage game news" : "Gérer les actualités"} description={isEnglish ? "Draft, publish and update announcements" : "Rédigez, publiez et modifiez les annonces"} icon={<GuideIcon />} />
           </> : null}
 
+          {gameStaffRole === "owner" ? <UserMenuLink
+            href="/jeu/administration/equipe"
+            label={isEnglish ? "Manage game admins" : "Gérer les admins"}
+            description={isEnglish ? "Appointments and access reserved for the founder" : "Nominations et accès réservés au Fondateur"}
+            icon={<UserSilhouetteIcon className="h-5 w-5" />}
+          /> : null}
+
           <UserMenuLink href="/jeu/nouveautes" label={isEnglish ? "Game news" : "Actualités du jeu"} description={isEnglish ? "Read the latest updates without leaving the game" : "Les nouveautés sans quitter votre partie"} icon={<GuideIcon />} />
 
           <PushNotificationControl variant="menu" isEnglish={isEnglish} />
