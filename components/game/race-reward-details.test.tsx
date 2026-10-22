@@ -21,6 +21,23 @@ function buildEdition(
 }
 
 describe("RaceRewardDetails", () => {
+  it.each(["Jeux quadriennaux · Course en ligne", "Jeux quadriennaux · Contre-la-montre"])("affiche les primes des clubs et de la fédération pour %s", (name) => {
+    const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={4} edition={buildEdition({ name, competitionType: "nations_cup", raceFormat: "one_day", stages: [] })} />);
+    expect(markup).toContain("500\u202f000 €");
+    expect(markup).toContain("300\u202f000 €");
+    expect(markup).toContain("200\u202f000 €");
+    expect(markup).toContain("41e et suivants");
+    expect(markup).toContain("Fédération du vainqueur");
+    expect(markup).toContain("versée une seule fois");
+    expect(markup).not.toContain("XP");
+    expect(markup).not.toContain("Chaque étape");
+  });
+  it("ne change pas les dotations de la Coupe des nations ordinaire", () => {
+    const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={4} edition={buildEdition({ name: "Coupe des nations · Vallons", competitionType: "nations_cup", raceFormat: "one_day", stages: [] })} />);
+    expect(markup).toContain("12\u202f000 €");
+    expect(markup).not.toContain("500\u202f000 €");
+    expect(markup).not.toContain("Fédération du vainqueur");
+  });
   it("reprend le bareme complet d'un grand tour Elite", () => {
     const markup = renderToStaticMarkup(
       <RaceRewardDetails edition={buildEdition()} gameYear={3} />

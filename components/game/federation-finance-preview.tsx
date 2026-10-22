@@ -398,6 +398,7 @@ function formatCategory(category: string) {
   const labels: Record<string, string> = {
     opening_grant: "Dotation",
     race_revenue: "Course",
+    quadrennial_prize: "Jeux quadriennaux",
     objective_bonus: "Objectif",
     donation: "Don",
     solidarity: "Solidarité",

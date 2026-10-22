@@ -63,7 +63,20 @@ describe("GameUserMenu", () => {
     expect(markup).not.toContain('href="/jeu/export-pcm"');
     expect(markup).not.toContain('href="/jeu/simulateur-course"');
     expect(markup).not.toContain('href="/jeu/administration/actualites"');
+    expect(markup).not.toContain('href="/jeu/administration/equipe"');
     expect(markup).not.toContain('data-game-staff-badge="true"');
+  });
+
+  it.each([null, "game_staff", "owner"] as const)("réserve la gestion des admins au rôle Fondateur, pas au nom ni à l’e-mail : %s", (role) => {
+    indicators.role = role;
+    const markup = renderToStaticMarkup(<GameUserMenu displayName="Zocoto" viewerEmail="paul.leblanc22@gmail.com" />);
+    if (role === "owner") {
+      expect(markup).toContain('href="/jeu/administration/equipe"');
+      expect(markup).toContain("Gérer les admins");
+      expect(markup).toContain("Nominations et accès réservés au Fondateur");
+    } else {
+      expect(markup).not.toContain('href="/jeu/administration/equipe"');
+    }
   });
 
   it("conserve le dialogue accessible et scrollable sur petit écran", () => {

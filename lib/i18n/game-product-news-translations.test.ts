@@ -9,6 +9,8 @@ describe("game news and staff translations", () => {
     ["Gérer les actualités", "Manage game news"],
     ["Actualités du jeu", "Game news"],
     ["Brouillon privé", "Private draft"],
+    ["Importer une illustration", "Upload an illustration"],
+    ["Choisir dans la galerie générique", "Choose from the generic gallery"],
     ["Publiée · modifications en brouillon", "Published · draft changes"],
     ["Brouillon enregistré. La version publiée reste inchangée.", "Draft saved. The published version is unchanged."],
     ["Actualité publiée sur l’accueil et dans le jeu.", "Post published on the homepage and in the game."],

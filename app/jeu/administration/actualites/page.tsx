@@ -5,13 +5,12 @@ import Link from "@/components/ui/app-link";
 import { GameHeader } from "@/components/game/game-header";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameNewsEditor } from "@/components/game/game-news-editor";
-import { GameStaffManagement } from "@/components/game/game-staff-management";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentGameStaffRole } from "@/services/game-staff-access";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getGameNewsEditorArticles, getGameStaffMembers } from "@/services/game-product-news";
-import { saveGameNewsAction, searchGameStaffAction, setGameStaffRoleAction } from "./actions";
+import { getGameNewsEditorArticles } from "@/services/game-product-news";
+import { saveGameNewsAction } from "./actions";
 
 export const metadata: Metadata = { title: "Gestion des actualités" };
 export default async function GameNewsAdministration({ searchParams }: { searchParams: Promise<{ id?: string; nouvelle?: string }> }) {
@@ -20,9 +19,9 @@ export default async function GameNewsAdministration({ searchParams }: { searchP
   if (error || !user) redirect("/connexion");
   const role = await getCurrentGameStaffRole(supabase);
   if (!role) notFound();
-  const [header, articles, members, query] = await Promise.all([
+  const [header, articles, query] = await Promise.all([
     getGameHeaderData(supabase, user.id), getGameNewsEditorArticles(supabase),
-    role === "owner" ? getGameStaffMembers(supabase) : Promise.resolve([]), searchParams,
+    searchParams,
   ]);
   const selected = query.id ? articles.find((article) => article.id === query.id) : null;
   if (query.id && !selected) notFound();
@@ -47,7 +46,6 @@ export default async function GameNewsAdministration({ searchParams }: { searchP
         </aside>
         <GameNewsEditor key={selected?.id ?? creationKey} initialArticle={selected ?? null} newDraftId={newDraftId} action={saveGameNewsAction} />
       </div>
-      {role === "owner" ? <div className="mt-8"><GameStaffManagement members={members} searchAction={searchGameStaffAction} roleAction={setGameStaffRoleAction} /></div> : null}
     </section>
   </main>;
 }

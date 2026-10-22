@@ -58,6 +58,8 @@ import type { StageEquipmentSnapshot } from "@/lib/game/race-stage-equipment";
 import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { shouldRewardTeamTimeTrialByTeam } from "@/lib/game/team-time-trial-rewards";
+import { isQuadrennialGamesEdition } from "@/lib/game/quadrennial-games";
+import { hasClassifiedGamesRiders } from "@/lib/game/quadrennial-games-rewards";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   chunkValues,
@@ -1711,6 +1713,7 @@ async function persistRaceClassification({
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const nowIso = new Date().toISOString();
+  const isGamesEdition = isQuadrennialGamesEdition(edition);
   const rows = general.map((result) => ({
     race_edition_id: edition.id,
     race_roster_id: requireRoster(rosterByRiderId, result.riderId).rosterId,
@@ -1773,6 +1776,9 @@ async function persistRaceClassification({
   }
 
   for (const result of general) {
+    // National registrations have no club team_season_id. The dedicated,
+    // atomic Games settlement resolves clubs from the selection snapshots.
+    if (isGamesEdition) continue;
     const mountainPrimesWon = countPrimeWins(
       simulations,
       result.riderId,
@@ -1884,6 +1890,15 @@ async function persistRaceClassification({
       },
     );
     assertQuery(rewardError, `les gains de ${result.riderName}`);
+  }
+
+  // An all-DNF field still closes normally; no winner means no cash to settle.
+  if (isGamesEdition && hasClassifiedGamesRiders(general)) {
+    const { error: gamesRewardError } = await admin.rpc(
+      "settle_quadrennial_games_cash_prizes",
+      { p_race_edition_id: edition.id },
+    );
+    assertQuery(gamesRewardError, `les primes des Jeux de ${edition.name}`);
   }
 
   // Les récompenses ordinaires sont appliquées une à une de façon
