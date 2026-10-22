@@ -18358,5 +18358,15 @@
   "Vérifiez le titre (5–160 caractères), la catégorie, le résumé (10–500), le texte (10–30 000) et les liens.": "Check the title (5–160 characters), category, summary (10–500), body (10–30,000) and links.",
   "Version de nouveauté obsolète.": "The news post version is out of date.",
   "Votre texte est conservé dans cet éditeur. Comparez-le à la dernière version avant de reprendre la modification ; ne rechargez pas sans le copier.": "Your text is preserved in this editor. Compare it with the latest version before editing again; copy it before reloading.",
-  "Votre version publiée reste visible pendant les modifications. Seul le bouton Publier mettra à jour l’actualité pour les joueurs.": "Your published version stays visible while you edit. Only the Publish button updates the post for players."
+  "Votre version publiée reste visible pendant les modifications. Seul le bouton Publier mettra à jour l’actualité pour les joueurs.": "Your published version stays visible while you edit. Only the Publish button updates the post for players.",
+  "Importer une illustration": "Upload an illustration",
+  "Retirer l’illustration": "Remove illustration",
+  "Choisir dans la galerie générique": "Choose from the generic gallery",
+  "Galerie d’illustrations": "Illustration gallery",
+  "PNG, JPEG ou WebP · 2 Mo maximum. L’image est optimisée sans être déformée.": "PNG, JPEG or WebP · Maximum 2 MB. The image is optimized without distortion.",
+  "Import de l’illustration…": "Uploading illustration…",
+  "Illustration importée. Enregistrez le brouillon ou publiez pour l’utiliser.": "Illustration uploaded. Save the draft or publish to use it.",
+  "L’illustration n’a pas pu être importée. Réessayez.": "The illustration could not be uploaded. Please try again.",
+  "L’import de l’illustration n’a pas été confirmé. Réessayez.": "The illustration upload could not be confirmed. Please try again.",
+  "Formats acceptés : PNG, JPEG et WebP (images fixes). Maximum 2 Mo.": "Accepted formats: PNG, JPEG and WebP (still images). Maximum 2 MB."
 }

@@ -22,7 +22,11 @@ describe("GameNewsEditor", () => {
     expect(html).toContain('formNoValidate=""');
     expect(html).toMatch(/<button[^>]+value="publish"[^>]+name="intent"/);
     expect(html).toContain('name="revision" value="0"');
-    expect(html).not.toContain('type="file"');
+    expect(html).toContain('type="file"');
+    expect(html).toContain('accept="image/png,image/jpeg,image/webp"');
+    expect(html).not.toMatch(/<select[^>]+name="image_path"/);
+    expect(text(html)).toContain("Choisir dans la galerie générique");
+    expect(html).not.toContain("halloween-2026-gameplay");
   });
 
   it("reuses a server-generated draft identifier before the first successful save", () => {
@@ -61,6 +65,13 @@ describe("GameNewsEditor", () => {
     const html = renderToStaticMarkup(<GameNewsEditor initialArticle={{ ...article, draft: { ...article.draft, title: '<script>alert("title")</script>', body: '<script>alert("body")</script>' } }} action={action} />);
     expect(html).not.toContain('<script>alert("');
     expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("preserves an existing event illustration even though it is no longer suggested", () => {
+    const image_path = "/images/announcements/halloween-2026-gameplay.png";
+    const html = renderToStaticMarkup(<GameNewsEditor initialArticle={{ ...article, draft: { ...article.draft, image_path } }} action={action} />);
+    expect(html).toContain(`name="image_path" value="${image_path}"`);
+    expect(html).toContain("Retirer l’illustration");
   });
 
   it("has no autosave, polling or browser storage of draft content", () => {

@@ -56,10 +56,7 @@ export const EMPTY_GAME_NEWS_DOCUMENT: GameNewsDocument = {
   summary_en: "", body_en: "", image_path: "", image_alt: "", link_url: "", link_label: "",
 };
 export const GAME_NEWS_IMAGES = [
-  { path: "", label: "Sans illustration" },
   { path: "/images/peloton-header.webp", label: "Le peloton" },
-  { path: "/images/announcements/saison-3-federations.webp", label: "Les fédérations" },
-  { path: "/images/announcements/halloween-2026-gameplay.png", label: "Halloween" },
   { path: "/images/infrastructure/training-center.webp", label: "Les infrastructures" },
   { path: "/images/game-workspace-escape.webp", label: "La route" },
 ] as const;
