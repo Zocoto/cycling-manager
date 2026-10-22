@@ -1,4 +1,6 @@
 .page { min-height:100vh; background:#0B0D10; color:#EAE4D7; color-scheme:dark; }
+/* Keep the gala canvas opaque inside the shared game workspace. */
+.page[data-gala-s4-page] { background:#0B0D10; }
 .shell { max-width:1320px; margin:auto; padding:24px 28px 40px; }
 .privateBar { display:flex; justify-content:space-between; gap:16px; align-items:center; font-size:11px; color:#A7A394; margin-bottom:20px; }
 .privateBar > span { border:1px solid #665735; padding:6px 10px; border-radius:999px; color:#E3C77C; }
