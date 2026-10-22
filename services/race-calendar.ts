@@ -1,4 +1,6 @@
 import "server-only";
+import { parseQuadrennialChampionshipType } from "@/lib/game/quadrennial-games";
+import { getActiveQuadrennialChampionshipTitlesByDisciplineForRiders, type ActiveQuadrennialChampionshipTitlesByDiscipline } from "@/services/rider-quadrennial-championship-titles";
 import { isPerformancePreparationType, type PerformancePreparationType } from "@/lib/game/performance-preparation";
 
 import { unstable_cache } from "next/cache";
@@ -1213,6 +1215,7 @@ export async function getActiveSeasonRaceCalendar(
     riderCountryRows,
     specialAbilitiesByRiderId,
     worldChampionshipTitlesByRiderId,
+    quadrennialChampionshipTitlesByRiderId,
   } = riderContext;
   const [
     raceStaffEffects,
@@ -1761,6 +1764,7 @@ export async function getActiveSeasonRaceCalendar(
     new Map(riderCountryRows.map((rider) => [rider.id, rider])),
     countryById,
     worldChampionshipTitlesByRiderId,
+    quadrennialChampionshipTitlesByRiderId,
     continentalChampionshipTitlesByRiderId,
     nationalInternationalEditionIds,
     nationalJerseyDesignByCountryId,
@@ -3150,6 +3154,7 @@ function groupCalendarEngagedRiders(
     string,
     ActiveWorldChampionshipTitlesByDiscipline
   >,
+  quadrennialChampionshipTitlesByRiderId: Map<string, ActiveQuadrennialChampionshipTitlesByDiscipline>,
   continentalChampionshipTitlesByRiderId: Map<
     string,
     ActiveContinentalChampionshipTitlesByDiscipline
@@ -3341,6 +3346,7 @@ function groupCalendarEngagedRiders(
       avatarSeed: riderMetadata?.avatar_seed ?? null,
       nationalChampionships,
       worldChampionships,
+      quadrennialChampionships: quadrennialChampionshipTitlesByRiderId.get(row.rider_id),
       continentalChampionships,
       age: Number(row.age),
       form: Number(row.form),
@@ -3811,6 +3817,7 @@ async function loadRaceCalendarRiderContext({
     riderCountriesResult,
     nationalChampionshipTitlesByRiderId,
     worldChampionshipTitlesByRiderId,
+    quadrennialChampionshipTitlesByRiderId,
     continentalChampionshipTitlesByRiderId,
     performancePreparationsResult,
   ] = await Promise.all([
@@ -3868,6 +3875,10 @@ async function loadRaceCalendarRiderContext({
         error,
       );
       return new Map<string, ActiveWorldChampionshipTitlesByDiscipline>();
+    }),
+    getActiveQuadrennialChampionshipTitlesByDisciplineForRiders(supabase, riderIds).catch((error: unknown) => {
+      console.error("Maillots des Jeux indisponibles :", error);
+      return new Map<string, ActiveQuadrennialChampionshipTitlesByDiscipline>();
     }),
     getActiveContinentalChampionshipTitlesByDisciplineForRiders(
       supabase,
@@ -3928,6 +3939,7 @@ async function loadRaceCalendarRiderContext({
     performancePreparationRows: performancePreparationsResult.data,
     nationalChampionshipTitlesByRiderId,
     worldChampionshipTitlesByRiderId,
+    quadrennialChampionshipTitlesByRiderId,
     continentalChampionshipTitlesByRiderId,
   };
 }
@@ -3984,6 +3996,7 @@ function createEmptyRaceCalendarRiderContext() {
       string,
       ActiveWorldChampionshipTitlesByDiscipline
     >(),
+    quadrennialChampionshipTitlesByRiderId: new Map<string, ActiveQuadrennialChampionshipTitlesByDiscipline>(),
     continentalChampionshipTitlesByRiderId: new Map<
       string,
       ActiveContinentalChampionshipTitlesByDiscipline
@@ -4125,6 +4138,13 @@ function addChampionshipTitleToContext(
     return;
   }
 
+  const gamesDiscipline = parseQuadrennialChampionshipType(title.championship_type);
+  if (gamesDiscipline) {
+    const titles = context.quadrennialChampionshipTitlesByRiderId.get(title.rider_id) ?? {};
+    titles[gamesDiscipline] = { riderId: title.rider_id, championshipType: gamesDiscipline };
+    context.quadrennialChampionshipTitlesByRiderId.set(title.rider_id, titles);
+    return;
+  }
   const continental = parseContinentalChampionshipTitleType(
     title.championship_type,
   );
