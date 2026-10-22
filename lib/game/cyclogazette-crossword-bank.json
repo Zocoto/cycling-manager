@@ -1,0 +1,5518 @@
+{
+  "firstIssue": 98,
+  "templates": [
+    {
+      "rows": [
+        "BRIS#CLUB",
+        "RARE##I#L",
+        "O#ANTENNE",
+        "UT#SANG#S",
+        "I#D###E#S",
+        "L#EMOI#SU",
+        "LIBERTE#R",
+        "O#U##ERRE",
+        "NOTE#MEUS"
+      ]
+    },
+    {
+      "rows": [
+        "C#V#SOU##",
+        "AGIR#U#UN",
+        "C#DEPENSE",
+        "HUE#US#IN",
+        "ATRE#TENU",
+        "LI#NA#CEP",
+        "OLIVIER#H",
+        "TE#I#SOYA",
+        "##FEE#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "V#MA#CES#",
+        "IRA##H#ET",
+        "CERISES#R",
+        "TIEN#MI#A",
+        "ON#SOI#LI",
+        "I#UT#SEIN",
+        "R#NAVETTE",
+        "EN#N##USA",
+        "#EST#PI#U"
+      ]
+    },
+    {
+      "rows": [
+        "AMAS#DEJA",
+        "DORT##T#U",
+        "M#COMPACT",
+        "IL#PAIN#R",
+        "R#A###G#E",
+        "A#CHOC#CM",
+        "BRIOCHE#E",
+        "L#D##ELAN",
+        "EPEE#FUIT"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SPA##",
+        "OPUS#I#RE",
+        "M#MACARON",
+        "AGE#AN#UT",
+        "REEL#OSER",
+        "IN#IL#ETA",
+        "NOUVEAU#I",
+        "SU#R#SIED",
+        "##YEN#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "AVRIL##US",
+        "NAIN#C##P",
+        "IN#CHANCE",
+        "M#NE#MARC",
+        "AN#N#E#UT",
+        "TEND#LU#A",
+        "ETOILE#OC",
+        "U##E#OEIL",
+        "RA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "R#VA#BOA#",
+        "OLE##R#HA",
+        "MINERAL#P",
+        "ARTS#NA#P",
+        "RE#SAC#MA",
+        "I#TE#HIER",
+        "N#ANTENNE",
+        "SA#C##FUI",
+        "#SUE#HO#L"
+      ]
+    },
+    {
+      "rows": [
+        "A#R#USE##",
+        "NUES#U#ES",
+        "T#CADENCE",
+        "ICI#OU#OR",
+        "DATE#ROLE",
+        "ON#CA#BEN",
+        "TOURNEE#I",
+        "EN#I#TILT",
+        "##OTE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "R#PA#ARE#",
+        "ELU##B#HA",
+        "MACARON#C",
+        "AMEN#RU#Q",
+        "RE#NID#BU",
+        "Q#CE#ELLE",
+        "U#MADRIER",
+        "EU#U##OUI",
+        "#SIX#AN#R"
+      ]
+    },
+    {
+      "rows": [
+        "FAON#CLUB",
+        "AILE##E#I",
+        "N#ARRIVEE",
+        "TA#FINE#N",
+        "A#A###R#V",
+        "I#ISSU#ME",
+        "SEMAINE#N",
+        "I#E##ECRU",
+        "EURO#SUEE"
+      ]
+    },
+    {
+      "rows": [
+        "C#D#ILE##",
+        "OIES#A#TA",
+        "M#LEOPARD",
+        "MAT#SI#AH",
+        "ETAL#NOCE",
+        "NO#IF#DES",
+        "CUISINE#I",
+        "ET#T#EURO",
+        "##FER#R#N"
+      ]
+    },
+    {
+      "rows": [
+        "J#LU#TRI#",
+        "AMI##E#FA",
+        "LEOPARD#C",
+        "ORNE#RU#Q",
+        "US#TUA#BU",
+        "S#OR#IVRE",
+        "I#HONNEUR",
+        "EH#L##UNI",
+        "#AIE#UT#R"
+      ]
+    },
+    {
+      "rows": [
+        "AMAS#SAUF",
+        "RARE##P#E",
+        "D#CRENEAU",
+        "OH#FUIR#I",
+        "I#E###O#L",
+        "S#SERA#IL",
+        "INSTANT#E",
+        "E#A##SENT",
+        "RAID#ELUS"
+      ]
+    },
+    {
+      "rows": [
+        "H#E#BRU##",
+        "URNE#E#ME",
+        "M#GUICHET",
+        "ICI#FI#TU",
+        "DONS#TARD",
+        "IL#ET#LOI",
+        "TILLEUL#A",
+        "ES#L#SEIN",
+        "##REZ#R#T"
+      ]
+    },
+    {
+      "rows": [
+        "HERON##DA",
+        "AMER#B##M",
+        "RU#NUANCE",
+        "M#ME#REEL",
+        "OC#M#R#PI",
+        "NAGE#IL#O",
+        "IRONIE#OR",
+        "C##T#ROUE",
+        "AH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "A#BU#MOU#",
+        "DRU##A#SA",
+        "DOSSARD#D",
+        "IDEE#ME#H",
+        "TE#COI#JE",
+        "I#MO#TOUR",
+        "O#AUBERGE",
+        "NO#R##BEN",
+        "#RUS#HE#T"
+      ]
+    },
+    {
+      "rows": [
+        "PERI#BOUM",
+        "ETAT##U#I",
+        "R#SECTEUR",
+        "RI#MIES#A",
+        "O#V###T#B",
+        "Q#IDEE#CE",
+        "URGENCE#L",
+        "E#N##HALL",
+        "TUES#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "I#D#TAS##",
+        "MIES#F#ME",
+        "P#SIFFLET",
+        "EPI#AU#TU",
+        "RIRA#TORD",
+        "IN#VA#COI",
+        "ACTRICE#A",
+        "LE#I#MAIN",
+        "##CLE#N#T"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#TROP#",
+        "#SA#U#GRE",
+        "#SOLAIRE#",
+        "AINE#MES#",
+        "HE#V#A#EU",
+        "#THE#GENT",
+        "#TORRENT#",
+        "RET#U#TE#",
+        "#SECS#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "M#UN#JET#",
+        "AIS##O#UT",
+        "GOELAND#R",
+        "IDEE#GO#A",
+        "CE#CIL#MI",
+        "I#ET#ELAN",
+        "E#SERRURE",
+        "NI#U##RIA",
+        "#FAR#DE#U"
+      ]
+    },
+    {
+      "rows": [
+        "FONT#SERF",
+        "OSER##T#L",
+        "R#FORMULE",
+        "MI#PIED#U",
+        "A#U###E#R",
+        "T#SECS#NI",
+        "EDITEUR#S",
+        "U#N##COUT",
+        "RIEN#SITE"
+      ]
+    },
+    {
+      "rows": [
+        "S#F#CHU##",
+        "ELLE#E#AI",
+        "R#ENCREUR",
+        "ECU#MO#DO",
+        "NORD#NAIN",
+        "IL#EH#LOI",
+        "TILLEUL#Q",
+        "ES#A#TENU",
+        "##FIE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "CANON##OS",
+        "AMER#C##P",
+        "CI#NUANCE",
+        "H#JE#MARC",
+        "AS#M#E#UT",
+        "LURE#LA#A",
+        "ORANGE#OC",
+        "T##T#OEIL",
+        "SE##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "N#FI#BIO#",
+        "AMI##O#CA",
+        "GOELAND#C",
+        "EURO#HA#Q",
+        "OS#SUE#PU",
+        "I#TA#USEE",
+        "R#ENCREUR",
+        "EH#G##CRI",
+        "#OHE#AS#R"
+      ]
+    },
+    {
+      "rows": [
+        "BEAU#PAIR",
+        "OURS##V#A",
+        "U#CERTAIN",
+        "LU#RIEN#D",
+        "A#F###T#O",
+        "N#LACS#ON",
+        "GRENIER#N",
+        "E#U##RACE",
+        "RIRE#AIME"
+      ]
+    },
+    {
+      "rows": [
+        "O#E#TAC##",
+        "RANG#M#UN",
+        "I#VOLONTE",
+        "GAI#AU#IN",
+        "ITEM#RELU",
+        "NO#AN#CEP",
+        "AMATEUR#H",
+        "LE#I#SOYA",
+        "##ONT#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "C#VU#RAM#",
+        "ARE##E#IF",
+        "VENTOUX#A",
+        "ALTO#NI#U",
+        "LU#ROI#ET",
+        "I#OR#ORGE",
+        "E#CERNEAU",
+        "RA#N##PLI",
+        "#NET#MU#L"
+      ]
+    },
+    {
+      "rows": [
+        "EXIL#STAR",
+        "MIRE##R#A",
+        "B#ENTRAIN",
+        "AI#TEAM#D",
+        "R#V###E#O",
+        "Q#AMIE#ON",
+        "URGENCE#N",
+        "E#U##HALE",
+        "REEL#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "A#V#ODE##",
+        "COIN#E#FA",
+        "H#DOSSARD",
+        "ETE#AI#EH",
+        "TIRE#ROLE",
+        "ET#VU#DES",
+        "URGENCE#I",
+        "RE#I#AUTO",
+        "##PLU#R#N"
+      ]
+    },
+    {
+      "rows": [
+        "DINE#STAR",
+        "ILOT##A#A",
+        "N#MAGASIN",
+        "OU#TOUS#D",
+        "S#D###E#O",
+        "A#EMUE#ON",
+        "URGENCE#N",
+        "R#A##HALE",
+        "ENTE#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SPA##",
+        "OEUF#I#RE",
+        "M#MACARON",
+        "AGE#AN#UT",
+        "REEL#OSER",
+        "IN#IL#ETA",
+        "NOUVEAU#I",
+        "SU#R#SIED",
+        "##HEM#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "CANE#BLOC",
+        "OUED##A#A",
+        "N#FICHIER",
+        "FI#TIEN#R",
+        "I#T###E#O",
+        "A#ILOT#DU",
+        "NATUREL#S",
+        "C#R##LUNE",
+        "EPEE#EXIL"
+      ]
+    },
+    {
+      "rows": [
+        "S#B#MON##",
+        "EXIL#U#PA",
+        "R#JAVELOT",
+        "EGO#US#ET",
+        "NEUF#TOME",
+        "IN#OU#BEN",
+        "TOURNEE#D",
+        "EU#M#NIER",
+        "##ZEN#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "CREME##OR",
+        "AUTO#C##A",
+        "ME#EXAMEN",
+        "P#IL#MORD",
+        "AI#L#E#GO",
+        "GRUE#LE#N",
+        "NATURE#ON",
+        "E##X#ORNE",
+        "SI##UNITE"
+      ]
+    },
+    {
+      "rows": [
+        "BLOC#PEUR",
+        "OEIL##C#A",
+        "U#TORCHON",
+        "SU#SEME#D",
+        "S#D###C#O",
+        "O#EMOI#ON",
+        "LUCARNE#N",
+        "E#O##FACE",
+        "SERF#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "A#R#OFF##",
+        "REEL#L#ES",
+        "D#SILENCE",
+        "EST#AU#OR",
+        "NUES#ROLE",
+        "NI#TU#BEN",
+        "ETRANGE#I",
+        "SE#D#OINT",
+        "##SET#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "A#FI#SPA#",
+        "DRU##E#HA",
+        "DOSSARD#D",
+        "IDEE#VU#H",
+        "TE#CRI#JE",
+        "I#MO#COUR",
+        "O#AUBERGE",
+        "NU#R##BEN",
+        "#SES#CE#T"
+      ]
+    },
+    {
+      "rows": [
+        "CLOS#TALC",
+        "HELE##L#A",
+        "A#ENFILER",
+        "MU#SALE#R",
+        "P#E###R#O",
+        "A#CRUE#PU",
+        "GALETTE#S",
+        "N#A##RUDE",
+        "ENTE#ETAL"
+      ]
+    },
+    {
+      "rows": [
+        "L#N#ECU##",
+        "UNES#H#AN",
+        "N#VIDANGE",
+        "ETE#AI#IN",
+        "TRUC#RELU",
+        "TA#HE#CEP",
+        "ECOUTER#H",
+        "SE#T#SOYA",
+        "##LES#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "TENTE##PA",
+        "OSER#B##M",
+        "UT#ALARME",
+        "R#MI#RAIL",
+        "NA#N#R#XI",
+        "EMUE#IF#O",
+        "VISAGE#OR",
+        "I##U#ROUE",
+        "SA##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "O#EU#CHU#",
+        "REG##A#NA",
+        "PLAFOND#D",
+        "HALO#TU#H",
+        "EN#RAI#TE",
+        "L#CM#NOIR",
+        "I#AUBERGE",
+        "NO#L##BEN",
+        "#UNE#DE#T"
+      ]
+    },
+    {
+      "rows": [
+        "CHEF#PARC",
+        "HATE##S#A",
+        "A#ARROSER",
+        "NO#SURE#R",
+        "D#S###Z#O",
+        "E#ENTE#NU",
+        "LUMIERE#S",
+        "L#E##RUSE",
+        "ECRU#ETAL"
+      ]
+    },
+    {
+      "rows": [
+        "L#D#OFF##",
+        "USER#L#ES",
+        "N#SILENCE",
+        "EPI#EU#OR",
+        "TORD#ROLE",
+        "TU#IF#BEN",
+        "ELEVAGE#I",
+        "SE#A#OINT",
+        "##UNI#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "COLS#EPIS",
+        "HUIT##H#P",
+        "E#SURFACE",
+        "RI#CUIR#C",
+        "C#E###E#T",
+        "H#TROT#DA",
+        "EQUERRE#C",
+        "U#D##ORAL",
+        "RIEN#PENE"
+      ]
+    },
+    {
+      "rows": [
+        "V#C#IFS##",
+        "AVAL#R#AH",
+        "C#RECOLTE",
+        "ART#MI#OR",
+        "NEES#DEMI",
+        "CI#EH#CET",
+        "ENCREUR#A",
+        "SE#R#SANG",
+        "##BEC#N#E"
+      ]
+    },
+    {
+      "rows": [
+        "H#GO#SKI#",
+        "AIR##C#FA",
+        "BOURDON#C",
+        "IDEE#OU#Q",
+        "TE#SET#TU",
+        "U#AS#ERRE",
+        "D#HORREUR",
+        "EH#R##ICI",
+        "#OUT#EN#R"
+      ]
+    },
+    {
+      "rows": [
+        "METS#GALA",
+        "ETAT##D#U",
+        "N#CAMPING",
+        "US#ROUE#M",
+        "I#Z###U#E",
+        "S#EMOI#IN",
+        "INSENSE#T",
+        "E#T##SURE",
+        "REEL#USER"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#OST##",
+        "OEUF#E#OR",
+        "M#MICROBE",
+        "AGE#MI#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##NEZ#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "MIEN#LOIR",
+        "ALTO##A#A",
+        "R#ARTISAN",
+        "CE#DEFI#D",
+        "H#W###S#O",
+        "E#AMIE#EN",
+        "URGENCE#N",
+        "R#O##RUDE",
+        "SONS#USEE"
+      ]
+    },
+    {
+      "rows": [
+        "A#N#IFS##",
+        "RIEN#R#AS",
+        "D#VOLONTE",
+        "ERE#AI#OR",
+        "NOUS#DOME",
+        "NU#TA#BEN",
+        "ETRANGE#I",
+        "SE#D#OINT",
+        "##GEL#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "POIL#AVEC",
+        "AURA##I#A",
+        "R#ABANDON",
+        "TA#OUIE#A",
+        "I#R###R#L",
+        "T#ETAI#PI",
+        "INSENSE#S",
+        "O#T##SURE",
+        "NOEL#USER"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SPA##",
+        "OPUS#O#OR",
+        "M#MICROBE",
+        "AGE#ET#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##FER#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "ONT#SAUF#",
+        "#AU#U#NOM",
+        "#TERRAIN#",
+        "MUSE#CET#",
+        "OR#P#I#AH",
+        "#ETA#EPIE",
+        "#LISERON#",
+        "BLE#T#SE#",
+        "#ENTE#EST"
+      ]
+    },
+    {
+      "rows": [
+        "STOP#SALI",
+        "YETI##V#N",
+        "M#ANGLAIS",
+        "PA#SOIN#T",
+        "H#L###T#R",
+        "O#ELUS#MU",
+        "NAVETTE#I",
+        "I#E##AGIR",
+        "ETRE#ROLE"
+      ]
+    },
+    {
+      "rows": [
+        "P#E#MAX##",
+        "ROTI#M#EN",
+        "E#ANNONCE",
+        "SVP#AU#ON",
+        "SIED#RELU",
+        "IL#US#CEP",
+        "OLIVIER#H",
+        "NE#E#SOYA",
+        "##OTE#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "ECOLE##LA",
+        "NOUE#B##M",
+        "VU#NUANCE",
+        "E#UT#REEL",
+        "LI#I#R#PI",
+        "ORAL#IF#O",
+        "PAILLE#OR",
+        "P##E#ROUE",
+        "EH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "ELLE#OPUS",
+        "MIEL##R#E",
+        "B#SABLIER",
+        "AS#NUES#V",
+        "L#O###E#I",
+        "L#PINS#JE",
+        "ATELIER#T",
+        "G#R##LAIT",
+        "ETAL#FINE"
+      ]
+    },
+    {
+      "rows": [
+        "C#D#PAL##",
+        "AMEN#G#AS",
+        "C#BELETTE",
+        "HOU#UN#OR",
+        "APTE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##UNI#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "CLOS#VONT",
+        "AILE##U#E",
+        "V#ACCUEIL",
+        "AU#SANS#E",
+        "L#T###T#P",
+        "I#RANG#OH",
+        "EVASION#O",
+        "R#I##LIEN",
+        "ENTE#FETE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#ICI##",
+        "OEUF#A#OR",
+        "M#MICROBE",
+        "AGE#ET#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##FEU#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "PENTE##VA",
+        "AMER#B##M",
+        "NU#ORANGE",
+        "T#TU#RAIL",
+        "OU#P#R#NI",
+        "UNIE#IF#O",
+        "FINALE#OR",
+        "L##U#ROUE",
+        "EH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "F#IF#PRO#",
+        "LAS##L#CA",
+        "OISEAUX#R",
+        "TRUC#MI#D",
+        "TE#HAI#RE",
+        "A#DA#ELAN",
+        "N#ENTRAIN",
+        "TU#G##CLE",
+        "#NIE#OS#S"
+      ]
+    },
+    {
+      "rows": [
+        "TROC#STUC",
+        "RUDE##E#H",
+        "A#ENFANCE",
+        "VU#SAUT#V",
+        "E#C###E#A",
+        "R#APTE#IL",
+        "SOCIETE#I",
+        "E#A##ARME",
+        "EMOI#LEUR"
+      ]
+    },
+    {
+      "rows": [
+        "C#D#BAC##",
+        "AMEN#G#AS",
+        "C#BELETTE",
+        "HOU#AN#OR",
+        "APTE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##UNE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "O#EH#FIA#",
+        "REG##O#HA",
+        "PLACARD#P",
+        "HALO#MO#P",
+        "EN#MOU#RA",
+        "L#CI#LOIR",
+        "I#EQUERRE",
+        "NO#U##BAI",
+        "#NUE#JE#L"
+      ]
+    },
+    {
+      "rows": [
+        "AUTO#CLUB",
+        "ETAI##U#O",
+        "R#CERNEAU",
+        "OH#SEAU#L",
+        "D#E###R#A",
+        "R#NOMS#ON",
+        "OUVRIER#G",
+        "M#O##IODE",
+        "ELLE#NIER"
+      ]
+    },
+    {
+      "rows": [
+        "S#L#AMI##",
+        "ETUI#A#AI",
+        "R#ENCREUR",
+        "ECU#MI#DO",
+        "NORD#NAIN",
+        "IL#EH#LOI",
+        "TILLEUL#Q",
+        "ES#T#SEAU",
+        "##NAN#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "M#UN#MON#",
+        "AIS##O#ET",
+        "GOELAND#R",
+        "IDEE#SE#A",
+        "CE#CET#FI",
+        "I#UT#REIN",
+        "E#SEMELLE",
+        "NO#U##USA",
+        "#COR#OS#U"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#ECU##",
+        "OPUS#O#OR",
+        "M#MICROBE",
+        "AGE#AN#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##JEU#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "C#MU#DUC#",
+        "HUE##O#MA",
+        "ANNEAUX#P",
+        "SIEN#CI#P",
+        "SE#CLE#SA",
+        "E#OR#USER",
+        "U#SERRURE",
+        "RI#U##RAI",
+        "#FER#HE#L"
+      ]
+    },
+    {
+      "rows": [
+        "MOUS#BANC",
+        "ORNE##N#R",
+        "U#INSENSE",
+        "VA#SITE#V",
+        "E#E###E#A",
+        "M#NAIN#PI",
+        "ENFILER#S",
+        "N#E##EURO",
+        "TORE#SEIN"
+      ]
+    },
+    {
+      "rows": [
+        "S#S#MET##",
+        "ETUI#C#AI",
+        "R#ENCREUR",
+        "ECU#MA#DO",
+        "NORD#NAIN",
+        "IL#EN#LOI",
+        "TILLEUL#Q",
+        "ES#T#SEAU",
+        "##BAT#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "CLOU#LEUR",
+        "OINS##T#A",
+        "N#TERRAIN",
+        "FI#REIN#D",
+        "I#B###G#O",
+        "T#AMIE#ON",
+        "URGENCE#N",
+        "R#U##RUSE",
+        "EPEE#USEE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SKI##",
+        "OEUF#O#RA",
+        "M#MACARON",
+        "AGE#IL#UN",
+        "REEL#AVEU",
+        "IN#EH#OTA",
+        "NOUVEAU#I",
+        "SU#E#STAR",
+        "##DRU#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "R#NI#HIE#",
+        "ERE##O#NA",
+        "GOELAND#C",
+        "ISSU#NU#Q",
+        "SE#CLE#PU",
+        "T#AI#USEE",
+        "R#HORREUR",
+        "ES#L##CRI",
+        "#ANE#AS#R"
+      ]
+    },
+    {
+      "rows": [
+        "PRES#EPIS",
+        "RUSE##O#P",
+        "I#TURBINE",
+        "NU#LEUR#C",
+        "T#A###E#T",
+        "E#NULS#HA",
+        "MONNAIE#C",
+        "P#E##EGAL",
+        "SIED#NOUE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#EPI##",
+        "OPUS#I#RE",
+        "M#MACARON",
+        "AGE#EN#UT",
+        "REEL#OSER",
+        "IN#ES#ETA",
+        "NOUVEAU#I",
+        "SU#E#SIED",
+        "##BRU#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "J#LU#TIC#",
+        "AMI##E#MA",
+        "LEOPARD#C",
+        "ORNE#RU#Q",
+        "US#TUA#BU",
+        "S#OR#IVRE",
+        "I#HONNEUR",
+        "EH#L##UNI",
+        "#OSE#ET#R"
+      ]
+    },
+    {
+      "rows": [
+        "C#D#MAL##",
+        "AVEC#G#AS",
+        "C#BELETTE",
+        "HOU#UN#OR",
+        "APTE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ANE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "BAIN#CLUB",
+        "AILE##U#U",
+        "N#SERPENT",
+        "DO#SEAU#I",
+        "E#E###R#N",
+        "R#NOMS#JE",
+        "OUVRIER#U",
+        "L#I##MARS",
+        "EPEE#EMUE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SKI##",
+        "OEUF#O#RA",
+        "M#MACARON",
+        "AGE#IL#UN",
+        "REEL#AVEU",
+        "IN#EN#OTA",
+        "NOUVEAU#I",
+        "SU#E#STAR",
+        "##ERG#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "BETON##OS",
+        "AMER#C##P",
+        "RU#NUANCE",
+        "O#JE#MARC",
+        "ME#M#E#UT",
+        "ETRE#LU#A",
+        "TEINTE#OC",
+        "R##T#OEIL",
+        "EU##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "C#F#TOI##",
+        "AILE#U#AS",
+        "C#ENTENTE",
+        "HOU#ES#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##UNE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "V#AU#ROC#",
+        "AMI##E#IF",
+        "CISEAUX#A",
+        "AMEN#NI#U",
+        "NE#CRI#ET",
+        "C#OR#ORGE",
+        "E#CERNEAU",
+        "SU#U##PLI",
+        "#TIR#VU#L"
+      ]
+    },
+    {
+      "rows": [
+        "AVIS#CAMP",
+        "MURE##I#A",
+        "O#ALLUMER",
+        "UN#FUSE#T",
+        "R#A###R#I",
+        "E#IDEE#OC",
+        "URGENCE#U",
+        "S#L##HALL",
+        "EPEE#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "C#O#LAC##",
+        "AIDE#G#AS",
+        "C#ENTENTE",
+        "HOU#UN#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ANE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "VOUS#AMAS",
+        "ACNE##O#P",
+        "I#INSENSE",
+        "NU#TEND#C",
+        "Q#E###E#T",
+        "U#TROT#PA",
+        "EQUERRE#C",
+        "U#D##ORAL",
+        "RIEN#PENE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#ICI##",
+        "OEUF#O#OR",
+        "M#MICROBE",
+        "AGE#AN#EU",
+        "REEL#EPIS",
+        "IN#EH#ORS",
+        "NOUVEAU#I",
+        "SU#E#ILOT",
+        "##GRE#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "CRAN#CAMP",
+        "HURE##P#O",
+        "A#CRENEAU",
+        "MU#FUIR#R",
+        "P#O###O#S",
+        "I#LACS#PU",
+        "OPINION#I",
+        "N#V##LUIT",
+        "SUEE#ELLE"
+      ]
+    },
+    {
+      "rows": [
+        "P#M#ICI##",
+        "RIEN#O#AH",
+        "E#REALITE",
+        "SAC#SI#OR",
+        "EDIT#SEMI",
+        "NI#OU#SET",
+        "CERISES#A",
+        "EU#L#SANG",
+        "##VET#I#E"
+      ]
+    },
+    {
+      "rows": [
+        "C#FA#MIL#",
+        "AGE##O#IF",
+        "PERDRIX#A",
+        "ANSE#SI#U",
+        "CE#SES#ET",
+        "I#OS#ORGE",
+        "T#CERNEAU",
+        "ES#R##PLI",
+        "#EUT#DU#L"
+      ]
+    },
+    {
+      "rows": [
+        "EXIL#OPUS",
+        "CIRE##E#P",
+        "L#ENFANCE",
+        "AH#TANT#C",
+        "I#E###E#T",
+        "R#CROC#VA",
+        "ABRICOT#C",
+        "G#I##MIEL",
+        "ENTE#ACTE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SKI##",
+        "OEUF#O#RA",
+        "M#MACARON",
+        "AGE#IL#UN",
+        "REEL#AVEU",
+        "IN#EH#OTA",
+        "NOUVEAU#I",
+        "SU#E#STAR",
+        "##ERG#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "SALON##OS",
+        "AGIR#C##P",
+        "TE#NUANCE",
+        "E#JE#MARC",
+        "LA#M#E#UT",
+        "LIME#LU#A",
+        "IRONIE#OC",
+        "T##T#OEIL",
+        "EH##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "P#M#EGO##",
+        "RIEN#E#RE",
+        "E#REUNION",
+        "SAC#NO#UT",
+        "EDIT#USER",
+        "NI#OH#ETA",
+        "CERNEAU#I",
+        "EU#N#SIED",
+        "##PEU#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "A#SI#SUE#",
+        "RAT##E#HA",
+        "PLACARD#V",
+        "ETRE#VA#I",
+        "NO#LUI#FA",
+        "T#IL#CUIT",
+        "E#FINESSE",
+        "RU#E##ECU",
+        "#TIR#JE#R"
+      ]
+    },
+    {
+      "rows": [
+        "CUIT#CHOC",
+        "ATRE##I#A",
+        "P#ENLEVER",
+        "US#DINE#R",
+        "C#T###R#O",
+        "I#ILOT#PU",
+        "NATUREL#S",
+        "E#R##LUNE",
+        "SIEN#ETAL"
+      ]
+    },
+    {
+      "rows": [
+        "P#M#ICI##",
+        "OUED#O#AH",
+        "U#REALITE",
+        "BAC#SI#OR",
+        "EDIT#SEMI",
+        "LI#OH#CET",
+        "LECTEUR#A",
+        "EU#A#SANG",
+        "##ALE#N#E"
+      ]
+    },
+    {
+      "rows": [
+        "O#ES#CLE#",
+        "RET##A#HA",
+        "PLAFOND#P",
+        "HALO#TA#P",
+        "EN#UNI#VA",
+        "L#IL#NIER",
+        "I#FAIENCE",
+        "NU#R##FUI",
+        "#SUD#DO#L"
+      ]
+    },
+    {
+      "rows": [
+        "AOUT#CHOC",
+        "URNE##I#E",
+        "T#ENLEVER",
+        "OH#DINE#T",
+        "M#R###R#I",
+        "A#OINS#ET",
+        "TABLIER#U",
+        "E#O##RAID",
+        "SITE#AINE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#USE##",
+        "OPUS#E#OR",
+        "M#MICROBE",
+        "AGE#MI#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##BEL#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "ENTE#PORC",
+        "SUIT##G#R",
+        "P#CADENCE",
+        "ES#LOTO#V",
+        "R#T###N#A",
+        "A#ILOT#FI",
+        "NATUREL#S",
+        "C#R##AUTO",
+        "EPEE#MIEN"
+      ]
+    },
+    {
+      "rows": [
+        "C#O#BAH##",
+        "AIDE#G#AS",
+        "C#ENTENTE",
+        "HOU#UN#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##UNE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "J#LA#CLE#",
+        "AMI##E#SA",
+        "LEOPARD#C",
+        "ORNE#TU#Q",
+        "US#TUA#BU",
+        "S#OR#IVRE",
+        "I#HONNEUR",
+        "EH#L##UNI",
+        "#ODE#ET#R"
+      ]
+    },
+    {
+      "rows": [
+        "AVEC#PORC",
+        "CURE##U#A",
+        "C#EDITEUR",
+        "OU#ELUS#R",
+        "R#A###T#O",
+        "D#PLUS#MU",
+        "APPETIT#S",
+        "G#U##TORE",
+        "EPIE#ETAL"
+      ]
+    },
+    {
+      "rows": [
+        "C#D#YAK##",
+        "AMEN#G#AS",
+        "C#BELETTE",
+        "HOU#AN#OR",
+        "APTE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##UNE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "O#ES#CLE#",
+        "REG##A#HA",
+        "PLAFOND#P",
+        "HALO#TU#P",
+        "EN#UNI#VA",
+        "L#IL#NIER",
+        "I#FAIENCE",
+        "NU#R##FUI",
+        "#NID#HO#L"
+      ]
+    },
+    {
+      "rows": [
+        "C#D#ICI##",
+        "AMER#H#AS",
+        "C#BASALTE",
+        "HOU#AN#OR",
+        "APTE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ANE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "J#LA#PRO#",
+        "AMI##O#CA",
+        "LEOPARD#P",
+        "ORNE#TU#P",
+        "US#LIE#RA",
+        "S#VU#USER",
+        "I#ACTRICE",
+        "EU#H##LUI",
+        "#NUE#GO#L"
+      ]
+    },
+    {
+      "rows": [
+        "C#O#TAU##",
+        "AIDE#G#AS",
+        "C#ENTENTE",
+        "HOU#UN#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ONT#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "A#BU#TON#",
+        "DRU##E#OC",
+        "DOSSARD#H",
+        "IDEE#RE#A",
+        "TE#COI#AS",
+        "I#OH#ELUS",
+        "O#SOURIRE",
+        "NI#I##TAU",
+        "#FER#ES#R"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#EPI##",
+        "OPUS#I#RE",
+        "M#MACARON",
+        "AGE#AN#UT",
+        "REEL#OSER",
+        "IN#IL#ETA",
+        "NOUVEAU#I",
+        "SU#R#SIED",
+        "##GEL#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "M#UN#BAC#",
+        "AIS##O#MA",
+        "GOELAND#P",
+        "IDEE#HO#P",
+        "CE#CLE#SA",
+        "I#ET#USER",
+        "E#SERRURE",
+        "NO#U##RAI",
+        "#CAR#DE#L"
+      ]
+    },
+    {
+      "rows": [
+        "AMEN#PARC",
+        "FETE##S#A",
+        "F#ARROSER",
+        "IF#FACE#R",
+        "C#A###Z#O",
+        "H#PINS#BU",
+        "EXPLOIT#S",
+        "U#L##LUXE",
+        "ROIS#OEIL"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#EPI##",
+        "OEUF#I#RE",
+        "M#MACARON",
+        "AGE#AN#UT",
+        "REEL#OSER",
+        "IN#IL#ETA",
+        "NOUVEAU#I",
+        "SU#R#SIED",
+        "##HEM#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "APERO##CM",
+        "LOTO#M##E",
+        "LU#MOULIN",
+        "U#DA#RELU",
+        "ME#R#A#SI",
+        "EMOI#IF#S",
+        "TUNNEL#CI",
+        "T##S#LURE",
+        "EH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "CIEL#PARC",
+        "ANGE##C#A",
+        "P#OUVRIER",
+        "AH#RAID#A",
+        "C#S###E#P",
+        "I#CLUB#PA",
+        "THEATRE#C",
+        "E#N##URNE",
+        "SUEE#NEES"
+      ]
+    },
+    {
+      "rows": [
+        "I#N#ICI##",
+        "LIEN#H#AN",
+        "L#VIDANGE",
+        "USE#AI#IN",
+        "SEUL#RELU",
+        "IL#IF#CEP",
+        "OLIVIER#H",
+        "NE#R#SOYA",
+        "##TEL#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "C#PU#SOC#",
+        "ARE##P#MA",
+        "PERDRIX#V",
+        "UNIE#RI#I",
+        "CE#FIA#FA",
+        "I#AI#LUIT",
+        "N#SAGESSE",
+        "EU#N##ECU",
+        "#NET#OR#R"
+      ]
+    },
+    {
+      "rows": [
+        "CLES#TALC",
+        "AUGE##C#A",
+        "T#OUVRIER",
+        "AU#LAIE#R",
+        "L#P###R#O",
+        "O#ILOT#VU",
+        "GENERAL#S",
+        "U#C##PUCE",
+        "EPEE#EXIL"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SPA##",
+        "OPUS#I#RE",
+        "M#MACARON",
+        "AGE#AN#UT",
+        "REEL#OSER",
+        "IN#IL#ETA",
+        "NOUVEAU#I",
+        "SU#R#SIED",
+        "##VET#L#E"
+      ]
+    },
+    {
+      "rows": [
+        "V#A#PAN##",
+        "AIDE#G#UN",
+        "C#INSENSE",
+        "ARE#AN#IN",
+        "NEUF#TENU",
+        "CI#OH#CEP",
+        "ENCREUR#H",
+        "SE#M#SOYA",
+        "##YEN#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "A#FA#TOP#",
+        "DRU##A#IF",
+        "DOSSARD#L",
+        "IDEE#TA#A",
+        "TE#MAI#EN",
+        "I#CA#NOTE",
+        "O#MINERAL",
+        "NU#N##NIL",
+        "#NUE#JE#E"
+      ]
+    },
+    {
+      "rows": [
+        "FOUR#TROC",
+        "RUSE##A#E",
+        "O#ENVOYER",
+        "NU#EURO#T",
+        "T#E###N#I",
+        "I#CLUB#ET",
+        "ECOUTER#U",
+        "R#L##TARD",
+        "EPEE#EMUE"
+      ]
+    },
+    {
+      "rows": [
+        "P#M#GLU##",
+        "OUED#U#EN",
+        "U#ROSETTE",
+        "BAC#AU#AN",
+        "EDIT#REPU",
+        "LI#OH#CEP",
+        "LECTEUR#H",
+        "EU#A#SOYA",
+        "##ALE#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "SACRE##VA",
+        "AIME#B##M",
+        "US#GRANGE",
+        "V#PI#RAIL",
+        "ES#S#R#NI",
+        "TEST#IF#O",
+        "ALARME#OR",
+        "G##E#ROUE",
+        "EH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#CAMP#",
+        "#AN#O#ERE",
+        "#RIVIERE#",
+        "MARI#TES#",
+        "OC#L#A#EU",
+        "#TEL#GANT",
+        "#ELEMENT#",
+        "IRA#I#SE#",
+        "#ENTE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "COUT#TALC",
+        "ACNE##U#H",
+        "L#ETENDUE",
+        "IF#ETUI#R",
+        "B#E###O#C",
+        "R#VIFS#OH",
+        "ATELIER#E",
+        "G#I##RECU",
+        "ELLE#AGIR"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#SPA##",
+        "OEUF#O#OR",
+        "M#MICROBE",
+        "AGE#ET#EU",
+        "REEL#EPIS",
+        "IN#EH#ORS",
+        "NOUVEAU#I",
+        "SU#E#ILOT",
+        "##PRE#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "RAM#SERA#",
+        "#PI#U#EMU",
+        "#PENDULE#",
+        "ELLE#NUL#",
+        "HA#V#I#IL",
+        "#USE#TROU",
+        "#DOULEUR#",
+        "FIL#I#SE#",
+        "#REVE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "N#FA#AXE#",
+        "AMI##N#HA",
+        "GOELAND#D",
+        "EURO#OU#H",
+        "OS#GIN#RE",
+        "I#MI#CUIR",
+        "R#EQUERRE",
+        "ES#U##NAN",
+        "#ILE#JE#T"
+      ]
+    },
+    {
+      "rows": [
+        "CROC#STAR",
+        "AISE##R#A",
+        "M#ENTRAIN",
+        "OU#TEAM#D",
+        "M#U###E#O",
+        "I#TEST#ON",
+        "LAITIER#N",
+        "L#L##TAPE",
+        "EPEE#EMUE"
+      ]
+    },
+    {
+      "rows": [
+        "C#O#MAS##",
+        "AIDE#G#AS",
+        "C#ENTENTE",
+        "HOU#UN#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ANE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "CAMP#PEUR",
+        "UNIR##T#A",
+        "R#TERRAIN",
+        "IF#TIEN#D",
+        "O#V###G#O",
+        "S#EURO#ON",
+        "INSTANT#N",
+        "T#T##CONE",
+        "EPEE#EPIE"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#ICI##",
+        "OEUF#O#OR",
+        "M#MICROBE",
+        "AGE#EN#EU",
+        "REEL#EPIS",
+        "IN#EH#ORS",
+        "NOUVEAU#I",
+        "SU#E#ILOT",
+        "##ART#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "F#IF#PUE#",
+        "LAS##L#HA",
+        "OISEAUX#C",
+        "TRUC#MI#H",
+        "TE#LOI#HE",
+        "A#AI#ETAT",
+        "N#SPIRALE",
+        "TU#S##PLU",
+        "#SUE#JE#R"
+      ]
+    },
+    {
+      "rows": [
+        "BAIN#CLUB",
+        "AILE##U#U",
+        "L#SERPENT",
+        "LA#SEAU#I",
+        "E#V###R#N",
+        "R#EMOI#DE",
+        "INSENSE#U",
+        "N#T##SUCS",
+        "EPEE#USEE"
+      ]
+    },
+    {
+      "rows": [
+        "C#F#CAS##",
+        "AILE#G#AS",
+        "C#ENTENTE",
+        "HOU#UN#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ANE#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "ACIDE##DA",
+        "VOLE#B##M",
+        "AU#SEANCE",
+        "L#OC#RAIL",
+        "AH#E#R#LI",
+        "NAIN#IF#O",
+        "CINTRE#OR",
+        "H##E#ROUE",
+        "ES##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "M#IF#MAX#",
+        "EST##A#IL",
+        "ICEBERG#O",
+        "LIME#MO#G",
+        "LE#ROI#SE",
+        "E#OC#TEAM",
+        "U#SEMELLE",
+        "RU#A##LIN",
+        "#SOU#DE#T"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#EPI##",
+        "OPUS#O#OR",
+        "M#MICROBE",
+        "AGE#ET#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##WEB#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "A#SU#BRU#",
+        "RAT##E#TA",
+        "PLACARD#P",
+        "ETRE#LU#P",
+        "NO#LUI#PA",
+        "T#IL#NIER",
+        "E#FINESSE",
+        "RU#E##SOI",
+        "#SUR#VU#L"
+      ]
+    },
+    {
+      "rows": [
+        "CRIN#CLUB",
+        "AILE##U#U",
+        "P#SERPENT",
+        "IF#SEAU#I",
+        "T#Z###R#N",
+        "A#EMOI#DE",
+        "INSENSE#U",
+        "N#T##SUCS",
+        "EPEE#USEE"
+      ]
+    },
+    {
+      "rows": [
+        "P#D#OSE##",
+        "OIES#U#EN",
+        "S#SILENCE",
+        "ICI#AU#ON",
+        "TORD#RELU",
+        "IL#UN#CEP",
+        "OLIVIER#H",
+        "NE#E#SOYA",
+        "##OTE#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "CARTE##OS",
+        "AGIR#C##P",
+        "SE#ORANGE",
+        "S#PU#MARC",
+        "ES#P#E#ET",
+        "ROUE#LA#A",
+        "OCTAVE#OC",
+        "L##U#OEIL",
+        "EH##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "R#SU#BLE#",
+        "ARE##O#HE",
+        "CAMPING#N",
+        "ORAL#HO#C",
+        "NE#AIE#PI",
+        "T#UN#URNE",
+        "E#TERRIER",
+        "RU#T##DUR",
+        "#SUE#JE#O"
+      ]
+    },
+    {
+      "rows": [
+        "PLAN#OPUS",
+        "EURO##O#C",
+        "R#CERNEAU",
+        "MU#LAIT#L",
+        "E#A###E#P",
+        "T#VEAU#UT",
+        "TARTINE#E",
+        "R#I##ISSU",
+        "ELLE#STAR"
+      ]
+    },
+    {
+      "rows": [
+        "M#A#VAS##",
+        "AGIR#G#SE",
+        "R#GENERAL",
+        "TEL#ON#LE",
+        "ITEM#TALC",
+        "NU#AH#VET",
+        "EDITEUR#I",
+        "TE#I#SILO",
+        "##UNE#L#N"
+      ]
+    },
+    {
+      "rows": [
+        "E#C#ROT##",
+        "MARE#D#UN",
+        "I#ENTENTE",
+        "SVP#AU#IN",
+        "SIEN#RELU",
+        "IL#AN#CEP",
+        "OLIVIER#H",
+        "NE#E#SOYA",
+        "##ETE#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "FERS#TALC",
+        "ETAI##V#A",
+        "R#TERRAIN",
+        "MU#NAIN#A",
+        "E#D###T#L",
+        "T#EMUE#PI",
+        "URGENCE#S",
+        "R#A##RUSE",
+        "ENTE#USER"
+      ]
+    },
+    {
+      "rows": [
+        "P#G#GLU##",
+        "ROUE#U#UN",
+        "E#ENTENTE",
+        "SVP#AU#IN",
+        "SIEN#RELU",
+        "IL#AN#CEP",
+        "OLIVIER#H",
+        "NE#E#SOYA",
+        "##OTA#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "A#SI#MOI#",
+        "RAT##A#FA",
+        "PLACARD#D",
+        "ETRE#MO#H",
+        "NO#ROI#RE",
+        "T#IN#TOUR",
+        "E#LEGENDE",
+        "RA#A##ZEN",
+        "#SOU#JE#T"
+      ]
+    },
+    {
+      "rows": [
+        "AMER#CROC",
+        "RATE##A#A",
+        "G#ENVOYER",
+        "EU#EURO#R",
+        "N#E###N#O",
+        "T#SEVE#BU",
+        "INSTANT#S",
+        "N#A##TORE",
+        "EXIL#ETAL"
+      ]
+    },
+    {
+      "rows": [
+        "C#O#ZOO##",
+        "AIDE#U#AS",
+        "C#ENTENTE",
+        "HOU#ES#OR",
+        "APRE#TOME",
+        "LE#NA#BEN",
+        "ORIGINE#I",
+        "TA#I#OINT",
+        "##ONT#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "CRIN#CLUB",
+        "AILE##U#U",
+        "M#SERPENT",
+        "ES#SEAU#I",
+        "L#E###R#N",
+        "E#NOCE#JE",
+        "OUVRAGE#U",
+        "N#O##AMAS",
+        "SOLE#LUNE"
+      ]
+    },
+    {
+      "rows": [
+        "L#V#ECU##",
+        "UNIR#H#AS",
+        "N#DEFAITE",
+        "ERE#AN#OR",
+        "TORT#TOME",
+        "TU#RU#BEN",
+        "ETRANGE#I",
+        "SE#I#OINT",
+        "##OTA#R#E"
+      ]
+    },
+    {
+      "rows": [
+        "J#LA#MAX#",
+        "AMI##A#IL",
+        "LEOPARD#O",
+        "ORNE#MO#G",
+        "US#LUI#SE",
+        "S#MU#TEAM",
+        "I#ECHELLE",
+        "EU#H##LIN",
+        "#THE#JE#T"
+      ]
+    },
+    {
+      "rows": [
+        "ENTE#PAIR",
+        "MIEL##C#A",
+        "B#LAMPION",
+        "AH#NOUE#D",
+        "R#D###R#O",
+        "Q#IDEE#ON",
+        "URGENCE#N",
+        "E#U##HALE",
+        "RIEN#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "A#D#ODE##",
+        "RIEN#E#TA",
+        "D#LEOPARD",
+        "ETA#HO#AH",
+        "NAIF#TOME",
+        "NU#LA#DES",
+        "EPREUVE#I",
+        "SE#U#AUTO",
+        "##PRE#R#N"
+      ]
+    },
+    {
+      "rows": [
+        "VUES#PEUR",
+        "ETUI##C#A",
+        "S#TERRAIN",
+        "TU#NIER#D",
+        "I#E###T#O",
+        "A#SEVE#ON",
+        "INSTANT#N",
+        "R#A##TOME",
+        "EXIL#EPIE"
+      ]
+    },
+    {
+      "rows": [
+        "V#A#COL##",
+        "AIDE#U#UN",
+        "C#INSENSE",
+        "ARE#AS#IN",
+        "NEUF#TENU",
+        "CI#OH#CEP",
+        "ENCREUR#H",
+        "SE#E#SOYA",
+        "##OTE#U#R"
+      ]
+    },
+    {
+      "rows": [
+        "SOUS#CHIC",
+        "INNE##I#A",
+        "G#ENLEVER",
+        "NU#TETE#T",
+        "A#D###R#O",
+        "T#EMUE#AN",
+        "URGENCE#N",
+        "R#A##HUNE",
+        "ENTE#OSER"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#ECU##",
+        "OPUS#O#OR",
+        "M#MICROBE",
+        "AGE#AN#EU",
+        "REEL#EPIS",
+        "IN#EH#ORS",
+        "NOUVEAU#I",
+        "SU#E#ILOT",
+        "##TRI#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "CES#CLUB#",
+        "#NU#O#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OLA#LUNE",
+        "#POLAIRE#",
+        "EPI#X#NA#",
+        "#ENTE#EUX"
+      ]
+    },
+    {
+      "rows": [
+        "DEAL#STAR",
+        "INNE##R#A",
+        "N#ENTRAIN",
+        "OU#TEAM#D",
+        "S#V###E#O",
+        "A#AMIE#ON",
+        "URGENCE#N",
+        "R#U##RUDE",
+        "EPEE#USEE"
+      ]
+    },
+    {
+      "rows": [
+        "V#L#DAN##",
+        "AMAS#F#ME",
+        "C#SIFFLET",
+        "ARE#AU#TU",
+        "NERF#TORD",
+        "CI#RU#COI",
+        "ENFANCE#A",
+        "SE#I#MAIN",
+        "##USA#N#T"
+      ]
+    },
+    {
+      "rows": [
+        "CHAT#BLOC",
+        "HAIE##A#O",
+        "O#LAMPION",
+        "US#MAIN#F",
+        "F#E###E#I",
+        "L#PUMA#PA",
+        "EDITEUR#N",
+        "U#C##BANC",
+        "RIEN#EMUE"
+      ]
+    },
+    {
+      "rows": [
+        "L#D#ODE##",
+        "USER#E#TA",
+        "N#LEOPARD",
+        "ETA#HO#AH",
+        "TAIS#TOME",
+        "TU#IN#DES",
+        "EPREUVE#I",
+        "SE#G#AUTO",
+        "##WEB#R#N"
+      ]
+    },
+    {
+      "rows": [
+        "BRAS#CLUB",
+        "AURA##A#A",
+        "G#CLOISON",
+        "US#INNE#Q",
+        "E#R###R#U",
+        "T#OINS#XI",
+        "TABLIER#E",
+        "E#O##NIER",
+        "SITE#TOUS"
+      ]
+    },
+    {
+      "rows": [
+        "R#F#OSE##",
+        "OEUF#E#OR",
+        "M#MICROBE",
+        "AGE#MI#EU",
+        "REEL#EPIS",
+        "IN#IL#ORS",
+        "NOUVEAU#I",
+        "SU#R#ILOT",
+        "##REZ#E#E"
+      ]
+    },
+    {
+      "rows": [
+        "O#EH#COI#",
+        "RET##O#FA",
+        "PLAFOND#D",
+        "HALO#SU#H",
+        "EN#RIO#TE",
+        "L#CM#LOIR",
+        "I#AUBERGE",
+        "NU#L##BEN",
+        "#SUE#JE#T"
+      ]
+    },
+    {
+      "rows": [
+        "PLOT#EPIS",
+        "RAIE##R#P",
+        "O#SARDINE",
+        "MU#MEUS#C",
+        "E#E###E#T",
+        "N#CLOS#PA",
+        "ABRICOT#C",
+        "D#I##NOEL",
+        "ENTE#SITE"
+      ]
+    },
+    {
+      "rows": [
+        "GOUT#STOP",
+        "RUSE##U#A",
+        "A#ATELIER",
+        "TA#ETAL#T",
+        "I#T###E#I",
+        "T#IDEE#OC",
+        "URGENCE#U",
+        "D#R##HALL",
+        "EPEE#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "BRIS#BANC",
+        "AIRE##P#H",
+        "V#ELLIPSE",
+        "AU#FINE#V",
+        "R#O###L#A",
+        "D#UNES#IL",
+        "ARTISTE#I",
+        "G#I##OGRE",
+        "ELLE#POUR"
+      ]
+    },
+    {
+      "rows": [
+        "PEAGE##PA",
+        "HAIE#B##M",
+        "AU#NUANCE",
+        "R#DE#RAIL",
+        "MA#R#R#LI",
+        "AIME#IF#O",
+        "CROUTE#OR",
+        "I##X#ROUE",
+        "ES##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "A#MU#BOX#",
+        "DRU##E#IF",
+        "DOSSARD#L",
+        "IDEE#LA#A",
+        "TE#MAI#EN",
+        "I#CA#NOTE",
+        "O#MINERAL",
+        "NE#N##AIL",
+        "#HIE#IL#E"
+      ]
+    },
+    {
+      "rows": [
+        "FERS#CLUB",
+        "LUIT##U#U",
+        "O#TORRENT",
+        "CA#PEAU#I",
+        "O#N###R#N",
+        "N#ETUI#JE",
+        "NAVETTE#U",
+        "E#E##ELUS",
+        "ROUX#MUSE"
+      ]
+    },
+    {
+      "rows": [
+        "N#DA#BUE#",
+        "AMI##O#HA",
+        "GOELAND#P",
+        "ETUI#HO#P",
+        "OS#THE#SA",
+        "I#AI#USER",
+        "R#SERRURE",
+        "EU#R##RAI",
+        "#SUE#DE#L"
+      ]
+    },
+    {
+      "rows": [
+        "MEUS#ISSU",
+        "INNE##T#S",
+        "R#INSTANT",
+        "AH#SIED#E",
+        "B#E###E#N",
+        "E#COLS#OS",
+        "LAURIER#I",
+        "L#M##RAIL",
+        "EPEE#FINE"
+      ]
+    },
+    {
+      "rows": [
+        "A#SA#BOA#",
+        "CLE##O#SE",
+        "CAMPING#N",
+        "AVAL#HO#C",
+        "LE#AXE#PI",
+        "M#EN#URNE",
+        "I#TERRIER",
+        "EU#T##DUR",
+        "#SUE#JE#O"
+      ]
+    },
+    {
+      "rows": [
+        "AMAS#MAYA",
+        "MORT##P#U",
+        "P#CONCERT",
+        "HO#PAIR#O",
+        "I#L###O#M",
+        "B#AURA#PA",
+        "INSTANT#T",
+        "E#E##GELE",
+        "NERF#ELUS"
+      ]
+    },
+    {
+      "rows": [
+        "EXIL#STAR",
+        "TIRE##R#A",
+        "I#ENTRAIN",
+        "NU#TEAM#D",
+        "C#E###E#O",
+        "E#COLS#ON",
+        "LAURIER#N",
+        "L#M##VASE",
+        "EPEE#EMUE"
+      ]
+    },
+    {
+      "rows": [
+        "FOUR#TROC",
+        "RUSE##A#A",
+        "A#ENVOYER",
+        "MU#EURO#R",
+        "B#E###N#O",
+        "O#SURE#PU",
+        "INSTANT#S",
+        "S#A##TOME",
+        "EDIT#ETAL"
+      ]
+    },
+    {
+      "rows": [
+        "AVAL#STAR",
+        "GAGE##R#A",
+        "I#ENTRAIN",
+        "TU#TEAM#D",
+        "A#E###E#O",
+        "T#SEMI#ON",
+        "INSTANT#N",
+        "O#A##FACE",
+        "NOIX#OUIE"
+      ]
+    },
+    {
+      "rows": [
+        "A#BU#MOI#",
+        "DRU##A#FA",
+        "DOSSARD#D",
+        "IDEE#MU#H",
+        "TE#COI#JE",
+        "I#HO#TOUR",
+        "O#AUBERGE",
+        "NU#R##BEN",
+        "#SUS#DE#T"
+      ]
+    },
+    {
+      "rows": [
+        "ARTS#YOGA",
+        "SUIT##C#U",
+        "C#CONCERT",
+        "EH#PUMA#O",
+        "N#D###N#R",
+        "S#EGAL#HO",
+        "EXPOSER#U",
+        "U#O##NUIT",
+        "ROTI#TELE"
+      ]
+    },
+    {
+      "rows": [
+        "CRIN#CLUB",
+        "AILE##U#U",
+        "P#SERPENT",
+        "IF#SEAU#I",
+        "T#V###R#N",
+        "A#EMUE#JE",
+        "LOSANGE#U",
+        "E#T##AMAS",
+        "SUEE#LUNE"
+      ]
+    },
+    {
+      "rows": [
+        "O#EH#CLE#",
+        "RET##A#SA",
+        "PLAFOND#P",
+        "HALO#TU#P",
+        "EN#UNI#VA",
+        "L#IL#NIER",
+        "I#FAIENCE",
+        "NU#R##FUI",
+        "#NID#HO#L"
+      ]
+    },
+    {
+      "rows": [
+        "A#SI#BIO#",
+        "RAT##E#CM",
+        "PLACARD#O",
+        "ETRE#LA#N",
+        "NO#LUI#FI",
+        "T#IL#NUIT",
+        "E#FINESSE",
+        "RU#E##ECU",
+        "#SUR#JE#R"
+      ]
+    },
+    {
+      "rows": [
+        "N#DU#CAP#",
+        "AMI##O#UT",
+        "GOELAND#O",
+        "ETUI#CA#N",
+        "OS#TUE#EN",
+        "I#AI#RAPE",
+        "R#SENTIER",
+        "EH#R##MER",
+        "#ALE#JE#E"
+      ]
+    },
+    {
+      "rows": [
+        "O#EU#FIA#",
+        "REG##O#HA",
+        "PLACARD#V",
+        "HALO#MO#I",
+        "EN#MOU#FA",
+        "L#DE#LUIT",
+        "I#ADRESSE",
+        "NU#I##ECU",
+        "#NUE#HE#R"
+      ]
+    },
+    {
+      "rows": [
+        "O#EH#VIA#",
+        "REG##I#HA",
+        "PLACARD#V",
+        "HALO#GO#I",
+        "EN#MOU#FA",
+        "L#DE#LUIT",
+        "I#ADRESSE",
+        "NI#I##ECU",
+        "#FIE#CE#R"
+      ]
+    },
+    {
+      "rows": [
+        "FRELE##OC",
+        "AUTO#B##O",
+        "NE#GRADIN",
+        "T#ME#NERF",
+        "AU#M#L#AI",
+        "INNE#IF#T",
+        "SEANCE#VU",
+        "I##T#UNIR",
+        "EU##REINE"
+      ]
+    },
+    {
+      "rows": [
+        "T#OH#SPA#",
+        "RAS##A#HA",
+        "ICEBERG#P",
+        "ATRE#DO#P",
+        "NE#ROI#RA",
+        "G#OC#NIER",
+        "L#SEMELLE",
+        "EH#A##OUI",
+        "#ELU#UT#L"
+      ]
+    },
+    {
+      "rows": [
+        "RAMPE##DA",
+        "EMOI#K##M",
+        "FI#AGENCE",
+        "L#ON#RAIL",
+        "ET#I#O#LI",
+        "CARS#SI#O",
+        "HUITRE#OR",
+        "I##E#NOUE",
+        "RU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "O#EU#CRU#",
+        "REG##O#TA",
+        "PLAFOND#D",
+        "HALO#SU#H",
+        "EN#RIO#TE",
+        "L#CM#LOIR",
+        "I#AUBERGE",
+        "NU#L##BEN",
+        "#SUE#DE#T"
+      ]
+    },
+    {
+      "rows": [
+        "A#BU#PRO#",
+        "DRU##A#CE",
+        "DOSSARD#N",
+        "IDEE#AU#C",
+        "TE#CES#PI",
+        "I#OH#ORNE",
+        "O#SOULIER",
+        "NI#I##MUR",
+        "#FER#DE#O"
+      ]
+    },
+    {
+      "rows": [
+        "C#VU#SVP#",
+        "ARE##O#UT",
+        "VENTOUX#R",
+        "ACTE#RI#A",
+        "LU#RAI#LI",
+        "I#OR#REIN",
+        "E#NAVETTE",
+        "RU#I##USA",
+        "#SON#PI#U"
+      ]
+    },
+    {
+      "rows": [
+        "M#NI#BAI#",
+        "ARE##O#FA",
+        "GOELAND#C",
+        "ISSU#HO#Q",
+        "CE#CLE#LU",
+        "I#AI#USEE",
+        "E#HORREUR",
+        "NU#L##CRI",
+        "#SUE#OS#R"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#COMA#",
+        "#CE#R#AMI",
+        "#CALIBRE#",
+        "CRUE#AIL#",
+        "MO#V#T#IN",
+        "#CLE#TROU",
+        "#HORREUR#",
+        "MET#U#DE#",
+        "#ROBE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "D#NU#PAS#",
+        "EGO##E#ET",
+        "CAMPING#R",
+        "AISE#DO#A",
+        "LE#TAU#SI",
+        "A#OR#LION",
+        "G#COMEDIE",
+        "EH#L##ETA",
+        "#OLE#JE#U"
+      ]
+    },
+    {
+      "rows": [
+        "REPAS##DA",
+        "ELAN#B##M",
+        "NU#NUANCE",
+        "D#VU#RAIL",
+        "ES#A#R#LI",
+        "MUNI#IF#O",
+        "ECORCE#OR",
+        "N##E#ROUE",
+        "TU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "C#GO#COU#",
+        "ARE##O#SA",
+        "VENTOUX#C",
+        "ALTO#RI#Q",
+        "LU#RIA#SU",
+        "I#OR#NOTE",
+        "E#SECTEUR",
+        "RU#N##ICI",
+        "#TOT#IL#R"
+      ]
+    },
+    {
+      "rows": [
+        "A#TU#PIF#",
+        "PRO##O#IF",
+        "PERDRIX#A",
+        "RITE#SI#U",
+        "ON#SES#ET",
+        "C#OS#ORGE",
+        "H#CERNEAU",
+        "EH#R##PLI",
+        "#OIT#MU#L"
+      ]
+    },
+    {
+      "rows": [
+        "A#FA#AXE#",
+        "DRU##R#HA",
+        "DOSSARD#V",
+        "IDEE#OU#I",
+        "TE#CAS#PA",
+        "I#UT#ETAT",
+        "O#SERRURE",
+        "NI#U##ECU",
+        "#FAR#OS#R"
+      ]
+    },
+    {
+      "rows": [
+        "O#EH#CLE#",
+        "RET##A#SA",
+        "PLAFOND#P",
+        "HALO#TU#P",
+        "EN#UNI#VA",
+        "L#IL#NIER",
+        "I#FAIENCE",
+        "NU#R##FUI",
+        "#SUD#GO#L"
+      ]
+    },
+    {
+      "rows": [
+        "CANON##MA",
+        "AMER#B##M",
+        "PI#NUANCE",
+        "I#JE#RAIL",
+        "TA#M#R#LI",
+        "AINE#IF#O",
+        "IRONIE#OR",
+        "N##T#ROUE",
+        "EU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "A#BU#SPA#",
+        "DRU##E#HA",
+        "DOSSARD#D",
+        "IDEE#VU#H",
+        "TE#CRI#JE",
+        "I#DO#COUR",
+        "O#AUBERGE",
+        "NI#R##BEN",
+        "#FUS#CE#T"
+      ]
+    },
+    {
+      "rows": [
+        "E#PU#PRO#",
+        "CLE##L#CM",
+        "OISEAUX#O",
+        "NOEL#MI#N",
+        "ON#LUI#SI",
+        "M#AI#EDIT",
+        "I#SPIRALE",
+        "EU#S##MOU",
+        "#NUE#ME#R"
+      ]
+    },
+    {
+      "rows": [
+        "BAL#DRAP#",
+        "#SI#I#IRA",
+        "#COUTURE#",
+        "DENT#SES#",
+        "ON#I#A#EU",
+        "#SEL#GANT",
+        "#ELEMENT#",
+        "NUL#U#SE#",
+        "#REVE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "P#PU#MIX#",
+        "RAI##A#IL",
+        "ICEBERG#O",
+        "ONDE#MO#G",
+        "RE#ROI#SE",
+        "I#OC#TEAM",
+        "T#SEMELLE",
+        "EH#A##LIN",
+        "#ELU#DE#T"
+      ]
+    },
+    {
+      "rows": [
+        "ROMAN##PA",
+        "ETAT#K##M",
+        "CA#TREFLE",
+        "Y#DE#RAIL",
+        "CM#N#O#SI",
+        "LARD#SA#O",
+        "ALERTE#OR",
+        "G##E#NOUE",
+        "EH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "C#MU#CRU#",
+        "HUE##O#NA",
+        "ANNEAUX#C",
+        "SIED#RI#Q",
+        "SE#IRA#SU",
+        "E#UT#NOTE",
+        "U#SECTEUR",
+        "RA#U##ICI",
+        "#SUR#IL#R"
+      ]
+    },
+    {
+      "rows": [
+        "O#EU#COU#",
+        "REG##O#SA",
+        "PLAFOND#D",
+        "HALO#SU#H",
+        "EN#RIO#TE",
+        "L#CM#LOIR",
+        "I#AUBERGE",
+        "NU#L##BEN",
+        "#TUE#JE#T"
+      ]
+    },
+    {
+      "rows": [
+        "L#OH#ARC#",
+        "ORS##N#MA",
+        "GOELAND#C",
+        "EURO#OU#Q",
+        "ME#SON#AU",
+        "E#HA#CAVE",
+        "N#ENLEVER",
+        "TU#G##ICI",
+        "#NIE#OS#R"
+      ]
+    },
+    {
+      "rows": [
+        "J#LU#HAI#",
+        "AMI##O#FA",
+        "LEOPARD#P",
+        "ORNE#RA#P",
+        "US#LIE#VA",
+        "S#MU#USER",
+        "I#ACTRICE",
+        "EH#H##LUI",
+        "#OHE#DO#L"
+      ]
+    },
+    {
+      "rows": [
+        "RECIT##PA",
+        "ELAN#K##M",
+        "NU#CRECHE",
+        "C#JE#REEL",
+        "OC#N#O#MI",
+        "NORD#SI#O",
+        "TRUITE#OR",
+        "R##E#NOUE",
+        "EH##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "FRELE##DA",
+        "LOTO#T##U",
+        "OC#GERANT",
+        "C#DE#OSER",
+        "OS#M#U#TE",
+        "NOCE#PI#M",
+        "NUANCE#ME",
+        "E##T#AMEN",
+        "RU##QUART"
+      ]
+    },
+    {
+      "rows": [
+        "APERO##OC",
+        "LOTO#R##O",
+        "LU#MAISON",
+        "U#PA#CERF",
+        "MO#R#H#SI",
+        "ETAI#EH#A",
+        "TENNIS#EN",
+        "T##S#STUC",
+        "EU##YEUSE"
+      ]
+    },
+    {
+      "rows": [
+        "M#IF#MAX#",
+        "EST##A#IL",
+        "ICEBERG#O",
+        "LIME#MO#G",
+        "LE#ROI#SE",
+        "E#OC#TEAM",
+        "U#SEMELLE",
+        "RU#A##LIN",
+        "#TAU#DE#T"
+      ]
+    },
+    {
+      "rows": [
+        "R#NU#BAI#",
+        "ERE##O#FA",
+        "GOELAND#P",
+        "ISSU#HO#P",
+        "SE#MIE#SA",
+        "T#AI#USER",
+        "R#SERRURE",
+        "EU#R##RAI",
+        "#SUE#JE#L"
+      ]
+    },
+    {
+      "rows": [
+        "ACIER##OC",
+        "MONT#B##O",
+        "BU#EXAMEN",
+        "I#PI#NEUF",
+        "AS#N#L#XI",
+        "NORD#IF#T",
+        "CLARTE#MU",
+        "E##E#UNIR",
+        "SI##HEURE"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#TROP#",
+        "#AN#O#GRE",
+        "#RIVIERE#",
+        "MARI#CES#",
+        "OC#L#U#EH",
+        "#TEL#MINE",
+        "#ELEMENT#",
+        "IRA#I#NE#",
+        "#ENTE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ETAPE##OR",
+        "CUIR#B##A",
+        "LA#EXAMEN",
+        "A#OC#NORD",
+        "IN#I#L#GO",
+        "ROUE#IF#N",
+        "ASTUCE#ON",
+        "G##X#UNIE",
+        "ES##YEUSE"
+      ]
+    },
+    {
+      "rows": [
+        "CANON##ES",
+        "AMER#C##P",
+        "PI#NUANCE",
+        "A#CE#MARC",
+        "CA#M#E#UT",
+        "INNE#LA#A",
+        "TEINTE#OC",
+        "E##T#OEIL",
+        "SA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "TENTE##OC",
+        "OSER#V##A",
+        "UT#ARENES",
+        "R#MI#NOUS",
+        "NA#N#D#TE",
+        "EMUE#RI#R",
+        "VISAGE#MO",
+        "I##U#DEAL",
+        "SU##PISTE"
+      ]
+    },
+    {
+      "rows": [
+        "CANON##DA",
+        "AMER#B##M",
+        "PI#NUANCE",
+        "A#HE#RAIL",
+        "CA#M#R#LI",
+        "INNE#IF#O",
+        "TEINTE#OR",
+        "E##T#ROUE",
+        "SA##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "HERON##MA",
+        "AMER#B##M",
+        "RU#NUANCE",
+        "M#CE#RAIL",
+        "OC#M#R#LI",
+        "NAGE#IF#O",
+        "IRONIE#OR",
+        "C##T#ROUE",
+        "AU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "SINGE##PA",
+        "PLIE#B##M",
+        "ES#NUANCE",
+        "C#CE#RAIL",
+        "TA#R#R#LI",
+        "AINE#IN#O",
+        "CREUSE#OR",
+        "L##X#ROUE",
+        "EU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "RAMPE##PU",
+        "EMOI#P##S",
+        "FI#AVOCAT",
+        "L#ON#MALE",
+        "ES#I#P#EN",
+        "COLS#IN#S",
+        "HUITRE#PI",
+        "I##E#RAIL",
+        "RU##USINE"
+      ]
+    },
+    {
+      "rows": [
+        "ENFER##OC",
+        "TAIT#B##O",
+        "IN#EXAMEN",
+        "N#OR#NEUF",
+        "CE#N#L#XI",
+        "ETUI#IF#T",
+        "LETTRE#PU",
+        "L##E#UNIR",
+        "ES##REINE"
+      ]
+    },
+    {
+      "rows": [
+        "ALPIN##OC",
+        "SOIN#D##O",
+        "CI#CHATON",
+        "E#JE#NAIF",
+        "NO#N#S#LI",
+        "SIED#EU#A",
+        "ESSIEU#EN",
+        "U##E#STUC",
+        "RA##YEUSE"
+      ]
+    },
+    {
+      "rows": [
+        "BETON##OS",
+        "AMER#C##P",
+        "LU#NUANCE",
+        "L#HE#MARC",
+        "ET#M#E#UT",
+        "RIDE#LA#A",
+        "IRONIE#OC",
+        "N##T#OEIL",
+        "ES##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "APERO##VA",
+        "URNE#B##M",
+        "TE#GRAPPE",
+        "R#CI#RAIL",
+        "ET#S#R#FI",
+        "MONT#IN#O",
+        "ENORME#OR",
+        "N##E#ROUE",
+        "TA##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "POETE##HA",
+        "RITE#G##M",
+        "IL#NUANCE",
+        "N#PA#RAIL",
+        "TE#I#D#LI",
+        "EGAL#EU#O",
+        "MOULIN#OR",
+        "P##E#IODE",
+        "SU##LASER"
+      ]
+    },
+    {
+      "rows": [
+        "PENTE##PU",
+        "AGIR#P##S",
+        "NO#AVOCAT",
+        "T#MI#MALE",
+        "OU#N#P#EN",
+        "UNIE#IF#S",
+        "FINALE#FI",
+        "L##U#RAIL",
+        "ES##USINE"
+      ]
+    },
+    {
+      "rows": [
+        "FRELE##MA",
+        "AUTO#B##M",
+        "NE#GRAPPE",
+        "T#CE#RAIL",
+        "AU#M#R#NI",
+        "INNE#IN#O",
+        "SEANCE#OR",
+        "I##T#ROUE",
+        "EU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "RAMPE##VA",
+        "EMOI#K##M",
+        "FI#ALERTE",
+        "L#ON#REEL",
+        "ET#I#O#SI",
+        "CARS#SU#O",
+        "HUITRE#OR",
+        "I##E#NOUE",
+        "RA##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "SALON##ES",
+        "AGIR#C##P",
+        "TE#NUANCE",
+        "E#JE#MARC",
+        "LA#M#E#UT",
+        "LIME#LU#A",
+        "IRONIE#OC",
+        "T##T#OEIL",
+        "EU##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "APPLI##BU",
+        "CIAO#P##S",
+        "CE#GERANT",
+        "O#HE#OUIE",
+        "RA#M#M#EN",
+        "DIRE#EH#S",
+        "ARENES#RI",
+        "G##T#SEUL",
+        "EU##VESTE"
+      ]
+    },
+    {
+      "rows": [
+        "ALPIN##BU",
+        "SOIN#E##S",
+        "CI#CACHET",
+        "E#CE#ROLE",
+        "NO#N#I#UN",
+        "SIED#TU#S",
+        "ESSIEU#MI",
+        "U##E#RAIL",
+        "RI##HEURE"
+      ]
+    },
+    {
+      "rows": [
+        "BETON##AS",
+        "AMER#C##P",
+        "LU#NUANCE",
+        "L#ME#MARC",
+        "ES#M#E#UT",
+        "RUDE#LA#A",
+        "IRONIE#OC",
+        "N##T#OEIL",
+        "EU##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "SACRE##OC",
+        "AIME#D##O",
+        "US#GRADIN",
+        "V#MI#NERF",
+        "ET#S#S#AI",
+        "TORT#EH#T",
+        "APERCU#TU",
+        "G##E#SOIR",
+        "EU##HEURE"
+      ]
+    },
+    {
+      "rows": [
+        "ACIER##OC",
+        "MONT#B##O",
+        "BU#EXAMEN",
+        "I#CI#NEUF",
+        "AS#N#L#XI",
+        "NORD#IF#T",
+        "CLARTE#TU",
+        "E##E#UNIR",
+        "SA##HEURE"
+      ]
+    },
+    {
+      "rows": [
+        "ALPIN##MU",
+        "SOIN#D##S",
+        "CI#CLIMAT",
+        "E#HE#SEME",
+        "NO#N#C#IN",
+        "SIED#OU#S",
+        "ESSIEU#FI",
+        "U##E#RAIL",
+        "RI##USINE"
+      ]
+    },
+    {
+      "rows": [
+        "APPEL##OS",
+        "REIN#C##P",
+        "DU#SEANCE",
+        "O#DE#MARC",
+        "IF#I#E#UT",
+        "SANG#LA#A",
+        "IRONIE#OC",
+        "E##E#OEIL",
+        "RA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "COUDE##MA",
+        "AISE#B##M",
+        "RE#SEANCE",
+        "A#OC#RAIL",
+        "PA#E#R#LI",
+        "AMEN#IL#O",
+        "CINTRE#OR",
+        "E##E#ROUE",
+        "SI##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "EFFET##OC",
+        "TOIT#B##O",
+        "IL#EXAMEN",
+        "N#OR#NEUF",
+        "CE#N#L#XI",
+        "ETUI#IF#T",
+        "LETTRE#VU",
+        "L##E#UNIR",
+        "EH##REINE"
+      ]
+    },
+    {
+      "rows": [
+        "CARTE##OC",
+        "AGIR#P##A",
+        "TE#EXAMEN",
+        "A#CM#SORT",
+        "LA#P#T#GO",
+        "ORAL#IF#N",
+        "GENIAL#UN",
+        "U##N#LUNE",
+        "ES##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "CREME##VA",
+        "AUTO#B##M",
+        "ME#NUANCE",
+        "P#MI#RAIL",
+        "AI#T#R#LI",
+        "GRUE#IL#O",
+        "NATURE#OR",
+        "E##R#ROUE",
+        "SU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "ROMAN##OS",
+        "ELAN#C##P",
+        "NE#NUANCE",
+        "D#VU#MARC",
+        "ES#A#E#UT",
+        "MUNI#LU#A",
+        "ECORCE#OC",
+        "N##E#OEIL",
+        "TA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "MONDE##VA",
+        "OUIE#A##M",
+        "UT#JUNGLE",
+        "V#JE#NOEL",
+        "EN#U#U#SI",
+        "MAIN#AH#O",
+        "ENNEMI#OR",
+        "N##R#ROUE",
+        "TU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "REPAS##AS",
+        "ELAN#C##P",
+        "NU#NUANCE",
+        "D#BU#MARC",
+        "ES#A#E#UT",
+        "MUNI#LU#A",
+        "ECORCE#OC",
+        "N##E#OEIL",
+        "TU##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "FRELE##CM",
+        "AUTO#B##E",
+        "NE#GRADIN",
+        "T#HE#RELU",
+        "AU#M#R#SI",
+        "INNE#IF#S",
+        "SEANCE#CI",
+        "I##T#RARE",
+        "ES##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "CANON##AS",
+        "AMER#C##P",
+        "PI#NUANCE",
+        "A#CE#MARC",
+        "CA#M#E#UT",
+        "INNE#LA#A",
+        "TEINTE#OC",
+        "E##T#OEIL",
+        "SA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "RAMPE##BU",
+        "EMOI#P##S",
+        "FI#AVOCAT",
+        "L#ON#MALE",
+        "ES#I#P#EN",
+        "COLS#IN#S",
+        "HUITRE#PI",
+        "I##E#RAIL",
+        "RU##USINE"
+      ]
+    },
+    {
+      "rows": [
+        "CANAL##DA",
+        "AMER#C##M",
+        "RI#PLANTE",
+        "A#HE#POIL",
+        "CM#N#U#CI",
+        "TOUT#CA#O",
+        "ENNEMI#OR",
+        "R##R#NOUE",
+        "EU##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "MONDE##MA",
+        "OUIE#A##M",
+        "UT#JUNGLE",
+        "V#JE#NOEL",
+        "EN#U#U#SI",
+        "MAIN#AH#O",
+        "ENNEMI#OR",
+        "N##R#ROUE",
+        "TA##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "BETON##AS",
+        "AMER#C##P",
+        "RU#NUANCE",
+        "O#JE#MARC",
+        "MI#M#E#UT",
+        "ERRE#LU#A",
+        "TEINTE#OC",
+        "R##T#OEIL",
+        "EH##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "REPAS##AS",
+        "ELAN#C##P",
+        "NU#NUANCE",
+        "D#BU#MARC",
+        "ET#A#E#UT",
+        "MIDI#LA#A",
+        "ECORCE#OC",
+        "N##E#OEIL",
+        "TA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "COUDE##HA",
+        "AINE#B##M",
+        "RE#SEANCE",
+        "A#OC#RAIL",
+        "PA#E#R#LI",
+        "AMEN#IN#O",
+        "CINTRE#OR",
+        "E##E#ROUE",
+        "SA##DESIR"
+      ]
+    },
+    {
+      "rows": [
+        "BOCAL##ES",
+        "ORAL#P##P",
+        "US#ORANGE",
+        "L#BU#PARC",
+        "AH#E#I#ET",
+        "NUIT#LU#A",
+        "GENTIL#OC",
+        "E##E#OEIL",
+        "RA##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "BETON##OS",
+        "AMER#C##P",
+        "RU#NUANCE",
+        "O#JE#MARC",
+        "MI#M#E#UT",
+        "ERRE#LA#A",
+        "TEINTE#OC",
+        "R##T#OEIL",
+        "EH##ANNEE"
+      ]
+    },
+    {
+      "rows": [
+        "FER#PAPA#",
+        "#CA#L#EMU",
+        "#LITIERE#",
+        "CALA#NIL#",
+        "MI#P#F#IN",
+        "#ROI#EMOI",
+        "#ASSURER#",
+        "AGE#S#RE#",
+        "#ERRE#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#DRAP#",
+        "#SA#O#TRI",
+        "#COUTURE#",
+        "DENT#SES#",
+        "ON#I#A#EU",
+        "#SEL#GANT",
+        "#ELEMENT#",
+        "NUL#O#SE#",
+        "#REPU#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#ARCS#",
+        "#AN#R#ICI",
+        "#PINCEAU#",
+        "RIRA#COL#",
+        "ET#V#U#PU",
+        "#ALE#MOTS",
+        "#LITIERE#",
+        "MER#F#NU#",
+        "#SENS#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "IFS#CAMP#",
+        "#LE#R#IRA",
+        "#ECLIPSE#",
+        "MUSE#LES#",
+        "OR#V#A#EU",
+        "#IRE#CENS",
+        "#SERPENT#",
+        "OTE#A#TE#",
+        "#ELUS#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#STOP#",
+        "#AN#O#GRE",
+        "#RIVIERE#",
+        "GARE#TES#",
+        "OC#R#A#EU",
+        "#TIR#GANT",
+        "#ELEMENT#",
+        "PRO#A#SE#",
+        "#ETAI#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#TROP#",
+        "#SA#U#GRE",
+        "#SOLAIRE#",
+        "AINE#MES#",
+        "HE#V#A#EU",
+        "#THE#GANT",
+        "#TORRENT#",
+        "JET#I#SE#",
+        "#SEVE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "PAT#SEMA#",
+        "#NE#O#ILE",
+        "#NATUREL#",
+        "COMA#ELU#",
+        "AN#S#N#MU",
+        "#CAS#NUES",
+        "#ELEMENT#",
+        "FUT#U#ET#",
+        "#ROSE#SES"
+      ]
+    },
+    {
+      "rows": [
+        "MER#CLUB#",
+        "#NO#O#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OLA#LUNE",
+        "#POLAIRE#",
+        "EPI#I#NA#",
+        "#ENTE#EUT"
+      ]
+    },
+    {
+      "rows": [
+        "IFS#CAMP#",
+        "#OU#O#ART",
+        "#REALITE#",
+        "AMEN#MES#",
+        "HA#G#A#EU",
+        "#TEL#GANT",
+        "#ELEMENT#",
+        "NUL#U#SE#",
+        "#REVE#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "MAT#SEMA#",
+        "#NE#O#ILE",
+        "#NATUREL#",
+        "COMA#ELU#",
+        "AN#S#S#MU",
+        "#CAS#TUES",
+        "#ELEMENT#",
+        "MUT#U#ET#",
+        "#ROBE#SET"
+      ]
+    },
+    {
+      "rows": [
+        "OFF#CAMP#",
+        "#LA#R#IRA",
+        "#ECLIPSE#",
+        "MUEE#LES#",
+        "OR#V#A#EU",
+        "#IRE#GANT",
+        "#SERPENT#",
+        "ETE#I#SE#",
+        "#ELUS#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "IFS#CAMP#",
+        "#LA#O#IRA",
+        "#ELLIPSE#",
+        "MUEE#LES#",
+        "OR#V#U#EH",
+        "#IRE#MENE",
+        "#SERPENT#",
+        "OTE#I#TE#",
+        "#ELUS#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#CAMP#",
+        "#UN#E#ART",
+        "#TEMPETE#",
+        "CRUE#TES#",
+        "ME#R#A#EU",
+        "#MAL#GANT",
+        "#ELEMENT#",
+        "ONT#U#SE#",
+        "#TOUS#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "CES#CLUB#",
+        "#NU#O#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OLA#LUNE",
+        "#POLAIRE#",
+        "EPI#I#NA#",
+        "#ENTE#EUX"
+      ]
+    },
+    {
+      "rows": [
+        "PAT#STOP#",
+        "#DE#O#GRE",
+        "#MANIERE#",
+        "MIME#CES#",
+        "OR#V#R#ES",
+        "#ALE#OVNI",
+        "#BOUQUET#",
+        "GLU#U#NE#",
+        "#EPIE#TRI"
+      ]
+    },
+    {
+      "rows": [
+        "ONT#BREF#",
+        "#AU#A#POT",
+        "#TERRAIN#",
+        "MUSE#MET#",
+        "OR#P#O#AH",
+        "#ETA#UNIE",
+        "#LISERON#",
+        "OLE#T#CE#",
+        "#ENTE#EST"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#PAPA#",
+        "#AS#A#EUT",
+        "#RESSORT#",
+        "ERRE#RIO#",
+        "HO#M#A#MA",
+        "#USE#GEAI",
+        "#SERPENT#",
+        "MER#R#TE#",
+        "#LABO#EST"
+      ]
+    },
+    {
+      "rows": [
+        "BAI#PAPA#",
+        "#CM#L#EMU",
+        "#CALIBRE#",
+        "ARME#AIL#",
+        "HO#V#T#IL",
+        "#CLE#TROU",
+        "#HORREUR#",
+        "VET#I#SE#",
+        "#ROBE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#DRAP#",
+        "#AN#O#CRI",
+        "#PISCINE#",
+        "GARE#MES#",
+        "OC#M#A#EU",
+        "#ILE#GANT",
+        "#TORRENT#",
+        "NET#I#SE#",
+        "#SONT#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#PAPA#",
+        "#AS#A#EUT",
+        "#RESSORT#",
+        "ERRE#RIO#",
+        "HO#M#A#MA",
+        "#USE#GEAI",
+        "#SERPENT#",
+        "HEM#U#TE#",
+        "#LEUR#EST"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#PAPA#",
+        "#AS#I#EUX",
+        "#RESSORT#",
+        "GARE#RIO#",
+        "OC#R#A#MA",
+        "#TIR#GEAI",
+        "#ELEMENT#",
+        "PRO#O#TE#",
+        "#ETAI#EST"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#SEMA#",
+        "#CE#O#AMI",
+        "#CALIBRE#",
+        "CRUE#AIL#",
+        "MO#V#T#IL",
+        "#CLE#TROU",
+        "#HORREUR#",
+        "VET#O#DE#",
+        "#ROTI#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "PAT#TROP#",
+        "#DE#O#GRE",
+        "#MANIERE#",
+        "MIME#CES#",
+        "OR#V#R#ES",
+        "#AGE#OVNI",
+        "#BOUQUET#",
+        "PLU#U#LE#",
+        "#ETAI#ORS"
+      ]
+    },
+    {
+      "rows": [
+        "LAC#SERA#",
+        "#PI#U#EMU",
+        "#PENDULE#",
+        "ELLE#NUL#",
+        "HA#V#I#IL",
+        "#USE#TROU",
+        "#DOUCEUR#",
+        "NIL#H#DE#",
+        "#RECU#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#ARCS#",
+        "#AN#R#ICI",
+        "#PINCEAU#",
+        "MARE#COL#",
+        "OC#V#R#PU",
+        "#ILE#ARTS",
+        "#TOURNEE#",
+        "NET#I#VU#",
+        "#SOLS#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#ARCS#",
+        "#AN#R#ICI",
+        "#PINCEAU#",
+        "RIRA#COL#",
+        "ET#V#O#PA",
+        "#ALE#LUTH",
+        "#LITIERE#",
+        "MER#L#NU#",
+        "#SEME#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#PAPA#",
+        "#AS#A#EUX",
+        "#RESSORT#",
+        "ERRE#RIO#",
+        "HO#M#A#MA",
+        "#USE#GEAI",
+        "#SERPENT#",
+        "HEM#O#TE#",
+        "#LIEU#EST"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#DRAP#",
+        "#AN#U#CRI",
+        "#PISCINE#",
+        "MARE#MES#",
+        "OC#M#A#EU",
+        "#ILE#GANT",
+        "#TORRENT#",
+        "MET#I#SE#",
+        "#SONT#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "BAT#PUMA#",
+        "#NE#E#ILE",
+        "#NATUREL#",
+        "COMA#ELU#",
+        "AN#U#N#MU",
+        "#CAP#NUES",
+        "#ELEMENT#",
+        "BUT#A#ET#",
+        "#ROIS#SET"
+      ]
+    },
+    {
+      "rows": [
+        "LAC#SERA#",
+        "#PI#U#EMU",
+        "#PENDULE#",
+        "ELLE#NUL#",
+        "HA#V#I#IL",
+        "#USE#TROU",
+        "#DOULEUR#",
+        "FIL#U#SE#",
+        "#REVE#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "MER#PAPA#",
+        "#CA#L#EMU",
+        "#LITIERE#",
+        "CALA#NIL#",
+        "MI#M#F#IF",
+        "#ROI#EMOI",
+        "#ASSURER#",
+        "AGE#N#RE#",
+        "#ERRE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "BAR#CAMP#",
+        "#SA#L#IRE",
+        "#CIREUSE#",
+        "HELE#SES#",
+        "ON#G#A#EU",
+        "#SEL#GANT",
+        "#ELEMENT#",
+        "NUL#O#SE#",
+        "#RECU#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#CAMP#",
+        "#UN#E#ART",
+        "#TEMPETE#",
+        "CRUE#CES#",
+        "ME#R#U#EU",
+        "#MAL#MONT",
+        "#ELEMENT#",
+        "ONT#I#CE#",
+        "#TOIT#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#PAPA#",
+        "#AS#I#EUT",
+        "#RESSORT#",
+        "GARE#RIO#",
+        "OC#R#A#MA",
+        "#TIR#GEAI",
+        "#ELEMENT#",
+        "PRO#I#TE#",
+        "#ETAT#EST"
+      ]
+    },
+    {
+      "rows": [
+        "PAT#STOP#",
+        "#DE#K#GRE",
+        "#MANIERE#",
+        "MIME#CES#",
+        "OR#V#R#ES",
+        "#AGE#OVNI",
+        "#BOUQUET#",
+        "GLU#U#NE#",
+        "#ETAI#DRU"
+      ]
+    },
+    {
+      "rows": [
+        "TES#CLUB#",
+        "#NU#A#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OLA#LUNE",
+        "#POLAIRE#",
+        "EPI#X#NA#",
+        "#ENTE#EUT"
+      ]
+    },
+    {
+      "rows": [
+        "IFS#CAMP#",
+        "#OU#O#ART",
+        "#REALITE#",
+        "AMEN#MES#",
+        "HA#G#A#EU",
+        "#TEL#GANT",
+        "#ELEMENT#",
+        "NUL#I#SE#",
+        "#REVE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#LACS#",
+        "#AN#A#ICI",
+        "#PINCEAU#",
+        "RIRA#COL#",
+        "ET#V#U#PU",
+        "#ALE#MOTS",
+        "#LITIERE#",
+        "MER#L#NU#",
+        "#SEVE#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "CEP#CLUB#",
+        "#NO#A#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OTA#LUNE",
+        "#POLAIRE#",
+        "EPI#I#NA#",
+        "#ETRE#EUT"
+      ]
+    },
+    {
+      "rows": [
+        "CAP#TROP#",
+        "#SA#U#GRE",
+        "#SOLAIRE#",
+        "AINE#MES#",
+        "HE#V#A#EU",
+        "#THE#GANT",
+        "#TORRENT#",
+        "JET#I#SE#",
+        "#SEMA#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#CAMP#",
+        "#AN#O#ORS",
+        "#RIVIERE#",
+        "MARI#TES#",
+        "OC#L#A#EU",
+        "#TEL#GANT",
+        "#ELEMENT#",
+        "IRA#U#SE#",
+        "#ENTE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "RAM#CAMP#",
+        "#MU#O#ERE",
+        "#BERLINE#",
+        "AISE#MUS#",
+        "HA#N#A#EU",
+        "#NAN#GANT",
+        "#CLEMENT#",
+        "CET#A#SE#",
+        "#SOLS#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "FER#PAPA#",
+        "#CA#L#EMU",
+        "#LITIERE#",
+        "CALA#NIL#",
+        "MI#M#F#IF",
+        "#ROI#EMOI",
+        "#ASSURER#",
+        "AGE#S#RE#",
+        "#ERRE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ONT#FISC#",
+        "#AU#A#CAS",
+        "#TERRAIN#",
+        "MUSE#MET#",
+        "OR#P#O#OH",
+        "#ETA#URNE",
+        "#LISERON#",
+        "BLE#T#TE#",
+        "#ENTE#IRE"
+      ]
+    },
+    {
+      "rows": [
+        "OFF#CAMP#",
+        "#LI#O#IRA",
+        "#ELLIPSE#",
+        "HUME#LES#",
+        "OR#V#A#EU",
+        "#IRE#CENS",
+        "#SERPENT#",
+        "OTE#I#TE#",
+        "#ELUS#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "RAM#CAMP#",
+        "#MU#O#ERE",
+        "#BERLINE#",
+        "AISE#MUS#",
+        "HA#N#A#EU",
+        "#NAN#GANT",
+        "#CLEMENT#",
+        "MET#U#SE#",
+        "#SOIE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "RAM#CAMP#",
+        "#MU#O#ERG",
+        "#BERLINE#",
+        "AISE#MUS#",
+        "HA#N#A#EU",
+        "#NAN#GANT",
+        "#CLEMENT#",
+        "NET#U#SE#",
+        "#SOIT#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "RAM#CAMP#",
+        "#MU#O#ERE",
+        "#BERLINE#",
+        "AISE#MUS#",
+        "HA#N#A#EU",
+        "#NAN#GANT",
+        "#CLEMENT#",
+        "RET#U#SE#",
+        "#SOIE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "MAI#SEMA#",
+        "#CM#O#AMI",
+        "#CALIBRE#",
+        "ARME#OIL#",
+        "HO#V#T#IN",
+        "#CLE#TROU",
+        "#HORREUR#",
+        "JET#I#SE#",
+        "#ROSE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#PAPA#",
+        "#AS#A#EUX",
+        "#RESSORT#",
+        "ERRE#RIO#",
+        "HO#M#A#MA",
+        "#USE#GEAI",
+        "#SERPENT#",
+        "HEM#E#TE#",
+        "#LIEU#EST"
+      ]
+    },
+    {
+      "rows": [
+        "ECU#ARCS#",
+        "#AN#R#ICI",
+        "#PINCEAU#",
+        "RIRA#COL#",
+        "ET#V#U#PU",
+        "#ALE#METS",
+        "#LITIERE#",
+        "FEE#F#RU#",
+        "#SUIS#ERE"
+      ]
+    },
+    {
+      "rows": [
+        "MER#PUMA#",
+        "#CA#L#AMI",
+        "#LITIERE#",
+        "CALA#NIL#",
+        "MI#M#F#IF",
+        "#ROI#EMOI",
+        "#ASSURER#",
+        "AGE#S#NE#",
+        "#ERRE#ERG"
+      ]
+    },
+    {
+      "rows": [
+        "NEF#CLUB#",
+        "#NO#O#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OLA#LUNE",
+        "#POLAIRE#",
+        "EPI#I#NA#",
+        "#ENTE#EUX"
+      ]
+    },
+    {
+      "rows": [
+        "ONT#BREF#",
+        "#AU#A#POT",
+        "#TERRAIN#",
+        "MUSE#MET#",
+        "OR#P#O#AH",
+        "#ETA#UNIE",
+        "#LISERON#",
+        "BLE#T#TE#",
+        "#ENTE#EST"
+      ]
+    },
+    {
+      "rows": [
+        "NEF#CLUB#",
+        "#NO#A#NAN",
+        "#VITRAIL#",
+        "PESO#PRE#",
+        "IL#T#P#IN",
+        "#OTA#LUNE",
+        "#POLAIRE#",
+        "EPI#M#NA#",
+        "#ETAI#EUX"
+      ]
+    },
+    {
+      "rows": [
+        "ONT#SAUF#",
+        "#AU#U#NON",
+        "#TERRAIN#",
+        "MUSE#CET#",
+        "OR#P#I#AH",
+        "#ETA#EPIE",
+        "#LISERON#",
+        "BLE#T#LE#",
+        "#ENTE#EST"
+      ]
+    },
+    {
+      "rows": [
+        "PHARE##IF",
+        "ROSE#A##A",
+        "EU#MARRON",
+        "S#GO#PART",
+        "ET#N#E#SA",
+        "NUIT#NI#I",
+        "TALENT#OS",
+        "E##E#ETUI",
+        "RU##CRETE"
+      ]
+    }
+  ],
+  "clues": {
+    "ABANDON": "Action de renoncer à poursuivre une course",
+    "ABORDER": "Accoster ou commencer à traiter un sujet",
+    "ABRICOT": "Fruit orangé au noyau lisse",
+    "ACCALMIE": "Diminution passagère de l'agitation",
+    "ACCORDAGE": "Réglage d'un instrument à cordes",
+    "ACCROCHER": "Fixer solidement ou captiver l’attention",
+    "ACCUEIL": "Manière de recevoir une personne",
+    "ACHETEUR": "Personne qui paie pour acquérir un bien",
+    "ACIDE": "Saveur du citron",
+    "ACIER": "Alliage principalement composé de fer et de carbone",
+    "ACNE": "Affection de la peau fréquente à l'adolescence",
+    "ACQUERIR": "Devenir propriétaire de quelque chose",
+    "ACTE": "Action accomplie",
+    "ACTRICE": "Interprète d'un rôle, au féminin",
+    "ADDITION": "Opération qui calcule une somme",
+    "ADHERENT": "Membre inscrit d'une association",
+    "ADHESION": "Fait de rejoindre une association",
+    "ADIEU": "Salut prononcé quand on se quitte pour longtemps",
+    "ADMIRABLE": "Qui mérite une grande admiration",
+    "ADRESSE": "Indication d’un lieu ou habileté remarquable",
+    "AERODROME": "Terrain aménagé pour les avions",
+    "AFFICHEUR": "Dispositif qui présente une information visuelle",
+    "AFFUT": "Poste d'observation du chasseur",
+    "AGE": "Nombre d'années vécues",
+    "AGENCE": "Établissement chargé de représenter une entreprise",
+    "AGENT": "Personne chargée d'une mission",
+    "AGILE": "Qui se déplace avec aisance",
+    "AGIR": "Passer à l’action",
+    "AGITATION": "Mouvement désordonné ou excitation collective",
+    "AH": "Interjection marquant une émotion vive",
+    "AI": "Possède, avec « je »",
+    "AIDE": "Soutien apporté à quelqu'un",
+    "AIE": "Cri poussé quand on se fait mal",
+    "AIGLE": "Grand rapace aux yeux perçants",
+    "AIL": "Bulbe très parfumé utilisé en cuisine",
+    "AILE": "Membre permettant à un oiseau de voler",
+    "AIME": "Éprouve de l’affection",
+    "AIMER": "Éprouver de l'affection",
+    "AINE": "Premier né d'une fratrie",
+    "AIR": "Mélange gazeux que nous respirons",
+    "AIRE": "Surface ou nid d'un rapace",
+    "AIS": "Planche de bois",
+    "AISE": "État de celui qui se sent bien",
+    "ALARME": "Signal qui avertit d’un danger",
+    "ALE": "Bière de fermentation haute",
+    "ALERTE": "Avertissement d'un danger",
+    "ALLER": "Se déplacer d'un lieu à un autre",
+    "ALLUMER": "Faire apparaître une lumière ou un feu",
+    "ALLUMETTE": "Petite tige permettant de produire une flamme",
+    "ALOUETTE": "Petit oiseau connu pour son chant",
+    "ALPIN": "Qui concerne les Alpes ou la haute montagne",
+    "ALTO": "Voix ou instrument plus grave que le violon",
+    "AMAS": "Accumulation de choses",
+    "AMATEUR": "Qui pratique une activité sans en faire son métier",
+    "AMBIANCES": "Atmosphères de différents lieux",
+    "AMELIORER": "Rendre meilleur",
+    "AMEN": "Mot qui conclut une prière",
+    "AMER": "Qui laisse une saveur peu douce",
+    "AMI": "Personne avec qui l’on partage une affection",
+    "AMIE": "Personne avec laquelle on partage une amitié, au féminin",
+    "AMOUR": "Attachement affectif intense",
+    "AMOUREUSE": "Qui éprouve de l'amour, au féminin",
+    "AMPHIBIEN": "Animal capable de vivre dans l'eau et sur terre",
+    "AN": "Douze mois",
+    "ANE": "Équidé aux longues oreilles",
+    "ANGE": "Messager ailé des représentations célestes",
+    "ANGLAIS": "Langue parlée notamment au Royaume-Uni",
+    "ANGLE": "Figure formée par deux lignes qui se rencontrent",
+    "ANIMATEUR": "Personne qui présente une émission",
+    "ANNEAUX": "Cercles portés aux doigts ou autour de Saturne",
+    "ANNEE": "Période de douze mois",
+    "ANNONCE": "Message qui fait connaître une nouvelle",
+    "ANNONCEUR": "Entreprise qui fait diffuser une publicité",
+    "ANNUAIRE": "Répertoire de noms et de coordonnées",
+    "ANSE": "Poignée recourbée d'un récipient",
+    "ANTENNE": "Dispositif de réception des ondes",
+    "ANTIDOTE": "Substance qui neutralise un poison",
+    "AOUT": "Huitième mois de l’année",
+    "APERCU": "Vue d'ensemble rapide",
+    "APERO": "Moment convivial avant le repas, en abrégé",
+    "APPAREIL": "Machine ou dispositif conçu pour une fonction",
+    "APPEL": "Action d'inviter quelqu'un à venir ou à répondre",
+    "APPETIT": "Envie de manger",
+    "APPLAUDIR": "Manifester son approbation en frappant des mains",
+    "APPLI": "Application de téléphone, en abrégé",
+    "APPROCHE": "Manière d'aborder une question",
+    "APPUI": "Point de soutien",
+    "APRE": "Rude au goût ou difficile à supporter",
+    "APTE": "Capable d'accomplir une tâche",
+    "ARC": "Arme qui lance des flèches",
+    "ARCS": "Armes servant à tirer des flèches",
+    "ARDENNES": "Massif associé aux classiques vallonnées",
+    "ARDOISIER": "Qui exploite ou travaille l'ardoise",
+    "ARE": "Unité de surface de cent mètres carrés",
+    "ARENES": "Lieu de spectacle circulaire, au pluriel",
+    "ARGENTINE": "Pays d'Amérique du Sud dont la capitale est Buenos Aires",
+    "ARME": "Objet conçu pour combattre",
+    "ARPENTER": "Parcourir un lieu à grands pas",
+    "ARRIVEE": "Fin du parcours d'une course",
+    "ARROSER": "Verser de l'eau sur des plantes",
+    "ART": "Création destinée à exprimer une idée ou une émotion",
+    "ARTISAN": "Personne exerçant un métier manuel qualifié",
+    "ARTISTE": "Personne qui crée des œuvres",
+    "ARTS": "Ensemble des disciplines de création",
+    "AS": "Champion dans son domaine",
+    "ASCENSEUR": "Cabine qui transporte entre les étages",
+    "ASSEZ": "En quantité suffisante",
+    "ASSIETTES": "Pièces de vaisselle du repas, au pluriel",
+    "ASSURER": "Garantir ou protéger contre un risque",
+    "ASTUCE": "Idée simple qui permet de se débrouiller",
+    "ATELIER": "Lieu de travail d'un artisan",
+    "ATOME": "Très petite unité de matière",
+    "ATOUT": "Avantage qui favorise la réussite",
+    "ATRE": "Partie d'une cheminée où l'on fait le feu",
+    "ATTENDRE": "Rester jusqu'à l'arrivée d'une personne",
+    "AU": "Contraction de « à le »",
+    "AUBE": "Premières lueurs du jour",
+    "AUBERGE": "Établissement où l'on peut manger et dormir",
+    "AUDIO": "Qui concerne le son",
+    "AUGE": "Récipient dans lequel mangent les animaux",
+    "AUGMENTER": "Rendre plus grand ou plus important",
+    "AURA": "Temps du verbe avoir au futur",
+    "AUTO": "Abrégé courant d’automobile",
+    "AUTOMATES": "Machines effectuant seules des mouvements",
+    "AUTOROUTE": "Grande route réservée aux véhicules motorisés",
+    "AUTREMENT": "D’une autre manière",
+    "AVAL": "Côté vers lequel s'écoule une rivière",
+    "AVALANCHE": "Masse de neige dévalant une pente",
+    "AVANT": "Partie située devant ou moment antérieur",
+    "AVEC": "Préposition qui marque l'accompagnement",
+    "AVEU": "Reconnaissance d’un fait",
+    "AVIATEUR": "Personne qui pilote un avion",
+    "AVIS": "Opinion exprimée sur un sujet",
+    "AVOCAT": "Juriste qui défend un client ou fruit vert",
+    "AVRIL": "Mois précédant mai",
+    "AXE": "Ligne autour de laquelle un objet tourne",
+    "BAC": "Il permet de traverser un cours d'eau",
+    "BAGUE": "Bijou porté au doigt",
+    "BAGUETTES": "Petits bâtons pour jouer de la batterie",
+    "BAH": "Interjection marquant l'indifférence",
+    "BAI": "Brun rouge, pour la robe d'un cheval",
+    "BAIN": "Immersion du corps dans l'eau",
+    "BAL": "Réunion où l'on danse",
+    "BALEINEAU": "Petit de la baleine",
+    "BALLERINE": "Danseuse classique ou chaussure plate",
+    "BANC": "Siège allongé destiné à plusieurs personnes",
+    "BANDEROLE": "Longue bande portant un message",
+    "BANLIEUE": "Ensemble des communes autour d'une ville",
+    "BANQUIERS": "Professionnels du secteur bancaire",
+    "BAR": "Poisson ou établissement où l'on boit",
+    "BAROMETRE": "Instrument qui mesure la pression atmosphérique",
+    "BARRIERE": "Clôture qui limite un passage",
+    "BASALTE": "Roche volcanique sombre",
+    "BAT": "Frappe ou remporte une victoire",
+    "BATTE": "Accessoire utilisé pour frapper une balle",
+    "BAVARDAGE": "Conversation abondante et légère",
+    "BEAU": "Agréable à regarder",
+    "BEC": "Partie cornée de la bouche d'un oiseau",
+    "BEL": "Forme de beau devant une voyelle",
+    "BELETTE": "Petit mammifère carnivore au corps allongé",
+    "BEN": "Interjection familière dans « eh ben »",
+    "BERCEAU": "Petit lit pour un nourrisson",
+    "BERLINE": "Voiture à carrosserie fermée",
+    "BETE": "Animal ou personne peu réfléchie",
+    "BETON": "Matériau de construction contenant du ciment",
+    "BIENVENUE": "Accueil favorable réservé à quelqu'un",
+    "BIJOU": "Objet précieux porté pour se parer",
+    "BIO": "Abréviation courante de biologique",
+    "BLE": "Céréale dont on tire la farine du pain",
+    "BLESSURES": "Lésions physiques, au pluriel",
+    "BLEU": "Couleur du ciel par temps clair",
+    "BLOC": "Masse compacte ou ensemble solidaire",
+    "BOA": "Grand serpent constricteur",
+    "BOCAL": "Récipient en verre à large ouverture",
+    "BONHEUR": "État durable de satisfaction",
+    "BOTTE": "Chaussure qui monte au-dessus de la cheville",
+    "BOULANGER": "Artisan qui fabrique du pain",
+    "BOUM": "Bruit d'explosion ou fête familière",
+    "BOUQUET": "Assemblage de fleurs",
+    "BOURDON": "Gros insecte velu qui butine",
+    "BOUSSOLES": "Instruments d'orientation aimantés",
+    "BOX": "Garage individuel fermé",
+    "BRANCHE": "Ramification du tronc d'un arbre",
+    "BRAS": "Membre entre l’épaule et la main",
+    "BREF": "De courte durée",
+    "BRIOCHE": "Viennoiserie riche en beurre",
+    "BRIS": "Action de casser un objet",
+    "BROUILLON": "Première version non définitive d'un texte",
+    "BRU": "Épouse d'un fils",
+    "BRUN": "Couleur proche du marron",
+    "BU": "Avalé une boisson",
+    "BUE": "Avalée, pour une boisson",
+    "BUSE": "Rapace ou embout d'un tuyau",
+    "BUT": "Objectif à atteindre ou point marqué au football",
+    "BUTINEUSE": "Abeille qui récolte le nectar",
+    "CA": "Pronom démonstratif familier",
+    "CACAO": "Graine à l’origine du chocolat",
+    "CACHALOT": "Grand cétacé à tête massive",
+    "CACHALOTS": "Grands cétacés à tête massive",
+    "CACHET": "Sceau, comprimé ou rémunération d'un artiste",
+    "CADENCE": "Rythme de rotation des pédales",
+    "CALA": "Immobilisa avec une cale",
+    "CALIBRAGE": "Réglage d'un appareil sur une référence",
+    "CALIBRE": "Diamètre intérieur d’un tube ou format d’une munition",
+    "CAMELEON": "Reptile connu pour ses changements de couleur",
+    "CAMELEONS": "Reptiles aux yeux mobiles indépendants",
+    "CAMOMILLE": "Plante dont les fleurs servent en infusion",
+    "CAMP": "Lieu d'installation provisoire",
+    "CAMPAGNES": "Régions rurales ou suites d'actions organisées",
+    "CAMPING": "Séjour de plein air sous tente",
+    "CANAL": "Voie d'eau aménagée par l'homme",
+    "CANALISER": "Diriger dans un conduit ou contrôler un flux",
+    "CANE": "Femelle du canard",
+    "CANON": "Pièce d’artillerie ou règle esthétique",
+    "CANTINE": "Lieu de restauration collective",
+    "CANTONNER": "Limiter à un rôle ou loger des troupes",
+    "CAP": "Pointe de terre avancée dans la mer",
+    "CAPACITE": "Possibilité de contenir ou aptitude à agir",
+    "CAPACITES": "Aptitudes ou possibilités de contenir",
+    "CAPITAINE": "Personne qui commande un bateau ou une équipe",
+    "CAPITALES": "Villes sièges des gouvernements",
+    "CAPUCINE": "Plante grimpante à fleurs colorées",
+    "CAPUCINES": "Fleurs orangées ou jaunes de plantes grimpantes",
+    "CAR": "Autobus de longue distance",
+    "CARACTERE": "Signe écrit ou ensemble des traits d'une personne",
+    "CARAPACES": "Protections dures de tortues ou de crustacés",
+    "CARROUSEL": "Manège tournant ou suite d’images",
+    "CARS": "Autocars, en abrégé pluriel",
+    "CARTE": "Représentation d'un territoire ou document de petit format",
+    "CARTONNER": "Remporter un grand succès, familièrement",
+    "CAS": "Situation particulière à examiner",
+    "CASSEROLE": "Récipient à manche utilisé pour la cuisson",
+    "CATALOGUE": "Liste illustrée d'articles disponibles",
+    "CAVALIER": "Personne à cheval ou pièce du jeu d'échecs",
+    "CAVALIERE": "Personne à cheval, au féminin",
+    "CAVE": "Pièce située sous le niveau du sol",
+    "CE": "Pronom ou adjectif démonstratif",
+    "CEDE": "Laisse sa place ou abandonne un bien",
+    "CELLIER": "Pièce destinée à conserver des provisions",
+    "CENS": "Ancien impôt ou seuil de richesse électorale",
+    "CENT": "Dix fois dix",
+    "CEP": "Pied de vigne",
+    "CERF": "Grand animal des bois portant des bois",
+    "CERISES": "Petits fruits rouges à noyau, au pluriel",
+    "CERNEAU": "Partie comestible d'une noix",
+    "CERTAIN": "Qui ne laisse pas place au doute",
+    "CERTITUDE": "Conviction que quelque chose est vrai",
+    "CES": "Adjectif démonstratif au pluriel",
+    "CET": "Démonstratif devant un nom masculin commençant par une voyelle",
+    "CHAIR": "Partie tendre d'un fruit ou d'un corps",
+    "CHAMPAGNE": "Vin effervescent d'une région française",
+    "CHAMPIONS": "Vainqueurs d'une compétition",
+    "CHANCE": "Événement favorable qui ne dépend pas de soi",
+    "CHANDELLE": "Longue bougie cylindrique",
+    "CHANT": "Suite de sons mélodieux produits par la voix",
+    "CHASSEUR": "Personne qui pratique la chasse",
+    "CHAT": "Petit félin domestique",
+    "CHATON": "Petit du chat",
+    "CHEF": "Personne qui dirige une équipe",
+    "CHEMISE": "Vêtement boutonné couvrant le torse",
+    "CHERCHEUR": "Personne qui mène des travaux scientifiques",
+    "CHEVALIER": "Combattant noble du Moyen Âge",
+    "CHIC": "Élégant et soigné",
+    "CHOC": "Rencontre brutale entre deux corps",
+    "CHOUFLEUR": "Légume à grosse inflorescence blanche",
+    "CHU": "Centre hospitalier lié à une université, en abrégé",
+    "CHUTE": "Perte d'équilibre qui envoie un coureur au sol",
+    "CI": "Petit mot de « ci-dessus »",
+    "CIAO": "Salut venu d’Italie",
+    "CIEL": "Espace visible au-dessus de nos têtes",
+    "CIL": "Petit poil du bord de la paupière",
+    "CINTRE": "Partie courbée du guidon ou support à vêtements",
+    "CIRE": "Matière produite par les abeilles",
+    "CIREUSE": "Machine qui fait briller les sols",
+    "CISEAUX": "Outil à deux lames articulées",
+    "CLARTE": "Qualité de ce qui est lumineux ou facile à comprendre",
+    "CLE": "Elle ouvre une serrure",
+    "CLEMENT": "Doux et indulgent",
+    "CLES": "Objets qui ouvrent les serrures",
+    "CLIMAT": "Conditions météorologiques habituelles d'une région",
+    "CLOISON": "Paroi légère séparant deux pièces",
+    "CLOS": "Fermé ou terrain entouré de murs",
+    "CLOU": "Petite tige métallique à tête",
+    "CLUB": "Association sportive ou de loisirs",
+    "CM": "Abréviation du centimètre",
+    "COI": "Qui reste sans voix",
+    "COIN": "Angle formé par deux côtés",
+    "COL": "Sommet routier cher aux grimpeurs",
+    "COLIS": "Objet emballé que l'on expédie",
+    "COLLE": "Substance qui sert à assembler",
+    "COLS": "Sommets routiers empruntés par les grimpeurs",
+    "COMA": "État prolongé d’inconscience",
+    "COMEDIE": "Pièce de théâtre destinée à faire rire",
+    "COMIQUE": "Qui provoque le rire",
+    "COMMENCE": "Se met à débuter",
+    "COMPACT": "Dense et peu encombrant",
+    "CONCERT": "Spectacle musical donné en public",
+    "CONE": "Solide pointu à base circulaire",
+    "CONFIANCE": "Assurance accordée à quelqu'un",
+    "CONFITURE": "Préparation de fruits cuits avec du sucre",
+    "CONSOLE": "Appareil de jeu ou petite table décorative",
+    "COR": "Instrument à vent ou callosité du pied",
+    "CORNE": "Excrescence dure de la tête de certains animaux",
+    "COU": "Partie du corps entre tête et épaules",
+    "COUDE": "Articulation entre le bras et l'avant-bras",
+    "COUR": "Espace découvert entouré de bâtiments",
+    "COURANT": "Mouvement de l'eau ou de l'électricité",
+    "COUT": "Prix de revient d'un bien",
+    "COUTURE": "Assemblage d'étoffes avec du fil",
+    "CRAN": "Entaille ou courage familier",
+    "CRECHE": "Lieu d'accueil des très jeunes enfants",
+    "CREME": "Partie grasse du lait ou préparation onctueuse",
+    "CRENEAU": "Ouverture d'un rempart ou plage horaire",
+    "CREPE": "Fine galette cuite à la poêle",
+    "CRETE": "Ligne supérieure d'un relief",
+    "CREUSE": "Qui forme une cavité, au féminin",
+    "CREVAISON": "Incident qui fait perdre de l'air à un pneu",
+    "CRI": "Son poussé avec force",
+    "CRIN": "Poil de la crinière du cheval",
+    "CROC": "Dent pointue ou crochet",
+    "CROUTE": "Partie dure à l'extérieur du pain",
+    "CRU": "Qui n'a pas été cuit",
+    "CRUE": "Montée du niveau d'un cours d'eau",
+    "CUIR": "Peau animale préparée",
+    "CUISINE": "Pièce où l’on prépare les repas",
+    "CUIT": "Passé par la cuisson",
+    "CURE": "Séjour destiné à améliorer la santé",
+    "CURIOSITE": "Désir de découvrir et de comprendre",
+    "DA": "Oui, en russe",
+    "DAME": "Femme ou pièce du jeu d'échecs",
+    "DAN": "Grade de certains arts martiaux",
+    "DANSEUSE": "Position debout sur les pédales",
+    "DATE": "Indication d'un jour précis",
+    "DE": "Préposition marquant notamment l’origine",
+    "DEAL": "Accord, dans le langage familier",
+    "DEBUT": "Premier moment d'une action",
+    "DECALAGE": "Différence de position ou d'horaire",
+    "DECOR": "Ensemble des éléments visuels d'une scène",
+    "DEFAITE": "Résultat de celui qui ne gagne pas",
+    "DEFI": "Difficulté que l'on s'engage à surmonter",
+    "DEFIANT": "Qui manifeste de la méfiance ou un défi",
+    "DEGAT": "Dommage matériel",
+    "DEJA": "Avant le moment présent",
+    "DEJEUNER": "Repas du milieu de la journée",
+    "DELAI": "Temps accordé pour accomplir une tâche",
+    "DELTA": "Embouchure ramifiée d’un fleuve",
+    "DEMI": "Moitié d'une unité",
+    "DENT": "Élément dur de la mâchoire",
+    "DEPENSE": "Somme utilisée pour un achat",
+    "DEPOT": "Lieu de stockage ou somme déposée",
+    "DES": "Article indéfini pluriel",
+    "DESCENTE": "Partie où la trajectoire compte beaucoup",
+    "DESIR": "Envie d'obtenir ou de faire",
+    "DESSERT": "Dernier plat souvent sucré",
+    "DIEU": "Être suprême d'une religion",
+    "DIGUE": "Ouvrage construit pour retenir les eaux",
+    "DINE": "Prend le repas du soir",
+    "DINOSAURE": "Reptile ayant vécu aux temps préhistoriques",
+    "DIRE": "Exprimer par la parole",
+    "DISCOURS": "Paroles prononcées devant un public",
+    "DIT": "Exprimé par la parole",
+    "DIVAN": "Long siège rembourré",
+    "DO": "Première note de la gamme usuelle",
+    "DOC": "Abréviation familière de documentation",
+    "DOME": "Toit en forme de demi-sphère",
+    "DONS": "Cadeaux ou aptitudes naturelles",
+    "DORT": "Est plongé dans le sommeil",
+    "DOSSARD": "Numéro porté en course",
+    "DOT": "Biens autrefois apportés lors d'un mariage",
+    "DOUCEUR": "Qualité de ce qui est doux",
+    "DOULEUR": "Sensation physique ou morale pénible",
+    "DRAP": "Pièce de linge du lit",
+    "DRU": "Qui pousse de manière serrée",
+    "DU": "Contraction de « de le »",
+    "DUC": "Titre de noblesse ou grand rapace",
+    "DUR": "Qui résiste à la pression",
+    "DUVET": "Petites plumes souples ou couverture garnie de plumes",
+    "EAU": "Liquide indispensable à la vie",
+    "ECART": "Différence de temps entre deux coureurs",
+    "ECHANGE": "Action de donner quelque chose contre une autre",
+    "ECHEC": "Résultat contraire à la réussite",
+    "ECHELLE": "Suite de barreaux pour monter en hauteur",
+    "ECHO": "Son qui se répète après réflexion",
+    "ECLAIRAGE": "Dispositif apportant de la lumière",
+    "ECLAT": "Brillance ou petit morceau brisé",
+    "ECLIPSE": "Disparition apparente d’un astre",
+    "ECOLE": "Lieu d'enseignement",
+    "ECONOMIE": "Gestion des ressources ou argent mis de côté",
+    "ECORCE": "Enveloppe extérieure du tronc d'un arbre",
+    "ECOUTER": "Prêter attention à un son",
+    "ECRAN": "Surface sur laquelle apparaît une image",
+    "ECRIT": "Texte consigné par des lettres",
+    "ECRITURE": "Représentation des mots par des signes",
+    "ECROU": "Pièce filetée qui se visse sur une tige",
+    "ECRU": "Couleur naturelle d'un tissu non blanchi",
+    "ECU": "Ancienne monnaie ou bouclier héraldique",
+    "ECUME": "Mousse blanche à la surface de l'eau",
+    "EDIT": "Ordonnance d'un souverain",
+    "EDITEUR": "Professionnel qui publie des ouvrages",
+    "EFFET": "Conséquence d'une cause",
+    "EGAL": "Ni supérieur ni inférieur",
+    "EGO": "Idée que l'on se fait de soi",
+    "EH": "Interjection servant à interpeller",
+    "ELAN": "Énergie d'un mouvement ou grand cervidé",
+    "ELECTION": "Choix de représentants par un vote",
+    "ELEMENT": "Partie simple d'un ensemble",
+    "ELEVAGE": "Activité consistant à faire naître et grandir des animaux",
+    "ELLE": "Pronom personnel féminin",
+    "ELLIPSE": "Courbe ovale ou omission de mots",
+    "ELU": "Choisi par un vote",
+    "ELUS": "Personnes choisies par un vote",
+    "EMBALLAGE": "Enveloppe protectrice d'un produit",
+    "EMBARQUER": "Monter à bord d'un navire ou d'un avion",
+    "EMISSION": "Programme de radio ou de télévision",
+    "EMOI": "Vive émotion",
+    "EMU": "Touché par une émotion",
+    "EMUE": "Touchée par une émotion",
+    "EN": "Préposition indiquant notamment un lieu ou un état",
+    "ENCIERRO": "Course de taureaux dans les rues, terme espagnol",
+    "ENCREUR": "Qui dépose de l'encre, pour un rouleau",
+    "ENFANCE": "Première période de la vie",
+    "ENFER": "Lieu de supplice dans certaines croyances",
+    "ENFILER": "Passer un vêtement ou faire passer dans un trou",
+    "ENGIN": "Machine ou appareil destiné à un usage précis",
+    "ENLEVER": "Retirer de sa place",
+    "ENNEMI": "Personne hostile à une autre",
+    "ENORME": "De très grande taille",
+    "ENSEIGNE": "Panneau signalant un commerce",
+    "ENTE": "Branche greffée sur un arbre",
+    "ENTENTE": "Accord entre plusieurs personnes",
+    "ENTRAIDE": "Aide réciproque entre personnes",
+    "ENTRAIN": "Bonne humeur et énergie",
+    "ENVELOPPE": "Pochette de papier destinée au courrier",
+    "ENVIE": "Désir de posséder ou de faire",
+    "ENVOL": "Action de quitter le sol en volant",
+    "ENVOYER": "Faire parvenir à une destination",
+    "EPEE": "Arme blanche à longue lame",
+    "EPI": "Partie du blé portant les grains",
+    "EPICE": "Substance qui parfume un plat",
+    "EPIE": "Observe discrètement",
+    "EPIS": "Têtes de céréales portant les grains",
+    "EPREUVE": "Compétition ou situation difficile",
+    "EQUERRE": "Instrument servant à tracer des angles droits",
+    "ERE": "Longue période historique",
+    "ERG": "Unité d'énergie ou désert de dunes",
+    "ERRE": "Se déplace sans but précis",
+    "ES": "Forme du verbe être avec « tu »",
+    "ESPERANCE": "Attente confiante d'un événement favorable",
+    "ESSAI": "Tentative ou épreuve de vérification",
+    "ESSENCE": "Carburant ou nature profonde d'une chose",
+    "ESSIEU": "Axe reliant deux roues d'un véhicule",
+    "EST": "Point cardinal du soleil levant",
+    "ET": "Conjonction qui relie deux éléments",
+    "ETA": "Lettre grecque située après zêta",
+    "ETAGE": "Niveau d'un bâtiment",
+    "ETAI": "Pièce qui soutient une construction",
+    "ETAL": "Table d'exposition d'un commerçant",
+    "ETANG": "Étendue d'eau douce de faible profondeur",
+    "ETAPE": "Une journée dans un grand tour",
+    "ETAT": "Situation dans laquelle se trouve quelque chose",
+    "ETE": "Saison des plus longues journées",
+    "ETEINDRE": "Faire cesser une lumière ou un feu",
+    "ETENDUE": "Surface occupée par quelque chose",
+    "ETERNITE": "Durée sans commencement ni fin",
+    "ETINCELLE": "Petite parcelle de feu ou de lumière",
+    "ETOILE": "Boule de gaz qui produit sa propre lumière",
+    "ETRANGE": "Qui surprend par son caractère inhabituel",
+    "ETRE": "Verbe essentiel de la langue française",
+    "ETUDE": "Travail destiné à acquérir une connaissance",
+    "ETUDIANT": "Personne qui suit des études supérieures",
+    "ETUI": "Petite enveloppe de protection",
+    "EU": "Participe passé du verbe avoir",
+    "EURO": "Monnaie commune à plusieurs pays européens",
+    "EUS": "Forme d'avoir au passé simple avec « tu »",
+    "EUT": "Forme d'avoir au passé simple avec « il »",
+    "EUX": "Pronom personnel masculin pluriel",
+    "EVASION": "Fait de s'échapper ou de s'évader par l'imagination",
+    "EVEIL": "Passage du sommeil à la veille",
+    "EXAMEN": "Épreuve de contrôle des connaissances",
+    "EXIL": "Éloignement forcé de son pays",
+    "EXPLOIT": "Action remarquable par sa difficulté",
+    "EXPOSER": "Présenter au regard du public",
+    "FA": "Note située entre mi et sol",
+    "FACE": "Côté avant du visage ou d'un objet",
+    "FAIENCE": "Poterie recouverte d'un émail",
+    "FANTAISIE": "Liberté d'invention ou caprice",
+    "FAON": "Petit du cerf",
+    "FAR": "Gâteau breton souvent garni de pruneaux",
+    "FAUTEUIL": "Siège à dossier et à accoudoirs",
+    "FEE": "Personnage magique des contes",
+    "FER": "Métal utilisé dans l'acier",
+    "FERMETURE": "Action de rendre un lieu inaccessible",
+    "FERS": "Pièces métalliques fixées sous les sabots",
+    "FETE": "Moment organisé pour célébrer",
+    "FEU": "Combustion qui donne chaleur et lumière",
+    "FEUILLETS": "Petites feuilles de papier",
+    "FI": "Interjection de mépris",
+    "FIA": "Accorda sa confiance, au passé simple",
+    "FICHIER": "Ensemble de données enregistré sous un nom",
+    "FIE": "Accorde sa confiance, avec « se »",
+    "FIER": "Qui ressent de la fierté",
+    "FIL": "Brin utilisé pour coudre",
+    "FILM": "Œuvre destinée au cinéma",
+    "FILS": "Enfant masculin de ses parents",
+    "FIN": "Dernier moment ou opposé de grossier",
+    "FINALE": "Dernière épreuve qui désigne le vainqueur",
+    "FINE": "De faible épaisseur, au féminin",
+    "FINESSE": "Qualité de ce qui est délicat et subtil",
+    "FISC": "Administration chargée des impôts",
+    "FLANELLE": "Étoffe douce souvent en laine",
+    "FLEUR": "Partie d'une plante souvent colorée et parfumée",
+    "FLEURISTE": "Professionnel qui vend des fleurs",
+    "FLOCONNER": "Tomber en flocons, pour la neige",
+    "FLOTTANT": "Qui se maintient à la surface de l'eau",
+    "FOIS": "Marque la répétition d'un événement",
+    "FOL": "Forme de fou devant certains noms masculins",
+    "FONT": "Forme du verbe faire avec « ils »",
+    "FONTAINES": "Constructions distribuant de l'eau",
+    "FORET": "Vaste territoire couvert d’arbres",
+    "FORMATEUR": "Personne qui transmet des compétences",
+    "FORME": "État physique d'un coureur",
+    "FORMULE": "Expression mathématique ou ensemble de mots convenu",
+    "FOULARD": "Pièce de tissu portée autour du cou",
+    "FOUR": "Appareil fermé destiné à cuire",
+    "FRAIS": "De température peu élevée",
+    "FRAMBOISE": "Petit fruit composé de grains rouges ou roses",
+    "FRELE": "Mince et fragile",
+    "FROID": "Opposé de chaud",
+    "FRONTIERE": "Limite entre deux pays",
+    "FUI": "Participe passé du verbe fuir",
+    "FUIR": "S’éloigner rapidement d’un danger",
+    "FUIT": "Prend la fuite",
+    "FUMEE": "Mélange de gaz et de particules produit par le feu",
+    "FUS": "Forme d'être au passé simple avec « je »",
+    "FUSE": "S'élance vivement",
+    "FUT": "Forme d'être au passé simple avec « il »",
+    "GAGE": "Garantie ou petit défi ludique",
+    "GAI": "De bonne humeur",
+    "GAIE": "Joyeuse, au féminin",
+    "GALA": "Fête ou épreuve de prestige",
+    "GALETTE": "Préparation alimentaire plate et ronde",
+    "GANT": "Vêtement de la main",
+    "GARDENIA": "Arbuste aux fleurs blanches parfumées",
+    "GARE": "Lieu de départ et d'arrivée des trains",
+    "GEAI": "Oiseau coloré de la famille des corvidés",
+    "GEL": "Transformation de l'eau en glace",
+    "GELE": "Transformé en glace",
+    "GENE": "Unité d'information héréditaire ou embarras, selon l'accent",
+    "GENERAL": "Classement cumulé d'une course par étapes",
+    "GENEREUX": "Qui aime donner ou partager",
+    "GENIAL": "Qui révèle un talent remarquable",
+    "GENOU": "Articulation entre cuisse et jambe",
+    "GENT": "Ensemble de personnes, dans un registre littéraire",
+    "GENTIL": "Qui fait preuve de bienveillance",
+    "GERANT": "Personne chargée d’administrer une activité",
+    "GIN": "Spiritueux parfumé au genièvre",
+    "GLU": "Matière très collante",
+    "GO": "Jeu de stratégie asiatique à pierres noires et blanches",
+    "GOELAND": "Grand oiseau marin au plumage clair",
+    "GOLF": "Sport où l'on frappe une balle vers un trou",
+    "GOUT": "Sens permettant de distinguer les saveurs",
+    "GRADIN": "Rangée de sièges surélevée dans un stade",
+    "GRANGE": "Bâtiment agricole destiné aux récoltes",
+    "GRAPPE": "Ensemble de fruits fixés à une même tige",
+    "GRATITUDE": "Reconnaissance pour un service reçu",
+    "GRE": "Volonté, dans « de bon … »",
+    "GRENIER": "Pièce située sous le toit",
+    "GRUE": "Oiseau à longues pattes ou engin de levage",
+    "GUEPE": "Insecte rayé pouvant piquer",
+    "GUICHET": "Petite ouverture où l'on sert le public",
+    "HA": "Syllabe d'un éclat de rire",
+    "HABITUDE": "Manière d'agir devenue familière",
+    "HAI": "Participe passé du verbe haïr",
+    "HAIE": "Alignement d'arbustes ou obstacle sportif",
+    "HALE": "Teint bruni par le soleil",
+    "HALL": "Grande salle d'entrée",
+    "HALO": "Cercle lumineux autour d'un astre",
+    "HARMONICA": "Petit instrument à vent que l'on tient entre les mains",
+    "HATE": "Empressement à agir",
+    "HE": "Interjection pour appeler ou attirer l’attention",
+    "HELE": "Appelle quelqu'un à voix haute",
+    "HEM": "Interjection de doute ou de gêne",
+    "HERITAGE": "Ce qui est transmis par les générations précédentes",
+    "HERON": "Grand oiseau pêcheur aux longues pattes",
+    "HEURE": "Soixante minutes",
+    "HIE": "Outil servant à damer le sol",
+    "HIER": "Le jour qui précède aujourd’hui",
+    "HIVER": "Saison des journées les plus courtes",
+    "HO": "Interjection employée pour appeler",
+    "HONNEUR": "Estime accordée au mérite",
+    "HORREUR": "Sentiment de répulsion ou de peur intense",
+    "HOTE": "Personne qui reçoit ou qui est reçue",
+    "HOU": "Cri destiné à huer",
+    "HUE": "Cri pour faire avancer un cheval",
+    "HUIT": "Deux fois quatre",
+    "HUITRE": "Mollusque marin à coquille comestible",
+    "HUME": "Respire une odeur",
+    "HUMIDITE": "Présence de vapeur d'eau ou d'eau dans un milieu",
+    "HUNE": "Plateforme située sur le mât d'un navire",
+    "HURE": "Tête du sanglier",
+    "ICEBERG": "Bloc de glace flottant dans la mer",
+    "ICI": "Dans le lieu où l’on se trouve",
+    "IDEE": "Représentation née dans l’esprit",
+    "IF": "Conifère à baies rouges",
+    "IFS": "Conifères à baies rouges, au pluriel",
+    "IL": "Pronom personnel masculin",
+    "ILE": "Terre entièrement entourée d’eau",
+    "ILLUSION": "Perception trompeuse ou espoir sans fondement",
+    "ILOT": "Petite île",
+    "ILS": "Pronom personnel masculin pluriel sujet",
+    "IMAGE": "Représentation visuelle d'une chose",
+    "IMAM": "Personne qui dirige la prière musulmane",
+    "IMPERIAL": "Qui concerne un empire",
+    "IN": "À la mode, en langage familier",
+    "INCENDIE": "Feu qui se propage et cause des dégâts",
+    "INFO": "Abrégé courant d’information",
+    "INNE": "Présent dès la naissance",
+    "INSENSE": "Dépourvu de bon sens",
+    "INSTANT": "Très court moment",
+    "INSTRUIRE": "Transmettre des connaissances",
+    "IODE": "Élément chimique associé aux produits de la mer",
+    "IRA": "Se déplacera, avec « il »",
+    "IRE": "Grande colère, dans un registre littéraire",
+    "IRONIE": "Manière de dire le contraire pour se moquer",
+    "IRONIQUE": "Qui utilise la moquerie indirecte",
+    "ISSU": "Qui provient d'une origine",
+    "ITEM": "Élément d'une liste",
+    "IVRE": "Dont l'état est altéré par l'alcool",
+    "JALOUSIE": "Crainte de perdre une affection ou envie du bien d'autrui",
+    "JAVELOT": "Lance utilisée dans une épreuve d'athlétisme",
+    "JE": "Pronom de celui qui parle",
+    "JET": "Projection d'un liquide ou avion à réaction",
+    "JEU": "Activité pratiquée pour se divertir",
+    "JONGLER": "Lancer et rattraper plusieurs objets en rythme",
+    "JUGE": "Personne chargée de rendre la justice",
+    "JUNGLE": "Forêt tropicale très dense",
+    "KEROSENE": "Carburant utilisé pour les avions à réaction",
+    "KOALA": "Marsupial friand d’eucalyptus",
+    "LA": "Article défini féminin ou note de musique",
+    "LABO": "Abrégé d’un lieu d’expérimentation",
+    "LAC": "Étendue d’eau entourée de terres",
+    "LACS": "Étendues d'eau intérieures, au pluriel",
+    "LAIE": "Femelle du sanglier",
+    "LAINE": "Fibre textile provenant notamment du mouton",
+    "LAIT": "Liquide produit par les mammifères",
+    "LAITIER": "Qui produit, transporte ou vend du lait",
+    "LAME": "Partie tranchante d’un outil",
+    "LAMPION": "Petite lanterne décorative de fête",
+    "LAPIN": "Petit mammifère aux grandes oreilles",
+    "LARD": "Graisse de porc",
+    "LAS": "Très fatigué",
+    "LASER": "Faisceau lumineux très concentré",
+    "LAURIER": "Arbuste aux feuilles utilisées pour parfumer les plats",
+    "LAVE": "Roche fondue sortie d'un volcan",
+    "LE": "Article défini masculin singulier",
+    "LECTEUR": "Personne qui lit un texte",
+    "LEGENDE": "Récit transmis mêlant histoire et imaginaire",
+    "LENT": "Qui se déplace avec peu de vitesse",
+    "LENTILLE": "Petite légumineuse ou pièce d'optique",
+    "LEOPARD": "Grand félin au pelage tacheté",
+    "LES": "Article défini pluriel",
+    "LETTRE": "Signe de l'alphabet ou message écrit",
+    "LEUR": "Adjectif possessif de la troisième personne du pluriel",
+    "LEVER": "Faire passer d’une position basse à une position haute",
+    "LI": "Ancienne unité chinoise de distance",
+    "LIBERTE": "Possibilité d'agir sans contrainte injustifiée",
+    "LIE": "Dépôt au fond d'une bouteille de vin",
+    "LIEN": "Ce qui relie deux éléments",
+    "LIEU": "Endroit où se trouve une chose",
+    "LIME": "Outil pour user une surface",
+    "LIN": "Plante dont on tire une fibre textile",
+    "LINGE": "Ensemble des pièces de tissu d'une maison",
+    "LION": "Grand félin à crinière",
+    "LIRE": "Déchiffrer un texte écrit",
+    "LIS": "Fleur héraldique, avec cette orthographe",
+    "LISERON": "Plante grimpante aux fleurs en entonnoir",
+    "LISTE": "Suite d’éléments rangés les uns après les autres",
+    "LITIERE": "Couche de paille où repose un animal",
+    "LITS": "Meubles destinés au sommeil, au pluriel",
+    "LIVRE": "Ouvrage composé de pages reliées",
+    "LOGEMENT": "Lieu destiné à l'habitation",
+    "LOGIQUE": "Conforme aux règles du raisonnement",
+    "LOI": "Règle votée qui s'impose à tous",
+    "LOIN": "À grande distance",
+    "LOIR": "Petit rongeur qui hiberne",
+    "LOSANGE": "Figure à quatre côtés égaux dont les angles ne sont pas forcément droits",
+    "LOTO": "Jeu de hasard avec des numéros",
+    "LOUP": "Canidé sauvage vivant souvent en meute",
+    "LU": "Parcouru des yeux un texte",
+    "LUCARNE": "Petite ouverture pratiquée dans un toit",
+    "LUCIOLE": "Insecte produisant de la lumière",
+    "LUE": "Parcourue des yeux, pour une page",
+    "LUEUR": "Lumière faible ou brève",
+    "LUI": "Pronom personnel masculin singulier",
+    "LUIT": "Brille doucement",
+    "LUMIERE": "Ce qui rend les objets visibles",
+    "LUNE": "Satellite naturel de la Terre",
+    "LUNETTES": "Instrument à deux verres pour aider à voir",
+    "LURE": "Ville de Haute-Saône",
+    "LUT": "Forme de lire au passé simple avec « il »",
+    "LUTH": "Instrument à cordes pincées",
+    "LUX": "Unité de mesure de l'éclairement",
+    "LUXE": "Raffinement coûteux",
+    "MA": "Possessif féminin de la première personne",
+    "MACARON": "Petite pâtisserie ronde à deux coques",
+    "MADRIER": "Pièce de bois épaisse destinée à la construction",
+    "MAGASIN": "Lieu où l'on vend des marchandises",
+    "MAGICIEN": "Artiste qui réalise des tours d'illusion",
+    "MAI": "Mois situé entre avril et juin",
+    "MAIN": "Extrémité du bras, munie de doigts",
+    "MAISON": "Bâtiment destiné à l'habitation",
+    "MAL": "Contraire de bien",
+    "MALE": "Sexe opposé à femelle",
+    "MANIERE": "Façon de faire quelque chose",
+    "MARC": "Résidu de fruits après pressage",
+    "MARCHEURS": "Personnes qui se déplacent à pied",
+    "MARE": "Petite étendue d'eau stagnante",
+    "MARI": "Époux",
+    "MARIN": "Personne qui travaille à bord d'un bateau",
+    "MARMITE": "Grand récipient de cuisson à couvercle",
+    "MARRON": "Fruit du marronnier ou couleur brune",
+    "MARS": "Mois du printemps ou planète rouge",
+    "MARTINET": "Oiseau proche de l'hirondelle",
+    "MAS": "Maison traditionnelle du Midi",
+    "MAT": "Sans éclat ni brillance",
+    "MATE": "Rend moins brillant, au présent",
+    "MATIN": "Première partie de la journée",
+    "MAX": "Abréviation familière de maximum",
+    "MAYA": "Qui se rapporte à une civilisation mésoaméricaine",
+    "ME": "Pronom personnel de la première personne",
+    "MEILLEUR": "Plus bon que les autres",
+    "MENE": "Dirige ou conduit",
+    "MENU": "Liste des plats d'un repas",
+    "MENUISIER": "Artisan qui travaille le bois pour l'aménagement",
+    "MER": "Étendue d'eau salée plus petite qu'un océan",
+    "MERCI": "Mot qui exprime la reconnaissance",
+    "MERE": "Parent qui a donné naissance",
+    "MERLE": "Oiseau dont le mâle est généralement noir",
+    "MERS": "Étendues d'eau salée, au pluriel",
+    "MES": "Possessif pluriel de la première personne",
+    "MET": "Place ou enfile, avec « il »",
+    "METRO": "Transport urbain souvent souterrain",
+    "METS": "Plat servi à table",
+    "MEUS": "Forme de mouvoir avec « je »",
+    "MI": "Note située entre ré et fa",
+    "MICROBE": "Organisme invisible à l’œil nu",
+    "MIDI": "Milieu de la journée",
+    "MIE": "Partie tendre du pain",
+    "MIEL": "Douceur fabriquée par les abeilles",
+    "MIEN": "Qui m'appartient",
+    "MIES": "Parties tendres du pain, au pluriel",
+    "MIL": "Céréale à petits grains",
+    "MIME": "Artiste qui s'exprime par les gestes",
+    "MINE": "Lieu d'extraction ou expression du visage",
+    "MINERAL": "Corps naturel constituant notamment les roches",
+    "MIR": "Ancienne station spatiale russe",
+    "MIRABELLE": "Petite prune jaune",
+    "MIRE": "Repère utilisé pour viser",
+    "MISE": "Action de placer ou somme engagée",
+    "MIT": "Forme de mettre au passé simple avec « il »",
+    "MIX": "Mélange, dans le langage courant",
+    "MO": "Abréviation du mégaoctet",
+    "MOELLEUX": "Agréablement souple et doux",
+    "MOI": "Pronom personnel de celui qui parle",
+    "MOISSON": "Récolte des céréales",
+    "MON": "Possessif masculin de la première personne",
+    "MONDE": "Ensemble des habitants de la Terre",
+    "MONITEUR": "Personne qui encadre un apprentissage ou écran",
+    "MONNAIE": "Moyen de paiement accepté dans un pays",
+    "MONSTRE": "Créature effrayante des récits",
+    "MONT": "Relief élevé, plus court que montagne",
+    "MORD": "Serre avec les dents",
+    "MORE": "Ancien nom d'un habitant du Maghreb",
+    "MORT": "Fin de la vie",
+    "MOTS": "Unités de langage, au pluriel",
+    "MOU": "Qui manque de fermeté",
+    "MOULIN": "Machine qui broie des grains",
+    "MOUS": "Qui manquent de fermeté",
+    "MOUVEMENT": "Changement de position d'un corps",
+    "MU": "Lettre grecque entre lambda et nu",
+    "MUE": "Changement de peau ou de voix",
+    "MUEE": "Transformée, au féminin",
+    "MUES": "Changements de peau, au pluriel",
+    "MUNI": "Pourvu de ce qui est nécessaire",
+    "MUR": "Séparation verticale en maçonnerie",
+    "MURAILLE": "Mur élevé destiné à protéger",
+    "MURE": "Fruit noir de la ronce",
+    "MUS": "Participe passé masculin pluriel du verbe mouvoir",
+    "MUSE": "Inspiratrice d'un artiste",
+    "MUT": "Forme de mouvoir au passé simple avec « il »",
+    "NA": "Interjection enfantine de défi",
+    "NAGE": "Déplacement dans l'eau par mouvements du corps",
+    "NAGEOIRE": "Organe qui permet au poisson de se déplacer",
+    "NAIF": "Qui manque de méfiance",
+    "NAIN": "Personnage de petite taille des contes",
+    "NAN": "Non, dans le langage familier",
+    "NATURE": "Ensemble du monde physique non fabriqué par l'homme",
+    "NATUREL": "Qui n'a pas été produit artificiellement",
+    "NATURELLE": "Qui provient de la nature, au féminin",
+    "NAVET": "Légume-racine souvent blanc et violet",
+    "NAVETTE": "Véhicule assurant des allers-retours réguliers",
+    "NE": "Élément de la négation",
+    "NEES": "Venues au monde, au féminin pluriel",
+    "NEF": "Partie centrale d'une église",
+    "NENUPHAR": "Plante aquatique à grandes feuilles flottantes",
+    "NERF": "Faisceau qui transmet un message dans le corps",
+    "NET": "Clair, précis ou sans saleté",
+    "NEUF": "Nombre suivant huit ou qui n'a pas servi",
+    "NEVEU": "Fils d'un frère ou d'une sœur",
+    "NEZ": "Organe de l'odorat",
+    "NI": "Conjonction employée dans une négation",
+    "NID": "Abri construit par un oiseau",
+    "NIE": "Refuse de reconnaître",
+    "NIER": "Refuser de reconnaître comme vrai",
+    "NIL": "Fleuve qui traverse l'Égypte",
+    "NO": "Théâtre traditionnel japonais",
+    "NOCE": "Fête célébrant un mariage",
+    "NOEL": "Fête de fin décembre",
+    "NOIR": "Couleur de la nuit sans lumière",
+    "NOIX": "Fruit à coque dure",
+    "NOM": "Mot qui identifie une personne ou une chose",
+    "NOMS": "Mots servant à identifier",
+    "NON": "Réponse négative",
+    "NORD": "Point cardinal opposé au sud",
+    "NOS": "Possessif pluriel de la première personne du pluriel",
+    "NOTE": "Signe musical ou appréciation scolaire",
+    "NOUE": "Attache avec un nœud",
+    "NOUS": "Pronom personnel de la première personne du pluriel",
+    "NOUVEAU": "Qui vient d'apparaître",
+    "NU": "Qui n’est pas couvert",
+    "NUANCE": "Différence subtile entre deux couleurs",
+    "NUE": "Sans vêtement, au féminin",
+    "NUES": "Nuages, dans une tournure littéraire",
+    "NUIT": "Période sans lumière du soleil",
+    "NUL": "Sans valeur ou égal à zéro",
+    "NULS": "Sans valeur, au masculin pluriel",
+    "OASIS": "Lieu fertile et habité dans un désert",
+    "OBEIR": "Se conformer à un ordre",
+    "OC": "Langue du sud dans l'expression « langue d'… »",
+    "OCEAN": "Immense étendue d’eau salée",
+    "OCTAVE": "Intervalle de huit degrés dans une gamme",
+    "ODE": "Poème lyrique célébrant un sujet",
+    "ODEUR": "Sensation perçue par le nez",
+    "OEIL": "Organe de la vision",
+    "OEUF": "Cellule reproductrice ou produit de la poule",
+    "OFF": "Se dit d'une voix entendue sans voir celui qui parle",
+    "OGNON": "Bulbe de cuisine, dans l'orthographe rectifiée",
+    "OGRE": "Géant mangeur d'enfants dans les contes",
+    "OH": "Interjection marquant la surprise",
+    "OHE": "Cri pour attirer l'attention",
+    "OIE": "Oiseau de basse-cour au long cou",
+    "OIES": "Oiseaux de basse-cour au long cou",
+    "OIL": "Ancien oui du nord de la France",
+    "OINS": "Enduis d'un corps gras, avec « tu »",
+    "OINT": "Enduit d'un corps gras",
+    "OIS": "Forme du verbe ouïr avec « je »",
+    "OISEAUX": "Animaux pourvus de plumes",
+    "OIT": "Forme du verbe ouïr avec « il »",
+    "OLA": "Vague humaine dans les tribunes",
+    "OLE": "Interjection d'encouragement espagnole",
+    "OLIVE": "Petit fruit dont on tire une huile",
+    "OLIVIER": "Arbre qui produit les olives",
+    "ON": "Pronom indéfini désignant des personnes",
+    "ONCE": "Unité de masse utilisée notamment pour les métaux précieux",
+    "ONDE": "Vibration qui se propage",
+    "ONT": "Forme d'avoir avec « ils »",
+    "ONZE": "Nombre suivant dix",
+    "OPERA": "Spectacle où le théâtre se chante",
+    "OPINION": "Avis personnel sur une question",
+    "OPUS": "Œuvre musicale, dans une numérotation",
+    "OR": "Métal précieux jaune",
+    "ORAGE": "Perturbation accompagnée d'éclairs et de tonnerre",
+    "ORAL": "Qui se fait par la parole",
+    "ORANGE": "Agrume ou couleur entre rouge et jaune",
+    "ORBE": "Trajectoire circulaire, dans un registre littéraire",
+    "ORGE": "Céréale utilisée notamment dans la bière",
+    "ORIGINAL": "Qui est inédit ou sert de modèle à une copie",
+    "ORIGINE": "Point de départ ou provenance",
+    "ORNE": "Décore ou embellit",
+    "ORNEMENT": "Élément ajouté pour décorer",
+    "ORPHELIN": "Enfant qui a perdu un parent ou ses deux parents",
+    "ORS": "Dorures, au pluriel",
+    "OS": "Pièce dure du squelette",
+    "OSE": "A l'audace de faire quelque chose",
+    "OSER": "Avoir l’audace de faire quelque chose",
+    "OST": "Armée du temps féodal",
+    "OTA": "Enleva, au passé simple",
+    "OTE": "Enlève ou retire",
+    "OU": "Conjonction qui propose un choix",
+    "OUED": "Cours d'eau des régions arides",
+    "OUEST": "Point cardinal où le soleil se couche",
+    "OUI": "Réponse affirmative",
+    "OUIE": "Sens permettant d'entendre",
+    "OURS": "Grand mammifère à la fourrure épaisse",
+    "OUT": "Hors des limites du terrain, au tennis",
+    "OUTIL": "Objet qui permet de réaliser un travail",
+    "OUVRAGE": "Travail réalisé ou livre publié",
+    "OUVRIER": "Personne exerçant un travail manuel salarié",
+    "OVNI": "Objet volant non identifié, en abrégé",
+    "PA": "Syllabe familière pour désigner le père",
+    "PAILLE": "Tige sèche de céréale",
+    "PAIN": "Aliment à base de farine et d'eau",
+    "PAIR": "Divisible par deux",
+    "PAL": "Pieu pointu ou figure verticale d'un blason",
+    "PAN": "Partie d'un mur ou bruit de détonation",
+    "PANTOUFLE": "Chaussure souple portée à l'intérieur",
+    "PAON": "Oiseau dont le mâle fait la roue",
+    "PAPA": "Mot familier pour désigner un père",
+    "PAPILLON": "Insecte aux ailes souvent colorées",
+    "PARASOL": "Grand écran portatif protégeant du soleil",
+    "PARC": "Terrain aménagé pour la promenade",
+    "PART": "Portion d’un ensemble",
+    "PARTICULE": "Très petite partie de matière",
+    "PARTITION": "Texte écrit d'une composition musicale",
+    "PAS": "Mouvement de marche ou élément de négation",
+    "PASTILLE": "Petit disque ou bonbon rond",
+    "PAT": "Position où aucun coup n'est possible sans que le roi soit en échec",
+    "PEAGE": "Paiement donnant accès à une route",
+    "PEAU": "Enveloppe extérieure du corps",
+    "PELUCHE": "Jouet mou recouvert d'un tissu duveteux",
+    "PENDULE": "Horloge ou masse qui oscille",
+    "PENE": "Pièce mobile d'une serrure",
+    "PENTE": "Inclinaison d'un terrain",
+    "PERDRIX": "Oiseau de plaine proche du faisan",
+    "PERI": "A trouvé la mort",
+    "PERMETTRE": "Rendre possible ou autoriser",
+    "PERROQUET": "Oiseau capable d'imiter des sons",
+    "PESE": "Mesure le poids",
+    "PESO": "Nom de plusieurs monnaies",
+    "PETROLE": "Liquide fossile utilisé comme source d'énergie",
+    "PEU": "Petite quantité",
+    "PEUR": "Émotion face à un danger",
+    "PHARE": "Tour lumineuse qui guide les navires",
+    "PHARMACIE": "Commerce où l'on délivre des médicaments",
+    "PI": "Constante associée au cercle",
+    "PIANISTE": "Musicien qui joue du piano",
+    "PIANO": "Instrument à touches noires et blanches",
+    "PIE": "Oiseau noir et blanc réputé bavard",
+    "PIED": "Extrémité de la jambe",
+    "PIF": "Nez, en langage familier",
+    "PIN": "Conifère portant des aiguilles",
+    "PINCE": "Outil qui serre ou organe de crustacé",
+    "PINCEAU": "Outil à poils servant à peindre",
+    "PINS": "Conifères à aiguilles, au pluriel",
+    "PIS": "Mamelle d'une vache",
+    "PISCINE": "Bassin aménagé pour la baignade",
+    "PISTE": "Chemin balisé ou anneau d'un vélodrome",
+    "PLACARD": "Meuble de rangement intégré au mur",
+    "PLACE": "Espace disponible ou position dans un classement",
+    "PLAFOND": "Surface supérieure d’une pièce",
+    "PLAGE": "Rivage couvert de sable ou de galets",
+    "PLAN": "Représentation ou projet préparé à l’avance",
+    "PLANETE": "Astre qui tourne autour d’une étoile",
+    "PLANTE": "Végétal ou partie inférieure du pied",
+    "PLI": "Marque laissée en rabattant du papier",
+    "PLIE": "Rabat en faisant un pli, avec « il »",
+    "PLOT": "Petit repère posé au sol",
+    "PLU": "Participe passé du verbe pleuvoir",
+    "PLUME": "Élément du plumage ou instrument d'écriture",
+    "PLUMIER": "Petite boîte destinée aux stylos et crayons",
+    "PLUS": "Signe de l'addition",
+    "PNEU": "Enveloppe gonflée d'une roue",
+    "POEME": "Texte rythmé fait de vers ou de prose",
+    "POETE": "Personne qui écrit de la poésie",
+    "POIL": "Filament poussant sur la peau",
+    "POIRE": "Fruit du poirier",
+    "POIS": "Légumineuse à graines rondes",
+    "POISSON": "Animal aquatique muni de nageoires",
+    "POLAIRE": "Qui concerne les régions des pôles",
+    "POLE": "Extrémité de l'axe de rotation terrestre",
+    "POMPIERS": "Personnes qui luttent contre les incendies",
+    "PORC": "Animal élevé notamment pour sa viande",
+    "PORTE": "Ouverture mobile permettant d'entrer",
+    "PORTEUR": "Personne qui transporte une charge",
+    "POSE": "Action d'installer ou attitude du modèle",
+    "POSITION": "Place ou attitude d'un corps",
+    "POT": "Récipient destiné notamment aux plantes",
+    "POU": "Petit parasite du cuir chevelu",
+    "POUBELLE": "Récipient destiné aux déchets",
+    "POULE": "Femelle du coq",
+    "POUR": "Préposition indiquant un but",
+    "POURSUITE": "Chasse menée derrière les attaquants",
+    "PRE": "Terrain herbeux destiné au pâturage",
+    "PRECIEUX": "Qui a une grande valeur",
+    "PRES": "À faible distance",
+    "PRESENCE": "Fait de se trouver dans un lieu",
+    "PRESENTER": "Montrer ou faire connaître",
+    "PRESSION": "Force exercée sur une surface",
+    "PRET": "Disposé à commencer",
+    "PRINTEMPS": "Saison comprise entre l'hiver et l'été",
+    "PRIORITE": "Caractère de ce qui doit passer avant le reste",
+    "PRISE": "Action de saisir ou point de branchement électrique",
+    "PRO": "Professionnel, en abrégé",
+    "PROMENADE": "Déplacement effectué pour le plaisir",
+    "PROMESSE": "Engagement à faire quelque chose",
+    "PU": "Participe passé du verbe pouvoir",
+    "PUCE": "Petit insecte sauteur ou composant électronique",
+    "PUE": "Dégage une mauvaise odeur",
+    "PUMA": "Félin d'Amérique",
+    "PUR": "Sans mélange ni impureté",
+    "QUART": "Une des quatre parties égales d'un tout",
+    "QUE": "Conjonction introduisant notamment une proposition",
+    "QUI": "Pronom interrogatif pour une personne",
+    "RA": "Dieu solaire de l'Égypte ancienne",
+    "RACE": "Lignée d'animaux partageant des caractères",
+    "RACONTER": "Faire le récit d'un événement",
+    "RAI": "Rayon de lumière",
+    "RAID": "Épreuve sportive d'endurance",
+    "RAIE": "Ligne de séparation ou poisson plat",
+    "RAIL": "Barre métallique guidant un train",
+    "RAM": "Mémoire vive d'un ordinateur, en abrégé anglais",
+    "RAMPE": "Plan incliné ou support où l'on pose la main",
+    "RANDONNEE": "Longue promenade à pied ou à vélo",
+    "RANG": "Place dans un classement",
+    "RAPE": "Ustensile qui réduit un aliment en petits morceaux",
+    "RARE": "Qui existe en petit nombre",
+    "RAS": "Tout près de la surface",
+    "RAT": "Petit rongeur très répandu",
+    "RATE": "Organe situé dans la partie gauche de l’abdomen",
+    "RAYON": "Distance entre le centre et le bord d'un cercle",
+    "RE": "Note située entre do et mi",
+    "REALITE": "Ce qui existe effectivement",
+    "RECIT": "Exposé d'une histoire ou d'événements",
+    "RECOLTE": "Action de ramasser les produits des cultures",
+    "RECU": "Document attestant un paiement",
+    "RECYCLAGE": "Transformation de déchets en nouvelles ressources",
+    "REEL": "Qui existe véritablement",
+    "REFLECHIR": "Examiner une idée avant de décider",
+    "REG": "Désert couvert de pierres",
+    "REGISTRE": "Livre ou support où l’on consigne des informations",
+    "REGLE": "Instrument de mesure ou principe à respecter",
+    "REIN": "Organe qui filtre le sang",
+    "REINE": "Souveraine ou pièce la plus mobile des échecs",
+    "RELU": "Lu de nouveau",
+    "REMARQUE": "Observation formulée sur un sujet",
+    "REMONTEE": "Action de regagner des places ou de reprendre de la hauteur",
+    "RENCONTRE": "Fait de se trouver face à quelqu’un",
+    "RENDEMENT": "Rapport entre le résultat obtenu et les moyens utilisés",
+    "RENE": "Lanière servant à diriger un cheval",
+    "RENNE": "Cervidé des régions froides",
+    "REPAS": "Moment où l'on mange",
+    "REPU": "Qui a suffisamment mangé",
+    "RESSORT": "Pièce élastique qui reprend sa forme",
+    "RESTE": "Ce qui n'a pas été utilisé",
+    "RET": "Filet de chasse ou de pêche",
+    "REUNION": "Rassemblement de personnes dans un but commun",
+    "REUSSITE": "Résultat conforme à ce que l'on souhaitait",
+    "REVE": "Histoire produite pendant le sommeil",
+    "REZ": "Niveau du sol dans « …-de-chaussée »",
+    "RI": "Participe passé du verbe rire",
+    "RIA": "Vallée côtière envahie par la mer",
+    "RICHESSE": "Abondance de biens ou de ressources",
+    "RIDE": "Pli de la peau",
+    "RIE": "Forme du verbe rire après « pour que je »",
+    "RIEN": "Absence de toute chose",
+    "RIME": "Sons semblables à la fin de deux vers",
+    "RIO": "Ville brésilienne, en abrégé courant",
+    "RIRA": "Rira bien qui … le dernier",
+    "RIRE": "Exprimer sa gaieté par des sons",
+    "RIS": "Forme de rire au présent avec « je »",
+    "RIT": "Forme de rire au présent avec « il »",
+    "RITE": "Cérémonie réglée par la tradition",
+    "RIVIERE": "Cours d’eau qui rejoint souvent un fleuve",
+    "ROBE": "Vêtement d'une seule pièce",
+    "ROBOT": "Machine capable d’exécuter des tâches",
+    "ROC": "Masse de pierre très dure",
+    "RODE": "Circule dans un lieu avec insistance",
+    "ROI": "Souverain d’un royaume",
+    "ROIS": "Souverains de royaumes",
+    "ROLE": "Personnage joué par un acteur",
+    "ROMAN": "Long récit de fiction",
+    "ROMARINS": "Plantes aromatiques aux petites feuilles persistantes",
+    "ROSE": "Fleur souvent offerte",
+    "ROSETTE": "Petite rose décorative ou variété de saucisson",
+    "ROT": "Renvoi d'air après un repas",
+    "ROTI": "Cuit au four ou à la broche",
+    "ROUE": "Pièce circulaire tournant autour d’un axe",
+    "ROUET": "Ancien appareil à filer la laine",
+    "ROUTE": "Voie de circulation aménagée",
+    "ROUX": "Couleur des cheveux tirant sur le cuivre",
+    "RU": "Petit ruisseau",
+    "RUDE": "Dur, difficile ou peu doux",
+    "RUE": "Voie bordée de bâtiments",
+    "RUS": "Petits ruisseaux, au pluriel",
+    "RUSE": "Astuce destinée à tromper",
+    "RUT": "Période de reproduction de certains mammifères",
+    "SA": "Adjectif possessif féminin singulier",
+    "SABLIER": "Instrument qui mesure le temps par écoulement de sable",
+    "SAC": "Contenant souple muni d'une ouverture",
+    "SACRE": "Consacré ou considéré comme inviolable",
+    "SAGESSE": "Qualité d'un jugement calme et prudent",
+    "SALE": "Qui manque de propreté",
+    "SALI": "Rendu sale",
+    "SALLE": "Pièce d'un bâtiment",
+    "SALON": "Pièce où l'on reçoit les visiteurs",
+    "SANG": "Liquide rouge circulant dans le corps",
+    "SANS": "Préposition exprimant l'absence",
+    "SARDINE": "Petit poisson marin vivant en bancs",
+    "SATELLITE": "Corps qui tourne autour d'un astre",
+    "SAUF": "À l'exception de",
+    "SAUT": "Bond permettant de quitter le sol",
+    "SAUVETAGE": "Action de tirer quelqu’un d’un danger",
+    "SCENE": "Espace où jouent les artistes",
+    "SCIE": "Outil à dents servant à couper",
+    "SCOOTER": "Petit deux-roues motorisé à plancher",
+    "SCULPTEUR": "Artiste qui travaille les volumes",
+    "SE": "Pronom personnel réfléchi",
+    "SEANCE": "Temps consacré à une activité déterminée",
+    "SEAU": "Récipient muni d’une anse",
+    "SECHOIR": "Lieu ou dispositif destiné à sécher",
+    "SECOURS": "Aide apportée dans une situation difficile",
+    "SECS": "Dépourvus d'humidité",
+    "SECTEUR": "Partie délimitée d'un espace ou d'une activité",
+    "SEIN": "Partie de la poitrine ou intérieur d'un groupe",
+    "SEL": "Condiment qui donne une saveur salée",
+    "SELF": "Restaurant en libre-service",
+    "SELLE": "Assise du cycliste",
+    "SEMA": "Mit des graines en terre",
+    "SEMAINE": "Période de sept jours",
+    "SEME": "Met des graines en terre",
+    "SEMELLE": "Partie d'une chaussure au contact du sol",
+    "SEMER": "Mettre des graines en terre",
+    "SEMI": "Moitié, en préfixe",
+    "SENS": "Direction ou signification",
+    "SENT": "Perçoit une odeur",
+    "SENTIER": "Chemin étroit destiné aux piétons",
+    "SERA": "Forme d'être au futur avec « il »",
+    "SERENITE": "État de calme intérieur",
+    "SERF": "Paysan dépendant d'un seigneur au Moyen Âge",
+    "SERIE": "Suite d'éléments de même nature",
+    "SERPENT": "Reptile au corps allongé sans pattes",
+    "SERRE": "Construction vitrée destinée aux plantes",
+    "SERRURE": "Mécanisme d'une porte actionné par une clé",
+    "SERVICE": "Action d'aider ou première frappe au tennis",
+    "SERVIETTE": "Pièce de linge pour s'essuyer",
+    "SES": "Possessif pluriel de la troisième personne",
+    "SET": "Manche d'un match de tennis",
+    "SEUIL": "Limite inférieure d'une porte ou niveau à atteindre",
+    "SEUL": "Sans compagnie",
+    "SEVE": "Liquide nourricier des végétaux",
+    "SI": "Conjonction exprimant une condition",
+    "SIED": "Convient, dans une tournure soutenue",
+    "SIEGE": "Meuble pour s'asseoir ou lieu de direction",
+    "SIEN": "Qui lui appartient",
+    "SIFFLET": "Petit instrument produisant un son aigu",
+    "SIGNATURE": "Nom tracé pour authentifier un document",
+    "SILENCE": "Absence de bruit",
+    "SILO": "Réservoir de stockage de céréales",
+    "SINGE": "Primate arboricole dans le langage courant",
+    "SITE": "Lieu ou ensemble de pages internet",
+    "SIX": "Nombre qui suit cinq",
+    "SKI": "Sport de glisse sur neige",
+    "SOC": "Pièce de la charrue qui ouvre le sillon",
+    "SOCIETE": "Ensemble de personnes organisées ou entreprise",
+    "SOI": "Pronom qui renvoie à la personne elle-même",
+    "SOIE": "Fibre produite par un insecte",
+    "SOIN": "Attention apportée à une personne ou à une chose",
+    "SOIR": "Dernière partie de la journée",
+    "SOIT": "Exprime une possibilité ou une alternative",
+    "SOL": "Terrain sur lequel on marche",
+    "SOLAIRE": "Qui concerne le Soleil",
+    "SOLE": "Poisson plat apprécié en cuisine",
+    "SOLS": "Surfaces sur lesquelles on marche",
+    "SON": "Bruit perçu par l'oreille",
+    "SONS": "Bruits perçus par l'oreille",
+    "SONT": "Forme d'être au présent avec « ils »",
+    "SORT": "Destin ou résultat d'un tirage",
+    "SOU": "Ancienne petite pièce de monnaie",
+    "SOULIER": "Chaussure fermée",
+    "SOURIRE": "Expression joyeuse dessinée par la bouche",
+    "SOUS": "En dessous de",
+    "SOYA": "Autre nom du soja",
+    "SPA": "Lieu de détente proposant des bains",
+    "SPECTACLE": "Représentation donnée devant un public",
+    "SPIRALE": "Courbe qui s'éloigne progressivement d'un centre",
+    "STADE": "Terrain aménagé pour les compétitions sportives",
+    "STAR": "Personnalité très célèbre",
+    "STOP": "Ordre de s'arrêter",
+    "STUC": "Enduit décoratif imitant le marbre",
+    "SU": "Participe passé du verbe savoir",
+    "SUC": "Liquide contenu dans un végétal",
+    "SUCS": "Liquides présents dans les végétaux",
+    "SUD": "Point cardinal opposé au nord",
+    "SUE": "Transpire, avec « il »",
+    "SUEE": "Accès de transpiration",
+    "SUEUR": "Liquide produit par la peau pendant l'effort",
+    "SUIS": "Forme d'être avec « je »",
+    "SUIT": "Vient derrière ou accompagne",
+    "SUITE": "Ensemble ordonné ou continuation",
+    "SUR": "Au-dessus de, avec contact",
+    "SURE": "Certaine ou un peu acide, selon l'accent",
+    "SURFACE": "Partie extérieure d'un objet ou étendue plane",
+    "SUS": "Participe passé masculin pluriel de savoir",
+    "SVP": "Formule abrégée de politesse",
+    "SYMPHONIE": "Grande composition écrite pour orchestre",
+    "TA": "Adjectif possessif féminin singulier",
+    "TABLIER": "Vêtement de protection porté devant soi",
+    "TAC": "Réponse immédiate dans « du … au … »",
+    "TAIS": "Garde le silence, avec « tu »",
+    "TAIT": "Garde le silence, avec « il »",
+    "TALC": "Poudre minérale très fine",
+    "TALENT": "Aptitude particulière dans un domaine",
+    "TAMIS": "Ustensile qui sépare les particules selon leur taille",
+    "TANT": "Une telle quantité",
+    "TAPE": "Frappe avec la main",
+    "TAPIS": "Pièce de tissu couvrant une partie du sol",
+    "TARD": "Après le moment attendu",
+    "TARTINE": "Tranche de pain garnie",
+    "TAS": "Amas de choses empilées",
+    "TASSE": "Petit récipient à anse pour boire",
+    "TAU": "Lettre grecque située après sigma",
+    "TAUPE": "Mammifère qui creuse des galeries souterraines",
+    "TE": "Pronom personnel de la deuxième personne",
+    "TEAM": "Équipe, en anglais",
+    "TEINTE": "Nuance d'une couleur",
+    "TEL": "Semblable ou de cette nature",
+    "TELE": "Abrégé courant de télévision",
+    "TELEPHONE": "Appareil permettant de communiquer à distance",
+    "TEMPETE": "Violente perturbation atmosphérique",
+    "TENAILLE": "Pince servant à serrer ou arracher",
+    "TEND": "Tire pour mettre en tension",
+    "TENNIS": "Sport de raquette se jouant de part et d'autre d'un filet",
+    "TENTE": "Abri démontable en toile",
+    "TENU": "Maintenu ou vêtu",
+    "TERRAIN": "Étendue de sol aux limites définies",
+    "TERRIER": "Abri creusé par certains animaux",
+    "TES": "Possessif pluriel de la deuxième personne",
+    "TEST": "Épreuve destinée à vérifier une capacité",
+    "TETE": "Partie supérieure du corps",
+    "THE": "Boisson obtenue par infusion de feuilles",
+    "THEATRE": "Art de raconter une histoire sur scène",
+    "TIC": "Geste ou son involontaire et répété",
+    "TIEN": "Qui t'appartient",
+    "TIGE": "Partie allongée portant feuilles et fleurs",
+    "TIGRE": "Grand félin rayé",
+    "TILLEUL": "Arbre dont les fleurs servent en infusion",
+    "TILT": "Signal de blocage d'un flipper",
+    "TIR": "Action de lancer un projectile",
+    "TIRE": "Exerce une traction",
+    "TITRE": "Nom d'une œuvre ou distinction obtenue",
+    "TOI": "Pronom personnel de la personne interpellée",
+    "TOILE": "Tissu utilisé par un peintre ou réseau d'une araignée",
+    "TOIT": "Couverture supérieure d'un bâtiment",
+    "TOME": "Volume d'un ouvrage",
+    "TON": "Manière de parler ou hauteur d'un son",
+    "TONNE": "Mille kilogrammes",
+    "TONNERRE": "Bruit qui accompagne la foudre",
+    "TOP": "Signal de départ ou sommet d'un classement",
+    "TORCHON": "Linge destiné à essuyer la vaisselle",
+    "TORD": "Déforme par torsion",
+    "TORE": "Solide en forme de bouée",
+    "TORRENT": "Cours d'eau de montagne à forte pente",
+    "TORT": "Erreur ou dommage causé à autrui",
+    "TOT": "Avant l'heure habituelle",
+    "TOTAL": "Résultat d'une addition complète",
+    "TOUR": "Mouvement complet autour d’un axe",
+    "TOURNEE": "Série de déplacements ou ensemble de consommations offertes",
+    "TOURNEVIS": "Outil qui sert à visser ou dévisser",
+    "TOUS": "L'ensemble des éléments concernés",
+    "TOUT": "L'ensemble sans exception",
+    "TRACE": "Marque laissée par un passage",
+    "TRAINEAU": "Véhicule qui glisse sur la neige",
+    "TRAIT": "Ligne tracée ou particularité d'une personne",
+    "TRAME": "Ensemble de fils transversaux ou structure d'un récit",
+    "TRAVERSEE": "Action de passer d’un côté à l’autre",
+    "TREFLE": "Petite plante à feuilles composées ou couleur des cartes",
+    "TREMPLIN": "Plan incliné facilitant un saut",
+    "TRI": "Action de séparer et de classer",
+    "TRIANGLE": "Figure géométrique à trois côtés",
+    "TROC": "Échange sans argent",
+    "TROP": "En quantité excessive",
+    "TROT": "Allure intermédiaire du cheval",
+    "TROU": "Ouverture ou cavité",
+    "TROUPEAU": "Groupe d’animaux élevés ensemble",
+    "TRUC": "Mot familier pour une chose indéterminée",
+    "TRUITE": "Poisson d'eau douce apprécié des pêcheurs",
+    "TU": "Pronom de la personne à qui l'on parle",
+    "TUA": "Fit mourir, au passé simple",
+    "TUE": "Fait mourir, au présent",
+    "TUES": "Qui ont été mis à mort, au masculin pluriel",
+    "TUILE": "Élément de couverture d'un toit",
+    "TUNNEL": "Passage creusé dans le sol ou dans une montagne",
+    "TURBINE": "Machine rotative entraînée par un fluide",
+    "UN": "Premier nombre entier",
+    "UNE": "Article indéfini féminin",
+    "UNES": "Premières pages de journaux",
+    "UNI": "Assemblé ou sans variation de couleur",
+    "UNIE": "Sans motif ou assemblée",
+    "UNIR": "Assembler plusieurs éléments",
+    "UNIS": "Assemblés, au masculin pluriel",
+    "UNITE": "Élément simple ou cohésion d'un groupe",
+    "URGENCE": "Situation qui exige une action immédiate",
+    "URNE": "Récipient recueillant les votes",
+    "US": "Habitudes établies par l’usage",
+    "USA": "Détériora par l'usage, au passé simple",
+    "USAGE": "Manière d'utiliser une chose",
+    "USE": "Abîmé par l'utilisation",
+    "USEE": "Abîmée par l'usage",
+    "USER": "Détériorer progressivement par le frottement",
+    "USINE": "Établissement de production industrielle",
+    "USTENSILE": "Petit objet utilisé pour une tâche domestique",
+    "UT": "Ancien nom de la note do",
+    "UTILE": "Qui rend service",
+    "VA": "Se déplace, avec « il »",
+    "VACANCES": "Période consacrée au repos",
+    "VAGUE": "Ondulation de la surface de l'eau",
+    "VAINQUEUR": "Personne qui remporte une compétition",
+    "VAN": "Véhicule aménagé ou panier à vanner",
+    "VAS": "Forme d'aller au présent avec « tu »",
+    "VASE": "Récipient décoratif destiné notamment aux fleurs",
+    "VEAU": "Petit de la vache",
+    "VECU": "Participe passé du verbe vivre",
+    "VELO": "Machine à deux roues du peloton",
+    "VEND": "Cède en échange d'argent",
+    "VENDREDI": "Jour situé entre jeudi et samedi",
+    "VENT": "Déplacement de l'air",
+    "VENTOUX": "Géant chauve de Provence",
+    "VERRE": "Matière transparente ou récipient à boire",
+    "VESTE": "Vêtement court à manches porté sur le torse",
+    "VESTIAIRE": "Lieu où l'on se change ou range ses vêtements",
+    "VET": "Habille, avec « il »",
+    "VEUT": "Forme de vouloir au présent avec « il »",
+    "VIA": "En passant par",
+    "VICTOIRE": "Résultat de celui qui remporte une épreuve",
+    "VIDANGE": "Action de vider un réservoir",
+    "VIDER": "Retirer tout le contenu",
+    "VIFS": "Rapides et pleins d'énergie",
+    "VIGNE": "Plante grimpante qui produit le raisin",
+    "VILLE": "Important groupement d'habitations et d'activités",
+    "VIN": "Boisson issue du raisin fermenté",
+    "VIRGULE": "Signe de ponctuation marquant une pause",
+    "VISAGE": "Partie avant de la tête humaine",
+    "VITRAIL": "Assemblage de verres colorés décorant une fenêtre",
+    "VOLE": "Se déplace dans les airs",
+    "VOLONTE": "Faculté de décider et de persévérer",
+    "VONT": "Forme d'aller avec « ils »",
+    "VOUS": "Pronom de la deuxième personne du pluriel",
+    "VOUTE": "Construction courbe couvrant un espace",
+    "VU": "Aperçu avec les yeux",
+    "VUES": "Images d'un paysage ou opinions",
+    "WAGON": "Véhicule ferroviaire pour les marchandises",
+    "WEB": "Toile mondiale de sites internet",
+    "XI": "Lettre grecque entre nu et omicron",
+    "YAK": "Grand bovidé à longs poils",
+    "YEN": "Monnaie du Japon",
+    "YETI": "Créature légendaire des montagnes de l'Himalaya",
+    "YEUSE": "Autre nom du chêne vert",
+    "YOGA": "Discipline associant postures et respiration",
+    "ZEN": "Calme et détendu, dans le langage courant",
+    "ZESTE": "Fine partie extérieure parfumée d'un agrume",
+    "ZOO": "Parc où l'on peut observer des animaux"
+  }
+}

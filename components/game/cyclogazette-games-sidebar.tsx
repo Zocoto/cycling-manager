@@ -21,10 +21,8 @@ import type {
   CyclogazetteGameDifficulty,
   CyclogazetteSudokuPuzzle,
 } from "@/lib/game/cyclogazette-games";
-import {
-  applyCyclogazettePollVote,
-  type CyclogazetteGamesOverview,
-} from "@/services/cyclogazette-games";
+import { applyCyclogazettePollVote } from "@/lib/game/cyclogazette-poll-vote";
+import type { CyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 
 type GameTab = "sudoku" | "crossword";
 

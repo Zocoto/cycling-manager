@@ -1,3 +1,5 @@
+import expandedCrosswordBank from "./cyclogazette-crossword-bank.json";
+
 export type CyclogazetteGameType = "sudoku" | "crossword";
 
 export type CyclogazetteGameDifficulty = "facile" | "moyen" | "difficile";
@@ -766,6 +768,8 @@ const CONNECTED_CROSSWORD_CLUES: Readonly<Record<string, string>> = {
 } as const;
 
 const CROSSWORD_CLUES: Readonly<Record<string, string>> = {
+  // Historical definitions win: published grids must remain byte-for-byte stable.
+  ...expandedCrosswordBank.clues,
   ...Object.fromEntries(
     [...CYCLING_CROSSWORD_WORDS, ...GENERAL_CROSSWORD_WORDS].map((word) => [
       word.answer,
@@ -900,7 +904,7 @@ function createCrosswordPuzzle(
         ? getDiverseConnectedCrosswordSelection(issueNumber)
         : getLegacyConnectedCrosswordSelection(issueNumber);
     return buildConnectedCrosswordPuzzle(
-      CONNECTED_CROSSWORD_TEMPLATES[templateIndex],
+      getExpandedCrosswordTemplate(CONNECTED_CROSSWORD_TEMPLATES[templateIndex], issueNumber),
       getDifficulty(issueNumber, 1),
       transpose,
     );
@@ -957,6 +961,21 @@ type ConnectedCrosswordSelection = {
   templateIndex: number;
   transpose: boolean;
 };
+
+const expandedCrosswordPools = new Map<string, readonly ConnectedCrosswordTemplate[]>();
+
+function getExpandedCrosswordTemplate(legacyTemplate: ConnectedCrosswordTemplate, issueNumber: number): ConnectedCrosswordTemplate {
+  if (issueNumber < expandedCrosswordBank.firstIssue) return legacyTemplate;
+  const pattern = legacyTemplate.rows.join("").replace(/[A-Z]/g, ".");
+  let pool = expandedCrosswordPools.get(pattern);
+  if (!pool) {
+    // Match the DIRECT mask, not its transpose: black squares, numbering and
+    // word lengths stay exactly where the original daily selector put them.
+    pool = expandedCrosswordBank.templates.filter(template => template.rows.join("").replace(/[A-Z]/g, ".") === pattern);
+    expandedCrosswordPools.set(pattern, pool);
+  }
+  return pool[(issueNumber - expandedCrosswordBank.firstIssue) % pool.length] ?? legacyTemplate;
+}
 
 const diverseConnectedCrosswordSelections: ConnectedCrosswordSelection[] = [];
 const connectedCrosswordAnswerCache = new WeakMap<
