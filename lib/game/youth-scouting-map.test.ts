@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COUNTRY_MAP_COORDINATES, projectCountryCoordinate } from "@/data/country-map-coordinates";
-import { getScoutingCountrySuggestions, getScoutingMapPoint, isScoutingMapPointVisible, SCOUTING_MAP_VIEWS, type ScoutingMapView } from "./youth-scouting-map";
+import { formatScoutingMapPercentage, getScoutingCountrySuggestions, getScoutingMapPoint, isScoutingMapPointVisible, SCOUTING_MAP_VIEWS, type ScoutingMapView } from "./youth-scouting-map";
 
 const countries = [
   { name: "Cameroun", code: "CM" }, { name: "Arménie", code: "AM" },
@@ -31,6 +31,12 @@ describe("scouting map suggestions", () => {
   });
 });
 describe("lightweight scouting camera", () => {
+  it("serializes CSS coordinates consistently on server and browser", () => {
+    expect(formatScoutingMapPercentage(61.702755388214946)).toBe("61.703%");
+    expect(formatScoutingMapPercentage(10000 / 34)).toBe("294.118%");
+    expect(formatScoutingMapPercentage(0)).toBe("0%");
+    expect(formatScoutingMapPercentage(100)).toBe("100%");
+  });
   it("keeps world coordinates unchanged", () => {
     for (const coordinate of Object.values(COUNTRY_MAP_COORDINATES))
       expect(getScoutingMapPoint(coordinate, "world")).toEqual(projectCountryCoordinate(coordinate));

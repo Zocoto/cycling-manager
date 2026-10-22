@@ -12,6 +12,11 @@ export const SCOUTING_MAP_VIEWS = {
 } as const;
 export type ScoutingMapView = keyof typeof SCOUTING_MAP_VIEWS;
 
+/** Canonical CSS precision avoids browser/server style serialization differences. */
+export function formatScoutingMapPercentage(value: number) {
+  return `${Number(value.toFixed(3))}%`;
+}
+
 export function getScoutingMapPoint(coordinate: CountryMapCoordinate, view: ScoutingMapView) {
   const point = projectCountryCoordinate(coordinate);
   if (view === "world") return point;
