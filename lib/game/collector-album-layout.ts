@@ -1,11 +1,11 @@
 import { ALBUM_PROFILES, type AlbumProfile, type CollectorCard } from "./collector-album";
 
 /** Keep the catalogue's frozen order within a complete profile chapter. */
-export function getAlbumProfileCards<T extends Pick<CollectorCard, "profileKey">>(
+export function getAlbumProfileCards<T extends Pick<CollectorCard, "profileKey"> & Partial<Pick<CollectorCard,"kind">>>(
   cards: readonly T[],
   profile: AlbumProfile,
 ): T[] {
-  return cards.filter(card => card.profileKey === profile);
+  return cards.filter(card => !card.kind && card.profileKey === profile);
 }
 
 /** Split a chapter into two leaves without dropping, sorting or copying cards. */

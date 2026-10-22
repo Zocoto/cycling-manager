@@ -12,6 +12,7 @@ export type GameHeaderSponsorVisual = Pick<
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
+import { CycloStickersShortcut } from "@/components/game/cyclo-stickers-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
@@ -39,6 +40,8 @@ type GameHeaderProps = {
   gazetteIsOpen?: boolean;
   mailboxIsOpen?: boolean;
   compactMobile?: boolean;
+  /** Opt-in only on the owner preview; public S5 release must pass server readiness gates. */
+  collectorAlbumAvailable?: boolean;
 };
 
 const DEFAULT_HEADER_COLORS = {
@@ -57,6 +60,7 @@ export function GameHeader({
   gazetteIsOpen = false,
   mailboxIsOpen = false,
   compactMobile = false,
+  collectorAlbumAvailable = false,
 }: GameHeaderProps) {
   const { locale } = useLocale();
   const gameStaffRole = useGameHeaderIndicators()?.gameStaffRole ?? null;
@@ -108,7 +112,7 @@ export function GameHeader({
 
           <span
             data-mobile-app-name="true"
-            className="flex min-w-0 flex-col justify-center leading-none sm:hidden"
+            className={`flex min-w-0 flex-col justify-center leading-none sm:hidden ${collectorAlbumAvailable?"max-[360px]:hidden":""}`}
           >
             <span className="text-[0.7rem] font-black uppercase tracking-[0.12em] text-[#FFFDF4]">
               Cyclo
@@ -220,6 +224,7 @@ export function GameHeader({
             ) : null}
 
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
+            {collectorAlbumAvailable?<CycloStickersShortcut isEnglish={isEnglish}/>:null}
 
           </div>
 

@@ -1,0 +1,50 @@
+# Album de Cyclo-Stickers — préparation S5, aperçu privé
+
+## Périmètre de cette livraison
+
+L’édition publique racontera **S4**, avec le top 50 UCI et les notes natives figés après la clôture de S4, et sera proposée pendant **S5**. Aucun classement encore actif n’est utilisé comme résultat définitif.
+
+La nouvelle maquette est disponible sur `/jeu/album?saison=4`, exclusivement pour l’UUID Zocoto déjà autorisé. `/jeu/album?saison=3` conserve l’ancien catalogue et son ancien état. L’aperçu S4 utilise les cinquante cartes S3 sans changer leurs notes, leurs palmarès ni leurs maillots. Sa clé locale distincte est `cs:private-collector:cyclo-stickers-s4-preview-s3-v1:<compte>`. Les autres joueurs restent refusés, même avec le lien direct.
+
+Couverture et sachets : cinq couleurs des Jeux, illustration vectorielle originale, papier imprimé et saison S4 explicite. Les données d’essai S3 sont annoncées séparément. Aucun texte de finition graphique n’est apposé sur la carte des Jeux.
+
+## Les 68 vignettes
+
+- 01–50 : top 50 UCI individuel final.
+- 51–55 : cinq premières équipes du classement UCI final, maillot de la saison source.
+- 56–65 : champions continentaux pros, Route et CLM pour chacun des cinq continents.
+- 66–67 : champions du monde pros, Route et CLM.
+- 68 : champion des Jeux sur route, avec son maillot distinctif et un traitement de reflet dédié.
+
+Les 18 vignettes d’introduction sont **à collectionner**, pas une décoration pré-collée. Elles participent aux sachets, échanges et à la complétion finale ; les chapitres de profils restent réservés aux 50 coureurs. Les identités des vignettes spéciales sont distinctes : un même coureur peut avoir sa vignette UCI et celle de son titre.
+
+Pour cette maquette seulement, les 18 exemplaires d’introduction sont fournis au testeur, en plus des deux anciennes cartes et deux sachets. Ce n’est pas une dotation publique prévue. Les cinq équipes et les deux titres mondiaux S3 ont été lus une fois, séquentiellement, avec timeout 4 s. Les titres continentaux S3 non présents dans cette source et l’absence de Jeux en S3 sont représentés par des **spécimens nommés comme tels** ; aucun vrai coureur n’est présenté comme titulaire d’un titre non vérifié.
+
+## Collection et sécurité
+
+Le modèle local valide les identifiants contre les 68 entrées, conserve chaque exemplaire dans les échanges, protège la copie collée et vérifie les reçus des sachets. Les sauvegardes de l’ancien pilote restent isolées et inchangées. Le trophée final exige 68 vignettes distinctes collées ; les cinquante coureurs seuls ne suffisent pas. Le gain final simulé reste 250 000 €, 1 000 XP et 100 réputation ; aucune prime réelle n’est attribuée.
+
+Barème **d’essai uniquement**, par vignette : bronze 80 %, argent 16,9 %, or 3 %, Jeux 0,1 %. Avec 30 bronze, 30 argent et 7 or, la vignette des Jeux reste plus rare que chaque carte or précise. Deux tirages indépendants ; doublons possibles. La distribution publique n’est pas armée.
+
+## Header et performances
+
+Le raccordement est opt-in. Le vrai header de la page privée affiche le raccourci immédiatement après Gazette. Toutes les autres pages et tous les autres comptes conservent leur header actuel. Sur les très petits écrans, le logo seul remplace temporairement son libellé dans cet aperçu pour conserver la place des commandes. Aucun raccourci existant n’est retiré.
+
+Aucune lecture de classement ni requête d’album dans le header. Les snapshots ne sont chargés que sur la route autorisée. Aucun polling, aucune modification des crons, des courses ou de la bascule saisonnière, aucune migration de production pour ce changement.
+
+## Conditions impératives avant l’ouverture publique S5
+
+Le pilote existant est encore une démonstration locale. Ne pas déverrouiller sa route ou son header global sur le seul numéro de saison. La page privée présente ces points à valider :
+
+1. À la clôture de S4, extraire en lecture seule les résultats officiels, notes natives, contrats/maillots S4 et titres gagnés en S4, sans utiliser l’identité d’un nouveau sponsor S5. Respecter l’ordre officiel UCI en cas d’égalité. Inclure les champions hors top 50.
+2. Vérifier les 68 entrées et tous les titres ; aucun spécimen. Fournir un export revu `{sourceSeasonStatus:"completed",snapshot:{...}}` avec source S4, collection S5, présentation S4 et lancement S5.
+3. Sceller hors ligne avec `npx tsx scripts/seal-cyclo-stickers-s4.ts <export-revu.json> <nouveau-snapshot.json>`. Le script refuse une saison active, des emplacements incomplets/dupliqués et tout spécimen, génère une empreinte SHA-256 et refuse d’écraser un fichier existant. Il ne se connecte à aucune base. Ce script valide et scelle l’export ; ce n’est pas encore un extracteur automatique.
+4. Raccorder inventaire persistant, collage, tirages serveur idempotents, réservation/acceptation atomique des échanges, courrier interne et succès réellement payés une seule fois. Aucun état navigateur ne doit faire autorité.
+5. Valider la cadence Gazette et les possibilités de terminer 68 vignettes malgré les doublons et la rareté. Pas d’achat ou autre source ajouté implicitement. Conserver les anciennes éditions et les sachets non ouverts.
+6. Après recette, activer le contrôle serveur de disponibilité (S5 ou ultérieure, snapshot final S4, inventaire persistant prêt, validation publique) et propager ce résultat au header via son chargement partagé existant. Ne pas ajouter de requête par icône. Le garde-fou `canLaunchCycloStickers` refuse par défaut toute ouverture sans validation explicite. La route de cette livraison reste volontairement privée.
+
+L’ouverture publique de S5 est donc **préparée graphiquement mais non armée**. Aucun déclenchement automatique ou livraison multijoueur persistante n’est prétendu par cette maquette.
+
+## Recette locale
+
+Rendu interactif réel de l’album, avec les composants du header et des adaptateurs de session hors ligne. Collage de la vignette des Jeux confirmé et repris après rechargement. Comparaison du header avec/sans icône : 87,33 px de hauteur dans les deux cas à 320 et 390 px ; 80,67 px dans les deux cas à 1024 px. Aucune largeur de page supérieure au viewport. Les dépendances de compte et déconnexion sont neutralisées dans cette recette locale uniquement, pas dans le code livré. Aucun compte de test ni action de joueur en production.

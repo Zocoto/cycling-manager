@@ -8,12 +8,14 @@ import { CARD_RARITY_LABELS, getCardRarity, type CollectorCard, type CollectorHo
 import { createWorldChampionRiderJersey } from "@/lib/rider-jersey";
 import styles from "./collector-album.module.css";
 import print from "./collector-card-print.module.css";
+import { CycloStickersSpecialCard } from "./cyclo-stickers-special-card";
 
 const PRIMARY_STATS = [["mountain", "MO"], ["hills", "VAL"], ["flat", "PLA"], ["timeTrial", "CLM"], ["cobbles", "PAV"], ["sprint", "SPR"]] as const;
 
 export function CollectorCardFace({ card, season }: { card: CollectorCard; season: number }) {
   const rarity = getCardRarity(card.rank);
   const [backId,setBackId]=useState<string|null>(null);
+  if (card.kind) return <CycloStickersSpecialCard card={card} season={season}/>;
   const back=backId===card.id;
   const worldTitle=card.worldTitles?.includes("road")?"road":card.worldTitles?.includes("time_trial")?"time_trial":null;
   const championJersey=worldTitle?createWorldChampionRiderJersey({championshipType:worldTitle}):card.jersey;

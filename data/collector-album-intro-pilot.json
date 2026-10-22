@@ -1,0 +1,89 @@
+{
+  "champions": [
+    {
+      "acceleration": 79,
+      "age": 20,
+      "avatar_profile_key": "europe_west",
+      "avatar_seed": 480,
+      "breakaway": 73,
+      "championship_type": "world_road",
+      "cobbles": 59,
+      "country": "France",
+      "downhill": 61,
+      "endurance": 64,
+      "first_name": "Mathieu",
+      "flat": 57,
+      "hills": 81,
+      "iso_alpha2": "FR",
+      "last_name": "Laurent",
+      "mountain": 73,
+      "prologue": 63,
+      "recovery": 64,
+      "resistance": 74,
+      "rider_id": "cbfba386-73e3-42a4-b9fc-2e59dc9fd31e",
+      "sprint": 71,
+      "time_trial": 64
+    },
+    {
+      "acceleration": 55,
+      "age": 18,
+      "avatar_profile_key": "latin_america",
+      "avatar_seed": -1283,
+      "breakaway": 51,
+      "championship_type": "world_time_trial",
+      "cobbles": 52,
+      "country": "Colombie",
+      "downhill": 50,
+      "endurance": 70,
+      "first_name": "Zaven",
+      "flat": 78,
+      "hills": 52,
+      "iso_alpha2": "CO",
+      "last_name": "Davtyan",
+      "mountain": 51,
+      "prologue": 77,
+      "recovery": 70,
+      "resistance": 71,
+      "rider_id": "c43172ba-20ac-4d4a-894b-92fede0989d2",
+      "sprint": 55,
+      "time_trial": 77
+    }
+  ],
+  "season": {
+    "game_year": 3,
+    "id": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+    "status": "completed"
+  },
+  "teams": [
+    {
+      "display_name": "Kaffa Origins",
+      "final_rank": 1,
+      "points": 25756,
+      "team_id": "35061203-aa19-4986-83e1-b227cea4ecb5"
+    },
+    {
+      "display_name": "Abbaye du Lion",
+      "final_rank": 2,
+      "points": 23995,
+      "team_id": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57"
+    },
+    {
+      "display_name": "Pura Cadencia Test Team",
+      "final_rank": 3,
+      "points": 21488,
+      "team_id": "12277621-b716-4b0c-934a-f1a0b52364ba"
+    },
+    {
+      "display_name": "Montecristi Toquilla House",
+      "final_rank": 4,
+      "points": 12385,
+      "team_id": "c9db310c-1a90-4df5-9f78-fd48c8147425"
+    },
+    {
+      "display_name": "Glen Durnach",
+      "final_rank": 5,
+      "points": 4907,
+      "team_id": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10"
+    }
+  ]
+}

@@ -80,7 +80,7 @@ export function getNextAlbumChapter(cards: readonly CollectorCard[], pasted: rea
   const pastedNumbers = new Set(pasted);
   let next: NextAlbumChapter | null = null;
   for (const profile of ALBUM_PROFILES) {
-    const numbers = new Set(cards.filter(card => card.profileKey === profile.id).map(card => card.number));
+    const numbers = new Set(cards.filter(card => !card.kind && card.profileKey === profile.id).map(card => card.number));
     const total = numbers.size;
     const count = [...numbers].filter(number => pastedNumbers.has(number)).length;
     const chapter: NextAlbumChapter = { profile: profile.id, missing: total - count, total, pasted: count };
@@ -108,7 +108,7 @@ export function updateAlbumReading(state: AlbumReadingState, action: AlbumReadin
   const completedChapters = { ...state.completedChapters };
   let changed = false;
   for (const profile of ALBUM_PROFILES) {
-    const chapter = action.cards.filter(card => card.profileKey === profile.id);
+    const chapter = action.cards.filter(card => !card.kind && card.profileKey === profile.id);
     if (chapter.length > 0 && !completedChapters[profile.id] && chapter.every(card => pasted.has(card.number))) {
       completedChapters[profile.id] = action.at;
       changed = true;

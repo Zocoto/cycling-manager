@@ -27,6 +27,14 @@ import { GameHeader } from "./game-header";
 beforeEach(() => { indicators.role = null; });
 
 describe("header game staff shortcuts", () => {
+  it("keeps the album off by default and shows the opt-in icon immediately beside Gazette",()=>{
+    const standard=renderToStaticMarkup(<GameHeader displayName="Joueur"/>);
+    expect(standard).not.toContain('data-cyclo-stickers-shortcut="true"');
+    const preview=renderToStaticMarkup(<GameHeader displayName="Zocoto" collectorAlbumAvailable/>);
+    expect(preview).toContain('data-cyclo-stickers-shortcut="true"');
+    expect(preview.indexOf('href="/jeu/album"')).toBeGreaterThan(preview.indexOf('href="/jeu/gazette"'));
+    expect(preview).toContain("max-[360px]:hidden");
+  });
   it.each(["owner", "game_staff"] as const)("affiche le laboratoire à %s sans adresse privilégiée", (role) => {
     indicators.role = role;
     const html = renderToStaticMarkup(<GameHeader displayName="Staff" simulatorEmail="delivery@example.test" />);

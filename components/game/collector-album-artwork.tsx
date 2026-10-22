@@ -1,5 +1,7 @@
 import { useId } from "react";
 import styles from "./collector-album-retro.module.css";
+import { CycloStickersGamesArtwork } from "./cyclo-stickers-games-artwork";
+import games from "./cyclo-stickers-games.module.css";
 
 /** Deliberately drawn as flat spot-colour printing, not generated bitmap artwork. */
 export function VintageCyclingArtwork({ className = "" }: {className?: string}) {
@@ -44,10 +46,10 @@ function PrintedCyclist({jersey, shorts, skin}: {jersey:string; shorts:string; s
   </g>;
 }
 
-export function AlbumBoosterArtwork({ sourceSeason, compact = false }: {sourceSeason:number; compact?:boolean}) {
-  return <div className={`${styles.pack} ${compact ? styles.compactPack : ""}`} aria-label={`Sachet fermé de deux cartes, édition saison ${sourceSeason}`}>
+export function AlbumBoosterArtwork({ sourceSeason, compact = false, gamesEdition = false, testSourceSeason }: {sourceSeason:number; compact?:boolean;gamesEdition?:boolean;testSourceSeason?:number}) {
+  return <div className={`${styles.pack} ${compact ? styles.compactPack : ""} ${gamesEdition?games.gamesPack:""}`} aria-label={`Sachet fermé de deux cartes, édition saison ${sourceSeason}`}>
     <div className={styles.packCrimp} />
-    <div className={styles.packPrint}><span className={styles.packPublisher}>CYCLO STRATÈGE · COLLECTION OFFICIELLE</span><strong className={styles.packSeason}>ÉDITION <b>S{sourceSeason}</b></strong><span className={styles.packTitle}>LE GRAND<br /><em>PELOTON</em></span><VintageCyclingArtwork className={styles.packArtwork} /><span className={styles.packCaption}>LES CHAMPIONS DE LA SAISON {sourceSeason}</span><span className={styles.packBottom}>2 VIGNETTES · NOTES FIGÉES S{sourceSeason} · TOP 50 UCI</span></div>
+    <div className={styles.packPrint}><span className={styles.packPublisher}>CYCLO STRATÈGE · COLLECTION OFFICIELLE</span><strong className={styles.packSeason}>ÉDITION <b>S{sourceSeason}</b></strong><span className={`${styles.packTitle} ${gamesEdition?games.gamesPackTitle:""}`}>{gamesEdition?<>ALBUM DE<br/><em>CYCLO-STICKERS</em></>:<>LE GRAND<br /><em>PELOTON</em></>}</span>{gamesEdition?<CycloStickersGamesArtwork className={`${styles.packArtwork} ${games.gamesPackArt}`}/>:<VintageCyclingArtwork className={styles.packArtwork} />}<span className={styles.packCaption}>{gamesEdition?"LA SAISON DES JEUX":"LES CHAMPIONS DE LA SAISON"} {sourceSeason}</span><span className={styles.packBottom}>2 VIGNETTES · {testSourceSeason?"CARTES DE TEST":"NOTES FIGÉES"} S{testSourceSeason??sourceSeason} · TOP 50 UCI</span>{gamesEdition?<span className={games.gamesPackFoot}/>:null}</div>
     <div className={styles.packCrimp} />
   </div>;
 }
