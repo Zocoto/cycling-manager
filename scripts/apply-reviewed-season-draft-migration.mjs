@@ -50,8 +50,18 @@ function inspect(){
 const before=inspect();
 if(mode==='--inspect'){console.log(JSON.stringify(before));process.exit(0);}
 if(!before.dependencies_ok || before.database_ok!==1) throw Error('Preflight failed; no application deployment.');
-if(before.recorded && before.recorded_hash!==createHash('md5').update(sql).digest('hex')) throw Error('Recorded migration differs from source; do not replay.');
-if(!before.recorded) query(sql.replace(/commit;\s*$/,`insert into supabase_migrations.schema_migrations(version,name,statements)
+const sourceHash=createHash('md5').update(sql).digest('hex');
+if(before.recorded && before.recorded_hash!==sourceHash){
+  // Earlier String.replace replacement strings expanded $$ inside the receipt
+  // only. Fix exactly that known metadata encoding, never replay the DDL.
+  const expandedDollarHash=createHash('md5').update(sql.replaceAll('$$','$')).digest('hex');
+  if(before.recorded_hash!==expandedDollarHash) throw Error('Recorded migration differs from source; do not replay.');
+  query(`begin;set local lock_timeout='1s';set local statement_timeout='4s';
+    set local application_name='season-draft-receipt-normalization-20261022';
+    update supabase_migrations.schema_migrations set statements=array[${quote(sql)}]
+    where version='${version}' and md5(statements[1])=${quote(expandedDollarHash)};commit;`);
+}
+if(!before.recorded) query(sql.replace(/commit;\s*$/,()=>`insert into supabase_migrations.schema_migrations(version,name,statements)
   values(${quote(version)},${quote(name)},array[${quote(sql)}]);\ncommit;`));
 const after=inspect();
 const feature=query(bounded(`select
