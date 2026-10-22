@@ -11,6 +11,9 @@ import { getCurrentGameStaffRole } from "@/services/game-staff-access";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getGameNewsEditorArticles } from "@/services/game-product-news";
 import { saveGameNewsAction } from "./actions";
+import { saveSiteReleaseAction } from "./version-actions";
+import { getSiteReleaseManagement } from "@/services/site-release";
+import { SiteReleaseManagementPanel } from "@/components/game/site-release-management";
 
 export const metadata: Metadata = { title: "Gestion des actualités" };
 export default async function GameNewsAdministration({ searchParams }: { searchParams: Promise<{ id?: string; nouvelle?: string }> }) {
@@ -19,9 +22,10 @@ export default async function GameNewsAdministration({ searchParams }: { searchP
   if (error || !user) redirect("/connexion");
   const role = await getCurrentGameStaffRole(supabase);
   if (!role) notFound();
-  const [header, articles, query] = await Promise.all([
+  const [header, articles, query, releaseManagement] = await Promise.all([
     getGameHeaderData(supabase, user.id), getGameNewsEditorArticles(supabase),
     searchParams,
+    role === "owner" ? getSiteReleaseManagement(supabase).catch(() => null) : Promise.resolve(null),
   ]);
   const selected = query.id ? articles.find((article) => article.id === query.id) : null;
   if (query.id && !selected) notFound();
@@ -36,6 +40,7 @@ export default async function GameNewsAdministration({ searchParams }: { searchP
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">Préparez vos annonces, gardez un brouillon puis publiez sur l’accueil et dans le bureau des DS. Modifier un brouillon ne change pas la version en ligne.</p></div>
         <BackToOfficeLink />
       </header>
+      {role === "owner" ? <SiteReleaseManagementPanel initial={releaseManagement} action={saveSiteReleaseAction} /> : null}
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="rounded-2xl border border-[#315B3E]/15 bg-white p-4">
           <Link href={`/jeu/administration/actualites?nouvelle=${randomUUID()}`} className="block rounded-xl bg-[#173C2E] px-4 py-3 text-center text-sm font-black text-white">+ Nouvelle actualité</Link>

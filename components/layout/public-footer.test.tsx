@@ -4,6 +4,11 @@ import { describe, expect, it } from "vitest";
 import { PublicFooter } from "./public-footer";
 
 describe("PublicFooter", () => {
+  it("affiche la version administrée sans modifier le canal ni les archives", () => {
+    const markup = renderToStaticMarkup(<PublicFooter activeVersion="1.2.3" />);
+    expect(markup).toContain("Version 1.2.3 · Bêta");
+    expect(markup).not.toContain("Version 0.9.1");
+  });
   it("affiche la version courante et son canal de publication", () => {
     const markup = renderToStaticMarkup(<PublicFooter />);
 

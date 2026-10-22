@@ -8,7 +8,7 @@ import { appConfig } from "../../lib/app-config";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "../ui/wheel-logo";
 
-export function PublicFooter() {
+export function PublicFooter({ activeVersion = appConfig.version }: { activeVersion?: string }) {
   const currentYear = new Date().getFullYear();
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -101,7 +101,7 @@ export function PublicFooter() {
             </p>
 
             <p className="mt-4 text-sm leading-6 text-[#D6DFD2]">
-              Version {appConfig.version} ·{" "}
+              Version {activeVersion} ·{" "}
               {isEnglish ? "Beta" : appConfig.releaseChannel}
               <br />
               {isEnglish ? "Project in active development" : "Projet en développement actif"}
