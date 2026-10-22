@@ -93,6 +93,28 @@ describe("individual naturalization alerts", () => {
 });
 
 describe("dashboard DS assistant", () => {
+  it.each([
+    [1, "coureur en forme basse"],
+    [3, "coureurs en forme basse"],
+  ])("links %i low-form rider(s) directly to nutrition without changing the alert", (lowFormCount, title) => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, lowFormCount }, rewardCount: 0, cashBalance: 0,
+    });
+    expect(groups.alerts.find(line => line.id === "low-form")).toEqual({
+      id: "low-form",
+      tone: "alert",
+      metric: String(lowFormCount),
+      title,
+      detail: "Sous votre seuil de 50 % de forme.",
+      href: "/jeu/centre-de-soin?onglet=nutrition",
+    });
+  });
+  it("omits the low-form alert when no rider is below the threshold", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, lowFormCount: 0 }, rewardCount: 0, cashBalance: 0,
+    });
+    expect(groups.alerts.some(line => line.id === "low-form")).toBe(false);
+  });
   it("keeps urgent actions visible before routine reports without adding categories", () => {
     const groups = buildDashboardAssistantLines({ snapshot, rewardCount: 0, cashBalance: -500 });
     expect(groups.alerts[0].id).toBe("negative-cash");

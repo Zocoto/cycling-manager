@@ -337,7 +337,7 @@ export function buildDashboardAssistantLines({
       metric: String(snapshot.lowFormCount),
       title: pluralize(snapshot.lowFormCount, "coureur en forme basse", "coureurs en forme basse"),
       detail: `Sous votre seuil de ${snapshot.minimumForm} % de forme.`,
-      href: "/jeu/centre-de-soin?onglet=forme",
+      href: "/jeu/centre-de-soin?onglet=nutrition",
     });
   }
 
