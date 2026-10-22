@@ -8,6 +8,8 @@ Route `/jeu/gala-saison-4`, liée exclusivement à l’UUID authentifié du comp
 
 Draft interactif : bascule entre les deux programmes, sections déroulantes des engagés/maillots et favoris, sélection du profil pour lire les bonus du podium. Les équipes et favoris sont fictifs et identifiés comme tels. Inscriptions toujours fermées, aucun lot distribué ni changement du gala précédent. Les contrastes sont renforcés, les cadeaux de présence réunis avec Gouille et le top 10 présenté dans un tableau compact.
 
+La règle de fond du gala utilise l’attribut dédié `data-gala-s4-page` afin de garder un canevas opaque malgré `.game-workspace-background > main` dans le thème partagé du jeu. La recette locale reprend cette enveloppe du jeu pour couvrir cette interaction CSS ; aucun changement du thème des autres pages.
+
 Une équipe choisit un seul programme de trois courses : 7 à 8 coureurs par épreuve, avec composition éventuellement différente. Continental : chacune des six notes primaires natives (MON, VAL, PLA, CLM, PAV, SPR) doit être ≤75 avant conversion PCM. Aucun bonus d’équipement ni écrêtage artificiel des notes. World Tour sans plafond.
 
 ## Parcours proposés
