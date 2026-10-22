@@ -41,6 +41,20 @@ beforeEach(() => {
 });
 
 describe("independent national team and champion jerseys", () => {
+  it("loads Games champions through the same bounded query, separately from world titles", async () => {
+    database.rows.rider_national_championship_titles.push(
+      { rider_id: "games", country_id: "mu", championship_type: "quadrennial_time_trial", relinquished_at: null },
+      { rider_id: "games", country_id: "mu", championship_type: "quadrennial_road", relinquished_at: null },
+      { rider_id: "former-games", country_id: "mu", championship_type: "quadrennial_road", relinquished_at: "2026-10-22" },
+    );
+    const titles = await getActiveChampionshipTitlesForRiders(client, ["games", "former-games", "world"]);
+    expect(titles.quadrennial.get("games")).toMatchObject({ championshipType: "road" });
+    expect(titles.quadrennial.has("former-games")).toBe(false);
+    expect(titles.world.has("games")).toBe(false);
+    expect(titles.world.has("world")).toBe(true);
+    expect(database.queries.filter(table => table === "rider_national_championship_titles")).toHaveLength(1);
+    expect(database.queries).not.toContain("countries");
+  });
   it("uses selection by default and never substitutes the pending next-season design", async () => {
     expect((await loadNationalFederationJerseyDesigns(["mu"])).get("mu")).toEqual(selection);
     expect(database.queries).toEqual(["national_federation_jerseys"]);

@@ -1,3 +1,5 @@
+import { QuadrennialChampionPrize } from "@/components/game/quadrennial-champion-jersey";
+import { isQuadrennialGamesEdition } from "@/lib/game/quadrennial-games";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
@@ -333,6 +335,7 @@ export default async function RaceLivePage({
           </Link>
         </div>
 
+        {isQuadrennialGamesEdition(edition) ? <QuadrennialChampionPrize compact championshipType={edition.stages[0]?.stageType === "individual_time_trial" ? "time_trial" : "road"} /> : null}
         {!isNationalChampionship ? (
           <RaceStageNavigation
             edition={edition}

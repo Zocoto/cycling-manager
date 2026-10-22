@@ -1,4 +1,6 @@
 import "server-only";
+import { parseQuadrennialChampionshipType } from "@/lib/game/quadrennial-games";
+import type { ActiveQuadrennialChampionshipTitle } from "@/services/rider-quadrennial-championship-titles";
 
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import {
@@ -34,6 +36,8 @@ const ACTIVE_CHAMPIONSHIP_TYPES = [
   "time_trial",
   "world_road",
   "world_time_trial",
+  "quadrennial_road",
+  "quadrennial_time_trial",
   ...CONTINENTAL_CHAMPIONSHIP_TITLE_TYPES,
 ] as const;
 
@@ -41,6 +45,7 @@ export type ActiveChampionshipTitlesForRiders = {
   national: Map<string, ActiveNationalChampionshipTitle>;
   continental: Map<string, ActiveContinentalChampionshipTitle>;
   world: Map<string, ActiveWorldChampionshipTitle>;
+  quadrennial: Map<string, ActiveQuadrennialChampionshipTitle>;
 };
 
 /**
@@ -57,6 +62,7 @@ export async function getActiveChampionshipTitlesForRiders(
     national: new Map(),
     continental: new Map(),
     world: new Map(),
+    quadrennial: new Map(),
   });
 
   if (uniqueRiderIds.length === 0) return empty();
@@ -121,6 +127,11 @@ export async function getActiveChampionshipTitlesForRiders(
   const result = empty();
 
   for (const title of titleRows) {
+    const quadrennialDiscipline = parseQuadrennialChampionshipType(title.championship_type);
+    if (quadrennialDiscipline) {
+      setPreferredTitle(result.quadrennial, title.rider_id, { riderId: title.rider_id, championshipType: quadrennialDiscipline });
+      continue;
+    }
     if (
       title.championship_type === "road" ||
       title.championship_type === "time_trial"

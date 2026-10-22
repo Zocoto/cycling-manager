@@ -235,6 +235,8 @@ export type RiderSimulationInput = {
     Record<RiderWorldChampionship["championshipType"], RiderWorldChampionship>
   >;
   activeWorldChampion?: RiderWorldChampionship | null;
+  quadrennialChampionships?: Partial<Record<"road" | "time_trial", RiderWorldChampionship>>;
+  activeQuadrennialChampion?: RiderWorldChampionship | null;
   continentalChampionships?: Partial<
     Record<
       RiderContinentalChampionship["championshipType"],

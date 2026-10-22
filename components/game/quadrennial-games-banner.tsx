@@ -1,3 +1,4 @@
+import { QuadrennialChampionPrize } from "./quadrennial-champion-jersey";
 import Link from "@/components/ui/app-link";
 
 export function GamesColors({ className = "" }: { className?: string }) {
@@ -23,6 +24,7 @@ export function QuadrennialGamesBanner({ seasonName, compact = false }: { season
       <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-wider">
         {["Sélections nationales", "Quotas par nation", "Une édition tous les 4 ans"].map(label => <span key={label} className="rounded-full border border-white/20 bg-white/5 px-3 py-2">{label}</span>)}
       </div>
+      <QuadrennialChampionPrize compact={compact} />
       {compact ? <Link href="/jeu/nations-cup" prefetchOnIntent className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#ECD797] px-5 text-sm font-black text-[#111827]">Découvrir les Jeux et les nations →</Link> : null}
     </div>
   </section>;

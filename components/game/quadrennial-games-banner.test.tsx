@@ -9,7 +9,8 @@ describe("quadrennial Games prominence", () => {
     expect(html).toContain("<h1");
     expect(html).toContain("Jeux quadriennaux");
     expect(html).toContain("220 coureurs");
-    expect(html).not.toContain("<a");
+    expect(html).not.toMatch(/<a(?:\s|>)/);
+    expect(html).toContain("data-quadrennial-champion-prize");
   });
   it("offers one direct dashboard link without another main heading", () => {
     const html = renderToStaticMarkup(<QuadrennialGamesBanner compact seasonName="Saison 8" />);

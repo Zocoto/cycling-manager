@@ -18,6 +18,7 @@ import {
   createAmateurRiderJersey,
   createContinentalChampionRiderJersey,
   createWorldChampionRiderJersey,
+  createQuadrennialChampionRiderJersey,
   createNationalChampionRiderJersey,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
@@ -585,6 +586,8 @@ function getFavoriteJersey(
     firstStage?.stageType === "prologue"
       ? "time_trial"
       : "road";
+  const gamesChampionship = rider.quadrennialChampionships?.[championshipType];
+  if (gamesChampionship) return createQuadrennialChampionRiderJersey({ championshipType });
   const worldChampionship = rider.worldChampionships?.[championshipType];
 
   if (worldChampionship) {

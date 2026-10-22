@@ -114,6 +114,7 @@ export type PublicRiderProfile = {
     isActive: boolean;
     nationalDesign?: NationalJerseyDraft;
   }>;
+  quadrennialTitles?: Array<{ type: "road" | "time_trial"; seasonId: string; seasonName: string; isActive: boolean }>;
   worldTitles: Array<{
     type: "road" | "time_trial";
     seasonId: string;
@@ -146,6 +147,7 @@ export type PublicRiderProfile = {
       countryName: string;
       countryCode: string;
     }>;
+    quadrennialTitles?: Array<{ type: "road" | "time_trial" }>;
     worldTitles: Array<{
       type: "road" | "time_trial";
     }>;
@@ -1053,6 +1055,12 @@ export async function getPublicRiderProfile({
                     ]
                   : [],
               ),
+            quadrennialTitles: nationalTitleRows.filter(title => {
+              if (title.season_id !== season.id) return false;
+              const titleTeamId = titleTeamIdByEditionId.get(title.race_edition_id);
+              return titleTeamId ? titleTeamId === contract.team_id : !hasSeveralAffiliations;
+            }).flatMap(title => title.championship_type === "quadrennial_road" || title.championship_type === "quadrennial_time_trial"
+              ? [{ type: title.championship_type === "quadrennial_time_trial" ? "time_trial" as const : "road" as const }] : []),
             worldTitles: nationalTitleRows
               .filter((title) => {
                 if (title.season_id !== season.id) return false;
@@ -1307,6 +1315,10 @@ export async function getPublicRiderProfile({
           ]
         : [],
     ),
+    quadrennialTitles: nationalTitleRows.flatMap((title) =>
+      title.championship_type === "quadrennial_road" || title.championship_type === "quadrennial_time_trial"
+        ? [{ type: title.championship_type === "quadrennial_time_trial" ? "time_trial" as const : "road" as const,
+          seasonId: title.season_id, seasonName: seasonById.get(title.season_id)?.name ?? "Saison inconnue", isActive: title.relinquished_at === null }] : []),
     worldTitles: nationalTitleRows.flatMap((title) =>
       title.championship_type === "world_road" ||
       title.championship_type === "world_time_trial"
