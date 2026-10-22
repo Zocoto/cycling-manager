@@ -57,6 +57,39 @@ export function calculateRiderRenewalSalary(
   return Math.round(baseSalary * (1 + premiumPercent / 100) * 100) / 100;
 }
 
+export function getRiderRenewalUpgradeBaseSalary({
+  estimatedSalary,
+  homegrown,
+  homegrownSalaryBeforeDiscount,
+  rosterSalaryBeforeDiscount,
+  salaryPerSeason,
+  renewalDiscountPercent,
+}: {
+  estimatedSalary: number;
+  homegrown: boolean;
+  homegrownSalaryBeforeDiscount?: number | string | null;
+  rosterSalaryBeforeDiscount?: number | string | null;
+  salaryPerSeason: number | string;
+  renewalDiscountPercent: number;
+}): number {
+  // A legacy zero-salary academy deal must not make its upgrade free. Keep
+  // valid signed bases and the existing discount order; only invalid/nonpositive
+  // bases fall back to the current salary quote.
+  const quotedSalary = toPositiveSalary(estimatedSalary) ?? 6_000;
+  const baseSalary = homegrown
+    ? (toPositiveSalary(homegrownSalaryBeforeDiscount) ?? quotedSalary) / 2
+    : toPositiveSalary(rosterSalaryBeforeDiscount) ??
+      toPositiveSalary(salaryPerSeason) ??
+      quotedSalary;
+  return Math.round(baseSalary * (1 - renewalDiscountPercent / 100) * 100) / 100;
+}
+
+function toPositiveSalary(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export function resolveTeamContractRiderStatus({
   currentContractEndYear,
   currentSeasonYear,

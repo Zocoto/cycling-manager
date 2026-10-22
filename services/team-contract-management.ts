@@ -5,6 +5,7 @@ import {
   calculateRiderRenewalSalary,
   getRiderRenewalPremiumPercent,
   getRiderRenewalTargetYears,
+  getRiderRenewalUpgradeBaseSalary,
   resolveEffectiveTeamContractEndYear,
   resolveTeamContractRiderStatus,
   type TeamContractRiderStatus,
@@ -355,16 +356,15 @@ export async function getTeamContractManagementOverview(
         successor?.team_id === teamId &&
         activeEndYear === currentSeason.game_year &&
         targetEndSeasonYear === currentSeason.game_year + 2
-          ? applyPercentageDiscount(
-              homegrownAbilityRiderIds.has(rider.id) && promotedRiderIds.has(rider.id)
-                ? (toNullableNumber(
-                    successor.homegrown_salary_before_discount,
-                  ) ?? estimatedSalary) / 2
-                : toNullableNumber(
-                    successor.roster_management_salary_before_discount,
-                  ) ?? toNumber(successor.salary_per_season),
+          ? getRiderRenewalUpgradeBaseSalary({
+              estimatedSalary,
+              homegrown:
+                homegrownAbilityRiderIds.has(rider.id) && promotedRiderIds.has(rider.id),
+              homegrownSalaryBeforeDiscount: successor.homegrown_salary_before_discount,
+              rosterSalaryBeforeDiscount: successor.roster_management_salary_before_discount,
+              salaryPerSeason: successor.salary_per_season,
               renewalDiscountPercent,
-            )
+            })
           : estimatedNetSalary;
       return {
         targetEndSeasonYear,
@@ -493,12 +493,6 @@ function statusOrder(status: TeamContractRiderStatus) {
 function toNumber(value: number | string | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function toNullableNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function applyPercentageDiscount(value: number, percentage: number) {
