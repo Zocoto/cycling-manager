@@ -10,11 +10,25 @@ import {CollectorAlbumBoosters} from "./collector-album-boosters";
 import {CycloStickersIntroduction} from "./cyclo-stickers-introduction";
 import {CollectorCardFace} from "./collector-card-face";
 import format from "./collector-card-format.module.css";
+import {AlbumBoosterArtwork} from "./collector-album-artwork";
+import {QUADRENNIAL_GAMES_EMBLEM} from "@/lib/game/quadrennial-games";
 const snapshot=createCycloStickersPreview(raw as CollectorAlbumSnapshot,intro);
 const state=createAlbumPilotState(4,snapshot.cards);
 const onAction=()=>{};
 
 describe("Cyclo-Stickers private S4 presentation",()=>{
+  it("prints the official Games emblem on both S4 formats, without changing the legacy edition",()=>{
+    const cover=renderToStaticMarkup(<CollectorAlbumCover season={4} count={0} total={69} gamesEdition/>);
+    const pack=renderToStaticMarkup(<AlbumBoosterArtwork sourceSeason={4} gamesEdition/>);
+    for(const html of [cover,pack]) {
+      expect(html).toContain(`href="${QUADRENNIAL_GAMES_EMBLEM}"`);
+      expect(html).toContain("data-album-games-emblem");
+      expect(html).toContain("Emblème des Jeux quadriennaux");
+      expect(html).toContain("L’ÉQUIPIER SANS TÊTE");
+    }
+    expect(renderToStaticMarkup(<CollectorAlbumCover season={3} count={0} total={50}/>)).not.toContain(QUADRENNIAL_GAMES_EMBLEM);
+    expect(renderToStaticMarkup(<AlbumBoosterArtwork sourceSeason={3}/>)).not.toContain(QUADRENNIAL_GAMES_EMBLEM);
+  });
   it("prints the S4 cover while clearly retaining S3 test data",()=>{
     const html=renderToStaticMarkup(<CollectorAlbum snapshot={snapshot} storageOwnerId="offline-only"/>);
     expect(html).toContain("Album de Cyclo-Stickers");expect(html).toContain("<strong>S4</strong>");
