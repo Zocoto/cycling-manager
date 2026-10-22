@@ -15,7 +15,7 @@ export async function getCurrentFederationRacePreparation(
   countryCode: string,
 ): Promise<RacePreparationEditionPlan[]> {
   const { data, error } = await supabase.rpc(
-    "get_current_national_federation_race_preparation",
+    "get_current_national_federation_race_preparation_with_sprint",
     { p_country_code: countryCode.toUpperCase() },
   );
 

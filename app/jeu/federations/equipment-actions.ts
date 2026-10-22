@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { readSprintTrainOrder } from "@/lib/game/sprint-train";
 import { redirect } from "next/navigation";
 
 import type { RaceStageType } from "@/lib/game/race-calendar";
@@ -89,7 +90,7 @@ export async function saveFederationRacePreparationAction(formData: FormData) {
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.rpc(
-    "save_national_federation_race_preparation",
+    "save_national_federation_race_preparation_with_sprint",
     {
       p_country_code: countryCode,
       p_race_edition_id: editionId,
@@ -105,6 +106,7 @@ export async function saveFederationRacePreparationAction(formData: FormData) {
         protectorRiderId,
         breakawayRiderId,
         attackOrders,
+        sprintTrainOrder: readSubmittedSprintTrainOrder(formData),
       },
     },
   );
@@ -115,6 +117,11 @@ export async function saveFederationRacePreparationAction(formData: FormData) {
   redirect(
     `${federationPreparationHref(countryCode)}&course=${encodeURIComponent(slug)}&etape=${stageNumber}&enregistrement=confirme#etape-${stageId}`,
   );
+}
+
+function readSubmittedSprintTrainOrder(formData: FormData) {
+  try { return readSprintTrainOrder(JSON.parse(String(formData.get("sprintTrainOrder") ?? "[]"))); }
+  catch { return []; }
 }
 
 export async function saveFederationTimeTrialPreparationAction(formData: FormData) {
