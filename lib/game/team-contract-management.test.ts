@@ -5,6 +5,7 @@ import {
   canRenewCurrentTeamRiderContract,
   getRiderRenewalPremiumPercent,
   getRiderRenewalTargetYears,
+  getRiderRenewalUpgradeBaseSalary,
   resolveEffectiveTeamContractEndYear,
   resolveTeamContractRiderStatus,
 } from "@/lib/game/team-contract-management";
@@ -12,6 +13,69 @@ import {
 const TEAM_ID = "team-a";
 
 describe("team contract management", () => {
+  it.each([0, "0", -5, "-5", "not-a-number", Number.NaN, Number.POSITIVE_INFINITY])(
+    "uses a positive salary quote instead of the invalid upgrade base %s",
+    (invalidSalary) => {
+      expect(getRiderRenewalUpgradeBaseSalary({
+        estimatedSalary: 8_000,
+        homegrown: false,
+        rosterSalaryBeforeDiscount: invalidSalary,
+        salaryPerSeason: invalidSalary,
+        renewalDiscountPercent: 0,
+      })).toBe(8_000);
+    },
+  );
+
+  it("keeps the homegrown and retention discounts on a legacy free junior upgrade", () => {
+    const base = getRiderRenewalUpgradeBaseSalary({
+      estimatedSalary: 6_000,
+      homegrown: true,
+      homegrownSalaryBeforeDiscount: "0",
+      rosterSalaryBeforeDiscount: "0",
+      salaryPerSeason: "0",
+      renewalDiscountPercent: 5,
+    });
+    expect(base).toBe(2_850);
+    expect(calculateRiderRenewalSalary(base, 25)).toBe(3_562.5);
+  });
+
+  it("preserves positive signed homegrown bases rather than repricing them", () => {
+    expect(getRiderRenewalUpgradeBaseSalary({
+      estimatedSalary: 6_000,
+      homegrown: true,
+      homegrownSalaryBeforeDiscount: "12000",
+      rosterSalaryBeforeDiscount: 6_000,
+      salaryPerSeason: 5_700,
+      renewalDiscountPercent: 5,
+    })).toBe(5_700);
+  });
+
+  it("preserves a positive retention base and falls through invalid older bases", () => {
+    expect(getRiderRenewalUpgradeBaseSalary({
+      estimatedSalary: 6_000,
+      homegrown: false,
+      rosterSalaryBeforeDiscount: "10000",
+      salaryPerSeason: 9_500,
+      renewalDiscountPercent: 5,
+    })).toBe(9_500);
+    expect(getRiderRenewalUpgradeBaseSalary({
+      estimatedSalary: 6_000,
+      homegrown: false,
+      rosterSalaryBeforeDiscount: 0,
+      salaryPerSeason: 8_000,
+      renewalDiscountPercent: 0,
+    })).toBe(8_000);
+  });
+
+  it("uses the canonical minimum if neither stored bases nor a quote is positive", () => {
+    expect(getRiderRenewalUpgradeBaseSalary({
+      estimatedSalary: 0,
+      homegrown: false,
+      salaryPerSeason: 0,
+      renewalDiscountPercent: 0,
+    })).toBe(6_000);
+  });
+
   it("offers S+1 or S+2 for an expiring deal, and only S+2 for a deal ending next season", () => {
     expect(getRiderRenewalTargetYears({ effectiveContractEndYear: 3, currentSeasonYear: 3 })).toEqual([4, 5]);
     expect(getRiderRenewalTargetYears({ effectiveContractEndYear: 4, currentSeasonYear: 3 })).toEqual([5]);

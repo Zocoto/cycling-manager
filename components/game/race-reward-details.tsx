@@ -8,10 +8,17 @@ import {
 } from "@/lib/game/economy";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import { shouldRewardTeamTimeTrialByTeam } from "@/lib/game/team-time-trial-rewards";
+import { isQuadrennialGamesEdition } from "@/lib/game/quadrennial-games";
+import {
+  calculateQuadrennialGamesReward,
+  QUADRENNIAL_GAMES_CLUB_PRIZES,
+  QUADRENNIAL_GAMES_FEDERATION_PRIZE,
+} from "@/lib/game/quadrennial-games-rewards";
 
 type RewardEdition = Pick<
   RaceCalendarEdition,
   | "categoryCode"
+  | "name"
   | "categoryName"
   | "competitionType"
   | "raceFormat"
@@ -132,6 +139,17 @@ export function RaceRewardDetails({
           ) : null}
         </div>
 
+        {preview.federationPrize > 0 ? (
+          <div className={`mt-3 rounded-lg px-3 py-2 ${isDark ? "bg-white/[0.06]" : "bg-white"}`}>
+            <p className="text-[10px] font-black">
+              Fédération du vainqueur · {preview.federationPrize.toLocaleString("fr-FR")} €
+            </p>
+            <p className={`mt-1 text-[10px] leading-4 ${isDark ? "text-[#BFD1C6]" : "text-[#688176]"}`}>
+              Prime distincte du gain du club, versée une seule fois après l’homologation de chaque épreuve.
+            </p>
+          </div>
+        ) : null}
+
         {preview.secondary || preview.prime ? (
           <div
             className={`mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2 ${
@@ -160,9 +178,12 @@ export function RaceRewardDetails({
             isDark ? "text-[#9FB6AB]" : "text-[#789087]"
           }`}
         >
-          Les primes d’étape et de parcours s’ajoutent au classement final.
-          Les sommes sont versées à l’équipe ; l’expérience et les points au
-          coureur.
+          {preview.federationPrize > 0 ? (
+            <>Chaque coureur classé rapporte la prime de sa place à son club. Les non-partants, abandons et disqualifications ne donnent droit à aucune prime.</>
+          ) : (
+            <>Les primes d’étape et de parcours s’ajoutent au classement final.
+            Les sommes sont versées à l’équipe ; l’expérience et les points au coureur.</>
+          )}
           {preview.hasTeamTimeTrial ? (
             <>
               {" "}Exception en CLM par équipes : la place et tous les gains du
@@ -254,6 +275,23 @@ function RewardSupplement({
 }
 
 function buildRewardPreview(edition: RewardEdition, gameYear: number) {
+  if (isQuadrennialGamesEdition(edition)) {
+    let firstRank = 1;
+    return {
+      generalTitle: "Prime au club · par coureur classé",
+      formatLabel: "Jeux quadriennaux",
+      general: QUADRENNIAL_GAMES_CLUB_PRIZES.map((rule) => {
+        const range = { firstRank, lastRank: rule.maxRank, reward: calculateQuadrennialGamesReward(firstRank) };
+        firstRank = rule.maxRank + 1;
+        return range;
+      }),
+      stage: [] as RewardRange[],
+      secondary: null,
+      prime: null,
+      hasTeamTimeTrial: false,
+      federationPrize: QUADRENNIAL_GAMES_FEDERATION_PRIZE,
+    };
+  }
   if (edition.competitionType !== "standard") {
     const getChampionshipReward = (rank: number) =>
       edition.competitionType === "continental_championship" ||
@@ -273,6 +311,7 @@ function buildRewardPreview(edition: RewardEdition, gameYear: number) {
       secondary: null,
       prime: null,
       hasTeamTimeTrial: false,
+      federationPrize: 0,
     };
   }
 
@@ -321,6 +360,7 @@ function buildRewardPreview(edition: RewardEdition, gameYear: number) {
       mountainPrimesWon: 1,
     }),
     hasTeamTimeTrial,
+    federationPrize: 0,
   };
 }
 
@@ -366,6 +406,7 @@ function groupRewardRanges(
 
 function formatRankRange({ firstRank, lastRank }: RewardRange) {
   const first = formatRank(firstRank);
+  if (!Number.isFinite(lastRank)) return `${first} et suivants`;
   return firstRank === lastRank ? first : `${first}–${formatRank(lastRank)}`;
 }
 

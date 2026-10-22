@@ -32,6 +32,7 @@ import {
   calculateRiderRenewalSalary,
   getRiderRenewalPremiumPercent,
   getRiderRenewalTargetYears,
+  getRiderRenewalUpgradeBaseSalary,
   resolveEffectiveTeamContractEndYear,
 } from "@/lib/game/team-contract-management";
 import {
@@ -1021,16 +1022,14 @@ export async function getRiderTransferManagement(
             nextSeasonContract?.team_id === context.teamSeason.team_id &&
             activeContractEndSeasonYear === context.season.game_year &&
             targetEndSeasonYear === context.season.game_year + 2
-              ? applyPercentageDiscount(
-                  homegrownSalaryDiscount
-                    ? (toNullableNumber(
-                        nextSeasonContract.homegrown_salary_before_discount,
-                      ) ?? renewalSalary) / 2
-                    : toNullableNumber(
-                        nextSeasonContract.roster_management_salary_before_discount,
-                      ) ?? toNumber(nextSeasonContract.salary_per_season),
+              ? getRiderRenewalUpgradeBaseSalary({
+                  estimatedSalary: renewalSalary,
+                  homegrown: homegrownSalaryDiscount,
+                  homegrownSalaryBeforeDiscount: nextSeasonContract.homegrown_salary_before_discount,
+                  rosterSalaryBeforeDiscount: nextSeasonContract.roster_management_salary_before_discount,
+                  salaryPerSeason: nextSeasonContract.salary_per_season,
                   renewalDiscountPercent,
-                )
+                })
               : quotedRenewalSalary;
           return {
             targetEndSeasonYear,
@@ -1634,12 +1633,6 @@ function shuffle<T>(values: T[]) {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function applyPercentageDiscount(value: number, percentage: number) {
