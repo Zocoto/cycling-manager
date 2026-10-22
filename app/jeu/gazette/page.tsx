@@ -20,7 +20,6 @@ import {
   selectCyclogazetteOpeningAwards,
 } from "@/lib/game/cyclogazette-awards";
 import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
-import { isCyclogazetteSeasonTwoGalaEdition } from "@/lib/game/cyclogazette-season-quiz";
 import {
   readGalaYoutubeVideoId,
 } from "@/lib/game/season-finale-gala";
@@ -102,16 +101,13 @@ export default async function CyclogazettePage({
       : Promise.resolve(null),
   ]);
   const edition = requestedEdition ?? latestEdition;
-  const isSeasonTwoGalaEdition = edition
-    ? isCyclogazetteSeasonTwoGalaEdition({
-        gameYear: Math.ceil(edition.issueNumber / 28),
-        dayNumber: edition.dayNumber,
-      })
-    : false;
-  const resolvedAwards =
-    isSeasonTwoGalaEdition && !awards.some((award) => award.gameYear === 2)
-      ? await getSeasonAwards(supabase)
-      : awards;
+  const isSeasonFinaleEdition = edition?.dayNumber === 28;
+  const finaleGameYear = isSeasonFinaleEdition && edition ? Math.ceil(edition.issueNumber / 28) : null;
+  // A late first reader may have triggered publication while the parallel
+  // awards read was still empty. Re-read only that missing final-season set.
+  const resolvedAwards = finaleGameYear && !awards.some((award) => award.gameYear === finaleGameYear)
+    ? await getSeasonAwards(supabase)
+    : awards;
   const previousEdition = edition
     ? archive
         .flatMap((season) => season.editions)
@@ -181,7 +177,7 @@ export default async function CyclogazettePage({
 
   return (
     <main
-      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isSeasonTwoGalaEdition ? "bg-[#050812]" : activeSection === "journal" && isNationsCupSpecialEdition ? "bg-[#123B32]" : activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
+      className={`min-h-screen text-[#082A2A] ${activeSection === "journal" && isSeasonFinaleEdition ? "bg-[#050812]" : activeSection === "journal" && isNationsCupSpecialEdition ? "bg-[#123B32]" : activeSection === "journal" && isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
     >
       <GameHeader
         simulatorEmail={user.email}

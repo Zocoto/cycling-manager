@@ -52,15 +52,15 @@ export function CyclogazetteAwards({
         />
         <div className="relative text-center">
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#D6B45A]">
-            {isEnglish ? "Season 2 gala night" : "Soirée de gala · Saison 2"}
+            {isEnglish ? `Season ${latest.gameYear} awards` : `Soirée des awards · ${latest.seasonName}`}
           </p>
           <h2 className="mt-2 font-serif text-4xl font-black tracking-[-0.04em] sm:text-6xl">
             {isEnglish ? "The season’s laureates" : "Les lauréats de la saison"}
           </h2>
           <p className="mx-auto mt-3 max-w-3xl font-serif text-sm italic leading-6 text-[#D9D2C0]">
             {isEnglish
-              ? "The lights come up on the riders, team and Sporting Director who shaped the second campaign."
-              : "Les projecteurs s’allument sur les coureurs, l’équipe et le Directeur Sportif qui ont marqué cette deuxième campagne."}
+              ? "The lights come up on the riders, teams and Sporting Directors who shaped this season."
+              : "Les projecteurs s’allument sur les coureurs, les équipes et les Directeurs Sportifs qui ont marqué cette saison."}
           </p>
           <span className="mt-4 inline-flex border border-[#D6B45A]/60 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#E8CB78]">
             {latest.seasonName}

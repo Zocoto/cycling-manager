@@ -1,0 +1,31 @@
+-- Minimal isolated schema for the real, audited legacy and new award builders.
+-- No production data and no network access.
+create schema private;
+create role anon; create role authenticated; create role service_role;
+create table seasons(id uuid primary key,name text,game_year integer,status text,current_day_number integer,starts_on date,ends_on date);
+create table teams(id uuid primary key);
+create table sporting_directors(id uuid primary key,display_name text);
+create table riders(id uuid primary key,first_name text,last_name text,country_id uuid);
+create table team_seasons(id uuid primary key,team_id uuid,season_id uuid,status text,display_name text,points integer,final_rank integer,registration_country_id uuid);
+create table team_manager_assignments(id uuid primary key,team_id uuid,sporting_director_id uuid,role text,status text,start_season_id uuid,end_season_id uuid,created_at timestamptz);
+create table alpha_bot_managers(sporting_director_id uuid);
+create table rider_season_summaries(rider_id uuid,season_id uuid,points integer,victories integer,uci_rank integer);
+create table rider_season_ratings(rider_id uuid,season_id uuid,age integer);
+create table race_editions(id uuid primary key,season_id uuid,status text);
+create table stages(id uuid primary key,race_edition_id uuid,status text);
+create table race_registrations(id uuid primary key,team_season_id uuid);
+create table race_rosters(id uuid primary key,rider_id uuid,race_registration_id uuid);
+create table race_results(id uuid primary key,race_edition_id uuid,race_roster_id uuid,status text,final_rank integer,injury_id uuid);
+create table stage_results(race_roster_id uuid,injury_id uuid);
+create table rider_injuries(id uuid primary key,rider_id uuid,source_stage_id uuid,recovery_days integer);
+create table direct_transfer_offers(buyer_team_id uuid,submitted_by_director_id uuid,season_id uuid);
+create table cyclogazette_editions(id uuid primary key,season_id uuid);
+create table cyclogazette_game_completions(edition_id uuid,team_season_id uuid,sporting_director_id uuid,game_type text);
+create table infrastructure_projects(team_id uuid,started_season_id uuid,status text,final_cost numeric);
+create table post_race_interviews(sporting_director_id uuid,team_id uuid,season_id uuid,status text);
+create table pre_race_press_conferences(sporting_director_id uuid,team_id uuid,season_id uuid,status text);
+create table global_chat_messages(id uuid primary key,sporting_director_id uuid,team_id uuid,created_at timestamptz);
+create table global_chat_message_reactions(message_id uuid);
+create table youth_academy_riders(id uuid primary key,team_id uuid,promoted_rider_id uuid,status text,joined_season_id uuid);
+create table development_ranking_entries(id uuid primary key,academy_rider_id uuid,display_name text,points integer,wins integer,podiums integer,season_id uuid,entity_type text);
+create table rider_contracts(id uuid primary key,rider_id uuid,team_id uuid,start_season_id uuid,end_season_id uuid,left_season_id uuid,status text,joined_day_number smallint,left_day_number smallint,signed_at timestamptz);

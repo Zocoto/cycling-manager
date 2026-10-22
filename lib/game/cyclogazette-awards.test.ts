@@ -74,13 +74,24 @@ describe("selectCyclogazetteGalaAwards", () => {
     ]);
   });
 
-  it("n’active pas par erreur le gala sur une autre saison", () => {
+  it("affiche les awards de J28 de chaque saison, sans reprendre une autre année", () => {
     expect(
       selectCyclogazetteGalaAwards(
         { id: "season-3-day-1", dayNumber: 28 },
         archive,
-        awards,
+        [...awards, { id: "season-3", gameYear: 3 }],
       ),
-    ).toEqual([]);
+    ).toEqual([{ id: "season-3", gameYear: 3 }]);
+  });
+  it("ne présente pas un ancien palmarès comme celui de la saison précédente", () => {
+    expect(selectCyclogazetteOpeningAwards({ id: "season-4-day-1", dayNumber: 1 },
+      [{ gameYear: 4, editions: [{ id: "season-4-day-1" }] }], awards)).toEqual([]);
+  });
+  it.each([1,4,5,8,12])("publie le bon palmarès de la saison %s à J28", (gameYear) => {
+    const id=`season-${gameYear}-day-28`;
+    const target={id:'winner',gameYear};
+    expect(selectCyclogazetteGalaAwards({id,dayNumber:28},[{gameYear,editions:[{id}]}],
+      [target,{id:'previous',gameYear:gameYear-1}])).toEqual([target]);
+    expect(selectCyclogazetteGalaAwards({id,dayNumber:27},[{gameYear,editions:[{id}]}],[target])).toEqual([]);
   });
 });
