@@ -12,6 +12,7 @@ import {
   type DailyRewardRider,
 } from "@/lib/game/daily-rewards";
 import {
+  canUseNaturalizationPassport,
   formatItemTargetValue,
   readItemTargetRatingKey,
   type ItemTargetValueContext,
@@ -47,7 +48,9 @@ export function DailyRewardTargetFields({
             ratingKey: selectedRatingKey,
           }),
         )
-      : riders;
+      : item.effectKind === "naturalization"
+        ? riders.filter(canUseNaturalizationPassport)
+        : riders;
   const selectedAbility = abilities.find(
     (ability) => ability.code === abilityCode,
   );
@@ -132,7 +135,7 @@ export function DailyRewardTargetFields({
               : "Coureur"
           }
           required
-          disabled={riderSelectionDisabled || riders.length === 0}
+          disabled={riderSelectionDisabled || targetRiders.length === 0}
           value={riderId}
           onChange={setRiderId}
         >
@@ -140,9 +143,11 @@ export function DailyRewardTargetFields({
             {targetRiders.length === 0
               ? item.effectKind === "injury_care"
                 ? "Aucune blessure compatible"
-                : item.effectKind === "rating_boost" && selectedRatingKey
-                  ? "Aucun coureur compatible avec cette limite"
-                  : "Aucun coureur disponible"
+                : item.effectKind === "naturalization"
+                  ? "Aucun coureur éligible à la naturalisation"
+                  : item.effectKind === "rating_boost" && selectedRatingKey
+                    ? "Aucun coureur compatible avec cette limite"
+                    : "Aucun coureur disponible"
               : riderSelectionDisabled
                 ? item.effectKind === "rating_boost"
                   ? "Choisir d’abord une statistique"
