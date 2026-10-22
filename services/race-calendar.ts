@@ -1,6 +1,7 @@
 import "server-only";
 import { parseQuadrennialChampionshipType } from "@/lib/game/quadrennial-games";
 import { getActiveQuadrennialChampionshipTitlesByDisciplineForRiders, type ActiveQuadrennialChampionshipTitlesByDiscipline } from "@/services/rider-quadrennial-championship-titles";
+import { isPerformancePreparationType, type PerformancePreparationType } from "@/lib/game/performance-preparation";
 
 import { unstable_cache } from "next/cache";
 
@@ -455,7 +456,7 @@ type RiderMoraleConditionRow = {
 
 type RiderPerformancePreparationRow = {
   rider_id: string;
-  preparation_type: "indoor_track" | "wind_tunnel";
+  preparation_type: PerformancePreparationType;
   bonus_start_game_day: number;
   bonus_end_game_day: number;
   rating_bonus: number;
@@ -4063,8 +4064,7 @@ function parsePerformancePreparation(
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
   if (
-    (row.preparation_type !== "indoor_track" &&
-      row.preparation_type !== "wind_tunnel") ||
+    !isPerformancePreparationType(row.preparation_type) ||
     !Number.isFinite(row.bonus_start_game_day) ||
     !Number.isFinite(row.bonus_end_game_day) ||
     !Number.isFinite(row.rating_bonus)

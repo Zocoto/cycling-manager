@@ -1,7 +1,8 @@
 import Image from "next/image";
 
 import { startRiderPerformancePreparationAction } from "@/app/jeu/entrainement/actions";
-import { getPerformancePreparationPolicy } from "@/lib/game/performance-preparation";
+import { getPerformancePreparationPolicy, PERFORMANCE_PREPARATION_FACILITIES, PERFORMANCE_PREPARATION_TYPES, type PerformancePreparationType } from "@/lib/game/performance-preparation";
+import { getInfrastructureSpecializationProposal } from "@/lib/game/infrastructure-specializations";
 import type { TeamRiderPreparationOverview } from "@/services/team-rider-preparation";
 
 export function RiderPreparationCenter({
@@ -25,20 +26,9 @@ export function RiderPreparationCenter({
         </p>
       </header>
       <div className="mt-7 grid gap-6 xl:grid-cols-2">
-        <FacilityCard
-          overview={overview}
-          type="indoor_track"
-          title="Piste indoor"
-          imagePath="/images/infrastructure/indoor-track.webp"
-          stats="SPR · ACC"
-        />
-        <FacilityCard
-          overview={overview}
-          type="wind_tunnel"
-          title="Soufflerie"
-          imagePath="/images/infrastructure/wind-tunnel.webp"
-          stats="CLM · PRO · END"
-        />
+        {PERFORMANCE_PREPARATION_TYPES.map(type => <FacilityCard key={type} overview={overview}
+          type={type} title={PERFORMANCE_PREPARATION_FACILITIES[type].name}
+          imagePath={PERFORMANCE_PREPARATION_FACILITIES[type].imagePath} stats={PERFORMANCE_PREPARATION_FACILITIES[type].stats} />)}
       </div>
       {overview.preparations.length ? (
         <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-sm sm:p-8">
@@ -55,9 +45,7 @@ export function RiderPreparationCenter({
                   {preparation.riderName}
                 </p>
                 <p className="mt-1 text-xs font-bold text-[#60756E]">
-                  {preparation.type === "indoor_track"
-                    ? "Piste indoor"
-                    : "Soufflerie"}{" "}
+                  {PERFORMANCE_PREPARATION_FACILITIES[preparation.type].name}{" "}
                   N{preparation.buildingLevel} · +
                   {preparation.ratingBonus.toLocaleString("fr-FR")}
                 </p>
@@ -84,13 +72,14 @@ function FacilityCard({
   stats,
 }: {
   overview: TeamRiderPreparationOverview;
-  type: "indoor_track" | "wind_tunnel";
+  type: PerformancePreparationType;
   title: string;
   imagePath: string;
   stats: string;
 }) {
   const facility = overview.facilities[type];
-  const policy = getPerformancePreparationPolicy(facility.level);
+  const policy = getPerformancePreparationPolicy(facility.level, { preparationType: type, specializationCode: facility.specializationCode });
+  const orientation = getInfrastructureSpecializationProposal("team", type)?.options.find(option => option.code === facility.specializationCode);
   const activeIds =
     facility.activePreparationIds ??
     (facility.activePreparationId ? [facility.activePreparationId] : []);
@@ -154,10 +143,11 @@ function FacilityCard({
               d’une même installation ne se cumulent pas sur un coureur.
             </p>
             <p className="mt-3 text-xs font-bold leading-5 text-[#60756E]">
-              {type === "indoor_track"
-                ? "Préparez ensemble votre sprinteur et ses lanceurs aux niveaux supérieurs."
-                : "Préparez vos spécialistes du chrono et vos rouleurs pour une série de courses."}
+              {type === "indoor_track" ? "Préparez ensemble votre sprinteur et ses lanceurs aux niveaux supérieurs."
+                : type === "wind_tunnel" ? "Préparez vos spécialistes du chrono et vos rouleurs pour une série de courses."
+                : "Préparation ciblée sur une seule note, sans modifier les statistiques permanentes du coureur."}
             </p>
+            {orientation ? <p className="mt-2 text-xs font-bold text-[#176951]">Orientation active : {orientation.name}</p> : null}
             <div className="mt-4 rounded-xl bg-[#EAF5F3] p-4">
               <p className="text-sm font-black text-[#176951]">
                 Places occupées : {activeIds.length}/{policy.capacity}

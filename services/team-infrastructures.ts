@@ -535,6 +535,9 @@ export async function getTeamInfrastructureOverview(
     indoor_track: getInfrastructureLevel("indoor_track"),
     cryotherapy_center: getInfrastructureLevel("cryotherapy_center"),
     wind_tunnel: getInfrastructureLevel("wind_tunnel"),
+    cobbles_center: getInfrastructureLevel("cobbles_center"),
+    hills_circuit: getInfrastructureLevel("hills_circuit"),
+    mountain_base: getInfrastructureLevel("mountain_base"),
     research_lab: getInfrastructureLevel("research_lab"),
     international_welcome_center: getInfrastructureLevel(
       "international_welcome_center",

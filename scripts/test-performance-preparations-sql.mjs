@@ -227,11 +227,11 @@ try {
     const oldGuard = literal("v_old");
     const newGuard = literal("v_new");
     assert.ok(oldGuard && newGuard);
-    const baseBody = migration.match(/create or replace function public\.start_current_team_rider_performance_preparation\([\s\S]*?as \$\$([\s\S]*?)\$\$;/i)?.[1];
+    const baseBody = migration.match(/create or replace function public\.start_current_team_rider_performance_preparation\([\s\S]*?as \$\$([\s\S]*?)\$\$;/i)?.[1].replaceAll("\r", "");
     assert.equal(baseBody.split(oldGuard).length, 2);
     const expected = baseBody.replace(oldGuard, newGuard);
     const actual = (await database.query("select prosrc from pg_catalog.pg_proc where oid=to_regprocedure('public.start_current_team_rider_performance_preparation(uuid,text)')")).rows[0].prosrc;
-    assert.equal(actual, expected);
+    assert.equal(actual.replaceAll("\r", ""), expected);
     const triggerBody = cancellationMigration.match(/create or replace function public\.cancel_performance_preparation_from_camp\([\s\S]*?as \$\$([\s\S]*?)\$\$;/i)?.[1];
     const receipt = (await database.query("select md5(regexp_replace(prosrc, '[[:space:]]', '', 'g')) as hash from pg_catalog.pg_proc where oid=to_regprocedure('public.cancel_performance_preparation_from_camp()')")).rows[0].hash;
     assert.equal(receipt, createHash("md5").update(triggerBody.replace(/\s/g, "")).digest("hex"));
@@ -485,6 +485,8 @@ try {
     assert.deepEqual((await database.query("select * from public.official_stage_simulations order by id")).rows, frozenBefore);
   });
 
+  const { testTerrainPreparations } = await import("./test-terrain-preparations-sql.mjs");
+  await testTerrainPreparations({ database, reset, start, rejected, test, TEAM, RIDERS, START, GAME_DAY });
   console.log(`Isolated in-memory SQL harness: ${passed} cases passed. No external database was accessed.`);
 } finally {
   await database.close();

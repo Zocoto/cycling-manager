@@ -1,9 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getPerformancePreparationPolicy } from "@/lib/game/performance-preparation";
-
-type PreparationType = "indoor_track" | "wind_tunnel";
+import { getPerformancePreparationPolicy, PERFORMANCE_PREPARATION_TYPES, type PerformancePreparationType as PreparationType } from "@/lib/game/performance-preparation";
 
 export type TeamRiderPreparationOverview = {
   teamName: string;
@@ -17,6 +15,7 @@ export type TeamRiderPreparationOverview = {
       activePreparationId: string | null;
       activePreparationIds?: string[];
       capacity?: number;
+      specializationCode?: string | null;
     }
   >;
   riders: Array<{
@@ -85,12 +84,13 @@ export async function getCurrentTeamRiderPreparationOverview(
   if (teamSeason.error || !teamSeason.data) return null;
   const currentGameDayIndex =
     season.data.game_year * 28 + season.data.current_day_number - 1;
-  const [infrastructures, contracts, preparations] = await Promise.all([
+  const currentGameYear = season.data.game_year;
+  const [infrastructures, contracts, preparations, specializations] = await Promise.all([
     admin
       .from("team_infrastructures")
       .select("infrastructure_code,level")
       .eq("team_id", assignment.data.team_id)
-      .in("infrastructure_code", ["indoor_track", "wind_tunnel"])
+      .in("infrastructure_code", PERFORMANCE_PREPARATION_TYPES)
       .returns<Array<{ infrastructure_code: string; level: number }>>(),
     admin
       .from("rider_contracts")
@@ -105,7 +105,7 @@ export async function getCurrentTeamRiderPreparationOverview(
       )
       .eq("team_id", assignment.data.team_id)
       .neq("status", "cancelled")
-      // All occupied places (at most six) come before bounded history, even
+      // All occupied places come before bounded history, even
       // when more recent completed preparations would otherwise hide them.
       .order("status", { ascending: false })
       .order("created_at", { ascending: false })
@@ -125,8 +125,14 @@ export async function getCurrentTeamRiderPreparationOverview(
           created_at: string;
         }>
       >(),
+    admin.from("team_infrastructure_specializations")
+      .select("infrastructure_code,active_specialization_code,pending_specialization_code,effective_game_day_index")
+      .eq("team_id", assignment.data.team_id)
+      .in("infrastructure_code", ["cobbles_center", "hills_circuit", "mountain_base"])
+      .limit(3)
+      .returns<Array<{ infrastructure_code: string; active_specialization_code: string | null; pending_specialization_code: string | null; effective_game_day_index: number | null }>>(),
   ]);
-  if (infrastructures.error || contracts.error || preparations.error)
+  if (infrastructures.error || contracts.error || preparations.error || specializations.error)
     throw new Error("Impossible de charger les préparations coureurs.");
   const contractedRiderIds = new Set(
     (contracts.data ?? []).map((row) => row.rider_id),
@@ -194,6 +200,11 @@ export async function getCurrentTeamRiderPreparationOverview(
     });
   const facility = (code: PreparationType) => {
     const facilityLevel = level(code);
+    const specialization = (specializations.data ?? []).find(row => row.infrastructure_code === code);
+    const specializationCode = currentGameYear < 3 ? null
+      : specialization?.pending_specialization_code && specialization.effective_game_day_index !== null
+        && specialization.effective_game_day_index <= currentGameDayIndex
+        ? specialization.pending_specialization_code : specialization?.active_specialization_code ?? null;
     // Count source rows, not the display roster: a transferred rider must not
     // silently free a reserved place. Dates also tolerate a delayed settlement.
     const activePreparationIds = (preparations.data ?? [])
@@ -206,7 +217,8 @@ export async function getCurrentTeamRiderPreparationOverview(
       .map((row) => row.id);
     return {
       level: facilityLevel,
-      capacity: getPerformancePreparationPolicy(facilityLevel)?.capacity ?? 0,
+      capacity: getPerformancePreparationPolicy(facilityLevel, { preparationType: code, specializationCode })?.capacity ?? 0,
+      specializationCode,
       activePreparationId: activePreparationIds[0] ?? null,
       activePreparationIds,
     };
@@ -219,6 +231,9 @@ export async function getCurrentTeamRiderPreparationOverview(
     facilities: {
       indoor_track: facility("indoor_track"),
       wind_tunnel: facility("wind_tunnel"),
+      cobbles_center: facility("cobbles_center"),
+      hills_circuit: facility("hills_circuit"),
+      mountain_base: facility("mountain_base"),
     },
     riders: (ridersResult.data ?? [])
       .filter((rider) => contractedRiderIds.has(rider.id))

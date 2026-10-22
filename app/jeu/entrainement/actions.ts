@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isTrainingDomain } from "@/lib/game/training";
+import { isPerformancePreparationType } from "@/lib/game/performance-preparation";
 import { getInteractiveActionErrorMessage } from "@/lib/game/interactive-action-errors";
 import { getRaceReconnaissanceErrorMessage } from "@/lib/game/race-reconnaissance";
 import type { TrainingPlanDraft } from "@/lib/game/training-plan-drafts";
@@ -133,7 +134,7 @@ export async function startRiderPerformancePreparationAction(
   const preparationType = readValue(formData, "preparationType");
   if (
     !isUuid(riderId) ||
-    !["indoor_track", "wind_tunnel"].includes(preparationType)
+    !isPerformancePreparationType(preparationType)
   ) {
     redirect(
       `/jeu/entrainement?onglet=preparation&erreur=${encodeURIComponent("Sélection de préparation invalide.")}`,
