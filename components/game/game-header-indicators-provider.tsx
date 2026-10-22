@@ -1,5 +1,6 @@
 "use client";
 
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import {
   createContext,
   useContext,
@@ -183,7 +184,7 @@ export function GameHeaderIndicatorsProvider({
 
       supabase = createSupabaseBrowserClient();
       // Reuse the local auth lifecycle: no new RPC, user lookup or polling.
-      authSubscription = supabase.auth.onAuthStateChange((_event, session) => {
+      authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (active) setCollectorAlbumAvailable(canAccessCollectorAlbum(session?.user.id));
       }).data.subscription;
       scheduleRefresh(0);
