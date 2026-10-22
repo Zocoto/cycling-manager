@@ -8,7 +8,7 @@ const actions = readFileSync(
   "utf8",
 );
 const riderPage = readFileSync(
-  join(process.cwd(), "app/jeu/coureurs/[identifiant]/page.tsx"),
+  join(process.cwd(), "components/game/direct-transfer-offer-composer.tsx"),
   "utf8",
 );
 const chatPanel = readFileSync(

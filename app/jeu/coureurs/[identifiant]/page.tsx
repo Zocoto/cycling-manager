@@ -93,12 +93,13 @@ import {
   resolveDismissalCost,
 } from "@/lib/game/mutual-dismissal";
 import {
+  cancelDirectTransferOfferAction,
   dismissRiderAction,
   renewRiderContractAction,
   signFreeAgentAction,
-  submitDirectTransferOfferAction,
 } from "@/app/jeu/transferts/actions";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
+import { DirectTransferOfferComposer } from "@/components/game/direct-transfer-offer-composer";
 import { RiderTransferListingCard } from "@/components/game/rider-transfer-listing-card";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
 import { getCurrentTeamRiderComparisonOptions } from "@/services/rider-comparison";
@@ -1164,12 +1165,6 @@ function DirectTransferOfferCard({
     return null;
   }
 
-  const maximumOffer = Math.max(
-    500,
-    Math.floor(management.availableBudget / 100) * 100,
-  );
-  const defaultOffer = Math.min(10_000, maximumOffer);
-
   return (
     <article className="rounded-[2rem] border border-[#F2C94C]/30 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.16)] sm:p-7">
       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#F2C94C]">
@@ -1177,7 +1172,7 @@ function DirectTransferOfferCard({
       </p>
       <h2 className="mt-2 text-2xl font-black">Faire une offre</h2>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#BFD1C6]">
-        Proposez une indemnité à {teamName}. Son Directeur Sportif recevra un
+        Proposez une indemnité, un coureur de votre équipe ou les deux à {teamName}. Son Directeur Sportif recevra un
         courrier et pourra accepter ou refuser. En cas d’accord, le contrat
         couvre la fin de la saison en cours.
       </p>
@@ -1193,79 +1188,33 @@ function DirectTransferOfferCard({
               management.currency,
             )}
           </p>
+          {management.pendingOfferedRider ? (
+            <p className="mt-2 text-sm font-bold text-white">
+              + <Link href={`/jeu/coureurs/${management.pendingOfferedRider.id}`} className="underline underline-offset-4">{management.pendingOfferedRider.firstName} {management.pendingOfferedRider.lastName}</Link>
+              <span className="mt-1 block text-xs text-[#BFD1C6]">Salaire à la charge de l’autre équipe : {formatMoney(management.pendingOfferedRider.salaryPerSeason, management.currency)} / saison</span>
+            </p>
+          ) : null}
           <p className="mt-2 text-xs font-bold text-[#D6DFD2]">
             Vous serez prévenu par courrier dès que le DS adverse aura répondu.
           </p>
+          {management.pendingDirectOfferId ? (
+            <form action={cancelDirectTransferOfferAction} className="mt-4">
+              <input type="hidden" name="offerId" value={management.pendingDirectOfferId} />
+              <input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} />
+              <TransferSubmitButton pendingLabel="Retrait de l’offre…" tone="dark">Retirer mon offre</TransferSubmitButton>
+            </form>
+          ) : null}
         </div>
       ) : management.canMakeDirectOffer ? (
-        <form
-          action={submitDirectTransferOfferAction}
-          className="mt-5"
-          data-financial-expense-field="amount"
-          data-financial-extra-expense={management.directOfferSalary ?? 0}
-          data-financial-label="cette offre de transfert"
-        >
-          <input type="hidden" name="riderId" value={riderId} />
-          <input
-            type="hidden"
-            name="returnPath"
-            value={`/jeu/coureurs/${riderId}`}
-          />
-          <label className="block text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">
-            Montant proposé
-            <input
-              name="amount"
-              type="number"
-              min="500"
-              max={Math.min(100_000_000, maximumOffer)}
-              step="100"
-              required
-              defaultValue={defaultOffer}
-              className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-white px-4 text-base font-black text-[#183F37]"
-            />
-          </label>
-          <label className="mt-4 block text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">
-            Message au Directeur Sportif <span className="text-white/55">· facultatif</span>
-            <textarea
-              name="message"
-              rows={3}
-              maxLength={500}
-              placeholder="Présentez votre projet sportif ou les raisons de votre offre…"
-              className="mt-2 w-full resize-y rounded-xl border border-white/15 bg-white px-4 py-3 text-sm font-semibold normal-case leading-5 tracking-normal text-[#183F37] placeholder:text-[#789087]"
-            />
-          </label>
-          <p className="mt-2 text-[10px] font-semibold leading-4 text-[#9BE0BC]">
-            L’offre et votre message seront ajoutés au fil privé avec un lien vers la fiche du coureur.
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-bold text-[#BFD1C6]">
-            <p>
-              Budget disponible
-              <br />
-              <strong className="text-white">
-                {formatMoney(management.availableBudget, management.currency)}
-              </strong>
-            </p>
-            <p>
-              Salaire futur
-              <br />
-              <strong className="text-white">
-                {formatMoney(
-                  management.directOfferSalary ?? 0,
-                  management.currency,
-                )}
-              </strong>
-            </p>
-            <p className="col-span-2 text-[10px] leading-4 text-[#9BE0BC]">
-              Le salaire sera payé par échéances et n’est pas retiré de votre
-              trésorerie au moment de l’offre.
-            </p>
-          </div>
-          <div className="mt-5">
-            <TransferSubmitButton pendingLabel="Envoi de l’offre…">
-              Transmettre l’offre
-            </TransferSubmitButton>
-          </div>
-        </form>
+        <DirectTransferOfferComposer
+          key={riderId}
+          riderId={riderId}
+          salaryPerSeason={management.directOfferSalary ?? 0}
+          availableBudget={management.availableBudget}
+          currency={management.currency}
+          canMakeCashOffer={management.canMakeCashOffer}
+          canMakeTradeOffer={management.canMakeTradeOffer}
+        />
       ) : (
         <p className="mt-5 rounded-xl bg-[#F2C94C]/10 px-4 py-3 text-xs font-bold text-[#FFE596]">
           {management.directOfferBlockedReason ??
