@@ -61,9 +61,16 @@ describe("game news publication and draft validation", () => {
     expect(gameNewsDraftDocumentSchema.safeParse({ ...document, image_path }).success).toBe(false);
   });
   it("only suggests existing local images and accepts those selected paths", () => {
+    expect(GAME_NEWS_IMAGES.some(image => /halloween|saison-\d/i.test(image.path))).toBe(false);
     for (const image of GAME_NEWS_IMAGES) {
       expect(gameNewsDocumentSchema.safeParse({ ...document, image_path: image.path }).success, image.path).toBe(true);
       if (image.path) expect(existsSync(path.join(process.cwd(), "public", image.path)), image.path).toBe(true);
+    }
+  });
+  it("accepts uploaded illustrations and keeps old event illustrations valid", () => {
+    for (const image_path of [`/images/game-news/${"a".repeat(64)}.webp`, "/images/announcements/halloween-2026-gameplay.png"]) {
+      expect(gameNewsDocumentSchema.safeParse({ ...document, image_path }).success).toBe(true);
+      expect(gameNewsDraftDocumentSchema.safeParse({ ...document, image_path }).success).toBe(true);
     }
   });
 });

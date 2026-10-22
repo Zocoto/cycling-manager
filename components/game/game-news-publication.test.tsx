@@ -5,12 +5,19 @@ import { EMPTY_GAME_NEWS_DOCUMENT, type PublishedGameNews } from "@/lib/game/gam
 import { GameNewsCards, GameNewsPublication, formatGameNewsDate } from "./game-news-publication";
 
 vi.mock("@/components/ui/app-link", () => ({ default: (props: ComponentProps<"a">) => <a {...props} /> }));
-vi.mock("next/image", () => ({ default: (props: { src: string; alt: string }) => <span role="img" aria-label={props.alt} data-news-image-src={props.src} /> }));
+vi.mock("next/image", () => ({ default: (props: { src: string; alt: string; unoptimized?: boolean }) => <span role="img" aria-label={props.alt} data-news-image-src={props.src} data-news-unoptimized={String(Boolean(props.unoptimized))} /> }));
 
 const article: PublishedGameNews = {
   id: "news-one", revision: 2, publishedAt: "2026-10-21T22:30:00Z", updatedAt: "2026-10-22T08:00:00Z",
   document: { ...EMPTY_GAME_NEWS_DOCUMENT, title: "Les nouveautés du peloton", category: "Mise à jour", summary: "Une nouvelle rubrique pour garder le fil.", body: "Les **nouveautés** :tada: et [le guide](/guide#equipe).", link_url: "/nouveautes/news-two", link_label: "Voir la suite" },
 };
+
+it("delivers already optimized uploads directly, without a second image-optimizer pass", () => {
+  const image_path = `/images/game-news/${"a".repeat(64)}.webp`;
+  const html = renderToStaticMarkup(<GameNewsPublication article={{ ...article, document: { ...article.document, image_path } }} />);
+  expect(html).toContain(`data-news-image-src="${image_path}"`);
+  expect(html).toContain('data-news-unoptimized="true"');
+});
 
 describe("GameNewsCards", () => {
   it("keeps public cards public and in-game cards inside the connected shell", () => {

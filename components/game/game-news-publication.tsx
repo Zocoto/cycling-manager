@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import type { AppLocale } from "@/lib/i18n/config";
 import { localizeGameNews, isSafeNewsLink, type PublishedGameNews } from "@/lib/game/game-product-news";
 import { GameNewsBody, gameNewsContextHref } from "./game-news-body";
+import { GAME_NEWS_IMAGE_PREFIX } from "@/lib/game/game-news-images";
 
 export function GameNewsCards({ articles, connected = false, locale = "fr" }: { articles: PublishedGameNews[]; connected?: boolean; locale?: AppLocale }) {
   return <div className="grid gap-5 md:grid-cols-2">{articles.map((article) => {
@@ -21,7 +22,7 @@ export function GameNewsPublication({ article, connected = false, locale = "fr" 
   const text = localizeGameNews(article.document, locale);
   const destination = article.document.link_url && isSafeNewsLink(article.document.link_url) ? gameNewsContextHref(article.document.link_url, connected) : null;
   return <article className="overflow-hidden rounded-3xl border border-[#315B3E]/15 bg-white shadow-[0_14px_45px_rgba(19,60,46,0.06)]">
-    {article.document.image_path ? <div className="relative h-48 overflow-hidden bg-[#0B302B] sm:h-72"><Image src={article.document.image_path} alt={article.document.image_alt} fill sizes="(max-width:1024px) 100vw, 1000px" className="object-cover" /></div> : null}
+    {article.document.image_path ? <div className="relative h-48 overflow-hidden bg-[#0B302B] sm:h-72"><Image src={article.document.image_path} alt={article.document.image_alt} unoptimized={article.document.image_path.startsWith(GAME_NEWS_IMAGE_PREFIX)} fill sizes="(max-width:1024px) 100vw, 1000px" className="object-cover" /></div> : null}
     <div className="p-5 sm:p-9">
       <p className="text-xs font-black uppercase tracking-[0.15em] text-[#278B70]">{text.category}</p>
       <h1 className="mt-3 break-words text-3xl font-black leading-tight text-[#183F37] sm:text-4xl">{text.title}</h1>

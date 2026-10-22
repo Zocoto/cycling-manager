@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import nextConfig from "../../next.config";
 
 describe("chat image native deployment regression", () => {
-  it("explicitly includes sharp and platform libraries in the custom upload route", () => {
-    expect(nextConfig.outputFileTracingIncludes?.["/api/game/chat/images"]).toEqual(expect.arrayContaining([
+  it.each(["chat", "news"])("explicitly includes sharp and platform libraries in the %s upload route", route => {
+    expect(nextConfig.outputFileTracingIncludes?.[`/api/game/${route}/images`]).toEqual(expect.arrayContaining([
       "./node_modules/sharp/**/*",
       "./node_modules/@img/sharp-*/**/*",
     ]));
