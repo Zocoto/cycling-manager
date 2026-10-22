@@ -13,8 +13,8 @@ describe("S4 collection and S5 launch rehearsal",()=>{
     expect(snapshot.sourceSeason).toBe(3);expect(snapshot.ratingsFrozenFromSeason).toBe(3);
     expect(snapshot.presentationSeason).toBe(4);expect(snapshot.launchSeason).toBe(5);
     expect(snapshot.edition).not.toBe(original.edition);
-    expect(snapshot.cards).toHaveLength(68);
-    expect(snapshot.cards.slice(50).map(card=>card.number)).toEqual(Array.from({length:18},(_,i)=>i+51));
+    expect(snapshot.cards).toHaveLength(69);
+    expect(snapshot.cards.slice(50).map(card=>card.number)).toEqual(Array.from({length:19},(_,i)=>i+51));
     expect(snapshot.cards.filter(card=>card.kind==="team")).toHaveLength(5);
     expect(snapshot.cards.filter(card=>card.kind==="continental")).toHaveLength(10);
     expect(snapshot.cards.filter(card=>card.kind==="world")).toHaveLength(2);
@@ -25,7 +25,7 @@ describe("S4 collection and S5 launch rehearsal",()=>{
   });
   it("keeps legacy saves untouched and persists bonus stickers without allowing invented copies",()=>{
     const initial=createAlbumPilotState(snapshot.collectionSeason,snapshot.cards);
-    expect(initial.owned).toHaveLength(20);
+    expect(initial.owned).toHaveLength(21);
     let state=updateAlbumPilot(initial,{type:"paste",card:68},snapshot.cards);
     state=updateAlbumPilot(state,{type:"open-pack",id:getAlbumPilotPacks()[0].id,season:4,cards:[68,51]},snapshot.cards);
     state=updateAlbumPilot(state,{type:"propose",give:[68,51],receive:9},snapshot.cards);
@@ -34,20 +34,20 @@ describe("S4 collection and S5 launch rehearsal",()=>{
     expect(state.pasted).toContain(68);
     expect(readAlbumPilotState(JSON.stringify(state),4,snapshot.cards)).toEqual(state);
     expect(readAlbumPilotState(JSON.stringify({...state,owned:[...state.owned,68]}),4,snapshot.cards)).toEqual(initial);
-    expect(updateAlbumPilot(initial,{type:"open-pack",id:getAlbumPilotPacks()[0].id,season:4,cards:[69,51]},snapshot.cards)).toBe(initial);
+    expect(updateAlbumPilot(initial,{type:"open-pack",id:getAlbumPilotPacks()[0].id,season:4,cards:[70,51]},snapshot.cards)).toBe(initial);
     expect(createAlbumPilotState().owned).toEqual([1,8]);
   });
-  it("requires all 68 stickers, not only the original 50, for the final trophy",()=>{
+  it("requires all 69 stickers, not only the original 50, for the final trophy",()=>{
     const final=ALBUM_ACHIEVEMENTS.find(a=>a.trophy)!;
     const state={...createAlbumPilotState(4,snapshot.cards),pasted:original.cards.map(card=>card.number)};
-    expect(getAlbumAchievementProgress(final,state,snapshot.cards)).toEqual({value:50,target:68});
+    expect(getAlbumAchievementProgress(final,state,snapshot.cards)).toEqual({value:50,target:69});
     expect(updateAlbumPilot(state,{type:"claim-achievement",id:final.id},snapshot.cards)).toBe(state);
-    expect(getAlbumAchievementProgress(final,{...state,pasted:snapshot.cards.map(card=>card.number)},snapshot.cards)).toEqual({value:68,target:68});
+    expect(getAlbumAchievementProgress(final,{...state,pasted:snapshot.cards.map(card=>card.number)},snapshot.cards)).toEqual({value:69,target:69});
   });
   it("includes the ultra-holographic sticker in two-card test packs with explicit tier odds",()=>{
     expect(getAlbumBoosterOdds(snapshot.cards)).toEqual({bronze:80,silver:16.9,gold:3,holographic:.1});
-    expect(drawAlbumBooster(snapshot.cards,[.999,0,.9999,0])).toEqual([68,68]);
-    expect(.1).toBeLessThan(3/7);
+    expect(drawAlbumBooster(snapshot.cards,[.999,0,.9999,.99])).toEqual([68,69]);
+    expect(.1/2).toBeLessThan(3/7);
     expect(3/7).toBeLessThan(16.9/30);
     expect(getCollectorCardRarity(snapshot.cards[67])).toBe("holographic");
     expect(getAlbumBoosterOdds(original.cards)).toEqual({bronze:80,silver:17,gold:3,holographic:0});

@@ -18,7 +18,7 @@ export type CollectorHonour = {
   count: number; rank?: number;
 };
 export type CollectorCard = {
-  kind?: "team" | "continental" | "world" | "games";
+  kind?: "team" | "continental" | "world" | "games" | "legend";
   rarityOverride?: "silver" | "gold" | "holographic";
   stickerTitle?: string;
   specimen?: boolean;
@@ -41,7 +41,7 @@ export type CollectorAlbumSnapshot = {
 export function getCardRarity(rank: number): "gold" | "silver" | "bronze" {
   return rank <= 5 ? "gold" : rank <= 20 ? "silver" : "bronze";
 }
-export const CARD_RARITY_LABELS = { gold: "Or", silver: "Argent", bronze: "Bronze", holographic: "Jeux" } as const;
+export const CARD_RARITY_LABELS = { gold: "Or", silver: "Argent", bronze: "Bronze", holographic: "Vignettes spéciales" } as const;
 export function getCollectorCardRarity(card: Pick<CollectorCard, "rank" | "rarityOverride">) {
   return card.rarityOverride ?? getCardRarity(card.rank);
 }
@@ -210,6 +210,12 @@ export function readAlbumPilotState(raw: string | null, season = ALBUM_PILOT_SEA
     if ([...value.owned, ...partnerCards].some(id => !isKnownAlbumNumber(id,cards))) return initial;
     if (value.openedPacks.length > ALBUM_PILOT_PACK_COUNT || new Set(value.openedPacks.map(p => p.id)).size !== value.openedPacks.length || value.openedPacks.some(p => !getAlbumPilotPacks(season).some(known => known.id === p.id) || !Array.isArray(p.cards) || p.cards.length !== 2 || p.cards.some(id => !isKnownAlbumNumber(id,cards)))) return initial;
     const expected = [...initial.owned, ...ALBUM_DEMO_COLLECTORS.flatMap(p=>[...p.initialCards]), ...value.openedPacks.flatMap(p => p.cards)].sort((a,b)=>a-b).join(",");
+    // Preserve the first private S4 rehearsal when its single new souvenir is added.
+    const souvenir = cards.find(card=>card.kind === "legend" && card.number === 69);
+    if (souvenir && ![...value.owned,...partnerCards].includes(souvenir.number)) {
+      const upgraded = [...value.owned,...partnerCards,souvenir.number].sort((a,b)=>a-b).join(",");
+      if (upgraded === expected) value.owned = [...value.owned,souvenir.number];
+    }
     if ([...value.owned, ...partnerCards].sort((a,b)=>a-b).join(",") !== expected) return initial;
     if (new Set(value.pasted).size !== value.pasted.length || value.pasted.some(id => !value.owned.includes(id))) return initial;
     if (value.pending && !canOfferAlbumCards(value,value.pending,cards)) return initial;

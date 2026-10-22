@@ -1,9 +1,11 @@
 "use client";
 
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -18,6 +20,7 @@ import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
 import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
+import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
 
 type SupabaseBrowserClient = ReturnType<
   (typeof import("@/lib/supabase/client"))["createSupabaseBrowserClient"]
@@ -49,7 +52,7 @@ const EMPTY_INDICATORS: GameHeaderIndicators = {
 };
 
 const GameHeaderIndicatorsContext =
-  createContext<GameHeaderIndicators | null>(null);
+  createContext<(GameHeaderIndicators & { collectorAlbumAvailable: boolean }) | null>(null);
 
 export function GameHeaderIndicatorsProvider({
   children,
@@ -59,11 +62,14 @@ export function GameHeaderIndicatorsProvider({
   const [indicators, setIndicators] =
     useState<GameHeaderIndicators>(EMPTY_INDICATORS);
   const requestVersionRef = useRef(0);
+  const [collectorAlbumAvailable, setCollectorAlbumAvailable] = useState(false);
+  const contextValue = useMemo(() => ({ ...indicators, collectorAlbumAvailable }), [indicators, collectorAlbumAvailable]);
 
   useEffect(() => {
     let active = true;
     let supabase: SupabaseBrowserClient | null = null;
     let subscribedChannel: ReturnType<SupabaseBrowserClient["channel"]> | null = null;
+    let authSubscription: { unsubscribe: () => void } | null = null;
     const refreshScheduler = createVisibleRefreshScheduler({
       isVisible: () => document.visibilityState === "visible",
       refresh: async () => {
@@ -177,6 +183,10 @@ export function GameHeaderIndicatorsProvider({
       if (!active) return;
 
       supabase = createSupabaseBrowserClient();
+      // Reuse the local auth lifecycle: no new RPC, user lookup or polling.
+      authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+        if (active) setCollectorAlbumAvailable(canAccessCollectorAlbum(session?.user.id));
+      }).data.subscription;
       scheduleRefresh(0);
     }
 
@@ -265,6 +275,7 @@ export function GameHeaderIndicatorsProvider({
       active = false;
       requestVersionRef.current += 1;
       refreshScheduler.dispose();
+      authSubscription?.unsubscribe();
       window.removeEventListener(
         DIRECTOR_MAILBOX_CHANGED_EVENT,
         handleDirectorMailboxChanged,
@@ -290,7 +301,7 @@ export function GameHeaderIndicatorsProvider({
   }, []);
 
   return (
-    <GameHeaderIndicatorsContext value={indicators}>
+    <GameHeaderIndicatorsContext value={contextValue}>
       {children}
     </GameHeaderIndicatorsContext>
   );

@@ -14,6 +14,17 @@ export function getAlbumProfileLeaves<T>(cards: readonly T[]): [T[], T[]] {
   return [cards.slice(0, middle), cards.slice(middle)];
 }
 
+/** Printed opening leaves, before the rider chapters; no separate catalogue. */
+export function getAlbumIntroductionLeaves(cards: readonly CollectorCard[]): CollectorCard[][] {
+  const continental = cards.filter(card=>card.kind === "continental");
+  return [
+    cards.filter(card=>card.kind === "team"),
+    continental.slice(0,6),
+    [...continental.slice(6),...cards.filter(card=>card.kind === "world")],
+    cards.filter(card=>card.kind === "games" || card.kind === "legend"),
+  ];
+}
+
 /** Browsing stops at the cover/end instead of silently wrapping chapters. */
 export function getAdjacentAlbumProfile(profile: AlbumProfile, offset: -1 | 1): AlbumProfile {
   const current = ALBUM_PROFILES.findIndex(entry => entry.id === profile);

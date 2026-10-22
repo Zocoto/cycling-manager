@@ -64,7 +64,7 @@ describe("game header indicators provider", () => {
     expect(provider).toContain('row?.game_role === "game_staff"');
     expect(provider.match(/\.rpc\(/g)).toHaveLength(1);
     expect(provider).not.toContain("get_current_user_game_role");
-    expect(gameHeader).toContain("useGameHeaderIndicators()?.gameStaffRole ?? null");
+    expect(gameHeader).toContain("headerIndicators?.gameStaffRole ?? null");
     expect(gameHeader).not.toContain(".rpc(");
   });
 

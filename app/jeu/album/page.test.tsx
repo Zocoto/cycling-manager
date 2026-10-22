@@ -29,9 +29,10 @@ describe("collector album server-side authorization",()=>{
     const page=await Page({searchParams:Promise.resolve({saison:"4",onglet:"introduction"})});
     const children=page.props.children;
     expect(children[0].props.collectorAlbumAvailable).toBe(true);
-    expect(children[1].props.initialTab).toBe("introduction");
+    expect(children[1].props.initialTab).toBe("album");
+    expect(children[1].props.initialIntroduction).toBe(true);
     expect(children[1].props.snapshot).toMatchObject({sourceSeason:3,presentationSeason:4,launchSeason:5});
-    expect(children[1].props.snapshot.cards).toHaveLength(68);
+    expect(children[1].props.snapshot.cards).toHaveLength(69);
   });
   it("accepts source-season edition S3 and the legacy S4 URL without mixing another catalogue",async()=>{
     mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});

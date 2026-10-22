@@ -9,6 +9,7 @@ import { createWorldChampionRiderJersey } from "@/lib/rider-jersey";
 import styles from "./collector-album.module.css";
 import print from "./collector-card-print.module.css";
 import { CycloStickersSpecialCard } from "./cyclo-stickers-special-card";
+import format from "./collector-card-format.module.css";
 
 const PRIMARY_STATS = [["mountain", "MO"], ["hills", "VAL"], ["flat", "PLA"], ["timeTrial", "CLM"], ["cobbles", "PAV"], ["sprint", "SPR"]] as const;
 
@@ -19,7 +20,7 @@ export function CollectorCardFace({ card, season }: { card: CollectorCard; seaso
   const back=backId===card.id;
   const worldTitle=card.worldTitles?.includes("road")?"road":card.worldTitles?.includes("time_trial")?"time_trial":null;
   const championJersey=worldTitle?createWorldChampionRiderJersey({championshipType:worldTitle}):card.jersey;
-  return <article data-album-card className={`${styles.card} ${styles[rarity]} ${print.sticker} ${worldTitle?print.worldChampion:""}`} aria-label={`${card.name}, carte ${CARD_RARITY_LABELS[rarity]}`}>
+  return <article data-album-card className={`${styles.card} ${styles[rarity]} ${print.sticker} ${format.card} ${worldTitle?print.worldChampion:""}`} aria-label={`${card.name}, carte ${CARD_RARITY_LABELS[rarity]}`}>
     {back ? <CollectorCardBack card={card} season={season} /> : <>
     <div className={`${styles.cardTop} ${print.imprint}`}><span className={print.catalogueNumber}>CS / {String(card.number).padStart(2,"0")}</span><svg className={print.cycleMark} viewBox="0 0 54 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="15" r="8"/><circle cx="42" cy="15" r="8"/><path d="m12 15 9-13 8 13H12L25 6h12l5 9M18 2h7m7 0h4l1 4"/></g></svg></div>
     <div data-album-portrait-panel className={`${styles.art} ${print.printedArt}`}>

@@ -37,17 +37,18 @@ export function createCycloStickersPreview(snapshot: CollectorAlbumSnapshot, sou
   for (const [continentCode,label] of continents) for (const championshipType of ["road","time_trial"] as const) champion(`continental_${continentCode}_${championshipType}`, `Champion continental · ${label} · ${championshipType==="road"?"Route":"CLM"}`, "continental", createContinentalChampionRiderJersey({continentCode,championshipType}));
   for (const championshipType of ["road","time_trial"] as const) champion(`world_${championshipType}`, `Champion du monde · ${championshipType==="road"?"Route":"CLM"}`, "world", createWorldChampionRiderJersey({championshipType}));
   champion("quadrennial_road", "Champion des Jeux · Route", "games", createQuadrennialChampionRiderJersey({championshipType:"road"}));
+  add({ id: "legend:headless-s4", kind: "legend", name: "L’Équipier sans tête", stickerTitle: "Les nuits du peloton", teamName: "Halloween · Saison 4", country: "", countryCode: "", rarityOverride: "holographic" });
   return { ...snapshot, edition: "cyclo-stickers-s4-preview-s3-v1", presentationSeason: 4, launchSeason: 5, gamesEdition: true, cards: [...snapshot.cards,...extras] };
 }
 
 /** Fail closed: a live S4 ranking or any demonstration specimen is not a final edition. */
 export function assertCycloStickersFinalSnapshot(snapshot: CollectorAlbumSnapshot, sourceSeasonStatus: string) {
   const riders = snapshot.cards.filter(card => !card.kind);
-  if (sourceSeasonStatus !== "completed" || snapshot.sourceSeason !== 4 || snapshot.ratingsFrozenFromSeason !== 4 || snapshot.collectionSeason !== 5 || snapshot.cards.length !== 68 || riders.length !== 50 ||
+  if (sourceSeasonStatus !== "completed" || snapshot.sourceSeason !== 4 || snapshot.ratingsFrozenFromSeason !== 4 || snapshot.collectionSeason !== 5 || snapshot.cards.length !== 69 || riders.length !== 50 ||
     snapshot.presentationSeason !== 4 || snapshot.launchSeason !== 5 ||
-    new Set(snapshot.cards.map(card=>card.id)).size !== 68 || snapshot.cards.some((card,index)=>card.specimen || card.number!==index+1) ||
+    new Set(snapshot.cards.map(card=>card.id)).size !== 69 || snapshot.cards.some((card,index)=>card.specimen || card.number!==index+1) ||
     riders.some((card,index)=>card.rank!==index+1 || card.number!==index+1) ||
-    snapshot.cards.filter(card=>card.kind==="team").length!==5 || snapshot.cards.filter(card=>card.kind==="continental").length!==10 || snapshot.cards.filter(card=>card.kind==="world").length!==2 || snapshot.cards.filter(card=>card.kind==="games").length!==1 ||
+    snapshot.cards.filter(card=>card.kind==="team").length!==5 || snapshot.cards.filter(card=>card.kind==="continental").length!==10 || snapshot.cards.filter(card=>card.kind==="world").length!==2 || snapshot.cards.filter(card=>card.kind==="games").length!==1 || snapshot.cards.filter(card=>card.kind==="legend"&&card.id==="intro:legend:headless-s4").length!==1 ||
     snapshot.cards.some(card=>card.kind==="world"&&card.jersey.status!=="world-champion" || card.kind==="continental"&&card.jersey.status!=="continental-champion" || card.kind==="games"&&(card.jersey.status!=="quadrennial-champion"||card.jersey.championshipType!=="road"))) throw new Error("Final S4 snapshot incomplete or not frozen");
   const titles=snapshot.cards.filter(card=>card.kind==="continental"||card.kind==="world").map(card=>`${card.kind}:${card.jersey.continentCode??"world"}:${card.jersey.championshipType}`);
   if(new Set(titles).size!==12) throw new Error("Duplicate championship slot");
