@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), access: vi.fn(), generate: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({}) }));
 vi.mock("@/lib/supabase/authenticated-user", () => ({ getAuthenticatedUser: mocks.auth }));
-vi.mock("@/lib/game/pcm-export/access", () => ({ canAccessPcmExport: mocks.access }));
+vi.mock("@/services/game-staff-access", () => ({ getCurrentGameStaffRole: mocks.access }));
 vi.mock("@/services/pcm-gala-startlist-export", () => ({ generatePcmGalaStartlistExport: mocks.generate }));
 import { POST } from "./route";
 
@@ -13,11 +13,11 @@ describe("API administrative de startlist gala", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue({ data: { user: { email: "admin@test.invalid" } }, error: null });
-    mocks.access.mockReturnValue(true);
+    mocks.access.mockResolvedValue("game_staff");
     mocks.generate.mockResolvedValue({ archive: new Uint8Array([1, 2, 3]), filename: "gala.zip", season: 3, eventCount: 1, simulationCount: 1, registeredTeamCount: 2, registeredRiderCount: 14, generatedAt: "2026-10-06T12:00:00.000Z" });
   });
   it("refuse les joueurs ordinaires, même avec un en-tête forgé", async () => {
-    mocks.access.mockReturnValue(false);
+    mocks.access.mockResolvedValue(null);
     expect((await POST(request())).status).toBe(404);
     expect(mocks.generate).not.toHaveBeenCalled();
   });
@@ -47,5 +47,21 @@ describe("API administrative de startlist gala", () => {
   it("conserve l'export de tous les profils en l'absence de filtre", async () => {
     expect((await POST(request(""))).status).toBe(200);
     expect(mocks.generate).toHaveBeenCalledWith(undefined);
+  });
+  it.each(["owner", "game_staff"])("autorise un rôle effectif %s sans dépendre de l’adresse email", async role => {
+    mocks.access.mockResolvedValue(role);
+    expect((await POST(request())).status).toBe(200);
+    expect(mocks.access).toHaveBeenCalledOnce();
+  });
+  it("refuse un accès révoqué même avec la même session", async () => {
+    mocks.access.mockResolvedValueOnce("game_staff").mockResolvedValueOnce(null);
+    expect((await POST(request())).status).toBe(200);
+    expect((await POST(request())).status).toBe(404);
+    expect(mocks.generate).toHaveBeenCalledOnce();
+  });
+  it("ne génère rien lorsque la vérification du rôle échoue", async () => {
+    mocks.access.mockRejectedValue(new Error("database unavailable"));
+    expect((await POST(request())).status).toBe(404);
+    expect(mocks.generate).not.toHaveBeenCalled();
   });
 });

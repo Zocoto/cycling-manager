@@ -10,6 +10,8 @@ export type GlobalChatOnlineDirector = {
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
   rookieBadgeExpiresAt: string | null;
+  /** Presentation only, resolved from the server directory, never an ACL. */
+  gameStaff?: boolean;
   country: {
     name: string;
     code: string;
@@ -93,6 +95,18 @@ export function mapGlobalChatOnlineDirectorRows(
   }
 
   return directors;
+}
+
+/** Overwrite even forged realtime flags using the server-provided directory. */
+export function applyGlobalChatGameStaffStatuses(
+  directors: readonly GlobalChatOnlineDirector[],
+  staffDirectorIds: readonly string[],
+): GlobalChatOnlineDirector[] {
+  const staffIds = new Set(staffDirectorIds);
+  return directors.map((director) => ({
+    ...director,
+    gameStaff: staffIds.has(director.sportingDirectorId),
+  }));
 }
 
 export function applyGlobalChatRookieStatuses(

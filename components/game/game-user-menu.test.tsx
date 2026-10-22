@@ -1,11 +1,19 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GameStaffRole } from "@/lib/game/game-product-news";
+
+const indicators = vi.hoisted(() => ({ role: null as GameStaffRole }));
+vi.mock("./game-header-indicators-provider", () => ({
+  useGameHeaderIndicators: () => ({ gameStaffRole: indicators.role }),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 import { GameUserMenu } from "@/components/game/game-user-menu";
+
+beforeEach(() => { indicators.role = null; });
 
 describe("GameUserMenu", () => {
   it("regroupe les préférences du joueur dans un menu unique", () => {
@@ -26,12 +34,47 @@ describe("GameUserMenu", () => {
     expect(markup).toContain("E-mails d’actualité");
     expect(markup).toContain("Nouveautés majeures de Cyclo Stratège");
     expect(markup).toContain('role="switch"');
-    expect(markup).toContain('href="/guide"');
-    expect(markup).toContain('target="_blank"');
-    expect(markup).toContain('rel="noopener noreferrer"');
+    expect(markup).toContain('href="/jeu/guide"');
+    expect(markup).toContain('href="/jeu/nouveautes"');
+    expect(markup).toContain("sans quitter votre partie");
+    expect(markup).not.toContain('href="/guide"');
+    expect(markup).not.toContain('target="_blank"');
+    expect(markup).not.toContain('href="/connexion"');
     expect(markup).toContain('data-user-menu-language="true"');
     expect(markup).toContain("Langue de l’interface");
     expect(markup).not.toContain('href="/jeu/export-pcm"');
+  });
+
+  it.each(["game_staff", "owner"] as const)("donne les trois outils à %s sans dépendre de son adresse e-mail", (role) => {
+    indicators.role = role;
+    const markup = renderToStaticMarkup(<GameUserMenu displayName="Membre du staff" viewerEmail="delivery@example.test" />);
+    expect(markup).toContain('href="/jeu/export-pcm"');
+    expect(markup).toContain('href="/jeu/simulateur-course"');
+    expect(markup).toContain('href="/jeu/administration/actualites"');
+    expect(markup).toContain("Gérer les actualités");
+    expect(markup).toContain('data-game-staff-badge="true"');
+    expect(markup).toContain('href="/jeu/nouveautes"');
+    expect(markup).toContain('href="/jeu/guide"');
+    expect(markup).not.toContain('target="_blank"');
+  });
+
+  it("masque les outils réservés tant qu’aucun rôle serveur n’est connu", () => {
+    const markup = renderToStaticMarkup(<GameUserMenu displayName="Joueur" viewerEmail="player@example.test" />);
+    expect(markup).not.toContain('href="/jeu/export-pcm"');
+    expect(markup).not.toContain('href="/jeu/simulateur-course"');
+    expect(markup).not.toContain('href="/jeu/administration/actualites"');
+    expect(markup).not.toContain('data-game-staff-badge="true"');
+  });
+
+  it("conserve le dialogue accessible et scrollable sur petit écran", () => {
+    const markup = renderToStaticMarkup(<GameUserMenu />);
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('aria-controls=');
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('hidden=""');
+    expect(markup).toContain("overflow-y-auto");
+    expect(markup).toContain("fixed inset-x-3");
+    expect(markup).toContain("focus-visible:ring-2");
   });
 
   it("affiche l’export PCM26 uniquement au compte administrateur autorisé", () => {

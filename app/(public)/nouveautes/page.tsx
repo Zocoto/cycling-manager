@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 
 import { releases } from "../../../lib/releases";
+import { getPublishedGameNews } from "@/services/game-product-news";
+import { getRequestLocale } from "@/lib/i18n/server";
+import { GameNewsCards } from "@/components/game/game-news-publication";
 
 export const metadata: Metadata = {
   title: "Nouveautés",
@@ -18,10 +21,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ReleasesPage() {
+export default async function ReleasesPage() {
+  const [articles, locale] = await Promise.all([getPublishedGameNews().catch(() => []), getRequestLocale()]);
   return (
     <>
       <ReleasesHero />
+      {articles.length ? <section className="bg-[#EAF5F3] px-5 py-10 text-[#082A2A] sm:px-8"><div className="mx-auto max-w-6xl"><h2 className="mb-6 text-3xl font-black">Actualités du jeu</h2><GameNewsCards articles={articles} locale={locale} /></div></section> : null}
       <ReleasesTimeline />
     </>
   );

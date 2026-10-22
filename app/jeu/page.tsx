@@ -13,6 +13,8 @@ import { DashboardInventoryShortcut } from "../../components/game/dashboard-inve
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
 import { DashboardHalloweenShortcut } from "../../components/game/dashboard-halloween-shortcut";
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
+import { DashboardNewsTickerLoader } from "@/components/game/dashboard-news-ticker-loader";
+import { DashboardNewsTicker } from "@/components/game/dashboard-news-ticker";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -741,6 +743,8 @@ export default async function GamePage() {
               {!teamSponsorIdentity ? <JerseyShortcut /> : null}
             </div>
           </header>
+
+          <div className="mt-4"><Suspense fallback={<DashboardNewsTicker items={[]} />}><DashboardNewsTickerLoader /></Suspense></div>
 
           {/* eslint-disable-next-line react-hooks/purity -- Dynamic server request clock for the gala's fixed expiry. */}
           <DashboardGalaShortcut now={Date.now()} />

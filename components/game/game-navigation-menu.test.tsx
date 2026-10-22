@@ -37,6 +37,9 @@ describe("GameNavigationMenu", () => {
     expect(markup).toContain("Fan-club &amp; boutique");
     expect(markup).not.toContain('href="/jeu/directeur-sportif"');
     expect(markup).not.toContain('href="/guide"');
+    expect(markup).toContain('href="/jeu/guide"');
+    expect(markup).toContain('href="/jeu/nouveautes"');
+    expect(markup).not.toContain('target="_blank"');
   });
 
   it("affiche l’entrée fédération correspondant au pays du sponsor", () => {
@@ -90,7 +93,7 @@ describe("GameNavigationMenu", () => {
 
     expect(headerSource).toContain("federationCountryCode={federationCountryCode}");
     expect(headerSource).toContain(
-      "canAccessRaceSimulator(simulatorEmail) ? (",
+      "canAccessRaceSimulator(simulatorEmail) || gameStaffRole ? (",
     );
     expect(headerSource).toContain("<RaceSimulatorShortcut isEnglish={isEnglish} />");
     expect(headerSource).not.toContain("showRaceSimulator");
