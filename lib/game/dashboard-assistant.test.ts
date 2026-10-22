@@ -75,6 +75,23 @@ const snapshot: DashboardAssistantSnapshot = {
   journalItems: [],
 };
 
+describe("individual naturalization alerts", () => {
+  it("keeps urgent alerts first and exposes one independently dismissible target per rider", () => {
+    const target = { subjectType: "professional" as const, subjectId: "rider-1", targetCountryId: "be",
+      name: "Pro Test", currentCountryName: "France", targetCountryName: "Belgique", elapsedDays: 84, requiredDays: 84 };
+    const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, naturalizationAlerts: [target,
+      { ...target, subjectType: "youth", subjectId: "junior-1", name: "Junior Test", requiredDays: 28 }] }, rewardCount: 0, cashBalance: -1 });
+    expect(groups.alerts[0].id).toBe("negative-cash");
+    const naturalizations = groups.alerts.filter(line => line.id.startsWith("naturalization:"));
+    expect(naturalizations).toHaveLength(2);
+    expect(naturalizations[0]).toMatchObject({ title: "Naturalisation possible · Pro Test", href: "/jeu/coureurs/rider-1",
+      naturalizationTarget: { subjectType: "professional", subjectId: "rider-1", targetCountryId: "be" } });
+    expect(naturalizations[1].href).toBe("/jeu/centre-de-formation?onglet=ecole#junior-junior-1");
+    expect(naturalizations[1].detail).toContain("France → Belgique");
+    expect(groups.alerts.find(line => line.id === "contract-renewals")?.naturalizationTarget).toBeUndefined();
+  });
+});
+
 describe("dashboard DS assistant", () => {
   it("keeps urgent actions visible before routine reports without adding categories", () => {
     const groups = buildDashboardAssistantLines({ snapshot, rewardCount: 0, cashBalance: -500 });

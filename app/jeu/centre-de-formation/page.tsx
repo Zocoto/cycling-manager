@@ -1116,6 +1116,7 @@ function AcademyRiderCard({
   return (
     <article
       data-academy-rider-card
+      id={`junior-${rider.id}`}
       className="overflow-hidden rounded-[1.5rem] border border-[#315B3E]/12 bg-white shadow-sm"
     >
       <div className="grid gap-3 p-4 xl:grid-cols-2 2xl:grid-cols-4">

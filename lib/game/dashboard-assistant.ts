@@ -63,6 +63,7 @@ export type NewcomerJourney = {
 };
 
 export type DashboardAssistantSnapshot = {
+  naturalizationAlerts?: DashboardNaturalizationAlert[];
   gameDate: string;
   minimumForm: number;
   untreatedInjuryCount: number;
@@ -138,6 +139,18 @@ export type DashboardAssistantLine = {
   title: string;
   detail: string;
   href: string | null;
+  naturalizationTarget?: Pick<DashboardNaturalizationAlert, "subjectType" | "subjectId" | "targetCountryId">;
+};
+
+export type DashboardNaturalizationAlert = {
+  subjectType: "professional" | "youth";
+  subjectId: string;
+  targetCountryId: string;
+  name: string;
+  currentCountryName: string;
+  targetCountryName: string;
+  elapsedDays: number;
+  requiredDays: number;
 };
 
 export type DashboardRaceRosterAlert = {
@@ -191,6 +204,7 @@ const ALERT_PRIORITY = [
   "next-season-roster-overflow",
   "contract-renewals",
   "youth-alerts",
+  "naturalization",
 ] as const;
 
 export function buildDashboardAssistantLines({
@@ -209,6 +223,20 @@ export function buildDashboardAssistantLines({
   now?: Date;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
   const alerts: DashboardAssistantLine[] = [];
+
+  for (const target of snapshot.naturalizationAlerts ?? []) {
+    alerts.push({
+      id: `naturalization:${target.subjectType}:${target.subjectId}`,
+      tone: "info",
+      metric: target.subjectType === "professional" ? "Pro" : "Jr",
+      title: `Naturalisation possible · ${target.name}`,
+      detail: `${target.currentCountryName} → ${target.targetCountryName} · Ancienneté requise atteinte`,
+      href: target.subjectType === "professional"
+        ? `/jeu/coureurs/${target.subjectId}`
+        : `/jeu/centre-de-formation?onglet=ecole#junior-${target.subjectId}`,
+      naturalizationTarget: { subjectType: target.subjectType, subjectId: target.subjectId, targetCountryId: target.targetCountryId },
+    });
+  }
 
   if (snapshot.developmentTeamSetupRequired) {
     alerts.push({
@@ -984,6 +1012,7 @@ function formatAssistantCurrency(amount: number): string {
 }
 
 function getAlertPriority(id: string): number {
+  if (id.startsWith("naturalization:")) return ALERT_PRIORITY.indexOf("naturalization");
   if (id.startsWith("race-roster-alert:")) {
     return ALERT_PRIORITY.indexOf("race-roster-alerts");
   }

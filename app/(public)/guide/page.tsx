@@ -1941,6 +1941,11 @@ function PagesSection() {
         24 heures, si la situation de l’équipe n’a pas changé. Un brouillon ne
         réserve ni matériel ni staff : seuls les choix validés sont appliqués.
       </StrategyNote>
+      <StrategyNote title="Naturalisations possibles">
+        L’assistant signale les pros et juniors étrangers ayant atteint l’ancienneté requise,
+        hors champions nationaux. « Ignorer » masque uniquement l’alerte de ce coureur ;
+        une naturalisation manuelle reste possible depuis sa fiche.
+      </StrategyNote>
       <div className="grid gap-6 lg:grid-cols-2">
         {pageDirectory.map((section) => (
           <article

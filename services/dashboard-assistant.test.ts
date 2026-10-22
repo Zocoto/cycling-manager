@@ -27,6 +27,21 @@ function client(payload: unknown) {
 }
 
 describe("dashboard physiotherapist payload", () => {
+  it("reads individual naturalizations in the existing request without extra queries", async () => {
+    const target = { subjectType: "youth", subjectId: "00000000-0000-4000-8000-000000000001",
+      targetCountryId: "00000000-0000-4000-8000-000000000002", name: "Junior Test", currentCountryName: "France",
+      targetCountryName: "Belgique", elapsedDays: 28, requiredDays: 28 };
+    const mock = client({ naturalizationAlerts: [target, target, { ...target, elapsedDays: 27 },
+      { ...target, subjectId: "invalid" }, { ...target, subjectType: "staff" }, null] });
+    expect(await getCurrentDashboardAssistantSummary(mock.supabase)).toMatchObject({ naturalizationAlerts: [target] });
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+    expect(mock.from).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([null, [], {}, { naturalizationAlerts: null }, { naturalizationAlerts: "invalid" }])("defaults legacy naturalization metadata to no alert (%j)", async payload => {
+    expect(await getCurrentDashboardAssistantSummary(client(payload).supabase)).toMatchObject({ naturalizationAlerts: [] });
+  });
+
   it("does not wait for slow supplemental RPCs or issue the core request twice", async () => {
     const mock = client({ physiotherapistOpportunity: { freeSlotCount: 4, unassignedRiderCount: 7 } });
     const rpc = mock.rpc.getMockImplementation()!;
