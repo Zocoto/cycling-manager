@@ -54,6 +54,14 @@ describe("YouthScoutingMap", () => {
 
     expect(markup).toContain('name="countryId" value="country-it"');
     expect(markup).toContain("Italie");
+    expect(markup).toContain('role="combobox"');
+    expect(markup).toContain('aria-autocomplete="list"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).not.toContain('role="listbox"');
+    expect(markup).not.toContain("FR · France");
+    expect(markup).toContain('aria-label="Zoom sur la carte"');
+    for (const view of ["world", "europe", "africa", "asia", "north_america", "south_america", "oceania"])
+      expect(markup).toContain(`value="${view}"`);
   });
 
   it("n’affiche que les durées de trois à sept jours", () => {
