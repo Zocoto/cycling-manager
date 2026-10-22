@@ -27,6 +27,7 @@ import {
   GLOBAL_SEARCH_MIN_LENGTH,
 } from "@/lib/game/global-search";
 import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
+import { useGameHeaderIndicators } from "@/components/game/game-header-indicators-provider";
 
 type GameHeaderProps = {
   displayName?: string;
@@ -58,6 +59,7 @@ export function GameHeader({
   compactMobile = false,
 }: GameHeaderProps) {
   const { locale } = useLocale();
+  const gameStaffRole = useGameHeaderIndicators()?.gameStaffRole ?? null;
   const isEnglish = locale === "en";
   const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
   const federationCountryCode = sponsor?.countryCode.trim().toUpperCase() || null;
@@ -211,7 +213,7 @@ export function GameHeader({
 
             <GlobalChatShortcut chatIsOpen={chatIsOpen} floatingOnMobile />
 
-            {canAccessRaceSimulator(simulatorEmail) ? (
+            {canAccessRaceSimulator(simulatorEmail) || gameStaffRole ? (
               <span className="hidden sm:contents">
                 <RaceSimulatorShortcut isEnglish={isEnglish} />
               </span>

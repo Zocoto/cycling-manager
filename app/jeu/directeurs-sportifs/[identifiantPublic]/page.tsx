@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
+import { GameStaffBadge } from "@/components/game/game-staff-badge";
 import { DirectorSeasonAwardShelf } from "@/components/game/director-season-award-shelf";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
 import {
@@ -16,6 +17,7 @@ import { SportingDirectorTrophyTile } from "@/components/game/sporting-director-
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getGameStaffDirectorIds } from "@/services/game-staff-access";
 import { getPublicSportingDirector } from "@/services/public-directory";
 import { getSportingDirectorSeasonAwards } from "@/services/season-awards";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
@@ -49,7 +51,7 @@ export default async function PublicSportingDirectorPage({
     redirect("/connexion");
   }
 
-  const [profile, headerData, currentDirectorResult] = await Promise.all([
+  const [profile, headerData, currentDirectorResult, gameStaffDirectorIds] = await Promise.all([
     getPublicSportingDirector(identifiantPublic),
     getGameHeaderData(supabase, user.id),
     supabase
@@ -57,6 +59,7 @@ export default async function PublicSportingDirectorPage({
       .select("id")
       .eq("auth_user_id", user.id)
       .maybeSingle<{ id: string }>(),
+    getGameStaffDirectorIds(),
   ]);
 
   if (!profile) {
@@ -108,6 +111,9 @@ export default async function PublicSportingDirectorPage({
                 <h1 className="mt-2 truncate text-3xl font-black sm:text-4xl">
                   {profile.display_name}
                 </h1>
+                {gameStaffDirectorIds.includes(profile.entity_id) ? (
+                  <GameStaffBadge inverse className="mt-3" />
+                ) : null}
                 <DirectorSeasonAwardShelf awards={directorSeasonAwards} />
               </div>
 

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+const source = readFileSync(new URL("../../../components/guide/game-guide-content.tsx", import.meta.url), "utf8");
 
 describe("guide public", () => {
   it("couvre les mécaniques structurantes ajoutées récemment", () => {

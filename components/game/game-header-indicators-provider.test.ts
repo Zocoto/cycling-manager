@@ -43,7 +43,7 @@ describe("game header indicators provider", () => {
     expect(provider).not.toContain(
       'import { createSupabaseBrowserClient } from "@/lib/supabase/client"',
     );
-    expect(provider).toContain('.rpc("get_current_game_header_indicators_v2")');
+    expect(provider).toContain('.rpc("get_current_game_header_indicators_v3")');
     expect(provider).toContain('.channel("game-header-indicators:v2")');
     expect(provider.match(/\.channel\(/g)).toHaveLength(1);
     expect(provider).toContain('table: "sporting_director_messages"');
@@ -56,6 +56,16 @@ describe("game header indicators provider", () => {
       "filter: `recipient_id=eq.${row.current_sporting_director_id}`",
     );
     expect(provider).toContain('table: "cyclogazette_editions"');
+  });
+
+  it("obtient le rôle depuis le snapshot commun sans requête supplémentaire par raccourci", () => {
+    expect(provider).toContain("gameStaffRole: null");
+    expect(provider).toContain('row?.game_role === "owner"');
+    expect(provider).toContain('row?.game_role === "game_staff"');
+    expect(provider.match(/\.rpc\(/g)).toHaveLength(1);
+    expect(provider).not.toContain("get_current_user_game_role");
+    expect(gameHeader).toContain("useGameHeaderIndicators()?.gameStaffRole ?? null");
+    expect(gameHeader).not.toContain(".rpc(");
   });
 
   it("coalesces bursts and ignores stale refreshes", () => {

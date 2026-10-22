@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { RaceSimulatorWorkbench } from "@/components/game/race-simulator-workbench";
-import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
+import { getCurrentGameStaffRole } from "@/services/game-staff-access";
 import type { RaceSimulatorStageOption } from "@/lib/game/race-simulator";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -32,7 +32,7 @@ export default async function RaceSimulatorPage() {
     redirect("/connexion");
   }
 
-  if (!canAccessRaceSimulator(user.email)) {
+  if (!await getCurrentGameStaffRole(supabase).catch(() => null)) {
     redirect("/jeu");
   }
 

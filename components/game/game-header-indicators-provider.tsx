@@ -17,12 +17,14 @@ import {
 import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
 import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
+import type { GameStaffRole } from "@/lib/game/game-product-news";
 
 type SupabaseBrowserClient = ReturnType<
   (typeof import("@/lib/supabase/client"))["createSupabaseBrowserClient"]
 >;
 
 type GameHeaderIndicators = {
+  gameStaffRole: GameStaffRole;
   mailboxUnreadCount: number;
   directMessageUnreadCount: number;
   hasUnreadGlobalChat: boolean;
@@ -30,6 +32,7 @@ type GameHeaderIndicators = {
 };
 
 type GameHeaderIndicatorsRow = {
+  game_role?: string | null;
   current_sporting_director_id: string | null;
   mailbox_unread_count: number | null;
   direct_message_unread_count: number | null;
@@ -38,6 +41,7 @@ type GameHeaderIndicatorsRow = {
 };
 
 const EMPTY_INDICATORS: GameHeaderIndicators = {
+  gameStaffRole: null,
   mailboxUnreadCount: 0,
   directMessageUnreadCount: 0,
   hasUnreadGlobalChat: false,
@@ -76,7 +80,7 @@ export function GameHeaderIndicatorsProvider({
 
       const requestVersion = ++requestVersionRef.current;
       const result = await supabase
-        .rpc("get_current_game_header_indicators_v2")
+        .rpc("get_current_game_header_indicators_v3")
         .maybeSingle();
 
       if (!active || result.error || requestVersion !== requestVersionRef.current) {
@@ -86,6 +90,7 @@ export function GameHeaderIndicatorsProvider({
       const row = result.data as GameHeaderIndicatorsRow | null;
 
       setIndicators({
+        gameStaffRole: row?.game_role === "owner" || row?.game_role === "game_staff" ? row.game_role : null,
         mailboxUnreadCount: Math.max(
           0,
           Number(row?.mailbox_unread_count ?? 0),
