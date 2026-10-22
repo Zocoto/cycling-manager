@@ -1,4 +1,5 @@
 import "server-only";
+import { readSprintTrainOrder } from "@/lib/game/sprint-train";
 import { parseQuadrennialChampionshipType } from "@/lib/game/quadrennial-games";
 import { getActiveQuadrennialChampionshipTitlesByDisciplineForRiders, type ActiveQuadrennialChampionshipTitlesByDiscipline } from "@/services/rider-quadrennial-championship-titles";
 import { isPerformancePreparationType, type PerformancePreparationType } from "@/lib/game/performance-preparation";
@@ -348,6 +349,7 @@ type StageRoleOverrideRow = {
 };
 
 type StageStrategyRow = {
+  sprint_train_order?: unknown;
   stage_id: string;
   team_id: string;
   objective: RaceStrategyObjective;
@@ -749,6 +751,7 @@ type RaceStageRolePlanRow = {
 };
 
 type RacePreparationRow = {
+  sprint_train_order?: unknown;
   race_edition_id: string;
   race_registration_id: string;
   team_id: string;
@@ -1460,7 +1463,8 @@ export async function getActiveSeasonRaceCalendar(
                   danger_pacer_rider_id,
                   protector_rider_id,
                   breakaway_rider_id,
-                  attack_orders
+                  attack_orders,
+                  sprint_train_order
                 `,
               )
               .in("stage_id", chunk)
@@ -2422,7 +2426,7 @@ export async function getCurrentTeamRacePreparation(
   >({
     fetchPage: async (from, to) => {
       const result = await supabase
-        .rpc("get_current_team_race_preparation")
+        .rpc("get_current_team_race_preparation_with_sprint")
         .order("race_edition_id", { ascending: true })
         .order("race_registration_id", { ascending: true })
         .order("stage_id", { ascending: true })
@@ -2511,6 +2515,7 @@ export function parseRacePreparationRows(
       protectorRiderId: row.protector_rider_id,
       breakawayRiderId: row.breakaway_rider_id,
       attackOrders: row.attack_orders,
+      sprintTrainOrder: readSprintTrainOrder(row.sprint_train_order),
       updatedAt: row.strategy_updated_at,
       timeTrialUpdatedAt: row.time_trial_updated_at,
     };
@@ -3611,6 +3616,7 @@ function groupStageStrategies(rows: StageStrategyRow[]) {
       protectorRiderId: row.protector_rider_id,
       breakawayRiderId: row.breakaway_rider_id,
       attackOrders: row.attack_orders,
+      sprintTrainOrder: readSprintTrainOrder(row.sprint_train_order),
     };
     strategiesByStageId.set(row.stage_id, stageStrategies);
   }

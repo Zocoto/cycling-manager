@@ -8,6 +8,8 @@ import { confirmManagementDraftNavigation } from "@/lib/game/management-navigati
 
 import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
+import { SprintTrainEditor } from "@/components/game/sprint-train-editor";
+import { readSprintTrainOrder } from "@/lib/game/sprint-train";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import type {
   RaceCalendarStage,
@@ -491,6 +493,7 @@ function StagePreparationForm({
     ), [riders, stage.id, lockedTourLeaderRiderId],
   );
   const [roles, setRoles] = useState<Record<string, RaceRole>>(() => initialRoles);
+  const [sprintTrainOrder, setSprintTrainOrder] = useState<string[]>(() => readSprintTrainOrder(strategy.sprintTrainOrder));
   const [objective, setObjective] = useState<RaceStrategyObjective>(
     strategy.objective,
   );
@@ -567,11 +570,12 @@ function StagePreparationForm({
     hasUniqueMissions &&
     missionsUseTeammates &&
     attacksAreValid;
-  const hasUnsavedChanges = JSON.stringify({ roles, objective, collectivePosture, breakawayPolicy, chasePolicy, missions, attackOrders }) !== JSON.stringify({
+  const hasUnsavedChanges = JSON.stringify({ roles, objective, collectivePosture, breakawayPolicy, chasePolicy, missions, attackOrders, sprintTrainOrder }) !== JSON.stringify({
     roles: initialRoles, objective: strategy.objective, collectivePosture: strategy.collectivePosture,
     breakawayPolicy: strategy.breakawayPolicy, chasePolicy: strategy.chasePolicy,
     missions: { lieutenantRiderId: strategy.lieutenantRiderId ?? strategy.protectorRiderId ?? "", dangerPacerRiderId: strategy.dangerPacerRiderId ?? "", breakawayRiderId: strategy.breakawayRiderId ?? "" },
     attackOrders: strategy.attackOrders.slice(0, MAX_RACE_ATTACK_ORDERS),
+    sprintTrainOrder: readSprintTrainOrder(strategy.sprintTrainOrder),
   });
   useUnsavedManagementChanges(isEditable && hasUnsavedChanges);
 
@@ -821,6 +825,9 @@ function StagePreparationForm({
             </div>
           </div>
         </div>
+
+        <SprintTrainEditor riders={riders} roles={roles} order={sprintTrainOrder}
+          onChange={setSprintTrainOrder} disabled={!isEditable} />
 
         <div className="border-t border-[#315B3E]/10 bg-[#F4F8F6] p-5 sm:p-7">
           <SectionTitle

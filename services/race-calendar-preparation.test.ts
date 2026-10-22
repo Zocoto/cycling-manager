@@ -60,6 +60,13 @@ function preparationClient(
 }
 
 describe("team race preparation pagination", () => {
+  it("loads sprint preferences without an extra query", async () => {
+    const rows = [{ ...preparationRow(0), sprint_train_order: ["rider-1", "rider-2"] }];
+    const { client, rpc } = preparationClient(rows);
+    const plans = await getCurrentTeamRacePreparation(client);
+    expect(Object.values(plans[0].stages)[0].sprintTrainOrder).toEqual(["rider-1", "rider-2"]);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
   it("recovers upcoming races beyond the 1,000-row response cap", async () => {
     // Matches the reported season: 1,241 rows, first future row at 1,015.
     const rows = Array.from({ length: 1241 }, (_, index) =>
@@ -71,7 +78,7 @@ describe("team race preparation pagination", () => {
 
     expect(range.mock.calls).toEqual([[0, 999], [1000, 1999]]);
     expect(rpc).toHaveBeenCalledTimes(2);
-    expect(rpc).toHaveBeenCalledWith("get_current_team_race_preparation");
+    expect(rpc).toHaveBeenCalledWith("get_current_team_race_preparation_with_sprint");
     expect(query.order.mock.calls.slice(0, 4)).toEqual([
       ["race_edition_id", { ascending: true }],
       ["race_registration_id", { ascending: true }],

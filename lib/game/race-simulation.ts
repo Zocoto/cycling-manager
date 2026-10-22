@@ -2,6 +2,11 @@ import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
 import { PERFORMANCE_PREPARATION_FACILITIES, type PerformancePreparationType } from "./performance-preparation";
 import type { NationalJerseyDraft } from "./national-jersey-preview";
 import { createRaceTeamWorkRecorder } from "./race-team-work";
+import {
+  getSprintTrainRelayAdjustment,
+  MINIMUM_SPRINT_TRAIN_ENERGY,
+  orderSprintTrain,
+} from "./sprint-train";
 import type { RaceProfileType } from "./race-calendar";
 import type { StageEquipmentChange, StageEquipmentSnapshot } from "./race-stage-equipment";
 import type {
@@ -766,7 +771,7 @@ const DROPPED_GROUP_MAX_GAP_SECONDS = DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS;
 const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
 const FINAL_MASS_SPRINT_CRASH_MINIMUM_RIDERS = 16;
 const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
-const MINIMUM_EFFECTIVE_SPRINT_TRAIN_ENERGY = 18;
+const MINIMUM_EFFECTIVE_SPRINT_TRAIN_ENERGY = MINIMUM_SPRINT_TRAIN_ENERGY;
 const LEADOUT_FINAL_WORK_DISTANCE_KM = 25;
 const RACE_INJURY_PERFORMANCE_PENALTY = {
   minor: 2.5,
@@ -3735,6 +3740,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     roadFinishMode,
     random,
     finalCommentary,
+    input.teamStrategies,
   );
   applySuccessfulFinalClimbAttackGap({
     states,
@@ -9163,13 +9169,14 @@ function getRoadFinishScores(
   finishMode: RoadFinishMode,
   random: () => number,
   commentary: string[],
+  teamStrategies: RaceTeamStrategy[] = [],
 ) {
   const scores = new Map<string, number>();
   const massSprintFinish = finishMode === "mass_sprint";
   const reducedSprintFinish = finishMode === "reduced_sprint";
   const compactSprintFinish = massSprintFinish || reducedSprintFinish;
   const peloton = getStatesInGroup(states, "peloton");
-  const trainScores = getSprintTrainScores(peloton);
+  const trainScores = getSprintTrainScores(peloton, teamStrategies, compactSprintFinish);
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
   const cobblesFinishArchetype =
     profileType === "cobbles" ? getCobblesFinishArchetype(segments) : null;
@@ -10585,8 +10592,13 @@ function getExplosiveAccelerationRating(rider: RiderSimulationInput) {
     : rider.ratings.acceleration;
 }
 
-function getSprintTrainScores(states: RiderState[]) {
+function getSprintTrainScores(
+  states: RiderState[],
+  teamStrategies: RaceTeamStrategy[] = [],
+  useOrderedRelays = false,
+) {
   const teams = groupBy(states, (state) => state.rider.teamId);
+  const strategyByTeamId = new Map(teamStrategies.map((strategy) => [strategy.teamId, strategy]));
   const result = new Map<string, number>();
 
   for (const [teamId, teamStates] of teams) {
@@ -10617,6 +10629,14 @@ function getSprintTrainScores(states: RiderState[]) {
         ) +
         helpers.length * 2.5
       : 0;
+    // No new validation path: unavailable, foreign or stale preferences are
+    // ignored. Ordinary roles and collective work have already run unchanged.
+    if (helpers.length > 1 && useOrderedRelays) {
+      const ordered = orderSprintTrain(helpers.map((state) => ({
+        id: state.rider.id, ratings: state.rider.ratings, energy: state.energy,
+      })), strategyByTeamId.get(teamId)?.sprintTrainOrder);
+      score += getSprintTrainRelayAdjustment(ordered);
+    }
     const teamSprinter = teamStates.find((state) =>
       isRaceSprinterRole(state.rider.role),
     );

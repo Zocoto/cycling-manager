@@ -58,7 +58,7 @@ describe("direct transfer offers, cash and rider exchange", () => {
     expect(mocks.path).not.toHaveBeenCalledWith(`/jeu/coureurs/${forged}`);
   });
 
-  it.each([
+  it.each<Record<string, string>>([
     { amount: "0" }, { amount: "499" }, { amount: "NaN", offeredRiderId: outgoing },
     { amount: "Infinity", offeredRiderId: outgoing }, { amount: "100000001", offeredRiderId: outgoing },
     { amount: "-1", offeredRiderId: outgoing }, { offeredRiderId: "not-an-id" },

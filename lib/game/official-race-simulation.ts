@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-explicit-missions-before-auto-leaders-v48";
+  "2026.10-optional-ordered-sprint-trains-v49";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
