@@ -18,7 +18,7 @@ export function QuadrennialGamesBanner({ seasonName, compact = false }: { season
     </div>
     <div className={`relative ${compact ? "px-6 py-6 sm:px-8" : "px-6 py-10 sm:px-10 sm:py-14"}`}>
       <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ECD797]">{seasonName} · J24 · L’événement mondial</p>
-      <Heading className={`mt-3 font-black tracking-tight ${compact ? "text-2xl sm:text-3xl" : "text-4xl sm:text-6xl"}`}>Jeux quadriennaux</Heading>
+      <Heading className={`mt-3 break-words font-black tracking-tight ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-6xl"}`}>Jeux quadriennaux</Heading>
       <p className="mt-2 text-sm font-bold text-[#ECD797]">Quatre saisons d’attente. Deux titres pour l’histoire.</p>
       <p className="mt-4 max-w-3xl text-sm font-medium leading-6 text-[#CDD5E4]">J24 : contre-la-montre individuel de 36 km à 14 h, jusqu’à 100 nations et 120 partants. À 18 h, la course en ligne réunit jusqu’à 220 coureurs sur un parcours complet : montagne, vallons, pavés et final plat.</p>
       <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-wider">

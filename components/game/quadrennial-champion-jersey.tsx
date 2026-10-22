@@ -25,7 +25,7 @@ export function QuadrennialChampionPrize({ championshipType, compact = false }: 
   compact?: boolean;
 }) {
   return <aside data-quadrennial-champion-prize className={`flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-[#DCC785]/50 bg-[linear-gradient(135deg,#FFFFFF,#F3F5F8)] text-[#102A36] sm:gap-4 ${compact ? "my-4 p-3 sm:px-5" : "mt-6 p-3 sm:p-5"}`}>
-    <QuadrennialChampionJersey championshipType={championshipType} className={compact ? "h-20 w-20 shrink-0 drop-shadow-md sm:h-24 sm:w-24" : "h-24 w-24 shrink-0 drop-shadow-lg sm:h-36 sm:w-32"} />
+    <QuadrennialChampionJersey championshipType={championshipType} className={compact ? "h-20 w-20 shrink-0 drop-shadow-md sm:h-24 sm:w-24" : "h-24 w-20 shrink-0 drop-shadow-lg sm:h-36 sm:w-32"} />
     <div className="min-w-0">
       <QuadrennialGamesEmblem className="h-auto w-32 max-w-full sm:w-40" />
       <p className="mt-2 text-sm font-black sm:text-base">Le maillot du champion</p>
