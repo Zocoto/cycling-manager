@@ -7,6 +7,8 @@ import { AmateurTeamJersey } from "./amateur-team-jersey";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import { GALA_CONSUMABLE_PROPOSAL, GALA_COURSES, GALA_PODIUM_PROPOSAL, GALA_PROGRAM_PROFILES, SEASON_FOUR_GALA, galaClubCapacity, type GalaCourse, type GalaProfile, type GalaProgram } from "@/lib/game/season-four-gala";
 import styles from "./season-four-gala.module.css";
+import {SeasonFourGalaExports} from "./season-four-gala-exports";
+import type {GalaExportStatus} from "@/lib/game/season-four-gala";
 
 const demoTeams: { name: string; director: string; rider: string; jersey: AmateurJerseyConfig }[] = [
   { name: "Vélo Club des Cimes", director: "AlpineFox", rider: "Noé Castan", jersey: { pattern: "chevron", primaryColor: "#23534C", secondaryColor: "#E9DEC1", accentColor: "#D8B656" } },
@@ -14,14 +16,14 @@ const demoTeams: { name: string; director: string; rider: string; jersey: Amateu
   { name: "Atelier du Peloton", director: "Sillage", rider: "Ilias Moreau", jersey: { pattern: "hoops", primaryColor: "#263B65", secondaryColor: "#E3EBEF", accentColor: "#90BDCE" } },
 ];
 
-export function SeasonFourGalaPreview() {
+export function SeasonFourGalaPreview({exportStatus}: {exportStatus?:GalaExportStatus} = {}) {
   const [program, setProgram] = useState<GalaProgram>("world-tour");
   const [rewardProfile, setRewardProfile] = useState<GalaProfile>("mountain");
   const tabId = useId();
   const profiles = GALA_PROGRAM_PROFILES[program];
   const rewardCourse = GALA_COURSES[rewardProfile];
   return <div className={styles.shell}>
-    <div className={styles.privateBar}><span><span aria-hidden="true">◈</span> Aperçu privé · Zocoto</span><Link href="/jeu" prefetch={false}>Retour au bureau ↗</Link></div>
+    <div className={styles.privateBar}><span><span aria-hidden="true">◈</span> Draft privé · Zocoto · Inscriptions fermées</span><Link href="/jeu" prefetch={false}>Retour au bureau ↗</Link></div>
     <header className={styles.hero}>
       <div className={styles.heroCopy}>
         <p className={styles.eyebrow}>Cyclo Stratège · Le rendez-vous de fin de saison</p>
@@ -33,44 +35,46 @@ export function SeasonFourGalaPreview() {
       <div className={styles.heroSeal} aria-hidden="true"><span>GRAND GALA</span><GalaTrophy /><strong>IV</strong><span>LE PELOTON À L’HONNEUR</span></div>
     </header>
 
-    <a href={SEASON_FOUR_GALA.twitchUrl} target="_blank" rel="noopener noreferrer" className={styles.liveCard}>
-      <Image src={SEASON_FOUR_GALA.hostAvatar} width={70} height={70} alt="Logo de la chaîne Twitch de Gouille" className={styles.hostAvatar} />
-      <div className={styles.liveCopy}><span className={styles.liveLabel}><TwitchMark /> LE LIVE DU GALA</span><h2>Gouille prend les commandes.</h2><p>Les six courses seront simulées en direct sur PCM26, sur sa chaîne Twitch, le vendredi 6 novembre. Horaire à venir.</p></div>
-      <span className={styles.twitchButton}>Rejoindre la chaîne <span aria-hidden="true">↗</span></span>
-    </a>
+    <section className={styles.liveCard} aria-labelledby="gouille-live-title">
+      <div className={styles.liveHeader}>
+        <Image src={SEASON_FOUR_GALA.hostAvatar} width={70} height={70} alt="Logo de la chaîne Twitch de Gouille" className={styles.hostAvatar} />
+        <div className={styles.liveCopy}><span className={styles.liveLabel}><TwitchMark /> LE LIVE DU GALA</span><h2 id="gouille-live-title">Gouille prend les commandes.</h2><p>Les six courses seront simulées en direct sur PCM26, sur sa chaîne Twitch, le vendredi 6 novembre. Horaire à venir.</p></div>
+        <a href={SEASON_FOUR_GALA.twitchUrl} target="_blank" rel="noopener noreferrer" className={styles.twitchButton}>Rejoindre la chaîne ↗</a>
+      </div>
+      <div className={styles.liveRewards}>
+        <article><Image src="/images/equipment/products/montclair-podium-atelier.webp" alt="Gants de l’édition Gala" width={62} height={62}/><div><span>Cadeau exclusif du live</span><h3>Gants · Nuit dorée <b>+1 VAL</b></h3><p>Une paire unique, à équiper sur un coureur.</p></div></article>
+        <article><BoosterPacks/><div><span>Le lancement de la saison 5</span><h3>2 boosters Cyclo-Stickers</h3><p>Les premières pochettes du nouvel album.</p></div></article>
+      </div>
+      <p className={styles.liveGiftNote}>Pour chaque joueur présent au live, même sans podium. Une dotation par compte ; modalités de présence annoncées avant le gala.</p>
+    </section>
 
     <section id="programme-gala" className={styles.section} aria-labelledby="programme-title">
-      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>À chaque équipe son défi</p><h2 id="programme-title">Choisissez votre terrain de jeu.</h2></div><span className={styles.smallBadge}>1 programme = 3 courses</span></div>
+      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>À chaque équipe son défi</p><h2 id="programme-title">Choisissez votre terrain de jeu.</h2></div><span className={styles.smallBadge}>3 courses · 7 à 8 coureurs par course</span></div>
       <p className={styles.intro}>Votre équipe participe aux trois courses World Tour <strong>ou</strong> aux trois courses Continentales. Les deux programmes sont exclusifs ; le World Tour reste ouvert aux équipes qui veulent se mesurer aux plus fortes.</p>
       <div role="tablist" aria-label="Programme du gala" className={styles.programTabs}>
         <button id={`${tabId}-wt`} role="tab" aria-selected={program === "world-tour"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("world-tour")} className={program === "world-tour" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>01</span><span><strong>World Tour</strong><small>Montagne · Vallons · Pavés</small></span><span className={styles.programTag}>Sans plafond</span></button>
         <button id={`${tabId}-ct`} role="tab" aria-selected={program === "continental"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("continental")} className={program === "continental" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>02</span><span><strong>Continental</strong><small>Montagne · Vallons · Sprint</small></span><span className={styles.programTag}>75 max.</span></button>
       </div>
       <div role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${program === "world-tour" ? "wt" : "ct"}`} tabIndex={0}>
-        <p className={styles.programNote}>{program === "world-tour" ? "Le grand défi, sans plafond de notes. Montagne, côtes à répétition et pavés : trois occasions de marquer la soirée." : "La même exigence en montagne et dans les vallons, puis une classique pour les sprinteurs. Plafond : 75 dans chacune des notes primaires — MON, VAL, PLA, CLM, PAV et SPR."}</p>
+        <p className={styles.programNote}>{program === "world-tour" ? "Le grand défi, sans plafond de notes. Montagne, côtes à répétition et pavés : trois occasions de marquer la soirée." : "La même exigence en montagne et dans les vallons, puis une classique pour les sprinteurs. Plafond : 75 dans chacune des notes primaires natives — MON, VAL, PLA, CLM, PAV et SPR. Les bonus d’équipement sont ignorés."}</p>
         <div className={styles.raceGrid}>{profiles.map((profile, index) => <CourseCard key={`${program}-${profile}`} course={GALA_COURSES[profile]} program={program} number={index + 1} />)}</div>
       </div>
+      <p className={styles.rosterRule}>7 à 8 coureurs par équipe et par épreuve. La composition peut changer d’une course à l’autre au sein du même programme.</p>
       <div className={styles.registrationNote}><span aria-hidden="true">◉</span><div><strong>Des inscriptions ouvertes, un choix éclairé.</strong><p>Les capacités PCM sont indicatives. Aucun plafond d’inscription pour l’instant : si un programme dépasse la capacité d’un parcours, l’organisation arbitrera avant le live.</p></div></div>
       <div role="status" className={styles.previewStatus}>Programme prévisualisé : <strong>{program === "world-tour" ? "World Tour" : "Continental"}</strong>. Ce premier jet ne réserve aucune place.</div>
     </section>
 
-    <section id="recompenses-gala" className={styles.section} aria-labelledby="rewards-title">
-      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Sur chacune des six courses</p><h2 id="rewards-title">Le podium s’habille d’or.</h2></div><span className={styles.smallBadge}>Top 10 récompensé</span></div>
-      <div className={styles.rewardPicker}><label htmlFor={`${tabId}-reward`}>Voir les bonus pour</label><select id={`${tabId}-reward`} value={rewardProfile} onChange={event => setRewardProfile(event.target.value as GalaProfile)}>{Object.values(GALA_COURSES).map(course => <option value={course.id} key={course.id}>{course.profile}</option>)}</select><span>Même dotation en World Tour et en Continental</span></div>
-      <div className={styles.podiumGrid}>{GALA_PODIUM_PROPOSAL.map(prize => <article key={prize.rank} className={styles.prizeCard} data-first={prize.rank === 1}>
-        <span className={styles.prizePlace}>{prize.rank === 1 ? "1re place" : `${prize.rank}e place`}</span><Image src={prize.image} width={160} height={130} sizes="160px" alt={prize.name} className={styles.prizeImage} /><h3>{prize.name}</h3><span className={styles.bonus}>+{prize.primaryBonus} {rewardCourse.primaryLabel}</span><p>Édition Gala S4 · {rewardCourse.profile}</p>
-      </article>)}</div>
-      <div className={styles.consumables}>{GALA_CONSUMABLE_PROPOSAL.map(pack => <article key={pack.places}><span>{pack.places}</span><div><h3>{pack.name}</h3><p>{pack.detail}</p></div><span aria-hidden="true">✦</span></article>)}</div>
-      <p className={styles.rewardFootnote}>Les lots reviennent à l’équipe de chaque coureur classé. Équipements prévus pour être utilisables sur la fiche du coureur et dans la préparation de course. Dotation proposée pour validation.</p>
+    <section id="recompenses-gala" className={styles.compactRewards} aria-labelledby="rewards-title">
+      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Sur chacune des six courses</p><h2 id="rewards-title">Les gains du top 10.</h2></div><span className={styles.smallBadge}>Même dotation dans les deux programmes</span></div>
+      <div className={styles.rewardPicker}><label htmlFor={`${tabId}-reward`}>Voir les bonus pour</label><select id={`${tabId}-reward`} value={rewardProfile} onChange={event => setRewardProfile(event.target.value as GalaProfile)}>{Object.values(GALA_COURSES).map(course => <option value={course.id} key={course.id}>{course.profile}</option>)}</select></div>
+      <div className={styles.rewardRows}>{GALA_PODIUM_PROPOSAL.map(prize => <article key={prize.rank}>
+        <strong className={styles.rewardRank}>{prize.rank === 1 ? "1er" : prize.rank+"e"}</strong><Image src={prize.image} width={38} height={38} alt=""/><div><h3>{prize.name}</h3><p>Équipement exclusif · {rewardCourse.profile}</p></div><b className={styles.bonus}>+{prize.primaryBonus} {rewardCourse.primaryLabel}</b>
+      </article>)}{GALA_CONSUMABLE_PROPOSAL.map(pack=><article key={pack.places}><strong className={styles.rewardRank}>{pack.places}</strong><span className={styles.consumableMark} aria-hidden="true">✦</span><div><h3>{pack.name}</h3><p>{pack.detail}</p></div></article>)}</div>
+      <p className={styles.rewardFootnote}>Chaque coureur du top 10 rapporte le lot de sa place à son équipe. Les équipements seront utilisables depuis la fiche du coureur et en préparation de course.</p>
     </section>
+    <SeasonFourGalaExports status={exportStatus}/>
 
-    <section className={styles.liveGifts} aria-labelledby="live-gifts-title">
-      <div className={styles.giftIntro}><p className={styles.eyebrow}>Le rendez-vous compte autant que le résultat</p><h2 id="live-gifts-title">Dans le live,<br /><em>tout le monde gagne.</em></h2><p>Chaque joueur présent au live recevra ces cadeaux, même sans podium. Une seule dotation par compte joueur ; les modalités de présence seront annoncées avant le gala.</p></div>
-      <article className={styles.glovesGift}><span className={styles.smallBadge}>Édition exclusive du live</span><Image src="/images/equipment/products/montclair-podium-atelier.webp" alt="Aperçu de gants pour l’édition Gala" width={150} height={120} /><h3>Gants · Nuit dorée</h3><span className={styles.bonus}>+1 PLA</span><p>Un bonus dans une note primaire, utilisable sur tous les profils. Visuel et bonus proposés.</p></article>
-      <article className={styles.boostersGift}><span className={styles.smallBadge}>L’avant-première de la saison 5</span><BoosterPacks /><h3>2 boosters Cyclo-Stickers</h3><p>Pour inaugurer le nouvel album en saison 5. Deux pochettes, les premières surprises de votre collection.</p></article>
-    </section>
-
-    <details className={styles.organizerNotes}><summary>Les derniers points à caler ensemble <span aria-hidden="true">＋</span></summary><ul><li>Horaire du live, clôture des inscriptions et taille des compositions à confirmer.</li><li>Continental : proposition d’éligibilité à 75 maximum dans toutes les notes primaires, bonus d’équipement inclus. À trancher avant l’ouverture : éligibilité ou plafonnement des notes dans PCM.</li><li>Parcours repérés dans le pack PCM local ; contrôle en jeu et export des six courses à effectuer après validation. Les profils dessinés ici sont schématiques.</li><li>Consommables proposés : une dose de forme apporte +5 de forme ; un soin retire 12 heures à une blessure raccourcissable. Le circuit de distribution sera branché après validation.</li><li>Les équipes, coureurs et favoris de démonstration ne correspondent à aucune inscription réelle.</li></ul></details>
+    <details className={styles.organizerNotes}><summary>Les derniers points à caler ensemble <span aria-hidden="true">＋</span></summary><ul><li>Horaire du live et clôture des inscriptions à confirmer.</li><li>Continental : toutes les notes primaires natives doivent être au maximum à 75. Aucun bonus d’équipement n’est pris en compte.</li><li>Parcours repérés dans le pack PCM local ; contrôle en jeu et export des six courses à effectuer après validation. Les profils dessinés ici sont schématiques.</li><li>Consommables : +5 de forme par dose, −12 h par soin sur une blessure raccourcissable. La capsule technique apporte +1 à une note secondaire au choix ; le stage double l’entraînement pendant 3 jours.</li><li>Les équipes, coureurs et favoris de démonstration ne correspondent à aucune inscription réelle.</li></ul></details>
     <footer className={styles.footer}>GALA DE LA SAISON 4 <span>06.11.2026 · EN LIVE AVEC GOUILLE</span></footer>
   </div>;
 }
@@ -83,7 +87,7 @@ function CourseCard({ course, program, number }: { course: GalaCourse; program: 
     <div className={styles.highlights}>{course.highlights.map(text => <span key={text}>{text}</span>)}</div>
     <details className={styles.courseDetails}><summary>Maillots & engagés <small>Démonstration</small><span aria-hidden="true">＋</span></summary><div className={styles.demoWarning}>Exemple visuel · 3 équipes fictives · aucune inscription réelle</div>{demoTeams.map(team => <div className={styles.teamRow} key={team.name}><AmateurTeamJersey jersey={team.jersey} teamName={team.name} className="h-12 w-12 shrink-0" /><div><strong>{team.name}</strong><small>{team.director} · composition à découvrir</small></div></div>)}</details>
     <details className={styles.courseDetails}><summary>Les favoris <small>Exemple</small><span aria-hidden="true">＋</span></summary><div className={styles.demoWarning}>Classement fictif pour prévisualiser la présentation.</div>{demoTeams.map((team,index) => <div className={styles.favoriteRow} key={team.rider}><span>0{index+1}</span><div><strong>{team.rider}</strong><small>{team.name}</small></div><b>{program === "world-tour" ? 83-index*2 : 75-index} {course.primaryLabel}</b></div>)}</details>
-    <details className={styles.courseDetails}><summary>Parcours & capacité PCM <span aria-hidden="true">＋</span></summary><div className={styles.capacityDetails}><strong>{course.nativeCapacity} équipes dans la base source</strong><p>Soit {galaClubCapacity(course)} clubs si une équipe spectatrice est réservée. Capacité indicative, sans blocage des inscriptions.</p><code>{course.filename}</code>{course.sourceUrl ? <a href={course.sourceUrl} target="_blank" rel="noopener noreferrer">En savoir plus sur le parcours ↗</a> : null}</div></details>
+    <details className={styles.courseDetails}><summary>Parcours & capacité PCM <span aria-hidden="true">＋</span></summary><div className={styles.capacityDetails}><strong>{galaClubCapacity(course)} clubs + 1 équipe de simulation</strong><p>Capacité PCM : {course.nativeCapacity} équipes au total. Aucun blocage à l’inscription ; un dépassement demandera un arbitrage avant la simulation.</p><code>{course.filename}</code>{course.sourceUrl ? <a href={course.sourceUrl} target="_blank" rel="noopener noreferrer">En savoir plus sur le parcours ↗</a> : null}</div></details>
   </article>;
 }
 

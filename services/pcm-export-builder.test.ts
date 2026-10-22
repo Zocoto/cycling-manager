@@ -15,6 +15,28 @@ import { createPcmExportPackage } from "@/services/pcm-export-package";
 import { unzipSync } from "fflate";
 
 describe("generateur de base PCM26", () => {
+  it("exporte une base Gala S4 avec les quatre parcours natifs et 7 à 8 coureurs sans changer les autres règles", async () => {
+    const snapshot = createSnapshot();
+    snapshot.galaEdition = "season-four";
+    snapshot.activeSeason = { id: "season-4", game_year: 4, status: "active" };
+    snapshot.seasons[1].status = "active";
+    snapshot.teamSeasons[0].season_id = "season-4";
+    snapshot.ratings[0].season_id = "season-4";
+    const result = await buildPcmDatabase(snapshot);
+    const SQL = await initSqlJs({ locateFile: file => resolve("node_modules/sql.js/dist", file) });
+    const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
+    try {
+      for (const [race, capacity, filename] of [[25, 23, "top_tdf"], [173, 25, "topclas_maastricht"], [4, 25, "topclas_roubaix"], [145, 20, "c0_schelde"]] as const) {
+        expect(readCount(db, `SELECT COUNT(*) FROM STA_race_rules WHERE fkIDrace=${race} AND gene_i_min_riders=7 AND gene_i_max_riders=8 AND gene_i_max_team=${capacity}`)).toBe(1);
+        expect(db.exec(`SELECT gene_sz_filename FROM STA_race WHERE IDrace=${race}`)[0].values[0][0]).toBe(filename);
+      }
+      expect(readCount(db, "SELECT COUNT(*) FROM STA_race_rules WHERE fkIDrace=15 AND gene_i_min_riders=6 AND gene_i_max_riders=8")).toBe(1);
+      expect(readCount(db, "SELECT gene_i_max_riders FROM STA_race_class WHERE IDrace_class=8")).toBe(7);
+      expect(readCount(db, "SELECT charac_i_mountain FROM DYN_cyclist WHERE IDcyclist=10001")).toBe(77);
+      expect(snapshot.ratingPolicy.bonusesIncluded).toBe(false);
+    } finally { db.close(); }
+  }, 20_000);
+
   it(
     "genere un CDB relisible avec une equipe, un coureur et son contrat",
     async () => {

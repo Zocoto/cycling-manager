@@ -12,7 +12,7 @@ describe("private S4 gala rehearsal", () => {
   it("authorizes the server page before loading its header and returns 404 to other accounts", () => {
     const page=readFileSync(join(process.cwd(),"app/jeu/gala-saison-4/page.tsx"),"utf8");
     expect(page).toContain('if (!canAccessSeasonFourGala(user.id)) notFound()');
-    expect(page.indexOf('if (!canAccessSeasonFourGala(user.id))')).toBeLessThan(page.indexOf('const header = await'));
+    expect(page.indexOf('if (!canAccessSeasonFourGala(user.id))')).toBeLessThan(page.indexOf('getGameHeaderData(supabase,user.id)'));
     expect(page).toContain('index: false, follow: false');
     expect(page).not.toContain('searchParams');
   });

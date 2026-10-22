@@ -15,8 +15,13 @@ describe("private gala presentation",()=>{
   });
   it("shows profile-based podium rewards, seven remaining top-ten places and live gifts",()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview/>);
-    for(const label of ['World Tour','Continental','+3 MON','+2 MON','+1 MON','4e–5e','6e–7e','8e–10e','2 boosters Cyclo-Stickers','+1 PLA'])expect(html).toContain(label);
-    expect(html).toContain('bonus d’équipement inclus');
+    for(const label of ['World Tour','Continental','+3 MON','+2 MON','+1 MON','4e','5e','6e–7e','8e–10e','2 boosters Cyclo-Stickers','+1 VAL'])expect(html).toContain(label);
+    expect(html).not.toContain('bonus d’équipement inclus');
+    expect(html).not.toContain('+1 PLA');
+    const live=html.slice(html.indexOf('gouille-live-title'),html.indexOf('id="programme-gala"'));
+    expect(live).toContain('Gants · Nuit dorée');expect(live).toContain('2 boosters Cyclo-Stickers');
+    expect(html).toContain('7 à 8 coureurs');
+    expect(html).toContain('Les gains du top 10.');
     expect(html).toContain('Parcours &amp; capacité PCM');
   });
   it("keeps demo participants and favorites inside explicit disclosures",()=>{

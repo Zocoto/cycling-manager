@@ -14,7 +14,7 @@ export async function DashboardSeasonFourGalaEvents({ userId }: { userId: string
       <span className={styles.label}>Le Grand Gala · Saison 4</span>
       <strong>6 novembre · En live avec Gouille</strong>
       <span className={styles.description}>6 courses · World Tour ou Continental</span>
-      <span className={styles.cta}>Aperçu privé ↗</span>
+      <span className={styles.cta}>Draft privé ↗</span>
     </Link>
     {halloween}
   </div>;

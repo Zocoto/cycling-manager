@@ -54,6 +54,13 @@ beforeEach(() => {
 });
 
 describe("snapshot des titres nationaux PCM", () => {
+  it('pins a private gala database to S4 with native ratings after S5 activation',async()=>{
+    state.tables.seasons=[{id:'s3',game_year:4,status:'completed'},{id:'s5',game_year:5,status:'active'}];
+    state.tables.team_seasons[0].status='completed';state.tables.rider_contracts[0].status='completed';
+    const snapshot=await createPcmExportSnapshot(false,true);
+    expect(snapshot.activeSeason.game_year).toBe(4);expect(snapshot.galaEdition).toBe('season-four');
+    expect(snapshot.ratingPolicy.bonusesIncluded).toBe(false);expect(snapshot.riders).toHaveLength(1);
+  });
   it("charge seulement les titres nationaux actifs des coureurs exportés", async () => {
     const snapshot = await createPcmExportSnapshot();
     expect(snapshot.nationalChampionshipTitles).toHaveLength(2);
