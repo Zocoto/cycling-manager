@@ -1912,5 +1912,22 @@
   "Ancien champion des Jeux quadriennaux {{0}}": "Former Quadrennial Games champion {{0}}",
   "Jeux": "Games",
   "Jeux ·": "Games ·",
-  "Ancien champion des Jeux quadriennaux": "Former Quadrennial Games champion"
+  "Ancien champion des Jeux quadriennaux": "Former Quadrennial Games champion",
+  "{{0}} et suivants": "{{0}} and below",
+  "et suivants": "and below",
+  "Fédération du vainqueur ·": "Winner’s federation ·",
+  "Chaque coureur classé rapporte la prime de sa place à son club. Les non-partants, abandons et disqualifications ne donnent droit à aucune prime.": "Each classified rider earns the prize for their placing for their club. Non-starters, withdrawals and disqualifications earn no prize.",
+  "Prime au club · par coureur classé": "Club prize · per classified rider",
+  "Prime distincte du gain du club, versée une seule fois après l’homologation de chaque épreuve.": "Separate from the club prize, paid once after the official result of each event.",
+  "Cette épreuve ne fait pas partie des Jeux quadriennaux officiels.": "This event is not part of the official Quadrennial Games.",
+  "La fédération du vainqueur des Jeux est introuvable.": "The Games winner’s federation could not be found.",
+  "La sélection officielle d’un coureur classé est introuvable.": "The official selection of a classified rider could not be found.",
+  "Le classement final des Jeux est incomplet.": "The final Games classification is incomplete.",
+  "Le compte saisonnier de la fédération gagnante est introuvable.": "The winning federation’s season account could not be found.",
+  "Le compte saisonnier du club est introuvable.": "The club’s season account could not be found.",
+  "Le vainqueur officiel des Jeux doit être unique.": "The Games must have exactly one official winner.",
+  "les primes des Jeux de": "the Games prizes for",
+  "les primes des Jeux de {{0}}": "the Games prizes for {{0}}",
+  "Les résultats des Jeux ne sont pas encore homologués.": "The Games results are not official yet.",
+  "Une épreuve annulée ne peut pas recevoir de primes.": "A cancelled event cannot receive prizes."
 }

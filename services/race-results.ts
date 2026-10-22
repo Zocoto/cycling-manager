@@ -58,6 +58,7 @@ import type { StageEquipmentSnapshot } from "@/lib/game/race-stage-equipment";
 import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { shouldRewardTeamTimeTrialByTeam } from "@/lib/game/team-time-trial-rewards";
+import { isQuadrennialGamesEdition } from "@/lib/game/quadrennial-games";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   chunkValues,
@@ -1773,6 +1774,9 @@ async function persistRaceClassification({
   }
 
   for (const result of general) {
+    // National registrations have no club team_season_id. The dedicated,
+    // atomic Games settlement resolves clubs from the selection snapshots.
+    if (isQuadrennialGamesEdition(edition)) continue;
     const mountainPrimesWon = countPrimeWins(
       simulations,
       result.riderId,
@@ -1884,6 +1888,14 @@ async function persistRaceClassification({
       },
     );
     assertQuery(rewardError, `les gains de ${result.riderName}`);
+  }
+
+  if (isQuadrennialGamesEdition(edition)) {
+    const { error: gamesRewardError } = await admin.rpc(
+      "settle_quadrennial_games_cash_prizes",
+      { p_race_edition_id: edition.id },
+    );
+    assertQuery(gamesRewardError, `les primes des Jeux de ${edition.name}`);
   }
 
   // Les récompenses ordinaires sont appliquées une à une de façon
