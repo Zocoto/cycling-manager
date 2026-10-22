@@ -33,17 +33,7 @@ export function selectCyclogazetteOpeningAwards<T extends { gameYear: number }>(
   );
   if (!editionSeason) return [];
 
-  const previousGameYear = awards
-    .filter((award) => award.gameYear < editionSeason.gameYear)
-    .reduce<number | null>(
-      (latest, award) =>
-        latest === null || award.gameYear > latest ? award.gameYear : latest,
-      null,
-    );
-
-  return previousGameYear === null
-    ? []
-    : awards.filter((award) => award.gameYear === previousGameYear);
+  return awards.filter((award) => award.gameYear === editionSeason.gameYear - 1);
 }
 
 export function selectCyclogazetteGalaAwards<T extends { gameYear: number }>(
@@ -56,7 +46,7 @@ export function selectCyclogazetteGalaAwards<T extends { gameYear: number }>(
   const editionSeason = archive.find((season) =>
     season.editions.some((entry) => entry.id === edition.id),
   );
-  if (!editionSeason || editionSeason.gameYear !== 2) return [];
+  if (!editionSeason) return [];
 
   return awards.filter((award) => award.gameYear === editionSeason.gameYear);
 }

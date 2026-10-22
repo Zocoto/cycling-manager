@@ -18,6 +18,9 @@ export const SEASON_AWARD_KEYS = [
   "junior_rider_of_year",
   "junior_director_of_year",
   "paddock_favorite",
+  "homegrown_squad",
+  "national_identity",
+  "international_squad",
 ] as const;
 
 export type SeasonAwardKey = (typeof SEASON_AWARD_KEYS)[number];
@@ -52,7 +55,9 @@ export type SeasonAwardIcon =
   | "academy"
   | "junior"
   | "podium"
-  | "heart";
+  | "heart"
+  | "flag"
+  | "globe";
 
 type AwardLocaleCopy = {
   title: string;
@@ -126,6 +131,27 @@ export const SEASON_AWARD_PRESENTATION: Record<
     order: 80,
     fr: { title: "Le Formateur", description: "Le DS qui compte le plus de juniors dans son école en fin de saison." },
     en: { title: "The Developer", description: "The sporting director with the largest academy at season end." },
+  },
+  homegrown_squad: {
+    tone: "emerald",
+    icon: "academy",
+    order: 81,
+    fr: { title: "ADN du club", description: "L’équipe dont la plus grande part de l’effectif professionnel a été formée dans son propre centre de formation." },
+    en: { title: "Club DNA", description: "The team with the highest share of professional riders developed in its own academy." },
+  },
+  national_identity: {
+    tone: "amber",
+    icon: "flag",
+    order: 82,
+    fr: { title: "Fierté nationale", description: "L’équipe dont la plus grande part de l’effectif professionnel représente la nationalité du club." },
+    en: { title: "National pride", description: "The team with the highest share of professional riders of the club’s nationality." },
+  },
+  international_squad: {
+    tone: "cobalt",
+    icon: "globe",
+    order: 83,
+    fr: { title: "Peloton sans frontières", description: "L’équipe qui réunit le plus de nationalités différentes dans son effectif professionnel." },
+    en: { title: "Peloton without borders", description: "The team with the most different nationalities in its professional squad." },
   },
   builder: {
     tone: "amber",

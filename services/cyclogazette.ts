@@ -218,6 +218,27 @@ export async function publishCyclogazetteEdition(
     };
   }
   const seasonDay = dayResult.data;
+  const isSeasonFinale = dayNumber === 28;
+  const isSeasonTwoGala = season.game_year === 2 && isSeasonFinale;
+  if (isSeasonFinale) {
+    const preparationResult = await admin.rpc(
+      "prepare_cyclogazette_season_gala",
+      { p_season_id: season.id },
+    );
+    if (preparationResult.error) {
+      throw new Error(`Impossible de préparer les awards de fin de saison : ${preparationResult.error.message}`);
+    }
+    const preparation = preparationResult.data && typeof preparationResult.data === "object"
+      ? preparationResult.data as { ready?: unknown; reason?: unknown; pendingStages?: unknown; pendingEditions?: unknown }
+      : {};
+    if (preparation.ready !== true) {
+      return {
+        status: "skipped",
+        reason: `Palmarès de fin de saison différé (${String(preparation.reason ?? "préparation incomplète")}; ${Number(preparation.pendingStages) || 0} étape(s), ${Number(preparation.pendingEditions) || 0} course(s) en attente).`,
+        edition: null,
+      };
+    }
+  }
 
   const raceVotes = await admin.rpc(
     "settle_due_national_federation_race_votes",
@@ -315,36 +336,6 @@ export async function publishCyclogazetteEdition(
       status: "already-published",
       edition: existingEdition,
     };
-  }
-
-  const isSeasonTwoGala = season.game_year === 2 && dayNumber === 28;
-  if (isSeasonTwoGala) {
-    const preparationResult = await admin.rpc(
-      "prepare_cyclogazette_season_gala",
-      { p_season_id: season.id },
-    );
-    if (preparationResult.error) {
-      throw new Error(
-        `Impossible de préparer l’édition de gala : ${preparationResult.error.message}`,
-      );
-    }
-    const preparation =
-      preparationResult.data && typeof preparationResult.data === "object"
-        ? (preparationResult.data as {
-            ready?: unknown;
-            reason?: unknown;
-            pendingStages?: unknown;
-            pendingEditions?: unknown;
-            awardCount?: unknown;
-          })
-        : {};
-    if (preparation.ready !== true) {
-      return {
-        status: "skipped",
-        reason: `Édition de gala différée (${String(preparation.reason ?? "préparation incomplète")}; ${Number(preparation.pendingStages) || 0} étape(s), ${Number(preparation.pendingEditions) || 0} course(s) en attente; ${Number(preparation.awardCount) || 0}/5 awards).`,
-        edition: null,
-      };
-    }
   }
 
   const humanRaceEditionIds = await loadCyclogazetteHumanRaceEditionIds(admin, seasonDay.id);
@@ -455,6 +446,8 @@ export async function publishCyclogazetteEdition(
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
   const subtitle = isSeasonTwoGala
     ? "Les lauréats de la saison 2 sous les projecteurs — et 100 000 € à décrocher dans le grand quiz"
+    : isSeasonFinale
+      ? `Les lauréats de la saison ${season.game_year} sous les projecteurs`
     : nationsCupSpecial
       ? `${nationsCupSpecial.winner.countryName} remporte la Division 1`
     : createSubtitle(content, dayNumber);
@@ -467,6 +460,8 @@ export async function publishCyclogazetteEdition(
       issue_number: issueNumber,
       title: isSeasonTwoGala
         ? "La Cyclogazette — Soirée de gala"
+        : isSeasonFinale
+          ? "La Cyclogazette — Awards de fin de saison"
         : nationsCupSpecial
           ? "La Cyclogazette — Spéciale Nations Cup"
         : "La Cyclogazette",
@@ -506,6 +501,19 @@ export async function publishCyclogazetteEdition(
     status: "published",
     edition: mapGazetteEdition(inserted.data, season.name),
   };
+}
+
+/** Late J28 retries are independent of readers and never republish other days. */
+export async function recoverCyclogazetteSeasonFinale(now = new Date()): Promise<CyclogazettePublicationResult> {
+  if (getParisHour(now) <= 20 || getParisHour(now) > 23) {
+    return { status: "skipped", reason: "La reprise des awards est réservée à la soirée de J28.", edition: null };
+  }
+  const admin = createSupabaseAdminClient();
+  const result = await admin.from("seasons").select("id").eq("status", "active")
+    .eq("current_day_number", 28).maybeSingle<{ id: string }>();
+  if (result.error) throw new Error(`Impossible de vérifier la reprise des awards : ${result.error.message}`);
+  if (!result.data) return { status: "skipped", reason: "Aucune fin de saison à publier.", edition: null };
+  return publishCyclogazetteEdition(now, { force: true });
 }
 
 export async function getLatestCyclogazetteEdition(
