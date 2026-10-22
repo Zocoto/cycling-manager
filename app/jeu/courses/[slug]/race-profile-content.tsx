@@ -1,3 +1,5 @@
+import { QuadrennialChampionPrize } from "@/components/game/quadrennial-champion-jersey";
+import { isQuadrennialGamesEdition } from "@/lib/game/quadrennial-games";
 import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
@@ -517,6 +519,7 @@ export async function RaceProfileContent({
           </header>
 
           <div className="p-5 sm:p-8 lg:p-10">
+            {isQuadrennialGamesEdition(edition) ? <QuadrennialChampionPrize compact championshipType={edition.stages[0]?.stageType === "individual_time_trial" ? "time_trial" : "road"} /> : null}
             {successMessage === "confirmee" ? (
               <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
                 Votre équipe est bien inscrite à cette course.

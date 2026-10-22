@@ -7,6 +7,7 @@ import {
 import { DashboardJournalDeleteButton } from "@/components/game/dashboard-journal-delete-button";
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
 import { NewcomerJourneyClaimButton } from "@/components/game/newcomer-journey-claim-button";
+import { DashboardNaturalizationIgnore } from "@/components/game/dashboard-naturalization-ignore";
 import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
@@ -516,7 +517,7 @@ function AssistantLine({ line }: { line: DashboardAssistantLine }) {
   const className =
     "flex min-h-11 items-center gap-2.5 rounded-xl px-2 py-1.5 transition sm:px-2.5";
 
-  return line.href ? (
+  const body = line.href ? (
     <Link
       href={line.href}
       prefetchOnIntent
@@ -527,6 +528,12 @@ function AssistantLine({ line }: { line: DashboardAssistantLine }) {
   ) : (
     <div className={className}>{content}</div>
   );
+  return line.naturalizationTarget ? (
+    <div className="flex items-center gap-1">
+      <div className="min-w-0 flex-1">{body}</div>
+      <DashboardNaturalizationIgnore target={line.naturalizationTarget} />
+    </div>
+  ) : body;
 }
 
 function DashboardAssistantUnavailable() {

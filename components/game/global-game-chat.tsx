@@ -24,6 +24,7 @@ import { isChatImageOnlyMessage, readChatImageAttachment } from "@/lib/game/chat
 import { readChatImageSendResponse } from "@/lib/game/chat-image-response";
 import { ChatDiscordFeedbackBanner } from "@/components/game/chat-discord-feedback-banner";
 import { RookieBadge } from "@/components/game/rookie-badge";
+import { GameStaffBadge } from "@/components/game/game-staff-badge";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
@@ -67,6 +68,7 @@ import {
 } from "@/lib/game/chat-translation";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import {
+  applyGlobalChatGameStaffStatuses,
   applyGlobalChatRookieStatuses,
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
   GLOBAL_CHAT_ONLINE_WINDOW_MINUTES,
@@ -116,6 +118,7 @@ type ChatMode = "global" | "direct" | "federation";
 type GlobalChatView = "all" | "unread" | "races" | "mentions";
 
 const GLOBAL_CHAT_RECENT_CONTEXT_MESSAGE_COUNT = 6;
+const NO_GAME_STAFF_DIRECTOR_IDS: string[] = [];
 const GLOBAL_CHAT_HIDE_RACE_MESSAGES_STORAGE_PREFIX =
   "cyclostratege:chat:hide-race-messages";
 
@@ -135,6 +138,7 @@ export function GlobalGameChat({
   initialDirectUnreadCount = 0,
   translationEnabled = false,
   klipyAppKey = "",
+  gameStaffDirectorIds = NO_GAME_STAFF_DIRECTOR_IDS,
 }: {
   identity: GlobalChatIdentity;
   initialOnlineDirectors: GlobalChatOnlineDirector[];
@@ -142,6 +146,7 @@ export function GlobalGameChat({
   initialHasMore: boolean;
   initialCursor: GlobalChatCursor | null;
   klipyAppKey?: string;
+  gameStaffDirectorIds?: string[];
   initialLastReadAt?: string | null;
   initialDirectRecipientId?: string | null;
   initialDirectUnreadCount?: number;
@@ -149,6 +154,7 @@ export function GlobalGameChat({
 }) {
   const { locale } = useLocale();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const gameStaffIds = useMemo(() => new Set(gameStaffDirectorIds), [gameStaffDirectorIds]);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
   const [historySearch, setHistorySearch] =
@@ -194,12 +200,15 @@ export function GlobalGameChat({
   >([identity]);
   const onlineDirectors = useMemo(
     () =>
-      mergeGlobalChatOnlineDirectors({
-        currentDirector: identity,
-        recentDirectors: recentOnlineDirectors,
-        realtimeDirectors: realtimeOnlineDirectors,
-      }),
-    [identity, realtimeOnlineDirectors, recentOnlineDirectors],
+      applyGlobalChatGameStaffStatuses(
+        mergeGlobalChatOnlineDirectors({
+          currentDirector: identity,
+          recentDirectors: recentOnlineDirectors,
+          realtimeDirectors: realtimeOnlineDirectors,
+        }),
+        gameStaffDirectorIds,
+      ),
+    [identity, realtimeOnlineDirectors, recentOnlineDirectors, gameStaffDirectorIds],
   );
   const [activeMode, setActiveMode] = useState<ChatMode>(
     initialDirectRecipientId ? "direct" : "global",
@@ -1553,6 +1562,7 @@ export function GlobalGameChat({
                       ? identity.rookieBadgeExpiresAt
                       : null)
                   }
+                  gameStaff={gameStaffIds.has(message.sportingDirectorId) || message.gameStaff === true}
                   isCurrentDirector={isCurrentDirector}
                   isMentioned={globalChatMessageMentionsUsername(
                     message.message,
@@ -1898,6 +1908,7 @@ function ChatMessage({
   avatarFrameKey,
   authorCountry,
   rookieBadgeExpiresAt,
+  gameStaff,
   isCurrentDirector,
   isMentioned,
   currentDirectorId,
@@ -1925,6 +1936,7 @@ function ChatMessage({
   avatarFrameKey: "alpha_tester" | null;
   authorCountry: { name: string; code: string } | null;
   rookieBadgeExpiresAt: string | null;
+  gameStaff: boolean;
   isCurrentDirector: boolean;
   isMentioned: boolean;
   currentDirectorId: string;
@@ -1989,6 +2001,7 @@ function ChatMessage({
             }`}
           >
             {isCurrentDirector ? "Vous" : message.authorDisplayName}
+            {gameStaff ? <GameStaffBadge inverse={isCurrentDirector} className="ml-1.5" /> : null}
             {rookieBadgeExpiresAt ? (
               <RookieBadge inverse={isCurrentDirector} className="ml-1.5" />
             ) : null}
@@ -2414,6 +2427,7 @@ function OnlineDirectorsContent({
                       {director.teamName}
                     </span>
                     <span className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                      {director.gameStaff ? <GameStaffBadge inverse /> : null}
                       {director.rookieBadgeExpiresAt ? (
                         <RookieBadge inverse />
                       ) : null}

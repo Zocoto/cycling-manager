@@ -5,7 +5,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { PcmExportPanel } from "@/components/game/pcm-export-panel";
 import { PcmGalaStartlistExportPanel } from "@/components/game/pcm-gala-startlist-export-panel";
-import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
+import { getCurrentGameStaffRole } from "@/services/game-staff-access";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -24,7 +24,7 @@ export default async function PcmExportPage({ searchParams }: { searchParams: Pr
   } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
-  if (!canAccessPcmExport(user.email)) notFound();
+  if (!await getCurrentGameStaffRole(supabase).catch(() => null)) notFound();
 
   const headerData = await getGameHeaderData(supabase, user.id);
 

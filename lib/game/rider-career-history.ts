@@ -105,6 +105,7 @@ function mergeSeasonEntries(
       entries.flatMap((entry) => entry.nationalTitles),
       (title) => `${title.type}:${title.countryCode}`,
     ),
+    quadrennialTitles: uniqueBy(entries.flatMap(entry => entry.quadrennialTitles ?? []), title => title.type),
     worldTitles: uniqueBy(
       entries.flatMap((entry) => entry.worldTitles),
       (title) => title.type,

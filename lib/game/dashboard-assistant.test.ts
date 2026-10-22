@@ -75,7 +75,46 @@ const snapshot: DashboardAssistantSnapshot = {
   journalItems: [],
 };
 
+describe("individual naturalization alerts", () => {
+  it("keeps urgent alerts first and exposes one independently dismissible target per rider", () => {
+    const target = { subjectType: "professional" as const, subjectId: "rider-1", targetCountryId: "be",
+      name: "Pro Test", currentCountryName: "France", targetCountryName: "Belgique", elapsedDays: 84, requiredDays: 84 };
+    const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, naturalizationAlerts: [target,
+      { ...target, subjectType: "youth", subjectId: "junior-1", name: "Junior Test", requiredDays: 28 }] }, rewardCount: 0, cashBalance: -1 });
+    expect(groups.alerts[0].id).toBe("negative-cash");
+    const naturalizations = groups.alerts.filter(line => line.id.startsWith("naturalization:"));
+    expect(naturalizations).toHaveLength(2);
+    expect(naturalizations[0]).toMatchObject({ title: "Naturalisation possible · Pro Test", href: "/jeu/coureurs/rider-1",
+      naturalizationTarget: { subjectType: "professional", subjectId: "rider-1", targetCountryId: "be" } });
+    expect(naturalizations[1].href).toBe("/jeu/centre-de-formation?onglet=ecole#junior-junior-1");
+    expect(naturalizations[1].detail).toContain("France → Belgique");
+    expect(groups.alerts.find(line => line.id === "contract-renewals")?.naturalizationTarget).toBeUndefined();
+  });
+});
+
 describe("dashboard DS assistant", () => {
+  it.each([
+    [1, "coureur en forme basse"],
+    [3, "coureurs en forme basse"],
+  ])("links %i low-form rider(s) directly to nutrition without changing the alert", (lowFormCount, title) => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, lowFormCount }, rewardCount: 0, cashBalance: 0,
+    });
+    expect(groups.alerts.find(line => line.id === "low-form")).toEqual({
+      id: "low-form",
+      tone: "alert",
+      metric: String(lowFormCount),
+      title,
+      detail: "Sous votre seuil de 50 % de forme.",
+      href: "/jeu/centre-de-soin?onglet=nutrition",
+    });
+  });
+  it("omits the low-form alert when no rider is below the threshold", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, lowFormCount: 0 }, rewardCount: 0, cashBalance: 0,
+    });
+    expect(groups.alerts.some(line => line.id === "low-form")).toBe(false);
+  });
   it("keeps urgent actions visible before routine reports without adding categories", () => {
     const groups = buildDashboardAssistantLines({ snapshot, rewardCount: 0, cashBalance: -500 });
     expect(groups.alerts[0].id).toBe("negative-cash");

@@ -8,6 +8,8 @@ import { PushNotificationControl } from "@/components/pwa/push-notification-cont
 import Link from "@/components/ui/app-link";
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
 import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
+import { useGameHeaderIndicators } from "./game-header-indicators-provider";
+import { GameStaffBadge } from "./game-staff-badge";
 
 export function GameUserMenu({
   displayName,
@@ -17,6 +19,7 @@ export function GameUserMenu({
   viewerEmail?: string | null;
 }) {
   const { locale } = useLocale();
+  const gameStaffRole = useGameHeaderIndicators()?.gameStaffRole ?? null;
   const isEnglish = locale === "en";
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -52,7 +55,7 @@ export function GameUserMenu({
 
   const menuLabel = isEnglish ? "User menu" : "Menu utilisateur";
   const accountLabel = displayName?.trim() || (isEnglish ? "My account" : "Mon compte");
-  const showPcmExport = canAccessPcmExport(viewerEmail);
+  const showPcmExport = canAccessPcmExport(viewerEmail) || gameStaffRole !== null;
 
   return (
     <div ref={rootRef} data-game-user-menu="true" className="relative shrink-0">
@@ -112,6 +115,7 @@ export function GameUserMenu({
               <span className="mt-1 block truncate text-base font-black">
                 {accountLabel}
               </span>
+              {gameStaffRole ? <GameStaffBadge inverse className="mt-1" /> : null}
             </span>
             <button
               type="button"
@@ -163,6 +167,13 @@ export function GameUserMenu({
             />
           ) : null}
 
+          {gameStaffRole ? <>
+            <UserMenuLink href="/jeu/simulateur-course" label={isEnglish ? "Race laboratory" : "Laboratoire de course"} description={isEnglish ? "Run isolated test races" : "Testez des courses sans modifier la saison"} icon={<DatabaseExportIcon />} />
+            <UserMenuLink href="/jeu/administration/actualites" label={isEnglish ? "Manage game news" : "Gérer les actualités"} description={isEnglish ? "Draft, publish and update announcements" : "Rédigez, publiez et modifiez les annonces"} icon={<GuideIcon />} />
+          </> : null}
+
+          <UserMenuLink href="/jeu/nouveautes" label={isEnglish ? "Game news" : "Actualités du jeu"} description={isEnglish ? "Read the latest updates without leaving the game" : "Les nouveautés sans quitter votre partie"} icon={<GuideIcon />} />
+
           <PushNotificationControl variant="menu" isEnglish={isEnglish} />
 
           <MarketingEmailPreferenceControl
@@ -171,15 +182,14 @@ export function GameUserMenu({
           />
 
           <UserMenuLink
-            href="/guide"
+            href="/jeu/guide"
             label={isEnglish ? "Game guide" : "Guide du jeu"}
             description={
               isEnglish
-                ? "Rules and advice · opens in a new tab"
-                : "Règles et conseils · ouverture dans un nouvel onglet"
+                ? "Rules and advice without leaving the game"
+                : "Règles et conseils sans quitter votre partie"
             }
             icon={<GuideIcon />}
-            target="_blank"
           />
 
           <div

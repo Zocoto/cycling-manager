@@ -1,0 +1,4 @@
+import { releases } from "@/lib/releases";
+export function GameReleaseHistory() {
+  return <section className="mt-10" aria-label="Historique des versions"><h2 className="mb-5 text-2xl font-black text-[#183F37]">Historique des versions</h2><div className="space-y-4">{releases.map((release) => <article key={release.version} id={"anchor" in release ? release.anchor : undefined} className="scroll-mt-6 rounded-2xl border border-[#315B3E]/15 bg-white p-5"><details><summary className="cursor-pointer text-sm font-black text-[#183F37]">{release.version} · {release.title}<span className="ml-2 text-xs font-semibold text-[#789087]">{release.date}</span></summary><p className="mt-4 text-sm leading-7 text-[#60756E]">{release.description}</p><ul className="mt-4 list-disc space-y-3 pl-5 text-sm leading-7 text-[#3F5D54]">{release.features.map((feature) => <li key={feature}>{feature}</li>)}</ul></details></article>)}</div></section>;
+}

@@ -10,6 +10,9 @@ import { appConfig } from "@/lib/app-config";
 import { getPublicGameNews } from "@/services/public-game-news";
 import { getRequestLocale } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
+import { getPublishedGameNews } from "@/services/game-product-news";
+import { localizeGameNews, type PublishedGameNews } from "@/lib/game/game-product-news";
+import { formatGameNewsDate } from "@/components/game/game-news-publication";
 
 export const revalidate = 60;
 
@@ -334,19 +337,19 @@ const productNewsEn = [
 
 export default async function HomePage() {
   const locale = await getRequestLocale();
-  const gameNews = await getPublicGameNews();
+  const [gameNews, managedNews] = await Promise.all([getPublicGameNews(), getPublishedGameNews().catch(() => [])]);
 
   return (
     <>
       <InstallAppBanner />
-      <HeroSection locale={locale} />
+      <HeroSection locale={locale} news={managedNews} />
       <PublicGameNewsBoard snapshot={gameNews} />
       <CareerSection locale={locale} />
     </>
   );
 }
 
-function HeroSection({ locale }: { locale: AppLocale }) {
+function HeroSection({ locale, news }: { locale: AppLocale; news: PublishedGameNews[] }) {
   const isEnglish = locale === "en";
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
@@ -392,17 +395,28 @@ function HeroSection({ locale }: { locale: AppLocale }) {
           </span>
         </h1>
 
-        <ProductNews locale={locale} />
+        <ProductNews locale={locale} news={news} />
       </div>
     </section>
   );
 }
 
-function ProductNews({ locale }: { locale: AppLocale }) {
+function ProductNews({ locale, news }: { locale: AppLocale; news: PublishedGameNews[] }) {
   const isEnglish = locale === "en";
-  const [featuredNews, ...historicalNews] = isEnglish
-    ? productNewsEn
-    : productNews;
+  const fallback = isEnglish ? productNewsEn : productNews;
+  const cards = news.length ? news.map((article) => {
+    const text = localizeGameNews(article.document, locale);
+    return { ...text, description: text.summary, dateTime: article.publishedAt,
+      dateLabel: formatGameNewsDate(article.publishedAt, locale), accent: "leader",
+      href: `/nouveautes/${article.id}`, linkLabel: isEnglish ? "Read the update" : "Lire l’actualité",
+      image: article.document.image_path || "/images/peloton-header.webp", imageAlt: article.document.image_alt,
+      visualLabel: text.category, visualValue: "ACTU", visualStatus: "Cyclo Stratège" };
+  }) : fallback.map((entry) => ({ ...entry,
+    href: "href" in entry ? entry.href : "/nouveautes", linkLabel: "linkLabel" in entry ? entry.linkLabel : (isEnglish ? "Read more" : "En savoir plus"),
+    image: "image" in entry ? entry.image : "/images/peloton-header.webp", imageAlt: "imageAlt" in entry ? entry.imageAlt : "",
+    visualLabel: "visualLabel" in entry ? entry.visualLabel : entry.category, visualValue: "visualValue" in entry ? entry.visualValue : "ACTU", visualStatus: "visualStatus" in entry ? entry.visualStatus : "Cyclo Stratège" }));
+  const [featuredNews, ...historicalNews] = cards;
+  if (!featuredNews) return null;
 
   return (
     <section className="mt-10 w-full" aria-labelledby="product-news-title">

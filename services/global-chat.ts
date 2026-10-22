@@ -14,6 +14,7 @@ import {
   type GlobalChatPreviewType,
 } from "@/lib/game/global-chat";
 import {
+  applyGlobalChatGameStaffStatuses,
   applyGlobalChatRookieStatuses,
   mapGlobalChatOnlineDirectorRows,
   mergeGlobalChatOnlineDirectors,
@@ -24,6 +25,7 @@ import type {
   RiderJerseyPattern,
 } from "@/lib/rider-jersey";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getGameStaffDirectorIds } from "@/services/game-staff-access";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -82,6 +84,7 @@ export type GlobalChatMessage = {
   authorAvatarKey: string | null;
   authorAvatarFrameKey: "alpha_tester" | null;
   rookieBadgeExpiresAt?: string | null;
+  gameStaff?: boolean;
   authorCountry: {
     name: string;
     code: string;
@@ -189,6 +192,7 @@ type GlobalChatDirectorProfile = {
   avatarKey: string | null;
   avatarFrameKey: "alpha_tester" | null;
   rookieBadgeExpiresAt: string | null;
+  gameStaff?: boolean;
   country: {
     name: string;
     code: string;
@@ -267,8 +271,9 @@ export async function getGlobalChatOverview(
   hasMore: boolean;
   nextCursor: GlobalChatCursor | null;
   lastReadAt: string | null;
+  gameStaffDirectorIds: string[];
 }> {
-  const [identityResult, onlineDirectorsResult, readReceiptResult, messagePage] =
+  const [identityResult, onlineDirectorsResult, readReceiptResult, messagePage, gameStaffDirectorIds] =
     await Promise.all([
       supabase.rpc("get_current_global_chat_identity_v2"),
       supabase.rpc("get_online_global_chat_directors_v2"),
@@ -276,6 +281,7 @@ export async function getGlobalChatOverview(
       getGlobalChatMessagePage(supabase, {
         limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
       }),
+      getGameStaffDirectorIds(),
     ]);
 
   if (identityResult.error) {
@@ -329,22 +335,29 @@ export async function getGlobalChatOverview(
     baseIdentity.sportingDirectorId,
     ...recentDirectors.map((director) => director.sportingDirectorId),
   ]);
-  const [identity] = applyGlobalChatRookieStatuses(
-    [baseIdentity],
-    toRookieStatusRows(rookieStatuses),
+  const [identity] = applyGlobalChatGameStaffStatuses(
+    applyGlobalChatRookieStatuses(
+      [baseIdentity],
+      toRookieStatusRows(rookieStatuses),
+    ),
+    gameStaffDirectorIds,
   );
 
   return {
     identity,
+    gameStaffDirectorIds,
     lastReadAt:
       !readReceiptResult.error && typeof readReceiptResult.data === "string"
         ? readReceiptResult.data
         : null,
     onlineDirectors: mergeGlobalChatOnlineDirectors({
       currentDirector: identity,
-      recentDirectors: applyGlobalChatRookieStatuses(
-        recentDirectors,
-        toRookieStatusRows(rookieStatuses),
+      recentDirectors: applyGlobalChatGameStaffStatuses(
+        applyGlobalChatRookieStatuses(
+          recentDirectors,
+          toRookieStatusRows(rookieStatuses),
+        ),
+        gameStaffDirectorIds,
       ),
       realtimeDirectors: [],
     }),
@@ -495,6 +508,7 @@ export function mapGlobalChatMessage(
     authorAvatarKey: profile?.avatarKey ?? null,
     authorAvatarFrameKey: profile?.avatarFrameKey ?? null,
     rookieBadgeExpiresAt: profile?.rookieBadgeExpiresAt ?? null,
+    gameStaff: profile?.gameStaff ?? false,
     authorCountry: profile?.country ?? null,
     teamId: row.team_id,
     authorDisplayName: row.author_display_name,
@@ -550,12 +564,14 @@ async function getProfilesByDirectorId(
   const uniqueDirectorIds = [...new Set(directorIds)];
   if (uniqueDirectorIds.length === 0) return result;
 
-  const [profilesResult, rookieBadgeExpiryByDirectorId] = await Promise.all([
+  const [profilesResult, rookieBadgeExpiryByDirectorId, gameStaffDirectorIds] = await Promise.all([
     supabase.rpc("get_global_chat_director_profiles", {
       p_sporting_director_ids: uniqueDirectorIds,
     }),
     getRookieBadgeExpiryByDirectorId(supabase, uniqueDirectorIds),
+    getGameStaffDirectorIds(),
   ]);
+  const staffIds = new Set(gameStaffDirectorIds);
 
   if (profilesResult.error) {
     console.error(
@@ -584,6 +600,7 @@ async function getProfilesByDirectorId(
       avatarFrameKey: readAvatarFrameKey(row.avatar_frame_key),
       rookieBadgeExpiresAt:
         rookieBadgeExpiryByDirectorId.get(row.sporting_director_id) ?? null,
+      gameStaff: staffIds.has(row.sporting_director_id),
       country: readCountry(row.country_name ?? null, row.country_code ?? null),
     });
   }

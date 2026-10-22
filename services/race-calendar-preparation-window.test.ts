@@ -29,7 +29,7 @@ function createClient(): Client {
     if (source === "get_race_calendar_rider_context") {
       if (fixture.compactUnavailable) error = { message: "bounded RPC not deployed yet" };
       rows = (fixture.rows.riders ?? []).map((rider) => ({
-        ...rider, special_ability_codes: [], championship_titles: [],
+        ...rider, special_ability_codes: [], championship_titles: rider.championship_titles ?? [],
         performance_preparations: (fixture.rows.rider_performance_preparations ?? [])
           .filter((row) => row.rider_id === rider.id && row.status !== "cancelled"
             && Number(row.bonus_start_game_day) <= Number(args?.p_max_game_day)
@@ -42,7 +42,7 @@ function createClient(): Client {
     };
     const filter = (operator: string, key: string, value: unknown) => {
       fixture.filters.push({ source, operator, key, value });
-      rows = rows.filter((row) => operator === "eq" ? row[key] === value
+      rows = rows.filter((row) => operator === "eq" || operator === "is" ? row[key] === value
         : operator === "neq" ? row[key] !== value
           : operator === "in" ? (value as unknown[]).includes(row[key])
             : operator === "lte" ? Number(row[key]) <= Number(value)
@@ -52,6 +52,7 @@ function createClient(): Client {
     const builder = {
       select: () => builder, order: () => builder,
       eq: (key: string, value: unknown) => filter("eq", key, value),
+      is: (key: string, value: unknown) => filter("is", key, value),
       neq: (key: string, value: unknown) => filter("neq", key, value),
       in: (key: string, value: unknown[]) => filter("in", key, value),
       lte: (key: string, value: unknown) => filter("lte", key, value),
@@ -114,6 +115,33 @@ describe("race preparation context season window", () => {
     const rider = calendar!.editions[0].engagedRiders[0];
     expect(rider.careerRaceDays).toBe(56);
     expect(rider.physiology).toEqual({ heightCm: 182, weightKg: 72, baselineWeightKg: 72, physiologyVersion: 1 });
+  });
+
+  it("decodes both Games disciplines from the existing compact response without another read", async () => {
+    fixture.rows.riders[0].championship_titles = [
+      { championship_type: "quadrennial_road" }, { championship_type: "quadrennial_time_trial" },
+      { championship_type: "world_road" },
+    ];
+    const calendar = await load();
+    const rider = calendar!.editions[0].engagedRiders[0];
+    expect(rider.quadrennialChampionships).toMatchObject({ road: { championshipType: "road" }, time_trial: { championshipType: "time_trial" } });
+    expect(rider.worldChampionships).toMatchObject({ road: { championshipType: "road" } });
+    expect(fixture.calls.some(call => call.source === "rider_national_championship_titles")).toBe(false);
+  });
+
+  it("keeps the Games jersey available through the bounded legacy fallback", async () => {
+    fixture.compactUnavailable = true;
+    fixture.rows.rider_national_championship_titles = [
+      { rider_id: RIDER, championship_type: "quadrennial_time_trial", relinquished_at: null },
+      { rider_id: RIDER, championship_type: "quadrennial_road", relinquished_at: "2026-10-21" },
+    ];
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const calendar = await load();
+      expect(calendar!.editions[0].engagedRiders[0].quadrennialChampionships).toEqual({
+        time_trial: { riderId: RIDER, championshipType: "time_trial" },
+      });
+    } finally { warning.mockRestore(); }
   });
 
   it("retains both inclusive edges, previous-season carry-over and earlier replays even on J28", async () => {

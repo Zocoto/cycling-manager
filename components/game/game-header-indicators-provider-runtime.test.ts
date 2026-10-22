@@ -34,6 +34,7 @@ vi.mock("@/lib/supabase/client", () => ({
 import { GameHeaderIndicatorsProvider } from "./game-header-indicators-provider";
 
 const ROW = {
+  game_role: null as string | null,
   current_sporting_director_id: "director-1",
   mailbox_unread_count: 2,
   direct_message_unread_count: 1,
@@ -74,6 +75,7 @@ describe("header subscription initialization", () => {
   }
 
   function expectCompleteSubscription() {
+    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v3");
     expect(runtime.client.channel).toHaveBeenCalledTimes(1);
     expect(runtime.channel.on).toHaveBeenCalledTimes(5);
     expect(runtime.channel.on).toHaveBeenCalledWith(
@@ -92,6 +94,31 @@ describe("header subscription initialization", () => {
     await focus();
     expectCompleteSubscription();
     await focus();
+    expect(runtime.client.channel).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["owner", "game_staff"])("expose le rôle %s via le même snapshot sans nouvelle RPC", async (role) => {
+    runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, game_role: role }, error: null });
+    await mount();
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v3");
+    expect(runtime.setIndicators).toHaveBeenCalledWith(expect.objectContaining({ gameStaffRole: role }));
+    expectCompleteSubscription();
+  });
+
+  it.each([undefined, null, "admin", "moderator", "forged_role"])("normalise un rôle absent ou inconnu en aucun accès : %s", async (role) => {
+    runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, game_role: role }, error: null });
+    await mount();
+    expect(runtime.setIndicators).toHaveBeenCalledWith(expect.objectContaining({ gameStaffRole: null }));
+  });
+
+  it("retire les entrées privilégiées après révocation du rôle lors du rafraîchissement existant", async () => {
+    runtime.maybeSingle
+      .mockResolvedValueOnce({ data: { ...ROW, game_role: "game_staff" }, error: null })
+      .mockResolvedValue(SUCCESS);
+    await mount();
+    expect(runtime.setIndicators).toHaveBeenLastCalledWith(expect.objectContaining({ gameStaffRole: "game_staff" }));
+    await focus();
+    expect(runtime.setIndicators).toHaveBeenLastCalledWith(expect.objectContaining({ gameStaffRole: null }));
     expect(runtime.client.channel).toHaveBeenCalledTimes(1);
   });
 

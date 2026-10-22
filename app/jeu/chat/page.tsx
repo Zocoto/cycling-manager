@@ -68,6 +68,7 @@ export default async function GlobalChatPage({
         <div data-chat-page="true">
           <GlobalGameChat
             identity={chat.identity}
+            gameStaffDirectorIds={chat.gameStaffDirectorIds}
             initialOnlineDirectors={chat.onlineDirectors}
             initialMessages={chat.messages}
             initialHasMore={chat.hasMore}

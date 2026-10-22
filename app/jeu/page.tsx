@@ -13,6 +13,8 @@ import { DashboardInventoryShortcut } from "../../components/game/dashboard-inve
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
 import { DashboardHalloweenShortcut } from "../../components/game/dashboard-halloween-shortcut";
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
+import { DashboardNewsTickerLoader } from "@/components/game/dashboard-news-ticker-loader";
+import { DashboardNewsTicker } from "@/components/game/dashboard-news-ticker";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -36,6 +38,7 @@ import {
   createNationalChampionRiderJersey,
   createContinentalChampionRiderJersey,
   createWorldChampionRiderJersey,
+  createQuadrennialChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
@@ -742,6 +745,8 @@ export default async function GamePage() {
             </div>
           </header>
 
+          <div className="mt-4"><Suspense fallback={<DashboardNewsTicker items={[]} />}><DashboardNewsTickerLoader /></Suspense></div>
+
           {/* eslint-disable-next-line react-hooks/purity -- Dynamic server request clock for the gala's fixed expiry. */}
           <DashboardGalaShortcut now={Date.now()} />
           <Suspense fallback={null}><DashboardHalloweenShortcut /></Suspense>
@@ -1147,6 +1152,9 @@ function buildChampionJerseyMap(
     );
   }
 
+  for (const [riderId, title] of titles.quadrennial) {
+    jerseys.set(riderId, createQuadrennialChampionRiderJersey({ championshipType: title.championshipType }));
+  }
   return jerseys;
 }
 
@@ -1155,6 +1163,7 @@ function emptyActiveChampionshipTitles(): ActiveChampionshipTitlesForRiders {
     national: new Map(),
     continental: new Map(),
     world: new Map(),
+    quadrennial: new Map(),
   };
 }
 

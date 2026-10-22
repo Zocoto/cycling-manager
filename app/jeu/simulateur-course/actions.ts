@@ -6,7 +6,7 @@ import {
   getRaceSimulatorCalendar,
   getRaceSimulatorTeams,
 } from "@/services/race-simulator";
-import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
+import { getCurrentGameStaffRole } from "@/services/game-staff-access";
 import {
   buildRaceSimulatorLogs,
   getRaceSimulationOverallNote,
@@ -40,7 +40,7 @@ export async function runRaceSimulatorAction(
   if (
     authenticationError ||
     !user ||
-    !canAccessRaceSimulator(user.email)
+    !await getCurrentGameStaffRole(supabase).catch(() => null)
   ) {
     return {
       status: "forbidden",

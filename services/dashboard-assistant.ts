@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   DashboardAssistantSnapshot,
+  DashboardNaturalizationAlert,
   DashboardJournalItem,
   NewcomerJourney,
   NewcomerJourneyStep,
@@ -199,6 +200,7 @@ export async function getCurrentDashboardAssistantSummary(
   }
 
   return {
+    naturalizationAlerts: assistantPayload.naturalizationAlerts,
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
     untreatedInjuryCount: row.untreated_injury_count,
@@ -379,6 +381,7 @@ function clampInteger(value: unknown, minimum: number, maximum: number) {
 }
 
 function normalizeAssistantPayload(value: unknown): {
+  naturalizationAlerts: DashboardNaturalizationAlert[];
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
   availableScoutCount: number;
@@ -402,6 +405,7 @@ function normalizeAssistantPayload(value: unknown): {
 } {
   if (Array.isArray(value)) {
     return {
+      naturalizationAlerts: [],
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
@@ -427,6 +431,7 @@ function normalizeAssistantPayload(value: unknown): {
 
   if (!value || typeof value !== "object") {
     return {
+      naturalizationAlerts: [],
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
@@ -477,6 +482,7 @@ function normalizeAssistantPayload(value: unknown): {
       ? (payload.federationSelectionReminder as Record<string, unknown>)
       : {};
   return {
+    naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
     riderRecruitmentMatchCount: normalizeCount(
       payload.riderRecruitmentMatchCount,
     ),
@@ -556,6 +562,30 @@ function normalizeUuid(value: unknown): string | null {
   return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     ? id
     : null;
+}
+
+function normalizeNaturalizationAlerts(value: unknown): DashboardNaturalizationAlert[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value.flatMap((entry): DashboardNaturalizationAlert[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const row = entry as Record<string, unknown>;
+    const subjectId = normalizeUuid(row.subjectId);
+    const targetCountryId = normalizeUuid(row.targetCountryId);
+    const name = normalizeOptionalString(row.name);
+    const currentCountryName = normalizeOptionalString(row.currentCountryName);
+    const targetCountryName = normalizeOptionalString(row.targetCountryName);
+    if (!subjectId || !targetCountryId || !name || !currentCountryName || !targetCountryName ||
+      (row.subjectType !== "professional" && row.subjectType !== "youth") ||
+      typeof row.elapsedDays !== "number" || !Number.isFinite(row.elapsedDays) || row.elapsedDays < 0 ||
+      typeof row.requiredDays !== "number" || !Number.isFinite(row.requiredDays) || row.requiredDays < 0 ||
+      row.elapsedDays < row.requiredDays) return [];
+    const key = `${row.subjectType}:${subjectId}:${targetCountryId}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [{ subjectId, targetCountryId, subjectType: row.subjectType, name, currentCountryName, targetCountryName,
+      elapsedDays: Math.trunc(row.elapsedDays), requiredDays: Math.trunc(row.requiredDays) }];
+  });
 }
 
 function normalizeJournalItems(value: unknown): DashboardJournalItem[] {

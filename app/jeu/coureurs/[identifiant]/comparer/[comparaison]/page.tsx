@@ -10,6 +10,7 @@ import {
   createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   createWorldChampionRiderJersey,
+  createQuadrennialChampionRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
@@ -114,6 +115,9 @@ export default async function RiderComparisonPage({
 async function resolveComparisonJersey(
   profile: PublicRiderProfile,
 ): Promise<RiderJerseyAppearance> {
+  const gamesTitles = (profile.quadrennialTitles ?? []).filter(title => title.isActive);
+  const gamesTitle = gamesTitles.find(title => title.type === "road") ?? gamesTitles[0];
+  if (gamesTitle) return createQuadrennialChampionRiderJersey({ championshipType: gamesTitle.type });
   const activeWorldTitle =
     profile.worldTitles.find(
       (title) => title.isActive && title.type === "road",
