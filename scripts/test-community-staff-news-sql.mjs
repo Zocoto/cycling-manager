@@ -62,7 +62,7 @@ try {
       ('${id(15)}','${id(5)}','Suspendu','suspended','suspended'),
       ('${id(16)}','${id(6)}','Retraité','retired','retired');
   `);
-  const migration = readFileSync('supabase/migrations/20261022120000_community_staff_and_news.sql', 'utf8');
+  const migration = readFileSync('supabase/migrations/20261022123001_community_staff_and_news.sql', 'utf8');
   // Even a manual migration must roll back completely when the principal
   // account has the right email but is not the expected Zocoto director.
   await db.query('update public.sporting_directors set username=$1 where id=$2',['another-director',id(11)]);
@@ -286,7 +286,7 @@ try {
   // Exact legacy home-page import: run twice locally, verify no duplicate cards,
   // timestamps or audits, then prove every imported article remains editable.
   await db.exec('reset role; delete from private.game_product_news_events; delete from private.game_product_news;');
-  const importMigration = readFileSync('supabase/migrations/20261022121000_import_existing_game_product_news.sql','utf8');
+  const importMigration = readFileSync('supabase/migrations/20261022123002_import_existing_game_product_news.sql','utf8');
   const legacyDocuments = [...importMigration.matchAll(/\$legacynews\$(.*?)\$legacynews\$/gs)].map(match=>JSON.parse(match[1]));
   check(legacyDocuments.length,9);
   check(legacyDocuments.map(doc=>doc.title),[

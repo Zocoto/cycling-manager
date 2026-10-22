@@ -13,7 +13,7 @@ assert.equal(readFileSync('supabase/.temp/project-ref','utf8').trim(),'ikagfucha
 const require=createRequire(import.meta.url);
 const binary=path.join(path.dirname(require.resolve('@supabase/cli-windows-x64/package.json')),'bin/supabase.exe');
 const folder='artifacts/.tmp-game-news-release';
-const migrations=['20261022120000_community_staff_and_news','20261022121000_import_existing_game_product_news'];
+const migrations=['20261022123001_community_staff_and_news','20261022123002_import_existing_game_product_news'];
 const signatures=['public.get_current_game_header_indicators_v2()','public.get_current_game_header_identity()'];
 const catalog=`select p.oid::regprocedure::text signature,md5(pg_get_functiondef(p.oid)) hash,p.proacl::text acl,p.proowner::regrole::text owner from pg_proc p where p.oid in (${signatures.map(s=>`'${s}'::regprocedure`).join(',')}) order by p.oid::regprocedure::text;`;
 const stableCatalog=rows=>[...rows].sort((a,b)=>a.signature.localeCompare(b.signature));
@@ -41,7 +41,7 @@ try{
     const sessions=query(`select pid,application_name,state,xact_start,query_start,wait_event_type,wait_event from pg_stat_activity where datname=current_database() and pid<>pg_backend_pid() and application_name in (${applicationNames.map(s=>`'${s}'`).join(',')}) order by pid limit 10;`);
     receipt(step,'succeeded',{sessions});
     step='inspect-task-migrations';
-    const versions=query("select version from supabase_migrations.schema_migrations where version in ('20261022120000','20261022121000') order by version;");
+    const versions=query("select version from supabase_migrations.schema_migrations where version in ('20261022123001','20261022123002') order by version;");
     const objects=query("select to_regclass('private.user_game_roles')::text role_table,to_regclass('private.game_product_news')::text news_table,to_regprocedure('public.get_current_game_header_indicators_v3()')::text header_v3;");
     receipt(step,'succeeded',{versions,objects});
     console.log(JSON.stringify({readOnly:true,sessions,versions,objects,applyStarted:existsSync(`${folder}/apply.started.json`),blocked:existsSync(`${folder}/blocked.json`)}));
