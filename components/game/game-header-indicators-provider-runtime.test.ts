@@ -7,12 +7,21 @@ const runtime = vi.hoisted(() => {
   channel.on.mockReturnValue(channel);
   channel.subscribe.mockReturnValue(channel);
   const maybeSingle = vi.fn();
+  const authState = { callback: null as null | ((event: string, session: {user: {id: string}} | null) => void) };
+  const unsubscribeAuth = vi.fn();
   return {
     effects: [] as (() => void | (() => void))[],
     setIndicators: vi.fn(),
+    setCollectorAlbumAvailable: vi.fn(),
+    authState,
+    unsubscribeAuth,
     maybeSingle,
     channel,
     client: {
+      auth: { onAuthStateChange: vi.fn((callback: NonNullable<typeof authState.callback>) => {
+        authState.callback = callback;
+        return {data: {subscription: {unsubscribe: unsubscribeAuth}}};
+      }) },
       rpc: vi.fn(() => ({ maybeSingle })),
       channel: vi.fn(() => channel),
       removeChannel: vi.fn(),
@@ -24,7 +33,8 @@ const runtime = vi.hoisted(() => {
 vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useEffect: (effect: () => void | (() => void)) => { runtime.effects.push(effect); },
-  useState: (initial: unknown) => [initial, runtime.setIndicators],
+  useState: (initial: unknown) => [initial, typeof initial === "boolean" ? runtime.setCollectorAlbumAvailable : runtime.setIndicators],
+  useMemo: (factory: () => unknown) => factory(),
   useRef: (initial: unknown) => ({ current: initial }),
 }));
 vi.mock("@/lib/supabase/client", () => ({
@@ -51,6 +61,7 @@ describe("header subscription initialization", () => {
     vi.clearAllMocks();
     runtime.maybeSingle.mockReset();
     runtime.effects.length = 0;
+    runtime.authState.callback = null;
     vi.stubGlobal("window", new EventTarget());
     vi.stubGlobal("document", Object.assign(new EventTarget(), { visibilityState: "visible" }));
   });
@@ -84,6 +95,24 @@ describe("header subscription initialization", () => {
       expect.any(Function),
     );
   }
+
+  it("enables only the private account across routes using auth events, without another RPC", async () => {
+    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    await mount();
+    expect(runtime.client.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
+    runtime.authState.callback!("INITIAL_SESSION", {user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}});
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
+    runtime.authState.callback!("SIGNED_IN", {user:{id:"another-account"}});
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
+    runtime.authState.callback!("SIGNED_OUT", null);
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v3");
+    const calls = runtime.setCollectorAlbumAvailable.mock.calls.length;
+    cleanup?.(); cleanup=undefined;
+    expect(runtime.unsubscribeAuth).toHaveBeenCalledTimes(1);
+    runtime.authState.callback!("SIGNED_IN", {user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}});
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenCalledTimes(calls);
+  });
 
   it("waits for a successful identified snapshot after the first RPC fails", async () => {
     runtime.maybeSingle

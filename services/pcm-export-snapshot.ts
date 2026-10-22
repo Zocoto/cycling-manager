@@ -16,6 +16,7 @@ import type {
 } from "@/lib/game/pcm-export/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
+import {selectSeasonFourGalaContracts} from "@/lib/game/season-four-gala-startlists";
 import type { NationalChampionshipTitleRow } from "@/lib/game/pcm-export/types";
 import { applySeasonFinaleGalaIdentities, loadSeasonFinaleGalaIdentities, loadSeasonFinaleGalaSourceSeason } from "@/services/season-finale-gala-identity";
 
@@ -26,13 +27,13 @@ type PageResult<T> = {
   error: { message: string } | null;
 };
 
-export async function createPcmExportSnapshot(seasonFinale = false): Promise<PcmExportSnapshot> {
+export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGala = false): Promise<PcmExportSnapshot> {
   const admin = createSupabaseAdminClient();
   const galaSourceSeason = seasonFinale ? await loadSeasonFinaleGalaSourceSeason(admin) : null;
   const activeSeasonResult = await admin
     .from("seasons")
     .select("*")
-    .eq(galaSourceSeason ? "id" : "status", galaSourceSeason?.id ?? "active")
+    .eq(seasonFourGala ? "game_year" : galaSourceSeason ? "id" : "status", seasonFourGala ? 4 : galaSourceSeason?.id ?? "active")
     .single<SeasonRow>();
 
   if (activeSeasonResult.error || !activeSeasonResult.data) {
@@ -49,7 +50,7 @@ export async function createPcmExportSnapshot(seasonFinale = false): Promise<Pcm
           .from("team_seasons")
           .select("*")
           .eq("season_id", activeSeason.id)
-          .in("status", seasonFinale ? ["active", "completed"] : ["active"])
+          .in("status", seasonFinale || seasonFourGala ? ["active", "completed"] : ["active"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<TeamSeasonRow[]>(),
@@ -82,7 +83,7 @@ export async function createPcmExportSnapshot(seasonFinale = false): Promise<Pcm
         admin
           .from("rider_contracts")
           .select("*")
-          .in("status", seasonFinale ? ["active", "completed"] : ["active"])
+          .in("status", seasonFinale || seasonFourGala ? ["active", "completed"] : ["active"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<ContractRow[]>(),
@@ -117,7 +118,8 @@ export async function createPcmExportSnapshot(seasonFinale = false): Promise<Pcm
   const activeTeamIds = new Set(teamSeasons.map((row) => row.team_id));
   const teams = allTeams.filter((row) => activeTeamIds.has(row.id));
   const seasonYears = new Map(seasons.map((season) => [season.id, season.game_year]));
-  const contracts = allContracts.filter((row) => activeTeamIds.has(row.team_id) && (!seasonFinale || (
+  const contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons):allContracts;
+  const contracts = contractSource.filter((row) => activeTeamIds.has(row.team_id) && (!seasonFinale || (
     (seasonYears.get(row.start_season_id) ?? Infinity) <= activeSeason.game_year &&
     (seasonYears.get(row.end_season_id) ?? -Infinity) >= activeSeason.game_year
   )));
@@ -151,6 +153,7 @@ export async function createPcmExportSnapshot(seasonFinale = false): Promise<Pcm
   const ratingScale = deriveGlobalRatingScale(ratings);
   const snapshotCore = {
     schemaVersion: 1 as const,
+    ...(seasonFourGala?{galaEdition:'season-four' as const}:{}),
     source: "Cyclostratege production" as const,
     activeSeason,
     seasons,

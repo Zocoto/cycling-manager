@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["cdb-converter", "sql.js"],
   outputFileTracingIncludes: {
+    "/api/admin/gala-s4-export": [
+      "./assets/pcm/OfficialRelease.template.cdb",
+      "./assets/pcm/OfficialLocal.template.cdb",
+      "./node_modules/sql.js/dist/sql-wasm.wasm",
+    ],
     "/api/game/news/images": [
       "./node_modules/sharp/**/*",
       "./node_modules/@img/sharp-*/**/*",

@@ -9,7 +9,7 @@ import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
 import { configurePcmNationalities, getPcmNationalChampionBits } from "@/services/pcm-export-nationalities";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
-import { configurePcmSeasonFinaleGalaRules } from "@/lib/game/pcm-export/gala-rules";
+import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules } from "@/lib/game/pcm-export/gala-rules";
 import { convertRiderRatings } from "@/lib/game/pcm-export/ratings";
 import type {
   PcmExportResult,
@@ -648,6 +648,7 @@ function buildDatabaseFromSnapshot(
 
     remapPresetRaceTeamLists(db, teamMappings, spectatorTeamId);
     configurePcmSeasonFinaleGalaRules(db);
+  if(snapshot.galaEdition==='season-four')configurePcmSeasonFourGalaRules(db);
 
     validateGeneratedRows(
       db,

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 import { CollectorCardFace } from "./collector-card-face";
-import { ALBUM_BOOSTER_ODDS, CARD_RARITY_LABELS, drawAlbumBooster, getAlbumPilotPacks, getCardRarity, getLooseAlbumCardCount, type AlbumPilotAction, type AlbumPilotState, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
+import { getAlbumBoosterOdds, CARD_RARITY_LABELS, drawAlbumBooster, getAlbumPilotPacks, getCollectorCardRarity, getLooseAlbumCardCount, type AlbumPilotAction, type AlbumPilotState, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import styles from "./collector-album-retro.module.css";
 import discovery from "./collector-album-discovery.module.css";
 
@@ -41,6 +41,8 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
   onViewAlbum: () => void;
   onPasteCards?: (numbers: readonly number[]) => void;
 }) {
+  const editionSeason=snapshot.presentationSeason??snapshot.sourceSeason;
+  const odds=getAlbumBoosterOdds(snapshot.cards);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
   const [opening, setOpening] = useState<PackDiscovery | null>(null);
   const [error, setError] = useState("");
@@ -89,14 +91,14 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
 
   return <section className={styles.boosterDesk} aria-label="Les sachets de cartes">
     <header className={styles.sectionHeading}>
-      <p>LE KIOSQUE DU COLLECTIONNEUR · ÉDITION S{snapshot.sourceSeason}</p>
+      <p>LE KIOSQUE DU COLLECTIONNEUR · ÉDITION S{editionSeason}</p>
       <h2>Le plaisir du petit sachet.</h2>
-      <span>Deux champions de la saison {snapshot.sourceSeason}, avec leurs notes figées en fin de saison. À collectionner dans l’édition S{snapshot.sourceSeason}.</span>
+      <span>{snapshot.gamesEdition?<>Deux vignettes parmi les coureurs, les équipes et les champions. Pour cet essai, les notes restent celles de S{snapshot.sourceSeason}.</>:<>Deux champions de la saison {snapshot.sourceSeason}, avec leurs notes figées en fin de saison. À collectionner dans l’édition S{editionSeason}.</>}</span>
     </header>
     <div className={styles.packShelf}>
       {closed.length ? closed.map((pack, index) => <div className={styles.packOffer} key={pack.id}>
-        <button type="button" disabled={!ready} className={styles.openPackButton} onClick={() => openPack(pack.id)} aria-label={`Ouvrir le sachet de test ${index + 1}, édition saison ${snapshot.sourceSeason}`}>
-          <AlbumBoosterArtwork sourceSeason={snapshot.sourceSeason} />
+        <button type="button" disabled={!ready} className={styles.openPackButton} onClick={() => openPack(pack.id)} aria-label={`Ouvrir le sachet de test ${index + 1}, édition saison ${editionSeason}`}>
+          <AlbumBoosterArtwork sourceSeason={editionSeason} gamesEdition={snapshot.gamesEdition} testSourceSeason={snapshot.gamesEdition?snapshot.sourceSeason:undefined} />
           <span>Déchirer le sachet <span aria-hidden="true">↗</span></span>
         </button>
         <p>Sachet d’essai · 2 cartes</p>
@@ -142,9 +144,9 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
     <details className={styles.odds}>
       <summary>Les chances, sans mystère</summary>
       <p>Deux tirages indépendants par sachet. Les doublons sont possibles, y compris dans un même sachet. Chaque carte d’une même finition a la même chance.</p>
-      <dl>{(["bronze", "silver", "gold"] as const).map(rarity => {
-        const count = snapshot.cards.filter(card => getCardRarity(card.rank) === rarity).length;
-        return <div key={rarity}><dt>{CARD_RARITY_LABELS[rarity]}</dt><dd>{ALBUM_BOOSTER_ODDS[rarity]} % <small>soit {(ALBUM_BOOSTER_ODDS[rarity] / count).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} % par carte de cette finition</small></dd></div>;
+      <dl>{(["bronze", "silver", "gold", "holographic"] as const).filter(rarity=>odds[rarity]>0).map(rarity => {
+        const count = snapshot.cards.filter(card => getCollectorCardRarity(card) === rarity).length;
+        return <div key={rarity}><dt>{CARD_RARITY_LABELS[rarity]}</dt><dd>{odds[rarity]} % <small>soit {(odds[rarity] / count).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} % par carte de cette finition</small></dd></div>;
       })}</dl>
     </details>
     <p className={styles.testBanner}>Deux sachets de démonstration, sans achat. Aucun tirage quotidien ni distribution dans la Gazette n’est activé. Les futures distributions resteront réservées à la Gazette.</p>

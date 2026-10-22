@@ -82,7 +82,7 @@ describe("the private album as a book", () => {
   it.each(["album", "boosters", "trades", "achievements"] as const)("keeps one main heading and removes the old panoramic hero in %s", initialTab => {
     const html = renderToStaticMarkup(<CollectorAlbum snapshot={snapshot} storageOwnerId={storageOwnerId} initialTab={initialTab}/>);
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain("<h1>L’Album du peloton</h1>");
+    expect(html).toContain("<h1>Album de Cyclo-Stickers</h1>");
     expect(html).not.toContain(retro.coverMasthead);
     expect(html).not.toContain(retro.coverDetails);
     expect(html).not.toContain("Échappées, cols et belles histoires");

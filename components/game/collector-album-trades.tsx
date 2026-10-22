@@ -2,7 +2,7 @@
 
 import {useState} from "react";
 import {CollectorCardFace} from "./collector-card-face";
-import {ALBUM_DEMO_COLLECTORS,CARD_RARITY_LABELS,canOfferAlbumCards,getCardRarity,getLooseAlbumCardCount,type AlbumPilotAction,type AlbumPilotState,type CollectorAlbumSnapshot} from "@/lib/game/collector-album";
+import {ALBUM_DEMO_COLLECTORS,CARD_RARITY_LABELS,canOfferAlbumCards,getCollectorCardRarity,getLooseAlbumCardCount,type AlbumPilotAction,type AlbumPilotState,type CollectorAlbumSnapshot} from "@/lib/game/collector-album";
 import {getAlbumDuplicateCards,getAlbumTradeMatches,type AlbumTradeMatch} from "@/lib/game/collector-album-trade-discovery";
 import styles from "./collector-album.module.css";
 import retro from "./collector-album-retro.module.css";
@@ -16,7 +16,7 @@ export function CollectorAlbumTradeDesk({state,ready,snapshot,onAction,requested
   const [second,setSecond]=useState("");
   const [give,setGive]=useState<number[]>([0]);
   const cardFor=(number:number)=>snapshot.cards.find(c=>c.number===number)!;
-  const label=(number:number)=>`${String(number).padStart(2,"0")} · ${cardFor(number).name} · ${CARD_RARITY_LABELS[getCardRarity(cardFor(number).rank)]}`;
+  const label=(number:number)=>`${String(number).padStart(2,"0")} · ${cardFor(number).name} · ${CARD_RARITY_LABELS[getCollectorCardRarity(cardFor(number))]}`;
   const available=[...new Set(state.owned)].filter(id=>getLooseAlbumCardCount(state,id)>0);
   const allWanted=[...new Set(ALBUM_DEMO_COLLECTORS.flatMap(p=>state.partners[p.id]))].sort((a,b)=>a-b);
   const partnerId=mode==="director"?first:second;
@@ -24,7 +24,7 @@ export function CollectorAlbumTradeDesk({state,ready,snapshot,onAction,requested
   const partner=ALBUM_DEMO_COLLECTORS.find(p=>p.id===partnerId);
   const partnerOptions=mode==="card"?ALBUM_DEMO_COLLECTORS.filter(p=>state.partners[p.id].includes(Number(first))):ALBUM_DEMO_COLLECTORS;
   const partnerStock=partner? [...new Set(state.partners[partner.id])]:[];
-  const valid=ready&&!state.pending&&Boolean(partner)&&canOfferAlbumCards(state,{give,receive,partnerId});
+  const valid=ready&&!state.pending&&Boolean(partner)&&canOfferAlbumCards(state,{give,receive,partnerId},snapshot.cards);
   const offer=state.pending;
   const chosen=offer?ALBUM_DEMO_COLLECTORS.find(p=>p.id===offer.partnerId):null;
   const finish=(type:"accept"|"decline"|"cancel")=>{onAction({type},type==="accept"?"Échange de démonstration accepté : toutes les cartes ont été transférées ensemble.":"Offre close : les cartes réservées sont de nouveau disponibles.");setOpen(false);setGive([0]);};

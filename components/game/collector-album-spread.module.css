@@ -157,3 +157,5 @@
   .slotWrap [data-album-stats] dt{font-size:5px}
   .emptySlot.emptySlot h3,.denseSlots .emptySlot.emptySlot h3{font-size:15px}
 }
+.book.book[data-profile=introduction]{--chapter-ink:#433a40;--chapter-accent:#a7663c;--chapter-paper:#eee1c3;--chapter-wash:#faf0d7}
+@media(max-width:540px){.walletShelf.walletShelf.walletShelf{grid-template-columns:1fr}}

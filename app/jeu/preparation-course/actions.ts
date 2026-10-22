@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { readSprintTrainOrder } from "@/lib/game/sprint-train";
 import { redirect } from "next/navigation";
 
 import { RACE_ROLES, type RaceRole } from "@/lib/game/race-simulation";
@@ -96,7 +97,7 @@ export async function saveRacePreparationAction(formData: FormData) {
     redirect("/connexion");
   }
 
-  const { error } = await supabase.rpc("save_current_team_race_preparation", {
+  const { error } = await supabase.rpc("save_current_team_race_preparation_with_sprint", {
     p_race_edition_id: editionId,
     p_stage_id: stageId,
     p_roles: roles,
@@ -110,6 +111,7 @@ export async function saveRacePreparationAction(formData: FormData) {
       protectorRiderId,
       breakawayRiderId,
       attackOrders,
+      sprintTrainOrder: readSubmittedSprintTrainOrder(formData),
     },
   });
 
@@ -127,6 +129,11 @@ export async function saveRacePreparationAction(formData: FormData) {
   redirect(
     `/jeu/preparation-course?course=${encodeURIComponent(slug)}&etape=${stageNumber}&enregistrement=confirme#etape-${stageId}`,
   );
+}
+
+function readSubmittedSprintTrainOrder(formData: FormData) {
+  try { return readSprintTrainOrder(JSON.parse(String(formData.get("sprintTrainOrder") ?? "[]"))); }
+  catch { return []; }
 }
 
 export async function saveTimeTrialPreparationAction(formData: FormData) {

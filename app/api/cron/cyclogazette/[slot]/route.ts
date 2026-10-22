@@ -1,5 +1,5 @@
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
-import { publishCyclogazetteEdition } from "@/services/cyclogazette";
+import { publishCyclogazetteEdition, recoverCyclogazetteSeasonFinale } from "@/services/cyclogazette";
 
 export const maxDuration = 60;
 
@@ -9,7 +9,9 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const publication = await publishCyclogazetteEdition(now);
+  const publication = new URL(request.url).pathname.endsWith("/finale-recovery")
+    ? await recoverCyclogazetteSeasonFinale(now)
+    : await publishCyclogazetteEdition(now);
   return Response.json({
     ...publication,
     push: "deferred",

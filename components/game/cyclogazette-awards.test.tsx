@@ -26,6 +26,22 @@ const award: SeasonAward = {
 };
 
 describe("CyclogazetteAwards", () => {
+  it.each([4,5,8])("présente la cérémonie de la saison %s sans texte spécifique à S2", (gameYear) => {
+    const markup=renderToStaticMarkup(<CyclogazetteAwards awards={[{...award,gameYear,seasonName:`Saison ${gameYear}`}]} mode="gala"/>);
+    expect(markup).toContain(`Soirée des awards · Saison ${gameYear}`);
+    expect(markup).not.toContain("deuxième campagne");
+    expect(markup).not.toContain("Saison 2");
+  });
+  it("affiche les nouvelles distinctions et leurs statistiques précises", () => {
+    const markup=renderToStaticMarkup(<CyclogazetteAwards mode="gala" awards={[
+      {...award,id:'homegrown',key:'homegrown_squad',recipientType:'team',recipientName:'Club école',statValue:66.67,statLabel:'% · 2/3'},
+      {...award,id:'national',key:'national_identity',recipientType:'team',recipientName:'Club local',statValue:75,statLabel:'% · 3/4'},
+      {...award,id:'international',key:'international_squad',recipientType:'team',recipientName:'Club monde',statValue:9,statLabel:'nationalités'},
+    ]}/>);
+    expect(markup).toContain("ADN du club");expect(markup).toContain("Fierté nationale");
+    expect(markup).toContain("Peloton sans frontières");expect(markup).toContain("66,67 % · 2/3");
+    expect(markup).toContain("9 nationalités");
+  });
   it("affiche le palmarès permanent dans la Gazette", () => {
     const markup = renderToStaticMarkup(<CyclogazetteAwards awards={[award]} />);
 

@@ -18,7 +18,7 @@ type SeasonAwardRow = {
   sporting_director_id: string | null;
   recipient_name: string;
   team_name: string | null;
-  stat_value: number | null;
+  stat_value: number | string | null;
   stat_label: string | null;
   awarded_at: string;
   seasons: { name: string; game_year: number } | null;
@@ -123,7 +123,7 @@ function mapSeasonAwardRow(row: SeasonAwardRow): SeasonAward {
     sportingDirectorId: row.sporting_director_id,
     recipientName: row.recipient_name,
     teamName: row.team_name,
-    statValue: row.stat_value,
+    statValue: row.stat_value === null ? null : Number(row.stat_value),
     statLabel: row.stat_label,
     awardedAt: row.awarded_at,
   };

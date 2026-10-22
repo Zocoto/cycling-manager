@@ -2,19 +2,21 @@ import type { ReactNode } from "react";
 
 import { PublicFooter } from "../../components/layout/public-footer";
 import { PublicHeader } from "../../components/layout/public-header";
+import { getActiveSiteVersion } from "@/services/site-release";
 
 type PublicLayoutProps = {
   children: ReactNode;
 };
 
-export default function PublicLayout({ children }: PublicLayoutProps) {
+export default async function PublicLayout({ children }: PublicLayoutProps) {
+  const activeVersion = await getActiveSiteVersion();
   return (
     <div className="flex min-h-screen flex-col bg-[#071A17] text-[#FFFDF4]">
       <PublicHeader />
 
       <main className="flex-1">{children}</main>
 
-      <PublicFooter />
+      <PublicFooter activeVersion={activeVersion} />
     </div>
   );
 }

@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions";
-import { projectCountryCoordinate } from "@/data/country-map-coordinates";
+import {
+  formatScoutingMapPercentage, getScoutingCountrySuggestions, getScoutingMapPoint, isScoutingMapPointVisible,
+  SCOUTING_MAP_VIEWS, type ScoutingMapView,
+} from "@/lib/game/youth-scouting-map";
 import {
   YOUTH_SCOUTING_DURATION_OPTIONS,
   YOUTH_SCOUTING_LAST_SEASON_DAY,
@@ -32,6 +35,11 @@ export function YouthScoutingMap({
   tutorialMode?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [mapView, setMapView] = useState<ScoutingMapView>("world");
+  const searchId = useId();
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [selectedDurationDays, setSelectedDurationDays] = useState(3);
   const [manualDialogMessage, setManualDialogMessage] = useState<string | null>(
     null,
@@ -48,9 +56,17 @@ export function YouthScoutingMap({
   );
   const mapScrollRef = useRef<HTMLDivElement>(null);
   const filtered = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("fr");
-    return query ? countries.filter((country) => country.name.toLocaleLowerCase("fr").includes(query) || country.code.toLocaleLowerCase("fr").includes(query)).slice(0, 12) : countries.slice(0, 8);
+    return getScoutingCountrySuggestions(countries, search);
   }, [countries, search]);
+  const suggestionsVisible = searchOpen && search.trim().length > 0;
+  const selectCountry = (country: YouthCountry) => {
+    setSelectedCountryId(country.id);
+    setSearch(country.name);
+    setSearchOpen(false);
+    setActiveSuggestion(0);
+    // A search always covers every country, even outside the current crop.
+    if (!isScoutingMapPointVisible(getScoutingMapPoint(country, mapView))) setMapView("world");
+  };
   const selected = countries.find((country) => country.id === selectedCountryId) ?? countries[0];
   const availableScouts = scouts.filter((scout) => !scout.activeMissionId);
   const availableDurationOptions = getYouthScoutingDurationOptionsForDay(
@@ -82,10 +98,11 @@ export function YouthScoutingMap({
       return;
     }
 
-    const point = projectCountryCoordinate({
+    const selectedPoint = getScoutingMapPoint({
       latitude: selected.latitude,
       longitude: selected.longitude,
-    });
+    }, mapView);
+    const point = isScoutingMapPointVisible(selectedPoint) ? selectedPoint : { x: 50, y: 50 };
     const targetLeft =
       (scroller.scrollWidth * point.x) / 100 - scroller.clientWidth / 2;
     const maximumLeft = scroller.scrollWidth - scroller.clientWidth;
@@ -94,7 +111,16 @@ export function YouthScoutingMap({
       left: Math.min(maximumLeft, Math.max(0, targetLeft)),
       behavior: "smooth",
     });
-  }, [selected]);
+  }, [selected, mapView]);
+
+  useEffect(() => {
+    const list = suggestionsRef.current;
+    const option = list?.children[activeSuggestion] as HTMLElement | undefined;
+    if (!list || !option || !suggestionsVisible) return;
+    if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight)
+      list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
+  }, [activeSuggestion, suggestionsVisible, filtered]);
 
   if (!selected) return null;
 
@@ -104,19 +130,65 @@ export function YouthScoutingMap({
       data-tutorial-id="youth-tutorial-map"
       className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,0.7fr)]"
       >
-      <div className="overflow-hidden rounded-[1.75rem] border border-[#315B3E]/15 bg-[#0B302B] shadow-[0_18px_45px_rgba(11,48,43,0.15)]">
+      <div className="self-start overflow-hidden rounded-[1.75rem] border border-[#315B3E]/15 bg-[#0B302B] shadow-[0_18px_45px_rgba(11,48,43,0.15)]">
         <div
           data-tutorial-id="youth-tutorial-filters"
-          className="flex flex-col gap-3 border-b border-white/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
+          className="relative z-40 flex flex-col gap-3 border-b border-white/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#72D4B7]">Réseau mondial</p>
             <h2 className="mt-1 text-xl font-black text-white">Choisir une zone de détection</h2>
           </div>
-          <label className="relative block sm:w-72">
-            <span className="sr-only">Rechercher un pays</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} type="search" placeholder="Rechercher un pays…" className="min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-[#D6DFD2]/60 focus:border-[#F2C94C] focus:ring-2 focus:ring-[#F2C94C]/20" />
+          <div className="relative sm:w-72 sm:shrink-0" onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setSearchOpen(false);
+          }}>
+            <label htmlFor={searchId} className="sr-only">Rechercher un pays</label>
+            <input id={searchId} value={search} type="search" role="combobox" autoComplete="off"
+              aria-autocomplete="list" aria-expanded={suggestionsVisible}
+              aria-controls={`${searchId}-suggestions`}
+              aria-activedescendant={suggestionsVisible && filtered[activeSuggestion] ? `${searchId}-suggestion-${filtered[activeSuggestion].id}` : undefined}
+              onFocus={() => setSearchOpen(true)}
+              onChange={(event) => { setSearch(event.target.value); setActiveSuggestion(0); setSearchOpen(true); }}
+              onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing) return;
+                if (event.key === "Escape") { setSearchOpen(false); return; }
+                if (!search.trim()) return;
+                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                  event.preventDefault(); setSearchOpen(true);
+                  if (filtered.length) setActiveSuggestion((current) => !suggestionsVisible ? 0
+                    : (current + (event.key === "ArrowDown" ? 1 : -1) + filtered.length) % filtered.length);
+                } else if (event.key === "Enter" && suggestionsVisible) {
+                  event.preventDefault();
+                  if (filtered[activeSuggestion]) selectCountry(filtered[activeSuggestion]);
+                }
+              }}
+              placeholder="Rechercher un pays…" className="min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white outline-none placeholder:text-[#D6DFD2]/60 focus:border-[#F2C94C] focus:ring-2 focus:ring-[#F2C94C]/20" />
+            {suggestionsVisible ? <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-[#F2C94C]/40 bg-[#FFFDF4] shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+              <div id={`${searchId}-suggestions`} ref={suggestionsRef} role="listbox" aria-label="Pays suggérés" className="relative max-h-72 overflow-y-auto overscroll-contain py-1">
+                {filtered.map((country, index) => <button key={country.id} id={`${searchId}-suggestion-${country.id}`}
+                  type="button" role="option" tabIndex={-1} aria-selected={activeSuggestion === index}
+                  onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveSuggestion(index)}
+                  onClick={() => selectCountry(country)}
+                  className={`flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-bold text-[#183F37] ${activeSuggestion === index ? "bg-[#F2C94C]/20" : "hover:bg-[#EAF5F3]"}`}>
+                  <span aria-hidden="true" className={`fi fi-${country.code.toLowerCase()} h-4 w-6 shrink-0 rounded-sm`} />
+                  <span className="min-w-0 flex-1 truncate">{country.name}</span>
+                  <span className="text-[10px] text-[#60756E]">{country.code}</span>
+                </button>)}
+                {!filtered.length ? <p role="status" className="px-4 py-3 text-sm font-semibold text-[#60756E]">Aucun pays trouvé.</p> : null}
+              </div>
+            </div> : null}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#071A17]/55 px-5 py-3">
+          <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-wide text-[#9BE0CA]">
+            Zoom
+            <select value={mapView} onChange={(event) => setMapView(event.target.value as ScoutingMapView)} aria-label="Zoom sur la carte"
+              className="min-h-10 rounded-lg border border-white/15 bg-[#0B302B] px-3 text-xs font-bold text-white outline-none focus:border-[#F2C94C]">
+              {Object.entries(SCOUTING_MAP_VIEWS).map(([code, view]) => <option key={code} value={code}>{view.label}</option>)}
+            </select>
           </label>
+          {mapView !== "world" ? <button type="button" onClick={() => setMapView("world")} className="min-h-10 rounded-full border border-white/20 px-3 text-[10px] font-black text-[#D6DFD2] hover:border-[#F2C94C]">Vue mondiale</button> : null}
         </div>
 
         <p
@@ -138,12 +210,13 @@ export function YouthScoutingMap({
             data-scouting-world-map
             className="relative h-[330px] w-[660px] max-w-none shrink-0 overflow-hidden bg-[radial-gradient(circle_at_50%_45%,#176951_0%,#0B302B_58%,#071A17_100%)] md:aspect-[2/1] md:h-auto md:min-h-[330px] md:w-full"
           >
-            <WorldPlanisphere />
+            <WorldPlanisphere view={mapView} />
             <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-[#071A17]/65 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#D6DFD2] backdrop-blur-md">
               {countries.length} pays explorables
             </div>
             {countries.map((country) => {
-              const point = projectCountryCoordinate({ latitude: country.latitude, longitude: country.longitude });
+              const point = getScoutingMapPoint(country, mapView);
+              if (!isScoutingMapPointVisible(point)) return null;
               const isSelected = country.id === selected.id;
               return (
                 <button
@@ -151,9 +224,9 @@ export function YouthScoutingMap({
                   type="button"
                   title={country.name}
                   aria-label={`Sélectionner ${country.name}`}
-                  onClick={() => setSelectedCountryId(country.id)}
+                  onClick={() => selectCountry(country)}
                   className={`group absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSelected ? "z-20" : "z-10 hover:z-20"}`}
-                  style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                  style={{ left: formatScoutingMapPercentage(point.x), top: formatScoutingMapPercentage(point.y) }}
                 >
                   <span className={`block rounded-full border transition ${isSelected ? "h-4 w-4 border-white bg-[#F2C94C] shadow-[0_0_0_7px_rgba(242,201,76,0.2),0_0_22px_rgba(242,201,76,0.65)]" : "h-2 w-2 border-[#C9F0E4]/60 bg-[#72D4B7]/80 shadow-[0_0_7px_rgba(114,212,183,0.4)] group-hover:h-3 group-hover:w-3 group-hover:border-white group-hover:bg-[#F2C94C]"}`} />
                   {isSelected ? (
@@ -165,11 +238,6 @@ export function YouthScoutingMap({
               );
             })}
           </div>
-        </div>
-        <div className="flex min-h-16 flex-wrap items-center gap-2 border-t border-white/10 bg-[#071A17]/55 px-5 py-3">
-          {filtered.map((country) => (
-            <button key={country.id} type="button" onClick={() => setSelectedCountryId(country.id)} className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] transition ${country.id === selected.id ? "border-[#F2C94C] bg-[#F2C94C] text-[#071A17]" : "border-white/15 bg-[#071A17]/70 text-[#D6DFD2] hover:border-[#72D4B7]"}`}>{country.code} · {country.name}</button>
-          ))}
         </div>
       </div>
 
@@ -366,12 +434,15 @@ function MissionSubmitButton({
   return <button type={seasonBoundaryBlocked ? "button" : "submit"} disabled={disabled || pending} onClick={seasonBoundaryBlocked ? onSeasonBoundaryBlocked : undefined} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:bg-[#B8C8C2]">{pending ? "Départ en cours…" : seasonBoundaryBlocked ? "Pourquoi le scouting est indisponible ?" : "Envoyer le scout"}</button>;
 }
 
-function WorldPlanisphere() {
+function WorldPlanisphere({ view }: { view: ScoutingMapView }) {
+  const frame = SCOUTING_MAP_VIEWS[view];
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat"
-      style={{ backgroundImage: 'url("/images/scouting-world-map.svg")' }}
+      className="pointer-events-none absolute bg-[length:100%_100%] bg-center bg-no-repeat"
+      style={{ backgroundImage: 'url("/images/scouting-world-map.svg")',
+        left: formatScoutingMapPercentage(-frame.left * 100 / frame.size), top: formatScoutingMapPercentage(-frame.top * 100 / frame.size),
+        width: formatScoutingMapPercentage(10000 / frame.size), height: formatScoutingMapPercentage(10000 / frame.size) }}
     />
   );
 }

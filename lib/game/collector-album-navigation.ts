@@ -1,7 +1,25 @@
 import { ALBUM_PROFILES, type AlbumProfile, type CollectorCard } from "./collector-album";
-import { getAlbumProfileCards, getAlbumProfileLeaves } from "./collector-album-layout";
+import { getAlbumIntroductionLeaves, getAlbumProfileCards, getAlbumProfileLeaves } from "./collector-album-layout";
 
 export type AlbumPagePosition = { profile: AlbumProfile; leaf: 1 | 2 };
+export type AlbumBookPosition = {section:"introduction";leaf:number} | ({section:"riders"} & AlbumPagePosition);
+
+export function getAlbumBookTurn(cards: readonly CollectorCard[], position: AlbumBookPosition, singlePage: boolean, direction: -1|1): AlbumBookPosition | null {
+  if (direction !== -1 && direction !== 1) return null;
+  const hasIntroduction = cards.some(card=>card.kind);
+  if (position.section === "introduction") {
+    const leaves = getAlbumIntroductionLeaves(cards);
+    if (!hasIntroduction || !Number.isInteger(position.leaf) || position.leaf<0 || position.leaf>=leaves.length) return null;
+    const current = singlePage ? position.leaf : Math.floor(position.leaf/2)*2;
+    const next = current + direction*(singlePage?1:2);
+    if (next<0) return null;
+    return next<leaves.length ? {section:"introduction",leaf:next} : {section:"riders",profile:"tours",leaf:1};
+  }
+  const next = getAlbumPageTurn(cards,position.profile,position.leaf,singlePage,direction);
+  if (next) return {section:"riders",...next};
+  return hasIntroduction && position.profile === "tours" && direction === -1 && (!singlePage || position.leaf === 1)
+    ? {section:"introduction",leaf:singlePage?3:2} : null;
+}
 
 /** Desktop turns full chapters; mobile visits each nonempty printed leaf. */
 export function getAlbumPageTurn(

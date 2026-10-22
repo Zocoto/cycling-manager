@@ -65,6 +65,8 @@ function AwardIcon({ icon }: { icon: SeasonAwardIcon }) {
   if (icon === "microphone") return <svg {...props}><rect x="11" y="4" width="10" height="16" rx="5" /><path d="M7 15v1a9 9 0 0 0 18 0v-1M16 25v4M11 29h10" /></svg>;
   if (icon === "chat") return <svg {...props}><path d="M5 6h22v16H14l-6 5v-5H5V6Z" /><path d="M10 12h12M10 17h8" /></svg>;
   if (icon === "academy") return <svg {...props}><path d="M16 28V13M16 20c-5 0-9-3-9-8 5 0 9 3 9 8ZM16 16c5 0 9-3 9-8-5 0-9 3-9 8Z" /><path d="M9 28h14" /></svg>;
+  if (icon === "flag") return <svg {...props}><path d="M7 29V4M7 5c6-5 12 5 19 0v14c-7 5-13-5-19 0" /><path d="M4 29h6" /></svg>;
+  if (icon === "globe") return <svg {...props}><circle cx="16" cy="16" r="12" /><ellipse cx="16" cy="16" rx="5" ry="12" /><path d="M4 16h24M7 9h18M7 23h18" /></svg>;
   if (icon === "junior") return <svg {...props}><circle cx="16" cy="10" r="5" /><path d="M8 28c0-7 3-11 8-11s8 4 8 11M5 7l3 2M27 7l-3 2M16 2v3" /><path d="m13 10 2 2 4-4" /></svg>;
   if (icon === "podium") return <svg {...props}><path d="M4 27h24M5 19h7v8H5zM12 13h8v14h-8zM20 17h7v10h-7z" /><path d="m16 5 1.2 2.5L20 8l-2 2 .5 3-2.5-1.4-2.5 1.4.5-3-2-2 2.8-.5L16 5Z" /></svg>;
   return <svg {...props}><path d="M16 27C6 21 4 16 4 11a6 6 0 0 1 11-3 6 6 0 0 1 13 3c0 5-2 10-12 16Z" /></svg>;

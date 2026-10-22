@@ -138,6 +138,8 @@ export type RaceTeamStrategy = {
   protectorRiderId: string | null;
   breakawayRiderId: string | null;
   attackOrders: RaceAttackOrder[];
+  /** Empty / absent = automatic. Only orders riders whose race role is leadout. */
+  sprintTrainOrder?: string[];
 };
 
 export const DEFAULT_RACE_TEAM_STRATEGY = {

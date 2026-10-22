@@ -1,0 +1,207 @@
+.page { min-height:100vh; background:#0B0D10; color:#EAE4D7; color-scheme:dark; }
+.shell { max-width:1320px; margin:auto; padding:24px 28px 40px; }
+.privateBar { display:flex; justify-content:space-between; gap:16px; align-items:center; font-size:11px; color:#A7A394; margin-bottom:20px; }
+.privateBar > span { border:1px solid #665735; padding:6px 10px; border-radius:999px; color:#E3C77C; }
+.privateBar a { color:#C7C4B8; text-decoration:none; }
+.hero { position:relative; display:grid; grid-template-columns:1fr 260px; gap:28px; align-items:center; overflow:hidden; border:1px solid #A68A47; border-radius:24px; padding:48px; background:radial-gradient(ellipse at 90% 20%,#EFD28C1F,transparent 60%),linear-gradient(120deg,#191A19,#13161B); }
+.hero::after { content:""; pointer-events:none; position:absolute; inset:12px; border:1px solid #C4A45C25; border-radius:14px; }
+.eyebrow { color:#DCC17D; font-size:10px; line-height:1.7; font-weight:800; text-transform:uppercase; letter-spacing:.19em; }
+.hero h1 { font-family:Georgia,serif; color:#F5E8C7; font-size:clamp(54px,6vw,88px); letter-spacing:-.055em; line-height:1; margin:19px 0; font-weight:700; }
+.hero h1 em { font-style:normal; color:#EAC66D; }
+.heroLead { font-size:19px; line-height:1.55; color:#D7D2C3; }
+.heroMeta { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; font-size:11px; letter-spacing:.14em; color:#A5A497; margin-top:25px; }
+.heroMeta strong { color:#EDCF84; font-size:12px; }
+.heroLinks { display:flex; align-items:center; flex-wrap:wrap; gap:22px; margin-top:30px; }
+.goldButton { background:linear-gradient(115deg,#F5E0A0,#DAB15A); color:#282114; border:1px solid #F8E8B8; border-radius:8px; padding:12px 18px; font-size:12px; font-weight:800; text-decoration:none; }
+.textLink { color:#EACD86; font-size:12px; font-weight:700; }
+.heroSeal { position:relative; display:flex; flex-direction:column; align-items:center; border:1px solid #D7B86966; outline:1px solid #C5A35433; outline-offset:9px; width:220px; height:252px; border-radius:110px 110px 24px 24px; color:#D8B66A; padding:25px 10px 18px; box-shadow:0 0 75px #D7B66D0F; }
+.heroSeal span { font-size:10px; letter-spacing:.19em; font-weight:800; }
+.heroSeal svg { width:112px; height:112px; margin-top:7px; }
+.heroSeal strong { font-family:Georgia,serif; font-size:43px; letter-spacing:-.09em; line-height:1.1; margin-bottom:10px; color:#F2DAA0; }
+.liveCard { margin-top:16px; border:1px solid #504361; background:linear-gradient(100deg,#211D2B,#17171E); border-radius:18px; padding:21px 25px; display:flex; align-items:center; gap:20px; text-decoration:none; transition:border-color .15s; }
+.liveCard:hover { border-color:#A485C9; }
+.hostAvatar { width:70px; height:70px; flex-shrink:0; border-radius:50%; border:2px solid #BF9BDF; box-shadow:0 0 0 5px #B88DD418; }
+.liveCopy { flex:1; min-width:0; }
+.liveLabel { color:#BEA4DE; display:flex; gap:7px; align-items:center; font-size:11px; font-weight:800; letter-spacing:.14em; }
+.liveCopy h2 { margin-top:4px; color:#F2E9FF; font-size:19px; font-weight:800; }
+.liveCopy p { margin-top:5px; color:#B4ACBF; font-size:12px; line-height:1.7; max-width:660px; }
+.twitchButton { flex-shrink:0; background:#7B43AF; border:1px solid #A977D2; border-radius:8px; padding:12px 16px; color:#FFF8FF; font-size:11px; font-weight:800; }
+.section { scroll-margin-top:20px; margin-top:50px; }
+.sectionHeading { display:flex; align-items:end; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.sectionHeading h2,.liveGifts h2 { font-family:Georgia,serif; color:#F2E9D4; font-size:33px; letter-spacing:-.035em; line-height:1.2; margin-top:7px; }
+.smallBadge { display:inline-flex; align-items:center; border:1px solid #5C5139; background:#CDAF6020; padding:5px 9px; border-radius:5px; font-size:11px; font-weight:700; color:#DDC58C; white-space:nowrap; }
+.intro { max-width:930px; font-size:13px; line-height:1.9; color:#ACAFAE; margin-top:17px; }
+.intro strong { color:#EBD7AA; }
+.programTabs { margin-top:24px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.programTabs button { display:flex; align-items:center; gap:16px; text-align:left; min-width:0; border:1px solid #35383C; background:#15181D; border-radius:12px; padding:20px; cursor:pointer; transition:border-color .15s,background .15s; }
+.programTabs button.selectedProgram { border-color:#D8B665; background:linear-gradient(120deg,#3C3220,#231F18); box-shadow:inset 0 0 0 1px #D8B66533; }
+.programIndex { color:#817354; font-family:Georgia,serif; font-size:30px; }
+.selectedProgram .programIndex { color:#E2C578; }
+.programTabs strong { font-size:18px; color:#F1E9D6; display:block; }
+.programTabs small { font-size:11px; color:#ADAA9F; display:block; margin-top:4px; }
+.programTag { margin-left:auto; font-size:10px; font-weight:800; color:#D7BD82; background:#D8B66514; padding:6px 8px; border-radius:5px; white-space:nowrap; }
+.programNote { color:#C3B9A2; font-size:12px; line-height:1.8; margin:15px 2px 20px; }
+.raceGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:start; }
+.raceCard { border:1px solid #3A3933; border-radius:15px; background:linear-gradient(145deg,#1C1D1D,#14171C); overflow:hidden; min-width:0; padding:20px 20px 0; }
+.raceCard > header { display:flex; justify-content:space-between; align-items:center; }
+.courseNumber { color:#9C8962; font:26px Georgia,serif; }
+.raceTitle { font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; margin-top:20px; color:#C1A76B; }
+.raceCard h3 { font:700 23px/1.2 Georgia,serif; color:#F0E7D1; letter-spacing:-.03em; margin-top:7px; min-height:56px; }
+.raceDistance { font-size:11px; color:#CEB87F; margin-top:6px; }
+.raceDistance span { color:#858A90; }
+.profile { background:#0D0F12; border-radius:8px; margin:17px 0; padding:14px 10px 7px; }
+.profile svg { width:100%; height:84px; }
+.profile figcaption { display:flex; justify-content:space-between; color:#747A82; font-size:10px; margin-top:5px; }
+.profile figcaption span { color:#B4A378; }
+.raceDescription { font-size:12px; line-height:1.8; color:#ADAFAF; min-height:106px; }
+.highlights { display:flex; flex-wrap:wrap; gap:5px; margin:13px 0 20px; min-height:43px; align-content:start; }
+.highlights span { background:#BCA4640C; border:1px solid #4F483522; color:#BEB49E; font-size:10px; border-radius:3px; padding:4px 6px; }
+.courseDetails { border-top:1px solid #343534; margin:0 -20px; }
+.courseDetails summary { list-style:none; display:flex; align-items:center; gap:7px; cursor:pointer; padding:14px 20px; font-size:11px; font-weight:700; color:#DBD1BA; }
+.courseDetails summary::-webkit-details-marker,.organizerNotes summary::-webkit-details-marker { display:none; }
+.courseDetails summary > span,.organizerNotes summary > span { margin-left:auto; color:#D7B76E; }
+.courseDetails summary small { color:#8D8775; font-size:10px; font-weight:500; }
+.courseDetails[open] summary { background:#BCA4640D; }
+.courseDetails[open] summary > span { transform:rotate(45deg); }
+.demoWarning { font-size:11px; line-height:1.6; color:#A4977E; margin:0 20px 9px; }
+.teamRow,.favoriteRow { margin:0 15px; border-top:1px solid #343534; padding:10px 0; display:flex; align-items:center; gap:10px; min-width:0; }
+.teamRow > div,.favoriteRow > div { flex:1; min-width:0; }
+.teamRow strong,.favoriteRow strong { display:block; font-size:10px; color:#DBD6C9; line-height:1.5; }
+.teamRow small,.favoriteRow small { display:block; font-size:10px; color:#979992; line-height:1.6; }
+.favoriteRow > span { color:#948467; font-size:13px; }
+.favoriteRow b { flex-shrink:0; border:1px solid #6B5A31; color:#E1C880; font-size:11px; padding:5px; border-radius:4px; }
+.capacityDetails { padding:0 20px 18px; font-size:11px; }
+.capacityDetails strong { color:#DFC385; }
+.capacityDetails p { margin:5px 0 9px; color:#A4A49A; line-height:1.8; }
+.capacityDetails code { font-size:11px; color:#938A73; overflow-wrap:anywhere; }
+.capacityDetails a { display:block; font-size:10px; color:#D9BC7A; margin-top:12px; }
+.registrationNote { margin-top:18px; display:flex; align-items:start; gap:12px; border:1px solid #5F513733; background:#29251C66; border-radius:10px; padding:16px 18px; }
+.registrationNote > span { color:#D2B16C; padding-top:2px; }
+.registrationNote strong { font-size:12px; color:#D3C29D; }
+.registrationNote p { font-size:11px; line-height:1.8; color:#9F9B8D; margin-top:4px; }
+.previewStatus { font-size:10px; color:#8D928C; margin:12px 2px; }
+.previewStatus strong { color:#D8C393; }
+.rewardPicker { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin:22px 0 15px; font-size:11px; color:#B7B2A5; }
+.rewardPicker select { color:#ECD7A5; background:#23221C; border:1px solid #71603C; border-radius:6px; padding:9px 28px 9px 11px; }
+.rewardPicker > span { margin-left:auto; color:#8E938F; font-size:10px; }
+.bonus { display:inline-flex; padding:5px 10px; margin-top:12px; background:#E8C574; border:1px solid #F9E2A4; color:#322711; border-radius:5px; font-size:12px; font-weight:900; }
+.rewardFootnote { font-size:10px; line-height:1.8; color:#919587; margin:14px 2px; }
+.glovesGift,.boostersGift { align-self:stretch; border:1px solid #77633C66; background:#0F131280; border-radius:12px; padding:18px; text-align:center; }
+.boosterArt { height:145px; width:200px; max-width:100%; margin:0 auto; }
+.organizerNotes { margin-top:25px; border:1px dashed #62563A; border-radius:10px; background:#131619; padding:0 20px; }
+.organizerNotes summary { list-style:none; display:flex; padding:17px 0; font-size:12px; font-weight:700; cursor:pointer; color:#C6B58E; }
+.organizerNotes ul { padding:0 0 18px 16px; font-size:11px; line-height:1.9; color:#939D9D; list-style:disc; }
+.organizerNotes li + li { margin-top:7px; }
+.footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; margin-top:30px; border-top:1px solid #3A392F; padding-top:20px; color:#8F8367; font-size:11px; font-weight:700; letter-spacing:.15em; }
+.footer span { color:#6C7773; }
+.shell button:focus-visible,.shell a:focus-visible,.shell summary:focus-visible,.shell select:focus-visible { outline:2px solid #EAC875; outline-offset:4px; }
+@media(max-width:1000px) {
+  .hero { padding:35px; grid-template-columns:1fr 180px; }
+  .heroSeal { width:165px; height:210px; }
+  .heroSeal svg { width:90px; height:90px; }
+  .heroSeal strong { font-size:30px; }
+  .heroSeal span { font-size:6px; }
+  .twitchButton { padding:10px; }
+  .raceCard { padding:16px 14px 0; }
+  .courseDetails { margin:0 -14px; }
+  .courseDetails summary { padding:13px 14px; }
+  .raceCard h3 { font-size:20px; }
+  .raceDescription { min-height:150px; }
+}
+@media(max-width:700px) {
+  .shell { padding:16px 14px 28px; }
+  .privateBar { font-size:11px; margin-bottom:13px; }
+  .hero { padding:30px 22px; grid-template-columns:1fr; border-radius:17px; }
+  .heroSeal { display:none; }
+  .hero h1 { font-size:60px; }
+  .heroLead { font-size:16px; }
+  .hero .eyebrow { font-size:10px; }
+  .heroMeta { font-size:10px; gap:10px 13px; margin-top:22px; }
+  .heroMeta strong { font-size:10px; }
+  .heroLinks { margin-top:24px; gap:16px; }
+  .goldButton { padding:11px 12px; font-size:11px; }
+  .textLink { font-size:11px; }
+  .liveCard { display:grid; grid-template-columns:54px 1fr; gap:15px; padding:18px; }
+  .hostAvatar { width:54px; height:54px; align-self:start; }
+  .liveCopy h2 { font-size:16px; }
+  .liveCopy p { font-size:11px; }
+  .liveLabel { font-size:10px; }
+  .twitchButton { grid-column:1/-1; text-align:center; }
+  .section { margin-top:35px; }
+  .sectionHeading h2 { font-size:28px; }
+  .intro { font-size:12px; line-height:1.85; }
+  .programTabs { gap:8px; margin-top:20px; }
+  .programTabs button { flex-wrap:wrap; gap:10px; padding:14px 12px; }
+  .programIndex { display:none; }
+  .programTabs strong { font-size:16px; }
+  .programTabs small { font-size:11px; line-height:1.6; }
+  .programTag { margin-left:0; font-size:11px; padding:4px 6px; }
+  .raceGrid { grid-template-columns:1fr; }
+  .raceCard { padding:19px 19px 0; }
+  .raceCard h3 { font-size:25px; min-height:0; }
+  .raceDescription { min-height:0; }
+  .highlights { min-height:0; }
+  .courseDetails { margin:0 -19px; }
+  .courseDetails summary { padding:15px 19px; }
+  .raceTitle { margin-top:14px; }
+  .profile svg { height:95px; }
+  .rewardPicker > span { margin-left:0; width:100%; }
+  .glovesGift,.boostersGift { padding:13px 9px; }
+  .boosterArt { height:115px; }
+  .organizerNotes { padding:0 14px; }
+}
+@media(prefers-reduced-motion:reduce) { .shell * { scroll-behavior:auto; transition:none; } }
+
+/* Draft revision: readable supporting copy and compact prize presentation. */
+.page { color:#F0EBDF; font-size:14px; }
+.privateBar { color:#CCC7B9; font-size:12px; }
+.eyebrow { color:#EDD18D; font-size:11px; }
+.intro,.raceDescription { color:#D8DAD6; font-size:14px; }
+.raceDistance { font-size:13px; }.raceDistance span {color:#B7BDC4;}
+.heroMeta {color:#C7C5B9;}.programTabs small {color:#CCC7B9; font-size:12px;}
+.programNote {color:#DCD4C1; font-size:13px;}
+.smallBadge,.highlights span {font-size:11px;color:#E0D2B2;}
+.profile figcaption {font-size:11px;color:#B5BDC5;}
+.courseDetails summary {font-size:13px;}.courseDetails summary small {font-size:11px;color:#C2B69D;}
+.demoWarning {font-size:12px;color:#C9B88E;}
+.teamRow strong,.favoriteRow strong {font-size:12px;}.teamRow small,.favoriteRow small {font-size:11px;color:#BAC1BA;}
+.favoriteRow b {font-size:11px;}.capacityDetails {font-size:13px;}.capacityDetails p {color:#CBCFC5;}.capacityDetails code {font-size:12px;color:#DDCA9F;}
+.registrationNote p,.previewStatus {font-size:12px;color:#C1C5B8;}
+.rosterRule {margin:18px 0 0;color:#EBDAAF;font-size:13px;line-height:1.8;}
+.liveCard {display:block;padding:24px;}
+.liveHeader {display:flex;align-items:center;gap:20px;}
+.liveCopy p {color:#DFD8E8;font-size:14px;line-height:1.8;}
+.liveLabel {color:#D9BDF7;font-size:11px;}.twitchButton {text-decoration:none;display:inline-block;font-size:12px;text-align:center;}
+.liveRewards {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;padding-top:20px;border-top:1px solid #75618666;}
+.liveRewards article {display:flex;align-items:center;gap:15px;background:#B499D60A;border:1px solid #75618666;border-radius:10px;padding:15px;min-width:0;}
+.liveRewards img,.liveRewards svg {width:62px;height:62px;object-fit:contain;flex-shrink:0;margin:0;}
+.liveRewards article > div {min-width:0;}.liveRewards article span {color:#D4C1E6;font-size:11px;}
+.liveRewards h3 {color:#FAF2FF;font-size:16px;line-height:1.6;font-weight:800;}.liveRewards h3 b {display:inline-block;font-size:12px;border:1px solid #DDC77D;background:#E6CD89;color:#302215;border-radius:5px;padding:1px 7px;margin-left:6px;white-space:nowrap;}
+.liveRewards p,.liveGiftNote {color:#D5CEDC;font-size:12px;line-height:1.8;}.liveGiftNote {margin-top:13px;}
+.compactRewards {scroll-margin-top:24px;margin:38px auto 0;padding:23px;border:1px solid #71603F;border-radius:15px;max-width:1040px;background:#171A1B;}
+.compactRewards h2 {font-size:28px;}.rewardPicker {margin:16px 0;font-size:13px;}
+.rewardRows {border-top:1px solid #59503D;}.rewardRows article {display:flex;align-items:center;gap:14px;border-bottom:1px solid #45463E;padding:12px 0;}
+.rewardRank {font-size:14px;color:#E5C980;width:47px;flex-shrink:0;white-space:nowrap;}.rewardRows img {width:38px;height:38px;object-fit:contain;flex-shrink:0;}
+.rewardRows article > div {flex:1;min-width:0;}.rewardRows h3 {color:#F0E5CC;font-size:14px;font-weight:700;}.rewardRows p {color:#C4CCC1;font-size:12px;line-height:1.75;margin-top:3px;}
+.rewardRows .bonus {margin:0;font-size:12px;white-space:nowrap;}.consumableMark {width:38px;flex-shrink:0;color:#D7C28B;text-align:center;font-size:23px;}
+.rewardFootnote {font-size:12px;color:#C1C9BC;line-height:1.8;}
+.exports {margin-top:26px;border:1px solid #6D6246;border-radius:12px;background:#171B20;}
+.exports summary {display:flex;align-items:center;flex-wrap:wrap;gap:8px;list-style:none;cursor:pointer;padding:19px;color:#EDD7A1;font-size:14px;font-weight:800;}
+.exports summary::-webkit-details-marker {display:none;}.exports summary span {color:#BDC7CE;font-size:12px;font-weight:500;}.exports summary b {margin-left:auto;}
+.exportBody {padding:0 19px 19px;}.exportBody > p {color:#D5DDD9;font-size:13px;line-height:1.85;}
+.exportActions {display:flex;flex-wrap:wrap;gap:8px;margin:17px 0;}
+.exportBody button {border:1px solid #897647;background:#D9BD79;color:#282319;padding:9px 12px;font-size:12px;border-radius:6px;font-weight:800;cursor:pointer;}
+.exportBody button:disabled {cursor:default;background:#333B3F;color:#AAB7B9;border-color:#5D6C6D;}
+.exportList {border-top:1px solid #46504E;}.exportList article {display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 0;border-bottom:1px solid #46504E;}
+.exportList article > div:first-child {min-width:0;}.exportList article > div:last-child {display:flex;flex-shrink:0;gap:8px;}
+.exportList strong {font-size:13px;color:#F0E3C7;display:block;}.exportList code {font-size:12px;color:#D3DCD6;display:block;overflow-wrap:anywhere;margin-top:4px;}
+.exportList small {font-size:12px;color:#C6CBB8;display:block;margin-top:4px;}
+.exportHelp {margin-top:15px;}.exportError {color:#FFB9B9!important;background:#652F2F66;padding:12px;border-radius:7px;margin-top:14px;}.exportSuccess {color:#BDE9C4!important;margin-top:13px;}
+.organizerNotes summary {font-size:13px;color:#DBC89D;}.organizerNotes ul {font-size:12px;color:#BFC9C9;}
+@media(max-width:700px){
+ .intro,.raceDescription {font-size:13px;}.programTabs small {font-size:11px;}.eyebrow {font-size:11px;}.hero .eyebrow {font-size:10px;}
+ .liveCard {padding:18px;}.liveHeader {display:grid;grid-template-columns:54px minmax(0,1fr);gap:14px;}.liveHeader .twitchButton {grid-column:1/-1;}.liveCopy p {font-size:13px;}.liveCopy h2 {font-size:19px;}
+ .liveRewards {grid-template-columns:1fr;gap:10px;margin-top:16px;padding-top:16px;}.liveRewards article {padding:12px;gap:11px;}.liveRewards h3 {font-size:15px;}.liveRewards img,.liveRewards svg {width:52px;height:56px;}.liveGiftNote {font-size:12px;}
+ .compactRewards {padding:17px 14px;margin-top:30px;}.compactRewards h2 {font-size:26px;}.rewardRows article {gap:8px;}.rewardRank {width:43px;font-size:12px;}.rewardRows img,.consumableMark {width:30px;height:30px;}.rewardRows h3 {font-size:12px;}.rewardRows p {font-size:12px;}.rewardRows .bonus {font-size:11px;padding:4px 6px;}
+ .exports summary {padding:16px;font-size:13px;}.exportBody {padding:0 14px 16px;}.exportList article {align-items:flex-start;flex-direction:column;gap:9px;}.exportList article > div:last-child {flex-wrap:wrap;}.exportBody button {font-size:12px;padding:10px;}.exportBody > p {font-size:12px;}
+}

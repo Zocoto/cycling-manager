@@ -79,6 +79,7 @@ export type RatingRow = RatingSource & {
 
 export type PcmExportSnapshot = {
   schemaVersion: 1;
+  galaEdition?: "season-four";
   source: "Cyclostratege production";
   exportedAt: string;
   sha256: string;
