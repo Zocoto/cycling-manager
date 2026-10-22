@@ -45,6 +45,7 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
       lastName,
       name: readString(row.name) || `${firstName} ${lastName}`,
       countryName: readNullableString(row.countryName),
+      canNaturalizeWithPassport: readBoolean(row.canNaturalizeWithPassport),
       form: row.weightKg !== undefined ? Math.max(0, Math.min(100, readOptionalNumber(row.form) ?? 75)) : readBoundedInteger(row.form, 75, 0, 100),
       experienceDays: readBoundedInteger(
         row.experienceDays,

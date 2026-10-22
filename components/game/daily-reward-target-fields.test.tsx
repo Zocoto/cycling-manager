@@ -36,6 +36,35 @@ const rider = {
 } satisfies DailyRewardRider;
 
 describe("DailyRewardTargetFields", () => {
+  it("ne propose que les cibles du passeport validées par le serveur", () => {
+    const markup = renderToStaticMarkup(
+      <DailyRewardTargetFields
+        item={buildItem("naturalization")}
+        riders={[
+          { ...rider, canNaturalizeWithPassport: true },
+          { ...rider, id: "same-country", name: "Déjà belge", canNaturalizeWithPassport: false },
+          { ...rider, id: "champion", name: "Ancien champion", canNaturalizeWithPassport: false },
+          { ...rider, id: "unknown", name: "Éligibilité inconnue" },
+        ]}
+        abilities={[]}
+      />,
+    );
+    expect(markup).toContain("Erik Van Dijk · Nationalité Pays-Bas");
+    expect(markup).not.toContain("Déjà belge");
+    expect(markup).not.toContain("Ancien champion");
+    expect(markup).not.toContain("Éligibilité inconnue");
+    expect(markup).not.toMatch(/name="riderId"[^>]*disabled=""/);
+  });
+
+  it("désactive le passeport si aucun coureur ne peut être naturalisé", () => {
+    const markup = renderToStaticMarkup(
+      <DailyRewardTargetFields item={buildItem("naturalization")} riders={[rider]} abilities={[]} />,
+    );
+    expect(markup).toContain("Aucun coureur éligible à la naturalisation");
+    expect(markup).toMatch(/name="riderId"[^>]*disabled=""/);
+    expect(markup).not.toContain("Erik Van Dijk");
+  });
+
   it("affiche la forme courante directement dans la liste des coureurs", () => {
     const markup = renderToStaticMarkup(
       <DailyRewardTargetFields

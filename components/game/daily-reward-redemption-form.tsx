@@ -15,7 +15,10 @@ import {
   type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
-import { canReceiveInjuryCareItem } from "@/lib/game/item-target-values";
+import {
+  canReceiveInjuryCareItem,
+  canUseNaturalizationPassport,
+} from "@/lib/game/item-target-values";
 import {
   STAFF_ROLE_DEFINITIONS,
   STAFF_ROLES,
@@ -51,7 +54,9 @@ export function DailyRewardRedemptionForm({
   const targetRiders =
     item.effectKind === "injury_care"
       ? riders.filter(canReceiveInjuryCareItem)
-      : riders;
+      : item.effectKind === "naturalization"
+        ? riders.filter(canUseNaturalizationPassport)
+        : riders;
   const needsRider = requiresRiderTarget(item.effectKind);
   const stackable =
     isStackableDailyReward(item.effectKind) &&
