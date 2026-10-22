@@ -16,6 +16,19 @@ import {
 import { hasForbiddenGlobalChatLink } from "@/lib/game/global-chat";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dispatchDuePushNotifications } from "@/services/push-notifications";
+import { getCurrentTeamDirectTransferTradeCandidates } from "@/services/transfer-market";
+
+export async function loadDirectTransferTradeCandidatesAction() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) redirect("/connexion");
+  try {
+    return { candidates: await getCurrentTeamDirectTransferTradeCandidates(user.id), error: null };
+  } catch (error) {
+    console.error("direct_transfer_trade_candidates_failed", error);
+    return { candidates: [], error: "Impossible de charger vos coureurs échangeables. Vous pouvez réessayer sans modifier votre offre en argent." };
+  }
+}
 
 export async function placeTransferBidAction(formData: FormData) {
   const listingId = readValue(formData, "listingId");
@@ -110,6 +123,7 @@ export async function renewRiderContractAction(formData: FormData) {
 
 export async function submitDirectTransferOfferAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
+  const offeredRiderId = readValue(formData, "offeredRiderId");
   const amount = Number(readValue(formData, "amount"));
   const message = normalizeDirectMessage(readValue(formData, "message"));
   const returnPath = isUuid(riderId)
@@ -118,8 +132,9 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
     : "/jeu/transferts?onglet=offres";
   if (
     !isUuid(riderId) ||
+    (offeredRiderId !== "" && (!isUuid(offeredRiderId) || offeredRiderId === riderId)) ||
     !Number.isFinite(amount) ||
-    amount < 500 ||
+    amount < (offeredRiderId ? 0 : 500) ||
     amount > 100_000_000
   ) {
     redirectWithMessage(returnPath, "erreur", "Le montant de l'offre est invalide.");
@@ -141,11 +156,14 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
 
   const supabase = await authenticatedClient();
   const { error } = await supabase.rpc(
-    "submit_direct_transfer_offer_with_message",
+    offeredRiderId
+      ? "submit_direct_transfer_trade_offer"
+      : "submit_direct_transfer_offer_with_message",
     {
       p_rider_id: riderId,
       p_amount: amount,
       p_message: message || null,
+      ...(offeredRiderId ? { p_offered_rider_id: offeredRiderId } : {}),
     },
   );
   if (error) {
@@ -159,6 +177,7 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   schedulePushDispatch();
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
+  if (offeredRiderId) revalidatePath(`/jeu/coureurs/${offeredRiderId}`);
   revalidatePath("/jeu/messagerie");
   revalidatePath("/jeu/chat");
   redirectWithMessage(
@@ -168,9 +187,35 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   );
 }
 
+export async function cancelDirectTransferOfferAction(formData: FormData) {
+  const offerId = readValue(formData, "offerId");
+  if (!isUuid(offerId)) {
+    redirectWithMessage("/jeu/transferts?onglet=offres", "erreur", "Cette offre est invalide.");
+  }
+  const supabase = await authenticatedClient();
+  const { data: offer, error: offerError } = await supabase
+    .from("direct_transfer_offers")
+    .select("rider_id, offered_rider_id")
+    .eq("id", offerId)
+    .maybeSingle<{ rider_id: string; offered_rider_id: string | null }>();
+  if (offerError || !offer) {
+    redirectWithMessage("/jeu/transferts?onglet=offres", "erreur", "Cette offre n’est plus accessible.");
+  }
+  const returnPath = resolveTransferOrRiderReturnPath(readValue(formData, "returnPath"), offer.rider_id);
+  const { error } = await supabase.rpc("cancel_current_direct_transfer_offer", { p_offer_id: offerId });
+  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+  revalidateTransferPaths();
+  revalidatePath("/jeu/messagerie");
+  for (const riderId of [offer.rider_id, offer.offered_rider_id]) {
+    if (riderId && isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
+  }
+  redirectWithMessage(returnPath, "succes", offer.offered_rider_id
+    ? "Votre offre a été retirée. Le coureur proposé et la somme réservée sont libérés."
+    : "Votre offre a été retirée. La somme réservée est libérée.");
+}
+
 export async function respondToDirectTransferOfferAction(formData: FormData) {
   const offerId = readValue(formData, "offerId");
-  const riderId = readValue(formData, "riderId");
   const decision = readValue(formData, "decision");
   const returnPath = sanitizeTransferMarketReturnPath(
     readValue(formData, "returnPath") || "/jeu/transferts?onglet=offres",
@@ -180,6 +225,16 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
   }
 
   const supabase = await authenticatedClient();
+  // Never trust hidden rider IDs when invalidating both sides of an exchange.
+  // RLS limits this read to the teams participating in the offer.
+  const { data: offer, error: offerError } = await supabase
+    .from("direct_transfer_offers")
+    .select("rider_id, offered_rider_id")
+    .eq("id", offerId)
+    .maybeSingle<{ rider_id: string; offered_rider_id: string | null }>();
+  if (offerError || !offer) {
+    redirectWithMessage(returnPath, "erreur", "Cette offre n’est plus accessible.");
+  }
   const { error } = await supabase.rpc("respond_to_direct_transfer_offer", {
     p_offer_id: offerId,
     p_accept: decision === "accept",
@@ -195,7 +250,9 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
   schedulePushDispatch();
   revalidateTransferPaths();
   revalidatePath("/jeu/messagerie");
-  if (isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
+  for (const riderId of [offer.rider_id, offer.offered_rider_id]) {
+    if (riderId && isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
+  }
   redirectWithMessage(
     returnPath,
     "succes",

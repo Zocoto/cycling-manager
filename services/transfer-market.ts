@@ -149,6 +149,8 @@ type DirectOfferRow = {
   seller_team_id: string;
   offered_amount: number | string;
   salary_per_season: number | string;
+  offered_rider_id: string | null;
+  offered_rider_salary_per_season: number | string | null;
   currency_code: string;
   status: "pending" | "accepted" | "rejected" | "cancelled";
   created_at: string;
@@ -298,6 +300,15 @@ export type DirectTransferOffer = {
   buyerTeamId: string;
   buyerTeamName: string;
   rider: TransferRosterRider;
+  offeredRider: (TransferRosterRider & { salaryPerSeason: number }) | null;
+};
+
+export type DirectTransferTradeCandidate = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  currentSalary: number;
+  salaryPerSeason: number;
 };
 
 export type TransferMarketOverviewOptions = {
@@ -339,9 +350,13 @@ export type RiderTransferManagement = {
   dismissalCost: number | null;
   dismissalCurrency: string;
   canMakeDirectOffer: boolean;
+  canMakeCashOffer: boolean;
+  canMakeTradeOffer: boolean;
   directOfferSalary: number | null;
   directOfferBlockedReason: string | null;
   pendingDirectOfferAmount: number | null;
+  pendingDirectOfferId: string | null;
+  pendingOfferedRider: DirectTransferTradeCandidate | null;
   availableBudget: number;
   cashBalance: number;
   currency: string;
@@ -454,7 +469,7 @@ export async function getTransferMarketOverview(
     admin
       .from("direct_transfer_offers")
       .select(
-        "id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, currency_code, status, created_at, responded_at",
+        "id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, offered_rider_id, offered_rider_salary_per_season, currency_code, status, created_at, responded_at",
       )
       .eq("buyer_team_id", context.teamSeason.team_id)
       .eq("season_id", context.season.id)
@@ -464,7 +479,7 @@ export async function getTransferMarketOverview(
       ? admin
           .from("direct_transfer_offers")
           .select(
-            "id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, currency_code, status, created_at, responded_at",
+            "id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, offered_rider_id, offered_rider_salary_per_season, currency_code, status, created_at, responded_at",
           )
           .eq("seller_team_id", context.teamSeason.team_id)
           .eq("season_id", context.season.id)
@@ -518,7 +533,10 @@ export async function getTransferMarketOverview(
     : [];
   riderSearchRows.forEach((rider) => riderIds.add(rider.rider_id));
   const directOffers = receivedDirectOffersResult.data ?? [];
-  directOffers.forEach((offer) => riderIds.add(offer.rider_id));
+  directOffers.forEach((offer) => {
+    riderIds.add(offer.rider_id);
+    if (offer.offered_rider_id) riderIds.add(offer.offered_rider_id);
+  });
 
   const salaryRiderIds = [...riderIds];
   const nextSeasonId = options.includeRoster
@@ -736,6 +754,9 @@ export async function getTransferMarketOverview(
     })),
     directOffers: directOffers.flatMap((offer) => {
       const rider = riderById.get(offer.rider_id);
+      const offeredRider = offer.offered_rider_id
+        ? riderById.get(offer.offered_rider_id)
+        : null;
       if (!rider) return [];
       return [
         {
@@ -755,6 +776,13 @@ export async function getTransferMarketOverview(
             lastName: rider.lastName,
             overall: rider.overall,
           },
+          offeredRider: offer.offered_rider_id ? {
+            id: offer.offered_rider_id,
+            firstName: offeredRider?.firstName ?? "Coureur",
+            lastName: offeredRider?.lastName ?? "indisponible",
+            overall: offeredRider?.overall ?? 0,
+            salaryPerSeason: toNumber(offer.offered_rider_salary_per_season),
+          } : null,
         } satisfies DirectTransferOffer,
       ];
     }),
@@ -868,11 +896,16 @@ export async function getRiderTransferManagement(
       .returns<Array<{ rider_id: string }>>(),
     admin
       .from("direct_transfer_offers")
-      .select("id, offered_amount")
+      .select("id, offered_amount, offered_rider_id, offered_rider_salary_per_season")
       .eq("buyer_team_id", context.teamSeason.team_id)
       .eq("rider_id", riderId)
       .eq("status", "pending")
-      .maybeSingle<{ id: string; offered_amount: number | string }>(),
+      .maybeSingle<{
+        id: string;
+        offered_amount: number | string;
+        offered_rider_id: string | null;
+        offered_rider_salary_per_season: number | string | null;
+      }>(),
     admin.rpc("get_team_transfer_reserved_budget", {
       p_team_id: context.teamSeason.team_id,
       p_excluded_offer_id: null,
@@ -1077,14 +1110,27 @@ export async function getRiderTransferManagement(
   const directOfferBlockedReason = canTargetRider
     ? pendingOfferResult.data
       ? "Votre équipe a déjà une offre en attente pour ce coureur."
-      : sourceContractLocked
+      : sourceContractLocked || hasChangedTeamThisSeason
         ? "Ce coureur a déjà changé d’équipe cette saison et ne peut pas être transféré une seconde fois."
-        : rosterIsFull
+        : null
+    : null;
+  const cashOfferBlockedReason = directOfferBlockedReason ?? (canTargetRider
+    ? rosterIsFull
           ? `La capacité de recrutement de votre effectif (${currentRosterCapacity.baseLimit} places) est atteinte.`
           : availableBudget < 500
             ? "Votre trésorerie disponible ne couvre pas l’offre minimale."
             : null
-    : null;
+    : null);
+  const canMakeTradeOffer = canTargetRider && directOfferBlockedReason === null &&
+    !listingResult.data && riderResult.data.status === "active";
+  const pendingOfferedRiderId = pendingOfferResult.data?.offered_rider_id;
+  const pendingOfferedRiderResult = pendingOfferedRiderId
+    ? await admin.from("riders")
+        .select("id, first_name, last_name")
+        .eq("id", pendingOfferedRiderId)
+        .maybeSingle<{ id: string; first_name: string; last_name: string }>()
+    : { data: null, error: null };
+  assertQuery(pendingOfferedRiderResult.error, "le coureur proposé en échange");
 
   return {
     isFreeAgent,
@@ -1130,16 +1176,114 @@ export async function getRiderTransferManagement(
     canDismiss: Boolean(ownsRider && activeContract),
     dismissalCost: ownsRider ? toNumber(dismissalResult.data) : null,
     dismissalCurrency: context.teamSeason.currency,
-    canMakeDirectOffer: canTargetRider && directOfferBlockedReason === null,
+    canMakeDirectOffer: canTargetRider &&
+      (cashOfferBlockedReason === null || canMakeTradeOffer),
+    canMakeCashOffer: canTargetRider && cashOfferBlockedReason === null,
+    canMakeTradeOffer,
     directOfferSalary: canTargetRider ? salary : null,
-    directOfferBlockedReason,
+    directOfferBlockedReason: cashOfferBlockedReason,
     pendingDirectOfferAmount: pendingOfferResult.data
       ? toNumber(pendingOfferResult.data.offered_amount)
       : null,
+    pendingDirectOfferId: pendingOfferResult.data?.id ?? null,
+    pendingOfferedRider: pendingOfferedRiderId ? {
+      id: pendingOfferedRiderId,
+      firstName: pendingOfferedRiderResult.data?.first_name ?? "Coureur",
+      lastName: pendingOfferedRiderResult.data?.last_name ?? "indisponible",
+      currentSalary: 0,
+      salaryPerSeason: toNumber(pendingOfferResult.data?.offered_rider_salary_per_season),
+    } : null,
     availableBudget,
     cashBalance: toNumber(context.teamSeason.cash_balance),
     currency: context.teamSeason.currency,
   };
+}
+
+export async function getCurrentTeamDirectTransferTradeCandidates(
+  authUserId: string,
+): Promise<DirectTransferTradeCandidate[]> {
+  const admin = createSupabaseAdminClient();
+  const context = await loadCurrentContext(admin, authUserId);
+  if (!context) return [];
+  const contractsResult = await admin.from("rider_contracts")
+    .select("id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status, acquisition_type")
+    .eq("team_id", context.teamSeason.team_id)
+    .in("status", ["active", "planned"])
+    .limit(200)
+    .returns<ContractRow[]>();
+  assertQuery(contractsResult.error, "vos contrats échangeables");
+  return loadDirectTransferTradeCandidates({
+    admin,
+    contracts: contractsResult.data ?? [],
+    seasonId: context.season.id,
+  });
+}
+
+// Loaded only on explicit request from the composer, never on initial rendering.
+// The RPC repeats every check under locks; these bounded batches are UX hints only.
+async function loadDirectTransferTradeCandidates({
+  admin,
+  contracts,
+  seasonId,
+}: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
+  contracts: ContractRow[];
+  seasonId: string;
+}): Promise<DirectTransferTradeCandidate[]> {
+  const candidates = contracts.filter((contract) =>
+    contract.status === "active" &&
+    contract.transfer_locked_season_id !== seasonId &&
+    !contracts.some((other) => other.rider_id === contract.rider_id &&
+      other.status === "planned" && other.acquisition_type !== "renewal"),
+  );
+  const riderIds = [...new Set(candidates.map((contract) => contract.rider_id))];
+  if (riderIds.length === 0) return [];
+  const [ridersResult, listingsResult, offersResult, lockedIds, salaryQuotes] = await Promise.all([
+    admin.from("riders")
+      .select("id, first_name, last_name")
+      .in("id", riderIds)
+      .eq("status", "active")
+      .limit(200)
+      .returns<Array<{ id: string; first_name: string; last_name: string }>>(),
+    admin.from("transfer_market_listings")
+      .select("rider_id")
+      .in("rider_id", riderIds)
+      .eq("status", "open")
+      .limit(200)
+      .returns<Array<{ rider_id: string }>>(),
+    admin.from("direct_transfer_offers")
+      .select("rider_id, offered_rider_id")
+      .eq("status", "pending")
+      .or(`rider_id.in.(${riderIds.join(",")}),offered_rider_id.in.(${riderIds.join(",")})`)
+      .limit(1000)
+      .returns<Array<{ rider_id: string; offered_rider_id: string | null }>>(),
+    loadSeasonTeamChangeLockedRiderIds(admin, riderIds, seasonId),
+    loadRiderSalaryQuotes(admin, riderIds, seasonId),
+  ]);
+  assertQuery(ridersResult.error, "vos coureurs échangeables");
+  assertQuery(listingsResult.error, "leurs enchères");
+  assertQuery(offersResult.error, "leurs offres en attente");
+  const unavailable = new Set([
+    ...lockedIds,
+    ...(listingsResult.data ?? []).map((listing) => listing.rider_id),
+    ...(offersResult.data ?? []).flatMap((offer) =>
+      offer.offered_rider_id ? [offer.rider_id, offer.offered_rider_id] : [offer.rider_id]),
+  ]);
+  const contractByRider = new Map(candidates.map((contract) => [contract.rider_id, contract]));
+  return (ridersResult.data ?? []).flatMap((rider) => {
+    const contract = contractByRider.get(rider.id);
+    const salary = salaryQuotes.get(rider.id);
+    if (!contract || salary === undefined || unavailable.has(rider.id)) return [];
+    return [{
+      id: rider.id,
+      firstName: rider.first_name,
+      lastName: rider.last_name,
+      currentSalary: toNumber(contract.salary_per_season),
+      salaryPerSeason: salary,
+    }];
+  }).sort((left, right) =>
+    `${left.lastName} ${left.firstName}`.localeCompare(`${right.lastName} ${right.firstName}`, "fr"),
+  );
 }
 
 async function ensureTodayDailyMarket(

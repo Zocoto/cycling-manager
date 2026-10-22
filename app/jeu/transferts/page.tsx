@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
+import { DirectTransferOfferTerms } from "@/components/game/direct-transfer-offer-terms";
 
 import {
   placeTransferBidAction,
@@ -358,7 +359,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
         <SectionHeading
           eyebrow="Décisions en attente"
           title="Offres reçues"
-          detail="Chaque réponse est définitive. Une acceptation crédite immédiatement votre équipe, libère le coureur de son contrat actuel et l’engage avec l’acheteur jusqu’à la fin de la saison."
+          detail="Chaque réponse est définitive. Consultez l’indemnité, le coureur éventuellement proposé en échange et les salaires des deux nouveaux contrats avant d’accepter."
         />
         {pendingOffers.length > 0 ? (
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -382,25 +383,15 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                   </p>
                 </header>
                 <div className="p-6">
-                  <div className="grid grid-cols-2 gap-3">
-                    <PriceBlock
-                      label="Indemnité versée"
-                      value={formatMoney(offer.amount, offer.currency)}
-                    />
-                    <PriceBlock
-                      label="Salaire du futur contrat"
-                      value={formatMoney(offer.salaryPerSeason, offer.currency)}
-                    />
-                  </div>
+                  <DirectTransferOfferTerms offer={offer} />
                   <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
-                    En acceptant, votre équipe reçoit l’indemnité et l’acheteur
-                    prend immédiatement en charge le coureur. Les équipements,
-                    inscriptions et stages sont nettoyés automatiquement.
+                    {offer.offeredRider
+                      ? "L’acceptation vérifie à nouveau les deux coureurs, les effectifs et les budgets. Aucune course ni aucun stage en cours ou à venir ne sera supprimé pour forcer l’échange."
+                      : "En acceptant, votre équipe reçoit l’indemnité et l’acheteur prend immédiatement en charge le coureur. Les équipements, inscriptions et stages sont nettoyés automatiquement."}
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <form action={respondToDirectTransferOfferAction}>
                       <input type="hidden" name="offerId" value={offer.id} />
-                      <input type="hidden" name="riderId" value={offer.rider.id} />
                       <input type="hidden" name="decision" value="accept" />
                       <input type="hidden" name="returnPath" value={returnPath} />
                       <TransferSubmitButton pendingLabel="Acceptation…" tone="green">
@@ -409,7 +400,6 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                     </form>
                     <form action={respondToDirectTransferOfferAction}>
                       <input type="hidden" name="offerId" value={offer.id} />
-                      <input type="hidden" name="riderId" value={offer.rider.id} />
                       <input type="hidden" name="decision" value="reject" />
                       <input type="hidden" name="returnPath" value={returnPath} />
                       <TransferSubmitButton pendingLabel="Refus…" tone="dark">
@@ -444,6 +434,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                     <th className="px-5 py-3">Coureur</th>
                     <th className="px-4 py-3">Équipe demandeuse</th>
                     <th className="px-4 py-3 text-right">Montant</th>
+                    <th className="px-4 py-3">Coureur reçu en échange</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-5 py-3 text-right">Décision</th>
                   </tr>
@@ -466,6 +457,11 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                         </td>
                         <td className="px-4 py-4 text-right text-sm font-black text-[#183F37]">
                           {formatMoney(offer.amount, offer.currency)}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-bold text-[#48665F]">
+                          {offer.offeredRider ? (
+                            <><Link href={`/jeu/coureurs/${offer.offeredRider.id}`} className="underline underline-offset-4">{offer.offeredRider.firstName} {offer.offeredRider.lastName}</Link><span className="mt-1 block text-xs">{formatMoney(offer.offeredRider.salaryPerSeason, offer.currency)} / saison</span></>
+                          ) : "—"}
                         </td>
                         <td className="px-4 py-4 text-xs font-bold text-[#60756E]">
                           {formatDateTime(offer.respondedAt ?? offer.createdAt)}
