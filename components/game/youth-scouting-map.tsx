@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions";
 import {
-  getScoutingCountrySuggestions, getScoutingMapPoint, isScoutingMapPointVisible,
+  formatScoutingMapPercentage, getScoutingCountrySuggestions, getScoutingMapPoint, isScoutingMapPointVisible,
   SCOUTING_MAP_VIEWS, type ScoutingMapView,
 } from "@/lib/game/youth-scouting-map";
 import {
@@ -226,7 +226,7 @@ export function YouthScoutingMap({
                   aria-label={`Sélectionner ${country.name}`}
                   onClick={() => selectCountry(country)}
                   className={`group absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSelected ? "z-20" : "z-10 hover:z-20"}`}
-                  style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                  style={{ left: formatScoutingMapPercentage(point.x), top: formatScoutingMapPercentage(point.y) }}
                 >
                   <span className={`block rounded-full border transition ${isSelected ? "h-4 w-4 border-white bg-[#F2C94C] shadow-[0_0_0_7px_rgba(242,201,76,0.2),0_0_22px_rgba(242,201,76,0.65)]" : "h-2 w-2 border-[#C9F0E4]/60 bg-[#72D4B7]/80 shadow-[0_0_7px_rgba(114,212,183,0.4)] group-hover:h-3 group-hover:w-3 group-hover:border-white group-hover:bg-[#F2C94C]"}`} />
                   {isSelected ? (
@@ -441,8 +441,8 @@ function WorldPlanisphere({ view }: { view: ScoutingMapView }) {
       aria-hidden="true"
       className="pointer-events-none absolute bg-[length:100%_100%] bg-center bg-no-repeat"
       style={{ backgroundImage: 'url("/images/scouting-world-map.svg")',
-        left: `${-frame.left * 100 / frame.size}%`, top: `${-frame.top * 100 / frame.size}%`,
-        width: `${10000 / frame.size}%`, height: `${10000 / frame.size}%` }}
+        left: formatScoutingMapPercentage(-frame.left * 100 / frame.size), top: formatScoutingMapPercentage(-frame.top * 100 / frame.size),
+        width: formatScoutingMapPercentage(10000 / frame.size), height: formatScoutingMapPercentage(10000 / frame.size) }}
     />
   );
 }
