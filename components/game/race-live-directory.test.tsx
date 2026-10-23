@@ -6,6 +6,7 @@ import type {
   SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import type { NationalChampionshipGroup } from "./national-championship-results-directory";
+import { InternationalChampionshipResultsAccess } from "./international-championship-results-access";
 
 import {
   RaceLiveDirectory,
@@ -263,7 +264,136 @@ describe("RaceLiveDirectory", () => {
     expect(isEditionInResultsScope(nationsCupEdition, "team")).toBe(false);
     expect(isEditionInResultsScope(nationsCupEdition, "unridden")).toBe(false);
   });
+
+  it.each(["continental_championship", "world_championship"] as const)(
+    "rend %s accessible sans inscription de club, y compris dans les archives",
+    (competitionType) => {
+      const edition = createChampionship({ competitionType, timeTrial: false });
+      edition.engagedRiderCount = 0;
+      edition.currentTeamInternationalRiderCount = 0;
+      edition.status = "completed";
+      edition.stages[0].status = "completed";
+
+      for (const scope of ["team", "unridden"] as const) {
+        expect(isEditionInResultsScope(edition, scope)).toBe(true);
+        const markup = renderToStaticMarkup(
+          <RaceLiveDirectory
+            calendar={createCalendar({ currentDayNumber: 5, editions: [edition] })}
+            nowIso="2026-07-30T20:00:00Z"
+            initialScope={scope}
+          />,
+        );
+        expect(markup).toContain("Courses passées");
+        expect(markup).toContain(`href="/jeu/resultats/${edition.slug}/1"`);
+        expect(markup).not.toContain('id="championnats-internationaux-resultats"');
+      }
+    },
+  );
+
+  it.each(["continental_championship", "world_championship"] as const)(
+    "affiche les accès CLM et route de %s uniquement leur jour, même après leur fin",
+    (competitionType) => {
+      const clm = createChampionship({ competitionType, timeTrial: true });
+      const road = createChampionship({ competitionType, timeTrial: false });
+      clm.status = "completed";
+      clm.stages[0].status = "completed";
+      const editions = [clm, road];
+      const renderAccess = (day: number, nowIso: string) => renderToStaticMarkup(
+        <InternationalChampionshipResultsAccess
+          calendar={createCalendar({ currentDayNumber: day, editions })}
+          now={new Date(nowIso)}
+        />,
+      );
+
+      expect(renderAccess(3, "2026-07-28T20:00:00Z")).toBe("");
+      const raceDay = renderAccess(4, "2026-07-29T14:00:00Z");
+      expect(raceDay).toContain(`href="/jeu/resultats/${clm.slug}/1"`);
+      expect(raceDay).toContain(`href="/jeu/resultats/${road.slug}/1"`);
+      expect(raceDay).toContain("Résultats");
+      expect(raceDay).toContain("18 h");
+      expect(raceDay.match(/<h3/g)).toHaveLength(1);
+
+      expect(renderAccess(4, "2026-07-29T16:01:00Z")).toContain("En direct");
+      road.status = "completed";
+      road.stages[0].status = "completed";
+      const evening = renderAccess(4, "2026-07-29T21:59:00Z");
+      expect(evening.match(/>Résultats</g)).toHaveLength(2);
+      expect(renderAccess(5, "2026-07-30T06:00:00Z")).toBe("");
+    },
+  );
+
+  it("ne montre le raccourci route des Mondiaux que le jour de cette discipline", () => {
+    const clm = createChampionship({ competitionType: "world_championship", timeTrial: true });
+    const road = createChampionship({ competitionType: "world_championship", timeTrial: false });
+    road.stages[0].dayNumber = 5;
+    const markup = renderToStaticMarkup(
+      <InternationalChampionshipResultsAccess
+        calendar={createCalendar({ currentDayNumber: 5, editions: [clm, road] })}
+        now={new Date("2026-07-30T14:00:00Z")}
+      />,
+    );
+    expect(markup).toContain(`href="/jeu/resultats/${road.slug}/1"`);
+    expect(markup).not.toContain(`href="/jeu/resultats/${clm.slug}/1"`);
+  });
+
+  it("écarte du raccourci les épreuves annulées, juniors et ordinaires", () => {
+    const cancelledEdition = createChampionship({ competitionType: "continental_championship", timeTrial: false });
+    cancelledEdition.status = "cancelled";
+    const cancelledStage = createChampionship({ competitionType: "world_championship", timeTrial: false });
+    cancelledStage.stages[0].status = "cancelled";
+    const junior = createChampionship({ competitionType: "world_championship", timeTrial: true });
+    junior.isJuniorChampionship = true;
+    const ordinary = createEdition({ id: "ordinary", name: "Course ordinaire", dayNumbers: [4] });
+    const markup = renderToStaticMarkup(
+      <InternationalChampionshipResultsAccess
+        calendar={createCalendar({ currentDayNumber: 4, editions: [cancelledEdition, cancelledStage, junior, ordinary] })}
+        now={new Date("2026-07-29T14:00:00Z")}
+      />,
+    );
+    expect(markup).toBe("");
+  });
+
+  it("conserve les accès du jour dans les deux portées de résultats", () => {
+    const edition = createChampionship({ competitionType: "continental_championship", timeTrial: true });
+    for (const scope of ["team", "unridden"] as const) {
+      const markup = renderToStaticMarkup(
+        <RaceLiveDirectory
+          calendar={createCalendar({ currentDayNumber: 4, editions: [edition] })}
+          nowIso="2026-07-29T14:00:00Z"
+          initialScope={scope}
+        />,
+      );
+      const panelStart = markup.indexOf('id="championnats-internationaux-resultats"');
+      const filtersStart = markup.indexOf("Portée des résultats et directs");
+      expect(panelStart).toBeGreaterThanOrEqual(0);
+      expect(panelStart).toBeLessThan(filtersStart);
+      expect(markup.slice(panelStart, filtersStart)).toContain(`href="/jeu/resultats/${edition.slug}/1"`);
+    }
+  });
 });
+
+function createChampionship({
+  competitionType,
+  timeTrial,
+}: {
+  competitionType: "continental_championship" | "world_championship";
+  timeTrial: boolean;
+}) {
+  const baseSlug = competitionType === "world_championship"
+    ? "championnats-du-monde"
+    : "championnats-continentaux-europe";
+  const edition = createEdition({
+    id: `${baseSlug}${timeTrial ? "-contre-la-montre" : ""}`,
+    name: `${competitionType === "world_championship" ? "Championnats du monde" : "Championnats d’Europe"}${timeTrial ? " CLM" : ""}`,
+    dayNumbers: [4],
+    registered: false,
+  });
+  edition.competitionType = competitionType;
+  edition.stages[0].stageType = timeTrial ? "individual_time_trial" : "road";
+  edition.stages[0].daySlot = timeTrial ? "early" : "late";
+  edition.stages[0].departureAt = timeTrial ? "2026-07-29T12:00:00Z" : "2026-07-29T16:00:00Z";
+  return edition;
+}
 
 function createCalendar({
   currentDayNumber,
