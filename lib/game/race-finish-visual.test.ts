@@ -62,6 +62,12 @@ const scenario: FinalBattleScenario = {
 };
 
 describe("final race visualization", () => {
+  it("bounds the roster when a non-finite optional team limit is supplied", () => {
+    const riders = Array.from({ length: 15 }, (_, index) => ({ id: `bounded-${index}`, teamId: `bounded-team-${index}`, role: "sprinter" as const }));
+    for (const maximumTeams of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(buildSprintVisualRoster({ riders, favoriteRiderIds: riders.map(row => row.id), maximumTeams })).toHaveLength(10);
+    }
+  });
   it("répartit les coureurs sur plusieurs profondeurs sans sortir de la route", () => {
     const offsets = Array.from({ length: 7 }, (_, riderIndex) =>
       getFinishLaneOffset({ riderIndex, roadDepth: 70 }),
@@ -269,6 +275,113 @@ describe("final race visualization", () => {
     expect(battle.favoriteRiderIds).toHaveLength(10);
     expect(battle.favoriteRiderIds).toContain("sprinter-1");
     expect(battle.favoriteRiderIds).not.toContain("sprinter-12");
+  });
+
+  it("garde le podium officiel même quand aucun de ses coureurs n'est sprinteur", () => {
+    const input = createMixedPodiumInput();
+    const battle = buildSprintVisualBattle(input);
+
+    expect(battle.favoriteRiderIds).toHaveLength(10);
+    expect(battle.favoriteRiderIds).toEqual(expect.arrayContaining([
+      "podium-1", "podium-2", "podium-3",
+    ]));
+    expect(new Set(battle.favoriteRiderIds).size).toBe(10);
+  });
+
+  it("ne transforme pas un abandon ou un rang absent en podium à afficher", () => {
+    const input = createMixedPodiumInput();
+    input.results[1].status = "did_not_finish";
+    input.results[2].rank = null;
+    const battle = buildSprintVisualBattle(input);
+
+    expect(battle.favoriteRiderIds).toContain("podium-1");
+    expect(battle.favoriteRiderIds).not.toContain("podium-2");
+    expect(battle.favoriteRiderIds).not.toContain("podium-3");
+  });
+
+  it("préserve les mêmes favoris et trains quand le podium est déjà visible", () => {
+    const riders = Array.from({ length: 12 }, (_, index) =>
+      createSprintVisualRider(`sprinter-${index}`, `team-${index}`, 94 - index),
+    );
+    const results = riders.map((rider, index) => ({
+      riderId: rider.id, status: "finished" as const,
+      rank: index + 1, energyAfter: 60,
+    }));
+    const battle = buildSprintVisualBattle({ riders, results, seed: "unchanged" });
+    const rosterInput = { riders, favoriteRiderIds: battle.favoriteRiderIds };
+
+    expect(battle.favoriteRiderIds).toEqual(riders.slice(0, 10).map((rider) => rider.id));
+    expect(buildSprintVisualRoster({
+      ...rosterInput, requiredRiderIds: ["sprinter-0", "sprinter-1", "sprinter-2"],
+    })).toEqual(buildSprintVisualRoster(rosterInput));
+  });
+
+  it("conserve les trois équipiers du podium comme prétendants dans leur même ligne", () => {
+    const input = createMixedPodiumInput(true);
+    const battle = buildSprintVisualBattle(input);
+    const roster = buildSprintVisualRoster({
+      riders: input.riders,
+      favoriteRiderIds: battle.favoriteRiderIds,
+      requiredRiderIds: ["podium-1", "podium-2", "podium-3"],
+    });
+    const podiumTeam = roster.find((team) => team.teamId === "podium-team");
+
+    expect(podiumTeam?.contenderRiderIds).toEqual(expect.arrayContaining([
+      "podium-1", "podium-2", "podium-3",
+    ]));
+    expect(podiumTeam?.contenderRiderIds).toHaveLength(3);
+    expect(podiumTeam?.riderIds).toEqual(podiumTeam?.contenderRiderIds);
+    expect(roster.filter((team) => team.teamId === "podium-team")).toHaveLength(1);
+    expect(roster.length).toBeLessThanOrEqual(10);
+  });
+
+  it("ne relâche pas un poisson-pilote qui figure réellement sur le podium", () => {
+    const input = createMixedPodiumInput(true);
+    const riders = input.riders.map((rider) => rider.id === "podium-2"
+      ? { ...rider, role: "leadout" as const }
+      : rider);
+    const roster = buildSprintVisualRoster({
+      riders,
+      favoriteRiderIds: ["podium-1"],
+      requiredRiderIds: ["podium-1", "podium-2", "podium-3"],
+    });
+
+    expect(roster[0].riderIds).toContain("podium-2");
+    expect(roster[0].contenderRiderIds).toContain("podium-2");
+    expect(roster[0].leadoutRiderIds).not.toContain("podium-2");
+  });
+
+  it("réserve le podium manquant sans dépasser dix équipes ni dupliquer les coureurs", () => {
+    const input = createMixedPodiumInput();
+    const roster = buildSprintVisualRoster({
+      riders: input.riders,
+      favoriteRiderIds: input.riders.slice(3, 13).map((rider) => rider.id),
+      requiredRiderIds: ["podium-1", "podium-2", "podium-3"],
+    });
+    const riderIds = roster.flatMap((team) => team.riderIds);
+
+    expect(roster).toHaveLength(10);
+    expect(new Set(roster.map((team) => team.teamId)).size).toBe(10);
+    expect(riderIds).toEqual(expect.arrayContaining(["podium-1", "podium-2", "podium-3"]));
+    expect(new Set(riderIds).size).toBe(riderIds.length);
+  });
+
+  it("reste déterministe et ne modifie jamais les rôles, classements ou tableaux reçus", () => {
+    const input = createMixedPodiumInput(true);
+    const before = JSON.stringify(input);
+    const first = buildSprintVisualBattle(input);
+    const second = buildSprintVisualBattle(input);
+    const rosterInput = {
+      riders: input.riders,
+      favoriteRiderIds: first.favoriteRiderIds,
+      requiredRiderIds: ["podium-1", "podium-2", "podium-3"],
+    };
+    const beforeRoster = JSON.stringify(rosterInput);
+
+    expect(second).toEqual(first);
+    expect(buildSprintVisualRoster(rosterInput)).toEqual(buildSprintVisualRoster(rosterInput));
+    expect(JSON.stringify(input)).toBe(before);
+    expect(JSON.stringify(rosterInput)).toBe(beforeRoster);
   });
 
   it("garde le sprinteur avec son poisson-pilote et accroche les isolés à un train adverse", () => {
@@ -767,5 +880,29 @@ function createSprintVisualRider(
       recovery: 60,
       breakaway: 45,
     },
+  };
+}
+
+function createMixedPodiumInput(sameTeam = false) {
+  const riders = [
+    ...Array.from({ length: 3 }, (_, index) => ({
+      ...createSprintVisualRider(
+        `podium-${index + 1}`, sameTeam ? "podium-team" : `podium-team-${index}`, 40,
+      ),
+      role: "leader" as const,
+    })),
+    ...Array.from({ length: 12 }, (_, index) =>
+      createSprintVisualRider(`sprinter-${index}`, `team-${index}`, 94 - index),
+    ),
+  ];
+  return {
+    riders,
+    results: riders.map((rider, index) => ({
+      riderId: rider.id,
+      status: "finished" as "finished" | "did_not_finish" | "outside_time_limit",
+      rank: index + 1 as number | null,
+      energyAfter: 60,
+    })),
+    seed: "mixed-podium",
   };
 }

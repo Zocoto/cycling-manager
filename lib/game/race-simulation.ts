@@ -1,4 +1,5 @@
 import type { RaceSegmentPrime, RaceStageSegment } from "./race-profiles";
+import { isUrbanCobbles, normalizeUrbanCobblesSegments } from "./urban-cobbles";
 import { PERFORMANCE_PREPARATION_FACILITIES, type PerformancePreparationType } from "./performance-preparation";
 import type { NationalJerseyDraft } from "./national-jersey-preview";
 import { createRaceTeamWorkRecorder } from "./race-team-work";
@@ -411,6 +412,8 @@ export type RacePrimeResult = {
 };
 
 export type StageSimulationResult = {
+  /** Frozen sporting finish category; absent on historical locks. */
+  roadFinishMode?: RoadFinishMode;
   teamWork?: import("./race-team-work").RaceTeamWorkPeriod[];
   stageId: string;
   seed: string;
@@ -542,6 +545,11 @@ export function isMassGroupFinish(
   simulation: StageSimulationResult,
   minimumGroupSize = 10,
 ) {
+  // A compact group is not necessarily a mass sprint (mountains, classics,
+  // reduced sprints). Historical locks keep their former visual fallback.
+  if (simulation.roadFinishMode && simulation.roadFinishMode !== "mass_sprint") {
+    return false;
+  }
   const scenario = getFinalBattleScenario(simulation);
   const entrySnapshot =
     simulation.timeline.at(-2) ?? simulation.timeline.at(-1);
@@ -1198,6 +1206,11 @@ function normalizeStageSimulationInput(
     : undefined;
   const eligibleInput = {
     ...input,
+    segments: normalizeUrbanCobblesSegments({
+      stageType: input.stageType,
+      profileType: input.profileType,
+      segments: input.segments,
+    }),
     weather,
     ...(eligibleTeamStrategies
       ? { teamStrategies: eligibleTeamStrategies }
@@ -2227,7 +2240,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     .filter((rider): rider is RiderSimulationInput => Boolean(rider));
   const selectiveTerrainShare =
     input.segments.filter(
-      (segment) => segment.terrain === "climb" || segment.surface === "cobbles",
+      (segment) => segment.terrain === "climb" ||
+        (segment.surface === "cobbles" && !isUrbanCobbles(segment)),
     ).length / input.segments.length;
   const likelyMassSprint = isLikelyMassSprint(input.segments);
   const tacticalResolution = applyRaceTacticalBriefings({
@@ -3923,6 +3937,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     stageId: input.id,
     seed: String(input.seed),
     resolvedRiders: input.riders,
+    roadFinishMode,
     timeline,
     visualTimeline,
     results,
@@ -5508,7 +5523,9 @@ function updateRiderEnergy({
     segment.terrain === "climb"
       ? 1 + Math.abs(segment.averageGradientPct) / 8
       : segment.surface === "cobbles"
-        ? 1.28
+        ? isUrbanCobbles(segment)
+          ? 1.02
+          : 1.28
         : segment.terrain === "descent"
           ? 0.62
           : 0.9;
@@ -11728,7 +11745,9 @@ function getTerrainRating(
   }
 
   if (segment.surface === "cobbles") {
-    rating = rating * 0.36 + rider.ratings.cobbles * 0.64;
+    rating = isUrbanCobbles(segment)
+      ? rating * 0.82 + rider.ratings.cobbles * 0.18
+      : rating * 0.36 + rider.ratings.cobbles * 0.64;
   }
 
   rating += getRiderPhysiologyTerrainModifier({
@@ -11808,6 +11827,11 @@ function getSegmentSelectionDifficulty(
   hillyClimbLoad: number,
 ) {
   if (segment.surface === "cobbles") {
+    // Rolling urban paving costs energy and rewards handling, but does not
+    // create classic-style terrain ruptures in a fresh, compact peloton.
+    if (isUrbanCobbles(segment)) {
+      return clamp(0.35 + segment.distanceKm / 40, 0.35, 0.5);
+    }
     return clamp(
       0.65 +
         segment.distanceKm / 30 +
@@ -12278,7 +12302,7 @@ export function isLikelyMassSprint(segments: RaceStageSegment[]) {
   if (
     !finalSegment ||
     finalSegment.terrain !== "flat" ||
-    finalSegment.surface !== "asphalt"
+    (finalSegment.surface !== "asphalt" && !isUrbanCobbles(finalSegment))
   ) {
     return false;
   }
@@ -12301,7 +12325,8 @@ export function isLikelyMassSprint(segments: RaceStageSegment[]) {
         climbLoad >= 28 ||
         (distanceInsideWindowKm >= 6 && gradient >= 5.5));
     const decisiveCobbles =
-      segment.surface === "cobbles" && distanceInsideWindowKm >= 4;
+      segment.surface === "cobbles" && !isUrbanCobbles(segment) &&
+      distanceInsideWindowKm >= 4;
     if (decisiveClimb || decisiveCobbles) return false;
 
     distanceAfterSegmentKm += segment.distanceKm;
@@ -12335,7 +12360,7 @@ export function isFlatRunInGroupSprint(
   return (
     groupSize >= FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS &&
     finalSegment?.terrain === "flat" &&
-    finalSegment.surface === "asphalt"
+    (finalSegment.surface === "asphalt" || isUrbanCobbles(finalSegment))
   );
 }
 

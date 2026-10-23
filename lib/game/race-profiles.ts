@@ -22,6 +22,7 @@ export type RaceStageSegment = {
   terrain: SegmentTerrain;
   averageGradientPct: number;
   surface: SegmentSurface;
+  cobblesStyle?: "urban";
   prime: RaceSegmentPrime | null;
 };
 

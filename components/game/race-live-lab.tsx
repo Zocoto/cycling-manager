@@ -2054,6 +2054,9 @@ function SprintLaneView({
       };
     }),
     favoriteRiderIds: orderedFavoriteRiderIds,
+    requiredRiderIds: allFinalists
+      .filter((result) => result.rank !== null && result.rank >= 1 && result.rank <= 3)
+      .map((result) => result.riderId),
   });
   const visibleRiderSet = new Set(
     sprintRoster.flatMap((team) => team.riderIds)
@@ -2073,7 +2076,7 @@ function SprintLaneView({
     visibleRiderSet.has(result.riderId)
   );
   const contenderRiderIds = sprintRoster
-    .map((team) => team.contenderRiderId)
+    .flatMap((team) => team.contenderRiderIds ?? [team.contenderRiderId])
     .sort(
       (firstId, secondId) =>
         (allFinalists.find((result) => result.riderId === firstId)?.rank ?? 999) -
@@ -2226,7 +2229,8 @@ function SprintLaneView({
         const wheelTargetTeamIndex =
           !isLeadout && wheelTargetRiderId && visualPhase.phase !== "duel"
             ? sprintRoster.findIndex(
-                (team) => team.contenderRiderId === wheelTargetRiderId
+                (team) => (team.contenderRiderIds ?? [team.contenderRiderId])
+                  .includes(wheelTargetRiderId)
               )
             : -1;
         const lane =

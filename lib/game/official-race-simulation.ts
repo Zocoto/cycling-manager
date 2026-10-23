@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-time-trial-effort-balance-v50";
+  "2026.10-rolling-urban-cobbles-finish-v51";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

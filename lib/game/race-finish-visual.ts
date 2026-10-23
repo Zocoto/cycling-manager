@@ -84,6 +84,8 @@ export function buildSprintVisualTeams(
 export type SprintVisualRosterTeam = {
   teamId: string;
   contenderRiderId: string;
+  /** Extra official podium finishers must not disappear behind a teammate. */
+  contenderRiderIds?: string[];
   leadoutRiderIds: string[];
   riderIds: string[];
 };
@@ -106,12 +108,25 @@ export function buildSprintVisualRoster({
   riders,
   favoriteRiderIds,
   maximumTeams = 10,
+  requiredRiderIds = [],
 }: {
   riders: readonly SprintVisualRider[];
   favoriteRiderIds: readonly string[];
   maximumTeams?: number;
+  requiredRiderIds?: readonly string[];
 }): SprintVisualRosterTeam[] {
   const riderById = new Map(riders.map((rider) => [rider.id, rider]));
+  const requiredRiders = [...new Set(requiredRiderIds)]
+    .map((riderId) => riderById.get(riderId))
+    .filter((rider): rider is SprintVisualRider => Boolean(rider))
+    .slice(0, 3);
+  const requiredTeamIds = new Set(requiredRiders.map((rider) => rider.teamId));
+  const visibleTeamLimit = Math.max(
+    requiredTeamIds.size,
+    Number.isFinite(maximumTeams)
+      ? Math.min(10, Math.max(1, Math.ceil(maximumTeams)))
+      : 10,
+  );
   const selectedTeamIds = new Set<string>();
   const roster: SprintVisualRosterTeam[] = [];
 
@@ -136,7 +151,45 @@ export function buildSprintVisualRoster({
       riderIds: [...leadoutRiderIds, contenderRiderId],
     });
     selectedTeamIds.add(contender.teamId);
-    if (roster.length >= maximumTeams) break;
+    if (roster.length >= visibleTeamLimit) break;
+  }
+
+  // Preserve the existing roster and its positions whenever the podium was
+  // already represented. Only missing podium riders can expand/replace it.
+  for (const rider of requiredRiders) {
+    let team = roster.find((entry) => entry.teamId === rider.teamId);
+    if (!team) {
+      if (roster.length >= visibleTeamLimit) {
+        for (let index = roster.length - 1; index >= 0; index -= 1) {
+          if (!requiredTeamIds.has(roster[index].teamId)) {
+            roster.splice(index, 1);
+            break;
+          }
+        }
+      }
+      const leadoutRiderIds = riders
+        .filter((candidate) =>
+          candidate.teamId === rider.teamId &&
+          candidate.role === "leadout" && candidate.id !== rider.id)
+        .slice(0, 2)
+        .map((candidate) => candidate.id);
+      team = {
+        teamId: rider.teamId,
+        contenderRiderId: rider.id,
+        leadoutRiderIds,
+        riderIds: [...leadoutRiderIds, rider.id],
+      };
+      roster.push(team);
+    }
+    if (team.contenderRiderId !== rider.id) {
+      const contenderIds = team.contenderRiderIds ?? [team.contenderRiderId];
+      if (!contenderIds.includes(rider.id)) contenderIds.push(rider.id);
+      team.contenderRiderIds = contenderIds;
+    }
+    // A rider who actually finished on the podium is not an expendable
+    // leadout in the animation, even if that was their assigned race role.
+    team.leadoutRiderIds = team.leadoutRiderIds.filter((id) => id !== rider.id);
+    if (!team.riderIds.includes(rider.id)) team.riderIds.push(rider.id);
   }
 
   return roster;
@@ -346,9 +399,26 @@ export function buildSprintVisualBattle({
     ? riderById.get(winnerResult.riderId)
     : undefined;
 
-  if (winner && !favorites.some((favorite) => favorite.id === winner.id)) {
-    favorites.splice(Math.min(9, favorites.length), 0, winner);
-    favorites.splice(10);
+  const podium = results
+    .filter((result): result is SprintVisualResult & { rank: number } =>
+      result.status === "finished" && result.rank !== null &&
+      result.rank >= 1 && result.rank <= 3)
+    .sort((first, second) => first.rank - second.rank)
+    .map((result) => riderById.get(result.riderId))
+    .filter((rider): rider is SprintVisualBattleRider => Boolean(rider));
+  const podiumIds = new Set(podium.map((rider) => rider.id));
+  for (const rider of podium) {
+    if (favorites.some((favorite) => favorite.id === rider.id)) continue;
+    if (favorites.length < 10) {
+      favorites.push(rider);
+    } else {
+      for (let index = favorites.length - 1; index >= 0; index -= 1) {
+        if (!podiumIds.has(favorites[index].id)) {
+          favorites.splice(index, 1, rider);
+          break;
+        }
+      }
+    }
   }
 
   const wheelTargetByRiderId: Record<string, string> = {};
