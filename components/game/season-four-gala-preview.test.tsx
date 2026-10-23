@@ -36,6 +36,8 @@ describe("private gala presentation",()=>{
     expect(html).not.toContain('Les derniers points à caler ensemble');
     expect(html).not.toContain('Roue avant · Éclat de Gala');
     expect(html).not.toContain('×2 pendant 3 jours');
+    expect(html).not.toContain('Amstel Gold Race · 2023');
+    expect(html).not.toContain('Paris–Roubaix · 2026');
   });
   it("does not expose the private event tile to any other player",async()=>{
     const other=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'another-player'}));

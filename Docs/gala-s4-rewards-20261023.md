@@ -2,6 +2,23 @@
 
 Accès toujours limité à Zocoto, inscriptions toujours fermées. Les engagés de démonstration ne sont jamais utilisés par un export ou une attribution. Aucun résultat ni cadeau n’est distribué au déploiement.
 
+## Parcours réellement inclus dans le jeu de base
+
+Les millésimes ne sont plus affichés dans les noms des épreuves. Les identifiants de fichiers restent inchangés dans les outils d’organisation, car ils servent à sélectionner exactement le parcours simulé.
+
+| Carte | Métadonnées et parcours de base PCM26 |
+| --- | --- |
+| Lourdes → Hautacam | `top_tdf_18_2022` · étape 18 du Tour, en mode étape |
+| Amstel Gold Race | `topclas_maastricht_2018` · Limburg Green Race · Maastricht–Berg en Terblijt |
+| Paris–Roubaix | `topclas_roubaix_2018` · Compiègne–Roubaix |
+| Grand Prix de l’Escaut | `c0_schelde_2015` · Antwerpen–Schoten |
+
+Paires CDS/ZCES confirmées dans `pakchunk1-Windows.pak` du jeu installé, indépendamment de tout pack Workshop. Contrairement à ce que pouvait suggérer le premier repérage, Hautacam est bien inclus dans le jeu de base ; l’Amstel 2023, Roubaix 2026 et l’Escaut 2026 du pack ne sont plus utilisés.
+
+Quatre petits CDS ont été extraits uniquement vers le laboratoire C:/Dev, sans modifier PCM. Les empreintes SHA-256, noms natifs et courbes dérivées sont dans `lib/game/season-four-gala-base-profiles.json`. `scripts/read-pcm-gala-base-profiles.mjs` permet de les relire depuis le dossier d’extraction. Chaque frise conserve au plus 194 points, avec pics ET creux et leurs véritables positions longitudinales. L’amplification verticale reste schématique et adaptée au profil. Aucun fichier du jeu ni scène 3D n’est distribué avec le site.
+
+Les anciens kilométrages empruntés à d’autres éditions réelles sont remplacés par les liaisons/villes et l’identification de l’étape de base : aucun chiffre non confirmé n’est affiché. Les capacités natives du CDB `Mod/Default/OfficialRelease.cdb` sont identiques (23/25/25/20 équipes), les XML restent les mêmes et le manifeste d’export référence désormais les quatre bons fichiers.
+
 ## Lots par course, identiques en World Tour et Continental
 
 | Place | Lot |

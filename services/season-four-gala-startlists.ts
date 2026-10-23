@@ -1,7 +1,7 @@
 import "server-only";
 import { strToU8,zipSync } from "fflate";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { GALA_EVENTS,SEASON_FOUR_GALA,type GalaEventKey,type GalaExportStatus } from "@/lib/game/season-four-gala";
+import { GALA_COURSES,GALA_EVENTS,SEASON_FOUR_GALA,type GalaEventKey,type GalaExportStatus } from "@/lib/game/season-four-gala";
 import { buildSeasonFourGalaStartlists,selectSeasonFourGalaContracts,type GalaExportSnapshot,type GalaRegistration,type GalaSelection,type GalaNativeRatings } from "@/lib/game/season-four-gala-startlists";
 import type {ContractRow} from "@/lib/game/pcm-export/types";
 
@@ -72,8 +72,9 @@ export async function generateSeasonFourGalaStartlistExport(eventKey?:GalaEventK
   'Copier un seul programme à la fois dans %APPDATA%\\Pro Cycling Manager 2026\\Cloud\\Startlists\\.',
   'World-Tour et Continental utilisent les mêmes XML natifs pour montagne et vallons. Ne pas les copier simultanément.',
   'Ne jamais renommer les XML : leurs noms correspondent aux courses de la base PCM, pas aux variantes CDS/ZCES.',
-  'Montagne : Tour de France, variante 2022, étape 18 uniquement (Lourdes–Hautacam), en mode étape.',
-  'Vallons : Limburg Green Race / Amstel, variante 2023. Pavés : Paris–Roubaix, variante 2026. Sprint : Scheldetour Vlaanderen / Escaut, variante 2026.',
+  'Les quatre parcours sont inclus dans le jeu de base PCM26 ; aucun parcours Workshop supplémentaire n’est requis.',
+  `Montagne : Tour de France, étape 18 uniquement (Lourdes–Hautacam), fichier ${GALA_COURSES.mountain.filename}, en mode étape.`,
+  ...Object.values(GALA_COURSES).map(course=>`${course.profile} : ${course.name} — ${course.filename}`),
  ].join('\r\n'));
  return {data:zipSync(files,{level:6}),filename:`Cyclostratege-Gala-S4-${template?'Modeles':'Startlists'}.zip`,contentType:'application/zip',teamCount:result.teamCount,riderCount:result.riderCount,generatedAt,template};
 }
