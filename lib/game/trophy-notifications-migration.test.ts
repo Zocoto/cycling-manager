@@ -98,7 +98,10 @@ describe("new trophy notifications", () => {
     expect(dashboardPage).toContain("bg-[#C72F5E]");
     expect(dashboardPage).toContain("bg-[#2F6EC7]");
     expect(objectivesPage).toContain('selectedTab === "trophees"');
-    expect(objectivesPage).toContain("<TrophyNotificationsSeenMarker />");
+    expect(objectivesPage).toContain("acknowledgeNotifications");
+    const arrivalComponent = readSource("components/game/trophy-gallery-arrival.tsx");
+    expect(arrivalComponent).toContain("acknowledgeNotifications ? <TrophyNotificationsSeenMarker /> : null");
+    expect(arrivalComponent).toContain("useState(arrivals)");
     expect(seenMarker).toContain("useEffect");
     expect(seenMarker).toContain("markTrophyNotificationsSeenAction");
     expect(migration).toContain("mark_current_trophy_notifications_seen");
