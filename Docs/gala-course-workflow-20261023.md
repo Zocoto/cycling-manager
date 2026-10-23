@@ -5,7 +5,11 @@ course et sa composition dans une seule tuile. Le bandeau d’ouverture conserve
 le titre, la date, les liens utiles et la clôture. Les trois blocs désignés dans
 la capture du propriétaire et l’encart de recommandations PCM sont retirés.
 Les gains restent consultables dans un volet fermé par défaut ; le live et les
-cadeaux de présence restent présentés sous la préparation de l’équipe.
+cadeaux de présence sont placés juste sous le bandeau de présentation.
+La startlist est visible dans chaque fiche de course, sans second menu à ouvrir.
+Seul l’onglet actif déclenche son chargement : les données restent en mémoire
+lors du passage entre les courses et un appel inachevé est annulé si l’on quitte
+l’onglet. Le chargement reste paginé et borné à 8 secondes, sans polling.
 
 Chaque course possède son propre formulaire : 7–8 coureurs, enregistrement,
 modification et retrait indépendants. Les sélections non enregistrées restent

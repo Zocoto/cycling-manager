@@ -5,6 +5,7 @@ import { GALA_COURSES, GALA_PROGRAM_PROFILES, type GalaProgram, type GalaProfile
 import { GALA_NATIVE_PRIMARY_KEYS, hasContinentalNativeRatings } from "@/lib/game/season-four-gala-startlists";
 import type { GalaRegistrationState, SeasonFourGalaContext } from "@/lib/game/season-four-gala-registration";
 import styles from "./season-four-gala.module.css";
+import { SeasonFourGalaEntries } from "./season-four-gala-entries";
 
 const labels = { mountain: "MON", hills: "VAL", flat: "PLA", time_trial: "CLM", cobbles: "PAV", sprint: "SPR" };
 const initialState: GalaRegistrationState = { status: "idle", message: "" };
@@ -36,7 +37,7 @@ export function SeasonFourGalaRegistration({ context, program, renderProfile, re
       })}
     </div>
     {profiles.map(profile => <div key={`${program}:${profile}`} id={`${tabsId}-${profile}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-${profile}`} hidden={selectedProfile !== profile}>
-      <CourseRegistration context={context} program={program} profile={profile} renderProfile={renderProfile} renderDetails={renderDetails} />
+      <CourseRegistration context={context} program={program} profile={profile} active={selectedProfile === profile} renderProfile={renderProfile} renderDetails={renderDetails} />
     </div>)}
   </section>;
 }
@@ -54,8 +55,8 @@ function ProgramChange({ context, program, onKeepProgram }: { context: SeasonFou
   </div>;
 }
 
-function CourseRegistration({ context, program, profile, renderProfile, renderDetails }: {
-  context: SeasonFourGalaContext; program: GalaProgram; profile: GalaProfile; renderProfile: CourseRenderer; renderDetails: CourseRenderer;
+function CourseRegistration({ context, program, profile, active, renderProfile, renderDetails }: {
+  context: SeasonFourGalaContext; program: GalaProgram; profile: GalaProfile; active: boolean; renderProfile: CourseRenderer; renderDetails: CourseRenderer;
 }) {
   const savedIds = context.selections[profile] ?? [];
   const [ids, setIds] = useState<string[]>(savedIds);
@@ -77,7 +78,8 @@ function CourseRegistration({ context, program, profile, renderProfile, renderDe
   return <div className={styles.coursePreparation}>
     <div className={styles.preparationHeader}><div><p className={styles.eyebrow}>{course.profile}</p><h3>{course.name}</h3></div><span className={styles.keyRating}>Note clé <b>{course.primaryLabel}</b></span></div>
     {renderProfile(profile)}
-    <details className={styles.preparationDetails}><summary>Le parcours et les engagés <span aria-hidden="true">＋</span></summary>{renderDetails(profile)}</details>
+    <details className={styles.preparationDetails}><summary>Le parcours en détail <span aria-hidden="true">＋</span></summary>{renderDetails(profile)}</details>
+    <SeasonFourGalaEntries key={`${program}:${profile}:${context.courseCounts?.[`${program}:${profile}`] ?? 0}:${JSON.stringify(savedIds)}`} program={program} profile={profile} count={context.courseCounts?.[`${program}:${profile}`] ?? 0} inline active={active} />
     <form action={action}>
       <input type="hidden" name="selection" value={JSON.stringify({ program, profile, riderIds: ids })} />
       <div className={styles.selectionHeading}><h4>Qui prend le départ ?</h4><strong>{ids.length} / 8</strong></div>

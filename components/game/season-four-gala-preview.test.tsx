@@ -18,7 +18,7 @@ describe("private gala presentation",()=>{
     for(const label of ['World Tour','Continental','+3 MON','+2 MON','+1 MON','4e','5e','6e–7e','8e–10e','2 boosters Cyclo-Stickers','+1 VAL'])expect(html).toContain(label);
     expect(html).not.toContain('bonus d’équipement inclus');
     expect(html).not.toContain('+1 PLA');
-    const live=html.slice(html.indexOf('gouille-live-title'),html.indexOf('id="recompenses-gala"'));
+    const live=html.slice(html.indexOf('gouille-live-title'),html.indexOf('id="programme-gala"'));
     expect(live).toContain('Gants · Nuit dorée');expect(live).toContain('2 boosters Cyclo-Stickers');
     expect(html).toContain('7 à 8 coureurs');
     expect(html).toContain('Les gains du top 10.');
@@ -52,7 +52,7 @@ describe("private gala presentation",()=>{
     expect(html).not.toContain('Classement fictif');expect(html).not.toContain('Vélo Club des Cimes');
     expect(html).not.toContain('Organisation · Exports PCM');expect(html).not.toMatch(/draft/i);
   });
-  it('combines the format, course profiles and independent lineups before the live and collapsed rewards',()=>{
+  it('keeps the host above the unified course preparation, with inline startlists and collapsed rewards',()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview context={{isOpen:true,team:{id:'team',name:'Club'},program:'world-tour',selections:{},counts:{'world-tour':1,continental:0},riders:[{rider_id:'00000000-0000-4000-8000-000000000001',first_name:'Rider',last_name:'Test',mountain:73,hills:61,flat:68,time_trial:62,cobbles:59,sprint:66}]}}/>);
     expect(html.match(/<button(?=[^>]*name="intent")(?=[^>]*value="save-course")[^>]*>/g)).toHaveLength(3);
     expect(html).not.toContain('Valider les trois compositions');
@@ -61,7 +61,10 @@ describe("private gala presentation",()=>{
     expect(html).not.toContain('Des inscriptions ouvertes, un choix éclairé.');
     expect(html).toContain('<small>VAL</small><b>61</b>');
     expect(html).toContain('<small>MON</small><b>73</b>');
-    expect(html.indexOf('id="programme-gala"')).toBeLessThan(html.indexOf('gouille-live-title'));
+    expect(html.indexOf('gouille-live-title')).toBeLessThan(html.indexOf('id="programme-gala"'));
+    expect(html.match(/aria-label="Startlist de l’épreuve"/g)).toHaveLength(3);
+    expect(html.match(/Chargement des engagés…/g)).toHaveLength(1);
+    expect(html).not.toContain('Maillots &amp; engagés');
     expect(html).toMatch(/<details id="recompenses-gala"[^>]*>/);
     expect(html).not.toMatch(/<details id="recompenses-gala"[^>]*\bopen/);
   });

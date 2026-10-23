@@ -18743,5 +18743,8 @@
   "Vos inscriptions actuelles seront retirées. Vous pourrez ensuite composer vos équipes dans le nouveau format.": "Your current entries will be withdrawn. You can then pick your lineups in the new format.",
   "Votre format a changé. Rechargez la page avant de continuer.": "Your format has changed. Reload the page before continuing.",
   "Votre format a changé. Rechargez la page avant de modifier cette course.": "Your format has changed. Reload the page before editing this race.",
-  "withdraw-course": "withdraw-course"
+  "withdraw-course": "withdraw-course",
+  "Startlist de l’épreuve": "Race startlist",
+  "Le parcours en détail": "Course details",
+  "Startlist": "Start list"
 }

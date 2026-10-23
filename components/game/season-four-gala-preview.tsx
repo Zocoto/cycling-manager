@@ -37,22 +37,6 @@ export function SeasonFourGalaPreview({exportStatus, context, canExport = false}
       <div className={styles.heroSeal} aria-hidden="true"><span>GRAND GALA</span><GalaTrophy /><strong>IV</strong><span>LE PELOTON À L’HONNEUR</span></div>
     </header>
 
-    <section id="programme-gala" className={`${styles.section} ${styles.workflow}`} aria-labelledby="programme-title">
-      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>1 · Choisissez votre format</p><h2 id="programme-title">À chacun son gala.</h2></div><span className={styles.smallBadge}>3 courses · 7 à 8 coureurs par course</span></div>
-      <p className={styles.programNote}>Un seul format pour l’équipe. World Tour pour le grand défi, Continental pour les coureurs à 75 maximum dans toutes leurs notes primaires natives.</p>
-      <div role="tablist" aria-label="Programme du gala" className={styles.programTabs}>
-        <button id={`${tabId}-wt`} role="tab" aria-selected={program === "world-tour"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("world-tour")} className={program === "world-tour" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>01</span><span><strong>World Tour</strong><small>Montagne · Vallons · Pavés</small></span><span className={styles.programTag}>Sans plafond</span></button>
-        <button id={`${tabId}-ct`} role="tab" aria-selected={program === "continental"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("continental")} className={program === "continental" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>02</span><span><strong>Continental</strong><small>Montagne · Vallons · Sprint</small></span><span className={styles.programTag}>75 max.</span></button>
-      </div>
-      <div role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${program === "world-tour" ? "wt" : "ct"}`} tabIndex={0}>
-        {context ? <><SeasonFourGalaRegistration context={context} program={program} onKeepProgram={setProgram}
-          renderProfile={profile => <CourseProfile course={GALA_COURSES[profile]} />}
-          renderDetails={profile => <CourseBody course={GALA_COURSES[profile]} program={program} context={context} />}
-        />{!context.team && !context.unavailable ? <div className={styles.raceGrid}>{profiles.map((profile,index)=><CourseCard key={profile} course={GALA_COURSES[profile]} program={program} number={index+1} context={context}/>)}</div> : null}</> : <><div className={styles.raceGrid}>{profiles.map((profile, index) => <CourseCard key={`${program}-${profile}`} course={GALA_COURSES[profile]} program={program} number={index + 1} />)}</div><p role="status" className={styles.previewStatus}>Démonstration locale : aucune inscription ne sera enregistrée.</p></>}
-      </div>
-      <p className={styles.previewStatus}>Chaque course se valide et se modifie séparément. Les autres compositions sont conservées.</p>
-    </section>
-
     <section className={styles.liveCard} aria-labelledby="gouille-live-title">
       <div className={styles.liveHeader}>
         <Image src={SEASON_FOUR_GALA.hostAvatar} width={70} height={70} alt="Logo de la chaîne Twitch de Gouille" className={styles.hostAvatar} />
@@ -64,6 +48,22 @@ export function SeasonFourGalaPreview({exportStatus, context, canExport = false}
         <article><BoosterPacks/><div><span>Le lancement de la saison 5</span><h3>2 boosters Cyclo-Stickers</h3><p>Les premières pochettes du nouvel album.</p></div></article>
       </div>
       <p className={styles.liveGiftNote}>Pour chaque joueur présent au live, même sans podium. Une dotation par compte ; modalités de présence annoncées avant le gala.</p>
+    </section>
+
+    <section id="programme-gala" className={`${styles.section} ${styles.workflow}`} aria-labelledby="programme-title">
+      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>1 · Choisissez votre format</p><h2 id="programme-title">À chacun son gala.</h2></div><span className={styles.smallBadge}>3 courses · 7 à 8 coureurs par course</span></div>
+      <p className={styles.programNote}>Un seul format pour l’équipe. World Tour pour le grand défi, Continental pour les coureurs à 75 maximum dans toutes leurs notes primaires natives.</p>
+      <div role="tablist" aria-label="Programme du gala" className={styles.programTabs}>
+        <button id={`${tabId}-wt`} role="tab" aria-selected={program === "world-tour"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("world-tour")} className={program === "world-tour" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>01</span><span><strong>World Tour</strong><small>Montagne · Vallons · Pavés</small></span><span className={styles.programTag}>Sans plafond</span></button>
+        <button id={`${tabId}-ct`} role="tab" aria-selected={program === "continental"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("continental")} className={program === "continental" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>02</span><span><strong>Continental</strong><small>Montagne · Vallons · Sprint</small></span><span className={styles.programTag}>75 max.</span></button>
+      </div>
+      <div role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${program === "world-tour" ? "wt" : "ct"}`} tabIndex={0}>
+        {context ? <><SeasonFourGalaRegistration context={context} program={program} onKeepProgram={setProgram}
+          renderProfile={profile => <CourseProfile course={GALA_COURSES[profile]} />}
+          renderDetails={profile => <CourseBody course={GALA_COURSES[profile]} program={program} context={context} showEntries={false} />}
+        />{!context.team && !context.unavailable ? <div className={styles.raceGrid}>{profiles.map((profile,index)=><CourseCard key={profile} course={GALA_COURSES[profile]} program={program} number={index+1} context={context}/>)}</div> : null}</> : <><div className={styles.raceGrid}>{profiles.map((profile, index) => <CourseCard key={`${program}-${profile}`} course={GALA_COURSES[profile]} program={program} number={index + 1} />)}</div><p role="status" className={styles.previewStatus}>Démonstration locale : aucune inscription ne sera enregistrée.</p></>}
+      </div>
+      <p className={styles.previewStatus}>Chaque course se valide et se modifie séparément. Les autres compositions sont conservées.</p>
     </section>
 
     <details id="recompenses-gala" className={`${styles.compactRewards} ${styles.rewardDisclosure}`}>
@@ -96,11 +96,11 @@ function CourseCard({ course, program, number, context }: { course: GalaCourse; 
   </article>;
 }
 
-function CourseBody({course,program,context}: {course:GalaCourse;program:GalaProgram;context?:SeasonFourGalaContext}) {
+function CourseBody({course,program,context,showEntries=true}: {course:GalaCourse;program:GalaProgram;context?:SeasonFourGalaContext;showEntries?:boolean}) {
   const count = context?.courseCounts?.[`${program}:${course.id}`] ?? 0;
   return <div className={styles.courseInfoBody}><p className={styles.raceDescription}>{course.description}</p>
     <div className={styles.highlights}>{course.highlights.map(text => <span key={text}>{text}</span>)}</div>
-    {context ? <><SeasonFourGalaEntries key={`${program}:${course.id}:${count}:${JSON.stringify(context.selections)}`} program={program} profile={course.id} count={count}/><p className={styles.entriesNote}>{context.isOpen ? "Les favoris seront dévoilés après la clôture des inscriptions." : "Les noms à suivre figurent avec les engagés."}</p></> : <>
+    {context ? showEntries ? <><SeasonFourGalaEntries key={`${program}:${course.id}:${count}:${JSON.stringify(context.selections[course.id])}`} program={program} profile={course.id} count={count}/><p className={styles.entriesNote}>{context.isOpen ? "Les favoris seront dévoilés après la clôture des inscriptions." : "Les noms à suivre figurent avec les engagés."}</p></> : null : <>
       <details className={styles.courseDetails}><summary>Maillots & engagés <small>Démonstration</small><span aria-hidden="true">＋</span></summary><div className={styles.demoWarning}>Exemple visuel · 3 équipes fictives · aucune inscription réelle</div>{demoTeams.map(team => <div className={styles.teamRow} key={team.name}><AmateurTeamJersey jersey={team.jersey} teamName={team.name} className="h-12 w-12 shrink-0" /><div><strong>{team.name}</strong><small>{team.director} · composition à découvrir</small></div></div>)}</details>
       <details className={styles.courseDetails}><summary>Les favoris <small>Exemple</small><span aria-hidden="true">＋</span></summary><div className={styles.demoWarning}>Classement fictif pour prévisualiser la présentation.</div>{demoTeams.map((team,index) => <div className={styles.favoriteRow} key={team.rider}><span>0{index+1}</span><div><strong>{team.rider}</strong><small>{team.name}</small></div><b>{program === "world-tour" ? 83-index*2 : 75-index} {course.primaryLabel}</b></div>)}</details>
     </>}
