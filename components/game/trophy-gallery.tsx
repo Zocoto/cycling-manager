@@ -7,14 +7,16 @@ import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
 import { PrestigeRaceTrophyMark } from "@/components/game/prestige-race-trophy-mark";
 import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import { TrophySeasons } from "@/components/game/trophy-seasons";
-import Link from "@/components/ui/app-link";
+import { TrophyArrivalCard, TrophyArrivalLabel, TrophyArrivalSummary, TrophyGalleryArrival } from "@/components/game/trophy-gallery-arrival";
+import { getTrophyArrivals } from "@/lib/game/trophy-arrivals";
 import {
   getLockedTrophyTargets,
   type CareerTrophy,
   type TrophyGallery as TrophyGalleryData,
 } from "@/lib/game/trophy-gallery";
 
-export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
+export function TrophyGallery({ gallery, focusedSource, acknowledgeNotifications = false }: { gallery: TrophyGalleryData; focusedSource?: string; acknowledgeNotifications?: boolean }) {
+  const arrivals = getTrophyArrivals({ trophies: gallery.trophies, notices: gallery.unseenAwards, focusedSource });
   const lockedTrophies = getLockedTrophyTargets(gallery.trophies);
   const specialTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "special",
@@ -73,6 +75,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
   );
 
   return (
+    <TrophyGalleryArrival key={focusedSource ?? "recent"} arrivals={arrivals} acknowledgeNotifications={acknowledgeNotifications}>
     <div className="mt-8">
       <section
         aria-labelledby="trophy-gallery-title"
@@ -158,6 +161,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
         </header>
 
         <div className="px-5 py-7 sm:px-8 sm:py-9">
+          <TrophyArrivalSummary />
           {gallery.claimableTrophies.map((reward) => (
             <AlphaTesterTrophyGift key={reward.key} reward={reward} />
           ))}
@@ -246,6 +250,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
         </div>
       </section>
     </div>
+    </TrophyGalleryArrival>
   );
 }
 
@@ -385,6 +390,7 @@ function TrophyCard({
             className="mt-1 block text-xs font-black leading-5 text-[#9BE0BC] [overflow-wrap:anywhere]"
           />
         ) : null}
+        {!locked ? <TrophyArrivalLabel trophyId={trophy.id} /> : null}
         <p className="mt-2 text-sm font-bold text-[#BBD0C6]">
           {trophy.competitionName}
         </p>
@@ -430,26 +436,20 @@ function TrophyCard({
     epic ? "sm:p-6" : ""
   }`;
 
-  return trophy.href ? (
-    <Link
+  return (
+    <TrophyArrivalCard
+      trophyId={trophy.id}
+      locked={locked}
       href={trophy.href}
       className={className}
-      data-trophy-status={locked ? "locked" : "earned"}
-      aria-label={
+      label={
         locked
           ? `${trophy.title}, à débloquer : ${trophy.inscription}`
           : `${trophy.title}, ${(trophy.seasonNames ?? [trophy.seasonName]).join(", ")}, ${trophy.inscription}`
       }
     >
       {content}
-    </Link>
-  ) : (
-    <article
-      className={className}
-      data-trophy-status={locked ? "locked" : "earned"}
-    >
-      {content}
-    </article>
+    </TrophyArrivalCard>
   );
 }
 

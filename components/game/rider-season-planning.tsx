@@ -3,16 +3,13 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   assignRiderPlanningEventLanes,
   countRiderPlannedDays,
+  RIDER_PLANNING_EVENT_TYPES,
   type RiderPlanningEntry,
   type RiderPlanningEvent,
   type RiderPlanningEventStatus,
   type RiderPlanningEventType,
   type TeamRiderSeasonPlanning,
 } from "@/lib/game/rider-season-planning";
-import {
-  RACE_CATEGORY_STYLE,
-  type RaceCategoryCode,
-} from "@/lib/game/race-calendar";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 
 const EVENT_TYPE_LABELS: Record<RiderPlanningEventType, string> = {
@@ -20,6 +17,34 @@ const EVENT_TYPE_LABELS: Record<RiderPlanningEventType, string> = {
   form_camp: "Stage de forme",
   reconnaissance: "Reconnaissance",
   injury: "Blessure",
+};
+
+// The timeline identifies activities, not race categories. Keep its bars,
+// detail badges and legend on the same palette, independently of the calendar.
+const EVENT_TYPE_STYLES: Record<
+  RiderPlanningEventType,
+  { background: string; foreground: string; border: string }
+> = {
+  race: {
+    background: "#2457C5",
+    foreground: "#FFFFFF",
+    border: "#163B91",
+  },
+  form_camp: {
+    background: "#278B70",
+    foreground: "#FFFFFF",
+    border: "#176951",
+  },
+  reconnaissance: {
+    background: "#C77A1B",
+    foreground: "#FFFFFF",
+    border: "#8B5311",
+  },
+  injury: {
+    background: "#D94F4F",
+    foreground: "#FFFFFF",
+    border: "#A62E2E",
+  },
 };
 
 const EVENT_STATUS_LABELS: Record<RiderPlanningEventStatus, string> = {
@@ -294,9 +319,9 @@ function PlanningEventBar({
 }: {
   event: RiderPlanningEvent & { lane: number };
 }) {
-  const style = getEventStyle(event);
+  const style = EVENT_TYPE_STYLES[event.type];
   const className = `relative z-10 mx-0.5 flex min-w-0 items-center truncate rounded-lg border px-2 text-[9px] font-black shadow-sm transition ${
-    event.status === "completed" ? "opacity-60 saturate-50" : ""
+    event.status === "completed" ? "opacity-75" : ""
   } ${event.href ? "hover:-translate-y-0.5 hover:shadow-md" : ""}`;
   const content = (
     <>
@@ -308,6 +333,7 @@ function PlanningEventBar({
   );
   const sharedProps = {
     className,
+    "data-planning-event-type": event.type,
     style: {
       gridColumn: `${event.startDay} / ${event.endDay + 1}`,
       gridRow: event.lane + 1,
@@ -352,7 +378,7 @@ function RiderEventDetails({ rider }: { rider: RiderPlanningEntry }) {
       {rider.events.length ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rider.events.map((event) => {
-            const style = getEventStyle(event);
+            const style = EVENT_TYPE_STYLES[event.type];
             const content = (
               <article className="h-full rounded-2xl border border-[#315B3E]/10 bg-white p-4 transition hover:border-[#278B70]/35 hover:shadow-sm">
                 <div className="flex items-start justify-between gap-3">
@@ -403,21 +429,15 @@ function RiderEventDetails({ rider }: { rider: RiderPlanningEntry }) {
 function PlanningLegend() {
   return (
     <div className="mt-5 flex flex-wrap gap-2">
-      {(
-        [
-          ["race", "#2457C5"],
-          ["form_camp", "#278B70"],
-          ["reconnaissance", "#C77A1B"],
-          ["injury", "#D94F4F"],
-        ] as const
-      ).map(([type, color]) => (
+      {RIDER_PLANNING_EVENT_TYPES.map((type) => (
         <span
           key={type}
           className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.11em] text-[#F4F8F5]"
         >
           <span
             className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: color }}
+            data-planning-legend-type={type}
+            style={{ backgroundColor: EVENT_TYPE_STYLES[type].background }}
           />
           {EVENT_TYPE_LABELS[type]}
         </span>
@@ -446,45 +466,6 @@ function HeaderMetric({
       </p>
     </div>
   );
-}
-
-function getEventStyle(event: RiderPlanningEvent): {
-  background: string;
-  foreground: string;
-  border: string;
-} {
-  if (event.type === "race") {
-    return event.raceCategoryCode
-      ? categoryStyle(event.raceCategoryCode)
-      : {
-          background: "#2457C5",
-          foreground: "#FFFFFF",
-          border: "#163B91",
-        };
-  }
-  if (event.type === "form_camp") {
-    return {
-      background: "#278B70",
-      foreground: "#FFFFFF",
-      border: "#176951",
-    };
-  }
-  if (event.type === "reconnaissance") {
-    return {
-      background: "#C77A1B",
-      foreground: "#FFFFFF",
-      border: "#8B5311",
-    };
-  }
-  return {
-    background: "#D94F4F",
-    foreground: "#FFFFFF",
-    border: "#A62E2E",
-  };
-}
-
-function categoryStyle(code: RaceCategoryCode) {
-  return RACE_CATEGORY_STYLE[code];
 }
 
 function eventIcon(type: RiderPlanningEventType) {

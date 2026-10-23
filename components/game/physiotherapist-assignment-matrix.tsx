@@ -325,20 +325,31 @@ export function PhysiotherapistAssignmentMatrix({
         </table>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-        {hasChanges ? (
-          <button
-            type="button"
-            onClick={() => setAssignments(initialAssignments)}
-            className="min-h-11 rounded-xl border border-[#315B3E]/15 bg-white px-4 text-sm font-black text-[#48665F] hover:bg-[#F2F6F4]"
-          >
-            Annuler les modifications
-          </button>
-        ) : null}
-        <div className="min-w-[240px]">
-          <HealthCenterSubmitButton pendingLabel="Enregistrement…">
-            Enregistrer toutes les affectations
-          </HealthCenterSubmitButton>
+      {hasChanges ? <div aria-hidden="true" className="h-28 sm:h-24" /> : null}
+      <div
+        data-physiotherapist-assignment-actions
+        className={hasChanges
+          ? "mobile-dock-clearance fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[80] mx-auto max-w-3xl max-sm:right-[4.5rem] sm:inset-x-6"
+          : "mt-4 flex flex-wrap items-center justify-end gap-3"}
+      >
+        <div className={hasChanges
+          ? "flex flex-col gap-3 rounded-[1.35rem] border border-white/20 bg-[#0B302B]/95 p-3 text-white shadow-[0_22px_65px_rgba(7,26,23,0.38)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-4"
+          : "contents"}>
+          {hasChanges ? <p role="status" className="hidden px-1 text-xs font-bold text-[#CDE2DA] sm:block">Modifications à enregistrer</p> : null}
+          <div className={hasChanges ? "grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex sm:items-center" : "min-w-[240px]"}>
+            {hasChanges ? (
+              <button
+                type="button"
+                onClick={() => setAssignments(initialAssignments)}
+                className="min-h-11 rounded-xl px-3 text-xs font-black text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
+              >
+                Annuler
+              </button>
+            ) : null}
+            <HealthCenterSubmitButton pendingLabel="Enregistrement…">
+              Enregistrer toutes les affectations
+            </HealthCenterSubmitButton>
+          </div>
         </div>
       </div>
     </form>

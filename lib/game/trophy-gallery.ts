@@ -19,6 +19,7 @@ import {
   type MedicalTrophyVisualVariant,
 } from "@/lib/game/medical-trophies";
 import { getProspectiveAchievement } from "@/lib/game/prospective-achievements";
+import type { TrophyAwardNotice } from "@/lib/game/trophy-arrivals";
 
 export type TrophyKind =
   | "grand_tour"
@@ -90,6 +91,7 @@ export type ClaimableTrophyReward = {
 };
 
 export type TrophyGallery = {
+  unseenAwards?: TrophyAwardNotice[];
   trophies: CareerTrophy[];
   claimableTrophies: ClaimableTrophyReward[];
   counts: {
