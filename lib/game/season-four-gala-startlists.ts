@@ -52,9 +52,12 @@ export function buildSeasonFourGalaStartlists(snapshot:GalaExportSnapshot, event
   const list=selectionsByProfile.get(key)??[];list.push(selection);selectionsByProfile.set(key,list);
  }
  for(const event of events){
-  const registrations=template?[]:snapshot.registrations.filter(row=>row.program===event.program)
+  const registrations=template?[]:snapshot.registrations.filter(row=>row.program===event.program && selectionsByProfile.has(row.id+':'+event.profile))
    .sort((a,b)=>(teamsById.get(a.team_id)?.name??a.team_id).localeCompare(teamsById.get(b.team_id)?.name??b.team_id,'fr'));
-  if(!template&&!registrations.length)throw new GalaStartlistError('Aucune inscription enregistrée pour cette course. Le modèle XML reste disponible.');
+  if(!template&&!registrations.length){
+   if(eventKey)throw new GalaStartlistError('Aucune inscription enregistrée pour cette course. Le modèle XML reste disponible.');
+   continue;
+  }
   if(registrations.length>galaClubCapacity(event.course))throw new GalaStartlistError(`Capacité PCM dépassée : ${registrations.length} clubs pour ${galaClubCapacity(event.course)} places. Un arbitrage est nécessaire ; aucune équipe n’a été retirée.`);
   const teams:PcmStartlistTeam[]=[{teamId:PCM_SPECTATOR_TEAM_ID,riderIds:[...PCM_SPECTATOR_RIDER_IDS]}];
   const manifestTeams:Record<string,unknown>[]=[];
@@ -84,5 +87,6 @@ export function buildSeasonFourGalaStartlists(snapshot:GalaExportSnapshot, event
   }
   manifests.push({eventKey:event.key,file:filename,course:event.course.name,variant:event.course.filename,nativeCapacity:event.course.nativeCapacity,clubCapacity:galaClubCapacity(event.course),spectatorTeamIncluded:true,registeredTeams:registrations.length,teams:manifestTeams});
  }
+ if(!template&&!manifests.length)throw new GalaStartlistError('Aucune inscription enregistrée pour cette course. Le modèle XML reste disponible.');
  return {files,events:manifests,teamCount:registeredTeams.size,riderCount,template};
 }

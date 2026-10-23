@@ -59,8 +59,16 @@ describe('gala S4 startlist policy',()=>{
  it('rejects duplicate PCM riders and never silently truncates a list',()=>{
   const fixture=galaFixture();fixture.riders[1].pcm_export_id=fixture.riders[0].pcm_export_id;
   expect(()=>buildSeasonFourGalaStartlists(fixture,'continental:mountain')).toThrow('plusieurs fois');
-  const crowded=galaFixture();crowded.registrations=Array.from({length:23},(_,index)=>({id:'reg'+index,team_id:'team'+index,program:'continental'}));crowded.selections=[];
+  const crowded=galaFixture();crowded.registrations=Array.from({length:23},(_,index)=>({id:'reg'+index,team_id:'team'+index,program:'continental'}));crowded.selections=crowded.registrations.flatMap(registration=>crowded.selections.filter(row=>row.profile==='mountain').map(row=>({...row,registration_id:registration.id})));
   expect(()=>buildSeasonFourGalaStartlists(crowded,'continental:mountain')).toThrow('aucune équipe n’a été retirée');
+ });
+ it('exports only the teams that saved a lineup for this exact course',()=>{
+  const fixture=galaFixture();fixture.registrations.push({id:'pending',team_id:'pending-team',program:'continental'});
+  expect(buildSeasonFourGalaStartlists(fixture,'continental:mountain').teamCount).toBe(1);
+  fixture.selections=fixture.selections.filter(row=>row.profile==='mountain');
+  expect(buildSeasonFourGalaStartlists(fixture,'continental:mountain').riderCount).toBe(7);
+  expect(()=>buildSeasonFourGalaStartlists(fixture,'continental:hills')).toThrow('Aucune inscription');
+  expect(Object.keys(buildSeasonFourGalaStartlists(fixture).files)).toEqual(['Continental/top_tdf.xml']);
  });
  it('pins the source to S4 and does not produce a fake real list before registration',()=>{
   expect(()=>buildSeasonFourGalaStartlists({...galaFixture(),season:5})).toThrow('saison 4');

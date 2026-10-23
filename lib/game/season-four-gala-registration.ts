@@ -10,10 +10,28 @@ export type SeasonFourGalaContext = {
   selections: Partial<Record<GalaProfile, string[]>>;
   riders: GalaRegistrationRider[];
   counts: Record<GalaProgram, number>;
+  courseCounts?: Partial<Record<`${GalaProgram}:${GalaProfile}`, number>>;
   unavailable?: boolean;
 };
 export type GalaRegistrationState = { status: "idle" | "success" | "error"; message: string };
 export const initialGalaRegistrationState: GalaRegistrationState = { status: "idle", message: "" };
+const galaCourseBaseSchema = z.object({
+  program: z.enum(["world-tour", "continental"]),
+  profile: z.enum(["mountain", "hills", "cobbles", "sprint"]),
+  riderIds: z.array(z.uuid()).min(7).max(8),
+}).strict();
+export const galaCourseRegistrationSchema = galaCourseBaseSchema.superRefine((input, ctx) => {
+  if (!GALA_PROGRAM_PROFILES[input.program].includes(input.profile) || new Set(input.riderIds).size !== input.riderIds.length) {
+    ctx.addIssue({ code: "custom", message: "Sélection de course invalide." });
+  }
+});
+export const galaCourseWithdrawalSchema = galaCourseBaseSchema.extend({ riderIds: z.array(z.uuid()).max(8) }).superRefine((input, ctx) => {
+  if (!GALA_PROGRAM_PROFILES[input.program].includes(input.profile)) ctx.addIssue({ code: "custom", message: "Sélection de course invalide." });
+});
+export const galaProgramChangeSchema = z.object({
+  program: z.enum(["world-tour", "continental"]),
+  previousProgram: z.enum(["world-tour", "continental"]),
+}).strict();
 export const galaRegistrationSchema = z.object({
   program: z.enum(["world-tour", "continental"]),
   selections: z.record(z.string(), z.array(z.uuid()).min(7).max(8)),

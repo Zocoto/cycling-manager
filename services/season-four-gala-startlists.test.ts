@@ -36,6 +36,8 @@ describe('S4 gala export wiring',()=>{
  });
  it('returns real programme counts and never turns demo clubs into registrations',async()=>{
   expect((await getSeasonFourGalaExportStatus()).counts).toMatchObject({'continental:mountain':1,'world-tour:mountain':0});
+  state.tables.season_gala_registration_riders=state.tables.season_gala_registration_riders.filter(row=>row.profile==='mountain');
+  expect((await getSeasonFourGalaExportStatus()).counts).toMatchObject({'continental:mountain':1,'continental:hills':0,'continental:sprint':0});
   state.tables.season_gala_registrations=[];
   expect((await loadSeasonFourGalaStartlistSnapshot()).riders).toEqual([]);
   await expect(generateSeasonFourGalaStartlistExport('world-tour:mountain')).rejects.toThrow('Aucune inscription');

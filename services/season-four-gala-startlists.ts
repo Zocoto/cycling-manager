@@ -28,7 +28,10 @@ async function registrations(admin:Client) {
 
 export async function getSeasonFourGalaExportStatus():Promise<GalaExportStatus> {
  const {rows}=await registrations(createSupabaseAdminClient());
- return {counts:Object.fromEntries(GALA_EVENTS.map(event=>[event.key,rows.filter(row=>row.program===event.program).length]))};
+ const admin=createSupabaseAdminClient();
+ const selections=await chunks<Pick<GalaSelection,'registration_id'|'profile'>>(rows.map(row=>row.id),ids=>admin.from('season_gala_registration_riders').select('registration_id,profile').in('registration_id',ids).order('registration_id').order('profile').order('position'));
+ const courses=new Set(selections.map(row=>row.registration_id+':'+row.profile));
+ return {counts:Object.fromEntries(GALA_EVENTS.map(event=>[event.key,rows.filter(row=>row.program===event.program && courses.has(row.id+':'+event.profile)).length]))};
 }
 
 export async function loadSeasonFourGalaStartlistSnapshot():Promise<GalaExportSnapshot> {

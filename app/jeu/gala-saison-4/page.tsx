@@ -29,6 +29,6 @@ export default async function SeasonFourGalaPage() {
   ]);
   return <main className={styles.page} data-gala-s4-page>
     <GameHeader simulatorEmail={user.email} displayName={header.displayName} sponsor={header.teamSponsorVisual} maxWidth="wide" />
-    <SeasonFourGalaPreview context={context} canExport={canExportSeasonFourGala(user.id)} exportStatus={{counts:Object.fromEntries(GALA_EVENTS.map(event=>[event.key,context.counts[event.program]])),unavailable:context.unavailable}}/>
+    <SeasonFourGalaPreview context={context} canExport={canExportSeasonFourGala(user.id)} exportStatus={{counts:Object.fromEntries(GALA_EVENTS.map(event=>[event.key,context.courseCounts?.[event.key] ?? 0])),unavailable:context.unavailable}}/>
   </main>;
 }

@@ -32,6 +32,7 @@ try{
  const guards=readFileSync('supabase/migrations/20261023120000_prepare_season_four_gala_rewards.sql','utf8');
  await db.exec(guards.slice(guards.indexOf('create function public.guard_season_four_gala_registration()'),guards.indexOf('create function public.settle_season_four_gala_results(')));
  await db.exec(source);
+ await db.exec(readFileSync('supabase/migrations/20261023190000_gala_course_by_course_registrations.sql','utf8'));
  check(await scalar("select timestamptz '2026-11-05 23:59 Europe/Paris'=timestamptz '2026-11-05 22:59Z'"),true);
  check(source.includes("now() < timestamptz '2026-11-05 23:59:00 Europe/Paris'"),true);
  // Controlled test clock, never installed in production.
@@ -86,7 +87,7 @@ try{
  check(entries.favorites,[]);
  await denied("select get_season_four_gala_entries('continental','cobbles',0)");await denied("select get_season_four_gala_entries('continental','sprint',-1)");
  // More entrants than PCM's native capacity remain accepted and paginated.
- for(let i=0;i<21;i++)await db.exec(`insert into teams values('${id(500+i)}','active');insert into team_seasons values('${id(600+i)}','${id(500+i)}','${id(1)}','Page ${i}');insert into season_gala_registrations(season_id,team_id,program) values('${id(1)}','${id(500+i)}','continental');`);
+ for(let i=0;i<21;i++)await db.exec(`insert into teams values('${id(500+i)}','active');insert into team_seasons values('${id(600+i)}','${id(500+i)}','${id(1)}','Page ${i}');insert into season_gala_registrations(season_id,team_id,program) values('${id(1)}','${id(500+i)}','continental');insert into season_gala_registration_riders select r.id,'sprint',rider_id,row_number() over() from season_gala_registrations r cross join (select id rider_id from riders order by id limit 7) riders where r.team_id='${id(500+i)}';`);
  check(await save('continental',selection('continental')),first);
  const page=await scalar("select get_season_four_gala_entries('continental','sprint',0)");check(page.teams.length,20);check(page.hasMore,true);
  check((await scalar("select get_season_four_gala_entries('continental','sprint',1)")).teams.length,3);
@@ -100,6 +101,50 @@ try{
  check(await scalar('select count(*)::int from season_gala_registrations where team_id=$1',[id(10)]),0);
  check(await scalar('select count(*)::int from season_gala_registration_riders where registration_id=$1',[first]),0);
  check(await scalar('select count(*)::int from season_gala_registrations where team_id=$1',[id(11)]),1);
+ // Independent course writes: first save, replacement and withdrawal must never
+ // rewrite another profile, another club or any sporting/financial state.
+ const saveCourse=(program,profile,riders)=>scalar('select save_current_season_four_gala_course($1,$2,$3::uuid[])',[program,profile,riders]);
+ const changeProgram=(program,previous)=>scalar('select change_current_season_four_gala_program($1,$2)',[program,previous]);
+ const ownIds=selection().mountain;
+ const roster=profile=>scalar("select coalesce(jsonb_agg(rider_id order by position),'[]') from season_gala_registration_riders where registration_id=(select id from season_gala_registrations where team_id=$1) and profile=$2",[id(10),profile]);
+ for(const name of ['save_current_season_four_gala_course(text,text,uuid[])','change_current_season_four_gala_program(text,text)']) {
+  check(await scalar('select has_function_privilege($1,$2,$3)',['anon',name,'execute']),false);
+  check(await scalar('select has_function_privilege($1,$2,$3)',['authenticated',name,'execute']),true);
+ }
+ await login(null);await denied("select save_current_season_four_gala_course('world-tour','mountain',$1::uuid[])",[ownIds]);await denied("select change_current_season_four_gala_program('world-tour',null)");
+ await login(id(40));await db.exec('set role authenticated');
+ const partial=await saveCourse('world-tour','mountain',ownIds);
+ await db.exec('reset role');
+ check(await roster('mountain'),ownIds);check(await roster('hills'),[]);
+ check((await scalar("select get_season_four_gala_entries('world-tour','mountain',0)")).total,1);
+ check((await scalar("select get_season_four_gala_entries('world-tour','hills',0)")).total,0);
+ check((await scalar('select get_current_season_four_gala_context()')).courseCounts['world-tour:mountain'],1);
+ check(await saveCourse('world-tour','hills',[...ownIds,id(107)]),partial);
+ check(await roster('hills'),[...ownIds,id(107)]);check(await roster('mountain'),ownIds);
+ const revised=ownIds.slice(1).concat(id(107));
+ await saveCourse('world-tour','hills',revised);check(await roster('hills'),revised);check(await roster('mountain'),ownIds);
+ await saveCourse('world-tour','hills',[]);check(await roster('hills'),[]);check(await roster('mountain'),ownIds);
+ await denied("select save_current_season_four_gala_course('continental','sprint',$1::uuid[])",[ownIds]);
+ await denied("select change_current_season_four_gala_program('continental','continental')");check(await roster('mountain'),ownIds);
+ await changeProgram('continental','world-tour');check(await roster('mountain'),[]);
+ check((await scalar("select get_season_four_gala_entries('continental','mountain',0)")).teams.some(team=>team.teamId===id(10)),false);
+ await saveCourse('continental','mountain',ownIds);
+ await denied("select save_current_season_four_gala_course('continental','cobbles',$1::uuid[])",[ownIds]);
+ for(const invalid of [ownIds.slice(0,6),[...ownIds,id(107),id(120)],Array(7).fill(id(100)),[...ownIds.slice(1),id(120)],[...ownIds.slice(1),null]])
+  await denied("select save_current_season_four_gala_course('continental','mountain',$1::uuid[])",[invalid]);
+ await db.exec(`update rider_season_ratings set hills=75.001 where rider_id='${id(100)}';`);
+ await denied("select save_current_season_four_gala_course('continental','mountain',$1::uuid[])",[ownIds]);check(await roster('mountain'),ownIds);
+ await db.exec(`update rider_season_ratings set hills=75 where rider_id='${id(100)}';insert into rider_contracts values('${id(9999)}','${id(100)}','${id(11)}','${id(1)}','${id(2)}',null,'active',15,now());`);
+ await denied("select save_current_season_four_gala_course('continental','mountain',$1::uuid[])",[ownIds]);check(await roster('mountain'),ownIds);
+ await db.exec(`delete from rider_contracts where id='${id(9999)}';insert into season_gala_result_imports values('${id(1)}','continental:mountain');`);
+ await denied("select save_current_season_four_gala_course('continental','mountain',$1::uuid[])",[revised]);
+ await denied("select save_current_season_four_gala_course('continental','mountain','{}'::uuid[])");
+ await denied("select change_current_season_four_gala_program('world-tour','continental')");check(await roster('mountain'),ownIds);
+ await db.exec(`delete from season_gala_result_imports;create or replace function private.season_four_gala_is_open() returns boolean language sql stable set search_path='' as $$select false$$;`);
+ await denied("select save_current_season_four_gala_course('continental','hills',$1::uuid[])",[ownIds]);
+ await denied("select change_current_season_four_gala_program('world-tour','continental')");
+ check(await scalar('select count(*)::int from season_gala_registration_riders where registration_id=$1',[partial]),7);
+ check(await scalar('select count(*)::int from season_gala_registration_riders where registration_id=(select id from season_gala_registrations where team_id=$1)',[id(11)]),21);
  check((await db.query('select * from untouched_game')).rows,[{form:73,cash:125000,points:150}]);
  console.log(`${checks} isolated gala registration SQL checks passed; no production fixtures.`);
 }finally{await db.close();}
