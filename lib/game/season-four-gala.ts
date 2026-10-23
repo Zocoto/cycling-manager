@@ -65,14 +65,14 @@ export const GALA_PROGRAM_PROFILES: Record<GalaProgram, readonly GalaProfile[]> 
 };
 
 export const GALA_PODIUM_PROPOSAL = [
-  { rank: 1, name: "Roue avant · Éclat de Gala", slot: "front_wheel", primaryBonus: 3, image: "/images/equipment/products/novaspoke-vent-28.webp" },
+  { rank: 1, name: "Cuissard · Éclat de Gala", slot: "bib_shorts", primaryBonus: 3, image: "/images/equipment/products/montclair-victoire-atelier.webp" },
   { rank: 2, name: "Casque · Couronne de Gala", slot: "helmet", primaryBonus: 2, image: "/images/equipment/products/aerion-stratos-pro.webp" },
   { rank: 3, name: "Chaussures · Dernier Éclair", slot: "shoes", primaryBonus: 1, image: "/images/equipment/products/montclair-alpine-lace.webp" },
 ] as const satisfies readonly { rank: number; name: string; slot: EquipmentSlot; primaryBonus: number; image: string }[];
 
 export const GALA_CONSUMABLE_PROPOSAL = [
   { places: "4e", name: "Pack coup d’éclat", detail: "1 capsule +1 note secondaire au choix + 3 doses de forme + 2 soins de blessure" },
-  { places: "5e", name: "Pack belle échappée", detail: "1 stage entraînement ×2 pendant 3 jours + 2 doses de forme + 2 soins de blessure" },
+  { places: "5e", name: "Pack belle échappée", detail: "1 stage d’entraînement : 3 séances collectives ×2 + 2 doses de forme + 2 soins de blessure" },
   { places: "6e–7e", name: "Pack relance", detail: "2 doses de forme + 1 soin de blessure" },
   { places: "8e–10e", name: "Pack dernier effort", detail: "1 dose de forme + 1 soin de blessure" },
 ] as const;

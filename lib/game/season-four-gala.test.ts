@@ -27,11 +27,19 @@ describe("private S4 gala rehearsal", () => {
     expect(Object.values(GALA_COURSES).map(galaClubCapacity)).toEqual([22,24,24,19]);
     expect(Object.values(GALA_COURSES).every(course=>course.filename.length>0)).toBe(true);
   });
-  it("keeps new prizes as proposals and uses existing equipment artwork", () => {
+  it("uses the bib-shorts winner prize and existing equipment artwork", () => {
     expect(GALA_PODIUM_PROPOSAL.map(prize=>prize.rank)).toEqual([1,2,3]);
+    expect(GALA_PODIUM_PROPOSAL[0].slot).toBe('bib_shorts');
     for(const item of [...GALA_PODIUM_PROPOSAL,{image:SEASON_FOUR_GALA.hostAvatar}]) expect(existsSync(join(process.cwd(),'public',item.image))).toBe(true);
     const page=readFileSync(join(process.cwd(),"components/game/season-four-gala-preview.tsx"),"utf8");
     expect(page).not.toMatch(/\.rpc\(|fetch\(|localStorage|sessionStorage/);
     expect(page).toContain('aucune inscription réelle');
+  });
+  it("reuses the atmospheric peloton as a non-interactive golden watermark",()=>{
+    const css=readFileSync(join(process.cwd(),'components/game/season-four-gala.module.css'),'utf8');
+    expect(css).toContain("url('/images/peloton-header.webp')");
+    expect(css).toContain('pointer-events:none');
+    expect(css).toContain('sepia(1)');
+    expect(css).toContain('opacity:.17');
   });
 });

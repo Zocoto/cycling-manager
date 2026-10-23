@@ -28,6 +28,7 @@ import {
   type TrainingSeasonStatProgressRow,
 } from "@/lib/game/training";
 import { buildTrainingBonusBreakdown } from "@/lib/game/training-bonus-breakdown";
+import { getTrainingRewardMultiplierForDay } from "@/lib/game/training-reward-multiplier";
 import {
   parseSquadStatus,
   type SquadStatus,
@@ -788,24 +789,6 @@ async function loadContext(
   if (!teamSeason) return null;
 
   return { season: seasonResult.data, teamSeason };
-}
-
-function getTrainingRewardMultiplierForDay(
-  effects: readonly TrainingRewardEffectRow[],
-  dayNumber: number,
-): number {
-  return effects.reduce((best, effect) => {
-    const applies =
-      effect.consumed_day_number === dayNumber ||
-      (effect.status === "active" &&
-        dayNumber >= effect.starts_day_number &&
-        dayNumber <= effect.ends_day_number);
-    if (!applies) return best;
-    const multiplier = Number(effect.effect_payload.multiplier ?? 1);
-    return Number.isFinite(multiplier)
-      ? Math.max(best, Math.min(3, Math.max(1, multiplier)))
-      : best;
-  }, 1);
 }
 
 function toRiderRatingKey(statCode: (typeof TRAINING_STAT_CODES)[number]) {

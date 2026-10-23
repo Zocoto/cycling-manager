@@ -30,6 +30,13 @@ describe("private gala presentation",()=>{
     expect(html.match(/Classement fictif/g)).toHaveLength(3);
     expect(html).not.toContain('<form');
   });
+  it("explains usable consumables and the exclusive programme choice without organizer notes",()=>{
+    const html=renderToStaticMarkup(<SeasonFourGalaPreview/>);
+    for(const text of ['Cuissard · Éclat de Gala','Un seul programme pour toute l’équipe','Les trois courses World Tour','Les trois courses Continentales','Perfectionnement technique','Bloc haute intensité','Ration énergétique','Trousse de récupération','pas en cumul sur une seule','ne sont pas utilisés automatiquement'])expect(html).toContain(text);
+    expect(html).not.toContain('Les derniers points à caler ensemble');
+    expect(html).not.toContain('Roue avant · Éclat de Gala');
+    expect(html).not.toContain('×2 pendant 3 jours');
+  });
   it("does not expose the private event tile to any other player",async()=>{
     const other=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'another-player'}));
     expect(other).toContain('Halloween');expect(other).not.toContain('/jeu/gala-saison-4');

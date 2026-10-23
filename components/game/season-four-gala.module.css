@@ -1,11 +1,12 @@
 .page { min-height:100vh; background:#0B0D10; color:#EAE4D7; color-scheme:dark; }
 /* Keep the gala canvas opaque inside the shared game workspace. */
 .page[data-gala-s4-page] { background:#0B0D10; }
-.shell { max-width:1320px; margin:auto; padding:24px 28px 40px; }
+.shell { position:relative; isolation:isolate; max-width:1320px; margin:auto; padding:24px 28px 40px; }
+.shell::before { content:""; pointer-events:none; position:absolute; z-index:-1; inset:0; background:url('/images/peloton-header.webp') center 20px / 1320px auto no-repeat; filter:grayscale(1) sepia(1) saturate(.65); opacity:.17; mask-image:linear-gradient(#0008,#000 18%,transparent 78%); }
 .privateBar { display:flex; justify-content:space-between; gap:16px; align-items:center; font-size:11px; color:#A7A394; margin-bottom:20px; }
 .privateBar > span { border:1px solid #665735; padding:6px 10px; border-radius:999px; color:#E3C77C; }
 .privateBar a { color:#C7C4B8; text-decoration:none; }
-.hero { position:relative; display:grid; grid-template-columns:1fr 260px; gap:28px; align-items:center; overflow:hidden; border:1px solid #A68A47; border-radius:24px; padding:48px; background:radial-gradient(ellipse at 90% 20%,#EFD28C1F,transparent 60%),linear-gradient(120deg,#191A19,#13161B); }
+.hero { position:relative; display:grid; grid-template-columns:1fr 260px; gap:28px; align-items:center; overflow:hidden; border:1px solid #A68A47; border-radius:24px; padding:48px; background:radial-gradient(ellipse at 90% 20%,#EFD28C1F,transparent 60%),linear-gradient(120deg,#191A19C9,#13161B99); }
 .hero::after { content:""; pointer-events:none; position:absolute; inset:12px; border:1px solid #C4A45C25; border-radius:14px; }
 .eyebrow { color:#DCC17D; font-size:10px; line-height:1.7; font-weight:800; text-transform:uppercase; letter-spacing:.19em; }
 .hero h1 { font-family:Georgia,serif; color:#F5E8C7; font-size:clamp(54px,6vw,88px); letter-spacing:-.055em; line-height:1; margin:19px 0; font-weight:700; }
@@ -34,6 +35,14 @@
 .smallBadge { display:inline-flex; align-items:center; border:1px solid #5C5139; background:#CDAF6020; padding:5px 9px; border-radius:5px; font-size:11px; font-weight:700; color:#DDC58C; white-space:nowrap; }
 .intro { max-width:930px; font-size:13px; line-height:1.9; color:#ACAFAE; margin-top:17px; }
 .intro strong { color:#EBD7AA; }
+.divisionRule { margin-top:20px; border-left:3px solid #D8B665; border-radius:0 10px 10px 0; padding:16px 20px; background:#D8B6650D; }
+.divisionRule > p:first-child { color:#DCC17D; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.divisionRule > div { display:flex; flex-wrap:wrap; align-items:center; gap:10px 15px; margin:10px 0; color:#F7E8BD; font-size:18px; line-height:1.5; }
+.divisionRule > div span { border:1px solid #D8B66566; border-radius:5px; padding:2px 8px; font-size:12px; color:#EAC66D; font-weight:900; }
+.divisionRule > p:last-child { color:#CCD0C7; font-size:13px; line-height:1.8; max-width:930px; }
+.rewardDefinitions { display:grid; gap:10px; margin-top:16px; padding-top:16px; border-top:1px solid #59503D; }
+.rewardDefinitions p { color:#C4CCC1; font-size:12px; line-height:1.85; }
+.rewardDefinitions strong { color:#E5C980; }
 .programTabs { margin-top:24px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .programTabs button { display:flex; align-items:center; gap:16px; text-align:left; min-width:0; border:1px solid #35383C; background:#15181D; border-radius:12px; padding:20px; cursor:pointer; transition:border-color .15s,background .15s; }
 .programTabs button.selectedProgram { border-color:#D8B665; background:linear-gradient(120deg,#3C3220,#231F18); box-shadow:inset 0 0 0 1px #D8B66533; }

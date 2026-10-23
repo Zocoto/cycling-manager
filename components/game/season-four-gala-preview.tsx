@@ -50,7 +50,11 @@ export function SeasonFourGalaPreview({exportStatus}: {exportStatus?:GalaExportS
 
     <section id="programme-gala" className={styles.section} aria-labelledby="programme-title">
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>À chaque équipe son défi</p><h2 id="programme-title">Choisissez votre terrain de jeu.</h2></div><span className={styles.smallBadge}>3 courses · 7 à 8 coureurs par course</span></div>
-      <p className={styles.intro}>Votre équipe participe aux trois courses World Tour <strong>ou</strong> aux trois courses Continentales. Les deux programmes sont exclusifs ; le World Tour reste ouvert aux équipes qui veulent se mesurer aux plus fortes.</p>
+      <div className={styles.divisionRule}>
+        <p>Un seul programme pour toute l’équipe</p>
+        <div><strong>Les trois courses World Tour</strong><span>OU</span><strong>Les trois courses Continentales</strong></div>
+        <p>Une équipe engagée en World Tour ne peut pas s’inscrire en Continental, et inversement. Le World Tour reste ouvert aux équipes qui veulent se mesurer aux plus fortes.</p>
+      </div>
       <div role="tablist" aria-label="Programme du gala" className={styles.programTabs}>
         <button id={`${tabId}-wt`} role="tab" aria-selected={program === "world-tour"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("world-tour")} className={program === "world-tour" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>01</span><span><strong>World Tour</strong><small>Montagne · Vallons · Pavés</small></span><span className={styles.programTag}>Sans plafond</span></button>
         <button id={`${tabId}-ct`} role="tab" aria-selected={program === "continental"} aria-controls={`${tabId}-panel`} onClick={() => setProgram("continental")} className={program === "continental" ? styles.selectedProgram : undefined}><span className={styles.programIndex}>02</span><span><strong>Continental</strong><small>Montagne · Vallons · Sprint</small></span><span className={styles.programTag}>75 max.</span></button>
@@ -71,10 +75,15 @@ export function SeasonFourGalaPreview({exportStatus}: {exportStatus?:GalaExportS
         <strong className={styles.rewardRank}>{prize.rank === 1 ? "1er" : prize.rank+"e"}</strong><Image src={prize.image} width={38} height={38} alt=""/><div><h3>{prize.name}</h3><p>Équipement exclusif · {rewardCourse.profile}</p></div><b className={styles.bonus}>+{prize.primaryBonus} {rewardCourse.primaryLabel}</b>
       </article>)}{GALA_CONSUMABLE_PROPOSAL.map(pack=><article key={pack.places}><strong className={styles.rewardRank}>{pack.places}</strong><span className={styles.consumableMark} aria-hidden="true">✦</span><div><h3>{pack.name}</h3><p>{pack.detail}</p></div></article>)}</div>
       <p className={styles.rewardFootnote}>Chaque coureur du top 10 rapporte le lot de sa place à son équipe. Les équipements seront utilisables depuis la fiche du coureur et en préparation de course.</p>
+      <div className={styles.rewardDefinitions}>
+        <p><strong>Capsule technique</strong> : un objet « Perfectionnement technique » à utiliser dans l’inventaire pour ajouter définitivement +1 à une note secondaire au choix d’un coureur, dans les limites habituelles.</p>
+        <p><strong>Stage d’entraînement</strong> : trois objets « Bloc haute intensité ». Chacun double la progression d’une séance collective des professionnels à 8 h. Ils s’utilisent sur trois séances successives, pas en cumul sur une seule.</p>
+        <p><strong>Forme et soins</strong> : chaque dose est une « Ration énergétique » (+5 de forme, sans dépasser 100) ; chaque soin est une « Trousse de récupération » (−12 h sur une blessure raccourcissable).</p>
+        <p>Les lots rejoignent l’inventaire après validation et import des résultats. Les consommables s’activent ensuite au choix du DS ; ils ne sont pas utilisés automatiquement.</p>
+      </div>
     </section>
     <SeasonFourGalaExports status={exportStatus}/>
 
-    <details className={styles.organizerNotes}><summary>Les derniers points à caler ensemble <span aria-hidden="true">＋</span></summary><ul><li>Horaire du live et clôture des inscriptions à confirmer.</li><li>Continental : toutes les notes primaires natives doivent être au maximum à 75. Aucun bonus d’équipement n’est pris en compte.</li><li>Parcours repérés dans le pack PCM local ; contrôle en jeu et export des six courses à effectuer après validation. Les profils dessinés ici sont schématiques.</li><li>Consommables : +5 de forme par dose, −12 h par soin sur une blessure raccourcissable. La capsule technique apporte +1 à une note secondaire au choix ; le stage double l’entraînement pendant 3 jours.</li><li>Les équipes, coureurs et favoris de démonstration ne correspondent à aucune inscription réelle.</li></ul></details>
     <footer className={styles.footer}>GALA DE LA SAISON 4 <span>06.11.2026 · EN LIVE AVEC GOUILLE</span></footer>
   </div>;
 }

@@ -1,5 +1,7 @@
 # Draft privé du gala de la saison 4 — révision du 22 octobre 2026
 
+Mise à jour du 23 octobre : voir `gala-s4-rewards-20261023.md` pour le cuissard du vainqueur, les dotations désormais câblées à l’import, les garde-fous de programme et le retrait des notes d’organisation. Les indications de cette première révision sur les récompenses purement proposées sont historiques.
+
 Simulation prévue le vendredi 6 novembre 2026 sur PCM26, diffusée par Gouille : https://www.twitch.tv/gouille_tw. L’avatar est celui observé sur cette chaîne le 22 octobre ; il est servi localement pour éviter de charger Twitch à chaque consultation. Aucun lecteur Twitch ni traceur embarqué.
 
 ## Portée de cette livraison
