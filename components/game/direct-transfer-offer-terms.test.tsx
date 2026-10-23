@@ -32,6 +32,8 @@ describe("direct transfer offer terms", () => {
     expect(html).toContain("12 000");
     expect(html).toContain("Salaire à votre charge");
     expect(html).toContain("indivisibles");
-    expect(html).toContain("course, stage ou reconnaissance");
+    expect(html).toContain("vous désinscrivez votre coureur de toutes ses courses à venir");
+    expect(html).toContain("Une course commencée ou un départ déjà figé bloque l’échange");
+    expect(html).toContain("Les stages et reconnaissances doivent toujours être terminés ou annulés");
   });
 });

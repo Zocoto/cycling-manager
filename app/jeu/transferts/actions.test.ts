@@ -56,6 +56,8 @@ describe("direct transfer offers, cash and rider exchange", () => {
     });
     expect(mocks.path).toHaveBeenCalledWith(`/jeu/coureurs/${outgoing}`);
     expect(mocks.path).not.toHaveBeenCalledWith(`/jeu/coureurs/${forged}`);
+    expect(mocks.path).toHaveBeenCalledWith("/jeu/courses", "layout");
+    expect(decodeURIComponent(mocks.redirect.mock.calls[0][0])).toContain("désinscrit");
   });
 
   it.each<Record<string, string>>([
@@ -86,7 +88,7 @@ describe("direct transfer offers, cash and rider exchange", () => {
   });
 
   it("does not report success or revalidate after a rejected exchange", async () => {
-    mocks.rpc.mockResolvedValue({ error: { message: "Ce coureur est inscrit à une course non terminée." } });
+    mocks.rpc.mockResolvedValue({ error: { message: "Ce coureur participe à une course commencée." } });
     await expect(submitDirectTransferOfferAction(form({ offeredRiderId: outgoing }))).rejects.toThrow("erreur=");
     expect(mocks.path).not.toHaveBeenCalled();
     expect(mocks.after).not.toHaveBeenCalled();

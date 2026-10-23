@@ -6,6 +6,7 @@ import {
   NationalChampionshipGroupCard,
   type NationalChampionshipGroup,
 } from "@/components/game/national-championship-results-directory";
+import { InternationalChampionshipResultsAccess } from "@/components/game/international-championship-results-access";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import Link from "@/components/ui/app-link";
 import {
@@ -79,6 +80,7 @@ export function RaceLiveDirectory({
           (edition) =>
             edition.competitionType === "standard" ||
             edition.competitionType === "world_championship" ||
+            edition.competitionType === "continental_championship" ||
             edition.engagedRiderCount > 0,
         )
         .flatMap((edition) =>
@@ -143,6 +145,8 @@ export function RaceLiveDirectory({
   }
 
   return (
+    <>
+    <InternationalChampionshipResultsAccess calendar={calendar} now={now} />
     <section className="overflow-visible rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
       <div className="overflow-hidden rounded-t-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-5 py-6 text-white sm:px-8 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-5">
@@ -181,7 +185,7 @@ export function RaceLiveDirectory({
             </p>
             <p className="mt-1 text-xs font-semibold text-[#688176]">
               {scope === "team"
-                ? "Retrouvez les épreuves auxquelles votre équipe participe et les Mondiaux diffusés à tous."
+                ? "Retrouvez les épreuves auxquelles votre équipe participe et les championnats internationaux diffusés à tous."
                 : "Suivez en spectateur les autres directs, replays et résultats."}
             </p>
           </div>
@@ -331,6 +335,7 @@ export function RaceLiveDirectory({
         </details>
       ) : null}
     </section>
+    </>
   );
 }
 
@@ -800,6 +805,10 @@ export function isEditionInResultsScope(
   scope: ResultsScope,
 ) {
   if (edition.competitionType === "world_championship") {
+    return true;
+  }
+
+  if (edition.competitionType === "continental_championship") {
     return true;
   }
 

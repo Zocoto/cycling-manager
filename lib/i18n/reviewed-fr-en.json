@@ -64,6 +64,17 @@
   "Le Grand Gala · Saison 4 · Inscriptions": "The Grand Gala · Season 4 · Registration",
   "Les coureurs dépassant 75 dans au moins une note primaire native sont inéligibles. L’éligibilité sera aussi contrôlée lors de l’export : vérifiez vos compositions avant la clôture.": "Riders with any native primary rating above 75 are ineligible. Eligibility will also be checked at export: review your lineups before the deadline.",
   "Les favoris seront dévoilés après la clôture des inscriptions.": "The favourites will be revealed after registration closes.",
+  "Si vous proposez un coureur en échange, il sera immédiatement désinscrit de toutes ses courses à venir. Un refus ou un retrait de l’offre ne le réinscrit pas.": "If you offer a rider in a trade, he will immediately be withdrawn from all upcoming races. Rejecting or cancelling the offer will not re-enter him.",
+  "À l’acceptation, les inscriptions futures des deux coureurs sont retirées. Une course commencée ou un départ déjà figé bloque l’envoi et l’acceptation. Les stages et reconnaissances doivent toujours être terminés ou annulés.": "On acceptance, both riders are withdrawn from upcoming races. An ongoing race or a locked start list prevents submission and acceptance. Training camps and reconnaissance must still be completed or cancelled.",
+  "L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la fin de la saison en cours. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir.": "The rider swap and payment are indivisible. Both contracts run until the end of the current season. By accepting, you withdraw your rider from all upcoming races.",
+  "Une course commencée ou un départ déjà figé bloque l’échange. Les stages et reconnaissances doivent toujours être terminés ou annulés. Ces conditions sont revérifiées pour les deux coureurs à l’acceptation.": "An ongoing race or a locked start list prevents the trade. Training camps and reconnaissance must still be completed or cancelled. These conditions are checked again for both riders on acceptance.",
+  "L’acceptation vérifie à nouveau les deux coureurs, les effectifs et les budgets. Les inscriptions aux courses futures sont retirées ; si une composition devient insuffisante, son DS est averti. Aucune course en cours ni aucun stage ne sera annulé pour forcer l’échange.": "Acceptance checks both riders, squads and budgets again. Upcoming race entries are withdrawn; if a lineup becomes too small, its manager is notified. No ongoing race or training camp will be cancelled to force the trade through.",
+  "Votre offre a été transmise. Votre coureur a été désinscrit de ses courses à venir ; l’offre et votre message sont disponibles dans votre conversation privée.": "Your offer has been sent. Your rider has been withdrawn from upcoming races; the offer and your message are available in your private conversation.",
+  "{{0}} participe à une course commencée ou dont le départ est déjà figé. Attendez la fin de l’épreuve pour proposer ou accepter l’échange.": "{{0}} is in an ongoing race or one whose start list is already locked. Wait until the race ends before proposing or accepting the trade.",
+  "% participe à une course commencée ou dont le départ est déjà figé. Attendez la fin de l’épreuve pour proposer ou accepter l’échange.": "% is in an ongoing race or one whose start list is already locked. Wait until the race ends before proposing or accepting the trade.",
+  "Une opération sur les courses de ces coureurs est en cours. Réessayez dans quelques secondes.": "An operation involving these riders' races is in progress. Try again in a few seconds.",
+  "{{0}} a été désinscrit dans le cadre d’une offre d’échange.": "{{0}} has been withdrawn as part of a trade offer.",
+  "{{0}} a été désinscrit de {{1}} dans le cadre d’une offre d’échange. Il reste {{2}} coureur(s) pour un minimum de {{3}}. Complétez votre composition avant le départ.": "{{0}} has been withdrawn from {{1}} as part of a trade offer. {{2}} rider(s) remain, with a minimum of {{3}} required. Complete your lineup before the start.",
   "Amstel Gold Race": "Amstel Gold Race",
   "Paris–Roubaix": "Paris–Roubaix",
   "Grand Prix de l’Escaut": "Scheldeprijs",
@@ -2605,5 +2616,9 @@
   "places. Un arbitrage est nécessaire ; aucune équipe n’a été retirée.": "places. An organisational decision is required; no team has been removed.",
   "Équipement exclusif ·": "Exclusive equipment ·",
   "équipes au total. Aucun blocage à l’inscription ; un dépassement demandera un arbitrage avant la simulation.": "teams in total. Entries are not blocked; any excess will require an organisational decision before the simulation.",
-  "Parcours PCM du gala S4 absent du gabarit.": "S4 gala PCM course missing from the template."
+  "Parcours PCM du gala S4 absent du gabarit.": "S4 gala PCM course missing from the template.",
+  "Accès direct aux courses et aux classements, toute la journée.": "Direct access to races and standings, all day long.",
+  "Championnats internationaux · Aujourd’hui": "International championships · Today",
+  "Direct / résultats": "Live / results",
+  "Retrouvez les épreuves auxquelles votre équipe participe et les championnats internationaux diffusés à tous.": "Find your team’s races and international championships broadcast to everyone."
 }

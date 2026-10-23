@@ -33,6 +33,9 @@ describe("direct transfer composer initial rendering", () => {
     expect(html).not.toContain('name="offeredRiderId"');
     expect(mocks.load).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
+    expect(html).toContain("immédiatement désinscrit de toutes ses courses à venir");
+    expect(html).toContain("Un refus ou un retrait de l’offre ne le réinscrit pas");
+    expect(html).toContain("bloque l’envoi et l’acceptation");
   });
 
   it("allows preparing an exchange with no free cash or recruitment slot, without submitting an invalid cash offer", () => {
@@ -47,6 +50,7 @@ describe("direct transfer composer initial rendering", () => {
   it("does not offer the exchange loader when this rider is not trade eligible", () => {
     const html = renderToStaticMarkup(<DirectTransferOfferComposer {...props} canMakeTradeOffer={false} />);
     expect(html).not.toContain("Ajouter un coureur en échange");
+    expect(html).not.toContain("immédiatement désinscrit");
     expect(html).toContain("Transmettre l’offre");
     expect(mocks.load).not.toHaveBeenCalled();
   });
