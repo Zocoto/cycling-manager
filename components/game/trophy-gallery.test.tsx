@@ -16,6 +16,31 @@ vi.mock("@/app/jeu/actions", () => ({
 }));
 
 describe("TrophyGallery", () => {
+  it("highlights only the received edition inside a merged trophy", () => {
+    const gallery = buildTrophyGallery({ raceWins: [1, 2].map((season) => ({
+      id: `win-${season}`, raceSlug: "tour-de-france", raceName: "Tour de France",
+      seasonName: `Saison ${season}`, wonAt: null, riderName: `Lauréat ${season}`,
+      isGrandTour: true, isMonument: false,
+    })), teamUciTitles: [], riderUciTitles: [] });
+    gallery.unseenAwards = [{ sourceReference: "race:win-2", kind: "grand_tour" }];
+    const markup = renderToStaticMarkup(<TrophyGallery gallery={gallery} />);
+    expect(markup.match(/data-trophy-highlighted="true"/g)).toHaveLength(1);
+    expect(markup).toContain("Vos nouveaux trophées");
+    expect(markup).toContain("Nouveau trophée</span> · Saison 2 · Lauréat 2");
+    expect(markup).not.toContain("Nouveau trophée</span> · Saison 1");
+    expect(markup).toContain("(S1/2)");
+  });
+
+  it("identifies an old mail award without marking historical trophies new", () => {
+    const gallery = buildTrophyGallery({ raceWins: [], teamUciTitles: [{ id: "award", seasonName: "Saison 1", teamName: "Équipe" }], riderUciTitles: [] });
+    const markup = renderToStaticMarkup(<TrophyGallery gallery={gallery} focusedSource="uci-team:award" />);
+    expect(markup).toContain("Trophée sélectionné</span> · Saison 1");
+    expect(markup).not.toContain("Nouveau trophée");
+    const plain = renderToStaticMarkup(<TrophyGallery gallery={gallery} />);
+    expect(plain).not.toContain("data-trophy-highlighted");
+    expect(plain).not.toContain("Trophées à découvrir");
+  });
+
   it("renders historic trophies, their engraved winner and gallery totals", () => {
     const gallery = buildTrophyGallery({
       raceWins: [

@@ -25,6 +25,7 @@ import {
   type TrophyTeamUciTitle,
 } from "@/lib/game/trophy-gallery";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { TrophyAwardNotice } from "@/lib/game/trophy-arrivals";
 import {
   collectChunkedPaginatedRows,
   collectPaginatedRows,
@@ -165,10 +166,26 @@ export async function getSportingDirectorTrophyGallery(
     return EMPTY_GALLERY;
   }
 
-  return loadSportingDirectorTrophyGallery({
-    directorId: directorResult.data.id,
-    includeClaimable: true,
-  });
+  const directorId = directorResult.data.id;
+  const [gallery, notices] = await Promise.all([
+    loadSportingDirectorTrophyGallery({ directorId, includeClaimable: true }),
+    admin.from("sporting_director_trophy_notifications")
+      .select("source_reference, trophy_kind")
+      .eq("sporting_director_id", directorId)
+      .is("seen_at", null)
+      .order("awarded_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(100)
+      .returns<Array<{ source_reference: string; trophy_kind: TrophyAwardNotice["kind"] }>>(),
+  ]);
+  assertQuery(notices.error, "les nouveaux trophées");
+  return {
+    ...gallery,
+    unseenAwards: (notices.data ?? []).map((notice) => ({
+      sourceReference: notice.source_reference,
+      kind: notice.trophy_kind,
+    })),
+  };
 }
 
 export async function getPublicSportingDirectorTrophyGallery(

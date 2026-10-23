@@ -1,3 +1,16 @@
+import { buildTrophyGalleryHref } from "@/lib/game/trophy-arrivals";
+
+export function getDirectorMessageActionHref({
+  type, href, sourceReference,
+}: { type: DirectorMessageType; href: string | null; sourceReference: string | null }): string | null {
+  // Enrich existing and future gallery mail links without rewriting messages
+  // or changing unrelated rewards (e.g. inventory gifts).
+  if (type === "trophy" && href === "/jeu/objectifs?onglet=trophees" && sourceReference?.startsWith("trophy:")) {
+    return buildTrophyGalleryHref(sourceReference) ?? href;
+  }
+  return href;
+}
+
 export const DIRECTOR_MAILBOX_FILTERS = [
   "inbox",
   "unread",
