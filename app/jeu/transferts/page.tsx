@@ -386,7 +386,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                   <DirectTransferOfferTerms offer={offer} />
                   <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
                     {offer.offeredRider
-                      ? "L’acceptation vérifie à nouveau les deux coureurs, les effectifs et les budgets. Aucune course ni aucun stage en cours ou à venir ne sera supprimé pour forcer l’échange."
+                      ? "L’acceptation vérifie à nouveau les deux coureurs, les effectifs et les budgets. Les inscriptions aux courses futures sont retirées ; si une composition devient insuffisante, son DS est averti. Aucune course en cours ni aucun stage ne sera annulé pour forcer l’échange."
                       : "En acceptant, votre équipe reçoit l’indemnité et l’acheteur prend immédiatement en charge le coureur. Les équipements, inscriptions et stages sont nettoyés automatiquement."}
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">

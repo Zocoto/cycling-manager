@@ -45,7 +45,7 @@ const scenario = async (name, callback) => {
   finally { await db.exec('rollback'); await root(); }
 };
 function historicalFunction(path, name, schema = 'public') {
-  const source = readFileSync(path, 'utf8');
+  const source = readFileSync(path, 'utf8').replaceAll('\r', '');
   const start = source.toLowerCase().indexOf(`create or replace function ${schema}.${name}(`);
   assert(start >= 0, `${name}: historical definition missing`);
   const body = source.slice(start);
@@ -56,7 +56,7 @@ function historicalFunction(path, name, schema = 'public') {
   return `${body.slice(0, end + delimiter[1].length)};`;
 }
 function historicalBlock(path, marker, delimiter) {
-  const source = readFileSync(path, 'utf8');
+  const source = readFileSync(path, 'utf8').replaceAll('\r', '');
   const markerIndex = source.indexOf(marker);
   assert(markerIndex >= 0, `${marker}: historical block missing`);
   const start = source.lastIndexOf(`do ${delimiter}`, markerIndex);
@@ -96,6 +96,17 @@ const addRider = async (n, team, {status = 'active', start = 4, end = 4, acquisi
   return scalar('insert into public.rider_contracts(rider_id,team_id,start_season_id,end_season_id,salary_per_season,status,acquisition_type,transfer_locked_season_id) values($1,$2,$3,$4,$5,$6,$7,$8) returning id', [id(n),id(team),id(start),id(end),salary,status,acquisition,locked === null ? null : id(locked)]);
 };
 const owner = rider => scalar("select team_id from public.rider_contracts where rider_id=$1 and status='active'", [id(rider)]);
+const bookRace = async (rider, {base=9000,teamSeason=rider===201?104:114,status='registration_open',registrationStatus='accepted',stageStatus='planned',departure="clock_timestamp()+interval '2 days'"}={}) => {
+  await root();
+  assert(["clock_timestamp()+interval '2 days'","clock_timestamp()-interval '1 minute'","clock_timestamp()+interval '5 minutes'"].includes(departure));
+  await db.query("insert into public.races(id,slug) values($1,'course-test')",[id(base)]);
+  await db.query('insert into public.race_categories(id,minimum_roster_size) values($1,1)',[id(base)]);
+  await db.query('insert into public.race_editions(id,status,race_id,race_category_id) values($1,$2,$1,$1)',[id(base),status]);
+  await db.query(`insert into public.stages(id,status,race_edition_id,departure_at) values($1,$2,$3,${departure})`,[id(base+1),stageStatus,id(base)]);
+  await db.query('insert into public.race_registrations(id,race_edition_id,status,team_season_id) values($1,$2,$3,$4)',[id(base+2),id(base),registrationStatus,teamSeason===null?null:id(teamSeason)]);
+  await db.query("insert into public.race_rosters(id,race_registration_id,rider_id,status) values($1,$2,$3,'confirmed')",[id(base+3),id(base+2),id(rider)]);
+  return {edition:id(base),stage:id(base+1),registration:id(base+2),roster:id(base+3)};
+};
 
 try {
   await db.exec(`
@@ -247,6 +258,117 @@ try {
         cash_response_core_hash:'915a479051739453000889726bef123d',
       },'The exact raw hash reconstruction used by the reviewed delivery script also matches');
 
+  // The forward migration runs in the same isolated database, over the real
+  // deployed exchange routines. Minimal extra calendar/selection columns only.
+  await db.exec(`
+    create table public.races(id uuid primary key,slug text,competition_type text default 'standard');
+    create table public.race_categories(id uuid primary key,minimum_roster_size int default 5);
+    alter table public.race_editions add column race_id uuid,add column race_category_id uuid,add column display_name text default 'Course test';
+    alter table public.stages add column race_edition_id uuid,add column departure_at timestamptz;
+    create table public.official_stage_simulations(stage_id uuid primary key);
+    create table public.official_stage_simulation_claims(stage_id uuid primary key);
+    create table public.national_federation_selection_lists(id uuid primary key,status text default 'finalized',updated_at timestamptz);
+    create table public.national_federation_selection_members(selection_list_id uuid,professional_rider_id uuid,response_status text,responded_at timestamptz);
+    create table public.national_federation_selection_race_links(selection_list_id uuid,race_registration_id uuid);
+  `);
+  const futureRaceMigration='supabase/migrations/20261023160000_allow_future_races_in_rider_trades.sql';
+  const beforeFutureMigration=await snapshot();
+  await db.exec(readFileSync(futureRaceMigration,'utf8'));
+  check(await snapshot(),beforeFutureMigration,'Future-race delivery does not rewrite any player entry, offer, contract or balance');
+
+  await scenario('future entries are withdrawn at submission only for the proposing manager',async () => {
+    const outgoing=await bookRace(201);
+    const target=await bookRace(202,{base:9010});
+    const past=await bookRace(201,{base:9020,status:'completed',stageStatus:'completed'});
+    await auth(1);
+    const selectedId=offerId(await submit(202,0,201));
+    await root();
+    check(await scalar('select status from public.race_rosters where id=$1',[outgoing.roster]),'withdrawn');
+    check(await scalar('select status from public.race_rosters where id=$1',[target.roster]),'confirmed','Another manager cannot remove the targeted rider before consent');
+    check(await scalar('select status from public.race_rosters where id=$1',[past.roster]),'confirmed','Completed history is never rewritten');
+    check(await owner(201),id(10),'Submitting is not a transfer');
+    check(await rows("select sporting_director_id,action_href from public.sporting_director_messages where source_reference like 'trade-withdrawal:%'"),[{sporting_director_id:id(20),action_href:'/jeu/courses/course-test#inscription'}],'The proposing DS receives the normal composition correction link');
+    // A new upcoming booking while the offer waits is cleared at acceptance.
+    const lateEntry=await bookRace(201,{base:9030,status:'registration_closed'});
+    await auth(2);
+    await respond(selectedId);
+    await root();
+    check(await scalar('select status from public.race_rosters where id=$1',[target.roster]),'withdrawn');
+    check(await scalar('select status from public.race_rosters where id=$1',[lateEntry.roster]),'withdrawn');
+    check(await scalar('select status from public.race_rosters where id=$1',[past.roster]),'confirmed');
+    check(await scalar("select count(*)::int from public.sporting_director_messages where source_reference like 'trade-withdrawal:%'"),3);
+  });
+
+  for (const decision of ['reject','cancel']) {
+    await scenario(`a ${decision} does not silently restore withdrawn future entries`,async () => {
+      const entry=await bookRace(201,{registrationStatus:'pending',status:'planned'});
+      await auth(1);
+      const selectedId=offerId(await submit(202,0,201));
+      if(decision==='reject') {await auth(2);await respond(selectedId,false);}
+      else await scalar('select public.cancel_current_direct_transfer_offer($1)',[selectedId]);
+      await root();
+      check(await scalar('select status from public.race_rosters where id=$1',[entry.roster]),'withdrawn');
+      check(await owner(201),id(10));
+      check(await scalar("select count(*)::int from public.sporting_director_messages where source_reference like 'trade-withdrawal:%'"),0,'Pending team registration does not produce an accepted-lineup alert');
+    });
+  }
+
+  await scenario('failed submission rolls withdrawals and correction messages back',async () => {
+    await bookRace(201);
+    await db.exec(`create function public.test_fail_trade_chat() returns trigger language plpgsql as $$begin raise exception 'TEST chat failed';end$$;
+      create trigger test_fail_trade_chat before insert on public.direct_messages for each row execute function public.test_fail_trade_chat()`);
+    const before=await snapshot();
+    await auth(1);
+    await reject('select public.submit_direct_transfer_trade_offer($1,0,$2,null)',[id(202),id(201)],'TEST chat failed');
+    check(await snapshot(),before,'A downstream failure cannot leave an unregistered rider without an offer');
+  });
+
+  await scenario('national confirmed selections cannot reinsert a withdrawn future rider',async () => {
+    const entry=await bookRace(201,{teamSeason:null});
+    await db.query('insert into public.national_federation_selection_lists(id) values($1)',[id(9050)]);
+    await db.query("insert into public.national_federation_selection_members values($1,$2,'confirmed',null)",[id(9050),id(201)]);
+    await db.query('insert into public.national_federation_selection_race_links values($1,$2)',[id(9050),entry.registration]);
+    await auth(1);
+    await submit(202,0,201);
+    await root();
+    check(await scalar('select response_status from public.national_federation_selection_members where professional_rider_id=$1',[id(201)]),'declined');
+    check(await scalar('select status from public.race_rosters where id=$1',[entry.roster]),'withdrawn');
+    check(await scalar('select updated_at is not null from public.national_federation_selection_lists where id=$1',[id(9050)]),true,'The regular selection sync sees the changed reply');
+  });
+
+  for (const rider of [201,202]) for (const reason of ['stage_started','tour_between_stages','late_status','imminent','simulation','claim']) {
+    await scenario(`rider ${rider}: ${reason} blocks submission and acceptance without side effects`,async () => {
+      const entry=await bookRace(rider);
+      const block=async () => {
+        await root();
+        if(reason==='stage_started')await db.query("update public.stages set status='in_progress' where id=$1",[entry.stage]);
+        if(reason==='tour_between_stages')await db.query("update public.stages set status='completed' where id=$1",[entry.stage]);
+        if(reason==='late_status')await db.query("update public.stages set departure_at=clock_timestamp()-interval '1 minute' where id=$1",[entry.stage]);
+        if(reason==='imminent')await db.query("update public.stages set departure_at=clock_timestamp()+interval '5 minutes' where id=$1",[entry.stage]);
+        if(reason==='simulation')await db.query('insert into public.official_stage_simulations values($1)',[entry.stage]);
+        if(reason==='claim')await db.query('insert into public.official_stage_simulation_claims values($1)',[entry.stage]);
+      };
+      await block();
+      let before=await snapshot();
+      await auth(1);
+      await reject('select public.submit_direct_transfer_trade_offer($1,0,$2,null)',[id(202),id(201)],'course commencée');
+      check(await snapshot(),before);
+      await root();
+      await db.query("update public.stages set status='planned',departure_at=clock_timestamp()+interval '2 days' where id=$1",[entry.stage]);
+      await db.query('delete from public.official_stage_simulations where stage_id=$1',[entry.stage]);
+      await db.query('delete from public.official_stage_simulation_claims where stage_id=$1',[entry.stage]);
+      await auth(1);
+      const selectedId=offerId(await submit(202,0,201));
+      await root();
+      await db.query("update public.race_rosters set status='confirmed' where id=$1",[entry.roster]);
+      await block();
+      before=await snapshot();
+      await auth(2);
+      await reject('select public.respond_to_direct_transfer_offer($1,true)',[selectedId],'course commencée');
+      check(await snapshot(),before,'A pending offer never overrides an ongoing or frozen competition');
+    });
+  }
+
   // Scenarios below always roll back into the exact same isolated baseline.
   await scenario('cash-only historical offer and transfer unchanged',async () => {
     await auth(1);
@@ -310,7 +432,7 @@ try {
 
   await scenario('successful trade preserves history but clears source-team future equipment and staff',async () => {
     await root();
-    await db.query("insert into public.stages values($1,'planned'),($2,'completed')",[id(860),id(861)]);
+    await db.query("insert into public.stages(id,status) values($1,'planned'),($2,'completed')",[id(860),id(861)]);
     await db.query('insert into public.race_stage_equipment_assignments values($1,$2),($1,$3),($4,$2),($4,$3)',[id(201),id(860),id(861),id(202)]);
     await db.query('insert into public.rider_training_plan_versions(rider_id,season_id,effective_from_day_number,trainer_contract_id) values($1,$3,13,$4),($1,$3,14,$4),($2,$3,13,$5),($2,$3,15,$5)',[id(201),id(202),id(4),id(862),id(863)]);
     const oldSalaryPostings=await rows("update public.team_finance_transactions set status='posted',posted_at=now() where category='rider_salary' and day_number=7 returning to_jsonb(team_finance_transactions) as row");
@@ -337,9 +459,13 @@ try {
       'select private.assert_rider_trade_eligible($1,$1,$1,4)',
       'select private.quote_direct_transfer_salary($1,$1,$1,1000)',
     ]) await reject(sql,[id(202)]);
+    await reject('select private.assert_trade_races_not_started($1)',[id(202)]);
+    await reject('select private.withdraw_trade_future_races($1,$2)',[id(202),id(9999)]);
     const selectedId=offerId(await submit(202,12000,201));
+    await bookRace(202);
+    await bookRace(201,{base:9010});
     await root();
-    await db.query("insert into public.stages values($1,'planned')",[id(850)]);
+    await db.query("insert into public.stages(id,status) values($1,'planned')",[id(850)]);
     await db.query('insert into public.race_stage_equipment_assignments values($1,$2)',[id(202),id(850)]);
     await db.query('insert into public.rider_training_plan_versions(rider_id,season_id,effective_from_day_number,trainer_contract_id) values($1,$2,14,$3)',[id(202),id(4),id(851)]);
     await db.query("insert into public.rider_equipment_assignments values($1,'source A'),($2,'source B')",[id(201),id(202)]);
@@ -577,7 +703,7 @@ try {
 
   await scenario('live race ownership guard permits own team and national selection only',async () => {
     await root();
-    await db.query("insert into public.race_editions values($1,'planned'),($2,'completed')",[id(870),id(871)]);
+    await db.query("insert into public.race_editions(id,status) values($1,'planned'),($2,'completed')",[id(870),id(871)]);
     await db.query("insert into public.race_registrations(id,race_edition_id,status,team_season_id) values($1,$2,'accepted',$3),($4,$2,'accepted',$5),($6,$2,'accepted',null),($7,$8,'accepted',$5)",[id(872),id(870),id(104),id(873),id(114),id(874),id(875),id(871)]);
     await db.query("insert into public.race_rosters(race_registration_id,rider_id,status) values($1,$2,'selected')",[id(872),id(201)]);
     await reject("insert into public.race_rosters(race_registration_id,rider_id,status) values($1,$2,'confirmed')",[id(873),id(201)]);
@@ -607,7 +733,7 @@ try {
     await auth(2);
     await respond(selectedId);
     await root();
-    await db.query("insert into public.race_editions values($1,'planned')",[id(890)]);
+    await db.query("insert into public.race_editions(id,status) values($1,'planned')",[id(890)]);
     await db.query("insert into public.race_registrations(id,race_edition_id,status,team_season_id) values($1,$2,'accepted',$3),($4,$2,'accepted',$5)",[id(891),id(890),id(104),id(892),id(114)]);
     await reject("insert into public.race_rosters(race_registration_id,rider_id,status) values($1,$2,'selected')",[id(891),id(201)]);
     await db.query("insert into public.race_rosters(race_registration_id,rider_id,status) values($1,$2,'selected')",[id(892),id(201)]);
@@ -653,9 +779,9 @@ try {
       check(await snapshot(),before);
     });
 
-    await scenario(`rider ${rider} course commitment checked twice, completed race allowed`,async () => {
+    await scenario(`rider ${rider} ongoing course checked twice, completed race allowed`,async () => {
       await root();
-      await db.query("insert into public.race_editions values($1,'planned')",[id(801)]);
+      await db.query("insert into public.race_editions(id,status) values($1,'in_progress')",[id(801)]);
       await db.query("insert into public.race_registrations(id,race_edition_id,status,team_season_id) values($1,$2,'accepted',$3)",[id(802),id(801),id(rider===201?104:114)]);
       await db.query("insert into public.race_rosters(race_registration_id,rider_id,status) values($1,$2,'confirmed')",[id(802),id(rider)]);
       await auth(1);
@@ -665,7 +791,7 @@ try {
       await auth(1);
       const selectedId=offerId(await submit(202,0,201));
       await root();
-      await db.query("update public.race_editions set status='ongoing' where id=$1",[id(801)]);
+      await db.query("update public.race_editions set status='in_progress' where id=$1",[id(801)]);
       const before=await snapshot();
       await auth(2);
       await reject('select public.respond_to_direct_transfer_offer($1,true)',[selectedId]);
