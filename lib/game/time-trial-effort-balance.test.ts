@@ -99,7 +99,9 @@ function withEffort(source: StageSimulationInput, mode: TimeTrialEffortMode): St
 }
 
 function exactElapsed(result: ReturnType<typeof simulateRaceStage>, riderId: string) {
-  return result.timeline.at(-1)!.groups.find((group) => group.riderIds.includes(riderId))!.elapsedTimeSeconds;
+  const elapsed = result.timeline.at(-1)!.groups.find((group) => group.riderIds.includes(riderId))!.elapsedTimeSeconds;
+  if (typeof elapsed !== "number") throw new Error("Expected a timed finishing group");
+  return elapsed;
 }
 
 describe("bounded time-trial all-in advantage", () => {
