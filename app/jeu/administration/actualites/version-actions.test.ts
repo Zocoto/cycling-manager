@@ -29,7 +29,7 @@ describe("owner-only version update", () => {
     expect((await saveSiteReleaseAction(initial, form())).status).toBe("error");
     expect(mocks.role).not.toHaveBeenCalled(); expect(mocks.rpc).not.toHaveBeenCalled();
   });
-  it.each([{ version: "1.2<script>" }, { revision: "0" }, { revision: "NaN" }, { revision: "1.5" }, { note: "a".repeat(181) }])("validates before SQL: %j", async invalid => {
+  it.each<Record<string, string>>([{ version: "1.2<script>" }, { revision: "0" }, { revision: "NaN" }, { revision: "1.5" }, { note: "a".repeat(181) }])("validates before SQL: %j", async invalid => {
     expect((await saveSiteReleaseAction(initial, form(invalid))).status).toBe("error"); expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("updates only the version and its caches, never a news draft or publication", async () => {
