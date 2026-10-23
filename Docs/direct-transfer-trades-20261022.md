@@ -12,7 +12,10 @@
 
 - Acceptation transactionnelle : deux contrats, départs, arrivée, paiement éventuel et messages réussissent ensemble. Une erreur ne peut laisser un demi-échange.
 - Vérifications au dépôt et à l’acceptation : propriété, contrats futurs, saison active, enchères, limites d’effectif nettes et places réservées aux coureurs formés au club.
-- Courses non terminées et stages/reconnaissances programmés ou actifs empêchent l’échange ; aucun engagement payé ni course n’est supprimé pour le forcer. Un garde de propriété au moment d’écrire l’engagement protège aussi l’inscription concurrente.
+- Depuis le correctif du 23 octobre : les courses futures ne bloquent plus l’échange. Dès l’envoi, seul le coureur proposé par l’émetteur est désinscrit ; les engagements du coureur ciblé restent intacts jusqu’au consentement de son DS. À l’acceptation, les futures inscriptions des deux coureurs sont retirées, y compris celles ajoutées depuis l’offre. Refus et retrait de l’offre ne réinscrivent pas le coureur automatiquement.
+- Une compétition déjà commencée reste bloquante au dépôt comme à l’acceptation pour les deux coureurs. Cela couvre le tour entre deux étapes, un départ passé même si son statut est en retard, une simulation ou réservation officielle existante, et les sept minutes précédant le départ (pré-calcul à six minutes, marge d’une minute supérieure à la durée bornée du transfert). Les listes déjà figées ne sont jamais modifiées.
+- Les stages et reconnaissances programmés ou actifs restent bloquants. Un garde de propriété au moment d’écrire l’engagement protège aussi l’inscription concurrente. Aucun engagement payé n’est annulé automatiquement.
+- Les rosters futurs sont marqués `withdrawn`, jamais supprimés. Les sélections nationales déjà synchronisées sont déclinées pour éviter leur réapparition automatique. Les effectifs insuffisants alimentent l’alerte habituelle du bureau et un courrier contenant le lien de correction ; aucune inscription d’un autre coureur ni aucun résultat passé n’est modifié.
 - Départ de l’un des deux coureurs : les offres qui l’utilisaient comme cible ou comme contrepartie deviennent caduques. Un retrait libère la réservation de trésorerie et la disponibilité du coureur.
 - Les déclencheurs normaux restent actifs pour équipements, entraînement, échéances salariales, jours d’arrivée/départ et naturalisation. Les données historiques sont conservées.
 - Les remises de salaire sont appliquées une seule fois aux nouveaux contrats. La Data Room ne peut produire une économie que sur la soulte réellement payée, jamais sur une valeur fictive du coureur échangé.
@@ -26,6 +29,7 @@
 - Verrous limités aux équipes et coureurs concernés, ordonnés et sans attente prolongée ; aucun nouveau verrou exclusif global du marché. Verrou partagé de saison uniquement pour les échanges.
 - Les noyaux de soumission/réponse en argent seul restent inchangés dans le schéma privé ; les empreintes sont contrôlées avant la migration et après installation. Les permissions historiques sont préservées.
 - Migration `20261022190000_add_direct_transfer_trade_offers.sql`, transactionnelle et bornée, sans réécriture d’offres ou de contrats historiques. Le script de livraison refuse une dérive du noyau depuis la revue.
+- Migration complémentaire `20261023160000_allow_future_races_in_rider_trades.sql` : deux helpers privés, patchs ciblés des trois routines d’échange, verrous locaux `NOWAIT`, aucune nouvelle requête sur les lectures de pages. Livraison par `node scripts/apply-reviewed-trade-future-races.mjs --apply-reviewed-fix` après comparaison des empreintes exactes des routines. Aucun essai ni transfert fictif en production.
 
 ## Vérifications reproductibles
 
