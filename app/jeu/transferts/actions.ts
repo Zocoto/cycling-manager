@@ -178,12 +178,15 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
   if (offeredRiderId) revalidatePath(`/jeu/coureurs/${offeredRiderId}`);
+  if (offeredRiderId) revalidatePath("/jeu/courses", "layout");
   revalidatePath("/jeu/messagerie");
   revalidatePath("/jeu/chat");
   redirectWithMessage(
     returnPath,
     "succes",
-    "Votre offre a été transmise et ajoutée à votre conversation privée avec le Directeur Sportif.",
+    offeredRiderId
+      ? "Votre offre a été transmise. Votre coureur a été désinscrit de ses courses à venir ; l’offre et votre message sont disponibles dans votre conversation privée."
+      : "Votre offre a été transmise et ajoutée à votre conversation privée avec le Directeur Sportif.",
   );
 }
 
@@ -253,6 +256,7 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
   for (const riderId of [offer.rider_id, offer.offered_rider_id]) {
     if (riderId && isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
   }
+  if (offer.offered_rider_id && decision === "accept") revalidatePath("/jeu/courses", "layout");
   redirectWithMessage(
     returnPath,
     "succes",

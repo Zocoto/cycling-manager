@@ -121,8 +121,11 @@ export function DirectTransferOfferComposer({
         <p className="col-span-2 text-[10px] leading-4 text-[#9BE0BC]">Les salaires sont payés par échéances, pas au moment de l’offre. Les deux contrats couvrent la fin de la saison en cours.</p>
         {isTrade ? <p className="col-span-2 text-[10px] leading-4 text-[#9BE0BC]">Estimations avant les réductions éventuelles propres à chaque équipe. Les salaires contractuels seront indiqués dans l’offre reçue.</p> : null}
       </div>
-      {isTrade ? (
-        <p className="mt-3 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 p-3 text-xs font-semibold leading-5 text-[#FFE596]">Pour un échange, les deux coureurs doivent être libres de toute course non terminée et de tout stage ou reconnaissance à venir ou en cours. Retirez les inscriptions à venir ou attendez la fin des engagements. Ces conditions seront revérifiées à l’acceptation.</p>
+      {canMakeTradeOffer ? (
+        <div className="mt-3 space-y-2 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 p-3 text-xs font-semibold leading-5 text-[#FFE596]">
+          <p>Si vous proposez un coureur en échange, il sera immédiatement désinscrit de toutes ses courses à venir. Un refus ou un retrait de l’offre ne le réinscrit pas.</p>
+          <p>À l’acceptation, les inscriptions futures des deux coureurs sont retirées. Une course commencée ou un départ déjà figé bloque l’envoi et l’acceptation. Les stages et reconnaissances doivent toujours être terminés ou annulés.</p>
+        </div>
       ) : null}
       <div className="mt-5">
         <TransferSubmitButton pendingLabel="Envoi de l’offre…" disabled={!isTrade && !canMakeCashOffer}>
