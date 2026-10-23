@@ -1,4 +1,4 @@
-import { canAccessSeasonFourGala } from "@/lib/game/season-four-gala-access";
+import { canExportSeasonFourGala } from "@/lib/game/season-four-gala-access";
 import { getGalaEvent } from "@/lib/game/season-four-gala";
 import { GalaStartlistError } from "@/lib/game/season-four-gala-startlists";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -13,7 +13,7 @@ export async function POST(request:Request){
  const supabase=await createSupabaseServerClient();
  const {data:{user},error}=await getAuthenticatedUser(supabase);
  if(error||!user)return Response.json({error:'Authentification requise.'},{status:401});
- if(!canAccessSeasonFourGala(user.id))return Response.json({error:'Ressource introuvable.'},{status:404});
+ if(!canExportSeasonFourGala(user.id))return Response.json({error:'Ressource introuvable.'},{status:404});
  if(request.headers.get('origin')!==new URL(request.url).origin||request.headers.get('x-cs-requested-with')!=='gala-s4-export')return Response.json({error:'Requête d’export invalide.'},{status:403});
  const params=new URL(request.url).searchParams;const kind=params.get('kind')??'startlists';
  if(!['startlists','database'].includes(kind)||!['0','1'].includes(params.get('template')??'0'))return Response.json({error:'Paramètres d’export invalides.'},{status:400});

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+ <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#080d0e"/><stop offset="1" stop-color="#1b2526"/></linearGradient><linearGradient id="gold"><stop stop-color="#b18b41"/><stop offset=".5" stop-color="#f2d894"/><stop offset="1" stop-color="#b49659"/></linearGradient></defs>
+ <path fill="url(#bg)" d="M0 0h1600v900H0z"/>
+ <path d="M44 44h1512v812H44zM64 64h1472v772H64z" fill="none" stroke="#c7a963" stroke-opacity=".4"/>
+ <circle cx="1260" cy="450" r="245" fill="none" stroke="#c7a963" stroke-opacity=".15"/>
+ <circle cx="1260" cy="450" r="218" fill="none" stroke="#c7a963" stroke-opacity=".3"/>
+ <g fill="none" stroke="url(#gold)" stroke-width="7" transform="translate(1070 215) scale(3.8)">
+  <path d="M29 18h42v19c0 17-10 28-21 28S29 54 29 37V18zM29 24H16v8c0 14 8 18 19 18m36-26h13v8c0 14-8 18-19 18M50 65v14M35 84h30M39 79h22l4 5H35l4-5z"/>
+  <path d="m50 28 3 9h10l-8 6 3 10-8-6-8 6 3-10-8-6h10z" fill="#dac17b" stroke="none"/>
+ </g>
+ <g font-family="Arial,sans-serif">
+  <text x="130" y="185" fill="#c9cdd0" font-size="25" letter-spacing="9">CYCLO STRATÈGE · SAISON 4</text>
+  <text x="125" y="330" fill="#f1e9d9" font-family="Georgia,serif" font-size="100">Le Grand</text>
+  <text x="120" y="492" fill="url(#gold)" font-family="Georgia,serif" font-style="italic" font-size="172">Gala.</text>
+  <path d="M130 548h740" stroke="#d8bd78" stroke-opacity=".6"/>
+  <text x="130" y="604" fill="#d2d8d6" font-size="30">6 courses · 2 programmes · Une soirée à part</text>
+  <text x="130" y="705" fill="#e8cf91" font-size="33" font-weight="700">6 NOVEMBRE · EN LIVE AVEC GOUILLE</text>
+  <text x="130" y="770" fill="#b9c3bf" font-size="26" letter-spacing="3">LES INSCRIPTIONS SONT OUVERTES</text>
+ </g>
+</svg>

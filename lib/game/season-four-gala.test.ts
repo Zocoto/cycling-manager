@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { canAccessSeasonFourGala } from "./season-four-gala-access";
+import { canAccessSeasonFourGala, canExportSeasonFourGala } from "./season-four-gala-access";
 import { GALA_COURSES, GALA_PODIUM_PROPOSAL, GALA_PROGRAM_PROFILES, SEASON_FOUR_GALA, galaClubCapacity } from "./season-four-gala";
 import baseProfiles from "./season-four-gala-base-profiles.json";
 
@@ -10,12 +10,19 @@ describe("private S4 gala rehearsal", () => {
     expect(canAccessSeasonFourGala("58140add-54c6-40af-9528-f823d0051d0f")).toBe(true);
     for (const identity of [null,undefined,"Zocoto","owner","game_staff","paul.leblanc22@gmail.com","another-player"]) expect(canAccessSeasonFourGala(identity)).toBe(false);
   });
-  it("authorizes the server page before loading its header and returns 404 to other accounts", () => {
+  it("authenticates the public game page and separately restricts exports", () => {
     const page=readFileSync(join(process.cwd(),"app/jeu/gala-saison-4/page.tsx"),"utf8");
-    expect(page).toContain('if (!canAccessSeasonFourGala(user.id)) notFound()');
-    expect(page.indexOf('if (!canAccessSeasonFourGala(user.id))')).toBeLessThan(page.indexOf('getGameHeaderData(supabase,user.id)'));
+    expect(page).not.toContain('notFound()');
+    expect(page.indexOf('if (error || !user) redirect("/connexion")')).toBeLessThan(page.indexOf('getGameHeaderData(supabase,user.id)'));
+    expect(page).toContain('canExportSeasonFourGala(user.id)');
     expect(page).toContain('index: false, follow: false');
     expect(page).not.toContain('searchParams');
+  });
+  it('allows only Zocoto and the active Gouille account to download gala startlists',()=>{
+    expect(canExportSeasonFourGala('58140add-54c6-40af-9528-f823d0051d0f')).toBe(true);
+    expect(canExportSeasonFourGala('ee244935-5722-4626-a28f-dc3cf63aa6f4')).toBe(true);
+    for(const id of ['f4a4c24e-b534-4a5f-adbc-8f259189b86c','Zocoto','Gouille','admin',null,undefined]) expect(canExportSeasonFourGala(id)).toBe(false);
+    expect(SEASON_FOUR_GALA.registrationClosesAt).toBe('2026-11-05T22:59:00.000Z');
   });
   it("defines two distinct three-race programs with shared mountain and hilly routes", () => {
     expect(GALA_PROGRAM_PROFILES['world-tour']).toEqual(['mountain','hills','cobbles']);

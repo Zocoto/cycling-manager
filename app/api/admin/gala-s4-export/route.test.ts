@@ -10,6 +10,14 @@ const owner='58140add-54c6-40af-9528-f823d0051d0f';
 const request=(query='',origin='https://cyclostratege.fr')=>new Request('https://cyclostratege.fr/api/admin/gala-s4-export?'+query,{method:'POST',headers:{origin,'x-cs-requested-with':'gala-s4-export'}});
 beforeEach(()=>{vi.clearAllMocks();mocks.user.mockResolvedValue({data:{user:{id:owner}},error:null});mocks.generate.mockResolvedValue({data:new TextEncoder().encode('<startlist/>'),filename:'top_tdf.xml',contentType:'application/xml',teamCount:1,riderCount:7,template:false});mocks.database.mockResolvedValue({archive:new Uint8Array([80,75]),filename:'PCM-Gala-S4.zip'});});
 describe('private gala downloads',()=>{
+ it('also permits Gouille without granting any game-staff role',async()=>{
+  mocks.user.mockResolvedValue({data:{user:{id:'ee244935-5722-4626-a28f-dc3cf63aa6f4'}},error:null});
+  expect((await POST(request('event=continental%3Asprint'))).status).toBe(200);
+ });
+ it('rejects the unused homonymous Gouille account',async()=>{
+  mocks.user.mockResolvedValue({data:{user:{id:'f4a4c24e-b534-4a5f-adbc-8f259189b86c'}},error:null});
+  expect((await POST(request())).status).toBe(404);expect(mocks.generate).not.toHaveBeenCalled();
+ });
  it.each([null,{id:'another-player',user_metadata:{username:'Zocoto',role:'owner'}}])('rejects unauthorized user %j before any export',async user=>{
   mocks.user.mockResolvedValue({data:{user},error:null});expect((await POST(request())).status).toBe(user?404:401);expect(mocks.generate).not.toHaveBeenCalled();expect(mocks.database).not.toHaveBeenCalled();
  });

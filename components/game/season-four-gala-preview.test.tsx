@@ -39,11 +39,17 @@ describe("private gala presentation",()=>{
     expect(html).not.toContain('Amstel Gold Race · 2023');
     expect(html).not.toContain('Paris–Roubaix · 2026');
   });
-  it("does not expose the private event tile to any other player",async()=>{
+  it("exposes the event tile to all players without a draft label or extra player lookup",async()=>{
     const other=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'another-player'}));
-    expect(other).toContain('Halloween');expect(other).not.toContain('/jeu/gala-saison-4');
+    expect(other).toContain('Halloween');expect(other).toContain('/jeu/gala-saison-4');expect(other).not.toMatch(/draft/i);
     const owner=renderToStaticMarkup(await DashboardSeasonFourGalaEvents({userId:'58140add-54c6-40af-9528-f823d0051d0f'}));
     expect(owner).toContain('/jeu/gala-saison-4');expect(owner).toContain('/jeu/halloween');
     expect(owner).toContain('data-with-halloween="true"');
+  });
+  it('uses real registrations for the public page and hides organizer exports by default',()=>{
+    const html=renderToStaticMarkup(<SeasonFourGalaPreview context={{isOpen:true,team:null,program:null,selections:{},riders:[],counts:{"world-tour":0,continental:0}}}/>);
+    expect(html).toContain('Inscriptions ouvertes');expect(html).toContain('Jeudi 5 novembre');
+    expect(html).not.toContain('Classement fictif');expect(html).not.toContain('Vélo Club des Cimes');
+    expect(html).not.toContain('Organisation · Exports PCM');expect(html).not.toMatch(/draft/i);
   });
 });

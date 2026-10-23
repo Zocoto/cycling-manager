@@ -68,7 +68,7 @@ export async function generateSeasonFourGalaStartlistExport(eventKey?:GalaEventK
   'Gala S4 — 6 novembre 2026 — notes natives uniquement, sans équipement.',
   template?'MODÈLES SANS INSCRITS : seules l’équipe de simulation et ses sept coureurs sont présents.':'Startlists des inscriptions enregistrées, sans suppression ni troncature.',
   '7 à 8 coureurs par club. Une seule équipe de simulation est ajoutée.',
-  'Utiliser la base PCM Gala S4 compatible 7–8 coureurs proposée sur la page privée.',
+  'Utiliser la base PCM Gala S4 compatible 7–8 coureurs proposée dans l’espace organisation.',
   'Copier un seul programme à la fois dans %APPDATA%\\Pro Cycling Manager 2026\\Cloud\\Startlists\\.',
   'World-Tour et Continental utilisent les mêmes XML natifs pour montagne et vallons. Ne pas les copier simultanément.',
   'Ne jamais renommer les XML : leurs noms correspondent aux courses de la base PCM, pas aux variantes CDS/ZCES.',

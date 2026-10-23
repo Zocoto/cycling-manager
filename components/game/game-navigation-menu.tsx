@@ -11,6 +11,7 @@ export const NAVIGATION_GROUPS_FR = [
       ["Bureau du DS", "/jeu"],
       ["Mon équipe", "/jeu/equipe"],
       ["Objectifs et trophées", "/jeu/objectifs"],
+      ["Le Grand Gala · Saison 4", "/jeu/gala-saison-4"],
     ],
   },
   {
@@ -60,6 +61,7 @@ export const NAVIGATION_GROUPS_EN = [
       ["Sports director office", "/jeu"],
       ["My team", "/jeu/equipe"],
       ["Objectives and trophies", "/jeu/objectifs"],
+      ["The Grand Gala · Season 4", "/jeu/gala-saison-4"],
     ],
   },
   {

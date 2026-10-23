@@ -56,6 +56,7 @@ export const EMPTY_GAME_NEWS_DOCUMENT: GameNewsDocument = {
   summary_en: "", body_en: "", image_path: "", image_alt: "", link_url: "", link_label: "",
 };
 export const GAME_NEWS_IMAGES = [
+  { path: "/images/gala/gala-s4-announcement.svg", label: "Le Grand Gala · Saison 4" },
   { path: "/images/peloton-header.webp", label: "Le peloton" },
   { path: "/images/infrastructure/training-center.webp", label: "Les infrastructures" },
   { path: "/images/game-workspace-escape.webp", label: "La route" },
