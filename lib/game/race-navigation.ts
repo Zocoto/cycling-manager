@@ -8,6 +8,19 @@ export function getRaceRegistrationHref(raceSlug: string) {
   return `${getRaceProfileHref(raceSlug)}#${RACE_REGISTRATION_ANCHOR}`;
 }
 
+export function isRaceCalendarHref(href: string) {
+  return /^\/jeu\/calendrier\/?(?:[?#]|$)/.test(href);
+}
+
+/** Only the return from a canonical course profile needs a fresh document. */
+export function shouldUseRaceCalendarDocumentNavigation(
+  currentPathname: string,
+  targetPathname: string,
+) {
+  return /^\/jeu\/courses\/[^/]+\/?$/.test(currentPathname)
+    && isRaceCalendarHref(targetPathname);
+}
+
 /**
  * Registration links are action links, not race-profile preview links.
  * Keeping this intent check next to the canonical URL builder prevents a
