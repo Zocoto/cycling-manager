@@ -56,7 +56,7 @@ const PAGE_SIZE = 50;
 
 const getCachedJuniorRankings = unstable_cache(
   loadJuniorRankings,
-  ["junior-rankings-s3"],
+  ["junior-rankings-s3-player-teams-v2"],
   { revalidate: 30, tags: ["junior-rankings"] },
 );
 
@@ -97,24 +97,30 @@ async function loadJuniorRankings(
     };
   }
 
-  const countResult = await admin
+  let countQuery = admin
     .from("development_ranking_entries")
     .select("id", { count: "exact", head: true })
     .eq("season_id", season.id)
     .eq("entity_type", entityType);
+  // Filler AI teams have no development team. Filter before counting/paging,
+  // without changing stored race results or individual/nation rankings.
+  if (view === "equipes") countQuery = countQuery.not("development_team_id", "is", null);
+  const countResult = await countQuery;
   assertQuery(countResult.error, "le volume du classement junior");
   const totalEntries = countResult.count ?? 0;
   const pageCount = Math.max(1, Math.ceil(totalEntries / PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount);
   const offset = (page - 1) * PAGE_SIZE;
 
-  const rowsResult = await admin
+  let rowsQuery = admin
     .from("development_ranking_entries")
     .select(
       "entity_key, academy_rider_id, development_team_id, display_name, secondary_name, country_code, points, wins, podiums, race_count",
     )
     .eq("season_id", season.id)
-    .eq("entity_type", entityType)
+    .eq("entity_type", entityType);
+  if (view === "equipes") rowsQuery = rowsQuery.not("development_team_id", "is", null);
+  const rowsResult = await rowsQuery
     .order("points", { ascending: false })
     .order("wins", { ascending: false })
     .order("display_name", { ascending: true })
