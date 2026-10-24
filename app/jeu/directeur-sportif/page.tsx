@@ -32,6 +32,7 @@ import { DEFAULT_AMATEUR_JERSEY } from "../../../lib/amateur-team";
 import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getCurrentReferralOverview } from "../../../services/referrals";
+import { getOnboardingCountryDirectorCounts } from "@/services/onboarding-country-counts";
 import { getHalloweenAvatarWardrobe } from "@/services/halloween-avatar-wardrobe";
 import { getSportingDirectorSeasonAwards } from "../../../services/season-awards";
 import { getSportingDirectorReputationBreakdown } from "../../../services/sporting-director-reputation";
@@ -310,12 +311,18 @@ export default async function SportingDirectorProfilePage() {
     );
   }
 
+  const directorCounts = sportingDirector &&
+    (!sportingDirector.country_id || !teamAmateurIdentity?.isConfigured)
+    ? await getOnboardingCountryDirectorCounts()
+    : null;
+
   const countries: CountryOption[] = (
     (countriesResult.data ?? []) as CountryRow[]
   ).map((country) => ({
     id: country.id,
     name: country.name,
     isoAlpha2: country.iso_alpha2,
+    directorCount: directorCounts?.[country.id],
   }));
 
   const selectedCountry =

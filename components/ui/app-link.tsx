@@ -23,7 +23,11 @@ import {
   type RiderPreviewLinkComponent,
   type TeamPreviewLinkComponent,
 } from "@/components/ui/lazy-preview-links";
-import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
+import {
+  isRaceCalendarHref,
+  isRaceRegistrationHref,
+  shouldUseRaceCalendarDocumentNavigation,
+} from "@/lib/game/race-navigation";
 import { confirmManagementDraftNavigation } from "@/lib/game/management-navigation";
 import { getRaceQuickPreviewTargetFromHref } from "@/lib/game/race-quick-preview";
 import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
@@ -73,6 +77,31 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   const teamId = getTeamIdFromProfileHref(hrefForIntent);
   const requiresDocumentNavigation =
     typeof href === "string" && isRaceRegistrationHref(href);
+  // Only calendar links need this handler; no route subscription, prefetch,
+  // polling or reload is added to the site's other navigation paths.
+  const guardedCalendarClick: AppLinkProps["onClick"] = isRaceCalendarHref(hrefForIntent)
+    ? (event) => {
+        props.onClick?.(event);
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey
+          || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const anchor = event.currentTarget;
+        if ((anchor.target && anchor.target.toLowerCase() !== "_self")
+          || anchor.hasAttribute("download")
+          || anchor.origin !== window.location.origin
+          || !shouldUseRaceCalendarDocumentNavigation(
+            window.location.pathname, anchor.pathname,
+          )) return;
+
+        // Return with a clean GET instead of reusing a client route tree that
+        // may have been invalidated by the registration action. Never resubmit
+        // the form, and preserve the actual anchor's query/hash and draft guard.
+        event.preventDefault();
+        if (confirmManagementDraftNavigation(anchor.href)) {
+          window.location.assign(anchor.href);
+        }
+      }
+    : props.onClick;
   const guardedNavigate: AppLinkProps["onNavigate"] = (event) => {
     if (!confirmManagementDraftNavigation(typeof href === "string" ? href : `${href.pathname ?? ""}${href.search ?? ""}${normalizeHash(href.hash)}`, typeof href !== "string" && Boolean(href.query))) {
       event.preventDefault();
@@ -114,6 +143,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         prefetch={prefetch ?? false}
         scroll={scroll ?? usesAnchor}
         {...props}
+        onClick={guardedCalendarClick}
         onNavigate={guardedNavigate}
       >
         {linkChildren}
@@ -134,6 +164,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       teamId={teamId}
       usesAnchor={usesAnchor}
       {...props}
+      onClick={guardedCalendarClick}
       onNavigate={guardedNavigate}
     >
       {children}

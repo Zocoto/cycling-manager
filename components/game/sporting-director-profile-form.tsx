@@ -460,6 +460,9 @@ export function SportingDirectorProfileForm({
             Cette nationalité représente uniquement votre Directeur Sportif. Le
             pays de l’équipe et de vos 7 premiers coureurs sera choisi à l’étape
             suivante. Après validation, elle ne pourra plus être modifiée.
+            {!isCountryLocked && countries.some((country) => country.directorCount !== undefined) ? (
+              <> Le compteur indique les DS joueurs de chaque nationalité.</>
+            ) : null}
           </p>
 
           {countryErrors?.length ? (

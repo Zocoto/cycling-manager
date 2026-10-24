@@ -139,6 +139,9 @@ export function AmateurTeamCreationForm({
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
             Choix définitif : il détermine les sept coureurs initiaux et la priorité géographique des sponsors.
+            {!countryIsLocked && countries.some((country) => country.directorCount !== undefined) ? (
+              <> Le compteur indique les DS joueurs de chaque nationalité.</>
+            ) : null}
           </p>
         </div>
 

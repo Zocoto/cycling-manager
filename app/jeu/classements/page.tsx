@@ -413,7 +413,7 @@ function JuniorTable({ entries, view }: { entries: JuniorRankingEntry[]; view: J
                 )}
                 {entry.countryCode ? <p className="mt-1 text-xs text-[#60756E]"><span className={`fi fi-${entry.countryCode.toLowerCase()} mr-2 rounded-sm`} />{entry.countryCode}</p> : null}
               </td>
-              <td className="px-5 py-4 font-bold text-[#60756E]">{entry.secondaryName ?? (view === "nations" ? "Top 5" : entry.raceCount)}</td>
+              <td className="px-5 py-4 font-bold text-[#60756E]">{view === "equipes" ? entry.rankedRiderCount : entry.secondaryName ?? (view === "nations" ? "Top 5" : entry.raceCount)}</td>
               <td className="px-5 py-4 text-center font-black text-[#176951]">{entry.wins}</td>
               <PointsCell points={entry.points} />
             </tr>

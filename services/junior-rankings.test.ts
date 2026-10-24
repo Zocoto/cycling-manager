@@ -8,6 +8,7 @@ import { getJuniorRankings } from "./junior-rankings";
 type Row = Record<string, unknown>;
 type Request = {
   table: string;
+  columns: string;
   head: boolean;
   filters: Array<[string, string, unknown]>;
   range: [number, number] | null;
@@ -25,16 +26,17 @@ function team(index: number, virtual = false): Row {
   };
 }
 
-function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "rows" | "season" } = {}) {
+function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "rows" | "season" | "riders" } = {}) {
   const season = options.season === undefined ? { id: "s4", name: "Saison 4", game_year: 4, status: "active" } : options.season;
   const requests: Request[] = [];
   const from = vi.fn((table: string) => {
     let filtered = table === "seasons" ? (season ? [season] : []) : [...rows];
-    const request: Request = { table, head: false, filters: [], range: null };
+    const request: Request = { table, columns: "", head: false, filters: [], range: null };
     const orders: Array<{ key: string; ascending: boolean }> = [];
     requests.push(request);
     const result = () => {
-      const fail = table === "seasons" ? options.fail === "season" : options.fail === (request.head ? "count" : "rows");
+      const isRiderCount = request.columns === "entity_key, academy_rider_id, development_team_id";
+      const fail = table === "seasons" ? options.fail === "season" : options.fail === (request.head ? "count" : isRiderCount ? "riders" : "rows");
       const sorted = [...filtered].sort((a, b) => {
         for (const { key, ascending } of orders) {
           const av = a[key], bv = b[key];
@@ -46,11 +48,11 @@ function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "
       return {
         error: fail ? { message: "Lecture indisponible" } : null,
         count: filtered.length,
-        data: request.head ? null : sorted.slice(request.range?.[0] ?? 0, request.range ? request.range[1] + 1 : undefined),
+        data: request.head ? null : sorted.slice(request.range?.[0] ?? 0, Math.min((request.range?.[0] ?? 0) + 1000, request.range ? request.range[1] + 1 : sorted.length)),
       };
     };
     const query = {
-      select: (_columns: string, config?: { head?: boolean }) => { request.head = !!config?.head; return query; },
+      select: (columns: string, config?: { head?: boolean }) => { request.columns = columns; request.head = !!config?.head; return query; },
       eq: (key: string, value: unknown) => {
         request.filters.push([key, "eq", value]);
         filtered = filtered.filter(row => row[key] === value);
@@ -62,8 +64,14 @@ function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "
         filtered = filtered.filter(row => row[key] != null);
         return query;
       },
+      in: (key: string, values: unknown[]) => {
+        request.filters.push([key, "in", values]);
+        filtered = filtered.filter(row => values.includes(row[key]));
+        return query;
+      },
       order: (key: string, config: { ascending: boolean }) => { orders.push({ key, ascending: config.ascending }); return query; },
       range: (start: number, end: number) => { request.range = [start, end]; return query; },
+      abortSignal: () => query,
       maybeSingle: async () => ({ ...result(), data: filtered[0] ?? null }),
       returns: async () => result(),
       then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result()).then(resolve),
@@ -85,10 +93,10 @@ describe("classement junior des équipes de joueurs", () => {
       { rank: 1, developmentTeamId: "development-1", points: 999 },
       { rank: 2, developmentTeamId: "development-3", points: 997 },
     ]);
-    for (const request of requests.filter(r => r.table === "development_ranking_entries")) {
+    for (const request of requests.filter(r => r.filters.some(([key, , value]) => key === "entity_type" && value === "team"))) {
       expect(request.filters).toContainEqual(["development_team_id", "not.is", null]);
     }
-    expect(requests).toHaveLength(3); // Same bounded queries; no lookup per team.
+    expect(requests).toHaveLength(4); // One grouped identity lookup, not one query per team.
   });
 
   it("remplit les pages avec les seules équipes éligibles même si beaucoup d’IA les précèdent", async () => {
@@ -101,7 +109,7 @@ describe("classement junior des équipes de joueurs", () => {
     expect(ranking).toMatchObject({ totalEntries: 51, pageCount: 2, page: 2 });
     expect(ranking?.entries).toHaveLength(1);
     expect(ranking?.entries[0]).toMatchObject({ rank: 51, developmentTeamId: "development-150", points: 850 });
-    expect(requests.at(-1)?.range).toEqual([50, 99]);
+    expect(requests.find(r => !r.head && r.filters.some(([key, , value]) => key === "entity_type" && value === "team"))?.range).toEqual([50, 99]);
   });
 
   it("ne conserve pas une dernière page vide après exclusion des IA", async () => {
@@ -117,8 +125,9 @@ describe("classement junior des équipes de joueurs", () => {
   });
 
   it("retourne un classement vide cohérent s’il n’y a que des équipes virtuelles", async () => {
-    fixture([team(0, true), team(1, true)]);
+    const requests = fixture([team(0, true), team(1, true)]);
     expect(await getJuniorRankings("equipes", 4)).toMatchObject({ entries: [], totalEntries: 0, page: 1, pageCount: 1 });
+    expect(requests).toHaveLength(3);
   });
 
   it.each(["individuel", "nations"] as const)("ne change pas la vue %s ni ses critères", async view => {
@@ -126,7 +135,8 @@ describe("classement junior des équipes de joueurs", () => {
     const requests = fixture([{ ...team(0, true), entity_type: entityType, country_code: "FR" }, team(1)]);
     const ranking = await getJuniorRankings(view);
     expect(ranking).toMatchObject({ totalEntries: 1, view });
-    expect(ranking?.entries[0]).toMatchObject({ points: 1000, countryCode: "FR" });
+    expect(ranking?.entries[0]).toMatchObject({ points: 1000, countryCode: "FR", rankedRiderCount: null });
+    expect(requests).toHaveLength(3);
     expect(requests.every(request => !request.filters.some(([, operator]) => operator === "not.is"))).toBe(true);
   });
 
@@ -140,9 +150,55 @@ describe("classement junior des équipes de joueurs", () => {
     expect((await getJuniorRankings("equipes"))?.entries.map(entry => entry.displayName)).toEqual(["Winner", "Alpha", "Zebra"]);
   });
 
-  it.each(["count", "rows", "season"] as const)("ne publie pas de faux classement si la lecture %s échoue", async fail => {
+  it.each(["count", "rows", "season", "riders"] as const)("ne publie pas de faux classement si la lecture %s échoue", async fail => {
     fixture([team(0)], { fail });
     await expect(getJuniorRankings("equipes")).rejects.toThrow("Lecture indisponible");
+  });
+
+  it("affiche dix juniors distincts et non leurs 78 participations cumulées", async () => {
+    const requests = fixture([
+      { ...team(0), race_count: 78 },
+      ...Array.from({ length: 10 }, (_, index) => ({
+        ...team(0), id: `rider-entry-${index}`, entity_type: "individual",
+        entity_key: `academy:${index}`, academy_rider_id: `academy-${index}`,
+        race_count: index < 8 ? 8 : 7, points: index === 9 ? 0 : 10,
+      })),
+      { ...team(0), entity_type: "individual", entity_key: "old-season", season_id: "s3" },
+      { ...team(1), entity_type: "individual", entity_key: "other-team" },
+      { ...team(0, true), entity_type: "individual", entity_key: "virtual-rider" },
+    ]);
+    expect((await getJuniorRankings("equipes"))?.entries[0]).toMatchObject({ rankedRiderCount: 10, raceCount: 78 });
+    expect(requests.at(-1)?.filters).toContainEqual(["development_team_id", "in", ["development-0"]]);
+    expect(requests.every(request => ["seasons", "development_ranking_entries"].includes(request.table))).toBe(true);
+  });
+
+  it("ne compte qu’une fois un même junior, même avec plusieurs identités de résultat", async () => {
+    fixture([
+      team(0),
+      ...["academy:a", "youth:a"].map(entity_key => ({ ...team(0), entity_type: "individual", entity_key, academy_rider_id: "a" })),
+      { ...team(0), entity_type: "individual", entity_key: "archived:b", academy_rider_id: null },
+    ]);
+    expect((await getJuniorRankings("equipes"))?.entries[0].rankedRiderCount).toBe(2);
+  });
+
+  it("ne tronque pas les identités au-delà de mille lignes et ne charge que les équipes de la page", async () => {
+    const requests = fixture([
+      ...Array.from({ length: 51 }, (_, index) => team(index)),
+      ...Array.from({ length: 51 * 21 }, (_, index) => ({
+        ...team(Math.floor(index / 21)), entity_type: "individual",
+        entity_key: `academy:${String(index).padStart(5, "0")}`, academy_rider_id: `academy-${index}`,
+      })),
+    ]);
+    const ranking = await getJuniorRankings("equipes");
+    expect(ranking?.entries).toHaveLength(50);
+    expect(ranking?.entries.every(entry => entry.rankedRiderCount === 21)).toBe(true);
+    const riderQueries = requests.filter(request => request.columns === "entity_key, academy_rider_id, development_team_id");
+    expect(riderQueries.map(request => request.range)).toEqual([[0, 999], [1000, 1999]]);
+    for (const query of riderQueries) {
+      const ids = query.filters.find(([, operator]) => operator === "in")?.[2] as string[];
+      expect(ids).toHaveLength(50);
+      expect(ids).not.toContain("development-50");
+    }
   });
 
   it("ne charge pas les classements sans saison active", async () => {
