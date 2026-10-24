@@ -18,8 +18,8 @@ export const MOBILE_VISIBLE_DESTINATIONS = new Set([
   "/guide",
 ]);
 
-export function getMobileMoreNavigationGroups(
-  groups: ReadonlyArray<MobileNavigationGroup>,
+export function getMobileMoreNavigationGroups<T extends MobileNavigationGroup>(
+  groups: ReadonlyArray<T>,
 ) {
   return groups
     .map((group) => ({

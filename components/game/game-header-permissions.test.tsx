@@ -7,7 +7,7 @@ const indicators = vi.hoisted(() => ({ role: null as GameStaffRole, collectorAlb
 vi.mock("@/components/game/game-header-indicators-provider", () => ({
   useGameHeaderIndicators: () => ({ gameStaffRole: indicators.role, collectorAlbumAvailable: indicators.collectorAlbumAvailable }),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), usePathname:()=>"/jeu" }));
 vi.mock("@/app/jeu/actions", () => ({ logoutAccount: vi.fn() }));
 vi.mock("@/components/game/game-user-menu", () => ({ GameUserMenu: () => <span data-header-user-menu="true" /> }));
 vi.mock("@/components/game/mobile-game-navigation", () => ({ MobileGameNavigation: () => <nav data-mobile-game-navigation="true" /> }));

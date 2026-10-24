@@ -4,10 +4,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { useLocale } from "@/components/i18n/locale-provider";
+import {GameNavigationIcon} from "@/components/game/game-navigation-icon";
 import {
-  NAVIGATION_GROUPS_EN,
-  NAVIGATION_GROUPS_FR,
-} from "@/components/game/game-navigation-menu";
+  getGameNavigationGroups,getActiveGameNavigationGroupId,getActiveGameNavigationHref,
+  NAVIGATION_EVENTS_FR,NAVIGATION_EVENTS_EN,type GameNavigationGroupId,
+} from "@/lib/game/game-navigation";
 import Link from "@/components/ui/app-link";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
 import { getMobileMoreNavigationGroups } from "@/lib/game/mobile-navigation";
@@ -87,9 +88,11 @@ type MobilePanel = "races" | "more";
 export function MobileGameNavigation({
   viewerEmail,
   federationCountryCode,
+  showJerseyWorkshop = false,
 }: {
   viewerEmail?: string | null;
   federationCountryCode?: string | null;
+  showJerseyWorkshop?: boolean;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -102,13 +105,16 @@ export function MobileGameNavigation({
     panel: MobilePanel;
     pathname: string;
   } | null>(null);
-  const [expandedGroupIndexes, setExpandedGroupIndexes] = useState<
-    ReadonlySet<number>
-  >(() => new Set([0]));
-
-  const groups = getMobileMoreNavigationGroups(
-    isEnglish ? NAVIGATION_GROUPS_EN : NAVIGATION_GROUPS_FR,
-  );
+  const [expandedGroupState,setExpandedGroupState] = useState<{
+    pathname:string; ids:ReadonlySet<GameNavigationGroupId>;
+  }|null>(null);
+  const allGroups=getGameNavigationGroups({locale,federationCountryCode,showJerseyWorkshop});
+  const groups=getMobileMoreNavigationGroups(allGroups);
+  const activeGroupId=getActiveGameNavigationGroupId(allGroups,pathname)??"team";
+  const activeHref=getActiveGameNavigationHref(allGroups,pathname);
+  const expandedGroupIds=expandedGroupState?.pathname===pathname
+    ? expandedGroupState.ids : new Set<GameNavigationGroupId>([activeGroupId]);
+  const events=isEnglish?NAVIGATION_EVENTS_EN:NAVIGATION_EVENTS_FR;
   const primaryLinks = isEnglish ? PRIMARY_LINKS_EN : PRIMARY_LINKS_FR;
   const courseLinks = isEnglish ? COURSE_LINKS_EN : COURSE_LINKS_FR;
   const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
@@ -309,51 +315,25 @@ export function MobileGameNavigation({
             aria-label={isEnglish ? "Mobile game navigation" : "Navigation mobile du jeu"}
             className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
           >
-            {federationCountryCode ? (
-              <Link
-                href={`/jeu/federations/${federationCountryCode.toLowerCase()}`}
-                prefetchOnIntent
-                showPendingIndicator={false}
-                data-mobile-more-destination={`/jeu/federations/${federationCountryCode.toLowerCase()}`}
-                onClick={() => closePanel()}
-                className="flex min-h-14 items-center gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/10 px-3 text-xs font-black text-[#FFFDF4]"
-              >
-                <span className="grid h-9 w-11 shrink-0 place-items-center rounded-lg border border-white/15 bg-white/10">
-                  <span
-                    role="img"
-                    aria-label={`Drapeau ${federationCountryCode}`}
-                    className={`fi fi-${federationCountryCode.toLowerCase()} text-xl`}
-                  />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[9px] uppercase tracking-[0.14em] text-[#F2C94C]">
-                    {isEnglish ? "National hub" : "Espace national"}
-                  </span>
-                  <span className="mt-0.5 block">Fédération</span>
-                </span>
-                <span aria-hidden="true" className="text-[#F2C94C]">→</span>
-              </Link>
-            ) : null}
-
-            {groups.map((group, groupIndex) => (
+            {groups.map((group) => (
               <details
-                key={group.label}
-                open={expandedGroupIndexes.has(groupIndex)}
+                key={group.id}
+                data-navigation-group={group.id}
+                open={expandedGroupIds.has(group.id)}
                 onToggle={(event) => {
                   const nextOpen = event.currentTarget.open;
-                  setExpandedGroupIndexes((current) => {
-                    const next = new Set(current);
-
-                    if (nextOpen) next.add(groupIndex);
-                    else next.delete(groupIndex);
-
-                    return next;
+                  setExpandedGroupState((current) => {
+                    const previous=current?.pathname===pathname?current.ids:new Set<GameNavigationGroupId>([activeGroupId]);
+                    if(previous.has(group.id)===nextOpen)return current;
+                    const next=new Set(previous);
+                    if(nextOpen)next.add(group.id);else next.delete(group.id);
+                    return {pathname,ids:next};
                   });
                 }}
                 className="group rounded-xl border border-white/10 bg-white/[0.045]"
               >
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-xs font-black text-[#EAF4EF] marker:hidden">
-                  <span>{group.label}</span>
+                  <span className="flex min-w-0 items-center gap-2"><GameNavigationIcon group={group.id} className="h-4 w-4 shrink-0 text-[#9BE0CA]"/>{group.label}</span>
                   <span className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#9BE0CA]">
                     {group.links.length}
                     <span aria-hidden="true" className="transition group-open:rotate-180">
@@ -369,8 +349,9 @@ export function MobileGameNavigation({
                       prefetchOnIntent
                       showPendingIndicator={false}
                       data-mobile-more-destination={href}
-                      onClick={() => closePanel()}
-                      className="flex min-h-10 items-center rounded-lg px-2.5 py-2 text-[11px] font-bold leading-4 text-[#FFFDF4] transition active:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+                      onNavigate={() => closePanel()}
+                      aria-current={href===activeHref?"page":undefined}
+                      className={`flex min-h-10 items-center rounded-lg px-2.5 py-2 text-[11px] font-bold leading-4 transition active:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${href===activeHref?"bg-white/10 text-[#FFE58A]":"text-[#FFFDF4]"}`}
                     >
                       {label}
                     </Link>
@@ -378,6 +359,11 @@ export function MobileGameNavigation({
                 </div>
               </details>
             ))}
+
+            <section aria-label={isEnglish?"Events":"Événements"} className="space-y-2 rounded-xl border border-[#F2C94C]/20 bg-[#F2C94C]/5 p-3">
+              <h2 className="text-[10px] font-black uppercase tracking-wider text-[#FFE58A]">{isEnglish?"Events":"Événements"}</h2>
+              {events.map(([label,href])=><Link key={href} href={href} prefetchOnIntent showPendingIndicator={false} data-mobile-more-destination={href} onNavigate={()=>closePanel()} className="flex min-h-10 items-center justify-between gap-2 text-xs font-bold text-[#FFFDF4]">{label}<span aria-hidden="true">↗</span></Link>)}
+            </section>
 
             {showPlayerTracking ? (
               <Link

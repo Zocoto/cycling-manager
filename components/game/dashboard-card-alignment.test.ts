@@ -49,8 +49,9 @@ describe("alignement des cartes principales du bureau", () => {
   });
 
   it("explicite la boutique dans la rubrique Fanclub", () => {
-    expect(dashboardPage).toContain('title="Fanclub / Boutique"');
-    expect(dashboardPage).not.toContain('title="Fan Club"');
+    const navigation=readFileSync(join(process.cwd(),"lib/game/game-navigation.ts"),"utf8");
+    expect(dashboardPage).toContain("<DashboardManagementNavigation");
+    expect(navigation).toContain('["Fan-club & boutique","/jeu/fan-club"]');
   });
 
   it("réserve le raccourci du maillot amateur aux équipes sans sponsor actif", () => {

@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach,describe, expect, it,vi } from "vitest";
+import {NAVIGATION_GROUPS_FR} from "@/lib/game/game-navigation";
+const navigationState=vi.hoisted(()=>({locale:"fr",pathname:"/jeu"}));
+vi.mock("next/navigation",()=>({usePathname:()=>navigationState.pathname}));
+vi.mock("@/components/i18n/locale-provider",()=>({useLocale:()=>({locale:navigationState.locale})}));
+beforeEach(()=>{navigationState.locale="fr";navigationState.pathname="/jeu";});
 
 import { GameNavigationMenu } from "./game-navigation-menu";
 import { PLAYER_TRACKING_ADMIN_EMAIL } from "@/lib/game/player-tracking-access";
@@ -52,7 +57,7 @@ describe("GameNavigationMenu", () => {
 
     expect(belgianMarkup).toContain('href="/jeu/federations/be"');
     expect(belgianMarkup).toContain("fi-be");
-    expect(belgianMarkup).toContain("Fédération");
+    expect(belgianMarkup).toContain("Ma fédération");
     expect(otherMarkup).toContain('href="/jeu/federations/fr"');
     expect(otherMarkup).toContain("fi-fr");
     expect(belgianMarkup).not.toContain("Bêta belge");
@@ -62,6 +67,31 @@ describe("GameNavigationMenu", () => {
     const markup = renderToStaticMarkup(<GameNavigationMenu />);
 
     expect(markup).not.toContain("app-link-pending-indicator");
+  });
+  it("renders the six validated groups and keeps the office above them",()=>{
+    const markup=renderToStaticMarkup(<GameNavigationMenu/>);
+    expect([...markup.matchAll(/data-navigation-group="([^"]+)"/g)].map(match=>match[1])).toEqual(NAVIGATION_GROUPS_FR.map(group=>group.id));
+    expect(markup.indexOf('href="/jeu"')).toBeLessThan(markup.indexOf('data-navigation-group="team"'));
+    for(const href of ["/jeu/preparation-course","/jeu/materiel/equiper","/jeu/materiel/laboratoire","/jeu/championnats-nationaux"])expect(markup).toContain(`href="${href}"`);
+  });
+  it("keeps the public S4 gala separate from permanent management",()=>{
+    const markup=renderToStaticMarkup(<GameNavigationMenu/>);
+    expect(markup).toContain('href="/jeu/gala-saison-4"');
+    expect(markup).toContain("Événements");
+    expect(markup).not.toContain('href="/jeu/album"');
+  });
+  it("shows the amateur jersey workshop only when explicitly applicable",()=>{
+    expect(renderToStaticMarkup(<GameNavigationMenu/>)).not.toContain('href="/jeu/maillot"');
+    expect(renderToStaticMarkup(<GameNavigationMenu showJerseyWorkshop/>)).toContain('href="/jeu/maillot"');
+  });
+  it("renders the English groups and highlights only the actual material subpage",()=>{
+    navigationState.locale="en";navigationState.pathname="/jeu/materiel/laboratoire";
+    const markup=renderToStaticMarkup(<GameNavigationMenu federationCountryCode="BE"/>);
+    expect(markup).toContain("Team &amp; staff");expect(markup).toContain("Equipment &amp; inventory");
+    expect(markup).toContain("My riders’ call-ups");expect(markup).toContain("My federation");
+    expect(markup).toContain('href="/jeu/federations/be"');
+    expect(markup.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(markup.match(/<a\b[^>]*aria-current="page"[^>]*>/)?.[0]).toContain('href="/jeu/materiel/laboratoire"');
   });
   it("masque le suivi des joueurs aux comptes ordinaires", () => {
     const markup = renderToStaticMarkup(

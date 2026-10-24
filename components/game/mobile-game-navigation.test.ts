@@ -54,7 +54,7 @@ describe("mobile game navigation", () => {
   });
 
   it("regroupe uniquement les rubriques absentes du header et du dock", () => {
-    expect(source).toContain("NAVIGATION_GROUPS_FR");
+    expect(source).toContain("getGameNavigationGroups");
     expect(source).toContain("getMobileMoreNavigationGroups");
     expect(source).toContain('aria-label={isEnglish ? "Game menu" : "Menu du jeu"}');
     expect(source).not.toContain("Sans doublons");
@@ -64,5 +64,14 @@ describe("mobile game navigation", () => {
     expect(source).toContain("getMobileMoreNavigationGroups");
     expect(source).toContain("max-h-[min(72dvh,42rem)]");
     expect(source).toContain("overflow-y-auto overscroll-contain");
+  });
+  it("opens the current page's group using stable IDs and retains contextual events",()=>{
+    expect(source).toContain("getActiveGameNavigationGroupId");
+    expect(source).toContain("expandedGroupIds.has(group.id)");
+    expect(source).toContain("data-navigation-group={group.id}");
+    expect(source).toContain("NAVIGATION_EVENTS_FR");
+    expect(source).not.toContain("expandedGroupIndexes");
+    expect(source).toContain("showJerseyWorkshop");
+    expect(source).toContain("onNavigate={() => closePanel()}");
   });
 });

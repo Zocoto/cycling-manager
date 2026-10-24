@@ -17,6 +17,7 @@ import { DashboardReferralInvite } from "../../components/game/dashboard-referra
 import { DashboardNewsTickerLoader } from "@/components/game/dashboard-news-ticker-loader";
 import { DashboardNewsTicker } from "@/components/game/dashboard-news-ticker";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
+import { DashboardManagementNavigation } from "@/components/game/dashboard-management-navigation";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
 import { RiderAvatar } from "../../components/game/rider-avatar";
@@ -912,102 +913,18 @@ export default async function GamePage() {
 
           <RaceOperationsCard alertCount={raceRosterAlertCount} />
 
-          <section className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
-            <ManagementModuleCard
-              href="/jeu/entrainement"
-              icon="training"
-              title="Entraînements"
-              status="Séance quotidienne · 8 h"
-              description="Réglez l’intensité, le domaine et l’entraîneur de chaque coureur, puis consultez les gains de caractéristiques."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/staff"
-              icon="staff"
-              title="Staff"
-              status="Marché ouvert"
-              description="Recrutez entraîneurs, scouts, personnel médical et spécialistes, puis maîtrisez leur masse salariale."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/transferts"
-              icon="transfer"
-              title="Bureau des transferts"
-              status="Marché ouvert"
-              description="Enchérissez sur les talents du jour et recherchez des coureurs libres ou sous contrat."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/finances"
-              icon="finance"
-              title="Finances"
-              status={
-                financeOverview
-                  ? formatDashboardCurrency(
-                      financeOverview.balance,
-                      financeOverview.currency,
-                    )
-                  : "À initialiser"
-              }
-              description="Suivez le solde réel, les quatre échéances sponsor et la projection de trésorerie jusqu’à la fin de saison."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/classements"
-              icon="ranking"
-              title="Classements UCI"
-              status={
-                financeOverview?.teamRank
-                  ? `#${financeOverview.teamRank}`
-                  : "Non classée"
-              }
-              description="Comparez toutes les équipes, les coureurs et les nations, avec les frontières de divisions clairement identifiées."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/materiel"
-              icon="equipment"
-              title="Matériel"
-              status="Catalogue ouvert"
-              description="Achetez casques, textiles, lunettes, chaussures, roues et cadres, puis attribuez-les à vos coureurs."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/centre-de-soin"
-              icon="medical"
-              title="Centre de soin"
-              status="Infirmerie & forme"
-              description="Suivez les blessures, appliquez des protocoles médicaux et programmez les stages de remise en forme."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/centre-de-formation"
-              icon="academy"
-              title="Centre de formation"
-              status="Scouting mondial"
-              description="Envoyez vos scouts, signez les jeunes talents et accompagnez leur progression quotidienne jusqu’aux professionnels."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/infrastructures"
-              icon="infrastructure"
-              title="Infrastructures"
-              status="Débloquées au niveau 10"
-              description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
-            />
-
-            <DeferredDashboardValue promise={fanClubBuildingsPromise} fallback={null}>
-            {fanClubBuildings => fanClubBuildings.headquartersLevel > 0 ? (
-              <ManagementModuleCard
-                href="/jeu/fan-club"
-                icon="fanclub"
-                title="Fanclub / Boutique"
-                status={`Actif · Siège niveau ${fanClubBuildings.headquartersLevel}`}
-                description="Gérez la popularité des coureurs, les déplacements de supporters et, si elle est construite, la boutique officielle."
-              />
-            ) : null}
-            </DeferredDashboardValue>
-          </section>
+          <DashboardManagementNavigation
+            federationCountryCode={federationCountryCode}
+            showJerseyWorkshop={!teamSponsorIdentity}
+            riderCount={riderCount}
+            teamRank={financeOverview?.teamRank}
+            balanceLabel={financeOverview ? formatDashboardCurrency(financeOverview.balance,financeOverview.currency) : null}
+            fanClubStatus={
+              <DeferredDashboardValue promise={fanClubBuildingsPromise} fallback={null}>
+                {buildings=>buildings.headquartersLevel>0?<p className="border-t border-white/10 px-4 py-2 text-[11px] font-semibold text-[#BFD1C6]">Fan-club · Siège niveau {buildings.headquartersLevel}</p>:null}
+              </DeferredDashboardValue>
+            }
+          />
         </div>
       </section>
     </main>

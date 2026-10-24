@@ -1,5 +1,6 @@
 import Link from "@/components/ui/app-link";
 import { RiderWeightGuideTables } from "@/components/guide/rider-weight-tables";
+import { NAVIGATION_GROUPS_FR } from "@/lib/game/game-navigation";
 import {
   calculateCombativityReward,
   calculateInternationalChampionshipReward,
@@ -222,7 +223,7 @@ const staffRoles = [
   },
 ] as const;
 
-const pageDirectory = [
+const pageReferenceDetails = [
   {
     group: "Pilotage",
     pages: [
@@ -279,6 +280,26 @@ const pageDirectory = [
     ],
   },
 ] as const;
+
+const navigationPageDescriptions: Record<string,string> = {
+  "/jeu/materiel/equiper":"Attribuer les équipements aux coureurs, individuellement ou en masse.",
+  "/jeu/materiel/laboratoire":"Orienter les recherches, affecter les ingénieurs et consulter les améliorations des prototypes.",
+};
+const referencedPages=pageReferenceDetails.flatMap<readonly [string,string,string]>(section=>section.pages);
+const pageDirectory = [
+  {group:"Bureau et espace personnel",pages:[
+    ["Bureau du DS","/jeu","Vue d’ensemble, actualités, raccourcis et alertes."],
+    ["Profil du DS","/jeu/directeur-sportif","Identité, avatar, réputation et progression de carrière."],
+    ["Messagerie","/jeu/messagerie","Discussions privées et négociations entre directeurs sportifs."],
+    ["Parrainage","/jeu/parrainage","Invitations et suivi des filleuls."],
+  ]},
+  ...NAVIGATION_GROUPS_FR.map(group=>({group:group.label,pages:group.links.map(([label,href])=>[
+    label,href,navigationPageDescriptions[href]??referencedPages.find(([,path])=>path===href)?.[2]??"",
+  ])})),
+  {group:"Accès contextuels",pages:[
+    ["Atelier du maillot","/jeu/maillot","Personnaliser le maillot amateur tant que l’équipe n’a pas de sponsor. Les maillots sponsor restent consultables depuis l’équipe et le sponsoring."],
+  ]},
+];
 
 const rewardCategories: ReadonlyArray<{
   code: RaceCategoryCode;
@@ -1918,6 +1939,14 @@ function PagesSection() {
       title="À quoi sert chaque page ?"
       introduction="Le bureau est le point de départ. Toutes les rubriques ci-dessous restent accessibles directement avec leur adresse et disposent d’un retour vers le bureau du DS."
     >
+      <StrategyNote title="Se repérer dans le menu">
+        Le menu et les raccourcis du bureau partagent six familles : équipe et staff,
+        courses et résultats, matériel et inventaire, gestion du club, fédération
+        et championnats, vie du jeu et aide. Sur téléphone, « Plus » ouvre ces
+        familles ; les accès rapides aux courses, à l’effectif et aux transferts
+        restent dans la barre du bas. Le menu silhouette regroupe le profil du DS,
+        le parrainage et les préférences personnelles.
+      </StrategyNote>
       <StrategyNote title="Assistant et réglages">
         L’assistant fait remonter les échéances proches et les problèmes importants.
         Ses liens ouvrent les réglages concernés ; les filtres permettent ensuite

@@ -146,6 +146,7 @@ export function GameHeader({
         <GameNavigationMenu
           viewerEmail={simulatorEmail}
           federationCountryCode={federationCountryCode}
+          showJerseyWorkshop={!sponsor}
         />
 
         <div
@@ -248,6 +249,7 @@ export function GameHeader({
         <MobileGameNavigation
           viewerEmail={simulatorEmail}
           federationCountryCode={federationCountryCode}
+          showJerseyWorkshop={!sponsor}
         />
       </Suspense>
     </>
