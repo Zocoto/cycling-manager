@@ -27,3 +27,10 @@ describe("classement UCI individuel", () => {
     expect(rankingsService).toContain("await Promise.all([");
   });
 });
+
+describe("nombre de juniors classés", () => {
+  it("utilise le compteur de coureurs distincts et non les participations aux courses", () => {
+    expect(page).toContain('view === "equipes" ? entry.rankedRiderCount : entry.secondaryName');
+    expect(page).not.toContain('{entry.secondaryName ?? (view === "nations" ? "Top 5" : entry.raceCount)}</td>');
+  });
+});
