@@ -286,7 +286,7 @@ export default async function RaceLivePage({
               ? `Étape ${stage.stageNumber} · ${stage.name}`
               : edition.name,
           stageType: stage.stageType,
-          weatherLabel: resultWeather ? getRaceWeatherLabel(resultWeather) : null,
+          weatherLabel: resultWeather ? getRaceWeatherLabel(resultWeather) : "",
           sponsorName: headerData.teamSponsorIdentity?.sponsor.name ?? null,
           raceCountryCode: edition.countryCode,
           officialResults,
