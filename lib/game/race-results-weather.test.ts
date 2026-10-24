@@ -24,10 +24,8 @@ describe("results weather", () => {
     expect(getRaceResultsWeather({ ...context, stageId: "stage-3", lockedSimulation })).toBeNull();
     expect(getRaceResultsWeather({ ...context, raceEditionId: "edition-2", lockedSimulation })).toBeNull();
   });
-  it("uses the engine's original seed and options for legacy inputs without weather", () => {
+  it("does not redraw historical weather when a legacy input did not record it", () => {
     const legacyInput = { ...input, weather: undefined };
-    expect(getRaceResultsWeather({ ...context, lockedSimulation: { ...lockedSimulation, input: legacyInput } })).toEqual(
-      getRaceWeather(legacyInput.seed, { countryCode: legacyInput.raceCountryCode, profileType: legacyInput.profileType }),
-    );
+    expect(getRaceResultsWeather({ ...context, lockedSimulation: { ...lockedSimulation, input: legacyInput } })).toBeNull();
   });
 });
