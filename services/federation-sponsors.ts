@@ -2,10 +2,16 @@ import "server-only";
 
 import { getSponsorsByCountryCode } from "@/data/sponsors/catalog-utils";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { Sponsor } from "@/types/sponsor";
+
+export type FederationSponsorPreview = Pick<Sponsor, "id" | "name" | "sector" | "logoPath"> & {
+  colors: Pick<Sponsor["colors"], "primary" | "background" | "text">;
+};
 
 export type FederationSponsorCoverage = {
   affiliatedSponsorCount: number;
   availableSponsorCount: number;
+  sponsors: FederationSponsorPreview[];
 };
 
 type SponsorContractRow = {
@@ -25,6 +31,13 @@ export async function getFederationSponsorCoverage({
   teamIds: readonly string[];
 }): Promise<FederationSponsorCoverage> {
   const nationalSponsors = getSponsorsByCountryCode(countryCode);
+  // Reuse the local catalogue: no extra database lookup or client catalogue import.
+  const sponsors: FederationSponsorPreview[] = nationalSponsors
+    .map(({ id, name, sector, logoPath, colors }) => ({
+      id, name, sector, logoPath,
+      colors: { primary: colors.primary, background: colors.background, text: colors.text },
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"));
   const nationalSponsorIds = new Set(
     nationalSponsors.map((sponsor) => sponsor.id),
   );
@@ -36,6 +49,7 @@ export async function getFederationSponsorCoverage({
     return {
       affiliatedSponsorCount: 0,
       availableSponsorCount: nationalSponsors.length,
+      sponsors,
     };
   }
 
@@ -61,6 +75,7 @@ export async function getFederationSponsorCoverage({
     return {
       affiliatedSponsorCount: 0,
       availableSponsorCount: nationalSponsors.length,
+      sponsors,
     };
   }
 
@@ -85,5 +100,6 @@ export async function getFederationSponsorCoverage({
   return {
     affiliatedSponsorCount: affiliatedSponsorIds.size,
     availableSponsorCount: nationalSponsors.length,
+    sponsors,
   };
 }

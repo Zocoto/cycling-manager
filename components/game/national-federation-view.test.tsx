@@ -118,6 +118,7 @@ describe("NationalFederationView", () => {
         sponsorCoverage={{
           affiliatedSponsorCount: 2,
           availableSponsorCount: 7,
+          sponsors: [],
         }}
       />,
     );
@@ -131,6 +132,8 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("14 %");
     expect(markup).toContain("Sponsors nationaux");
     expect(markup).toContain("2 / 7");
+    expect(markup).toContain("Voir les sponsors nationaux · France");
+    expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain(
       "Sponsors affiliés sur les marques nationales disponibles",
     );
@@ -257,7 +260,7 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Sélection nationale");
     expect(markup).toContain("Champions nationaux");
     expect(markup).toContain("Toutes fédérations");
-    expect(markup).toContain("chaque calque se place librement");
+    expect(markup).toContain("Placement et apparence");
     expect(markup).toContain("Texte");
     expect(markup).toContain("Bande");
     expect(markup).toContain("Forme");

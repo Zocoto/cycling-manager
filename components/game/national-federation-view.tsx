@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import Link from "@/components/ui/app-link";
 
@@ -16,6 +16,7 @@ import { FederationCoursesPanel } from "@/components/game/federation-courses-pan
 import { FederationInfrastructureCatalog } from "@/components/game/federation-infrastructure-catalog";
 import { FederationLounge } from "@/components/game/federation-lounge";
 import { FederationSelectionWorkbench } from "@/components/game/federation-selection-workbench";
+import { FederationSponsorsPopover } from "@/components/game/federation-sponsors-popover";
 import { NationalFederationJerseyWorkshop } from "@/components/game/national-federation-jersey-workshop";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { FederationChatOverview } from "@/lib/game/federation-chat";
@@ -502,9 +503,13 @@ function OverviewPanel({
           eyebrow="Partenaires"
           label="Sponsors nationaux"
           value={
-            sponsorCoverage
-              ? `${numberFormatter.format(sponsorCoverage.affiliatedSponsorCount)} / ${numberFormatter.format(sponsorCoverage.availableSponsorCount)}`
-              : "—"
+            sponsorCoverage ? (
+              <FederationSponsorsPopover
+                countryName={country.name}
+                counterLabel={`${numberFormatter.format(sponsorCoverage.affiliatedSponsorCount)} / ${numberFormatter.format(sponsorCoverage.availableSponsorCount)}`}
+                sponsors={sponsorCoverage.sponsors}
+              />
+            ) : "—"
           }
           detail={
             sponsorCoverage
@@ -1079,7 +1084,7 @@ function OverviewMetric({
 }: {
   eyebrow: string;
   label: string;
-  value: string;
+  value: ReactNode;
   detail: string;
 }) {
   return (
