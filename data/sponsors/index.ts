@@ -59,6 +59,7 @@ import { UNDERCOVERED_VIVID_BATCH_11_SPONSORS } from "./undercovered-vivid-batch
 import { UNDERCOVERED_BRAND_BATCH_12_SPONSORS } from "./undercovered-brand-batch-12";
 import { UNDERCOVERED_BRAND_BATCH_13_SPONSORS } from "./undercovered-brand-batch-13";
 import { BANK_INSURANCE_BATCH_14_SPONSORS } from "./bank-insurance-batch-14";
+import { MINING_BATCH_15_SPONSORS } from "./mining-batch-15";
 import { AMERICAN_SPONSORS } from "./united-states";
 import { AMERICAN_EXPANSION_BATCH_02_SPONSORS } from "./united-states-batch-02";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
@@ -126,6 +127,7 @@ const RAW_SPONSORS = [
   ...UNDERCOVERED_BRAND_BATCH_12_SPONSORS,
   ...UNDERCOVERED_BRAND_BATCH_13_SPONSORS,
   ...BANK_INSURANCE_BATCH_14_SPONSORS,
+  ...MINING_BATCH_15_SPONSORS,
 ] satisfies readonly Sponsor[];
 
 export const SPONSORS = RAW_SPONSORS.map((sponsor) => ({
