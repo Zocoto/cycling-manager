@@ -179,11 +179,24 @@ export function GameUserMenu({
             icon={<UserSilhouetteIcon className="h-5 w-5" />}
           /> : null}
 
+          <UserMenuLink href="/jeu/nouveautes" label={isEnglish ? "Game news" : "Actualités du jeu"} description={isEnglish ? "Read the latest updates without leaving the game" : "Les nouveautés sans quitter votre partie"} icon={<GuideIcon />} />
+
           <PushNotificationControl variant="menu" isEnglish={isEnglish} />
 
           <MarketingEmailPreferenceControl
             active={open}
             isEnglish={isEnglish}
+          />
+
+          <UserMenuLink
+            href="/jeu/guide"
+            label={isEnglish ? "Game guide" : "Guide du jeu"}
+            description={
+              isEnglish
+                ? "Rules and advice without leaving the game"
+                : "Règles et conseils sans quitter votre partie"
+            }
+            icon={<GuideIcon />}
           />
 
           <div

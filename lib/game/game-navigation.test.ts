@@ -70,10 +70,10 @@ describe("shared management navigation",()=>{
     expect(hrefs).toContain("/jeu/materiel/laboratoire");
     expect(hrefs).toContain("/jeu/guide");
   });
-  it("does not fetch game data or prefetch the dashboard destinations",()=>{
-    const source=readFileSync(resolve(process.cwd(),"components/game/dashboard-management-navigation.tsx"),"utf8");
+  it("keeps the menu inventory independent of game data and the dashboard",()=>{
+    const source=readFileSync(resolve(process.cwd(),"lib/game/game-navigation.ts"),"utf8");
     expect(source).not.toContain('"use client"');
-    expect(source).toContain("prefetch={false}");
+    expect(source).not.toContain("DashboardManagementNavigation");
     expect(source).not.toMatch(/createSupabase|\.rpc\(|\bfetch\(|useEffect|prefetchOnIntent/);
   });
 });

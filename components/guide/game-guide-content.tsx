@@ -1940,12 +1940,11 @@ function PagesSection() {
       introduction="Le bureau est le point de départ. Toutes les rubriques ci-dessous restent accessibles directement avec leur adresse et disposent d’un retour vers le bureau du DS."
     >
       <StrategyNote title="Se repérer dans le menu">
-        Le menu et les raccourcis du bureau partagent six familles : équipe et staff,
+        Le menu du header regroupe les pages en six familles : équipe et staff,
         courses et résultats, matériel et inventaire, gestion du club, fédération
         et championnats, vie du jeu et aide. Sur téléphone, « Plus » ouvre ces
-        familles ; les accès rapides aux courses, à l’effectif et aux transferts
-        restent dans la barre du bas. Le menu silhouette regroupe le profil du DS,
-        le parrainage et les préférences personnelles.
+        familles. Les tuiles du bureau et les boutons d’accès rapide du header
+        et de la barre mobile restent inchangés.
       </StrategyNote>
       <StrategyNote title="Assistant et réglages">
         L’assistant fait remonter les échéances proches et les problèmes importants.

@@ -34,8 +34,9 @@ describe("GameUserMenu", () => {
     expect(markup).toContain("E-mails d’actualité");
     expect(markup).toContain("Nouveautés majeures de Cyclo Stratège");
     expect(markup).toContain('role="switch"');
-    expect(markup).not.toContain('href="/jeu/guide"');
-    expect(markup).not.toContain('href="/jeu/nouveautes"');
+    expect(markup).toContain('href="/jeu/guide"');
+    expect(markup).toContain('href="/jeu/nouveautes"');
+    expect(markup).toContain("sans quitter votre partie");
     expect(markup).not.toContain('href="/guide"');
     expect(markup).not.toContain('target="_blank"');
     expect(markup).not.toContain('href="/connexion"');
@@ -52,8 +53,8 @@ describe("GameUserMenu", () => {
     expect(markup).toContain('href="/jeu/administration/actualites"');
     expect(markup).toContain("Gérer les actualités");
     expect(markup).toContain('data-game-staff-badge="true"');
-    expect(markup).not.toContain('href="/jeu/nouveautes"');
-    expect(markup).not.toContain('href="/jeu/guide"');
+    expect(markup).toContain('href="/jeu/nouveautes"');
+    expect(markup).toContain('href="/jeu/guide"');
     expect(markup).not.toContain('target="_blank"');
   });
 

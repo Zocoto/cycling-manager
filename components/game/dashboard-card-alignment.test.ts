@@ -9,6 +9,21 @@ const dashboardPage = readFileSync(
 );
 
 describe("alignement des cartes principales du bureau", () => {
+  it("conserve les tuiles du bureau indépendamment des familles du menu", () => {
+    expect(dashboardPage).not.toContain("DashboardManagementNavigation");
+    expect(dashboardPage).not.toContain("data-dashboard-navigation-group");
+    expect(dashboardPage).toContain("grid-cols-2 gap-3 sm:mt-5 sm:gap-4 md:grid-cols-3 xl:grid-cols-5");
+    const managementGrid = dashboardPage.slice(dashboardPage.indexOf("<RaceOperationsCard alertCount="));
+    expect(managementGrid.match(/<ManagementModuleCard\s/g)).toHaveLength(10);
+    const tiles = [...managementGrid.matchAll(/<ManagementModuleCard\s+href="([^"]+)"/g)].map(match => match[1]);
+    expect(tiles).toEqual([
+      "/jeu/entrainement", "/jeu/staff", "/jeu/transferts", "/jeu/finances",
+      "/jeu/classements", "/jeu/materiel", "/jeu/centre-de-soin",
+      "/jeu/centre-de-formation", "/jeu/infrastructures", "/jeu/fan-club",
+    ]);
+    expect(dashboardPage).toContain("fanClubBuildings.headquartersLevel > 0");
+  });
+
   it("makes the DS portrait prominent and keeps identity and sponsor columns flexible", () => {
     const identity = dashboardPage.slice(
       dashboardPage.indexOf("function DirectorIdentity("),
@@ -49,9 +64,8 @@ describe("alignement des cartes principales du bureau", () => {
   });
 
   it("explicite la boutique dans la rubrique Fanclub", () => {
-    const navigation=readFileSync(join(process.cwd(),"lib/game/game-navigation.ts"),"utf8");
-    expect(dashboardPage).toContain("<DashboardManagementNavigation");
-    expect(navigation).toContain('["Fan-club & boutique","/jeu/fan-club"]');
+    expect(dashboardPage).toContain('title="Fanclub / Boutique"');
+    expect(dashboardPage).not.toContain('title="Fan Club"');
   });
 
   it("réserve le raccourci du maillot amateur aux équipes sans sponsor actif", () => {
