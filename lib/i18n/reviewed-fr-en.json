@@ -2660,5 +2660,14 @@
   "withdraw-course": "withdraw-course",
   "Startlist de l’épreuve": "Race startlist",
   "Le parcours en détail": "Course details",
-  "Startlist": "Start list"
+  "Startlist": "Start list",
+  "Le compteur indique les DS joueurs de chaque nationalité.": "The counter shows the number of player managers of each nationality.",
+  "Le nombre de DS par nationalité n’a pas pu être chargé.": "The number of managers per nationality could not be loaded.",
+  "Aperçu local · nombres fictifs": "Local preview · example counts",
+  "Choisissez votre bannière": "Choose your flag",
+  "Nationalité du DS": "Manager nationality",
+  "Nationalités · recette locale": "Nationalities · local preview",
+  "Botswana": "Botswana",
+  "Rwanda": "Rwanda",
+  "République démocratique du Congo": "Democratic Republic of the Congo"
 }

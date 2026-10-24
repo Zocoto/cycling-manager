@@ -6,6 +6,7 @@ export type CountryOption = {
   id: string;
   name: string;
   isoAlpha2: string;
+  directorCount?: number;
 };
 
 type CountrySelectProps = {
@@ -105,8 +106,8 @@ export function CountrySelect({
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px]">
-      <div ref={menuRef} className="relative">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[minmax(0,1fr)_110px]">
+      <div ref={menuRef} className="relative min-w-0">
         <button
           id={id}
           data-tutorial-id={tutorialId}
@@ -134,13 +135,16 @@ export function CountrySelect({
               : "border-[#315B3E]/25",
           ].join(" ")}
         >
-          <span className="flex min-w-0 items-center gap-3">
+          <span className="flex min-w-0 flex-1 items-center gap-3">
             {selectedCountry ? (
               <>
                 <CountryFlag isoAlpha2={selectedCountry.isoAlpha2} />
                 <span className="truncate font-semibold">
                   {selectedCountry.name}
                 </span>
+                {!locked && selectedCountry.directorCount !== undefined ? (
+                  <DirectorCount count={selectedCountry.directorCount} />
+                ) : null}
               </>
             ) : (
               <span className="text-[#789087]">{placeholder}</span>
@@ -204,6 +208,10 @@ export function CountrySelect({
                         {country.name}
                       </span>
 
+                      {country.directorCount !== undefined ? (
+                        <DirectorCount count={country.directorCount} />
+                      ) : null}
+
                       {isSelected ? (
                         <span
                           aria-hidden="true"
@@ -239,6 +247,14 @@ export function CountrySelect({
         )}
       </div>
     </div>
+  );
+}
+
+function DirectorCount({ count }: { count: number }) {
+  return (
+    <span className="shrink-0 whitespace-nowrap rounded-full bg-[#EDF5F1] px-2 py-1 text-xs font-semibold tabular-nums text-[#426659]">
+      {count} DS
+    </span>
   );
 }
 
