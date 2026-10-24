@@ -14,6 +14,7 @@ import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 
 import { RaceOfficialResults } from "./race-official-results";
 import { createRaceJournalFixture } from "@/test/race-journal-fixture";
+import { getRaceWeather } from "@/lib/game/race-weather";
 
 const stage = {
   id: "stage-1",
@@ -91,6 +92,29 @@ it("n'affiche pas les favoris dans les resultats officiels", () => {
 });
 
 describe("RaceOfficialResults", () => {
+  it("affiche les conditions officielles discrètement dans l’en-tête du classement", () => {
+    const weather = { ...getRaceWeather("results"), condition: "rain" as const, rainIntensity: "heavy" as const, temperatureC: 8, windSpeedKph: 33, windDirection: "crosswind" as const };
+    const markup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={edition} selectedStageId="stage-1" officialResults={buildResults("team-active")} weather={weather} />);
+    expect(markup).toContain('data-race-results-weather="rain"');
+    expect(markup).toContain("Météo de la course");
+    expect(markup).toContain("Forte pluie");
+    expect(markup).toContain("8 °C");
+    expect(markup).toContain("vent latéral 33 km/h");
+    expect(markup.indexOf("data-race-results-weather")).toBeLessThan(markup.indexOf("</header>"));
+    expect(markup).not.toContain("Prévision");
+  });
+  it("identifie l’étape même quand le classement général est sélectionné", () => {
+    const results = buildResults("team-active");
+    results.general = results.stages[0].results;
+    const markup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={{ ...edition, raceFormat: "stage_race" }} selectedStageId="stage-1" officialResults={results} weather={getRaceWeather("results")} initialClassification="general" />);
+    expect(markup).toContain("Météo de l’étape 1");
+    expect(markup).not.toContain("Météo de la course");
+  });
+  it("ne présente pas de météo non renseignée comme une météo réelle", () => {
+    const markup = renderToStaticMarkup(<RaceOfficialResults gameYear={4} edition={edition} selectedStageId="stage-1" officialResults={buildResults("team-active")} />);
+    expect(markup).not.toContain("data-race-results-weather");
+    expect(markup).toContain("Camille Rapide");
+  });
   const stageEquipmentSnapshot = { items: [{ slot: "frame" as const, equipmentItemId: "frame-2", name: "Cadre montagne" }], ratingBonuses: { mountain: 4 }, ratingChanges: { mountain: 3 } };
   it("place une pastille de montage spécifique à côté du coureur", () => {
     const results = buildResults("team-active");

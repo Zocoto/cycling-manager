@@ -18,7 +18,8 @@ import { buildRaceCourseJournal } from "@/lib/game/race-course-journal";
 import { buildTeamStageReport } from "@/lib/game/race-team-stage-report";
 import { getTeamSponsorProject } from "@/services/sponsor-project";
 import { buildSponsorRaceBrief, isSponsorRaceReportFinal } from "@/lib/game/sponsor-project";
-import { getRaceWeather, getRaceWeatherLabel } from "@/lib/game/race-weather";
+import { getRaceWeatherLabel } from "@/lib/game/race-weather";
+import { getRaceResultsWeather } from "@/lib/game/race-results-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -199,6 +200,11 @@ export default async function RaceLivePage({
     (simulation) => simulation.stageId === stage.id,
   );
   const selectedSimulationAvailable = Boolean(selectedLockedSimulation);
+  const resultWeather = getRaceResultsWeather({
+    raceEditionId: edition.id,
+    stageId: stage.id,
+    lockedSimulation: selectedLockedSimulation,
+  });
   const courseJournal =
     state.status === "finished" &&
     selectedStageResultAvailable &&
@@ -280,12 +286,7 @@ export default async function RaceLivePage({
               ? `Étape ${stage.stageNumber} · ${stage.name}`
               : edition.name,
           stageType: stage.stageType,
-          weatherLabel: getRaceWeatherLabel(
-            getRaceWeather(edition.id + ":" + stage.id + ":weather", {
-              countryCode: edition.countryCode,
-              profileType: stage.profileType,
-            }),
-          ),
+          weatherLabel: resultWeather ? getRaceWeatherLabel(resultWeather) : null,
           sponsorName: headerData.teamSponsorIdentity?.sponsor.name ?? null,
           raceCountryCode: edition.countryCode,
           officialResults,
@@ -351,6 +352,7 @@ export default async function RaceLivePage({
             stage={stage}
             nowIso={now.toISOString()}
             officialResults={officialResults}
+            weather={resultWeather}
           />
         ) : (
           <RaceStageExperience
@@ -359,6 +361,7 @@ export default async function RaceLivePage({
             gameYear={calendar.gameYear}
             nowIso={now.toISOString()}
             officialResults={officialResults}
+            resultWeather={resultWeather}
             currentDirectorId={directorResult.data!.id}
             initialMessages={initialMessages}
             lockedSimulations={experienceLockedSimulations}

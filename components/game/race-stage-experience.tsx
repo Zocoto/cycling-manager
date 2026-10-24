@@ -31,6 +31,7 @@ import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
 import type { StageRaceStandings } from "@/lib/game/race-simulation";
+import type { RaceWeather } from "@/lib/game/race-weather";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type { RaceLiveMessage } from "@/services/race-live-chat";
 
@@ -71,6 +72,7 @@ export function RaceStageExperience({
   gameYear,
   nowIso,
   officialResults,
+  resultWeather = null,
   currentDirectorId,
   initialMessages,
   lockedSimulations,
@@ -85,6 +87,7 @@ export function RaceStageExperience({
   gameYear: number;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
+  resultWeather?: RaceWeather | null;
   currentDirectorId: string;
   initialMessages: RaceLiveMessage[];
   lockedSimulations: LockedOfficialStageSimulation[];
@@ -409,6 +412,7 @@ export function RaceStageExperience({
               gameYear={gameYear}
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
+              weather={resultWeather}
               courseJournal={courseJournal}
               teamStageReport={teamStageReport}
               sponsorRaceBrief={sponsorRaceBrief}

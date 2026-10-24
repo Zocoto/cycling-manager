@@ -9,6 +9,8 @@ import { isSponsorRaceReportFinal, type SponsorRaceBrief } from "@/lib/game/spon
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceStageEquipmentBadge } from "@/components/game/race-stage-equipment-badge";
+import { RaceWeatherBadge } from "@/components/game/race-weather-overlay";
+import type { RaceWeather } from "@/lib/game/race-weather";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import type { RaceCourseJournalEntry } from "@/lib/game/race-course-journal";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
@@ -42,6 +44,7 @@ export function RaceOfficialResults({
   gameYear,
   selectedStageId,
   officialResults,
+  weather = null,
   courseJournal = [],
   teamStageReport = null,
   sponsorRaceBrief = null,
@@ -52,6 +55,7 @@ export function RaceOfficialResults({
   gameYear: number;
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
+  weather?: RaceWeather | null;
   courseJournal?: RaceCourseJournalEntry[];
   teamStageReport?: TeamStageReport | null;
   sponsorRaceBrief?: SponsorRaceBrief | null;
@@ -109,6 +113,18 @@ export function RaceOfficialResults({
                 ? `${edition.raceFormat === "stage_race" ? `Étape ${stageClassification.stageNumber} · ` : ""}${stageClassification.stageName}`
                 : `${CLASSIFICATION_LABELS[resolvedTab]}${officialResults.generalIsProvisional && resolvedTab === "general" ? " · provisoire" : ""}`}
             </p>
+            {weather ? (
+              <div data-race-results-weather={weather.condition} className="mt-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#AFC6BB]">
+                  {edition.raceFormat === "stage_race" && stageClassification
+                    ? `Météo de l’étape ${stageClassification.stageNumber}`
+                    : "Météo de la course"}
+                </p>
+                <div className="mt-2 flex max-w-full">
+                  <RaceWeatherBadge weather={weather} />
+                </div>
+              </div>
+            ) : null}
           </div>
           {winner ? (
             <div className="min-w-[230px] rounded-2xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 px-4 py-3">

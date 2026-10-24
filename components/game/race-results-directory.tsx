@@ -27,6 +27,7 @@ import {
   selectRaceStageForLiveAccess,
 } from "@/lib/game/race-live";
 import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
+import { getRaceResultsWeather } from "@/lib/game/race-results-weather";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type {
   OfficialRaceEditionResults,
@@ -578,6 +579,11 @@ function SelectedRaceExperience({
           gameYear={gameYear}
           selectedStageId={entry.stage.id}
           officialResults={officialResults}
+          weather={getRaceResultsWeather({
+            raceEditionId: entry.edition.id,
+            stageId: entry.stage.id,
+            lockedSimulation: lockedSimulations.find(simulation => simulation.stageId === entry.stage.id),
+          })}
         />
       ) : (
         <RaceLiveLab

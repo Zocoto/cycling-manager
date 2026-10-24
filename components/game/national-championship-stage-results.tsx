@@ -8,6 +8,7 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
+import type { RaceWeather } from "@/lib/game/race-weather";
 
 export function NationalChampionshipStageResults({
   edition,
@@ -15,12 +16,14 @@ export function NationalChampionshipStageResults({
   stage,
   nowIso,
   officialResults,
+  weather = null,
 }: {
   edition: RaceCalendarEdition;
   gameYear: number;
   stage: RaceCalendarStage;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
+  weather?: RaceWeather | null;
 }) {
   const state = getStageLiveState(stage, new Date(nowIso));
   const resultAvailable = Boolean(
@@ -72,6 +75,7 @@ export function NationalChampionshipStageResults({
         gameYear={gameYear}
         selectedStageId={stage.id}
         officialResults={officialResults}
+        weather={weather}
         postRaceInterview={null}
       />
     </div>
