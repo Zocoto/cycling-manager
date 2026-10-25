@@ -523,6 +523,9 @@ export async function getCurrentTeamTrainingOverview(
       } satisfies TeamTrainer,
     ];
   });
+  // Old plan versions keep their historical coach reference. Only current,
+  // selectable coaches may enter the editable plan sent back by the browser.
+  const activeTrainerContractIds = new Set(trainers.map((trainer) => trainer.contractId));
 
   const latestSetting = settingsResult.data?.[0];
   const currentDay = days.find((day) => day.day_number === currentDayNumber);
@@ -664,7 +667,9 @@ export async function getCurrentTeamTrainingOverview(
             plan: {
               intensity: planRow?.intensity ?? 0,
               domain,
-              trainerContractId: planRow?.trainer_contract_id ?? null,
+              trainerContractId: planRow?.trainer_contract_id && activeTrainerContractIds.has(planRow.trainer_contract_id)
+                ? planRow.trainer_contract_id
+                : null,
               effectiveFromDayNumber:
                 planRow?.effective_from_day_number ?? currentDayNumber,
               isPending:

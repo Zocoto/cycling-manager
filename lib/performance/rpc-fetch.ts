@@ -20,6 +20,7 @@ const TRACKED_RPCS: Record<string, string> = {
   get_current_team_race_preparation: "/jeu/preparation-course",
   get_current_team_roster: "/jeu/effectif",
   save_current_rider_training_plans: "/jeu/entrainement",
+  save_current_rider_training_plans_v2: "/jeu/entrainement",
   save_current_youth_training_settings_bulk: "/jeu/centre-de-formation",
   save_current_team_equipment_assignments: "/jeu/materiel",
   apply_current_team_nutrition_interventions: "/jeu/centre-de-soin",

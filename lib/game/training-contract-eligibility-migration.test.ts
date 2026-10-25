@@ -12,7 +12,7 @@ const migration = readFileSync(
 );
 
 const consumers = [
-  "services/team-training.ts",
+  "services/team-training-history.ts",
   "services/dashboard-events.ts",
   "services/rider-progression.ts",
 ].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
@@ -53,5 +53,9 @@ describe("training contract eligibility migration", () => {
     for (const source of consumers) {
       expect(source).toContain('.eq("is_contract_eligible", true)');
     }
+    // The team overview delegates its bounded/paginated session read to this
+    // helper; filtering is intentionally not duplicated in the caller.
+    expect(readFileSync(join(process.cwd(), "services/team-training.ts"), "utf8"))
+      .toContain("loadTeamTrainingHistory(admin, season.id, riderIds)");
   });
 });

@@ -5,8 +5,10 @@ import {
   RiderTrainingPlanFields,
   TrainingPlansEditor,
   TrainingRosterList,
+  TrainingPlansSaveFeedback,
 } from "@/components/game/training-controls";
 import type { TeamTrainer } from "@/services/team-training";
+import { INITIAL_TRAINING_PLANS_SAVE_STATE } from "@/lib/game/training-plan-save-state";
 
 vi.mock("@/app/jeu/entrainement/actions", () => ({
   saveRiderTrainingPlansAction: vi.fn(),
@@ -123,5 +125,41 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).toContain("Statut dans l’équipe");
     expect(markup).toContain("Nom du coureur");
     expect(markup).toContain("Ordre habituel de la page Effectif.");
+  });
+
+  it("n’envoie jamais un entraîneur périmé dissimulé derrière Sans entraîneur", () => {
+    const markup = renderToStaticMarkup(<TrainingPlansEditor
+      trainerIds={[trainer.contractId]}
+      initialPlans={[{ riderId: "rider-1", intensity: 58, domain: "stage_racer", trainerContractId: "expired-trainer" }]}
+    ><RiderTrainingPlanFields riderId="rider-1" riderCountryCode="RW" trainers={[trainer]} /></TrainingPlansEditor>);
+    expect(markup).not.toContain("expired-trainer");
+    expect(markup).toContain('<option value="" selected="">Sans entraîneur</option>');
+    expect(markup).not.toContain("Talents de l’entraîneur");
+    expect(markup).toContain('name="plans" value="[]"');
+  });
+});
+
+describe("TrainingPlansSaveFeedback", () => {
+  it("does not claim anything before submission", () => {
+    expect(renderToStaticMarkup(<TrainingPlansSaveFeedback state={INITIAL_TRAINING_PLANS_SAVE_STATE} />)).toBe("");
+  });
+  it("shows accepted and rejected totals without saying the whole batch failed", () => {
+    const markup = renderToStaticMarkup(<TrainingPlansSaveFeedback state={{
+      status: "partial", message: "Validation partielle.",
+      savedPlans: [{ riderId: "a", intensity: 60, domain: "climber", trainerContractId: null }],
+      failures: [{ riderId: "b", message: "Quota dépassé." }],
+    }} />);
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain("1 programme enregistré.");
+    expect(markup).toContain("1 programme à corriger.");
+    expect(markup).toContain("les autres sont conservés");
+  });
+  it("keeps error text escaped and gives an accessible success message", () => {
+    const markup = renderToStaticMarkup(<TrainingPlansSaveFeedback state={{
+      status: "success", message: '<script>alert("unsafe")</script>', failures: [], savedPlans: [],
+    }} />);
+    expect(markup).toContain('role="status"');
+    expect(markup).not.toContain('<script>alert(');
+    expect(markup).toContain("&lt;script&gt;");
   });
 });

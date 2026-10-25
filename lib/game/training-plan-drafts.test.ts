@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   countTrainingPlansByTrainer,
   getChangedTrainingPlanIds,
+  normalizeTrainingPlanTrainers,
   type TrainingPlanDraft,
 } from "@/lib/game/training-plan-drafts";
 
@@ -46,5 +47,24 @@ describe("training plan drafts", () => {
         { ...initialPlans[1], trainerContractId: "trainer-a" },
       ]),
     ).toEqual({ "trainer-a": 2 });
+  });
+
+  it("retire les affectations indisponibles sans perdre les autres réglages du lot", () => {
+    const plans = normalizeTrainingPlanTrainers([
+      initialPlans[0],
+      { ...initialPlans[1], trainerContractId: "expired-trainer", intensity: 77 },
+    ], ["trainer-a"]);
+    expect(plans).toEqual([initialPlans[0], { ...initialPlans[1], intensity: 77 }]);
+    expect(countTrainingPlansByTrainer(plans)).toEqual({ "trainer-a": 1 });
+  });
+
+  it("normalise à sans entraîneur quand la liste de staff actif est vide", () => {
+    expect(normalizeTrainingPlanTrainers(initialPlans, [])[0].trainerContractId).toBeNull();
+    expect(initialPlans[0].trainerContractId).toBe("trainer-a");
+  });
+
+  it("conserve les affectations quand le consommateur ne fournit pas de liste", () => {
+    expect(normalizeTrainingPlanTrainers(initialPlans)).toEqual(initialPlans);
+    expect(normalizeTrainingPlanTrainers(initialPlans)).not.toBe(initialPlans);
   });
 });

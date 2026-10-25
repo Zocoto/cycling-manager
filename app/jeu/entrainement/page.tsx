@@ -339,12 +339,7 @@ export default async function TrainingPage({
                 draftScope={`training:${user.id}:${overview.teamId}:${overview.seasonId}`}
                 draftRevision={JSON.stringify({ day: overview.currentDayNumber, trainers: overview.trainers })}
                 trainerIds={overview.trainers.map(trainer => trainer.contractId)}
-                key={overview.riders
-                  .map(
-                    (rider) =>
-                      `${rider.id}:${rider.plan.intensity}:${rider.plan.domain}:${rider.plan.trainerContractId ?? ""}`,
-                  )
-                  .join("|")}
+                key={`${overview.teamId}:${overview.seasonId}`}
                 initialPlans={overview.riders.map((rider) => ({
                   riderId: rider.id,
                   intensity: rider.plan.intensity,

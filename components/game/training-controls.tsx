@@ -4,6 +4,7 @@ import {
   Children,
   Fragment,
   createContext,
+  useActionState,
   useCallback,
   useContext,
   useMemo,
@@ -29,8 +30,16 @@ import {
 import {
   countTrainingPlansByTrainer,
   getChangedTrainingPlanIds,
+  normalizeTrainingPlanTrainers,
   type TrainingPlanDraft,
 } from "@/lib/game/training-plan-drafts";
+import {
+  INITIAL_TRAINING_PLANS_SAVE_STATE,
+  acknowledgeTrainingPlansSave,
+  createTrainingPlansEditorState,
+  rebaseTrainingPlansEditorState,
+  type TrainingPlansSaveState,
+} from "@/lib/game/training-plan-save-state";
 import { TRAINER_NATIONALITY_BONUS_PERCENTAGE } from "@/lib/game/training";
 import { sortRosterItems } from "@/lib/game/roster-sort";
 import {
@@ -44,6 +53,7 @@ type TrainingPlanPatch = Partial<Omit<TrainingPlanDraft, "riderId">>;
 type TrainingPlansEditorContextValue = {
   plansByRiderId: Record<string, TrainingPlanDraft>;
   trainerAssignmentCounts: Record<string, number>;
+  failureByRiderId: Record<string, string>;
   updatePlan: (riderId: string, patch: TrainingPlanPatch) => void;
 };
 
@@ -146,26 +156,44 @@ export function TrainingPlansEditor({
   draftRevision?: string;
   trainerIds?: string[];
 }) {
-  const initialPlansByRiderId = useMemo(
-    () =>
-      Object.fromEntries(
-        initialPlans.map((plan) => [plan.riderId, plan]),
-      ) as Record<string, TrainingPlanDraft>,
-    [initialPlans],
+  const normalizedInitialPlans = useMemo(
+    () => normalizeTrainingPlanTrainers(initialPlans, trainerIds),
+    [initialPlans, trainerIds],
   );
-  const [plansByRiderId, setPlansByRiderId] = useState(
-    () => initialPlansByRiderId,
+  const serverRevision = JSON.stringify({ plans: normalizedInitialPlans, revision: draftRevision });
+  const [editorState, setEditorState] = useState(
+    () => createTrainingPlansEditorState(normalizedInitialPlans, serverRevision),
   );
+  if (editorState.serverRevision !== serverRevision) {
+    setEditorState(rebaseTrainingPlansEditorState(editorState, normalizedInitialPlans, serverRevision, trainerIds));
+  }
+  const [saveState, formAction, pending] = useActionState<TrainingPlansSaveState, FormData>(
+    async (previous, formData) => {
+      let result: TrainingPlansSaveState;
+      try {
+        result = await saveRiderTrainingPlansAction(previous, formData);
+      } catch {
+        return {
+          status: "error", message: "La validation n’a pas pu être confirmée. Vos réglages sont conservés : réessayez après avoir vérifié votre connexion.",
+          savedPlans: [], failures: [],
+        };
+      }
+      setEditorState((current) => acknowledgeTrainingPlansSave(current, result));
+      return result;
+    },
+    INITIAL_TRAINING_PLANS_SAVE_STATE,
+  );
+  const { plansByRiderId, baselineByRiderId } = editorState;
   const currentPlans = useMemo(
     () =>
-      initialPlans.map(
+      normalizedInitialPlans.map(
         (initialPlan) => plansByRiderId[initialPlan.riderId] ?? initialPlan,
       ),
-    [initialPlans, plansByRiderId],
+    [normalizedInitialPlans, plansByRiderId],
   );
   const changedRiderIds = useMemo(
-    () => getChangedTrainingPlanIds(initialPlans, currentPlans),
-    [currentPlans, initialPlans],
+    () => getChangedTrainingPlanIds(Object.values(baselineByRiderId), currentPlans),
+    [currentPlans, baselineByRiderId],
   );
   const changedRiderIdSet = useMemo(
     () => new Set(changedRiderIds),
@@ -181,37 +209,41 @@ export function TrainingPlansEditor({
   );
   const updatePlan = useCallback(
     (riderId: string, patch: TrainingPlanPatch) => {
-      setPlansByRiderId((current) => {
-        const plan = current[riderId];
+      setEditorState((current) => {
+        const plan = current.plansByRiderId[riderId];
         if (!plan) return current;
         return {
           ...current,
-          [riderId]: { ...plan, ...patch },
+          plansByRiderId: { ...current.plansByRiderId, [riderId]: { ...plan, ...patch } },
         };
       });
     },
     [],
   );
+  const failureByRiderId = useMemo(
+    () => Object.fromEntries(saveState.failures.map((failure) => [failure.riderId, failure.message])),
+    [saveState.failures],
+  );
   const editorContext = useMemo(
-    () => ({ plansByRiderId, trainerAssignmentCounts, updatePlan }),
-    [plansByRiderId, trainerAssignmentCounts, updatePlan],
+    () => ({ plansByRiderId, trainerAssignmentCounts, failureByRiderId, updatePlan }),
+    [plansByRiderId, trainerAssignmentCounts, failureByRiderId, updatePlan],
   );
   const draft = useManagementDraft({
     scope: draftScope,
-    baseline: JSON.stringify({ initialPlans, revision: draftRevision }),
+    baseline: JSON.stringify({ initialPlans: Object.values(baselineByRiderId), revision: draftRevision }),
     value: currentPlans,
     dirty: changedPlans.length > 0,
     restore(value) {
-      if (!Array.isArray(value) || value.length !== initialPlans.length) return false;
+      if (!Array.isArray(value) || value.length !== normalizedInitialPlans.length) return false;
       const seen = new Set<string>();
       for (const plan of value) {
-        if (!isDraftRecord(plan) || typeof plan.riderId !== "string" || !Object.hasOwn(initialPlansByRiderId, plan.riderId) || seen.has(plan.riderId) ||
+        if (!isDraftRecord(plan) || typeof plan.riderId !== "string" || !Object.hasOwn(baselineByRiderId, plan.riderId) || seen.has(plan.riderId) ||
             !Number.isInteger(plan.intensity) || Number(plan.intensity) < 0 || Number(plan.intensity) > 100 ||
-            typeof plan.domain !== "string" || !isTrainingDomain(plan.domain) || !(plan.trainerContractId === null || typeof plan.trainerContractId === "string") ||
-            (plan.trainerContractId && trainerIds && !trainerIds.includes(plan.trainerContractId))) return false;
+            typeof plan.domain !== "string" || !isTrainingDomain(plan.domain) || !(plan.trainerContractId === null || typeof plan.trainerContractId === "string")) return false;
         seen.add(plan.riderId);
       }
-      setPlansByRiderId(Object.fromEntries(value.map(plan => [plan.riderId, plan])));
+      const restored = normalizeTrainingPlanTrainers(value as TrainingPlanDraft[], trainerIds);
+      setEditorState((current) => ({ ...current, plansByRiderId: Object.fromEntries(restored.map((plan) => [plan.riderId, plan])) }));
       return true;
     },
   });
@@ -219,10 +251,11 @@ export function TrainingPlansEditor({
   return (
     <TrainingPlansEditorContext.Provider value={editorContext}>
       <form
-        action={saveRiderTrainingPlansAction}
+        action={formAction}
         data-tutorial-id="training-plan-save"
       >
         {draft.recovery}
+        <TrainingPlansSaveFeedback state={saveState} />
         <input
           type="hidden"
           name="plans"
@@ -253,7 +286,8 @@ export function TrainingPlansEditor({
                 <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
                   <button
                     type="button"
-                    onClick={() => { draft.discard(); setPlansByRiderId({ ...initialPlansByRiderId }); }}
+                    disabled={pending}
+                    onClick={() => { draft.discard(); setEditorState((current) => ({ ...current, plansByRiderId: { ...current.baselineByRiderId } })); }}
                     className="min-h-11 rounded-xl px-3 text-xs font-black uppercase tracking-[0.08em] text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
                   >
                     Annuler
@@ -267,6 +301,20 @@ export function TrainingPlansEditor({
       </form>
     </TrainingPlansEditorContext.Provider>
   );
+}
+
+export function TrainingPlansSaveFeedback({ state }: { state: TrainingPlansSaveState }) {
+  if (state.status === "idle" || !state.message) return null;
+  const hasFailures = state.status === "error" || state.status === "partial";
+  return <div
+    role={hasFailures ? "alert" : "status"}
+    aria-live="polite"
+    className={`my-4 rounded-2xl border p-4 text-sm font-bold ${hasFailures ? "border-[#D9A247]/35 bg-[#FFF8E5] text-[#71580A]" : "border-[#278B70]/25 bg-[#EAF7EE] text-[#176951]"}`}
+  >
+    <p>{state.message}</p>
+    {state.savedPlans.length ? <p className="mt-1 text-xs">{state.savedPlans.length} programme{state.savedPlans.length > 1 ? "s" : ""} enregistré{state.savedPlans.length > 1 ? "s" : ""}.</p> : null}
+    {state.failures.length ? <p className="mt-1 text-xs">{state.failures.length} programme{state.failures.length > 1 ? "s" : ""} à corriger. Les réglages refusés restent dans les fiches concernées ; les autres sont conservés.</p> : null}
+  </div>;
 }
 
 export function TrainingThresholdForm({ minimumForm }: { minimumForm: number }) {
@@ -437,7 +485,7 @@ export function RiderTrainingPlanFields({
         <select
           id={trainerSelectId}
           name={`training-trainer-${riderId}`}
-          value={trainerContractId ?? ""}
+          value={selectedTrainer?.contractId ?? ""}
           onChange={(event) =>
             editor.updatePlan(riderId, {
               trainerContractId: event.target.value || null,
@@ -531,7 +579,9 @@ export function RiderTrainingPlanFields({
           </span>
         ) : null}
       </div>
-
+      {editor.failureByRiderId[riderId] ? <p role="alert" className="rounded-xl border border-[#B54242]/20 bg-[#FFF1F1] px-3 py-3 text-xs font-bold text-[#963838] lg:col-span-3">
+        Non enregistré : {editor.failureByRiderId[riderId]} Vos réglages sont conservés ; corrigez ce programme puis validez à nouveau.
+      </p> : null}
     </div>
   );
 }

@@ -2,12 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { isTrainingDomain } from "@/lib/game/training";
 import { isPerformancePreparationType } from "@/lib/game/performance-preparation";
 import { getInteractiveActionErrorMessage } from "@/lib/game/interactive-action-errors";
 import { getRaceReconnaissanceErrorMessage } from "@/lib/game/race-reconnaissance";
 import type { TrainingPlanDraft } from "@/lib/game/training-plan-drafts";
+import type { TrainingPlansSaveState } from "@/lib/game/training-plan-save-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function saveTeamTrainingSettingsAction(formData: FormData) {
@@ -29,26 +31,70 @@ export async function saveTeamTrainingSettingsAction(formData: FormData) {
   );
 }
 
-export async function saveRiderTrainingPlansAction(formData: FormData) {
-  const plans = parseTrainingPlans(readValue(formData, "plans"));
+const trainingBatchResultSchema = z.object({
+  effective_day: z.number().int().min(1).max(29),
+  results: z.array(z.object({
+    rider_id: z.string().uuid(),
+    status: z.enum(["saved", "error"]),
+    code: z.string().nullish(),
+    message: z.string().nullish(),
+    trainer_reset: z.boolean().optional(),
+    trainer_contract_id: z.string().uuid().nullable().optional(),
+  })).max(35),
+});
+
+export async function saveRiderTrainingPlansAction(
+  _previous: TrainingPlansSaveState,
+  formData: FormData,
+): Promise<TrainingPlansSaveState> {
+  const parsed = parseTrainingPlans(readValue(formData, "plans"));
+  if ("error" in parsed) return trainingSaveFailure(parsed.error);
+  const { plans } = parsed;
+  if (!plans.length) return trainingSaveFailure(
+    "Aucun programme valide à enregistrer. Corrigez les coureurs signalés ; vos réglages sont conservés.",
+    parsed.failures,
+  );
   const supabase = await requireAuthenticatedClient();
-  const { data, error } = await supabase.rpc(
-    "save_current_rider_training_plans",
-    {
+  let result;
+  try {
+    result = await supabase.rpc("save_current_rider_training_plans_v2", {
       p_plans: plans.map((plan) => ({
         rider_id: plan.riderId,
         intensity: plan.intensity,
         domain: plan.domain,
         trainer_contract_id: plan.trainerContractId,
       })),
-    },
-  );
-  if (error) redirectWithError(getInteractiveActionErrorMessage(error.message));
-
-  revalidateTrainingPaths();
-  redirect(
-    `/jeu/entrainement?programme=confirme&nombre=${plans.length}&effet=${encodeURIComponent(formatTrainingEffect(Number(data)))}`,
-  );
+    });
+  } catch {
+    return trainingSaveFailure("La réponse de sauvegarde n’a pas été reçue. Vos réglages sont conservés : réessayez pour confirmer l’enregistrement.", parsed.failures, plans);
+  }
+  if (result.error) return trainingSaveFailure(getInteractiveActionErrorMessage(result.error.message), parsed.failures, plans);
+  const response = trainingBatchResultSchema.safeParse(result.data);
+  const requestedById = new Map(plans.map((plan) => [plan.riderId, plan]));
+  if (!response.success || response.data.results.length !== plans.length ||
+    new Set(response.data.results.map((row) => row.rider_id)).size !== plans.length ||
+    response.data.results.some((row) => !requestedById.has(row.rider_id))) {
+    return trainingSaveFailure("L’enregistrement n’a pas pu être confirmé. Vos réglages sont conservés : réessayez pour confirmer la sauvegarde.", parsed.failures, plans);
+  }
+  const savedPlans: TrainingPlanDraft[] = [];
+  const failures = [...parsed.failures];
+  for (const row of response.data.results) {
+    const submitted = requestedById.get(row.rider_id)!;
+    if (row.status === "saved") {
+      savedPlans.push({ ...submitted, trainerContractId: row.trainer_reset ? null
+        : row.trainer_contract_id === undefined ? submitted.trainerContractId : row.trainer_contract_id });
+    } else {
+      failures.push({ riderId: row.rider_id, code: row.code ?? undefined,
+        message: row.message?.slice(0, 300) || "Ce programme n’a pas pu être enregistré. Vérifiez ses réglages puis réessayez." });
+    }
+  }
+  if (savedPlans.length) revalidateTrainingPaths();
+  const count = savedPlans.length;
+  return {
+    status: count ? failures.length ? "partial" : "success" : "error",
+    message: `${count} programme${count > 1 ? "s" : ""} enregistré${count > 1 ? "s" : ""}${count ? ` · effet ${formatTrainingEffect(response.data.effective_day)}` : ""}.${failures.length ? ` ${failures.length} programme${failures.length > 1 ? "s restent" : " reste"} à corriger ; les réglages sont conservés.` : ""}`,
+    savedPlans, failures, effectiveDay: response.data.effective_day, submittedPlans: plans,
+  };
 }
 
 export async function bookRaceReconnaissanceAction(formData: FormData) {
@@ -161,28 +207,41 @@ export async function startRiderPerformancePreparationAction(
   redirect("/jeu/entrainement?onglet=preparation&preparation=confirmee");
 }
 
-function parseTrainingPlans(rawPlans: string): TrainingPlanDraft[] {
+function parseTrainingPlans(rawPlans: string):
+  { plans: TrainingPlanDraft[]; failures: TrainingPlansSaveState["failures"] } | { error: string } {
   let payload: unknown;
   try {
     payload = JSON.parse(rawPlans);
   } catch {
-    redirectWithError("Les programmes d’entraînement sont invalides.");
+    return { error: "Les programmes d’entraînement sont invalides. Vos réglages sont conservés." };
   }
 
   if (!Array.isArray(payload) || payload.length === 0 || payload.length > 35) {
-    redirectWithError("Sélectionnez entre 1 et 35 programmes à modifier.");
+    return { error: "Sélectionnez entre 1 et 35 programmes à modifier." };
   }
 
-  const plans = payload.map((entry): TrainingPlanDraft => {
+  const plans: TrainingPlanDraft[] = [];
+  const failures: TrainingPlansSaveState["failures"] = [];
+  const ids = payload.map((entry) => entry && typeof entry === "object" && !Array.isArray(entry)
+    && typeof entry.riderId === "string" ? entry.riderId.toLowerCase() : "");
+  const duplicateIds = new Set(ids.filter((id, index) => id && ids.indexOf(id) !== index));
+  const reportedDuplicates = new Set<string>();
+  for (const [index, entry] of payload.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      redirectWithError("Les programmes d’entraînement sont invalides.");
+      failures.push({ riderId: "", code: "invalid_plan", message: `Le programme ${index + 1} est invalide.` });
+      continue;
     }
 
     const candidate = entry as Record<string, unknown>;
-    const riderId = candidate.riderId;
+    const riderId = typeof candidate.riderId === "string" ? candidate.riderId.toLowerCase() : candidate.riderId;
     const intensity = candidate.intensity;
     const domain = candidate.domain;
-    const trainerContractId = candidate.trainerContractId;
+    const trainerContractId = typeof candidate.trainerContractId === "string" ? candidate.trainerContractId.toLowerCase() : candidate.trainerContractId;
+    if (typeof riderId === "string" && duplicateIds.has(riderId)) {
+      if (!reportedDuplicates.has(riderId)) failures.push({ riderId, code: "duplicate_rider", message: "Ce coureur apparaît plusieurs fois dans le lot. Aucun de ses doublons n’a été appliqué." });
+      reportedDuplicates.add(riderId);
+      continue;
+    }
 
     if (
       typeof riderId !== "string" ||
@@ -195,22 +254,24 @@ function parseTrainingPlans(rawPlans: string): TrainingPlanDraft[] {
       (trainerContractId !== null &&
         (typeof trainerContractId !== "string" || !isUuid(trainerContractId)))
     ) {
-      redirectWithError("Un des programmes d’entraînement est invalide.");
+      failures.push({ riderId: typeof riderId === "string" && isUuid(riderId) ? riderId : "", code: "invalid_plan",
+        message: "Programme invalide : vérifiez le domaine, l’intensité et l’entraîneur." });
+      continue;
     }
 
-    return {
+    plans.push({
       riderId,
       intensity: Number(intensity),
       domain,
       trainerContractId,
-    };
-  });
-
-  if (new Set(plans.map((plan) => plan.riderId)).size !== plans.length) {
-    redirectWithError("Un coureur ne peut être modifié qu’une seule fois.");
+    });
   }
 
-  return plans;
+  return { plans, failures };
+}
+
+function trainingSaveFailure(message: string, failures: TrainingPlansSaveState["failures"] = [], submittedPlans: TrainingPlanDraft[] = []): TrainingPlansSaveState {
+  return { status: "error", message, savedPlans: [], failures, submittedPlans };
 }
 
 async function requireAuthenticatedClient() {

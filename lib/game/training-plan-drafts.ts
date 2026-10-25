@@ -36,7 +36,7 @@ export function countTrainingPlansByTrainer(
   return counts;
 }
 
-function areTrainingPlansEqual(
+export function areTrainingPlansEqual(
   left: TrainingPlanDraft,
   right: TrainingPlanDraft,
 ) {
@@ -45,4 +45,19 @@ function areTrainingPlansEqual(
     left.domain === right.domain &&
     left.trainerContractId === right.trainerContractId
   );
+}
+
+/** An unavailable trainer must never remain hidden behind “Sans entraîneur”. */
+export function normalizeTrainingPlanTrainers(
+  plans: readonly TrainingPlanDraft[],
+  trainerIds?: readonly string[],
+): TrainingPlanDraft[] {
+  if (!trainerIds) return plans.map((plan) => ({ ...plan }));
+  const activeTrainerIds = new Set(trainerIds);
+  return plans.map((plan) => ({
+    ...plan,
+    trainerContractId: plan.trainerContractId && activeTrainerIds.has(plan.trainerContractId)
+      ? plan.trainerContractId
+      : null,
+  }));
 }
