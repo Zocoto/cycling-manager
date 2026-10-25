@@ -47,9 +47,11 @@ seconds. No polling, per-rider network requests or production test fixtures.
 
 - 208 Vitest checks, 37 files: training, actions, state reconciliation, history,
   coach validation and performance instrumentation.
-- 104 isolated PostgreSQL/PGlite checks, including capacity swaps, dependent
+- 111 isolated PostgreSQL/PGlite checks, including capacity swaps, dependent
   failures in both input orders, authorization, invalid input, historical
   preservation, legacy atomicity and transaction-wide failure propagation.
+  Quota-only refusals are reconsidered when a failed incoming program frees a
+  place. Even 35 permanent write failures terminate without residual writes.
 - ESLint and TypeScript passed. Next production compilation passed; the new UI
   translations were added and all post-build checks subsequently passed
   (registration routes, image runtimes, scanner and catalog coverage).
@@ -58,15 +60,17 @@ seconds. No polling, per-rider network requests or production test fixtures.
 
 ## Production database delivery
 
-Migration `20261025100000_isolate_training_plan_save_failures.sql` applied and
-recorded atomically with guarded preflight source hashes. No gameplay data was
-changed. Post-migration source hashes:
+Migrations `20261025100000_isolate_training_plan_save_failures.sql` and
+`20261025103000_reconsider_training_capacity_after_row_failure.sql` applied and
+recorded atomically with guarded preflight source hashes. The second is a
+separate follow-up, not a rewrite of an applied migration. No gameplay data was
+changed. Final function source hashes:
 
 | Function | Body MD5 |
 | --- | --- |
 | Single compatibility saver | `fbcf31148c429dcc66495b6ddc0273b1` |
 | Bulk compatibility saver | `487ddaf9087e7bdcbaec6d39af63f9d4` |
-| Partial v2 saver | `53b35ebece56255286a44509afda225f` |
+| Partial v2 saver | `0e20b9960b2fd9099268cf2ecae42906` |
 
 Anonymous execution remains denied. Authenticated execution remains allowed.
 Both Tedla historical rows were unchanged, verified by complete-row hashes:
@@ -74,3 +78,6 @@ J4 `1b971d31f2cebd93e00b68ec1ebc0ff1`, J2
 `127777fb83d85f533eaec0c89e7f544a`. Both resolve to no editable coach.
 Database connectivity and absence of lingering release sessions were verified.
 Application delivery is through the normal main-branch production build.
+The application commit `3de129528c1578d9231556b968164c0c7eba866f` completed a
+production build and received the live domains. The follow-up changes only SQL,
+isolated tests and this delivery note; it uses the same frontend contract.

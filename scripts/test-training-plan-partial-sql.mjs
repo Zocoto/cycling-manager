@@ -58,7 +58,8 @@ try {
     create function public.get_training_effective_day_number(uuid) returns integer language sql as $$ select 18 $$;
     create function test_training_failure() returns trigger language plpgsql as $$
     begin
-      if new.rider_id::text = current_setting('test.fail_rider',true) then
+      if new.rider_id::text = current_setting('test.fail_rider',true)
+        or current_setting('test.fail_rider',true) = '*' then
         if new.intensity=77 then raise exception 'Synthetic rider-local failure'; end if;
         if new.intensity=78 then raise exception 'Synthetic serialization failure' using errcode='40001'; end if;
       end if;
@@ -84,6 +85,10 @@ try {
   }
   const migration = readFileSync('supabase/migrations/20261025100000_isolate_training_plan_save_failures.sql', 'utf8');
   await db.exec(migration);
+  const followUp = readFileSync('supabase/migrations/20261025103000_reconsider_training_capacity_after_row_failure.sql', 'utf8');
+  await db.exec(followUp);
+  // The follow-up is idempotent and must not duplicate the retry logic.
+  await db.exec(followUp);
   await reset();
 
   let result = await save([plan(1, trainer), plan(2)]);
@@ -179,6 +184,30 @@ try {
   result = await save([plan(1), plan(5, trainer, { intensity: 77 }), plan(6)]);
   same(result.results.map(row => row.code), ['saved', 'save_failed', 'saved']);
   same((await rows()).map(row => row.rider_id), [rider(1), rider(6)]);
+
+  await reset(); await baseline([[1, trainer], [2, trainer], [3, trainer]]);
+  await db.query(`select set_config('test.fail_rider',$1,false)`, [rider(5)]);
+  result = await save([plan(5, trainer, { intensity: 77 }), plan(6, trainer), plan(7)]);
+  same(result.results.map(row => row.code), ['save_failed', 'saved', 'saved'],
+    'a quota-only refusal is reconsidered when the competing incoming write fails');
+  same((await rows()).map(row => row.rider_id), [rider(6), rider(7)]);
+  same((await rows()).find(row => row.rider_id === rider(6)).trainer_contract_id, trainer);
+
+  // Reconsideration never revives malformed, unauthorized or duplicate rows.
+  await reset(); await baseline([[1, trainer], [2, trainer], [3, trainer]]);
+  await db.query(`select set_config('test.fail_rider',$1,false)`, [rider(5)]);
+  result = await save([plan(5, trainer, { intensity: 77 }), plan(6, trainer),
+    plan(7, foreignTrainer), plan(8, null, { intensity: 101 }), plan(9), plan(9)]);
+  same(result.results.map(row => row.code), ['save_failed', 'saved', 'inactive_trainer',
+    'invalid_plan', 'duplicate_rider', 'duplicate_rider']);
+  same((await rows()).map(row => row.rider_id), [rider(6)]);
+
+  await reset(); await baseline([[1, trainer], [2, trainer], [3, trainer]]);
+  await db.exec(`select set_config('test.fail_rider','*',false)`);
+  result = await save(Array.from({ length: 35 }, (_, n) => plan(n + 1, trainer, { intensity: 77 })));
+  same(result.results.map(row => row.code), Array(35).fill('save_failed'),
+    '35 permanently failing requests terminate even with repeated quota reconsideration');
+  same((await rows()).length, 0, 'no tentative write survives repeated failures');
 
   await reset(); await baseline([[1, trainer], [2, trainer], [3, trainer], [4, trainer], [5, trainer]]);
   result = await save([plan(1, trainer), plan(6)]);
