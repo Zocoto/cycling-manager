@@ -3782,9 +3782,13 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   });
 
   const finalCommentary = timeline.at(-1)?.commentary ?? [];
+  // Each physical group sprints for its own placing, including dropped groups.
   const roadFinishMode = getRoadFinishMode(
     input.segments,
-    getLargestContendingRoadGroupSize(states),
+    Math.max(
+      0,
+      ...(timeline.at(-1)?.groups ?? []).map((group) => group.riderIds.length),
+    ),
   );
   const massSprintFinish = roadFinishMode === "mass_sprint";
   const preserveFinalRoadGroups =
@@ -9306,7 +9310,7 @@ function getRoadFinishScores(
     const physiologyFinishProfile: RaceProfileType =
       longSummitFinishFactor > 0
         ? "mountain"
-        : massSprintFinish
+        : compactSprintFinish
           ? "sprint"
           : profileType;
     const physiologyFinishBonus = getRiderPhysiologyProfileModifier({
@@ -9342,7 +9346,8 @@ function getRoadFinishScores(
         finalAttackScores.push({ state, score });
       }
     } else if (massSprintFinish && state.group !== "abandoned") {
-      const trainRank = positionedTeams.indexOf(rider.teamId);
+      const trainRank = state.group === "peloton"
+        ? positionedTeams.indexOf(rider.teamId) : -1;
       const ownTrainBonus =
         trainRank === 0
           ? 5
@@ -9378,10 +9383,7 @@ function getRoadFinishScores(
           ? 4
           : 0;
       score =
-        rider.ratings.sprint * 0.76 +
-        rider.ratings.acceleration * 0.12 +
-        rider.ratings.resistance * 0.04 +
-        state.energy * 0.08 +
+        getFlatSprintFinishBaseScore({ rider, energy: state.energy }) +
         getRaceDayBonus(rider) +
         positioningBonus +
         pistardPositioningBonus +
@@ -9399,6 +9401,23 @@ function getRoadFinishScores(
           ) /
             100;
       }
+    } else if (reducedSprintFinish && state.group !== "abandoned") {
+      // Earlier sectors have already selected the group and spent its energy.
+      // Never count the course's climbing/cobbles ratings again at a flat sprint.
+      const trainRank = state.group === "peloton"
+        ? positionedTeams.indexOf(rider.teamId) : -1;
+      const positioningBonus = borrowedWheelByRiderId.has(rider.id)
+        ? Math.max(1.6, trainRank === 0 ? 1.8 : trainRank === 1 ? 1 : 0)
+        : trainRank === 0 ? 1.8 : trainRank === 1 ? 1 : trainRank === 2 ? 0.4 : 0;
+      const roleBonus = isRaceSprinterRole(rider.role)
+        ? 1.5
+        : isRaceLeaderRole(rider.role)
+          ? 2
+          : rider.role === "leadout" ? -2 : 0;
+      score =
+        getFlatSprintFinishBaseScore({ rider, energy: state.energy }) +
+        getRaceDayBonus(rider) * 0.8 + positioningBonus + roleBonus;
+      scoreNoiseFactor = 0.65;
     } else if (
       profileType === "cobbles" &&
       cobblesFinishArchetype &&
@@ -9440,30 +9459,6 @@ function getRoadFinishScores(
         state.cobblesSectorExecutionBonus * 0.8;
       scoreNoiseFactor = cobblesFinishArchetype === "rolling" ? 0.95 : 0.85;
       if (!reducedSprintFinish && state.group === "peloton") {
-        finalAttackScores.push({ state, score });
-      }
-    } else if (reducedSprintFinish && state.group !== "abandoned") {
-      const trainRank = positionedTeams.indexOf(rider.teamId);
-      const positioningBonus =
-        trainRank === 0 ? 2 : trainRank === 1 ? 1.2 : trainRank === 2 ? 0.5 : 0;
-      const roleBonus = isRaceSprinterRole(rider.role)
-        ? 1.5
-        : isRaceLeaderRole(rider.role)
-          ? 2
-          : rider.role === "leadout"
-            ? -2
-            : 0;
-      score =
-        getReducedSprintFinishBaseScore({
-          rider,
-          segments,
-          energy: state.energy,
-        }) +
-        getRaceDayBonus(rider) * 0.8 +
-        positioningBonus +
-        roleBonus;
-      scoreNoiseFactor = 0.65;
-      if (state.group === "peloton") {
         finalAttackScores.push({ state, score });
       }
     } else if (profileType === "hilly") {
@@ -9528,7 +9523,7 @@ function getRoadFinishScores(
       rider.id,
       score +
         physiologyFinishBonus -
-        (massSprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) -
+        (compactSprintFinish ? 0 : getLowEnergyPerformancePenalty(state)) -
         getCollectiveWorkFinishPenalty({
           state,
           states,
@@ -9540,8 +9535,8 @@ function getRoadFinishScores(
           scoreNoiseFactor *
           (state.tacticalNoiseMultiplier ?? 1) +
         state.raceDayExecutionBonus *
-          (massSprintFinish ? 0.7 : profileType === "cobbles" ? 1.15 : 1) +
-        state.decisiveAttackBonus -
+          (compactSprintFinish ? 0.7 : profileType === "cobbles" ? 1.15 : 1) +
+        (compactSprintFinish ? 0 : state.decisiveAttackBonus) -
         state.injuryPerformancePenalty +
         (state.tacticalFinishBonus ?? 0) -
         Math.min(6, (state.lateRecoveryEffortSeconds ?? 0) * 0.18) -
@@ -9672,87 +9667,57 @@ export function getCobblesFinishBaseScore({
   finishMode: RoadFinishMode;
   archetype?: CobblesFinishArchetype;
 }) {
-  const reducedSprint = finishMode === "reduced_sprint";
+  if (finishMode === "reduced_sprint") {
+    return getFlatSprintFinishBaseScore({ rider, energy });
+  }
   const decisiveFinishRating = getDecisiveRoadFinishRating(rider, segments);
 
   if (archetype === "rolling") {
-    return reducedSprint
-      ? rider.ratings.cobbles * 0.24 +
-          rider.ratings.flat * 0.16 +
-          rider.ratings.sprint * 0.2 +
-          rider.ratings.acceleration * 0.14 +
-          rider.ratings.resistance * 0.08 +
-          rider.ratings.endurance * 0.05 +
-          decisiveFinishRating * 0.08 +
-          energy * 0.05
-      : rider.ratings.cobbles * 0.28 +
-          rider.ratings.flat * 0.17 +
-          rider.ratings.sprint * 0.1 +
-          rider.ratings.acceleration * 0.15 +
-          rider.ratings.resistance * 0.1 +
-          rider.ratings.endurance * 0.08 +
-          decisiveFinishRating * 0.08 +
-          energy * 0.04;
+    return (
+      rider.ratings.cobbles * 0.28 + rider.ratings.flat * 0.17 +
+      rider.ratings.sprint * 0.1 + rider.ratings.acceleration * 0.15 +
+      rider.ratings.resistance * 0.1 + rider.ratings.endurance * 0.08 +
+      decisiveFinishRating * 0.08 + energy * 0.04
+    );
   }
 
   if (archetype === "hilly") {
-    return reducedSprint
-      ? rider.ratings.cobbles * 0.27 +
-          rider.ratings.hills * 0.2 +
-          rider.ratings.sprint * 0.12 +
-          rider.ratings.acceleration * 0.14 +
-          rider.ratings.resistance * 0.1 +
-          rider.ratings.endurance * 0.08 +
-          decisiveFinishRating * 0.05 +
-          energy * 0.04
-      : rider.ratings.cobbles * 0.3 +
-          rider.ratings.hills * 0.24 +
-          rider.ratings.sprint * 0.04 +
-          rider.ratings.acceleration * 0.14 +
-          rider.ratings.resistance * 0.11 +
-          rider.ratings.endurance * 0.08 +
-          decisiveFinishRating * 0.05 +
-          energy * 0.04;
+    return (
+      rider.ratings.cobbles * 0.3 + rider.ratings.hills * 0.24 +
+      rider.ratings.sprint * 0.04 + rider.ratings.acceleration * 0.14 +
+      rider.ratings.resistance * 0.11 + rider.ratings.endurance * 0.08 +
+      decisiveFinishRating * 0.05 + energy * 0.04
+    );
   }
 
-  return reducedSprint
-    ? rider.ratings.cobbles * 0.32 +
-        rider.ratings.flat * 0.09 +
-        rider.ratings.sprint * 0.13 +
-        rider.ratings.acceleration * 0.1 +
-        rider.ratings.resistance * 0.14 +
-        rider.ratings.endurance * 0.12 +
-        decisiveFinishRating * 0.06 +
-        energy * 0.04
-    : rider.ratings.cobbles * 0.37 +
-        rider.ratings.flat * 0.08 +
-        rider.ratings.sprint * 0.04 +
-        rider.ratings.acceleration * 0.09 +
-        rider.ratings.resistance * 0.16 +
-        rider.ratings.endurance * 0.14 +
-        decisiveFinishRating * 0.08 +
-        energy * 0.04;
+  return (
+    rider.ratings.cobbles * 0.37 + rider.ratings.flat * 0.08 +
+    rider.ratings.sprint * 0.04 + rider.ratings.acceleration * 0.09 +
+    rider.ratings.resistance * 0.16 + rider.ratings.endurance * 0.14 +
+    decisiveFinishRating * 0.08 + energy * 0.04
+  );
 }
 
 export function getReducedSprintFinishBaseScore({
   rider,
-  segments,
   energy,
 }: {
   rider: RiderSimulationInput;
   segments: RaceStageSegment[];
   energy: number;
 }) {
-  const decisiveFinishRating = getDecisiveRoadFinishRating(rider, segments);
-  return (
-    rider.ratings.sprint * 0.36 +
-    rider.ratings.acceleration * 0.14 +
-    decisiveFinishRating * 0.22 +
-    rider.ratings.hills * 0.12 +
-    rider.ratings.resistance * 0.06 +
-    rider.ratings.endurance * 0.04 +
-    energy * 0.06
-  );
+  return getFlatSprintFinishBaseScore({ rider, energy });
+}
+
+/** The physical race has already accounted for terrain, resistance and stamina. */
+export function getFlatSprintFinishBaseScore({
+  rider,
+  energy,
+}: {
+  rider: Pick<RiderSimulationInput, "ratings">;
+  energy: number;
+}) {
+  return rider.ratings.sprint * 0.7 + clamp(energy, 0, 100) * 0.3;
 }
 
 function applyTeamFinishHierarchy({
@@ -9881,8 +9846,8 @@ type FinishEffortGapProfile = {
  * final sélectif. Le score de finish contient déjà le niveau du terrain, la
  * forme du jour et le travail collectif ; la réserve restante ajoute la part
  * de fraîcheur qui distingue deux coureurs encore ensemble au pied du dernier
- * effort. Les coefficients restent volontairement plus faibles sur un sprint
- * réduit que sur une arrivée au sommet.
+ * effort. Les sprints plats sont exclus : leur fraîcheur entre déjà dans le
+ * score du sprint et les coureurs d'un même groupe gardent un temps commun.
  */
 export function getNonMassFinishEffortGapSeconds({
   score,
@@ -9925,19 +9890,10 @@ function getNonMassFinishEffortGapProfile({
 }): FinishEffortGapProfile | null {
   if (
     finishMode === "mass_sprint" ||
+    finishMode === "reduced_sprint" ||
     shouldPreserveFinalRoadGroupTimes(segments)
   ) {
     return null;
-  }
-
-  if (finishMode === "reduced_sprint") {
-    return {
-      scoreTolerance: 1.25,
-      secondsPerScorePoint: 0.24,
-      freshnessTolerance: 5,
-      secondsPerFreshnessPoint: 0.06,
-      maximumGapSeconds: 15,
-    };
   }
 
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
@@ -10346,18 +10302,8 @@ export function applyChronologicalRoadFinishEffort<
   groups: ReadonlyArray<Pick<RaceGroupSnapshot, "riderIds" | "gapToLeaderSeconds">>;
   effortGapSecondsByRiderId: ReadonlyMap<string, number>;
 }): Result[] {
-  const hasAddedEffort = results.some(
-    (result) => (effortGapSecondsByRiderId.get(result.riderId) ?? 0) > 0,
-  );
-  // Neutralized descents and bunch sprints keep the exact historical timing
-  // and score order, without introducing a new tie-break between groups.
-  if (!hasAddedEffort) {
-    return [...results].sort(
-      (first, second) =>
-        first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
-        second.score - first.score,
-    );
-  }
+  // Keep physical group boundaries even without extra effort or when clocks
+  // tie. A sprinter's score only orders riders in the same road group.
   const roadGroupByRiderId = new Map<string, number>();
   [...groups]
     .sort((first, second) => first.gapToLeaderSeconds - second.gapToLeaderSeconds)
@@ -10489,7 +10435,10 @@ function getCollectiveWorkFinishPenalty({
   const workload = state.collectiveWorkload ?? 0;
   if (workload <= 2) return 0;
 
-  const ownRating = getStageFavoriteRating(state.rider, segments);
+  const finishRating = (candidate: RiderState) => sprintFinish
+    ? getFlatSprintFinishBaseScore({ rider: candidate.rider, energy: candidate.energy })
+    : getStageFavoriteRating(candidate.rider, segments);
+  const ownRating = finishRating(state);
   const bestOutsideRating = Math.max(
     ...[...states.values()]
       .filter(
@@ -10497,7 +10446,7 @@ function getCollectiveWorkFinishPenalty({
           candidate.group !== "abandoned" &&
           candidate.rider.teamId !== state.rider.teamId,
       )
-      .map((candidate) => getStageFavoriteRating(candidate.rider, segments)),
+      .map(finishRating),
   );
   const exceptionalSuperiorityRelief = Number.isFinite(bestOutsideRating)
     ? clamp((ownRating - bestOutsideRating - 6) / 8, 0, 0.82)
@@ -10634,10 +10583,7 @@ function splitFinishGroupByTime(
 
 function getSprintLaunchRating(state: RiderState) {
   return (
-    state.rider.ratings.sprint * 0.68 +
-    state.rider.ratings.acceleration * 0.2 +
-    state.rider.ratings.resistance * 0.04 +
-    state.energy * 0.08 -
+    getFlatSprintFinishBaseScore({ rider: state.rider, energy: state.energy }) -
     state.injuryPerformancePenalty * 0.7
   );
 }
@@ -12342,13 +12288,18 @@ export function isLikelyMassSprint(segments: RaceStageSegment[]) {
 
 export function getRoadFinishMode(
   segments: RaceStageSegment[],
-  leadingGroupSize: number,
+  largestGroupSize: number,
 ): RoadFinishMode {
   if (isLikelyMassSprint(segments)) return "mass_sprint";
 
-  return isFlatRunInGroupSprint(segments, leadingGroupSize)
+  return largestGroupSize >= 2 && isFlatSprintFinish(segments)
     ? "reduced_sprint"
     : "selective";
+}
+
+/** Surface has already affected speed, selection and energy in the final sector. */
+export function isFlatSprintFinish(segments: RaceStageSegment[]) {
+  return segments.at(-1)?.terrain === "flat";
 }
 
 export function isFlatRunInGroupSprint(
@@ -12361,15 +12312,6 @@ export function isFlatRunInGroupSprint(
     groupSize >= FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS &&
     finalSegment?.terrain === "flat" &&
     (finalSegment.surface === "asphalt" || isUrbanCobbles(finalSegment))
-  );
-}
-
-function getLargestContendingRoadGroupSize(states: Map<string, RiderState>) {
-  return Math.max(
-    0,
-    ...(["peloton", "breakaway", "breakaway_2", "chase"] as const).map(
-      (group) => getStatesInGroup(states, group).length,
-    ),
   );
 }
 

@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
+import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, it } from "vitest";
 
 import { createDemoSimulationInput } from "./race-simulation-demo";
@@ -21,9 +25,18 @@ const SCENARIOS = [
   "uphill-finish",
 ] as const;
 type Scenario = (typeof SCENARIOS)[number];
+const FLAT_FINISH_SCENARIOS = [
+  "sprint", "flat", "classic-cobbles", "non-urban-cobbled-finish",
+] as const satisfies readonly Scenario[];
+const UNCHANGED_FINISH_SCENARIOS = SCENARIOS.filter(
+  (scenario) => !FLAT_FINISH_SCENARIOS.some((flatFinish) => flatFinish === scenario),
+);
 
 // Captured before the urban-circuit correction. Do not regenerate these when
 // changing the finish algorithm: unrelated sporting outputs must stay exact.
+// v52 intentionally changes the four flat-finish scenarios. Keep their original
+// full fingerprints here as provenance, and freeze their complete race physics
+// immediately before the finish calculation separately below.
 const EXPECTED: Record<string, string> = {
   "sprint:17": "86ea4879b47454363231c17fb32f72e8f4c1d9a6a773040dfac2a4128eb23f73",
   "sprint:41": "3560642ea1ebec5804f69af5f573bee647f2b7bff4c803af178a95cad76cbe9f",
@@ -55,6 +68,25 @@ const EXPECTED: Record<string, string> = {
   "uphill-finish:17": "8b389d9675cd72a66074fa0a8fe0ca32fa2d0941a57acbb8e81d3f3a4e067d93",
   "uphill-finish:41": "64469c8360c26ffb4664ca343421709feb192fc0fa9274975f6c94b7fea75f48",
   "uphill-finish:109": "7a80a430b439fd51f21fc975bcc53ec48b001804b5073d903560282a7fe47687",
+};
+
+// Captured from v51, commit 4a9ef3c27e86e641c3a80e3b3dd514a86a69e440.
+// Unlike a projection of returned timelines (whose final snapshot has already
+// been rewritten), these cover the physical final snapshot before any finish
+// score, added effort, classification points, or final-group normalization.
+const EXPECTED_PRE_FINISH_PHYSICS: Record<string, string> = {
+  "sprint:17": "b096aa4afa6a0783af287a778a92638d5ee4eb4e2ae6c2db9ae8d49a6ec93fa5",
+  "sprint:41": "9e92907fb58fe5960a1d1141b7d267c34f3ff9dc360fbfa2f84a38071d1ac0f0",
+  "sprint:109": "996d5c53d2a2d874e94d19f06e99c5d3b98921f518c8cfef300573067825e8f6",
+  "flat:17": "b096aa4afa6a0783af287a778a92638d5ee4eb4e2ae6c2db9ae8d49a6ec93fa5",
+  "flat:41": "9e92907fb58fe5960a1d1141b7d267c34f3ff9dc360fbfa2f84a38071d1ac0f0",
+  "flat:109": "996d5c53d2a2d874e94d19f06e99c5d3b98921f518c8cfef300573067825e8f6",
+  "classic-cobbles:17": "fdd625363cf68afd4cdce6618c171fae0eabee042b568438cfcdcf70b004ddf8",
+  "classic-cobbles:41": "0403b5bdb2020f38f306eeed45ca67cad52c0e1abe54279f80792d662441e451",
+  "classic-cobbles:109": "90a4f336b16191e47326774095177c586e7ddc657ede829bbd2f0743792367d8",
+  "non-urban-cobbled-finish:17": "426fd1dfdf943df23f29918f02748ad940d7fd787aff5fd66cc33b4d645bbddb",
+  "non-urban-cobbled-finish:41": "5c08d408ddb1f1792df07812bed3bb35bdbfef8a355c719b0ad8cd1141e1cc29",
+  "non-urban-cobbled-finish:109": "aad489ec083ca5811a2c3dfca6e31368a011edf52151a69214b06711578eb916",
 };
 
 function inputFor(scenario: Scenario, seed: number): StageSimulationInput {
@@ -125,14 +157,83 @@ function sportingFingerprint(input: StageSimulationInput) {
   })).digest("hex");
 }
 
+function createPreFinishPhysicsProbe() {
+  const enginePath = fileURLToPath(new URL("./race-simulation.ts", import.meta.url));
+  const source = readFileSync(enginePath, "utf8").replace(/\r\n/g, "\n");
+  const anchor = "  const finalCommentary = timeline.at(-1)?.commentary ?? [];";
+  if (source.split(anchor).length !== 2) {
+    throw new Error("The pre-finish physics probe must match exactly one road finish.");
+  }
+  // Instrument only an in-memory test module. The shipped engine has no hooks,
+  // extra serialization, test fixtures, or runtime dependency on this probe.
+  const instrumentedSource = source.replace(anchor, `
+  __capturePreFinishPhysics({
+    timeline,
+    visualTimeline,
+    states: [...states.entries()],
+    primes,
+    mountainPoints,
+    sprintPoints,
+    tacticalReports: tacticalResolution.reports,
+    teamWork: teamWorkRecorder.periods,
+  });
+${anchor}`);
+  const compiled = transpileModule(instrumentedSource, {
+    compilerOptions: {
+      module: ModuleKind.CommonJS,
+      target: ScriptTarget.ES2022,
+      esModuleInterop: true,
+    },
+  }).outputText;
+  const requireFromEngine = createRequire(enginePath);
+  requireFromEngine("tsx/cjs");
+  let capturedFingerprint: string | undefined;
+  let captureCount = 0;
+  const exports: { simulateRaceStage?: typeof simulateRaceStage } = {};
+  new Function("require", "module", "exports", "__capturePreFinishPhysics", compiled)(
+    requireFromEngine,
+    { exports },
+    exports,
+    (physics: unknown) => {
+      captureCount += 1;
+      capturedFingerprint = createHash("sha256")
+        .update(JSON.stringify(physics)).digest("hex");
+    },
+  );
+  if (!exports.simulateRaceStage) throw new Error("The physics probe did not load the road engine.");
+  const instrumentedSimulation = exports.simulateRaceStage;
+  return (input: StageSimulationInput) => {
+    captureCount = 0;
+    capturedFingerprint = undefined;
+    instrumentedSimulation(input);
+    if (captureCount !== 1 || !capturedFingerprint) {
+      throw new Error("The road engine must capture its physical finish exactly once.");
+    }
+    return capturedFingerprint;
+  };
+}
+
+const preFinishPhysicsFingerprint = createPreFinishPhysicsProbe();
+
 describe("urban-cobbles correction: exact unrelated sporting baselines", () => {
-  it.each(SCENARIOS.flatMap((scenario) => SEEDS.map((seed) => ({ scenario, seed }))))(
+  it.each(UNCHANGED_FINISH_SCENARIOS.flatMap((scenario) => SEEDS.map((seed) => ({ scenario, seed }))))(
     "preserves $scenario, seed $seed",
     ({ scenario, seed }) => {
       const key = `${scenario}:${seed}`;
       const actual = sportingFingerprint(inputFor(scenario, seed));
       if (process.env.URBAN_COBBLES_BASELINE_REPORT === "1") console.info(`${key} ${actual}`);
       expect(actual, key).toBe(EXPECTED[key]);
+    },
+  );
+});
+
+describe("flat-sprint correction: race physics stay identical to v51", () => {
+  it.each(FLAT_FINISH_SCENARIOS.flatMap((scenario) => SEEDS.map((seed) => ({ scenario, seed }))))(
+    "preserves every pre-finish state, snapshot, incident, prime and team action for $scenario, seed $seed",
+    ({ scenario, seed }) => {
+      const key = `${scenario}:${seed}`;
+      expect(preFinishPhysicsFingerprint(inputFor(scenario, seed)), key)
+        .toBe(EXPECTED_PRE_FINISH_PHYSICS[key]);
     },
   );
 });

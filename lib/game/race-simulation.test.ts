@@ -281,7 +281,7 @@ describe("qualification sportive du final", () => {
     expect(isLikelyMassSprint(segments)).toBe(true);
   });
 
-  it("fait compter la difficulté récente et les réserves dans un sprint réduit", () => {
+  it("départage le sprint réduit par sprint et fraîcheur sans recompter les difficultés précédentes", () => {
     const segments = createCorsaStageEightSegments();
     const papandreouLike = createSelectionTestRider("late-sprinter", {
       flat: 63,
@@ -313,7 +313,9 @@ describe("qualification sportive du final", () => {
       energy: 65,
     });
 
-    expect(hillyFinisherScore).toBeGreaterThan(lateSprinterScore);
+    expect(lateSprinterScore).toBeCloseTo(69 * 0.7 + 52 * 0.3);
+    expect(hillyFinisherScore).toBeCloseTo(60 * 0.7 + 65 * 0.3);
+    expect(lateSprinterScore).toBeGreaterThan(hillyFinisherScore);
   });
 
   it("distingue les finales pavées roulantes, d'usure et vallonnées", () => {
@@ -387,7 +389,7 @@ describe("qualification sportive du final", () => {
     ).toBe(true);
   });
 
-  it("fait émerger des favoris différents selon la nature du final pavé", () => {
+  it("fait varier l'avantage des spécialistes selon le final pavé sélectif", () => {
     const segments: RaceStageSegment[] = [
       {
         segmentNumber: 1,
@@ -452,18 +454,19 @@ describe("qualification sportive du final", () => {
         rider,
         segments,
         energy: 90,
-        finishMode: "reduced_sprint",
+        finishMode: "selective",
         archetype,
       });
 
-    expect(score(rollingSprinter, "rolling")).toBeGreaterThan(
-      score(enduranceSpecialist, "rolling"),
+    expect(
+      score(enduranceSpecialist, "attritional") - score(rollingSprinter, "attritional"),
+    ).toBeGreaterThan(
+      score(enduranceSpecialist, "rolling") - score(rollingSprinter, "rolling"),
     );
-    expect(score(enduranceSpecialist, "attritional")).toBeGreaterThan(
-      score(rollingSprinter, "attritional"),
-    );
-    expect(score(hillySpecialist, "hilly")).toBeGreaterThan(
-      score(rollingSprinter, "hilly"),
+    expect(
+      score(hillySpecialist, "hilly") - score(rollingSprinter, "hilly"),
+    ).toBeGreaterThan(
+      score(hillySpecialist, "rolling") - score(rollingSprinter, "rolling"),
     );
   });
 
@@ -3757,7 +3760,7 @@ describe("simulateRaceStage", () => {
     ).toBe(1);
   });
 
-  it("autorise de petits écarts dans le sprint réduit de la première étape de la Ruta", () => {
+  it("conserve un temps commun dans le sprint réduit de la première étape de la Ruta", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 41);
     const riders = Array.from({ length: 40 }, (_, index) => ({
       ...createSelectionTestRider(
@@ -3810,7 +3813,7 @@ describe("simulateRaceStage", () => {
       new Set(
         compactGroupResults.map((resultRow) => resultRow.elapsedTimeSeconds),
       ).size,
-    ).toBeGreaterThan(1);
+    ).toBe(1);
     expect(
       Math.max(
         ...compactGroupResults.map((resultRow) => resultRow.gapToWinnerSeconds),
@@ -4263,15 +4266,33 @@ describe("simulateRaceStage", () => {
       }),
       role: "sprinter" as const,
     };
-    const wins = Array.from({ length: 80 }, (_, index) =>
-      simulateRaceStage({
+    let winsWithSpecialization = 0;
+    let winsWithoutSpecialization = 0;
+    let additionalWins = 0;
+    for (let seed = 1; seed <= 80; seed += 1) {
+      const input = {
         ...baseInput,
-        seed: index + 1,
+        seed,
         riders: [specialist, rival],
-      }),
-    ).filter((result) => result.results[0]?.riderId === specialist.id).length;
+      };
+      const withSpecialization = simulateRaceStage(input);
+      const withoutSpecialization = simulateRaceStage({
+        ...input,
+        riders: [{ ...specialist, indoorTrackSpecialization: null }, rival],
+      });
+      const wonWith = withSpecialization.results[0]?.riderId === specialist.id;
+      const wonWithout = withoutSpecialization.results[0]?.riderId === specialist.id;
+      if (wonWith) winsWithSpecialization += 1;
+      if (wonWithout) winsWithoutSpecialization += 1;
+      if (wonWith && !wonWithout) additionalWins += 1;
 
-    expect(wins).toBeGreaterThanOrEqual(55);
+      // The same seed and riders isolate the infrastructure's contribution.
+      // A positive sprint bonus must never cost an otherwise-won race.
+      if (wonWithout) expect(wonWith, `seed ${seed}`).toBe(true);
+    }
+
+    expect(additionalWins).toBeGreaterThan(0);
+    expect(winsWithSpecialization).toBeGreaterThan(winsWithoutSpecialization);
   });
 
   it("permet au vécu de course de départager deux coureurs très proches sans remplacer les notes", () => {
@@ -5289,21 +5310,54 @@ describe("simulateRaceStage", () => {
     "maintient plusieurs vainqueurs crédibles sur un grand échantillon pavé",
     () => {
       const winnerCounts = new Map<string, number>();
+      let comparedGroupFinishes = 0;
 
       for (let seed = 1; seed <= 120; seed += 1) {
-        const simulation = simulateRaceStage(
-          createDemoSimulationInput("paves-zelande", seed),
-        );
-        const winnerId = simulation.results.find(
+        const input = createDemoSimulationInput("paves-zelande", seed);
+        const simulation = simulateRaceStage(input);
+        const winner = simulation.results.find(
           (result) => result.status === "finished" && result.rank === 1,
-        )?.riderId;
-        if (winnerId) {
-          winnerCounts.set(winnerId, (winnerCounts.get(winnerId) ?? 0) + 1);
+        );
+        if (!winner) throw new Error(`No synthetic race winner for seed ${seed}.`);
+        winnerCounts.set(winner.riderId, (winnerCounts.get(winner.riderId) ?? 0) + 1);
+
+        // The returned official same-time group can also contain a chasing
+        // peloton that arrived just after an escape. Compare only the winner's
+        // last available physical group before the photo-finish, never riders
+        // who were still behind that group on the road.
+        const roadGroup = simulation.visualTimeline?.at(-2)?.groups.find(
+          (group) => group.riderIds.includes(winner.riderId),
+        );
+        if (!roadGroup) throw new Error(`No physical winner group for seed ${seed}.`);
+        const ridersById = new Map(
+          simulation.resolvedRiders.map((rider) => [rider.id, rider]),
+        );
+        const sprintAndFreshnessScore = (result: (typeof simulation.results)[number]) =>
+          getReducedSprintFinishBaseScore({
+            rider: ridersById.get(result.riderId)!,
+            segments: input.segments,
+            energy: result.energyAfter,
+          });
+        const peers = simulation.results.filter(
+          (result) => result.status === "finished" && result.injury === null &&
+            roadGroup.riderIds.includes(result.riderId),
+        );
+        if (peers.length > 1) {
+          comparedGroupFinishes += 1;
+          // Placement, day execution and team duties can still decide a close
+          // contest. They must not erase a large sprint/freshness disadvantage.
+          expect(
+            Math.max(...peers.map(sprintAndFreshnessScore)) - sprintAndFreshnessScore(winner),
+            `sprint/freshness plausibility in seed ${seed}`,
+          ).toBeLessThanOrEqual(8);
         }
       }
 
+      expect(comparedGroupFinishes).toBeGreaterThanOrEqual(60);
       expect(winnerCounts.size).toBeGreaterThanOrEqual(6);
-      expect(Math.max(...winnerCounts.values())).toBeLessThanOrEqual(36);
+      // Better sprinters may now win more often. Still require at least one
+      // quarter of this sample to be won by other credible contenders.
+      expect(Math.max(...winnerCounts.values())).toBeLessThanOrEqual(120 * 0.75);
     },
     // This is a 120-race statistical regression, not a single unit operation.
     // Keep its sample and assertions intact on slower development machines.
