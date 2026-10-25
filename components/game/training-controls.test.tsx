@@ -137,6 +137,21 @@ describe("RiderTrainingPlanFields", () => {
     expect(markup).not.toContain("Talents de l’entraîneur");
     expect(markup).toContain('name="plans" value="[]"');
   });
+  it("affiche les raccourcis sur chaque coureur sans changer les valeurs personnalisées", () => {
+    const markup = renderToStaticMarkup(<TrainingPlansEditor initialPlans={[
+      { riderId: "a", intensity: 58, domain: "stage_racer", trainerContractId: null },
+      { riderId: "b", intensity: 75, domain: "climber", trainerContractId: null },
+    ]}>
+      <RiderTrainingPlanFields riderId="a" riderCountryCode="RW" trainers={[]} />
+      <RiderTrainingPlanFields riderId="b" riderCountryCode="FR" trainers={[]} />
+    </TrainingPlansEditor>);
+    expect(markup.match(/aria-label="Paliers d’intensité"/g)).toHaveLength(2);
+    expect(markup.match(/aria-label="Régler l’intensité à /g)).toHaveLength(10);
+    expect(markup.match(/type="range"/g)).toHaveLength(2);
+    expect(markup).toContain('name="training-intensity-a"');
+    expect(markup).toContain('value="58"');
+    expect(markup).toContain('name="plans" value="[]"');
+  });
 });
 
 describe("TrainingPlansSaveFeedback", () => {

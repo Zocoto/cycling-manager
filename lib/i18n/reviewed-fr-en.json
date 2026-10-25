@@ -2730,5 +2730,8 @@
   "Non enregistré :": "Not saved:",
   "programme": "program",
   "Programme invalide : vérifiez le domaine, l’intensité et l’entraîneur.": "Invalid program: check the focus, intensity and coach.",
-  "Vos réglages sont conservés ; corrigez ce programme puis validez à nouveau.": "Your settings are kept; correct this program and save again."
+  "Vos réglages sont conservés ; corrigez ce programme puis validez à nouveau.": "Your settings are kept; correct this program and save again.",
+  "Paliers d’intensité": "Intensity presets",
+  "Régler l’intensité à {{0}} %": "Set intensity to {{0}} %",
+  "Régler l’intensité à": "Set intensity to"
 }

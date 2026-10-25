@@ -20,6 +20,7 @@ import {
   saveTeamTrainingSettingsAction,
 } from "@/app/jeu/entrainement/actions";
 import { TrainingDomainGainBreakdown } from "@/components/game/training-domain-gain-breakdown";
+import { TrainingIntensityPresets } from "@/components/game/training-intensity-presets";
 import {
   TRAINING_DOMAINS,
   getTrainingDomainChoiceLabel,
@@ -430,6 +431,7 @@ export function RiderTrainingPlanFields({
           onChange={(event) => updateIntensity(event.target.valueAsNumber)}
           className="mt-3 h-2 w-full cursor-pointer accent-[#176951]"
         />
+        <TrainingIntensityPresets intensity={intensity} onChange={updateIntensity} />
         <span
           className={`mt-2 block text-[10px] font-black ${
             formDelta < 0 ? "text-[#B54242]" : "text-[#278B70]"
