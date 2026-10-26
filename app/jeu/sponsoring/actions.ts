@@ -336,7 +336,7 @@ export async function negotiateContinuingSponsorObjectivesAction(
     baseBudget,
     sponsorMaximumBudget: sponsor.budgetRange.max,
   });
-  const { error: negotiationError } = await admin.rpc(
+  const { data: negotiatedBudget, error: negotiationError } = await admin.rpc(
     "negotiate_continuing_sponsor_objectives",
     {
       p_contract_id: contract.id,
@@ -348,6 +348,10 @@ export async function negotiateContinuingSponsorObjectivesAction(
   );
 
   if (negotiationError) redirectWithError(negotiationError.message);
+  const mainObjectiveAnnualBudget = Number(negotiatedBudget);
+  if (!Number.isFinite(mainObjectiveAnnualBudget) || mainObjectiveAnnualBudget <= 0) {
+    redirectWithError("Le budget annuel négocié est invalide.");
+  }
 
   await ensureAndLoadSponsorObjectives({
     supabase: admin,
@@ -359,6 +363,7 @@ export async function negotiateContinuingSponsorObjectivesAction(
         offerId: offer.id,
         sponsor,
         proposedBudget: baseBudget,
+        mainObjectiveAnnualBudget,
         relationshipYear: Math.max(
           2,
           targetSeason.game_year - startSeason.game_year + 1,

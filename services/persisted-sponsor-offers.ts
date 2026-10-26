@@ -554,6 +554,7 @@ async function hydrateSponsorOffersWithObjectives({
       offerId: offer.id,
       sponsor: offer.sponsor,
       proposedBudget: offer.baseBudget,
+      mainObjectiveAnnualBudget: offer.proposedBudget,
       objectiveDifficulty: offer.objectiveDifficulty,
       includeRiderRecruitmentObjective:
         (offerRows.find((row) => row.id === offer.id)?.generation_version ?? 0) >=

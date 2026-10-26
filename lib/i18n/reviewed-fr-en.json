@@ -2741,5 +2741,12 @@
   "Vos réglages sont conservés ; corrigez ce programme puis validez à nouveau.": "Your settings are kept; correct this program and save again.",
   "Paliers d’intensité": "Intensity presets",
   "Régler l’intensité à {{0}} %": "Set intensity to {{0}} %",
-  "Régler l’intensité à": "Set intensity to"
+  "Régler l’intensité à": "Set intensity to",
+  "À partir de la saison {{0}}, la prime est plafonnée à 10 % du budget annuel du sponsor pour un Top N, 12,5 % pour un podium et 15 % pour une victoire. Si ce plafond réduit la prime, la pénalité de réputation diminue dans la même proportion. Un budget de renouvellement revu à la baisse peut réduire la prime annoncée.": "From season {{0}}, the bonus is capped at 10 % of the sponsor's annual budget for a Top N result, 12.5 % for a podium and 15 % for a win. If this cap reduces the bonus, the reputation penalty decreases in the same proportion. A lower renewal budget may reduce the announced bonus.",
+  ", la prime est plafonnée à 10 % du budget annuel du sponsor pour un Top N, 12,5 % pour un podium et 15 % pour une victoire. Si ce plafond réduit la prime, la pénalité de réputation diminue dans la même proportion. Un budget de renouvellement revu à la baisse peut réduire la prime annoncée.": ", the bonus is capped at 10 % of the sponsor's annual budget for a Top N result, 12.5 % for a podium and 15 % for a win. If this cap reduces the bonus, the reputation penalty decreases in the same proportion. A lower renewal budget may reduce the announced bonus.",
+  "La saison des objectifs sponsor est invalide.": "The sponsor objective season is invalid.",
+  "Le budget annuel du sponsor doit être un montant strictement positif.": "The sponsor's annual budget must be a strictly positive amount.",
+  "Le budget annuel du sponsor est trop faible pour calculer une prime.": "The sponsor's annual budget is too low to calculate a bonus.",
+  "Le budget annuel négocié est invalide.": "The negotiated annual budget is invalid.",
+  "Source de budget sponsor non prise en charge.": "Unsupported sponsor budget source."
 }

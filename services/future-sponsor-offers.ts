@@ -1011,6 +1011,7 @@ async function hydrateFutureSponsorOffersWithObjectives({
       offerId: offer.id,
       sponsor: offer.sponsor,
       proposedBudget: offer.baseBudget,
+      mainObjectiveAnnualBudget: offer.proposedBudget,
       relationshipYear: offer.isRenewal ? 2 : 1,
       objectiveDifficulty: offer.objectiveDifficulty,
       includeRiderRecruitmentObjective:

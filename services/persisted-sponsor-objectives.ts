@@ -53,6 +53,7 @@ export type SponsorOfferObjectiveContext = {
   offerId: string;
   sponsor: Sponsor;
   proposedBudget: number;
+  mainObjectiveAnnualBudget: number;
   relationshipYear?: number;
   objectiveDifficulty?: SponsorObjectiveDifficulty;
   neutralizeMissingObjectives?: boolean;
@@ -1024,6 +1025,8 @@ async function ensureSponsorMainObjectiveTerms({
     sponsorPrestige: selectedOffer.sponsor.prestige,
     raceCategoryCode: selectedObjective.categoryCode,
     targetRank: selectedObjective.targetRank,
+    targetSeasonGameYear,
+    annualSponsorBudget: selectedOffer.mainObjectiveAnnualBudget,
   });
   const { error } = await supabase.from("sponsor_main_objective_terms").upsert(
     {

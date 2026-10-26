@@ -120,6 +120,7 @@ export async function ensureContinuingSponsorObjectivePlan({
         offerId,
         sponsor: contract.sponsor,
         proposedBudget: persistedBaseBudget,
+        mainObjectiveAnnualBudget: proposedBudget,
         relationshipYear: Math.max(
           2,
           targetSeason.game_year - contract.startGameYear + 1,

@@ -43,6 +43,7 @@ import {
   RACE_RECONNAISSANCE_DURATION_DAYS,
 } from "@/lib/game/race-reconnaissance";
 import {
+  SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR,
   SPONSOR_MAIN_OBJECTIVE_START_GAME_YEAR,
 } from "@/lib/game/sponsor-main-objective";
 import {
@@ -1569,6 +1570,9 @@ function SponsoringSection() {
             La prime et la pénalité varient selon le prestige du sponsor, la
             catégorie de l’épreuve et le rang demandé. Les deux valeurs sont
             toujours affichées avant la signature.
+          </p>
+          <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
+            {`À partir de la saison ${SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR}, la prime est plafonnée à 10 % du budget annuel du sponsor pour un Top N, 12,5 % pour un podium et 15 % pour une victoire. Si ce plafond réduit la prime, la pénalité de réputation diminue dans la même proportion. Un budget de renouvellement revu à la baisse peut réduire la prime annoncée.`}
           </p>
         </article>
       </div>

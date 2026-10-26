@@ -98,6 +98,14 @@ describe("future sponsor renewal and preserved alternatives", () => {
     });
     expect(db.from.mock.calls.filter(([table]) => table === "sponsors")).toHaveLength(1);
     expect(db.inserts).toEqual([]); expect(db.withdrawals).toEqual([]);
+    expect(mocks.objectives).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      seasonId: "s5",
+      offers: expect.arrayContaining([
+        expect.objectContaining({ offerId: "offer-0", proposedBudget: 100_000, mainObjectiveAnnualBudget: 123_456 }),
+        expect.objectContaining({ offerId: "offer-1", proposedBudget: 100_001, mainObjectiveAnnualBudget: 123_457 }),
+        expect.objectContaining({ offerId: "offer-2", proposedBudget: 100_002, mainObjectiveAnnualBudget: 123_458 }),
+      ]),
+    }));
   });
   it("refusal withdraws only the unsigned renewal and fills one alternative; repeat visits are stable", async () => {
     const db = client(); db.refuse(true);

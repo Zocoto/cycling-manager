@@ -2,6 +2,7 @@ import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import type { SponsorPrestige } from "@/types/sponsor";
 
 export const SPONSOR_MAIN_OBJECTIVE_START_GAME_YEAR = 4;
+export const SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR = 5;
 
 export type SponsorMainObjectiveTerms = {
   cashReward: number;
@@ -42,16 +43,26 @@ export function calculateSponsorMainObjectiveTerms({
   sponsorPrestige,
   raceCategoryCode,
   targetRank,
+  targetSeasonGameYear,
+  annualSponsorBudget,
 }: {
   sponsorPrestige: SponsorPrestige;
   raceCategoryCode: RaceCategoryCode;
   targetRank: number;
+  targetSeasonGameYear: number;
+  annualSponsorBudget: number;
 }): Pick<SponsorMainObjectiveTerms, "cashReward" | "reputationPenalty"> {
+  if (!Number.isInteger(targetSeasonGameYear) || targetSeasonGameYear < 1) {
+    throw new Error("La saison des objectifs sponsor est invalide.");
+  }
+  if (!Number.isFinite(annualSponsorBudget) || annualSponsorBudget <= 0) {
+    throw new Error("Le budget annuel du sponsor doit être un montant strictement positif.");
+  }
   const normalizedRank = Math.max(1, Math.floor(targetRank));
   const prestigeMultiplier = 0.8 + sponsorPrestige * 0.12;
   const difficultyMultiplier = normalizedRank === 1 ? 1.2 : normalizedRank <= 3 ? 1.08 : 1;
 
-  return {
+  const legacyTerms = {
     cashReward:
       Math.round(
         (CASH_REWARD_BY_CATEGORY[raceCategoryCode] *
@@ -62,6 +73,36 @@ export function calculateSponsorMainObjectiveTerms({
     reputationPenalty:
       REPUTATION_PENALTY_BY_CATEGORY[raceCategoryCode] +
       (sponsorPrestige - 1) * 5,
+  };
+
+  if (targetSeasonGameYear < SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR) {
+    return legacyTerms;
+  }
+
+  // The database stores budgets to two decimals. Integer cents avoid floating
+  // point artefacts at exact cent boundaries (notably the 12.5% podium cap).
+  const budgetCents = Math.round(annualSponsorBudget * 100);
+  if (!Number.isSafeInteger(budgetCents * 3)) {
+    throw new Error("Le budget annuel du sponsor doit être un montant strictement positif.");
+  }
+  const budgetCapCents = normalizedRank === 1
+    ? Math.floor(budgetCents * 3 / 20)
+    : normalizedRank <= 3 ? Math.floor(budgetCents / 8) : Math.floor(budgetCents / 10);
+  // Round down so the display step never takes a reward above its budget cap.
+  // Small sponsors keep a usable amount rather than a zero-euro reward.
+  const roundedBudgetCap = (budgetCapCents >= 500_000
+    ? Math.floor(budgetCapCents / 500_000) * 500_000
+    : budgetCapCents) / 100;
+  if (roundedBudgetCap < 0.01) {
+    throw new Error("Le budget annuel du sponsor est trop faible pour calculer une prime.");
+  }
+  const cashReward = Math.min(legacyTerms.cashReward, roundedBudgetCap);
+  return {
+    cashReward,
+    reputationPenalty: Math.max(
+      1,
+      Math.round(legacyTerms.reputationPenalty * cashReward / legacyTerms.cashReward),
+    ),
   };
 }
 

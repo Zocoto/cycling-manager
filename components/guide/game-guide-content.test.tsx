@@ -7,6 +7,7 @@ vi.mock("@/components/ui/app-link", () => ({
 }));
 
 import GuidePage, { metadata } from "@/app/(public)/guide/page";
+import { SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR } from "@/lib/game/sponsor-main-objective";
 import { GameGuideContent } from "./game-guide-content";
 
 const anchors = [
@@ -46,6 +47,15 @@ describe("shared game manual", () => {
     expect(html).toContain("Directeur financier");
     expect(html).toContain("Les notes déjà acquises sont conservées");
     expect(html).toContain("Poids et surpoids : seuils et barème");
+  });
+
+  it.each([false, true])("explains the future main-objective reward caps (inGame=%s)", (inGame) => {
+    const html = renderToStaticMarkup(<GameGuideContent inGame={inGame} />);
+
+    expect(html).toContain(`À partir de la saison ${SPONSOR_MAIN_OBJECTIVE_BUDGET_CAP_START_GAME_YEAR}`);
+    expect(html).toContain("10 % du budget annuel du sponsor pour un Top N, 12,5 % pour un podium et 15 % pour une victoire");
+    expect(html).toContain("la pénalité de réputation diminue dans la même proportion");
+    expect(html).toContain("Un budget de renouvellement revu à la baisse peut réduire la prime annoncée");
   });
 
   it("keeps all destinations inside the game or on this manual, without a new tab", () => {
