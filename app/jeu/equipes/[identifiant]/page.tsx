@@ -22,6 +22,7 @@ import { TeamSeasonResultsPopover } from "@/components/game/team-season-results-
 import { DEFAULT_AMATEUR_JERSEY } from "@/lib/amateur-team";
 import type { TeamResultCandidate } from "@/lib/game/team-result-highlights";
 import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
+import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
@@ -398,7 +399,13 @@ async function TeamRosterDisclosure({
                       <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-[var(--team-muted)] sm:text-[9px]">
                         {label}
                       </span>
-                      <span className="mt-0.5 block text-sm font-black tabular-nums text-[var(--team-ink)]">
+                      <span
+                        className={`mt-0.5 inline-flex min-h-6 min-w-8 items-center justify-center rounded-md border px-0.5 text-xs font-black tabular-nums sm:px-1 sm:text-sm ${
+                          rider.primaryRatings
+                            ? getRiderRatingColorClasses(rider.primaryRatings[key], "primary")
+                            : "border-[var(--team-line)] bg-white text-[var(--team-muted)]"
+                        }`}
+                      >
                         {rider.primaryRatings
                           ? formatPublicRating(rider.primaryRatings[key])
                           : "—"}
