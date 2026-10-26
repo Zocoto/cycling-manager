@@ -252,16 +252,21 @@ try {
   check(await rows(`select qualification_rank,rider_quota,exception_reason from national_federation_olympic_qualifications where season_id='${id(8)}' and country_id='${id(1065)}'`),
     [{qualification_rank:67,rider_quota:0,exception_reason:null}], 'S4 exception never renews, even with another old confirmed call');
   check(await scalar(`select rider_quota from national_federation_olympic_qualifications where season_id='${id(8)}' and qualification_rank=60`),2,'future rank sixty keeps standard entitlement');
-  if (process.argv.includes('--federation-qualification') || process.argv.includes('--time-trial')) {
+  if (process.argv.includes('--federation-qualification') || process.argv.includes('--time-trial') || process.argv.includes('--s5-quotas')) {
     phase='federation prequalification regression';
     const { verifyFederationPrequalification } = await import('./fixtures/verify-federation-prequalification.mjs');
     await verifyFederationPrequalification(db, { id, check, rows, scalar, rejects });
   }
-  if (process.argv.includes('--time-trial')) {
+  if (process.argv.includes('--time-trial') || process.argv.includes('--s5-quotas')) {
     phase='Olympic individual time trial';
     const { verifyOlympicTimeTrial } = await import('./fixtures/verify-olympic-time-trial.mjs');
     await verifyOlympicTimeTrial(db, { id, check, rows, scalar, rejects });
   }
-  console.log(JSON.stringify({isolated:true,productionActions:false,assertions,japanException,globalRace:true,max220:true,explicitDSApproval:true,silencePreservesRegistrations:true,normalNationsCupPreserved:true,federationQualification:process.argv.includes('--federation-qualification')}));
+  if (process.argv.includes('--s5-quotas')) {
+    phase='S5 championship quotas';
+    const { verifyS5ChampionshipQuotas } = await import('./fixtures/verify-s5-championship-quotas.mjs');
+    await verifyS5ChampionshipQuotas(db, { id, check, rows, scalar, rejects });
+  }
+  console.log(JSON.stringify({isolated:true,productionActions:false,assertions,japanException,globalRace:true,max220:true,explicitDSApproval:true,silencePreservesRegistrations:true,normalNationsCupPreserved:true,federationQualification:process.argv.includes('--federation-qualification')||process.argv.includes('--s5-quotas'),s5ChampionshipQuotas:process.argv.includes('--s5-quotas')}));
 } catch(error) { console.error(JSON.stringify({phase,message:error.message,where:error.where,internalQuery:error.internalQuery?.slice(0,1500)})); process.exitCode=1; }
 finally { await db.close(); }

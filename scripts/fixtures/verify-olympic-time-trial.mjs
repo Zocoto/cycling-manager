@@ -9,7 +9,7 @@ export async function verifyOlympicTimeTrial(db, { id, check, rows, scalar, reje
   const confirmedRoad=()=>rows(`select m.* from national_federation_selection_members m
     join national_federation_selection_lists l on l.id=m.selection_list_id where l.slot_key='nc-hills' and m.response_status='confirmed' order by m.id`);
   const before=await roadSnapshot(), accepted=await confirmedRoad();
-  await db.exec(await readFile(new URL('../../supabase/migrations/20261016180000_olympic_individual_time_trial.sql',import.meta.url),'utf8'));
+  await db.exec((await readFile(new URL('../../supabase/migrations/20261016180000_olympic_individual_time_trial.sql',import.meta.url),'utf8')).replaceAll('\r\n','\n'));
   check(await roadSnapshot(),before,'existing rankings, road quotas, exception and freeze unchanged');
   check(await confirmedRoad(),accepted,'every confirmed road callup survives');
   const event=(await rows(`select o.*,s.stage_type,s.distance_km,s.day_slot,s.departure_at,e.field_limit,

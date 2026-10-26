@@ -102,10 +102,16 @@ function getFederationSelectionCompetitions(
   ];
 }
 
-export function getFederationSelectionSlots(gameYear: number, olympicQuota = 0, olympicTimeTrialQuota = 0): SelectionSlot[] {
-  if (!isOlympicSeason(gameYear)) return SELECTION_SLOTS;
+export function getFederationSelectionSlots(gameYear: number, olympicQuota = 0, olympicTimeTrialQuota = 0, schedules: FederationSelectionState["schedules"] = {}): SelectionSlot[] {
+  const slots = gameYear >= 5 ? SELECTION_SLOTS.map((slot) => {
+    const limit = schedules?.[slot.id]?.rider_limit;
+    return slot.category === "professional" && (slot.id.startsWith("cc-pro-") || slot.id.startsWith("world-pro-"))
+      ? { ...slot, limit: typeof limit === "number" && Number.isInteger(limit) && limit >= 0 && limit <= slot.limit ? limit : slot.limit }
+      : slot;
+  }) : SELECTION_SLOTS;
+  if (!isOlympicSeason(gameYear)) return slots;
 
-  return SELECTION_SLOTS.filter((slot) => isFederationSelectionSlotAvailable(slot.id, gameYear)).map((slot) =>
+  return slots.filter((slot) => isFederationSelectionSlotAvailable(slot.id, gameYear)).map((slot) =>
     slot.category === "professional" && slot.competition === "Nations Cup"
       ? {
           ...slot,
@@ -196,8 +202,8 @@ export function FederationSelectionWorkbench({
   selectionState: FederationSelectionState | null;
 }) {
   const selectionSlots = useMemo(
-    () => getFederationSelectionSlots(gameYear, selectionState?.olympicQuota ?? 0, selectionState?.olympicTimeTrialQuota ?? 0),
-    [gameYear, selectionState?.olympicQuota, selectionState?.olympicTimeTrialQuota],
+    () => getFederationSelectionSlots(gameYear, selectionState?.olympicQuota ?? 0, selectionState?.olympicTimeTrialQuota ?? 0, selectionState?.schedules),
+    [gameYear, selectionState?.olympicQuota, selectionState?.olympicTimeTrialQuota, selectionState?.schedules],
   );
   const competitions = useMemo(
     () => getFederationSelectionCompetitions(gameYear),
@@ -281,6 +287,7 @@ export function FederationSelectionWorkbench({
   const confirmedRiderIds = storedSelection?.confirmedRiderIds ?? [];
   const selected = [...new Set([...(selectedBySlot[slot.id] ?? storedSelection?.riderIds ?? []), ...confirmedRiderIds])];
   const schedule = selectionState?.schedules?.[slot.id];
+  const variableChampionshipQuota = gameYear >= 5 && (slot.id.startsWith("cc-pro-") || slot.id.startsWith("world-pro-"));
   const canPrepare = schedule?.can_prepare ?? (schedule?.is_open === true);
   const canPublish = schedule?.is_open === true;
   const publishedWeather = forecast?.weather ?? null;
@@ -524,6 +531,18 @@ export function FederationSelectionWorkbench({
           {" "}Un coureur confirmé par son DS reste sélectionné et ne peut plus être retiré.
         </p>
 
+        {variableChampionshipQuota ? (
+          <div className="border-b border-[#315B3E]/10 px-5 py-3 text-xs font-semibold leading-5 text-[#526B62]">
+            <p>{schedule?.qualification_status === "pending"
+              ? "Quota provisoire : le nombre de places sera fixé à J8. Un brouillon trop large devra être ajusté avant envoi."
+              : <>Quota national : {slot.limit} place{slot.limit > 1 ? "s" : ""}{schedule?.qualification_rank ? <> · Rang de qualification : {schedule.qualification_rank}</> : null}.</>}</p>
+            <p>{slot.id.startsWith("cc-pro-")
+              ? "Toutes les nations éligibles du continent sont admises. Le classement figé à J8 détermine leurs places."
+              : "Les 60 premières nations sont admises. Le classement mondial figé à J8 détermine leurs places."}</p>
+            {selected.length > slot.limit ? <p role="alert" className="mt-1 font-black text-[#9D3E37]">Votre brouillon dépasse le quota national : retirez des coureurs avant validation.</p> : null}
+          </div>
+        ) : null}
+
         <fieldset
           disabled={automaticSelection}
           className={`min-w-0 transition ${automaticSelection ? "opacity-55 grayscale-[35%]" : ""}`}
@@ -583,14 +602,14 @@ export function FederationSelectionWorkbench({
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
                 <input type="hidden" name="riderIds" value={JSON.stringify(selected)} />
-                <button type="submit" disabled={savePending || !canPrepare} className="min-h-11 rounded-xl border border-[var(--federation-secondary)]/25 bg-white px-5 text-sm font-black text-[var(--federation-secondary)] disabled:cursor-wait disabled:opacity-60">
+                <button type="submit" disabled={savePending || !canPrepare || (variableChampionshipQuota && selected.length > slot.limit)} className="min-h-11 rounded-xl border border-[var(--federation-secondary)]/25 bg-white px-5 text-sm font-black text-[var(--federation-secondary)] disabled:cursor-wait disabled:opacity-60">
                   {savePending ? "Enregistrement…" : "Enregistrer le brouillon"}
                 </button>
               </form>
               <form action={publishAction}>
                 <input type="hidden" name="countryCode" value={countryCode} />
                 <input type="hidden" name="slotKey" value={slot.id} />
-                <button type="submit" disabled={publishPending || !storedSelection || !canPublish} className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
+                <button type="submit" disabled={publishPending || !storedSelection || !canPublish || (variableChampionshipQuota && (storedSelection.riderIds.length > slot.limit || selected.length > slot.limit))} className="min-h-11 rounded-xl bg-[var(--federation-primary)] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#9AA9A3]">
                   {publishPending ? "Envoi…" : schedule?.qualification_status === "pending" ? "Qualifications à J8 · brouillon conservé" : "Soumettre aux DS"}
                 </button>
               </form>

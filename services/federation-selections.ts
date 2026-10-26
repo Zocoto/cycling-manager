@@ -126,7 +126,7 @@ export async function getFederationSelectionState({
         .eq("target_game_year", gameYear)
         .in("status", ["scheduled", "settled"])
         .returns<HostingAwardRow[]>(),
-      admin.rpc("get_national_federation_preselection_schedule", { p_country_id: countryId, p_season_id: seasonId })
+      admin.rpc(gameYear >= 5 ? "get_national_federation_preselection_schedule_v2" : "get_national_federation_preselection_schedule", { p_country_id: countryId, p_season_id: seasonId })
         .select("*").returns<FederationSelectionSchedule[]>(),
       admin
         .from("national_federation_selection_slots")

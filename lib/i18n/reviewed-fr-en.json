@@ -1,4 +1,12 @@
 {
+  "· Rang de qualification :": "· Qualification rank:",
+  "Le quota de cette épreuve est atteint.": "This event’s quota has been reached.",
+  "Les 60 premières nations sont admises. Le classement mondial figé à J8 détermine leurs places.": "The top 60 nations qualify. The world ranking frozen on D8 determines their places.",
+  "place": "place",
+  "Quota national :": "National quota:",
+  "Quota provisoire : le nombre de places sera fixé à J8. Un brouillon trop large devra être ajusté avant envoi.": "Provisional quota: the number of places will be frozen on D8. Oversized drafts must be adjusted before sending.",
+  "Toutes les nations éligibles du continent sont admises. Le classement figé à J8 détermine leurs places.": "All eligible nations on the continent qualify. The ranking frozen on D8 determines their places.",
+  "Votre brouillon dépasse le quota national : retirez des coureurs avant validation.": "Your draft exceeds the national quota: remove riders before confirming.",
   "Voir les sponsors nationaux ·": "View national sponsors ·",
   "Voir les sponsors nationaux · {{0}}": "View national sponsors · {{0}}",
   "Fermer la liste des sponsors": "Close the sponsor list",

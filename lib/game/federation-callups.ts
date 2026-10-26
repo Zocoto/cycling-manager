@@ -10,6 +10,8 @@ export type FederationSelectionSchedule = {
   can_prepare?: boolean;
   qualification_status?: "pending" | "qualified" | "not_qualified" | "not_applicable";
   qualification_day_number?: number | null;
+  rider_limit?: number;
+  qualification_rank?: number | null;
 };
 
 export function getFederationPreselectionAvailabilityMessage(schedule: FederationSelectionSchedule | undefined) {

@@ -9,21 +9,21 @@ const migration = readFileSync(
     "supabase/migrations/20260904001000_protect_in_progress_tours_from_international_selections.sql",
   ),
   "utf8",
-).toLowerCase();
+).replaceAll("\r\n", "\n").toLowerCase();
 const finalizationMigration = readFileSync(
   join(
     process.cwd(),
     "supabase/migrations/20260904002000_finalize_international_selection_repair.sql",
   ),
   "utf8",
-).toLowerCase();
+).replaceAll("\r\n", "\n").toLowerCase();
 const campConflictMigration = readFileSync(
   join(
     process.cwd(),
     "supabase/migrations/20260904004000_expose_international_selection_camp_conflicts.sql",
   ),
   "utf8",
-).toLowerCase();
+).replaceAll("\r\n", "\n").toLowerCase();
 
 describe("protection des tours en cours contre les convocations", () => {
   it("conserve le coureur lorsqu’un tour chevauchant a déjà commencé", () => {
