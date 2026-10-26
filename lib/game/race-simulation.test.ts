@@ -2046,22 +2046,24 @@ describe("simulateRaceStage", () => {
     ).toBeGreaterThan(0.2);
   });
 
-  it("protège au général une place prestigieuse ou un coureur encore proche au temps", () => {
-    const protectedPodium = getGeneralClassificationProtectedRiderIds([
+  it("priorise au général les leaders désignés prestigieux ou encore proches au temps", () => {
+    const podium = [
       { riderId: "leader", elapsedTimeSeconds: 10_000 },
       { riderId: "second-at-seven-minutes", elapsedTimeSeconds: 10_420 },
       ...Array.from({ length: 10 }, (_, index) => ({
         riderId: `far-${index}`,
         elapsedTimeSeconds: 11_000 + index,
       })),
-    ]);
-    const protectedClosePack = getGeneralClassificationProtectedRiderIds([
+    ];
+    const closePack = [
       { riderId: "leader", elapsedTimeSeconds: 10_000 },
       ...Array.from({ length: 19 }, (_, index) => ({
         riderId: `close-${index + 2}`,
         elapsedTimeSeconds: 10_001 + Math.floor(index / 3),
       })),
-    ]);
+    ];
+    const protectedPodium = getGeneralClassificationProtectedRiderIds(podium, podium.map(entry => ({id:entry.riderId,role:"leader" as const})));
+    const protectedClosePack = getGeneralClassificationProtectedRiderIds(closePack, closePack.map(entry => ({id:entry.riderId,role:"leader" as const})));
 
     expect(protectedPodium.has("second-at-seven-minutes")).toBe(true);
     expect(protectedClosePack.has("close-14")).toBe(true);
@@ -2070,10 +2072,10 @@ describe("simulateRaceStage", () => {
   it("ne confond pas tous les équipiers proches au général avec des leaders à secourir", () => {
     const riders = [
       { ...createSelectionTestRider("team-a-leader", {}), teamId: "team-a" },
-      { ...createSelectionTestRider("team-a-second", {}), teamId: "team-a" },
-      { ...createSelectionTestRider("team-a-third", {}), teamId: "team-a" },
+      { ...createSelectionTestRider("team-a-second", {}), teamId: "team-a", role: "domestique" as const },
+      { ...createSelectionTestRider("team-a-third", {}), teamId: "team-a", role: "domestique" as const },
       { ...createSelectionTestRider("team-b-leader", {}), teamId: "team-b" },
-      { ...createSelectionTestRider("team-b-second", {}), teamId: "team-b" },
+      { ...createSelectionTestRider("team-b-second", {}), teamId: "team-b", role: "domestique" as const },
     ];
     const generalClassification = [
       { riderId: "team-a-second", elapsedTimeSeconds: 10_010 },
@@ -2083,13 +2085,13 @@ describe("simulateRaceStage", () => {
       { riderId: "team-b-leader", elapsedTimeSeconds: 10_005 },
     ];
 
-    expect(getGeneralClassificationProtectedRiderIds(generalClassification).size).toBe(5);
+    expect(getGeneralClassificationProtectedRiderIds(generalClassification, riders).size).toBe(2);
     expect(
       [...getTeamGeneralClassificationLeaderRiderIds(riders, generalClassification)].sort(),
     ).toEqual(["team-a-leader", "team-b-leader"]);
   });
 
-  it("interdit l’échappée automatique à un deuxième du général même ciblé comme baroudeur", () => {
+  it("respecte la mission de baroudeur d’un équipier même deuxième du général", () => {
     const segments: RaceStageSegment[] = Array.from(
       { length: 10 },
       (_, index) => ({
@@ -2134,8 +2136,7 @@ describe("simulateRaceStage", () => {
       ],
     );
 
-    expect(plan.initialAttackIds.has(contender.id)).toBe(false);
-    expect(plan.delayedAttackIds.has(contender.id)).toBe(false);
+    expect(plan.initialAttackIds.has(contender.id)).toBe(true);
     expect(plan.initialAttackIds.size).toBeGreaterThan(0);
   });
 
@@ -5745,7 +5746,7 @@ describe("assignAutomaticRaceRoles", () => {
     );
   });
 
-  it("réserve un rôle sobre au deuxième du général sur une étape plate", () => {
+  it("ne réserve pas de protection au général à un coureur laissé en rôle automatique", () => {
     const input = createDemoSimulationInput("sprint-littoral", 1);
     const oneTeam = input.riders
       .filter((rider) => rider.teamId === input.riders[0].teamId)
@@ -5782,8 +5783,8 @@ describe("assignAutomaticRaceRoles", () => {
     );
 
     expect(resolvedProtectedRider).toMatchObject({
-      role: "domestique",
-      generalClassificationProtected: true,
+      role: "free_agent",
+      generalClassificationProtected: false,
     });
   });
 

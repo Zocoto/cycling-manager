@@ -89,6 +89,26 @@ const EXPECTED_PRE_FINISH_PHYSICS: Record<string, string> = {
   "non-urban-cobbled-finish:109": "aad489ec083ca5811a2c3dfca6e31368a011edf52151a69214b06711578eb916",
 };
 
+// v53 removes hidden favorite protection from riders assigned support roles.
+// Reinstating only that old protection reproduces every original hash above.
+// Keep those original baselines as provenance and freeze only the affected
+// scenarios here; the other scenarios must remain byte-for-byte identical.
+const DS_ROLE_PRIORITY_EXPECTED: Record<string, string> = {
+  "hilly:41": "1a9931d041c9a74af00de0446fa44a348a7bb5bfbb527f77bfa0fb2eb1077dc8",
+  "hilly:109": "122efdb4d9b0755d67a4506646d4d2b6cb48c7bcfc6a2705be3547c11be52c4a",
+  "uphill-finish:17": "0fd65a2231573487448e135676a7d2a45c7adc90799bb6a4f2b5b9b9630a21b8",
+  "uphill-finish:41": "788e73ee1ccfc67a6577319623ff82cfe364730b58b2fb920773a3e82def2712",
+  "uphill-finish:109": "2ce6e7ab17b6c764522b977629ebf0e95787bd5fe2a57726faba6cc9e9d03efb",
+};
+const DS_ROLE_PRIORITY_PRE_FINISH_PHYSICS: Record<string, string> = {
+  "classic-cobbles:17": "11f0e7a05fe7be0fcf2aa18e01c3cd4758a5780b9543d02ab282abbdaaa3ebe8",
+  "classic-cobbles:41": "6dc55a50de72e1b78934cab4ee145f06cbc1d2cdac37d2367a28158a580e7091",
+  "classic-cobbles:109": "93bda583fc5bcb3bed0cd3c6e6a36ba3068f72a9dda75dce8815d33cc8e5bb4b",
+  "non-urban-cobbled-finish:17": "24848e167253c4f9fcebff260b356ddaa4365a9dd56c7c43423b6a6873ef0076",
+  "non-urban-cobbled-finish:41": "b9c5a944bce9daf09b0db64feb6c117278999d6d572e6bd8ddf56fe84f533c09",
+  "non-urban-cobbled-finish:109": "13db21624e28b0d7975b8526ddf07149e02b74cd9764a414710df3c18f2cdea5",
+};
+
 function inputFor(scenario: Scenario, seed: number): StageSimulationInput {
   if (scenario === "sprint") return createDemoSimulationInput("sprint-littoral", seed);
   if (scenario === "hilly") return createDemoSimulationInput("collines-ardennes", seed);
@@ -222,18 +242,18 @@ describe("urban-cobbles correction: exact unrelated sporting baselines", () => {
       const key = `${scenario}:${seed}`;
       const actual = sportingFingerprint(inputFor(scenario, seed));
       if (process.env.URBAN_COBBLES_BASELINE_REPORT === "1") console.info(`${key} ${actual}`);
-      expect(actual, key).toBe(EXPECTED[key]);
+      expect(actual, key).toBe(DS_ROLE_PRIORITY_EXPECTED[key] ?? EXPECTED[key]);
     },
   );
 });
 
-describe("flat-sprint correction: race physics stay identical to v51", () => {
+describe("flat-sprint correction: race physics preserve the role-aware baselines", () => {
   it.each(FLAT_FINISH_SCENARIOS.flatMap((scenario) => SEEDS.map((seed) => ({ scenario, seed }))))(
     "preserves every pre-finish state, snapshot, incident, prime and team action for $scenario, seed $seed",
     ({ scenario, seed }) => {
       const key = `${scenario}:${seed}`;
       expect(preFinishPhysicsFingerprint(inputFor(scenario, seed)), key)
-        .toBe(EXPECTED_PRE_FINISH_PHYSICS[key]);
+        .toBe(DS_ROLE_PRIORITY_PRE_FINISH_PHYSICS[key] ?? EXPECTED_PRE_FINISH_PHYSICS[key]);
     },
   );
 });

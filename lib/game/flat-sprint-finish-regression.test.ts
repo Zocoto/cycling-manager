@@ -284,7 +284,7 @@ describe("flat sprint change leaves unrelated sporting outputs intact", () => {
     expect(fingerprint(input)).toBe(expected);
   });
 
-  it("preserves a selective uphill arrival exactly", () => {
+  it("preserves the selective uphill arrival with DS role priority", () => {
     const base = createDemoSimulationInput("sprint-littoral", 41);
     const input: StageSimulationInput = {
       ...base,
@@ -293,6 +293,8 @@ describe("flat sprint change leaves unrelated sporting outputs intact", () => {
         ? { ...segment, terrain: "climb", averageGradientPct: 7 }
         : segment),
     };
-    expect(fingerprint(input)).toBe("64469c8360c26ffb4664ca343421709feb192fc0fa9274975f6c94b7fea75f48");
+    // v53 removes the implicit favorite protection of a designated support rider.
+    // Restoring only that old protection reproduces the previous v51 fingerprint.
+    expect(fingerprint(input)).toBe("788e73ee1ccfc67a6577319623ff82cfe364730b58b2fb920773a3e82def2712");
   });
 });
