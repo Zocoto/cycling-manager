@@ -189,6 +189,11 @@ export function isRaceProtectedRiderRole(role: RaceRole) {
   return role === "protected_rider";
 }
 
+/** Only a designated role may shelter a rider; rankings never override a DS role. */
+function isRaceProtectionRole(role: RaceRole) {
+  return isRaceLeaderRole(role) || isRaceSprinterRole(role) || isRaceProtectedRiderRole(role);
+}
+
 export type SimulationStageType =
   "road" | "individual_time_trial" | "team_time_trial" | "prologue";
 
@@ -1758,13 +1763,10 @@ export function assignAutomaticRaceRoles(
   teamStrategies: readonly RaceTeamStrategy[] = [],
 ) {
   validateExplicitRoles(riders);
-  const generalClassificationProtectedRiderIds =
-    getGeneralClassificationProtectedRiderIds(generalClassification);
   const resolved = riders.map((rider) => ({
     ...rider,
     generalClassificationProtected:
-      rider.generalClassificationProtected === true ||
-      generalClassificationProtectedRiderIds.has(rider.id),
+      isRaceProtectionRole(rider.role) && rider.generalClassificationProtected === true,
   }));
   const teams = groupBy(resolved, (rider) => rider.teamId);
   const strategiesByTeamId = new Map(
@@ -1837,18 +1839,26 @@ export function assignAutomaticRaceRoles(
     }
   }
 
-  return resolved;
+  // Resolve only the roles left on Auto, then prioritize GC contenders among
+  // those designated leaders. Never turn a domestique into a protected rider.
+  const gcProtectedIds = getGeneralClassificationProtectedRiderIds(generalClassification, resolved);
+  return resolved.map((rider) => ({
+    ...rider,
+    generalClassificationProtected:
+      isRaceProtectionRole(rider.role) &&
+      (rider.generalClassificationProtected || gcProtectedIds.has(rider.id)),
+  }));
 }
 
 export function assignRaceObjectiveDuties(
   input: StageSimulationInput,
 ): RiderSimulationInput[] {
   const generalClassificationProtectedRiderIds =
-    getGeneralClassificationProtectedRiderIds(input.generalClassification);
+    getGeneralClassificationProtectedRiderIds(input.generalClassification, input.riders);
   const riders = input.riders.map((rider) => {
     const generalClassificationProtected =
-      rider.generalClassificationProtected === true ||
-      generalClassificationProtectedRiderIds.has(rider.id);
+      isRaceProtectionRole(rider.role) &&
+      (rider.generalClassificationProtected === true || generalClassificationProtectedRiderIds.has(rider.id));
     const resolved = {
       ...rider,
       generalClassificationProtected,
@@ -4619,11 +4629,8 @@ export function selectStageAttackPlan(
   const strategiesByTeamId = new Map(
     teamStrategies.map((teamStrategy) => [teamStrategy.teamId, teamStrategy]),
   );
-  const generalLeaderId = getGeneralClassificationLeaderId(
-    generalClassification,
-  );
   const generalClassificationProtectedRiderIds =
-    getGeneralClassificationProtectedRiderIds(generalClassification);
+    getGeneralClassificationProtectedRiderIds(generalClassification, riders);
   const plannedAttackerIds = new Set(
     teamStrategies.flatMap((teamStrategy) =>
       teamStrategy.attackOrders.map((order) => order.riderId),
@@ -4636,9 +4643,7 @@ export function selectStageAttackPlan(
     .filter((rider) => {
       const teamStrategy = strategiesByTeamId.get(rider.teamId);
       return (
-        rider.id !== generalLeaderId &&
         !generalClassificationProtectedRiderIds.has(rider.id) &&
-        rider.generalClassificationProtected !== true &&
         !isRaceLeaderRole(rider.role) &&
         !isRaceSprinterRole(rider.role) &&
         !isRaceProtectedRiderRole(rider.role) &&
@@ -5054,8 +5059,7 @@ function buildStageStrategyContext(
         (rider) =>
           isRaceLeaderRole(rider.role) ||
           isRaceSprinterRole(rider.role) ||
-          isRaceProtectedRiderRole(rider.role) ||
-          rider.generalClassificationProtected === true,
+          isRaceProtectedRiderRole(rider.role),
       )
       .map((rider) => rider.id),
   );
@@ -5077,7 +5081,7 @@ function buildStageStrategyContext(
           : "none";
     const teamProtectedIds = new Set<string>();
 
-    if (favoriteTier !== "none") {
+    if (favoriteTier !== "none" && isRaceProtectionRole(bestRider.role)) {
       teamProtectedIds.add(bestRider.id);
       protectedRiderIds.add(bestRider.id);
     }
@@ -5182,12 +5186,12 @@ export function getGeneralClassificationLeaderId(
 }
 
 /**
- * Protège les coureurs dont la valeur sportive au général dépasse l'intérêt
- * d'une échappée matinale. Le podium reste prestigieux même avec un écart
- * important ; plus loin au classement, la proximité au temps prime.
+ * Priorise au général uniquement les leaders, sprinteurs et protégés désignés.
+ * Le classement ne peut jamais dispenser un équipier de sa mission du DS.
  */
 export function getGeneralClassificationProtectedRiderIds(
-  generalClassification?: StageSimulationInput["generalClassification"],
+  generalClassification: StageSimulationInput["generalClassification"],
+  riders: readonly Pick<RiderSimulationInput, "id" | "role">[],
 ) {
   if (!generalClassification || generalClassification.length === 0) {
     return new Set<string>();
@@ -5199,6 +5203,9 @@ export function getGeneralClassificationProtectedRiderIds(
       first.riderId.localeCompare(second.riderId),
   );
   const leaderTime = ordered[0]?.elapsedTimeSeconds ?? 0;
+  const eligibleIds = new Set(
+    riders.filter((rider) => isRaceProtectionRole(rider.role)).map((rider) => rider.id),
+  );
 
   return new Set(
     ordered.flatMap((entry, index) => {
@@ -5208,7 +5215,7 @@ export function getGeneralClassificationProtectedRiderIds(
       const protectedTopTen = rank <= 10 && gapSeconds <= 10 * 60;
       const protectedByTime = rank <= 20 && gapSeconds <= 2 * 60;
 
-      return protectedByPlace || protectedTopTen || protectedByTime
+      return eligibleIds.has(entry.riderId) && (protectedByPlace || protectedTopTen || protectedByTime)
         ? [entry.riderId]
         : [];
     }),
@@ -5222,6 +5229,7 @@ export function getTeamGeneralClassificationLeaderRiderIds(
 ) {
   const protectedRiderIds = getGeneralClassificationProtectedRiderIds(
     generalClassification,
+    riders,
   );
   const teamIdByRiderId = new Map(
     riders.map((rider) => [rider.id, rider.teamId]),
@@ -5857,6 +5865,7 @@ export function getLeaderRecoveryTargetPriority({
   isTeamGeneralClassificationLeader?: boolean;
   generalClassificationProtected?: boolean;
 }) {
+  if (!isRaceProtectionRole(role)) return 0;
   if (isOverallGeneralClassificationLeader) return 5;
   if (isTeamGeneralClassificationLeader) return 4;
   if (generalClassificationProtected) return 3;
@@ -8901,7 +8910,7 @@ function getCrosswindHoldingScore(
   const isProtectedLeader =
     isRaceLeaderRole(state.rider.role) ||
     isRaceProtectedRiderRole(state.rider.role) ||
-    state.rider.id === protectedRiderId;
+    (state.rider.id === protectedRiderId && isRaceSprinterRole(state.rider.role));
   const protectorCount = isProtectedLeader
     ? getPreferredGeneralSupportHelpers(
         peloton.filter(
