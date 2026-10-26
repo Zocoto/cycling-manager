@@ -109,4 +109,17 @@ export async function verifyS5ChampionshipQuotas(db, { id, check, rows, scalar, 
   check(await scalar(`select field_limit from race_editions where id='${id(20400)}'`),continentalCapacity,'CC field capacity includes every active country of its continent');
   await db.exec(`update race_editions set field_limit=123 where season_id='${s4}' and race_id='${id(20104)}'`);
   check(await scalar(`select field_limit from race_editions where season_id='${s4}' and race_id='${id(20104)}'`),123,'trigger never adjusts S4 capacity');
+
+  const started=performance.now();
+  await db.query('select prepare_due_automatic_federation_professional_lineups(now())');
+  check(await scalar(`select count(*)::int from (
+    select l.id from national_federation_selection_lists l join national_federation_selection_members m on m.selection_list_id=l.id
+    where l.season_id='${s5}' and l.slot_key in ('cc-pro-road','cc-pro-itt','world-pro-road','world-pro-itt')
+      and m.response_status in ('pending','confirmed') group by l.id,l.country_id,l.season_id,l.slot_key
+    having count(*)>get_federation_selection_rider_limit(l.country_id,l.season_id,l.slot_key)
+  ) over_quota`),0,'complete S5 automatic batch obeys all quotas');
+  check(await scalar(`select count(*)::int from national_federation_selection_lists l
+    join international_nation_qualification_snapshots q on q.country_id=l.country_id and q.season_id=l.season_id and q.competition_code='world_championship'
+    where l.season_id='${s5}' and l.slot_key in ('world-pro-road','world-pro-itt') and q.qualification_rank>60 and l.published_at is not null`),0,'full batch does not publish World calls outside the top60');
+  console.log(JSON.stringify({isolatedS5AutomaticBatchMs:Math.round(performance.now()-started)}));
 }
