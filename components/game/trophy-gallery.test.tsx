@@ -108,12 +108,13 @@ describe("TrophyGallery", () => {
       "flanders_bell",
       "ardennes_crown",
       "lake_chalice",
+      "hills_laurel",
     ]) {
       expect(markup).toContain(
         `data-prestige-race-trophy="${visualVariant}"`,
       );
     }
-    expect(markup.match(/data-prestige-race-trophy=/g)).toHaveLength(8);
+    expect(markup.match(/data-prestige-race-trophy=/g)).toHaveLength(9);
     expect(markup).not.toContain("/images/race-trophies/");
   });
 
