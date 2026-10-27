@@ -9,6 +9,7 @@ import type {
   ItemTargetRider,
 } from "@/lib/game/item-target-values";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
+import type { WeeklyLoginBoosterProgress } from "@/lib/game/weekly-login-boosters";
 
 export const DAILY_REWARD_SEASON_LENGTH = 28;
 export const DAILY_REWARD_CYCLE_LENGTH = 40;
@@ -113,6 +114,7 @@ export type DailyRewardOverview = {
   staffMembers: DailyRewardStaffMember[];
   scoutingSupervision: ScoutingSupervisionStatus;
   scoutingRevealActiveUntil: string | null;
+  weeklyLogin?: WeeklyLoginBoosterProgress | null;
 };
 
 export const DAILY_REWARD_RATING_OPTIONS = RIDER_RATING_AXES.map((axis) => ({

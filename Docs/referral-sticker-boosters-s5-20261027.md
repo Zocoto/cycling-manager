@@ -14,6 +14,8 @@ Les joueurs peuvent lire uniquement leur stock grâce à la RLS. Ils ne peuvent 
 
 Le stock réel est préparé indépendamment du pilote privé, qui reste local au navigateur. Le futur inventaire public doit lire ces lignes avec leur propriétaire et leur édition ; une ouverture serveur doit verrouiller le paquet, créer ses deux cartes une seule fois et renseigner `opened_at` dans la même transaction. Aucun paquet local de démonstration ne doit être importé et le compteur de filleuls ne doit jamais être utilisé pour recréer le stock.
 
+La vue commune `cyclo_stickers_booster_inventory`, ajoutée avec les [boosters de connexion](weekly-login-boosters-20261027.md), expose ensemble les paquets de parrainage et de connexion sans recopier de lignes. Elle conserve les RLS et l’édition de chaque source. Pour l’ouverture, utiliser `inventory_source` et `id` pour verrouiller et consommer la ligne d’origine ; la vue est volontairement limitée à la lecture.
+
 Cette livraison **n’ouvre pas l’album au public** et ne prétend pas livrer les tirages ou les échanges persistants : les conditions de lancement existantes restent en vigueur. La Gazette reste la source prévue initialement, complétée explicitement par le parrainage ; aucune vente de boosters n’est ajoutée.
 
 ## Vérifications

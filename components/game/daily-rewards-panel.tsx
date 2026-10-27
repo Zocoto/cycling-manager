@@ -3,6 +3,8 @@ import {
 } from "@/app/jeu/objectifs/actions";
 import { DailyRewardRedemptionForm } from "@/components/game/daily-reward-redemption-form";
 import { InventoryItemIllustration } from "@/components/game/inventory-item-illustration";
+import { WeeklyLoginBoostersPanel } from "@/components/game/weekly-login-boosters-panel";
+import { WEEKLY_LOGIN_BOOSTER_FIRST_SEASON } from "@/lib/game/weekly-login-boosters";
 import {
   DAILY_REWARD_CYCLE_LENGTH,
   groupDailyRewardInventoryItems,
@@ -41,6 +43,7 @@ export function DailyRewardsPanel({
 
   return (
     <div className="mt-8 space-y-7">
+      {overview.gameYear >= WEEKLY_LOGIN_BOOSTER_FIRST_SEASON && overview.weeklyLogin ? <WeeklyLoginBoostersPanel progress={overview.weeklyLogin} /> : null}
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_20px_60px_rgba(19,60,46,0.11)]">
         <div className="grid gap-6 bg-[linear-gradient(135deg,#071A17,#0B302B_58%,#176951)] px-6 py-7 text-white sm:px-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div>

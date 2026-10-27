@@ -106,7 +106,7 @@ export async function DashboardAssistant({
   );
 }
 
-function WelcomeJourney({ journey }: { journey: NewcomerJourney }) {
+export function WelcomeJourney({ journey }: { journey: NewcomerJourney }) {
   const progress = Math.round(
     (journey.completedCount / Math.max(1, journey.totalCount)) * 100,
   );

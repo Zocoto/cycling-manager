@@ -10,6 +10,28 @@ import { DailyRewardsPanel } from "@/components/game/daily-rewards-panel";
 import type { DailyRewardOverview } from "@/lib/game/daily-rewards";
 
 describe("DailyRewardsPanel", () => {
+  it("adds real weekly connection progress in S5 while preserving the regular gift cycle", () => {
+    const overview = createOverview();
+    overview.gameYear = 5;
+    overview.weeklyLogin = { consecutiveDays: 14, totalBoostersAwarded: 2, boosterAwardedToday: true };
+    const markup = renderToStaticMarkup(<DailyRewardsPanel overview={overview} />);
+    expect(markup).toContain("7 jours d’affilée, 1 booster");
+    expect(markup).toContain("Boosters gagnés : 2");
+    expect(markup).toContain("Votre booster du jour a été ajouté");
+    expect(markup).toContain('aria-valuenow="7"');
+    expect(markup).toContain("4/40");
+    expect(markup).toContain("Un jour manqué remet la série à zéro");
+    expect(markup).toContain("même après une ou plusieurs");
+  });
+  it("hides the new bonus before S5 and tolerates an older rewards payload", () => {
+    const overview = createOverview();
+    overview.gameYear = 4;
+    overview.weeklyLogin = { consecutiveDays: 7, totalBoostersAwarded: 1, boosterAwardedToday: true };
+    expect(renderToStaticMarkup(<DailyRewardsPanel overview={overview} />)).not.toContain("Cyclo-Stickers");
+    overview.gameYear = 5;
+    overview.weeklyLogin = null;
+    expect(renderToStaticMarkup(<DailyRewardsPanel overview={overview} />)).not.toContain("Cyclo-Stickers");
+  });
   it("shows the extended cycle and its next reward level", () => {
     const markup = renderToStaticMarkup(
       <DailyRewardsPanel overview={createOverview()} />,
