@@ -53,6 +53,28 @@ const trainer = {
 } satisfies TeamTrainer;
 
 describe("RiderTrainingPlanFields", () => {
+  it("renders each rider’s saved domain and trainer before any interaction", () => {
+    const markup = renderToStaticMarkup(<TrainingPlansEditor
+      trainerIds={[trainer.contractId]}
+      initialPlans={[
+        { riderId: "a", intensity: 58, domain: "stage_racer", trainerContractId: trainer.contractId },
+        { riderId: "b", intensity: 75, domain: "sprinter", trainerContractId: null },
+      ]}
+    >
+      <RiderTrainingPlanFields riderId="a" riderCountryCode="FR" trainers={[trainer]} />
+      <RiderTrainingPlanFields riderId="b" riderCountryCode="BE" trainers={[trainer]} />
+    </TrainingPlansEditor>);
+    function selectedOption(selectId: string) {
+      const select = markup.match(new RegExp(`<select[^>]*id="${selectId}"[^>]*>(.*?)</select>`))?.[1];
+      return select?.match(/<option[^>]*value="([^"]*)"[^>]*selected=""/u)?.[1];
+    }
+    expect(selectedOption("training-domain-a")).toBe("stage_racer");
+    expect(selectedOption("training-trainer-a")).toBe(trainer.contractId);
+    expect(selectedOption("training-domain-b")).toBe("sprinter");
+    expect(selectedOption("training-trainer-b")).toBe("");
+    expect(markup).toContain('name="plans" value="[]"');
+  });
+
   it("affiche le talent de base, toutes les lignes supplémentaires et l’affinité réelle", () => {
     const markup = renderToStaticMarkup(
       <TrainingPlansEditor
