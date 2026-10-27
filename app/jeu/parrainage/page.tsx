@@ -127,6 +127,9 @@ export default async function ReferralPage() {
             </div>
 
             <div className="mt-6 rounded-2xl border border-[#D6AE3B]/35 bg-[linear-gradient(135deg,#FFF9E7,#F7F0D2)] p-5">
+              <p className="mb-4 rounded-xl bg-white/80 px-4 py-3 text-sm font-semibold leading-6 text-[#493B0B]">
+                Dès la saison 5, chaque nouveau filleul validé rapporte aussi 2 boosters de Cyclo-Stickers au parrain, en plus des objets, primes et accessoires de parrainage.
+              </p>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#80640C]">Primes de carrière renforcées</p>
