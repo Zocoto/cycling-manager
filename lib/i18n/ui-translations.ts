@@ -1,5 +1,6 @@
 import generatedCatalog from "@/lib/i18n/generated-fr-en.json";
 import reviewedCatalog from "@/lib/i18n/reviewed-fr-en.json";
+import { translateFrenchUiDate } from "./french-ui-date";
 import { applyUiTranslationTemplate, compileUiTranslationTemplate, type UiTranslationTemplate } from "./dynamic-ui-translation";
 
 const REVIEWED_TRANSLATIONS: Record<string, string> = {
@@ -636,6 +637,12 @@ export function translateUiText(value: string): string {
 
   const cached = TRANSLATION_CACHE.get(normalized);
   if (cached !== undefined) return cached === normalized ? value : preserveOuterWhitespace(value, cached);
+
+  const dateTranslation = translateFrenchUiDate(normalized);
+  if (dateTranslation !== null) {
+    cacheTranslation(normalized, dateTranslation);
+    return preserveOuterWhitespace(value, dateTranslation);
+  }
 
   const templates = new Set<UiTranslationTemplate>();
   for (const token of getLookupTokens(normalized)) {
