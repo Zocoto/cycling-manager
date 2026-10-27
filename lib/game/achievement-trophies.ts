@@ -1,6 +1,37 @@
 import type { TrophyPalette } from "@/lib/game/trophy-gallery";
 import { PROSPECTIVE_ACHIEVEMENTS, PROSPECTIVE_ACHIEVEMENT_KEYS, type ProspectiveAchievementKey } from "./prospective-achievements";
 
+export type JourneyTrophyVisualVariant = `journey-${ProspectiveAchievementKey}`;
+
+function journeyPalette(primary: string, secondary: string, accent: string): TrophyPalette {
+  return { primary, secondary, accent, glow: `${primary}59` };
+}
+
+// Explicit catalogue: a new career family must choose its own colours and emblem.
+const journeyPalettes: Record<ProspectiveAchievementKey, TrophyPalette> = {
+  community_days: journeyPalette("#59D7B3", "#E8FFF5", "#163F3B"),
+  private_contacts: journeyPalette("#59BFE6", "#E8F8FF", "#173D58"),
+  transfer_sent: journeyPalette("#F2AE65", "#FFF1DA", "#68442D"),
+  transfer_received: journeyPalette("#BD9AF5", "#F3ECFF", "#3D285C"),
+  interview_support_given: journeyPalette("#F3A5C7", "#FFF0F7", "#5B2B49"),
+  interview_support_received: journeyPalette("#FFD268", "#FFF6D6", "#6C4524"),
+  gazette_days: journeyPalette("#D6C6A0", "#FFFBEA", "#49413A"),
+  game_variety: journeyPalette("#92BFEF", "#EDF5FF", "#293F68"),
+  first_deal: journeyPalette("#D9986D", "#FFF0DF", "#4D3227"),
+  interview_regular: journeyPalette("#AC9FF4", "#F4EFFF", "#342B60"),
+  natural_progress: journeyPalette("#9DDB75", "#F1FFE0", "#2F522C"),
+  tailored_setup: journeyPalette("#A8CBDC", "#EEFAFF", "#284B61"),
+  panache: journeyPalette("#F08262", "#FFF0D8", "#662B2B"),
+  world_traveler: journeyPalette("#71C5DF", "#ECFAFF", "#17465D"),
+  shopkeeper: journeyPalette("#E6B563", "#FFF1CD", "#584128"),
+  mentor: journeyPalette("#C4A2ED", "#F7EFFF", "#4A3263"),
+  research_podium: journeyPalette("#75DCD5", "#E6FFFA", "#214D54"),
+  homegrown: journeyPalette("#6CCB91", "#F1FFE9", "#204D37"),
+  three_tours: journeyPalette("#F6CC65", "#FFF7D9", "#60442A"),
+  family_photo: journeyPalette("#91ADEA", "#EFF4FF", "#2D3C64"),
+  upset: journeyPalette("#DDA3ED", "#FCEDFF", "#512961"),
+};
+
 const prospectiveTrophies = Object.fromEntries(PROSPECTIVE_ACHIEVEMENT_KEYS.map(key => {
   const definition = PROSPECTIVE_ACHIEVEMENTS[key];
   return [`journey_${key}`, {
@@ -8,15 +39,17 @@ const prospectiveTrophies = Object.fromEntries(PROSPECTIVE_ACHIEVEMENT_KEYS.map(
     competitionName: "Objectif de carrière accompli", seasonName: "Carrière",
     inscription: "Un parcours · Une histoire", description: definition.descriptions.at(-1)!,
     href: `/jeu/objectifs?onglet=objectifs&groupe=${definition.group}`,
-    visualVariant: "panorama" as const,
-    palette: { primary: "#D5AC43", secondary: "#FFF5D8", accent: "#176951", glow: "rgba(213,172,67,0.35)" },
+    visualVariant: `journey-${key}` as const,
+    palette: journeyPalettes[key],
   }];
 })) as { [K in ProspectiveAchievementKey as `journey_${K}`]: {
   objectiveKey: string; title: string; competitionName: string; seasonName: string;
-  inscription: string; description: string; href: string; visualVariant: "panorama"; palette: TrophyPalette;
+  inscription: string; description: string; href: string; visualVariant: `journey-${K}`; palette: TrophyPalette;
 } };
 
 export type AchievementTrophyVisualVariant =
+  | JourneyTrophyVisualVariant
+  | "first-pedals"
   | "astrolabe"
   | "panorama"
   | "apparatus"
@@ -179,7 +212,7 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "Décerné aux nouveaux DS qui accomplissent les huit étapes de prise en main, de leur premier cadeau jusqu’au premier direct suivi.",
     href: "/jeu/objectifs?onglet=trophees",
-    visualVariant: "panorama" satisfies AchievementTrophyVisualVariant,
+    visualVariant: "first-pedals" satisfies AchievementTrophyVisualVariant,
     palette: {
       primary: "#42B99A",
       secondary: "#E9FFF6",

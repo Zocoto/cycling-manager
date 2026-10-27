@@ -1,5 +1,6 @@
-import type { AchievementTrophyVisualVariant } from "@/lib/game/achievement-trophies";
+import type { AchievementTrophyVisualVariant, JourneyTrophyVisualVariant } from "@/lib/game/achievement-trophies";
 import type { TrophyPalette } from "@/lib/game/trophy-gallery";
+import { JourneyTrophySymbol } from "./journey-trophy-symbol";
 
 type AchievementTrophyMarkProps = {
   variant: AchievementTrophyVisualVariant;
@@ -63,6 +64,10 @@ function TrophySymbol({
   variant: AchievementTrophyVisualVariant;
   palette: TrophyPalette;
 }) {
+  if (variant === "first-pedals" || variant.startsWith("journey-")) {
+    return <JourneyTrophySymbol variant={variant as JourneyTrophyVisualVariant | "first-pedals"} palette={palette} />;
+  }
+
   if (variant === "astrolabe") {
     return (
       <g>
