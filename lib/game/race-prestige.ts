@@ -11,7 +11,8 @@ export type RacePrestigeTrophyVisualVariant =
   | "zeeland_lion"
   | "flanders_bell"
   | "ardennes_crown"
-  | "lake_chalice";
+  | "lake_chalice"
+  | "hills_laurel";
 
 export type RacePrestigeDefinition = {
   slug: string;
@@ -165,6 +166,23 @@ const PRESTIGE_RACES = [
       secondary: "#C5EBF6",
       accent: "#123E52",
       glow: "rgba(59, 130, 160, 0.34)",
+    },
+  },
+  {
+    slug: "doyenne-des-collines",
+    kind: "monument_hilly",
+    label: "Monument",
+    detailLabel: "Monument vallonné",
+    shortLabel: "MON",
+    trophyTitle: "Laurier des Collines",
+    trophyVisualVariant: "hills_laurel",
+    trophyDescription:
+      "Un laurier de bronze encadre les collines et les routes de la Doyenne.",
+    palette: {
+      primary: "#B58A49",
+      secondary: "#F3E4B7",
+      accent: "#3C5340",
+      glow: "rgba(181, 138, 73, 0.34)",
     },
   },
 ] as const satisfies readonly RacePrestigeDefinition[];

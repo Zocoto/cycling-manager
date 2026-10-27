@@ -266,6 +266,23 @@ function PrestigeRaceSymbol({
     );
   }
 
+  if (variant === "hills_laurel") {
+    return (
+      <g>
+        <circle cx="90" cy="79" r="44" fill={metalFill} stroke={palette.secondary} strokeWidth="3" />
+        <path d="m50 96 23-31 17 21 17-34 23 44H50Z" fill={palette.accent} stroke={palette.secondary} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M83 110c-3-14 8-17 5-27s-1-12 5-17" stroke={palette.secondary} strokeWidth="4" strokeLinecap="round" />
+        <path d="M76 130C35 120 27 77 44 47M104 130c41-10 49-53 32-83" stroke={palette.primary} strokeWidth="4" strokeLinecap="round" />
+        {[0, 1, 2, 3].map((leaf) => (
+          <g key={leaf}>
+            <ellipse cx={40 + leaf * 5} cy={60 + leaf * 16} rx="6" ry="11" transform={`rotate(-35 ${40 + leaf * 5} ${60 + leaf * 16})`} fill={metalFill} stroke={palette.secondary} />
+            <ellipse cx={140 - leaf * 5} cy={60 + leaf * 16} rx="6" ry="11" transform={`rotate(35 ${140 - leaf * 5} ${60 + leaf * 16})`} fill={metalFill} stroke={palette.secondary} />
+          </g>
+        ))}
+      </g>
+    );
+  }
+
   if (variant === "ardennes_crown") {
     return (
       <g>
