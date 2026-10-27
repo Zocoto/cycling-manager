@@ -280,6 +280,54 @@ describe("buildRaceSegments", () => {
 });
 
 describe("ensureCompleteRaceSegments", () => {
+  it("expose les 21 tronçons effectifs du Monferrato lorsque les 19 tronçons stockés couvrent une autre distance", () => {
+    const stored = Array.from({ length: 19 }, (_, index) => ({
+      segmentNumber: index + 1,
+      distanceKm: index === 18 ? 19 : 12,
+      terrain: "flat" as const,
+      averageGradientPct: 0,
+      surface: "cobbles" as const,
+      prime: null,
+    }));
+    expect(getStageDistance(stored)).toBe(235);
+    const effective = ensureCompleteRaceSegments({
+      segments: stored,
+      distanceKm: 204,
+      profileType: "cobbles",
+      seed: "8855a85c-467b-4e8c-9535-cd59e97a9e3d",
+    });
+
+    expect(effective.map((segment) => segment.segmentNumber))
+      .toEqual(Array.from({ length: 21 }, (_, index) => index + 1));
+    expect(getStageDistance(effective)).toBe(204);
+    expect(effective.at(-1)?.distanceKm).toBe(4);
+  });
+
+  it("respecte les identifiants d’un parcours complet aux tronçons non consécutifs", () => {
+    const stored = [1, 7].map((segmentNumber) => ({
+      segmentNumber, distanceKm: 20, terrain: "flat" as const,
+      averageGradientPct: 0, surface: "asphalt" as const, prime: null,
+    }));
+    expect(ensureCompleteRaceSegments({
+      segments: stored, distanceKm: 40, profileType: "flat", seed: "custom-route",
+    })).toBe(stored);
+  });
+
+  it("conserve la même tolérance numérique que le contrôle des attaques en base", () => {
+    const stored = [1, 2].map((segmentNumber) => ({
+      segmentNumber, distanceKm: 102, terrain: "flat" as const,
+      averageGradientPct: 0, surface: "asphalt" as const, prime: null,
+    }));
+    expect(ensureCompleteRaceSegments({
+      segments: stored, distanceKm: 204.04, profileType: "flat", seed: "rounding-boundary",
+    })).toBe(stored);
+    // The existing browser/engine comparison uses double precision: this
+    // difference is slightly larger than 0.05, so SQL must use the same rule.
+    expect(ensureCompleteRaceSegments({
+      segments: stored, distanceKm: 204.05, profileType: "flat", seed: "rounding-boundary",
+    })).toHaveLength(21);
+  });
+
   it("reconstruit une étape de 126 km lorsque seulement cinq tronçons ont été chargés", () => {
     const truncated = buildRaceSegments({
       distanceKm: 50,
