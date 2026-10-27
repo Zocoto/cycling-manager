@@ -9,19 +9,23 @@ const fn=(source,name)=>{const start=source.indexOf(`create or replace function 
 const table=(source,name)=>{const start=source.indexOf(`create table public.${name} (`);assert.ok(start>=0,name);return source.slice(start,source.indexOf('\n);',start)+4);};
 const source=read('20261027170000_weekly_login_cyclo_stickers_boosters');
 const presenceHook=read('20261027171000_weekly_login_boosters_game_presence');
+const unifiedInventory=read('20261027181000_expose_unified_cyclo_sticker_booster_inventory');
 const attendanceSource=read('20260814030000_expose_player_daily_activity');
 const overviewSource=read('20260829100000_preserve_daily_reward_cycle_after_absence');
 const cycleSource=read('20260809141000_extend_daily_reward_cycle');
 const dailySource=read('20260801110000_create_daily_rewards');
 await db.exec(`
   create schema auth;create schema private;create role anon;create role authenticated;create role service_role bypassrls;
-  create table auth.users(id uuid primary key default gen_random_uuid());
+  create table auth.users(id uuid primary key default gen_random_uuid(),email_confirmed_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.auth_user_id',true),'')::uuid$$;
   grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
   create table sporting_directors(id uuid primary key default gen_random_uuid(),auth_user_id uuid references auth.users,status text);
   grant select on sporting_directors to authenticated;
   create table alpha_bot_managers(sporting_director_id uuid primary key references sporting_directors);
   create table seasons(id uuid primary key default gen_random_uuid(),name text,game_year integer unique,status text,current_day_number integer);
+  alter table seasons add column starts_on date;alter table seasons add column ends_on date;
+  create table sporting_director_referrals(id uuid primary key default gen_random_uuid(),referrer_director_id uuid references sporting_directors,referred_director_id uuid references sporting_directors,status text,qualified_at timestamptz);
+  grant select on seasons to authenticated;
   create table season_days(id uuid primary key default gen_random_uuid(),season_id uuid references seasons,day_number integer,calendar_date date,unique(season_id,day_number));
   create table team_manager_assignments(sporting_director_id uuid references sporting_directors,team_id uuid,role text,status text);
   create table team_seasons(id uuid primary key default gen_random_uuid(),team_id uuid,season_id uuid references seasons,status text);
@@ -69,6 +73,8 @@ const before=(await db.query('select public.get_current_daily_reward_overview() 
 const claimHash=await scalar("select md5(pg_get_functiondef('public.claim_current_daily_reward(text)'::regprocedure))");
 await db.exec(source);
 await db.exec(presenceHook);
+await db.exec(read('20261027180000_add_s5_referral_sticker_boosters'));
+await db.exec(unifiedInventory);
 const after=(await db.query('select public.get_current_daily_reward_overview() value')).rows[0].value;
 assert.deepEqual(after,{...before,weeklyLogin:null},'S4 gifts and cycle are unchanged');
 assert.equal(await scalar("select md5(pg_get_functiondef('public.claim_current_daily_reward(text)'::regprocedure))"),claimHash,'Claim logic unchanged');
@@ -142,11 +148,21 @@ assert.equal((await packs(tabPlayer)).length,1);
 const importedPlayer=await player();
 await db.query('insert into player_daily_activity(auth_user_id,activity_on) values($1,$2::date-1)',[importedPlayer.user,today]);
 assert.equal(await state(importedPlayer),undefined,'Importing yesterday activity does not backfill rewards');
+// Read the two independent, persistent grant sources together, with stable IDs
+// and no copying of packs or leakage of another player's inventory.
+const referralId=await scalar("insert into sporting_director_referrals(referrer_director_id,referred_director_id,status) values($1,$2,'registered') returning id",[tabPlayer.director,a.director]);
+await db.query(`insert into cyclo_sticker_boosters(sporting_director_id,source_referral_id,copy_number,collection_season_id,source_season_id)
+  select $1,$2,n,$3,$4 from generate_series(1,2)n`,[tabPlayer.director,referralId,s5,s4]);
+const tabPack=(await packs(tabPlayer))[0];
+assert.equal(await scalar("select source_season_id from cyclo_stickers_booster_inventory where inventory_source='login' and id=$1",[tabPack.id]),s5,'Login S6 pack contains S5 cards');
 // RLS ownership and grants: players can inspect their packs, never mint/open
 // them directly or set the clock by calling private helpers.
 await db.exec('set role authenticated');
 assert.equal(await scalar('select count(*)::int from cyclo_stickers_boosters'),1);
 assert.equal(await scalar('select count(*)::int from weekly_login_booster_states'),1);
+assert.equal(await scalar('select count(*)::int from cyclo_stickers_booster_inventory'),3);
+assert.deepEqual((await db.query('select inventory_source,count(*)::int n from cyclo_stickers_booster_inventory group by inventory_source order by inventory_source')).rows,[{inventory_source:'login',n:1},{inventory_source:'referral',n:2}]);
+await assert.rejects(()=>db.query('update cyclo_stickers_booster_inventory set opened_at=now()'),/permission denied|cannot update view/);
 await assert.rejects(()=>db.query("update cyclo_stickers_boosters set opened_at=now()"),/permission denied/);
 await assert.rejects(()=>db.query('insert into cyclo_stickers_boosters(sporting_director_id,collection_season_id,acquisition_source,source_reference,awarded_on) values($1,$2,\'weekly_login\',\'forged\',current_date)',[overviewPlayer.director,s6]),/permission denied/);
 await assert.rejects(()=>connect(overviewPlayer,7,s6),/permission denied/);
@@ -156,6 +172,7 @@ const beforeRetry=JSON.stringify((await db.query('select * from cyclo_stickers_b
 const beforeFunctions=await scalar("select md5(pg_get_functiondef('public.record_current_sporting_director_attendance()'::regprocedure)||pg_get_functiondef('public.get_current_daily_reward_overview()'::regprocedure))");
 await db.exec(source);
 await db.exec(presenceHook);
+await db.exec(unifiedInventory);
 assert.equal(JSON.stringify((await db.query('select * from cyclo_stickers_boosters order by id')).rows),beforeRetry);
 assert.equal(await scalar("select md5(pg_get_functiondef('public.record_current_sporting_director_attendance()'::regprocedure)||pg_get_functiondef('public.get_current_daily_reward_overview()'::regprocedure))"),beforeFunctions);
 console.log('Isolated SQL passed: S4 untouched, no backfill, Paris dates, real attendance/overview integration, 7/14/21/28/35-day grants, absence/reset, inter-season continuity, edition ownership, repeat/overlapping visits, bots/inactive exclusions, unchanged gifts, RLS/write isolation, migration idempotence.');

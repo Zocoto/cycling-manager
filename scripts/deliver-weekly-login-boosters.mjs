@@ -1,4 +1,4 @@
-// Only the two reviewed migrations. Never records a production login or awards a test pack.
+// Only the reviewed login migrations and common read view. No production fixtures.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -11,6 +11,7 @@ const require=createRequire(import.meta.url);
 const bin=path.join(path.dirname(require.resolve('@supabase/cli-windows-x64/package.json')),'bin/supabase.exe');
 const version='20261027170000',name='weekly_login_cyclo_stickers_boosters',file=`supabase/migrations/${version}_${name}.sql`;
 const presenceVersion='20261027171000',presenceName='weekly_login_boosters_game_presence',presenceFile=`supabase/migrations/${presenceVersion}_${presenceName}.sql`;
+const viewVersion='20261027181000',viewName='expose_unified_cyclo_sticker_booster_inventory',viewFile=`supabase/migrations/${viewVersion}_${viewName}.sql`;
 const call=args=>{try{return execFileSync(bin,args,{encoding:'utf8',timeout:30000,maxBuffer:200000});}catch(e){throw new Error(`Delivery query failed: ${e.stderr||e.code}`);}};
 const query=sql=>{const raw=call(['db','query','--linked',sql,'--output','json']);return JSON.parse(raw.slice(raw.indexOf('{'))).rows;};
 const ro=sql=>`begin read only;set local statement_timeout='3s';set local lock_timeout='500ms';set local application_name='weekly-login-boosters-delivery';${sql};commit;`;
@@ -29,10 +30,20 @@ const installation=()=>query(ro(`select
   position('record_weekly_login_booster_connection' in pg_get_functiondef('public.record_current_sporting_director_attendance()'::regprocedure))>0 attendance_hook,
   position('get_weekly_login_booster_progress' in pg_get_functiondef('public.get_current_daily_reward_overview()'::regprocedure))>0 overview_hook,
   exists(select 1 from pg_trigger where tgrelid='public.player_daily_activity'::regclass and tgname='weekly_login_booster_daily_activity' and not tgisinternal) presence_hook,
+  to_regclass('public.cyclo_sticker_boosters') is not null referral_inventory,
+  to_regclass('public.cyclo_stickers_booster_inventory') is not null common_inventory,
   (select game_year from public.seasons where status='active' limit 1) game_year`))[0];
-const verify=(requirePresence=true)=>{
+const verify=(requirePresence=true,requireView=true)=>{
   const s=installation();assert.ok(s.states&&s.inventory&&s.attendance_hook&&s.overview_hook);
   if(requirePresence)assert.equal(s.presence_hook,true);
+  if(requireView){
+    assert.ok(s.referral_inventory&&s.common_inventory);
+    const view=query(ro(`select reloptions @> array['security_invoker=true'] invoker,
+      has_table_privilege('authenticated','public.cyclo_stickers_booster_inventory','select') readable,
+      has_table_privilege('authenticated','public.cyclo_stickers_booster_inventory','update') mutable
+      from pg_class where oid='public.cyclo_stickers_booster_inventory'::regclass`))[0];
+    assert.deepEqual(view,{invoker:true,mutable:false,readable:true});
+  }
   const rights=query(ro(`select
     (select relrowsecurity from pg_class where oid='public.cyclo_stickers_boosters'::regclass) inventory_rls,
     (select relrowsecurity from pg_class where oid='public.weekly_login_booster_states'::regclass) states_rls,
@@ -59,16 +70,25 @@ if(mode==='--preflight'){
   if(mode==='--apply-reviewed-migration'&&!initialReceipt){
     assert.equal(initial.game_year,4);assert.ok(!initial.states&&!initial.inventory);
     call(['db','query','--linked','--file',file,'--output','json']);
-    assert.deepEqual(protectedFunctions(),before);verify(false);record(version,name,file);
+    assert.deepEqual(protectedFunctions(),before);verify(false,false);record(version,name,file);
   }
   const presenceReceipt=receipt(presenceVersion);
   if(presenceReceipt&&presenceReceipt!==presenceName)throw new Error('Presence migration version collision.');
   if(mode==='--apply-reviewed-migration'&&!presenceReceipt){
     assert.equal(initial.game_year,4);
     call(['db','query','--linked','--file',presenceFile,'--output','json']);
-    assert.deepEqual(protectedFunctions(),before);verify();record(presenceVersion,presenceName,presenceFile);
+    assert.deepEqual(protectedFunctions(),before);verify(true,false);record(presenceVersion,presenceName,presenceFile);
   }
   assert.equal(receipt(presenceVersion),presenceName);
+  const viewReceipt=receipt(viewVersion);
+  if(viewReceipt&&viewReceipt!==viewName)throw new Error('Common inventory migration version collision.');
+  if(mode==='--apply-reviewed-migration'&&!viewReceipt){
+    assert.equal(initial.game_year,4);assert.equal(initial.referral_inventory,true);
+    assert.equal(query(ro("select has_table_privilege('authenticated','public.seasons','select') allowed"))[0].allowed,true);
+    call(['db','query','--linked','--file',viewFile,'--output','json']);
+    assert.deepEqual(protectedFunctions(),before);verify();record(viewVersion,viewName,viewFile);
+  }
+  assert.equal(receipt(viewVersion),viewName);
   assert.equal(receipt(),name);assert.deepEqual(protectedFunctions(),before);
   console.log(JSON.stringify({databaseOk:true,recorded:true,installation:verify(),existingGiftFunctionsPreserved:true,loginOrAwardRun:false}));
 }
