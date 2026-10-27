@@ -17,6 +17,7 @@ import {
   type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import { getCurrentTeamItemTargetRiders } from "@/services/item-target-values";
+import { normalizeWeeklyLoginBoosterProgress, WEEKLY_LOGIN_BOOSTER_FIRST_SEASON } from "@/lib/game/weekly-login-boosters";
 import {
   getScoutingSupervisionStatus,
   normalizeScoutingSupervisionEffects,
@@ -38,6 +39,7 @@ type RawOverview = {
   riders?: unknown;
   eligibleRaces?: unknown;
   abilities?: unknown;
+  weeklyLogin?: unknown;
 };
 
 export async function getCurrentDailyRewardOverview(
@@ -157,6 +159,7 @@ export async function getCurrentDailyRewardOverview(
     seasonId,
     seasonName: readString(raw.seasonName) || "Saison en cours",
     gameYear,
+    weeklyLogin: gameYear >= WEEKLY_LOGIN_BOOSTER_FIRST_SEASON ? normalizeWeeklyLoginBoosterProgress(raw.weeklyLogin) : null,
     currentDayNumber,
     seasonLength: DAILY_REWARD_SEASON_LENGTH,
     claimedToday: Boolean(raw.claimedToday),
