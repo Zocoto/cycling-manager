@@ -35,6 +35,7 @@ import {
   isTrainerSpecialty,
 } from "@/lib/game/staff";
 import { buildStaffMarketReturnPath } from "@/lib/game/filtered-page-paths";
+import { normalizeStaffMarketListingId } from "@/lib/game/staff-market-navigation";
 import {
   STAFF_MARKET_DAILY_COUNT,
   STAFF_MARKET_WAVE_INTERVAL_HOURS,
@@ -254,6 +255,8 @@ function EmploymentMarket({
   query: Record<string, string | string[] | undefined>;
   returnPath: string;
 }) {
+  const listingId = normalizeStaffMarketListingId(readQuery(query.profil));
+  const alertMatchesOnly = !listingId && readQuery(query.alertes) === "1";
   return (
     <section className="mt-7">
       <div
@@ -282,6 +285,8 @@ function EmploymentMarket({
         className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-4"
       >
         <input type="hidden" name="onglet" value="marche" />
+        {listingId ? <input type="hidden" name="profil" value={listingId} /> : null}
+        {alertMatchesOnly ? <input type="hidden" name="alertes" value="1" /> : null}
         <FilterField label="Métier">
           <select
             name="metier"
@@ -354,6 +359,15 @@ function EmploymentMarket({
         </div>
       </form>
 
+      {listingId || alertMatchesOnly ? (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/15 bg-white/80 px-5 py-3 text-sm font-semibold text-[#315B3E]">
+          <p>{listingId ? "Profil signalé par votre alerte." : "Profils signalés par vos alertes."}</p>
+          <Link href="/jeu/staff?onglet=marche" className="font-black underline underline-offset-4">
+            Voir tout le marché
+          </Link>
+        </div>
+      ) : null}
+
       <div data-tutorial-id="staff-market-listings">
         {overview.marketListings.length > 0 ? (
           <div className="mt-5 grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -367,8 +381,10 @@ function EmploymentMarket({
           </div>
         ) : (
           <EmptyState
-            title="Aucun profil disponible avec ces filtres"
-            detail={`Modifiez les critères ou revenez après la prochaine livraison de ${STAFF_MARKET_WAVE_SIZE} profils, au plus tard dans ${STAFF_MARKET_WAVE_INTERVAL_HOURS} h.`}
+            title={listingId ? "Ce profil n’est plus disponible" : "Aucun profil disponible avec ces filtres"}
+            detail={listingId
+              ? "Il a déjà été recruté, a quitté le marché ou ne correspond pas aux filtres sélectionnés. Consultez les autres profils disponibles."
+              : `Modifiez les critères ou revenez après la prochaine livraison de ${STAFF_MARKET_WAVE_SIZE} profils, au plus tard dans ${STAFF_MARKET_WAVE_INTERVAL_HOURS} h.`}
           />
         )}
       </div>
@@ -833,6 +849,8 @@ function readFilters(
     trainerSpecialty: isTrainerSpecialty(specialtyValue)
       ? specialtyValue
       : undefined,
+    listingId: normalizeStaffMarketListingId(readQuery(query.profil)),
+    alertMatchesOnly: readQuery(query.alertes) === "1",
   };
 }
 

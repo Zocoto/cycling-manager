@@ -87,6 +87,15 @@ describe("filtered page return paths", () => {
     expect(sanitizeObjectivesReturnPath(path)).toBe(path);
   });
 
+  it("conserve la sélection staff issue d’une alerte après une action", () => {
+    const listingId = "d26b943a-10d7-49ba-9674-1feb2a58ad2f";
+    const path = buildStaffMarketReturnPath({ listingId, alertMatchesOnly: true });
+    expect(path).toBe(`/jeu/staff?onglet=marche&profil=${listingId}`);
+    expect(sanitizeStaffMarketReturnPath(`${path}&succes=ancien`)).toBe(path);
+    expect(sanitizeStaffMarketReturnPath("/jeu/staff?onglet=marche&alertes=1&profil=invalid"))
+      .toBe("/jeu/staff?onglet=marche&alertes=1");
+  });
+
   it("conserve uniquement la catégorie active de l’inventaire", () => {
     const path = buildInventoryReturnPath("potential_boost");
 

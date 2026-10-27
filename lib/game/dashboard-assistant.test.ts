@@ -289,6 +289,10 @@ describe("dashboard DS assistant", () => {
       "youth-alerts",
     ]);
     expect(groups.alerts.every((line) => line.href)).toBe(true);
+    expect(groups.alerts.find((line) => line.id === "staff-recruitment-matches")?.href)
+      .toBe("/jeu/staff?onglet=marche&alertes=1");
+    expect(groups.alerts.find((line) => line.id === "rider-recruitment-matches")?.href)
+      .toBe("/jeu/transferts?onglet=quotidiennes");
     expect(
       groups.alerts.find((line) => line.id === "junior-manual-training"),
     ).toEqual(

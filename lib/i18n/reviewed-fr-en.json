@@ -2748,5 +2748,11 @@
   "Le budget annuel du sponsor doit être un montant strictement positif.": "The sponsor's annual budget must be a strictly positive amount.",
   "Le budget annuel du sponsor est trop faible pour calculer une prime.": "The sponsor's annual budget is too low to calculate a bonus.",
   "Le budget annuel négocié est invalide.": "The negotiated annual budget is invalid.",
-  "Source de budget sponsor non prise en charge.": "Unsupported sponsor budget source."
+  "Source de budget sponsor non prise en charge.": "Unsupported sponsor budget source.",
+  "les alertes de recrutement du staff": "staff recruitment alerts",
+  "Profil signalé par votre alerte.": "Profile flagged by your alert.",
+  "Profils signalés par vos alertes.": "Profiles flagged by your alerts.",
+  "Voir tout le marché": "View the full market",
+  "Ce profil n’est plus disponible": "This profile is no longer available",
+  "Il a déjà été recruté, a quitté le marché ou ne correspond pas aux filtres sélectionnés. Consultez les autres profils disponibles.": "They have already been hired, have left the market or do not match the selected filters. Browse the other available profiles."
 }
