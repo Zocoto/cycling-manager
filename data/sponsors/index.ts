@@ -66,6 +66,7 @@ import { COMMON_INDUSTRIES_BATCH_18_SPONSORS } from "./common-industries-batch-1
 import { FOOD_PRODUCTS_BATCH_19_SPONSORS } from "./food-products-batch-19";
 import { SERVICES_EQUIPMENT_BATCH_20_SPONSORS } from "./services-equipment-batch-20";
 import { OPEN_SECTOR_BATCH_21_SPONSORS } from "./open-sector-batch-21";
+import { ORIGINAL_SECTOR_BATCH_22_SPONSORS } from "./original-sector-batch-22";
 import { AMERICAN_SPONSORS } from "./united-states";
 import { AMERICAN_EXPANSION_BATCH_02_SPONSORS } from "./united-states-batch-02";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
@@ -140,6 +141,7 @@ const RAW_SPONSORS = [
   ...FOOD_PRODUCTS_BATCH_19_SPONSORS,
   ...SERVICES_EQUIPMENT_BATCH_20_SPONSORS,
   ...OPEN_SECTOR_BATCH_21_SPONSORS,
+  ...ORIGINAL_SECTOR_BATCH_22_SPONSORS,
 ] satisfies readonly Sponsor[];
 
 export const SPONSORS = RAW_SPONSORS.map((sponsor) => ({

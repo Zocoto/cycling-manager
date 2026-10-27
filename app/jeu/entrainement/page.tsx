@@ -360,7 +360,10 @@ export default async function TrainingPage({
                   {overview.riders.map((rider, riderIndex) => (
                     <article
                       key={rider.id}
-                      className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] [contain-intrinsic-size:auto_18rem] [content-visibility:auto] hover:[content-visibility:visible] focus-within:[content-visibility:visible] has-[details[open]]:[content-visibility:visible] sm:p-6"
+                      // Native selects may paint their first option while a skipped
+                      // card enters a touch viewport. Keep mobile forms laid out;
+                      // retain offscreen paint savings on desktop mouse devices.
+                      className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] [contain-intrinsic-size:auto_18rem] [content-visibility:visible] lg:[@media(hover:hover)_and_(pointer:fine)]:[content-visibility:auto] hover:[content-visibility:visible] focus-within:[content-visibility:visible] has-[details[open]]:[content-visibility:visible] sm:p-6"
                     >
                       <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
                         <div className="min-w-0">

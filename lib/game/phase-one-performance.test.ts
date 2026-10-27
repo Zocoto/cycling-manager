@@ -36,4 +36,11 @@ describe("phase one performance safeguards", () => {
       "has-[details[open]]:[content-visibility:visible]",
     );
   });
+
+  it("never skips native training selects on small or touch-only screens", () => {
+    const trainingPage = readSource("app/jeu/entrainement/page.tsx");
+    expect(trainingPage).toContain("[content-visibility:visible]");
+    expect(trainingPage).toContain("lg:[@media(hover:hover)_and_(pointer:fine)]:[content-visibility:auto]");
+    expect(trainingPage).not.toMatch(/\s\[content-visibility:auto\]/);
+  });
 });
