@@ -8,6 +8,7 @@ import { DashboardJournalDeleteButton } from "@/components/game/dashboard-journa
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
 import { NewcomerJourneyClaimButton } from "@/components/game/newcomer-journey-claim-button";
 import { DashboardNaturalizationIgnore } from "@/components/game/dashboard-naturalization-ignore";
+import { getStaffRecruitmentTargetHref } from "@/lib/game/staff-market-navigation";
 import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
@@ -394,7 +395,7 @@ function JournalRow({ item }: { item: DashboardJournalItem }) {
   return (
     <div className="flex min-h-11 items-center gap-1 rounded-xl transition hover:bg-white">
       <DirectorMailboxMessageLink
-        href={mailboxHref}
+        href={getStaffRecruitmentTargetHref(item.href) ?? mailboxHref}
         messageToMarkReadId={item.read ? null : item.id}
         active={false}
         className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]"

@@ -1,4 +1,5 @@
 import { buildTrophyGalleryHref } from "@/lib/game/trophy-arrivals";
+import { getStaffRecruitmentTargetHref } from "@/lib/game/staff-market-navigation";
 
 export function getDirectorMessageActionHref({
   type, href, sourceReference,
@@ -8,7 +9,7 @@ export function getDirectorMessageActionHref({
   if (type === "trophy" && href === "/jeu/objectifs?onglet=trophees" && sourceReference?.startsWith("trophy:")) {
     return buildTrophyGalleryHref(sourceReference) ?? href;
   }
-  return href;
+  return getStaffRecruitmentTargetHref(href) ?? href;
 }
 
 export const DIRECTOR_MAILBOX_FILTERS = [

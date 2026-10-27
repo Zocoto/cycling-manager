@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomInt } from "node:crypto";
 
+import { filterStaffMarketAlertListings } from "@/lib/game/staff-market-navigation";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   generateRiderIdentities,
@@ -142,6 +143,8 @@ export type StaffMarketFilters = {
   minimumLevel?: number;
   countryCode?: string;
   trainerSpecialty?: TrainerSpecialty;
+  listingId?: string;
+  alertMatchesOnly?: boolean;
 };
 
 export type TeamStaffMember = {
@@ -360,6 +363,28 @@ export async function getTeamStaffOverview(
   const availableListings = listings.filter(
     (listing) => listing.status === "available",
   );
+  // Only this opt-in view reads notifications. Restrict it to this DS and the
+  // current available batch, using the existing unique message-source index.
+  const alertMessages =
+    filters.alertMatchesOnly && !filters.listingId && availableListings.length > 0
+    ? await admin
+        .from("sporting_director_messages")
+        .select("source_reference")
+        .eq("sporting_director_id", context.director.id)
+        .is("archived_at", null)
+        .in("source_reference", availableListings.map(
+          (listing) => `recruitment-alert:staff:${listing.id}`,
+        ))
+        .limit(availableListings.length)
+        .returns<{ source_reference: string }[]>()
+    : { data: [], error: null };
+  assertQuery(alertMessages.error, "les alertes de recrutement du staff");
+  const visibleListings = filterStaffMarketAlertListings(availableListings, {
+    listingId: filters.listingId,
+    alertSourceReferences: filters.alertMatchesOnly
+      ? (alertMessages.data ?? []).map((message) => message.source_reference)
+      : undefined,
+  });
   const contracts = contractsResult.data ?? [];
   const memberIds = [
     ...new Set([
@@ -455,7 +480,7 @@ export async function getTeamStaffOverview(
     staffCapacity,
   });
 
-  const marketListings = availableListings.flatMap((listing) => {
+  const marketListings = visibleListings.flatMap((listing) => {
     const memberRow = membersById.get(listing.staff_member_id);
     if (!memberRow) return [];
     const member = toStaffMember({

@@ -18,6 +18,7 @@ import {
   type StaffRole,
   type TrainerSpecialty,
 } from "@/lib/game/staff";
+import { normalizeStaffMarketListingId } from "@/lib/game/staff-market-navigation";
 import {
   isTransferRiderProfileFilter,
   type TransferContractFilter,
@@ -97,6 +98,8 @@ export type StaffMarketReturnFilters = {
   minimumLevel?: number;
   countryCode?: string;
   trainerSpecialty?: TrainerSpecialty;
+  listingId?: string;
+  alertMatchesOnly?: boolean;
 };
 
 export function buildStaffMarketReturnPath(
@@ -111,6 +114,9 @@ export function buildStaffMarketReturnPath(
     normalizeCountryCode(filters.countryCode),
   );
   setOptionalParam(params, "specialite", filters.trainerSpecialty);
+  const listingId = normalizeStaffMarketListingId(filters.listingId);
+  setOptionalParam(params, "profil", listingId);
+  if (filters.alertMatchesOnly && !listingId) params.set("alertes", "1");
   return `/jeu/staff?${params.toString()}`;
 }
 
@@ -127,6 +133,8 @@ export function sanitizeStaffMarketReturnPath(value: string) {
     countryCode: normalizeCountryCode(url.searchParams.get("pays")),
     trainerSpecialty:
       specialty && isTrainerSpecialty(specialty) ? specialty : undefined,
+    listingId: normalizeStaffMarketListingId(url.searchParams.get("profil")),
+    alertMatchesOnly: url.searchParams.get("alertes") === "1",
   });
 }
 

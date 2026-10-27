@@ -5,6 +5,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
+import { STAFF_RECRUITMENT_ALERTS_HREF } from "@/lib/game/staff-market-navigation";
 import type { OverweightRiderSummary } from "./rider-weight-status";
 import { getWeightProgramCooldownDays } from "./weight-program";
 import {
@@ -543,7 +544,7 @@ export function buildDashboardAssistantLines({
         "profils de staff correspondant à votre recherche",
       ),
       detail: "Disponible sur le marché selon vos critères personnalisés.",
-      href: "/jeu/staff?onglet=marche",
+      href: STAFF_RECRUITMENT_ALERTS_HREF,
     });
   }
 
