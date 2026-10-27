@@ -31,14 +31,20 @@ await db.exec(`
   create table national_federation_selection_slots(day_number smallint,active_from_game_year integer,competition_code text,rider_category text,profile_label text);
   insert into national_federation_selection_slots values(15,3,'continental_championship','professional','Route'),(15,3,'continental_championship','professional','Chrono'),(24,3,'nations_cup','professional','Route'),(26,3,'world_championship','professional','Route'),(26,3,'world_championship','professional','Chrono');
   create table season_events(season_day_id uuid,event_type text,title text,description text,href text,is_filter_persistent boolean,participation_rule text,unique(season_day_id,event_type));
-  create table career_objective_definitions(code text primary key,title text,description text,target_value integer,metric_key text);
-  insert into career_objective_definitions values('all_monuments_won','Le pentacle des classiques','Cinq Monuments',5,'distinct_monument_wins');
   create table race_registrations(id uuid primary key default gen_random_uuid(),race_edition_id uuid references race_editions,status text);
   create table race_rosters(id uuid primary key default gen_random_uuid(),race_registration_id uuid references race_registrations,race_role text);
   create table race_roster_stage_roles(id uuid primary key default gen_random_uuid(),stage_id uuid references stages,race_roster_id uuid references race_rosters,race_role text);
   insert into seasons(game_year,status) values(4,'active'),(5,'planned'),(6,'planned'),(7,'planned');
   insert into season_days(season_id,day_number,calendar_date) select s.id,n,date '2026-10-09'+(s.game_year-4)*28+n-1 from seasons s cross join generate_series(1,28)n where s.game_year<=6;
 `);
+// Reuse the real objective catalog DDL so schema/name drift cannot be hidden by
+// a simplified test table. Its unrelated item catalogs need only their keys.
+await db.exec('create table inventory_catalog_items(item_key text primary key);create table equipment_catalog_items(catalog_key text primary key);');
+const objectiveSource=read('20260722170000_create_game_objectives');
+const objectiveStart=objectiveSource.indexOf('create table public.game_objective_definitions (');
+await db.exec(objectiveSource.slice(objectiveStart,objectiveSource.indexOf('\n);',objectiveStart)+4));
+await db.exec(`insert into game_objective_definitions(objective_key,objective_type,objective_group,title,description,metric_key,target_value,reward_cash,display_order)
+  values('all_monuments_won','secondary','monuments','Le pentacle des classiques','Gagner cinq Monuments.','distinct_monument_wins',5,250000,1140);`);
 await db.query(`insert into countries(iso_alpha2,name) select distinct value,value from jsonb_array_elements_text($1)`,[JSON.stringify([...new Set([...baseline.map(r=>r.country),'TN','HU','SI','CH','BE'])])]);
 await db.query(`insert into race_categories(code) select distinct value from jsonb_array_elements_text($1)`,[JSON.stringify([...new Set(baseline.map(r=>r.category))])]);
 await db.query(`insert into races(country_id,name,short_name,slug,race_format,status,competition_type,is_monument,is_grand_tour)
@@ -130,7 +136,7 @@ const deadlineState=await dump('select * from race_editions order by id');
 await db.exec(source);
 assert.equal(await dump('select * from stages order by id'),state);
 assert.equal(await dump('select * from race_editions order by id'),deadlineState);
-assert.equal((await db.query("select target_value from career_objective_definitions where code='all_monuments_won'")).rows[0].target_value,5);
+assert.deepEqual((await db.query("select title,target_value,reward_cash::integer from game_objective_definitions where objective_key='all_monuments_won'")).rows[0],{title:'Collection des classiques',target_value:5,reward_cash:250000});
 // Reproduce preparation directly from the legacy S4 calendar, not only S5->S6.
 const s6=await season(6);
 assert.equal((await db.query('select count(*)::int n from race_editions where season_id=$1',[s6])).rows[0].n,0,'Reserved empty calendars remain untouched');

@@ -58,6 +58,8 @@ if(mode==='--preflight'){
   const s=summary();assert.equal(s.status,'planned');assert.ok([17,24].includes(s.elite_races));assert.equal(s.all_j1_stages,0);
   const refs=query(ro(`select iso_alpha2 from public.countries where iso_alpha2 in('TN','HU','SI','CH','BE') order by iso_alpha2`));
   assert.equal(refs.length,5);
+  const objective=query(ro("select objective_key,target_value,metric_key from public.game_objective_definitions where objective_key='all_monuments_won' limit 1"))[0];
+  assert.equal(objective?.target_value,5);assert.equal(objective?.metric_key,'distinct_monument_wins');
   console.log(JSON.stringify({databaseOk:true,calendar:s,requiredCountriesFound:refs.length,alreadyInstalled:!!initialReceipt}));
 }else{
   if(mode==='--apply-reviewed-migration'&&!initialReceipt){

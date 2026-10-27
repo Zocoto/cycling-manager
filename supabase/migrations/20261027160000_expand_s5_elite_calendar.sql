@@ -257,9 +257,9 @@ $provision$;
 
 -- Preserve the existing five-distinct-wins achievement and all claimed rewards.
 -- Its wording must no longer imply that there are only five Monuments.
-update public.career_objective_definitions set title='Collection des classiques',
+update public.game_objective_definitions set title='Collection des classiques',
   description='Gagner au moins une édition de cinq Monuments différents.'
-where code='all_monuments_won' and target_value=5 and metric_key='distinct_monument_wins';
+where objective_key='all_monuments_won' and target_value=5 and metric_key='distinct_monument_wins';
 
 do $verify$
 declare v_season record;
