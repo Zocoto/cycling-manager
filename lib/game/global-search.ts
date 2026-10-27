@@ -30,6 +30,7 @@ export type GlobalSearchResult = {
   team_status?: "active" | "inactive" | null;
   inactivated_season_name?: string | null;
   inactivated_day_number?: number | null;
+  match_kind?: "approximate";
 };
 
 export type GroupedGlobalSearchResults = {

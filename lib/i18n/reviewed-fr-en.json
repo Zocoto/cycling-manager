@@ -2792,5 +2792,7 @@
   "Profils signalés par vos alertes.": "Profiles flagged by your alerts.",
   "Voir tout le marché": "View the full market",
   "Ce profil n’est plus disponible": "This profile is no longer available",
-  "Il a déjà été recruté, a quitté le marché ou ne correspond pas aux filtres sélectionnés. Consultez les autres profils disponibles.": "They have already been hired, have left the market or do not match the selected filters. Browse the other available profiles."
+  "Il a déjà été recruté, a quitté le marché ou ne correspond pas aux filtres sélectionnés. Consultez les autres profils disponibles.": "They have already been hired, have left the market or do not match the selected filters. Browse the other available profiles.",
+  "Aucun résultat exact pour «": "No exact results for “",
+  "». Voici les correspondances les plus proches.": "”. Here are the closest matches."
 }

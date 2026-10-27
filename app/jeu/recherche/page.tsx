@@ -16,7 +16,7 @@ import {
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findSponsorByName } from "@/lib/sponsor-catalog";
-import { searchGameDirectory } from "@/services/global-search";
+import { searchGameDirectoryWithSuggestions } from "@/services/global-search";
 import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
@@ -83,7 +83,7 @@ export default async function GlobalSearchPage({
 
   const searchPromise =
     query.length >= GLOBAL_SEARCH_MIN_LENGTH
-      ? searchGameDirectory(supabase, query)
+      ? searchGameDirectoryWithSuggestions(supabase, query)
           .then((results) => ({ results, error: null }))
           .catch((error: unknown) => ({
             results: [] as GlobalSearchResult[],
@@ -172,6 +172,7 @@ export default async function GlobalSearchPage({
               query={query}
               totalResults={totalResults}
               hasError={Boolean(searchResult.error)}
+              approximate={searchResult.results.some(result => result.match_kind === "approximate")}
             />
 
             {query.length >= GLOBAL_SEARCH_MIN_LENGTH &&
@@ -230,10 +231,12 @@ function SearchStatus({
   query,
   totalResults,
   hasError,
+  approximate = false,
 }: {
   query: string;
   totalResults: number;
   hasError: boolean;
+  approximate?: boolean;
 }) {
   if (!query) {
     return (
@@ -270,6 +273,12 @@ function SearchStatus({
         description="Essayez un nom plus court, le nom d’une équipe, d’un coureur ou d’un pays."
       />
     );
+  }
+
+  if (approximate) {
+    return <p className="mb-7 rounded-xl border border-[#315B3E]/15 bg-[#EAF5F3] px-4 py-3 text-sm leading-6 text-[#36554E]">
+      Aucun résultat exact pour « {query} ». Voici les correspondances les plus proches.
+    </p>;
   }
 
   return (

@@ -3,6 +3,7 @@ import "server-only";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   GLOBAL_SEARCH_MIN_LENGTH,
+  normalizeGlobalSearchQuery,
   type GlobalSearchResult,
 } from "@/lib/game/global-search";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -22,6 +23,31 @@ const MAX_RESULTS_PER_CATEGORY = 20;
 type HistoricalTeamNameRow = {
   team_id: string;
 };
+
+/** Only the search page opts in: nation/profile resolution must remain exact. */
+export async function searchGameDirectoryWithSuggestions(
+  supabase: SupabaseServerClient,
+  input: string,
+): Promise<GlobalSearchResult[]> {
+  const query = normalizeGlobalSearchQuery(input);
+  const exact = await searchGameDirectory(supabase, query);
+  if (exact.length || query.length < 4 || !/\p{L}/u.test(query) ||
+    /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(query)) return exact;
+
+  try {
+    const { data, error } = await supabase.rpc("search_game_directory_suggestions", {
+      p_query: query, p_limit: 6,
+    }).abortSignal(AbortSignal.timeout(2500));
+    if (error) throw error;
+    const suggestions = limitResultsPerCategory((data ?? []) as GlobalSearchResult[], 6).slice(0, 6);
+    return (await enrichSportingDirectorFrames(await enrichCurrentTeamDivisions(suggestions)))
+      .map(result => ({ ...result, match_kind: "approximate" as const }));
+  } catch {
+    // Optional fallback: an unavailable suggestion must not break exact search.
+    console.error("global_search_suggestions_unavailable");
+    return [];
+  }
+}
 
 export async function searchGameDirectory(
   supabase: SupabaseServerClient,
