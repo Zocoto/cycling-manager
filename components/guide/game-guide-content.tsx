@@ -1872,6 +1872,9 @@ function ProgressionSection() {
             victoires, l’effectif, le matériel, le staff, les niveaux, les
             maillots, les participations et les wildcards.
           </p>
+          <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
+            Dès la saison 5, chaque nouveau filleul validé rapporte aussi 2 boosters de Cyclo-Stickers au parrain, en plus des objets, primes et accessoires de parrainage.
+          </p>
           <p className="mt-4 rounded-xl bg-[#FFF9DF] px-4 py-3 text-sm font-bold leading-6 text-[#705B00]">
             Un objectif ne peut être validé qu’une fois. Une fois terminé,
             ouvrez sa fiche et cliquez sur « Récompense » : argent, XP,
