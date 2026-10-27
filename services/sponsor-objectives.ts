@@ -25,10 +25,19 @@ import type {
   RiderSportingProfile,
   RiderSpecialtyProfile,
 } from "@/lib/game/rider-profile";
+import {
+  getSponsorObjectiveRaceMinimumRank,
+  getSponsorObjectiveUciTargetRank,
+  getSponsorObjectiveWinCount,
+  resolveSponsorObjectiveSportingLevel,
+  type SponsorObjectiveSportingContext,
+  type SponsorObjectiveSportingLevel,
+} from "@/lib/game/sponsor-objective-sporting-level";
 
 const OBJECTIVE_COUNT = 10;
 const SPONSOR_OBJECTIVE_GENERATION_VERSION = 10;
 export const SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR = 4;
+export const SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR = 5;
 
 const SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE: Record<
   SponsorPrestige,
@@ -93,6 +102,7 @@ type GenerateSponsorObjectivesOptions = {
   previousObjectives?: readonly SponsorObjectiveTargetDetails[];
   includeRiderRecruitmentObjective?: boolean;
   targetSeasonGameYear?: number;
+  teamSportingContext?: SponsorObjectiveSportingContext;
   random?: () => number;
 };
 
@@ -260,6 +270,7 @@ export function generateProvisionalSponsorObjectives({
   includeRiderRecruitmentObjective = false,
   targetSeasonGameYear =
     SPONSOR_OBJECTIVE_PRESTIGE_CATEGORY_POLICY_START_GAME_YEAR - 1,
+  teamSportingContext,
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
@@ -287,6 +298,14 @@ export function generateProvisionalSponsorObjectives({
     }),
     objectiveDifficulty,
   );
+  const sportingLevel = targetSeasonGameYear >= SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR
+    ? resolveSponsorObjectiveSportingLevel({
+        context: teamSportingContext ?? {
+          currentDivision: "amateur", projectedDivision: null, projectedRank: null,
+        },
+        ratings: teamRiderCandidates.map((rider) => rider.ratings),
+      })
+    : null;
   const weights = sportingPhilosophy === "national_preference"
     ? NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS
     : SATISFACTION_WEIGHTS[focus];
@@ -305,6 +324,7 @@ export function generateProvisionalSponsorObjectives({
     teamReputationPoints,
     raceCandidates,
     previousRaceIds,
+    sportingLevel,
     random,
   });
   const previousRaceRanks = previousObjectives.flatMap((objective) =>
@@ -397,8 +417,19 @@ export function generateProvisionalSponsorObjectives({
         })
       : null;
 
-  const domesticRaceObjective =
-    ambitionLevel >= 4
+  const fallbackRaceObjective = (offset: number) => {
+    if (offset === 1) return createInfrastructureObjective(1);
+    if (offset === 2) return createHomegrownRosterObjective(5);
+    const scope = getSeasonWinScopesForPhilosophy(sportingPhilosophy)[0];
+    return createSeasonWinsObjective(
+      minimumSeasonWinCount + offset,
+      scope,
+      getSeasonWinLabel(scope),
+    );
+  };
+  const domesticRaceObjective = !portfolio.domestic
+    ? fallbackRaceObjective(1)
+    : ambitionLevel >= 4
       ? createRaceWinObjective(
           portfolio.domestic,
           getPriorityForRaceWin(ambitionLevel)
@@ -409,17 +440,21 @@ export function generateProvisionalSponsorObjectives({
           getPriorityForTopRank(firstTopRank)
         );
 
-  const regionalRaceObjective = createRaceTopObjective(
-    portfolio.regional,
-    secondTopRank,
-    getPriorityForTopRank(secondTopRank)
-  );
+  const regionalRaceObjective = portfolio.regional
+    ? createRaceTopObjective(
+        portfolio.regional,
+        secondTopRank,
+        getPriorityForTopRank(secondTopRank)
+      )
+    : fallbackRaceObjective(2);
 
-  const philosophyRaceObjective = createPhilosophyRaceObjective({
-    race: portfolio.philosophyPrimary,
-    ambitionLevel,
-    random,
-  });
+  const philosophyRaceObjective = portfolio.philosophyPrimary
+    ? createPhilosophyRaceObjective({
+        race: portfolio.philosophyPrimary,
+        ambitionLevel,
+        random,
+      })
+    : fallbackRaceObjective(3);
 
   const leaderObjective = createNewLeaderOpportunityObjective({
     sponsorCountryCode: normalizedCountryCode,
@@ -432,11 +467,12 @@ export function generateProvisionalSponsorObjectives({
     teamRiderCandidates,
     raceCandidates,
     excludedRaceIds: new Set([
-      portfolio.domestic.raceId,
-      portfolio.regional.raceId,
-      portfolio.philosophyPrimary.raceId,
-    ]),
+      portfolio.domestic,
+      portfolio.regional,
+      portfolio.philosophyPrimary,
+    ].flatMap((race) => race ? [race.raceId] : [])),
     previousRaceIds,
+    sportingLevel,
     random,
   });
 
@@ -449,7 +485,7 @@ export function generateProvisionalSponsorObjectives({
           )
         : null,
       leaderObjective,
-      includeFormation
+      includeFormation && portfolio.regional
         ? createHomegrownRosterObjective(Math.min(30, ambitionLevel * 5))
         : null,
       portfolio.philosophySecondary
@@ -470,8 +506,11 @@ export function generateProvisionalSponsorObjectives({
 
   const legacyObjective = selectFlexibleObjective({
     candidates: [
-      includeInfrastructure ? createInfrastructureObjective(1) : null,
-      ...getLegacyWinScopesForPhilosophy(sportingPhilosophy).map((scope) =>
+      includeInfrastructure && portfolio.domestic ? createInfrastructureObjective(1) : null,
+      ...getLegacyWinScopesForPhilosophy(sportingPhilosophy)
+        .filter((scope) => targetSeasonGameYear < SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR ||
+          sportingPhilosophy !== "time_trials" || scope !== "stage_race_general")
+        .map((scope) =>
         createSeasonWinsObjective(
           Math.max(1, Math.ceil(ambitionLevel / 2)),
           scope,
@@ -534,7 +573,18 @@ export function generateProvisionalSponsorObjectives({
         withSatisfactionPoints(legacyObjective, weights.legacy),
       ];
 
-  const shuffledObjectives = shuffleValues(objectives, random);
+  const calibratedObjectives = sportingLevel
+    ? calibrateSponsorSportingObjectives({
+        objectives,
+        raceCandidates,
+        teamRiderCandidates,
+        teamSportingContext,
+        sportingLevel,
+        sportingPhilosophy,
+        objectiveDifficulty,
+      })
+    : objectives;
+  const shuffledObjectives = shuffleValues(calibratedObjectives, random);
   const satisfactionTotal = shuffledObjectives.reduce(
     (total, objective) => total + objective.satisfactionPoints,
     0
@@ -554,12 +604,136 @@ export function generateProvisionalSponsorObjectives({
     displayOrder: index + 1,
     targetDetails: {
       ...objective.targetDetails,
-      generationVersion: SPONSOR_OBJECTIVE_GENERATION_VERSION,
+      generationVersion: targetSeasonGameYear >= SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR
+        ? 11 : SPONSOR_OBJECTIVE_GENERATION_VERSION,
       sportingPhilosophy,
       ambitionLevel,
       objectiveDifficulty,
+      ...(sportingLevel ? {
+        sportingCalibration: {
+          currentDivision: teamSportingContext?.currentDivision ?? null,
+          projectedDivision: teamSportingContext?.projectedDivision ?? null,
+          projectedRank: teamSportingContext?.projectedRank ?? null,
+          categoryDivision: sportingLevel.division,
+          teamStrength: sportingLevel.teamStrength,
+        },
+      } : {}),
     },
   }));
+}
+
+function calibrateSponsorSportingObjectives({
+  objectives,
+  raceCandidates,
+  teamRiderCandidates,
+  teamSportingContext,
+  sportingLevel,
+  sportingPhilosophy,
+  objectiveDifficulty,
+}: {
+  objectives: readonly ObjectiveWithoutDisplayOrder[];
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+  teamRiderCandidates: readonly SponsorObjectiveTeamRiderCandidate[];
+  teamSportingContext: SponsorObjectiveSportingContext | undefined;
+  sportingLevel: SponsorObjectiveSportingLevel;
+  sportingPhilosophy: SponsorSportingPhilosophy;
+  objectiveDifficulty: SponsorObjectiveDifficulty;
+}): ObjectiveWithoutDisplayOrder[] {
+  const ratings = teamRiderCandidates.map((rider) => rider.ratings);
+  const raceById = new Map(raceCandidates.map((race) => [race.raceId, race]));
+  const adjustedWinObjectives = calibrateSeasonWinTargets({
+    objectives, sportingPhilosophy,
+    teamStrength: sportingLevel.teamStrength,
+    objectiveDifficulty,
+  });
+  const context = teamSportingContext ?? {
+    currentDivision: null,
+    projectedDivision: sportingLevel.division,
+    projectedRank: sportingLevel.projectedRank,
+  };
+
+  return objectives.map((objective) => {
+    const details = objective.targetDetails;
+    let adjusted: ObjectiveWithoutDisplayOrder | null = null;
+    if (details.kind === "race_result") {
+      const race = raceById.get(details.raceId);
+      if (!race) return objective;
+      const minimumRank = getSponsorObjectiveRaceMinimumRank({
+        race,
+        ratings,
+        difficulty: objectiveDifficulty,
+      });
+      const requestedRank = details.achievementType === "win" ? 1 : details.targetRank ?? 1;
+      if (minimumRank === null || minimumRank <= requestedRank) return objective;
+      adjusted = createRaceTopObjective(race, minimumRank, objective.priority);
+      if (details.variationReason === "new_leader_opportunity") {
+        adjusted.name = objective.name;
+        adjusted.description = objective.description.replace(/un top \d+/, `un top ${minimumRank}`);
+      }
+    } else if (details.kind === "uci_ranking") {
+      const rank = getSponsorObjectiveUciTargetRank({
+        requestedRank: details.targetRank,
+        context,
+        difficulty: objectiveDifficulty,
+      });
+      if (rank !== details.targetRank) adjusted = createUciRankingObjective(rank);
+    } else if (details.kind === "season_wins") {
+      adjusted = adjustedWinObjectives.get(objective) ?? null;
+    }
+    return adjusted ? {
+      ...objective,
+      name: adjusted.name,
+      description: adjusted.description,
+      objectiveType: adjusted.objectiveType,
+      targetDetails: details.kind === adjusted.targetDetails.kind
+        ? { ...details, ...adjusted.targetDetails } : adjusted.targetDetails,
+    } : objective;
+  });
+}
+
+function calibrateSeasonWinTargets({
+  objectives, sportingPhilosophy, teamStrength, objectiveDifficulty,
+}: {
+  objectives: readonly ObjectiveWithoutDisplayOrder[];
+  sportingPhilosophy: SponsorSportingPhilosophy;
+  teamStrength: number | null;
+  objectiveDifficulty: SponsorObjectiveDifficulty;
+}): Map<ObjectiveWithoutDisplayOrder, ObjectiveWithoutDisplayOrder> {
+  const adjusted = new Map<ObjectiveWithoutDisplayOrder, ObjectiveWithoutDisplayOrder>();
+  const usedTargets = new Set<string>();
+  const usedInfrastructureCounts = new Set(objectives.flatMap((objective) =>
+    objective.targetDetails.kind === "infrastructure" ? [objective.targetDetails.minimumCompletedCount] : [],
+  ));
+  const scopes = sportingPhilosophy === "medium_stage_races" || sportingPhilosophy === "grand_tour_general"
+    ? ["stage_race_general", "stages", "all"] as const
+    : ["stages", "one_day_races", "all"] as const;
+  const entries = objectives.flatMap((objective, index) => objective.targetDetails.kind === "season_wins"
+    ? [{ objective, details: objective.targetDetails, index }] : [])
+    .sort((left, right) => right.details.minimumWinCount - left.details.minimumWinCount || left.index - right.index);
+
+  for (const { objective, details } of entries) {
+    const maximumCount = getSponsorObjectiveWinCount({
+      requestedCount: details.minimumWinCount, teamStrength, difficulty: objectiveDifficulty,
+    });
+    // Keep progressive milestones only while they fit the sporting ceiling.
+    // Extra slots use complementary goals, never a harder artificial win quota.
+    for (const scope of new Set([details.winScope, ...scopes])) {
+      for (let count = maximumCount; count >= 1; count -= 1) {
+        const key = `${scope}:${count}`;
+        if (usedTargets.has(key)) continue;
+        usedTargets.add(key);
+        adjusted.set(objective, createSeasonWinsObjective(count, scope, getSeasonWinLabel(scope)));
+        break;
+      }
+      if (adjusted.has(objective)) break;
+    }
+    if (adjusted.has(objective)) continue;
+    let infrastructureCount = 1;
+    while (usedInfrastructureCounts.has(infrastructureCount)) infrastructureCount += 1;
+    usedInfrastructureCounts.add(infrastructureCount);
+    adjusted.set(objective, createInfrastructureObjective(infrastructureCount));
+  }
+  return adjusted;
 }
 
 export function resolveSponsorObjectiveAmbitionLevel({
@@ -726,6 +900,7 @@ function createNewLeaderOpportunityObjective({
   raceCandidates,
   excludedRaceIds,
   previousRaceIds,
+  sportingLevel,
   random,
 }: {
   sponsorCountryCode: string;
@@ -739,6 +914,7 @@ function createNewLeaderOpportunityObjective({
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   excludedRaceIds: ReadonlySet<string>;
   previousRaceIds: ReadonlySet<string>;
+  sportingLevel?: SponsorObjectiveSportingLevel | null;
   random: () => number;
 }): ObjectiveWithoutDisplayOrder | null {
   if (sportingPhilosophy === "youth_development") return null;
@@ -752,19 +928,24 @@ function createNewLeaderOpportunityObjective({
 
   if (!opportunity) return null;
 
-  const eligibleRaces = selectPrestigeAlignedSponsorObjectiveRaceCandidates({
-    candidates: getEligibleSponsorObjectiveRaces({
+  const eligible = getEligibleSponsorObjectiveRaces({
       teamReputationPoints,
       raceCandidates,
-    }),
+    }).filter((race) =>
+      (!sportingLevel || sportingLevel.division === "elite" || race.categoryCode !== "elite") &&
+      (targetSeasonGameYear < SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR ||
+        matchesSportingObjectivePhilosophy(race, sportingPhilosophy)),
+    );
+  const matchesOpportunity = (race: SponsorObjectiveRaceCandidate) =>
+    !excludedRaceIds.has(race.raceId) &&
+    matchesLeaderDomain(race, opportunity.domain, Boolean(sportingLevel));
+  const eligibleRaces = selectPrestigeAlignedSponsorObjectiveRaceCandidates({
+    candidates: sportingLevel ? eligible.filter(matchesOpportunity) : eligible,
     sponsorPrestige,
     targetSeasonGameYear,
     minimumCount: 1,
-  }).filter(
-    (race) =>
-      !excludedRaceIds.has(race.raceId) &&
-      matchesLeaderDomain(race, opportunity.domain),
-  );
+    categoryPriorities: sportingLevel?.categoryPriorities,
+  }).filter(matchesOpportunity);
   const race = selectRaceBySponsorGeography({
     candidates: eligibleRaces,
     sponsorCountryCode,
@@ -903,6 +1084,7 @@ function getLeaderDomainScore(
 function matchesLeaderDomain(
   race: SponsorObjectiveRaceCandidate,
   domain: SponsorLeaderDomain,
+  coherentGeneralClassification = false,
 ): boolean {
   const profiles = new Set(race.profileTypes ?? []);
 
@@ -912,10 +1094,11 @@ function matchesLeaderDomain(
     case "hills":
       return profiles.has("hilly");
     case "sprints":
-      return profiles.has("sprint") || profiles.has("flat");
+      return (!coherentGeneralClassification || race.raceFormat === "one_day") &&
+        (profiles.has("sprint") || profiles.has("flat"));
     case "time_trials":
-      return profiles.has("time_trial") ||
-        race.competitionType === "national_time_trial";
+      return (!coherentGeneralClassification || race.raceFormat === "one_day") &&
+        (profiles.has("time_trial") || race.competitionType === "national_time_trial");
     case "stage_races":
       return race.raceFormat === "stage_race";
     case "mountain":
@@ -1283,6 +1466,7 @@ function selectSponsorObjectivePortfolio({
   teamReputationPoints,
   raceCandidates,
   previousRaceIds,
+  sportingLevel,
   random,
 }: {
   sponsorCountryCode: string;
@@ -1294,17 +1478,23 @@ function selectSponsorObjectivePortfolio({
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   previousRaceIds: ReadonlySet<string>;
+  sportingLevel?: SponsorObjectiveSportingLevel | null;
   random: () => number;
 }): {
-  domestic: SponsorObjectiveRaceCandidate;
-  regional: SponsorObjectiveRaceCandidate;
-  philosophyPrimary: SponsorObjectiveRaceCandidate;
+  domestic: SponsorObjectiveRaceCandidate | null;
+  regional: SponsorObjectiveRaceCandidate | null;
+  philosophyPrimary: SponsorObjectiveRaceCandidate | null;
   philosophySecondary: SponsorObjectiveRaceCandidate | null;
 } {
+  const sportingPolicyEnabled =
+    targetSeasonGameYear >= SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR;
   const eligible = getEligibleSponsorObjectiveRaces({
     teamReputationPoints,
     raceCandidates,
-  });
+  }).filter((race) =>
+    (!sportingLevel || sportingLevel.division === "elite" || race.categoryCode !== "elite") &&
+    (!sportingPolicyEnabled || matchesSportingObjectivePhilosophy(race, sportingPhilosophy)),
+  );
   const categoryPolicyEnabled = isSponsorObjectivePrestigeCategoryPolicyEnabled(
     targetSeasonGameYear,
   );
@@ -1314,6 +1504,7 @@ function selectSponsorObjectivePortfolio({
       sponsorPrestige,
       targetSeasonGameYear,
       minimumCount: 1,
+      categoryPriorities: sportingLevel?.categoryPriorities,
     }).map((candidate) => candidate.raceId),
   );
   const usedRaceIds = new Set<string>();
@@ -1343,6 +1534,7 @@ function selectSponsorObjectivePortfolio({
         sponsorPrestige,
         targetSeasonGameYear,
         minimumCount: 1,
+        categoryPriorities: sportingLevel?.categoryPriorities,
       });
 
     return takeFromCandidates(prestigeAlignedCandidates);
@@ -1393,6 +1585,7 @@ function selectSponsorObjectivePortfolio({
         sponsorPrestige,
         targetSeasonGameYear,
         minimumCount: 1,
+        categoryPriorities: sportingLevel?.categoryPriorities,
       });
     const takeGeographicCandidates = (
       geographyPredicate: (candidate: SponsorObjectiveRaceCandidate) => boolean,
@@ -1420,7 +1613,9 @@ function selectSponsorObjectivePortfolio({
 
   const philosophyPredicate = (
     candidate: SponsorObjectiveRaceCandidate,
-  ) => matchesSponsorSportingPhilosophy(candidate, sportingPhilosophy);
+  ) => sportingPolicyEnabled
+    ? matchesSportingObjectivePhilosophy(candidate, sportingPhilosophy)
+    : matchesSponsorSportingPhilosophy(candidate, sportingPhilosophy);
   const flagshipPhilosophyPredicate = (
     candidate: SponsorObjectiveRaceCandidate,
   ) => {
@@ -1444,6 +1639,10 @@ function selectSponsorObjectivePortfolio({
     );
   };
   const philosophyPrimary =
+    (sportingPolicyEnabled && sportingPhilosophy === "grand_tour_general"
+      ? takeByGeography((candidate) => candidate.isGrandTour === true)
+      : null) ??
+    (sportingPolicyEnabled ? takeByGeography(philosophyPredicate) : null) ??
     (categoryPolicyEnabled && ambitionLevel >= 6
       ? take(
           (candidate) =>
@@ -1539,7 +1738,9 @@ function selectSponsorObjectivePortfolio({
       )
     : takeByGeography(philosophyPredicate);
 
-  if (!domestic || !regional || !philosophyPrimary) {
+  // A sparse calendar must not turn a sprint/chrono sponsor into a GC sponsor.
+  // Missing compatible races become development/season objectives instead.
+  if (!sportingPolicyEnabled && (!domestic || !regional || !philosophyPrimary)) {
     throw new Error(
       "Au moins trois courses accessibles sont nécessaires pour les objectifs sponsor.",
     );
@@ -1551,6 +1752,26 @@ function selectSponsorObjectivePortfolio({
     philosophyPrimary,
     philosophySecondary,
   };
+}
+
+function matchesSportingObjectivePhilosophy(
+  candidate: SponsorObjectiveRaceCandidate,
+  sportingPhilosophy: SponsorSportingPhilosophy,
+): boolean {
+  switch (sportingPhilosophy) {
+    case "sprints":
+    case "time_trials":
+      return candidate.raceFormat === "one_day" &&
+        matchesSponsorSportingPhilosophy(candidate, sportingPhilosophy);
+    case "grand_tour_general":
+      // Smaller stage races provide accessible GC goals before Elite access.
+      return candidate.raceFormat === "stage_race";
+    case "national_preference":
+    case "youth_development":
+      return true;
+    default:
+      return matchesSponsorSportingPhilosophy(candidate, sportingPhilosophy);
+  }
 }
 
 export function matchesSponsorSportingPhilosophy(
@@ -1615,9 +1836,10 @@ function isSponsorObjectivePrestigeCategoryPolicyEnabled(
 function getSponsorObjectiveRaceCategoryTier(
   candidate: SponsorObjectiveRaceCandidate,
   sponsorPrestige: SponsorPrestige,
+  categoryPriorities?: readonly (readonly RaceCategoryCode[])[],
 ): number {
   const categoryBands =
-    SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE[sponsorPrestige];
+    categoryPriorities ?? SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE[sponsorPrestige];
   const categoryTier = categoryBands.findIndex((categoryCodes) =>
     candidate.categoryCode !== undefined &&
     categoryCodes.includes(candidate.categoryCode)
@@ -1631,11 +1853,13 @@ function selectPrestigeAlignedSponsorObjectiveRaceCandidates({
   sponsorPrestige,
   targetSeasonGameYear,
   minimumCount,
+  categoryPriorities,
 }: {
   candidates: readonly SponsorObjectiveRaceCandidate[];
   sponsorPrestige: SponsorPrestige;
   targetSeasonGameYear: number;
   minimumCount: number;
+  categoryPriorities?: readonly (readonly RaceCategoryCode[])[];
 }): SponsorObjectiveRaceCandidate[] {
   if (
     !isSponsorObjectivePrestigeCategoryPolicyEnabled(targetSeasonGameYear) ||
@@ -1650,13 +1874,13 @@ function selectPrestigeAlignedSponsorObjectiveRaceCandidates({
   );
   const selectedCandidates: SponsorObjectiveRaceCandidate[] = [];
   const maximumTier =
-    SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE[sponsorPrestige].length;
+    (categoryPriorities ?? SPONSOR_OBJECTIVE_CATEGORY_PRIORITY_BY_PRESTIGE[sponsorPrestige]).length;
 
   for (let tier = 0; tier <= maximumTier; tier += 1) {
     selectedCandidates.push(
       ...candidates.filter(
         (candidate) =>
-          getSponsorObjectiveRaceCategoryTier(candidate, sponsorPrestige) ===
+          getSponsorObjectiveRaceCategoryTier(candidate, sponsorPrestige, categoryPriorities) ===
           tier,
       ),
     );

@@ -1504,7 +1504,7 @@ function SponsoringSection() {
             "Marché débloqué à 30 points de réputation",
             "Négociations de J21 à J28 pour la saison suivante",
             "Budget saisonnier, identité, philosophie et objectifs",
-            "Catégorie des courses cohérente avec le prestige du sponsor",
+            "Dès la saison 5, objectifs adaptés à la philosophie du sponsor et au niveau de l’équipe",
             "Satisfaction alimentée par les objectifs, les résultats et les engagements publics",
           ]}
         />
@@ -1533,6 +1533,17 @@ function SponsoringSection() {
           ]}
         />
       </div>
+
+      <StrategyNote title="Des objectifs cohérents avec le projet sportif">
+        Dès la saison 5, les propositions tiennent compte de la division projetée au classement,
+        des spécialités des leaders et de la profondeur de l’effectif connu, y compris les arrivées
+        et départs déjà prévus. La philosophie du sponsor reste prioritaire : un partenaire orienté
+        sprint ou chrono ne demande pas le classement général d’un tour. Les équipes Élite ou
+        projetées en Élite visent d’abord les épreuves Élite compatibles ; le résultat demandé
+        reste adapté à leurs moyens. Les autres équipes ne reçoivent pas d’obligation dépendant
+        d’une invitation Élite. Ces paramètres sont fixés à la proposition ; consulter la page
+        ne relance pas les objectifs et les engagements signés restent inchangés.
+      </StrategyNote>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-2">
         <article className="rounded-[1.75rem] border border-[#315B3E]/15 bg-white p-6 shadow-[0_16px_42px_rgba(19,60,46,0.08)] sm:p-8">

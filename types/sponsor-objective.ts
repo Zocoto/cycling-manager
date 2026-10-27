@@ -2,6 +2,7 @@ import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import type { SponsorObjectiveDifficulty } from "@/lib/game/sponsor-negotiation";
 import type { RiderSportingProfile } from "@/lib/game/rider-profile";
 import type { SponsorMainObjectiveTerms } from "@/lib/game/sponsor-main-objective";
+import type { TeamDivisionCode } from "@/lib/game/economy";
 
 export type SponsorObjectiveAmbitionLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -124,6 +125,13 @@ export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {
   sportingPhilosophy?: SponsorSportingPhilosophy;
   ambitionLevel?: SponsorObjectiveAmbitionLevel;
   objectiveDifficulty?: SponsorObjectiveDifficulty;
+  sportingCalibration?: {
+    currentDivision: TeamDivisionCode | null;
+    projectedDivision: TeamDivisionCode | null;
+    projectedRank: number | null;
+    categoryDivision: TeamDivisionCode;
+    teamStrength: number | null;
+  };
   variationReason?: "history_rotation" | "new_leader_opportunity";
   leaderRiderId?: string;
   leaderRiderName?: string;

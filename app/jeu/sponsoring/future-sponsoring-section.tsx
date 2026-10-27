@@ -4,11 +4,13 @@ import { SponsorLogo } from "@/components/game/sponsor-logo";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
 import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
+import { DIVISION_RULES } from "@/lib/game/economy";
 import {
   SPONSOR_SPORTING_PHILOSOPHY_CONFIG,
   type SponsorSportingPhilosophy,
 } from "@/lib/game/sponsor-philosophy";
 import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
+import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 import type {
   FutureSponsoringState,
   PersistedSponsorContract,
@@ -291,6 +293,8 @@ function ContinuingContractNotice({
                 </span>
               </div>
 
+              <SportingObjectiveNotice objectives={state.objectivePlan.objectives} />
+
               <ol className="mt-4 grid gap-2.5 md:grid-cols-2">
                 {state.objectivePlan.objectives.map((objective, index) => (
                   <li
@@ -383,9 +387,13 @@ function FutureOffersSection({
       </p>
 
       <p className="mt-2 text-sm leading-7 text-[#60756E]">
-        Les objectifs de course privilégient le pays du sponsor, puis ses
-        voisins et enfin son continent. Les courses Continentales deviennent
-        accessibles à 100 points de réputation, les Mondiales à 200 points.
+        {state.season.gameYear >= 5 ? (
+          <>La philosophie du sponsor guide le choix des épreuves. Parmi les courses compatibles avec votre niveau et accessibles à l’équipe, son pays puis ses voisins sont privilégiés. Les courses Continentales demandent 100 points de réputation, les Mondiales 200 points.</>
+        ) : (
+          <>Les objectifs de course privilégient le pays du sponsor, puis ses
+          voisins et enfin son continent. Les courses Continentales deviennent
+          accessibles à 100 points de réputation, les Mondiales à 200 points.</>
+        )}
       </p>
     </>
   );
@@ -575,6 +583,8 @@ function FutureSponsorOfferCard({
             10 engagements · 100 points de satisfaction
           </p>
 
+          <SportingObjectiveNotice objectives={offer.objectives} />
+
           <ol className="mt-3 space-y-2.5">
             {offer.objectives.map((objective, index) => (
               <li
@@ -639,6 +649,24 @@ function FutureSponsorOfferCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function SportingObjectiveNotice({ objectives }: {
+  objectives: readonly PersistedSponsorObjective[];
+}) {
+  const calibration = objectives.find((objective) => objective.targetDetails.sportingCalibration)
+    ?.targetDetails.sportingCalibration;
+  if (!calibration) return null;
+  const projectedDivision = calibration.projectedDivision ?? calibration.currentDivision;
+  const divisionName = projectedDivision === "amateur" ? "Amateur"
+    : DIVISION_RULES.find((division) => division.code === projectedDivision)?.name;
+
+  return (
+    <p className="mt-3 text-xs font-medium leading-5 text-[#60756E]">
+      Objectifs adaptés à la philosophie du sponsor, à la division projetée et aux forces de l’effectif lors de la proposition.
+      {divisionName ? <> Projection retenue : {divisionName}.</> : null}
+    </p>
   );
 }
 

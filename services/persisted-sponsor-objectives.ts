@@ -2,6 +2,10 @@ import "server-only";
 
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
+  loadSponsorObjectiveSportingContext,
+  type SponsorObjectiveTeamSportingSnapshot,
+} from "@/services/sponsor-objective-sporting-context";
+import {
   generateProvisionalSponsorObjectives,
   isSponsorObjectiveRaceCandidateEligible,
   selectSponsorObjectiveRaces,
@@ -246,6 +250,14 @@ export async function ensureAndLoadSponsorObjectives({
   });
 
   const offerIds = offers.map((offer) => offer.offerId);
+  const existingObjectiveRows = await loadSponsorObjectiveRows(supabase, offerIds, seasonId);
+  const existingRowsByOfferId = groupRowsByOfferId(existingObjectiveRows);
+  const sportingContextEnabled = targetSeasonGameYear >= 5;
+  // Once a complete S5+ plan has been proposed, later visits retain that
+  // snapshot rather than adapting it to every transfer or ranking change.
+  const generationOffers = sportingContextEnabled
+    ? offers.filter((offer) => (existingRowsByOfferId.get(offer.offerId)?.length ?? 0) < OBJECTIVE_COUNT_PER_OFFER)
+    : offers;
   const {
     raceCandidates,
     continentCodeByCountryCode,
@@ -253,7 +265,7 @@ export async function ensureAndLoadSponsorObjectives({
     supabase,
     seasonId,
   });
-  const riderRecruitmentOffers = offers.filter(
+  const riderRecruitmentOffers = generationOffers.filter(
     (offer) =>
       offer.includeRiderRecruitmentObjective === true &&
       shouldSponsorRequestRiderRecruitment({
@@ -280,37 +292,32 @@ export async function ensureAndLoadSponsorObjectives({
       })
     : [];
 
-  const [objectiveHistoryByOfferId, teamRiderCandidates] = await Promise.all([
+  const [objectiveHistoryByOfferId, teamSportingSnapshot]: [
+    Map<string, SponsorObjectiveTargetDetails[]>, SponsorObjectiveTeamSportingSnapshot,
+  ] = await Promise.all([
     loadPreviousSponsorObjectivesByOffer({
       supabase,
       seasonId,
-      offerIds,
+      offerIds: generationOffers.map((offer) => offer.offerId),
     }),
-    teamId?.trim()
-      ? loadSponsorObjectiveTeamRiderCandidates({
-          supabase,
-          seasonId,
-          teamId: teamId.trim(),
-        })
-      : Promise.resolve([]),
+    sportingContextEnabled
+      ? generationOffers.length > 0
+        ? loadSponsorObjectiveSportingContext({ supabase, seasonId, targetSeasonGameYear, teamId })
+        : Promise.resolve({ teamRiderCandidates: [] })
+      : teamId?.trim()
+        ? loadSponsorObjectiveTeamRiderCandidates({ supabase, seasonId, teamId: teamId.trim() })
+            .then((teamRiderCandidates) => ({ teamRiderCandidates }))
+        : Promise.resolve({ teamRiderCandidates: [] }),
   ]);
-
-  const existingObjectiveRows =
-    await loadSponsorObjectiveRows(
-      supabase,
-      offerIds,
-      seasonId
-    );
-
-  const existingRowsByOfferId = groupRowsByOfferId(
-    existingObjectiveRows
-  );
+  const { teamRiderCandidates, teamSportingContext } = teamSportingSnapshot;
 
   const rowsToInsert: SponsorObjectiveInsertRow[] = [];
 
   for (const offer of offers) {
     const existingRows =
       existingRowsByOfferId.get(offer.offerId) ?? [];
+
+    if (sportingContextEnabled && existingRows.length >= OBJECTIVE_COUNT_PER_OFFER) continue;
 
     const modernizeLegacyObjectiveSet =
       !offer.neutralizeMissingObjectives &&
@@ -345,6 +352,7 @@ export async function ensureAndLoadSponsorObjectives({
         objectiveDifficulty: offer.objectiveDifficulty ?? "balanced",
         riderCandidates,
         teamRiderCandidates,
+        teamSportingContext,
         previousObjectives:
           objectiveHistoryByOfferId.get(offer.offerId) ?? [],
         includeRiderRecruitmentObjective:
@@ -357,11 +365,27 @@ export async function ensureAndLoadSponsorObjectives({
         ),
       });
 
-    if (modernizeLegacyObjectiveSet) {
+    if (modernizeLegacyObjectiveSet && !sportingContextEnabled) {
       await modernizeLegacyObjectiveWeights({
         supabase,
         existingRows,
         generatedObjectives,
+      });
+    }
+
+    if (sportingContextEnabled) {
+      // Complete a partially persisted S5 plan from the same calibrated draw.
+      // Repair first so the missing-slot deduplication sees the actual targets.
+      await repairLegacyRaceObjectives({
+        supabase,
+        objectiveRows: existingRows,
+        sponsorCountryCode: offer.sponsor.countryCode,
+        sponsorPrestige: offer.sponsor.prestige,
+        targetSeasonGameYear,
+        teamReputationPoints,
+        raceCandidates,
+        generatedObjectives,
+        random: createSeededRandom(`${offer.offerId}:${offer.sponsor.id}:race-repair`),
       });
     }
 
@@ -416,18 +440,18 @@ export async function ensureAndLoadSponsorObjectives({
     }
 
 
-    await repairLegacyRaceObjectives({
-      supabase,
-      objectiveRows: existingRows,
-      sponsorCountryCode: offer.sponsor.countryCode,
-      sponsorPrestige: offer.sponsor.prestige,
-      targetSeasonGameYear,
-      teamReputationPoints,
-      raceCandidates,
-      random: createSeededRandom(
-        `${offer.offerId}:${offer.sponsor.id}:race-repair`
-      ),
-    });
+    if (!sportingContextEnabled) {
+      await repairLegacyRaceObjectives({
+        supabase,
+        objectiveRows: existingRows,
+        sponsorCountryCode: offer.sponsor.countryCode,
+        sponsorPrestige: offer.sponsor.prestige,
+        targetSeasonGameYear,
+        teamReputationPoints,
+        raceCandidates,
+        random: createSeededRandom(`${offer.offerId}:${offer.sponsor.id}:race-repair`),
+      });
+    }
 
     for (const objective of objectivesToInsert) {
       if (
@@ -1921,6 +1945,7 @@ export async function repairLegacyRaceObjectives({
   targetSeasonGameYear,
   teamReputationPoints,
   raceCandidates,
+  generatedObjectives,
   random,
 }: {
   supabase: SupabaseAdminClient;
@@ -1930,8 +1955,19 @@ export async function repairLegacyRaceObjectives({
   targetSeasonGameYear: number;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+  generatedObjectives?: Readonly<ReturnType<typeof generateProvisionalSponsorObjectives>>;
   random: () => number;
 }): Promise<void> {
+  if (targetSeasonGameYear >= 5) {
+    const provisionalRows = objectiveRows.filter((objective) => objective.status === "draft" && objective.is_provisional);
+    if (provisionalRows.length === 0) return;
+    if (!generatedObjectives) {
+      throw new Error("Le plan sportif calibré est obligatoire pour compléter les objectifs sponsor.");
+    }
+    await repairCalibratedDraftObjectives({ supabase, objectiveRows: provisionalRows, generatedObjectives });
+    return;
+  }
+
   const raceObjectiveRows = objectiveRows.filter(
     // Une offre peut être réparée avant signature. Un contrat signé conserve
     // ses courses, même si un nouveau tirage ou la réputation a changé.
@@ -2049,6 +2085,60 @@ export async function repairLegacyRaceObjectives({
         `Impossible de relier l’objectif ${objective.id} à une course existante : ${error.message}`
       );
     }
+  }
+}
+
+async function repairCalibratedDraftObjectives({
+  supabase,
+  objectiveRows,
+  generatedObjectives,
+}: {
+  supabase: SupabaseAdminClient;
+  objectiveRows: readonly SponsorObjectiveRow[];
+  generatedObjectives: Readonly<ReturnType<typeof generateProvisionalSponsorObjectives>>;
+}): Promise<void> {
+  const generatedByOrder = new Map(generatedObjectives.map((objective) => [objective.displayOrder, objective]));
+  for (const row of [...objectiveRows].sort((left, right) => left.display_order - right.display_order)) {
+    if (row.status !== "draft" || !row.is_provisional) continue;
+    // Reconcile the incomplete snapshot by slot, not by the number of old race
+    // targets. A sparse suitable calendar may legitimately replace an old race
+    // slot with another coherent objective family from the same generated plan.
+    const replacement = generatedByOrder.get(row.display_order);
+    if (!replacement) throw new Error("Le plan sportif calibré est obligatoire pour compléter les objectifs sponsor.");
+    if (row.name === replacement.name && row.description === replacement.description
+      && row.objective_type === replacement.objectiveType && row.priority === replacement.priority
+      && row.evaluation_timing === replacement.evaluationTiming
+      && row.evaluation_day_number === replacement.evaluationDayNumber
+      && Number(row.renewal_bonus_percent) === replacement.renewalBonusPercent
+      && Number(row.satisfaction_points) === replacement.satisfactionPoints
+      && JSON.stringify(row.target_details) === JSON.stringify(replacement.targetDetails)) continue;
+    const update = {
+      name: replacement.name,
+      description: replacement.description,
+      objective_type: replacement.objectiveType,
+      priority: replacement.priority,
+      evaluation_timing: replacement.evaluationTiming,
+      evaluation_day_number: replacement.evaluationDayNumber,
+      renewal_bonus_percent: replacement.renewalBonusPercent,
+      satisfaction_points: replacement.satisfactionPoints,
+      target_details: replacement.targetDetails,
+    };
+    const removesRaceTarget = row.target_details.kind === "race_result" && replacement.targetDetails.kind !== "race_result";
+    const clearsRaceLink = row.target_details.kind === "race_result"
+      && (replacement.targetDetails.kind !== "race_result" || !replacement.targetDetails.raceEditionId);
+    const { error } = await supabase.from("sponsor_objectives").update(update)
+      .eq("id", row.id).eq("status", "draft").eq("is_provisional", true);
+    if (error) throw new Error(`Impossible de relier l’objectif ${row.id} à une course existante : ${error.message}`);
+    if (clearsRaceLink) {
+      const { error: linkError } = await supabase.from("race_result_objectives").delete().eq("objective_id", row.id);
+      if (linkError) throw new Error(`Impossible de synchroniser la course de l’objectif ${row.id} : ${linkError.message}`);
+    }
+    if (removesRaceTarget) {
+      const { error: termsError } = await supabase.from("sponsor_main_objective_terms").delete()
+        .eq("sponsor_objective_id", row.id).eq("settlement_status", "pending");
+      if (termsError) throw new Error(`Impossible de retirer les anciennes conditions de l’objectif ${row.id} : ${termsError.message}`);
+    }
+    Object.assign(row, update);
   }
 }
 
