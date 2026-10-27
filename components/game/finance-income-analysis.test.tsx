@@ -10,8 +10,16 @@ describe("FinanceIncomeAnalysisPanel", () => {
     ]);
     const html=renderToStaticMarkup(<FinanceIncomeAnalysisPanel analysis={analysis} currency="EUR" seasonName="Saison 4" />);
     expect(html).toContain('role="img"');expect(html).toContain("de recettes par source");
-    expect(html).toContain("Sponsors");expect(html).toContain("Boutique");expect(html).toContain("Encaissé");expect(html).toContain("Prévu");
+    expect(html).toContain("Sponsors");expect(html).toContain("Boutique");expect(html).toContain("Encaissé");expect(html).toContain("À recevoir");
     expect(html).toContain("revenus bruts");expect(html).toContain("allocation de départ");
+    const text=html.replace(/<[^>]+>/g,"").replace(/\s/g," ");
+    expect(text).toContain("Total encaissé + à recevoir · Saison 4");
+    expect(text).toContain("Déjà encaissé50 000 €");
+    expect(text).toContain("À recevoir200 000 €");
+    expect(text).toContain("Recettes de la saison250 000 €");
+    expect(text).toContain("Les sommes encaissées sont déjà incluses dans le solde actuel");
+    expect(text).toContain("y compris ses économies sur charges");
+    expect(html).not.toContain("Prévu");
     expect(html).toContain("Première source de revenus");expect(html).not.toContain("Charges engagées");
   });
   it("has a clear empty state without an empty chart or invented earnings", () => {

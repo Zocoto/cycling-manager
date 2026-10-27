@@ -21,15 +21,15 @@ export function FinanceIncomeAnalysisPanel({
         <IncomeMetric
           label="Recettes de la saison"
           value={formatCurrency(analysis.totalAmount, currency)}
-          detail={`Total encaissé et prévu · ${seasonName}`}
+          detail={`Total encaissé + à recevoir · ${seasonName}`}
         />
         <IncomeMetric
           label="Déjà encaissé"
           value={formatCurrency(analysis.postedAmount, currency)}
-          detail="Recettes effectivement reçues par l’équipe"
+          detail="Recettes reçues, déjà incluses dans le solde actuel"
         />
         <IncomeMetric
-          label="Encore à recevoir"
+          label="À recevoir"
           value={formatCurrency(analysis.pendingAmount, currency)}
           detail="Versements planifiés et apports prévisibles du DF"
           accent="gold"
@@ -51,9 +51,10 @@ export function FinanceIncomeAnalysisPanel({
             D’où vient l’argent de l’équipe ?
           </h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-            Le graphique regroupe les recettes encaissées, planifiées et les apports prévisibles du DF,
-            hors allocation de départ et mouvements annulés. Il présente les
-            revenus bruts, avant déduction des charges. Les estimations du DF supposent des contrats inchangés.
+            Le graphique couvre toute la saison : recettes déjà encaissées et montants encore à recevoir,
+            hors allocation de départ et mouvements annulés. Les sommes encaissées sont déjà incluses dans le solde actuel.
+            Les revenus bruts sont présentés avant déduction des charges. Les crédits du DF, y compris ses économies sur charges,
+            figurent dans les recettes. Ses estimations supposent des contrats inchangés.
           </p>
         </div>
 
@@ -115,7 +116,7 @@ export function FinanceIncomeAnalysisPanel({
                       <p>Encaissé {formatCurrency(item.postedAmount, currency)}</p>
                       {item.pendingAmount > 0 ? (
                         <p className="text-[#8A6B16]">
-                          Prévu {formatCurrency(item.pendingAmount, currency)}
+                          À recevoir {formatCurrency(item.pendingAmount, currency)}
                         </p>
                       ) : null}
                     </div>

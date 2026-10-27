@@ -5,11 +5,8 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { FinanceExpenseAnalysisPanel } from "@/components/game/finance-expense-analysis";
 import { FinanceIncomeAnalysisPanel } from "@/components/game/finance-income-analysis";
-import {
-  FinancialDirectorImpact,
-  FinancialDirectorSourceImpact,
-  getFinancialDirectorTransactionLabel,
-} from "@/components/game/financial-director-impact";
+import { FinanceTransactionColumn } from "@/components/game/finance-transaction-column";
+import { FinancialDirectorImpact } from "@/components/game/financial-director-impact";
 import { GameHeader } from "@/components/game/game-header";
 import {
   GameSectionTabLink,
@@ -26,7 +23,6 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamFinanceOverview,
-  type FinanceCategory,
   type FinancialDirectorEffect,
   type TeamFinanceTransaction,
 } from "@/services/team-finances";
@@ -34,19 +30,6 @@ import {
 export const metadata: Metadata = {
   title: "Finances de l’équipe",
   description: "Suivez la trésorerie réelle et prévisionnelle de votre équipe.",
-};
-
-const CATEGORY_LABELS: Record<FinanceCategory, string> = {
-  sponsor: "Sponsor",
-  race_prize: "Prime de course",
-  rider_salary: "Salaire coureur",
-  staff_salary: "Salaire staff",
-  equipment: "Équipement",
-  building: "Infrastructure",
-  transfer: "Transfert",
-  training: "Entraînement",
-  medical_care: "Soins médicaux",
-  other: "Autre",
 };
 
 type TeamFinancesPageProps = {
@@ -82,20 +65,13 @@ export default async function TeamFinancesPage({
     redirect("/jeu");
   }
 
-  const gains = overview.transactions.filter(
-    (transaction) => transaction.amount > 0 && transaction.status !== "cancelled"
+  const incomeAnalysis = buildFinanceIncomeAnalysis(overview.transactions);
+  const expenseAnalysis = buildFinanceExpenseAnalysis(overview.transactions);
+  const pendingTransactions = overview.transactions.filter(
+    (transaction) => transaction.status === "pending"
   );
-  const expenses = overview.transactions.filter(
-    (transaction) => transaction.amount < 0 && transaction.status !== "cancelled"
-  );
-  const raceSettlements = buildRacePrizeSettlements(gains);
-  const settledTransactionIds = new Set(
-    raceSettlements.flatMap((settlement) =>
-      settlement.transactions.map((transaction) => transaction.id)
-    )
-  );
-  const otherGains = gains.filter(
-    (transaction) => !settledTransactionIds.has(transaction.id)
+  const postedTransactions = overview.transactions.filter(
+    (transaction) => transaction.status === "posted"
   );
   const latestAlert = overview.alerts[0] ?? null;
   const financialDirectorEffects = overview.financialDirectorEffects ?? [];
@@ -122,7 +98,8 @@ export default async function TeamFinancesPage({
                 Trésorerie de {overview.teamName}
               </h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-                Les contrats récurrents construisent la prévision. Les primes de course et les futurs investissements ne sont ajoutés qu’une fois connus.
+                Le solde disponible comprend les opérations déjà comptabilisées.
+                La prévision ajoute uniquement les recettes et dépenses encore à venir.
               </p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 px-6 py-5 lg:text-right">
@@ -161,7 +138,7 @@ export default async function TeamFinancesPage({
         {activeTab === "expenses" ? (
           <>
             <FinanceExpenseAnalysisPanel
-              analysis={buildFinanceExpenseAnalysis(overview.transactions)}
+              analysis={expenseAnalysis}
               currency={overview.currency}
               seasonName={overview.seasonName}
             />
@@ -170,7 +147,7 @@ export default async function TeamFinancesPage({
         ) : activeTab === "income" ? (
           <>
             <FinanceIncomeAnalysisPanel
-              analysis={buildFinanceIncomeAnalysis(overview.transactions)}
+              analysis={incomeAnalysis}
               currency={overview.currency}
               seasonName={overview.seasonName}
             />
@@ -178,35 +155,29 @@ export default async function TeamFinancesPage({
           </>
         ) : (
           <>
-            <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <FinanceMetric
-            label="Allocation de départ"
-            value={formatCurrency(overview.openingBalance, overview.currency)}
-            detail="Crédit initial attribué au DS pour lancer sa structure"
-          />
-          <FinanceMetric
-            label="Solde actuel"
-            value={formatCurrency(overview.balance, overview.currency)}
-            detail={`Situation constatée à J${overview.currentDayNumber}`}
-            negative={overview.balance < 0}
-          />
-          <FinanceMetric
-            label="Fin de saison prévue"
-            value={formatCurrency(overview.projectedBalance, overview.currency)}
-            detail="Hors résultats et nouvelles dépenses"
-            negative={overview.projectedBalance < 0}
-          />
-          <FinanceMetric
-            label="Gains prévus"
-            value={formatCurrency(overview.totalIncome, overview.currency)}
-            detail="Recettes connues et apports du DF inclus"
-          />
-          <FinanceMetric
-            label="Charges prévues"
-            value={formatCurrency(overview.totalExpenses, overview.currency)}
-            detail="Dépenses brutes, avant économies du DF"
-          />
+            <section className="mt-7 grid gap-4 sm:grid-cols-3" aria-label="Prévision des opérations restantes">
+              <FinanceMetric
+                label="Encore à recevoir"
+                value={formatCurrency(incomeAnalysis.pendingAmount, overview.currency)}
+                detail="Recettes non encaissées, apports prévisibles du DF inclus"
+              />
+              <FinanceMetric
+                label="Encore à payer"
+                value={formatCurrency(expenseAnalysis.pendingAmount, overview.currency)}
+                detail="Charges non débitées, avant crédits d’économie du DF"
+              />
+              <FinanceMetric
+                label="Solde de fin de saison estimé"
+                value={formatCurrency(overview.projectedBalance, overview.currency)}
+                detail="Solde actuel + recettes à recevoir − dépenses à payer"
+                negative={overview.projectedBalance < 0}
+              />
             </section>
+
+            <p className="mt-3 px-1 text-xs font-semibold leading-5 text-[#60756E]">
+              La prévision repose sur les engagements connus et les contrats actuels.
+              Les résultats futurs, les ventes et les nouveaux achats restent à ajouter lorsqu’ils sont connus.
+            </p>
 
             <FinancialDirectorImpact effects={financialDirectorEffects} currency={overview.currency} />
 
@@ -218,40 +189,36 @@ export default async function TeamFinancesPage({
               />
             </section>
 
-            {raceSettlements.length > 0 ? (
-              <RacePrizeSettlements
-                settlements={raceSettlements}
-                currency={overview.currency}
-                financialDirectorEffects={financialDirectorEffects}
-              />
-            ) : null}
-
-            <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
-          <div className="border-b border-[#315B3E]/10 px-6 py-6 sm:px-8">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-              Registre de la saison
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-              Gains et pertes
-            </h2>
-          </div>
-
-          <div className="grid lg:grid-cols-2">
-            <TransactionColumn
-              title="Recettes"
-              transactions={otherGains}
-              currency={overview.currency}
-              positive
-              financialDirectorEffects={financialDirectorEffects}
-            />
-            <TransactionColumn
-              title="Dépenses brutes"
-              transactions={expenses}
+            <FinanceLedgerSection
+              status="pending"
+              transactions={pendingTransactions}
               currency={overview.currency}
               financialDirectorEffects={financialDirectorEffects}
+              income={incomeAnalysis.pendingAmount}
+              expenses={expenseAnalysis.pendingAmount}
             />
-          </div>
-            </section>
+            <FinanceLedgerSection
+              status="posted"
+              transactions={postedTransactions}
+              currency={overview.currency}
+              financialDirectorEffects={financialDirectorEffects}
+              income={incomeAnalysis.postedAmount}
+              expenses={expenseAnalysis.postedAmount}
+            />
+
+            <details className="mt-7 rounded-2xl border border-[#315B3E]/15 bg-white px-5 py-5 sm:px-8">
+              <summary className="cursor-pointer text-sm font-black text-[#183F37]">
+                Bilan complet de la saison · encaissé et à venir
+              </summary>
+              <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
+                Ces totaux couvrent toute la saison. L’historique est conservé pour suivre les versements déjà inclus dans le solde.
+              </p>
+              <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+                <div><dt className="font-bold text-[#60756E]">Allocation de départ</dt><dd className="mt-1 font-black">{formatCurrency(overview.openingBalance, overview.currency)}</dd></div>
+                <div><dt className="font-bold text-[#60756E]">Recettes · encaissé + à recevoir</dt><dd className="mt-1 font-black text-[#176951]">{formatCurrency(incomeAnalysis.totalAmount, overview.currency)}</dd></div>
+                <div><dt className="font-bold text-[#60756E]">Dépenses brutes · payé + à payer</dt><dd className="mt-1 font-black text-[#A44736]">{formatCurrency(expenseAnalysis.totalAmount, overview.currency)}</dd></div>
+              </dl>
+            </details>
           </>
         )}
       </section>
@@ -331,261 +298,70 @@ function FinanceMetric({
   );
 }
 
-type RacePrizeSettlement = {
-  editionId: string;
-  raceName: string;
-  dayNumber: number;
-  postedAt: string | null;
-  total: number;
-  transactions: TeamFinanceTransaction[];
-};
-
-function RacePrizeSettlements({
-  settlements,
-  currency,
-  financialDirectorEffects,
-}: {
-  settlements: RacePrizeSettlement[];
-  currency: string;
-  financialDirectorEffects: readonly FinancialDirectorEffect[];
-}) {
-  const effectsBySource = new Map<string, FinancialDirectorEffect[]>();
-  for (const effect of financialDirectorEffects) {
-    if (!effect.sourceTransactionId) continue;
-    const sourceEffects = effectsBySource.get(effect.sourceTransactionId) ?? [];
-    sourceEffects.push(effect);
-    effectsBySource.set(effect.sourceTransactionId, sourceEffects);
-  }
-  return (
-    <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#F2C94C]/35 bg-[#0B302B] text-[#FFFDF4] shadow-[0_20px_55px_rgba(7,26,23,0.16)]">
-      <div className="border-b border-white/10 px-6 py-6 sm:px-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
-          Règlements de fin de tour
-        </p>
-        <h2 className="mt-2 text-2xl font-black">
-          Toutes les primes versées à l’arrivée
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#BFD1C6]">
-          Les gains des étapes, du classement général et des classements annexes
-          sont crédités ensemble après la dernière étape. Ouvrez un règlement pour
-          consulter chaque ligne.
-        </p>
-      </div>
-
-      <div className="space-y-3 p-5 sm:p-7">
-        {settlements.map((settlement) => (
-          <details
-            key={settlement.editionId}
-            className="group rounded-2xl border border-white/10 bg-white/[0.055] open:bg-white/[0.08]"
-          >
-            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 px-5 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7]">
-              <span>
-                <span className="block text-lg font-black">{settlement.raceName}</span>
-                <span className="mt-1 block text-xs font-bold uppercase tracking-wider text-[#9BE0BC]">
-                  J{settlement.dayNumber} · {settlement.transactions.length} ligne{settlement.transactions.length > 1 ? "s" : ""} · versé en une fois
-                </span>
-              </span>
-              <span className="flex items-center gap-3">
-                <span className="text-xl font-black text-[#F2C94C]">
-                  +{formatCurrency(settlement.total, currency)}
-                </span>
-                <span aria-hidden="true" className="text-[#9BE0BC] transition group-open:rotate-180">⌄</span>
-              </span>
-            </summary>
-
-            <div className="border-t border-white/10 px-5 py-4">
-              {settlement.transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="border-b border-white/10 py-3 last:border-b-0"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold leading-6 text-[#E8F2ED]">
-                        {transaction.description}
-                      </p>
-                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-[#89AA9D]">
-                        Prime de course · {formatStatus(transaction.status)}
-                      </p>
-                    </div>
-                    <p className="shrink-0 font-black text-[#72D4B7]">
-                      +{formatCurrency(transaction.amount, currency)}
-                    </p>
-                  </div>
-                  <FinancialDirectorSourceImpact effects={effectsBySource.get(transaction.id) ?? []} baseAmount={transaction.amount} currency={currency} expense={false} />
-                </div>
-              ))}
-            </div>
-          </details>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function TransactionColumn({
-  title,
+function FinanceLedgerSection({
+  status,
   transactions,
   currency,
-  positive = false,
   financialDirectorEffects,
+  income,
+  expenses,
 }: {
-  title: string;
+  status: "pending" | "posted";
   transactions: TeamFinanceTransaction[];
   currency: string;
-  positive?: boolean;
   financialDirectorEffects: readonly FinancialDirectorEffect[];
+  income: number;
+  expenses: number;
 }) {
-  const effectsBySource = new Map<string, FinancialDirectorEffect[]>();
-  const creditEffects = new Map<string, FinancialDirectorEffect>();
-  for (const effect of financialDirectorEffects) {
-    creditEffects.set(effect.id, effect);
-    if (effect.sourceTransactionId) {
-      const sourceEffects = effectsBySource.get(effect.sourceTransactionId) ?? [];
-      sourceEffects.push(effect);
-      effectsBySource.set(effect.sourceTransactionId, sourceEffects);
-    }
-  }
+  const pending = status === "pending";
   return (
-    <div className="border-[#315B3E]/10 p-6 first:border-b lg:first:border-b-0 lg:first:border-r sm:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-lg font-black text-[#183F37]">{title}</h3>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${
-            positive
-              ? "bg-[#DDF3E7] text-[#176951]"
-              : "bg-[#FCE5DF] text-[#A44736]"
-          }`}
-        >
-          {transactions.length} ligne{transactions.length > 1 ? "s" : ""}
+    <details
+      id={pending ? "operations-a-venir" : "historique-financier"}
+      open={pending}
+      className="group/ledger mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]"
+    >
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 px-6 py-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] sm:px-8">
+        <span>
+          <span className="block text-xl font-black text-[#183F37]">
+            {pending ? "À venir · non comptabilisé" : "Historique · déjà comptabilisé"}
+          </span>
+          <span className="mt-2 block max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
+            {pending
+              ? "Ces montants restent à recevoir ou à payer. Ils sont inclus uniquement dans la projection."
+              : "Ces opérations sont déjà incluses dans le solde actuel. Retrouvez ici les primes des courses d’un jour et des tours terminés."}
+          </span>
         </span>
+        <span className="flex items-center gap-4">
+          <span className="text-right text-xs font-bold leading-6">
+            <span className="block text-[#176951]">{pending ? "À recevoir" : "Encaissé"} · +{formatCurrency(income, currency)}</span>
+            <span className="block text-[#A44736]">{pending ? "À payer" : "Payé"} · −{formatCurrency(expenses, currency)}</span>
+          </span>
+          <span aria-hidden="true" className="text-[#278B70] transition group-open/ledger:rotate-180">⌄</span>
+        </span>
+      </summary>
+      <div className="border-t border-[#315B3E]/10 px-6 py-4 text-xs font-semibold leading-5 text-[#60756E] sm:px-8">
+        {pending
+          ? "Les primes d’un tour en cours seront enregistrées après sa dernière étape homologuée. Les résultats encore inconnus ne sont pas estimés."
+          : "Les primes d’un tour sont versées après sa dernière étape homologuée. Elles restent consultables ici une fois encaissées."}
+        {" "}Les dépenses sont affichées avant DF ; ses économies apparaissent en crédits dans les recettes.
       </div>
-
-      <div className="mt-5 space-y-3">
-        {transactions.length > 0 ? (
-          transactions.map((transaction) => {
-            const isPending = transaction.status === "pending";
-            const sourceEffects = effectsBySource.get(transaction.id) ?? [];
-            const creditEffect = creditEffects.get(transaction.id);
-
-            return (
-              <div
-                key={transaction.id}
-                className={`border-b pb-3 last:border-b-0 last:pb-0 ${
-                  isPending
-                    ? "rounded-xl border-[#A7B0AC]/25 bg-[#EEF1EF] px-3 py-3 last:pb-3"
-                    : "border-[#315B3E]/10"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                  <p
-                    className={`font-bold ${
-                      isPending ? "text-[#7B8581]" : "text-[#183F37]"
-                    }`}
-                  >
-                    {transaction.description}
-                  </p>
-                  <p
-                    className={`mt-1 text-xs font-semibold ${
-                      isPending ? "text-[#8D9692]" : "text-[#60756E]"
-                    }`}
-                  >
-                    J{transaction.dayNumber} · {creditEffect ? getFinancialDirectorTransactionLabel(creditEffect) : CATEGORY_LABELS[transaction.category]} · {isPending
-                      ? positive
-                        ? "Planifié · non perçu"
-                        : "Planifié · non débité"
-                      : formatStatus(transaction.status)}
-                  </p>
-                  </div>
-                  <p
-                  className={`shrink-0 font-black ${
-                    isPending
-                      ? "text-[#8D9692]"
-                      : positive
-                        ? "text-[#176951]"
-                        : "text-[#A44736]"
-                  }`}
-                >
-                  {!positive && sourceEffects.length > 0 ? <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[#60756E]">Dépense brute</span> : null}
-                  {positive ? "+" : "−"}
-                  {formatCurrency(Math.abs(transaction.amount), currency)}
-                  </p>
-                </div>
-                <FinancialDirectorSourceImpact
-                  effects={sourceEffects}
-                  baseAmount={transaction.amount}
-                  currency={currency}
-                  expense={!positive}
-                />
-              </div>
-            );
-          })
-        ) : (
-          <p className="rounded-xl border border-dashed border-[#315B3E]/20 bg-[#EAF5F3]/45 px-4 py-6 text-sm font-semibold text-[#60756E]">
-            Aucun mouvement dans cette colonne.
-          </p>
-        )}
+      <div className="grid border-t border-[#315B3E]/10 lg:grid-cols-2">
+        <FinanceTransactionColumn
+          title="Recettes"
+          transactions={transactions.filter((transaction) => transaction.amount > 0)}
+          currency={currency}
+          positive
+          financialDirectorEffects={financialDirectorEffects}
+        />
+        <FinanceTransactionColumn
+          title="Dépenses brutes"
+          transactions={transactions.filter((transaction) => transaction.amount < 0)}
+          currency={currency}
+          financialDirectorEffects={financialDirectorEffects}
+        />
       </div>
-    </div>
+    </details>
   );
-}
-
-function buildRacePrizeSettlements(
-  transactions: TeamFinanceTransaction[]
-): RacePrizeSettlement[] {
-  const settlements = new Map<
-    string,
-    RacePrizeSettlement & { hasStagePrize: boolean }
-  >();
-
-  for (const transaction of transactions) {
-    if (transaction.category !== "race_prize") continue;
-    const match = transaction.sourceReference.match(
-      /^reward:official-(race|stage-prize):([^:]+)/
-    );
-    if (!match) continue;
-
-    const [, rewardType, editionId] = match;
-    const raceName = transaction.description.split(" — ")[0]?.trim() || "Tour";
-    const current = settlements.get(editionId) ?? {
-      editionId,
-      raceName,
-      dayNumber: transaction.dayNumber,
-      postedAt: transaction.postedAt,
-      total: 0,
-      transactions: [],
-      hasStagePrize: false,
-    };
-    current.total += transaction.amount;
-    current.transactions.push(transaction);
-    current.dayNumber = Math.max(current.dayNumber, transaction.dayNumber);
-    current.postedAt = [current.postedAt, transaction.postedAt]
-      .filter((value): value is string => Boolean(value))
-      .sort()
-      .at(-1) ?? null;
-    current.hasStagePrize ||= rewardType === "stage-prize";
-    settlements.set(editionId, current);
-  }
-
-  return [...settlements.values()]
-    .filter((settlement) => settlement.hasStagePrize)
-    .map((settlement) => ({
-      editionId: settlement.editionId,
-      raceName: settlement.raceName,
-      dayNumber: settlement.dayNumber,
-      postedAt: settlement.postedAt,
-      total: settlement.total,
-      transactions: [...settlement.transactions].sort(
-        (left, right) =>
-          left.description.localeCompare(right.description, "fr") ||
-          left.id.localeCompare(right.id)
-      ),
-    }))
-    .sort((left, right) =>
-      (right.postedAt ?? "").localeCompare(left.postedAt ?? "") ||
-      right.dayNumber - left.dayNumber
-    );
 }
 
 function DebtAlert({
@@ -638,12 +414,6 @@ function formatCurrency(value: number, currency: string): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);
-}
-
-function formatStatus(status: TeamFinanceTransaction["status"]): string {
-  if (status === "posted") return "comptabilisé";
-  if (status === "pending") return "prévu";
-  return "annulé";
 }
 
 function readSearchValue(value: string | string[] | undefined): string {

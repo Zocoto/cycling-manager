@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { FinanceExpenseAnalysisPanel } from "@/components/game/finance-expense-analysis";
 
 describe("FinanceExpenseAnalysisPanel", () => {
-  it("rend un camembert accessible et le détail payé/prévu", () => {
+  it("rend un camembert accessible et distingue les charges payées de celles à payer", () => {
     const markup = renderToStaticMarkup(
       <FinanceExpenseAnalysisPanel
         currency="EUR"
@@ -47,6 +47,15 @@ describe("FinanceExpenseAnalysisPanel", () => {
     expect(markup).toContain("Répartition de");
     expect(markup).toContain("Salaires coureurs");
     expect(markup).toContain("Matériel et R&amp;D");
-    expect(markup).toContain("Prévu");
+    expect(markup).toContain("À payer");
+    const text = markup.replace(/<[^>]+>/g, "").replace(/\s/g, " ");
+    expect(text).toContain("Charges brutes de la saison100 000 €");
+    expect(text).toContain("Total payé + à payer · Saison 2");
+    expect(text).toContain("Déjà payé70 000 €");
+    expect(text).toContain("À payer30 000 €");
+    expect(text).toContain("Les charges payées sont déjà déduites du solde actuel");
+    expect(text).toContain("des crédits séparés dans les recettes");
+    expect(text).toContain("elles ne diminuent pas les dépenses brutes affichées");
+    expect(markup).not.toContain("Prévu");
   });
 });

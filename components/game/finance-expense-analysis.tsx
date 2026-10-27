@@ -19,19 +19,19 @@ export function FinanceExpenseAnalysisPanel({
     <div className="mt-7 space-y-5">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ExpenseMetric
-          label="Charges engagées"
+          label="Charges brutes de la saison"
           value={formatCurrency(analysis.totalAmount, currency)}
-          detail={`Total comptabilisé et prévu · ${seasonName}`}
+          detail={`Total payé + à payer · ${seasonName}`}
         />
         <ExpenseMetric
-          label="Déjà débité"
+          label="Déjà payé"
           value={formatCurrency(analysis.postedAmount, currency)}
-          detail="Dépenses effectivement sorties de la trésorerie"
+          detail="Dépenses payées, déjà déduites du solde actuel"
         />
         <ExpenseMetric
-          label="Encore à venir"
+          label="À payer"
           value={formatCurrency(analysis.pendingAmount, currency)}
-          detail="Charges connues restant à comptabiliser"
+          detail="Charges connues restant à débiter"
           accent="gold"
         />
         <ExpenseMetric
@@ -51,8 +51,10 @@ export function FinanceExpenseAnalysisPanel({
             Où part l’argent de l’équipe ?
           </h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-            Le graphique couvre toutes les charges de la saison, déjà payées ou
-            planifiées. Les mouvements annulés et les recettes sont exclus.
+            Le graphique couvre toute la saison : charges déjà payées et montants encore à payer,
+            avant économies du DF. Les charges payées sont déjà déduites du solde actuel.
+            Les économies du DF sont des crédits séparés dans les recettes ; elles ne diminuent pas les dépenses brutes affichées.
+            Les mouvements annulés et les recettes sont exclus du graphique.
           </p>
         </div>
 
@@ -114,7 +116,7 @@ export function FinanceExpenseAnalysisPanel({
                       <p>Payé {formatCurrency(item.postedAmount, currency)}</p>
                       {item.pendingAmount > 0 ? (
                         <p className="text-[#8A6B16]">
-                          Prévu {formatCurrency(item.pendingAmount, currency)}
+                          À payer {formatCurrency(item.pendingAmount, currency)}
                         </p>
                       ) : null}
                     </div>
