@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { buildKlipySearchUrl, readKlipyPage, type ChatGifAttachment } from "@/lib/game/chat-gifs";
 import { getKlipyCustomerId } from "@/lib/game/klipy-client";
+import { requestKlipyPage } from "@/lib/game/klipy-request";
 
 export function ChatGifPanel({ appKey, onSelect }: { appKey: string; onSelect: (media: ChatGifAttachment) => void }) {
   const [query, setQuery] = useState("");
@@ -17,11 +18,9 @@ export function ChatGifPanel({ appKey, onSelect }: { appKey: string; onSelect: (
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const request = await fetch(buildKlipySearchUrl(appKey, query, kind, page, getKlipyCustomerId()), {
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]), credentials: "omit",
-        });
-        if (!request.ok) throw new Error(request.status === 429 ? "La recherche est très sollicitée. Réessayez un peu plus tard." : "Les GIF sont momentanément indisponibles.");
-        const result = readKlipyPage(await request.json(), kind);
+        const result = await requestKlipyPage(
+          buildKlipySearchUrl(appKey, query, kind, page, getKlipyCustomerId()), kind, controller.signal,
+        );
         if (controller.signal.aborted) return;
         setResponse((previous) => ({ query, kind, page, hasNext: result.hasNext,
           items: page > 1 && previous?.query === query && previous.kind === kind

@@ -75,10 +75,13 @@ export function buildKlipySearchUrl(appKey: string, query: string, kind: "gif" |
 
 export async function registerKlipyShare(appKey: string, media: ChatGifAttachment, customerId: string) {
   const collection = media.kind === "meme" ? "static-memes" : "gifs";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     await fetch(`https://api.klipy.com/api/v1/${encodeURIComponent(appKey)}/${collection}/share/${encodeURIComponent(media.slug)}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer_id: customerId }),
-      signal: AbortSignal.timeout(5000),
+      signal: controller.signal,
     });
   } catch { /* Provider analytics must never prevent sending a chat message. */ }
+  finally { clearTimeout(timeout); }
 }
