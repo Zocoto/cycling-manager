@@ -55,13 +55,14 @@ function ProgramChange({ context, program, onKeepProgram }: { context: SeasonFou
   </div>;
 }
 
-function CourseRegistration({ context, program, profile, active, renderProfile, renderDetails }: {
+export function CourseRegistration({ context, program, profile, active, renderProfile, renderDetails, saveCourseAction = saveSeasonFourGalaCourseAction }: {
   context: SeasonFourGalaContext; program: GalaProgram; profile: GalaProfile; active: boolean; renderProfile: CourseRenderer; renderDetails: CourseRenderer;
+  saveCourseAction?: typeof saveSeasonFourGalaCourseAction;
 }) {
   const savedIds = context.selections[profile] ?? [];
   const [ids, setIds] = useState<string[]>(savedIds);
   const [state, action, pending] = useActionState(async (previous: GalaRegistrationState, form: FormData) => {
-    const result = await saveSeasonFourGalaCourseAction(previous, form);
+    const result = await saveCourseAction(previous, form);
     if (result.status === "success" && form.get("intent") === "withdraw-course") setIds([]);
     return result;
   }, initialState);
@@ -80,7 +81,9 @@ function CourseRegistration({ context, program, profile, active, renderProfile, 
     {renderProfile(profile)}
     <details className={styles.preparationDetails}><summary>Le parcours en détail <span aria-hidden="true">＋</span></summary>{renderDetails(profile)}</details>
     <SeasonFourGalaEntries key={`${program}:${profile}:${context.courseCounts?.[`${program}:${profile}`] ?? 0}:${JSON.stringify(savedIds)}`} program={program} profile={profile} count={context.courseCounts?.[`${program}:${profile}`] ?? 0} inline active={active} />
-    <form action={action}>
+    {/* The action's native reset would restore the original checkbox defaults.
+        Selection is controlled by ids; only an explicit withdrawal clears it. */}
+    <form action={action} onReset={event => event.preventDefault()}>
       <input type="hidden" name="selection" value={JSON.stringify({ program, profile, riderIds: ids })} />
       <div className={styles.selectionHeading}><h4>Qui prend le départ ?</h4><strong>{ids.length} / 8</strong></div>
       <p className={styles.selectionHint}>Triés par {course.primaryLabel}. Notes natives de saison 4, sans équipement.</p>
