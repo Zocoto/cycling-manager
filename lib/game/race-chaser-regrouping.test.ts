@@ -16,14 +16,15 @@ function state(id: string, group: State["group"], elapsedTimeSeconds: number, en
   };
 }
 
-function resolve(chaserTime: number, options: { energy?: number; roll?: number; peloton?: boolean; gap?: number; since?: number } = {}) {
+function resolve(chaserTime: number, options: { energy?: number; roll?: number; peloton?: boolean; gap?: number; since?: number; startGap?: number } = {}) {
   const chaser = state("chaser", "chase", chaserTime, options.energy);
   chaser.groupSinceSegment = options.since ?? 16;
   const peloton = [state("p1", "peloton", 18_400), state("p2", "peloton", 18_402)];
   const states = new Map([["chaser", chaser], ...(options.peloton === false ? [] : peloton.map(rider => [rider.rider.id, rider] as const))]);
   const random = vi.fn(() => options.roll ?? 0.99);
   const commentary: string[] = [];
-  resolveExistingChasers({ states, segmentIndex: 17, breakawayGapSeconds: options.gap ?? 101, random, commentary });
+  resolveExistingChasers({ states, segmentIndex: 17, breakawayGapSeconds: options.gap ?? 101,
+    chaserGapsAtSegmentStart: new Map([["chaser", options.startGap ?? -12]]), random, commentary });
   return { chaser, peloton, random, commentary };
 }
 
@@ -46,7 +47,11 @@ describe("retour des chasseurs après une jonction manquée", () => {
   });
 
   it.each([4, 11, 25])("preserves a real physical deficit without an additional time penalty (%s seconds)", gap => {
-    expect(resolve(18_401 + gap).chaser).toMatchObject({ group: "dropped", elapsedTimeSeconds: 18_401 + gap, lostTimeSeconds: gap });
+    expect(resolve(18_401 + gap, { startGap: gap }).chaser).toMatchObject({ group: "dropped", elapsedTimeSeconds: 18_401 + gap, lostTimeSeconds: gap });
+  });
+
+  it.each([4, 12, 25])("allows a rider overtaken mid-sector to shelter instead of losing %s seconds of solo pace", gap => {
+    expect(resolve(18_401 + gap, { startGap: -8 }).chaser).toMatchObject({ group: "peloton", elapsedTimeSeconds: 18_401, energy: 58, lostTimeSeconds: 0 });
   });
 
   it("does not manufacture a catch when the rider is still ahead or no peloton exists", () => {
@@ -56,7 +61,7 @@ describe("retour des chasseurs après une jonction manquée", () => {
 
   it("leaves energy and the ordinary physical selection rules in charge of exhaustion", () => {
     expect(resolve(18_401, { energy: 2 }).chaser).toMatchObject({ group: "peloton", energy: 2, elapsedTimeSeconds: 18_401 });
-    expect(resolve(18_412, { energy: 2 }).chaser).toMatchObject({ group: "dropped", energy: 2, elapsedTimeSeconds: 18_412, lostTimeSeconds: 11 });
+    expect(resolve(18_412, { energy: 2, startGap: 11 }).chaser).toMatchObject({ group: "dropped", energy: 2, elapsedTimeSeconds: 18_412, lostTimeSeconds: 11 });
   });
 
   it("still allows a sufficiently strong rider to bridge towards the breakaway", () => {
@@ -65,7 +70,8 @@ describe("retour des chasseurs après une jonction manquée", () => {
     chaser.rider.ratings.acceleration = 90;
     const states = new Map([["strong", chaser], ["p1", state("p1", "peloton", 18_401)]]);
     const commentary: string[] = [];
-    resolveExistingChasers({ states, segmentIndex: 17, breakawayGapSeconds: 101, random: () => 0.5, commentary });
+    resolveExistingChasers({ states, segmentIndex: 17, breakawayGapSeconds: 101,
+      chaserGapsAtSegmentStart: new Map([["strong", -51]]), random: () => 0.5, commentary });
     expect(chaser).toMatchObject({ group: "breakaway_2", elapsedTimeSeconds: 18_350, lostTimeSeconds: 8 });
     expect(commentary[0]).toContain("se rapproche de l’échappée");
   });

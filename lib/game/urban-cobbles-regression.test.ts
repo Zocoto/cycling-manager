@@ -120,7 +120,7 @@ const CHASER_REGROUPING_EXPECTED: Record<string, string> = {
   "hilly:109": "0ac1aface0ef3fd3a0243350851767666ee7a08d7b6c0dc41284c281e3de5e7b",
   "mountain:17": "c4667f4fde3c1127417443db9ebfb14e88f94503e1d6e00b7ce0cce257dafe9e",
   "mountain:41": "eafc7c0f18d313b80cee5084b0796679ff577b597574e1cc517abc972850d389",
-  "mountain:109": "0e814c313c0f6b84441c478e9743a828dc2ceda516191625de7c84d83ef7754e",
+  "mountain:109": "7c691146a0563a982c6033aedfc5b02224bcf36098e63dffe798bc5428640870",
 };
 const CHASER_REGROUPING_PRE_FINISH_PHYSICS: Record<string, string> = {
   "classic-cobbles:17": "2fb4dff3bd09f489756f3f443164d7aae81f7dc1d73bafaa2765d8594605c096",
