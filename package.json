@@ -16,7 +16,8 @@
     "names:validate": "node scripts/validate-rider-names.mjs",
     "equipment:assets": "node scripts/optimize-equipment-assets.mjs",
     "sponsors:validate": "tsx scripts/validate-sponsors.ts",
-    "sponsors:validate:strict": "tsx scripts/validate-sponsors.ts --strict-assets",
+    "sponsors:validate:strict": "tsx scripts/validate-sponsors.ts --strict-assets && node scripts/audit-sponsor-jersey-integrity.mjs",
+    "sponsors:audit:jerseys": "node scripts/audit-sponsor-jersey-integrity.mjs",
     "sponsors:jobs": "tsx scripts/manage-federation-sponsor-jobs.ts",
     "sponsors:sync": "tsx scripts/sync-sponsors.ts",
     "race:calibrate": "tsx scripts/calibrate-race-simulation.ts"

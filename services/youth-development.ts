@@ -75,7 +75,10 @@ import {
 import {
   getYouthCoachTalentSpecialty,
   getScoutTalentBonuses,
+  describeStaffTalent,
   isStaffTalentForRole,
+  STAFF_TALENT_DEFINITIONS,
+  type StaffTalentCode,
   STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE,
   YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL,
 } from "@/lib/game/staff-talents";
@@ -316,6 +319,7 @@ export type YouthScout = {
   countryName: string;
   countryCode: string;
   activeMissionId: string | null;
+  talents?: Array<{ code: StaffTalentCode; label: string; description: string }>;
 };
 
 export type YouthCoach = {
@@ -767,7 +771,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     ? await admin
         .from("staff_members")
         .select(
-          "id, country_id, first_name, last_name, role, level, trainer_specialty",
+          "id, country_id, first_name, last_name, role, level, trainer_specialty, staff_member_talents(slot_number, talent_code)",
         )
         .in("id", staffIds)
         .in("role", ["scout", "youth_coach"])
@@ -780,6 +784,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
             role: string;
             level: number;
             trainer_specialty: string | null;
+            staff_member_talents: Array<{ slot_number: number; talent_code: string }> | null;
           }>
         >()
     : { data: [], error: null };
@@ -819,6 +824,13 @@ async function loadOverview(admin: AdminClient, context: Context) {
         countryName: country.name,
         countryCode: country.iso_alpha2,
         activeMissionId: activeMissionByContract.get(contract.id) ?? null,
+        talents: [...(member.staff_member_talents ?? [])]
+          .sort((a, b) => a.slot_number - b.slot_number)
+          .flatMap((talent) => isStaffTalentForRole(talent.talent_code, "scout") ? [{
+            code: talent.talent_code,
+            label: STAFF_TALENT_DEFINITIONS[talent.talent_code].label,
+            description: describeStaffTalent(talent.talent_code, member.level),
+          }] : []),
       },
     ];
   });
@@ -835,15 +847,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
   const coachCountry = coachMember
     ? countryById.get(coachMember.country_id)
     : undefined;
-  const coachTalentsResult = coachMember
-    ? await admin
-        .from("staff_member_talents")
-        .select("talent_code")
-        .eq("staff_member_id", coachMember.id)
-        .returns<Array<{ talent_code: string }>>()
-    : { data: [] as Array<{ talent_code: string }>, error: null };
-  assertQuery(coachTalentsResult.error, "les affixes du responsable de formation");
-  const coachTalentSpecialties = (coachTalentsResult.data ?? []).flatMap(
+  const coachTalentSpecialties = (coachMember?.staff_member_talents ?? []).flatMap(
     (talent) => {
       const specialty = getYouthCoachTalentSpecialty(talent.talent_code);
       return specialty ? [specialty] : [];

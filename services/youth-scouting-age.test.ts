@@ -8,7 +8,7 @@ vi.mock("@/services/team-roster-capacity", () => ({ loadTeamRosterCapacitySummar
 vi.mock("@/services/scouting-visibility", () => ({ getTeamSeasonScoutingVisibility: vi.fn(async () => ({ active: false, activeUntil: null })) }));
 
 type Row = Record<string, unknown>;
-function fixture({ gameYear = 4, missingSeason = false, seasonError = false } = {}) {
+function fixture({ gameYear = 4, missingSeason = false, seasonError = false, staff = [] as Row[] } = {}) {
   const missions = [null, "2026-09-01T12:00:00Z"].map((viewed, index) => ({
     id: `mission-${index}`, team_id: "team", season_id: "s3", country_id: "fr", scout_contract_id: "scout",
     start_day_number: 1, duration_days: 3, completes_day_number: 4, status: "completed", report_viewed_at: viewed,
@@ -31,6 +31,8 @@ function fixture({ gameYear = 4, missingSeason = false, seasonError = false } = 
     team_seasons: [{ id: "team-season", team_id: "team", season_id: "current", display_name: "Test", currency: "EUR", cash_balance: 100000, registration_country_id: "fr" }],
     countries: [{ id: "fr", iso_alpha2: "FR", name: "France", is_active: true }],
     youth_scouting_missions: missions, youth_scouting_candidates: candidates,
+    staff_members: staff,
+    staff_contracts: staff.map(member => ({ id: `contract-${member.id}`, staff_member_id: member.id, team_id: "team", status: "active" })),
   };
   const seasonQueries: unknown[][] = [];
   const from = vi.fn((table: string) => {
@@ -38,7 +40,7 @@ function fixture({ gameYear = 4, missingSeason = false, seasonError = false } = 
     let error: { message: string } | null = null;
     const result = () => ({ data, error });
     const query = {
-      select: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), gte: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), gte: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
       eq: vi.fn((field: string, value: unknown) => { data = data.filter((row) => row[field] === value); return query; }),
       in: vi.fn((field: string, values: unknown[]) => {
         data = data.filter((row) => values.includes(row[field]));
@@ -58,6 +60,18 @@ function fixture({ gameYear = 4, missingSeason = false, seasonError = false } = 
 
 beforeEach(() => vi.clearAllMocks());
 describe("rapports consultés et laissés dans le scouting", () => {
+  it("loads scout specialties in the staff query while retaining the youth coach specialties", async () => {
+    const { client } = fixture({ staff: [
+      { id: "scout-member", role: "scout", country_id: "fr", first_name: "Camille", last_name: "Martin", level: 3,
+        staff_member_talents: [{ slot_number: 2, talent_code: "scout_report_size" }, { slot_number: 1, talent_code: "scout_academy_training" }, { slot_number: 3, talent_code: "trainer_mountain" }] },
+      { id: "coach-member", role: "youth_coach", country_id: "fr", first_name: "Jean", last_name: "Coach", level: 3, trainer_specialty: "hills",
+        staff_member_talents: [{ slot_number: 1, talent_code: "youth_coach_sprint" }] },
+    ] });
+    const overview = await getYouthDevelopmentOverview(client, "viewer");
+    expect(overview?.scouts[0].talents?.map(talent => talent.label)).toEqual(["Pédagogie junior", "Carnet d’adresses"]);
+    expect(overview?.scouts[0].talents?.[0].description).toContain("+9 %");
+    expect(overview?.youthCoach).toMatchObject({ specialty: "hills", talentSpecialties: ["sprint"] });
+  });
   it("charge la saison du rapport et applique le même vieillissement aux deux listes", async () => {
     const { client, candidates, seasonQueries } = fixture();
     const source = structuredClone(candidates);

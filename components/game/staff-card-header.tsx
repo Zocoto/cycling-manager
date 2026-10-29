@@ -8,7 +8,7 @@ type StaffCardIdentity = {
   trainerSpecialty: TrainerSpecialty | null; architectSpecialty: ArchitectSpecialty | null;
 };
 
-export function StaffCardHeader({ member }: { member: StaffCardIdentity }) {
+export function StaffCardHeader({ member, specialtyLabel = "Spécialité" }: { member: StaffCardIdentity; specialtyLabel?: string }) {
   const definition = STAFF_ROLE_DEFINITIONS[member.role];
   return <>
     <header className="flex min-w-0 items-start gap-3 sm:gap-4">
@@ -29,7 +29,7 @@ export function StaffCardHeader({ member }: { member: StaffCardIdentity }) {
       </div>
     </header>
     {member.trainerSpecialty ? <p className="mt-4 inline-flex rounded-full bg-[#FFF4D0] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#71580A]">
-      Spécialité · {TRAINER_SPECIALTY_LABELS[member.trainerSpecialty]}
+      {specialtyLabel} · {TRAINER_SPECIALTY_LABELS[member.trainerSpecialty]}
     </p> : null}
     {member.architectSpecialty ? <p className="mt-4 inline-flex rounded-full bg-[#F4E9DD] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#7A4E28]">
       Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}

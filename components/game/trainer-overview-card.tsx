@@ -5,12 +5,13 @@ import { StaffSkills } from "./staff-skills";
 export function TrainerOverviewCard({ trainer }: { trainer: TeamTrainer }) {
   return (
     <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-5">
-      <StaffCardHeader member={{
+      <StaffCardHeader specialtyLabel="Spécialité primaire" member={{
         ...trainer, role: "trainer", trainerSpecialty: trainer.specialty, architectSpecialty: null,
       }} />
       <StaffSkills level={trainer.level}
         effects={[`+${trainer.efficiencyBonus} % d’efficacité sur les entraînements ${trainer.specialtyLabel.toLocaleLowerCase("fr")}`]}
-        talents={trainer.talents} nationalityAffinity={false} />
+        talents={trainer.talents} nationalityAffinity={false}
+        talentHeading="Spécialités secondaires" emptyTalentLabel="Aucune spécialité secondaire." />
 
       <div className="mt-4 border-t border-[#315B3E]/10 pt-3">
         <div className="flex items-center justify-between gap-3 text-xs font-black">

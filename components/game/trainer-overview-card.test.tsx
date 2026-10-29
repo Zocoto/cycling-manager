@@ -39,7 +39,8 @@ describe("TrainerOverviewCard", () => {
 
     expect(markup).toContain("Compétence de base · niveau 5");
     expect(markup).toContain("Montagne");
-    expect(markup).toContain("Compétences supplémentaires · 1/3");
+    expect(markup).toContain("Spécialité primaire");
+    expect(markup).toContain("Spécialités secondaires · 1/3");
     expect(markup).toContain("Domaine Sprint");
     expect(markup).toContain(
       "+20 % d’efficacité sur les entraînements sprint, cumulable avec la spécialité principale",
