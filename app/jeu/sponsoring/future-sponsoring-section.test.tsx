@@ -7,9 +7,9 @@ import { FutureSponsoringSection } from "./future-sponsoring-section";
 import type { FutureSponsoringState } from "@/services/sponsoring-workflow";
 import {SPONSORS} from "@/data/sponsors";
 describe("future sponsoring unavailable notice", () => {
-  it("shows the saved next-season ambition and signed objectives instead of only the current-season programme", () => {
+  it.each(["planned","jersey-selection"] as const)("shows the saved next-season ambition and signed objectives in the %s panel", kind => {
     const sponsor=SPONSORS.find(s=>s.id==="lima-maki")!;
-    const state={kind:"planned",mode:"renewal",season:{id:"s5",name:"Saison 5",gameYear:5},isRenewal:true,renewalBudgetIsFinal:false,
+    const state={kind,mode:"renewal",season:{id:"s5",name:"Saison 5",gameYear:5},isRenewal:true,renewalBudgetIsFinal:false,
       contract:{id:"contract",sponsor,sportingPhilosophy:"ardennes_classics",budgetPerSeason:1390000,currencyCode:"EUR",contractDurationSeasons:2,
         selectedJerseyId:null,objectives:[{id:"goal",name:"Top 20 sur Doyenne des Collines",satisfactionPoints:15,
           targetDetails:{kind:"race_result",objectiveDifficulty:"ambitious",raceSlug:"doyenne-des-collines",raceLabel:"Doyenne des Collines",achievementType:"top_n",targetRank:20},mainObjectiveTerms:null}]}} as unknown as FutureSponsoringState;
