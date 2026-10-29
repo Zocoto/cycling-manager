@@ -39,10 +39,10 @@ Aucune migration ni réparation de données n'est nécessaire pour ce changement
 
 ## Vérification
 
-- 328 tests du moteur, favoris, adaptateur calendrier, consignes DS, préparations,
-  non-rétroactivité et nouvelle régression passent, dont 32 nouveaux contrôles.
-- 228 contrôles complémentaires passent : sprints plats, pavés urbains, CLM,
-  relais, tactiques, échappées, rôles d'étape et verrouillage des scénarios.
+- 573 tests sur 24 fichiers passent sur la version finale intégrée, dont 32
+  nouveaux contrôles : moteur, favoris, calendrier, consignes DS, préparations,
+  sprints plats, pavés urbains, CLM, relais, tactiques, échappées, rôles d'étape,
+  regroupement des chasseurs et conservation des scénarios verrouillés.
 - Compilation Next.js/TypeScript, ESLint et contrôles postbuild réussis.
 - Comparaison isolée avec v53 : 16 scénarios CLM collectif strictement identiques
   (deux parcours, quatre graines, moteur complet et résultats seuls), avec abri
