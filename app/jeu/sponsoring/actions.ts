@@ -146,7 +146,7 @@ export async function negotiateSponsorOfferAction(formData: FormData) {
   if (negotiationError) redirectWithError(negotiationError.message);
 
   revalidateSponsoringPaths();
-  redirect("/jeu/sponsoring?succes=negociation");
+  redirect(`/jeu/sponsoring#negociation-${offerId}`);
 }
 
 export async function negotiateContinuingSponsorObjectivesAction(
@@ -375,7 +375,7 @@ export async function negotiateContinuingSponsorObjectivesAction(
   });
 
   revalidateSponsoringPaths();
-  redirect("/jeu/sponsoring?succes=negociation-annuelle");
+  redirect(`/jeu/sponsoring#negociation-${offerId}`);
 }
 
 export async function signSponsorOfferAction(

@@ -2882,7 +2882,14 @@
   "Spécialités du scout": "Scout specialties",
   "Spécialités secondaires": "Secondary specialties",
   "{{0}} est repris par le peloton et se replace dans les roues.": "{{0}} is caught by the peloton and settles back into the wheels.",
-  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels.",
+  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels.",
+  ". Le partenariat et ses objectifs prendront effet au changement de saison.": ". The partnership and its objectives will take effect at the start of the next season.",
+  "Actualisation des objectifs…": "Updating objectives…",
+  "Difficulté des objectifs sponsor ·": "Sponsor objective difficulty ·",
+  "Difficulté des objectifs sponsor · {{0}} · {{1}}": "Sponsor objective difficulty · {{0}} · {{1}}",
+  "Engagements signés ·": "Signed commitments ·",
+  "Le choix s’enregistre dès le clic et actualise les objectifs.": "Clicking a tier saves your choice and updates the objectives."
+,
   "Aides à l’équipe": "Team support",
   "Aides de la fédération": "Federation support",
   "Coups de pouce pour les effectifs réduits": "Financial support for small rosters",

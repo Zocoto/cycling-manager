@@ -5,6 +5,7 @@ import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title
 import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
 import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
 import { DIVISION_RULES } from "@/lib/game/economy";
+import { isSponsorObjectiveDifficulty, SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG } from "@/lib/game/sponsor-negotiation";
 import {
   SPONSOR_SPORTING_PHILOSOPHY_CONFIG,
   type SponsorSportingPhilosophy,
@@ -653,7 +654,7 @@ function FutureSponsorOfferCard({
 }
 
 function SportingObjectiveNotice({ objectives }: {
-  objectives: readonly PersistedSponsorObjective[];
+  objectives: readonly Pick<PersistedSponsorObjective,"targetDetails">[];
 }) {
   const calibration = objectives.find((objective) => objective.targetDetails.sportingCalibration)
     ?.targetDetails.sportingCalibration;
@@ -792,6 +793,9 @@ function FuturePlannedContract({
   const selectedJersey = sponsor.jerseys.find(
     (jersey) => jersey.id === contract.selectedJerseyId
   );
+  const savedDifficulty = contract.objectives.find((objective) =>
+    isSponsorObjectiveDifficulty(objective.targetDetails.objectiveDifficulty ?? ""),
+  )?.targetDetails.objectiveDifficulty;
 
   return (
     <div className="mt-7">
@@ -842,9 +846,8 @@ function FuturePlannedContract({
 
           <p className="mt-3 leading-7 text-[#60756E]">
             Le sponsor et le maillot sont réservés pour{" "}
-            {state.season.name}. Le contrat reste au statut planned : aucun
-            budget n’a été versé et l’identité actuelle de l’équipe reste
-            inchangée jusqu’au changement de saison.
+            {state.season.name}. Le partenariat et ses objectifs prendront
+            effet au changement de saison.
           </p>
 
           <SponsorPhilosophyPanel
@@ -904,6 +907,30 @@ function FuturePlannedContract({
         ) : null}
         </div>
       </article>
+
+      {contract.objectives.length>0 ? (
+        <section className="mt-5 rounded-2xl border bg-white p-5 sm:p-6" style={{borderColor:`${sponsor.colors.primary}25`}}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-lg font-black" style={{color:sponsor.colors.text}}>
+              Engagements signés · {state.season.name}
+            </h3>
+            {savedDifficulty ? <span className="rounded-full px-3 py-1 text-xs font-black" style={{backgroundColor:sponsor.colors.background,color:sponsor.colors.text}}>
+              {SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG[savedDifficulty].label}
+            </span> : null}
+          </div>
+          <SportingObjectiveNotice objectives={contract.objectives} />
+          <ol className="mt-4 grid gap-2.5 md:grid-cols-2">
+            {contract.objectives.map((objective,index)=><li key={objective.id} className="flex items-start gap-2.5 rounded-lg bg-[#F4F7F5] p-3 text-sm font-bold leading-5" style={{color:sponsor.colors.text}}>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black" style={{backgroundColor:`${sponsor.colors.accent}2A`}}>{index+1}</span>
+              <div className="min-w-0">
+                <SponsorObjectiveTitle targetDetails={objective.targetDetails}>{objective.name}</SponsorObjectiveTitle>
+                <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">{objective.satisfactionPoints} points</span>
+                <SponsorMainObjectiveTermsCard terms={objective.mainObjectiveTerms} compact />
+              </div>
+            </li>)}
+          </ol>
+        </section>
+      ) : null}
 
       <SponsorJerseySelector
         contractId={contract.id}

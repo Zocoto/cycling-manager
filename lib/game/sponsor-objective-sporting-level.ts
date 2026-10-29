@@ -103,14 +103,14 @@ export function getSponsorObjectiveRaceMinimumRank({
   const score = race.raceFormat === "stage_race" || race.isGrandTour === true
     ? scores[0] * 0.55 + mean(scores.slice(0, 3)) * 0.25 + mean(scores.slice(0, 6)) * 0.2
     : scores[0] * 0.85 + mean(scores.slice(0, 3)) * 0.15;
-  const gap = Math.round((reference - score + difficultyOffset(difficulty)) * 1_000_000) / 1_000_000;
-  if (gap <= -2) return 1;
-  if (gap <= 1) return 3;
-  if (gap <= 4) return 5;
-  if (gap <= 7) return 10;
-  if (gap <= 10) return 15;
-  if (gap <= 14) return 20;
-  return 25;
+  const gap = Math.round((reference - score) * 1_000_000) / 1_000_000;
+  const baseline = gap <= -2 ? 1 : gap <= 1 ? 3 : gap <= 4 ? 5
+    : gap <= 7 ? 10 : gap <= 10 ? 15 : gap <= 14 ? 20 : 25;
+  // Move an actual result tier, not a rating point that may stay in the same
+  // bucket. A victory remains the strongest possible single-race requirement.
+  const ranks = [1, 3, 5, 10, 15, 20, 25, 30];
+  const index = ranks.indexOf(baseline) + difficultyOffset(difficulty);
+  return ranks[Math.max(0, Math.min(ranks.length - 1, index))];
 }
 
 export function getSponsorObjectiveUciTargetRank({
@@ -149,8 +149,11 @@ export function getSponsorObjectiveWinCount({
   const ceilings: Record<SponsorObjectiveAmbitionLevel, number> = {
     1: 2, 2: 4, 3: 6, 4: 8, 5: 10, 6: 12,
   };
-  const ceiling = Math.max(1, ceilings[ambitionForStrength(teamStrength)] - difficultyOffset(difficulty));
-  return Math.min(requested, ceiling);
+  const ceiling = ceilings[ambitionForStrength(teamStrength)];
+  const baseline = Math.min(requested, ceiling);
+  // Preserve the calibrated balanced target and make negotiation visible even
+  // at ambition level 6. One additional win, never an unbounded new quota.
+  return Math.max(1, baseline - difficultyOffset(difficulty));
 }
 
 function raceStrength(rider: RiderRatings, race: ObjectiveRace): number {

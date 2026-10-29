@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
   SPONSOR_OBJECTIVE_DIFFICULTIES,
   SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG,
   calculateSponsorNegotiatedBudget,
+  isSponsorObjectiveDifficulty,
   type SponsorObjectiveDifficulty,
 } from "@/lib/game/sponsor-negotiation";
 
@@ -42,62 +42,53 @@ export function SponsorNegotiationControl({
   textColor,
   backgroundColor,
 }: SponsorNegotiationControlProps) {
-  const [selectedDifficulty, setSelectedDifficulty] =
-    useState<SponsorObjectiveDifficulty>(currentDifficulty);
-  const selectedBudget = calculateSponsorNegotiatedBudget({
-    baseBudget,
-    budgetCeiling,
-    difficulty: selectedDifficulty,
-  });
-
-  function confirmNegotiation(event: React.FormEvent<HTMLFormElement>) {
-    if (selectedDifficulty === currentDifficulty) {
-      event.preventDefault();
-      return;
-    }
-
-    const selectedConfig =
-      SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG[selectedDifficulty];
-    const confirmed = window.confirm(
-      [
-        negotiationMode === "continuing-contract"
-          ? `Renégocier les objectifs de ${sponsorName} pour ${targetSeasonName} ?`
-          : `Négocier l’offre de ${sponsorName} pour ${targetSeasonName} ?`,
-        "",
-        `Difficulté : ${selectedConfig.label}`,
-        `Nouvel apport annuel : ${formatMoney(selectedBudget)}`,
-        "",
-        "Les dix objectifs seront recalculés immédiatement.",
-        negotiationMode === "continuing-contract"
-          ? "Le budget et les objectifs actuels restent inchangés jusqu’au changement de saison."
-          : "Vous pourrez encore modifier ce réglage avant la signature.",
-      ].join("\n"),
-    );
-
-    if (!confirmed) event.preventDefault();
-  }
-
   return (
     <form
+      id={`negociation-${offerId}`}
       action={
         negotiationMode === "continuing-contract"
           ? negotiateContinuingSponsorObjectivesAction
           : negotiateSponsorOfferAction
       }
-      onSubmit={confirmNegotiation}
-      className="mt-5 rounded-xl border bg-white/85 p-4"
+      className="mt-5 scroll-mt-24 rounded-xl border bg-white/85 p-4"
       style={{ borderColor: `${primaryColor}30` }}
     >
       <input type="hidden" name="offerId" value={offerId} />
       {contractId ? (
         <input type="hidden" name="contractId" value={contractId} />
       ) : null}
-      <input
-        type="hidden"
-        name="objectiveDifficulty"
-        value={selectedDifficulty}
+      <NegotiationChoices
+        baseBudget={baseBudget}
+        budgetCeiling={budgetCeiling}
+        currentDifficulty={currentDifficulty}
+        primaryColor={primaryColor}
+        textColor={textColor}
+        backgroundColor={backgroundColor}
+        sponsorName={sponsorName}
+        targetSeasonName={targetSeasonName}
       />
+    </form>
+  );
+}
 
+function NegotiationChoices({
+  baseBudget, budgetCeiling, currentDifficulty, primaryColor,
+  textColor, backgroundColor, sponsorName, targetSeasonName,
+}: Pick<SponsorNegotiationControlProps,
+  "baseBudget" | "budgetCeiling" | "currentDifficulty" | "primaryColor" |
+  "textColor" | "backgroundColor" | "sponsorName" | "targetSeasonName"
+>) {
+  const { pending, data } = useFormStatus();
+  const requested = data?.get("objectiveDifficulty");
+  // Derive the preview from the submitted form. Once it settles, only the
+  // refreshed server value is authoritative, including after a failed save.
+  const selectedDifficulty = pending && typeof requested === "string" && isSponsorObjectiveDifficulty(requested)
+    ? requested : currentDifficulty;
+  const selectedBudget = calculateSponsorNegotiatedBudget({
+    baseBudget, budgetCeiling, difficulty: selectedDifficulty,
+  });
+  return (
+    <div aria-busy={pending}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p
@@ -107,7 +98,7 @@ export function SponsorNegotiationControl({
             Négociation des objectifs
           </p>
           <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
-            Plus les attentes montent, plus l’apport de la future saison augmente.
+            Le choix s’enregistre dès le clic et actualise les objectifs.
           </p>
         </div>
         <span
@@ -122,7 +113,7 @@ export function SponsorNegotiationControl({
         className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border bg-[#EDF2EF] p-1"
         style={{ borderColor: `${primaryColor}25` }}
         role="radiogroup"
-        aria-label="Difficulté des objectifs sponsor"
+        aria-label={`Difficulté des objectifs sponsor · ${sponsorName} · ${targetSeasonName}`}
       >
         {SPONSOR_OBJECTIVE_DIFFICULTIES.map((difficulty) => {
           const config = SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG[difficulty];
@@ -136,11 +127,13 @@ export function SponsorNegotiationControl({
           return (
             <button
               key={difficulty}
-              type="button"
+              type="submit"
+              name="objectiveDifficulty"
+              value={difficulty}
+              disabled={pending || difficulty === currentDifficulty}
               role="radio"
               aria-checked={isSelected}
-              onClick={() => setSelectedDifficulty(difficulty)}
-              className="min-h-16 rounded-md px-2 py-2 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+              className="min-h-16 rounded-md px-2 py-2 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-default"
               style={
                 isSelected
                   ? {
@@ -173,32 +166,10 @@ export function SponsorNegotiationControl({
           : ""}
       </p>
 
-      <NegotiationSubmitButton
-        disabled={selectedDifficulty === currentDifficulty}
-        primaryColor={primaryColor}
-      />
-    </form>
-  );
-}
-
-function NegotiationSubmitButton({
-  disabled,
-  primaryColor,
-}: {
-  disabled: boolean;
-  primaryColor: string;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={disabled || pending}
-      className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-white transition enabled:hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45"
-      style={{ backgroundColor: primaryColor }}
-    >
-      {pending ? "Négociation…" : "Valider cette négociation"}
-    </button>
+      <p role="status" aria-live="polite" className="mt-2 min-h-5 text-xs font-semibold text-[#60756E]">
+        {pending ? "Actualisation des objectifs…" : ""}
+      </p>
+    </div>
   );
 }
 

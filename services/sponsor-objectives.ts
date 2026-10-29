@@ -605,7 +605,7 @@ export function generateProvisionalSponsorObjectives({
     targetDetails: {
       ...objective.targetDetails,
       generationVersion: targetSeasonGameYear >= SPONSOR_OBJECTIVE_SPORTING_POLICY_START_GAME_YEAR
-        ? 11 : SPONSOR_OBJECTIVE_GENERATION_VERSION,
+        ? 12 : SPONSOR_OBJECTIVE_GENERATION_VERSION,
       sportingPhilosophy,
       ambitionLevel,
       objectiveDifficulty,

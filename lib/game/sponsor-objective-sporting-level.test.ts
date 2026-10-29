@@ -106,12 +106,19 @@ describe("race-result sporting calibration", () => {
     const ratings = [rider(75)];
     expect(getSponsorObjectiveRaceMinimumRank({ race, ratings, difficulty: "accessible" })).toBe(5);
     expect(getSponsorObjectiveRaceMinimumRank({ race, ratings, difficulty: "balanced" })).toBe(3);
-    expect(getSponsorObjectiveRaceMinimumRank({ race, ratings, difficulty: "ambitious" })).toBe(3);
+    expect(getSponsorObjectiveRaceMinimumRank({ race, ratings, difficulty: "ambitious" })).toBe(1);
   });
 
   it("leaves an unknown race category or unavailable ratings uncalibrated", () => {
     expect(getSponsorObjectiveRaceMinimumRank({ race: {}, ratings: [rider(60)], difficulty: "balanced" })).toBeNull();
     expect(getSponsorObjectiveRaceMinimumRank({ race: { categoryCode: "world" }, ratings: [], difficulty: "balanced" })).toBeNull();
+  });
+  it("keeps negotiation distinct inside a broad weak-roster band", () => {
+    const race={categoryCode:"elite" as const,raceFormat:"one_day" as const,profileTypes:["hilly" as const]};
+    const ratings=[rider(72)];
+    expect(["accessible","balanced","ambitious"].map(difficulty=>getSponsorObjectiveRaceMinimumRank({race,ratings,difficulty:difficulty as "accessible"|"balanced"|"ambitious"}))).toEqual([20,15,10]);
+    expect(getSponsorObjectiveRaceMinimumRank({race,ratings:[rider(56)],difficulty:"ambitious"})).toBe(20);
+    expect(getSponsorObjectiveRaceMinimumRank({race,ratings:[rider(90)],difficulty:"ambitious"})).toBe(1);
   });
 });
 
@@ -140,6 +147,8 @@ describe("season objectives near the team's sporting level", () => {
     expect(getSponsorObjectiveWinCount({ requestedCount: 12, teamStrength: 55, difficulty: "ambitious" })).toBe(3);
     expect(getSponsorObjectiveWinCount({ requestedCount: 2, teamStrength: 80, difficulty: "balanced" })).toBe(2);
     expect(getSponsorObjectiveWinCount({ requestedCount: 12, teamStrength: 85, difficulty: "balanced" })).toBe(12);
+    expect(getSponsorObjectiveWinCount({ requestedCount: 12, teamStrength: 85, difficulty: "ambitious" })).toBe(13);
+    expect(getSponsorObjectiveWinCount({ requestedCount: 2, teamStrength: 80, difficulty: "ambitious" })).toBe(3);
   });
 
   it.each([null, NaN, Infinity, -1, 101])("does not interpret unavailable strength %s as a weak team", (teamStrength) => {
