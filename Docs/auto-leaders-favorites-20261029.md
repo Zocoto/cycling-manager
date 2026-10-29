@@ -32,7 +32,8 @@ appel réseau ou accès BDD. Les bonus continuent d'influencer les performances.
 Les sélections de poisson-pilote et d'électron libre restent inchangées.
 
 Version des prochaines simulations :
-`2026.10-favorite-aligned-auto-leaders-v54`.
+`2026.10-favorite-aligned-auto-leaders-v55` (inclut le correctif de regroupement
+des chasseurs v54 arrivé sur main pendant cette livraison).
 Les scénarios verrouillés et résultats existants ne sont ni recalculés ni modifiés.
 Aucune migration ni réparation de données n'est nécessaire pour ce changement.
 
