@@ -31,14 +31,14 @@ describe("sponsor negotiation", () => {
     ).toBe(660_000);
   });
 
-  it("never exceeds the sponsor ceiling", () => {
+  it("allows the full ambition reward above the catalogue ceiling", () => {
     expect(
       calculateSponsorNegotiatedBudget({
         baseBudget: 680_000,
         budgetCeiling: 700_000,
         difficulty: "ambitious",
       }),
-    ).toBe(700_000);
+    ).toBe(750_000);
   });
 
   it("preserves an annual renewal increase already above the catalogue ceiling", () => {
@@ -47,7 +47,16 @@ describe("sponsor negotiation", () => {
         baseBudget: 735_000,
         sponsorMaximumBudget: 700_000,
       }),
-    ).toBe(735_000);
+    ).toBe(810_000);
+  });
+
+  it("keeps the three Terroirs Unis tiers distinct even with an older saved ceiling", () => {
+    const baseBudget = 451_810;
+    const budgetCeiling = getSponsorNegotiationBudgetCeiling({ baseBudget, sponsorMaximumBudget: 420_000 });
+    expect(budgetCeiling).toBe(500_000);
+    expect(["accessible", "balanced", "ambitious"].map(difficulty =>
+      calculateSponsorNegotiatedBudget({ baseBudget, budgetCeiling: baseBudget, difficulty: difficulty as "accessible" | "balanced" | "ambitious" }),
+    )).toEqual([410_000, 451_810, 500_000]);
   });
 
   it("moves objective ambition one level and clamps the extremes", () => {

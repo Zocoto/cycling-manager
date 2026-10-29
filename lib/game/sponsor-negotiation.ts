@@ -62,9 +62,9 @@ export function getSponsorNegotiationBudgetCeiling({
   assertPositiveBudget(baseBudget, "Le budget de base");
   assertPositiveBudget(sponsorMaximumBudget, "Le plafond du sponsor");
 
-  // Une hausse annuelle de renouvellement ou un bonus déjà acquis reste
-  // conservé même s’il a porté l’offre au-dessus du plafond catalogue.
-  return Math.max(baseBudget, sponsorMaximumBudget);
+  // The catalogue bounds the initial offer, never the reward for choosing
+  // tougher objectives on an already negotiated/satisfaction-adjusted base.
+  return Math.max(baseBudget, sponsorMaximumBudget, getAmbitiousBudget(baseBudget));
 }
 
 export function calculateSponsorNegotiatedBudget({
@@ -97,8 +97,12 @@ export function calculateSponsorNegotiatedBudget({
 
   return Math.max(
     BUDGET_STEP,
-    Math.min(adjustedBudget, budgetCeiling),
+    Math.min(adjustedBudget, Math.max(budgetCeiling, getAmbitiousBudget(baseBudget))),
   );
+}
+
+function getAmbitiousBudget(baseBudget: number): number {
+  return Math.round((baseBudget * 1.10) / BUDGET_STEP) * BUDGET_STEP;
 }
 
 export function adjustSponsorObjectiveAmbitionLevel(
