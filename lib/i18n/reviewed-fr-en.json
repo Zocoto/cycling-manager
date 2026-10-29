@@ -2869,5 +2869,11 @@
   "prochaine clôture": "next close",
   "15 quotidiennes · 4 entre DS · prochaine clôture 11:27": "15 daily auctions · 4 from other managers · next close 11:27",
   "Le départ doit être programmé à 14 h ou 18 h, heure de Paris, à la date de la course.": "The start must be scheduled for 14:00 or 18:00 Paris time on the race date.",
-  "Simuler une erreur": "Simulate an error"
+  "Simuler une erreur": "Simulate an error",
+  "Aucune spécialité secondaire.": "No secondary specialty.",
+  "Aucune spécialité supplémentaire.": "No additional specialty.",
+  "Compétences supplémentaires": "Additional skills",
+  "Spécialité primaire": "Primary specialty",
+  "Spécialités du scout": "Scout specialties",
+  "Spécialités secondaires": "Secondary specialties"
 }

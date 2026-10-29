@@ -26,6 +26,7 @@ import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
+import { StaffAdditionalSkills } from "@/components/game/staff-skills";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
@@ -393,6 +394,7 @@ function ScoutingTab({
                 <p className="mt-1 text-xs font-bold text-[#60756E]">
                   {scout.countryName} · Niveau {scout.level}
                 </p>
+                <StaffAdditionalSkills talents={scout.talents ?? []} heading="Spécialités du scout" emptyLabel="Aucune spécialité supplémentaire." />
               </article>
             ))}
           </div>

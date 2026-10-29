@@ -27,13 +27,13 @@ export function StaffBaseSkills({ level, rows }: { level: number; rows: StaffSki
   );
 }
 
-export function StaffAdditionalSkills({ talents, capacity = 3 }: {
-  talents: StaffSkillTalent[]; capacity?: number;
+export function StaffAdditionalSkills({ talents, capacity = 3, heading = "Compétences supplémentaires", emptyLabel = "Aucune compétence supplémentaire." }: {
+  talents: StaffSkillTalent[]; capacity?: number; heading?: string; emptyLabel?: string;
 }) {
   return (
     <section data-staff-section="talents" className="mt-3 min-w-0 rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
-        Compétences supplémentaires · {talents.length}/{capacity}
+        {heading} · {talents.length}/{capacity}
       </p>
       {talents.length > 0 ? (
         <div className="mt-2 space-y-3">
@@ -46,7 +46,7 @@ export function StaffAdditionalSkills({ talents, capacity = 3 }: {
             </div>
           ))}
         </div>
-      ) : <p className="mt-2 text-xs font-semibold leading-5 text-[#6D5A27]">Aucune compétence supplémentaire.</p>}
+      ) : <p className="mt-2 text-xs font-semibold leading-5 text-[#6D5A27]">{emptyLabel}</p>}
     </section>
   );
 }
@@ -62,14 +62,15 @@ export function StaffNationalityAffinity({ description = getStaffNationalityAffi
   );
 }
 
-export function StaffSkills({ role, level, effects, talents, nationalityAffinity, talentCapacity = 3 }: {
+export function StaffSkills({ role, level, effects, talents, nationalityAffinity, talentCapacity = 3, talentHeading, emptyTalentLabel }: {
   role?: StaffRole;
   level: number; effects: string[]; talents: StaffSkillTalent[];
   nationalityAffinity: boolean; talentCapacity?: number;
+  talentHeading?: string; emptyTalentLabel?: string;
 }) {
   return <>
     <StaffBaseSkills level={level} rows={effects.map(description => ({ description }))} />
-    <StaffAdditionalSkills talents={talents} capacity={talentCapacity} />
+    <StaffAdditionalSkills talents={talents} capacity={talentCapacity} heading={talentHeading} emptyLabel={emptyTalentLabel} />
     {role === "youth_coach" ? (
       <StaffNationalityAffinity description="+5 % supplémentaires pour chaque junior de la même nationalité" />
     ) : nationalityAffinity ? <StaffNationalityAffinity /> : null}
