@@ -17,6 +17,11 @@ describe("R&D stats and engineer details",()=>{
   it("shows a real equipment visual and national/federal benefits",()=>{
     const html=renderToStaticMarkup(<EquipmentRndEngineerSummary engineer={{contractId:"e",name:"Ada Lab",level:2,specialties:["research_success"],specialty:"research_success",countryName:"France",countryCode:"FR",nationalityMultiplier:1.1,federalMultiplier:1.05,setbackProtected:true}} />);
     expect(html).toContain("France");expect(html).toContain("+7 points de réussite");expect(html).toContain("+10%");expect(html).toContain("+5%");expect(html).toContain("Revers sans malus");
+    expect(html).toContain("Compétence de base");expect(html).toContain("Succès modéré : 10 %");
     expect(renderToStaticMarkup(<EquipmentRndVisual imagePath="/images/equipment/products/echelon-altitude-rs.webp" name="Cadre" slot="frame" />)).toContain("echelon-altitude-rs.webp");
+  });
+  it("does not invent a new base skill for a historical launch", () => {
+    const html = renderToStaticMarkup(<EquipmentRndEngineerSummary engineer={{contractId:"old",name:"Historical",level:5,specialties:[],specialty:null,moderateSuccessChancePercentage:0}} />);
+    expect(html).not.toContain("Succès modéré");
   });
 });

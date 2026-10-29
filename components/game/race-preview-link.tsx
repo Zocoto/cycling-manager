@@ -16,7 +16,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
-import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
+import { getRaceProfileLabel } from "@/lib/game/race-calendar";
 import {
   getRaceQuickPreviewRequestHref,
   summarizeCobbles,
@@ -471,7 +471,7 @@ function StageProfileSummary({
             {stage.name}
           </p>
           <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.09em] text-[#688176]">
-            {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
+            {getRaceProfileLabel(stage)} ·{" "}
             {formatDistance(stage.distanceKm)} km
           </p>
         </div>

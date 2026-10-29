@@ -266,6 +266,7 @@ type StageRow = {
   stage_type: RaceStageType;
   status: RaceStageStatus;
   profile_type: RaceProfileType;
+  profile_variant?: RaceCalendarStage["profileVariant"];
   distance_km: number | string;
   departure_at: string | null;
   day_slot: string;
@@ -1317,6 +1318,7 @@ export async function getActiveSeasonRaceCalendar(
                     stage_type,
                     status,
                     profile_type,
+                    profile_variant,
                     distance_km,
                     day_slot,
                     departure_at
@@ -3543,6 +3545,7 @@ function groupStages(
       stageType: row.stage_type,
       status: row.status,
       profileType: resolveRaceProfileType(row.profile_type, segments),
+      profileVariant: row.profile_variant ?? null,
       distanceKm,
       daySlot: isRaceDaySlot(row.day_slot) ? row.day_slot : "late",
       departureAt: row.departure_at,

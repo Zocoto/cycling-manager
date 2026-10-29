@@ -25,7 +25,7 @@ describe("Gazette quotation sources", () => {
       { conferenceId: "empty", publicStatement: "  " },
       { conferenceId: "emoji", publicStatement: "🚴‍♂️🎉" },
       { conferenceId: "long", publicStatement: "x".repeat(601) },
-    ] } as CyclogazetteContent)).toEqual([]);
+    ] } as unknown as CyclogazetteContent)).toEqual([]);
   });
 });
 

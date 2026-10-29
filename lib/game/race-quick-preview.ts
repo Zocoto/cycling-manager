@@ -1,6 +1,7 @@
 import type {
   RaceFormat,
   RaceProfileType,
+  RaceProfileVariant,
 } from "@/lib/game/race-calendar";
 import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
@@ -15,6 +16,7 @@ export type RaceQuickPreviewStage = {
   stageNumber: number;
   name: string;
   profileType: RaceProfileType;
+  profileVariant?: RaceProfileVariant | null;
   distanceKm: number;
   segments: RaceStageSegment[];
 };

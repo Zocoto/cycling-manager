@@ -1,4 +1,5 @@
 import { applyInfrastructureEfficiencyBonus } from "@/lib/game/infrastructure";
+import { getEquipmentRndModerateSuccessChance } from "./equipment-rnd-base-skill";
 import {
   getEquipmentRatingBonusTotals,
   type EquipmentEffects,
@@ -51,7 +52,16 @@ export type EquipmentRndEngineer = {
   federalMultiplier?: number;
   setbackProtected?: boolean;
   exceptionalChancePercentage?: number;
+  /** Frozen at launch; zero for projects started before this base skill existed. */
+  moderateSuccessChancePercentage?: number;
 };
+
+export function getEquipmentRndModerateSuccessChancePercentage(
+  engineer: EquipmentRndEngineer,
+): number {
+  return engineer.moderateSuccessChancePercentage ??
+    getEquipmentRndModerateSuccessChance(engineer.level);
+}
 
 export function isEquipmentRndSpecialty(
   value: string,

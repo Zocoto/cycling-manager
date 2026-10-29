@@ -4,6 +4,7 @@ import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
   RACE_PROFILE_LABELS,
+  getRaceProfileLabel,
   buildCalendarWeeks,
   consolidateFederationCalendarEditions,
   consolidateNationalChampionshipEvents,
@@ -27,6 +28,12 @@ import {
 } from "./race-calendar";
 
 describe("race profile labels", () => {
+  it("distinguishes sprint cobbles without changing the stored simulation domain", () => {
+    expect(getRaceProfileLabel({profileType:"cobbles",profileVariant:"sprint_cobbles"})).toBe("Sprint / Pavé");
+    expect(getRaceProfileLabel({profileType:"cobbles",profileVariant:"selective_cobbles"})).toBe("Pavés");
+    expect(getRaceProfileLabel({profileType:"cobbles"})).toBe("Pavés");
+    expect(getRaceProfileLabel({profileType:"time_trial",profileVariant:"sprint_cobbles"})).toBe("Contre-la-montre");
+  });
   it("présente l'ancien profil sprint sous l'unique libellé Plaine", () => {
     expect(RACE_PROFILE_LABELS.flat).toBe("Plaine");
     expect(RACE_PROFILE_LABELS.sprint).toBe("Plaine");

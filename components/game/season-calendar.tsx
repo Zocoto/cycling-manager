@@ -13,7 +13,7 @@ import {
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOTS,
   RACE_DAY_SLOT_CONFIG,
-  RACE_PROFILE_LABELS,
+  getRaceProfileLabel,
   buildCalendarWeeks,
   compareRaceDaySlots,
   consolidateFederationCalendarEditions,
@@ -765,7 +765,7 @@ function RaceCalendarList({
                 <p className="text-xs font-black text-[#183F37]">
                   {edition.calendarGroup?.profileLabel ??
                     (firstStage
-                      ? RACE_PROFILE_LABELS[firstStage.profileType]
+                      ? getRaceProfileLabel(firstStage)
                       : "À définir")}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-[#789087]">
@@ -1563,7 +1563,7 @@ function MobileCalendarDay({
                     className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 font-black"
                   >
                     {edition.calendarGroup?.profileLabel ??
-                      RACE_PROFILE_LABELS[stage.profileType]}
+                      getRaceProfileLabel(stage)}
                   </span>
                   <span className="min-w-0 truncate opacity-85">
                     {edition.calendarGroup

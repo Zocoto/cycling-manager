@@ -3,6 +3,7 @@ import "server-only";
 import type {
   RaceFormat,
   RaceProfileType,
+  RaceProfileVariant,
 } from "@/lib/game/race-calendar";
 import type {
   RaceQuickPreview,
@@ -36,6 +37,7 @@ type StageRow = {
   stage_number: number;
   name: string;
   profile_type: RaceProfileType;
+  profile_variant?: RaceProfileVariant | null;
   distance_km: number | string;
 };
 
@@ -121,7 +123,7 @@ export async function getRaceQuickPreview(
   const stagesResult = await supabase
     .from("stages")
     .select(
-      "id, season_day_id, stage_number, name, profile_type, distance_km",
+      "id, season_day_id, stage_number, name, profile_type, profile_variant, distance_km",
     )
     .eq("race_edition_id", edition.id)
     .neq("status", "cancelled")
@@ -226,6 +228,7 @@ export async function getRaceQuickPreview(
         stage.profile_type,
         segments,
       ),
+      profileVariant: stage.profile_variant ?? null,
       distanceKm,
       segments,
     };

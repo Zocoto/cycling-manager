@@ -9,6 +9,10 @@ import {
   orderSprintTrain,
 } from "./sprint-train";
 import type { RaceProfileType } from "./race-calendar";
+import {
+  compareRaceFavoriteCandidates,
+  getStageFavoriteScore,
+} from "./race-favorites";
 import type { StageEquipmentChange, StageEquipmentSnapshot } from "./race-stage-equipment";
 import type {
   StageRaceJerseyType,
@@ -1190,6 +1194,13 @@ function normalizeStageSimulationInput(
       profileType: input.profileType,
     });
   const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
+  // Match the public forecast before equipment, weather, form and other race
+  // adjustments. These bonuses still affect performance, not the Auto hierarchy.
+  const automaticFavoriteScores = new Map(
+    (input.stageType === "team_time_trial" ? [] : input.riders)
+      .filter((rider) => !unavailableRiderIds.has(rider.id))
+      .map((rider) => [rider.id, getStageFavoriteScore(input, rider)]),
+  );
   const sanitizeUnavailableRiderId = (riderId: string | null) =>
     riderId && unavailableRiderIds.has(riderId) ? null : riderId;
   const eligibleTeamStrategies = input.teamStrategies?.map((strategy) => ({
@@ -1378,6 +1389,7 @@ function normalizeStageSimulationInput(
     eligibleInput.profileType,
     eligibleInput.generalClassification,
     eligibleInput.teamStrategies,
+    { scores: automaticFavoriteScores, stageType: input.stageType },
   );
   const normalizedInput = {
     ...eligibleInput,
@@ -1761,6 +1773,10 @@ export function assignAutomaticRaceRoles(
   profileType: RaceProfileType = "mixed",
   generalClassification?: StageSimulationInput["generalClassification"],
   teamStrategies: readonly RaceTeamStrategy[] = [],
+  favoriteContext?: {
+    scores: ReadonlyMap<string, number>;
+    stageType: SimulationStageType;
+  },
 ) {
   validateExplicitRoles(riders);
   const resolved = riders.map((rider) => ({
@@ -1772,7 +1788,18 @@ export function assignAutomaticRaceRoles(
   const strategiesByTeamId = new Map(
     teamStrategies.map((strategy) => [strategy.teamId, strategy]),
   );
-  const likelySprint = isLikelyMassSprint(segments);
+  // TTT favorites are teams: retain their existing shelter/relay hierarchy.
+  const isTeamTimeTrial = favoriteContext?.stageType === "team_time_trial";
+  const likelySprint =
+    (!favoriteContext || favoriteContext.stageType === "road" || isTeamTimeTrial) &&
+    isLikelyMassSprint(segments);
+  const automaticFavoriteScores = favoriteContext?.scores ?? new Map(
+    riders.map((rider) => [rider.id, getStageFavoriteScore({
+      stageType: profileType === "time_trial" ? "individual_time_trial" : "road",
+      profileType,
+      segments,
+    }, rider)]),
+  );
 
   for (const teamRiders of teams.values()) {
     const automatic = () => teamRiders.filter((rider) => rider.role === "auto");
@@ -1795,20 +1822,29 @@ export function assignAutomaticRaceRoles(
       teamRiders.some((rider) => isRaceSprinterRole(rider.role));
 
     if (likelySprint && !hasSprinterRole()) {
-      setBestAutomaticRole(
-        automaticProtected(),
-        "leader_sprinter",
-        (rider) =>
+      if (isTeamTimeTrial) {
+        setBestAutomaticRole(automaticProtected(), "leader_sprinter", (rider) =>
           rider.ratings.sprint * 0.62 +
           rider.ratings.acceleration * 0.25 +
           rider.ratings.flat * 0.13,
-      );
+        );
+      } else {
+        setBestAutomaticFavoriteRole(
+          automaticProtected(), "leader_sprinter", automaticFavoriteScores,
+        );
+      }
     }
 
     if (!hasRole("leader")) {
-      setBestAutomaticRole(automaticProtected(), "leader", (rider) =>
-        getAutomaticLeaderScore(rider, segments, profileType),
-      );
+      if (isTeamTimeTrial) {
+        setBestAutomaticRole(automaticProtected(), "leader", (rider) =>
+          getTeamTimeTrialAutomaticLeaderScore(rider, segments, profileType),
+        );
+      } else {
+        setBestAutomaticFavoriteRole(
+          automaticProtected(), "leader", automaticFavoriteScores,
+        );
+      }
     }
 
     if (likelySprint && !hasRole("leadout")) {
@@ -12002,7 +12038,9 @@ function getStageSuitability(
   );
 }
 
-function getAutomaticLeaderScore(
+// A TTT has no individual public favorite. Keep its existing automatic roles:
+// changing the protected rider would also change shelter and relay allocation.
+function getTeamTimeTrialAutomaticLeaderScore(
   rider: RiderSimulationInput,
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
@@ -12339,6 +12377,17 @@ export function isFlatRunInGroupSprint(
     finalSegment?.terrain === "flat" &&
     (finalSegment.surface === "asphalt" || isUrbanCobbles(finalSegment))
   );
+}
+
+function setBestAutomaticFavoriteRole(
+  riders: RiderSimulationInput[],
+  role: "leader" | "leader_sprinter",
+  scores: ReadonlyMap<string, number>,
+) {
+  const best = riders
+    .map((rider) => ({ rider, score: scores.get(rider.id) ?? 0 }))
+    .sort(compareRaceFavoriteCandidates)[0];
+  if (best) best.rider.role = role;
 }
 
 function setBestAutomaticRole(

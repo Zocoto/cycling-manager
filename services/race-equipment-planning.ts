@@ -46,6 +46,7 @@ export type RaceEquipmentPlanningData = {
     stageNumber: number;
     name: string;
     profileType: RaceCalendarEdition["stages"][number]["profileType"];
+    profileVariant?: RaceCalendarEdition["stages"][number]["profileVariant"];
     departureAt: string | null;
     isEditable: boolean;
   }>;
@@ -199,6 +200,7 @@ function buildRaceEquipmentPlanningData({
         stageNumber: stage.stageNumber,
         name: stage.name,
         profileType: stage.profileType,
+        profileVariant: stage.profileVariant ?? null,
         departureAt: stage.departureAt,
         isEditable:
           stage.status !== "completed" &&

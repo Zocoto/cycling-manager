@@ -1,3 +1,4 @@
+import { describeEquipmentRndBaseSkill } from "@/lib/game/equipment-rnd-base-skill";
 import {
   ARCHITECT_SPECIALTY_LABELS,
   isArchitectSpecialty,
@@ -128,7 +129,7 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     label: "Ingénieur R&D",
     pluralLabel: "Ingénieurs R&D",
     shortDescription:
-      "Réduit le temps ou le coût d’une recherche, ou améliore ses chances de réussite.",
+      "Pilote les recherches et peut obtenir un succès modéré dans le secteur choisi.",
     salaryBase: 24_000,
     accent: "#39788F",
   },
@@ -551,9 +552,7 @@ export function describeStaffEffect({
       ];
     }
     case "research_engineer":
-      // These professions have no automatic base bonus: their actual effects
-      // are already described by their talents, in the same panel as other jobs.
-      return [];
+      return [describeEquipmentRndBaseSkill(percentage)];
     case "financial_director":
       return [
         `+${getFinancialDirectorDailyIncome(safeLevel)} € par jour de jeu, sans rattrapage des jours précédents`,

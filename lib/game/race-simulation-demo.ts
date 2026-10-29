@@ -22,7 +22,10 @@ import {
   type SimulationStageType,
   type StageSimulationInput,
 } from "./race-simulation";
-import { getRaceFavoriteScore } from "./race-favorites";
+import {
+  compareRaceFavoriteCandidates,
+  getRaceFavoriteScore,
+} from "./race-favorites";
 import { resolveStageRaceRole } from "./stage-race-roles";
 import {
   getRiderRaceDuty,
@@ -375,12 +378,9 @@ export function getTourLeaderByTeamId({
           : stageSprinterLeaders.length > 0
             ? stageSprinterLeaders
             : automaticCandidates;
-    const leader = [...candidates].sort(
-      (first, second) =>
-        getRaceFavoriteScore(edition, second) -
-          getRaceFavoriteScore(edition, first) ||
-        first.id.localeCompare(second.id),
-    )[0];
+    const leader = candidates
+      .map((rider) => ({ rider, score: getRaceFavoriteScore(edition, rider) }))
+      .sort(compareRaceFavoriteCandidates)[0]?.rider;
 
     if (leader) leaders.set(teamId, leader.id);
   }

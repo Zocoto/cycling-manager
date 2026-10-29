@@ -12,7 +12,7 @@ export async function verifyRndWorkbench(db,{uuid,scalar,check}) {
   const fields='id,status,success_rate,starts_game_day_index,completes_game_day_index,input_equipment_item_id,prototype_equipment_item_id';
   const before=await query(`select ${fields} from equipment_rnd_projects order by id`);
   const inventory=await query('select * from team_equipment_inventory order by equipment_item_id');
-  await db.exec(readFileSync('supabase/migrations/20261014110000_equipment_rnd_focus_and_audit.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261014110000_equipment_rnd_focus_and_audit.sql','utf8').replaceAll('\r',''));
   await db.exec('create trigger apply_federal_staff_to_equipment_rnd before insert on equipment_rnd_projects for each row execute function apply_federal_staff_to_equipment_rnd()');
   check(await query(`select ${fields} from equipment_rnd_projects order by id`),before);
   check(await query('select * from team_equipment_inventory order by equipment_item_id'),inventory);

@@ -42,7 +42,8 @@ export function readEquipmentRndEngineer(value: unknown): EquipmentRndEngineer |
   return { contractId: row.contractId, name: row.name, level: Number(row.level), specialties, specialty: specialties[0] ?? null,
     countryName: typeof row.countryName === "string" ? row.countryName : null, countryCode: typeof row.countryCode === "string" ? row.countryCode : null,
     nationalityMultiplier: Number(row.nationalityMultiplier ?? 1), federalMultiplier: Number(row.federalMultiplier ?? 1),
-    setbackProtected: row.setbackProtected === true, exceptionalChancePercentage: Number(row.exceptionalChancePercentage ?? 1) };
+    setbackProtected: row.setbackProtected === true, exceptionalChancePercentage: Number(row.exceptionalChancePercentage ?? 1),
+    moderateSuccessChancePercentage: Number(row.moderateSuccessChancePercentage ?? 0) };
 }
 export async function getCurrentTeamEquipmentRndOverview(authUserId: string, client?: Awaited<ReturnType<typeof createSupabaseServerClient>>): Promise<TeamEquipmentRndOverview | null> {
   const supabase = client ?? await createSupabaseServerClient();

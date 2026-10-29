@@ -22,7 +22,7 @@ import {
   serializeRaceEquipmentPlanEntry,
   type RaceEquipmentPlanSelection,
 } from "@/lib/game/race-equipment-planning";
-import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
+import { getRaceProfileLabel } from "@/lib/game/race-calendar";
 import type { RaceEquipmentPlanningData } from "@/services/race-equipment-planning";
 
 export type RaceEquipmentPlannerRider = {
@@ -189,7 +189,7 @@ export function RaceEquipmentPlanner({
           </p>
           <p className="mt-1 text-sm font-black text-white">
             {isStageRace ? `E${fixedStage.stageNumber} · ` : ""}
-            {fixedStage.name} · {RACE_PROFILE_LABELS[fixedStage.profileType]}
+            {fixedStage.name} · {getRaceProfileLabel(fixedStage)}
           </p>
         </div>
       ) : (
@@ -203,7 +203,7 @@ export function RaceEquipmentPlanner({
             {planning.stages.map((stage) => (
               <option key={stage.id} value={stage.id}>
                 {isStageRace ? "E" + stage.stageNumber + " · " : ""}
-                {stage.name} · {RACE_PROFILE_LABELS[stage.profileType]}
+                {stage.name} · {getRaceProfileLabel(stage)}
                 {stage.isEditable ? "" : " · figée"}
               </option>
             ))}

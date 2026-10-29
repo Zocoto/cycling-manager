@@ -8,7 +8,10 @@ const fixture = vi.hoisted(() => ({
   client: null as unknown,
 }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => fixture.client }));
-vi.mock("@/lib/game/race-favorites", () => ({ buildRaceFavorites: () => [] }));
+vi.mock("@/lib/game/race-favorites", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/game/race-favorites")>(),
+  buildRaceFavorites: () => [],
+}));
 vi.mock("@/lib/game/race-simulation-demo", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/game/race-simulation-demo")>();
   return { ...original, createCalendarSimulationInput: ({ edition, stage, seed }: {
