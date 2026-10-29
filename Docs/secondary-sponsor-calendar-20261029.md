@@ -34,7 +34,7 @@ pour l'éditeur de placement du logo.
 
 ## Validation
 
-34 tests passent : service secondaire, règles de primes, pagination et workflow
+40 tests passent : service secondaire, règles de primes, pagination et workflow
 sponsoring. Les nouveaux contrôles isolés couvrent 1 203 éditions éligibles,
 la sélection au-delà de la 1 000e, les filtres d'accès, les lots de 75, les offres
 déjà préparées, l'offre manquante, le calendrier vide et l'échec d'un lot sans
@@ -42,3 +42,15 @@ création d'objectifs partiels. ESLint et couverture des traductions vérifiés.
 
 Aucun scénario de test, génération manuelle d'offres ou mutation de données n'a
 été exécuté en production. Aucune migration requise.
+
+## Retour sur la réputation décimale
+
+Le premier correctif envoyait la réputation décimale du DS directement dans
+le filtre sur `minimum_reputation`, colonne SQL entière. Pour Fra Troisset,
+`1569.26` provoquait alors `22P02` (syntaxe d'entier invalide).
+Le filtre utilise désormais `Math.floor(reputationPoints)` : c'est exactement
+équivalent pour un seuil entier, sans modifier la réputation du joueur ni
+arrondir vers le seuil supérieur. Les tests reproduisent la contrainte de type
+PostgREST et couvrent la valeur exacte, ses variantes numériques et les limites
+1499,99 / 1500,01 / 1569,99 / 1570. Une vérification PostgreSQL isolée reproduit
+l'erreur puis confirme l'inclusion de 1569 et l'exclusion de 1570.

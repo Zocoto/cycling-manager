@@ -758,7 +758,9 @@ async function loadSecondaryRaceCandidates({
       .eq("season_id", seasonId)
       .neq("status", "cancelled")
       .eq("registration_policy", "open")
-      .lte("minimum_reputation", reputationPoints)
+      // This column is integer; floor keeps the exact eligibility rule for
+      // fractional director reputation without sending an invalid SQL literal.
+      .lte("minimum_reputation", Math.floor(reputationPoints))
       .order("id", { ascending: true })
       .range(from, to)
       .returns<RaceEditionRow[]>(),

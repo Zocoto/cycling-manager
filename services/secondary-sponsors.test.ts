@@ -15,7 +15,7 @@ type QueryRecord = {
   limit?: number;
   inserted?: Row[];
 };
-type Result = { data: Row[] | Row | null; error: { message: string } | null };
+type Result = { data: Row[] | Row | null; error: { code?: string; message: string } | null };
 
 function uuid(index: number) {
   return `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
@@ -89,6 +89,10 @@ function fixture(raceCount = 6) {
       if (state.failCalendar && ["race_editions", "races", "race_categories"].includes(table)) {
         return { data: null, error: { message: "Calendar unavailable" } };
       }
+      const reputationFilter = record.filters.find((entry) => entry.kind === "lte" && entry.column === "minimum_reputation");
+      if (table === "race_editions" && reputationFilter && !Number.isInteger(reputationFilter.value)) {
+        return { data: null, error: { code: "22P02", message: `invalid input syntax for type integer: "${reputationFilter.value}"` } };
+      }
       const idFilter = record.filters.find((entry) => entry.kind === "in" && entry.column === "id");
       if (table === "races" && Array.isArray(idFilter?.value) && idFilter.value.length > 75) {
         return { data: null, error: { message: "URI too long: more than 75 UUIDs" } };
@@ -148,6 +152,34 @@ function fixture(raceCount = 6) {
 beforeEach(() => vi.clearAllMocks());
 
 describe("secondary sponsor calendar resilience", () => {
+  it.each(["1569.26", 1569.26, 1569.99, 1500.01, 1570])("accepts reputation %s without rounding up an integer race threshold", async (reputation) => {
+    const f = fixture(8);
+    f.tables.sporting_directors[0].reputation_points = reputation;
+    for (let index = 0; index < 3; index++) f.tables.race_editions[index].minimum_reputation = 1500;
+    f.tables.race_editions[3].minimum_reputation = 1570;
+    f.tables.race_editions[4].minimum_reputation = 1569;
+    f.tables.race_editions[5].minimum_reputation = 1569;
+    f.tables.race_editions[6].minimum_reputation = 1569;
+    f.tables.race_editions[7].minimum_reputation = 1570;
+    const state = await getSecondarySponsoringStateForAuthUser("user");
+    expect(state?.kind).toBe("offers");
+    const bound = f.queries.find((query) => query.table === "race_editions")?.filters.find((entry) => entry.kind === "lte" && entry.column === "minimum_reputation")?.value;
+    expect(bound).toBe(Math.floor(Number(reputation)));
+    const requestedRaceIds = f.queries.filter((query) => query.table === "races").flatMap((query) => query.filters.filter((entry) => entry.kind === "in" && entry.column === "id").flatMap((entry) => entry.value as string[]));
+    const expected = f.tables.race_editions.filter((edition) => Number(edition.minimum_reputation) <= Number(reputation)).map((edition) => edition.race_id);
+    expect([...new Set(requestedRaceIds)].sort()).toEqual(expected.sort());
+    expect(f.tables.sporting_directors[0].reputation_points).toBe(reputation);
+  });
+
+  it("keeps a reputation below 1500 locked without querying the calendar", async () => {
+    const f = fixture();
+    f.tables.sporting_directors[0].reputation_points = "1499.99";
+    const state = await getSecondarySponsoringStateForAuthUser("user");
+    expect(state).toMatchObject({ kind: "reputation-locked", currentReputation: 1499.99 });
+    expect(f.queries.some((query) => query.table === "race_editions")).toBe(false);
+    expect(f.inserts).toEqual([]);
+  });
+
   it("pages a growing calendar and bounds UUID relation batches and concurrency", async () => {
     const f = fixture(1_203);
     const state = await getSecondarySponsoringStateForAuthUser("user");
