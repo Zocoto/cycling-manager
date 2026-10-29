@@ -8,7 +8,7 @@ import Link from "@/components/ui/app-link";
 import {
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOT_CONFIG,
-  RACE_PROFILE_LABELS,
+  getRaceProfileLabel,
   type RaceCalendarStage,
 } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
@@ -235,7 +235,7 @@ function TourStageCard({
             {stage.name}
           </h3>
           <p className="mt-2 text-xs font-bold text-[#48665F]">
-            {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
+            {getRaceProfileLabel(stage)} ·{" "}
             {stage.distanceKm.toLocaleString("fr-FR", {
               maximumFractionDigits: 1,
             })}{" "}

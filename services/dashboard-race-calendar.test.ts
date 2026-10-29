@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { getDashboardRaceCalendar } from "./dashboard-race-calendar";
+import { getRaceProfileLabel } from "@/lib/game/race-calendar";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function calendarClient(failedTable?: string) {
@@ -12,8 +13,9 @@ function calendarClient(failedTable?: string) {
     season_days: [{ id: "day", day_number: 8, calendar_date: "2026-10-15", label: null }],
     race_categories: [{ id: "category", code: "world", name: "World", prestige_rank: 1 }],
     countries: [{ id: "country", name: "France", iso_alpha2: "FR", continent_code: "EU" }],
-    stages: editions.map(e => ({ id: `stage-${e.id}`, race_edition_id: e.id, season_day_id: "day",
-      stage_number: 1, day_slot: "early", stage_type: "road", status: "planned", profile_type: "flat", distance_km: 120 })),
+    stages: editions.map((e,i) => ({ id: `stage-${e.id}`, race_edition_id: e.id, season_day_id: "day",
+      stage_number: 1, day_slot: "early", stage_type: "road", status: "planned", profile_type: i===0?"cobbles":"flat",
+      profile_variant:i===0?"sprint_cobbles":null, distance_km: 120 })),
   };
   const filters: { table: string; ids: string[] }[] = [];
   const signals: AbortSignal[] = [];
@@ -43,6 +45,14 @@ function calendarClient(failedTable?: string) {
 }
 
 describe("dashboard calendar bounded reads", () => {
+  it("shows the cobbled variant without loading segments or changing the sporting profile", async () => {
+    const mock=calendarClient();
+    const calendar=await getDashboardRaceCalendar(mock.supabase,{seasonId:"season",seasonName:"S5",currentDayNumber:7});
+    const stage=calendar.editions.flatMap(e=>e.stages).find(s=>s.id==="stage-edition-0")!;
+    expect(stage.profileType).toBe("cobbles");
+    expect(getRaceProfileLabel(stage)).toBe("Sprint / Pavé");
+    expect(mock.supabase.from).not.toHaveBeenCalledWith("stage_segments");
+  });
   it("chunks every large UUID filter without losing races or stages and shares one deadline", async () => {
     const mock = calendarClient();
     const calendar = await getDashboardRaceCalendar(mock.supabase, { seasonId: "season", seasonName: "S4", currentDayNumber: 7 });

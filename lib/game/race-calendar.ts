@@ -108,6 +108,9 @@ export function isFederationSelectionEdition(
 export type RaceProfileType =
   "flat" | "sprint" | "hilly" | "mountain" | "cobbles" | "time_trial" | "mixed";
 
+/** Display annotation only: never a simulation profile or equipment domain. */
+export type RaceProfileVariant = "sprint_cobbles" | "selective_cobbles";
+
 export type RegistrationPolicy = "open" | "criteria_pending" | "closed";
 
 export type RaceStageType =
@@ -132,6 +135,7 @@ export type RaceCalendarStage = {
   stageType: RaceStageType;
   status: RaceStageStatus;
   profileType: RaceProfileType;
+  profileVariant?: RaceProfileVariant | null;
   distanceKm: number;
   daySlot: RaceDaySlot;
   departureAt: string | null;
@@ -642,6 +646,15 @@ export const RACE_PROFILE_LABELS: Record<RaceProfileType, string> = {
   time_trial: "Contre-la-montre",
   mixed: "Mixte",
 };
+
+export function getRaceProfileLabel(stage: {
+  profileType: RaceProfileType;
+  profileVariant?: RaceProfileVariant | null;
+}) {
+  return stage.profileType === "cobbles" && stage.profileVariant === "sprint_cobbles"
+    ? "Sprint / Pavé"
+    : RACE_PROFILE_LABELS[stage.profileType];
+}
 
 export function isRaceCategoryCode(value: string): value is RaceCategoryCode {
   return RACE_CATEGORY_CODES.includes(value as RaceCategoryCode);

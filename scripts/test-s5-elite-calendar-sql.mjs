@@ -159,5 +159,16 @@ await db.exec('rollback');
 assert.equal((await db.query(`select count(*)::int n from stage_segments where distance_km<=0 or (terrain_type='flat' and average_gradient_pct<>0) or (terrain_type='climb' and average_gradient_pct<=0) or (terrain_type='descent' and average_gradient_pct>=0)`)).rows[0].n,0);
 assert.equal((await db.query(`select count(*)::int n from stages t where abs(t.distance_km-(select sum(distance_km) from stage_segments where stage_id=t.id))>0.001`)).rows[0].n,0);
 assert.equal((await db.query(`select count(*)::int n from stages t join race_editions e on e.id=t.race_edition_id join races r on r.id=e.race_id where e.season_id=$1 and r.slug in('tour-des-plaines','tour-des-hautes-vallees') and t.profile_type in('mountain','hilly') and not exists(select 1 from stage_segments s join stage_segment_primes p on p.stage_segment_id=s.id where s.stage_id=t.id and p.prime_type='mountain')`,[s5])).rows[0].n,0);
+if(process.env.TEST_S5_COBBLED_PROFILES==='1'){
+  // Exercise the new hook in the complete existing provisioning pipeline,
+  // including the real Elite/date/field-limit triggers, not just a stub.
+  await db.exec(read('20261029140000_refine_s5_cobbled_profiles'));
+  await db.query('select public.provision_season_race_calendar($1,$2)',[s4,s6]);
+  await check(s6);
+  assert.equal((await db.query(`select count(*)::int n from stages t join race_editions e on e.id=t.race_edition_id where e.season_id=$1 and t.profile_variant='selective_cobbles'`,[s6])).rows[0].n,14);
+  assert.equal((await db.query(`select count(*)::int n from stages t join race_editions e on e.id=t.race_edition_id where e.season_id=$1 and t.distance_km<>(select sum(x.distance_km)from stage_segments x where x.stage_id=t.id)`,[s6])).rows[0].n,0);
+  assert.equal((await db.query(`select count(*)::int n from stages t join race_editions e on e.id=t.race_edition_id where e.season_id=$1 and t.profile_variant is not null`,[s4])).rows[0].n,0);
+  console.log('Cobbled profile hook passed in the full legacy S4->S6 provisioning pipeline, including Elite calendar guards.');
+}
 console.log(`Isolated SQL passed: ${baseline.length} existing races, S4 preserved, 24 Elite races / 74 stages, 7 tours, 6 Monuments, dates/slots, J1/international days, two-event cap, profiles/primes, entries and preparation, migration retry, legacy S4->S6 provisioning, Corsa 08:00.`);
 await db.close();

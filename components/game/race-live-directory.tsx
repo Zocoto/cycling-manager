@@ -13,7 +13,7 @@ import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOT_CONFIG,
-  RACE_PROFILE_LABELS,
+  getRaceProfileLabel,
   compareRaceDaySlots,
   isCurrentTeamRegisteredForRace,
   isProfessionalNationsCupEdition,
@@ -428,11 +428,11 @@ function StageDirectoryCard({
           <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
             {isStageRace
               ? "E" + stage.stageNumber + " \u00B7 " + stage.name
-              : RACE_PROFILE_LABELS[stage.profileType]}
+              : getRaceProfileLabel(stage)}
           </span>
           <span className="mt-1 block text-[10px] font-semibold text-[#789087]">
             {isStageRace
-              ? RACE_PROFILE_LABELS[stage.profileType] + " \u00B7 "
+              ? getRaceProfileLabel(stage) + " \u00B7 "
               : null}
             {formatDistance(stage.distanceKm)} km {"\u00B7"} {state.durationMinutes} min de live
           </span>
@@ -556,7 +556,7 @@ function TourDirectoryCard({
                 {anchorStage.name}
               </p>
               <p className="mt-1 text-[10px] font-semibold text-[#789087]">
-                {RACE_PROFILE_LABELS[anchorStage.profileType]} ·{" "}
+                {getRaceProfileLabel(anchorStage)} ·{" "}
                 {formatDistance(anchorStage.distanceKm)} km
               </p>
             </>
@@ -626,7 +626,7 @@ function StageSummaryPopover({
                     </span>
                     <span className="block text-[9px] font-bold text-[#789087]">
                       J{stage.dayNumber} ·{" "}
-                      {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
+                      {getRaceProfileLabel(stage)} ·{" "}
                       {formatDistance(stage.distanceKm)} km
                     </span>
                   </span>
@@ -702,7 +702,7 @@ function OneDayDirectoryCard({
             J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
           </span>
           <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
-            {RACE_PROFILE_LABELS[stage.profileType]}
+            {getRaceProfileLabel(stage)}
           </span>
           <span className="mt-1 block text-[10px] font-semibold text-[#789087]">
             {formatDistance(stage.distanceKm)} km · {state.durationMinutes} min

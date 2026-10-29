@@ -4,7 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { runRaceSimulatorAction } from "@/app/jeu/simulateur-course/actions";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
-import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
+import { getRaceProfileLabel } from "@/lib/game/race-calendar";
 import {
   INITIAL_RACE_SIMULATOR_STATE,
   type RaceSimulatorLogEntry,
@@ -215,7 +215,7 @@ export function RaceSimulatorWorkbench({
                 <dl className="grid grid-cols-2 gap-3 rounded-2xl border border-[#315B3E]/10 bg-[#F3F8F5] p-4 text-sm">
                   <StageFact
                     label="Profil"
-                    value={RACE_PROFILE_LABELS[selectedStage.profileType]}
+                    value={getRaceProfileLabel(selectedStage)}
                   />
                   <StageFact
                     label="Distance"

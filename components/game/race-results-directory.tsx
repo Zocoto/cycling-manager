@@ -12,7 +12,7 @@ import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOT_CONFIG,
-  RACE_PROFILE_LABELS,
+  getRaceProfileLabel,
   compareRaceDaySlots,
   isCurrentTeamRegisteredForRace,
   type RaceCalendarEdition,
@@ -397,7 +397,7 @@ function RaceDirectoryCard({
                   />
                 </span>
                 <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
-                  {edition.raceFormat === "stage_race" ? stage.name : RACE_PROFILE_LABELS[stage.profileType]}
+                  {edition.raceFormat === "stage_race" ? stage.name : getRaceProfileLabel(stage)}
                 </span>
                 <span className="mt-1 block text-[10px] font-semibold text-[#789087]">
                   {stage.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km · {state.durationMinutes} min de live

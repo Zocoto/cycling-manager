@@ -65,6 +65,7 @@ type StageRow = {
   stage_type: RaceStageType;
   status: RaceStageStatus;
   profile_type: RaceProfileType;
+  profile_variant?: RaceCalendarStage["profileVariant"];
   distance_km: number | string;
   day_slot: string;
   departure_at: string | null;
@@ -222,7 +223,7 @@ export async function getDashboardRaceCalendar(
       ? collectChunks(editionIds, (ids) => supabase
           .from("stages")
           .select(
-            "id, race_edition_id, season_day_id, stage_number, name, stage_type, status, profile_type, distance_km, day_slot, departure_at",
+            "id, race_edition_id, season_day_id, stage_number, name, stage_type, status, profile_type, profile_variant, distance_km, day_slot, departure_at",
           )
           .in("race_edition_id", ids)
           .neq("status", "cancelled")
@@ -282,6 +283,7 @@ export async function getDashboardRaceCalendar(
       stageType: stage.stage_type,
       status: stage.status,
       profileType: stage.profile_type,
+      profileVariant: stage.profile_variant ?? null,
       distanceKm: Number(stage.distance_km),
       daySlot: stage.day_slot,
       departureAt: stage.departure_at,
