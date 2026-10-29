@@ -18,9 +18,16 @@ import {
 import { stableHash } from "@/lib/game/sponsor-main-objective";
 import { GAMEPLAY_RULES, isFutureSponsoringWindowOpen } from "@/lib/gameplay-rules";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  collectChunkedPaginatedRows,
+  collectPaginatedRows,
+} from "@/lib/supabase/pagination";
 import type { Sponsor } from "@/types/sponsor";
 
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
+
+const SECONDARY_CALENDAR_PAGE_SIZE = 500;
+const SECONDARY_RELATION_BATCH_SIZE = 75;
 
 export type SecondarySponsorOffer = {
   id: string;
@@ -425,22 +432,27 @@ async function ensureAndLoadSecondarySponsorOffers({
   }
 
   const sponsorById = new Map((sponsors ?? []).map((sponsor) => [sponsor.id, sponsor]));
-  const raceCandidates = await loadSecondaryRaceCandidates({
-    supabase,
-    seasonId: targetSeason.id,
-    countryId: country.id,
-    reputationPoints,
-  });
+  const offerIds = offerRows.map((offer) => offer.id);
+  let objectives = await loadSecondaryObjectiveRows({ supabase, offerIds });
+  const existingObjectivesByOfferId = groupObjectivesByOfferId(objectives);
+  const offersWithoutObjectives = offerRows.filter(
+    (offer) =>
+      sponsorById.has(offer.secondary_sponsor_id) &&
+      !existingObjectivesByOfferId.get(offer.id)?.length,
+  );
+  // A saved proposal does not depend on rereading next season's calendar.
+  const raceCandidates = offersWithoutObjectives.length > 0
+    ? await loadSecondaryRaceCandidates({
+        supabase,
+        seasonId: targetSeason.id,
+        countryId: country.id,
+        reputationPoints,
+      })
+    : [];
 
-  for (const offer of offerRows) {
+  for (const offer of offersWithoutObjectives) {
     const sponsor = sponsorById.get(offer.secondary_sponsor_id);
     if (!sponsor) continue;
-
-    const existingObjectives = await loadSecondaryObjectiveRows({
-      supabase,
-      offerIds: [offer.id],
-    });
-    if (existingObjectives.length > 0) continue;
 
     const objectiveCount = getSecondarySponsorObjectiveCount(
       toSponsorPrestige(sponsor.prestige),
@@ -491,10 +503,9 @@ async function ensureAndLoadSecondarySponsorOffers({
     }
   }
 
-  const objectives = await loadSecondaryObjectiveRows({
-    supabase,
-    offerIds: offerRows.map((offer) => offer.id),
-  });
+  if (offersWithoutObjectives.length > 0) {
+    objectives = await loadSecondaryObjectiveRows({ supabase, offerIds });
+  }
   const objectivesByOfferId = groupObjectivesByOfferId(objectives);
 
   return offerRows
@@ -737,26 +748,42 @@ async function loadSecondaryRaceCandidates({
   countryId: string;
   reputationPoints: number;
 }): Promise<SecondaryRaceCandidate[]> {
-  const { data: editions, error: editionError } = await supabase
-    .from("race_editions")
-    .select(
-      "id, race_id, race_category_id, display_name, registration_policy, minimum_reputation, status",
-    )
-    .eq("season_id", seasonId)
-    .neq("status", "cancelled")
-    .returns<RaceEditionRow[]>();
+  const { data: editions, error: editionError } = await collectPaginatedRows({
+    pageSize: SECONDARY_CALENDAR_PAGE_SIZE,
+    fetchPage: async (from, to) => await supabase
+      .from("race_editions")
+      .select(
+        "id, race_id, race_category_id, display_name, registration_policy, minimum_reputation, status",
+      )
+      .eq("season_id", seasonId)
+      .neq("status", "cancelled")
+      .eq("registration_policy", "open")
+      .lte("minimum_reputation", reputationPoints)
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<RaceEditionRow[]>(),
+  });
   if (editionError) throw new Error(`Calendrier secondaire indisponible : ${editionError.message}`);
 
   const raceIds = [...new Set((editions ?? []).map((edition) => edition.race_id))];
+  if (raceIds.length === 0) return [];
   const categoryIds = [
     ...new Set((editions ?? []).map((edition) => edition.race_category_id)),
   ];
   const [racesResult, categoriesResult] = await Promise.all([
-    supabase
-      .from("races")
-      .select("id, country_id, slug, status")
-      .in("id", raceIds)
-      .returns<RaceRow[]>(),
+    collectChunkedPaginatedRows({
+      values: raceIds,
+      chunkSize: SECONDARY_RELATION_BATCH_SIZE,
+      pageSize: SECONDARY_CALENDAR_PAGE_SIZE,
+      maxConcurrency: 1,
+      fetchPage: async (ids, from, to) => await supabase
+        .from("races")
+        .select("id, country_id, slug, status")
+        .in("id", ids)
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<RaceRow[]>(),
+    }),
     supabase
       .from("race_categories")
       .select("id, code")
@@ -764,6 +791,12 @@ async function loadSecondaryRaceCandidates({
       .returns<RaceCategoryRow[]>(),
   ]);
   if (racesResult.error || categoriesResult.error) {
+    const error = racesResult.error ?? categoriesResult.error;
+    console.error("secondary_sponsor_calendar_read_failed", {
+      relation: racesResult.error ? "races" : "race_categories",
+      code: error?.code,
+      message: error?.message.slice(0, 200),
+    });
     throw new Error("Le détail du calendrier secondaire est indisponible.");
   }
 
