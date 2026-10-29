@@ -109,6 +109,24 @@ const DS_ROLE_PRIORITY_PRE_FINISH_PHYSICS: Record<string, string> = {
   "non-urban-cobbled-finish:109": "13db21624e28b0d7975b8526ddf07149e02b74cd9764a414710df3c18f2cdea5",
 };
 
+// v54 removes random regroup/drop penalties after a failed bridge. Replacing
+// only resolveExistingChasers with its v53 implementation restores all 30
+// historical baselines exactly (Docs/chaser-regrouping-20261029.md).
+// Freeze the eight affected scenarios here and retain the original hashes
+// above as provenance. Every other scenario must remain byte-for-byte equal.
+const CHASER_REGROUPING_EXPECTED: Record<string, string> = {
+  "hilly:17": "6372be413e4921b7fd5df4aeb4cd6d4e5052edee44fcb6a967a1aaa4e8cc24df",
+  "hilly:41": "0611135a3cf79d9f8d9791c6b96cfb49b3e682de9034bfbddbb1ba55adb61c5a",
+  "hilly:109": "0ac1aface0ef3fd3a0243350851767666ee7a08d7b6c0dc41284c281e3de5e7b",
+  "mountain:17": "c4667f4fde3c1127417443db9ebfb14e88f94503e1d6e00b7ce0cce257dafe9e",
+  "mountain:41": "eafc7c0f18d313b80cee5084b0796679ff577b597574e1cc517abc972850d389",
+  "mountain:109": "7c691146a0563a982c6033aedfc5b02224bcf36098e63dffe798bc5428640870",
+};
+const CHASER_REGROUPING_PRE_FINISH_PHYSICS: Record<string, string> = {
+  "classic-cobbles:17": "2fb4dff3bd09f489756f3f443164d7aae81f7dc1d73bafaa2765d8594605c096",
+  "classic-cobbles:41": "6389e9d919be5ccbffbfe626db90529e57f8028f24d08231859d26f72cbd2af2",
+};
+
 function inputFor(scenario: Scenario, seed: number): StageSimulationInput {
   if (scenario === "sprint") return createDemoSimulationInput("sprint-littoral", seed);
   if (scenario === "hilly") return createDemoSimulationInput("collines-ardennes", seed);
@@ -242,7 +260,7 @@ describe("urban-cobbles correction: exact unrelated sporting baselines", () => {
       const key = `${scenario}:${seed}`;
       const actual = sportingFingerprint(inputFor(scenario, seed));
       if (process.env.URBAN_COBBLES_BASELINE_REPORT === "1") console.info(`${key} ${actual}`);
-      expect(actual, key).toBe(DS_ROLE_PRIORITY_EXPECTED[key] ?? EXPECTED[key]);
+      expect(actual, key).toBe(CHASER_REGROUPING_EXPECTED[key] ?? DS_ROLE_PRIORITY_EXPECTED[key] ?? EXPECTED[key]);
     },
   );
 });
@@ -253,7 +271,7 @@ describe("flat-sprint correction: race physics preserve the role-aware baselines
     ({ scenario, seed }) => {
       const key = `${scenario}:${seed}`;
       expect(preFinishPhysicsFingerprint(inputFor(scenario, seed)), key)
-        .toBe(DS_ROLE_PRIORITY_PRE_FINISH_PHYSICS[key] ?? EXPECTED_PRE_FINISH_PHYSICS[key]);
+        .toBe(CHASER_REGROUPING_PRE_FINISH_PHYSICS[key] ?? DS_ROLE_PRIORITY_PRE_FINISH_PHYSICS[key] ?? EXPECTED_PRE_FINISH_PHYSICS[key]);
     },
   );
 });

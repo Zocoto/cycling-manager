@@ -18785,5 +18785,7 @@
   "entre DS": "from other managers",
   "prochaine clôture": "next close",
   "15 quotidiennes · 4 entre DS · prochaine clôture 11:27": "15 daily auctions · 4 from other managers · next close 11:27",
-  "Simuler une erreur": "Simulate an error"
+  "Simuler une erreur": "Simulate an error",
+  "{{0}} est repris par le peloton et se replace dans les roues.": "{{0}} is caught by the peloton and settles back into the wheels.",
+  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels."
 }

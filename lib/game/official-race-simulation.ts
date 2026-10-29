@@ -102,7 +102,7 @@ export function buildOfficialStageRaceStandings(
 }
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.10-ds-role-priority-v53";
+  "2026.10-favorite-aligned-auto-leaders-v55";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

@@ -11,6 +11,22 @@ import { getRiderPhysiologyProfileModifier } from "./rider-physiology";
 
 export type RaceFavoriteStars = 1 | 2 | 3;
 
+export type RaceFavoriteStage = Pick<
+  RaceCalendarStage,
+  "stageType" | "profileType" | "segments"
+>;
+
+export function compareRaceFavoriteCandidates(
+  first: { rider: Pick<RiderSimulationInput, "id" | "name">; score: number },
+  second: { rider: Pick<RiderSimulationInput, "id" | "name">; score: number },
+) {
+  return (
+    second.score - first.score ||
+    first.rider.name.localeCompare(second.rider.name, "fr") ||
+    first.rider.id.localeCompare(second.rider.id)
+  );
+}
+
 export type RaceFavorite = {
   rider: RiderSimulationInput;
   rank: number;
@@ -90,12 +106,7 @@ export function buildRaceFavorites({
       rider,
       score: getRaceFavoriteScore(edition, rider),
     }))
-    .sort(
-      (first, second) =>
-        second.score - first.score ||
-        first.rider.name.localeCompare(second.rider.name, "fr") ||
-        first.rider.id.localeCompare(second.rider.id),
-    )
+    .sort(compareRaceFavoriteCandidates)
     .slice(0, safeLimit)
     .map(({ rider, score }, index) => {
       const rank = index + 1;
@@ -200,14 +211,7 @@ export function getRaceFavoriteScore(
   }
 
   if (edition.raceFormat === "one_day") {
-    return (
-      getOneDayFavoriteScore(rider.ratings, stages[0]) +
-      getRiderPhysiologyProfileModifier({
-        physiology: rider.physiology,
-        ratings: rider.ratings,
-        profileType: stages[0].profileType,
-      })
-    );
+    return getStageFavoriteScore(stages[0], rider);
   }
 
   const decisiveStages = stages
@@ -239,9 +243,24 @@ export function getRaceFavoriteScore(
   );
 }
 
+/** Shared intrinsic ranking for the public forecast and automatic leaders. */
+export function getStageFavoriteScore(
+  stage: RaceFavoriteStage,
+  rider: RiderSimulationInput,
+) {
+  return (
+    getOneDayFavoriteScore(rider.ratings, stage) +
+    getRiderPhysiologyProfileModifier({
+      physiology: rider.physiology,
+      ratings: rider.ratings,
+      profileType: stage.profileType,
+    })
+  );
+}
+
 function getOneDayFavoriteScore(
   ratings: RiderSimulationRatings,
-  stage: RaceCalendarStage,
+  stage: RaceFavoriteStage,
 ) {
   if (stage.stageType === "prologue") {
     return getPrologueFavoriteRating(ratings);
@@ -256,7 +275,7 @@ function getOneDayFavoriteScore(
 
 function getOneDayRoadFavoriteScore(
   ratings: RiderSimulationRatings,
-  stage: RaceCalendarStage,
+  stage: RaceFavoriteStage,
 ) {
   // A classic predicts the rider best suited to this course profile. Dynamic
   // state (form, equipment or contextual bonuses) deliberately stays out.
@@ -433,7 +452,7 @@ function getGeneralClassificationStageRating(
 
 function getTimeTrialFavoriteRating(
   ratings: RiderSimulationRatings,
-  stage: RaceCalendarStage,
+  stage: RaceFavoriteStage,
 ) {
   const routeRating = getRouteRating(ratings, stage, ratings.timeTrial);
   const terrainDifficulty = getTimeTrialTerrainDifficulty(stage);
@@ -567,7 +586,7 @@ function getRoadStageSelectivityFactor(stage: RaceCalendarStage) {
   return clamp(0.5 + (selectiveLoad / totalDistance) * 1.5, 0.5, 1.5);
 }
 
-function isTimeTrialStage(stage: RaceCalendarStage) {
+function isTimeTrialStage(stage: RaceFavoriteStage) {
   return (
     stage.stageType === "individual_time_trial" ||
     stage.stageType === "team_time_trial" ||
@@ -577,7 +596,7 @@ function isTimeTrialStage(stage: RaceCalendarStage) {
 
 function getRouteRating(
   ratings: RiderSimulationRatings,
-  stage: RaceCalendarStage,
+  stage: RaceFavoriteStage,
   fallbackRating: number,
 ) {
   if (stage.segments.length === 0) {
@@ -641,7 +660,7 @@ function getRouteRating(
 
 function getFinishRating(
   ratings: RiderSimulationRatings,
-  stage: RaceCalendarStage,
+  stage: RaceFavoriteStage,
 ) {
   const finalSegments = stage.segments.slice(-3);
   const finalSegment = finalSegments.at(-1);
@@ -742,7 +761,7 @@ function getGeneralClassificationStageWeight(stage: RaceCalendarStage) {
   );
 }
 
-function getTimeTrialTerrainDifficulty(stage: RaceCalendarStage) {
+function getTimeTrialTerrainDifficulty(stage: RaceFavoriteStage) {
   const totalDistance = Math.max(
     1,
     stage.segments.reduce(
