@@ -1631,12 +1631,18 @@ function EmptyRoster() {
         <RosterIcon />
       </div>
 
-      <h2 className="mt-5 text-xl font-black">Aucun coureur récupéré</h2>
+      <h2 className="mt-5 text-xl font-black">Votre effectif est vide</h2>
 
       <p className="mx-auto mt-3 max-w-xl leading-7 text-[#60756E]">
         L’équipe existe, mais aucun contrat actif n’a été trouvé pour la saison
         actuelle.
       </p>
+      <p className="mx-auto mt-2 max-w-xl leading-7 text-[#60756E]">
+        Vous pouvez recruter des coureurs libres depuis le Bureau des transferts.
+      </p>
+      <Link href="/jeu/transferts?onglet=libres" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-5 py-3 text-sm font-bold text-white">
+        Voir les coureurs libres
+      </Link>
     </div>
   );
 }

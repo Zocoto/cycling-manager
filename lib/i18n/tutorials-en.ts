@@ -52,7 +52,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "team-foundation": {
         title: "Found your amateur team",
         content:
-          "The chosen name becomes your team's founding identity. Its country is permanent: it determines your first seven riders and influences the geographical priorities of future sponsors.\n\nYour amateur jersey can be changed later. Found the team to continue.",
+          "In the highlighted form, choose your team's name and country, then its jersey. Select ‘Found my amateur team’ at the bottom of the form, or ‘Confirm amateur identity’ if that button is shown.\n\nThe country is permanent: it determines the first seven riders and the geographical priorities of sponsors. The jersey can be changed later. An existing team does not need to be founded again.",
       },
       "roster-overview": {
         title: "Meet your first roster",

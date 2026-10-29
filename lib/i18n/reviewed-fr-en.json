@@ -2922,5 +2922,10 @@
   "Résumé R&D introuvable.": "R&D summary not found.",
   "La majoration d’ambition s’applique aussi au-dessus du plafond catalogue.": "The ambition bonus also applies above the catalogue ceiling.",
   "Cadeau Baltic Cobbles existant incohérent pour Ujik.": "Existing Baltic Cobbles gift is inconsistent for Ujik.",
-  "Compensation Baltic Cobbles existante incohérente pour Ujik.": "Existing Baltic Cobbles compensation is inconsistent for Ujik."
+  "Compensation Baltic Cobbles existante incohérente pour Ujik.": "Existing Baltic Cobbles compensation is inconsistent for Ujik.",
+  "Dans le formulaire mis en évidence, choisissez le nom et le pays de votre équipe, puis son maillot. Cliquez ensuite sur « Fonder mon équipe amateur » en bas du formulaire, ou « Valider l’identité amateur » si ce bouton est proposé. Le pays est définitif : il détermine les sept premiers coureurs et la priorité géographique des sponsors. Le maillot pourra être modifié plus tard. Une équipe déjà fondée n’a pas besoin d’être recréée.": "In the highlighted form, choose your team's name and country, then its jersey. Select ‘Found my amateur team’ at the bottom of the form, or ‘Confirm amateur identity’ if that button is shown. The country is permanent: it determines the first seven riders and the geographical priorities of sponsors. The jersey can be changed later. An existing team does not need to be founded again.",
+  "Impossible de vérifier la fondation de l’équipe. Réessayez dans un instant.": "Unable to verify that the team has been founded. Please try again shortly.",
+  "Voir les coureurs libres": "Browse free agents",
+  "Votre effectif est vide": "Your roster is empty",
+  "Vous pouvez recruter des coureurs libres depuis le Bureau des transferts.": "You can recruit free agents from the Transfer Office."
 }

@@ -193,7 +193,7 @@ const onboardingTutorial = {
       mobileTargetId: "team-foundation-mobile",
       title: "Fondez votre structure amateur",
       content:
-        "Le nom choisi devient l’identité fondatrice de votre équipe. Son pays d’affiliation est définitif : il détermine vos sept premiers coureurs et influence la priorité géographique des futurs sponsors.\n\nLe maillot amateur, lui, pourra être modifié plus tard. Fondez l’équipe avant de poursuivre.",
+        "Dans le formulaire mis en évidence, choisissez le nom et le pays de votre équipe, puis son maillot. Cliquez ensuite sur « Fonder mon équipe amateur » en bas du formulaire, ou « Valider l’identité amateur » si ce bouton est proposé.\n\nLe pays est définitif : il détermine les sept premiers coureurs et la priorité géographique des sponsors. Le maillot pourra être modifié plus tard. Une équipe déjà fondée n’a pas besoin d’être recréée.",
       placement: "right",
       requirement: "profile_complete",
       allowTargetInteraction: true,
