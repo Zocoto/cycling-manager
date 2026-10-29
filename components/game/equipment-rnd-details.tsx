@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { getEquipmentCategory, type EquipmentEffects, type EquipmentSlot } from "@/lib/game/equipment";
-import { describeEquipmentRndEngineerEffects, equipmentRndAffinitySummary, type EquipmentRndEngineer } from "@/lib/game/equipment-rnd";
+import { describeEquipmentRndEngineerEffects, equipmentRndAffinitySummary, getEquipmentRndModerateSuccessChancePercentage, type EquipmentRndEngineer } from "@/lib/game/equipment-rnd";
+import { describeEquipmentRndBaseSkill } from "@/lib/game/equipment-rnd-base-skill";
+import { StaffBaseSkills } from "./staff-skills";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 
 export function EquipmentRndVisual({ imagePath, name, slot, small = false }: { imagePath?: string | null; name: string; slot: EquipmentSlot; small?: boolean }) {
@@ -34,6 +36,7 @@ export function EquipmentRndEngineerSummary({ engineer, compact = false }: { eng
   return <div className={`rounded-2xl border border-[#DFEAE3] bg-[#F8FBF9] ${compact ? "p-3" : "p-4"}`}>
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-black text-[#183F37]">{engineer.name}</p><span className="rounded-full bg-[#183F37] px-2 py-1 text-[10px] font-black text-white">Niveau {engineer.level}</span></div>
     {engineer.countryName ? <p className="mt-1 text-xs font-semibold text-[#60756E]">{engineer.countryCode ? `${engineer.countryCode.toUpperCase()} · ` : ""}{engineer.countryName}</p> : null}
+    {getEquipmentRndModerateSuccessChancePercentage(engineer) > 0 ? <StaffBaseSkills level={engineer.level} rows={[{ description: describeEquipmentRndBaseSkill(getEquipmentRndModerateSuccessChancePercentage(engineer)) }]} /> : null}
     <div className="mt-3 flex flex-wrap gap-1.5">{describeEquipmentRndEngineerEffects(engineer).map(effect => <span key={effect} className="rounded-lg border border-[#D8E6DC] bg-white px-2 py-1 text-[11px] font-bold text-[#183F37]">{effect}</span>)}</div>
     <p className="mt-2 text-[11px] font-semibold leading-5 text-[#60756E]">{equipmentRndAffinitySummary(engineer)}</p>
   </div>;

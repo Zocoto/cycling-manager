@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { verifyRndWorkbench } from "./test-equipment-rnd-workbench.mjs";
+import { verifyRndModerateSuccess } from "./test-equipment-rnd-moderate-success.mjs";
 
 const { PGlite } = await import(process.argv[2]
   ? pathToFileURL(process.argv[2]).href
@@ -159,6 +160,7 @@ try {
   assert(installed.includes("get_equipment_rnd_exceptional_chance")); checks++;
   assert(installed.includes("get_equipment_rnd_setback_delta")); checks++;
   await verifyRndWorkbench(db,{uuid,scalar,check});
+  await verifyRndModerateSuccess(db,{uuid,scalar,check});
   console.log(`${checks} PostgreSQL R&D integration checks passed (isolated memory database).`);
 } catch (error) {
   console.error(`R&D integration check failed: ${error.message}`);

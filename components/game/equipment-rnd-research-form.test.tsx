@@ -12,6 +12,7 @@ describe("R&D configurable research",()=>{
     const html=renderToStaticMarkup(<EquipmentRndResearchForm items={[item]} engineers={[engineer]} labLevel={6} labEfficiencyBonusPercentage={10}/>);
     expect(html).toContain("+3 MON · +3 END");expect(html).toContain("10 % affinité");expect(html).toContain("+14 points de réussite");expect(html).toContain("92");expect(html).toContain("R&amp;D +2");expect(html).toContain("conserve son nom");expect(html).not.toContain('name="prototypeName"');
     expect(html).toContain('name="researchFocus"');expect(html).toContain("Montagne");expect(html).toContain("Vallons");expect(html).toContain("Pavés");expect(html).toContain("Plaine");
+    expect(html).toContain("Succès modéré : 20 %");expect(html).toContain("+1 sur deux statistiques du secteur choisi");
   });
   it("asks for a name only on a new piece and does not invent a guaranteed outcome",()=>{
     const html=renderToStaticMarkup(<EquipmentRndResearchForm items={[{...item,channel:"commercial"}]} engineers={[engineer]} labLevel={6} labEfficiencyBonusPercentage={10}/>);

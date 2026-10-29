@@ -2883,5 +2883,20 @@
   "Spécialités secondaires": "Secondary specialties",
   "Sprint / Pavé": "Sprint / Cobbles",
   "{{0}} est repris par le peloton et se replace dans les roues.": "{{0}} is caught by the peloton and settles back into the wheels.",
-  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels."
+  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels.",
+  "% des recherches réussies donnent +2 sur une statistique ou +1 sur deux statistiques du secteur choisi, dans la limite du plafond global de +10": "% of successful research trials grant +2 to one attribute or +1 to two attributes in the chosen field, within the overall +10 cap",
+  "Succès modéré :": "Moderate success:",
+  "Succès modéré : {{0}} % des recherches réussies donnent +2 sur une statistique ou +1 sur deux statistiques du secteur choisi, dans la limite du plafond global de +10": "Moderate success: {{0}}% of successful research trials grant +2 to one attribute or +1 to two attributes in the chosen field, within the overall +10 cap",
+  "La recherche est gratuite. Un résultat réussi ajoute généralement +1 à une statistique, un succès modéré apporte +2 ou +1 sur deux statistiques du secteur choisi (5 % par niveau d’ingénieur parmi les recherches réussies). Très rarement, le résultat est exceptionnel : +3. Un revers retire −1, sauf protection du staff. La même référence peut être recherchée plusieurs fois tant qu’un exemplaire reste libre. Un prototype peut lui-même repasser au laboratoire, sous le même nom.": "Research is free. A successful result usually adds +1 to one attribute. Moderate success grants +2 or +1 to two attributes in the chosen field (5% per engineer level among successful trials). Very rarely, an exceptional result grants +3. A setback removes 1 point unless staff protection applies. The same model can be researched repeatedly while a copy is available. A prototype can return to the laboratory under the same name.",
+  "Le taux de réussite reste inchangé. Un succès modéré reste dans le secteur choisi ; un revers peut aussi toucher la statistique tirée.": "The success rate stays the same. Moderate success stays within the chosen field; a setback can also affect the drawn attribute.",
+  "Pilote les recherches et peut obtenir un succès modéré dans le secteur choisi.": "Leads research and can achieve moderate success in the chosen field.",
+  "Pilote une recherche gratuite à la fois. Sa compétence de base Succès modéré offre 5 % de chance par niveau, parmi les recherches réussies, de gagner +2 ou +1 sur deux statistiques du secteur choisi. Ses talents complètent ces effets.": "Leads one free research project at a time. The Moderate success base skill gives a 5% chance per level, among successful trials, of gaining +2 or +1 to two attributes in the chosen field. Talents add further benefits.",
+  "Succès exceptionnel +3": "Exceptional success +3",
+  "Succès modéré +2": "Moderate success +2",
+  "Un exemplaire est immobilisé pendant la recherche. Votre prototype conserve tous ses effets précédents ; la recherche modifie une statistique, ou deux lors d’un succès modéré. La durée suivante dépend du nouveau score.": "One copy is held during research. Your prototype keeps all previous effects; research changes one attribute, or two with moderate success. The next duration depends on the new score.",
+  "Déclaration R&D introuvable.": "R&D declaration not found.",
+  "Paramètres de succès R&D invalides.": "Invalid R&D success parameters.",
+  "Profil ingénieur R&D inattendu.": "Unexpected R&D engineer profile.",
+  "Protection du résultat neutre introuvable.": "Neutral result protection not found.",
+  "Résumé R&D introuvable.": "R&D summary not found."
 }

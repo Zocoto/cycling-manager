@@ -216,7 +216,7 @@ const staffRoles = [
   },
   {
     title: "Ingénieur R&D",
-    text: "Pilote une recherche gratuite à la fois au laboratoire. Ses talents réduisent la durée ou améliorent les chances de réussite.",
+    text: "Pilote une recherche gratuite à la fois. Sa compétence de base Succès modéré offre 5 % de chance par niveau, parmi les recherches réussies, de gagner +2 ou +1 sur deux statistiques du secteur choisi. Ses talents complètent ces effets.",
   },
   {
     title: "Formateur",
