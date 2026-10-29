@@ -773,6 +773,7 @@ function FutureJerseySelection({
         </div>
       </article>
 
+      <SignedFutureObjectives contract={contract} seasonName={state.season.name} />
       <SponsorJerseySelector
         contractId={contract.id}
         sponsor={sponsor}
@@ -793,9 +794,6 @@ function FuturePlannedContract({
   const selectedJersey = sponsor.jerseys.find(
     (jersey) => jersey.id === contract.selectedJerseyId
   );
-  const savedDifficulty = contract.objectives.find((objective) =>
-    isSponsorObjectiveDifficulty(objective.targetDetails.objectiveDifficulty ?? ""),
-  )?.targetDetails.objectiveDifficulty;
 
   return (
     <div className="mt-7">
@@ -908,11 +906,32 @@ function FuturePlannedContract({
         </div>
       </article>
 
-      {contract.objectives.length>0 ? (
+      <SignedFutureObjectives contract={contract} seasonName={state.season.name} />
+
+      <SponsorJerseySelector
+        contractId={contract.id}
+        sponsor={sponsor}
+        activationMode="next-season"
+        targetSeasonName={state.season.name}
+        initialJerseyId={contract.selectedJerseyId}
+      />
+    </div>
+  );
+}
+
+function SignedFutureObjectives({contract,seasonName}: {
+  contract: PersistedSponsorContract; seasonName: string;
+}) {
+  if (!contract.objectives.length) return null;
+  const sponsor = contract.sponsor;
+  const savedDifficulty = contract.objectives.find((objective) =>
+    isSponsorObjectiveDifficulty(objective.targetDetails.objectiveDifficulty ?? ""),
+  )?.targetDetails.objectiveDifficulty;
+  return (
         <section className="mt-5 rounded-2xl border bg-white p-5 sm:p-6" style={{borderColor:`${sponsor.colors.primary}25`}}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-lg font-black" style={{color:sponsor.colors.text}}>
-              Engagements signés · {state.season.name}
+              Engagements signés · {seasonName}
             </h3>
             {savedDifficulty ? <span className="rounded-full px-3 py-1 text-xs font-black" style={{backgroundColor:sponsor.colors.background,color:sponsor.colors.text}}>
               {SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG[savedDifficulty].label}
@@ -930,16 +949,6 @@ function FuturePlannedContract({
             </li>)}
           </ol>
         </section>
-      ) : null}
-
-      <SponsorJerseySelector
-        contractId={contract.id}
-        sponsor={sponsor}
-        activationMode="next-season"
-        targetSeasonName={state.season.name}
-        initialJerseyId={contract.selectedJerseyId}
-      />
-    </div>
   );
 }
 
