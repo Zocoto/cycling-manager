@@ -1,6 +1,8 @@
 import { renewAllTeamRiderContractsAction } from "@/app/jeu/effectif/actions";
 import { renewRiderContractAction } from "@/app/jeu/transferts/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { PotentialStars } from "@/components/game/potential-stars";
+import { TrainingRiderRatings } from "@/components/game/training-rider-ratings";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import Link from "@/components/ui/app-link";
 import type { TeamContractRiderStatus } from "@/lib/game/team-contract-management";
@@ -155,7 +157,7 @@ function ContractRiderRow({
 
   return (
     <tr className="grid min-w-0 gap-3 rounded-2xl border border-[#315B3E]/12 bg-white p-4 transition hover:bg-[#F7FBF9] lg:table-row lg:rounded-none lg:border-0 lg:p-0">
-      <td className="block min-w-0 lg:table-cell lg:px-5 lg:py-4 xl:px-8">
+      <td className="block min-w-0 lg:table-cell lg:w-80 lg:min-w-72 lg:px-5 lg:py-4 xl:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <RiderAvatar
             profileKey={rider.avatarProfileKey}
@@ -173,7 +175,7 @@ function ContractRiderRow({
             >
               {rider.firstName} {rider.lastName}
             </Link>
-            <p className="mt-1 flex items-center gap-2 text-[10px] font-bold text-[#60756E]">
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-bold text-[#60756E]">
               <span
                 className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
                 role="img"
@@ -181,8 +183,15 @@ function ContractRiderRow({
               />
               {rider.age} ans · Niveau {Math.round(rider.overall)}
             </p>
+            <div className="mt-1">
+              <PotentialStars potentialSteps={rider.potentialSteps} compact />
+            </div>
           </div>
         </div>
+        <TrainingRiderRatings
+          riderName={`${rider.firstName} ${rider.lastName}`}
+          ratings={rider.ratings}
+        />
       </td>
       <td className="block lg:table-cell lg:px-4 lg:py-4">
         <p className="mb-1 text-[10px] font-bold text-[#60756E] lg:hidden">Échéance actuelle</p>

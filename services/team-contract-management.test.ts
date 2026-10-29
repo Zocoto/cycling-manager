@@ -44,7 +44,7 @@ function fixture({
     ],
     team_seasons: [{ id: "team-s4", team_id: "team", season_id: "s4", currency: "EUR", cash_balance: 100_000 }],
     rider_contracts: [active, successor],
-    riders: [{ id: "rider", country_id: "fr", first_name: "Jeune", last_name: "Promu", status: "active", avatar_profile_key: null, avatar_seed: null }],
+    riders: [{ id: "rider", country_id: "fr", first_name: "Jeune", last_name: "Promu", status: "active", avatar_profile_key: null, avatar_seed: null, potential_steps: 5 }],
     rider_season_ratings: [{
       rider_id: "rider", season_id: "s4", age: 18,
       mountain: 45, hills: 45, flat: 45, time_trial: 45, cobbles: 45, sprint: 45, acceleration: 45,
@@ -77,12 +77,40 @@ function fixture({
   }) : Promise.resolve({ data: 0, error: null }));
   mocks.createAdmin.mockReturnValue({ from, rpc });
   mocks.loadCapacity.mockResolvedValue({ buildingLevel: retention ? 5 : 0, specialization: retention ? "retention_cell" : null });
-  return { active, successor, from, rpc };
+  return { active, successor, from, rpc, tables };
 }
 
 beforeEach(() => vi.clearAllMocks());
 
 describe("contract-management upgrade salary", () => {
+  it("includes the current age, talent and all native ratings without additional reads", async () => {
+    const f = fixture();
+    Object.assign(f.tables.rider_season_ratings[0], {
+      mountain: 61, hills: 62, flat: 63, time_trial: 79, cobbles: 65,
+      sprint: 66, acceleration: 67, downhill: 68, endurance: 69,
+      resistance: 70, recovery: 71, breakaway: 72, prologue: 73,
+    });
+    const overview = await getTeamContractManagementOverview("user");
+
+    expect(overview?.riders[0]).toMatchObject({
+      age: 18,
+      potentialSteps: 5,
+      ratings: {
+        mountain: 61, hills: 62, flat: 63, timeTrial: 79, cobbles: 65,
+        sprint: 66, acceleration: 67, downhill: 68, endurance: 69,
+        resistance: 70, recovery: 71, breakaway: 72, prologue: 73,
+      },
+      currentSalary: 0,
+      nextSalary: 0,
+      renewalOffers: [
+        { targetEndSeasonYear: 6, startSeasonYear: 5, salaryPerSeason: 7_500, premiumPercent: 25 },
+      ],
+    });
+    expect(f.from.mock.calls.filter(([table]) => table === "riders")).toHaveLength(1);
+    expect(f.from.mock.calls.filter(([table]) => table === "rider_season_ratings")).toHaveLength(1);
+    expect(f.rpc).toHaveBeenCalledTimes(1);
+  });
+
   it("offers a paid two-season upgrade for a junior with a legacy zero renewal", async () => {
     const f = fixture();
     const overview = await getTeamContractManagementOverview("user");

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
+import type { RiderRatings } from "@/lib/game/rider-profile";
 import {
   calculateRiderRenewalSalary,
   getRiderRenewalPremiumPercent,
@@ -23,6 +24,8 @@ export type TeamContractManagementRider = {
   avatarProfileKey: string | null;
   avatarSeed: number | string | null;
   age: number;
+  potentialSteps: number;
+  ratings: RiderRatings;
   overall: number;
   status: TeamContractRiderStatus;
   currentSalary: number;
@@ -80,6 +83,7 @@ type RiderRow = {
   last_name: string;
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
+  potential_steps: number;
 };
 type RatingRow = {
   rider_id: string;
@@ -201,7 +205,7 @@ export async function getTeamContractManagementOverview(
     admin
       .from("riders")
       .select(
-        "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed",
+        "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, potential_steps",
       )
       .in("id", riderIds)
       .returns<RiderRow[]>(),
@@ -403,6 +407,22 @@ export async function getTeamContractManagementOverview(
         avatarProfileKey: rider.avatar_profile_key,
         avatarSeed: rider.avatar_seed,
         age: rating.age,
+        potentialSteps: rider.potential_steps,
+        ratings: {
+          mountain: rating.mountain,
+          hills: rating.hills,
+          flat: rating.flat,
+          timeTrial: rating.time_trial,
+          cobbles: rating.cobbles,
+          sprint: rating.sprint,
+          acceleration: rating.acceleration,
+          downhill: rating.downhill,
+          endurance: rating.endurance,
+          resistance: rating.resistance,
+          recovery: rating.recovery,
+          breakaway: rating.breakaway,
+          prologue: rating.prologue,
+        },
         overall,
         status,
         currentSalary,
