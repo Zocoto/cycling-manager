@@ -168,8 +168,8 @@ export function SponsorNegotiationControl({
 
       <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
         {SPONSOR_OBJECTIVE_DIFFICULTY_CONFIG[selectedDifficulty].description}
-        {selectedDifficulty === "ambitious" && selectedBudget >= budgetCeiling
-          ? ` Plafond du palier atteint à ${formatMoney(budgetCeiling)}.`
+        {selectedDifficulty === "ambitious"
+          ? " La majoration d’ambition s’applique aussi au-dessus du plafond catalogue."
           : ""}
       </p>
 
