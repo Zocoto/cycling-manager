@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { GazetteCommentText, GazetteCommentTranslations } from "@/components/game/gazette-comment-translations";
+import { getGazetteCommentSources, gazetteAnswerCommentKey, gazetteClosingCommentKey, gazetteExcerptCommentKey, gazettePressCommentKey, type GazetteCommentLanguageHints } from "@/lib/game/gazette-comment-translation";
 
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -222,6 +224,8 @@ export function CyclogazetteNewspaper({
   seasonOpeningAwards,
   seasonQuizSection,
   gamesSection,
+  commentLanguages,
+  commentTranslationEnabled = false,
 }: {
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
@@ -229,9 +233,12 @@ export function CyclogazetteNewspaper({
   seasonOpeningAwards?: ReactNode;
   seasonQuizSection?: ReactNode;
   gamesSection?: ReactNode;
+  commentLanguages?: GazetteCommentLanguageHints;
+  commentTranslationEnabled?: boolean;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const commentSources = useMemo(() => getGazetteCommentSources(edition.content), [edition.content]);
   const {
     lead,
     raceStories,
@@ -326,6 +333,7 @@ export function CyclogazetteNewspaper({
   const newspaperStyle = getCyclogazetteThemeStyle(gazetteTheme);
 
   return (
+    <GazetteCommentTranslations editionId={edition.id} sources={commentSources} languages={commentLanguages ?? {}} enabled={commentTranslationEnabled}>
     <article
       aria-label={`${newspaperName} ${isEnglish ? "issue" : "numéro"} ${edition.issueNumber}`}
       data-gazette-theme={gazetteTheme}
@@ -800,6 +808,7 @@ export function CyclogazetteNewspaper({
         <span>{isEnglish ? "Next edition tomorrow at 8 pm" : "Prochaine édition demain à 20 h"}</span>
       </footer>
     </article>
+    </GazetteCommentTranslations>
   );
 }
 
@@ -1855,7 +1864,7 @@ function InterviewReactionCard({
           “
         </span>
         <p data-i18n-skip className="relative pl-4 font-serif text-base font-bold leading-6">
-          {reaction.answer}
+          <GazetteCommentText commentKey={gazetteExcerptCommentKey(reaction)} text={reaction.answer} />
         </p>
       </blockquote>
       {excerptQuestionId ? (
@@ -1906,7 +1915,7 @@ function InterviewReactionCard({
                 {answer.question}
               </p>
               <p data-i18n-skip className="mt-1 font-serif text-sm font-semibold leading-5">
-                {answer.answer}
+                <GazetteCommentText commentKey={gazetteAnswerCommentKey(reaction.interviewId, answer.questionId)} text={answer.answer} />
               </p>
               <InterviewAnswerReactionBar
                 questionId={answer.questionId}
@@ -1924,7 +1933,7 @@ function InterviewReactionCard({
                 {isEnglish ? "The SD's final word" : "Le dernier mot du DS"}
               </p>
               <p data-i18n-skip className="mt-1 font-serif text-sm italic">
-                {reaction.closingNote}
+                <GazetteCommentText commentKey={gazetteClosingCommentKey(reaction.interviewId)} text={reaction.closingNote} />
               </p>
             </div>
           ) : null}
@@ -2020,7 +2029,7 @@ function PreRacePressCard({
           data-i18n-skip
           className="relative pl-4 font-serif text-base font-bold leading-6"
         >
-          {conference.publicStatement}
+          <GazetteCommentText commentKey={gazettePressCommentKey(conference.conferenceId)} text={conference.publicStatement} />
         </p>
       </blockquote>
       <footer className="mt-4 flex items-center gap-3">

@@ -41,6 +41,8 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import { getSeasonAwards } from "@/services/season-awards";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
 import { getCurrentTeamRivalries } from "@/services/team-rivalries";
+import { getGazetteCommentLanguageHints } from "@/services/gazette-comment-languages";
+import { isChatTranslationConfigured } from "@/services/chat-translation-provider";
 
 export const metadata: Metadata = {
   title: "La Cyclogazette",
@@ -217,6 +219,8 @@ export default async function CyclogazettePage({
                 />
                 <CyclogazetteNewspaper
                   edition={edition}
+                  commentTranslationEnabled={isChatTranslationConfigured()}
+                  commentLanguages={getGazetteCommentLanguageHints(edition.content)}
                   community={community ?? undefined}
                   interviewReactions={community?.interviewReactions}
                   seasonOpeningAwards={

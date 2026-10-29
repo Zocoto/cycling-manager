@@ -14,6 +14,22 @@ function fixture(fetcher: ReturnType<typeof vi.fn<typeof fetch>> = vi.fn(async (
 afterEach(() => vi.useRealTimers());
 
 describe("automatic chat translation cost and isolation", () => {
+  it("can translate visible Gazette keys towards the game locale without changing the chat defaults", async () => {
+    vi.useFakeTimers();
+    const states: Record<string, ChatMessageTranslationState> = {};
+    const fetcher = vi.fn(async () => Response.json({ translations: [] }));
+    const queue = new ChatAutoTranslationQueue({ directorId: "", targetLocale: "fr",
+      endpoint: "/jeu/gazette/commentaires/traductions", requestContext: { editionId: "edition" },
+      getState: key => states[key], onState: (key, state) => { states[key] = state; }, onPause: () => {}, fetcher,
+    });
+    queue.setMessages([{ id: "pre:press", sportingDirectorId: "gazette", message: "We will attack today.", editedAt: null }]);
+    queue.observe("pre:press", true);
+    await vi.advanceTimersByTimeAsync(650);
+    expect(fetcher).toHaveBeenCalledWith("/jeu/gazette/commentaires/traductions", expect.objectContaining({
+      body: JSON.stringify({ editionId: "edition", messageIds: ["pre:press"], targetLocale: "fr" }),
+    }));
+    await vi.advanceTimersByTimeAsync(60000); expect(fetcher).toHaveBeenCalledOnce(); queue.dispose();
+  });
   it("defaults to checked and browser language, not nationality", () => {
     expect(readChatTranslationPreferences(null, ["es-MX", "en"], "fr")).toEqual({ automatic: true, targetLocale: "es" });
     expect(getPreferredChatTranslationLocale(["unknown", "de-DE"])).toBe("de");

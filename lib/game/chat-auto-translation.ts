@@ -22,6 +22,8 @@ export class ChatAutoTranslationQueue {
     onPause: () => void;
     canRun?: () => boolean;
     fetcher?: typeof fetch;
+    endpoint?: string;
+    requestContext?: Record<string, string>;
   }) {}
 
   setMessages(messages: readonly AutoTranslationMessage[]) {
@@ -60,9 +62,9 @@ export class ChatAutoTranslationQueue {
     }
     const timeout = setTimeout(() => this.controller?.abort(), 12_000);
     try {
-      const response = await (this.options.fetcher ?? fetch)("/jeu/chat/messages/translations", {
+      const response = await (this.options.fetcher ?? fetch)(this.options.endpoint ?? "/jeu/chat/messages/translations", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageIds: batch.map((message) => message.id), targetLocale: this.options.targetLocale }),
+        body: JSON.stringify({ ...this.options.requestContext, messageIds: batch.map((message) => message.id), targetLocale: this.options.targetLocale }),
         signal: this.controller.signal,
       });
       const body = await response.json();
