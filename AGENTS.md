@@ -9,6 +9,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - For work the owner requests, proceed through implementation, verification and production deployment without asking for repeated step-by-step validation. This standing authorization covers normal delivery steps within the requested scope, not unrelated or broader mutations.
 - Ask only for indispensable missing information or a genuine product arbitration. Platform permission requirements and production safety rules remain in force.
 
+## Sponsor jersey assets
+
+- Follow `Docs/sponsor-jersey-quality.md` for every sponsor jersey creation or edit.
+- The sponsor identity must shape the jersey construction; do not paste a logo or wordmark over an unrelated generic design.
+- Run `npm run sponsors:validate:strict` before committing sponsor assets.
+
 ## Production database availability
 
 - Never run integration fixtures, temporary gameplay mutations, or migration rehearsals against the live Supabase project (`ikagfuchasnsakpouosg`), even inside a transaction ending in `ROLLBACK`. Rollback does not prevent locks, memory pressure, or downtime. Use an isolated test database.
