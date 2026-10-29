@@ -7290,7 +7290,7 @@ function maybeLaunchDecisiveFavoriteAttack({
   return true;
 }
 
-function resolveExistingChasers({
+export function resolveExistingChasers({
   states,
   segmentIndex,
   breakawayGapSeconds,
@@ -7327,28 +7327,26 @@ function resolveExistingChasers({
       commentary.push(
         `${state.rider.name} se rapproche de l’échappée, mais reste dans un groupe intercalé.`,
       );
-    } else if (random() < 0.66) {
-      state.group = "peloton";
-      state.groupSinceSegment = segmentIndex;
-      state.elapsedTimeSeconds = Math.max(
-        state.elapsedTimeSeconds,
-        pelotonTime,
-      );
-      state.lostTimeSeconds = 0;
     } else {
-      const additionalLossSeconds = 10 + random() * 12;
-      state.group = "dropped";
+      // A failed bridge does not decide whether the peloton has caught or
+      // dropped this rider. Preserve the actual clocks instead of imposing
+      // a random 10–22 second loss. Normal terrain/energy selection runs below.
+      if (peloton.length === 0) continue;
+      const gapToPelotonSeconds = state.elapsedTimeSeconds - pelotonTime;
+      if (gapToPelotonSeconds < -SAME_TIME_MAX_GAP_SECONDS) continue;
+
       state.groupSinceSegment = segmentIndex;
-      // Le chasseur a d'abord roulé devant le peloton. S'il échoue et lâche,
-      // son statut et son horloge doivent raconter la même chose : repartir du
-      // temps du peloton avant d'ajouter la cassure évite qu'un « attardé »
-      // reste sportivement ou visuellement devant le groupe principal.
-      state.elapsedTimeSeconds =
-        Math.max(state.elapsedTimeSeconds, pelotonTime) + additionalLossSeconds;
-      state.lostTimeSeconds = Math.max(
-        additionalLossSeconds,
-        state.elapsedTimeSeconds - pelotonTime,
-      );
+      if (gapToPelotonSeconds > SAME_TIME_MAX_GAP_SECONDS) {
+        state.group = "dropped";
+        state.lostTimeSeconds = gapToPelotonSeconds;
+      } else {
+        state.group = "peloton";
+        state.elapsedTimeSeconds = pelotonTime;
+        state.lostTimeSeconds = 0;
+        if (commentary.length < 4) {
+          commentary.push(`${state.rider.name} est repris par le peloton et se replace dans les roues.`);
+        }
+      }
     }
   }
 }
