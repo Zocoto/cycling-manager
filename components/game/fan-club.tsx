@@ -354,6 +354,7 @@ function RidersPanel({ riders }: { riders: ReadonlyArray<FanClubPilotRider> }) {
               key={candidate.id}
               type="button"
               aria-pressed={candidate.id === rider.id}
+              data-site-theme-preserve
               onClick={() => setSelectedRiderId(candidate.id)}
               className={[
                 "flex w-full items-center justify-between gap-4 px-2 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)]",
