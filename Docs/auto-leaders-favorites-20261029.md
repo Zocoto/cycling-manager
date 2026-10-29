@@ -39,7 +39,7 @@ Aucune migration ni réparation de données n'est nécessaire pour ce changement
 
 ## Vérification
 
-- 573 tests sur 24 fichiers passent sur la version finale intégrée, dont 32
+- 576 tests sur 24 fichiers passent sur la version finale intégrée, dont 32
   nouveaux contrôles : moteur, favoris, calendrier, consignes DS, préparations,
   sprints plats, pavés urbains, CLM, relais, tactiques, échappées, rôles d'étape,
   regroupement des chasseurs et conservation des scénarios verrouillés.
