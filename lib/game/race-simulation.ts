@@ -2490,6 +2490,17 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     const breakaway = getStatesInGroup(states, "breakaway");
     const secondaryBreakaway = getStatesInGroup(states, "breakaway_2");
     const chase = getStatesInGroup(states, "chase");
+    const chaserPelotonTimeAtSegmentStart = chase.length > 0 && peloton.length > 0
+      ? average(peloton.map((state) => state.elapsedTimeSeconds))
+      : null;
+    const chaserGapsAtSegmentStart = new Map(
+      chase.map((state) => [
+        state.rider.id,
+        chaserPelotonTimeAtSegmentStart === null
+          ? Number.POSITIVE_INFINITY
+          : state.elapsedTimeSeconds - chaserPelotonTimeAtSegmentStart,
+      ]),
+    );
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
     const delayedGroupsAtSegmentStart = splitElapsedRiderGroups(
@@ -3486,6 +3497,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       states,
       segmentIndex,
       breakawayGapSeconds,
+      chaserGapsAtSegmentStart,
       random,
       commentary,
     });
@@ -7294,12 +7306,14 @@ export function resolveExistingChasers({
   states,
   segmentIndex,
   breakawayGapSeconds,
+  chaserGapsAtSegmentStart,
   random,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segmentIndex: number;
   breakawayGapSeconds: number;
+  chaserGapsAtSegmentStart: ReadonlyMap<string, number>;
   random: () => number;
   commentary: string[];
 }) {
@@ -7330,13 +7344,18 @@ export function resolveExistingChasers({
     } else {
       // A failed bridge does not decide whether the peloton has caught or
       // dropped this rider. Preserve the actual clocks instead of imposing
-      // a random 10–22 second loss. Normal terrain/energy selection runs below.
+      // a random 10–22 second loss. A rider overtaken during this sector can
+      // shelter in the peloton: solo sector pace must not manufacture a gap
+      // after the catch. Normal terrain/energy selection runs below.
       if (peloton.length === 0) continue;
       const gapToPelotonSeconds = state.elapsedTimeSeconds - pelotonTime;
       if (gapToPelotonSeconds < -SAME_TIME_MAX_GAP_SECONDS) continue;
 
       state.groupSinceSegment = segmentIndex;
-      if (gapToPelotonSeconds > SAME_TIME_MAX_GAP_SECONDS) {
+      const caughtFromAhead =
+        (chaserGapsAtSegmentStart.get(state.rider.id) ?? Number.POSITIVE_INFINITY) <=
+        SAME_TIME_MAX_GAP_SECONDS;
+      if (gapToPelotonSeconds > SAME_TIME_MAX_GAP_SECONDS && !caughtFromAhead) {
         state.group = "dropped";
         state.lostTimeSeconds = gapToPelotonSeconds;
       } else {
