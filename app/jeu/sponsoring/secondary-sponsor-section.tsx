@@ -1,7 +1,6 @@
-import Link from "@/components/ui/app-link";
-
 import { SecondarySponsorLogo } from "@/components/game/secondary-sponsor-logo";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
+import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import type {
   SecondarySponsorContract,
   SecondarySponsorOffer,
@@ -176,12 +175,20 @@ function SecondarySponsorContractCard({
           </p>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             {contract.objectives.map((objective) => (
-              <Link
+              <article
                 key={objective.id}
-                href={`/jeu/courses/${objective.raceSlug}`}
                 className="rounded-xl border border-[#315B3E]/10 bg-[#F4F7F5] p-3 text-sm font-bold text-[#193F38] transition hover:border-[#278B70]/35"
               >
-                <span className="block">{objective.name}</span>
+                <SponsorObjectiveTitle
+                  targetDetails={{
+                    kind: "race_result",
+                    raceSlug: objective.raceSlug,
+                    raceLabel: objective.raceLabel,
+                    raceEditionId: objective.raceEditionId,
+                  }}
+                >
+                  {objective.name}
+                </SponsorObjectiveTitle>
                 <span className="mt-1 block text-xs font-black text-[#278B70]">
                   +{moneyFormatter.format(objective.cashReward)}
                 </span>
@@ -193,7 +200,7 @@ function SecondarySponsorContractCard({
                     )}
                   </span>
                 ) : null}
-              </Link>
+              </article>
             ))}
           </div>
         </div>
@@ -250,7 +257,16 @@ function SecondarySponsorOfferCard({
                 key={objective.id}
                 className="text-sm font-bold leading-5 text-[#193F38]"
               >
-                <span className="block">{objective.name}</span>
+                <SponsorObjectiveTitle
+                  targetDetails={{
+                    kind: "race_result",
+                    raceSlug: objective.raceSlug,
+                    raceLabel: objective.raceLabel,
+                    raceEditionId: objective.raceEditionId,
+                  }}
+                >
+                  {objective.name}
+                </SponsorObjectiveTitle>
                 <span className="mt-0.5 block text-xs font-black text-[#278B70]">
                   +{moneyFormatter.format(objective.cashReward)}
                 </span>

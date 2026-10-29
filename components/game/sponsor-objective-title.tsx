@@ -2,10 +2,16 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { RacePreviewLink } from "@/components/game/race-preview-link";
 import Link from "@/components/ui/app-link";
-import type { SponsorObjectiveTargetDetails } from "@/types/sponsor-objective";
+import type {
+  RaceResultObjectiveDetails,
+  SponsorObjectiveTargetDetails,
+} from "@/types/sponsor-objective";
 
 type SponsorObjectiveTitleProps = {
-  targetDetails: SponsorObjectiveTargetDetails;
+  targetDetails: SponsorObjectiveTargetDetails | Pick<
+    RaceResultObjectiveDetails,
+    "kind" | "raceSlug" | "raceLabel" | "raceEditionId"
+  >;
   children: ReactNode;
   className?: string;
   style?: CSSProperties;

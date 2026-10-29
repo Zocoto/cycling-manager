@@ -128,6 +128,7 @@ type ObjectiveRow = {
   id: string;
   offer_id: string;
   display_order: number;
+  race_edition_id: string;
   race_slug: string;
   race_label: string;
   race_category_code: RaceCategoryCode;
@@ -717,7 +718,7 @@ async function loadSecondaryObjectiveRows({
   const { data, error } = await supabase
     .from("secondary_sponsor_objectives")
     .select(
-      "id, offer_id, display_order, race_slug, race_label, race_category_code, target_rank, cash_reward, status, best_rank",
+      "id, offer_id, display_order, race_edition_id, race_slug, race_label, race_category_code, target_rank, cash_reward, status, best_rank",
     )
     .in("offer_id", [...offerIds])
     .order("display_order", { ascending: true })
@@ -901,6 +902,7 @@ function hydrateSecondaryObjective(row: ObjectiveRow): SecondarySponsorObjective
         : `Top ${row.target_rank} sur ${row.race_label}`,
     raceLabel: row.race_label,
     raceSlug: row.race_slug,
+    raceEditionId: row.race_edition_id,
     categoryCode: row.race_category_code,
     targetRank: row.target_rank,
     cashReward: Number(row.cash_reward),

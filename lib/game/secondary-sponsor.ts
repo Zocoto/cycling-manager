@@ -35,6 +35,7 @@ export type SecondarySponsorObjective = {
   name: string;
   raceLabel: string;
   raceSlug: string;
+  raceEditionId: string;
   categoryCode: RaceCategoryCode;
   targetRank: number;
   cashReward: number;

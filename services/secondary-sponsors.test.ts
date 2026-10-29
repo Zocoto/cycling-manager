@@ -24,6 +24,7 @@ function uuid(index: number) {
 function objective(offerId: string, index: number): Row {
   return {
     id: `${offerId}-objective-${index}`, offer_id: offerId, display_order: index + 1,
+    race_edition_id: uuid(5_000 + index),
     race_slug: `existing-${offerId}-${index}`, race_label: `Existing race ${index}`,
     race_category_code: "national", target_rank: 8, cash_reward: 12_345 + index,
     status: "draft", best_rank: null,
@@ -54,7 +55,7 @@ function fixture(raceCount = 6) {
     secondary_sponsor_objectives: [],
     race_categories: [{ id: "national", code: "national" }],
     race_editions: Array.from({ length: raceCount }, (_, index) => ({
-      id: `edition-${String(index).padStart(5, "0")}`, race_id: uuid(index),
+      id: uuid(10_000 + index), race_id: uuid(index),
       race_category_id: "national", season_id: "s5", display_name: `Race ${index}`,
       registration_policy: "open", minimum_reputation: 0, status: "planned",
     })),
@@ -190,6 +191,11 @@ describe("secondary sponsor calendar resilience", () => {
     // pagination and win the existing domestic-priority selection unchanged.
     for (const offer of state.offers) {
       expect(offer.objectives.map((entry) => entry.raceSlug).sort()).toEqual(["race-1200", "race-1201", "race-1202"]);
+      for (const entry of offer.objectives) {
+        const edition = f.tables.race_editions.find((candidate) => candidate.display_name === entry.raceLabel);
+        expect(edition?.season_id).toBe("s5");
+        expect(entry.raceEditionId).toBe(edition?.id);
+      }
     }
     const editionReads = f.queries.filter((query) => query.table === "race_editions");
     expect(editionReads.length).toBeGreaterThan(1);
@@ -211,6 +217,7 @@ describe("secondary sponsor calendar resilience", () => {
     expect(state?.kind).toBe("offers");
     if (state?.kind !== "offers") throw Error("Expected secondary offers");
     expect(state.offers.flatMap((offer) => offer.objectives.map((entry) => entry.cashReward))).toEqual(existing.map((entry) => entry.cash_reward));
+    expect(state.offers.flatMap((offer) => offer.objectives.map((entry) => entry.raceEditionId))).toEqual(existing.map((entry) => entry.race_edition_id));
     expect(f.tables.secondary_sponsor_objectives).toEqual(existing);
     expect(f.queries.some((query) => ["race_editions", "races", "race_categories", "team_sponsor_contracts"].includes(query.table))).toBe(false);
     expect(f.inserts).toEqual([]);
