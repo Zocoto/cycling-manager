@@ -139,13 +139,15 @@ describe.each([
     expect(result.resolvedRiders.map((row) => row.role)).toEqual(chosen);
   });
 
-  it("still promotes a better prepared rider left fully automatic", () => {
+  it("keeps the public favorite protected while preparation still improves a teammate's performance", () => {
     const candidate = prepared(rider("prepared-auto", "auto", 79), 3.3);
     const result = simulate(input([rider("leader", "leader", 70), candidate, rider("other-auto", "auto", 81)]));
-    expect(result.resolvedRiders.find((row) => row.id === candidate.id)?.role).toBe("leader_sprinter");
+    expect(result.resolvedRiders.find((row) => row.id === "other-auto")?.role).toBe("leader_sprinter");
+    const preparedRider = result.resolvedRiders.find((row) => row.id === candidate.id)!;
+    expect(preparedRider.ratings.sprint).toBeGreaterThan(candidate.ratings.sprint);
   });
 
-  it.each(MISSIONS)("retains existing GC protection ahead of a conflicting %s mission, with or without preparation", (field, duty) => {
+  it.each(MISSIONS)("retains the DS's %s mission despite the automatic rider's GC position, with or without preparation", (field, duty) => {
     for (const bonus of [0, 3.3]) {
       const helper = prepared({ ...rider("gc-contender", "auto", 84), raceDuty: duty }, bonus);
       const strategy = { ...DEFAULT_RACE_TEAM_STRATEGY, teamId: helper.teamId, [field]: helper.id };
@@ -162,8 +164,9 @@ describe.each([
       const before = structuredClone(raceInput);
       const result = simulate(raceInput);
       expect(result.resolvedRiders.find((row) => row.id === helper.id)).toMatchObject({
-        role: "domestique", generalClassificationProtected: true, raceDuty: null,
+        generalClassificationProtected: false, raceDuty: duty,
       });
+      expect(isProtected(result.resolvedRiders.find((row) => row.id === helper.id)!)).toBe(false);
       expect(result.resolvedRiders.find((row) => row.id === "stage-candidate")?.role).toBe("leader_sprinter");
       expect(raceInput).toEqual(before);
     }
@@ -292,10 +295,13 @@ describe("danger pacer availability and existing GC protection", () => {
     });
   }
 
-  it.each([0, 3.3])("does not add ghost chase pressure for a GC-protected pacer with +%s preparation", (bonus) => {
+  it.each([0, 3.3])("honors a pacer's DS mission despite a stale GC protection flag with +%s preparation", (bonus) => {
     const withPacer = simulatePacer({ bonus, protectedAtGc: true, assigned: true });
     const withoutPacer = simulatePacer({ bonus, protectedAtGc: true, assigned: false });
-    expect(JSON.stringify(withPacer) === JSON.stringify(withoutPacer)).toBe(true);
+    const pacerId = createDemoSimulationInput("collines-ardennes", 1).riders.find((row) => row.role === "domestique")!.id;
+    expect(withPacer.resolvedRiders.find((row) => row.id === pacerId)?.generalClassificationProtected).toBe(false);
+    const pressures = (simulation: typeof withPacer) => simulation.visualTimeline?.map((frame) => frame.frontDynamics?.chasePressure);
+    expect(pressures(withPacer)).not.toEqual(pressures(withoutPacer));
   });
 
   it.each([0, 3.3])("keeps a non-protected pacer's effect, including legacy inputs without raceDuty, with +%s preparation", (bonus) => {
