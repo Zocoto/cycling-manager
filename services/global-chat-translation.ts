@@ -34,9 +34,34 @@ export async function getOrCreateGlobalChatTranslations({ sources, targetLocale,
   sources: TranslationSource[]; targetLocale: ChatTranslationTargetLocale;
   requesterDirectorId: string; vercelOidcToken?: string;
 }): Promise<BatchTranslationResult[]> {
+  return getOrCreateTranslations({ sources, targetLocale, requesterDirectorId, vercelOidcToken }, "chat");
+}
+
+export async function getOrCreateGazetteCommentTranslations(input: {
+  sources: TranslationSource[]; targetLocale: "fr" | "en";
+  requesterDirectorId: string; vercelOidcToken?: string;
+}): Promise<BatchTranslationResult[]> {
+  // Identical excerpts share one cache/job even across different issues or fields.
+  if (!input.sources.length || input.sources.length > CHAT_TRANSLATION_BATCH_SIZE) throw new Error("Lot de traduction invalide.");
+  const unique = new Map<string, TranslationSource>();
+  for (const source of input.sources) if (!unique.has(source.sourceMessage)) unique.set(source.sourceMessage, source);
+  const results = await getOrCreateTranslations({ ...input, sources: [...unique.values()] }, "gazette");
+  return input.sources.flatMap(source => {
+    const key = unique.get(source.sourceMessage)!.messageId;
+    const result = results.find(item => item.messageId === key);
+    return result ? [{ ...result, messageId: source.messageId }] : [];
+  });
+}
+
+async function getOrCreateTranslations({ sources, targetLocale, requesterDirectorId, vercelOidcToken }: {
+  sources: TranslationSource[]; targetLocale: ChatTranslationTargetLocale;
+  requesterDirectorId: string; vercelOidcToken?: string;
+}, scope: "chat" | "gazette"): Promise<BatchTranslationResult[]> {
   if (!sources.length || sources.length > CHAT_TRANSLATION_BATCH_SIZE) throw new Error("Lot de traduction invalide.");
   const admin = createSupabaseAdminClient();
-  const claim = await admin.rpc("claim_global_chat_translation_batch", {
+  const claimRpc = scope === "gazette" ? "claim_gazette_comment_translation_batch" : "claim_global_chat_translation_batch";
+  const completionRpc = scope === "gazette" ? "complete_gazette_comment_translation_batch" : "complete_global_chat_translation_batch";
+  const claim = await admin.rpc(claimRpc, {
     p_sporting_director_id: requesterDirectorId, p_target_locale: targetLocale,
     p_items: sources.map((source) => ({ message_id: source.messageId,
       source_fingerprint: createHash("sha256").update(`${source.sourceEditedAt ?? "original"}\u0000${source.sourceMessage}`, "utf8").digest("hex"),
@@ -53,7 +78,7 @@ export async function getOrCreateGlobalChatTranslations({ sources, targetLocale,
   try {
     const ordered = claimed.map((item) => sources.find((source) => source.messageId === item.messageId)!);
     const translations = await translateChatTextBatch({ messages: ordered.map((source) => source.sourceMessage), targetLocale, vercelOidcToken });
-    const completion = await admin.rpc("complete_global_chat_translation_batch", {
+    const completion = await admin.rpc(completionRpc, {
       p_ticket: ticket, p_success: true,
       p_results: translations.map((translation, index) => ({ messageId: ordered[index].messageId, ...translation })),
     });
@@ -62,8 +87,9 @@ export async function getOrCreateGlobalChatTranslations({ sources, targetLocale,
       messageId: ordered[index].messageId, status: "loaded", translation: { ...translation, targetLocale, cached: false },
     }))];
   } catch (error) {
-    await admin.rpc("complete_global_chat_translation_batch", { p_ticket: ticket, p_success: false, p_results: [] });
-    console.error("Chat translation batch failed.", {
+    await admin.rpc(completionRpc, { p_ticket: ticket, p_success: false, p_results: [] });
+    console.error("Translation batch failed.", {
+      scope,
       error: error instanceof Error ? error.name : "UnknownError",
       reason: error instanceof ChatTranslationProviderError ? error.reason : "cache_completion",
       providerStatus: error instanceof ChatTranslationProviderError ? error.providerStatus : undefined,

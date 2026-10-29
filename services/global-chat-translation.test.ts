@@ -2,11 +2,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), provider: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ rpc: mocks.rpc }) }));
 vi.mock("./chat-translation-batch-provider", () => ({ translateChatTextBatch: mocks.provider }));
-import { getOrCreateGlobalChatTranslations } from "./global-chat-translation";
+import { getOrCreateGlobalChatTranslations, getOrCreateGazetteCommentTranslations } from "./global-chat-translation";
 const sources = ["one", "two"].map((messageId) => ({ messageId, sourceMessage: "Bonjour", sourceEditedAt: null }));
 const input = { sources, targetLocale: "en" as const, requesterDirectorId: "director" };
 beforeEach(() => vi.resetAllMocks());
 describe("shared bounded translation service", () => {
+  it("deduplicates repeated Gazette excerpts and uses only the isolated Gazette cache", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [{ messageId: "one", status: "claimed", ticket: "ticket" }], error: null }).mockResolvedValue({ error: null });
+    mocks.provider.mockResolvedValue([{ translatedText: "Hello", detectedSourceLocale: "fr", provider: "vercel-ai-gateway" }]);
+    expect(await getOrCreateGazetteCommentTranslations(input)).toMatchObject([
+      { messageId: "one", status: "loaded" }, { messageId: "two", status: "loaded" },
+    ]);
+    expect(mocks.provider).toHaveBeenCalledOnce();
+    expect(mocks.provider.mock.calls[0][0].messages).toEqual(["Bonjour"]);
+    expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["claim_gazette_comment_translation_batch", "complete_gazette_comment_translation_batch"]);
+  });
+  it("uses cached Gazette translations without spending on the provider", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ messageId: "one", status: "cached", translatedText: "Hello", detectedSourceLocale: "fr" }], error: null });
+    expect(await getOrCreateGazetteCommentTranslations(input)).toHaveLength(2);
+    expect(mocks.provider).not.toHaveBeenCalled();
+    expect(mocks.rpc).toHaveBeenCalledOnce();
+  });
   it("serves shared cache hits without a provider call or cache write", async () => {
     mocks.rpc.mockResolvedValue({ data: [{ messageId: "one", status: "cached", translatedText: "Hello", detectedSourceLocale: "fr" }], error: null });
     expect(await getOrCreateGlobalChatTranslations(input)).toMatchObject([{ status: "loaded", translation: { cached: true } }]);
