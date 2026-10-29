@@ -26,4 +26,17 @@ describe("FinanceIncomeAnalysisPanel", () => {
     const html=renderToStaticMarkup(<FinanceIncomeAnalysisPanel analysis={buildFinanceIncomeAnalysis([])} currency="EUR" seasonName="Saison 4" />);
     expect(html).toContain("Aucune recette enregistrée");expect(html).not.toContain('role="img"');expect(html).not.toContain("NaN");
   });
+  it("shows precise chart sources and an escaped native disclosure for residual income", () => {
+    const analysis=buildFinanceIncomeAnalysis([
+      {id:"objective",amount:100_000,category:"other",status:"posted",sourceReference:"objective:claim"},
+      {id:"rivalry",amount:50_000,category:"race_prize",status:"posted",sourceReference:"reward:team-rivalry:duel:a"},
+      {id:"other",amount:500,category:"other",status:"pending",sourceReference:"future:receipt",description:"Crédit <script>exceptionnel</script>"},
+    ]);
+    const html=renderToStaticMarkup(<FinanceIncomeAnalysisPanel analysis={analysis} currency="EUR" seasonName="Saison 4" />);
+    expect(html).toContain("Objectifs accomplis");expect(html).toContain("Rivalités");
+    expect(html).toContain("<details");expect(html).toContain("Détail des autres recettes");
+    expect(html).toContain("Crédit &lt;script&gt;exceptionnel&lt;/script&gt;");expect(html).not.toContain("<script>");
+    expect(html).not.toContain("future:receipt");
+    expect((html.match(/<title>/g)??[]).length).toBe(3);
+  });
 });

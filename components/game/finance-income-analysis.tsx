@@ -59,8 +59,8 @@ export function FinanceIncomeAnalysisPanel({
         </div>
 
         {analysis.breakdown.length > 0 ? (
-          <div className="grid gap-7 p-5 sm:p-8 lg:grid-cols-[minmax(280px,0.75fr)_minmax(0,1.35fr)] lg:items-center">
-            <div className="mx-auto w-full max-w-[360px]">
+          <div className="grid gap-7 p-5 sm:p-8 lg:grid-cols-[minmax(280px,0.75fr)_minmax(0,1.35fr)] lg:items-start">
+            <div className="mx-auto w-full max-w-[360px] lg:sticky lg:top-6">
               <IncomeDonut analysis={analysis} currency={currency} />
               {largestIncome ? (
                 <div className="mt-5 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9DB] p-4 text-center">
@@ -121,6 +121,30 @@ export function FinanceIncomeAnalysisPanel({
                       ) : null}
                     </div>
                   </div>
+                  {item.details?.length ? (
+                    <details className="mt-3 border-t border-[#315B3E]/10 pt-3">
+                      <summary className="cursor-pointer text-xs font-bold text-[#176951]">
+                        Détail des autres recettes
+                      </summary>
+                      <dl className="mt-3 space-y-3">
+                        {item.details.map((detail) => (
+                          <div key={detail.label} className="flex items-start justify-between gap-3 text-xs">
+                            <dt className="min-w-0 break-words font-semibold leading-5 text-[#183F37]">
+                              {detail.label}
+                            </dt>
+                            <dd className="shrink-0 text-right font-bold leading-5 text-[#183F37]">
+                              {formatCurrency(detail.amount, currency)}
+                              {detail.pendingAmount > 0 ? (
+                                <span className="block text-[10px] text-[#8A6B16]">
+                                  À recevoir {formatCurrency(detail.pendingAmount, currency)}
+                                </span>
+                              ) : null}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </details>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -203,10 +227,7 @@ function IncomeDonut({
             strokeDashoffset={item.dashOffset}
             transform={`rotate(-90 ${CHART_CENTER} ${CHART_CENTER})`}
           >
-            <title>
-              {item.label} : {formatCurrency(item.amount, currency)} ·{" "}
-              {formatPercentage(item.percentage)}
-            </title>
+            <title>{`${item.label} : ${formatCurrency(item.amount, currency)} · ${formatPercentage(item.percentage)}`}</title>
           </circle>
         );
       })}
