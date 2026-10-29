@@ -7,7 +7,7 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 
 const mode=process.argv[2];
-const version='20261029153000',name='grant_ujik_baltic_failed_chase_gift';
+const version='20261029153147',name='grant_ujik_baltic_failed_chase_gift';
 const directory='C:/Dev/artifacts/ujik-baltic-gift-20261029';
 const linkedRoot='C:/Dev/cycling-manager';
 if(process.argv.length!==3||!['--apply-reviewed','--verify'].includes(mode)||
