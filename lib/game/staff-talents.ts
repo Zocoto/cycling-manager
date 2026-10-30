@@ -17,6 +17,7 @@ export const ARCHITECT_BUILDING_EFFICIENCY_PERCENTAGE_PER_LEVEL = 2;
 export const SCOUT_ACADEMY_TRAINING_PERCENTAGE_PER_LEVEL = 3;
 export const COMMUNITY_GROWTH_BONUS_PERCENTAGE_PER_LEVEL = 3;
 export const YOUTH_COACH_TALENT_PERCENTAGE_PER_LEVEL = 1;
+export const NUTRITION_WEIGHT_PROGRAM_FORM_PRESERVATION_PERCENTAGE_PER_LEVEL = 5;
 
 export const STAFF_TALENTS_BY_ROLE = {
   financial_director: [
@@ -87,6 +88,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "nutrition_supplement_cost",
     "nutrition_supplement_effectiveness",
     "nutrition_supplement_capacity",
+    "nutrition_weight_program_form_preservation",
   ],
   doctor: [
     "doctor_recovery_time",
@@ -349,6 +351,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     description: () =>
       "Peut administrer 2 compléments supplémentaires par jour",
   },
+  nutrition_weight_program_form_preservation: {
+    role: "nutritionist",
+    label: "Préservation de la forme",
+    description: (level) =>
+      `Préserve ${getNutritionistWeightProgramFormPreservationPercentage(level)} % de la forme consommée par les affûtages et réathlétisations ; seul le meilleur bonus de l’équipe s’applique`,
+  },
   doctor_recovery_time: {
     role: "doctor",
     label: "Diagnostic précoce",
@@ -472,6 +480,12 @@ export function getScoutAcademyTrainingBonusPercentage(
     normalizeStaffLevel(level) *
     SCOUT_ACADEMY_TRAINING_PERCENTAGE_PER_LEVEL
   );
+}
+
+export function getNutritionistWeightProgramFormPreservationPercentage(
+  level: number,
+): number {
+  return normalizeStaffLevel(level) * NUTRITION_WEIGHT_PROGRAM_FORM_PRESERVATION_PERCENTAGE_PER_LEVEL;
 }
 
 export function getPhysiotherapistTalentRiderCapacityBonus(

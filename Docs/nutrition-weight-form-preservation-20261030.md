@@ -1,0 +1,13 @@
+# Affixe nutritionniste : Préservation de la forme
+
+Nouvel affixe `nutrition_weight_program_form_preservation`, ajouté au tirage initial des futurs nutritionnistes et aux possibilités normales de l’Académie des métiers. Les talents des membres existants et les choix déjà tirés ne sont pas modifiés.
+
+Le niveau (étoiles) détermine la réduction de base : 5 / 10 / 15 / 20 / 25 %. Les modificateurs habituels du contrat (affinité nationale et institut fédéral) restent applicables. Seul le meilleur nutritionniste actif porteur de l’affixe contribue, avec un plafond effectif de 35 %. La capacité quotidienne des compléments ne limite pas cet effet passif sur les programmes de poids.
+
+L’affûtage et la réathlétisation utilisent le même calcul : `round(abs(deltaKg) × 20 × (1 − réduction / 100), 1)`. Par exemple, à trois étoiles sans autre bonus : 1 kg coûte 17 points de forme au lieu de 20 ; à une étoile, 0,2 kg coûte 3,8 au lieu de 4. L’arrondi à une décimale correspond au journal des programmes ; la forme conserve sa précision native à deux décimales. Le délai partagé de cinq jours, les bornes de poids, l’ordre complément puis programme, les contrôles d’appartenance et l’atomicité sont conservés. Une répétition exacte retourne l’événement initial, sans recalcul rétroactif après un changement de talent.
+
+Le serveur calcule le pourcentage une fois par plan contenant des programmes de poids. Le même helper SQL alimente un nouveau champ du devis médical existant ; aucune requête par coureur ni nouvel appel réseau. Le service expose ce pourcentage à l’éditeur, qui l’utilise pour les options de poids, les seuils de forme, les brouillons restaurés, les aperçus et le total avant validation. Le navigateur ne transmet aucun pourcentage de réduction à la mutation SQL.
+
+Les tests PostgreSQL utilisent une base isolée et les fonctions réelles de plan, de nutrition, d’affinité, de devis médical et de catalogue de l’Académie. Le multiplicateur fédéral est simulé dans ces fixtures ; aucun programme de joueur n’est exécuté en production. La migration modifie des fragments contrôlés des fonctions actuelles afin de préserver les autres correctifs et leurs droits.
+
+Validation : 103 tests Vitest sur les modèles, l’éditeur, le service et les actions ; 244 contrôles PostgreSQL isolés sur les doses dans les deux sens, les cinq niveaux, les bonus, l’absence de cumul, les refus, les délais, l’atomicité et la répétition après modification d’affixe. Les fixtures ne reproduisent pas plusieurs connexions simultanées ni une navigation mobile authentifiée. Le script `scripts/apply-reviewed-nutrition-weight-form-preservation.mjs --inspect` est en lecture seule ; `--apply` applique uniquement cette migration et contrôle les définitions et droits conservés.

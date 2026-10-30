@@ -969,6 +969,7 @@ function NutritionPanel({
 
 
           <NutritionInterventionsEditor
+            weightProgramFormPreservationPercentage={overview.weightProgramFormPreservationPercentage}
             draftScope={draftScope}
             draftRevision={String(overview.currentDayNumber)}
             appliedRiderIds={overview.nutritionInterventionsToday.map(intervention => intervention.riderId)}
