@@ -1,14 +1,9 @@
 import Link from "next/link";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getDashboardHalloweenEdition } from "@/services/dashboard-halloween";
 import { HalloweenHeadlessRider } from "@/components/halloween/halloween-night-ride";
 export async function DashboardHalloweenShortcut({ compact = false }: { compact?: boolean } = {}) {
-  let visible = false;
-  try {
-    // PostgreSQL evaluates "now": the banner and mutations share the same clock.
-    const {data,error}=await createSupabaseAdminClient().from("halloween_editions").select("id").eq("id","halloween-2026").eq("enabled",true).lte("starts_at","now").gt("shop_ends_at","now").maybeSingle();
-    visible=!error && !!data;
-  } catch {return null;}
-  if (!visible) return null;
+  const edition = await getDashboardHalloweenEdition();
+  if (!edition) return null;
   return (
     <Link
       href="/jeu/halloween"

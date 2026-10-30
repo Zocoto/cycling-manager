@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import Link from "@/components/ui/app-link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   FEDERATION_CHAT_PAGE_SIZE,
@@ -147,20 +148,33 @@ export function FederationLounge({
       }
       data-federation-chat-embedded={embedded || undefined}
     >
-      <header className="flex flex-col gap-4 bg-[var(--federation-primary)] px-6 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)]">
+      <header className="flex shrink-0 items-center justify-between gap-3 bg-[var(--federation-primary)] px-4 py-3 text-white sm:gap-4 sm:px-8 sm:py-6">
+        <div className="min-w-0">
+          <p className="hidden text-xs font-black uppercase tracking-[0.18em] text-[var(--federation-accent)] sm:block">
             Salon privé de la fédération
           </p>
-          <h2 className="mt-2 text-2xl font-black">Le vestiaire de {countryName}</h2>
-          <p className="mt-2 text-sm font-semibold text-[#BFD1C6]">
+          <h2 className="truncate text-base font-black sm:mt-2 sm:text-2xl">
+            <span className="hidden sm:inline">Le vestiaire de </span>
+            {countryName}
+          </h2>
+          <p className="mt-2 hidden text-sm font-semibold text-[#BFD1C6] sm:block">
             Réservé aux équipes affiliées · échanges en direct
           </p>
         </div>
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black">
-          <span className={`fi fi-${countryCode.toLowerCase()} rounded-sm`} />
-          Salon ouvert
-        </span>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-2 py-1 text-xs font-black sm:px-4 sm:py-2">
+            <span aria-hidden="true" className={`fi fi-${countryCode.toLowerCase()} rounded-sm`} />
+            <span className="sr-only sm:not-sr-only">Salon ouvert</span>
+          </span>
+          {embedded ? (
+            <Link
+              href={`/jeu/federations/${countryCode.toLowerCase()}?onglet=lounge`}
+              className="text-[10px] font-black text-white underline decoration-white/35 underline-offset-4 hover:decoration-white"
+            >
+              Ouvrir la fédération ↗
+            </Link>
+          ) : null}
+        </div>
       </header>
 
       <div
@@ -223,19 +237,19 @@ export function FederationLounge({
         )}
       </div>
 
-      <form onSubmit={sendMessage} className="border-t border-[#315B3E]/12 bg-white p-4 sm:p-6">
+      <form onSubmit={sendMessage} className="shrink-0 border-t border-[#315B3E]/12 bg-white p-3 sm:p-6">
         <label htmlFor="federation-chat-message" className="sr-only">
           Votre message dans le salon fédéral
         </label>
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-2 sm:gap-3">
           <textarea
             id="federation-chat-message"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             maxLength={MESSAGE_MAX_LENGTH}
             rows={2}
-            placeholder="Écrire aux équipes affiliées…"
-            className="min-h-12 flex-1 resize-none rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-4 py-3 text-sm font-semibold text-[#183F37] outline-none focus:border-[var(--federation-secondary)] focus:ring-2 focus:ring-[#42B99A]/25"
+            placeholder="Votre message…"
+            className="h-12 min-h-12 min-w-0 flex-1 resize-none rounded-xl border border-[#315B3E]/18 bg-[#F8FBF9] px-3 py-2.5 text-base font-semibold text-[#183F37] outline-none focus:border-[var(--federation-secondary)] focus:ring-2 focus:ring-[#42B99A]/25 sm:h-auto sm:px-4 sm:py-3 sm:text-sm"
           />
           <button
             type="submit"

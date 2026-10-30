@@ -1,4 +1,5 @@
 {
+  "Votre message…": "Your message…",
   "Total encaissé + à recevoir ·": "Total received + to receive ·",
   "Total payé + à payer ·": "Total paid + to pay ·",
   "À payer": "To pay",
@@ -2953,5 +2954,9 @@
   "La saison a changé. Actualisez la page avant de relancer votre effectif.": "The season has changed. Refresh the page before rebuilding your roster.",
   "Le pays de votre équipe a changé. Actualisez la page avant de relancer votre effectif.": "Your team's country has changed. Refresh the page before rebuilding your roster.",
   "Les identités de l’effectif de relance sont invalides.": "The restart roster's rider identities are invalid.",
-  "Votre équipe a changé. Actualisez la page avant de relancer votre effectif.": "Your team has changed. Refresh the page before rebuilding your roster."
+  "Votre équipe a changé. Actualisez la page avant de relancer votre effectif.": "Your team has changed. Refresh the page before rebuilding your roster.",
+  "Plus que 1 jour pour dépenser vos roues": "Only 1 day left to spend your wheels",
+  "Plus que {{0}} jours pour dépenser vos roues": "Only {{0}} days left to spend your wheels",
+  "Ouvrez la boutique Halloween pour échanger vos roues contre des récompenses.": "Open the Halloween shop to exchange your wheels for rewards.",
+  "jours pour dépenser vos roues": "days left to spend your wheels"
 }

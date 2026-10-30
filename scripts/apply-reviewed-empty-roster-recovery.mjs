@@ -12,7 +12,7 @@ assert(['--inspect', '--apply'].includes(mode), 'Choose --inspect or --apply.');
 assert.equal(readFileSync('supabase/.temp/project-ref', 'utf8').trim(), 'ikagfuchasnsakpouosg');
 const version = '20261030100000';
 const name = 'add_empty_team_roster_recovery';
-const source = readFileSync(`supabase/migrations/${version}_${name}.sql`, 'utf8');
+const source = readFileSync(`supabase/migrations/${version}_${name}.sql`, 'utf8').replaceAll('\r\n', '\n');
 const hash = value => createHash('md5').update(value).digest('hex');
 const quote = value => `'${value.replaceAll("'", "''")}'`;
 const require = createRequire(import.meta.url);

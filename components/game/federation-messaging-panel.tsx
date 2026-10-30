@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { FederationLounge } from "@/components/game/federation-lounge";
-import Link from "@/components/ui/app-link";
 import { getFederationNationTheme } from "@/lib/game/federation-nation-theme";
 import type { FederationChatHubPayload } from "@/lib/game/federation-chat";
 
@@ -112,27 +111,15 @@ export function FederationMessagingPanel({ active }: { active: boolean }) {
         } as CSSProperties
       }
     >
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="shrink-0 border-b border-[#315B3E]/10 bg-white px-4 py-2 text-right sm:px-6">
-          <Link
-            href={`/jeu/federations/${payload.context.countryCode.toLowerCase()}?onglet=lounge`}
-            className="text-[10px] font-black uppercase tracking-[0.1em] text-[#176951] hover:underline"
-          >
-            Ouvrir la fédération ↗
-          </Link>
-        </div>
-        <div className="min-h-0 flex-1">
-          <FederationLounge
-            countryId={payload.context.countryId}
-            countryCode={payload.context.countryCode}
-            countryName={payload.context.countryName}
-            currentTeamId={payload.context.teamId}
-            initialMessages={payload.messages}
-            initialHasMore={payload.hasMore}
-            embedded
-          />
-        </div>
-      </div>
+      <FederationLounge
+        countryId={payload.context.countryId}
+        countryCode={payload.context.countryCode}
+        countryName={payload.context.countryName}
+        currentTeamId={payload.context.teamId}
+        initialMessages={payload.messages}
+        initialHasMore={payload.hasMore}
+        embedded
+      />
     </div>
   );
 }

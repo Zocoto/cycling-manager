@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { getCurrentDashboardAssistantSummary, getCurrentDashboardAssistantSummaries } from "./dashboard-assistant";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getDashboardHalloweenEdition } from "./dashboard-halloween";
+
+vi.mock("./dashboard-halloween", () => ({ getDashboardHalloweenEdition: vi.fn().mockResolvedValue(null) }));
 
 function client(payload: unknown) {
   const result = { data: null, error: null };
@@ -41,6 +44,15 @@ describe("dashboard physiotherapist payload", () => {
     expect(await getCurrentDashboardAssistantSummary(client(payload).supabase)).toMatchObject({ emptyRosterRecoveryAvailable: false });
   });
 
+  it("includes the shared Halloween deadline only in the enriched assistant", async () => {
+    vi.mocked(getDashboardHalloweenEdition).mockResolvedValueOnce({ id: "halloween-2026", shopEndsAt: "2026-11-09T23:00:00Z" });
+    const mock = client({ items: [] });
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    expect(await summaries.initial).toMatchObject({ halloweenShopEndsAt: null });
+    expect(await summaries.complete).toMatchObject({ halloweenShopEndsAt: "2026-11-09T23:00:00Z" });
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+    expect(mock.from).toHaveBeenCalledTimes(2);
+  });
   it("reads individual naturalizations in the existing request without extra queries", async () => {
     const target = { subjectType: "youth", subjectId: "00000000-0000-4000-8000-000000000001",
       targetCountryId: "00000000-0000-4000-8000-000000000002", name: "Junior Test", currentCountryName: "France",

@@ -120,6 +120,32 @@ describe("dashboard DS assistant", () => {
   });
 
   it.each([
+    ["2026-10-30T11:00:00Z", 11],
+    ["2026-11-03T11:00:00Z", 7],
+    ["2026-11-08T23:00:00Z", 1],
+    ["2026-11-09T22:59:59Z", 1],
+  ])("reminds players to spend Halloween wheels until the actual shop deadline (%s)", (date, days) => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, halloweenShopEndsAt: "2026-11-09T23:00:00Z" },
+      rewardCount: 0, cashBalance: -1, now: new Date(date),
+    });
+    expect(groups.alerts.find(line => line.id === "halloween-shop-closing")).toMatchObject({
+      tone: "alert", metric: `${days} j`,
+      title: days === 1 ? "Plus que 1 jour pour dépenser vos roues" : `Plus que ${days} jours pour dépenser vos roues`,
+      href: "/jeu/halloween?onglet=boutique",
+    });
+    expect(groups.alerts.findIndex(line => line.id === "halloween-shop-closing")).toBeLessThan(5);
+    expect(groups.alerts[0].id).toBe("negative-cash");
+  });
+
+  it.each([null, "invalid", "2026-11-09T23:00:00Z", "2026-11-08T23:00:00Z"])(
+    "hides the spending reminder once closed or when the event is unavailable (%s)", deadline => {
+      const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, halloweenShopEndsAt: deadline },
+        rewardCount: 0, cashBalance: 0, now: new Date("2026-11-09T23:00:00Z") });
+      expect(groups.alerts.some(line => line.id === "halloween-shop-closing")).toBe(false);
+    },
+  );
+  it.each([
     [1, "coureur en forme basse"],
     [3, "coureurs en forme basse"],
   ])("links %i low-form rider(s) directly to nutrition without changing the alert", (lowFormCount, title) => {
