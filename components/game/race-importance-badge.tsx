@@ -10,10 +10,10 @@ const RACE_IMPORTANCE_BADGE = {
   },
   monument: {
     label: "Monument",
-    compactLabel: "MON.",
+    compactLabel: "MNT",
     symbol: "◆",
     className:
-      "border-[#713623] bg-[#A95337] text-white shadow-[0_2px_0_rgba(81,31,17,0.2)]",
+      "border-[#4C1D95] bg-[#6D28D9] text-white shadow-[0_2px_0_rgba(76,29,149,0.2)]",
   },
 } satisfies Record<
   RaceImportance,

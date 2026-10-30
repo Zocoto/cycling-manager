@@ -312,7 +312,7 @@ describe("SeasonCalendar", () => {
 
     expect(markup).toContain('data-race-importance="monument"');
     expect(markup).toContain('aria-label="Course majeure : Monument"');
-    expect(markup).toContain("#A95337");
+    expect(markup).toContain("#6D28D9");
   });
 
   it("affiche les championnats internationaux en consultation avec le liseré arc-en-ciel", () => {

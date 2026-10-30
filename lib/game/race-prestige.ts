@@ -19,7 +19,7 @@ export type RacePrestigeDefinition = {
   kind: RacePrestigeKind;
   label: "Grand Tour" | "Monument";
   detailLabel: string;
-  shortLabel: "GT" | "MON";
+  shortLabel: "GT" | "MNT";
   trophyTitle: string;
   trophyVisualVariant: RacePrestigeTrophyVisualVariant;
   trophyDescription: string;
@@ -88,7 +88,7 @@ const PRESTIGE_RACES = [
     kind: "monument_cobbled",
     label: "Monument",
     detailLabel: "Monument pavé",
-    shortLabel: "MON",
+    shortLabel: "MNT",
     trophyTitle: "Pavé d’Ambre",
     trophyVisualVariant: "amber_cobble",
     trophyDescription:
@@ -105,7 +105,7 @@ const PRESTIGE_RACES = [
     kind: "monument_cobbled",
     label: "Monument",
     detailLabel: "Monument pavé",
-    shortLabel: "MON",
+    shortLabel: "MNT",
     trophyTitle: "Lion d’Acier",
     trophyVisualVariant: "zeeland_lion",
     trophyDescription:
@@ -122,7 +122,7 @@ const PRESTIGE_RACES = [
     kind: "monument_cobbled",
     label: "Monument",
     detailLabel: "Monument pavé",
-    shortLabel: "MON",
+    shortLabel: "MNT",
     trophyTitle: "Cloche des Flandres",
     trophyVisualVariant: "flanders_bell",
     trophyDescription:
@@ -139,7 +139,7 @@ const PRESTIGE_RACES = [
     kind: "monument_hilly",
     label: "Monument",
     detailLabel: "Monument vallonné",
-    shortLabel: "MON",
+    shortLabel: "MNT",
     trophyTitle: "Couronne d’Émeraude",
     trophyVisualVariant: "ardennes_crown",
     trophyDescription:
@@ -156,7 +156,7 @@ const PRESTIGE_RACES = [
     kind: "monument_hilly",
     label: "Monument",
     detailLabel: "Monument vallonné",
-    shortLabel: "MON",
+    shortLabel: "MNT",
     trophyTitle: "Calice des Lacs",
     trophyVisualVariant: "lake_chalice",
     trophyDescription:
@@ -173,7 +173,7 @@ const PRESTIGE_RACES = [
     kind: "monument_hilly",
     label: "Monument",
     detailLabel: "Monument vallonné",
-    shortLabel: "MON",
+    shortLabel: "MNT",
     trophyTitle: "Laurier des Collines",
     trophyVisualVariant: "hills_laurel",
     trophyDescription:
