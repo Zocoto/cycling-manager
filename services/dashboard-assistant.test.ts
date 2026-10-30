@@ -27,6 +27,20 @@ function client(payload: unknown) {
 }
 
 describe("dashboard physiotherapist payload", () => {
+  it("exposes empty-roster recovery in the first summary without another request", async () => {
+    const mock = client({ emptyRosterRecoveryAvailable: true, items: [] });
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    expect(await summaries.initial).toMatchObject({ emptyRosterRecoveryAvailable: true });
+    expect(await summaries.complete).toMatchObject({ emptyRosterRecoveryAvailable: true });
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+    expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+    expect(mock.from.mock.calls.map(call => call[0])).toEqual(["team_infrastructures", "team_infrastructure_specializations"]);
+  });
+
+  it.each([null, [], {}, { emptyRosterRecoveryAvailable: null }, { emptyRosterRecoveryAvailable: "true" }, { emptyRosterRecoveryAvailable: 1 }, { emptyRosterRecoveryAvailable: false }])("does not invent a recovery option from absent, legacy, or malformed metadata (%j)", async payload => {
+    expect(await getCurrentDashboardAssistantSummary(client(payload).supabase)).toMatchObject({ emptyRosterRecoveryAvailable: false });
+  });
+
   it("reads individual naturalizations in the existing request without extra queries", async () => {
     const target = { subjectType: "youth", subjectId: "00000000-0000-4000-8000-000000000001",
       targetCountryId: "00000000-0000-4000-8000-000000000002", name: "Junior Test", currentCountryName: "France",

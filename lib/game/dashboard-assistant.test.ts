@@ -93,6 +93,32 @@ describe("individual naturalization alerts", () => {
 });
 
 describe("dashboard DS assistant", () => {
+  it("puts the empty-roster recovery before routine alerts and links to the recovery panel", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, emptyRosterRecoveryAvailable: true },
+      rewardCount: 0,
+      cashBalance: -500,
+    });
+    expect(groups.alerts[0]).toEqual({
+      id: "empty-roster-recovery",
+      tone: "alert",
+      metric: "7",
+      title: "Votre effectif est vide",
+      detail: "Relancez votre équipe avec 7 coureurs de base de sa nationalité depuis la rubrique Effectif.",
+      href: "/jeu/effectif#relancer-effectif",
+    });
+    expect(groups.alerts[1].id).toBe("negative-cash");
+  });
+
+  it.each([undefined, false])("omits the recovery alert when the team is not eligible (%j)", available => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, emptyRosterRecoveryAvailable: available },
+      rewardCount: 0,
+      cashBalance: 0,
+    });
+    expect(groups.alerts.some(line => line.id === "empty-roster-recovery")).toBe(false);
+  });
+
   it.each([
     [1, "coureur en forme basse"],
     [3, "coureurs en forme basse"],

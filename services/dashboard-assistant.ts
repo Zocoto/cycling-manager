@@ -201,6 +201,7 @@ export async function getCurrentDashboardAssistantSummary(
 
   return {
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
+    emptyRosterRecoveryAvailable: assistantPayload.emptyRosterRecoveryAvailable,
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
     untreatedInjuryCount: row.untreated_injury_count,
@@ -382,6 +383,7 @@ function clampInteger(value: unknown, minimum: number, maximum: number) {
 
 function normalizeAssistantPayload(value: unknown): {
   naturalizationAlerts: DashboardNaturalizationAlert[];
+  emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
   availableScoutCount: number;
@@ -406,6 +408,7 @@ function normalizeAssistantPayload(value: unknown): {
   if (Array.isArray(value)) {
     return {
       naturalizationAlerts: [],
+      emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
@@ -432,6 +435,7 @@ function normalizeAssistantPayload(value: unknown): {
   if (!value || typeof value !== "object") {
     return {
       naturalizationAlerts: [],
+      emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
@@ -483,6 +487,7 @@ function normalizeAssistantPayload(value: unknown): {
       : {};
   return {
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
+    emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
       payload.riderRecruitmentMatchCount,
     ),

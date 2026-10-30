@@ -26,6 +26,8 @@ import { RiderSeasonPlanning } from "../../../components/game/rider-season-plann
 import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
 import { SquadStatusEditor } from "@/components/game/squad-status-editor";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
+import { EmptyRosterRecovery } from "@/components/game/empty-roster-recovery";
+import { getCurrentEmptyRosterRecoveryState } from "@/services/empty-roster-recovery";
 import { PotentialStars } from "../../../components/game/potential-stars";
 import {
   createAmateurRiderJersey,
@@ -378,6 +380,13 @@ export default async function TeamRosterPage({
   }
 
   const riders = (rosterResult.data ?? []) as RiderRow[];
+  // The normal, non-empty roster path makes no additional database request.
+  const recoveryState = !rosterResult.error && riders.length === 0
+    ? await getCurrentEmptyRosterRecoveryState(supabase).catch((error: unknown) => {
+        console.error("empty_roster_recovery_state_failed", error);
+        return null;
+      })
+    : null;
   const comparisonOptions: RiderComparisonOption[] = riders.map((rider) => ({
     id: rider.rider_id,
     firstName: rider.first_name,
@@ -551,6 +560,8 @@ export default async function TeamRosterPage({
               {getFirstSearchParam(rosterQuery.erreur)}
             </p>
           ) : null}
+
+          {recoveryState ? <EmptyRosterRecovery state={recoveryState} /> : null}
 
           {activeView === "planning" ? (
             <div className="mt-6" data-tutorial-id="roster-rating-table">

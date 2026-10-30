@@ -65,6 +65,7 @@ export type NewcomerJourney = {
 
 export type DashboardAssistantSnapshot = {
   naturalizationAlerts?: DashboardNaturalizationAlert[];
+  emptyRosterRecoveryAvailable?: boolean;
   gameDate: string;
   minimumForm: number;
   untreatedInjuryCount: number;
@@ -174,6 +175,7 @@ export type DashboardRaceRegistrationAlert = {
 };
 
 const ALERT_PRIORITY = [
+  "empty-roster-recovery",
   "race-roster-alerts",
   "negative-cash",
   "development-race-registration-reminder",
@@ -224,6 +226,18 @@ export function buildDashboardAssistantLines({
   now?: Date;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
   const alerts: DashboardAssistantLine[] = [];
+
+  if (snapshot.emptyRosterRecoveryAvailable === true) {
+    alerts.push({
+      id: "empty-roster-recovery",
+      tone: "alert",
+      metric: "7",
+      title: "Votre effectif est vide",
+      detail:
+        "Relancez votre équipe avec 7 coureurs de base de sa nationalité depuis la rubrique Effectif.",
+      href: "/jeu/effectif#relancer-effectif",
+    });
+  }
 
   for (const target of snapshot.naturalizationAlerts ?? []) {
     alerts.push({
