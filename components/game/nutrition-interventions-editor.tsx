@@ -20,7 +20,7 @@ import {
 export type { NutritionistInterventionOption } from "@/lib/game/nutrition-auto-selection";
 
 import { applyNutritionPlanAction } from "@/app/jeu/centre-de-soin/actions";
-import { WEIGHT_PROGRAM_STEPS, getWeightProgramQuote, type WeightProgramDraft, type WeightProgramRider } from "@/lib/game/weight-program";
+import { WEIGHT_PROGRAM_STEPS, getWeightProgramQuote, getWeightProgramFormCost, normalizeWeightProgramFormPreservationPercentage, type WeightProgramDraft, type WeightProgramRider } from "@/lib/game/weight-program";
 import {
   NUTRITION_INTERVENTIONS,
   getNutritionInterventionOutcome,
@@ -56,6 +56,7 @@ export function canReserveNutritionistForDraft({
 }
 
 type EditorContextValue = {
+  weightProgramFormPreservationPercentage: number;
   weightDrafts: Record<string, number>;
   weightRiders: WeightProgramRider[];
   setWeightDraft: (riderId: string, delta: number) => void;
@@ -81,6 +82,7 @@ export function NutritionInterventionsEditor({
   balance,
   currency,
   weightRiders = [],
+  weightProgramFormPreservationPercentage = 0,
   draftScope,
   appliedRiderIds = [],
   draftRevision = "",
@@ -91,11 +93,13 @@ export function NutritionInterventionsEditor({
   balance: number;
   currency: string;
   weightRiders?: WeightProgramRider[];
+  weightProgramFormPreservationPercentage?: number;
   draftScope?: string;
   appliedRiderIds?: string[];
   draftRevision?: string;
   children: ReactNode;
 }) {
+  const formPreservationPercentage = +normalizeWeightProgramFormPreservationPercentage(weightProgramFormPreservationPercentage);
   const initialDrafts = useMemo(
     () =>
       Object.fromEntries(
@@ -133,9 +137,9 @@ export function NutritionInterventionsEditor({
   }, [draftsByRiderId, nutritionists]);
   const hasWeightError = weightPrograms.some(program => {
     const rider = weightRiders.find(candidate => candidate.riderId === program.riderId);
-    return !rider || !getWeightProgramQuote(rider, program.weightDeltaKg, supplementFormGain(program.riderId)).allowed;
+    return !rider || !getWeightProgramQuote(rider, program.weightDeltaKg, supplementFormGain(program.riderId), formPreservationPercentage).allowed;
   });
-  const totalFormCost = weightPrograms.reduce((sum, program) => sum + Math.round(Math.abs(program.weightDeltaKg) * 20), 0);
+  const totalFormCost = weightPrograms.reduce((sum, program) => sum + Math.round(getWeightProgramFormCost(program.weightDeltaKg, formPreservationPercentage) * 10), 0) / 10;
   const activeDrafts = useMemo(
     () =>
       riderIds
@@ -238,6 +242,7 @@ export function NutritionInterventionsEditor({
   );
   const context = useMemo(
     () => ({
+      weightProgramFormPreservationPercentage: formPreservationPercentage,
       draftsByRiderId,
       usageByNutritionist,
       nutritionists,
@@ -245,11 +250,11 @@ export function NutritionInterventionsEditor({
       weightDrafts, weightRiders, supplementFormGain,
       setWeightDraft: (riderId: string, delta: number) => setWeightDrafts(current => ({...current, [riderId]: delta})),
     }),
-    [draftsByRiderId, nutritionists, updateDraft, usageByNutritionist, weightDrafts, weightRiders, supplementFormGain],
+    [draftsByRiderId, nutritionists, updateDraft, usageByNutritionist, weightDrafts, weightRiders, supplementFormGain, formPreservationPercentage],
   );
   const draftRecovery = useManagementDraft({
     scope: draftScope,
-    baseline: JSON.stringify({ riderIds, nutritionists, balance, weightRiders, appliedRiderIds, revision: draftRevision }),
+    baseline: JSON.stringify({ riderIds, nutritionists, balance, weightRiders, appliedRiderIds, formPreservationPercentage, revision: draftRevision }),
     value: { draftsByRiderId, weightDrafts },
     dirty: activeDrafts.length + weightPrograms.length > 0,
     restore(value) {
@@ -278,7 +283,7 @@ export function NutritionInterventionsEditor({
         const entry = restored[riderId] as NutritionInterventionDraft;
         const specialist = nutritionists.find(option => option.contractId === entry.nutritionistContractId);
         const gain = specialist && entry.interventionCode ? getNutritionInterventionOutcome({ code: entry.interventionCode, nutritionistLevel: specialist.level, additionalFormBonus: specialist.additionalFormBonus, effectivePrice: specialist.interventionPrices?.[entry.interventionCode] }).formGain : 0;
-        if (!rider || !getWeightProgramQuote(rider, delta, gain).allowed) return false;
+        if (!rider || !getWeightProgramQuote(rider, delta, gain, formPreservationPercentage).allowed) return false;
       }
       setDraftsByRiderId(restored as Record<string, NutritionInterventionDraft>);
       setWeightDrafts(value.weightDrafts as Record<string, number>);
@@ -340,7 +345,7 @@ export function NutritionInterventionsEditor({
                   </span>
                   <div className="min-w-0" aria-live="polite">
                     <p className="text-sm font-black">
-                      {formatCurrency(totalPrice, currency)}{totalFormCost > 0 ? ` · −${totalFormCost} forme au total` : ""} à valider
+                      {formatCurrency(totalPrice, currency)}{totalFormCost > 0 ? ` · −${formatForm(totalFormCost)} forme au total` : ""} à valider
                     </p>
                     <p className="text-[11px] font-semibold text-[#CDE2DA]">
                       {cannotSubmit
@@ -619,14 +624,18 @@ export function NutritionWeightProgramFields({ riderId, isUnderweight = false, i
   if (!rider || rider.heightCm === null || rider.weightKg === null) return null;
   const delta = editor.weightDrafts[riderId] ?? 0;
   const gain = editor.supplementFormGain(riderId);
-  const quote = delta ? getWeightProgramQuote(rider, delta, gain) : null;
+  const preservation = editor.weightProgramFormPreservationPercentage;
+  const quote = delta ? getWeightProgramQuote(rider, delta, gain, preservation) : null;
   return <details className="group mt-3 border-t border-[#315B3E]/10 pt-2">
     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-[11px] font-semibold text-[#60756E] marker:content-none [&::-webkit-details-marker]:hidden">
       <span>Ajuster le poids <span className="font-normal text-[#809189]">· optionnel</span></span>
       <span className="text-[10px] text-[#658F42]">{delta ? `${delta > 0 ? "+" : "−"}${formatWeight(Math.abs(delta))} kg sélectionné` : isUnderweight ? "Sous-poids" : isOverweight ? "Surpoids" : "Affûtage / athlétisation"} <span className="inline-block transition group-open:rotate-180">⌄</span></span>
     </summary>
     <div className="mt-2 rounded-xl bg-[#F4F7F5] p-3 text-xs text-[#60756E]">
-      <p className="text-[11px]">±0,2 à 1 kg · −4 forme par 0,2 kg · un programme tous les 5 jours, dans les deux sens.</p>
+      <p className="text-[11px]">±0,2 à 1 kg · −{formatForm(getWeightProgramFormCost(0.2, preservation))} forme par 0,2 kg · un programme tous les 5 jours, dans les deux sens.</p>
+      {preservation > 0 ? <p className="mt-1 text-[11px] font-semibold text-[#527633]">
+        Préservation de la forme : −{formatPercentage(preservation)} sur le coût des deux programmes. Seul le meilleur affixe s’applique.
+      </p> : null}
       {rider.cooldownDays > 0 ? <p className="mt-2 font-bold">Prochain programme dans {rider.cooldownDays} j.</p> : <>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <label className="grid gap-1"><span className="text-[10px] font-bold">Programme</span>
@@ -641,14 +650,14 @@ export function NutritionWeightProgramFields({ riderId, isUnderweight = false, i
               onChange={event => editor.setWeightDraft(riderId, direction * Number(event.target.value))}
               className="min-h-10 min-w-0 rounded-lg border border-[#315B3E]/15 bg-white px-2 text-xs disabled:opacity-50">
               {WEIGHT_PROGRAM_STEPS.map(step => <option key={step} value={step}
-                disabled={!getWeightProgramQuote(rider, direction * step, gain).allowed}>
-                {direction > 0 ? "+" : "−"}{formatWeight(step)} kg · −{step * 20} forme
+                disabled={!getWeightProgramQuote(rider, direction * step, gain, preservation).allowed}>
+                {direction > 0 ? "+" : "−"}{formatWeight(step)} kg · −{formatForm(getWeightProgramFormCost(step, preservation))} forme
               </option>)}
             </select>
           </label>
         </div>
         {quote ? <p className={`mt-2 text-[11px] font-bold ${quote.allowed ? "text-[#527633]" : "text-[#C5483D]"}`} role="status">
-          {quote.allowed ? `Poids prévu ${formatWeight(quote.weightAfterKg!)} kg · forme prévue ${quote.formAfter}/100. À valider avec les compléments.` : "Forme insuffisante ou limite de poids atteinte : ajustez la sélection."}
+          {quote.allowed ? `Poids prévu ${formatWeight(quote.weightAfterKg!)} kg · forme prévue ${formatForm(quote.formAfter)}/100. À valider avec les compléments.` : "Forme insuffisante ou limite de poids atteinte : ajustez la sélection."}
         </p> : null}
       </>}
       {(isUnderweight || isOverweight) ? <p className="mt-2 text-[10px]">{isUnderweight ? "Un poids trop faible réduit la puissance de ce profil. L’athlétisation peut aider." : "L’affûtage peut réduire le surpoids. Évitez de descendre sous le poids adapté au profil."}</p> : null}
@@ -667,6 +676,10 @@ function formatWeight(value: number) {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+function formatForm(value: number) {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value);
 }
 
 function useNutritionEditor() {

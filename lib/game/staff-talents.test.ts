@@ -8,6 +8,7 @@ import {
   getPhysiotherapistFatigueRecoveryHours,
   getPhysiotherapistTalentRiderCapacityBonus,
   getScoutAcademyTrainingBonusPercentage,
+  getNutritionistWeightProgramFormPreservationPercentage,
   getScoutTalentBonuses,
   getStaffTalentCodes,
   getTrainerTalentSpecialty,
@@ -18,6 +19,30 @@ import {
 import { STAFF_ROLES } from "@/lib/game/staff";
 
 describe("staff talents", () => {
+  it("adds weight-program preservation to the nutritionist pool without replacing its existing talents", () => {
+    expect(getStaffTalentCodes("nutritionist")).toEqual([
+      "nutrition_daily_form",
+      "nutrition_supplement_cost",
+      "nutrition_supplement_effectiveness",
+      "nutrition_supplement_capacity",
+      "nutrition_weight_program_form_preservation",
+    ]);
+    expect(isStaffTalentForRole("nutrition_weight_program_form_preservation", "nutritionist")).toBe(true);
+    expect(isStaffTalentForRole("nutrition_weight_program_form_preservation", "doctor")).toBe(false);
+    expect(selectInitialStaffTalent({ role: "nutritionist", roll: 4, staffLevel: 1 }))
+      .toBe("nutrition_weight_program_form_preservation");
+  });
+
+  it("scales preserved form with nutritionist stars and explains the strongest-only rule", () => {
+    expect([1, 2, 3, 4, 5].map(getNutritionistWeightProgramFormPreservationPercentage)).toEqual([5, 10, 15, 20, 25]);
+    expect(getNutritionistWeightProgramFormPreservationPercentage(20)).toBe(25);
+    expect(getNutritionistWeightProgramFormPreservationPercentage(NaN)).toBe(5);
+    expect(describeStaffTalent("nutrition_weight_program_form_preservation", 4))
+      .toContain("Préserve 20 %");
+    expect(describeStaffTalent("nutrition_weight_program_form_preservation", 4))
+      .toContain("seul le meilleur bonus");
+  });
+
   it("converts legacy educator talents without removing their codes", () => {
     expect(STAFF_TALENT_DEFINITIONS.educator_training_cost.label).toBe("Orientation professionnelle");
     expect(describeStaffTalent("educator_training_cost", 2)).toContain("2 propositions");

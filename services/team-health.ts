@@ -17,7 +17,7 @@ import {
 } from "@/lib/game/staff-talents";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import type { RiderMoraleEvent } from "@/lib/game/rider-morale";
-import { getWeightProgramCooldownDays } from "@/lib/game/weight-program";
+import { getWeightProgramCooldownDays, normalizeWeightProgramFormPreservationPercentage } from "@/lib/game/weight-program";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = { id: string };
@@ -305,6 +305,7 @@ export type TeamHealthOverview = {
   riders: TeamHealthRider[];
   protocols: TeamMedicalProtocol[];
   medicalStaff: TeamMedicalStaffMember[];
+  weightProgramFormPreservationPercentage: number;
   nutritionInterventionsToday: TeamNutritionIntervention[];
 };
 
@@ -420,6 +421,7 @@ export async function getCurrentTeamHealthOverview(
       riders: [],
       protocols,
       medicalStaff,
+      weightProgramFormPreservationPercentage: effectiveQuotes.weightProgramFormPreservationPercentage,
       nutritionInterventionsToday: [],
     };
   }
@@ -650,6 +652,7 @@ export async function getCurrentTeamHealthOverview(
     currency: teamSeason.currency,
     protocols,
     medicalStaff,
+    weightProgramFormPreservationPercentage: effectiveQuotes.weightProgramFormPreservationPercentage,
     nutritionInterventionsToday: (nutritionInterventionsResult.data ?? []).map(
       (intervention) => ({
         id: intervention.id,
@@ -912,9 +915,10 @@ function mapProtocols(
 function normalizeMedicalEffectiveQuotes(value: unknown): {
   nutritionists: NutritionistEffectiveQuote[];
   protocols: ProtocolEffectiveQuote[];
+  weightProgramFormPreservationPercentage: number;
 } {
   if (!value || typeof value !== "object") {
-    return { nutritionists: [], protocols: [] };
+    return { nutritionists: [], protocols: [], weightProgramFormPreservationPercentage: 0 };
   }
   const payload = value as Record<string, unknown>;
   const nutritionists = Array.isArray(payload.nutritionists)
@@ -923,7 +927,10 @@ function normalizeMedicalEffectiveQuotes(value: unknown): {
   const protocols = Array.isArray(payload.protocols)
     ? payload.protocols.flatMap(normalizeProtocolQuote)
     : [];
-  return { nutritionists, protocols };
+  const weightProgramFormPreservationPercentage = normalizeWeightProgramFormPreservationPercentage(
+    Number(payload.weightProgramFormPreservationPercentage ?? 0),
+  );
+  return { nutritionists, protocols, weightProgramFormPreservationPercentage };
 }
 
 function normalizeNutritionistQuote(
