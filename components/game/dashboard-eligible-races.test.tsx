@@ -239,7 +239,7 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain('aria-label="Course majeure : Grand Tour"');
     expect(markup).toContain('aria-label="Course majeure : Monument"');
     expect(markup).toContain("bg-[#FFF9DF]");
-    expect(markup).toContain("bg-[#FFF1EB]");
+    expect(markup).toContain("bg-[#F3E8FF]");
   });
 
   it("conserve et signale une inscription acceptée devenue incomplète", () => {
