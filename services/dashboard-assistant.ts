@@ -11,6 +11,7 @@ import type {
 import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
+import { getDashboardHalloweenEdition } from "@/services/dashboard-halloween";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -107,6 +108,7 @@ export async function getCurrentDashboardAssistantSummary(
     infrastructureLevelsResult,
     infrastructureSpecializationsResult,
     rndOpportunityResult,
+    halloweenEdition,
   ] = await Promise.all([
     core ?? readAssistantCore(supabase, signal),
     enrich ? supabase
@@ -135,6 +137,7 @@ export async function getCurrentDashboardAssistantSummary(
       .abortSignal(signal)
       .returns<DashboardInfrastructureSpecializationRow[]>() : empty,
     enrich ? supabase.rpc("get_current_equipment_rnd_opportunity").abortSignal(signal) : empty,
+    enrich ? getDashboardHalloweenEdition() : null,
   ]);
 
   if (result.error) {
@@ -200,6 +203,7 @@ export async function getCurrentDashboardAssistantSummary(
   }
 
   return {
+    halloweenShopEndsAt: halloweenEdition?.shopEndsAt ?? null,
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
