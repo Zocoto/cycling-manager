@@ -1,7 +1,8 @@
 # Halloween 2026 — mise en production
 
 Ouverture : vendredi 9 octobre 2026 à 00:00, Europe/Paris (8 octobre 22:00 UTC).
-Fin des jeux : 3 novembre à 00:00, Europe/Paris. Boutique jusqu'au 10 novembre à 00:00.
+Fin des jeux : 3 novembre à 00:00, Europe/Paris. Boutique jusqu’au 6 novembre à 00:00 (5 novembre inclus, fin de S4 ; échéance avancée sur demande du propriétaire le 30 octobre).
+La migration `20261030130000` avance uniquement la fermeture de la boutique et remplace l’ancienne date figée dans un message serveur. Le message de fin des jeux utilise désormais la date réelle de l’édition, tout comme le rappel de l’assistant. Les objets acquis restent utilisables après fermeture. Validation : 114 tests applicatifs et 35 contrôles PostgreSQL isolés, dont la frontière exacte d’achat et l’annulation atomique d’une migration inattendue. Le script `scripts/apply-reviewed-halloween-shop-deadline.mjs --inspect` vérifie l’échéance en lecture seule ; `--apply` applique uniquement cette migration et contrôle que les fonctions d’inventaire et de règlement sont préservées.
 Le code est déployé avant l'ouverture ; l'horloge PostgreSQL autorise automatiquement les jeux à l'heure prévue. Aucun réveil du PC n'est nécessaire.
 
 ## Livraison

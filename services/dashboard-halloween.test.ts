@@ -13,8 +13,8 @@ describe("shared dashboard Halloween edition", () => {
     query.maybeSingle.mockReset();
   });
   it("reads just the active edition and shop deadline, with a bounded timeout", async () => {
-    query.maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-09T23:00:00Z" }, error: null });
-    expect(await getDashboardHalloweenEdition()).toEqual({ id: "halloween-2026", shopEndsAt: "2026-11-09T23:00:00Z" });
+    query.maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-05T23:00:00Z" }, error: null });
+    expect(await getDashboardHalloweenEdition()).toEqual({ id: "halloween-2026", shopEndsAt: "2026-11-05T23:00:00Z" });
     expect(from).toHaveBeenCalledWith("halloween_editions");expect(query.select).toHaveBeenCalledWith("id,shop_ends_at");
     expect(query.eq).toHaveBeenCalledWith("enabled", true);expect(query.lte).toHaveBeenCalledWith("starts_at", "now");
     expect(query.gt).toHaveBeenCalledWith("shop_ends_at", "now");expect(query.abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));

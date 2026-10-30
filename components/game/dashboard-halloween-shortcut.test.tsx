@@ -24,7 +24,7 @@ describe("raccourci Halloween du bureau du DS", () => {
   });
 
   it("sépare le bandeau des raccourcis du haut sur tous les écrans", async () => {
-    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-09T23:00:00Z" }, error: null });
+    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-05T23:00:00Z" }, error: null });
 
     const html = renderToStaticMarkup(await DashboardHalloweenShortcut());
 
@@ -35,7 +35,7 @@ describe("raccourci Halloween du bureau du DS", () => {
   });
 
   it("réemploie le cycliste approuvé en décor sans image, script ou hauteur supplémentaire", async () => {
-    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-09T23:00:00Z" }, error: null });
+    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-05T23:00:00Z" }, error: null });
 
     const html = renderToStaticMarkup(await DashboardHalloweenShortcut());
 

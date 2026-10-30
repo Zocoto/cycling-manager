@@ -2969,5 +2969,13 @@
   "Préservation de la forme : −": "Fitness preservation: −",
   "Préserve": "Preserves",
   "Préserve {{0}} % de la forme consommée par les affûtages et réathlétisations ; seul le meilleur bonus de l’équipe s’applique": "Preserves {{0}}% of the fitness used by weight-cutting and reconditioning programmes; only the team's best bonus applies",
-  "sur le coût des deux programmes. Seul le meilleur affixe s’applique.": "off the fitness cost of both programmes. Only the best talent applies."
+  "sur le coût des deux programmes. Seul le meilleur affixe s’applique.": "off the fitness cost of both programmes. Only the best talent applies.",
+  "inclus, heure de Paris.": "inclusive, Paris time.",
+  "Les jeux sont terminés.": "The games have ended.",
+  "Les jeux sont terminés.{{0}} Vos objets acquis restent utilisables ensuite.": "The games have ended.{{0}} Items you have acquired can still be used afterwards.",
+  "Vos objets acquis restent utilisables ensuite.": "Items you have acquired can still be used afterwards.",
+  "Vous pouvez dépenser vos dernières roues dans la boutique.": "You can spend your remaining wheels in the shop.",
+  "Vous pouvez dépenser vos dernières roues jusqu’au": "You can spend your remaining wheels until",
+  "Vous pouvez dépenser vos dernières roues jusqu’au {{0}} inclus, heure de Paris.": "You can spend your remaining wheels until {{0}} inclusive, Paris time.",
+  "Les jeux sont terminés. La boutique reste ouverte jusqu’à la date indiquée dans l’événement.": "The games have ended. The shop remains open until the deadline shown in the event."
 }

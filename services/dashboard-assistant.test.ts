@@ -45,11 +45,11 @@ describe("dashboard physiotherapist payload", () => {
   });
 
   it("includes the shared Halloween deadline only in the enriched assistant", async () => {
-    vi.mocked(getDashboardHalloweenEdition).mockResolvedValueOnce({ id: "halloween-2026", shopEndsAt: "2026-11-09T23:00:00Z" });
+    vi.mocked(getDashboardHalloweenEdition).mockResolvedValueOnce({ id: "halloween-2026", shopEndsAt: "2026-11-05T23:00:00Z" });
     const mock = client({ items: [] });
     const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
     expect(await summaries.initial).toMatchObject({ halloweenShopEndsAt: null });
-    expect(await summaries.complete).toMatchObject({ halloweenShopEndsAt: "2026-11-09T23:00:00Z" });
+    expect(await summaries.complete).toMatchObject({ halloweenShopEndsAt: "2026-11-05T23:00:00Z" });
     expect(mock.rpc).toHaveBeenCalledTimes(7);
     expect(mock.from).toHaveBeenCalledTimes(2);
   });

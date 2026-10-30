@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createRunnerPreview, stepRunnerPreview, runnerSnapshot } from "./halloween-runner";
-import { validateHalloweenRun, halloweenParisDay, HALLOWEEN_START, HALLOWEEN_END } from "./halloween-event";
+import { validateHalloweenRun, halloweenParisDay, HALLOWEEN_START, HALLOWEEN_END, HALLOWEEN_SHOP_END, formatHalloweenShopLastDay } from "./halloween-event";
 import { halloweenAvatarArts, originalHalloweenAvatarKey } from "./halloween-avatar";
 import { resolveSportingDirectorAvatar, isSportingDirectorAvatarKey } from "../sporting-director-avatar";
 
@@ -30,6 +30,15 @@ describe("Halloween production proof", () => {
     expect(halloweenParisDay(new Date("2026-10-24T22:01Z"))).toBe("2026-10-25");
     expect(halloweenParisDay(new Date("2026-10-25T22:01Z"))).toBe("2026-10-25");
     expect(halloweenParisDay(new Date("2026-10-25T23:01Z"))).toBe("2026-10-26");
+  });
+  it("closes the shop at the end of S4 while preserving the games deadline", () => {
+    expect(HALLOWEEN_END).toBe("2026-11-02T23:00:00.000Z");
+    expect(HALLOWEEN_SHOP_END).toBe("2026-11-05T23:00:00.000Z");
+    expect(halloweenParisDay(new Date(HALLOWEEN_SHOP_END))).toBe("2026-11-06");
+    expect(formatHalloweenShopLastDay(HALLOWEEN_SHOP_END)).toBe("5 novembre");
+    expect(formatHalloweenShopLastDay(HALLOWEEN_SHOP_END, "en")).toBe("5 November");
+    expect(formatHalloweenShopLastDay("2026-11-09T23:00:00Z")).toBe("9 novembre");
+    expect(formatHalloweenShopLastDay("invalid")).toBeNull();
   });
 });
 describe("Halloween portraits",()=>{

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { HalloweenRunnerOverview } from "./halloween-runner-overview";
 import { HalloweenItemIllustration, SpiderWeb } from "./halloween-art";
 import { HalloweenCandyGame, type CandyColor } from "./halloween-candy-game";
@@ -14,13 +15,14 @@ import { SportingDirectorAvatar } from "@/components/game/sporting-director-avat
 import { DemonicWheel } from "./halloween-wheel";
 import { halloweenRequest } from "./halloween-client";
 import { HALLOWEEN_PREVIEW_ITEMS, halloweenPresentationEffect, type HalloweenPreviewItem } from "@/lib/game/halloween-catalog";
-import type { HalloweenState } from "@/lib/game/halloween-event";
+import { formatHalloweenShopLastDay, type HalloweenState } from "@/lib/game/halloween-event";
 import { getHalloweenPurchaseLimit, isHalloweenPurchaseLimitReached } from "@/lib/game/halloween-shop";
 
 const curseCopy = { vampire: "Votre prochaine poursuite garde son score complet, mais 10 % de ses roues sont retenues. Le sort disparaît ensuite.", mummy: "Votre prochain cadeau sera emballé dans cinq bandelettes. Déballez-le pour tout récupérer." };
 type Tab = "accueil" | "classements" | "bonbons" | "boutique" | "collection";
 export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { initial: HalloweenState; initialTab?: string }) {
   const router = useRouter();
+  const { locale } = useLocale();
   const [tab, setTab] = useState<Tab>(["accueil", "classements", "bonbons", "boutique", "collection"].includes(initialTab) ? initialTab as Tab : "accueil");
   const [notice, setNotice] = useState("");
   const [busy, startTransition] = useTransition();
@@ -41,6 +43,7 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
   };
   const open = state.state === "open";
   const shopOpen = open || state.state === "shop";
+  const shopLastDay = state.state === "shop" ? formatHalloweenShopLastDay(state.shopEndsAt, locale) : null;
   const selectActivity = (activity: "poursuite" | "bonbons" | "boutique") => {
     if (activity === "poursuite") router.push("/jeu/halloween/poursuite");
     else setTab(activity);
@@ -59,7 +62,9 @@ export function HalloweenEvent({ initial: state, initialTab = "accueil" }: { ini
     {notice ? <p role="status" className="halloween-card">{notice}</p> : null}
     {state.replayAvailable && open ? <p className="halloween-card" role="status">Vous avez joué avant la mise à jour : <Link href="/jeu/halloween/poursuite" prefetch={false}>un essai gratuit vous a été restitué</Link>. Vos scores et vos gains restent acquis.</p> : null}
     {!shopOpen ? <section className="halloween-card"><h2>{state.state === "scheduled" ? "La nuit s’ouvre à minuit" : state.state === "archived" ? "Les jeux sont terminés" : "Les jeux sont momentanément fermés"}</h2><p>{state.state === "scheduled" ? "Ouverture vendredi 9 octobre à 00 h, heure de Paris." : "Vos gains déjà acquis et votre collection sont conservés."}</p></section> : null}
-    {state.state === "shop" ? <p className="halloween-card">Les jeux sont terminés. Vous pouvez dépenser vos dernières roues jusqu’au 9 novembre inclus. Vos objets acquis restent utilisables ensuite.</p> : null}
+    {state.state === "shop" ? <p className="halloween-card">{locale === "en"
+      ? `The games have ended.${shopLastDay ? ` You can spend your remaining wheels until ${shopLastDay} inclusive, Paris time.` : " You can spend your remaining wheels in the shop."} Items you have acquired can still be used afterwards.`
+      : `Les jeux sont terminés.${shopLastDay ? ` Vous pouvez dépenser vos dernières roues jusqu’au ${shopLastDay} inclus, heure de Paris.` : " Vous pouvez dépenser vos dernières roues dans la boutique."} Vos objets acquis restent utilisables ensuite.`}</p> : null}
     {!state.joined && shopOpen ? <section className="halloween-card"><h2>Bienvenue dans la nuit</h2><p>Recevez 24 roues démoniaques de bienvenue, une seule fois sur cette édition.</p><button disabled={busy} className="halloween-button" onClick={() => action("join")}>Participer · recevoir mes 24 roues</button></section> : null}
     {state.curse ? <section className="halloween-card"><h2>{state.curse.kind === "vampire" ? "Le baiser du vampire" : "La malédiction de la momie"}</h2><p>Un sort envoyé par {state.curse.sender}. {curseCopy[state.curse.kind as keyof typeof curseCopy]} Expiration : {new Date(state.curse.expiresAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.</p><button disabled={busy} className="halloween-button" onClick={() => action("dispel")}>Sel anti-malédiction · lever gratuitement</button>
       {state.pendingGift ? <div><p>Cinq bandelettes à retirer, du dessus vers le dessous. {state.bandages}/5 retirées.</p><button disabled={busy} className="halloween-button" onClick={() => action("unwrap", { bandage: state.bandages })}>Retirer la bandelette {state.bandages + 1}</button></div> : null}
