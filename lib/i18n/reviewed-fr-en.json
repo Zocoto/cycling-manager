@@ -2927,5 +2927,10 @@
   "Impossible de vérifier la fondation de l’équipe. Réessayez dans un instant.": "Unable to verify that the team has been founded. Please try again shortly.",
   "Voir les coureurs libres": "Browse free agents",
   "Votre effectif est vide": "Your roster is empty",
-  "Vous pouvez recruter des coureurs libres depuis le Bureau des transferts.": "You can recruit free agents from the Transfer Office."
+  "Vous pouvez recruter des coureurs libres depuis le Bureau des transferts.": "You can recruit free agents from the Transfer Office.",
+  "×1 · Temps réel": "×1 · Real time",
+  "à ×1": "at ×1",
+  "À ×1, le replay suit le temps de course.": "At ×1, the replay follows the race clock.",
+  "environ": "about",
+  "Temps de course": "Race time"
 }

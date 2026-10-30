@@ -567,12 +567,14 @@ export function getFinalReplayMeters({
   elapsedMs,
   playbackSpeed,
   approachDurationMs,
+  lastKilometerDurationMs = FINAL_KILOMETER_DURATION_MS,
 }: {
   startedWithMeters: number;
   finalSegmentMeters: number;
   elapsedMs: number;
   playbackSpeed: number;
   approachDurationMs: number;
+  lastKilometerDurationMs?: number;
 }) {
   const speed = Math.max(0.1, playbackSpeed);
   const lastKilometerStart = Math.min(1_000, startedWithMeters);
@@ -602,8 +604,8 @@ export function getFinalReplayMeters({
     );
   }
 
-  const lastKilometerDurationMs =
-    (FINAL_KILOMETER_DURATION_MS * lastKilometerStart) /
+  const remainingLastKilometerDurationMs =
+    (lastKilometerDurationMs * lastKilometerStart) /
     1_000 /
     speed;
   const lastKilometerElapsedMs = Math.max(
@@ -611,8 +613,8 @@ export function getFinalReplayMeters({
     elapsedMs - currentApproachDurationMs
   );
   const lastKilometerProgress =
-    lastKilometerDurationMs > 0
-      ? lastKilometerElapsedMs / lastKilometerDurationMs
+    remainingLastKilometerDurationMs > 0
+      ? lastKilometerElapsedMs / remainingLastKilometerDurationMs
       : 1;
 
   return Math.max(
@@ -630,6 +632,7 @@ export function getFinalReplayFrame({
   elapsedMs,
   playbackSpeed,
   approachDurationMs,
+  lastKilometerDurationMs = FINAL_KILOMETER_DURATION_MS,
   finishPassageDurationMs = FINAL_FINISH_PASSAGE_DURATION_MS,
 }: {
   startedWithMeters: number;
@@ -638,6 +641,7 @@ export function getFinalReplayFrame({
   elapsedMs: number;
   playbackSpeed: number;
   approachDurationMs: number;
+  lastKilometerDurationMs?: number;
   finishPassageDurationMs?: number;
 }) {
   const metersRemaining = getFinalReplayMeters({
@@ -646,12 +650,14 @@ export function getFinalReplayFrame({
     elapsedMs,
     playbackSpeed,
     approachDurationMs,
+    lastKilometerDurationMs,
   });
   const winnerPassageDurationMs = getFinalReplayWinnerDurationMs({
     startedWithMeters,
     finalSegmentMeters,
     playbackSpeed,
     approachDurationMs,
+    lastKilometerDurationMs,
   });
   const finishPassageProgress = metersRemaining > 0
     ? 0
@@ -675,11 +681,13 @@ function getFinalReplayWinnerDurationMs({
   finalSegmentMeters,
   playbackSpeed,
   approachDurationMs,
+  lastKilometerDurationMs,
 }: {
   startedWithMeters: number;
   finalSegmentMeters: number;
   playbackSpeed: number;
   approachDurationMs: number;
+  lastKilometerDurationMs: number;
 }) {
   const speed = Math.max(0.1, playbackSpeed);
   const lastKilometerStart = Math.min(1_000, startedWithMeters);
@@ -687,10 +695,10 @@ function getFinalReplayWinnerDurationMs({
   const fullApproachDistance = Math.max(1, finalSegmentMeters - 1_000);
   const currentApproachDurationMs =
     (approachDurationMs * approachDistance) / fullApproachDistance / speed;
-  const lastKilometerDurationMs =
-    (FINAL_KILOMETER_DURATION_MS * lastKilometerStart) / 1_000 / speed;
+  const remainingLastKilometerDurationMs =
+    (lastKilometerDurationMs * lastKilometerStart) / 1_000 / speed;
 
-  return currentApproachDurationMs + lastKilometerDurationMs;
+  return currentApproachDurationMs + remainingLastKilometerDurationMs;
 }
 
 export function getFinishTargetPosition({

@@ -47,6 +47,15 @@ function buildSimulation(
 }
 
 describe("race live visual timeline", () => {
+  it("starts a real-time replay at the sector entrance instead of jumping to its first recorded tick", () => {
+    const frames = officialTimeline.map((snapshot, sourceTimelineIndex) => ({...snapshot,sourceTimelineIndex}));
+    expect(getRaceVisualFrameForSegment({timeline:frames,sourceTimelineIndex:0,progress:0,segmentStartDistanceKm:0})?.completedDistanceKm).toBe(0);
+    expect(getRaceVisualFrameForSegment({timeline:frames,sourceTimelineIndex:0,progress:0.5,segmentStartDistanceKm:0})?.completedDistanceKm).toBe(5);
+    expect(getRaceVisualFrameForSegment({timeline:frames,sourceTimelineIndex:1,progress:0,segmentStartDistanceKm:10})?.completedDistanceKm).toBe(10);
+    expect(getRaceVisualFrameForSegment({timeline:frames,sourceTimelineIndex:1,progress:0.5,segmentStartDistanceKm:10})?.completedDistanceKm).toBe(15);
+    expect(getRaceVisualFrameForSegment({timeline:frames,sourceTimelineIndex:1,progress:1,segmentStartDistanceKm:10})?.completedDistanceKm).toBe(20);
+    expect(frames.map(frame=>frame.completedDistanceKm)).toEqual([10,20]);
+  });
   it("falls back to official snapshots for simulations saved before visual frames", () => {
     const frames = getRaceVisualTimeline(buildSimulation());
 

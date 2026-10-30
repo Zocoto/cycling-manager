@@ -11,6 +11,7 @@ import type {
 
 import {
   PreviousStageStandings,
+  PlaybackSpeedControl,
   PrimeClassificationPopup,
   RaceDirectorCar,
   RaceGapLine,
@@ -19,6 +20,17 @@ import {
   buildLiveClassificationRows,
   getGroupScreenPosition,
 } from "./race-live-lab";
+
+describe("replay speed control", () => {
+  it("offers real-time playback and compact accelerations through ×128", () => {
+    const markup=renderToStaticMarkup(<PlaybackSpeedControl value={1} onChange={()=>{}} />);
+    expect(markup).toContain('aria-label="Vitesse du replay"');
+    expect(markup).toContain("×1 · Temps réel");
+    expect(markup).toContain('<option value="128">×128</option>');
+    expect((markup.match(/<option/g)??[]).length).toBe(8);
+    expect(markup).toContain('selected=""');
+  });
+});
 
 describe("buildLiveClassificationRows", () => {
   it("bascule sur les rangs officiels à la fin du direct", () => {

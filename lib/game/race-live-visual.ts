@@ -424,14 +424,30 @@ export function getRaceVisualFrameForSegment({
   timeline,
   sourceTimelineIndex,
   progress,
+  segmentStartDistanceKm,
 }: {
   timeline: RaceVisualFrame[];
   sourceTimelineIndex: number;
   progress: number;
+  segmentStartDistanceKm?: number;
 }): RaceVisualFrame | null {
   const segmentFrames = timeline.filter(
     (frame) => frame.sourceTimelineIndex === sourceTimelineIndex,
   );
+  const first = segmentFrames[0];
+  if (first && segmentStartDistanceKm !== undefined && segmentStartDistanceKm < first.completedDistanceKm) {
+    let previous: RaceVisualFrame | undefined;
+    for (let index = timeline.length - 1; index >= 0; index -= 1) {
+      if (timeline[index].sourceTimelineIndex === sourceTimelineIndex - 1) {
+        previous = timeline[index];
+        break;
+      }
+    }
+    segmentFrames.unshift({
+      ...(previous ?? first), segmentNumber: first.segmentNumber, sourceTimelineIndex,
+      completedDistanceKm: segmentStartDistanceKm,
+    });
+  }
   return getRaceVisualFrameAtProgress(segmentFrames, progress);
 }
 

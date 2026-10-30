@@ -90,6 +90,12 @@ import {
 } from "@/lib/game/official-race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import {
+  buildRaceReplayTiming,
+  isRaceReplaySpeed,
+  RACE_REPLAY_SPEEDS,
+  type RaceReplaySpeed,
+} from "@/lib/game/race-replay-timing";
+import {
   getFinalBattleScenario,
   getLeadingFinishGroupRiderIds,
   isRaceSprinterRole,
@@ -116,9 +122,6 @@ import {
 } from "@/lib/game/race-weather";
 
 type LabTab = "live" | "classification" | "rules";
-type PlaybackSpeed = 1 | 2 | 4;
-
-const REPLAY_STEP_DURATION_MS = 6_000;
 const RACE_RENDER_FRAME_INTERVAL_MS = 1_000 / 30;
 const FINISH_MEDIA_GROUP_POSITIONS = [58, 76] as const;
 const EMPTY_OWN_RIDER_IDS: ReadonlySet<string> = new Set();
@@ -150,6 +153,10 @@ export function RaceLiveLab({
     [edition, lockedSimulations, stage.id]
   );
   const { input, simulation } = officialSimulationContext;
+  const replayTiming = useMemo(
+    () => buildRaceReplayTiming(simulation, input.segments),
+    [simulation, input.segments],
+  );
   const tourStandings =
     standingsOverride ?? officialSimulationContext.standings;
   const standingsBeforeStage =
@@ -249,7 +256,7 @@ export function RaceLiveLab({
   const replaySegmentProgressRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(mode === "live");
   const [playbackSpeed, setPlaybackSpeed] =
-    useState<PlaybackSpeed>(1);
+    useState<RaceReplaySpeed>(1);
   const [finalMetersRemaining, setFinalMetersRemaining] = useState(
     () => Math.round((stage.segments.at(-1)?.distanceKm ?? 0) * 1_000)
   );
@@ -283,6 +290,7 @@ export function RaceLiveLab({
     timeline: visualTimeline,
     sourceTimelineIndex: activeIndex,
     progress: replaySegmentProgress,
+    segmentStartDistanceKm: simulation.timeline[activeIndex - 1]?.completedDistanceKm ?? 0,
   });
   const displayedVisualFrame =
     mode === "live" ? liveVisualFrame : replayVisualFrame;
@@ -309,7 +317,7 @@ export function RaceLiveLab({
 
     const startedAt = window.performance.now();
     const startedProgress = replaySegmentProgressRef.current;
-    const fullDurationMs = REPLAY_STEP_DURATION_MS / playbackSpeed;
+    const fullDurationMs = replayTiming.segmentDurationsMs[activeIndex] / playbackSpeed;
     let animationFrame = 0;
     let lastRenderedAt = startedAt - RACE_RENDER_FRAME_INTERVAL_MS;
     const renderFrame = (now: number) => {
@@ -343,6 +351,7 @@ export function RaceLiveLab({
     isPlaying,
     mode,
     playbackSpeed,
+    replayTiming.segmentDurationsMs,
     simulation.timeline.length,
   ]);
 
@@ -453,13 +462,17 @@ export function RaceLiveLab({
         finalSegmentMeters,
         elapsedMs: now - startedAt,
         playbackSpeed,
-        approachDurationMs: REPLAY_STEP_DURATION_MS,
+        approachDurationMs: replayTiming.finalApproachDurationMs,
+        lastKilometerDurationMs: replayTiming.finalKilometerDurationMs,
         finishPassageDurationMs,
       });
       finalMetersRemainingRef.current = frame.metersRemaining;
       finishPassageProgressRef.current = frame.finishPassageProgress;
       setFinalMetersRemaining(frame.metersRemaining);
       setFinishPassageProgress(frame.finishPassageProgress);
+      const segmentProgress = finalSegmentMeters > 0 ? 1 - frame.metersRemaining / finalSegmentMeters : 1;
+      replaySegmentProgressRef.current = segmentProgress;
+      setReplaySegmentProgress(segmentProgress);
       if (frame.complete) {
         setIsPlaying(false);
         return;
@@ -476,6 +489,8 @@ export function RaceLiveLab({
     isPlaying,
     mode,
     playbackSpeed,
+    replayTiming.finalApproachDurationMs,
+    replayTiming.finalKilometerDurationMs,
   ]);
 
   return (
@@ -493,7 +508,9 @@ export function RaceLiveLab({
               {input.name}
             </h2>
             <p className="mt-2 text-sm font-semibold text-[#AFC6BB]">
-              {formatDistance(distance)} km · {input.segments.length} tronçons · environ {getStageLiveState(stage, clock).durationMinutes} min de direct
+              {formatDistance(distance)} km · {input.segments.length} tronçons · {mode === "replay"
+                ? <>{formatTime(replayTiming.totalDurationMs / 1_000)} à ×1</>
+                : <>environ {getStageLiveState(stage, clock).durationMinutes} min de direct</>}
             </p>
           </div>
 
@@ -652,6 +669,13 @@ export function RaceLiveLab({
               <span className="text-xs font-bold text-[#AFC6BB]">
                 Tronçon {snapshot.segmentNumber}/{input.segments.length} · {formatDistance(visualSnapshot.completedDistanceKm)} km
               </span>
+              {mode === "replay" ? (
+                <span aria-label="Temps de course" className="text-xs font-bold tabular-nums text-[#AFC6BB]">
+                  {formatTime(((replayTiming.segmentStartTimesMs[activeIndex] ?? 0) +
+                    (replayTiming.segmentDurationsMs[activeIndex] ?? 0) * replaySegmentProgress +
+                    (isFinal ? finishPassageProgress * finishPassageDurationMs : 0)) / 1_000)}
+                </span>
+              ) : null}
             </div>
             <p className="text-[11px] font-semibold text-[#7E9B8F]">
               Survolez un groupe ou un coureur pour l’identifier.
@@ -754,34 +778,28 @@ export function RaceLiveLab({
   );
 }
 
-function PlaybackSpeedControl({
+export function PlaybackSpeedControl({
   value,
   onChange,
 }: {
-  value: PlaybackSpeed;
-  onChange: (speed: PlaybackSpeed) => void;
+  value: RaceReplaySpeed;
+  onChange: (speed: RaceReplaySpeed) => void;
 }) {
   return (
-    <div
-      className="inline-flex rounded-xl border border-white/15 bg-white/[0.055] p-1"
+    <select
+      value={value}
+      onChange={(event) => {
+        const speed = Number(event.target.value);
+        if (isRaceReplaySpeed(speed)) onChange(speed);
+      }}
+      className="min-h-10 max-w-full rounded-xl border border-white/15 bg-[#102C28] px-3 py-2 text-xs font-black text-[#FFFDF4]"
       aria-label="Vitesse du replay"
+      title="À ×1, le replay suit le temps de course."
     >
-      {([1, 2, 4] as const).map((speed) => (
-        <button
-          key={speed}
-          type="button"
-          onClick={() => onChange(speed)}
-          aria-pressed={value === speed}
-          className={`min-h-8 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider transition ${
-            value === speed
-              ? "bg-[#F2C94C] text-[#17261E]"
-              : "text-[#AFC6BB] hover:bg-white/10 hover:text-white"
-          }`}
-        >
-          ×{speed}
-        </button>
+      {RACE_REPLAY_SPEEDS.map((speed) => (
+        <option key={speed} value={speed}>{speed === 1 ? "×1 · Temps réel" : `×${speed}`}</option>
       ))}
-    </div>
+    </select>
   );
 }
 
