@@ -159,7 +159,7 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
               : importance === "grand_tour"
                 ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#C59A19]/70"
                 : importance === "monument"
-                  ? "bg-[#F3E8FF] ring-1 ring-inset ring-[#6D28D9]/65"
+                  ? "bg-[#F3F4F6] ring-1 ring-inset ring-[#222222]/65"
                   : ""
         }`}
       >
@@ -169,7 +169,7 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
           style={{
             backgroundColor:
               grandTourAccent?.color ??
-              (importance === "monument" ? "#6D28D9" : style.background),
+              (importance === "monument" ? "#222222" : style.background),
           }}
         />
 

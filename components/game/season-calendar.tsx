@@ -720,7 +720,7 @@ function RaceCalendarList({
                 boxShadow: grandTourAccent
                   ? `inset 0 0 0 2px ${grandTourAccent.color}`
                   : importance === "monument"
-                    ? "inset 5px 0 0 #6D28D9, inset 0 0 0 1px rgba(109,40,217,0.32)"
+                    ? "inset 5px 0 0 #222222, inset 0 0 0 1px rgba(34,34,34,0.32)"
                     : undefined,
               }}
             >
@@ -1190,11 +1190,11 @@ function DesktopCalendarWeek({
                         : undefined,
                     borderColor:
                       grandTourAccent?.color ??
-                      (importance === "monument" ? "#6D28D9" : style.border),
+                      (importance === "monument" ? "#222222" : style.border),
                     boxShadow: grandTourAccent
                       ? `0 0 0 2px ${grandTourAccent.color}`
                       : importance === "monument"
-                        ? "0 0 0 2px rgba(109,40,217,0.65)"
+                        ? "0 0 0 2px rgba(34,34,34,0.65)"
                         : undefined,
                     color: style.foreground,
                   }}
@@ -1522,11 +1522,11 @@ function MobileCalendarDay({
               style={{
                 borderColor:
                   grandTourAccent?.color ??
-                  (importance === "monument" ? "#6D28D9" : style.border),
+                  (importance === "monument" ? "#222222" : style.border),
                 boxShadow: grandTourAccent
                   ? `0 0 0 2px ${grandTourAccent.color}`
                   : importance === "monument"
-                    ? "0 0 0 2px rgba(109,40,217,0.65)"
+                    ? "0 0 0 2px rgba(34,34,34,0.65)"
                     : undefined,
                 backgroundColor: style.background,
                 backgroundImage:

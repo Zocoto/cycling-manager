@@ -13,7 +13,7 @@ const RACE_IMPORTANCE_BADGE = {
     compactLabel: "MNT",
     symbol: "◆",
     className:
-      "border-[#4C1D95] bg-[#6D28D9] text-white shadow-[0_2px_0_rgba(76,29,149,0.2)]",
+      "border-[#0F0F0F] bg-[#222222] text-white shadow-[0_2px_0_rgba(0,0,0,0.2)]",
   },
 } satisfies Record<
   RaceImportance,
