@@ -11,6 +11,7 @@ import type {
 import { getPendingInfrastructureOrientations } from "@/lib/game/dashboard-assistant";
 import { INFRASTRUCTURE_SPECIALIZATION_UNLOCK_LEVEL } from "@/lib/game/infrastructure-specializations";
 import { parseDashboardConstructionContext } from "@/lib/game/dashboard-construction-alert";
+import { getDashboardHalloweenEdition } from "@/services/dashboard-halloween";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -107,6 +108,7 @@ export async function getCurrentDashboardAssistantSummary(
     infrastructureLevelsResult,
     infrastructureSpecializationsResult,
     rndOpportunityResult,
+    halloweenEdition,
   ] = await Promise.all([
     core ?? readAssistantCore(supabase, signal),
     enrich ? supabase
@@ -135,6 +137,7 @@ export async function getCurrentDashboardAssistantSummary(
       .abortSignal(signal)
       .returns<DashboardInfrastructureSpecializationRow[]>() : empty,
     enrich ? supabase.rpc("get_current_equipment_rnd_opportunity").abortSignal(signal) : empty,
+    enrich ? getDashboardHalloweenEdition() : null,
   ]);
 
   if (result.error) {
@@ -200,7 +203,9 @@ export async function getCurrentDashboardAssistantSummary(
   }
 
   return {
+    halloweenShopEndsAt: halloweenEdition?.shopEndsAt ?? null,
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
+    emptyRosterRecoveryAvailable: assistantPayload.emptyRosterRecoveryAvailable,
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
     untreatedInjuryCount: row.untreated_injury_count,
@@ -382,6 +387,7 @@ function clampInteger(value: unknown, minimum: number, maximum: number) {
 
 function normalizeAssistantPayload(value: unknown): {
   naturalizationAlerts: DashboardNaturalizationAlert[];
+  emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
   availableScoutCount: number;
@@ -406,6 +412,7 @@ function normalizeAssistantPayload(value: unknown): {
   if (Array.isArray(value)) {
     return {
       naturalizationAlerts: [],
+      emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
@@ -432,6 +439,7 @@ function normalizeAssistantPayload(value: unknown): {
   if (!value || typeof value !== "object") {
     return {
       naturalizationAlerts: [],
+      emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
       availableScoutCount: 0,
@@ -483,6 +491,7 @@ function normalizeAssistantPayload(value: unknown): {
       : {};
   return {
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
+    emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
       payload.riderRecruitmentMatchCount,
     ),

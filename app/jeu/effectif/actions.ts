@@ -7,6 +7,7 @@ import { z } from "zod";
 import { withPageFeedback } from "@/lib/game/filtered-page-paths";
 import { SQUAD_STATUS_OPTIONS } from "@/lib/game/squad-status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { recoverCurrentEmptyTeamRoster } from "@/services/empty-roster-recovery";
 
 type BulkRenewalResult = {
   renewed_count: number;
@@ -15,6 +16,27 @@ type BulkRenewalResult = {
 
 const CONTRACTS_PATH = "/jeu/effectif?vue=contrats";
 const squadStatusValues = SQUAD_STATUS_OPTIONS.map((option) => option.value);
+
+export async function recoverEmptyTeamRosterAction() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) redirect("/connexion");
+
+  let status: string;
+  try {
+    status = await recoverCurrentEmptyTeamRoster(supabase);
+  } catch (recoveryError) {
+    const message = recoveryError instanceof Error
+      ? recoveryError.message
+      : "Votre effectif n’a pas pu être relancé. Réessayez dans un instant.";
+    redirect(withPageFeedback("/jeu/effectif", "erreur", message));
+  }
+
+  revalidatePath("/jeu", "layout");
+  redirect(withPageFeedback("/jeu/effectif", "succes", status === "created"
+    ? "Vos 7 coureurs de départ ont été créés. Vous pouvez préparer leur entraînement et les inscrire en course."
+    : "La relance a déjà été enregistrée. Retrouvez vos coureurs dans l’effectif."));
+}
 
 export async function updateRiderSquadStatusAction(formData: FormData) {
   const parsed = z

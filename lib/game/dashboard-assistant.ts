@@ -64,7 +64,9 @@ export type NewcomerJourney = {
 };
 
 export type DashboardAssistantSnapshot = {
+  halloweenShopEndsAt?: string | null;
   naturalizationAlerts?: DashboardNaturalizationAlert[];
+  emptyRosterRecoveryAvailable?: boolean;
   gameDate: string;
   minimumForm: number;
   untreatedInjuryCount: number;
@@ -174,8 +176,10 @@ export type DashboardRaceRegistrationAlert = {
 };
 
 const ALERT_PRIORITY = [
+  "empty-roster-recovery",
   "race-roster-alerts",
   "negative-cash",
+  "halloween-shop-closing",
   "development-race-registration-reminder",
   "development-team-setup",
   "infrastructure-construction",
@@ -224,6 +228,33 @@ export function buildDashboardAssistantLines({
   now?: Date;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
   const alerts: DashboardAssistantLine[] = [];
+
+  if (snapshot.emptyRosterRecoveryAvailable === true) {
+    alerts.push({
+      id: "empty-roster-recovery",
+      tone: "alert",
+      metric: "7",
+      title: "Votre effectif est vide",
+      detail:
+        "Relancez votre équipe avec 7 coureurs de base de sa nationalité depuis la rubrique Effectif.",
+      href: "/jeu/effectif#relancer-effectif",
+    });
+  }
+
+  const halloweenClosingTime = Date.parse(snapshot.halloweenShopEndsAt ?? "");
+  const halloweenDaysLeft = Math.ceil((halloweenClosingTime - now.getTime()) / 86_400_000);
+  if (Number.isFinite(halloweenDaysLeft) && halloweenDaysLeft > 0) {
+    alerts.push({
+      id: "halloween-shop-closing",
+      tone: "alert",
+      metric: `${halloweenDaysLeft} j`,
+      title: halloweenDaysLeft === 1
+        ? "Plus que 1 jour pour dépenser vos roues"
+        : `Plus que ${halloweenDaysLeft} jours pour dépenser vos roues`,
+      detail: "Ouvrez la boutique Halloween pour échanger vos roues contre des récompenses.",
+      href: "/jeu/halloween?onglet=boutique",
+    });
+  }
 
   for (const target of snapshot.naturalizationAlerts ?? []) {
     alerts.push({

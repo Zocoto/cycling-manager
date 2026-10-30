@@ -11,6 +11,7 @@ vi.mock("@/lib/supabase/admin", () => ({
       eq: vi.fn().mockReturnThis(),
       lte: vi.fn().mockReturnThis(),
       gt: vi.fn().mockReturnThis(),
+      abortSignal: vi.fn().mockReturnThis(),
       maybeSingle,
     };
     return { from: vi.fn().mockReturnValue(query) };
@@ -23,18 +24,18 @@ describe("raccourci Halloween du bureau du DS", () => {
   });
 
   it("sépare le bandeau des raccourcis du haut sur tous les écrans", async () => {
-    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026" }, error: null });
+    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-09T23:00:00Z" }, error: null });
 
     const html = renderToStaticMarkup(await DashboardHalloweenShortcut());
 
     expect(html).toContain('href="/jeu/halloween"');
-    expect(html).toContain('class="mt-5 relative isolate flex flex-wrap');
+    expect(html).toContain('class="mt-5 px-5 py-4 relative isolate flex flex-wrap');
     expect(html).toContain("Le peloton de minuit vous attend.");
     expect(html).toContain("Jeux &amp; boutique");
   });
 
   it("réemploie le cycliste approuvé en décor sans image, script ou hauteur supplémentaire", async () => {
-    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026" }, error: null });
+    maybeSingle.mockResolvedValue({ data: { id: "halloween-2026", shop_ends_at: "2026-11-09T23:00:00Z" }, error: null });
 
     const html = renderToStaticMarkup(await DashboardHalloweenShortcut());
 

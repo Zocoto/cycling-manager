@@ -18822,5 +18822,9 @@
   "à ×1": "at ×1",
   "À ×1, le replay suit le temps de course.": "At ×1, the replay follows the race clock.",
   "environ": "about",
-  "Temps de course": "Race time"
+  "Temps de course": "Race time",
+  "Plus que 1 jour pour dépenser vos roues": "Only 1 day left to spend your wheels",
+  "Plus que {{0}} jours pour dépenser vos roues": "Only {{0}} days left to spend your wheels",
+  "Ouvrez la boutique Halloween pour échanger vos roues contre des récompenses.": "Open the Halloween shop to exchange your wheels for rewards.",
+  "jours pour dépenser vos roues": "days left to spend your wheels"
 }
