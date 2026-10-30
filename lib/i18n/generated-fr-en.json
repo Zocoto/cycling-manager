@@ -18817,5 +18817,9 @@
   "Profil ingénieur R&D inattendu.": "Unexpected R&D engineer profile.",
   "Protection du résultat neutre introuvable.": "Neutral result protection not found.",
   "Résumé R&D introuvable.": "R&D summary not found.",
-  "La majoration d’ambition s’applique aussi au-dessus du plafond catalogue.": "The ambition bonus also applies above the catalogue ceiling."
+  "La majoration d’ambition s’applique aussi au-dessus du plafond catalogue.": "The ambition bonus also applies above the catalogue ceiling.",
+  "Plus que 1 jour pour dépenser vos roues": "Only 1 day left to spend your wheels",
+  "Plus que {{0}} jours pour dépenser vos roues": "Only {{0}} days left to spend your wheels",
+  "Ouvrez la boutique Halloween pour échanger vos roues contre des récompenses.": "Open the Halloween shop to exchange your wheels for rewards.",
+  "jours pour dépenser vos roues": "days left to spend your wheels"
 }

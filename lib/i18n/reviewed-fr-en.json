@@ -2927,5 +2927,9 @@
   "Impossible de vérifier la fondation de l’équipe. Réessayez dans un instant.": "Unable to verify that the team has been founded. Please try again shortly.",
   "Voir les coureurs libres": "Browse free agents",
   "Votre effectif est vide": "Your roster is empty",
-  "Vous pouvez recruter des coureurs libres depuis le Bureau des transferts.": "You can recruit free agents from the Transfer Office."
+  "Vous pouvez recruter des coureurs libres depuis le Bureau des transferts.": "You can recruit free agents from the Transfer Office.",
+  "Plus que 1 jour pour dépenser vos roues": "Only 1 day left to spend your wheels",
+  "Plus que {{0}} jours pour dépenser vos roues": "Only {{0}} days left to spend your wheels",
+  "Ouvrez la boutique Halloween pour échanger vos roues contre des récompenses.": "Open the Halloween shop to exchange your wheels for rewards.",
+  "jours pour dépenser vos roues": "days left to spend your wheels"
 }
