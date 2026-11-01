@@ -7,7 +7,9 @@ import {
   useActionState,
   useCallback,
   useContext,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -249,10 +251,40 @@ export function TrainingPlansEditor({
     },
   });
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useLayoutEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    let frame: number | undefined;
+    const synchronizeSelects = () => {
+      // Hydration preserves browser-restored select values, even when they no
+      // longer match React. Read current attributes so back/forward restoration
+      // also preserves unsaved edits, without changing or saving any program.
+      for (const select of form.querySelectorAll<HTMLSelectElement>("select[data-training-plan-value]")) {
+        const value = select.dataset.trainingPlanValue;
+        if (value !== undefined && select.value !== value) select.value = value;
+      }
+    };
+    const restoreSelects = () => {
+      synchronizeSelects();
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      // Some mobile browsers finish restoring controls after pageshow.
+      frame = window.requestAnimationFrame(synchronizeSelects);
+    };
+    restoreSelects();
+    window.addEventListener("pageshow", restoreSelects);
+    return () => {
+      window.removeEventListener("pageshow", restoreSelects);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
     <TrainingPlansEditorContext.Provider value={editorContext}>
       <form
+        ref={formRef}
         action={formAction}
+        autoComplete="off"
         data-tutorial-id="training-plan-save"
       >
         {draft.recovery}
@@ -457,6 +489,8 @@ export function RiderTrainingPlanFields({
           id={domainSelectId}
           name={`training-domain-${riderId}`}
           value={domain}
+          data-training-plan-value={domain}
+          autoComplete="off"
           onChange={(event) =>
             editor.updatePlan(riderId, {
               domain: event.target.value as TrainingDomain,
@@ -488,6 +522,8 @@ export function RiderTrainingPlanFields({
           id={trainerSelectId}
           name={`training-trainer-${riderId}`}
           value={selectedTrainer?.contractId ?? ""}
+          data-training-plan-value={selectedTrainer?.contractId ?? ""}
+          autoComplete="off"
           onChange={(event) =>
             editor.updatePlan(riderId, {
               trainerContractId: event.target.value || null,
