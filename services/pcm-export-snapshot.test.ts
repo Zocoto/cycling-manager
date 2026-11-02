@@ -5,10 +5,12 @@ const state = vi.hoisted(() => ({
   titleError: false,
   titleCalls: [] as { method: string; args: unknown[] }[],
   contractCalls: [] as { method: string; args: unknown[] }[],
+  fromCalls: [] as string[],
 }));
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
     from: (table: string) => {
+      state.fromCalls.push(table);
       if(table==='rider_contracts')state.contractCalls.push({method:'from',args:[]});
       let data = [...(state.tables[table] ?? [])];
       const query = {
@@ -43,7 +45,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 import { createPcmExportSnapshot } from "@/services/pcm-export-snapshot";
 
 beforeEach(() => {
-  state.titleError = false; state.titleCalls = [];state.contractCalls=[];
+  state.titleError = false; state.titleCalls = [];state.contractCalls=[];state.fromCalls=[];
   state.tables = {
     seasons: [{ id: "s3", game_year: 3, status: "active" }],
     team_seasons: [{ id: "ts", team_id: "t1", season_id: "s3", status: "active", division_id: "div", display_name: "Team", registration_country_id: "np" }],
@@ -69,6 +71,25 @@ beforeEach(() => {
 });
 
 describe("snapshot des titres PCM", () => {
+  it.each([
+    ['Les Gb’s','6d6ec2fb-196c-4c7d-8c92-eda2a6786b2d',null,'les'],
+    ['Cumbre','12277621-b716-4b0c-934a-f1a0b52364ba','tpp','ccr'],
+  ])('overlays the compiled S4 package code for %s only, without writes or extra queries',async(_name,teamId,oldCode,packageCode)=>{
+    state.tables.seasons[0].game_year=4;
+    const baseline=await createPcmExportSnapshot(false,true);
+    expect(baseline.teams[0]).toBe(state.tables.teams[0]);
+    const baselineQueries=[...state.fromCalls];state.fromCalls=[];
+    state.tables.teams[0].id=teamId;state.tables.teams[0].pcm_asset_code=oldCode;
+    state.tables.team_seasons[0].team_id=teamId;state.tables.rider_contracts[0].team_id=teamId;
+    const before=structuredClone(state.tables);
+    const gala=await createPcmExportSnapshot(false,true);
+    expect(gala.teams[0].pcm_asset_code).toBe(packageCode);
+    expect(gala.teams[0]).not.toBe(state.tables.teams[0]);
+    expect(state.tables).toEqual(before);
+    expect(state.fromCalls).toEqual(baselineQueries);
+    expect((await createPcmExportSnapshot()).teams[0].pcm_asset_code).toBe(oldCode);
+    expect(state.tables).toEqual(before);
+  });
   it('pins a private gala database to S4 with native ratings after S5 activation',async()=>{
     state.tables.seasons=[{id:'s3',game_year:4,status:'completed'},{id:'s5',game_year:5,status:'active'}];
     state.tables.team_seasons[0].status='completed';state.tables.rider_contracts[0].status='completed';
