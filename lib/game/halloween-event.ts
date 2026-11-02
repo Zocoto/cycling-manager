@@ -3,7 +3,7 @@ import { createRunnerPreview, stepRunnerPreview, runnerSnapshot } from "./hallow
 export const HALLOWEEN_EDITION = "halloween-2026";
 export const HALLOWEEN_START = "2026-10-08T22:00:00.000Z";
 export const HALLOWEEN_END = "2026-11-02T23:00:00.000Z";
-export const HALLOWEEN_SHOP_END = "2026-11-09T23:00:00.000Z";
+export const HALLOWEEN_SHOP_END = "2026-11-05T23:00:00.000Z";
 export const MAX_RUN_TICKS = 108000;
 export const MAX_RUN_COMMANDS = 12000;
 export type HalloweenCommand = { tick: number; jump?: boolean; duck?: boolean };
@@ -35,6 +35,15 @@ export function validateHalloweenRun(seed: number, proof: unknown, wallSeconds: 
 
 export function halloweenParisDay(date: Date) {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+/** The configured deadline is exclusive; show the final open day in Paris. */
+export function formatHalloweenShopLastDay(shopEndsAt: string, locale: "fr" | "en" = "fr") {
+  const end = Date.parse(shopEndsAt);
+  if (!Number.isFinite(end)) return null;
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
+    timeZone: "Europe/Paris", day: "numeric", month: "long",
+  }).format(new Date(end - 1));
 }
 
 export type HalloweenState = {

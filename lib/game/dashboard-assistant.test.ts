@@ -120,13 +120,13 @@ describe("dashboard DS assistant", () => {
   });
 
   it.each([
-    ["2026-10-30T11:00:00Z", 11],
-    ["2026-11-03T11:00:00Z", 7],
-    ["2026-11-08T23:00:00Z", 1],
-    ["2026-11-09T22:59:59Z", 1],
+    ["2026-10-30T11:00:00Z", 7],
+    ["2026-11-03T11:00:00Z", 3],
+    ["2026-11-04T23:00:00Z", 1],
+    ["2026-11-05T22:59:59Z", 1],
   ])("reminds players to spend Halloween wheels until the actual shop deadline (%s)", (date, days) => {
     const groups = buildDashboardAssistantLines({
-      snapshot: { ...snapshot, halloweenShopEndsAt: "2026-11-09T23:00:00Z" },
+      snapshot: { ...snapshot, halloweenShopEndsAt: "2026-11-05T23:00:00Z" },
       rewardCount: 0, cashBalance: -1, now: new Date(date),
     });
     expect(groups.alerts.find(line => line.id === "halloween-shop-closing")).toMatchObject({
@@ -138,10 +138,10 @@ describe("dashboard DS assistant", () => {
     expect(groups.alerts[0].id).toBe("negative-cash");
   });
 
-  it.each([null, "invalid", "2026-11-09T23:00:00Z", "2026-11-08T23:00:00Z"])(
+  it.each([null, "invalid", "2026-11-05T23:00:00Z", "2026-11-04T23:00:00Z"])(
     "hides the spending reminder once closed or when the event is unavailable (%s)", deadline => {
       const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, halloweenShopEndsAt: deadline },
-        rewardCount: 0, cashBalance: 0, now: new Date("2026-11-09T23:00:00Z") });
+        rewardCount: 0, cashBalance: 0, now: new Date("2026-11-05T23:00:00Z") });
       expect(groups.alerts.some(line => line.id === "halloween-shop-closing")).toBe(false);
     },
   );

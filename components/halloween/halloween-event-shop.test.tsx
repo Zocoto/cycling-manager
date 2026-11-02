@@ -1,10 +1,12 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HalloweenEvent } from "./halloween-event";
 import { HALLOWEEN_START, HALLOWEEN_END, HALLOWEEN_SHOP_END, type HalloweenState } from "@/lib/game/halloween-event";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+const language = vi.hoisted(() => ({ locale: "fr" as "fr" | "en" }));
+vi.mock("@/components/i18n/locale-provider", () => ({ useLocale: () => language }));
 const state: HalloweenState = {
   state: "open", startsAt: HALLOWEEN_START, endsAt: HALLOWEEN_END, shopEndsAt: HALLOWEEN_SHOP_END,
   joined: true, coins: 100000, tickets: 0, inventory: {}, obtained: {}, purchases: {}, cosmetics: {},
@@ -17,6 +19,26 @@ const card = (initial: HalloweenState, id: string) => {
 };
 
 describe("boutique Halloween réutilisable", () => {
+  beforeEach(() => { language.locale = "fr"; });
+  it("shows the configured final open day in Paris instead of an obsolete hardcoded date", () => {
+    const html = renderToStaticMarkup(createElement(HalloweenEvent, { initial: { ...state, state: "shop" }, initialTab: "boutique" }));
+    expect(html).toContain("jusqu’au 5 novembre inclus, heure de Paris");
+    expect(html).not.toContain("9 novembre");
+    const updated = renderToStaticMarkup(createElement(HalloweenEvent, { initial: { ...state, state: "shop", shopEndsAt: "2026-11-07T23:00:00Z" }, initialTab: "boutique" }));
+    expect(updated).toContain("jusqu’au 7 novembre inclus");
+  });
+  it("uses the English date and notice for English-speaking directors", () => {
+    language.locale = "en";
+    const html = renderToStaticMarkup(createElement(HalloweenEvent, { initial: { ...state, state: "shop" }, initialTab: "boutique" }));
+    expect(html).toContain("until 5 November inclusive, Paris time");
+    expect(html).toContain("Items you have acquired can still be used afterwards");
+  });
+  it("closes purchases after the shop deadline but keeps inventory access for owned items", () => {
+    const initial = { ...state, state: "archived" as const, inventory: { "pumpkin-juice": 1 } };
+    expect(card(initial, "pumpkin-juice")).toContain('disabled=""');
+    const collection = renderToStaticMarkup(createElement(HalloweenEvent, { initial, initialTab: "collection" }));
+    expect(collection).toContain('/jeu/inventaire#inventory-halloween-pumpkin-juice');
+  });
   it("keeps the juice purchase enabled above the old quota, but still requires enough coins", () => {
     const initial = { ...state, purchases: { "pumpkin-juice": 30 }, obtained: { "pumpkin-juice": 35 } };
     const html = card(initial,"pumpkin-juice");
