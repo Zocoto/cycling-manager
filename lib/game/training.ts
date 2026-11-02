@@ -86,6 +86,8 @@ export type RiderTrainingSeasonStatReport = {
 };
 
 export type RiderTrainingSeasonReport = {
+  age?: number;
+  potentialSteps?: number;
   fromDayNumber: 1;
   toDayNumber: number;
   firstSessionDayNumber: number;
@@ -484,6 +486,33 @@ export function getSeasonRatingGainCap(initialRating: number): number {
   return 2;
 }
 
+export type TrainingProgressLimit =
+  | { kind: "season"; value: number }
+  | { kind: "potential"; value: number }
+  | { kind: "veteran"; value: number };
+
+/** Explain the existing settlement guards; this never changes earned gains. */
+export function getTrainingProgressLimit(
+  stat: Pick<RiderTrainingSeasonStatReport, "initialRating" | "currentRating" | "ratingGain">,
+  context: Pick<RiderTrainingSeasonReport, "age" | "potentialSteps">,
+): TrainingProgressLimit | null {
+  if (context.age === undefined) return null;
+  const seasonCap = getSeasonRatingGainCap(stat.initialRating);
+  if (context.age < 32 && stat.ratingGain >= seasonCap) {
+    return { kind: "season", value: seasonCap };
+  }
+  if (context.potentialSteps !== undefined) {
+    const potentialCap = getPotentialStatCap(context.potentialSteps);
+    if (stat.currentRating >= potentialCap) {
+      return { kind: "potential", value: potentialCap };
+    }
+  }
+  if (context.age >= 32 && stat.currentRating >= stat.initialRating) {
+    return { kind: "veteran", value: stat.initialRating };
+  }
+  return null;
+}
+
 export function getNaturalDeclineMultiplierFromRoll(roll: number): number {
   const normalizedRoll = Math.min(9_999, Math.max(0, Math.floor(roll)));
   if (normalizedRoll < 100) return 0.65;
@@ -635,12 +664,16 @@ export function formatTrainingProgressMilli(value: number): string {
 }
 
 export function buildRiderTrainingSeasonReport({
+  age,
+  potentialSteps,
   currentDayNumber,
   currentRatings,
   sessions,
   statProgressRows,
   dayNumberById,
 }: {
+  age?: number;
+  potentialSteps?: number;
   currentDayNumber: number;
   currentRatings: Readonly<Record<TrainingStatCode, number>>;
   sessions: readonly TrainingSeasonSessionRow[];
@@ -719,6 +752,8 @@ export function buildRiderTrainingSeasonReport({
   });
 
   return {
+    age,
+    potentialSteps,
     fromDayNumber: 1,
     toDayNumber: Math.max(1, currentDayNumber),
     firstSessionDayNumber,

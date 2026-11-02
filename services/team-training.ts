@@ -735,6 +735,8 @@ export async function getCurrentTeamTrainingOverview(
                 }
               : null,
             seasonReport: buildRiderTrainingSeasonReport({
+              age: rating.age,
+              potentialSteps: rider.potential_steps,
               currentDayNumber,
               currentRatings: riderRatings,
               sessions: sessionsByRiderId.get(rider.id) ?? [],
