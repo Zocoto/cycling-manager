@@ -1,4 +1,5 @@
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
+import type { RiderSeasonRaceLoad } from "@/lib/game/rider-race-load";
 
 export const RIDER_PLANNING_EVENT_TYPES = [
   "race",
@@ -37,6 +38,7 @@ export type RiderPlanningEntry = {
   avatarProfileKey: string | null;
   avatarSeed: number | string | null;
   age: number;
+  raceLoad?: RiderSeasonRaceLoad | null;
   events: RiderPlanningEvent[];
 };
 

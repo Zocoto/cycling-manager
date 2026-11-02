@@ -47,6 +47,19 @@ const planning: TeamRiderSeasonPlanning = {
 };
 
 describe("planning compact de la fiche coureur", () => {
+  it("affiche les JDC et leur avertissement dans la ligne du coureur en S5", () => {
+    const markup = renderToStaticMarkup(
+      <RiderSeasonPlanning
+        planning={{ ...planning, riders: [{ ...planning.riders[0], raceLoad: { raceDays: 31, projectedRaceDays: 35, warning: "overloaded" } }] }}
+        jersey={FREE_AGENT_RIDER_JERSEY}
+      />,
+    );
+    expect(markup).toContain("31 / 30 JDC disputés");
+    expect(markup).toContain("Prévision : 35 JDC");
+    expect(markup).toContain("Calendrier surchargé");
+    expect(markup).toContain("−1 de moral par JDC au-delà de 30.");
+  });
+
   it("affiche la frise sans dupliquer les evenements en cartes", () => {
     const markup = renderToStaticMarkup(
       <RiderSeasonPlanning

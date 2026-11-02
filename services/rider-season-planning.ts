@@ -1,4 +1,5 @@
 import "server-only";
+import { getRiderSeasonRaceLoad } from "@/lib/game/rider-race-load";
 import { getPerformancePreparationCampName } from "@/lib/game/performance-preparation";
 
 import {
@@ -27,6 +28,7 @@ type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
 type SeasonRow = {
   id: string;
+  game_year: number;
   name: string;
   current_day_number: number | null;
 };
@@ -52,6 +54,7 @@ type RiderRow = {
 type RatingRow = {
   rider_id: string;
   age: number;
+  season_race_days: number;
 };
 type CountryRow = {
   id: string;
@@ -212,7 +215,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
       .returns<RiderRow[]>(),
     admin
       .from("rider_season_ratings")
-      .select("rider_id, age")
+      .select("rider_id, age, season_race_days")
       .eq("season_id", context.season.id)
       .in("rider_id", riderIds)
       .returns<RatingRow[]>(),
@@ -363,6 +366,10 @@ export async function getCurrentTeamRiderSeasonPlanning({
   const ageByRiderId = new Map(
     (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
   );
+  const raceDaysByRiderId = new Map(
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating.season_race_days]),
+  );
+  const remainingStageIdsByRiderId = new Map<string, Set<string>>();
   const raceById = new Map(
     races.map((race) => [race.id, race]),
   );
@@ -404,6 +411,14 @@ export async function getCurrentTeamRiderSeasonPlanning({
     if (!registration || !edition || !race || stageDays.length === 0) {
       continue;
     }
+    const remainingStageIds = remainingStageIdsByRiderId.get(roster.rider_id) ?? new Set<string>();
+    for (const stage of stagesByEditionId.get(edition.id) ?? []) {
+      if (edition.status !== "cancelled" && !["completed", "cancelled"].includes(stage.status)
+        && (dayById.get(stage.season_day_id)?.day_number ?? 0) >= currentDayNumber) {
+        remainingStageIds.add(stage.id);
+      }
+    }
+    remainingStageIdsByRiderId.set(roster.rider_id, remainingStageIds);
     const startDay = Math.min(...stageDays);
     const endDay = Math.max(...stageDays);
     const categoryCode = toRaceCategoryCode(category?.code);
@@ -543,6 +558,11 @@ export async function getCurrentTeamRiderSeasonPlanning({
         avatarProfileKey: rider.avatar_profile_key,
         avatarSeed: rider.avatar_seed,
         age: ageByRiderId.get(rider.id) ?? 25,
+        raceLoad: getRiderSeasonRaceLoad(
+          context.season.game_year,
+          raceDaysByRiderId.get(rider.id) ?? 0,
+          remainingStageIdsByRiderId.get(rider.id)?.size ?? 0,
+        ),
         events: [...(eventsByRiderId.get(rider.id) ?? [])].sort(
           (left, right) =>
             left.startDay - right.startDay ||
@@ -589,7 +609,7 @@ async function loadContext(admin: AdminClient, authUserId: string) {
       .maybeSingle<AssignmentRow>(),
     admin
       .from("seasons")
-      .select("id, name, current_day_number")
+      .select("id, name, game_year, current_day_number")
       .eq("status", "active")
       .maybeSingle<SeasonRow>(),
   ]);

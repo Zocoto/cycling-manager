@@ -1,5 +1,6 @@
 import Link from "@/components/ui/app-link";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RACE_LOAD_FREE_DAYS } from "@/lib/game/rider-race-load";
 import {
   assignRiderPlanningEventLanes,
   countRiderPlannedDays,
@@ -105,6 +106,11 @@ export function RiderSeasonPlanning({
             />
           </div>
         </div>
+        {planning.riders.some((rider) => rider.raceLoad) ? (
+          <p className="mt-3 text-xs font-semibold text-[#D6DFD2]">
+            30 JDC sans malus, puis −1 de moral par JDC supplémentaire. Le compteur repart à zéro chaque saison.
+          </p>
+        ) : null}
         <PlanningLegend />
       </header>
 
@@ -143,6 +149,19 @@ export function RiderSeasonPlanning({
         </div>
       )}
     </section>
+  );
+}
+
+function RiderRaceLoadSummary({ load }: { load: NonNullable<RiderPlanningEntry["raceLoad"]> }) {
+  const warning = load.warning === "overloaded" ? "Calendrier surchargé"
+    : load.warning === "projected" ? "Surcharge prévue"
+    : load.warning === "approaching" ? "Seuil de surcharge proche" : null;
+  return (
+    <div className={`mt-1 text-[10px] font-bold leading-4 ${load.warning === "overloaded" ? "text-[#B84232]" : load.warning ? "text-[#986211]" : "text-[#60756E]"}`}>
+      <p>{load.raceDays} / {RACE_LOAD_FREE_DAYS} JDC disputés</p>
+      {load.projectedRaceDays > load.raceDays ? <p>Prévision : {load.projectedRaceDays} JDC</p> : null}
+      {warning ? <p>{warning} · −1 de moral par JDC au-delà de 30.</p> : null}
+    </div>
   );
 }
 
@@ -243,6 +262,7 @@ function PlanningRiderRow({
             {countRiderPlannedDays(rider.events) > 1 ? "s" : ""} occupé
             {countRiderPlannedDays(rider.events) > 1 ? "s" : ""}
           </p>
+          {rider.raceLoad ? <RiderRaceLoadSummary load={rider.raceLoad} /> : null}
         </div>
       </div>
       <div
