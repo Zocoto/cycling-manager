@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectPaginatedRows } from "@/lib/supabase/pagination";
@@ -58,7 +58,7 @@ type RankedRiderRow = Pick<RankingRow, "entity_key" | "academy_rider_id" | "deve
 
 const PAGE_SIZE = 50;
 
-const getCachedJuniorRankings = unstable_cache(
+const getCachedJuniorRankings = compactDataCache(
   loadJuniorRankings,
   ["junior-rankings-s3-player-teams-distinct-riders-v3"],
   { revalidate: 30, tags: ["junior-rankings"] },

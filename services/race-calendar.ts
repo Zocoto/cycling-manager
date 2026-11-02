@@ -4,7 +4,7 @@ import { parseQuadrennialChampionshipType } from "@/lib/game/quadrennial-games";
 import { getActiveQuadrennialChampionshipTitlesByDisciplineForRiders, type ActiveQuadrennialChampionshipTitlesByDiscipline } from "@/services/rider-quadrennial-championship-titles";
 import { isPerformancePreparationType, type PerformancePreparationType } from "@/lib/game/performance-preparation";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { SPONSORS } from "@/data/sponsors";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -3668,7 +3668,7 @@ function groupTimeTrialPlans(rows: TimeTrialPlanRow[]) {
   return plansByStageId;
 }
 
-const loadCachedStageSegmentBatch = unstable_cache(
+const loadCachedStageSegmentBatch = compactDataCache(
   async (stageIdBatch: string[]): Promise<StageSegmentRow[]> => {
     const admin = createSupabaseAdminClient();
     const result = await collectPaginatedRows<

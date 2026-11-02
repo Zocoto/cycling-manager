@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -41,7 +41,7 @@ type TeamFinanceTransactionRow = {
   amount: number | string;
 };
 
-const getCachedFederationFinanceBaseline = unstable_cache(
+const getCachedFederationFinanceBaseline = compactDataCache(
   loadFederationFinanceBaseline,
   ["federation-finance-baseline"],
   { revalidate: 60, tags: ["federation-finance-baseline"] },

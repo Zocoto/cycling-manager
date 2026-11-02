@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -51,7 +51,7 @@ const EMPTY_RESULTS: FederationInternationalResults = {
   nationsCup: null,
 };
 
-const getCachedFederationInternationalResults = unstable_cache(
+const getCachedFederationInternationalResults = compactDataCache(
   loadFederationInternationalResults,
   ["federation-international-results"],
   { revalidate: 300, tags: ["federation-international-results"] },

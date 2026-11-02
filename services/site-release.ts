@@ -1,5 +1,5 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 import { APP_VERSION } from "@/lib/app-version";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -9,7 +9,7 @@ type Client = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
 // One tiny shared read per cache refresh, not one browser request per visitor.
 // The fallback is also cached: an unavailable database must not cause a stampede.
-export const getActiveSiteVersion = unstable_cache(async (): Promise<string> => {
+export const getActiveSiteVersion = compactDataCache(async (): Promise<string> => {
   try {
     const result = await createSupabaseAdminClient().rpc("get_active_site_release")
       .abortSignal(AbortSignal.timeout(1500));

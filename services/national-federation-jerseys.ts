@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 import { cache } from "react";
 
 import {
@@ -108,7 +108,7 @@ export async function loadNationalFederationJerseyDesignsByCountryCode(
   }));
 }
 
-const getCachedNationalFederationJerseys = cache(unstable_cache(
+const getCachedNationalFederationJerseys = cache(compactDataCache(
   async (kind: NationalJerseyKind): Promise<ActiveJerseyRow[]> => {
     const admin = createSupabaseAdminClient();
     const result = await admin
