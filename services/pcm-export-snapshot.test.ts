@@ -4,16 +4,22 @@ const state = vi.hoisted(() => ({
   tables: {} as Record<string, Record<string, unknown>[]>,
   titleError: false,
   titleCalls: [] as { method: string; args: unknown[] }[],
+  contractCalls: [] as { method: string; args: unknown[] }[],
 }));
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
     from: (table: string) => {
+      if(table==='rider_contracts')state.contractCalls.push({method:'from',args:[]});
       let data = [...(state.tables[table] ?? [])];
       const query = {
         select: () => query,
-        eq: (column: string, value: unknown) => { data = data.filter(r => r[column] === value); return query; },
+        eq: (column: string, value: unknown) => {
+          if(table==='rider_contracts')state.contractCalls.push({method:'eq',args:[column,value]});
+          data = data.filter(r => r[column] === value); return query;
+        },
         in: (column: string, values: unknown[]) => {
           if (table === "rider_national_championship_titles") state.titleCalls.push({ method: "in", args: [column, values] });
+          if(table==='rider_contracts')state.contractCalls.push({method:'in',args:[column,values]});
           data = data.filter(r => values.includes(r[column])); return query;
         },
         is: (column: string, value: unknown) => {
@@ -23,7 +29,10 @@ vi.mock("@/lib/supabase/admin", () => ({
         order: () => query,
         range: (from: number, to: number) => { data = data.slice(from, to + 1); return query; },
         returns: () => Promise.resolve({ data, error: table === "rider_national_championship_titles" && state.titleError ? { message: "title query unavailable" } : null }),
-        abortSignal: () => Promise.resolve({ data, error: null }),
+        abortSignal: () => {
+          if(table==='rider_contracts')state.contractCalls.push({method:'abortSignal',args:[]});
+          return Promise.resolve({ data, error: null });
+        },
         single: () => Promise.resolve({ data: data[0], error: null }),
       };
       return query;
@@ -34,7 +43,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 import { createPcmExportSnapshot } from "@/services/pcm-export-snapshot";
 
 beforeEach(() => {
-  state.titleError = false; state.titleCalls = [];
+  state.titleError = false; state.titleCalls = [];state.contractCalls=[];
   state.tables = {
     seasons: [{ id: "s3", game_year: 3, status: "active" }],
     team_seasons: [{ id: "ts", team_id: "t1", season_id: "s3", status: "active", division_id: "div", display_name: "Team", registration_country_id: "np" }],
@@ -91,6 +100,37 @@ describe("snapshot des titres PCM", () => {
     const gala=await createPcmExportSnapshot(false,true);
     expect(gala.contracts[0].team_id).toBe('t1');
     expect(state.tables.rider_contracts[0].team_id).toBe('t2');
+    expect(state.contractCalls.filter(call=>call.method==='from')).toHaveLength(1);
+    expect(state.contractCalls).not.toContainEqual({method:'eq',args:['status','terminated']});
     expect((await createPcmExportSnapshot()).contracts[0].team_id).toBe('t2');
+  });
+  it('loads only missing registered terminated riders for S4, without changing normal exports or source records',async()=>{
+    state.tables.seasons=[{id:'s3',game_year:4,status:'active'},{id:'s5',game_year:5,status:'scheduled'}];
+    const released={...state.tables.rider_contracts[0],status:'terminated',left_season_id:'s3'};
+    state.tables.rider_contracts=[released,
+      {...released,id:'wrong-club',team_id:'other-team'},
+      {...released,id:'future',start_season_id:'s5',end_season_id:'s5'},
+      {...released,id:'cancelled',status:'cancelled'},
+      {...released,id:'not-registered',rider_id:'r3'},
+      {...released,id:'active',rider_id:'r2',status:'active',left_season_id:null},
+    ];
+    state.tables.riders.push({...state.tables.riders[0],id:'r2',pcm_export_id:10002});
+    state.tables.rider_season_ratings.push({...state.tables.rider_season_ratings[0],id:'rating2',rider_id:'r2'});
+    state.tables.season_gala_registrations=[{id:'reg',season_id:'s3',team_id:'t1',program:'continental'}];
+    state.tables.season_gala_registration_riders=[{registration_id:'reg',rider_id:'r1'}];
+    const before=structuredClone(state.tables);
+    const gala=await createPcmExportSnapshot(false,true);
+    expect(gala.contracts.map(row=>[row.rider_id,row.team_id,row.status]).sort()).toEqual([
+      ['r1','t1','terminated'],['r2','t1','active'],
+    ]);
+    expect(state.tables).toEqual(before);
+    expect(state.contractCalls.filter(call=>call.method==='from')).toHaveLength(2);
+    expect(state.contractCalls).toContainEqual({method:'in',args:['rider_id',['r1']]});
+    expect(state.contractCalls).toContainEqual({method:'eq',args:['status','terminated']});
+    expect(state.contractCalls.filter(call=>call.method==='abortSignal')).toHaveLength(1);
+    state.contractCalls=[];
+    expect((await createPcmExportSnapshot()).riders.map(row=>row.id)).toEqual(['r2']);
+    expect(state.contractCalls.filter(call=>call.method==='from')).toHaveLength(1);
+    expect(state.contractCalls).not.toContainEqual({method:'eq',args:['status','terminated']});
   });
 });

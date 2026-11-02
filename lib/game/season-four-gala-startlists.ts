@@ -30,9 +30,11 @@ export function getSeasonFourGalaRegisteredClubs(registrations:GalaRegistration[
 
 export function selectSeasonFourGalaContracts(contracts:ContractRow[],seasons:Pick<SeasonRow,'id'|'game_year'>[],registeredClubs?:ReadonlyMap<string,string>) {
  const years=new Map(seasons.map(season=>[season.id,season.game_year]));
- const eligible=contracts.filter(contract=>['active','completed'].includes(contract.status)
+ const eligible=contracts.filter(contract=>(['active','completed'].includes(contract.status)
+   ||(contract.status==='terminated'&&registeredClubs?.get(contract.rider_id)===contract.team_id))
   &&(years.get(contract.start_season_id)??Infinity)<=4&&(years.get(contract.end_season_id)??-Infinity)>=4
-  &&(!contract.left_season_id||(years.get(String(contract.left_season_id))??-Infinity)>4||registeredClubs?.get(contract.rider_id)===contract.team_id));
+  &&(!contract.left_season_id||(years.get(String(contract.left_season_id))??-Infinity)>4
+   ||(registeredClubs?.get(contract.rider_id)===contract.team_id&&(years.get(String(contract.left_season_id))??-Infinity)>=4)));
  eligible.sort((a,b)=>(years.get(b.start_season_id)??0)-(years.get(a.start_season_id)??0)
   ||Number(b.joined_day_number??1)-Number(a.joined_day_number??1)||String(b.signed_at??'').localeCompare(String(a.signed_at??''))||a.id.localeCompare(b.id));
  return [...new Map(eligible.reverse().map(contract=>[contract.rider_id,contract])).values()].map(contract=>{

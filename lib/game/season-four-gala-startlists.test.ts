@@ -87,7 +87,7 @@ describe('gala S4 startlist policy',()=>{
  });
  it('keeps the registration club in exhibition copies after a transfer or release, without changing source contracts',()=>{
   const base:ContractRow={id:'old',rider_id:'r1',team_id:'registered-team',status:'completed',start_season_id:'s4',end_season_id:'s4',salary_per_season:100,left_season_id:'s4'};
-  const contracts=[base,{...base,id:'new',team_id:'new-team',left_season_id:null,joined_day_number:22}, {...base,id:'released',rider_id:'r2'}];
+  const contracts=[base,{...base,id:'new',team_id:'new-team',left_season_id:null,joined_day_number:22}, {...base,id:'released',rider_id:'r2',status:'terminated'}];
   const before=structuredClone(contracts);
   const years=[{id:'s4',game_year:4}];
   const picked=selectSeasonFourGalaContracts(contracts,years,new Map([['r1','registered-team'],['r2','registered-team']]));
@@ -95,9 +95,26 @@ describe('gala S4 startlist policy',()=>{
   expect(contracts).toEqual(before);
   expect(selectSeasonFourGalaContracts(contracts,years).map(row=>row.team_id)).toEqual(['new-team']);
  });
+ it('recovers only terminated contracts for the exact registered club covering S4',()=>{
+  const base:ContractRow={id:'released',rider_id:'r1',team_id:'registered-team',status:'terminated',start_season_id:'s4',end_season_id:'s4',salary_per_season:100,left_season_id:'s4'};
+  const contracts=[base,
+   {...base,id:'wrong-club',team_id:'other-team'},
+   {...base,id:'not-registered',rider_id:'r2'},
+   {...base,id:'future',rider_id:'r3',start_season_id:'s5',end_season_id:'s5'},
+   {...base,id:'cancelled',rider_id:'r4',status:'cancelled'},
+   {...base,id:'expired',rider_id:'r5',end_season_id:'s3'},
+   {...base,id:'left-before-s4',rider_id:'r6',left_season_id:'s3'},
+  ];
+  const before=structuredClone(contracts);
+  const years=[{id:'s3',game_year:3},{id:'s4',game_year:4},{id:'s5',game_year:5}];
+  const clubs=new Map(['r1','r3','r4','r5','r6'].map(id=>[id,'registered-team']));
+  expect(selectSeasonFourGalaContracts(contracts,years,clubs).map(row=>row.id)).toEqual(['released']);
+  expect(selectSeasonFourGalaContracts(contracts,years)).toEqual([]);
+  expect(contracts).toEqual(before);
+ });
  it('rejects conflicting registration clubs instead of duplicating or silently moving a rider',()=>{
   const fixture=galaFixture();
   expect(getSeasonFourGalaRegisteredClubs(fixture.registrations,fixture.selections).size).toBe(7);
-  expect(()=>getSeasonFourGalaRegisteredClubs([...fixture.registrations,{id:'other',team_id:'other',program:'world-tour'}],[...fixture.selections,{registration_id:'other',profile:'mountain',rider_id:'r0',position:1}])).toThrow('plusieurs équipes');
+  expect(()=>getSeasonFourGalaRegisteredClubs([...fixture.registrations,{id:'other',team_id:'other',program:'world-tour'}],[...fixture.selections,{registration_id:'other',rider_id:'r0'}])).toThrow('plusieurs équipes');
  });
 });

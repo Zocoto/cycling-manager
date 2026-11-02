@@ -121,7 +121,26 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
   const teams = allTeams.filter((row) => activeTeamIds.has(row.id));
   const seasonYears = new Map(seasons.map((season) => [season.id, season.game_year]));
   const registeredClubs=seasonFourGala?await loadSeasonFourGalaRegisteredClubs(admin,activeSeason.id):undefined;
-  const contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons,registeredClubs):allContracts;
+  let contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons,registeredClubs):allContracts;
+  if(seasonFourGala&&registeredClubs){
+    const selectedRiders=new Set(contractSource.map(row=>row.rider_id));
+    const missingRegisteredRiders=[...registeredClubs.keys()].filter(id=>!selectedRiders.has(id));
+    if(missingRegisteredRiders.length){
+      // Recover only registered, released riders; never scan all terminated contracts.
+      const released=await collectChunkedPaginatedRows<ContractRow,{message:string},string>({
+        values:missingRegisteredRiders,maxConcurrency:1,
+        fetchPage:async(riderIds,from,to)=>{
+          const result=await admin.from("rider_contracts").select("*")
+            .in("rider_id",riderIds).eq("status","terminated")
+            .order("id",{ascending:true}).range(from,to)
+            .abortSignal(AbortSignal.timeout(5000));
+          return {data:result.data as ContractRow[]|null,error:result.error};
+        },
+      });
+      if(released.error)throw new Error(`Export PCM impossible : ${released.error.message}`);
+      contractSource=selectSeasonFourGalaContracts([...allContracts,...released.data],seasons,registeredClubs);
+    }
+  }
   const contracts = contractSource.filter((row) => activeTeamIds.has(row.team_id) && (!seasonFinale || (
     (seasonYears.get(row.start_season_id) ?? Infinity) <= activeSeason.game_year &&
     (seasonYears.get(row.end_season_id) ?? -Infinity) >= activeSeason.game_year
