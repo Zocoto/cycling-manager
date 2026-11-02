@@ -13,6 +13,17 @@ const cashOffer: DirectTransferOffer = {
 };
 
 describe("direct transfer offer terms", () => {
+  it("makes the future season, reserved funds and replacement of renewals explicit", () => {
+    const html = renderToStaticMarkup(<DirectTransferOfferTerms offer={{ ...cashOffer, effectiveSeasonYear: 5, offeredRider: { id: "counter-rider", firstName: "Jean", lastName: "Reçu", overall: 65, salaryPerSeason: 12000 } }} />);
+    expect(html).toContain("Début de la saison 5");
+    expect(html).toContain("bloquée à l’acceptation");
+    expect(html).toContain("Indemnité à recevoir");
+    expect(html).not.toContain("Indemnité reçue");
+    expect(html).toContain("prolongations déjà prévues");
+    expect(html).toContain("uniquement la saison suivante");
+    expect(html).not.toContain("désinscrivez");
+    expect(html).not.toContain("bloque l’échange");
+  });
   it("keeps cash-only offers clear without suggesting an exchange", () => {
     const html = renderToStaticMarkup(<DirectTransferOfferTerms offer={cashOffer} />);
     expect(html).toContain("Indemnité reçue");
