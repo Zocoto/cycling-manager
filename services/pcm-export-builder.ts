@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { cdbToSql, sqlToCdb } from "cdb-converter";
 import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
-import { configurePcmNationalities, getPcmNationalChampionBits } from "@/services/pcm-export-nationalities";
+import { configurePcmNationalities, getPcmChampionBits } from "@/services/pcm-export-nationalities";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
 import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules } from "@/lib/game/pcm-export/gala-rules";
@@ -140,7 +140,7 @@ function buildDatabaseFromSnapshot(
 
   const { resolveCountry, countryAdditions, pcmCountryByConstant, firstRegionByCountry } =
     configurePcmNationalities(db, local, snapshot);
-  const nationalChampions = getPcmNationalChampionBits(snapshot);
+  const nationalChampions = getPcmChampionBits(snapshot);
 
   const teamTemplate = requireTemplateRow(db, "DYN_team", "IDteam", 1);
   const sponsorTemplate = requireTemplateRow(
@@ -702,6 +702,7 @@ function buildDatabaseFromSnapshot(
       countryFallbacks: [],
       countryAdditions,
       nationalChampions: nationalChampions.counts,
+      internationalChampions: nationalChampions.internationalCounts,
       localOutputSha256: createHash("sha256").update(localOutput).digest("hex"),
       scope: {
         nativeRatingsOnly: true,

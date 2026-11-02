@@ -2,8 +2,7 @@ import "server-only";
 import { strToU8,zipSync } from "fflate";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { GALA_COURSES,GALA_EVENTS,SEASON_FOUR_GALA,type GalaEventKey,type GalaExportStatus } from "@/lib/game/season-four-gala";
-import { buildSeasonFourGalaStartlists,selectSeasonFourGalaContracts,type GalaExportSnapshot,type GalaRegistration,type GalaSelection,type GalaNativeRatings } from "@/lib/game/season-four-gala-startlists";
-import type {ContractRow} from "@/lib/game/pcm-export/types";
+import { buildSeasonFourGalaStartlists,getSeasonFourGalaRegisteredClubs,type GalaExportSnapshot,type GalaRegistration,type GalaSelection,type GalaNativeRatings } from "@/lib/game/season-four-gala-startlists";
 
 type Client=ReturnType<typeof createSupabaseAdminClient>;
 type Query<T>={range:(from:number,to:number)=>{abortSignal:(signal:AbortSignal)=>PromiseLike<{data:T[]|null;error:{message:string}|null}>}};
@@ -34,6 +33,12 @@ export async function getSeasonFourGalaExportStatus():Promise<GalaExportStatus> 
  return {counts:Object.fromEntries(GALA_EVENTS.map(event=>[event.key,rows.filter(row=>row.program===event.program && courses.has(row.id+':'+event.profile)).length]))};
 }
 
+export async function loadSeasonFourGalaRegisteredClubs(admin:Client,seasonId:string) {
+ const rows=await pages<GalaRegistration>(()=>admin.from('season_gala_registrations').select('id,team_id,program').eq('season_id',seasonId).order('id'));
+ const selections=await chunks<Pick<GalaSelection,'registration_id'|'rider_id'>>(rows.map(row=>row.id),ids=>admin.from('season_gala_registration_riders').select('registration_id,rider_id').in('registration_id',ids).order('registration_id').order('rider_id'));
+ return getSeasonFourGalaRegisteredClubs(rows,selections);
+}
+
 export async function loadSeasonFourGalaStartlistSnapshot():Promise<GalaExportSnapshot> {
  const admin=createSupabaseAdminClient();const source=await registrations(admin);
  const snapshot:GalaExportSnapshot={season:source.season.game_year,registrations:source.rows,selections:[],teams:[],riders:[]};
@@ -47,9 +52,7 @@ export async function loadSeasonFourGalaStartlistSnapshot():Promise<GalaExportSn
  if(!riderIds.length)return snapshot;
  const riders=await chunks<{id:string;pcm_export_id:number|null;first_name:string;last_name:string}>(riderIds,ids=>admin.from('riders').select('id,pcm_export_id,first_name,last_name').in('id',ids).order('id'));
  const ratings=await chunks<GalaNativeRatings&{rider_id:string}>(riderIds,ids=>admin.from('rider_season_ratings').select('rider_id,mountain,hills,flat,time_trial,cobbles,sprint').eq('season_id',source.season.id).in('rider_id',ids).order('rider_id'));
- const contracts=await chunks<ContractRow>(riderIds,ids=>admin.from('rider_contracts').select('id,rider_id,team_id,start_season_id,end_season_id,salary_per_season,status,left_season_id,joined_day_number,signed_at').in('rider_id',ids).in('status',['active','completed']).order('id'));
- const seasons=await pages<{id:string;game_year:number}>(()=>admin.from('seasons').select('id,game_year').order('id'));
- const owners=new Map(selectSeasonFourGalaContracts(contracts,seasons).map(contract=>[contract.rider_id,contract.team_id]));
+ const owners=getSeasonFourGalaRegisteredClubs(source.rows,snapshot.selections);
  const native=new Map(ratings.map(row=>[row.rider_id,row]));
  snapshot.riders=riders.map(rider=>({...rider,team_id:owners.get(rider.id)??'',native:native.get(rider.id)??{mountain:null,hills:null,flat:null,time_trial:null,cobbles:null,sprint:null}}));
  return snapshot;
@@ -60,7 +63,7 @@ export async function generateSeasonFourGalaStartlistExport(eventKey?:GalaEventK
  const snapshot=template?{season:4,registrations:[],selections:[],teams:[],riders:[]}:await loadSeasonFourGalaStartlistSnapshot();
  const result=buildSeasonFourGalaStartlists(snapshot,eventKey,template);
  const generatedAt=new Date().toISOString();
- const manifest={formatVersion:1,season:4,generatedAt,template,ratingPolicy:{source:'rider_season_ratings',bonusesIncluded:false,continentalNativePrimaryCap:75},events:result.events};
+ const manifest={formatVersion:1,season:4,generatedAt,template,clubPolicy:'at-registration',ratingPolicy:{source:'rider_season_ratings',bonusesIncluded:false,continentalRegistrationPrimaryCap:75,registeredRiderRatingsPreserved:true},events:result.events};
  if(eventKey){
   const [path,xml]=Object.entries(result.files)[0];
   return {data:strToU8(xml),filename:path.split('/').at(-1)!,contentType:'application/xml',teamCount:result.teamCount,riderCount:result.riderCount,generatedAt,template};

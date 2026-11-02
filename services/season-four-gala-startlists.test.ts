@@ -42,8 +42,19 @@ describe('S4 gala export wiring',()=>{
   expect((await loadSeasonFourGalaStartlistSnapshot()).riders).toEqual([]);
   await expect(generateSeasonFourGalaStartlistExport('world-tour:mountain')).rejects.toThrow('Aucune inscription');
  });
- it('rejects native ratings over 75 instead of considering the equipment or silently lowering them',async()=>{
+ it('keeps registered riders above 75 without lowering their native rating or reading equipment',async()=>{
   state.tables.rider_season_ratings[0].hills=76;
-  await expect(generateSeasonFourGalaStartlistExport('continental:sprint')).rejects.toThrow('Plafond Continental');
+  expect((await generateSeasonFourGalaStartlistExport('continental:sprint')).riderCount).toBe(7);
+  expect((await loadSeasonFourGalaStartlistSnapshot()).riders[0].native.hills).toBe(76);
+  expect(state.tables.rider_season_ratings[0].hills).toBe(76);
+  expect(state.calls).not.toContain('rider_equipment_assignments');
+ });
+ it('uses the recorded registration club after a transfer, independently of current contracts',async()=>{
+  state.tables.rider_contracts[0].team_id='new-team';
+  const snapshot=await loadSeasonFourGalaStartlistSnapshot();
+  expect(snapshot.riders[0].team_id).toBe('team');
+  expect(state.tables.rider_contracts[0].team_id).toBe('new-team');
+  expect(state.calls).not.toContain('rider_contracts');
+  expect((await generateSeasonFourGalaStartlistExport('continental:sprint')).riderCount).toBe(7);
  });
 });

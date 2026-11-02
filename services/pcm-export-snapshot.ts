@@ -17,7 +17,9 @@ import type {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import {selectSeasonFourGalaContracts} from "@/lib/game/season-four-gala-startlists";
+import {loadSeasonFourGalaRegisteredClubs} from "@/services/season-four-gala-startlists";
 import type { NationalChampionshipTitleRow } from "@/lib/game/pcm-export/types";
+import { PCM_CHAMPIONSHIP_MASKS } from "@/lib/game/pcm-export/types";
 import { applySeasonFinaleGalaIdentities, loadSeasonFinaleGalaIdentities, loadSeasonFinaleGalaSourceSeason } from "@/services/season-finale-gala-identity";
 
 const PAGE_SIZE = 1_000;
@@ -118,7 +120,8 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
   const activeTeamIds = new Set(teamSeasons.map((row) => row.team_id));
   const teams = allTeams.filter((row) => activeTeamIds.has(row.id));
   const seasonYears = new Map(seasons.map((season) => [season.id, season.game_year]));
-  const contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons):allContracts;
+  const registeredClubs=seasonFourGala?await loadSeasonFourGalaRegisteredClubs(admin,activeSeason.id):undefined;
+  const contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons,registeredClubs):allContracts;
   const contracts = contractSource.filter((row) => activeTeamIds.has(row.team_id) && (!seasonFinale || (
     (seasonYears.get(row.start_season_id) ?? Infinity) <= activeSeason.game_year &&
     (seasonYears.get(row.end_season_id) ?? -Infinity) >= activeSeason.game_year
@@ -133,7 +136,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
       const result = await admin.from("rider_national_championship_titles")
         .select("rider_id, country_id, championship_type")
         .in("rider_id", riderIds)
-        .in("championship_type", ["road", "time_trial"])
+        .in("championship_type", Object.keys(PCM_CHAMPIONSHIP_MASKS))
         .is("relinquished_at", null)
         .order("id", { ascending: true })
         .range(from, to).returns<NationalChampionshipTitleRow[]>();

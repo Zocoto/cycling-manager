@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Database } from "sql.js";
 import type { CountryRow, PcmCountryAddition, PcmExportSnapshot } from "@/lib/game/pcm-export/types";
+import { PCM_CHAMPIONSHIP_MASKS } from "@/lib/game/pcm-export/types";
 
 // PCM uses sporting constants, not always ISO alpha-3. Never create a second
 // Latvia/Bermuda/Switzerland etc. under their ISO code.
@@ -122,26 +123,38 @@ export function configurePcmNationalities(db: Database, local: Database, snapsho
   return { resolveCountry, countryAdditions, pcmCountryByConstant: byCode, firstRegionByCountry: new Map([...regionsByCountry].map(([id, r]) => [id, Number(r.IDregion)])) };
 }
 
-export function getPcmNationalChampionBits(snapshot: PcmExportSnapshot) {
+export function getPcmChampionBits(snapshot: PcmExportSnapshot) {
   const riders = new Map(snapshot.riders.map(r => [r.id, r]));
   const bits = new Map<string, number>();
   for (const title of snapshot.nationalChampionshipTitles ?? []) {
     const rider = riders.get(title.rider_id);
     if (!rider) continue;
-    if (rider.country_id !== title.country_id) {
+    const mask = PCM_CHAMPIONSHIP_MASKS[title.championship_type];
+    if (!mask) throw new Error("Type de titre PCM non pris en charge.");
+    const national = title.championship_type === "road" || title.championship_type === "time_trial";
+    if (national && rider.country_id !== title.country_id) {
       throw new Error(`Titre national incohérent avec le pays de ${rider.first_name} ${rider.last_name}.`);
     }
-    if (title.championship_type !== "road" && title.championship_type !== "time_trial") {
-      throw new Error("Discipline de titre national PCM invalide.");
-    }
-    // PCM26: national road = 128, national TT = 64 (not the legacy 32 bit).
-    bits.set(rider.id, (bits.get(rider.id) ?? 0) | (title.championship_type === "road" ? 128 : 64));
+    bits.set(rider.id, (bits.get(rider.id) ?? 0) | mask);
   }
   const values = [...bits.values()];
+  const nationalValues = values.filter(v => v & 192);
+  const internationalCounts = {
+    worldRoad: values.filter(v => v & 2048).length,
+    worldTimeTrial: values.filter(v => v & 1024).length,
+    europeanRoad: values.filter(v => v & 512).length,
+    europeanTimeTrial: values.filter(v => v & 256).length,
+  };
+  // CDB stores this bit field as a signed 12-bit integer. Preserve combined
+  // national/world flags and encode explicitly rather than relying on overflow.
+  for (const [riderId, value] of bits) {
+    bits.set(riderId, value >= 2048 ? value - 4096 : value);
+  }
   return { bits, counts: {
-    riders: bits.size, road: values.filter(v => v & 128).length,
-    timeTrial: values.filter(v => v & 64).length, both: values.filter(v => v === 192).length,
-  } };
+    riders: nationalValues.length, road: nationalValues.filter(v => v & 128).length,
+    timeTrial: nationalValues.filter(v => v & 64).length,
+    both: nationalValues.filter(v => (v & 192) === 192).length,
+  }, internationalCounts };
 }
 
 function countryDonor(source: CountryRow) {

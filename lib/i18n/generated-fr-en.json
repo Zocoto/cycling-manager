@@ -1,4 +1,9 @@
 {
+  "Notes natives manquantes ou invalides pour": "Missing or invalid native ratings for",
+  "Notes natives manquantes ou invalides pour {{0}} {{1}}.": "Missing or invalid native ratings for {{0}} {{1}}.",
+  "Type de titre PCM non pris en charge.": "Unsupported PCM title type.",
+  "Un même coureur est inscrit au gala avec plusieurs équipes.": "The same rider is registered for the gala with several teams.",
+  "Une composition appartient à une inscription inconnue.": "A lineup belongs to an unknown registration.",
   "Saison 4 : la légende de l’Équipier sans tête et les Jeux quadriennaux": "Season 4: the legend of the Headless Domestique and the Quadrennial Games",
   "CYCLO-": "CYCLO-",
   "STICKERS": "STICKERS",

@@ -359,6 +359,43 @@ describe("generateur de base PCM26", () => {
     finally { db.close(); }
   });
 
+  it("préserve les titres internationaux prouvés et les CN combinés après un aller-retour CDB signé sur 12 bits", async () => {
+    const snapshot = createSnapshot();
+    const rider = snapshot.riders[0], contract = snapshot.contracts[0], rating = snapshot.ratings[0];
+    const cases = [
+      { types: ["world_road"], expected: -2048 },
+      { types: ["world_time_trial"], expected: 1024 },
+      { types: ["continental_europe_road"], expected: 512 },
+      { types: ["continental_europe_time_trial"], expected: 256 },
+      { types: ["road", "time_trial", "world_road", "world_time_trial", "continental_europe_road", "continental_europe_time_trial", "world_road"], expected: -64 },
+      { types: [], expected: 0 },
+    ] as const;
+    snapshot.riders = []; snapshot.contracts = []; snapshot.ratings = [];
+    snapshot.nationalChampionshipTitles = [];
+    for (const [i, example] of cases.entries()) {
+      const id = `champion-${i}`;
+      snapshot.riders.push({ ...rider, id, pcm_export_id: 10001 + i });
+      snapshot.contracts.push({ ...contract, id: `contract-${i}`, rider_id: id });
+      snapshot.ratings.push({ ...rating, id: `rating-${i}`, rider_id: id });
+      for (const type of example.types) snapshot.nationalChampionshipTitles.push({ rider_id: id, country_id: rider.country_id, championship_type: type });
+    }
+    snapshot.counts = { ...snapshot.counts, riders: cases.length, contracts: cases.length, ratings: cases.length };
+    const result = await buildPcmDatabase(snapshot);
+    expect(result.metadata.nationalChampions).toEqual({ riders: 1, road: 1, timeTrial: 1, both: 1 });
+    expect(result.metadata.internationalChampions).toEqual({ worldRoad: 2, worldTimeTrial: 2, europeanRoad: 2, europeanTimeTrial: 2 });
+    const SQL = await initSqlJs({ locateFile: file => resolve("node_modules/sql.js/dist", file) });
+    const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
+    try {
+      for (const [i, example] of cases.entries()) {
+        expect(readCount(db, `SELECT gene_i_champion_bit FROM DYN_cyclist WHERE IDcyclist=${10001 + i}`)).toBe(example.expected);
+        expect(readCount(db, `SELECT charac_i_mountain FROM DYN_cyclist WHERE IDcyclist=${10001 + i}`)).toBe(77);
+      }
+      expect(readCount(db, "SELECT COUNT(*) FROM DYN_cyclist WHERE IDcyclist BETWEEN 9001 AND 9010 AND gene_i_champion_bit<>0")).toBe(0);
+    } finally { db.close(); }
+    const files = unzipSync((await createPcmExportPackage(result)).archive);
+    expect(JSON.parse(new TextDecoder().decode(files["manifest.json"])).internationalChampions).toEqual(result.metadata.internationalChampions);
+  }, 20_000);
+
   it("refuse un pays incomplet au lieu de rendre son coureur français", async () => {
     const snapshot = createSnapshot();
     snapshot.countries.push({ id: "country-sv", iso_alpha3: "SLV", name: "Salvador", continent_code: "america" });

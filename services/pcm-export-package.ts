@@ -40,6 +40,7 @@ export async function createPcmExportPackage({
     countryFallbacks: metadata.countryFallbacks,
     countryAdditions: metadata.countryAdditions,
     nationalChampions: metadata.nationalChampions,
+    internationalChampions: metadata.internationalChampions,
     scope: metadata.scope,
   };
   const validation = {
@@ -56,6 +57,7 @@ export async function createPcmExportPackage({
     countriesAdded: metadata.countryAdditions.length,
     nationalityFallbacks: metadata.countryFallbacks.length,
     nationalChampions: metadata.nationalChampions,
+    internationalChampions: metadata.internationalChampions,
   };
   const archive = zipSync(
     {

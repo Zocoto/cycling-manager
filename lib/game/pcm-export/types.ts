@@ -109,8 +109,19 @@ export type PcmExportSnapshot = {
 export type NationalChampionshipTitleRow = {
   rider_id: string;
   country_id: string;
-  championship_type: "road" | "time_trial";
+  championship_type: keyof typeof PCM_CHAMPIONSHIP_MASKS;
 };
+
+// Verified in PCM26's native eChampionJerseyBitField enum. No generic
+// continental or Olympic flag exists here; never substitute another title.
+export const PCM_CHAMPIONSHIP_MASKS = {
+  road: 128,
+  time_trial: 64,
+  world_road: 2048,
+  world_time_trial: 1024,
+  continental_europe_road: 512,
+  continental_europe_time_trial: 256,
+} as const;
 
 export type PcmCountryAddition = {
   sourceCode: string;
@@ -148,6 +159,12 @@ export type PcmExportMetadata = {
   }>;
   countryAdditions: PcmCountryAddition[];
   nationalChampions: { riders: number; road: number; timeTrial: number; both: number };
+  internationalChampions?: {
+    worldRoad: number;
+    worldTimeTrial: number;
+    europeanRoad: number;
+    europeanTimeTrial: number;
+  };
   localOutputSha256: string;
   scope: {
     nativeRatingsOnly: true;

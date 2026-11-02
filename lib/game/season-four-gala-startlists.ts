@@ -15,18 +15,37 @@ export type GalaExportSnapshot = {
 };
 export class GalaStartlistError extends Error {}
 
-export function selectSeasonFourGalaContracts(contracts:ContractRow[],seasons:Pick<SeasonRow,'id'|'game_year'>[]) {
+export function getSeasonFourGalaRegisteredClubs(registrations:GalaRegistration[],selections:Pick<GalaSelection,'registration_id'|'rider_id'>[]) {
+ const teams=new Map(registrations.map(row=>[row.id,row.team_id]));
+ const result=new Map<string,string>();
+ for(const selection of selections){
+  const team=teams.get(selection.registration_id);
+  if(!team)throw new GalaStartlistError('Une composition appartient à une inscription inconnue.');
+  const previous=result.get(selection.rider_id);
+  if(previous&&previous!==team)throw new GalaStartlistError('Un même coureur est inscrit au gala avec plusieurs équipes.');
+  result.set(selection.rider_id,team);
+ }
+ return result;
+}
+
+export function selectSeasonFourGalaContracts(contracts:ContractRow[],seasons:Pick<SeasonRow,'id'|'game_year'>[],registeredClubs?:ReadonlyMap<string,string>) {
  const years=new Map(seasons.map(season=>[season.id,season.game_year]));
  const eligible=contracts.filter(contract=>['active','completed'].includes(contract.status)
   &&(years.get(contract.start_season_id)??Infinity)<=4&&(years.get(contract.end_season_id)??-Infinity)>=4
-  &&(!contract.left_season_id||(years.get(String(contract.left_season_id))??-Infinity)>4));
+  &&(!contract.left_season_id||(years.get(String(contract.left_season_id))??-Infinity)>4||registeredClubs?.get(contract.rider_id)===contract.team_id));
  eligible.sort((a,b)=>(years.get(b.start_season_id)??0)-(years.get(a.start_season_id)??0)
   ||Number(b.joined_day_number??1)-Number(a.joined_day_number??1)||String(b.signed_at??'').localeCompare(String(a.signed_at??''))||a.id.localeCompare(b.id));
- return [...new Map(eligible.reverse().map(contract=>[contract.rider_id,contract])).values()];
+ return [...new Map(eligible.reverse().map(contract=>[contract.rider_id,contract])).values()].map(contract=>{
+  const registeredTeam=registeredClubs?.get(contract.rider_id);
+  return registeredTeam&&registeredTeam!==contract.team_id?{...contract,team_id:registeredTeam}:contract;
+ });
 }
 
+function hasRecordedGalaNativeRatings(ratings:GalaNativeRatings):boolean {
+ return GALA_NATIVE_PRIMARY_KEYS.every(key=>ratings[key]!==null&&ratings[key]!==undefined&&String(ratings[key]).trim()!==''&&Number.isFinite(Number(ratings[key]))&&Number(ratings[key])>=1);
+}
 export function hasContinentalNativeRatings(ratings:GalaNativeRatings):boolean {
- return GALA_NATIVE_PRIMARY_KEYS.every(key=>ratings[key]!==null&&ratings[key]!==undefined&&String(ratings[key]).trim()!==''&&Number.isFinite(Number(ratings[key]))&&Number(ratings[key])>=1&&Number(ratings[key])<=SEASON_FOUR_GALA.primaryCap);
+ return hasRecordedGalaNativeRatings(ratings)&&GALA_NATIVE_PRIMARY_KEYS.every(key=>Number(ratings[key])<=SEASON_FOUR_GALA.primaryCap);
 }
 
 export function buildSeasonFourGalaStartlists(snapshot:GalaExportSnapshot, eventKey?:GalaEventKey, template=false) {
@@ -70,7 +89,9 @@ export function buildSeasonFourGalaStartlists(snapshot:GalaExportSnapshot, event
     const rider=ridersById.get(selection.rider_id);
     if(!rider||rider.team_id!==registration.team_id)throw new GalaStartlistError('Un coureur sélectionné n’appartient plus à l’équipe pour la saison source.');
     if(!Number.isSafeInteger(rider.pcm_export_id)||Number(rider.pcm_export_id)<=0||(PCM_SPECTATOR_RIDER_IDS as readonly number[]).includes(Number(rider.pcm_export_id)))throw new GalaStartlistError('Identifiant PCM permanent de coureur absent ou réservé.');
-    if(event.program==='continental'&&!hasContinentalNativeRatings(rider.native))throw new GalaStartlistError(`Plafond Continental dépassé ou notes natives manquantes pour ${rider.first_name} ${rider.last_name} : 75 maximum dans chaque note primaire, sans bonus d’équipement.`);
+    // Admission is checked when the lineup is saved. The owner explicitly
+    // keeps registered riders and their real later ratings, without capping.
+    if(event.program==='continental'&&!hasRecordedGalaNativeRatings(rider.native))throw new GalaStartlistError(`Notes natives manquantes ou invalides pour ${rider.first_name} ${rider.last_name}.`);
     return rider;
    });
    teams.push({teamId:Number(team.pcm_export_id),riderIds:riders.map(rider=>Number(rider.pcm_export_id))});

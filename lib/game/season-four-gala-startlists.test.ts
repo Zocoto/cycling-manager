@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import {GALA_EVENTS} from './season-four-gala';
-import {buildSeasonFourGalaStartlists,hasContinentalNativeRatings,selectSeasonFourGalaContracts,type GalaExportSnapshot} from './season-four-gala-startlists';
+import {buildSeasonFourGalaStartlists,getSeasonFourGalaRegisteredClubs,hasContinentalNativeRatings,selectSeasonFourGalaContracts,type GalaExportSnapshot} from './season-four-gala-startlists';
 import type {ContractRow} from './pcm-export/types';
 
 export function galaFixture(count=7):GalaExportSnapshot{
@@ -23,13 +23,16 @@ describe('gala S4 startlist policy',()=>{
   expect(result.teamCount).toBe(1);expect(result.riderCount).toBe(count);
  });
  it.each([6,9])('rejects %s riders',count=>expect(()=>buildSeasonFourGalaStartlists(galaFixture(count),'continental:mountain')).toThrow('7 à 8'));
- it.each(['mountain','hills','flat','time_trial','cobbles','sprint'] as const)('rejects a native %s rating above 75',key=>{
-  const fixture=galaFixture();fixture.riders[0].native[key]=75.01;
-  expect(()=>buildSeasonFourGalaStartlists(fixture,'continental:mountain')).toThrow('Plafond Continental');
+ it.each(['mountain','hills','flat','time_trial','cobbles','sprint'] as const)('preserves a registered rider whose native %s rating grew above 75',key=>{
+  const fixture=galaFixture();fixture.riders[0].native[key]=76;
+  expect(hasContinentalNativeRatings(fixture.riders[0].native)).toBe(false);
+  expect(buildSeasonFourGalaStartlists(fixture,'continental:mountain').riderCount).toBe(7);
+  expect(fixture.riders[0].native[key]).toBe(76);
  });
  it.each([null,NaN,Infinity,''])('rejects a missing or invalid native rating: %s',value=>{
   const fixture=galaFixture();fixture.riders[0].native.hills=value;
   expect(hasContinentalNativeRatings(fixture.riders[0].native)).toBe(false);
+  expect(()=>buildSeasonFourGalaStartlists(fixture,'continental:mountain')).toThrow('Notes natives');
  });
  it('uses only native ratings, independently of equipment bonuses',()=>{
   const native={...galaFixture().riders[0].native,equipment_hills_bonus:20,effective_hills:95};
@@ -81,5 +84,20 @@ describe('gala S4 startlist policy',()=>{
    {...base,id:'left',rider_id:'r2',left_season_id:'s4'}, {...base,id:'cancelled',rider_id:'r3',status:'cancelled'}];
   const picked=selectSeasonFourGalaContracts(contracts,[{id:'s3',game_year:3},{id:'s4',game_year:4},{id:'s5',game_year:5}]);
   expect(picked.map(row=>row.id)).toEqual(['latest']);
+ });
+ it('keeps the registration club in exhibition copies after a transfer or release, without changing source contracts',()=>{
+  const base:ContractRow={id:'old',rider_id:'r1',team_id:'registered-team',status:'completed',start_season_id:'s4',end_season_id:'s4',salary_per_season:100,left_season_id:'s4'};
+  const contracts=[base,{...base,id:'new',team_id:'new-team',left_season_id:null,joined_day_number:22}, {...base,id:'released',rider_id:'r2'}];
+  const before=structuredClone(contracts);
+  const years=[{id:'s4',game_year:4}];
+  const picked=selectSeasonFourGalaContracts(contracts,years,new Map([['r1','registered-team'],['r2','registered-team']]));
+  expect(picked.map(row=>[row.rider_id,row.team_id]).sort()).toEqual([['r1','registered-team'],['r2','registered-team']]);
+  expect(contracts).toEqual(before);
+  expect(selectSeasonFourGalaContracts(contracts,years).map(row=>row.team_id)).toEqual(['new-team']);
+ });
+ it('rejects conflicting registration clubs instead of duplicating or silently moving a rider',()=>{
+  const fixture=galaFixture();
+  expect(getSeasonFourGalaRegisteredClubs(fixture.registrations,fixture.selections).size).toBe(7);
+  expect(()=>getSeasonFourGalaRegisteredClubs([...fixture.registrations,{id:'other',team_id:'other',program:'world-tour'}],[...fixture.selections,{registration_id:'other',profile:'mountain',rider_id:'r0',position:1}])).toThrow('plusieurs équipes');
  });
 });
