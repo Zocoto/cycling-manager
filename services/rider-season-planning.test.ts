@@ -84,6 +84,30 @@ function register(index: number, federation = false) {
 }
 
 describe("planning des coureurs avec un grand calendrier", () => {
+  it("compte chaque étape future, y compris deux le même jour, sans relire les résultats", async () => {
+    tables.seasons[0].game_year = 5;
+    tables.rider_season_ratings[0].season_race_days = 29;
+    addCalendar(1, 4);
+    register(0);
+    // Two starts on the same game day remain two JDC. Completed and cancelled
+    // stages are excluded from the remaining projection.
+    tables.stages[0].status = "completed";
+    tables.stages[1].status = "cancelled";
+    tables.stages[2].season_day_id = "day-2";
+    tables.stages[3].season_day_id = "day-2";
+    const planning = await getCurrentTeamRiderSeasonPlanning({ authUserId: "user" });
+    expect(planning?.riders[0].raceLoad).toEqual({ raceDays: 29, projectedRaceDays: 31, warning: "projected" });
+    expect(mock.from.mock.calls.some(([table]) => table === "stage_results" || table === "rider_morale_events")).toBe(false);
+    expect(mock.rpc).not.toHaveBeenCalled();
+  });
+
+  it("garde le compteur masqué avant la saison 5", async () => {
+    tables.seasons[0].game_year = 4;
+    tables.rider_season_ratings[0].season_race_days = 45;
+    const planning = await getCurrentTeamRiderSeasonPlanning({ authUserId: "user" });
+    expect(planning?.riders[0].raceLoad).toBeNull();
+  });
+
   it("charge les dernières courses sans envoyer de filtre surdimensionné", async () => {
     addCalendar(425);
     register(424);
