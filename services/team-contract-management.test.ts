@@ -83,6 +83,16 @@ function fixture({
 beforeEach(() => vi.clearAllMocks());
 
 describe("contract-management upgrade salary", () => {
+  it("shows an accepted future departure as leaving and removes renewal choices", async () => {
+    const f = fixture({ successorSalary: 9000 });
+    f.successor.team_id = "buyer-team";
+    f.successor.acquisition_type = "direct_transfer";
+    const overview = await getTeamContractManagementOverview("user");
+    expect(overview?.riders[0]).toMatchObject({ status: "leaving", renewalOffers: [] });
+    expect(overview?.leavingCount).toBe(1);
+    expect((await getRiderTransferManagement("user", "rider"))?.renewalOptions).toEqual([]);
+    expect(f.active.status).toBe("active");
+  });
   it("includes the current age, talent and all native ratings without additional reads", async () => {
     const f = fixture();
     Object.assign(f.tables.rider_season_ratings[0], {

@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ admin: vi.fn() }));
+const mocks = vi.hoisted(() => ({ admin: vi.fn(), capacity: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin }));
-vi.mock("@/services/team-roster-capacity", () => ({ loadTeamRosterCapacitySummary: vi.fn(async () => ({ availableGeneralSlots: 0, baseLimit: 35, youthReserveSlots: 0, buildingLevel: 0, specialization: null })) }));
+vi.mock("@/services/team-roster-capacity", () => ({ loadTeamRosterCapacitySummary: mocks.capacity }));
 
 import { getCurrentTeamDirectTransferTradeCandidates, getRiderTransferManagement } from "./transfer-market";
 
@@ -14,7 +14,7 @@ function fixture(ids = ["eligible"], errorTable: string | null = null) {
   const tables: Record<string, Row[]> = {
     sporting_directors: [{ id: "director", auth_user_id: "user", status: "active" }],
     team_manager_assignments: [{ sporting_director_id: "director", team_id: "own-team", role: "general_manager", status: "active" }],
-    seasons: [{ id: "s4", game_year: 4, status: "active" }],
+    seasons: [{ id: "s4", game_year: 4, status: "active" }, { id: "s5", game_year: 5, status: "planned" }],
     team_seasons: [{ id: "team-season", team_id: "own-team", season_id: "s4", cash_balance: 0 }],
     rider_contracts: contracts,
     riders: ids.map(id => ({ id, first_name: "Jean", last_name: id, status: "active" })),
@@ -48,9 +48,73 @@ function fixture(ids = ["eligible"], errorTable: string | null = null) {
   return { tables, from, rpc, queries };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.capacity.mockResolvedValue({ availableGeneralSlots: 0, baseLimit: 35, youthReserveSlots: 0, buildingLevel: 0, specialization: null });
+});
 
 describe("bounded own-team trade candidates", () => {
+  it.each(["immediate", "next_season"] as const)("excludes other clubs' future commitments in one batch for %s offers", async timing => {
+    const f = fixture(["eligible", "departing", "unknown-future"]);
+    f.tables.rider_contracts.push(
+      { rider_id: "eligible", team_id: "own-team", status: "planned", acquisition_type: "renewal" },
+      { rider_id: "departing", team_id: "other-team", status: "planned", acquisition_type: "direct_offer" },
+      { rider_id: "unknown-future", team_id: "other-team", status: "planned", acquisition_type: null },
+    );
+    expect(await getCurrentTeamDirectTransferTradeCandidates("user", timing)).toEqual([
+      { id: "eligible", firstName: "Jean", lastName: "eligible", currentSalary: 5000, salaryPerSeason: 7000 },
+    ]);
+    const futureBatch = f.queries.find(({ query }) => query.select.mock.calls[0]?.[0] === "rider_id, team_id, acquisition_type");
+    expect(futureBatch?.query.in).toHaveBeenCalledExactlyOnceWith("rider_id", ["eligible", "departing", "unknown-future"]);
+    expect(futureBatch?.query.eq).toHaveBeenCalledExactlyOnceWith("status", "planned");
+    expect(futureBatch?.query.limit).toHaveBeenCalledWith(1000);
+  });
+
+  it("hides auction and dismissal actions after an accepted deferred departure, but keeps own renewals usable", async () => {
+    const f = fixture();
+    Object.assign(f.tables.rider_contracts[0], { start_season_id: "s4", end_season_id: "s4" });
+    f.tables.rider_season_ratings = [{ rider_id: "eligible", season_id: "s4", age: 25,
+      mountain: 60, hills: 60, flat: 60, time_trial: 60, cobbles: 60, sprint: 60, acceleration: 60,
+      downhill: 60, endurance: 60, resistance: 60, recovery: 60, breakaway: 60, prologue: 60 }];
+    const future = { id: "future", rider_id: "eligible", team_id: "other-team", status: "planned",
+      acquisition_type: "direct_offer", start_season_id: "s5", end_season_id: "s5", salary_per_season: 7000 };
+    f.tables.rider_contracts.push(future);
+    expect(await getRiderTransferManagement("user", "eligible")).toMatchObject({
+      ownsRider: true, canListRider: false, canDismiss: false,
+      listingBlockedReason: "Ce coureur a déjà un départ programmé pour la saison suivante.",
+    });
+    Object.assign(future, { team_id: "own-team", acquisition_type: "renewal" });
+    expect(await getRiderTransferManagement("user", "eligible")).toMatchObject({
+      ownsRider: true, canListRider: true, canDismiss: true, listingBlockedReason: null,
+    });
+  });
+
+  it("uses next-season salary quotes and permits a current-season transfer lock for deferred exchanges", async () => {
+    const f = fixture(["locked"]);
+    f.tables.rider_contracts[0].transfer_locked_season_id = "s4";
+    expect(await getCurrentTeamDirectTransferTradeCandidates("user")).toEqual([]);
+    f.rpc.mockClear();
+    expect(await getCurrentTeamDirectTransferTradeCandidates("user", "next_season")).toEqual([
+      { id: "locked", firstName: "Jean", lastName: "locked", currentSalary: 5000, salaryPerSeason: 7000 },
+    ]);
+    expect(f.rpc).toHaveBeenCalledExactlyOnceWith("calculate_rider_season_salary_quotes", expect.objectContaining({ p_season_id: "s5" }));
+  });
+
+  it("uses future capacity and ignores a current-season transfer lock when preparing next season", async () => {
+    const f = fixture();
+    f.tables.team_seasons[0].cash_balance = 50_000;
+    f.tables.riders.push({ id: "rival", first_name: "Marc", last_name: "Rival", status: "active" });
+    f.tables.rider_contracts.push({ id: "rival-contract", rider_id: "rival", team_id: "foreign-team", status: "active", start_season_id: "s4", end_season_id: "s4", transfer_locked_season_id: "s4", salary_per_season: 10000 });
+    f.tables.rider_season_ratings = [{ rider_id: "rival", season_id: "s4", age: 25, mountain: 60, hills: 60, flat: 60, time_trial: 60, cobbles: 60, sprint: 60, acceleration: 60, downhill: 60, endurance: 60, resistance: 60, recovery: 60, breakaway: 60, prologue: 60 }];
+    mocks.capacity.mockImplementation(async ({ gameYear }: { gameYear: number }) => ({ availableGeneralSlots: gameYear === 5 ? 1 : 0, baseLimit: 35, youthReserveSlots: 0 }));
+    const result = await getRiderTransferManagement("user", "rival");
+    expect(result).toMatchObject({ canMakeCashOffer: false, canMakeTradeOffer: false, canMakeDirectOffer: true,
+      nextSeasonDirectOffer: { gameYear: 5, canMakeCashOffer: true, canMakeTradeOffer: true, salaryPerSeason: 7000 },
+    });
+    f.tables.seasons.push({ id: "s6", game_year: 6, status: "planned" });
+    f.tables.rider_contracts.push({ id: "future-other", rider_id: "rival", team_id: "third-team", status: "planned", start_season_id: "s6", end_season_id: "s6", acquisition_type: "direct" });
+    expect((await getRiderTransferManagement("user", "rival"))?.nextSeasonDirectOffer).toMatchObject({ canMakeCashOffer: false, canMakeTradeOffer: false });
+  });
   it("returns only eligible owned active riders with current salary and a salary estimate", async () => {
     const f = fixture(["eligible", "locked", "historical", "listed", "pending-target", "pending-offered", "future", "retired", "missing-quote", "foreign"]);
     f.tables.rider_contracts.find(row => row.rider_id === "locked")!.transfer_locked_season_id = "s4";

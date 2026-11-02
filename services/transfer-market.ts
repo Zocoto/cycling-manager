@@ -155,6 +155,8 @@ type DirectOfferRow = {
   status: "pending" | "accepted" | "rejected" | "cancelled";
   created_at: string;
   responded_at: string | null;
+  effective_season_id?: string | null;
+  effective_season?: { game_year: number } | null;
 };
 type SalaryQuoteRow = {
   rider_id: string;
@@ -287,6 +289,7 @@ export type TransferMarketOverview = {
   countries: Array<{ name: string; code: string }>;
   roster: TransferRosterCandidate[];
   directOffers: DirectTransferOffer[];
+  scheduledTransfers?: Array<DirectTransferOffer & { direction: "arrival" | "departure"; counterpartTeamName: string }>;
 };
 
 export type DirectTransferOffer = {
@@ -301,6 +304,17 @@ export type DirectTransferOffer = {
   buyerTeamName: string;
   rider: TransferRosterRider;
   offeredRider: (TransferRosterRider & { salaryPerSeason: number }) | null;
+  effectiveSeasonYear?: number | null;
+};
+
+export type DirectTransferTiming = "immediate" | "next_season";
+
+export type NextSeasonDirectTransferOption = {
+  gameYear: number;
+  salaryPerSeason: number;
+  canMakeCashOffer: boolean;
+  canMakeTradeOffer: boolean;
+  blockedReason: string | null;
 };
 
 export type DirectTransferTradeCandidate = {
@@ -357,6 +371,9 @@ export type RiderTransferManagement = {
   pendingDirectOfferAmount: number | null;
   pendingDirectOfferId: string | null;
   pendingOfferedRider: DirectTransferTradeCandidate | null;
+  pendingDirectOfferSeasonYear?: number | null;
+  scheduledDirectTransferSeasonYear?: number | null;
+  nextSeasonDirectOffer?: NextSeasonDirectTransferOption | null;
   availableBudget: number;
   cashBalance: number;
   currency: string;
@@ -405,6 +422,7 @@ export async function getTransferMarketOverview(
     dataRoomResult,
     pendingDirectOffersResult,
     receivedDirectOffersResult,
+    scheduledSentOffersResult,
   ] = await Promise.all([
     admin
       .from("transfer_market_listings")
@@ -479,10 +497,21 @@ export async function getTransferMarketOverview(
       ? admin
           .from("direct_transfer_offers")
           .select(
-            "id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, offered_rider_id, offered_rider_salary_per_season, currency_code, status, created_at, responded_at",
+            "id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, offered_rider_id, offered_rider_salary_per_season, currency_code, status, created_at, responded_at, effective_season_id, effective_season:seasons!effective_season_id(game_year)",
           )
           .eq("seller_team_id", context.teamSeason.team_id)
           .eq("season_id", context.season.id)
+          .order("created_at", { ascending: false })
+          .limit(100)
+          .returns<DirectOfferRow[]>()
+      : Promise.resolve({ data: [] as DirectOfferRow[], error: null }),
+    options.includeDirectOffers
+      ? admin.from("direct_transfer_offers")
+          .select("id, season_id, rider_id, buyer_team_id, seller_team_id, offered_amount, salary_per_season, offered_rider_id, offered_rider_salary_per_season, currency_code, status, created_at, responded_at, effective_season_id, effective_season:seasons!effective_season_id(game_year)")
+          .eq("buyer_team_id", context.teamSeason.team_id)
+          .eq("season_id", context.season.id)
+          .eq("status", "accepted")
+          .not("effective_season_id", "is", null)
           .order("created_at", { ascending: false })
           .limit(100)
           .returns<DirectOfferRow[]>()
@@ -511,6 +540,7 @@ export async function getTransferMarketOverview(
   assertQuery(dataRoomResult.error, "la Data Room de recrutement");
   assertQuery(pendingDirectOffersResult.error, "les offres directes réservées");
   assertQuery(receivedDirectOffersResult.error, "les offres directes reçues");
+  assertQuery(scheduledSentOffersResult.error, "les transferts programmés");
   const dataRoomLevel = dataRoomResult.data?.level ?? 0;
 
   const bids = bidsResult.data ?? [];
@@ -533,7 +563,9 @@ export async function getTransferMarketOverview(
     : [];
   riderSearchRows.forEach((rider) => riderIds.add(rider.rider_id));
   const directOffers = receivedDirectOffersResult.data ?? [];
-  directOffers.forEach((offer) => {
+  const scheduledSentOffers = scheduledSentOffersResult.data ?? [];
+  const visibleDirectOffers = [...directOffers, ...scheduledSentOffers];
+  visibleDirectOffers.forEach((offer) => {
     riderIds.add(offer.rider_id);
     if (offer.offered_rider_id) riderIds.add(offer.offered_rider_id);
   });
@@ -567,7 +599,7 @@ export async function getTransferMarketOverview(
               listing.winning_team_id,
             ])
             .concat(bids.map((bid) => bid.team_id))
-            .concat(directOffers.map((offer) => offer.buyer_team_id))
+            .concat(visibleDirectOffers.flatMap((offer) => [offer.buyer_team_id, offer.seller_team_id]))
             .filter((value): value is string => Boolean(value)),
         ),
       ],
@@ -709,6 +741,42 @@ export async function getTransferMarketOverview(
   const countryByCode = new Map(
     (countriesResult.data ?? []).map((country) => [country.iso_alpha2, country]),
   );
+  const mapDirectOffer = (offer: DirectOfferRow): DirectTransferOffer[] => {
+      const rider = riderById.get(offer.rider_id);
+      const offeredRider = offer.offered_rider_id
+        ? riderById.get(offer.offered_rider_id)
+        : null;
+      if (!rider) return [];
+      return [
+        {
+          id: offer.id,
+          amount: toNumber(offer.offered_amount),
+          salaryPerSeason: toNumber(offer.salary_per_season),
+          currency: offer.currency_code,
+          status: offer.status,
+          createdAt: offer.created_at,
+          respondedAt: offer.responded_at,
+          effectiveSeasonYear: offer.effective_season?.game_year ?? null,
+          buyerTeamId: offer.buyer_team_id,
+          buyerTeamName:
+            teamNames.get(offer.buyer_team_id) ?? "Équipe inconnue",
+          rider: {
+            id: rider.id,
+            firstName: rider.firstName,
+            lastName: rider.lastName,
+            overall: rider.overall,
+          },
+          offeredRider: offer.offered_rider_id ? {
+            id: offer.offered_rider_id,
+            firstName: offeredRider?.firstName ?? "Coureur",
+            lastName: offeredRider?.lastName ?? "indisponible",
+            overall: offeredRider?.overall ?? 0,
+            salaryPerSeason: toNumber(offer.offered_rider_salary_per_season),
+          } : null,
+        } satisfies DirectTransferOffer,
+      ];
+  };
+
   return {
     teamId: context.teamSeason.team_id,
     teamName: context.teamSeason.display_name,
@@ -752,40 +820,13 @@ export async function getTransferMarketOverview(
       name: country.name,
       code: country.iso_alpha2,
     })),
-    directOffers: directOffers.flatMap((offer) => {
-      const rider = riderById.get(offer.rider_id);
-      const offeredRider = offer.offered_rider_id
-        ? riderById.get(offer.offered_rider_id)
-        : null;
-      if (!rider) return [];
-      return [
-        {
-          id: offer.id,
-          amount: toNumber(offer.offered_amount),
-          salaryPerSeason: toNumber(offer.salary_per_season),
-          currency: offer.currency_code,
-          status: offer.status,
-          createdAt: offer.created_at,
-          respondedAt: offer.responded_at,
-          buyerTeamId: offer.buyer_team_id,
-          buyerTeamName:
-            teamNames.get(offer.buyer_team_id) ?? "Équipe inconnue",
-          rider: {
-            id: rider.id,
-            firstName: rider.firstName,
-            lastName: rider.lastName,
-            overall: rider.overall,
-          },
-          offeredRider: offer.offered_rider_id ? {
-            id: offer.offered_rider_id,
-            firstName: offeredRider?.firstName ?? "Coureur",
-            lastName: offeredRider?.lastName ?? "indisponible",
-            overall: offeredRider?.overall ?? 0,
-            salaryPerSeason: toNumber(offer.offered_rider_salary_per_season),
-          } : null,
-        } satisfies DirectTransferOffer,
-      ];
-    }),
+    directOffers: directOffers.flatMap(mapDirectOffer),
+    scheduledTransfers: visibleDirectOffers.filter(offer => offer.status === "accepted" && offer.effective_season_id).flatMap(offer =>
+      mapDirectOffer(offer).map(mapped => ({ ...mapped,
+        direction: offer.buyer_team_id === context.teamSeason.team_id ? "arrival" as const : "departure" as const,
+        counterpartTeamName: teamNames.get(offer.buyer_team_id === context.teamSeason.team_id ? offer.seller_team_id : offer.buyer_team_id) ?? "Équipe inconnue",
+      })),
+    ),
     roster: activeContracts.flatMap((contract) => {
       const rider = riderById.get(contract.rider_id);
       if (!rider) return [];
@@ -896,7 +937,7 @@ export async function getRiderTransferManagement(
       .returns<Array<{ rider_id: string }>>(),
     admin
       .from("direct_transfer_offers")
-      .select("id, offered_amount, offered_rider_id, offered_rider_salary_per_season")
+      .select("id, offered_amount, offered_rider_id, offered_rider_salary_per_season, effective_season_id, effective_season:seasons!effective_season_id(game_year)")
       .eq("buyer_team_id", context.teamSeason.team_id)
       .eq("rider_id", riderId)
       .eq("status", "pending")
@@ -905,6 +946,7 @@ export async function getRiderTransferManagement(
         offered_amount: number | string;
         offered_rider_id: string | null;
         offered_rider_salary_per_season: number | string | null;
+        effective_season?: { game_year: number } | null;
       }>(),
     admin.rpc("get_team_transfer_reserved_budget", {
       p_team_id: context.teamSeason.team_id,
@@ -1087,13 +1129,20 @@ export async function getRiderTransferManagement(
     activeContract?.transfer_locked_season_id === context.season.id;
   const hasChangedTeamThisSeason =
     (teamChangeLockResult.data?.length ?? 0) > 0;
+  const hasDeferredDeparture = Boolean(
+    ownsRider && nextSeasonContract?.status === "planned" &&
+    nextSeasonContract.team_id !== context.teamSeason.team_id &&
+    nextSeasonContract.acquisition_type === "direct_offer",
+  );
   const canListRider = Boolean(
-    ownsRider && !listingResult.data && !sourceContractLocked,
+    ownsRider && !listingResult.data && !sourceContractLocked && !hasDeferredDeparture,
   );
   const listingBlockedReason = ownsRider
     ? listingResult.data
       ? "Ce coureur est déjà proposé sur le marché."
-      : sourceContractLocked
+      : hasDeferredDeparture
+        ? "Ce coureur a déjà un départ programmé pour la saison suivante."
+        : sourceContractLocked
         ? "Ce coureur a déjà changé d’équipe cette saison : un nouveau transfert sera possible la saison suivante."
         : null
     : null;
@@ -1123,6 +1172,21 @@ export async function getRiderTransferManagement(
     : null);
   const canMakeTradeOffer = canTargetRider && directOfferBlockedReason === null &&
     !listingResult.data && riderResult.data.status === "active";
+  const hasConflictingFutureContract = contracts.some((contract) => {
+    return contract.status === "planned" &&
+      !(contract.team_id === activeContract?.team_id && contract.status === "planned" && contract.acquisition_type === "renewal");
+  });
+  const deferredBlockedReason = pendingOfferResult.data
+    ? "Votre équipe a déjà une offre en attente pour ce coureur."
+    : listingResult.data
+      ? "Ce coureur est déjà proposé sur le marché."
+      : hasConflictingFutureContract
+        ? "Ce coureur dispose déjà d’un engagement incompatible pour la saison suivante."
+        : riderResult.data.status !== "active"
+          ? "Ce coureur n’est pas disponible pour un transfert différé."
+          : null;
+  const canMakeDeferredTradeOffer = canTargetRider && Boolean(nextSeasonId) && deferredBlockedReason === null;
+  const canMakeDeferredCashOffer = canMakeDeferredTradeOffer && nextRosterCapacity.availableGeneralSlots > 0 && availableBudget >= 500;
   const pendingOfferedRiderId = pendingOfferResult.data?.offered_rider_id;
   const pendingOfferedRiderResult = pendingOfferedRiderId
     ? await admin.from("riders")
@@ -1173,11 +1237,11 @@ export async function getRiderTransferManagement(
           closesAt: listingResult.data.closes_at,
         }
       : null,
-    canDismiss: Boolean(ownsRider && activeContract),
+    canDismiss: Boolean(ownsRider && activeContract && !hasDeferredDeparture),
     dismissalCost: ownsRider ? toNumber(dismissalResult.data) : null,
     dismissalCurrency: context.teamSeason.currency,
     canMakeDirectOffer: canTargetRider &&
-      (cashOfferBlockedReason === null || canMakeTradeOffer),
+      (cashOfferBlockedReason === null || canMakeTradeOffer || canMakeDeferredCashOffer || canMakeDeferredTradeOffer),
     canMakeCashOffer: canTargetRider && cashOfferBlockedReason === null,
     canMakeTradeOffer,
     directOfferSalary: canTargetRider ? salary : null,
@@ -1186,6 +1250,18 @@ export async function getRiderTransferManagement(
       ? toNumber(pendingOfferResult.data.offered_amount)
       : null,
     pendingDirectOfferId: pendingOfferResult.data?.id ?? null,
+    pendingDirectOfferSeasonYear: pendingOfferResult.data?.effective_season?.game_year ?? null,
+    scheduledDirectTransferSeasonYear: canTargetRider && nextSeasonContract?.team_id === context.teamSeason.team_id
+      ? context.season.game_year + 1 : null,
+    nextSeasonDirectOffer: canTargetRider && nextSeasonId ? {
+      gameYear: context.season.game_year + 1,
+      salaryPerSeason: renewalSalary,
+      canMakeCashOffer: canMakeDeferredCashOffer,
+      canMakeTradeOffer: canMakeDeferredTradeOffer,
+      blockedReason: deferredBlockedReason ?? (nextRosterCapacity.availableGeneralSlots <= 0
+        ? "Votre effectif de la saison suivante est complet : un échange doit libérer la place nécessaire."
+        : availableBudget < 500 ? "Votre trésorerie disponible ne couvre pas l’offre minimale." : null),
+    } : null,
     pendingOfferedRider: pendingOfferedRiderId ? {
       id: pendingOfferedRiderId,
       firstName: pendingOfferedRiderResult.data?.first_name ?? "Coureur",
@@ -1201,6 +1277,7 @@ export async function getRiderTransferManagement(
 
 export async function getCurrentTeamDirectTransferTradeCandidates(
   authUserId: string,
+  timing: DirectTransferTiming = "immediate",
 ): Promise<DirectTransferTradeCandidate[]> {
   const admin = createSupabaseAdminClient();
   const context = await loadCurrentContext(admin, authUserId);
@@ -1212,10 +1289,17 @@ export async function getCurrentTeamDirectTransferTradeCandidates(
     .limit(200)
     .returns<ContractRow[]>();
   assertQuery(contractsResult.error, "vos contrats échangeables");
+  const seasonYears = timing === "next_season" ? await loadSeasonYears(admin) : null;
+  const salarySeasonId = seasonYears
+    ? [...seasonYears.entries()].find(([, year]) => year === context.season.game_year + 1)?.[0]
+    : context.season.id;
+  if (!salarySeasonId) return [];
   return loadDirectTransferTradeCandidates({
     admin,
     contracts: contractsResult.data ?? [],
     seasonId: context.season.id,
+    timing,
+    salarySeasonId,
   });
 }
 
@@ -1225,20 +1309,25 @@ async function loadDirectTransferTradeCandidates({
   admin,
   contracts,
   seasonId,
+  timing,
+  salarySeasonId,
 }: {
   admin: ReturnType<typeof createSupabaseAdminClient>;
   contracts: ContractRow[];
   seasonId: string;
+  timing: DirectTransferTiming;
+  salarySeasonId: string;
 }): Promise<DirectTransferTradeCandidate[]> {
   const candidates = contracts.filter((contract) =>
     contract.status === "active" &&
-    contract.transfer_locked_season_id !== seasonId &&
+    (timing === "next_season" || contract.transfer_locked_season_id !== seasonId) &&
     !contracts.some((other) => other.rider_id === contract.rider_id &&
       other.status === "planned" && other.acquisition_type !== "renewal"),
   );
   const riderIds = [...new Set(candidates.map((contract) => contract.rider_id))];
   if (riderIds.length === 0) return [];
-  const [ridersResult, listingsResult, offersResult, lockedIds, salaryQuotes] = await Promise.all([
+  const contractByRider = new Map(candidates.map((contract) => [contract.rider_id, contract]));
+  const [ridersResult, listingsResult, offersResult, futureContractsResult, lockedIds, salaryQuotes] = await Promise.all([
     admin.from("riders")
       .select("id, first_name, last_name")
       .in("id", riderIds)
@@ -1257,19 +1346,29 @@ async function loadDirectTransferTradeCandidates({
       .or(`rider_id.in.(${riderIds.join(",")}),offered_rider_id.in.(${riderIds.join(",")})`)
       .limit(1000)
       .returns<Array<{ rider_id: string; offered_rider_id: string | null }>>(),
-    loadSeasonTeamChangeLockedRiderIds(admin, riderIds, seasonId),
-    loadRiderSalaryQuotes(admin, riderIds, seasonId),
+    admin.from("rider_contracts")
+      .select("rider_id, team_id, acquisition_type")
+      .in("rider_id", riderIds)
+      .eq("status", "planned")
+      .limit(1000)
+      .returns<Array<Pick<ContractRow, "rider_id" | "team_id" | "acquisition_type">>>(),
+    timing === "next_season" ? Promise.resolve(new Set<string>()) : loadSeasonTeamChangeLockedRiderIds(admin, riderIds, seasonId),
+    loadRiderSalaryQuotes(admin, riderIds, salarySeasonId),
   ]);
   assertQuery(ridersResult.error, "vos coureurs échangeables");
   assertQuery(listingsResult.error, "leurs enchères");
   assertQuery(offersResult.error, "leurs offres en attente");
+  assertQuery(futureContractsResult.error, "leurs engagements futurs");
   const unavailable = new Set([
     ...lockedIds,
     ...(listingsResult.data ?? []).map((listing) => listing.rider_id),
     ...(offersResult.data ?? []).flatMap((offer) =>
       offer.offered_rider_id ? [offer.rider_id, offer.offered_rider_id] : [offer.rider_id]),
+    ...(futureContractsResult.data ?? []).filter((contract) =>
+      contract.team_id !== contractByRider.get(contract.rider_id)?.team_id ||
+      contract.acquisition_type !== "renewal",
+    ).map((contract) => contract.rider_id),
   ]);
-  const contractByRider = new Map(candidates.map((contract) => [contract.rider_id, contract]));
   return (ridersResult.data ?? []).flatMap((rider) => {
     const contract = contractByRider.get(rider.id);
     const salary = salaryQuotes.get(rider.id);

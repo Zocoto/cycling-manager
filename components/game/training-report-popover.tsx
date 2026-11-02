@@ -6,9 +6,11 @@ import { TRAINER_SPECIALTY_LABELS } from "@/lib/game/staff";
 import { BonusBreakdownPopover } from "@/components/game/bonus-breakdown-popover";
 import {
   formatTrainingProgressMilli,
+  getTrainingProgressLimit,
   TRAINING_DOMAIN_LABELS,
   type RiderTrainingReport,
   type RiderTrainingSeasonReport,
+  type TrainingProgressLimit,
   type TrainingSessionStatus,
 } from "@/lib/game/training";
 
@@ -113,7 +115,7 @@ export function TrainingReportPopover({
         </div>
 
         <div id={`${panelId}-latest`} hidden={activeView !== "latest"}>
-          <LatestTrainingReport report={report} />
+          <LatestTrainingReport report={report} seasonReport={seasonReport} />
         </div>
         <div id={`${panelId}-season`} hidden={activeView !== "season"}>
           <SeasonTrainingReport report={seasonReport} />
@@ -152,7 +154,10 @@ function ReportViewButton({
   );
 }
 
-function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
+export function LatestTrainingReport({ report, seasonReport }: {
+  report: RiderTrainingReport;
+  seasonReport: RiderTrainingSeasonReport;
+}) {
   const isCompleted = report.status === "completed";
   const isLowFormRest = report.status === "skipped_low_form";
   const displaysFormChange = isCompleted || isLowFormRest;
@@ -164,6 +169,9 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
   );
   const declineProgress = sortStatEntries(report.declineMilli).filter(
     ([, value]) => value > 0,
+  );
+  const hasProgressLimit = seasonReport.stats.some(
+    (stat) => getTrainingProgressLimit(stat, seasonReport) !== null,
   );
 
   return (
@@ -229,6 +237,8 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
           {trainingProgress.length > 0 ? (
             <ul className="mt-3 grid grid-cols-2 gap-2 text-xs font-black">
               {trainingProgress.map(([stat, value]) => {
+                const seasonStat = seasonReport.stats.find((entry) => entry.statCode === stat);
+                const limit = seasonStat ? getTrainingProgressLimit(seasonStat, seasonReport) : null;
                 const bonusBreakdown =
                   report.bonusBreakdownByStat?.[
                     stat as keyof NonNullable<
@@ -248,6 +258,7 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
                         +{formatTrainingProgressMilli(value)}
                       </span>
                     </span>
+                    {limit ? <TrainingLimitNotice limit={limit} /> : null}
                     {bonusBreakdown ? (
                       <span className="mt-2 block border-t border-white/10 pt-2">
                         <BonusBreakdownPopover
@@ -309,14 +320,16 @@ function LatestTrainingReport({ report }: { report: RiderTrainingReport }) {
                     `${STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
                 )
                 .join(" · ")
-            : "Aucune note entière n’a changé : les décimales sont conservées pour les prochaines séances."}
+            : hasProgressLimit
+              ? "Aucune note entière n’a changé. Consultez les plafonds dans le bilan de saison."
+              : "Aucune note entière n’a changé : les décimales sont conservées pour les prochaines séances."}
         </p>
       </div>
     </>
   );
 }
 
-function SeasonTrainingReport({
+export function SeasonTrainingReport({
   report,
 }: {
   report: RiderTrainingSeasonReport;
@@ -373,7 +386,9 @@ function SeasonTrainingReport({
       </div>
 
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-        {report.stats.map((stat) => (
+        {report.stats.map((stat) => {
+          const limit = getTrainingProgressLimit(stat, report);
+          return (
           <li
             key={stat.statCode}
             className="rounded-xl border border-white/10 bg-white/5 px-3 py-3"
@@ -408,8 +423,10 @@ function SeasonTrainingReport({
             <p className="mt-1 text-[10px] font-black text-[#8EB9AA]">
               Solde décimal {formatSignedMilli(stat.balanceMilli)}
             </p>
+            {limit ? <TrainingLimitNotice limit={limit} /> : null}
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       <p className="mt-4 border-t border-white/10 pt-4 text-[10px] font-bold leading-4 text-[#8EB9AA]">
@@ -417,6 +434,20 @@ function SeasonTrainingReport({
         {report.lastSessionDayNumber}.
       </p>
     </>
+  );
+}
+
+function TrainingLimitNotice({ limit }: { limit: TrainingProgressLimit }) {
+  return (
+    <p className="mt-2 text-[10px] font-bold leading-4 text-[#F2D58A]">
+      {limit.kind === "season" ? (
+        <>Plafond saisonnier atteint : +{limit.value}/{limit.value}. Reprise la saison prochaine.</>
+      ) : limit.kind === "potential" ? (
+        <>Plafond de potentiel atteint : {limit.value}.</>
+      ) : (
+        <>Maintien de la note de début de saison : {limit.value}.</>
+      )}
+    </p>
   );
 }
 
