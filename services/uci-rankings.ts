@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { SPONSORS } from "@/data/sponsors";
 import {
@@ -116,7 +116,7 @@ export type UciRankings = {
   nations: NationRankingEntry[];
 };
 
-const getCachedUciRankings = unstable_cache(loadUciRankings, ["uci-rankings-complete-v2"], {
+const getCachedUciRankings = compactDataCache(loadUciRankings, ["uci-rankings-complete-v2"], {
   revalidate: 60,
   tags: ["uci-rankings"],
 });

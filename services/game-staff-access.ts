@@ -1,5 +1,5 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { GAME_STAFF_CACHE_TAG, type GameStaffRole } from "@/lib/game/game-product-news";
@@ -14,7 +14,7 @@ export async function getCurrentGameStaffRole(supabase: Client): Promise<GameSta
 }
 
 // Presentation only: public director ids cannot grant access to any protected action.
-export const getGameStaffDirectorIds = unstable_cache(async (): Promise<string[]> => {
+export const getGameStaffDirectorIds = compactDataCache(async (): Promise<string[]> => {
   try {
     const result = await createSupabaseAdminClient().rpc("get_game_staff_directory")
       .abortSignal(AbortSignal.timeout(2000));

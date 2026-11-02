@@ -11,10 +11,10 @@ const raceCalendarService = readFileSync(
 describe("race calendar stage segment cache", () => {
   it("shares immutable stage geometry across server requests", () => {
     expect(raceCalendarService).toContain(
-      'import { unstable_cache } from "next/cache"',
+      'import { compactDataCache } from "@/lib/performance/compact-data-cache"',
     );
     expect(raceCalendarService).toContain(
-      'const loadCachedStageSegmentBatch = unstable_cache(',
+      'const loadCachedStageSegmentBatch = compactDataCache(',
     );
     expect(raceCalendarService).toContain(
       '["race-calendar-stage-segments-v3-olympic-road"]',

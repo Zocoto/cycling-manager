@@ -1,13 +1,13 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type CountryCountRow = { country_id: string; director_count: number | string };
 
 // Only requested while an initial nationality choice is still available.
 // Counts are shared presentation data; no session or player record is cached.
-const loadCountryCounts = unstable_cache(async (): Promise<Record<string, number>> => {
+const loadCountryCounts = compactDataCache(async (): Promise<Record<string, number>> => {
   const result = await createSupabaseAdminClient()
     .rpc("get_onboarding_country_director_counts")
     .abortSignal(AbortSignal.timeout(3000));

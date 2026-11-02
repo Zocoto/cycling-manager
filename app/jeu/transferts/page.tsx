@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 import { DirectTransferOfferTerms } from "@/components/game/direct-transfer-offer-terms";
+import { ScheduledDirectTransfers } from "@/components/game/scheduled-direct-transfers";
 
 import {
   placeTransferBidAction,
@@ -265,7 +266,10 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
             returnPath={currentPath}
           />
         ) : (
-          <ReceivedDirectOffers offers={overview.directOffers} returnPath={currentPath} />
+          <>
+            <ScheduledDirectTransfers offers={overview.scheduledTransfers ?? []} />
+            <ReceivedDirectOffers offers={overview.directOffers} returnPath={currentPath} />
+          </>
         )}
       </section>
     </main>
@@ -385,7 +389,9 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                 <div className="p-6">
                   <DirectTransferOfferTerms offer={offer} />
                   <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
-                    {offer.offeredRider
+                    {offer.effectiveSeasonYear
+                      ? "L’acceptation bloque l’indemnité et réserve les places dans les effectifs de la saison suivante. Le vendeur sera payé lors du transfert ; chaque coureur termine la saison avec son équipe actuelle."
+                      : offer.offeredRider
                       ? "L’acceptation vérifie à nouveau les deux coureurs, les effectifs et les budgets. Les inscriptions aux courses futures sont retirées ; si une composition devient insuffisante, son DS est averti. Aucune course en cours ni aucun stage ne sera annulé pour forcer l’échange."
                       : "En acceptant, votre équipe reçoit l’indemnité et l’acheteur prend immédiatement en charge le coureur. Les équipements, inscriptions et stages sont nettoyés automatiquement."}
                   </p>
@@ -451,6 +457,7 @@ function ReceivedDirectOffers({ offers, returnPath }: {
                           >
                             {offer.rider.firstName} {offer.rider.lastName}
                           </Link>
+                          {offer.effectiveSeasonYear ? <p className="mt-1 text-xs font-bold text-[#8A6B16]">Début de la saison {offer.effectiveSeasonYear}</p> : null}
                         </td>
                         <td className="px-4 py-4 text-sm font-bold text-[#48665F]">
                           {offer.buyerTeamName}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { getFederationJuniorBirthYearRange } from "@/lib/game/federation-junior-eligibility";
 import { projectYouthRating } from "@/lib/game/youth-training";
@@ -87,7 +87,7 @@ type JuniorRow = {
   prologue: number | string;
 };
 
-const getCachedFederationSelectionPool = unstable_cache(
+const getCachedFederationSelectionPool = compactDataCache(
   (
     countryId: string,
     seasonId: string,

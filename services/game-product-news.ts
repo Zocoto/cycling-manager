@@ -1,5 +1,5 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -21,14 +21,14 @@ function toPublished(row: PublishedRow): PublishedGameNews {
 }
 
 // No cookies, identity or draft data enter this shared cache.
-export const getPublishedGameNews = unstable_cache(async (): Promise<PublishedGameNews[]> => {
+export const getPublishedGameNews = compactDataCache(async (): Promise<PublishedGameNews[]> => {
   const result = await createSupabaseAdminClient().rpc("get_published_game_news", { p_limit: 50, p_id: null })
     .abortSignal(AbortSignal.timeout(2000));
   if (result.error) throw new Error("Les actualités du jeu n’ont pas pu être chargées.");
   return ((result.data ?? []) as PublishedRow[]).map(toPublished);
 }, ["published-game-product-news-v1"], { tags: [GAME_NEWS_CACHE_TAG], revalidate: 60 });
 
-export const getPublishedGameNewsById = unstable_cache(async (id: string): Promise<PublishedGameNews | null> => {
+export const getPublishedGameNewsById = compactDataCache(async (id: string): Promise<PublishedGameNews | null> => {
   const result = await createSupabaseAdminClient().rpc("get_published_game_news", { p_limit: 1, p_id: id })
     .abortSignal(AbortSignal.timeout(2000));
   if (result.error) throw new Error("Cette actualité n’a pas pu être chargée.");

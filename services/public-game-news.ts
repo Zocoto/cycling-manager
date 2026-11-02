@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { compactDataCache } from "@/lib/performance/compact-data-cache";
 
 import { SPONSORS } from "@/data/sponsors";
 import {
@@ -227,7 +227,7 @@ const movementTypes = [
   "free_agent",
 ] as const;
 
-const getCachedPublicGameNews = unstable_cache(
+const getCachedPublicGameNews = compactDataCache(
   loadPublicGameNews,
   ["public-game-news"],
   {
@@ -309,7 +309,7 @@ async function loadRecentCyclogazettePublications(
   return { items, total: totalQuery.count ?? items.length };
 }
 
-const getCachedDashboardPelotonNews = unstable_cache(
+const getCachedDashboardPelotonNews = compactDataCache(
   loadDashboardPelotonNews,
   ["dashboard-peloton-news"],
   {

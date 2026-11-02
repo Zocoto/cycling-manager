@@ -1173,15 +1173,19 @@ function DirectTransferOfferCard({
       <h2 className="mt-2 text-2xl font-black">Faire une offre</h2>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#BFD1C6]">
         Proposez une indemnité, un coureur de votre équipe ou les deux à {teamName}. Son Directeur Sportif recevra un
-        courrier et pourra accepter ou refuser. En cas d’accord, le contrat
-        couvre la fin de la saison en cours.
+        courrier et pourra accepter ou refuser. Choisissez une arrivée dès
+        l’acceptation ou au début de la saison suivante.
       </p>
 
-      {management.pendingDirectOfferAmount !== null ? (
+      {management.scheduledDirectTransferSeasonYear ? <div className="mt-5 rounded-xl border border-[#9BE0BC]/30 bg-white/5 p-4 text-sm font-bold leading-6 text-[#9BE0BC]">
+        <p>Arrivée prévue au début de la saison {management.scheduledDirectTransferSeasonYear}</p>
+        <Link href="/jeu/transferts?onglet=offres" className="mt-2 inline-block text-xs text-white underline underline-offset-4">Voir les transferts programmés ↗</Link>
+      </div> : management.pendingDirectOfferAmount !== null ? (
         <div className="mt-5 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-4 py-4">
           <p className="text-[10px] font-black uppercase tracking-wider text-[#FFE596]">
             Offre en attente
           </p>
+          {management.pendingDirectOfferSeasonYear ? <p className="mt-2 text-sm font-black text-[#FFE596]">Début de la saison {management.pendingDirectOfferSeasonYear}</p> : null}
           <p className="mt-1 text-xl font-black text-[#F2C94C]">
             {formatMoney(
               management.pendingDirectOfferAmount,
@@ -1214,6 +1218,7 @@ function DirectTransferOfferCard({
           currency={management.currency}
           canMakeCashOffer={management.canMakeCashOffer}
           canMakeTradeOffer={management.canMakeTradeOffer}
+          nextSeason={management.nextSeasonDirectOffer}
         />
       ) : (
         <p className="mt-5 rounded-xl bg-[#F2C94C]/10 px-4 py-3 text-xs font-bold text-[#FFE596]">
