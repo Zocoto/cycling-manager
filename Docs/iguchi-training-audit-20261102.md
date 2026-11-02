@@ -1,5 +1,9 @@
 # Iguchi: training progression audit, 2 November 2026
 
+Superseded the same day by the removal of annual training allowances and
+recovery described in [Training without seasonal allowances](training-unlimited-20261102.md).
+The findings below describe the former rules, not the current policy.
+
 ## Finding
 
 Takeshi Iguchi (`4e44a1c8-c33d-49b1-9cf2-b5e809e20762`), Uji Midori,

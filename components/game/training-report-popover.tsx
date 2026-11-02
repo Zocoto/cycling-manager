@@ -440,9 +440,7 @@ export function SeasonTrainingReport({
 function TrainingLimitNotice({ limit }: { limit: TrainingProgressLimit }) {
   return (
     <p className="mt-2 text-[10px] font-bold leading-4 text-[#F2D58A]">
-      {limit.kind === "season" ? (
-        <>Plafond saisonnier atteint : +{limit.value}/{limit.value}. Reprise la saison prochaine.</>
-      ) : limit.kind === "potential" ? (
+      {limit.kind === "potential" ? (
         <>Plafond de potentiel atteint : {limit.value}.</>
       ) : (
         <>Maintien de la note de début de saison : {limit.value}.</>

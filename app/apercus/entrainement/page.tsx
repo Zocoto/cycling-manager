@@ -7,7 +7,7 @@ export default function TrainingLimitsPreview() {
   return <main className="min-h-screen bg-[#EAF5F3] p-5 text-[#183C32] sm:p-10">
     <div className="mx-auto max-w-3xl rounded-2xl bg-white p-4 sm:p-8">
       <h1 className="text-lg font-black">Rapport d’entraînement · exemple local</h1>
-      <p className="mt-2 text-sm">Vallon 61 → 73 · progression saisonnière +12</p>
+      <p className="mt-2 text-sm">Vallon 61 → 75 · progression sans plafond saisonnier</p>
       <div className="mt-5 flex justify-end">
         <TrainingReportPopover report={trainingLimitLatestFixture} seasonReport={trainingLimitSeasonFixture} />
       </div>

@@ -478,16 +478,7 @@ export function getRatingProgressFactor(rating: number): number {
   return 0.05;
 }
 
-export function getSeasonRatingGainCap(initialRating: number): number {
-  if (initialRating < 60) return 18;
-  if (initialRating < 70) return 12;
-  if (initialRating < 80) return 8;
-  if (initialRating < 90) return 4;
-  return 2;
-}
-
 export type TrainingProgressLimit =
-  | { kind: "season"; value: number }
   | { kind: "potential"; value: number }
   | { kind: "veteran"; value: number };
 
@@ -497,10 +488,6 @@ export function getTrainingProgressLimit(
   context: Pick<RiderTrainingSeasonReport, "age" | "potentialSteps">,
 ): TrainingProgressLimit | null {
   if (context.age === undefined) return null;
-  const seasonCap = getSeasonRatingGainCap(stat.initialRating);
-  if (context.age < 32 && stat.ratingGain >= seasonCap) {
-    return { kind: "season", value: seasonCap };
-  }
   if (context.potentialSteps !== undefined) {
     const potentialCap = getPotentialStatCap(context.potentialSteps);
     if (stat.currentRating >= potentialCap) {

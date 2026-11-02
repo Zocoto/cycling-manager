@@ -4,15 +4,15 @@ import { getTrainingProgressLimit } from "./training";
 describe("training progression limits shown in reports", () => {
   const iguchi = { initialRating: 61, currentRating: 73, ratingGain: 12 };
 
-  it("explains the +12 seasonal limit independently of four-star potential", () => {
+  it("does not stop Iguchi's progression after +12 seasonal points", () => {
     expect(getTrainingProgressLimit(iguchi, { age: 18, potentialSteps: 8 }))
-      .toEqual({ kind: "season", value: 12 });
+      .toBeNull();
   });
 
   it.each([[59, 18], [60, 12], [69, 12], [70, 8], [79, 8], [80, 4], [89, 4], [90, 2]])(
-    "uses the season-start tier for %i, with a maximum gain of %i", (initialRating, cap) => {
+    "does not impose the old season-start allowance for %i (+%i)", (initialRating, cap) => {
       expect(getTrainingProgressLimit({ initialRating, currentRating: initialRating + cap, ratingGain: cap },
-        { age: 22, potentialSteps: 8 })).toEqual({ kind: "season", value: cap });
+        { age: 22, potentialSteps: 8 })).toBeNull();
     },
   );
 
@@ -20,12 +20,12 @@ describe("training progression limits shown in reports", () => {
     expect(getTrainingProgressLimit({ ...iguchi, ratingGain: 11 }, { age: 18, potentialSteps: 8 })).toBeNull();
   });
 
-  it("resets the seasonal allowance when the new season starts at 73", () => {
+  it("keeps progression available when a new season starts at 73", () => {
     expect(getTrainingProgressLimit({ initialRating: 73, currentRating: 73, ratingGain: 0 },
       { age: 19, potentialSteps: 8 })).toBeNull();
   });
 
-  it("distinguishes the potential ceiling from the seasonal ceiling, including item gains above it", () => {
+  it("identifies potential ceilings, including existing item gains above them", () => {
     for (const currentRating of [70, 72]) {
       expect(getTrainingProgressLimit({ initialRating: 68, currentRating, ratingGain: 2 },
         { age: 22, potentialSteps: 1 })).toEqual({ kind: "potential", value: 70 });

@@ -2984,5 +2984,6 @@
   "Plafond de potentiel atteint :": "Potential limit reached:",
   "Plafond saisonnier atteint : +": "Seasonal limit reached: +",
   "Rapport d’entraînement · exemple local": "Training report · local example",
-  "Vallon 61 → 73 · progression saisonnière +12": "Hills 61 → 73 · seasonal progression +12"
+  "Vallon 61 → 73 · progression saisonnière +12": "Hills 61 → 73 · seasonal progression +12",
+  "Vallon 61 → 75 · progression sans plafond saisonnier": "Hills 61 → 75 · progression without a seasonal limit"
 }

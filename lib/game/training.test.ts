@@ -13,7 +13,6 @@ import {
   getNaturalDeclineMultiplierFromRoll,
   getRatingProgressFactor,
   getSeasonDeclinePoints,
-  getSeasonRatingGainCap,
   getSkippedTrainingFormDelta,
   getTrainerMultiplier,
   getTrainerRiderCapacity,
@@ -214,11 +213,8 @@ describe("training progression", () => {
     ).toBeCloseTo(1.3);
   });
 
-  it("makes low ratings progress faster and caps seasonal integer gains", () => {
+  it("makes low ratings progress faster", () => {
     expect(getRatingProgressFactor(48)).toBeGreaterThan(getRatingProgressFactor(75));
-    expect([45, 59, 60, 70, 80, 90].map(getSeasonRatingGainCap)).toEqual([
-      18, 18, 12, 8, 4, 2,
-    ]);
   });
 
   it("applies the intermediate professional progression tiers at their exact thresholds", () => {

@@ -6,20 +6,19 @@ import { LatestTrainingReport, SeasonTrainingReport, TrainingReportPopover } fro
 import { trainingLimitLatestFixture, trainingLimitSeasonFixture } from "@/test/fixtures/training-progress-limits";
 
 describe("TrainingReportPopover", () => {
-  it("explains a capped daily gain instead of promising it will increase the next note", () => {
+  it("allows progression beyond the former seasonal ceiling", () => {
     const markup = renderToStaticMarkup(<LatestTrainingReport
       report={trainingLimitLatestFixture} seasonReport={trainingLimitSeasonFixture} />);
-    expect(markup).toContain("Plafond saisonnier atteint : +12/12. Reprise la saison prochaine.");
+    expect(markup).not.toContain("Plafond saisonnier");
     expect(markup).toContain("+0,398");
-    expect(markup).not.toContain("les décimales sont conservées pour les prochaines séances");
+    expect(markup).toContain("VAL +2");
   });
 
-  it("keeps the actual balance visible beside the seasonal ceiling", () => {
+  it("shows the recovered balance without a seasonal ceiling", () => {
     const markup = renderToStaticMarkup(<SeasonTrainingReport report={trainingLimitSeasonFixture} />);
-    expect(markup).toContain("Plafond saisonnier atteint : +12/12. Reprise la saison prochaine.");
-    expect(markup).toContain("+0,999");
+    expect(markup).not.toContain("Plafond saisonnier");
+    expect(markup).toContain("+0,409");
     expect(markup).toContain("14,409");
-    expect(markup.match(/Plafond saisonnier atteint/g)).toHaveLength(1);
   });
 
   it("garde le rapport détaillé hors du HTML tant que le panneau reste fermé", () => {
