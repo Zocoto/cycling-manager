@@ -18,12 +18,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { dispatchDuePushNotifications } from "@/services/push-notifications";
 import { getCurrentTeamDirectTransferTradeCandidates } from "@/services/transfer-market";
 
-export async function loadDirectTransferTradeCandidatesAction() {
+export async function loadDirectTransferTradeCandidatesAction(timing: "immediate" | "next_season" = "immediate") {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) redirect("/connexion");
+  if (timing !== "immediate" && timing !== "next_season") return { candidates: [], error: "La date d’effet du transfert est invalide." };
   try {
-    return { candidates: await getCurrentTeamDirectTransferTradeCandidates(user.id), error: null };
+    return { candidates: await (timing === "immediate"
+      ? getCurrentTeamDirectTransferTradeCandidates(user.id)
+      : getCurrentTeamDirectTransferTradeCandidates(user.id, timing)), error: null };
   } catch (error) {
     console.error("direct_transfer_trade_candidates_failed", error);
     return { candidates: [], error: "Impossible de charger vos coureurs échangeables. Vous pouvez réessayer sans modifier votre offre en argent." };
@@ -124,12 +127,16 @@ export async function renewRiderContractAction(formData: FormData) {
 export async function submitDirectTransferOfferAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const offeredRiderId = readValue(formData, "offeredRiderId");
+  const timing = readValue(formData, "timing") || "immediate";
   const amount = Number(readValue(formData, "amount"));
   const message = normalizeDirectMessage(readValue(formData, "message"));
   const returnPath = isUuid(riderId)
     ? (buildRiderReturnPath(readValue(formData, "returnPath"), riderId) ??
       `/jeu/coureurs/${riderId}`)
     : "/jeu/transferts?onglet=offres";
+  if (timing !== "immediate" && timing !== "next_season") {
+    redirectWithMessage(returnPath, "erreur", "La date d’effet du transfert est invalide.");
+  }
   if (
     !isUuid(riderId) ||
     (offeredRiderId !== "" && (!isUuid(offeredRiderId) || offeredRiderId === riderId)) ||
@@ -156,14 +163,16 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
 
   const supabase = await authenticatedClient();
   const { error } = await supabase.rpc(
-    offeredRiderId
+    timing === "next_season"
+      ? "submit_deferred_direct_transfer_offer"
+      : offeredRiderId
       ? "submit_direct_transfer_trade_offer"
       : "submit_direct_transfer_offer_with_message",
     {
       p_rider_id: riderId,
       p_amount: amount,
       p_message: message || null,
-      ...(offeredRiderId ? { p_offered_rider_id: offeredRiderId } : {}),
+      ...(timing === "next_season" || offeredRiderId ? { p_offered_rider_id: offeredRiderId || null } : {}),
     },
   );
   if (error) {
@@ -178,13 +187,15 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
   if (offeredRiderId) revalidatePath(`/jeu/coureurs/${offeredRiderId}`);
-  if (offeredRiderId) revalidatePath("/jeu/courses", "layout");
+  if (offeredRiderId && timing === "immediate") revalidatePath("/jeu/courses", "layout");
   revalidatePath("/jeu/messagerie");
   revalidatePath("/jeu/chat");
   redirectWithMessage(
     returnPath,
     "succes",
-    offeredRiderId
+    timing === "next_season"
+      ? "Votre offre pour le début de la saison suivante a été transmise. L’indemnité sera bloquée à l’acceptation, puis versée au vendeur lors du transfert."
+      : offeredRiderId
       ? "Votre offre a été transmise. Votre coureur a été désinscrit de ses courses à venir ; l’offre et votre message sont disponibles dans votre conversation privée."
       : "Votre offre a été transmise et ajoutée à votre conversation privée avec le Directeur Sportif.",
   );
@@ -198,9 +209,9 @@ export async function cancelDirectTransferOfferAction(formData: FormData) {
   const supabase = await authenticatedClient();
   const { data: offer, error: offerError } = await supabase
     .from("direct_transfer_offers")
-    .select("rider_id, offered_rider_id")
+    .select("rider_id, offered_rider_id, effective_season_id")
     .eq("id", offerId)
-    .maybeSingle<{ rider_id: string; offered_rider_id: string | null }>();
+    .maybeSingle<{ rider_id: string; offered_rider_id: string | null; effective_season_id?: string | null }>();
   if (offerError || !offer) {
     redirectWithMessage("/jeu/transferts?onglet=offres", "erreur", "Cette offre n’est plus accessible.");
   }
@@ -232,9 +243,9 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
   // RLS limits this read to the teams participating in the offer.
   const { data: offer, error: offerError } = await supabase
     .from("direct_transfer_offers")
-    .select("rider_id, offered_rider_id")
+    .select("rider_id, offered_rider_id, effective_season_id")
     .eq("id", offerId)
-    .maybeSingle<{ rider_id: string; offered_rider_id: string | null }>();
+    .maybeSingle<{ rider_id: string; offered_rider_id: string | null; effective_season_id?: string | null }>();
   if (offerError || !offer) {
     redirectWithMessage(returnPath, "erreur", "Cette offre n’est plus accessible.");
   }
@@ -256,12 +267,14 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
   for (const riderId of [offer.rider_id, offer.offered_rider_id]) {
     if (riderId && isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
   }
-  if (offer.offered_rider_id && decision === "accept") revalidatePath("/jeu/courses", "layout");
+  if (offer.offered_rider_id && decision === "accept" && !offer.effective_season_id) revalidatePath("/jeu/courses", "layout");
   redirectWithMessage(
     returnPath,
     "succes",
     decision === "accept"
-      ? "L'offre est acceptée : le transfert et les écritures financières sont enregistrés."
+      ? offer.effective_season_id
+        ? "L’offre est acceptée. L’indemnité est bloquée jusqu’au transfert au début de la saison suivante ; le coureur reste dans son équipe actuelle jusque-là."
+        : "L'offre est acceptée : le transfert et les écritures financières sont enregistrés."
       : "L'offre a été refusée et le Directeur Sportif demandeur a été prévenu.",
   );
 }

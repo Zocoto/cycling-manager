@@ -9,9 +9,14 @@ export function DirectTransferOfferTerms({ offer }: { offer: DirectTransferOffer
 
   return (
     <div className="space-y-3">
+      {offer.effectiveSeasonYear ? <div className="rounded-xl border border-[#D9A247]/35 bg-[#FFF8E5] p-3 text-xs font-bold leading-5 text-[#71580A]">
+        <p>Début de la saison {offer.effectiveSeasonYear}</p>
+        <p className="mt-1">L’indemnité est bloquée à l’acceptation, puis versée au vendeur au début de la saison suivante. Les coureurs restent dans leurs équipes jusque-là, avec leurs inscriptions et entraînements.</p>
+        <p className="mt-1">Le nouveau contrat couvre uniquement la saison suivante. Les prolongations déjà prévues avec l’équipe actuelle seront remplacées par cet accord.</p>
+      </div> : null}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-[#F3F8F6] p-3">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">Indemnité reçue</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">{offer.effectiveSeasonYear ? "Indemnité à recevoir" : "Indemnité reçue"}</p>
           <p className="mt-1 text-lg font-black text-[#183F37]">{money(offer.amount)}</p>
         </div>
         <div className="rounded-xl bg-[#F3F8F6] p-3">
@@ -26,8 +31,10 @@ export function DirectTransferOfferTerms({ offer }: { offer: DirectTransferOffer
             {offer.offeredRider.firstName} {offer.offeredRider.lastName} ↗
           </Link>
           <p className="mt-2 text-xs font-bold leading-5 text-[#48665F]">Salaire à votre charge : {money(offer.offeredRider.salaryPerSeason)} / saison.</p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la fin de la saison en cours. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir.</p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">Une course commencée ou un départ déjà figé bloque l’échange. Les stages et reconnaissances doivent toujours être terminés ou annulés. Ces conditions sont revérifiées pour les deux coureurs à l’acceptation.</p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">{offer.effectiveSeasonYear
+            ? "Les deux arrivées et le versement de l’indemnité sont programmés ensemble au début de la saison suivante."
+            : "L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la fin de la saison en cours. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir."}</p>
+          {!offer.effectiveSeasonYear ? <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">Une course commencée ou un départ déjà figé bloque l’échange. Les stages et reconnaissances doivent toujours être terminés ou annulés. Ces conditions sont revérifiées pour les deux coureurs à l’acceptation.</p> : null}
         </div>
       ) : null}
     </div>

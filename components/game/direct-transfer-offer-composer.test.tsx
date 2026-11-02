@@ -19,6 +19,23 @@ const props = {
 };
 
 describe("direct transfer composer initial rendering", () => {
+  it("offers an explicit season choice without loading exchange candidates", () => {
+    const html = renderToStaticMarkup(<DirectTransferOfferComposer {...props} nextSeason={{ gameYear: 5, salaryPerSeason: 9000, canMakeCashOffer: true, canMakeTradeOffer: true, blockedReason: null }} />);
+    expect(html).toContain('name="timing"');
+    expect(html).toContain('<option value="immediate" selected="">Dès l’acceptation</option>');
+    expect(html).toContain('<option value="next_season">Début de la saison 5</option>');
+    expect(mocks.load).not.toHaveBeenCalled();
+  });
+
+  it("keeps a future recruitment available when only the current roster or transfer limit blocks it", () => {
+    const html = renderToStaticMarkup(<DirectTransferOfferComposer {...props} canMakeCashOffer={false} canMakeTradeOffer={false} nextSeason={{ gameYear: 5, salaryPerSeason: 9000, canMakeCashOffer: true, canMakeTradeOffer: true, blockedReason: null }} />);
+    expect(html).toContain('<option value="next_season" selected="">Début de la saison 5</option>');
+    expect(html).toContain('data-financial-extra-expense="0"');
+    expect(html).toContain("9 000");
+    expect(html).toContain("bloquée à l’acceptation");
+    expect(html).not.toContain("immédiatement désinscrit");
+    expect(html).not.toContain('disabled=""');
+  });
   it("keeps the cash-only form usable without loading trade options or another request", () => {
     const html = renderToStaticMarkup(<DirectTransferOfferComposer {...props} />);
     expect(html).toContain("Ajouter un coureur en échange");

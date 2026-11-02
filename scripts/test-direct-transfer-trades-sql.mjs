@@ -273,7 +273,7 @@ try {
   `);
   const futureRaceMigration='supabase/migrations/20261023160000_allow_future_races_in_rider_trades.sql';
   const beforeFutureMigration=await snapshot();
-  await db.exec(readFileSync(futureRaceMigration,'utf8'));
+  await db.exec(readFileSync(futureRaceMigration,'utf8').replaceAll('\r\n','\n'));
   check(await snapshot(),beforeFutureMigration,'Future-race delivery does not rewrite any player entry, offer, contract or balance');
 
   await scenario('future entries are withdrawn at submission only for the proposing manager',async () => {

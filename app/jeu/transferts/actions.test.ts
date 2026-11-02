@@ -60,6 +60,28 @@ describe("direct transfer offers, cash and rider exchange", () => {
     expect(decodeURIComponent(mocks.redirect.mock.calls[0][0])).toContain("désinscrit");
   });
 
+  it.each([false, true])("schedules cash and trade offers through the deferred RPC without trusting a client season (%s)", async trade => {
+    await expect(submitDirectTransferOfferAction(form({ timing: "next_season", effectiveSeasonId: forged, amount: trade ? "0" : "500", ...(trade ? { offeredRiderId: outgoing } : {}) }))).rejects.toThrow("succes=");
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("submit_deferred_direct_transfer_offer", {
+      p_rider_id: target, p_amount: trade ? 0 : 500, p_offered_rider_id: trade ? outgoing : null, p_message: null,
+    });
+    expect(mocks.path).not.toHaveBeenCalledWith("/jeu/courses", "layout");
+    expect(new URL(mocks.redirect.mock.calls[0][0], "https://cyclostratege.fr").searchParams.get("succes")).toContain("saison suivante");
+    expect(decodeURIComponent(mocks.redirect.mock.calls[0][0])).not.toContain("désinscrit");
+  });
+
+  it("rejects unknown scheduling values before a mutation", async () => {
+    await expect(submitDirectTransferOfferAction(form({ timing: "season_99" }))).rejects.toThrow("erreur=");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("reports a scheduled acceptance from the server-read offer, retaining current race caches", async () => {
+    mocks.single.mockResolvedValue({ data: { rider_id: target, offered_rider_id: outgoing, effective_season_id: "next-season" }, error: null });
+    await expect(respondToDirectTransferOfferAction(form({ offerId, decision: "accept", timing: "immediate" }))).rejects.toThrow("succes=");
+    expect(new URL(mocks.redirect.mock.calls[0][0], "https://cyclostratege.fr").searchParams.get("succes")).toContain("bloquée jusqu’au transfert");
+    expect(mocks.path).not.toHaveBeenCalledWith("/jeu/courses", "layout");
+  });
+
   it.each<Record<string, string>>([
     { amount: "0" }, { amount: "499" }, { amount: "NaN", offeredRiderId: outgoing },
     { amount: "Infinity", offeredRiderId: outgoing }, { amount: "100000001", offeredRiderId: outgoing },
@@ -161,6 +183,11 @@ describe("direct transfer offers, cash and rider exchange", () => {
     expect(mocks.candidates).toHaveBeenCalledExactlyOnceWith("authenticated-user");
     expect(mocks.rpc).not.toHaveBeenCalled();
     expect(mocks.path).not.toHaveBeenCalled();
+  });
+
+  it("loads deferred trade candidates using only the authenticated identity and validated timing", async () => {
+    await loadDirectTransferTradeCandidatesAction("next_season");
+    expect(mocks.candidates).toHaveBeenCalledExactlyOnceWith("authenticated-user", "next_season");
   });
 
   it("makes a candidate-load failure optional without leaking private error details", async () => {
