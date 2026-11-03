@@ -93,6 +93,32 @@ describe("individual naturalization alerts", () => {
 });
 
 describe("dashboard DS assistant", () => {
+  it("groups completed form camps with the daily training reports and links to the actual camp day", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: { ...snapshot, formCampReport: { dayNumber: 25, riderCount: 2, totalFormGain: 15 } },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+    const reports = groups.information.filter(line => ["senior-training", "junior-training", "form-camp-report"].includes(line.id));
+    expect(reports.map(line => line.id)).toEqual(["senior-training", "junior-training", "form-camp-report"]);
+    expect(reports[2]).toMatchObject({
+      metric: "2", title: "Compte rendu des stages de forme",
+      detail: "Bilan de J25 · 2 coureurs · +15 points de forme reçus au total",
+      href: "/jeu/centre-de-soin/rapport-stages?jour=25",
+    });
+    expect(groups.alerts.some(line => line.id === "form-camp-report")).toBe(false);
+  });
+
+  it.each([undefined, null, { dayNumber: 25, riderCount: 0, totalFormGain: 0 }])("shows no camp report without completed participants (%j)", formCampReport => {
+    const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, formCampReport }, rewardCount: 0, cashBalance: 0 });
+    expect(groups.information.some(line => line.id === "form-camp-report")).toBe(false);
+  });
+
+  it("keeps zero actual gains visible and describes a single participant in the singular", () => {
+    const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, formCampReport: { dayNumber: 25, riderCount: 1, totalFormGain: 0 } }, rewardCount: 0, cashBalance: 0 });
+    expect(groups.information.find(line => line.id === "form-camp-report")?.detail).toBe("Bilan de J25 · 1 coureur · +0 points de forme reçus au total");
+  });
+
   it("puts the empty-roster recovery before routine alerts and links to the recovery panel", () => {
     const groups = buildDashboardAssistantLines({
       snapshot: { ...snapshot, emptyRosterRecoveryAvailable: true },

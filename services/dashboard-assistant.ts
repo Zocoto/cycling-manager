@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   DashboardAssistantSnapshot,
+  DashboardFormCampReportSummary,
   DashboardNaturalizationAlert,
   DashboardJournalItem,
   NewcomerJourney,
@@ -203,6 +204,7 @@ export async function getCurrentDashboardAssistantSummary(
   }
 
   return {
+    formCampReport: assistantPayload.formCampReport,
     halloweenShopEndsAt: halloweenEdition?.shopEndsAt ?? null,
     naturalizationAlerts: assistantPayload.naturalizationAlerts,
     emptyRosterRecoveryAvailable: assistantPayload.emptyRosterRecoveryAvailable,
@@ -386,6 +388,7 @@ function clampInteger(value: unknown, minimum: number, maximum: number) {
 }
 
 function normalizeAssistantPayload(value: unknown): {
+  formCampReport: DashboardFormCampReportSummary | null;
   naturalizationAlerts: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable: boolean;
   riderRecruitmentMatchCount: number;
@@ -411,6 +414,7 @@ function normalizeAssistantPayload(value: unknown): {
 } {
   if (Array.isArray(value)) {
     return {
+      formCampReport: null,
       naturalizationAlerts: [],
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -438,6 +442,7 @@ function normalizeAssistantPayload(value: unknown): {
 
   if (!value || typeof value !== "object") {
     return {
+      formCampReport: null,
       naturalizationAlerts: [],
       emptyRosterRecoveryAvailable: false,
       riderRecruitmentMatchCount: 0,
@@ -490,6 +495,7 @@ function normalizeAssistantPayload(value: unknown): {
       ? (payload.federationSelectionReminder as Record<string, unknown>)
       : {};
   return {
+    formCampReport: normalizeFormCampReportSummary(payload.formCampReport),
     naturalizationAlerts: normalizeNaturalizationAlerts(payload.naturalizationAlerts),
     emptyRosterRecoveryAvailable: payload.emptyRosterRecoveryAvailable === true,
     riderRecruitmentMatchCount: normalizeCount(
@@ -544,6 +550,16 @@ function normalizeAssistantPayload(value: unknown): {
     ),
     journalItems: normalizeJournalItems(payload.items),
   };
+}
+
+function normalizeFormCampReportSummary(value: unknown): DashboardFormCampReportSummary | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const { dayNumber, riderCount, totalFormGain } = row;
+  if (typeof dayNumber !== "number" || !Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 28 ||
+    typeof riderCount !== "number" || !Number.isSafeInteger(riderCount) || riderCount < 1 ||
+    typeof totalFormGain !== "number" || !Number.isSafeInteger(totalFormGain) || totalFormGain < 0 || totalFormGain > riderCount * 100) return null;
+  return { dayNumber, riderCount, totalFormGain };
 }
 
 function normalizeCount(value: unknown): number {

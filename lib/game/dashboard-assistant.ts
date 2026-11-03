@@ -64,6 +64,7 @@ export type NewcomerJourney = {
 };
 
 export type DashboardAssistantSnapshot = {
+  formCampReport?: DashboardFormCampReportSummary | null;
   halloweenShopEndsAt?: string | null;
   naturalizationAlerts?: DashboardNaturalizationAlert[];
   emptyRosterRecoveryAvailable?: boolean;
@@ -127,6 +128,12 @@ export type DashboardAssistantSnapshot = {
   fanClubTodayRevenue: number;
   welcomeJourney?: NewcomerJourney | null;
   journalItems: DashboardJournalItem[];
+};
+
+export type DashboardFormCampReportSummary = {
+  dayNumber: number;
+  riderCount: number;
+  totalFormGain: number;
 };
 
 export type DashboardInfrastructureOrientation = {
@@ -746,6 +753,18 @@ export function buildDashboardAssistantLines({
       title: "Rapport quotidien des juniors",
       detail: `${snapshot.juniorSessionCount}/${snapshot.juniorRiderCount} entraînés · ${formatProgressCount(snapshot.juniorProgressCount)}`,
       href: "/jeu/centre-de-formation/rapport-entrainement",
+    });
+  }
+
+  if (snapshot.formCampReport && snapshot.formCampReport.riderCount > 0) {
+    const report = snapshot.formCampReport;
+    information.push({
+      id: "form-camp-report",
+      tone: "info",
+      metric: String(report.riderCount),
+      title: "Compte rendu des stages de forme",
+      detail: `Bilan de J${report.dayNumber} · ${pluralize(report.riderCount, "1 coureur", `${report.riderCount} coureurs`)} · +${report.totalFormGain} points de forme reçus au total`,
+      href: `/jeu/centre-de-soin/rapport-stages?jour=${report.dayNumber}`,
     });
   }
 
