@@ -1,5 +1,5 @@
 import Link from "@/components/ui/app-link";
-import type { DailyFormCampReport } from "@/lib/game/daily-form-camp-report";
+import { formatFormCampValue, type DailyFormCampReport } from "@/lib/game/daily-form-camp-report";
 
 const REPORT_HREF = "/jeu/centre-de-soin/rapport-stages";
 
@@ -43,7 +43,7 @@ export function DailyFormCampTextReport({ report }: { report: DailyFormCampRepor
           </div>
           <dl className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-[#EAF5F3] p-2 sm:max-w-md sm:gap-3">
             <ReportMetric label="Coureurs en stage" value={String(report.riderCount)} />
-            <ReportMetric label="Gain total de forme" value={`+${report.totalFormGain} pts`} />
+            <ReportMetric label="Gain total de forme" value={`+${formatFormCampValue(report.totalFormGain)} pts`} />
           </dl>
         </header>
 
@@ -61,8 +61,8 @@ export function DailyFormCampTextReport({ report }: { report: DailyFormCampRepor
                   </p>
                 </div>
                 <div className="col-start-2 text-xs font-semibold leading-5 text-[#60756E] sm:col-start-auto sm:text-right">
-                  <p>Forme : {rider.formBefore} % → {rider.formAfter} %</p>
-                  <p className="font-black text-[#176951]">+{rider.formDelta} {rider.formDelta === 1 ? "point de forme" : "points de forme"}</p>
+                  <p>Forme : {formatFormCampValue(rider.formBefore)} % → {formatFormCampValue(rider.formAfter)} %</p>
+                  <p className="font-black text-[#176951]">+{formatFormCampValue(rider.formDelta)} {rider.formDelta === 1 ? "point de forme" : "points de forme"}</p>
                   {rider.formAfter === 100 ? <p className="text-[10px]">Plafond de forme atteint</p> : null}
                 </div>
               </li>

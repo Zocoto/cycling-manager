@@ -8,4 +8,4 @@ Les valeurs proviennent du registre des effets de condition, sans recalcul ni r�
 
 Le résumé utilise la requête existante de l’assistant, un accès indexé par équipe et le délai existant de trois secondes. Le détail utilise une RPC authentifiée sans paramètre d’équipe, ne permettant de consulter que son propre effectif.
 
-Validation : 155 tests applicatifs ciblés, 31 assertions SQL sur PGlite isolé, TypeScript, ESLint, build et postbuild. Installation bornée et reçue par `scripts/apply-reviewed-daily-form-camp-reports.mjs` ; aucun changement de coureur, de programme, de gain ou de règlement.
+Validation : 162 tests applicatifs ciblés, 40 assertions SQL sur PGlite isolé, TypeScript, ESLint, build et postbuild. Installation bornée et reçue par `scripts/apply-reviewed-daily-form-camp-reports.mjs` ; aucun changement de coureur, de programme, de gain ou de règlement.

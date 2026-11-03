@@ -558,7 +558,7 @@ function normalizeFormCampReportSummary(value: unknown): DashboardFormCampReport
   const { dayNumber, riderCount, totalFormGain } = row;
   if (typeof dayNumber !== "number" || !Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 28 ||
     typeof riderCount !== "number" || !Number.isSafeInteger(riderCount) || riderCount < 1 ||
-    typeof totalFormGain !== "number" || !Number.isSafeInteger(totalFormGain) || totalFormGain < 0 || totalFormGain > riderCount * 100) return null;
+    typeof totalFormGain !== "number" || !Number.isFinite(totalFormGain) || totalFormGain < 0 || totalFormGain > riderCount * 100) return null;
   return { dayNumber, riderCount, totalFormGain };
 }
 

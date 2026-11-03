@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeDailyFormCampReport, parseFormCampReportDay } from "./daily-form-camp-report";
+import { formatFormCampValue, normalizeDailyFormCampReport, parseFormCampReportDay } from "./daily-form-camp-report";
 
 const rider = {
   riderId: "00000000-0000-4000-8000-000000000001", firstName: "Jean", lastName: "Morel",
@@ -21,6 +21,21 @@ describe("daily form-camp report", () => {
   it("retains a settled camp at maximum form with zero actual gain", () => {
     expect(normalizeDailyFormCampReport({ ...report, riders: [{ ...rider, formBefore: 100 }] }))
       .toMatchObject({ riderCount: 1, totalFormGain: 0, riders: [{ formDelta: 0 }] });
+  });
+
+  it("preserves decimal ledger forms and rounds capped deltas and totals to cents", () => {
+    const result = normalizeDailyFormCampReport({ ...report, riders: [
+      { ...rider, formBefore: 95.35, formAfter: 100 },
+      { ...rider, riderId: "00000000-0000-4000-8000-000000000002", formBefore: 88.25, formAfter: 94.7 },
+    ] });
+    expect(result).toMatchObject({ riderCount: 2, totalFormGain: 11.1,
+      riders: [{ formBefore: 95.35, formAfter: 100, formDelta: 4.65 }, { formDelta: 6.45 }] });
+    expect(formatFormCampValue(result!.totalFormGain)).toBe("11,1");
+    expect(formatFormCampValue(result!.riders[0].formDelta)).toBe("4,65");
+  });
+
+  it.each([NaN, Infinity, -Infinity])("rejects nonfinite form values (%j)", value => {
+    expect(normalizeDailyFormCampReport({ ...report, riders: [{ ...rider, formBefore: value }] })?.riders).toEqual([]);
   });
 
   it("deduplicates riders and rejects invalid, unrelated, or out-of-day camp rows", () => {

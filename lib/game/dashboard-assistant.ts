@@ -763,7 +763,7 @@ export function buildDashboardAssistantLines({
       tone: "info",
       metric: String(report.riderCount),
       title: "Compte rendu des stages de forme",
-      detail: `Bilan de J${report.dayNumber} · ${pluralize(report.riderCount, "1 coureur", `${report.riderCount} coureurs`)} · +${report.totalFormGain} points de forme reçus au total`,
+      detail: `Bilan de J${report.dayNumber} · ${pluralize(report.riderCount, "1 coureur", `${report.riderCount} coureurs`)} · +${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(report.totalFormGain)} points de forme reçus au total`,
       href: `/jeu/centre-de-soin/rapport-stages?jour=${report.dayNumber}`,
     });
   }

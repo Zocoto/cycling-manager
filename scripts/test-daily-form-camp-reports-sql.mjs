@@ -39,7 +39,7 @@ try {
       camp_type text,start_day_number integer,end_day_number integer,status text,created_at timestamptz,
       completed_at timestamptz,interruption_requested_at timestamptz,interruption_effective_day_number integer);
     create table rider_daily_condition_effects(id uuid primary key,rider_id uuid,season_day_id uuid,
-      effect_type text,form_before integer,form_after integer,form_delta integer,applied_at timestamptz,
+      effect_type text,form_before numeric(5,2),form_after numeric(5,2),form_delta numeric(5,2),applied_at timestamptz,
       unique(rider_id,season_day_id));
     insert into sporting_directors values('${id(1)}','${id(11)}','active'),('${id(2)}','${id(12)}','active');
     insert into teams values('${id(21)}','active'),('${id(22)}','active');
@@ -138,10 +138,32 @@ try {
   check((await scalar('select public.get_current_dashboard_assistant_summary()')).formCampReport,null);
   check((await report()).dayNumber,2);
   check((await report()).riderCount,0);
+
+  // Production has accepted decimal form values since migration 20260801150000.
+  // Exercise the numeric ledger without weakening the earlier integer cases.
+  await db.exec(`update seasons set current_day_number=4;
+    insert into riders values('${id(211)}','Decimal','Gain'),('${id(212)}','Decimal','Cap');`);
+  await addCamp(14,11,'premium'); await addEffect(11,76.25,87.35,11.10);
+  const fractional = await report();
+  const fractionalRider = fractional.riders.find(row=>row.riderId===id(211));
+  check(fractionalRider.formBefore,76.25);
+  check(fractionalRider.formAfter,87.35);
+  check(fractionalRider.formDelta,11.1);
+  check(fractional.riderCount,6);
+  check(fractional.totalFormGain,54.1);
+  check((await scalar('select public.get_current_dashboard_assistant_summary()')).formCampReport,
+    {dayNumber:3,riderCount:6,totalFormGain:54.1});
+  await addCamp(15,12,'premium'); await addEffect(12,97.45,100,11.10);
+  const fractionalCapped = await report();
+  check(fractionalCapped.riders.find(row=>row.riderId===id(212)).formDelta,2.55);
+  check(fractionalCapped.totalFormGain,56.65);
+  check((await scalar('select public.get_current_dashboard_assistant_summary()')).formCampReport,
+    {dayNumber:3,riderCount:7,totalFormGain:56.65});
   console.log(JSON.stringify({status:'passed',checks,database:'isolated in-memory PGlite',
     migration:'20261103100000',actualCappedGain:5,zeroGainStageRetained:true,
     cancelledReplacementExcluded:true,interruptedEarnedDayRetained:true,
-    scopesAndGrantsVerified:true,productionConnections:0}));
+    scopesAndGrantsVerified:true,fractionalLedgerVerified:true,fractionalCappedGain:2.55,
+    productionConnections:0}));
 } finally {
   await db.close();
 }

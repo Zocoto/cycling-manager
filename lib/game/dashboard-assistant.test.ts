@@ -119,6 +119,11 @@ describe("dashboard DS assistant", () => {
     expect(groups.information.find(line => line.id === "form-camp-report")?.detail).toBe("Bilan de J25 · 1 coureur · +0 points de forme reçus au total");
   });
 
+  it("formats fractional camp gains with the same precision as the condition ledger", () => {
+    const groups = buildDashboardAssistantLines({ snapshot: { ...snapshot, formCampReport: { dayNumber: 25, riderCount: 2, totalFormGain: 11.1 } }, rewardCount: 0, cashBalance: 0 });
+    expect(groups.information.find(line => line.id === "form-camp-report")?.detail).toContain("+11,1 points de forme");
+  });
+
   it("puts the empty-roster recovery before routine alerts and links to the recovery panel", () => {
     const groups = buildDashboardAssistantLines({
       snapshot: { ...snapshot, emptyRosterRecoveryAvailable: true },

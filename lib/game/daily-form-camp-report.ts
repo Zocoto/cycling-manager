@@ -60,7 +60,7 @@ export function normalizeDailyFormCampReport(value: unknown): DailyFormCampRepor
       formBefore: rider.formBefore,
       formAfter: rider.formAfter,
       // The nominal camp delta can exceed the remaining room below 100.
-      formDelta: rider.formAfter - rider.formBefore,
+      formDelta: roundFormCampValue(rider.formAfter - rider.formBefore),
     }];
   }).sort((left, right) =>
     `${left.lastName} ${left.firstName}`.localeCompare(`${right.lastName} ${right.firstName}`, "fr"));
@@ -73,8 +73,16 @@ export function normalizeDailyFormCampReport(value: unknown): DailyFormCampRepor
     calendarDate: row.calendarDate,
     riders,
     riderCount: riders.length,
-    totalFormGain: riders.reduce((total, rider) => total + rider.formDelta, 0),
+    totalFormGain: roundFormCampValue(riders.reduce((total, rider) => total + rider.formDelta, 0)),
   };
+}
+
+export function formatFormCampValue(value: number): string {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value);
+}
+
+function roundFormCampValue(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -91,7 +99,7 @@ function isDay(value: unknown): value is number {
 }
 
 function isForm(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 100;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 function isCalendarDate(value: string): boolean {

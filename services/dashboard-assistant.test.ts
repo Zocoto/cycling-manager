@@ -57,6 +57,11 @@ describe("dashboard physiotherapist payload", () => {
     expect(await getCurrentDashboardAssistantSummary(client({ formCampReport }).supabase)).toMatchObject({ formCampReport });
   });
 
+  it("preserves fractional actual gains from the numeric condition ledger", async () => {
+    const formCampReport = { dayNumber: 25, riderCount: 2, totalFormGain: 11.1 };
+    expect(await getCurrentDashboardAssistantSummary(client({ formCampReport }).supabase)).toMatchObject({ formCampReport });
+  });
+
   it("exposes empty-roster recovery in the first summary without another request", async () => {
     const mock = client({ emptyRosterRecoveryAvailable: true, items: [] });
     const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
