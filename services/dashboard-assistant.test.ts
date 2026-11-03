@@ -30,6 +30,38 @@ function client(payload: unknown) {
 }
 
 describe("dashboard physiotherapist payload", () => {
+  it("includes actual camp gains in both summaries without adding any request", async () => {
+    const formCampReport = { dayNumber: 25, riderCount: 2, totalFormGain: 15 };
+    const mock = client({ formCampReport, items: [] });
+    const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
+    expect(await summaries.initial).toMatchObject({ formCampReport });
+    expect(await summaries.complete).toMatchObject({ formCampReport });
+    expect(mock.rpc).toHaveBeenCalledTimes(7);
+    expect(mock.rpc.mock.calls.filter(call => call[0] === "get_current_dashboard_assistant_summary")).toHaveLength(1);
+    expect(mock.from).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([null, [], {}, { formCampReport: "invalid" },
+    { formCampReport: { dayNumber: 0, riderCount: 1, totalFormGain: 5 } },
+    { formCampReport: { dayNumber: 29, riderCount: 1, totalFormGain: 5 } },
+    { formCampReport: { dayNumber: 2, riderCount: 0, totalFormGain: 0 } },
+    { formCampReport: { dayNumber: 2, riderCount: 1, totalFormGain: -1 } },
+    { formCampReport: { dayNumber: 2, riderCount: 1, totalFormGain: Infinity } },
+    { formCampReport: { dayNumber: 2, riderCount: 1, totalFormGain: 101 } },
+  ])("omits missing, legacy or invalid camp report summaries (%j)", async payload => {
+    expect(await getCurrentDashboardAssistantSummary(client(payload).supabase)).toMatchObject({ formCampReport: null });
+  });
+
+  it("keeps a real camp report when the rider was already at maximum form", async () => {
+    const formCampReport = { dayNumber: 2, riderCount: 1, totalFormGain: 0 };
+    expect(await getCurrentDashboardAssistantSummary(client({ formCampReport }).supabase)).toMatchObject({ formCampReport });
+  });
+
+  it("preserves fractional actual gains from the numeric condition ledger", async () => {
+    const formCampReport = { dayNumber: 25, riderCount: 2, totalFormGain: 11.1 };
+    expect(await getCurrentDashboardAssistantSummary(client({ formCampReport }).supabase)).toMatchObject({ formCampReport });
+  });
+
   it("exposes empty-roster recovery in the first summary without another request", async () => {
     const mock = client({ emptyRosterRecoveryAvailable: true, items: [] });
     const summaries = getCurrentDashboardAssistantSummaries(mock.supabase);
