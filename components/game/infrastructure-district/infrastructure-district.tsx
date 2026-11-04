@@ -2,14 +2,27 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { TEAM_INFRASTRUCTURE_DEFINITIONS, type TeamInfrastructureCode } from "@/lib/game/infrastructure";
 import type { CampusSponsor, InfrastructureDistrictBuilding } from "@/lib/game/infrastructure-district";
 
-import { InfrastructureDistrictMap } from "./infrastructure-district-map";
 import { InfrastructureMiniatureCard } from "./infrastructure-miniature-card";
 import styles from "./infrastructure-district.module.css";
+
+const InfrastructureDistrictMap = dynamic(
+  () => import("./infrastructure-district-map").then((module) => module.InfrastructureDistrictMap),
+  { ssr: false },
+);
+const DISTRICT_MAP_MEDIA = "(min-width: 1024px)";
+function subscribeToDesktop(onChange: () => void) {
+  const media = window.matchMedia(DISTRICT_MAP_MEDIA);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+const readDesktop = () => window.matchMedia(DISTRICT_MAP_MEDIA).matches;
+const readServerDesktop = () => false;
 
 type DistrictFilter = "all" | "built" | "planned";
 export type InfrastructureDistrictCard = { code: TeamInfrastructureCode; content: ReactNode };
@@ -48,6 +61,7 @@ export function InfrastructureDistrict({
   const [selectedCode, setSelectedCode] = useState<TeamInfrastructureCode>(buildings[0]?.code ?? "training_center");
   const [filter, setFilter] = useState<DistrictFilter>("all");
   const [showDetails, setShowDetails] = useState(false);
+  const showMap = useSyncExternalStore(subscribeToDesktop, readDesktop, readServerDesktop);
   const { activeTutorial } = useTutorial();
   const tutorialActive = activeTutorial?.definition.key === "infrastructure";
   const isDetailed = detailedView || showDetails || tutorialActive;
@@ -72,10 +86,10 @@ export function InfrastructureDistrict({
       <div className={styles.viewToolbar}>
         <div>
           <p className={styles.eyebrow}>Le domaine de l’équipe</p>
-          <h2>Votre quartier, bâtiment après bâtiment</h2>
+          <h2>{showMap ? "Votre quartier, bâtiment après bâtiment" : "Vos infrastructures"}</h2>
         </div>
         <button type="button" aria-pressed={isDetailed} onClick={() => setShowDetails((value) => !value)} disabled={Boolean(detailedView || tutorialActive)}>
-          {isDetailed ? "Vue du quartier" : "Vue détaillée"}
+          {isDetailed ? showMap ? "Vue du quartier" : "Vue compacte" : "Vue détaillée"}
         </button>
       </div>
 
@@ -84,7 +98,8 @@ export function InfrastructureDistrict({
           {cards.map((card) => <div key={card.code}>{card.content}</div>)}
         </div>
       ) : (
-        <div className={styles.workspace}>
+        <div className={styles.workspace} data-map-visible={showMap}>
+          {showMap ? (
           <section className={styles.mapPanel} aria-labelledby="infrastructure-district-title">
             <div className={styles.panelHeader}>
               <div>
@@ -98,8 +113,9 @@ export function InfrastructureDistrict({
               </div>
             </div>
             <InfrastructureDistrictMap buildings={buildings} selectedCode={modalCode ?? selectedCode} filter={filter} sponsor={sponsor} onSelect={setSelectedCode} onOpen={openBuilding} />
-            <p className={styles.mapHint}>Sélectionnez un bâtiment ou sa miniature pour le gérer. Sur téléphone, faites glisser le quartier pour l’explorer.</p>
+            <p className={styles.mapHint}>Sélectionnez un bâtiment ou sa miniature pour le gérer.</p>
           </section>
+          ) : null}
           <aside className={styles.catalogPanel} aria-labelledby="infrastructure-catalog-title">
             <div className={styles.panelHeader}>
               <div>
