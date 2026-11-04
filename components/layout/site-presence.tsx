@@ -3,8 +3,18 @@
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLocale } from "@/components/i18n/locale-provider";
+import {
+  claimSitePresenceRefresh,
+  normalizeSitePresence,
+  readSitePresenceSnapshot,
+  releaseFailedSitePresenceRefresh,
+  SITE_PRESENCE_REFRESH_MS,
+  SITE_PRESENCE_SNAPSHOT_KEY,
+  storeSitePresenceSnapshot,
+  type SitePresence,
+} from "@/lib/game/site-presence-polling";
 
-export type SitePresence = { total: number; visitors: number; players: { id: string; name: string }[] };
+export type { SitePresence } from "@/lib/game/site-presence-polling";
 const PresenceContext = createContext<SitePresence | null>(null);
 
 export function SitePresenceProvider({ children }: { children: ReactNode }) {
@@ -12,27 +22,74 @@ export function SitePresenceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     let pending = false;
-    const controller = new AbortController();
+    let controller: AbortController | null = null;
+    let storage: Storage | null = null;
+    try { storage = window.localStorage; } catch { /* Presence remains available without storage. */ }
+    async function refreshUnderLock() {
+      // Another tab may have completed the request while this one waited.
+      if (!active || document.visibilityState !== "visible") return;
+      const attemptedAt = Date.now();
+      const cached = readSitePresenceSnapshot(storage, attemptedAt);
+      if (cached) { setPresence(cached); return; }
+      if (!claimSitePresenceRefresh(storage, attemptedAt)) return;
+      controller = new AbortController();
+      const request = controller;
+      const timeout = window.setTimeout(() => request.abort(), 10_000);
+      let succeeded = false;
+      try {
+        const response = await fetch("/api/site-presence", { method: "POST", signal: request.signal });
+        if (response.ok && response.status !== 204) {
+          const data = normalizeSitePresence(await response.json());
+          if (active && !request.signal.aborted && data) {
+            storeSitePresenceSnapshot(storage, attemptedAt, data);
+            setPresence(data);
+            succeeded = true;
+          }
+        }
+      } catch { /* Keep the last successful snapshot during a temporary outage. */ }
+      finally {
+        window.clearTimeout(timeout);
+        if (!succeeded) releaseFailedSitePresenceRefresh(storage, attemptedAt);
+        if (controller === request) controller = null;
+      }
+    }
     async function refresh() {
       if (!active || pending || document.visibilityState !== "visible") return;
       pending = true;
       try {
-        const response = await fetch("/api/site-presence", { method: "POST", signal: controller.signal });
-        if (response.ok && response.status !== 204) {
-          const data = await response.json() as SitePresence;
-          if (active && Array.isArray(data.players) && Number.isInteger(data.total) && Number.isInteger(data.visitors)) setPresence(data);
+        if (typeof navigator !== "undefined" && navigator.locks) {
+          // localStorage read/write is not atomic across tabs. Serialize the
+          // check and request so simultaneous mounts reuse the same snapshot.
+          let enteredLock = false;
+          try {
+            await navigator.locks.request("cyclostratege:site-presence", () => {
+              enteredLock = true;
+              return refreshUnderLock();
+            });
+          } catch {
+            if (!enteredLock) await refreshUnderLock();
+          }
+        } else {
+          await refreshUnderLock();
         }
-      } catch { /* Keep the last successful snapshot during a temporary outage. */ }
+      } catch { /* Retry on the next visit/tick if the browser lock is unavailable. */ }
       finally { pending = false; }
     }
+    function receiveSnapshot(event: StorageEvent) {
+      if (!active || event.key !== SITE_PRESENCE_SNAPSHOT_KEY) return;
+      const cached = readSitePresenceSnapshot(storage, Date.now());
+      if (cached) setPresence(cached);
+    }
     void refresh();
-    const interval = window.setInterval(() => void refresh(), 60_000);
+    const interval = window.setInterval(() => void refresh(), SITE_PRESENCE_REFRESH_MS);
     document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("storage", receiveSnapshot);
     return () => {
       active = false;
-      controller.abort();
+      controller?.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("storage", receiveSnapshot);
     };
   }, []);
   return <PresenceContext.Provider value={presence}>{children}</PresenceContext.Provider>;

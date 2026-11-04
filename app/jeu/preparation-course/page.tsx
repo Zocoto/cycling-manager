@@ -27,7 +27,7 @@ import { buildSponsorRaceBrief } from "@/lib/game/sponsor-project";
 import { SponsorRaceBriefPanel } from "@/components/game/sponsor-project-panel";
 import { getRaceEquipmentPlanningDataBatch } from "@/services/race-equipment-planning";
 import {
-  getActiveSeasonRaceCalendar,
+  getRacePreparationCalendar,
   getCurrentTeamRacePreparation,
 } from "@/services/race-calendar";
 
@@ -67,20 +67,16 @@ export default async function RacePreparationPage({
   const now = new Date();
   const headerPromise = getGameHeaderData(supabase, user.id);
   const projectPromise = headerPromise.then(header => header.teamSponsorIdentity ? getTeamSponsorProject(header.teamId) : null);
+  const preparationPromise = getCurrentTeamRacePreparation(supabase)
+    .then((preparations) => ({ preparations, error: null }))
+    .catch((error: unknown) => ({ preparations: [], error }));
   const [headerData, calendarResult, preparationResult, sponsorProject] = await Promise.all([
     headerPromise,
-    getActiveSeasonRaceCalendar(supabase, now, {
-      includeEngagedRiders: false,
-      // The workspace uses its preparation RPC for plans and the equipment
-      // planner for inventory. Simulation-only bonuses are not displayed here.
-      // Keep complete stage segments for profiles and attack orders.
-      includeSimulationEnhancements: false,
-    })
+    preparationPromise
+      .then(({ preparations }) => getRacePreparationCalendar(supabase, now, preparations))
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),
-    getCurrentTeamRacePreparation(supabase)
-      .then((preparations) => ({ preparations, error: null }))
-      .catch((error: unknown) => ({ preparations: [], error })),
+    preparationPromise,
     projectPromise,
   ]);
 

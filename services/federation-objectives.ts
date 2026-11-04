@@ -2,7 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getFederationSeasonObjectiveVariants } from "@/lib/game/federation-objectives";
-import { getUciRankings } from "@/services/uci-rankings";
+import { getUciRankings, type UciRankings } from "@/services/uci-rankings";
 
 export type FederationObjectiveMetrics = {
   referenceMemberTeamCount: number;
@@ -40,6 +40,7 @@ export async function getFederationObjectiveMetrics({
   currentMemberTeamCount,
   countryCode,
   memberTeamIds,
+  uciRankings,
 }: {
   countryId: string;
   seasonId: string;
@@ -47,6 +48,8 @@ export async function getFederationObjectiveMetrics({
   currentMemberTeamCount: number;
   countryCode: string;
   memberTeamIds: string[];
+  /** Optional snapshot already loaded by this render, never an inter-user cache. */
+  uciRankings?: UciRankings | null;
 }): Promise<FederationObjectiveMetrics> {
   const fallback: FederationObjectiveMetrics = {
     referenceMemberTeamCount: currentMemberTeamCount,
@@ -156,7 +159,7 @@ export async function getFederationObjectiveMetrics({
               ])
               .returns<Array<{ id: string }>>()
           : Promise.resolve({ data: [], error: null }),
-        needsUci ? getUciRankings().catch((error) => {
+        needsUci ? (uciRankings === undefined ? getUciRankings() : Promise.resolve(uciRankings)).catch((error) => {
           console.error("Impossible de charger les classements UCI fédéraux :", error);
           return null;
         }) : Promise.resolve(null),

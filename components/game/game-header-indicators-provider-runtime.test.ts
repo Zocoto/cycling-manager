@@ -60,6 +60,7 @@ describe("header subscription initialization", () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     runtime.maybeSingle.mockReset();
+    runtime.client.removeChannel.mockReset();
     runtime.effects.length = 0;
     runtime.authState.callback = null;
     vi.stubGlobal("window", new EventTarget());
@@ -189,5 +190,99 @@ describe("header subscription initialization", () => {
     resolveFirst(SUCCESS);
     await vi.runAllTimersAsync();
     expect(runtime.client.channel).not.toHaveBeenCalled();
+  });
+
+  it("disconnects all five realtime bindings while hidden and catches up on return", async () => {
+    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    await mount();
+    expectCompleteSubscription();
+    const oldCallbacks = runtime.channel.on.mock.calls.map(([, , callback]) => callback as (value: unknown) => void);
+    Object.assign(document, { visibilityState: "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(runtime.client.removeChannel).toHaveBeenCalledTimes(1);
+    const requests = runtime.client.rpc.mock.calls.length;
+    const initialUpdates = runtime.setIndicators.mock.calls.length;
+    for (const callback of oldCallbacks) callback({ new: { sporting_director_id: "another-director" } });
+    await vi.runAllTimersAsync();
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(requests);
+    expect(runtime.setIndicators).toHaveBeenCalledTimes(initialUpdates);
+    const updates = runtime.setIndicators.mock.calls.length;
+    Object.assign(document, { visibilityState: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.runAllTimersAsync();
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(requests + 1);
+    expect(runtime.client.channel).toHaveBeenCalledTimes(2);
+    expect(runtime.channel.on).toHaveBeenCalledTimes(10);
+    for (const callback of oldCallbacks) callback({ new: { sporting_director_id: "another-director" } });
+    await vi.runAllTimersAsync();
+    expect(runtime.setIndicators).toHaveBeenCalledTimes(updates + 1);
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(requests + 1);
+  });
+
+  it("does not reconnect if the tab hides during a pending refresh", async () => {
+    let finish!: (value: typeof SUCCESS) => void;
+    runtime.maybeSingle.mockImplementationOnce(() => new Promise<typeof SUCCESS>((resolve) => { finish = resolve; }));
+    await mount();
+    Object.assign(document, { visibilityState: "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    finish(SUCCESS);
+    await vi.runAllTimersAsync();
+    expect(runtime.client.channel).not.toHaveBeenCalled();
+    expect(runtime.setIndicators).not.toHaveBeenCalled();
+  });
+
+  it("does no initial work in a hidden tab and snapshots before subscribing on return", async () => {
+    Object.assign(document, { visibilityState: "hidden" });
+    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    await mount();
+    expect(runtime.client.rpc).not.toHaveBeenCalled();
+    expect(runtime.client.channel).not.toHaveBeenCalled();
+    Object.assign(document, { visibilityState: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.runAllTimersAsync();
+    expectCompleteSubscription();
+  });
+
+  it("awaits removal and replaces a snapshot invalidated by another hide/show cycle", async () => {
+    let remove!: () => void;
+    let finishSnapshot!: (value: typeof SUCCESS) => void;
+    runtime.client.removeChannel.mockImplementationOnce(() => new Promise<void>((resolve) => { remove = resolve; }));
+    runtime.maybeSingle.mockResolvedValueOnce(SUCCESS).mockResolvedValueOnce(SUCCESS)
+      .mockImplementationOnce(() => new Promise<typeof SUCCESS>((resolve) => { finishSnapshot = resolve; }));
+    await mount();
+    for (const visibilityState of ["hidden", "visible"]) {
+      Object.assign(document, { visibilityState });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }
+    await vi.advanceTimersByTimeAsync(0);
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(2);
+    expect(runtime.client.channel).toHaveBeenCalledTimes(1);
+    for (const visibilityState of ["hidden", "visible"]) {
+      Object.assign(document, { visibilityState });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }
+    remove();
+    await vi.runAllTimersAsync();
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(3);
+    expect(runtime.client.channel).toHaveBeenCalledTimes(1);
+    finishSnapshot(SUCCESS);
+    await vi.runAllTimersAsync();
+    expect(runtime.client.channel).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not recreate the channel after unmount while its removal is pending", async () => {
+    let remove!: () => void;
+    runtime.client.removeChannel.mockImplementationOnce(() => new Promise<void>((resolve) => { remove = resolve; }));
+    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    await mount();
+    Object.assign(document, { visibilityState: "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.assign(document, { visibilityState: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(0);
+    cleanup?.(); cleanup = undefined;
+    remove();
+    await vi.runAllTimersAsync();
+    expect(runtime.client.channel).toHaveBeenCalledTimes(1);
   });
 });

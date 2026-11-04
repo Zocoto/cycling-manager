@@ -842,6 +842,25 @@ type RaceEngagedRiderRow = {
   country_iso_alpha2: string;
 };
 
+/** Load only the official editions represented by the authorized preparation RPC. */
+export async function getRacePreparationCalendar(
+  supabase: SupabaseServerClient,
+  now: Date,
+  preparations: readonly RacePreparationEditionPlan[],
+): Promise<SeasonRaceCalendar | null> {
+  const raceEditionIds = unique(preparations.map((plan) => plan.editionId));
+  if (!raceEditionIds.length) return null;
+  return getActiveSeasonRaceCalendar(supabase, now, {
+    raceEditionIds,
+    includeEngagedRiders: false,
+    includeEngagedCounts: false,
+    // Authorized national plans can include heats hidden by the calendar grid.
+    includeNationsCupHeats: true,
+    // Keep complete segment profiles for attack orders and equipment choices.
+    includeSimulationEnhancements: false,
+  });
+}
+
 export async function getActiveSeasonRaceCalendar(
   supabase: SupabaseServerClient,
   now = new Date(),
