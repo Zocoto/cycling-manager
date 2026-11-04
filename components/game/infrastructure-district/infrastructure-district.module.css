@@ -5,6 +5,9 @@
 .viewToolbar button:disabled { opacity: 0.5; cursor: default; }
 .eyebrow { margin: 0; color: #4e7c65; font-size: 9px; font-weight: 850; letter-spacing: 0.16em; text-transform: uppercase; }
 .workspace { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; gap: 20px; }
+.workspace[data-map-visible="false"] { grid-template-columns: minmax(0, 1fr); }
+.workspace[data-map-visible="false"] .catalogPanel { position: static; }
+.workspace[data-map-visible="false"] .buildingList { max-height: none; overflow: visible; }
 .mapPanel, .catalogPanel { min-width: 0; overflow: hidden; border: 1px solid #d4e0d7; border-radius: 12px; background: #fffdf8; box-shadow: 0 5px 18px rgb(19 60 46 / 5%); }
 .panelHeader { display: flex; min-height: 66px; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 18px; border-bottom: 1px solid #315b3e; background: #173c2e; }
 .panelHeader h3 { margin: 3px 0 0; color: #fffdf4; font-size: 16px; font-weight: 850; letter-spacing: -0.025em; }
@@ -38,7 +41,8 @@
 @media (max-width: 760px) {
   .viewToolbar { align-items: flex-start; }
   .viewToolbar h2 { font-size: 21px; }
-  .viewToolbar button { padding: 7px 9px; font-size: 10px; }
+  .viewToolbar button { min-height: 44px; padding: 7px 9px; font-size: 10px; }
+  .filters button { min-height: 44px; font-size: 11px; }
   .panelHeader { padding: 12px; }
   .panelHeader h3 { font-size: 14px; }
   .legend { gap: 7px; font-size: 8px; }
