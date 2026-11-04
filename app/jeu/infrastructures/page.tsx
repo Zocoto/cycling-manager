@@ -10,6 +10,7 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { InfrastructureBuildingCard } from "@/components/game/infrastructure-building-card";
+import { InfrastructureDistrict } from "@/components/game/infrastructure-district/infrastructure-district";
 import { InfrastructureSpecializationPanel } from "@/components/game/infrastructure-specialization-panel";
 import { InternationalYouthCenterMap } from "@/components/game/international-youth-center-map";
 import { StaffAcademyCard } from "@/components/game/staff-academy-card";
@@ -22,6 +23,7 @@ import {
   getTeamInfrastructureLevelDefinition,
 } from "@/lib/game/infrastructure";
 import { getInfrastructureSpecializationProposal } from "@/lib/game/infrastructure-specializations";
+import { buildInfrastructureDistrict, getCampusSponsor } from "@/lib/game/infrastructure-district";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -297,22 +299,24 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                 Les bâtiments structurants du club
               </h2>
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-                Les bâtiments sont classés par prix d’entrée : des premiers
-                équipements accessibles jusqu’aux pôles experts réservés aux
-                structures les plus solides.
+                Explorez le quartier et sélectionnez un bâtiment pour consulter
+                ses effets, choisir son orientation ou lancer son amélioration.
               </p>
               <div
                 className="mt-5 space-y-5"
                 data-building-order="starting-cost-ascending"
               >
-                {infrastructureCodesByStartingCost.map((code) => {
+                <InfrastructureDistrict
+                  buildings={buildInfrastructureDistrict(overview)}
+                  sponsor={getCampusSponsor(headerData.teamSponsorIdentity?.sponsor)}
+                  cards={infrastructureCodesByStartingCost.map((code) => {
                   const definition = TEAM_INFRASTRUCTURE_DEFINITIONS[code];
                   const currentLevel = overview.infrastructureLevels[code];
                   const specializationProposal =
                     getInfrastructureSpecializationProposal("team", code);
 
                   if (code === "recruitment_data_room") {
-                    return (
+                    return { code, content: (
                       <div
                         key={code}
                         id={`batiment-${code}`}
@@ -345,11 +349,11 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           ) : null}
                         </DataRoomConstructionCard>
                       </div>
-                    );
+                    ) };
                   }
 
                   if (code === "staff_academy") {
-                    return (
+                    return { code, content: (
                       <div
                         key={code}
                         id={`batiment-${code}`}
@@ -372,10 +376,10 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           currency={overview.currency}
                         />
                       </div>
-                    );
+                    ) };
                   }
 
-                  return (
+                  return { code, content: (
                     <div
                       key={code}
                       id={`batiment-${code}`}
@@ -417,8 +421,9 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         ) : null}
                       </InfrastructureBuildingCard>
                     </div>
-                  );
+                  ) };
                 })}
+                />
               </div>
             </section>
           </div>
