@@ -3,7 +3,7 @@ import {
   RACE_SIMULATION_EDITION_BATCH_SIZE,
 } from "@/lib/game/race-job-packs";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
-import { precomputeDueOfficialRaceSimulations } from "@/services/race-simulation-runner";
+import { isSeasonalCronActive } from "@/lib/game/seasonal-cron";
 
 export const maxDuration = 300;
 
@@ -23,6 +23,10 @@ export async function GET(
     return Response.json({ error: "Invalid race job pack" }, { status: 400 });
   }
   const now = new Date();
+  if (!isSeasonalCronActive(slot, now)) {
+    return Response.json({ slot, skipped: true, reason: "inactive-paris-time-variant" });
+  }
+  const { precomputeDueOfficialRaceSimulations } = await import("@/services/race-simulation-runner");
   const result = await precomputeDueOfficialRaceSimulations(now, {
     ...jobPack,
     maxEditions: RACE_SIMULATION_EDITION_BATCH_SIZE,

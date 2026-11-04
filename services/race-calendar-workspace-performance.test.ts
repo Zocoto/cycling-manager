@@ -3,26 +3,36 @@ import { isRacePreparationStageAvailable } from "@/lib/game/race-preparation";
 
 const fixture = vi.hoisted(() => ({
   rows: {} as Record<string, Record<string, unknown>[]>, reads: [] as string[],
+  filters: [] as Array<{ table: string; key: string; values: unknown[] }>,
+  returnedRows: [] as Array<{ table: string; count: number }>,
   client: null as unknown,
 }));
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => fixture.client }));
-import { getActiveSeasonRaceCalendar } from "./race-calendar";
+import { getActiveSeasonRaceCalendar, getRacePreparationCalendar, type RacePreparationEditionPlan } from "./race-calendar";
 
 type Client = Parameters<typeof getActiveSeasonRaceCalendar>[0];
+function preparationPlan(editionId: string): RacePreparationEditionPlan {
+  return { editionId, registrationId: `registration-${editionId}`, teamId: "team", riders: [], stages: {} };
+}
 function client(): Client {
   function query(table: string) {
     let rows = [...(fixture.rows[table] ?? [])];
     let from = 0, to = Infinity;
     const result = () => {
       fixture.reads.push(table);
-      return { data: rows.slice(from, to + 1), error: null };
+      const data = rows.slice(from, to + 1);
+      fixture.returnedRows.push({ table, count: data.length });
+      return { data, error: null };
     };
     const builder = {
       select: () => builder, order: () => builder,
       eq: (key: string, value: unknown) => { rows = rows.filter(row => row[key] === value); return builder; },
       neq: (key: string, value: unknown) => { rows = rows.filter(row => row[key] !== value); return builder; },
-      in: (key: string, values: unknown[]) => { rows = rows.filter(row => values.includes(row[key])); return builder; },
+      in: (key: string, values: unknown[]) => {
+        fixture.filters.push({ table, key, values });
+        rows = rows.filter(row => values.includes(row[key])); return builder;
+      },
       range: (start: number, end: number) => { from = start; to = end; return builder; },
       returns: async () => result(),
       maybeSingle: async () => { const response = result(); return { ...response, data: response.data[0] ?? null }; },
@@ -37,6 +47,8 @@ describe("preparation calendar without unused simulation data", () => {
   const now = new Date("2026-10-14T08:00:00Z");
   beforeEach(() => {
     fixture.reads = [];
+    fixture.filters = [];
+    fixture.returnedRows = [];
     fixture.rows = {
       seasons: [{ id: "season", status: "active", game_year: 4, name: "S4", starts_on: "2026-10-09", ends_on: "2026-11-05", current_day_number: 6 }],
       season_days: [6, 7].map(day => ({ id: `day-${day}`, season_id: "season", day_number: day, calendar_date: `2026-10-${day + 8}`, label: `J${day}` })),
@@ -93,10 +105,72 @@ describe("preparation calendar without unused simulation data", () => {
     expect(isRacePreparationStageAvailable({ edition: optimized!.editions.find(e => e.id === "international")!, stage: tour.stages[0] })).toBe(false);
     const simulationTables = ["stage_reconnaissances", "stage_reconnaissance_riders", "national_federation_infrastructures", "national_federation_infrastructure_specializations"];
     expect(baselineReads).toEqual(expect.arrayContaining(simulationTables));
-    expect(fixture.reads).not.toEqual(expect.arrayContaining(simulationTables));
+    for (const table of simulationTables) expect(fixture.reads).not.toContain(table);
     expect(baselineReads.length - fixture.reads.length).toBeGreaterThanOrEqual(4);
     // Defaults still preserve simulation data for every existing caller.
     expect(baseline!.editions.find(e => e.id === "tour")!.stages[0].reconnaissanceBonuses).toEqual({ rider: 3 });
     expect(baseline!.editions.find(e => e.id === "tour")!.federationHomeAdvantageBonus).toBeGreaterThan(0);
+  });
+  it("loads only registered preparation editions and skips the entire calendar when there is no plan", async () => {
+    const plans = [preparationPlan("tour"), preparationPlan("tour")];
+    const baseline = await getActiveSeasonRaceCalendar(fixture.client as Client, now, { includeEngagedRiders: false });
+    const before = [...fixture.reads];
+    const beforeRows = [...fixture.returnedRows];
+    fixture.reads = [];
+    fixture.filters = [];
+    fixture.returnedRows = [];
+    const scoped = await getRacePreparationCalendar(fixture.client as Client, now, plans);
+    expect(scoped?.editions.map((edition) => edition.id)).toEqual(["tour"]);
+    const displayedStage = (stage: NonNullable<typeof scoped>["editions"][number]["stages"][number]) => ({
+      id: stage.id, name: stage.name, stageType: stage.stageType, profileType: stage.profileType,
+      departureAt: stage.departureAt, distanceKm: stage.distanceKm, segments: stage.segments,
+    });
+    expect(scoped!.editions[0].stages.map(displayedStage)).toEqual(baseline!.editions.find((edition) => edition.id === "tour")!.stages.map(displayedStage));
+    const workspaceData = (edition: NonNullable<typeof scoped>["editions"][number]) => {
+      const {
+        engagedRiderCount, currentTeamInternationalRiderCount,
+        federationHomeAdvantageBonus, federationHomeAdvantageSpecialization, ...displayed
+      } = edition;
+      void engagedRiderCount; void currentTeamInternationalRiderCount;
+      void federationHomeAdvantageBonus; void federationHomeAdvantageSpecialization;
+      return { ...displayed, stages: displayed.stages.map(({ reconnaissanceBonuses, ...stage }) => {
+        void reconnaissanceBonuses;
+        return stage;
+      }) };
+    };
+    expect(workspaceData(scoped!.editions[0])).toEqual(workspaceData(baseline!.editions.find((edition) => edition.id === "tour")!));
+    expect(fixture.filters).toEqual(expect.arrayContaining([
+      { table: "race_editions", key: "id", values: ["tour"] },
+      { table: "races", key: "id", values: ["tour"] },
+      { table: "stages", key: "race_edition_id", values: ["tour"] },
+      { table: "stage_segments", key: "stage_id", values: ["road", "tt"] },
+    ]));
+    expect(fixture.returnedRows.find((read) => read.table === "race_editions")?.count).toBe(1);
+    expect(fixture.returnedRows.find((read) => read.table === "stages")?.count).toBe(2);
+    expect(beforeRows.find((read) => read.table === "race_editions")?.count).toBe(4);
+    expect(beforeRows.find((read) => read.table === "stages")?.count).toBe(5);
+    expect(fixture.reads).not.toContain("get_current_team_visible_calendar_edition_ids");
+    expect(fixture.reads).not.toContain("get_active_calendar_engaged_counts");
+    expect(fixture.reads).not.toContain("get_current_team_international_calendar_counts");
+    expect(fixture.reads).not.toContain("stage_reconnaissances");
+    expect(before).toHaveLength(19);
+    expect(fixture.reads).toHaveLength(12);
+    fixture.reads = [];
+    expect(await getRacePreparationCalendar(fixture.client as Client, now, [])).toBeNull();
+    expect(fixture.reads).toEqual([]);
+  });
+  it("preserves pending wildcards and authorized national heats omitted from the calendar grid", async () => {
+    fixture.rows.races.find((race) => race.id === "international")!.slug = "nations-cup-montagne-d2-a";
+    const grid = await getActiveSeasonRaceCalendar(fixture.client as Client, now, { includeEngagedRiders: false });
+    expect(grid?.editions.map((edition) => edition.id)).not.toContain("international");
+    const plans = [preparationPlan("wildcard"), preparationPlan("international")];
+    fixture.reads = [];
+    const scoped = await getRacePreparationCalendar(fixture.client as Client, now, plans);
+    expect(scoped?.editions.map((edition) => edition.id)).toEqual(["wildcard", "international"]);
+    expect(scoped!.editions[0].currentTeamRegistration?.status).toBe("pending");
+    expect(scoped!.editions[1].competitionType).toBe("nations_cup");
+    expect(scoped!.editions[1].stages[0].id).toBe("international");
+    expect(fixture.reads).not.toContain("get_calendar_engaged_riders");
+    expect(fixture.reads).not.toContain("get_active_calendar_engaged_counts");
   });
 });

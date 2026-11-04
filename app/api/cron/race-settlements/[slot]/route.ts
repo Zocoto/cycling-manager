@@ -4,8 +4,7 @@ import {
   RACE_SETTLEMENT_RECOVERY_BATCH_SIZE,
 } from "@/lib/game/race-job-packs";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
-import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
-import { settleDueStandardRaceResults } from "@/services/race-settlement-runner";
+import { isSeasonalCronActive } from "@/lib/game/seasonal-cron";
 
 export const maxDuration = 300;
 
@@ -50,6 +49,10 @@ export async function GET(
   ) {
     return Response.json({ error: "Invalid race slug" }, { status: 400 });
   }
+  if (!requestedRaceSlug && !isSeasonalCronActive(slot, now)) {
+    return Response.json({ slot, skipped: true, reason: "inactive-paris-time-variant" });
+  }
+  const { settleDueStandardRaceResults } = await import("@/services/race-settlement-runner");
   const preSettlementStartedAt = Date.now();
   // Une reprise manuelle ciblée doit rester strictement cantonnée à la course
   // demandée. Les maintenances globales continuent de tourner sur les appels
@@ -64,8 +67,9 @@ export async function GET(
       } as const)
     : jobPack.packIndex === 0 &&
         (!slot.endsWith("-recovery") || shouldRetryInternationalSelections)
-      ? await runPreSettlementTask("sélections internationales", () =>
-          processDueInternationalChampionshipSelections(now),
+      ? await runPreSettlementTask("sélections internationales", async () =>
+          (await import("@/services/international-championship-selections"))
+            .processDueInternationalChampionshipSelections(now),
         )
       : ({
           ok: true,

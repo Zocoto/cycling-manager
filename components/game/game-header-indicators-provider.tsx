@@ -69,13 +69,20 @@ export function GameHeaderIndicatorsProvider({
     let active = true;
     let supabase: SupabaseBrowserClient | null = null;
     let subscribedChannel: ReturnType<SupabaseBrowserClient["channel"]> | null = null;
+    let channelRemoval: Promise<unknown> = Promise.resolve();
+    let subscriptionGeneration = 0;
     let authSubscription: { unsubscribe: () => void } | null = null;
     const refreshScheduler = createVisibleRefreshScheduler({
       isVisible: () => document.visibilityState === "visible",
       refresh: async () => {
         if (!supabase) return;
+        const generation = subscriptionGeneration;
         const row = await refreshIndicators();
         if (active && row?.current_sporting_director_id && !subscribedChannel) {
+          await channelRemoval;
+          // A hide/show cycle while removal is pending requires a newer
+          // snapshot before replacing the channel with the same name.
+          if (generation !== subscriptionGeneration) return;
           subscribeToIndicators(row);
         }
       },
@@ -118,7 +125,23 @@ export function GameHeaderIndicatorsProvider({
     }
 
     function refreshWhenVisible() {
-      if (document.visibilityState === "visible") scheduleRefresh(0);
+      if (document.visibilityState === "visible") {
+        scheduleRefresh(0);
+      } else {
+        // Hidden tabs do not need five live Postgres subscriptions. Recover
+        // their complete badge snapshot before subscribing on the next visit.
+        requestVersionRef.current += 1;
+        stopRealtimeIndicators();
+      }
+    }
+
+    function stopRealtimeIndicators() {
+      subscriptionGeneration += 1;
+      const previous = subscribedChannel;
+      subscribedChannel = null;
+      if (previous && supabase) {
+        channelRemoval = Promise.resolve(supabase.removeChannel(previous)).catch(() => undefined);
+      }
     }
 
     function handleDirectorMailboxChanged(event: Event) {
@@ -191,7 +214,10 @@ export function GameHeaderIndicatorsProvider({
     }
 
     function subscribeToIndicators(row: GameHeaderIndicatorsRow | null) {
-      if (!supabase) return;
+      if (!active || !supabase || subscribedChannel || document.visibilityState !== "visible") return;
+      const generation = ++subscriptionGeneration;
+      const canReceive = () => active && generation === subscriptionGeneration
+        && document.visibilityState === "visible";
 
       let channel = supabase
         .channel("game-header-indicators:v2")
@@ -203,6 +229,7 @@ export function GameHeaderIndicatorsProvider({
             table: "global_chat_messages",
           },
           (payload: { new: Record<string, unknown> }) => {
+            if (!canReceive()) return;
             const senderId = payload.new.sporting_director_id;
             if (senderId === row?.current_sporting_director_id) return;
             setIndicators((current) => ({
@@ -219,6 +246,7 @@ export function GameHeaderIndicatorsProvider({
             table: "cyclogazette_editions",
           },
           () => {
+            if (!canReceive()) return;
             setIndicators((current) => ({
               ...current,
               hasUnreadCyclogazette: true,
@@ -237,6 +265,7 @@ export function GameHeaderIndicatorsProvider({
               filter: `sporting_director_id=eq.${row.current_sporting_director_id}`,
             },
             (payload: { new: Record<string, unknown> }) => {
+              if (!canReceive()) return;
               const message = payload.new;
               if (message.read_at || message.archived_at) return;
               setIndicators((current) => ({
@@ -253,7 +282,7 @@ export function GameHeaderIndicatorsProvider({
               table: "sporting_director_messages",
               filter: `sporting_director_id=eq.${row.current_sporting_director_id}`,
             },
-            () => scheduleRefresh(),
+            () => { if (canReceive()) scheduleRefresh(); },
           )
           .on(
             "postgres_changes",
@@ -263,7 +292,7 @@ export function GameHeaderIndicatorsProvider({
               table: "direct_messages",
               filter: `recipient_id=eq.${row.current_sporting_director_id}`,
             },
-            () => scheduleRefresh(),
+            () => { if (canReceive()) scheduleRefresh(); },
           );
       }
       subscribedChannel = channel.subscribe();
@@ -294,9 +323,7 @@ export function GameHeaderIndicatorsProvider({
       );
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
-      if (subscribedChannel && supabase) {
-        void supabase.removeChannel(subscribedChannel);
-      }
+      stopRealtimeIndicators();
     };
   }, []);
 

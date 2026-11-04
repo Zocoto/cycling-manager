@@ -29,6 +29,7 @@ import {
 import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { hasForbiddenGlobalChatLink } from "@/lib/game/global-chat";
 import { notifyDirectMessagesChanged } from "@/lib/game/direct-message-sync";
+import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   DirectConversation,
@@ -111,7 +112,7 @@ export function DirectMessagingPanel({
   const activeConversationIdRef = useRef(activeConversationId);
   const messageRequestVersionRef = useRef(0);
   const handledRecipientRef = useRef<string | null>(null);
-  const overviewRefreshTimerRef = useRef<number | null>(null);
+  const overviewRefreshSchedulerRef = useRef<ReturnType<typeof createVisibleRefreshScheduler> | null>(null);
   const markReadTimerRef = useRef<number | null>(null);
   const conversationsRef = useRef(conversations);
   const initialConversationHandledRef = useRef(false);
@@ -125,6 +126,7 @@ export function DirectMessagingPanel({
 
   useEffect(() => {
     activeRef.current = active;
+    if (active) overviewRefreshSchedulerRef.current?.request(0);
   }, [active]);
 
   useEffect(() => {
@@ -341,14 +343,6 @@ export function DirectMessagingPanel({
   );
 
   useEffect(() => {
-    if (!active || overviewLoaded || isLoadingOverview) return;
-    const timer = window.setTimeout(() => {
-      void refreshOverview({ preserve: false });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [active, isLoadingOverview, overviewLoaded, refreshOverview]);
-
-  useEffect(() => {
     if (
       !active ||
       !overviewLoaded ||
@@ -454,15 +448,17 @@ export function DirectMessagingPanel({
   }, [searchQuery, showRecipientSearch]);
 
   useEffect(() => {
-    function scheduleOverviewRefresh() {
-      if (overviewRefreshTimerRef.current !== null) {
-        window.clearTimeout(overviewRefreshTimerRef.current);
-      }
-      overviewRefreshTimerRef.current = window.setTimeout(() => {
-        overviewRefreshTimerRef.current = null;
-        void refreshOverview();
-      }, 180);
-    }
+    let mounted = true;
+    const refreshScheduler = createVisibleRefreshScheduler({
+      isVisible: () => mounted && activeRef.current && document.visibilityState === "visible",
+      refresh: () => refreshOverview(),
+      delayMs: 180,
+    });
+    overviewRefreshSchedulerRef.current = refreshScheduler;
+    const refreshWhenVisible = () => refreshScheduler.request(0);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    refreshWhenVisible();
 
     const channel = supabase
       .channel(`direct-messages:${identity.sportingDirectorId}`)
@@ -475,6 +471,7 @@ export function DirectMessagingPanel({
           filter: `recipient_id=eq.${identity.sportingDirectorId}`,
         },
         (payload: { new: Record<string, unknown> }) => {
+          if (!mounted) return;
           const message = readRealtimeDirectMessage(payload.new);
           if (!message) return;
 
@@ -501,7 +498,7 @@ export function DirectMessagingPanel({
           }
 
           notifyDirectMessagesChanged();
-          scheduleOverviewRefresh();
+          refreshScheduler.request();
         },
       )
       .on(
@@ -513,6 +510,7 @@ export function DirectMessagingPanel({
           filter: `recipient_id=eq.${identity.sportingDirectorId}`,
         },
         (payload: { new: Record<string, unknown> }) => {
+          if (!mounted) return;
           const message = readRealtimeDirectMessage(payload.new);
           if (!message) return;
 
@@ -530,9 +528,11 @@ export function DirectMessagingPanel({
       .subscribe();
 
     return () => {
-      if (overviewRefreshTimerRef.current !== null) {
-        window.clearTimeout(overviewRefreshTimerRef.current);
-      }
+      mounted = false;
+      refreshScheduler.dispose();
+      if (overviewRefreshSchedulerRef.current === refreshScheduler) overviewRefreshSchedulerRef.current = null;
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       if (markReadTimerRef.current !== null) {
         window.clearTimeout(markReadTimerRef.current);
       }

@@ -1,7 +1,5 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
-import { syncNationalChampionshipRegistrations } from "@/services/national-championships";
-import { settleDueNationalChampionshipResults } from "@/services/national-championship-settlement-runner";
+import { isSeasonalCronActive } from "@/lib/game/seasonal-cron";
 
 export const maxDuration = 300;
 
@@ -31,6 +29,11 @@ export async function GET(
     return Response.json({ error: "Invalid discipline" }, { status: 400 });
   }
 
+  const now = new Date();
+  if (!isSeasonalCronActive(discipline, now)) {
+    return Response.json({ discipline, skipped: true, reason: "inactive-paris-time-variant" });
+  }
+  const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
   const admin = createSupabaseAdminClient();
   const { data: season, error: seasonError } = await admin
     .from("seasons")
@@ -50,13 +53,13 @@ export async function GET(
     });
   }
 
-  const now = new Date();
   let synchronizedEntries: number | null = null;
   let synchronizationError: string | null = null;
   // Recovery works from already frozen startlists. Do not repeat an expensive
   // global synchronization on every retry or reopen any closed selection.
   if (!discipline.endsWith("-recovery") && season.current_day_number === 8) {
     try {
+      const { syncNationalChampionshipRegistrations } = await import("@/services/national-championships");
       synchronizedEntries = await syncNationalChampionshipRegistrations(now);
     } catch (error) {
       synchronizationError =
@@ -67,6 +70,7 @@ export async function GET(
       );
     }
   }
+  const { settleDueNationalChampionshipResults } = await import("@/services/national-championship-settlement-runner");
   const settlement = await settleDueNationalChampionshipResults({seasonId:season.id,competitionType,now});
   if (settlement.failedEditions > 0) console.error("national_championship_settlement_anomaly",{discipline,...settlement});
 

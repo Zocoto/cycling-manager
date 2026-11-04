@@ -14,7 +14,8 @@ const page = readFileSync(
 
 describe("direct messaging performance contract", () => {
   it("loads conversation history only when the private tab is used", () => {
-    expect(panel).toContain("if (!active || overviewLoaded || isLoadingOverview) return");
+    expect(panel).toContain('isVisible: () => mounted && activeRef.current && document.visibilityState === "visible"');
+    expect(panel).toContain("if (active) overviewRefreshSchedulerRef.current?.request(0)");
     expect(panel).toContain('fetch("/jeu/chat/prives/conversations"');
     expect(page).not.toContain("getDirectMessagingOverview");
   });

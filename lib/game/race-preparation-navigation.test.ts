@@ -42,8 +42,8 @@ describe("race preparation navigation", () => {
     expect(raceProfile).not.toContain("RaceStageRolePlanner");
   });
 
-  it("loads lightweight calendar data and the preparation batch in parallel", () => {
-    expect(preparationPage).toContain("includeEngagedRiders: false");
+  it("scopes the calendar to the authorized preparation batch while the header loads in parallel", () => {
+    expect(preparationPage).toContain("getRacePreparationCalendar(supabase, now, preparations)");
     expect(preparationPage).toContain(
       "getCurrentTeamRacePreparation(supabase)",
     );

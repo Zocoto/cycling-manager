@@ -37,8 +37,8 @@ import {
   getNationalFederationSnapshot,
 } from "@/services/national-federations";
 import { getPublicCountryDirectory } from "@/services/public-directory";
-import { getNationRankingEntry } from "@/services/uci-rankings";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import { getUciRankings } from "@/services/uci-rankings";
+import { getRacePreparationCalendar } from "@/services/race-calendar";
 import type { RacePreparationWorkspaceEdition } from "@/components/game/race-preparation-workspace";
 
 export const metadata: Metadata = {
@@ -107,8 +107,8 @@ export default async function FederationPage({
       ? "preparation"
       : "equipment";
   const now = new Date();
-  const [nationRanking, snapshot] = await Promise.all([
-    getNationRankingEntry(country.country_code),
+  const [uciRankings, snapshot] = await Promise.all([
+    getUciRankings(),
     getNationalFederationSnapshot({
       countryId: country.entity_id,
       countryCode: country.country_code,
@@ -118,6 +118,9 @@ export default async function FederationPage({
         selectedTab === "overview" || selectedTab === "infrastructures",
     }),
   ]);
+  const nationRanking = uciRankings?.nations.find(
+    (entry) => entry.countryCode === country.country_code.trim().toUpperCase(),
+  ) ?? null;
   const [
     publishedJersey,
     publishedChampionJersey,
@@ -226,6 +229,7 @@ export default async function FederationPage({
           currentMemberTeamCount: country.team_count ?? 0,
           countryCode: country.country_code,
           memberTeamIds: directory.members.teams.map((team) => team.entity_id),
+          uciRankings,
         })
       : Promise.resolve(null),
     selectedTab === "overview"
@@ -320,27 +324,21 @@ export default async function FederationPage({
 
   let federationPreparationEditions: RacePreparationWorkspaceEdition[] = [];
   if (selectedTab === "equipment" && equipmentView === "preparation") {
-    const [calendarResult, preparationResult] = await Promise.all([
-      getActiveSeasonRaceCalendar(supabase, now, {
-        includeEngagedRiders: false,
-      }).catch((error) => {
-        console.error(
-          "Impossible de charger le calendrier des sélections :",
-          error,
-        );
+    const preparationResult = await getCurrentFederationRacePreparation(
+      supabase,
+      country.country_code,
+    ).catch((error) => {
+      console.error(
+        "Impossible de charger les plans nationaux :",
+        error,
+      );
+      return [];
+    });
+    const calendarResult = await getRacePreparationCalendar(supabase, now, preparationResult)
+      .catch((error) => {
+        console.error("Impossible de charger le calendrier des sélections :", error);
         return null;
-      }),
-      getCurrentFederationRacePreparation(
-        supabase,
-        country.country_code,
-      ).catch((error) => {
-        console.error(
-          "Impossible de charger les plans nationaux :",
-          error,
-        );
-        return [];
-      }),
-    ]);
+      });
     const planByEditionId = new Map(
       preparationResult.map((plan) => [plan.editionId, plan]),
     );

@@ -74,6 +74,11 @@ import {
 import { getCurrentDashboardAssistantSummaries, type getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
 import { getDashboardOverweightRiders } from "@/services/dashboard-rider-weight";
 import {
+  getDashboardDirectorProfile,
+  type DashboardDirectorProfile as SportingDirector,
+  type DashboardDirectorCountry as CountryRow,
+} from "@/services/dashboard-profile";
+import {
   DASHBOARD_ASSISTANT_ENABLED,
   getDashboardLowReputationRegistrationAlerts,
   getDashboardRaceRosterAlerts,
@@ -87,25 +92,6 @@ import {
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
   description: "Pilotez votre carrière et votre équipe dans Cyclostratège.",
-};
-
-type SportingDirector = {
-  id: string;
-  username: string;
-  display_name: string;
-  country_id: string | null;
-  avatar_key: string | null;
-  avatar_frame_key: "alpha_tester" | null;
-  reputation_points: number;
-  experience_points: number;
-  is_email_visible: boolean;
-  created_at: string;
-};
-
-type CountryRow = {
-  id: string;
-  name: string;
-  iso_alpha2: string;
 };
 
 type CurrentTeamDashboardSummary = {
@@ -500,40 +486,9 @@ export default async function GamePage() {
     "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
   );
 
-  const [profileResult, countriesResult, teamSummaryResult] =
+  const [profileResult, teamSummaryResult] =
     await Promise.all([
-      supabase
-        .from("sporting_directors")
-        .select(
-          `
-          id,
-          username,
-          display_name,
-          country_id,
-          avatar_key,
-          avatar_frame_key,
-          reputation_points,
-          experience_points,
-          is_email_visible,
-          created_at
-        `,
-        )
-        .eq("auth_user_id", user.id)
-        .maybeSingle<SportingDirector>(),
-
-      supabase
-        .from("countries")
-        .select(
-          `
-          id,
-          name,
-          iso_alpha2
-        `,
-        )
-        .eq("is_active", true)
-        .order("name", {
-          ascending: true,
-        }),
+      getDashboardDirectorProfile(supabase, user.id),
 
       fastSummaryPromise.then((summary) => ({
         data: toTeamSummary(summary),
@@ -601,7 +556,9 @@ export default async function GamePage() {
   const [sponsorIdentityResult, teamAmateurIdentity, financeOverview] = await Promise.all([
     sponsorIdentityPromise,
     loadDashboardValue(
-      dashboardTeamId ? getTeamAmateurIdentity(dashboardTeamId) : Promise.resolve(null),
+      sponsorIdentityPromise.then(({ identity }) =>
+        dashboardTeamId && !identity ? getTeamAmateurIdentity(dashboardTeamId) : null,
+      ),
       null as TeamAmateurIdentity | null,
       "Impossible de récupérer l’identité amateur de l’équipe :",
     ),
@@ -624,13 +581,6 @@ export default async function GamePage() {
     });
   }
 
-  if (countriesResult.error) {
-    console.error("Impossible de récupérer le référentiel des pays :", {
-      code: countriesResult.error.code,
-      message: countriesResult.error.message,
-    });
-  }
-
   if (teamSummaryResult.error) {
     console.error("Impossible de récupérer le résumé de l’équipe :", {
       code: teamSummaryResult.error.code,
@@ -638,11 +588,7 @@ export default async function GamePage() {
     });
   }
 
-  const countries = (countriesResult.data ?? []) as CountryRow[];
-
-  const selectedCountry =
-    countries.find((country) => country.id === sportingDirector?.country_id) ??
-    null;
+  const selectedCountry = profileResult.country;
 
   const displayName =
     sportingDirector?.display_name ??
