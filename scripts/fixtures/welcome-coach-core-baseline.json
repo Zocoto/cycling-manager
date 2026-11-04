@@ -1,0 +1,46 @@
+{
+  "contract_constraints": [
+    {
+      "definition": "CHECK ((currency_code ~ '^[A-Z]{3}$'::text))",
+      "name": "staff_contracts_currency"
+    },
+    {
+      "definition": "CHECK ((salary_per_season > (0)::numeric))",
+      "name": "staff_contracts_salary_positive"
+    },
+    {
+      "definition": "CHECK ((signing_fee >= (0)::numeric))",
+      "name": "staff_contracts_signing_fee_non_negative"
+    },
+    {
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'completed'::text, 'terminated'::text, 'cancelled'::text])))",
+      "name": "staff_contracts_status_allowed"
+    },
+    {
+      "definition": "CHECK (((termination_compensation IS NULL) OR (termination_compensation >= (0)::numeric)))",
+      "name": "staff_contracts_termination_compensation_non_negative"
+    },
+    {
+      "definition": "CHECK (((termination_day_number IS NULL) OR ((termination_day_number >= 1) AND (termination_day_number <= 28))))",
+      "name": "staff_contracts_termination_day_range"
+    },
+    {
+      "definition": "CHECK ((((status = 'terminated'::text) AND (terminated_at IS NOT NULL)) OR (status <> 'terminated'::text)))",
+      "name": "staff_contracts_termination_shape"
+    }
+  ],
+  "functions": [
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.calculate_staff_salary(p_role text, p_level integer)\n RETURNS numeric\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'public'\nAS $function$\ndeclare\n  v_base numeric;\n  v_multiplier numeric;\n  v_level integer := least(5, greatest(1, coalesce(p_level, 1)));\nbegin\n  v_base := case p_role\n    when 'trainer' then 22000\n    when 'youth_coach' then 20000\n    when 'scout' then 19000\n    when 'doctor' then 17000\n    when 'mechanic' then 14000\n    when 'nutritionist' then 13000\n    when 'physiotherapist' then 13000\n    when 'race_preparer' then 15000\n    when 'architect' then 12000\n    when 'community_manager' then 11000\n    when 'research_engineer' then 24000\n    when 'educator' then 18000 when 'financial_director' then 18000\n    else null\n  end;\n  if v_base is null then\n    raise exception 'Métier de staff invalide.';\n  end if;\n  v_multiplier := (\n    array[1.00, 1.50, 2.20, 3.30, 5.00]::numeric[]\n  )[v_level];\n  return round((v_base * v_multiplier) / 500) * 500;\nend;\n$function$\n",
+      "signature": "calculate_staff_salary(text,integer)"
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.handle_staff_contract_finance_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nbegin\r\n  perform public.sync_staff_salary_installments(new.id);\r\n  return new;\r\nend;\r\n$function$\n",
+      "signature": "handle_staff_contract_finance_change()"
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.sync_staff_salary_installments(p_contract_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  v_contract record;\n  v_team_season record;\n  v_regular_installment numeric(14, 2);\n  v_amount numeric(14, 2);\nbegin\n  select contract.*, member.first_name, member.last_name\n  into v_contract\n  from public.staff_contracts as contract\n  join public.staff_members as member on member.id = contract.staff_member_id\n  where contract.id = p_contract_id;\n\n  if v_contract is null or v_contract.status <> 'active' then\n    update public.team_finance_transactions\n    set status = 'cancelled'\n    where source_reference like 'staff-contract:' || p_contract_id::text || ':%'\n      and status = 'pending';\n    return;\n  end if;\n\n  v_regular_installment := round(v_contract.salary_per_season / 4, 2);\n\n  for v_team_season in\n    select team_season.*\n    from public.team_seasons as team_season\n    join public.seasons as season on season.id = team_season.season_id\n    join public.seasons as start_season on start_season.id = v_contract.start_season_id\n    left join public.seasons as end_season on end_season.id = v_contract.end_season_id\n    where team_season.team_id = v_contract.team_id\n      and team_season.status in ('planned', 'active')\n      and season.game_year >= start_season.game_year\n      and (end_season.id is null or season.game_year <= end_season.game_year)\n  loop\n    if v_contract.salary_waived_season_id = v_team_season.season_id then\n      update public.team_finance_transactions\n      set status = 'cancelled'\n      where team_season_id = v_team_season.id\n        and source_reference like 'staff-contract:' || p_contract_id::text\n          || ':' || v_team_season.season_id::text || ':%'\n        and status = 'pending';\n      continue;\n    end if;\n\n    for v_installment in 1..4 loop\n      v_amount := case\n        when v_installment < 4 then v_regular_installment\n        else v_contract.salary_per_season - v_regular_installment * 3\n      end;\n\n      insert into public.team_finance_transactions (\n        team_season_id,\n        season_day_id,\n        day_number,\n        amount,\n        category,\n        status,\n        description,\n        source_reference\n      )\n      select\n        v_team_season.id,\n        day.id,\n        v_installment * 7,\n        -v_amount,\n        'staff_salary',\n        'pending',\n        'Salaire de ' || v_contract.first_name || ' ' || v_contract.last_name\n          || ' · échéance ' || v_installment || '/4',\n        'staff-contract:' || p_contract_id::text || ':'\n          || v_team_season.season_id::text || ':' || v_installment\n      from public.season_days as day\n      where day.season_id = v_team_season.season_id\n        and day.day_number = v_installment * 7\n      on conflict (team_season_id, source_reference)\n      do update set\n        amount = excluded.amount,\n        description = excluded.description,\n        season_day_id = excluded.season_day_id,\n        status = case\n          when team_finance_transactions.status = 'posted'\n            then team_finance_transactions.status\n          else 'pending'\n        end;\n    end loop;\n  end loop;\nend;\n$function$\n",
+      "signature": "sync_staff_salary_installments(uuid)"
+    }
+  ]
+}

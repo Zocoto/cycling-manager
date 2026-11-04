@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { translateUiText, UI_TRANSLATIONS } from "@/lib/i18n/ui-translations";
 
 describe("French to English UI catalog", () => {
+  it("translates the welcome coach notification and its staff action", () => {
+    expect(translateUiText("Votre cadeau de bienvenue")).toBe("Your welcome gift");
+    expect(translateUiText("Un entraîneur de niveau 3 rejoint votre équipe.")).toBe("A level 3 coach joins your team.");
+    expect(translateUiText("Voir mon entraîneur")).toBe("View my coach");
+  });
   it("distinguishes the finance director's base income and two salary skills", () => {
     expect(translateUiText("Optimisation des charges")).toBe("Cost optimisation");
     expect(translateUiText("Optimisation des salaires coureurs")).toBe("Rider payroll optimisation");
