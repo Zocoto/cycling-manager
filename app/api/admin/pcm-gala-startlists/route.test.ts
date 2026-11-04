@@ -21,6 +21,11 @@ describe("API administrative de startlist gala", () => {
     expect((await POST(request())).status).toBe(404);
     expect(mocks.generate).not.toHaveBeenCalled();
   });
+  it("also permits the verified PCM operator, without a game staff role", async () => {
+    mocks.auth.mockResolvedValue({data:{user:{id:"ee244935-5722-4626-a28f-dc3cf63aa6f4"}},error:null});
+    mocks.access.mockResolvedValue(null);
+    expect((await POST(request())).status).toBe(200);expect(mocks.access).not.toHaveBeenCalled();
+  });
   it("requiert une session authentifiée", async () => {
     mocks.auth.mockResolvedValue({ data: { user: null }, error: null });
     expect((await POST(request())).status).toBe(401);

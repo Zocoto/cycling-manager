@@ -2,9 +2,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 
-const indicators = vi.hoisted(() => ({ role: null as GameStaffRole }));
+const indicators = vi.hoisted(() => ({ role: null as GameStaffRole, pcmExportAvailable: false }));
 vi.mock("./game-header-indicators-provider", () => ({
-  useGameHeaderIndicators: () => ({ gameStaffRole: indicators.role }),
+  useGameHeaderIndicators: () => ({ gameStaffRole: indicators.role, pcmExportAvailable: indicators.pcmExportAvailable }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -13,9 +13,17 @@ vi.mock("next/navigation", () => ({
 
 import { GameUserMenu } from "@/components/game/game-user-menu";
 
-beforeEach(() => { indicators.role = null; });
+beforeEach(() => { indicators.role = null; indicators.pcmExportAvailable = false; });
 
 describe("GameUserMenu", () => {
+  it("shows the delegated PCM download without granting any other staff tool", () => {
+    indicators.pcmExportAvailable = true;
+    const markup = renderToStaticMarkup(<GameUserMenu displayName="gouilleTW" />);
+    expect(markup).toContain('href="/jeu/export-pcm"');
+    for (const path of ["/jeu/simulateur-course", "/jeu/administration/actualites", "/jeu/administration/equipe"])
+      expect(markup).not.toContain(`href="${path}"`);
+    expect(markup).not.toContain('data-game-staff-badge="true"');
+  });
   it("regroupe les préférences du joueur dans un menu unique", () => {
     const markup = renderToStaticMarkup(
       <GameUserMenu displayName="Paul Leblanc" />,

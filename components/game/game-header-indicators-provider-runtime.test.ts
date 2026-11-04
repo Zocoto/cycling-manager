@@ -13,6 +13,8 @@ const runtime = vi.hoisted(() => {
     effects: [] as (() => void | (() => void))[],
     setIndicators: vi.fn(),
     setCollectorAlbumAvailable: vi.fn(),
+    setPcmExportAvailable: vi.fn(),
+    booleanStateIndex: 0,
     authState,
     unsubscribeAuth,
     maybeSingle,
@@ -33,7 +35,9 @@ const runtime = vi.hoisted(() => {
 vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useEffect: (effect: () => void | (() => void)) => { runtime.effects.push(effect); },
-  useState: (initial: unknown) => [initial, typeof initial === "boolean" ? runtime.setCollectorAlbumAvailable : runtime.setIndicators],
+  useState: (initial: unknown) => [initial, typeof initial === "boolean"
+    ? runtime.booleanStateIndex++ === 0 ? runtime.setCollectorAlbumAvailable : runtime.setPcmExportAvailable
+    : runtime.setIndicators],
   useMemo: (factory: () => unknown) => factory(),
   useRef: (initial: unknown) => ({ current: initial }),
 }));
@@ -62,6 +66,7 @@ describe("header subscription initialization", () => {
     runtime.maybeSingle.mockReset();
     runtime.client.removeChannel.mockReset();
     runtime.effects.length = 0;
+    runtime.booleanStateIndex = 0;
     runtime.authState.callback = null;
     vi.stubGlobal("window", new EventTarget());
     vi.stubGlobal("document", Object.assign(new EventTarget(), { visibilityState: "visible" }));
@@ -85,6 +90,19 @@ describe("header subscription initialization", () => {
     window.dispatchEvent(new Event("focus"));
     await vi.runAllTimersAsync();
   }
+
+  it("updates the delegated export menu on login and clears it on logout without new requests", async () => {
+    runtime.maybeSingle.mockResolvedValue(SUCCESS);
+    await mount();
+    const requests = runtime.client.rpc.mock.calls.length;
+    runtime.authState.callback!("SIGNED_IN", { user: { id: "ee244935-5722-4626-a28f-dc3cf63aa6f4" } });
+    expect(runtime.setPcmExportAvailable).toHaveBeenLastCalledWith(true);
+    runtime.authState.callback!("SIGNED_IN", { user: { id: "f4a4c24e-b534-4a5f-adbc-8f259189b86c" } });
+    expect(runtime.setPcmExportAvailable).toHaveBeenLastCalledWith(false);
+    runtime.authState.callback!("SIGNED_OUT", null);
+    expect(runtime.setPcmExportAvailable).toHaveBeenLastCalledWith(false);
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(requests);
+  });
 
   function expectCompleteSubscription() {
     expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v3");

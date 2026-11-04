@@ -15,6 +15,19 @@ beforeEach(()=>{
 });
 
 describe("delegated PCM database export",()=>{
+  it("permits the verified Gouille account without assigning a staff role",async()=>{
+    mocks.auth.mockResolvedValue({data:{user:{id:"ee244935-5722-4626-a28f-dc3cf63aa6f4"}},error:null});mocks.role.mockResolvedValue(null);
+    expect((await POST(request())).status).toBe(200);expect(mocks.role).not.toHaveBeenCalled();
+    expect(mocks.generate).toHaveBeenCalledExactlyOnceWith(false);
+  });
+  it("does not delegate to the unused homonymous Gouille profile",async()=>{
+    mocks.auth.mockResolvedValue({data:{user:{id:"f4a4c24e-b534-4a5f-adbc-8f259189b86c",user_metadata:{username:"Gouille"}}},error:null});mocks.role.mockResolvedValue(null);
+    expect((await POST(request())).status).toBe(404);expect(mocks.generate).not.toHaveBeenCalled();
+  });
+  it("still checks the origin for a delegated download",async()=>{
+    mocks.auth.mockResolvedValue({data:{user:{id:"ee244935-5722-4626-a28f-dc3cf63aa6f4"}},error:null});
+    expect((await POST(request("","https://foreign.test"))).status).toBe(403);expect(mocks.generate).not.toHaveBeenCalled();
+  });
   it.each(["anonymous","invalid-session"])("requires authentication before permission lookup: %s",async state=>{
     mocks.auth.mockResolvedValue({data:{user:state==="anonymous"?null:{id:"user"}},error:state==="invalid-session"?{}:null});
     expect((await POST(request())).status).toBe(401);expect(mocks.role).not.toHaveBeenCalled();expect(mocks.generate).not.toHaveBeenCalled();

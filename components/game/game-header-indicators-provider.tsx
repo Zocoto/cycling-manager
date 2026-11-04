@@ -21,6 +21,7 @@ import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-syn
 import { createVisibleRefreshScheduler } from "@/lib/game/visible-refresh-scheduler";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 import { canAccessCollectorAlbum } from "@/lib/game/collector-album-access";
+import { canAccessDelegatedPcmExport } from "@/lib/game/pcm-export/access";
 
 type SupabaseBrowserClient = ReturnType<
   (typeof import("@/lib/supabase/client"))["createSupabaseBrowserClient"]
@@ -52,7 +53,7 @@ const EMPTY_INDICATORS: GameHeaderIndicators = {
 };
 
 const GameHeaderIndicatorsContext =
-  createContext<(GameHeaderIndicators & { collectorAlbumAvailable: boolean }) | null>(null);
+  createContext<(GameHeaderIndicators & { collectorAlbumAvailable: boolean; pcmExportAvailable: boolean }) | null>(null);
 
 export function GameHeaderIndicatorsProvider({
   children,
@@ -63,7 +64,8 @@ export function GameHeaderIndicatorsProvider({
     useState<GameHeaderIndicators>(EMPTY_INDICATORS);
   const requestVersionRef = useRef(0);
   const [collectorAlbumAvailable, setCollectorAlbumAvailable] = useState(false);
-  const contextValue = useMemo(() => ({ ...indicators, collectorAlbumAvailable }), [indicators, collectorAlbumAvailable]);
+  const [pcmExportAvailable, setPcmExportAvailable] = useState(false);
+  const contextValue = useMemo(() => ({ ...indicators, collectorAlbumAvailable, pcmExportAvailable }), [indicators, collectorAlbumAvailable, pcmExportAvailable]);
 
   useEffect(() => {
     let active = true;
@@ -208,7 +210,10 @@ export function GameHeaderIndicatorsProvider({
       supabase = createSupabaseBrowserClient();
       // Reuse the local auth lifecycle: no new RPC, user lookup or polling.
       authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-        if (active) setCollectorAlbumAvailable(canAccessCollectorAlbum(session?.user.id));
+        if (active) {
+          setCollectorAlbumAvailable(canAccessCollectorAlbum(session?.user.id));
+          setPcmExportAvailable(canAccessDelegatedPcmExport(session?.user.id));
+        }
       }).data.subscription;
       scheduleRefresh(0);
     }

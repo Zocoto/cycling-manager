@@ -19,7 +19,8 @@ export function GameUserMenu({
   viewerEmail?: string | null;
 }) {
   const { locale } = useLocale();
-  const gameStaffRole = useGameHeaderIndicators()?.gameStaffRole ?? null;
+  const indicators = useGameHeaderIndicators();
+  const gameStaffRole = indicators?.gameStaffRole ?? null;
   const isEnglish = locale === "en";
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -55,7 +56,7 @@ export function GameUserMenu({
 
   const menuLabel = isEnglish ? "User menu" : "Menu utilisateur";
   const accountLabel = displayName?.trim() || (isEnglish ? "My account" : "Mon compte");
-  const showPcmExport = canAccessPcmExport(viewerEmail) || gameStaffRole !== null;
+  const showPcmExport = canAccessPcmExport(viewerEmail) || indicators?.pcmExportAvailable === true || gameStaffRole !== null;
 
   return (
     <div ref={rootRef} data-game-user-menu="true" className="relative shrink-0">

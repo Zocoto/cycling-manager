@@ -1,4 +1,5 @@
 import { getCurrentGameStaffRole } from "@/services/game-staff-access";
+import { canAccessDelegatedPcmExport } from "@/lib/game/pcm-export/access";
 import { isPcmGalaRaceKey } from "@/lib/game/pcm-gala-races";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   if (authenticationError || !user) {
     return Response.json({ error: "Authentification requise." }, { status: 401 });
   }
-  if (!await getCurrentGameStaffRole(supabase).catch(() => null)) {
+  if (!canAccessDelegatedPcmExport(user.id) && !await getCurrentGameStaffRole(supabase).catch(() => null)) {
     return Response.json({ error: "Ressource introuvable." }, { status: 404 });
   }
   if (!isTrustedRequest(request)) {

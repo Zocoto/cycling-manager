@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
+import { canAccessPcmExport, canAccessDelegatedPcmExport } from "@/lib/game/pcm-export/access";
 import { PRIVATE_ADMIN_EMAIL } from "@/lib/game/private-admin-access";
 
 const pageSource = readSource("app/jeu/export-pcm/page.tsx");
@@ -18,13 +18,19 @@ describe("acces a l'export PCM", () => {
   });
 
   it("protege la page et l'API cote serveur", () => {
-    expect(pageSource).toContain("if (!canAccessPcmExport(user.email)) notFound()");
-    expect(routeSource).toContain("if (!canAccessPcmExport(user.email))");
-    expect(routeSource.indexOf("canAccessPcmExport(user.email)")).toBeLessThan(
+    expect(pageSource).toContain("!canAccessDelegatedPcmExport(user.id) && !await getCurrentGameStaffRole(supabase)");
+    expect(routeSource).toContain("!canAccessDelegatedPcmExport(user.id) && !await getCurrentGameStaffRole(supabase)");
+    expect(routeSource.indexOf("canAccessDelegatedPcmExport(user.id)")).toBeLessThan(
       routeSource.indexOf("await generatePcmExport("),
     );
     expect(routeSource).toContain('requestedWith === "pcm-export-admin"');
     expect(routeSource).toContain("origin === new URL(request.url).origin");
+  });
+
+  it("delegates only to Gouille's verified account, never to names or the homonym", () => {
+    expect(canAccessDelegatedPcmExport("ee244935-5722-4626-a28f-dc3cf63aa6f4")).toBe(true);
+    for (const value of [null,undefined,"Gouille","gouilleTW","f4a4c24e-b534-4a5f-adbc-8f259189b86c","game_staff"])
+      expect(canAccessDelegatedPcmExport(value)).toBe(false);
   });
 
   it("ne met jamais le fichier exporte en cache", () => {
