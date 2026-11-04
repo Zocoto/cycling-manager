@@ -28,6 +28,13 @@ import {
 } from "./race-calendar";
 
 describe("race profile labels", () => {
+  it("identifies hybrid road profiles while preserving unrelated sporting domains", () => {
+    expect(getRaceProfileLabel({profileType:"hilly",profileVariant:"hilly_cobbles"})).toBe("Pavé / Vallonné");
+    expect(getRaceProfileLabel({profileType:"cobbles",profileVariant:"hilly_cobbles"})).toBe("Pavé / Vallonné");
+    expect(getRaceProfileLabel({profileType:"hilly"})).toBe("Vallonné");
+    expect(getRaceProfileLabel({profileType:"mountain",profileVariant:"hilly_cobbles"})).toBe("Montagne");
+    expect(getRaceProfileLabel({profileType:"time_trial",profileVariant:"hilly_cobbles"})).toBe("Contre-la-montre");
+  });
   it("distinguishes sprint cobbles without changing the stored simulation domain", () => {
     expect(getRaceProfileLabel({profileType:"cobbles",profileVariant:"sprint_cobbles"})).toBe("Sprint / Pavé");
     expect(getRaceProfileLabel({profileType:"cobbles",profileVariant:"selective_cobbles"})).toBe("Pavés");
