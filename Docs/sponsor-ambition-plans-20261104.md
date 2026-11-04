@@ -49,3 +49,9 @@ Le script exige les preuves isolées correspondant au hash exact de la migration
 et aux fonctions courantes, enregistre le reçu atomiquement et vérifie le code,
 les permissions, la connectivité SQL et l'application publique. Aucun test de
 négociation ou changement temporaire de données n'est exécuté en production.
+
+Migration appliquée et reçue le 4 novembre 2026 à 09:40 UTC (10:40 à Paris).
+Les trois définitions installées correspondent exactement aux fonctions testées.
+Permissions conservées, RLS privée vérifiée, SQL disponible et page publique
+HTTP 200. Signature, rollover, évaluation et résumé du tableau de bord inchangés.
+Preuves locales : `C:/Dev/artifacts/sponsor-ambition-plans-20261104/`.
