@@ -3082,5 +3082,7 @@
   "Le club actuel de Babacar Sow a évolué. Réexaminer avant réparation.": "Babacar Sow’s current club has changed. Review before repairing.",
   "Le retrait doit laisser sept coureurs : la composition a évolué.": "The withdrawal must leave seven riders: the lineup has changed.",
   "Les résultats du gala ont déjà été importés.": "The gala results have already been imported.",
-  "Une inscription gala est en cours. Réessayer la livraison.": "A gala registration is in progress. Retry the delivery."
+  "Une inscription gala est en cours. Réessayer la livraison.": "A gala registration is in progress. Retry the delivery.",
+  "Date de génération PCM invalide.": "Invalid PCM export generation date.",
+  "Le controle PCM a detecte un contrat de coureur incoherent.": "PCM validation detected an inconsistent rider contract."
 }

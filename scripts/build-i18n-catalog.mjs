@@ -17,6 +17,12 @@ const TRANSLATABLE_ATTRIBUTES = new Set([
   "title",
 ]);
 const TECHNICAL_JSX_ATTRIBUTES = new Set(["className", "href", "src", "id", "key", "style", "name", "type", "value"]);
+// These exact functions generate downloadable files, never application UI.
+// Keep their siblings (including errors displayed in the export page) scanned.
+const NON_UI_ARTIFACT_FUNCTIONS = new Map([
+  ["services/pcm-export-package.ts", new Set(["createInstallationGuide"])],
+  ["lib/game/pcm-export/graphics-installer.ts", new Set(["createPcmGraphicsInstaller"])],
+]);
 const VISIBLE_PROPERTY_NAMES = new Set([
   "actionLabel",
   "alt",
@@ -95,6 +101,7 @@ function decodeHtmlEntities(value) {
 
 function isCandidate(value, visible = false) {
   if (value.length < 2 || value.length > 1_500) return false;
+  if (/^[a-z0-9][a-z0-9_.-]*\.(?:pak|ps1)$/i.test(value)) return false;
   if (!/[A-Za-zÀ-ÿ]/.test(value)) return false;
   if (/^(?:https?:|mailto:|tel:|@\/|\/|\.\/|\.\.\/|\?[\w-]+=|#[\w-])/i.test(value) || /<\/?[a-z][^>]*>/i.test(value)) {
     return false;
@@ -153,6 +160,11 @@ export function extractUiStrings(sourceText, filePath = "fixture.tsx") {
 
 function visit(node, candidates, visibleAncestor = false) {
   if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
+  if (ts.isFunctionDeclaration(node) && node.name) {
+    const fileName = node.getSourceFile().fileName;
+    const relativePath = (path.isAbsolute(fileName) ? path.relative(ROOT, fileName) : fileName).replaceAll("\\", "/");
+    if (NON_UI_ARTIFACT_FUNCTIONS.get(relativePath)?.has(node.name.text)) return;
+  }
   // Custom component props often contain whole visible lists/cards. Only skip
   // known technical props, not every non-standard HTML attribute.
   if (ts.isJsxAttribute(node) && TECHNICAL_JSX_ATTRIBUTES.has(node.name.text)) return;

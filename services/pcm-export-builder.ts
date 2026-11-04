@@ -9,6 +9,7 @@ import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
 import { configurePcmNationalities, getPcmChampionBits } from "@/services/pcm-export-nationalities";
 
 import { createUniqueTeamCodes } from "@/lib/game/pcm-export/identifiers";
+import { withoutEmptyPcmTeams } from "@/lib/game/pcm-export/rosters";
 import { configurePcmSeasonFinaleGalaRules,configurePcmSeasonFourGalaRules } from "@/lib/game/pcm-export/gala-rules";
 import { convertRiderRatings } from "@/lib/game/pcm-export/ratings";
 import type {
@@ -84,7 +85,7 @@ export async function buildPcmDatabase(
       throw new Error("Le fichier local officiel PCM26 a été modifié : export interrompu avant génération.");
     }
     local = cdbToSql(localTemplate, SQL, { preciseTypes: true });
-    return buildDatabaseFromSnapshot(db, local, localTemplate, snapshot);
+    return buildDatabaseFromSnapshot(db, local, localTemplate, withoutEmptyPcmTeams(snapshot));
   } finally {
     db.close();
     local?.close();
@@ -484,7 +485,7 @@ function buildDatabaseFromSnapshot(
         gene_sz_firstlastname: rider.last_name,
         fkIDteam: mappedTeam.pcmTeamId,
         fkIDregion: nationality.regionId,
-        fkIDcontract: 0,
+        fkIDcontract: contractId,
         fkIDprevcontract: 0,
         fkIDnextcontract: 0,
         gene_sz_photo: "",
@@ -584,7 +585,7 @@ function buildDatabaseFromSnapshot(
         gene_sz_firstlastname: String(index),
         fkIDteam: spectatorTeamId,
         fkIDregion: spectatorRegionId,
-        fkIDcontract: 0,
+        fkIDcontract: contractId,
         fkIDprevcontract: 0,
         fkIDnextcontract: 0,
         gene_sz_photo: "",
@@ -979,6 +980,13 @@ function validateGeneratedRows(
   );
   if (new Set(teamCodes).size !== teamCodes.length) {
     throw new Error("Le controle PCM a detecte des codes d'equipe en doublon.");
+  }
+
+  if (Number(queryValue(db, `SELECT COUNT(*) FROM DYN_cyclist rider
+      LEFT JOIN DYN_contract_cyclist contract ON contract.IDcontract_cyclist = rider.fkIDcontract
+      WHERE contract.IDcontract_cyclist IS NULL OR contract.fkIDcyclist <> rider.IDcyclist
+         OR contract.fkIDteam <> rider.fkIDteam OR contract.gene_b_active_contract <> 1`)) !== 0) {
+    throw new Error("Le controle PCM a detecte un contrat de coureur incoherent.");
   }
 
   for (const rider of exportedRiders) {

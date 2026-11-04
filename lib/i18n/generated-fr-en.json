@@ -18846,7 +18846,7 @@
   "15 quotidiennes · 4 entre DS · prochaine clôture 11:27": "15 daily auctions · 4 from other managers · next close 11:27",
   "Simuler une erreur": "Simulate an error",
   "{{0}} est repris par le peloton et se replace dans les roues.": "{{0}} is caught by the peloton and settles back into the wheels.",
-  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels.",
+  "est repris par le peloton et se replace dans les roues.": "is caught by the peloton and settles back into the wheels.",
   "Aides à l’équipe": "Team support",
   "Aides de la fédération": "Federation support",
   "Coups de pouce pour les effectifs réduits": "Financial support for small rosters",
@@ -18928,5 +18928,7 @@
   "Le club actuel de Babacar Sow a évolué. Réexaminer avant réparation.": "Babacar Sow’s current club has changed. Review before repairing.",
   "Le retrait doit laisser sept coureurs : la composition a évolué.": "The withdrawal must leave seven riders: the lineup has changed.",
   "Les résultats du gala ont déjà été importés.": "The gala results have already been imported.",
-  "Une inscription gala est en cours. Réessayer la livraison.": "A gala registration is in progress. Retry the delivery."
+  "Une inscription gala est en cours. Réessayer la livraison.": "A gala registration is in progress. Retry the delivery.",
+  "Date de génération PCM invalide.": "Invalid PCM export generation date.",
+  "Le controle PCM a detecte un contrat de coureur incoherent.": "PCM validation detected an inconsistent rider contract."
 }

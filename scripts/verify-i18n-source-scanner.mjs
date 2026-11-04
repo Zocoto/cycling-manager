@@ -19,4 +19,16 @@ for (const value of ['Mes coureurs', 'Informations importantes', 'Sélection nat
 for (const value of ['@/lib/equipe', 'coureur', 'equipe', 'Mon équipe']) assert.ok(!text.has(value));
 const templates = extractUiStrings('const label = `${count} coureur${count > 1 ? "s" : ""} engagé${count > 1 ? "s" : ""} par votre équipe`;');
 assert.ok(templates.has('{{0}} coureur{{grammar1}} engagé{{grammar2}} par votre équipe'));
-console.log('I18n scanner: 12 checks passed (component lists, labels, templates and technical exclusions).');
+const artifactFixture = 'function createInstallationGuide() { return `Guide d’installation de la base`; } const message = "Votre export a échoué.";';
+const externalGuide = extractUiStrings(artifactFixture, 'services/pcm-export-package.ts');
+assert.ok(!externalGuide.has('Guide d’installation de la base'));
+assert.ok(externalGuide.has('Votre export a échoué.'));
+assert.ok(extractUiStrings(artifactFixture, 'components/ordinary-component.ts').has('Guide d’installation de la base'));
+const powershell = extractUiStrings('function createPcmGraphicsInstaller() { return `Installer les fichiers dans le dossier`; } const error = "Installation impossible.";', 'lib/game/pcm-export/graphics-installer.ts');
+assert.ok(!powershell.has('Installer les fichiers dans le dossier'));
+assert.ok(powershell.has('Installation impossible.'));
+const filenames = extractUiStrings('const files = [{name:"PCMAssets_cyclostratege-local_P.pak"},{name:"Installer-graphismes.ps1"}]; const label="Installer les graphismes";');
+assert.ok(!filenames.has('PCMAssets_cyclostratege-local_P.pak'));
+assert.ok(!filenames.has('Installer-graphismes.ps1'));
+assert.ok(filenames.has('Installer les graphismes'));
+console.log('I18n scanner: 20 checks passed (component lists, labels, templates, technical filenames and exact external artifact functions).');

@@ -6,6 +6,7 @@ import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
 
 import { deriveGlobalRatingScale } from "@/lib/game/pcm-export/ratings";
+import { withoutEmptyPcmTeams } from "@/lib/game/pcm-export/rosters";
 import type {
   PcmExportSnapshot,
   RatingRow,
@@ -15,6 +16,22 @@ import { createPcmExportPackage } from "@/services/pcm-export-package";
 import { unzipSync } from "fflate";
 
 describe("generateur de base PCM26", () => {
+  it("retire les clubs sans effectif sans changer les affectations du gala ni exclure un petit effectif", () => {
+    const snapshot = createSnapshot();
+    snapshot.galaEdition = "season-four";
+    snapshot.teamSeasons.push({ ...snapshot.teamSeasons[0], id: "empty-season", team_id: "empty-team" });
+    snapshot.teams.push({ ...snapshot.teams[0], id: "empty-team", pcm_export_id: 245 });
+    snapshot.counts.teams = 2;
+    const result = withoutEmptyPcmTeams(snapshot);
+    expect(result.teamSeasons.map(row => row.team_id)).toEqual(["team-1"]);
+    expect(result.teams.map(row => row.id)).toEqual(["team-1"]);
+    expect(result.counts.teams).toBe(1);
+    expect(result.contracts).toBe(snapshot.contracts);
+    expect(result.riders).toBe(snapshot.riders);
+    expect(snapshot.teamSeasons).toHaveLength(2);
+    expect(snapshot.counts.teams).toBe(2);
+  });
+
   it("exporte une base Gala S4 avec les quatre parcours natifs et 7 à 8 coureurs sans changer les autres règles", async () => {
     const snapshot = createSnapshot();
     snapshot.galaEdition = "season-four";
@@ -44,6 +61,9 @@ describe("generateur de base PCM26", () => {
         resolve("assets/pcm/OfficialRelease.template.cdb"),
       );
       const snapshot = createSnapshot();
+      snapshot.teamSeasons.push({ ...snapshot.teamSeasons[0], id: "empty-season", team_id: "empty-team", display_name: "Empty former club" });
+      snapshot.teams.push({ ...snapshot.teams[0], id: "empty-team", pcm_export_id: 245, pcm_asset_code: "emp" });
+      snapshot.counts.teams = 2;
       const SQL = await initSqlJs({
         locateFile: (file) =>
           resolve("node_modules", "sql.js", "dist", file),
@@ -128,6 +148,11 @@ describe("generateur de base PCM26", () => {
           ),
         ).toBe(11);
         expect(readCount(db, "SELECT COUNT(*) FROM DYN_cyclist")).toBe(11);
+        expect(readCount(db, "SELECT COUNT(*) FROM DYN_team WHERE IDteam=245")).toBe(0);
+        expect(readCount(db, `SELECT COUNT(*) FROM DYN_cyclist cyclist
+          JOIN DYN_contract_cyclist contract ON contract.IDcontract_cyclist=cyclist.fkIDcontract
+          WHERE contract.fkIDcyclist=cyclist.IDcyclist AND contract.fkIDteam=cyclist.fkIDteam
+            AND contract.gene_b_active_contract=1`)).toBe(11);
         expect(
           readCount(
             db,

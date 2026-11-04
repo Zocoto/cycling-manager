@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { CS_RATING_KEYS, deriveGlobalRatingScale } from "@/lib/game/pcm-export/ratings";
-import { applySeasonFourGalaAssetCodes } from "@/lib/game/pcm-export/gala-asset-codes";
+import { applyExistingPcmAssetCodes } from "@/lib/game/pcm-export/gala-asset-codes";
 import type {
   ContractRow,
   CountryRow,
@@ -120,7 +120,7 @@ export async function createPcmExportSnapshot(seasonFinale = false, seasonFourGa
 
   const activeTeamIds = new Set(teamSeasons.map((row) => row.team_id));
   const sourceTeams = allTeams.filter((row) => activeTeamIds.has(row.id));
-  const teams = seasonFourGala ? applySeasonFourGalaAssetCodes(sourceTeams) : sourceTeams;
+  const teams = applyExistingPcmAssetCodes(sourceTeams);
   const seasonYears = new Map(seasons.map((season) => [season.id, season.game_year]));
   const registeredClubs=seasonFourGala?await loadSeasonFourGalaRegisteredClubs(admin,activeSeason.id):undefined;
   let contractSource=seasonFourGala?selectSeasonFourGalaContracts(allContracts,seasons,registeredClubs):allContracts;
