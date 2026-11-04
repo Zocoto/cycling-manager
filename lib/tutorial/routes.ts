@@ -51,6 +51,27 @@ export function hasDynamicTutorialRouteSegment(route: string): boolean {
   );
 }
 
+/** Navigation follows the selected step, independently of completed progress. */
+export function resolveConcreteTutorialRoute({
+  routePattern,
+  candidates,
+}: {
+  routePattern: string;
+  candidates: readonly (string | null | undefined)[];
+}): string | null {
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      !hasDynamicTutorialRouteSegment(candidate) &&
+      matchesTutorialRoute(routePattern, candidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  return hasDynamicTutorialRouteSegment(routePattern) ? null : routePattern;
+}
+
 export function materializeTutorialRoute({
   routePattern,
   segmentValues,

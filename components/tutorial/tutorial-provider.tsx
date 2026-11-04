@@ -25,8 +25,8 @@ import {
 import { useLocale } from "@/components/i18n/locale-provider";
 import { selectInstantAutoStartTutorialKey } from "@/lib/tutorial/instant-start";
 import {
-  hasDynamicTutorialRouteSegment,
   matchesTutorialRoute,
+  resolveConcreteTutorialRoute,
 } from "@/lib/tutorial/routes";
 import type {
   ActiveTutorial,
@@ -155,23 +155,10 @@ function resolveTutorialStepRoute({
   currentRoute: string;
   savedRoute?: string | null;
 }): string | null {
-  const candidates = [
-    savedRoute,
-    currentRoute,
-    readTutorialTargetRoute(step.routeTargetId),
-  ];
-
-  for (const candidate of candidates) {
-    if (
-      candidate &&
-      !hasDynamicTutorialRouteSegment(candidate) &&
-      matchesTutorialRoute(step.route, candidate)
-    ) {
-      return candidate;
-    }
-  }
-
-  return hasDynamicTutorialRouteSegment(step.route) ? null : step.route;
+  return resolveConcreteTutorialRoute({
+    routePattern: step.route,
+    candidates: [savedRoute, currentRoute, readTutorialTargetRoute(step.routeTargetId)],
+  });
 }
 
 export function TutorialProvider({
@@ -355,7 +342,7 @@ export function TutorialProvider({
         const resolvedRoute = resolveTutorialStepRoute({
           step,
           currentRoute,
-          savedRoute: result.progress.current_route,
+          savedRoute: result.resolvedRoute,
         });
 
         if (!resolvedRoute) {
@@ -458,8 +445,18 @@ export function TutorialProvider({
           resolvedStepIndex >= 0 ? resolvedStepIndex : nextStepIndex;
         const resolvedStep =
           activeTutorial.definition.steps[safeStepIndex] ?? step;
-        const persistedRoute =
-          result.progress.current_route ?? resolvedStep.route;
+        // Completed progress retains its historical finishing page on replay.
+        // The server resolves the active session's destination separately.
+        const navigationRoute = resolveTutorialStepRoute({
+          step: resolvedStep,
+          currentRoute: resolvedStep.key === step.key ? resolvedRoute : currentRoute,
+          savedRoute: result.resolvedRoute,
+        });
+
+        if (!navigationRoute) {
+          setErrorMessage("La fiche à ouvrir pour cette étape est momentanément introuvable.");
+          return false;
+        }
 
         saveProgress(result.progress);
 
@@ -476,7 +473,7 @@ export function TutorialProvider({
           };
         });
 
-        navigateToStep(resolvedStep.route, persistedRoute);
+        navigateToStep(resolvedStep.route, navigationRoute);
 
         return true;
       } catch (error) {

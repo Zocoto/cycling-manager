@@ -4,10 +4,47 @@ import {
   hasDynamicTutorialRouteSegment,
   materializeTutorialRoute,
   matchesTutorialRoute,
+  resolveConcreteTutorialRoute,
   resolveTutorialProgressRoute,
 } from "@/lib/tutorial/routes";
 
 describe("tutorial routes", () => {
+  it("opens the selected equipment step instead of the historical finishing page", () => {
+    expect(resolveConcreteTutorialRoute({
+      routePattern: "/jeu/materiel/equipementier",
+      candidates: ["/jeu/inventaire?categorie=equipment", "/jeu/materiel"],
+    })).toBe("/jeu/materiel/equipementier");
+  });
+
+  it("uses a concrete rider route and rejects unresolved historical placeholders", () => {
+    expect(resolveConcreteTutorialRoute({
+      routePattern: "/jeu/coureurs/[identifiant]",
+      candidates: ["/jeu/coureurs/[identifiant]", "/jeu/effectif", "/jeu/coureurs/rider-1"],
+    })).toBe("/jeu/coureurs/rider-1");
+    expect(resolveConcreteTutorialRoute({
+      routePattern: "/jeu/coureurs/[identifiant]",
+      candidates: ["/jeu/coureurs/[identifiant]", "/jeu/effectif"],
+    })).toBeNull();
+  });
+
+  it("preserves the priority of the server destination and the requested tab", () => {
+    expect(resolveConcreteTutorialRoute({
+      routePattern: "/jeu/coureurs/[identifiant]",
+      candidates: ["/jeu/coureurs/current", "/jeu/coureurs/previous"],
+    })).toBe("/jeu/coureurs/current");
+    expect(resolveConcreteTutorialRoute({
+      routePattern: "/jeu/entrainement?onglet=reconnaissance",
+      candidates: ["/jeu/entrainement", "/jeu/entrainement?onglet=reconnaissance"],
+    })).toBe("/jeu/entrainement?onglet=reconnaissance");
+  });
+
+  it("never navigates to an external or unrelated route", () => {
+    expect(resolveConcreteTutorialRoute({
+      routePattern: "/jeu/materiel",
+      candidates: ["https://example.org/jeu/materiel", "javascript:alert(1)", "/jeu/transferts"],
+    })).toBe("/jeu/materiel");
+  });
+
   it("reconnaît une fiche coureur concrète depuis sa route dynamique", () => {
     expect(
       matchesTutorialRoute(

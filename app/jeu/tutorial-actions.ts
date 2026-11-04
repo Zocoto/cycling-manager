@@ -83,6 +83,7 @@ type TutorialActionSuccess = {
   progress: TutorialProgressRow;
   session: TutorialSessionRow | null;
   currentStepKey: string | null;
+  resolvedRoute: string | null;
 };
 
 type TutorialActionFailure = {
@@ -616,6 +617,7 @@ export async function startTutorialAction(
       progress,
       session,
       currentStepKey: selectedStep.key,
+      resolvedRoute: selectedRoute,
     };
   } catch (error) {
     return actionFailure(error);
@@ -757,6 +759,7 @@ export async function setTutorialStepAction(
       progress,
       session: updatedSession,
       currentStepKey: step.key,
+      resolvedRoute: stepRoute,
     };
   } catch (error) {
     return actionFailure(error);
@@ -807,6 +810,7 @@ export async function quitTutorialAction(
       progress,
       session,
       currentStepKey: parsed.stepKey,
+      resolvedRoute: null,
     };
   } catch (error) {
     return actionFailure(error);
@@ -893,6 +897,7 @@ export async function skipTutorialAction(
       progress,
       session,
       currentStepKey: progress.current_step_key,
+      resolvedRoute: null,
     };
   } catch (error) {
     return actionFailure(error);
@@ -962,6 +967,7 @@ export async function completeTutorialAction(
       progress,
       session,
       currentStepKey: parsed.stepKey,
+      resolvedRoute: null,
     };
   } catch (error) {
     return actionFailure(error);

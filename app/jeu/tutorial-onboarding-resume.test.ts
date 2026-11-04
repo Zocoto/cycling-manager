@@ -26,7 +26,7 @@ describe("onboarding resume for an existing empty club",()=>{
     const client=fixture();
     const result=await startTutorialAction({tutorialKey:"onboarding-core",launchSource:"automatic"});
     expect(result.ok).toBe(true);
-    if(result.ok){expect(result.currentStepKey).toBe("roster-overview");expect(result.progress.current_route).toBe("/jeu/effectif");}
+    if(result.ok){expect(result.currentStepKey).toBe("roster-overview");expect(result.progress.current_route).toBe("/jeu/effectif");expect(result.resolvedRoute).toBe("/jeu/effectif");}
     expect(client.rpc).not.toHaveBeenCalled();
     expect(client.from.mock.calls.every(([table])=>["tutorial_progress","tutorial_sessions"].includes(table))).toBe(true);
   });
