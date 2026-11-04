@@ -3,6 +3,7 @@ import {
   calculateNationalChampionshipReward,
   calculateRaceReward,
   calculateStageReward,
+  INTERNATIONAL_CHAMPIONSHIPS_NO_UCI_START_GAME_YEAR,
   type RaceReward,
   type RaceRewardScope,
 } from "@/lib/game/economy";
@@ -47,6 +48,10 @@ export function RaceRewardDetails({
   const preview = buildRewardPreview(edition, gameYear);
   const headline = preview.general[0];
   const isDark = tone === "dark";
+  const noInternationalUci = gameYear >= INTERNATIONAL_CHAMPIONSHIPS_NO_UCI_START_GAME_YEAR
+    && (edition.competitionType === "world_championship"
+      || edition.competitionType === "continental_championship"
+      || isQuadrennialGamesEdition(edition));
 
   if (!headline) return null;
 
@@ -115,6 +120,11 @@ export function RaceRewardDetails({
         >
           {edition.categoryName} · {preview.formatLabel}
         </p>
+        {noInternationalUci ? (
+          <p className={`mt-2 text-[10px] font-bold ${isDark ? "text-[#D6DFD2]" : "text-[#5F766E]"}`}>
+            Aucun point UCI attribué.
+          </p>
+        ) : null}
 
         <div
           className={`mt-3 grid gap-4 ${
@@ -180,6 +190,8 @@ export function RaceRewardDetails({
         >
           {preview.federationPrize > 0 ? (
             <>Chaque coureur classé rapporte la prime de sa place à son club. Les non-partants, abandons et disqualifications ne donnent droit à aucune prime.</>
+          ) : noInternationalUci ? (
+            <>Les titres et le palmarès suivent les résultats officiels.</>
           ) : (
             <>Les primes d’étape et de parcours s’ajoutent au classement final.
             Les sommes sont versées à l’équipe ; l’expérience et les points au coureur.</>

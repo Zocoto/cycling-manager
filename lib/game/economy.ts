@@ -97,6 +97,7 @@ type StagePrizeRule = {
 };
 
 export const EXPANDED_RACE_REWARDS_START_GAME_YEAR = 4;
+export const INTERNATIONAL_CHAMPIONSHIPS_NO_UCI_START_GAME_YEAR = 4;
 
 type RewardScaleTier = Exclude<RaceTier, "local">;
 
@@ -772,7 +773,9 @@ export function calculateNationalChampionshipReward({
 
 /**
  * Les championnats continentaux et mondiaux ont un bareme de prestige dedie,
- * identique pour la course en ligne et le contre-la-montre.
+ * identique pour la course en ligne et le contre-la-montre. Depuis S4, ils
+ * n'alimentent pas le classement UCI. Les saisons historiques explicites
+ * conservent leur ancien barème ; sans année, la règle UCI actuelle prévaut.
  */
 export function calculateInternationalChampionshipReward({
   competitionType,
@@ -876,49 +879,49 @@ export function calculateInternationalChampionshipReward({
         reputation: 2,
         experience: 300,
         cashPrize: 24_000,
-        uciPoints: 280,
+        uciPoints: 0,
       },
       {
         maxRank: 2,
         reputation: 1,
         experience: 190,
         cashPrize: 13_000,
-        uciPoints: 175,
+        uciPoints: 0,
       },
       {
         maxRank: 3,
         reputation: 0,
         experience: 120,
         cashPrize: 7_000,
-        uciPoints: 120,
+        uciPoints: 0,
       },
       {
         maxRank: 5,
         reputation: 0,
         experience: 70,
         cashPrize: 3_000,
-        uciPoints: 75,
+        uciPoints: 0,
       },
       {
         maxRank: 10,
         reputation: 0,
         experience: 40,
         cashPrize: 1_000,
-        uciPoints: 35,
+        uciPoints: 0,
       },
       {
         maxRank: 15,
         reputation: 0,
         experience: 20,
         cashPrize: 400,
-        uciPoints: 15,
+        uciPoints: 0,
       },
       {
         maxRank: 20,
         reputation: 0,
         experience: 10,
         cashPrize: 150,
-        uciPoints: 5,
+        uciPoints: 0,
       },
     ],
     world_championship: [
@@ -927,49 +930,49 @@ export function calculateInternationalChampionshipReward({
         reputation: 5,
         experience: 700,
         cashPrize: 60_000,
-        uciPoints: 650,
+        uciPoints: 0,
       },
       {
         maxRank: 2,
         reputation: 3,
         experience: 450,
         cashPrize: 32_000,
-        uciPoints: 520,
+        uciPoints: 0,
       },
       {
         maxRank: 3,
         reputation: 2,
         experience: 300,
         cashPrize: 18_000,
-        uciPoints: 440,
+        uciPoints: 0,
       },
       {
         maxRank: 5,
         reputation: 1,
         experience: 175,
         cashPrize: 8_000,
-        uciPoints: 350,
+        uciPoints: 0,
       },
       {
         maxRank: 10,
         reputation: 0,
         experience: 90,
         cashPrize: 3_500,
-        uciPoints: 225,
+        uciPoints: 0,
       },
       {
         maxRank: 15,
         reputation: 0,
         experience: 45,
         cashPrize: 1_500,
-        uciPoints: 100,
+        uciPoints: 0,
       },
       {
         maxRank: 20,
         reputation: 0,
         experience: 20,
         cashPrize: 500,
-        uciPoints: 40,
+        uciPoints: 0,
       },
     ],
   };
@@ -979,13 +982,15 @@ export function calculateInternationalChampionshipReward({
   const placement = scales[competitionType].find(
     (rule) => finalRank <= rule.maxRank,
   );
+  const awardsUciPoints = gameYear !== undefined
+    && gameYear < INTERNATIONAL_CHAMPIONSHIPS_NO_UCI_START_GAME_YEAR;
 
   return placement
     ? {
         reputation: placement.reputation,
         experience: placement.experience,
         cashPrize: placement.cashPrize,
-        uciPoints: placement.uciPoints,
+        uciPoints: awardsUciPoints ? placement.uciPoints : 0,
       }
     : { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
 }

@@ -1117,6 +1117,9 @@ function RewardScalesSection() {
           <span aria-hidden="true" className="text-xl text-[#278B70] group-open:rotate-45">+</span>
         </summary>
         <div className="grid gap-6 border-t border-[#315B3E]/10 p-5 xl:grid-cols-3 sm:p-6">
+          <p className="text-sm font-semibold text-[#60756E] xl:col-span-3">
+            Aucun point UCI attribué.
+          </p>
           <RewardTable
             title="Championnat national"
             ranges={buildGuideRewardRanges(

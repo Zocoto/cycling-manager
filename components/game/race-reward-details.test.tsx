@@ -21,6 +21,14 @@ function buildEdition(
 }
 
 describe("RaceRewardDetails", () => {
+  it.each(["world_championship", "continental_championship"] as const)("supprime les points UCI du barème %s et explique la règle", (competitionType) => {
+    const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={4} edition={buildEdition({ competitionType, name: "Championnat", raceFormat: "one_day", stages: [] })} />);
+    expect(markup).toContain("Aucun point UCI attribué.");
+    expect(markup).not.toContain("pts UCI");
+    expect(markup).toContain(competitionType === "world_championship" ? "60\u202f000 €" : "24\u202f000 €");
+    expect(markup).toContain("XP");
+  });
+
   it.each(["Jeux quadriennaux · Course en ligne", "Jeux quadriennaux · Contre-la-montre"])("affiche les primes des clubs et de la fédération pour %s", (name) => {
     const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={4} edition={buildEdition({ name, competitionType: "nations_cup", raceFormat: "one_day", stages: [] })} />);
     expect(markup).toContain("500\u202f000 €");
@@ -31,6 +39,8 @@ describe("RaceRewardDetails", () => {
     expect(markup).toContain("versée une seule fois");
     expect(markup).not.toContain("XP");
     expect(markup).not.toContain("Chaque étape");
+    expect(markup).toContain("Aucun point UCI attribué.");
+    expect(markup).not.toContain("pts UCI");
   });
   it("ne change pas les dotations de la Coupe des nations ordinaire", () => {
     const markup = renderToStaticMarkup(<RaceRewardDetails gameYear={4} edition={buildEdition({ name: "Coupe des nations · Vallons", competitionType: "nations_cup", raceFormat: "one_day", stages: [] })} />);

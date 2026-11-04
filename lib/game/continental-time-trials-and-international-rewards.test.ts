@@ -30,6 +30,19 @@ const settlementService = readFileSync(
 );
 
 describe("CLM continentaux S2 et gains internationaux", () => {
+  it.each([4, 5, 8])("ne donne aucun point UCI en S%s, quel que soit le rang", (gameYear) => {
+    for (const competitionType of ["continental_championship", "world_championship"] as const) {
+      for (let finalRank = 1; finalRank <= 40; finalRank += 1) {
+        expect(calculateInternationalChampionshipReward({ gameYear, competitionType, finalRank }).uciPoints).toBe(0);
+      }
+    }
+  });
+
+  it("préserve les barèmes explicitement historiques sans retirer de points déjà gagnés", () => {
+    expect(calculateInternationalChampionshipReward({ gameYear: 1, competitionType: "world_championship", finalRank: 1 }).uciPoints).toBe(600);
+    expect(calculateInternationalChampionshipReward({ gameYear: 2, competitionType: "continental_championship", finalRank: 1 }).uciPoints).toBe(250);
+  });
+
   it("neutralise tous les gains des championnats continentaux de S3", () => {
     expect(
       calculateInternationalChampionshipReward({
@@ -55,7 +68,7 @@ describe("CLM continentaux S2 et gains internationaux", () => {
       reputation: 2,
       experience: 250,
       cashPrize: 20_000,
-      uciPoints: 250,
+      uciPoints: 0,
     });
     expect(
       calculateInternationalChampionshipReward({
@@ -66,7 +79,7 @@ describe("CLM continentaux S2 et gains internationaux", () => {
       reputation: 0,
       experience: 25,
       cashPrize: 0,
-      uciPoints: 25,
+      uciPoints: 0,
     });
     expect(
       calculateInternationalChampionshipReward({
@@ -91,7 +104,7 @@ describe("CLM continentaux S2 et gains internationaux", () => {
       reputation: 5,
       experience: 625,
       cashPrize: 50_000,
-      uciPoints: 600,
+      uciPoints: 0,
     });
     expect(
       calculateInternationalChampionshipReward({
@@ -102,7 +115,7 @@ describe("CLM continentaux S2 et gains internationaux", () => {
       reputation: 0,
       experience: 60,
       cashPrize: 2_000,
-      uciPoints: 200,
+      uciPoints: 0,
     });
   });
 
@@ -129,7 +142,7 @@ describe("CLM continentaux S2 et gains internationaux", () => {
       reputation: 0,
       experience: 10,
       cashPrize: 150,
-      uciPoints: 5,
+      uciPoints: 0,
     });
     expect(
       calculateInternationalChampionshipReward({
@@ -141,7 +154,7 @@ describe("CLM continentaux S2 et gains internationaux", () => {
       reputation: 0,
       experience: 20,
       cashPrize: 500,
-      uciPoints: 40,
+      uciPoints: 0,
     });
   });
 
