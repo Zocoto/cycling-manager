@@ -1426,7 +1426,7 @@ function ContractObjectiveItem({
         </SponsorObjectiveTitle>
 
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
-          {objective.satisfactionPoints} points de satisfaction
+          +{objective.satisfactionPoints} pts de satisfaction sponsor
         </p>
         <SponsorMainObjectiveTermsCard
           terms={objective.mainObjectiveTerms}
@@ -1812,7 +1812,7 @@ function SponsorObjectiveItem({
           {objective.name}
         </SponsorObjectiveTitle>
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
-          {objective.satisfactionPoints} points de satisfaction
+          +{objective.satisfactionPoints} pts de satisfaction sponsor
         </p>
         <SponsorMainObjectiveTermsCard
           terms={objective.mainObjectiveTerms}

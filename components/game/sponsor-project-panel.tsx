@@ -56,7 +56,7 @@ function ObjectiveProgress({ objective, en }: { objective: SponsorContractObject
       <p>{progress.label}{" : "}{number.format(progress.currentValue)}{progress.unit === "percentage" ? " %" : ""}{" / "}{number.format(progress.targetValue)}{progress.unit === "percentage" ? " %" : ""}</p>
       <div role="progressbar" aria-label={progress.label} aria-valuenow={progress.percentage} aria-valuemin={0} aria-valuemax={100} className="mt-1 h-1 overflow-hidden rounded-full bg-[#71548D]/10"><div className="h-full rounded-full bg-[#71548D]/60" style={{ width: `${progress.percentage}%` }} /></div>
     </> : null}
-    <p>{en ? "Contractual weight: " : "Poids contractuel : "}{objective.satisfactionPoints} {en ? "pts" : "pts"}</p>
+    <p>{en ? "Contractual weight: " : "Poids contractuel : "}{objective.satisfactionPoints} {en ? "sponsor satisfaction pts" : "pts de satisfaction sponsor"}</p>
   </div>;
 }
 
@@ -73,7 +73,7 @@ export function SponsorRaceBriefPanel({ brief, final = false }: { brief: Sponsor
         : objective.status === "failed" ? objective.achievementLevel === "partial" ? en ? "Partial success recorded" : "Réussite partielle enregistrée" : en ? "Objective not achieved" : "Objectif non atteint"
           : en ? "Results published — sponsor assessment pending." : "Résultats publiés — évaluation sponsor en attente."}</p>
         : brief.scope === "general" ? <p className="mt-1 text-xs leading-5 text-[#60756E]">{en ? "Assessed at the end of the tour, not after each stage." : "Évalué à la fin du tour, pas après chaque étape."}</p> : null}
-      <p className="mt-1 text-xs text-[#60756E]">{en ? "Contractual weight: " : "Poids contractuel : "}{objective.satisfactionPoints} {en ? "satisfaction points" : "points de satisfaction"}</p>
+      <p className="mt-1 text-xs text-[#60756E]">{en ? "Contractual weight: " : "Poids contractuel : "}{objective.satisfactionPoints} {en ? "sponsor satisfaction pts" : "pts de satisfaction sponsor"}</p>
       {final && objective.status === "failed" && objective.achievementLevel === "partial" && objective.partialSatisfactionPoints > 0 ? <p className="mt-1 text-xs font-bold text-[#A96924]">{en ? "Partial objective points recorded: " : "Points d’objectif partiels enregistrés : "}{objective.partialSatisfactionPoints}</p> : null}
       {!final && objective.status === "active" && objective.mainObjectiveTerms?.settlementStatus === "pending" ? <SponsorMainObjectiveTermsCard terms={objective.mainObjectiveTerms} compact /> : null}
     </li>)}</ul> : <p className="mt-2 text-xs leading-5 text-[#60756E]">{en ? "This profile matches the partner's philosophy. Affinity alone adds no contractual reward." : "Ce profil correspond à la philosophie du partenaire. L’affinité seule n’ajoute aucune récompense contractuelle."}</p>}

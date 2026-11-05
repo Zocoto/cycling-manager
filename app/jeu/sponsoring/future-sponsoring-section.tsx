@@ -278,7 +278,7 @@ function ContinuingContractNotice({
                   className="text-xs font-extrabold uppercase tracking-[0.14em]"
                   style={{ color: contract.sponsor.colors.primary }}
                 >
-                  Objectifs proposés · 100 points
+                  Objectifs proposés · 100 pts de satisfaction sponsor
                 </p>
                 <span
                   className="rounded-full px-3 py-1 text-xs font-black"
@@ -581,7 +581,7 @@ function FutureSponsorOfferCard({
             className="text-xs font-extrabold uppercase tracking-[0.14em]"
             style={{ color: sponsor.colors.primary }}
           >
-            10 engagements · 100 points de satisfaction
+            10 engagements · 100 pts de satisfaction sponsor
           </p>
 
           <SportingObjectiveNotice objectives={offer.objectives} />
@@ -609,7 +609,7 @@ function FutureSponsorOfferCard({
                     {objective.name}
                   </SponsorObjectiveTitle>
                   <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">
-                    {objective.satisfactionPoints} points
+                    +{objective.satisfactionPoints} pts de satisfaction sponsor
                   </span>
                   <SponsorMainObjectiveTermsCard
                     terms={objective.mainObjectiveTerms}
@@ -943,7 +943,7 @@ function SignedFutureObjectives({contract,seasonName}: {
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black" style={{backgroundColor:`${sponsor.colors.accent}2A`}}>{index+1}</span>
               <div className="min-w-0">
                 <SponsorObjectiveTitle targetDetails={objective.targetDetails}>{objective.name}</SponsorObjectiveTitle>
-                <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">{objective.satisfactionPoints} points</span>
+                <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">+{objective.satisfactionPoints} pts de satisfaction sponsor</span>
                 <SponsorMainObjectiveTermsCard terms={objective.mainObjectiveTerms} compact />
               </div>
             </li>)}
