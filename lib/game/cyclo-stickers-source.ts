@@ -56,7 +56,11 @@ function assembleSource(stage:CycloStickersS4IdentityStage,facts:Record<string,u
   const riders=[...selected].sort().map(riderId=>{
     const identity=frozenRiders.get(riderId);assertCondition(identity,`final rider ${riderId} was outside the staged top200/champions; no S5 fallback is permitted`);
     const native=ratings.find(row=>row.riderId===riderId);assertCondition(native&&native.sourceSeasonId===context.sourceSeasonId,"missing source-season native rating row");
-    const eligible=contracts.filter(row=>row.riderId===riderId&&(row.leftGameYear===null||row.leftGameYear>4)&&!(row.status==="terminated"&&row.leftGameYear===null));
+    const history=contracts.filter(row=>row.riderId===riderId);
+    const covering=history.filter(row=>(row.leftGameYear===null||row.leftGameYear>4)&&!(row.status==="terminated"&&row.leftGameYear===null));
+    // Rollover stamps a naturally expired S4 contract as departed on S4/J28.
+    // Use that historical club only when no contract still covers the S4 end.
+    const eligible=covering.length?covering:history.filter(row=>row.status==="completed"&&row.endGameYear===4&&row.leftGameYear===4&&row.leftDayNumber===28);
     const clubs=new Set(eligible.map(row=>row.teamId));assertCondition(clubs.size===1,`ambiguous/missing end-of-S4 contract for ${riderId}; review historical club evidence`);
     const clubId=[...clubs][0],team=frozenTeams.get(clubId);assertCondition(team,`end-of-S4 club ${clubId} has no captured S4 jersey; no current jersey fallback`);
     const laterChanges=changes.filter(row=>row.riderId===riderId&&Date.parse(row.changedAt)>Date.parse(identity.capturedAt));

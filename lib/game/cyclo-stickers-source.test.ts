@@ -65,3 +65,36 @@ it("refuses incomplete bonus facts and cannot fall back to S5 identity data",()=
   forged.facts.ratings.find(row=>row.riderId===forged.source.bonusRanking[0].riderId)!.timeTrial=99;
   expect(()=>assembleCompletedCycloStickersS4Source(forged.stage,forged.facts)).toThrow(/primary Baroudeur/);
 });
+
+it("keeps the frozen S4 club when rollover stamps natural expiry as completed on S4/J28",()=>{
+  const {source,stage,facts}=fixture();
+  const expired=facts.contracts.map(row=>({...row,status:"completed",leftGameYear:4,leftDayNumber:28}));
+  const completed=assembleCompletedCycloStickersS4Source(stage,{...facts,contracts:expired});
+  const rider=completed.riders.find(row=>row.id===source.riders[0].id)!;
+  expect(rider.teamId).toBe(source.riders[0].teamId);
+  expect(rider.jersey).toEqual(stage.teams.find(row=>row.teamId===rider.teamId)!.jersey);
+  expect(rider.jerseySeasonId).toBe(source.season.id);
+  expect(createCycloStickersFinalSnapshot(completed).cards).toHaveLength(72);
+});
+
+it.each([
+  {status:"completed",endGameYear:4,leftDayNumber:27},
+  {status:"terminated",endGameYear:4,leftDayNumber:28},
+  {status:"completed",endGameYear:5,leftDayNumber:28},
+])("rejects an early or terminated departure instead of treating it as natural expiry: %j",departure=>{
+  const {stage,facts}=fixture();
+  const contracts=facts.contracts.map((row,index)=>index===0?{...row,...departure,leftGameYear:4}:row);
+  expect(()=>assembleCompletedCycloStickersS4Source(stage,{...facts,contracts})).toThrow(/ambiguous\/missing end-of-S4 contract/);
+});
+
+it("prefers a contract still covering S4 over the natural-expiry fallback and keeps ambiguity closed",()=>{
+  const {source,stage,facts}=fixture();
+  const riderId=source.riders[0].id;
+  const expired={...facts.contracts[0],status:"completed",leftGameYear:4,leftDayNumber:28};
+  const continuing={...facts.contracts[0],teamId:source.teams[1].teamId,endGameYear:5};
+  const remaining=facts.contracts.slice(1);
+  const completed=assembleCompletedCycloStickersS4Source(stage,{...facts,contracts:[expired,continuing,...remaining]});
+  expect(completed.riders.find(row=>row.id===riderId)!.teamId).toBe(continuing.teamId);
+  expect(()=>assembleCompletedCycloStickersS4Source(stage,{...facts,contracts:[expired,continuing,...facts.contracts]})).toThrow(/ambiguous\/missing end-of-S4 contract/);
+  expect(()=>assembleCompletedCycloStickersS4Source(stage,{...facts,contracts:[expired,{...expired,teamId:continuing.teamId},...remaining]})).toThrow(/ambiguous\/missing end-of-S4 contract/);
+});
