@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {CollectorCardFace} from "./collector-card-face";
+import {isProvisionalCollectorAlbum} from "./collector-album-source-presentation";
 import {ALBUM_DEMO_COLLECTORS,CARD_RARITY_LABELS,canOfferAlbumCards,getCollectorCardRarity,getLooseAlbumCardCount,type AlbumPilotAction,type AlbumPilotState,type CollectorAlbumSnapshot} from "@/lib/game/collector-album";
 import {getAlbumDuplicateCards,getAlbumTradeMatches,type AlbumTradeMatch} from "@/lib/game/collector-album-trade-discovery";
 import styles from "./collector-album.module.css";
@@ -9,6 +10,7 @@ import retro from "./collector-album-retro.module.css";
 import discovery from "./collector-album-trade-discovery.module.css";
 
 export function CollectorAlbumTradeDesk({state,ready,snapshot,onAction,requestedCard=null,wanted=[],onToggleWanted}:{state:AlbumPilotState;ready:boolean;snapshot:CollectorAlbumSnapshot;onAction:(action:AlbumPilotAction,text:string)=>void;requestedCard?:number|null;wanted?:readonly number[];onToggleWanted?:(number:number)=>void}){
+  const provisional=isProvisionalCollectorAlbum(snapshot);
   const initialTarget=snapshot.cards.some(card=>card.number===requestedCard)?requestedCard:null;
   const [open,setOpen]=useState(Boolean(initialTarget));
   const [mode,setMode]=useState<"director"|"card">(initialTarget?"card":"director");
@@ -75,7 +77,7 @@ export function CollectorAlbumTradeDesk({state,ready,snapshot,onAction,requested
     {!available.length&&!offer?<p className={styles.emptyWallet}>Aucune carte non collée disponible. Ouvre un sachet ou décolle une carte pour ce test.</p>:null}
     {offer?<div className={styles.pending}>
       <h3>Offre réservée · {chosen?.name}</h3><p>{offer.give.length} carte(s) contre une. Aucun transfert avant acceptation.</p>
-      <div className={retro.multiTradeLayout}><div><h4>TU PROPOSES</h4><ul className={retro.offerList}>{offer.give.map((id,index)=><li key={index}><span>{label(id)}</span></li>)}</ul><p>Ces exemplaires ne peuvent plus être collés ni engagés dans une autre offre.</p></div><div><h4>TU DEMANDES</h4><CollectorCardFace card={cardFor(offer.receive)} season={snapshot.sourceSeason}/></div></div>
+      <div className={retro.multiTradeLayout}><div><h4>TU PROPOSES</h4><ul className={retro.offerList}>{offer.give.map((id,index)=><li key={index}><span>{label(id)}</span></li>)}</ul><p>Ces exemplaires ne peuvent plus être collés ni engagés dans une autre offre.</p></div><div><h4>TU DEMANDES</h4><CollectorCardFace card={cardFor(offer.receive)} season={snapshot.sourceSeason} provisional={provisional}/></div></div>
       <details className={retro.mailPreview}><summary>Voir le courrier simulé du destinataire</summary><div><strong>À : {chosen?.name}</strong><p>Objet : une proposition pour ta collection · Édition S{snapshot.sourceSeason}</p><p>Abbaye du Lion te propose : {offer.give.map(id=>cardFor(id).name).join(" + ")}.</p><p>En échange de : {cardFor(offer.receive).name}.</p><p>Cartes issues de la saison {snapshot.sourceSeason}. Tu peux accepter ou refuser cette proposition depuis l’album. Aucun transfert sans ton accord.</p><small>Simulation locale : ce courrier n’a pas été envoyé.</small></div></details>
       <div className={styles.tradeActions}><button type="button" className={styles.primaryButton} onClick={()=>finish("accept")}>Simuler l’acceptation</button><button type="button" className={styles.secondaryButton} onClick={()=>finish("decline")}>Simuler le refus</button><button type="button" className={styles.textButton} onClick={()=>finish("cancel")}>Annuler ma proposition</button></div>
     </div>:open?<section className={retro.tradeWindow} aria-label="Composer un échange" data-album-trade-composer="" tabIndex={-1}>
@@ -88,7 +90,7 @@ export function CollectorAlbumTradeDesk({state,ready,snapshot,onAction,requested
       <div className={retro.multiTradeLayout}><div><h4>TES CARTES EN ÉCHANGE · 1 À 3</h4><p>Un exemplaire collé n’est jamais échangeable. Les suggestions utilisent tes doublons ; dans cette composition manuelle, tu peux aussi choisir un exemplaire unique non collé.</p>
         {give.map((id,index)=><div className={retro.offerRow} key={index}><label>Carte proposée {index+1}<select aria-label={`Carte proposée ${index+1}`} value={id} onChange={e=>setGive(give.map((n,i)=>i===index?Number(e.target.value):n))}><option value={0}>Choisir une carte…</option>{available.map(number=><option key={number} value={number} disabled={number===receive||give.filter((n,i)=>i!==index&&n===number).length>=getLooseAlbumCardCount(state,number)}>{label(number)} · {getLooseAlbumCardCount(state,number)} libre(s)</option>)}</select></label>{give.length>1?<button type="button" aria-label={`Retirer la carte proposée ${index+1}`} onClick={()=>setGive(give.filter((_,i)=>i!==index))}>×</button>:null}</div>)}
         {give.length<3?<button type="button" className={styles.textButton} onClick={()=>setGive([...give,0])}>+ Ajouter une carte à l’offre</button>:null}
-      </div><div><h4>LA CARTE DEMANDÉE</h4>{receive&&partner&&state.partners[partner.id].includes(receive)?<CollectorCardFace key={receive} card={cardFor(receive)} season={snapshot.sourceSeason}/>:<div className={styles.tradeEmpty}>Choisis un DS et une carte pour composer ta proposition.</div>}</div></div>
+      </div><div><h4>LA CARTE DEMANDÉE</h4>{receive&&partner&&state.partners[partner.id].includes(receive)?<CollectorCardFace key={receive} card={cardFor(receive)} season={snapshot.sourceSeason} provisional={provisional}/>:<div className={styles.tradeEmpty}>Choisis un DS et une carte pour composer ta proposition.</div>}</div></div>
       <div className={styles.tradeConsent}>{valid?<p>Tu proposes {give.length} carte(s) à {partner?.name} contre {cardFor(receive).name}. Elles seront réservées jusqu’à l’acceptation, au refus ou à l’annulation.</p>:<p>Choisis la carte demandée et un à trois exemplaires disponibles de ta collection.</p>}<button type="button" className={styles.primaryButton} disabled={!valid} onClick={()=>onAction({type:"propose",give,receive,partnerId},"Offre de démonstration réservée. Un aperçu du courrier est disponible ; aucun message réel n’a été envoyé.")}>Proposer cet échange de démonstration</button><button type="button" className={styles.textButton} onClick={()=>setOpen(false)}>Fermer sans envoyer</button></div>
     </section>:null}
     {state.history.length?<section className={styles.history}><h3>Historique de cet essai</h3><ul>{state.history.map((h,index)=><li key={index}><span>{h.give.map(id=>cardFor(id).name).join(" + ")} ⇄ {cardFor(h.receive).name}</span><strong>{h.outcome==="accepted"?"Accepté":h.outcome==="cancelled"?"Annulé":"Refusé"}</strong></li>)}</ul></section>:null}

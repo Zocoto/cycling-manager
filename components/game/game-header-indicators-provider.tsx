@@ -42,6 +42,7 @@ type GameHeaderIndicatorsRow = {
   direct_message_unread_count: number | null;
   has_unread_global_chat: boolean | null;
   has_unread_cyclogazette: boolean | null;
+  collector_album_available?: boolean | null;
 };
 
 const EMPTY_INDICATORS: GameHeaderIndicators = {
@@ -73,6 +74,9 @@ export function GameHeaderIndicatorsProvider({
     let subscribedChannel: ReturnType<SupabaseBrowserClient["channel"]> | null = null;
     let channelRemoval: Promise<unknown> = Promise.resolve();
     let subscriptionGeneration = 0;
+    let authUserId: string | null = null;
+    let signedOut = false;
+    let publicAlbumAvailable = false;
     let authSubscription: { unsubscribe: () => void } | null = null;
     const refreshScheduler = createVisibleRefreshScheduler({
       isVisible: () => document.visibilityState === "visible",
@@ -95,7 +99,7 @@ export function GameHeaderIndicatorsProvider({
 
       const requestVersion = ++requestVersionRef.current;
       const result = await supabase
-        .rpc("get_current_game_header_indicators_v3")
+        .rpc("get_current_game_header_indicators_v4")
         .maybeSingle();
 
       if (!active || result.error || requestVersion !== requestVersionRef.current) {
@@ -118,6 +122,11 @@ export function GameHeaderIndicatorsProvider({
         hasUnreadCyclogazette:
           row?.has_unread_cyclogazette === true,
       });
+
+      // The same consolidated snapshot supplies the DB launch gate. No catalogue
+      // fetch, additional polling or request from an individual shortcut.
+      publicAlbumAvailable = Boolean(row?.current_sporting_director_id && row.collector_album_available === true);
+      if (!signedOut) setCollectorAlbumAvailable(canAccessCollectorAlbum(authUserId) || publicAlbumAvailable);
 
       return row;
     }
@@ -208,10 +217,15 @@ export function GameHeaderIndicatorsProvider({
       if (!active) return;
 
       supabase = createSupabaseBrowserClient();
-      // Reuse the local auth lifecycle: no new RPC, user lookup or polling.
+      // Reuse the local auth lifecycle for preview access and immediate logout.
       authSubscription = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (active) {
-          setCollectorAlbumAvailable(canAccessCollectorAlbum(session?.user.id));
+          const nextUserId = session?.user.id ?? null;
+          signedOut = nextUserId === null;
+          if (signedOut || (authUserId !== null && authUserId !== nextUserId)) publicAlbumAvailable = false;
+          if (signedOut) requestVersionRef.current += 1;
+          authUserId = nextUserId;
+          setCollectorAlbumAvailable(canAccessCollectorAlbum(authUserId) || publicAlbumAvailable);
           setPcmExportAvailable(canAccessDelegatedPcmExport(session?.user.id));
         }
       }).data.subscription;

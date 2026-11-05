@@ -32,6 +32,7 @@ export type CollectorCard = {
   worldTitles: ("road" | "time_trial")[];
 };
 export type CollectorAlbumSnapshot = {
+  sourceSeasonStatus?: "active" | "completed";
   presentationSeason?: number; gamesEdition?: boolean; launchSeason?: number;
   edition: string; collectionSeason: number; sourceSeason: number;
   capturedAt: string; cards: CollectorCard[];

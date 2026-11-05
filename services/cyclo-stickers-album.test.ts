@@ -32,7 +32,7 @@ it("verifies the immutable seal after JSONB key reordering before loading the au
   const { rpc, data, client } = createClient();
   data.snapshot = Object.fromEntries(Object.entries(data.snapshot).reverse()) as typeof data.snapshot;
   const album = await getPublicCycloStickersAlbum(client);
-  expect(album?.snapshot.cards).toHaveLength(69);
+  expect(album?.snapshot.cards).toHaveLength(72);
   expect(rpc).toHaveBeenNthCalledWith(2, "get_current_cyclo_stickers_state", { p_edition: data.editionId });
 });
 

@@ -54,9 +54,10 @@ describe("S4 collection and S5 launch rehearsal",()=>{
     expect(getCollectorCardRarity(snapshot.cards[67])).toBe("holographic");
     expect(getAlbumBoosterOdds(original.cards)).toEqual({bronze:80,silver:17,gold:3,holographic:0});
   });
-  it("never arms the local demo automatically, including after S5 begins",()=>{
-    expect(CYCLO_STICKERS_RELEASE.publicReady).toBe(false);
-    expect(canLaunchCycloStickers(5,4,true)).toBe(false);
+  it("arms completed S4 with persistent inventory only from S5 and still rejects the local demo",()=>{
+    expect(CYCLO_STICKERS_RELEASE.publicReady).toBe(true);
+    expect(canLaunchCycloStickers(5,4,true)).toBe(true);
+    expect(canLaunchCycloStickers(5,4,true,false)).toBe(false);
     expect(canLaunchCycloStickers(4,4,true,true)).toBe(false);
     expect(canLaunchCycloStickers(5,3,true,true)).toBe(false);
     expect(canLaunchCycloStickers(5,4,false,true)).toBe(false);

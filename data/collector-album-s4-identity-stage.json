@@ -7,12 +7,12 @@
   "sourceSeasonStatus": "active",
   "startsOn": "2026-10-09",
   "endsOn": "2026-11-05",
-  "capturedAt": "2026-11-05T09:23:33.490Z",
-  "capturedUntil": "2026-11-05T09:23:38.361Z",
+  "capturedAt": "2026-11-05T10:47:37.362Z",
+  "capturedUntil": "2026-11-05T10:47:43.670Z",
   "selection": {
     "provisionalTopRank": 200,
     "knownChampions": 13,
-    "profileCount": 202
+    "profileCount": 214
   },
   "riders": [
     {
@@ -23,7 +23,7 @@
       "avatarProfileKey": "north_africa",
       "avatarSeed": "649",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "cdffc9ae-8f4c-43f2-9cfa-89cb25bb7b20",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -42,7 +42,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1235",
       "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "be77d043-93eb-4719-8cbd-cd36ad1c8f5b",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -61,7 +61,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "301",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "fa66dca5-07bd-41c6-8c05-16b74109527c",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -80,7 +80,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-1138",
       "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "64171f9d-492f-4095-be4f-54b94c5b3fa0",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -99,7 +99,7 @@
       "avatarProfileKey": "europe_south",
       "avatarSeed": "221",
       "teamId": "2472b539-6686-4e1a-a506-b2973efb8024",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d4445606-7179-40ec-93e6-6d467dd75bf8",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -118,7 +118,7 @@
       "avatarProfileKey": "europe_central",
       "avatarSeed": "65",
       "teamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7f58114a-da38-447e-9210-b89cfbe62cf8",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -137,7 +137,7 @@
       "avatarProfileKey": "europe_north",
       "avatarSeed": "127",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "08cd5e52-edc7-4369-abc6-0c3581e0eb62",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -156,7 +156,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1000000002671",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "8d6b170f-cc60-4ac6-996a-659277798969",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -175,7 +175,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "624",
       "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "96bf27fb-f70f-431d-bd71-c280f06907b4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -194,7 +194,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "-1068",
       "teamId": "76df78b3-d34c-4e8c-83d0-6e3976ad10b8",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "b9727d9f-8fa0-4782-b416-14e191f69eef",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -213,7 +213,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "210",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d2de0349-1a3d-4724-aca4-794d8f44ecb4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -225,6 +225,25 @@
       "knownChampionships": []
     },
     {
+      "id": "156d0d9d-5fa3-49c4-8280-aee60be9a0ba",
+      "name": "Blair Crona",
+      "country": "Bahamas",
+      "countryCode": "BS",
+      "avatarProfileKey": "caribbean",
+      "avatarSeed": "-1000000002110",
+      "teamId": "9b28ff67-8690-4aed-abd7-ad7518a5fca4",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "8444a1d6-19c6-4867-968d-1de4d05f76e6",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "17d63b83-f5bd-42a2-a814-940c77216a73",
       "name": "Théoneste Kiptoo",
       "country": "Rwanda",
@@ -232,7 +251,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "614",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "13f4d487-a3c0-46e3-b949-eab6d8448fa5",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -251,7 +270,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "-1000000002702",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4f838254-0a97-42a2-bbb7-ed1b2212b9e1",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -270,7 +289,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "-1000000001918",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "88def3b3-4c70-4380-857f-6524b0a30347",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -282,6 +301,25 @@
       "knownChampionships": []
     },
     {
+      "id": "1ce46a2e-3d91-4332-8826-046a9646b692",
+      "name": "Fodé Tandia",
+      "country": "Côte d’Ivoire",
+      "countryCode": "CI",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "540",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "d70754ea-c6e7-4491-a5dd-cc120a525906",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "1d853d7e-f7a3-4370-9694-62df8067c2d9",
       "name": "Murod Rashidova",
       "country": "Équateur",
@@ -289,7 +327,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-1000000002637",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ff96b9e4-b93b-444d-a160-68e968e8a95e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -301,6 +339,25 @@
       "knownChampionships": []
     },
     {
+      "id": "1dbdeb1d-2b68-4710-9543-e6b56651ed24",
+      "name": "Roger Eyenga",
+      "country": "Cameroun",
+      "countryCode": "CM",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "-1000000002728",
+      "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "20505d41-f4f0-4410-a12a-5a644403c71d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "1e24dae3-68f1-49fe-af43-831fc15543bd",
       "name": "Edžus Bondare",
       "country": "Estonie",
@@ -308,7 +365,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "-941",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e289ffa5-bf4d-48c0-8cb5-1d0af87418d8",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -327,7 +384,7 @@
       "avatarProfileKey": "central_africa",
       "avatarSeed": "-726",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "fd5335ab-7003-4cb7-b090-2039f9032a9d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -346,7 +403,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "533",
       "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "51169ca6-1620-4f92-806b-293ab64ecc36",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -365,7 +422,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "541",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "aa442178-f93d-4f85-85a7-29ff39941946",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -384,7 +441,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "671",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "b7011d1c-3877-482b-9732-e1e133a2811d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -403,7 +460,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "-1000000001879",
       "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f4c5983d-c569-4af7-9ece-536eb4aba1db",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -422,7 +479,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-889",
       "teamId": "f2ffb52a-8a36-401d-90a9-ca5270cc8252",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7d3091a1-e308-484d-b986-35caaf16c7c5",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -441,7 +498,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "517",
       "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "fe356777-d161-45db-acbf-5cd2f9985548",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -460,7 +517,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1242",
       "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a66451cb-5527-40a6-a68b-fd5dbf7d14a3",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -479,7 +536,7 @@
       "avatarProfileKey": "caribbean",
       "avatarSeed": "263",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5af62bbd-b450-403d-9316-6831f6984e3a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -498,7 +555,7 @@
       "avatarProfileKey": "caucasus",
       "avatarSeed": "482",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "739c4006-ae97-4345-b05e-423a7ff4fc10",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -517,7 +574,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "150",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "8ca8c5da-3fa8-40e0-8530-1358ce24e52a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -536,7 +593,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "279",
       "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4db1c31a-fd56-4def-b1e7-d750acd452d4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -555,7 +612,7 @@
       "avatarProfileKey": "europe_north",
       "avatarSeed": "-1297",
       "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "056c8d6a-f729-4432-9e34-89ea66719bda",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -574,7 +631,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1192",
       "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "57ab90fa-66db-4440-84db-2661f1447d64",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -593,7 +650,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "647",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ff2105a0-0e91-4a73-addd-b6962d6e7878",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -605,6 +662,25 @@
       "knownChampionships": []
     },
     {
+      "id": "2eaaf547-6471-4e4d-a8ce-3a8da3fcd76a",
+      "name": "Carles Aranda",
+      "country": "Uruguay",
+      "countryCode": "UY",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-812",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "4a6d43a6-57c9-4d48-8778-e0c0d04b7bbd",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "32665a61-9365-4caa-a428-dabe241e2a76",
       "name": "Oriol Domínguez",
       "country": "Espagne",
@@ -612,7 +688,7 @@
       "avatarProfileKey": "europe_south",
       "avatarSeed": "491",
       "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "55ac6819-5d96-4dad-b964-7427ada29c24",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -631,7 +707,7 @@
       "avatarProfileKey": "north_america",
       "avatarSeed": "-724",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "0c11acc2-d585-4b4f-b32d-be6a039f76ec",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -650,7 +726,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "394",
       "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "88d048b2-0ca3-4197-8423-aab22f6fc521",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -669,7 +745,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-934",
       "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "150297f8-dfc7-4595-834e-c3447ffce523",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -688,7 +764,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "48",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7b555c68-ed39-49af-b345-4bc2f3f6aa1d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -709,7 +785,7 @@
       "avatarProfileKey": "caribbean",
       "avatarSeed": "-1012",
       "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "152d9cd4-aae2-46bd-b879-8dcd964c2506",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -728,7 +804,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-1351",
       "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "b88ebcb2-04d2-410d-a85f-9cc042a085d6",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -747,7 +823,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "-1006",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "3b98cbd0-5898-4cd1-a915-273b9639ffb1",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -766,7 +842,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "565",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7463b55e-75e9-43e7-aa71-ad22da0ccf2d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -785,7 +861,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "264",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "02084586-2ede-493e-9427-116bb8ed1155",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -804,7 +880,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1000000002668",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "9ca37723-1cd0-4496-961a-7932f1052933",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -823,7 +899,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1284",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2a09825c-506e-4e44-a0dd-c18807d34e6a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -835,6 +911,25 @@
       "knownChampionships": []
     },
     {
+      "id": "3d8e1cb4-77e3-4a39-8124-339804e32778",
+      "name": "Vusumuzi Wentzel",
+      "country": "Eswatini",
+      "countryCode": "SZ",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-1142",
+      "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "92d54443-027a-4d23-86c7-71c5b9277f47",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "4140f9ee-687f-4162-9c67-bf6b0dae2042",
       "name": "Ahmed Kiplagat",
       "country": "Éthiopie",
@@ -842,7 +937,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "405",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "b9bda725-2990-433f-93a1-2f0218cba506",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -863,7 +958,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "-1000000002859",
       "teamId": "61272a34-3070-47ca-9e9b-602c44a2180d",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "91ac1822-c49a-47fd-9dff-98d5fbd1f8b4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -882,7 +977,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001469",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "163dc10c-8a8c-479b-a2b0-499744b4005c",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -901,7 +996,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "500",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "54321ede-c9b8-4201-95af-baecc6feaf8c",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -920,7 +1015,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "388",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ff718a24-f556-4feb-85a2-624cc6bf22ce",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -939,7 +1034,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1204",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "c881ff7a-d891-49a3-adee-5acdac88f12e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -960,7 +1055,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "54",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "93d2bd56-4499-4aa9-8447-08c2ae0f7559",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -979,7 +1074,7 @@
       "avatarProfileKey": "north_america",
       "avatarSeed": "-1202",
       "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2877de40-b221-4967-a374-1629f193639d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -998,7 +1093,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "514",
       "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f1d07d56-d1bc-42e0-915b-9e5ce1f0d9f1",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1017,7 +1112,7 @@
       "avatarProfileKey": "east_asia",
       "avatarSeed": "429",
       "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "0714fe7e-1071-4a31-9a36-d9966dbc687d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1036,7 +1131,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "125",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "c22b579b-324e-4e76-bc9e-4dc6312cf0a3",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1055,7 +1150,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "71",
       "teamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a3c9be6a-0408-4f26-8062-2fe844c2bf83",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1074,7 +1169,7 @@
       "avatarProfileKey": "oceania",
       "avatarSeed": "-691",
       "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2914976f-5eee-4a43-abf6-15ccb122fae3",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1095,7 +1190,7 @@
       "avatarProfileKey": "north_america",
       "avatarSeed": "-1183",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7568a590-c784-4b71-9400-37ee99e1fcf4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1114,7 +1209,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "133",
       "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "012ea614-93b6-4587-976b-af394928eb82",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1133,7 +1228,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1000000002669",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d2d6f8cc-96a4-4c94-abca-a2f07cb8f83f",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1152,7 +1247,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-1039",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7c586024-bbb0-405c-a64b-ee08c464e51e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1173,7 +1268,7 @@
       "avatarProfileKey": "east_asia",
       "avatarSeed": "-1000000002754",
       "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "547ecb1d-9152-469f-8df9-88b6d0f46a78",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1192,7 +1287,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1361",
       "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e79c7a74-8eef-4893-9b5d-c259e3099517",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1211,7 +1306,7 @@
       "avatarProfileKey": "caribbean",
       "avatarSeed": "-1009",
       "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7f7826af-54a5-4e82-960c-151650c9b8f9",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1230,7 +1325,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "-1000000002163",
       "teamId": "1559096d-c142-49c8-b4bc-5cd5cc9830ed",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2e9ba0f9-0940-4a79-bd1d-b6ac579689fb",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1249,7 +1344,7 @@
       "avatarProfileKey": "oceania",
       "avatarSeed": "442",
       "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "c216d0f8-6511-474b-b95c-d9618196ad8d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1268,7 +1363,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "-837",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "51d3f3b5-3b44-48e7-ad84-938dea021ad0",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1287,7 +1382,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "-877",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "677066bc-4c89-49c6-9692-0d11898d883d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1306,7 +1401,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-872",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "21564dd7-3afd-48ab-b9f7-e1043dded3d9",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1327,7 +1422,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "645",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f3e82b13-a509-4efd-b9a2-426ccbff5b18",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1339,6 +1434,25 @@
       "knownChampionships": []
     },
     {
+      "id": "5ad82249-345c-4bc2-9671-97683d8afc0d",
+      "name": "Louis Payet",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-781",
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "c99ffc76-1d32-4f29-8e63-680860200611",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "5bce9ad3-1d47-4a45-9252-78bc9a364810",
       "name": "Matej Popović",
       "country": "Roumanie",
@@ -1346,7 +1460,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "443",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "27c42766-18c6-4b92-8d3f-d997b67b6a8a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1365,7 +1479,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "481",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1df59c51-449f-4fdc-a848-d13acf4a1729",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1384,7 +1498,7 @@
       "avatarProfileKey": "east_asia",
       "avatarSeed": "-1324",
       "teamId": "a81d26fc-5b1f-4267-8c60-073d53389733",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "6ae34f38-fe5d-4766-930a-fe35f3f947b2",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1403,7 +1517,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-809",
       "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1f36d76c-ac65-4a0e-ba38-b9885bf2e17e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1422,7 +1536,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "120",
       "teamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "8c8b7a1d-fed7-4f14-bf7d-b7c8531699ce",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1441,7 +1555,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "-1000000002492",
       "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2aa94e2c-42eb-46fc-b3a0-84b3a8fd7fc8",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1460,7 +1574,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000002443",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "69daee46-2167-4b2f-885c-81a65c3fb88b",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1481,7 +1595,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "-803",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "02e10d1a-f802-418d-b2fb-190cdab4a0fd",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1493,6 +1607,25 @@
       "knownChampionships": []
     },
     {
+      "id": "644c31c2-ba42-46b3-85a5-2a1716a122d0",
+      "name": "Burnice Hermiston",
+      "country": "Australie",
+      "countryCode": "AU",
+      "avatarProfileKey": "oceania",
+      "avatarSeed": "-695",
+      "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "131219e9-fa43-43d7-b8b8-c3a3a65c9f8d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "65886cdc-f745-4ff5-8ac8-47c1a48a91b7",
       "name": "Ruslan Eristavi",
       "country": "Colombie",
@@ -1500,7 +1633,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1282",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "efb52dbe-e1b4-4a6c-802d-4b247407cb39",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1521,7 +1654,7 @@
       "avatarProfileKey": "caribbean",
       "avatarSeed": "257",
       "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "3044fe57-d974-4a75-aedf-fc4bf5bec88e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1533,6 +1666,25 @@
       "knownChampionships": []
     },
     {
+      "id": "687b0129-22da-4b89-b56d-b0b7313651f6",
+      "name": "Felipe Sanhueza",
+      "country": "Uruguay",
+      "countryCode": "UY",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000002029",
+      "teamId": "0f6d44f9-aed0-4001-85e7-eb4ef88e3092",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "09f4a993-1613-43f5-92f1-ee6a20bcd2b5",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "6949f265-1014-4702-b61c-07ddc60c1d2c",
       "name": "Lars Dekker",
       "country": "Pays-Bas",
@@ -1540,7 +1692,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "621",
       "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a539f64b-183e-4bdb-a9de-b144f0fff792",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1559,7 +1711,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "-1000000002096",
       "teamId": "0525e7c0-2b4a-4d05-a6e4-63bdcda740f3",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "81ee4971-a9ac-4bfa-828c-a1fd310345c9",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1578,7 +1730,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1379",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "77883083-d106-4685-aaa5-6d4c813ce205",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1597,7 +1749,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "128",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f4ec4e65-a4fd-491c-8a0d-ad9e9536a385",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1618,7 +1770,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1382",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "89af2c8c-5bc2-49a7-9120-a0530dc2a759",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1639,7 +1791,7 @@
       "avatarProfileKey": "europe_south",
       "avatarSeed": "-1032",
       "teamId": "ca664ee5-06fd-4521-862e-ec20007709ab",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "fe371615-a6a8-4911-a518-a7acbf72b9a5",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1658,7 +1810,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "421",
       "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e7080f05-badd-4e29-9c10-5c2619f13152",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1677,7 +1829,7 @@
       "avatarProfileKey": "central_africa",
       "avatarSeed": "523",
       "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5514c7d6-b847-4df9-930c-981673691b7f",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1696,7 +1848,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "193",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "002c5a66-4f61-45f4-88bf-8496191fb8e3",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1715,7 +1867,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "496",
       "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f8b5af3b-1ceb-4c78-809c-3191a10be350",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1734,7 +1886,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "-902",
       "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "165769c8-7b0c-4bdc-b670-52932b7a26e5",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1753,7 +1905,7 @@
       "avatarProfileKey": "north_america",
       "avatarSeed": "-1000000002875",
       "teamId": "0525e7c0-2b4a-4d05-a6e4-63bdcda740f3",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d0bce478-a863-44dc-b61f-24a6084c3d35",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1772,7 +1924,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1000000002670",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a17406a1-87dd-4847-ada4-75ee8ee1fede",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1791,7 +1943,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "113",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "3981dc42-5a7d-4328-bd89-ffea443f2234",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1810,7 +1962,7 @@
       "avatarProfileKey": "central_africa",
       "avatarSeed": "529",
       "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5ba84421-f102-44b4-a2af-080f6f07e0fd",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1829,7 +1981,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1327",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "43764d6a-1240-405e-bb53-2370af54c195",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -1848,7 +2000,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "-1000000001967",
       "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a8bf8a9f-4051-45ee-b7d9-72b49e750cc2",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -1867,7 +2019,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "616",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7020c9a1-3561-4f86-b6cb-1491b1389328",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1888,7 +2040,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "-1000000001827",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7bff21fa-27e8-48cb-8ad9-0943691d6b96",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -1907,7 +2059,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "296",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "55558272-48b2-4627-8faf-2181b407bed6",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1926,7 +2078,7 @@
       "avatarProfileKey": "europe_central",
       "avatarSeed": "158",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "70b17794-d0d7-410c-9e24-c4fd88d137ea",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -1945,7 +2097,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001477",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d451fad8-9a0f-4f48-8a2f-d6f47faf2d05",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -1964,7 +2116,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "-838",
       "teamId": "34026dd0-77b0-46d8-94ba-fd3256c8df79",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a8e66620-c1d4-4810-8e0f-3fa54ccb03ed",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -1983,7 +2135,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1370",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d954bc3b-a6ea-48fa-a6c4-540b4a13950f",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2002,7 +2154,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "594",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e2b6409d-4572-461b-9217-bb7ba54640b4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2021,7 +2173,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "259",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "c4df4a45-35c9-4f89-8c82-a8aef278cb52",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2040,7 +2192,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001485",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "72c9bb64-6e72-4ac6-bbbf-ad5ec86df116",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2059,7 +2211,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-1042",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "8c1966dc-58eb-4507-8aac-838a6c35703a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2078,7 +2230,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1380",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f9621834-132e-4134-bbf2-cde73fb9d202",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2097,7 +2249,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-723",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "46613ff8-221e-481c-a977-d729ed83ef57",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2116,7 +2268,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1285",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "24cc3059-93e4-435c-8d67-11d63dfefb7c",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2135,7 +2287,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "369",
       "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "76063a07-98b1-447c-8f70-d408f71d8fac",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2154,7 +2306,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001463",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "8f4671b0-db32-4ecb-a9dd-f7e4d4823406",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2173,7 +2325,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "60",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1464a648-acb0-49d1-9cdb-5b70ed68551f",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2192,7 +2344,7 @@
       "avatarProfileKey": "europe_north",
       "avatarSeed": "-1000000002811",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7a4eb9b4-9015-4618-bedc-e0b2de1b3100",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2211,7 +2363,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1381",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a72e6238-4e6f-4c5b-ab15-a1e1ab7b6fcd",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2223,6 +2375,25 @@
       "knownChampionships": []
     },
     {
+      "id": "a1780762-b5a5-46e7-8ecd-0fa66cede455",
+      "name": "Oscar Denis",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "537",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "1df81803-5a96-4764-a783-fe02f72e2de9",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "a1c0d330-7e95-4f05-b4f2-bc4ad9a7fb5f",
       "name": "Wahab Amen",
       "country": "Chypre",
@@ -2230,7 +2401,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "-798",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "9593c6f6-123e-41b0-a40f-f9c421188654",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2249,7 +2420,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "-839",
       "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "75c1eb21-41cc-41bd-8e6e-d6f2c1a70aa7",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2268,7 +2439,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "-1000000002037",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1255dceb-4b75-4ac7-827a-a4c468e844ec",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2287,7 +2458,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1371",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "eb6b2bcf-98df-456f-b340-b927d7ef22e4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2306,7 +2477,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001505",
       "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "08a3557d-fdd0-43a6-a49f-7d5eec708d05",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2325,7 +2496,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "366",
       "teamId": "caea0559-e3a6-408b-9e2f-4a7755859dd6",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "869073ac-ac7a-4cfb-aea8-29cda8b2cb03",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2344,7 +2515,7 @@
       "avatarProfileKey": "europe_south",
       "avatarSeed": "223",
       "teamId": "2472b539-6686-4e1a-a506-b2973efb8024",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a0288905-8786-445a-962c-3849e0e19f5a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2363,7 +2534,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "-1000000002087",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "86418c60-6c5f-42b5-a7e6-9af9c830fffe",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2382,7 +2553,7 @@
       "avatarProfileKey": "oceania",
       "avatarSeed": "-692",
       "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "543372e2-5e62-4f71-9f49-0d28c24486ac",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2403,7 +2574,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1190",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a53c28d3-ba39-4d9e-97ef-3218800f5b66",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2422,7 +2593,7 @@
       "avatarProfileKey": "europe_east",
       "avatarSeed": "-1195",
       "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "25537023-dddf-4434-9c4e-8b5f2f06ce54",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2441,7 +2612,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "24",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ecfc48ee-481a-488b-8bb2-0e18a9bb6d5c",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2460,7 +2631,7 @@
       "avatarProfileKey": "europe_north",
       "avatarSeed": "549",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e2f6ae35-1fbd-4568-94ed-2f03c945de4b",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2479,7 +2650,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "420",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e7b9016d-109b-4543-bc65-c00097576daf",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2498,7 +2669,7 @@
       "avatarProfileKey": "central_africa",
       "avatarSeed": "92",
       "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "b493b4f3-5501-4b1b-ae73-0bd40154d47b",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2517,7 +2688,7 @@
       "avatarProfileKey": "europe_central",
       "avatarSeed": "-1000000001424",
       "teamId": "717c6861-163f-4cb1-b556-cbed104a000e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "b2ef1671-fa96-42fd-a222-0614844bc392",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2536,7 +2707,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1368",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "db39e82f-cc4a-4e3d-a2f0-3ba9148abda2",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2555,7 +2726,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "148",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ae88c7a3-ae04-4991-a234-b703dbafa504",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2574,7 +2745,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-1000000002673",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "c6ad1d06-44ef-4c80-af25-ce64d35330af",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2593,7 +2764,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001462",
       "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "535226e8-9876-4e4e-968e-0dd7cf4b4d5a",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2612,7 +2783,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "506",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "9d13af64-c9d1-4e47-9792-029897422aab",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2631,7 +2802,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "493",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ef130467-1403-4c79-85bc-9d36d32acc01",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2650,7 +2821,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "595",
       "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "10d988e7-4bf9-4461-a657-764d4ab075a9",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2669,7 +2840,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "316",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "0c536d02-182e-4755-819a-6c4c45d11493",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2688,7 +2859,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "-1065",
       "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "bd11cb2f-7ea6-4d00-bcd2-9b2cb43c4496",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2707,7 +2878,7 @@
       "avatarProfileKey": "oceania",
       "avatarSeed": "-693",
       "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "6cb4488e-46b4-4b6f-845e-0ecd89db8294",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2726,7 +2897,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-1000000001996",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e25639b4-ae91-467a-b17c-c93548c539cb",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2745,7 +2916,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-974",
       "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e46a679e-9d69-4595-82c4-d67d69a6e43e",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2764,7 +2935,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "56",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7143bb76-2981-431d-9ce1-6be88ed18481",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2783,7 +2954,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "469",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ca2d2e2b-0183-45ec-b785-82b565d29ed8",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2802,7 +2973,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "535",
       "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "358fdfec-16f5-4591-9b19-84fce38ca534",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2821,7 +2992,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "19",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5f4c26ca-0830-427a-b737-0fdb0d62163b",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2840,7 +3011,7 @@
       "avatarProfileKey": "east_africa",
       "avatarSeed": "321",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2531c5ee-1fdb-45a4-b5b6-08ba9a071ed8",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2859,7 +3030,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "479",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "3df13498-722e-4402-bdb0-39e86c8a88db",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2878,7 +3049,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-1000000002101",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "58bc9b04-6001-4c38-8650-fd7e0a3d2e0f",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2897,7 +3068,7 @@
       "avatarProfileKey": "europe_central",
       "avatarSeed": "-1000000002081",
       "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "acafec9d-999d-412c-82d5-eef637b6ffc3",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2916,7 +3087,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001846",
       "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1223413f-df95-4da4-b9fe-1a3ced65dda8",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2935,7 +3106,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "-1000000002045",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "47c06fca-c553-44f5-85b5-9af977ac107b",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2954,7 +3125,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1283",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f069f296-6c1f-4b49-9952-17a46216114d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -2975,7 +3146,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "-1000000001892",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "2dc9f614-bb2e-465c-89be-ecce203c5690",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -2994,7 +3165,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1305",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1dacc9e4-8849-43cc-9389-35869bf8f9c3",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3013,7 +3184,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "293",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "57bbe73f-08a6-4da7-8228-0bf891c0510a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3025,6 +3196,25 @@
       "knownChampionships": []
     },
     {
+      "id": "c72ac8ff-2c50-457e-a50e-10e3b5699d6f",
+      "name": "Jean Bechtelar",
+      "country": "Cuba",
+      "countryCode": "CU",
+      "avatarProfileKey": "caribbean",
+      "avatarSeed": "-990",
+      "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "ecb06428-7a6f-409c-b07d-26a4da1c6e9b",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "c72b6cc6-a43b-4c69-af5c-43885fd385c8",
       "name": "Theuns Visser",
       "country": "Afrique du Sud",
@@ -3032,7 +3222,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-830",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d7c4cd84-fa36-4d12-89ca-79ce3693c500",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3051,7 +3241,7 @@
       "avatarProfileKey": "europe_south",
       "avatarSeed": "543",
       "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5a3fae8a-eba9-41e2-8472-19da1c085b17",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3070,7 +3260,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "499",
       "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4b0efe95-c323-4a69-996d-621aeeb270d3",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3089,7 +3279,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "-1126",
       "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f72801de-e191-41f4-8595-b63e67fbfa3e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3108,7 +3298,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "480",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1d49c27a-def0-4c5f-98f6-7f458907301f",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3127,7 +3317,7 @@
       "avatarProfileKey": "europe_north",
       "avatarSeed": "531",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "be7a5ea1-7e9a-4b3f-8426-2a64092fcc80",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3146,7 +3336,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "568",
       "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "11737fdc-6cad-4f6f-ad60-d38fdf76e1dc",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3165,7 +3355,7 @@
       "avatarProfileKey": "middle_east",
       "avatarSeed": "397",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5ee42a4d-e3d4-4a46-bc9c-10302ea05dfe",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3184,7 +3374,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "349",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "bb82cae9-8201-454b-9849-073ba52addc0",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3203,7 +3393,7 @@
       "avatarProfileKey": "north_africa",
       "avatarSeed": "393",
       "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4b674153-9e94-42c1-ab63-b37599bccd8d",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3222,7 +3412,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-808",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a4cf9295-173d-46d4-97c3-57282d7b1863",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3241,7 +3431,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-1193",
       "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "452a679e-44e1-454f-bc72-ce6613e5fb23",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3260,7 +3450,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001464",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a32cf6ff-a409-4e49-933a-3d6af3ca9a4a",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3279,7 +3469,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "23",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d148336c-8da1-4ea2-a0a5-0a935e114d9e",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3298,7 +3488,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001484",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7657e4c3-ec1c-4cdf-84f0-9a233727c202",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3317,7 +3507,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1369",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "82703b17-97c8-41b5-b6a0-fbe830586895",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3336,7 +3526,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001486",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4f80f4cd-0484-4021-aac3-4b8383127cb9",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3355,7 +3545,7 @@
       "avatarProfileKey": "central_asia",
       "avatarSeed": "-999",
       "teamId": "f2ffb52a-8a36-401d-90a9-ca5270cc8252",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "293bc724-fce0-4559-aafd-4122af5016aa",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3374,7 +3564,7 @@
       "avatarProfileKey": "europe_central",
       "avatarSeed": "-1000000002079",
       "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "6a11f5f7-2065-4025-b9e8-2ada6c011a86",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3393,7 +3583,7 @@
       "avatarProfileKey": "europe_north",
       "avatarSeed": "-1000000001923",
       "teamId": "1559096d-c142-49c8-b4bc-5cd5cc9830ed",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f52ebd99-4399-49b2-835a-366d7626380f",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3412,7 +3602,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "404",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4de3f96f-4792-4859-a112-66756fc6e123",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3431,7 +3621,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "387",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d337349a-ff51-49f8-9171-7309e630f5b4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3450,7 +3640,7 @@
       "avatarProfileKey": "west_africa",
       "avatarSeed": "-805",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d5da556f-cbb7-4abf-8942-7d8de1f50139",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3469,7 +3659,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "497",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "91f9dedd-73b9-4953-8506-46bcad757cf5",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3488,7 +3678,7 @@
       "avatarProfileKey": "central_africa",
       "avatarSeed": "609",
       "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "ed5438cc-9b21-478d-9099-f75eac8de180",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3507,7 +3697,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "379",
       "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "d3cef735-b387-499e-a1b7-d232a9ed5fcb",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3526,7 +3716,7 @@
       "avatarProfileKey": "central_africa",
       "avatarSeed": "89",
       "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "965e3c72-7dfc-462b-99df-5ed131854950",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3545,7 +3735,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "303",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "99f6060a-73d4-4df7-a293-d2376b796b91",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3564,7 +3754,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "567",
       "teamId": "c7d4f299-3430-4aaf-a029-ac9b97a07ed2",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "a0862837-b113-42f1-b16d-87642b49f1b4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3583,7 +3773,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "-708",
       "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1080e24b-07d7-44e5-a7da-0507e6e48adb",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3602,7 +3792,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "252",
       "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "cfa3f4d5-430d-4f96-afb9-25c88545d320",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3614,6 +3804,25 @@
       "knownChampionships": []
     },
     {
+      "id": "f0d7289b-c955-40cb-a69d-ced721111fad",
+      "name": "Choibalsan Jamtsangiin",
+      "country": "Mongolie",
+      "countryCode": "MN",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-1000000002150",
+      "teamId": "8a666a58-79b9-4fe5-8b9c-705c3169af60",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "109a4f72-c725-4fdd-9513-9b8c63386bc9",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "f0e9897a-1295-434a-a1dd-70c28f6c4e2f",
       "name": "Jose Daniel Flores",
       "country": "Belize",
@@ -3621,7 +3830,7 @@
       "avatarProfileKey": "latin_america",
       "avatarSeed": "-1000000001823",
       "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "f4ad31d6-0437-4e82-aa84-707b5e4e53d0",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3633,6 +3842,25 @@
       "knownChampionships": []
     },
     {
+      "id": "f17c03e2-431a-4297-9774-315972cb944f",
+      "name": "Rija van Niekerk",
+      "country": "Eswatini",
+      "countryCode": "SZ",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-946",
+      "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": {
+        "contractId": "4c99a38e-8248-4604-b23a-d9b2e228360c",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": []
+    },
+    {
       "id": "f1e4fd27-4219-47e0-81e7-e2202e7d2e9d",
       "name": "Zain Chowdhury",
       "country": "Népal",
@@ -3640,7 +3868,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "68",
       "teamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "51751491-62fc-44b1-9e11-6ff956dc0b39",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3659,7 +3887,7 @@
       "avatarProfileKey": "east_asia",
       "avatarSeed": "471",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "43b079c7-7dd2-4501-94ef-67abc96ecec6",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3678,7 +3906,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "22",
       "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4b068acb-fc17-467b-8a17-00544cbbee9b",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3697,7 +3925,7 @@
       "avatarProfileKey": "europe_southeast",
       "avatarSeed": "-1000000001828",
       "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "8f3b248a-965c-4d61-a0b0-692f96ae6137",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3716,7 +3944,7 @@
       "avatarProfileKey": "southeast_asia",
       "avatarSeed": "-1071",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "4b4c016a-6aca-4537-a0da-1ae0b50f231a",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3735,7 +3963,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "-1367",
       "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "3f2a370d-5339-4077-b56a-bffa2fa013e4",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3754,7 +3982,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "-878",
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "1ecd33a6-e51e-445e-9965-f308704e383f",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3773,7 +4001,7 @@
       "avatarProfileKey": "southern_africa",
       "avatarSeed": "61",
       "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "746bebfc-e16a-4df0-bbeb-4749c63b6635",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3792,7 +4020,7 @@
       "avatarProfileKey": "europe_south",
       "avatarSeed": "677",
       "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "49c1eb5e-061e-4ef0-b709-bd18870f5d2a",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3811,7 +4039,7 @@
       "avatarProfileKey": "north_africa",
       "avatarSeed": "271",
       "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "0f28dede-4fa0-4487-b2f7-a1eea40040ef",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3830,7 +4058,7 @@
       "avatarProfileKey": "south_asia",
       "avatarSeed": "196",
       "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "e6abdb91-cc31-48ab-8ba1-3de48f99d230",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3849,7 +4077,7 @@
       "avatarProfileKey": "europe_west",
       "avatarSeed": "21",
       "teamId": "c7d4f299-3430-4aaf-a029-ac9b97a07ed2",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "7a267e88-38e9-45aa-97e7-d0209a2de33a",
         "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
@@ -3868,7 +4096,7 @@
       "avatarProfileKey": "europe_central",
       "avatarSeed": "524",
       "teamId": "bb7c87bd-a474-4260-8f85-f349849683f3",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": {
         "contractId": "5d11a5a4-42eb-4660-9114-7649a798bbe0",
         "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
@@ -3892,7 +4120,7 @@
         "status": "amateur"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": []
     },
     {
@@ -3907,7 +4135,7 @@
         "imagePath": "/images/collector-albums/s4/46af390ec893c9f5931d3b892e57014a9e7d500f2660584ba2e9d1e758963661.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "ddd95930-fd3a-42a7-91fd-ab352c0ae91f",
@@ -3932,7 +4160,7 @@
         "imagePath": "/images/collector-albums/s4/a8073bad2cf18a3171b2c5275e9b3f7dc923cdbb1cef4a6fb5cfdf0fb329e3ce.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "a41d23a3-beca-432c-81ea-a5ada885f8bd",
@@ -3946,6 +4174,20 @@
       ]
     },
     {
+      "teamId": "0f6d44f9-aed0-4001-85e7-eb4ef88e3092",
+      "teamName": "Borjiest",
+      "jersey": {
+        "primaryColor": "#FFD6FC",
+        "secondaryColor": "#000000",
+        "accentColor": "#FFD6FC",
+        "pattern": "diagonal",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": []
+    },
+    {
       "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
       "teamName": "Cumbre Coca Rush",
       "jersey": {
@@ -3957,7 +4199,7 @@
         "imagePath": "/images/collector-albums/s4/756f86836f05b44d3a4c93d365dd0abf2c653717bfee096559a617a19576b1f4.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "326ad932-9a29-4881-94d1-cfd98b498ed2",
@@ -3982,7 +4224,7 @@
         "imagePath": "/images/collector-albums/s4/0ab110ecfe3b22d3cf3c6a270b8ba6ab2161369c30f5dac715a749ee21f94646.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "479ea91c-e9eb-4898-81bc-7f80419503d9",
@@ -4007,7 +4249,7 @@
         "imagePath": "/images/collector-albums/s4/77abfb237c3f1d39b2c937410fc1ead654d3d19bb0faeaab66d44518220721e2.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "ba57b131-8fa4-4a50-9af5-b206483bab2c",
@@ -4031,7 +4273,7 @@
         "status": "amateur"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": []
     },
     {
@@ -4046,7 +4288,7 @@
         "imagePath": "/images/collector-albums/s4/4d4bee2e67f10e69e35929beba9f89626947a00ffe22171059e77acf657d180e.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "738e28b8-266e-48d5-8aaa-ee7f92eec4b3",
@@ -4071,7 +4313,7 @@
         "imagePath": "/images/collector-albums/s4/6518bc4147f7a5375dbbd81782f93969e8a0e802eade5c1dc48adc7dea658521.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "905d22ec-c44d-4147-969e-4d0c20f5481d",
@@ -4096,7 +4338,7 @@
         "imagePath": "/images/collector-albums/s4/0f28de5d32fd4f88514704e684338b7679d4c3b1dd54a2dfe3d51f00abb09957.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "4e6e4185-928b-4727-bae1-b304b6f7b507",
@@ -4121,7 +4363,7 @@
         "imagePath": "/images/collector-albums/s4/6fc7073b87089a6cdd0daa1b5959c1e5c58cbbf2e8de76230c1961351b321323.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "df55019e-58a4-4ba2-a01c-430dce195ddc",
@@ -4145,7 +4387,7 @@
         "status": "amateur"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": []
     },
     {
@@ -4160,7 +4402,7 @@
         "imagePath": "/images/collector-albums/s4/640d87db816a27aa7a1b1e057ea1a969171bec139cb4a1c85258f0c7a819b0d8.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "a0541b62-7199-4017-af14-e2a3434fdafa",
@@ -4185,7 +4427,7 @@
         "imagePath": "/images/collector-albums/s4/c552a5f803ccfbfcdd7453e7f782fabfdd676b7dcce52b4842e822a4892320eb.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "29e7e6fb-19bb-443e-b77a-56628b2f6645",
@@ -4210,7 +4452,7 @@
         "imagePath": "/images/collector-albums/s4/bf1c70738412862252674740fd07ba5b4f40494a88a7fdc8e278c691f51a0e7c.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "da4bb775-2c15-4bde-97a2-07c84496e0b5",
@@ -4235,7 +4477,7 @@
         "imagePath": "/images/collector-albums/s4/4e37c863eab971670b8396ac221c42a12fb6b7335ba72c719c0355f4def2a3c1.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "f2fb1b44-14ab-43ad-a58d-3046c20431bc",
@@ -4259,7 +4501,7 @@
         "status": "amateur"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": []
     },
     {
@@ -4274,7 +4516,7 @@
         "imagePath": "/images/collector-albums/s4/0b751e63fb0addd82069ceccfb13d1c44625442488b54a39d644acd8f2717ee4.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "7b1667c0-d42f-4cdd-9047-985c094edaa3",
@@ -4299,7 +4541,7 @@
         "imagePath": "/images/collector-albums/s4/cc847a8b05bf83166ade7dd2e356643a36c03dfa8a0a1f9f5c5129dd8ec55139.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "bc686551-d31d-44e0-9d6f-112f368afda4",
@@ -4324,7 +4566,7 @@
         "imagePath": "/images/collector-albums/s4/88d326ab85af0399b5216898721642c8f73c5cc257add3dd1024af511e94f9ba.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "cd7d1326-5abf-402c-acb0-6df3c3f550d3",
@@ -4338,6 +4580,20 @@
       ]
     },
     {
+      "teamId": "8a666a58-79b9-4fe5-8b9c-705c3169af60",
+      "teamName": "Boubourse",
+      "jersey": {
+        "primaryColor": "#FF0000",
+        "secondaryColor": "#FFFDF4",
+        "accentColor": "#000000",
+        "pattern": "vertical",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": []
+    },
+    {
       "teamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
       "teamName": "Penn Kreiz Crêpes",
       "jersey": {
@@ -4349,7 +4605,7 @@
         "imagePath": "/images/collector-albums/s4/624f97a9fbff8cb86341f498b91e74061386f8a5d284d02429f4df01328ff381.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "5ddd7d32-eda0-46a9-aa6e-10a88ce61e85",
@@ -4374,7 +4630,7 @@
         "imagePath": "/images/collector-albums/s4/d0a6d9ebe671014b00f3ad35999dededf090504f63c4909a3ec14e7aecb3788c.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "1ea7d9bc-55f7-447f-ab79-ab910e98fc31",
@@ -4388,6 +4644,20 @@
       ]
     },
     {
+      "teamId": "9b28ff67-8690-4aed-abd7-ad7518a5fca4",
+      "teamName": "Carrera",
+      "jersey": {
+        "primaryColor": "#DA0B0B",
+        "secondaryColor": "#2430D6",
+        "accentColor": "#EDE612",
+        "pattern": "cross",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
+      "contractEvidence": []
+    },
+    {
       "teamId": "a81d26fc-5b1f-4267-8c60-073d53389733",
       "teamName": "Yukikaze Outdoor",
       "jersey": {
@@ -4399,7 +4669,7 @@
         "imagePath": "/images/collector-albums/s4/36d021b3ec97f94400e1a99559453977bf888ffcd20231712be750572470fff7.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "0e93d178-f8f9-422f-948b-2d9b022be578",
@@ -4424,7 +4694,7 @@
         "imagePath": "/images/collector-albums/s4/a2c20e2d7fee65068544ec6e22213f660ba97c3b4be1c2bab5c6623f9071e30b.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "34fb6b25-2f41-4d54-a193-4e8c8fa41e27",
@@ -4449,7 +4719,7 @@
         "imagePath": "/images/collector-albums/s4/ee430efa299a7b89ab6a8ea54613302f4290680e21c1f448813c54416d4c0fbd.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "81372097-dedc-4bc5-b1af-0ecf7151fe86",
@@ -4474,7 +4744,7 @@
         "imagePath": "/images/collector-albums/s4/e90f1426c3250d7d9f711b5a741c4aaa3348671432e7d0859215c22825bb7d84.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "b7049ab4-1802-42b0-b2f6-0b00691018ff",
@@ -4499,7 +4769,7 @@
         "imagePath": "/images/collector-albums/s4/52ff42ba3bfa6da4fcd56e3d4de6ef09c43ae000ddfbdd8bad6c8215eb1baa84.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "17c69ddd-af28-42dd-96cd-571e396e2332",
@@ -4524,7 +4794,7 @@
         "imagePath": "/images/collector-albums/s4/0f3bd0b79d7f32f8f3edbf532e2f5d863e6bc61d2cc5edf4bc7aa77aa6bfdf7b.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "44dce1ea-3458-4437-98cf-ecdb79bd9722",
@@ -4549,7 +4819,7 @@
         "imagePath": "/images/collector-albums/s4/d122a7b314aaa88deaa32732b908772abf3c229ca1bb206507798866824321e6.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "0bd66eba-8edb-4ab3-8945-e1b4a6060d6e",
@@ -4573,7 +4843,7 @@
         "status": "amateur"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": []
     },
     {
@@ -4588,7 +4858,7 @@
         "imagePath": "/images/collector-albums/s4/41b39c24fdff59edca126a756438d61e87206f003c1cda873cfea04c38277d47.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "71fc6189-abbd-4e59-87d0-662603ffd118",
@@ -4613,7 +4883,7 @@
         "imagePath": "/images/collector-albums/s4/d3dad529fb2e19df2e4fbc8a0dd396e1852bf428d5f39ba8590f528fca35b87b.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "1a61c162-bd9d-4fa6-859d-86bbafe1cc47",
@@ -4638,7 +4908,7 @@
         "imagePath": "/images/collector-albums/s4/57c08c7af0ec4132655cb7fd0f37159849bcd8eaef161fc3d88a7884b77e8b55.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "df9e0f8d-1473-4c1c-af31-afb5785c9e9d",
@@ -4663,7 +4933,7 @@
         "imagePath": "/images/collector-albums/s4/96b32af903348fa0a991f6102db155b138136afa9369c4f13416e1df09f69d3b.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "6d4b5911-7e43-41aa-9c2f-164e603d7ba4",
@@ -4688,7 +4958,7 @@
         "imagePath": "/images/collector-albums/s4/3497a55f896395c1dc5f6acc0375996ae21480642ade2548515b022d832cf7e4.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "8b814d55-185e-4250-b434-633f819dfeb7",
@@ -4713,7 +4983,7 @@
         "imagePath": "/images/collector-albums/s4/8f79b1aed25fa9db172e6902ba627ef3271cfddb80ce5cdd03af906417855f95.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "439d6001-ff71-4a77-a66b-5a8c7dbf7d3a",
@@ -4738,7 +5008,7 @@
         "imagePath": "/images/collector-albums/s4/003766ee64e090e914d6f6e915c74bda7dbda68b0b5344a02956b4a47f7f43b9.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "54c65cbe-0d94-494d-887e-1d29d279f522",
@@ -4763,7 +5033,7 @@
         "imagePath": "/images/collector-albums/s4/c92a7439e9b62376bd6adc1a347be7b73fd58791ce4aa4056b8e57304e5888f6.webp"
       },
       "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
-      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "capturedAt": "2026-11-05T10:47:40.659Z",
       "contractEvidence": [
         {
           "contractId": "3ddfe7c7-f488-4ea1-a0dc-809415294156",
@@ -4977,5 +5247,5 @@
       "bytes": 76436
     }
   ],
-  "sha256": "519ee60ea83d22b4e9a1a41756ff781dca79e06e8510b2b72c8e9b871408a91b"
+  "sha256": "1f465b5bbc8660ed64fe6eed77e64210c9f12514f08901092f17c37566d1c9f1"
 }

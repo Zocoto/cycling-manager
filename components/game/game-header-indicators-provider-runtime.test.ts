@@ -54,6 +54,7 @@ const ROW = {
   direct_message_unread_count: 1,
   has_unread_global_chat: true,
   has_unread_cyclogazette: false,
+  collector_album_available: false,
 };
 const SUCCESS = { data: ROW, error: null };
 
@@ -105,7 +106,7 @@ describe("header subscription initialization", () => {
   });
 
   function expectCompleteSubscription() {
-    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v3");
+    expect(runtime.client.rpc).toHaveBeenCalledWith("get_current_game_header_indicators_v4");
     expect(runtime.client.channel).toHaveBeenCalledTimes(1);
     expect(runtime.channel.on).toHaveBeenCalledTimes(5);
     expect(runtime.channel.on).toHaveBeenCalledWith(
@@ -125,12 +126,50 @@ describe("header subscription initialization", () => {
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
     runtime.authState.callback!("SIGNED_OUT", null);
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v3");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v4");
     const calls = runtime.setCollectorAlbumAvailable.mock.calls.length;
     cleanup?.(); cleanup=undefined;
     expect(runtime.unsubscribeAuth).toHaveBeenCalledTimes(1);
     runtime.authState.callback!("SIGNED_IN", {user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}});
     expect(runtime.setCollectorAlbumAvailable).toHaveBeenCalledTimes(calls);
+  });
+
+  it("enables every authenticated collector from the shared server readiness without another request", async () => {
+    runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, collector_album_available: true }, error: null });
+    await mount();
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
+    runtime.authState.callback!("INITIAL_SESSION", {user:{id:"another-account"}});
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v4");
+    runtime.authState.callback!("SIGNED_OUT", null);
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
+  });
+
+  it("discovers rollover publication and its kill switch on the existing focus refresh", async () => {
+    runtime.maybeSingle.mockResolvedValueOnce(SUCCESS)
+      .mockResolvedValueOnce({ data: { ...ROW, collector_album_available: true }, error: null })
+      .mockResolvedValue(SUCCESS);
+    await mount();
+    runtime.authState.callback!("INITIAL_SESSION", {user:{id:"another-account"}});
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
+    await focus();
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(true);
+    await focus();
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
+    expect(runtime.client.rpc).toHaveBeenCalledTimes(3);
+    expect(runtime.client.channel).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not restore availability from a delayed response after logout", async () => {
+    let resolveFirst!: (value: typeof SUCCESS) => void;
+    runtime.maybeSingle.mockImplementationOnce(() => new Promise<typeof SUCCESS>(resolve => { resolveFirst=resolve; }));
+    await mount();
+    runtime.authState.callback!("SIGNED_OUT", null);
+    resolveFirst({ data: { ...ROW, collector_album_available: true }, error: null });
+    await vi.runAllTimersAsync();
+    expect(runtime.setCollectorAlbumAvailable).toHaveBeenLastCalledWith(false);
+    expect(runtime.setCollectorAlbumAvailable.mock.calls.some(([value])=>value===true)).toBe(false);
+    expect(runtime.client.channel).not.toHaveBeenCalled();
   });
 
   it("waits for a successful identified snapshot after the first RPC fails", async () => {
@@ -148,7 +187,7 @@ describe("header subscription initialization", () => {
   it.each(["owner", "game_staff"])("expose le rôle %s via le même snapshot sans nouvelle RPC", async (role) => {
     runtime.maybeSingle.mockResolvedValue({ data: { ...ROW, game_role: role }, error: null });
     await mount();
-    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v3");
+    expect(runtime.client.rpc).toHaveBeenCalledExactlyOnceWith("get_current_game_header_indicators_v4");
     expect(runtime.setIndicators).toHaveBeenCalledWith(expect.objectContaining({ gameStaffRole: role }));
     expectCompleteSubscription();
   });

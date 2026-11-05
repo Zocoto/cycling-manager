@@ -14,7 +14,7 @@ vi.mock("@/lib/game/cyclo-stickers-release",async importOriginal=>{
 });
 import Page from "./page";
 describe("collector album server-side authorization",()=>{
-  beforeEach(()=>{vi.clearAllMocks();mocks.publicReady=false;mocks.client.mockResolvedValue({});mocks.header.mockResolvedValue({displayName:"owner",teamSponsorVisual:null});});
+  beforeEach(()=>{vi.clearAllMocks();mocks.publicReady=false;mocks.publicAlbum.mockReset().mockResolvedValue(null);mocks.client.mockResolvedValue({});mocks.header.mockResolvedValue({displayName:"owner",teamSponsorVisual:null});});
   it("redirects unauthenticated users before loading the album",async()=>{
     mocks.auth.mockResolvedValue({data:{user:null},error:null});
     await expect(Page({})).rejects.toThrow("redirect:/connexion");
@@ -30,15 +30,17 @@ describe("collector album server-side authorization",()=>{
     expect(await Page({})).toBeTruthy();
     expect(mocks.header).toHaveBeenCalledTimes(1);
   });
-  it("serves the S4 cover with the S3 test catalogue and never enables another account",async()=>{
+  it("serves all 72 genuine provisional S4 cards without falling back to the S3 catalogue",async()=>{
     mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
     const page=await Page({searchParams:Promise.resolve({saison:"4",onglet:"introduction"})});
     const children=page.props.children;
     expect(children[0].props.collectorAlbumAvailable).toBe(true);
     expect(children[1].props.initialTab).toBe("album");
     expect(children[1].props.initialIntroduction).toBe(true);
-    expect(children[1].props.snapshot).toMatchObject({sourceSeason:3,presentationSeason:4,launchSeason:5});
-    expect(children[1].props.snapshot.cards).toHaveLength(69);
+    expect(children[1].props.snapshot).toMatchObject({sourceSeason:4,ratingsFrozenFromSeason:4,presentationSeason:4,collectionSeason:5,launchSeason:5,sourceSeasonStatus:"active"});
+    expect(children[1].props.snapshot.cards).toHaveLength(72);
+    expect(children[1].props.snapshot.cards.slice(69).every((card:{kind?:string;profileKey:string;rank:number})=>!card.kind&&card.profileKey==="breakaway"&&card.rank>50)).toBe(true);
+    expect(children[1].props.snapshot.cards.some((card:{specimen?:boolean})=>card.specimen)).toBe(false);
   });
   it("accepts source-season edition S3 and the legacy S4 URL without mixing another catalogue",async()=>{
     mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
@@ -57,7 +59,7 @@ describe("collector album server-side authorization",()=>{
     mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
     const searchParams=Promise.resolve({saison:"4",onglet:"echanges"});
     const preview=await Page({searchParams});
-    expect(preview.props.children[1].props.snapshot.sourceSeason).toBe(3);
+    expect(preview.props.children[1].props.snapshot.sourceSeason).toBe(4);
     expect(mocks.publicAlbum).not.toHaveBeenCalled();
     mocks.publicReady=true;
     const album={snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}};
@@ -68,13 +70,32 @@ describe("collector album server-side authorization",()=>{
     expect(page.props.children[1].props.snapshot).toBe(album.snapshot);
     expect(page.props.children[1].props.initialTab).toBe("trades");
   });
-  it("preserves the owner's S3 trades demo and default S4 preview after launch",async()=>{
+  it("loads S3 only from its explicit owner URL and uses genuine S4 while publication is pending",async()=>{
     mocks.publicReady=true;
     mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
     const legacy=await Page({searchParams:Promise.resolve({saison:"3",onglet:"echanges"})});
     expect(legacy.props.children[1].props.snapshot.sourceSeason).toBe(3);
     const preview=await Page({searchParams:Promise.resolve({saison:"4"})});
-    expect(preview.props.children[1].props.snapshot.sourceSeason).toBe(3);
+    expect(preview.props.children[1].props.snapshot.sourceSeason).toBe(4);
+    expect(mocks.publicAlbum).toHaveBeenCalledTimes(1);
+  });
+  it.each(["58140add-54c6-40af-9528-f823d0051d0f","another-player"])("uses the real collection by default for every player after DB publication: %s",async userId=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:userId}},error:null});
+    const album={snapshot:{edition:"final-s4",sourceSeason:4,collectionSeason:5},state:{directorId:"real-owner"}};
+    mocks.publicAlbum.mockResolvedValue(album);
+    const page=await Page({});
+    expect(mocks.publicAlbum).toHaveBeenCalledTimes(1);
+    expect(page.props.children[1].props.initialState).toBe(album.state);
+    expect(page.props.children[1].props.snapshot).toBe(album.snapshot);
+  });
+  it("keeps the explicit S3 owner archive out of the public collection even after publication",async()=>{
+    mocks.publicReady=true;
+    mocks.auth.mockResolvedValue({data:{user:{id:"58140add-54c6-40af-9528-f823d0051d0f"}},error:null});
+    mocks.publicAlbum.mockResolvedValue({snapshot:{edition:"final-s4",sourceSeason:4},state:{directorId:"real-owner"}});
+    const page=await Page({searchParams:Promise.resolve({saison:"3"})});
+    expect(page.props.children[1].props.snapshot.sourceSeason).toBe(3);
+    expect(page.props.children[1].props.snapshot.cards).toHaveLength(50);
     expect(mocks.publicAlbum).not.toHaveBeenCalled();
   });
   it("refuses incoming mail if the public catalogue is unavailable instead of falling back to the demo",async()=>{

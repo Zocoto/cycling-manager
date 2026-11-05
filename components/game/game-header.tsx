@@ -40,7 +40,7 @@ type GameHeaderProps = {
   gazetteIsOpen?: boolean;
   mailboxIsOpen?: boolean;
   compactMobile?: boolean;
-  /** Standalone owner preview opt-in; other pages reuse account-bound shared auth state. */
+  /** Standalone server readiness; other pages reuse the consolidated shared snapshot. */
   collectorAlbumAvailable?: boolean;
 };
 

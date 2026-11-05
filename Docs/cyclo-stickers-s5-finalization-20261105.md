@@ -1,5 +1,7 @@
 # Cyclo-Stickers S4, collection S5 — finalisation du 5 novembre
 
+**Mise à jour :** la [nouvelle série exclusivement S4 et son ouverture automatique](cyclo-stickers-s4-automatic-publication-20261105.md) remplacent maintenant l’aperçu S3 et l’étape d’activation manuelle décrits ci-dessous.
+
 Les décisions de cette livraison remplacent les hypothèses de la maquette du 22 octobre.
 
 - **69 vignettes** : top 50 individuel UCI, top 5 équipes, 10 champions continentaux pros, 2 champions du monde pros, champion des Jeux sur route, Équipier sans tête.

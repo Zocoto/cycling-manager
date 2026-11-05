@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CYCLO_STICKERS_FINAL_TITLE_SLOTS, assertReviewedCycloStickersFinalSnapshot, createCycloStickersFinalSnapshot } from "./cyclo-stickers-final-snapshot";
+import { CYCLO_STICKERS_FINAL_TITLE_SLOTS, assertReviewedCycloStickersFinalSnapshot, createCycloStickersFinalSnapshot, createCycloStickersPreparedSnapshot } from "./cyclo-stickers-final-snapshot";
+import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, getCollectorCardRarity } from "./collector-album";
 import { createFinalCycloStickersSourceFixture } from "./cyclo-stickers-final-snapshot.fixture";
 
 describe("offline final S4 snapshot preparation", () => {
@@ -30,8 +31,8 @@ describe("offline final S4 snapshot preparation", () => {
     const before = structuredClone(source);
     const snapshot = createCycloStickersFinalSnapshot(source);
     expect(source).toEqual(before);
-    expect(snapshot.cards).toHaveLength(69);
-    expect(snapshot.cards.map(card => card.number)).toEqual(Array.from({ length: 69 }, (_, index) => index + 1));
+    expect(snapshot.cards).toHaveLength(72);
+    expect(snapshot.cards.map(card => card.number)).toEqual(Array.from({ length: 72 }, (_, index) => index + 1));
     expect(snapshot.cards.slice(0, 50).map(card => card.id)).toEqual(source.ranking.map(row => row.riderId));
     expect(snapshot.cards.slice(50, 55).every(card => card.kind === "team")).toBe(true);
     expect(snapshot.cards.slice(55, 65).every(card => card.kind === "continental")).toBe(true);
@@ -57,6 +58,47 @@ describe("offline final S4 snapshot preparation", () => {
     expect(snapshot.cards[0].points).toBe(snapshot.cards[1].points);
     expect(snapshot.cards[50].jersey).toEqual(source.teams[0].jersey);
     expect(snapshot.cards[50].name).toBe(source.teams[0].name);
+  });
+
+  it("appends three native Baroudeurs with their actual UCI ranks and preserves all introduction slots", () => {
+    const source = createFinalCycloStickersSourceFixture();
+    source.riders.find(row => row.id === source.bonusRanking[0].riderId)!.ratings.hills = 84;
+    const snapshot = createCycloStickersFinalSnapshot(source);
+    const bonus = snapshot.cards.slice(69);
+    expect(snapshot.cards.filter(card => !card.kind)).toHaveLength(53);
+    expect(snapshot.cards.slice(50, 69).filter(card => card.kind)).toHaveLength(19);
+    expect(bonus.map(card => card.number)).toEqual([70, 71, 72]);
+    expect(bonus.map(card => card.rank)).toEqual([71, 93, 128]);
+    expect(bonus.map(card => card.id)).toEqual(source.bonusRanking.map(row => row.riderId));
+    expect(bonus.every(card => !card.kind && card.profileKey === "breakaway" && getCollectorCardRarity(card) === "bronze")).toBe(true);
+    expect(bonus[0].profile).toBe("Baroudeur / Puncheur");
+    const pasted = {version:3 as const,season:5,owned:[],partners:{},pasted:[70,71,72],pending:null,history:[],openedPacks:[],claimedAchievements:[],acceptedTradeCount:0};
+    expect(getAlbumAchievementProgress(ALBUM_ACHIEVEMENTS.find(row => row.id === "profile-breakaway")!, pasted, snapshot.cards)).toEqual({value:3,target:3});
+    const active = createCycloStickersPreparedSnapshot({...source,capturedAt:"2026-11-05T10:00:00.000Z",season:{...source.season,status:"active"}});
+    expect(active.cards).toEqual(snapshot.cards);
+    expect(active.sourceSeasonStatus).toBe("active");
+    expect(() => assertReviewedCycloStickersFinalSnapshot(active,"completed")).toThrow();
+  });
+
+  it("rejects missing, duplicate, reordered, non-native or relabelled bonus riders", () => {
+    const mutations = [
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking.pop(); },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking[0].riderId = source.ranking[0].riderId; },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking[1] = {...source.bonusRanking[0]}; },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking.reverse(); },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking[0].rank = 50; },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking[0].points = source.ranking[49].points + 1; },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.bonusRanking[0].sourceSeasonId = source.ranking[0].riderId; },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { source.riders.find(row => row.id === source.bonusRanking[0].riderId)!.ratings.breakaway = 60; },
+      (source: ReturnType<typeof createFinalCycloStickersSourceFixture>) => { const rider = source.riders.find(row => row.id === source.bonusRanking[0].riderId)!; rider.ratings.hills = rider.ratings.breakaway; },
+    ];
+    for (const mutate of mutations) {
+      const source = createFinalCycloStickersSourceFixture(); mutate(source);
+      expect(() => createCycloStickersFinalSnapshot(source)).toThrow();
+    }
+    const snapshot = createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
+    snapshot.cards[69].rank = 1;
+    expect(() => assertReviewedCycloStickersFinalSnapshot(snapshot,"completed")).toThrow();
   });
 
   it("keeps source provenance independent from displayed cards and does not invent souvenir sporting data", () => {

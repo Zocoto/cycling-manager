@@ -1,17 +1,11 @@
 "use client";
 
 import Link from "@/components/ui/app-link";
-import { useCallback, useSyncExternalStore } from "react";
-import { ALBUM_PILOT_EDITION, ALBUM_PILOT_SEASON, ALBUM_SOURCE_SEASON, albumPilotStorageKey, getAlbumPilotPacks, readAlbumPilotState } from "@/lib/game/collector-album";
+import type { FC } from "react";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 import styles from "./collector-album-retro.module.css";
 
-const subscribe=(callback:()=>void)=>{window.addEventListener("storage",callback);return ()=>window.removeEventListener("storage",callback);};
-export function CollectorAlbumInventoryPreview({storageOwnerId}: {storageOwnerId:string}) {
-  const key=albumPilotStorageKey(storageOwnerId,ALBUM_PILOT_EDITION);
-  const read=useCallback(()=>{try{return window.localStorage.getItem(key);}catch{return null;}},[key]);
-  const raw=useSyncExternalStore(subscribe,read,()=>null);
-  const state=readAlbumPilotState(raw,ALBUM_PILOT_SEASON);
-  const remaining=getAlbumPilotPacks(ALBUM_PILOT_SEASON).length-state.openedPacks.length;
-  return <section className={styles.inventoryEntry} aria-label="Sachets de collection, aperçu privé"><div><AlbumBoosterArtwork sourceSeason={ALBUM_SOURCE_SEASON} compact /></div><div><small>COLLECTION · APERÇU PRIVÉ</small><h2>Les sachets du peloton · Édition S{ALBUM_SOURCE_SEASON}</h2><p>LES CHAMPIONS DE LA SAISON {ALBUM_SOURCE_SEASON}</p><p>{remaining} sachet(s) d’essai fermé(s) · deux cartes par sachet. Cet aperçu ne modifie pas ton inventaire de jeu.</p><Link href={`/jeu/album?saison=${ALBUM_SOURCE_SEASON}&onglet=boosters`}>{remaining ? "Voir et ouvrir dans l’album →" : "Retrouver mes cartes dans l’album →"}</Link></div></section>;
-}
+/** The owner shortcut follows the current S4 album, without presenting pilot stock as real packs. */
+export const CollectorAlbumInventoryPreview: FC<{storageOwnerId:string}> = () => {
+  return <section className={styles.inventoryEntry} aria-label="Album de collection, aperçu privé"><div><AlbumBoosterArtwork sourceSeason={4} gamesEdition compact provisional additionalRiders={3} /></div><div><small>COLLECTION · APERÇU PRIVÉ</small><h2>Album de Cyclo-Stickers · Saison 4</h2><p>Les coureurs, les équipes et les champions de S4.</p><p>Parcourir la série S4 et retrouver les pages de collection.</p><Link href="/jeu/album?onglet=boosters">Ouvrir l’album de la saison 4 →</Link></div></section>;
+};

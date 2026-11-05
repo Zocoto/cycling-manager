@@ -38,11 +38,12 @@ describe("source-season collector edition labels", () => {
     expect(trade).not.toContain("Édition S4");
   });
 
-  it("links the inventory preview to the canonical S3 edition", () => {
+  it("links the owner inventory entry to the genuine S4 series without a prototype stock count", () => {
     const inventory = renderToStaticMarkup(<CollectorAlbumInventoryPreview storageOwnerId="private-owner" />);
-    expect(inventory).toContain("Les sachets du peloton · Édition S3");
-    expect(inventory).toContain('href="/jeu/album?saison=3&amp;onglet=boosters"');
-    expect(inventory).not.toContain("S4");
+    expect(inventory).toContain("Album de Cyclo-Stickers · Saison 4");
+    expect(inventory).toContain('href="/jeu/album?onglet=boosters"');
+    expect(inventory).not.toContain("saison=3");
+    expect(inventory).not.toContain("sachet(s) d’essai");
   });
 
   it("preserves deployed pack receipts, claims, exchanges and storage identity when labels become S3", () => {

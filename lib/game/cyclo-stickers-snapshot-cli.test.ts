@@ -23,7 +23,7 @@ it("prepares and seals only completed reviewed rows, preserves the source and re
     expect(JSON.parse(run("prepare-cyclo-stickers-s4.ts", input, candidate)).sealed).toBe(false);
     expect(JSON.parse(run("seal-cyclo-stickers-s4.ts", candidate, output)).sealed).toBe(true);
     const manifest = JSON.parse(readFileSync(output, "utf8"));
-    expect(manifest.snapshot.cards).toHaveLength(69);
+    expect(manifest.snapshot.cards).toHaveLength(72);
     expect(manifest.sha256).toBe(createHash("sha256").update(serializeCycloStickersSnapshot(manifest.snapshot)).digest("hex"));
     expect(readFileSync(input, "utf8")).toBe(sourceText);
     const sealedText = readFileSync(output, "utf8");

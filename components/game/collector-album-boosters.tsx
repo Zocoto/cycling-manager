@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 import { CollectorCardFace } from "./collector-card-face";
+import { isProvisionalCollectorAlbum } from "./collector-album-source-presentation";
 import { getAlbumBoosterOdds, CARD_RARITY_LABELS, drawAlbumBooster, getAlbumPilotPacks, getCollectorCardRarity, getLooseAlbumCardCount, type AlbumPilotAction, type AlbumPilotState, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import styles from "./collector-album-retro.module.css";
 import discovery from "./collector-album-discovery.module.css";
@@ -42,6 +43,7 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
   onPasteCards?: (numbers: readonly number[]) => void;
 }) {
   const editionSeason=snapshot.presentationSeason??snapshot.sourceSeason;
+  const provisional=isProvisionalCollectorAlbum(snapshot);
   const odds=getAlbumBoosterOdds(snapshot.cards);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
   const [opening, setOpening] = useState<PackDiscovery | null>(null);
@@ -93,12 +95,12 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
     <header className={styles.sectionHeading}>
       <p>LE KIOSQUE DU COLLECTIONNEUR · ÉDITION S{editionSeason}</p>
       <h2>Le plaisir du petit sachet.</h2>
-      <span>{snapshot.gamesEdition?<>Deux vignettes parmi les coureurs, les équipes et les champions. Pour cet essai, les notes restent celles de S{snapshot.sourceSeason}.</>:<>Deux champions de la saison {snapshot.sourceSeason}, avec leurs notes figées en fin de saison. À collectionner dans l’édition S{editionSeason}.</>}</span>
+      <span>{snapshot.gamesEdition?<>Deux vignettes parmi les coureurs, les équipes et les champions. {snapshot.sourceSeason===3?<>Pour cet essai, les notes restent celles de S{snapshot.sourceSeason}.</>:provisional?<>Notes natives de S{snapshot.sourceSeason} ; classement provisoire jusqu’à la clôture.</>:<>Notes natives et résultats de la saison {snapshot.sourceSeason} terminée.</>}</>:<>Deux champions de la saison {snapshot.sourceSeason}, avec leurs notes figées en fin de saison. À collectionner dans l’édition S{editionSeason}.</>}</span>
     </header>
     <div className={styles.packShelf}>
       {closed.length ? closed.map((pack, index) => <div className={styles.packOffer} key={pack.id}>
         <button type="button" disabled={!ready} className={styles.openPackButton} onClick={() => openPack(pack.id)} aria-label={`Ouvrir le sachet de test ${index + 1}, édition saison ${editionSeason}`}>
-          <AlbumBoosterArtwork sourceSeason={editionSeason} gamesEdition={snapshot.gamesEdition} testSourceSeason={snapshot.gamesEdition?snapshot.sourceSeason:undefined} />
+          <AlbumBoosterArtwork sourceSeason={editionSeason} gamesEdition={snapshot.gamesEdition} testSourceSeason={snapshot.gamesEdition&&snapshot.sourceSeason===3?snapshot.sourceSeason:undefined} provisional={provisional} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} />
           <span>Déchirer le sachet <span aria-hidden="true">↗</span></span>
         </button>
         <p>Sachet d’essai · 2 cartes</p>
@@ -123,7 +125,7 @@ export function CollectorAlbumBoosters({ state, snapshot, ready, onAction, onVie
           const label = activeOpening ? status === "new" ? "Nouvelle vignette" : status === "pasted" ? "Déjà dans l’album" : "Doublon" : getAlbumPackHistoryLabel(state, number);
           return <div className={discovery.cardSlot} key={`${revealed.id}-${index}`} data-album-discovery-card={index + 1}>
             {visible && card ? <div className={discovery.face}>
-              <CollectorCardFace card={card} season={snapshot.sourceSeason} />
+              <CollectorCardFace card={card} season={snapshot.sourceSeason} provisional={provisional} />
               <p className={`${discovery.cardStatus} ${status === "new" ? discovery.newCard : ""}`} data-album-discovery-status={status ?? "history"}><span aria-hidden="true">{status === "new" ? "+" : "◇"}</span>{label}</p>
             </div> : <button ref={index === revealedCount ? nextCardButton : undefined} type="button" className={discovery.cardBack} disabled={index !== revealedCount} onClick={() => revealNext(index)} aria-label={`Révéler la vignette ${index + 1} sur ${revealed.cards.length}`}>
               <span className={discovery.publisher}>CYCLO STRATÈGE · COLLECTION</span>

@@ -15,6 +15,6 @@ async function main() {
   const serialized=serializeCycloStickersSnapshot(exportData.snapshot);
   const manifest={schemaVersion:1,sourceSeasonStatus:"completed",snapshot:exportData.snapshot,sha256:createHash("sha256").update(serialized).digest("hex"),sealedAt:new Date().toISOString()};
   await writeFile(resolve(output),`${JSON.stringify(manifest,null,2)}\n`,{flag:"wx"});
-  console.log(JSON.stringify({sealed:true,sourceSeason:4,launchSeason:5,riders:50,introduction:exportData.snapshot.cards.filter(card=>card.kind).length,sha256:manifest.sha256}));
+  console.log(JSON.stringify({sealed:true,sourceSeason:4,launchSeason:5,riders:exportData.snapshot.cards.filter(card=>!card.kind).length,top50:50,bonusBreakaway:3,introduction:exportData.snapshot.cards.filter(card=>card.kind).length,sha256:manifest.sha256}));
 }
 main().catch(error=>{console.error(error instanceof Error?error.message:"Snapshot sealing failed");process.exitCode=1;});

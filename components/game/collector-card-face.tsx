@@ -13,7 +13,7 @@ import format from "./collector-card-format.module.css";
 
 const PRIMARY_STATS = [["mountain", "MO"], ["hills", "VAL"], ["flat", "PLA"], ["timeTrial", "CLM"], ["cobbles", "PAV"], ["sprint", "SPR"]] as const;
 
-export function CollectorCardFace({ card, season }: { card: CollectorCard; season: number }) {
+export function CollectorCardFace({ card, season, provisional = false }: { card: CollectorCard; season: number; provisional?: boolean }) {
   const rarity = getCardRarity(card.rank);
   const [backId,setBackId]=useState<string|null>(null);
   if (card.kind) return <CycloStickersSpecialCard card={card} season={season}/>;
@@ -21,7 +21,7 @@ export function CollectorCardFace({ card, season }: { card: CollectorCard; seaso
   const worldTitle=card.worldTitles?.includes("road")?"road":card.worldTitles?.includes("time_trial")?"time_trial":null;
   const championJersey=worldTitle?createWorldChampionRiderJersey({championshipType:worldTitle}):card.jersey;
   return <article data-album-card className={`${styles.card} ${styles[rarity]} ${print.sticker} ${format.card} ${worldTitle?print.worldChampion:""}`} aria-label={`${card.name}, carte ${CARD_RARITY_LABELS[rarity]}`}>
-    {back ? <CollectorCardBack card={card} season={season} /> : <>
+    {back ? <CollectorCardBack card={card} season={season} provisional={provisional} /> : <>
     <div className={`${styles.cardTop} ${print.imprint}`}><span className={print.catalogueNumber}>CS / {String(card.number).padStart(2,"0")}</span><svg className={print.cycleMark} viewBox="0 0 54 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="15" r="8"/><circle cx="42" cy="15" r="8"/><path d="m12 15 9-13 8 13H12L25 6h12l5 9M18 2h7m7 0h4l1 4"/></g></svg></div>
     <div data-album-portrait-panel className={`${styles.art} ${print.printedArt}`}>
       <svg className={print.flagBackdrop} viewBox="0 0 280 170" preserveAspectRatio="none" aria-hidden="true" focusable="false">
@@ -50,13 +50,13 @@ export function formatCollectorHonour(honour: CollectorHonour): string {
   return honour.kind==="mountain"?"Meilleur grimpeur":honour.kind==="sprint"?"Classement par points":"Meilleur jeune";
 }
 
-export function CollectorCardBack({card,season}:{card:CollectorCard;season:number}) {
+export function CollectorCardBack({card,season,provisional=false}:{card:CollectorCard;season:number;provisional?:boolean}) {
   return <section className={print.cardBack} aria-label={`Palmarès de ${card.name}, saison ${season}`}>
     <header><span>CS / {String(card.number).padStart(2,"0")} · SAISON {season}</span><h3>{card.name}</h3><p>Les grandes lignes d’une saison.</p></header>
     <div className={print.backSummary}><strong>{card.rank===1?"1er":`${card.rank}e`} UCI</strong><span>{card.points.toLocaleString("fr-FR")} pts · {card.victories} victoires</span></div>
     <div className={print.honoursScroll} tabIndex={0} role="region" aria-label="Grands résultats et maillots distinctifs">
       {card.honours?.length?<ul>{card.honours.map(h=><li key={`${h.raceEditionId}:${h.kind}:${h.rank??0}`}><span className={print.honourMark} aria-hidden="true">{h.kind==="race"?(h.rank===1?"★":h.rank):h.kind==="stages"?"↗":"◆"}</span><div><strong>{h.raceName}</strong><span>{formatCollectorHonour(h)}</span></div></li>)}</ul>:<p>Aucun résultat dans cette sélection de grandes épreuves.</p>}
     </div>
-    <footer>Résultats et notes figés en fin de saison {season}.<br/>Victoires, podiums majeurs, top 10 des Grands Tours et Monuments, étapes et maillots des grandes épreuves.</footer>
+    <footer>{provisional?"Résultats et notes relevés en saison":"Résultats et notes figés en fin de saison"} {season}.<br/>Victoires, podiums majeurs, top 10 des Grands Tours et Monuments, étapes et maillots des grandes épreuves.</footer>
   </section>;
 }

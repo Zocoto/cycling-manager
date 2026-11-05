@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { pruneChatImages } from "@/services/chat-image-maintenance";
+import { isCycloStickersPublicationWindow } from "@/lib/game/cyclo-stickers-publication-window";
 
 export const maxDuration = 300;
 
@@ -53,6 +54,19 @@ export async function GET(request: Request) {
     results.push(taskResult);
     const log = taskResult.ok ? console.info : console.error;
     log("game_maintenance_fallback_task", taskResult);
+    if (task === "settle_due_season_rollovers" && !result.error && isCycloStickersPublicationWindow(new Date())) {
+      const publicationStartedAt = Date.now();
+      try {
+        const { publishDueCycloStickersAlbum } = await import("@/services/cyclo-stickers-publication");
+        const publication = await publishDueCycloStickersAlbum(admin);
+        console.info("cyclo_stickers_publication_completed", publication);
+        results.push({ task: "publish_cyclo_stickers_s4", ok: true, error: null, durationMs: Date.now() - publicationStartedAt });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "S4 publication unavailable";
+        console.error("cyclo_stickers_publication_failed", message);
+        results.push({ task: "publish_cyclo_stickers_s4", ok: false, error: message, durationMs: Date.now() - publicationStartedAt });
+      }
+    }
   }
   const imageCleanupStartedAt = Date.now();
   try {

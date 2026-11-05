@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { settleDueYouthAutomaticTrainingSessions } from "@/services/youth-development";
+import { isCycloStickersPublicationWindow } from "@/lib/game/cyclo-stickers-publication-window";
 
 export const GAME_MAINTENANCE_TASKS = [
   "training",
@@ -120,6 +121,17 @@ export async function runGameMaintenanceTask(
         ...(isRecord(result.data) ? result.data : {}),
         financial_director_income: financialIncome.data,
       };
+      if (isCycloStickersPublicationWindow(new Date())) {
+        // Retry on the existing 15-minute cadence. Album errors cannot undo
+        // staff work or income, and no player request performs publication.
+        try {
+          const { publishDueCycloStickersAlbum } = await import("@/services/cyclo-stickers-publication");
+          const publication = await publishDueCycloStickersAlbum(admin);
+          resolvedResult = { ...(isRecord(resolvedResult) ? resolvedResult : {}), cyclo_stickers_publication: publication };
+        } catch (error) {
+          console.error("cyclo_stickers_publication_failed", error instanceof Error ? error.message : "S4 publication unavailable");
+        }
+      }
     } else if (task === "health") {
       const rosterRotation = await admin.rpc(
         "settle_due_roster_rotation_recovery",

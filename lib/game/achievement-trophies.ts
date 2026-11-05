@@ -72,8 +72,8 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     title: "Mémoire du peloton",
     competitionName: "Album de Cyclo-Stickers",
     seasonName: "Saison 4",
-    inscription: "S4 · 69 vignettes · Une saison conservée",
-    description: "Décerné au collectionneur qui colle les 69 vignettes de l’édition consacrée à la saison 4.",
+    inscription: "S4 · 72 vignettes · Une saison conservée",
+    description: "Décerné au collectionneur qui colle les 72 vignettes de l’édition consacrée à la saison 4.",
     href: "/jeu/album?saison=5",
     visualVariant: "collector-album" satisfies AchievementTrophyVisualVariant,
     palette: {

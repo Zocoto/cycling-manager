@@ -77,11 +77,15 @@ export const cycloStickersFinalSourceSchema = z.strictObject({
     sourceSeasonId: uuid, riderId: uuid, rank: z.number().int().min(1).max(50),
     points: nonnegative, victories: z.number().int().nonnegative(),
   })).length(50),
+  bonusRanking: z.array(z.strictObject({
+    sourceSeasonId: uuid, riderId: uuid, rank: z.number().int().min(51),
+    points: nonnegative, victories: z.number().int().nonnegative(),
+  })).length(3),
   teams: z.array(z.strictObject({
     sourceSeasonId: uuid, jerseySeasonId: uuid, teamId: uuid,
     rank: z.number().int().min(1).max(5), name: text, points: nonnegative, jersey: jerseySchema,
   })).length(5),
-  riders: z.array(riderSchema).min(50).max(63),
+  riders: z.array(riderSchema).min(53).max(66),
   championships: z.array(z.strictObject({
     sourceSeasonId: uuid, type: z.enum(CYCLO_STICKERS_FINAL_TITLE_SLOTS),
     riderId: uuid, raceEditionId: uuid, raceStatus: z.literal("completed"), category: z.literal("pro"),
@@ -89,6 +93,10 @@ export const cycloStickersFinalSourceSchema = z.strictObject({
 });
 
 export type CycloStickersFinalSource = z.infer<typeof cycloStickersFinalSourceSchema>;
+const preparedSourceSchema = cycloStickersFinalSourceSchema.extend({
+  season: cycloStickersFinalSourceSchema.shape.season.extend({ status: z.literal("active") }),
+});
+type CycloStickersS4Source = CycloStickersFinalSource | z.infer<typeof preparedSourceSchema>;
 export type CycloStickersFinalSnapshot = CollectorAlbumSnapshot & {
   provenance: { schemaVersion: 1; source: CycloStickersFinalSource };
 };
@@ -105,9 +113,14 @@ function parisDate(value: string) {
 
 function parseSource(input: unknown): CycloStickersFinalSource {
   const source = cycloStickersFinalSourceSchema.parse(input);
+  return validateSource(source);
+}
+function validateSource<T extends CycloStickersS4Source>(source: T): T {
   const { season } = source;
   requireCondition(Date.parse(season.endsOn) - Date.parse(season.startsOn) === 27 * 86_400_000, "season must contain 28 calendar days");
-  requireCondition(parisDate(source.capturedAt) >= season.endsOn, "capture predates season end");
+  requireCondition(season.status === "completed" ? parisDate(source.capturedAt) >= season.endsOn
+    : parisDate(source.capturedAt) >= season.startsOn && parisDate(source.capturedAt) <= season.endsOn,
+  "capture does not match the source season window");
   const fromS4 = (id: string) => requireCondition(id === season.id, "mixed source seasons");
   if (source.identityCapture) {
     const evidence = source.identityCapture;
@@ -117,7 +130,7 @@ function parseSource(input: unknown): CycloStickersFinalSource {
       && Date.parse(evidence.capturedUntil) <= Date.parse(source.capturedAt), "identity evidence capture order is invalid");
   }
   unique(source.riders.map(row => row.id), "rider identity");
-  unique(source.ranking.map(row => row.riderId), "ranked rider");
+  unique([...source.ranking, ...source.bonusRanking].map(row => row.riderId), "ranked rider");
   unique(source.teams.map(row => row.teamId), "team identity");
   unique(source.championships.map(row => row.type), "championship slot");
   unique(source.championships.map(row => row.raceEditionId), "championship race");
@@ -129,11 +142,16 @@ function parseSource(input: unknown): CycloStickersFinalSource {
       fromS4(row.sourceSeasonId);
     });
   }
+  source.bonusRanking.forEach((row, index) => {
+    fromS4(row.sourceSeasonId);
+    requireCondition(index === 0 || row.rank > source.bonusRanking[index - 1].rank, "bonus riders must preserve official UCI rank order");
+    requireCondition(row.points <= (index === 0 ? source.ranking[49].points : source.bonusRanking[index - 1].points), "bonus points contradict official rank");
+  });
   source.teams.forEach(row => {
     fromS4(row.jerseySeasonId);
     requireCondition(row.jersey.status === "sponsored" || row.jersey.status === "amateur", "team sticker requires its S4 team jersey");
   });
-  const expectedRiders = new Set([...source.ranking.map(row => row.riderId), ...source.championships.map(row => row.riderId)]);
+  const expectedRiders = new Set([...source.ranking, ...source.bonusRanking].map(row => row.riderId).concat(source.championships.map(row => row.riderId)));
   requireCondition(source.riders.length === expectedRiders.size && source.riders.every(row => expectedRiders.has(row.id)), "missing or unrelated rider profile");
   const knownRiders = new Set(source.riders.map(row => row.id));
   source.championships.forEach(row => { fromS4(row.sourceSeasonId); requireCondition(knownRiders.has(row.riderId), "missing champion profile"); });
@@ -150,6 +168,10 @@ function parseSource(input: unknown): CycloStickersFinalSource {
       requireCondition(row.kind === "race" ? row.count === 1 && row.rank !== undefined : row.rank === undefined, "invalid grouped honour");
     });
   }
+  source.bonusRanking.forEach(row => {
+    const rider = source.riders.find(candidate => candidate.id === row.riderId)!;
+    requireCondition(getRiderSportingProfile(rider.ratings).split(" / ")[0] === "Baroudeur", "bonus rider is not a native primary Baroudeur");
+  });
   return source;
 }
 
@@ -157,7 +179,7 @@ const profileKeys: Record<string, AlbumProfile> = {
   "Coureur de tour": "tours", Grimpeur: "mountain", Puncheur: "hills", Sprinteur: "sprint",
   "Coureur de pavés": "cobbles", Rouleur: "timeTrial", Baroudeur: "breakaway",
 };
-function riderFields(rider: CycloStickersFinalSource["riders"][number], source: CycloStickersFinalSource) {
+function riderFields(rider: CycloStickersFinalSource["riders"][number], source: CycloStickersS4Source) {
   const profile = getRiderSportingProfile(rider.ratings);
   const profileKey = profileKeys[profile.split(" / ")[0]] ?? "breakaway";
   return {
@@ -168,7 +190,7 @@ function riderFields(rider: CycloStickersFinalSource["riders"][number], source: 
     worldTitles: source.championships.filter(row => row.riderId === rider.id && row.type.startsWith("world_")).map(row => row.type === "world_road" ? "road" as const : "time_trial" as const),
   };
 }
-function assemble(source: CycloStickersFinalSource): CycloStickersFinalSnapshot {
+function assembleCards(source: CycloStickersS4Source): CollectorCard[] {
   const riders = new Map(source.riders.map(row => [row.id, row]));
   const cards: CollectorCard[] = source.ranking.map(row => ({
     ...riderFields(riders.get(row.riderId)!, source), id: row.riderId, number: row.rank,
@@ -208,10 +230,17 @@ function assemble(source: CycloStickersFinalSource): CycloStickersFinalSnapshot 
     ...empty, id: "intro:legend:headless-s4", number: 69, kind: "legend", rarityOverride: "holographic",
     name: "L’Équipier sans tête", stickerTitle: "Les nuits du peloton", teamName: "Halloween · Saison 4", jersey: { ...FREE_AGENT_RIDER_JERSEY },
   });
+  source.bonusRanking.forEach((row, index) => cards.push({
+    ...riderFields(riders.get(row.riderId)!, source), id: row.riderId, number: 70 + index,
+    rank: row.rank, points: row.points, victories: row.victories,
+  }));
+  return cards;
+}
+function assemble(source: CycloStickersFinalSource): CycloStickersFinalSnapshot {
   return {
     edition: "cyclo-stickers-s5-s4-final-v1", collectionSeason: 5, sourceSeason: 4,
     sourceSeasonId: source.season.id, ratingsFrozenFromSeason: 4, capturedAt: source.capturedAt,
-    presentationSeason: 4, launchSeason: 5, gamesEdition: true, cards,
+    presentationSeason: 4, launchSeason: 5, gamesEdition: true, sourceSeasonStatus: "completed", cards: assembleCards(source),
     provenance: { schemaVersion: 1, source: structuredClone(source) },
   };
 }
@@ -219,6 +248,16 @@ function assemble(source: CycloStickersFinalSource): CycloStickersFinalSnapshot 
 /** Pure offline preparation. An active season is rejected; this never freezes a live ranking. */
 export function createCycloStickersFinalSnapshot(input: unknown): CycloStickersFinalSnapshot {
   return assemble(parseSource(input));
+}
+
+/** Genuine native S4 data only; remains a distinct, explicitly provisional preview. */
+export function createCycloStickersPreparedSnapshot(input: unknown): CollectorAlbumSnapshot {
+  const source = validateSource(preparedSourceSchema.parse(input));
+  return {
+    edition: "cyclo-stickers-s4-preview-s4-v1", collectionSeason: 5, sourceSeason: 4,
+    sourceSeasonId: source.season.id, ratingsFrozenFromSeason: 4, capturedAt: source.capturedAt,
+    presentationSeason: 4, launchSeason: 5, gamesEdition: true, sourceSeasonStatus: "active", cards: assembleCards(source),
+  };
 }
 
 export function serializeCycloStickersSnapshot(value: unknown): string {

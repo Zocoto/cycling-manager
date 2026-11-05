@@ -2,7 +2,7 @@ import { createContinentalChampionRiderJersey, createQuadrennialChampionRiderJer
 import type { CollectorAlbumSnapshot, CollectorCard } from "./collector-album";
 import { assertReviewedCycloStickersFinalSnapshot, type CycloStickersFinalSnapshot } from "./cyclo-stickers-final-snapshot";
 
-export const CYCLO_STICKERS_RELEASE = { name: "Album de Cyclo-Stickers", sourceSeason: 4, launchSeason: 5, publicReady: false } as const;
+export const CYCLO_STICKERS_RELEASE = { name: "Album de Cyclo-Stickers", sourceSeason: 4, launchSeason: 5, publicReady: true } as const;
 export function canLaunchCycloStickers(activeSeason: number, frozenSeason: number | null, persistentInventoryReady: boolean, publicApproved: boolean = CYCLO_STICKERS_RELEASE.publicReady) {
   return publicApproved && activeSeason >= 5 && frozenSeason === 4 && persistentInventoryReady;
 }

@@ -59,7 +59,7 @@ function PersistentBoosters({ snapshot, state, busy, mutate }: { snapshot: Colle
       <button type="button" className={styles.openPackButton} disabled={busy} aria-label={`Ouvrir le sachet ${index + 1}`} onClick={() => {
         const rpc = getCycloStickersOpenRpc(state.edition.id, pack.inventorySource, pack.id);
         void mutate(rpc.rpcName, rpc.args, "Sachet ouvert : deux vignettes ont rejoint ta collection.");
-      }}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} /><span>Ouvrir ce sachet ↗</span></button>
+      }}><AlbumBoosterArtwork sourceSeason={snapshot.presentationSeason ?? snapshot.sourceSeason} gamesEdition={snapshot.gamesEdition} additionalRiders={snapshot.cards.filter(card=>!card.kind&&card.number>69).length} /><span>Ouvrir ce sachet ↗</span></button>
       <p>{pack.inventorySource === "login" ? "Connexion" : pack.inventorySource === "referral" ? "Parrainage" : "Événement"} · 2 vignettes</p>
     </div>) : <p>Aucun sachet fermé dans cette édition.</p>}</div>
     {latest ? <section className={styles.reveal} aria-label="Dernier sachet ouvert"><h3>Les deux vignettes de ton dernier sachet</h3><div className={styles.packShelf}>{latest.cards.map((number, index) => {
@@ -79,7 +79,7 @@ function PersistentAchievements({ snapshot, state, busy, onAction }: { snapshot:
       const achievement = { ...definition, name: config.name, target: config.target ?? definition.target, cash: config.cash, xp: config.xp, reputation: config.reputation };
       const progress = getAlbumAchievementProgress(achievement, view, snapshot.cards);
       const claimed = state.claimedAchievements.includes(achievement.id);
-      return <article className={styles.achievement} key={achievement.id}><h3>{achievement.name}</h3><p>{definition.description}</p><progress aria-label={achievement.name} value={Math.min(progress.value, progress.target)} max={progress.target} /><p>{Math.min(progress.value, progress.target)} / {progress.target}</p>
+      return <article className={styles.achievement} key={achievement.id}><h3>{achievement.name}</h3><p>{achievement.description}</p><progress aria-label={achievement.name} value={Math.min(progress.value, progress.target)} max={progress.target} /><p>{Math.min(progress.value, progress.target)} / {progress.target}</p>
         <div className={styles.rewardLine}><strong>{achievement.cash.toLocaleString("fr-FR")} €</strong><span>{achievement.xp} XP · {achievement.reputation} réputation</span></div>
         <button type="button" disabled={busy || claimed || progress.value < progress.target} onClick={() => onAction({ type: "claim-achievement", id: achievement.id })}>{claimed ? "Récompense reçue" : "Recevoir la récompense"}</button>
       </article>;

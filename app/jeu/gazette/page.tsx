@@ -192,7 +192,7 @@ export default async function CyclogazettePage({
         <CyclogazetteSectionNavigation activeSection={activeSection} />
         {canAccessCollectorAlbum(user.id) ? (
           <Link href="/jeu/album" className="mx-auto mb-5 flex max-w-[1100px] flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b59a59]/50 bg-[#f6edcf] px-5 py-4 text-[#263d33]">
-            <span><strong className="font-serif text-xl">L’Album du peloton</strong><span className="ml-3 text-xs font-bold">Aperçu privé · 2 cartes & échanges de démonstration</span></span>
+            <span><strong className="font-serif text-xl">L’Album du peloton</strong><span className="ml-3 text-xs font-bold">Aperçu privé · Série S4</span></span>
             <span className="text-sm font-black">Ouvrir l’album →</span>
           </Link>
         ) : null}

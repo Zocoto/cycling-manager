@@ -53,6 +53,7 @@ try{
   await db.query(`insert into rider_contracts(id,rider_id,team_id,start_season_id,end_season_id,status) select gen_random_uuid(),id,$1,$2,$3,'active' from riders`,[id(101),id(4),id(5)]);
   await db.query(`insert into rider_season_summaries(rider_id,season_id,uci_rank) select id,$1,row_number()over(order by id)::integer from riders where id<=$2`,[id(4),id(1200)]);
   await db.query(`insert into rider_season_ratings select id,$1,25,70,60,60,60,60,60,60,60,60,60,60,60,60 from riders`,[id(4)]);
+  await db.query("update rider_season_ratings set mountain=60,breakaway=90 where rider_id in ($1,$2,$3)",[id(1051),id(1052),id(1053)]);
   await db.query("insert into race_categories values($1,'world')",[id(600)]);
   for(let n=0;n<13;n++){
     await db.query("insert into races(id,competition_type,race_format) values($1,'world_championship','one_day')",[id(500+n)]);
@@ -88,7 +89,7 @@ try{
   eq((await run("02-riders.sql")).length,0,"staging SQL cannot read S5 identities after rollover");eq((await run("03-teams.sql")).length,0,"staging SQL cannot read S5 selected jerseys after rollover");
   const finalQueries=buildCycloStickersS4CompletedQueries();
   const finalFacts:Record<string,unknown>={};
-  const sections={context:"01-context",ranking:"02-ranking",teams:"03-teams",championships:"04-championships",ratings:"05-ratings",honours:"06-honours",contracts:"07-contracts",naturalizations:"08-naturalizations"};
+  const sections={context:"01-context",ranking:"02-ranking",teams:"03-teams",championships:"04-championships",ratings:"05-ratings",honours:"06-honours",contracts:"07-contracts",naturalizations:"08-naturalizations",bonusRanking:"09-bonus-ranking"};
   for(const [key,name]of Object.entries(sections)){
     assert.match(finalQueries[`${name}.sql`],/begin read only;/);assert.doesNotMatch(selectBody(finalQueries[`${name}.sql`]),/\b(insert|update|delete|create|refresh|pg_sleep|for update|for share)\b/i);checks+=2;
     finalFacts[key]=(await db.query(selectBody(finalQueries[`${name}.sql`]))).rows;
@@ -97,7 +98,8 @@ try{
   // the completed exporter must rely on the frozen stage instead.
   await db.exec("update riders set first_name='S5 CHANGED';update team_sponsor_contracts set selected_jersey_id='S5 CHANGED';");
   const source=assembleCompletedCycloStickersS4Source(frozen,finalFacts);
-  eq(source.ranking.length,50,"completed source has exact official top50");eq(source.riders.length,63,"all thirteen outside top50 champions retained");
+  eq(source.ranking.length,50,"completed source has exact official top50");eq(source.riders.length,66,"all thirteen outside top50 champions and three trueBaroudeurs retained");
+  eq(source.bonusRanking.map(row=>row.rank),[51,52,53],"bonusselection uses bestthree trueBaroudeurs by actual officialrank");
   eq(source.riders[0].name,"Synthetic 1","S5 rider identity cannot replace staged S4 identity");eq(source.riders[0].jersey.imagePath,frozen.teams[0].jersey.imagePath,"completed source uses frozen S4 asset bytes");
   eq(source.identityCapture?.sha256,frozen.sha256,"final provenance links reviewed staging hash");
   const wrongStatus=structuredClone(finalFacts) as {context:Record<string,unknown>[]};wrongStatus.context[0].sourceSeasonStatus="active";checkThrows(()=>assembleCompletedCycloStickersS4Source(frozen,wrongStatus),"active S4 is rejected by completed producer");
@@ -108,7 +110,7 @@ try{
   await db.exec("update seasons set status=case when game_year=4 then 'active' else 'planned' end");
   eq((await db.query(selectBody(finalQueries['02-ranking.sql']))).rows.length,0,"final-ranking SQL cannot export the active table as final");
   eq((await db.query(selectBody(finalQueries['05-ratings.sql']))).rows.length,0,"final-profile SQL remains completed-source gated");
-  console.log(JSON.stringify({isolatedExportChecks:checks,productionAccess:false,maxProfiles:213,stagedProfiles:stage.riders.length,immutableJerseyAssets:true,finalSportingResults:false}));
+  console.log(JSON.stringify({isolatedExportChecks:checks,productionAccess:false,maxProfiles:233,stagedProfiles:stage.riders.length,immutableJerseyAssets:true,finalSportingResults:false}));
 }finally{await db.close();}
 }
 main().catch(error=>{console.error(error instanceof Error?`${error.name}: ${error.message.slice(0,1800)}`:"Export validation failed");process.exitCode=1;});

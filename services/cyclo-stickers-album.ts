@@ -5,7 +5,7 @@ import { CYCLO_STICKERS_RELEASE, assertCycloStickersFinalSnapshot } from "@/lib/
 import { serializeCycloStickersSnapshot } from "@/lib/game/cyclo-stickers-final-snapshot";
 import type { CycloStickersPersistentState } from "@/lib/game/cyclo-stickers-persistence";
 
-/** The disabled launch flag costs no RPC. The catalogue RPC also checks its own server release gates. */
+/** Code readiness arms the completed-S4/sealed-edition/S5 DB gates; a null catalogue stays unavailable. */
 export async function getPublicCycloStickersAlbum(supabase: SupabaseClient) {
   if (!CYCLO_STICKERS_RELEASE.publicReady) return null;
   const catalogue = await supabase.rpc("get_current_cyclo_stickers_catalogue");
