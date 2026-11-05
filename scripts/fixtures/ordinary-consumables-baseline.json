@@ -1,0 +1,936 @@
+{
+  "catalog": [
+    {
+      "description": "Le coureur rejoint immédiatement la nationalité sportive de l’équipe.",
+      "effect_kind": "naturalization",
+      "effect_payload": {},
+      "effect_summary": "Naturalisation automatique d’un coureur éligible",
+      "icon_key": "passport",
+      "key": "automatic-naturalization",
+      "name": "Passeport sportif",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "7"
+    },
+    {
+      "description": "Le prochain entraînement professionnel de 8 h profite à tout le groupe.",
+      "effect_kind": "training_multiplier",
+      "effect_payload": {
+        "multiplier": 1.5
+      },
+      "effect_summary": "Progression de la prochaine séance ×1,5 pour toute l’équipe",
+      "icon_key": "training",
+      "key": "collective-training-150",
+      "name": "Séance stimulée",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "3"
+    },
+    {
+      "description": "La prochaine séance collective produit deux fois plus de progression.",
+      "effect_kind": "training_multiplier",
+      "effect_payload": {
+        "multiplier": 2
+      },
+      "effect_summary": "Progression de la prochaine séance ×2 pour toute l’équipe",
+      "icon_key": "training",
+      "key": "collective-training-200",
+      "name": "Bloc haute intensité",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "4"
+    },
+    {
+      "description": "La prochaine séance collective reçoit un puissant soutien scientifique.",
+      "effect_kind": "training_multiplier",
+      "effect_payload": {
+        "multiplier": 2.25
+      },
+      "effect_summary": "Progression de la prochaine séance ×2,25 pour toute l’équipe",
+      "icon_key": "training",
+      "key": "collective-training-225",
+      "name": "Cellule performance",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "8"
+    },
+    {
+      "description": "Une référence commerciale adaptée rejoint le stock de l’équipe.",
+      "effect_kind": "equipment",
+      "effect_payload": {
+        "rarity": "common"
+      },
+      "effect_summary": "1 équipement commercial courant",
+      "icon_key": "equipment",
+      "key": "commercial-discovery",
+      "name": "Découverte matérielle",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "2"
+    },
+    {
+      "description": "Un outil de contrôle qui permet de corriger rapidement le planning d’un bâtiment déjà en construction.",
+      "effect_kind": "construction_time_reduction",
+      "effect_payload": {
+        "days": 2
+      },
+      "effect_summary": "Retire 2 jours à un chantier actif · 1 jour minimum restant",
+      "icon_key": "architect",
+      "key": "construction-square",
+      "name": "Équerre de chantier",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "4"
+    },
+    {
+      "description": "Choisissez le métier et la nationalité. Le profil généré reçoit un niveau de 1 à 5 étoiles à chances égales et un talent compatible aléatoire.",
+      "effect_kind": "custom_staff_recruitment",
+      "effect_payload": {
+        "signingFeeWaived": true,
+        "uniformLevelOdds": true
+      },
+      "effect_summary": "1 staff sur mesure · 20 % de chance pour chaque niveau",
+      "icon_key": "staff",
+      "key": "custom-staff-mandate",
+      "name": "Mandat de recrutement sur mesure",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "10"
+    },
+    {
+      "description": "Une pièce premium issue d’une petite série rejoint l’équipe.",
+      "effect_kind": "equipment",
+      "effect_payload": {
+        "rarity": "premium"
+      },
+      "effect_summary": "1 équipement premium",
+      "icon_key": "equipment",
+      "key": "elite-equipment",
+      "name": "Prototype de compétition",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "8"
+    },
+    {
+      "description": "Une ration simple à remettre au coureur de votre choix.",
+      "effect_kind": "form_boost",
+      "effect_payload": {
+        "amount": 5
+      },
+      "effect_summary": "+5 en forme pour un coureur",
+      "icon_key": "nutrition",
+      "key": "energy-ration",
+      "name": "Ration énergétique",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "1"
+    },
+    {
+      "description": "Une journée de course assimilée sans fatigue supplémentaire.",
+      "effect_kind": "rider_experience",
+      "effect_payload": {
+        "amount": 1
+      },
+      "effect_summary": "+1 jour d’expérience pour un coureur",
+      "icon_key": "experience",
+      "key": "experience-day",
+      "name": "Journée d’expérience",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "1"
+    },
+    {
+      "description": "Une invitation automatique pour la course Elite de votre choix, hors Grand Tour.",
+      "effect_kind": "wildcard",
+      "effect_payload": {},
+      "effect_summary": "Wild Card Elite automatique hors Grand Tour",
+      "icon_key": "ticket",
+      "key": "golden-ticket",
+      "name": "Ticket d’or",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "10"
+    },
+    {
+      "description": "Une intervention exceptionnelle renforce durablement une statistique primaire encore perfectible.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "amount": 2,
+        "maximumRating": 80,
+        "statScope": "primary"
+      },
+      "effect_summary": "+2 dans la statistique primaire choisie · maximum 80",
+      "icon_key": "rating",
+      "key": "high-performance-cell",
+      "name": "Cellule haute performance",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "10"
+    },
+    {
+      "description": "Toute l’équipe bénéficiera d’une séance hors normes au prochain passage de 8 h.",
+      "effect_kind": "training_multiplier",
+      "effect_payload": {
+        "multiplier": 3
+      },
+      "effect_summary": "Progression de la prochaine séance ×3 pour toute l’équipe (+200 %)",
+      "icon_key": "training",
+      "key": "historic-training",
+      "name": "Séance historique",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "10"
+    },
+    {
+      "description": "Un protocole renforcé qui agit sur les traumatismes compatibles avec une reprise accélérée.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "level": 5,
+        "recoveryHours": 48
+      },
+      "effect_summary": "Réduit la convalescence de 2 jours.",
+      "icon_key": "medical",
+      "key": "injury-care-anti-inflammatory-protocol",
+      "name": "Protocole anti-inflammatoire",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "5"
+    },
+    {
+      "description": "Un premier soin immédiatement disponible pour gagner quelques heures sur une blessure en cours.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "level": 1,
+        "recoveryHours": 2
+      },
+      "effect_summary": "Réduit la convalescence de 2 h.",
+      "icon_key": "medical",
+      "key": "injury-care-compressive-dressing",
+      "name": "Pansement compressif",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "1"
+    },
+    {
+      "description": "Un traitement par le froid qui accélère la première phase de récupération.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "level": 2,
+        "recoveryHours": 6
+      },
+      "effect_summary": "Réduit la convalescence de 6 h.",
+      "icon_key": "medical",
+      "key": "injury-care-cryotherapy-pack",
+      "name": "Pack de cryothérapie",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "2"
+    },
+    {
+      "description": "Une prise en charge individuelle destinée à faire gagner une journée de récupération.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "level": 4,
+        "recoveryHours": 24
+      },
+      "effect_summary": "Réduit la convalescence de 1 jour.",
+      "icon_key": "medical",
+      "key": "injury-care-physiotherapy-session",
+      "name": "Session de physiothérapie",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "4"
+    },
+    {
+      "description": "Une sélection complète de soins légers pour raccourcir une indisponibilité.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "level": 3,
+        "recoveryHours": 12
+      },
+      "effect_summary": "Réduit la convalescence de 12 h.",
+      "icon_key": "medical",
+      "key": "injury-care-recovery-kit",
+      "name": "Trousse de récupération",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "3"
+    },
+    {
+      "description": "Permet à un junior de 17 ans ou plus de quitter immédiatement l’école pour rejoindre l’équipe première, même en cours de saison.",
+      "effect_kind": "instant_youth_promotion",
+      "effect_payload": {},
+      "effect_summary": "Promotion professionnelle immédiate d’un junior éligible",
+      "icon_key": "contract",
+      "key": "instant-youth-contract",
+      "name": "Contrat Espoir immédiat",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "8"
+    },
+    {
+      "description": "Une ration complète pour relancer un coureur émoussé.",
+      "effect_kind": "form_boost",
+      "effect_payload": {
+        "amount": 10
+      },
+      "effect_summary": "+10 en forme pour un coureur",
+      "icon_key": "nutrition",
+      "key": "large-energy-ration",
+      "name": "Grande ration énergétique",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "2"
+    },
+    {
+      "description": "Une pièce performante rejoint gratuitement votre inventaire.",
+      "effect_kind": "equipment",
+      "effect_payload": {
+        "rarity": "performance"
+      },
+      "effect_summary": "1 équipement commercial performance",
+      "icon_key": "equipment",
+      "key": "performance-equipment",
+      "name": "Matériel performance",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "4"
+    },
+    {
+      "description": "Un instrument rare réservé aux grands chantiers, capable de raccourcir nettement un calendrier de construction en cours.",
+      "effect_kind": "construction_time_reduction",
+      "effect_payload": {
+        "days": 7
+      },
+      "effect_summary": "Retire 7 jours à un chantier actif · 1 jour minimum restant",
+      "icon_key": "architect",
+      "key": "precision-architect-tee",
+      "name": "Té d’architecte de précision",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "7"
+    },
+    {
+      "description": "Une référence haut de gamme rejoint le stock sans transaction.",
+      "effect_kind": "equipment",
+      "effect_payload": {
+        "rarity": "premium"
+      },
+      "effect_summary": "1 équipement commercial premium",
+      "icon_key": "equipment",
+      "key": "premium-equipment",
+      "name": "Équipement premium",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "6"
+    },
+    {
+      "description": "Un coureur franchit un palier sur sa qualité principale choisie.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "amount": 1,
+        "statScope": "primary"
+      },
+      "effect_summary": "+1 dans la statistique primaire choisie",
+      "icon_key": "rating",
+      "key": "primary-breakthrough",
+      "name": "Passage de cap",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "9"
+    },
+    {
+      "description": "Une fenêtre d’observation privilégiée pour examiner sans approximation les talents disponibles.",
+      "effect_kind": "scouting_visibility",
+      "effect_payload": {
+        "durationHours": 24
+      },
+      "effect_summary": "Révèle pendant 24 h toutes les notes et le potentiel des coureurs libres et des juniors repérés",
+      "icon_key": "scouting-clarity",
+      "key": "scouting-clarity-pass",
+      "name": "Loupe du recruteur",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "6"
+    },
+    {
+      "description": "Le réseau de détection bénéficie d’un regain temporaire de précision.",
+      "effect_kind": "scouting_boost",
+      "effect_payload": {
+        "durationDays": 7,
+        "percentage": 10
+      },
+      "effect_summary": "+10 % de qualité de scouting pendant 7 jours",
+      "icon_key": "scouting",
+      "key": "scouting-week-10",
+      "name": "Œil affûté",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "3"
+    },
+    {
+      "description": "Vos scouts accèdent pendant une semaine à de meilleurs signaux.",
+      "effect_kind": "scouting_boost",
+      "effect_payload": {
+        "durationDays": 7,
+        "percentage": 20
+      },
+      "effect_summary": "+20 % de qualité de scouting pendant 7 jours",
+      "icon_key": "scouting",
+      "key": "scouting-week-20",
+      "name": "Réseau prioritaire",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "5"
+    },
+    {
+      "description": "Une séance individuelle fixe un acquis secondaire durable.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "amount": 1,
+        "statScope": "secondary"
+      },
+      "effect_summary": "+1 dans la statistique secondaire choisie",
+      "icon_key": "rating",
+      "key": "secondary-specialization",
+      "name": "Atelier spécialisé",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "6"
+    },
+    {
+      "description": "Un travail ciblé améliore définitivement une qualité secondaire.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "amount": 1,
+        "statScope": "secondary"
+      },
+      "effect_summary": "+1 dans la statistique secondaire choisie",
+      "icon_key": "rating",
+      "key": "secondary-technique",
+      "name": "Perfectionnement technique",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "5"
+    },
+    {
+      "description": "Récompense un membre actif du staff par une progression immédiate de son niveau professionnel.",
+      "effect_kind": "staff_level_boost",
+      "effect_payload": {},
+      "effect_summary": "+1 étoile au membre du staff choisi · maximum 5★",
+      "icon_key": "staff",
+      "key": "staff-expertise-badge",
+      "name": "Insigne d’expertise",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "10"
+    },
+    {
+      "description": "Le staff révèle une capacité qui restera attachée au coureur.",
+      "effect_kind": "special_ability",
+      "effect_payload": {},
+      "effect_summary": "1 capacité spéciale au choix pour un coureur",
+      "icon_key": "ability",
+      "key": "talent-revealed",
+      "name": "Talent révélé",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "7"
+    },
+    {
+      "description": "Une capacité spéciale compatible peut être transmise au coureur.",
+      "effect_kind": "special_ability",
+      "effect_payload": {},
+      "effect_summary": "1 capacité spéciale au choix pour un coureur",
+      "icon_key": "ability",
+      "key": "talent-revealed-plus",
+      "name": "Talent révélé",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "9"
+    },
+    {
+      "description": "Une pièce premium parmi les meilleures références disponibles.",
+      "effect_kind": "equipment",
+      "effect_payload": {
+        "rarity": "premium"
+      },
+      "effect_summary": "1 équipement premium",
+      "icon_key": "equipment",
+      "key": "ultimate-prototype",
+      "name": "Prototype ultime",
+      "source": "daily_reward",
+      "status": "true",
+      "tier": "10"
+    },
+    {
+      "description": "Une séance ciblée pour améliorer la capacité à changer de rythme.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "ratingBonus": 1,
+        "ratingKey": "acceleration"
+      },
+      "effect_summary": "+1 ACC au coureur sélectionné.",
+      "icon_key": "rating",
+      "key": "acceleration-focus",
+      "name": "Module explosivité",
+      "source": "item",
+      "status": "active",
+      "tier": "uncommon"
+    },
+    {
+      "description": "Des notes confidentielles qui révèlent une marge de progression exceptionnelle chez un coureur.",
+      "effect_kind": "potential_boost",
+      "effect_payload": {
+        "potentialBonus": 1
+      },
+      "effect_summary": "+1 étoile de talent au coureur sélectionné.",
+      "icon_key": "potential",
+      "key": "classified-talent-dossier",
+      "name": "Dossier de talent classifié",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un outil de contrôle qui permet de corriger rapidement le planning d’un bâtiment déjà en construction.",
+      "effect_kind": "other",
+      "effect_payload": {
+        "days": 2,
+        "effectKind": "construction_time_reduction",
+        "level": 4
+      },
+      "effect_summary": "Retire 2 jours à un chantier actif · 1 jour minimum restant",
+      "icon_key": "architect",
+      "key": "construction-square",
+      "name": "Équerre de chantier",
+      "source": "item",
+      "status": "active",
+      "tier": "uncommon"
+    },
+    {
+      "description": "Choisissez le métier et la nationalité. Le profil généré reçoit un niveau de 1 à 5 étoiles à chances égales et un talent compatible aléatoire.",
+      "effect_kind": "other",
+      "effect_payload": {
+        "effectKind": "custom_staff_recruitment",
+        "level": 10,
+        "signingFeeWaived": true,
+        "uniformLevelOdds": true
+      },
+      "effect_summary": "1 staff sur mesure · 20 % de chance pour chaque niveau",
+      "icon_key": "staff",
+      "key": "custom-staff-mandate",
+      "name": "Mandat de recrutement sur mesure",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un protocole renforcé qui agit sur les traumatismes compatibles avec une reprise accélérée.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "effectKind": "injury_care",
+        "level": 5,
+        "recoveryHours": 48
+      },
+      "effect_summary": "Réduit la convalescence de 2 jours.",
+      "icon_key": "medical",
+      "key": "injury-care-anti-inflammatory-protocol",
+      "name": "Protocole anti-inflammatoire",
+      "source": "item",
+      "status": "active",
+      "tier": "uncommon"
+    },
+    {
+      "description": "Un premier soin immédiatement disponible pour gagner quelques heures sur une blessure en cours.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "effectKind": "injury_care",
+        "level": 1,
+        "recoveryHours": 2
+      },
+      "effect_summary": "Réduit la convalescence de 2 h.",
+      "icon_key": "medical",
+      "key": "injury-care-compressive-dressing",
+      "name": "Pansement compressif",
+      "source": "item",
+      "status": "active",
+      "tier": "common"
+    },
+    {
+      "description": "Un traitement par le froid qui accélère la première phase de récupération.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "effectKind": "injury_care",
+        "level": 2,
+        "recoveryHours": 6
+      },
+      "effect_summary": "Réduit la convalescence de 6 h.",
+      "icon_key": "medical",
+      "key": "injury-care-cryotherapy-pack",
+      "name": "Pack de cryothérapie",
+      "source": "item",
+      "status": "active",
+      "tier": "common"
+    },
+    {
+      "description": "Une prise en charge individuelle destinée à faire gagner une journée de récupération.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "effectKind": "injury_care",
+        "level": 4,
+        "recoveryHours": 24
+      },
+      "effect_summary": "Réduit la convalescence de 1 jour.",
+      "icon_key": "medical",
+      "key": "injury-care-physiotherapy-session",
+      "name": "Session de physiothérapie",
+      "source": "item",
+      "status": "active",
+      "tier": "uncommon"
+    },
+    {
+      "description": "Une sélection complète de soins légers pour raccourcir une indisponibilité.",
+      "effect_kind": "injury_care",
+      "effect_payload": {
+        "effectKind": "injury_care",
+        "level": 3,
+        "recoveryHours": 12
+      },
+      "effect_summary": "Réduit la convalescence de 12 h.",
+      "icon_key": "medical",
+      "key": "injury-care-recovery-kit",
+      "name": "Trousse de récupération",
+      "source": "item",
+      "status": "active",
+      "tier": "uncommon"
+    },
+    {
+      "description": "Permet à un junior de 17 ans ou plus de rejoindre immédiatement l’équipe première, même en cours de saison.",
+      "effect_kind": "other",
+      "effect_payload": {
+        "effectKind": "instant_youth_promotion",
+        "level": 8
+      },
+      "effect_summary": "Promotion professionnelle immédiate d’un junior éligible",
+      "icon_key": "contract",
+      "key": "instant-youth-contract",
+      "name": "Contrat Espoir immédiat",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Un médaillon à attribuer à un coureur pour lui transmettre la capacité Porteur de bidon.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "bottle_carrier"
+      },
+      "effect_summary": "Débloque définitivement la capacité Porteur de bidon.",
+      "icon_key": "medallion",
+      "key": "medallion-bottle-carrier",
+      "name": "Médaillon Porteur de bidon",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon à attribuer à un coureur pour lui transmettre la capacité Chasse patate.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "chase_potato"
+      },
+      "effect_summary": "Débloque définitivement la capacité Chasse patate.",
+      "icon_key": "medallion",
+      "key": "medallion-chase-potato",
+      "name": "Médaillon Chasse patate",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon mêlant le bleu du ciel et la terre des labours autour d’un pneu cranté.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "cyclocrossman"
+      },
+      "effect_summary": "Bonus sur pavés et bosses courtes, avec moins de risques de chute sur les pavés.",
+      "icon_key": "medallion",
+      "key": "medallion-cyclocrossman",
+      "name": "Médaillon Cyclocrossman",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon bleu pétrole orné d’une règle d’écolier.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "first_in_class"
+      },
+      "effect_summary": "Accorde +50 % de progression des caractéristiques à l’entraînement.",
+      "icon_key": "medallion",
+      "key": "medallion-first-in-class",
+      "name": "Médaillon Premier de la classe",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon à attribuer à un coureur pour lui transmettre la capacité Flahute.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "flahute"
+      },
+      "effect_summary": "Débloque définitivement la capacité Flahute.",
+      "icon_key": "medallion",
+      "key": "medallion-flahute",
+      "name": "Médaillon Flahute",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon à attribuer à un coureur pour lui transmettre la capacité Giclette.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "giclette"
+      },
+      "effect_summary": "Débloque définitivement la capacité Giclette.",
+      "icon_key": "medallion",
+      "key": "medallion-giclette",
+      "name": "Médaillon Giclette",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon sombre orné d’une canne, symbole d’une longévité hors norme.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "iron_health"
+      },
+      "effect_summary": "Repousse le déclin d’un an puis réduit sa vitesse de 30 %.",
+      "icon_key": "medallion",
+      "key": "medallion-iron-health",
+      "name": "Médaillon Santé de fer",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon à attribuer à un coureur pour lui transmettre la capacité Locomotive.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "locomotive"
+      },
+      "effect_summary": "Débloque définitivement la capacité Locomotive.",
+      "icon_key": "medallion",
+      "key": "medallion-locomotive",
+      "name": "Médaillon Locomotive",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon irisé marqué par un balancier qui ne manque jamais une pulsation.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "metronome"
+      },
+      "effect_summary": "Divise par deux les malus des mauvais jours de course.",
+      "icon_key": "medallion",
+      "key": "medallion-metronome",
+      "name": "Médaillon Métronome",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Une récompense prestigieuse destinée aux coureurs les plus audacieux.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "panache"
+      },
+      "effect_summary": "Débloque définitivement la capacité Panache.",
+      "icon_key": "medallion",
+      "key": "medallion-panache",
+      "name": "Médaillon Panache",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon bleu électrique gravé comme les lignes inclinées d’un vélodrome.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "pistard"
+      },
+      "effect_summary": "Placement renforcé au sprint et bonus sur les CLM courts.",
+      "icon_key": "medallion",
+      "key": "medallion-pistard",
+      "name": "Médaillon Pistard",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un médaillon à attribuer à un coureur pour lui transmettre la capacité Homme Sandwich.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "sandwich_man"
+      },
+      "effect_summary": "Débloque définitivement la capacité Homme Sandwich.",
+      "icon_key": "medallion",
+      "key": "medallion-sandwich-man",
+      "name": "Médaillon Homme Sandwich",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Un médaillon vert acide dont les trois lobes semblent respirer au rythme du coureur.",
+      "effect_kind": "special_ability",
+      "effect_payload": {
+        "abilityCode": "three_lungs"
+      },
+      "effect_summary": "Réduit de 25 % les pertes de forme, avec un maximum de 4 points économisés.",
+      "icon_key": "medallion",
+      "key": "medallion-three-lungs",
+      "name": "Médaillon Trois poumons",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Un bloc d’entraînement spécifique destiné aux grimpeurs.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "ratingBonus": 1,
+        "ratingKey": "mountain"
+      },
+      "effect_summary": "+1 MON au coureur sélectionné.",
+      "icon_key": "rating",
+      "key": "mountain-focus",
+      "name": "Module haute montagne",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Un programme individuel qui ouvre une nouvelle marge de progression.",
+      "effect_kind": "potential_boost",
+      "effect_payload": {
+        "potentialBonus": 1
+      },
+      "effect_summary": "+1 potentiel au coureur sélectionné.",
+      "icon_key": "potential",
+      "key": "potential-notebook",
+      "name": "Carnet de progression",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    },
+    {
+      "description": "Une intervention ciblée qui repousse légèrement le plafond de progression d’un coureur.",
+      "effect_kind": "potential_boost",
+      "effect_payload": {
+        "potentialBonus": 0.5
+      },
+      "effect_summary": "+0,5 potentiel au coureur sélectionné.",
+      "icon_key": "potential",
+      "key": "potential-spark",
+      "name": "Déclic de potentiel",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Un instrument rare réservé aux grands chantiers, capable de raccourcir nettement un calendrier de construction en cours.",
+      "effect_kind": "other",
+      "effect_payload": {
+        "days": 7,
+        "effectKind": "construction_time_reduction",
+        "level": 7
+      },
+      "effect_summary": "Retire 7 jours à un chantier actif · 1 jour minimum restant",
+      "icon_key": "architect",
+      "key": "precision-architect-tee",
+      "name": "Té d’architecte de précision",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Une fenêtre d’observation privilégiée pour examiner sans approximation les talents disponibles.",
+      "effect_kind": "other",
+      "effect_payload": {
+        "durationHours": 24,
+        "effectKind": "scouting_visibility",
+        "level": 6
+      },
+      "effect_summary": "Révèle pendant 24 h toutes les notes et le potentiel des coureurs libres et des juniors repérés",
+      "icon_key": "scouting-clarity",
+      "key": "scouting-clarity-pass",
+      "name": "Loupe du recruteur",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Un programme intensif consacré au placement et à la vitesse de pointe.",
+      "effect_kind": "rating_boost",
+      "effect_payload": {
+        "ratingBonus": 2,
+        "ratingKey": "sprint"
+      },
+      "effect_summary": "+2 SPR au coureur sélectionné.",
+      "icon_key": "rating",
+      "key": "sprint-masterclass",
+      "name": "Masterclass de sprint",
+      "source": "item",
+      "status": "active",
+      "tier": "rare"
+    },
+    {
+      "description": "Récompense un membre actif du staff par une progression immédiate de son niveau professionnel.",
+      "effect_kind": "other",
+      "effect_payload": {
+        "effectKind": "staff_level_boost",
+        "level": 10,
+        "maximumLevel": 5
+      },
+      "effect_summary": "+1 étoile au membre du staff choisi · maximum 5★",
+      "icon_key": "staff",
+      "key": "staff-expertise-badge",
+      "name": "Insigne d’expertise",
+      "source": "item",
+      "status": "active",
+      "tier": "epic"
+    }
+  ],
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.redeem_current_daily_reward(p_inventory_id uuid, p_rider_id uuid DEFAULT NULL::uuid, p_rating_key text DEFAULT NULL::text, p_ability_code text DEFAULT NULL::text, p_race_edition_id uuid DEFAULT NULL::uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  v_reward record;\n  v_current_rating integer;\nbegin\n  if auth.uid() is null then\n    raise exception using errcode = '42501', message = 'Vous devez être connecté.';\n  end if;\n\n  select\n    catalog.reward_key,\n    greatest(1, least(2, (catalog.effect_payload ->> 'amount')::integer)) as amount,\n    greatest(1, least(100, (catalog.effect_payload ->> 'maximumRating')::integer)) as maximum_rating,\n    assignment.team_id\n  into v_reward\n  from public.daily_reward_inventory as inventory\n  join public.daily_reward_catalog as catalog\n    on catalog.reward_key = inventory.reward_key\n   and catalog.is_active\n  join public.sporting_directors as director\n    on director.id = inventory.sporting_director_id\n   and director.auth_user_id = auth.uid()\n   and director.status = 'active'\n  join public.team_manager_assignments as assignment\n    on assignment.sporting_director_id = director.id\n   and assignment.role = 'general_manager'\n   and assignment.status = 'active'\n  where inventory.id = p_inventory_id\n    and catalog.reward_key = 'high-performance-cell';\n\n  if v_reward is not null\n    and p_rating_key in (\n      'mountain', 'hills', 'flat', 'time_trial', 'cobbles', 'sprint',\n      'acceleration', 'downhill', 'endurance', 'resistance', 'recovery',\n      'breakaway', 'prologue'\n    ) then\n    execute format(\n      'select max(rating.%1$I)::integer\n       from public.rider_season_ratings as rating\n       join public.seasons as season\n         on season.id = rating.season_id\n        and season.status in (''active'', ''planned'')\n       where rating.rider_id = $1\n         and exists (\n           select 1\n           from public.rider_contracts as contract\n           where contract.rider_id = rating.rider_id\n             and contract.team_id = $2\n             and contract.status = ''active''\n         )',\n      p_rating_key\n    )\n    into v_current_rating\n    using p_rider_id, v_reward.team_id;\n\n    if v_current_rating is not null\n      and v_current_rating + v_reward.amount > v_reward.maximum_rating then\n      raise exception 'La Cellule haute performance ne peut être appliquée qu’à une statistique de % ou moins afin de ne pas dépasser %.',\n        v_reward.maximum_rating - v_reward.amount,\n        v_reward.maximum_rating;\n    end if;\n  end if;\n\n  return public.redeem_current_daily_reward_without_high_performance_cap(\n    p_inventory_id,\n    p_rider_id,\n    p_rating_key,\n    p_ability_code,\n    p_race_edition_id\n  );\nend;\n$function$\n",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "prosecdef": true,
+      "signature": "redeem_current_daily_reward(uuid,uuid,text,text,uuid)"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.use_current_team_inventory_item(p_rider_id uuid, p_inventory_item_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  v_context record;\n  v_item record;\n  v_inventory record;\n  v_application_id uuid := gen_random_uuid();\n  v_ability_code text;\n  v_potential_bonus_stars numeric;\n  v_potential_bonus_steps integer;\n  v_rating_key text;\n  v_rating_bonus integer;\n  v_applied_rating_bonus integer;\n  v_current_value integer;\nbegin\n  if p_rider_id is null or p_inventory_item_id is null then\n    raise exception 'Le coureur et l''objet sont obligatoires.';\n  end if;\n\n  select\n    team_season.id as team_season_id,\n    team_season.team_id,\n    season.id as season_id\n  into v_context\n  from public.sporting_directors as director\n  join public.team_manager_assignments as assignment\n    on assignment.sporting_director_id = director.id\n   and assignment.role = 'general_manager'\n   and assignment.status = 'active'\n  join public.seasons as season\n    on season.status = 'active'\n  join public.team_seasons as team_season\n    on team_season.team_id = assignment.team_id\n   and team_season.season_id = season.id\n   and team_season.status in ('planned', 'active')\n  where director.auth_user_id = auth.uid()\n    and director.status = 'active'\n  limit 1;\n\n  if v_context is null then\n    raise exception 'Aucune équipe active ne correspond au Directeur Sportif.';\n  end if;\n\n  if not exists (\n    select 1\n    from public.rider_contracts as contract\n    where contract.rider_id = p_rider_id\n      and contract.team_id = v_context.team_id\n      and contract.status = 'active'\n  ) then\n    raise exception 'Vous ne pouvez attribuer un objet qu''à un coureur de votre équipe.';\n  end if;\n\n  select\n    item.id,\n    item.name,\n    item.category,\n    item.effect_summary,\n    item.effect_payload\n  into v_item\n  from public.inventory_catalog_items as item\n  where item.id = p_inventory_item_id\n    and item.status = 'active'\n    and item.is_consumable = true\n  for share;\n\n  if v_item is null then\n    raise exception 'Cet objet consommable est indisponible.';\n  end if;\n\n  if v_item.category not in (\n    'special_ability',\n    'potential_boost',\n    'rating_boost'\n  ) then\n    raise exception 'Cet objet ne peut pas être attribué à un coureur.';\n  end if;\n\n  select inventory.id, inventory.quantity\n  into v_inventory\n  from public.team_item_inventory as inventory\n  where inventory.team_season_id = v_context.team_season_id\n    and inventory.inventory_item_id = v_item.id\n  for update;\n\n  if v_inventory is null or v_inventory.quantity < 1 then\n    raise exception 'Votre équipe ne possède plus cet objet.';\n  end if;\n\n  if v_item.category = 'special_ability' then\n    v_ability_code := nullif(btrim(v_item.effect_payload ->> 'abilityCode'), '');\n\n    if v_ability_code is null or not exists (\n      select 1\n      from public.special_ability_catalog as ability\n      where ability.code = v_ability_code\n        and ability.is_active = true\n    ) then\n      raise exception 'La capacité portée par cet objet est invalide.';\n    end if;\n\n    insert into public.rider_special_abilities (\n      rider_id,\n      ability_code,\n      source_type,\n      source_reference\n    )\n    values (\n      p_rider_id,\n      v_ability_code,\n      'inventory_item',\n      'inventory-consumption:' || v_application_id::text\n    )\n    on conflict (rider_id, ability_code) do nothing;\n\n    if not found then\n      raise exception 'Ce coureur possède déjà cette capacité spéciale.';\n    end if;\n  elsif v_item.category = 'potential_boost' then\n    v_potential_bonus_stars :=\n      (v_item.effect_payload ->> 'potentialBonus')::numeric;\n\n    if coalesce(v_potential_bonus_stars, 0) <= 0\n      or v_potential_bonus_stars * 2\n        <> trunc(v_potential_bonus_stars * 2) then\n      raise exception 'Le bonus de potentiel porté par cet objet est invalide.';\n    end if;\n\n    v_potential_bonus_steps := (v_potential_bonus_stars * 2)::integer;\n\n    select rider.potential_steps\n    into v_current_value\n    from public.riders as rider\n    where rider.id = p_rider_id\n    for update;\n\n    if coalesce(v_current_value, 8) >= 8 then\n      raise exception 'Ce coureur possède déjà le potentiel maximal.';\n    end if;\n\n    if v_current_value + v_potential_bonus_steps > 8 then\n      raise exception 'Le potentiel de ce coureur est trop élevé pour appliquer entièrement cet objet.';\n    end if;\n\n    update public.riders\n    set potential_steps = potential_steps + v_potential_bonus_steps\n    where id = p_rider_id;\n  elsif v_item.category = 'rating_boost' then\n    v_rating_key := nullif(btrim(v_item.effect_payload ->> 'ratingKey'), '');\n    v_rating_bonus := (v_item.effect_payload ->> 'ratingBonus')::integer;\n\n    if v_rating_key is null\n      or v_rating_key not in (\n        'mountain', 'hills', 'flat', 'time_trial', 'cobbles',\n        'sprint', 'acceleration', 'downhill', 'endurance',\n        'resistance', 'recovery', 'breakaway', 'prologue'\n      )\n      or coalesce(v_rating_bonus, 0) <= 0 then\n      raise exception 'Le bonus de statistique porté par cet objet est invalide.';\n    end if;\n\n    select case v_rating_key\n      when 'mountain' then rating.mountain\n      when 'hills' then rating.hills\n      when 'flat' then rating.flat\n      when 'time_trial' then rating.time_trial\n      when 'cobbles' then rating.cobbles\n      when 'sprint' then rating.sprint\n      when 'acceleration' then rating.acceleration\n      when 'downhill' then rating.downhill\n      when 'endurance' then rating.endurance\n      when 'resistance' then rating.resistance\n      when 'recovery' then rating.recovery\n      when 'breakaway' then rating.breakaway\n      when 'prologue' then rating.prologue\n    end\n    into v_current_value\n    from public.rider_season_ratings as rating\n    where rating.rider_id = p_rider_id\n      and rating.season_id = v_context.season_id\n    for update;\n\n    if v_current_value is null then\n      raise exception 'Les statistiques actuelles de ce coureur sont introuvables.';\n    end if;\n\n    if v_current_value >= 100 then\n      raise exception 'Cette statistique est déjà au maximum pour ce coureur.';\n    end if;\n\n    if v_current_value + v_rating_bonus > 100 then\n      raise exception 'Cette statistique est trop élevée pour appliquer entièrement ce module.';\n    end if;\n\n    v_applied_rating_bonus := v_rating_bonus;\n\n    execute format(\n      'update public.rider_season_ratings as rating\n       set %1$I = least(100, rating.%1$I + $1),\n           updated_at = now()\n       where rating.rider_id = $2\n         and exists (\n           select 1\n           from public.seasons as season\n           where season.id = rating.season_id\n             and season.status in (''active'', ''planned'')\n         )',\n      v_rating_key\n    )\n    using v_applied_rating_bonus, p_rider_id;\n  end if;\n\n  insert into public.rider_consumable_item_applications (\n    id,\n    rider_id,\n    inventory_item_id,\n    team_season_id,\n    category,\n    item_name,\n    effect_summary,\n    ability_code,\n    potential_bonus,\n    rating_key,\n    rating_bonus\n  )\n  values (\n    v_application_id,\n    p_rider_id,\n    v_item.id,\n    v_context.team_season_id,\n    v_item.category,\n    v_item.name,\n    v_item.effect_summary,\n    v_ability_code,\n    case\n      when v_item.category = 'potential_boost'\n        then v_potential_bonus_steps\n      else null\n    end,\n    v_rating_key,\n    case\n      when v_item.category = 'rating_boost'\n        then v_applied_rating_bonus\n      else null\n    end\n  );\n\n  if v_inventory.quantity = 1 then\n    delete from public.team_item_inventory\n    where id = v_inventory.id;\n  else\n    update public.team_item_inventory\n    set\n      quantity = quantity - 1,\n      updated_at = now()\n    where id = v_inventory.id;\n  end if;\n\n  return jsonb_build_object(\n    'applicationId', v_application_id,\n    'category', v_item.category,\n    'itemName', v_item.name,\n    'effectSummary', v_item.effect_summary,\n    'abilityCode', v_ability_code,\n    'potentialBonus',\n      case\n        when v_item.category = 'potential_boost'\n          then v_potential_bonus_stars\n        else null\n      end,\n    'potentialSteps',\n      case\n        when v_item.category = 'potential_boost'\n          then v_potential_bonus_steps\n        else null\n      end,\n    'ratingKey', v_rating_key,\n    'ratingBonus',\n      case\n        when v_item.category = 'rating_boost'\n          then v_applied_rating_bonus\n        else null\n      end\n  );\nexception\n  when invalid_text_representation or numeric_value_out_of_range then\n    raise exception 'Les données d''effet de cet objet sont invalides.';\nend;\n$function$\n",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "prosecdef": true,
+      "signature": "use_current_team_inventory_item(uuid,uuid)"
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.redeem_current_daily_reward_without_high_performance_cap(p_inventory_id uuid, p_rider_id uuid DEFAULT NULL::uuid, p_rating_key text DEFAULT NULL::text, p_ability_code text DEFAULT NULL::text, p_race_edition_id uuid DEFAULT NULL::uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare\r\n  v_context record;\r\n  v_reward record;\r\n  v_rider record;\r\n  v_amount integer;\r\n  v_scope text;\r\n  v_rarity text;\r\n  v_equipment record;\r\n  v_duration integer;\r\n  v_target_country uuid;\r\n  v_registration_id uuid;\r\n  v_message text;\r\nbegin\r\n  if auth.uid() is null then raise exception using errcode = '42501', message = 'Vous devez être connecté.'; end if;\r\n  perform public.sync_active_season_day();\r\n\r\n  select director.id as director_id, assignment.team_id, team_season.id as team_season_id,\r\n    team_season.registration_country_id, season.id as season_id, season.game_year,\r\n    coalesce(season.current_day_number, 1)::integer as current_day_number, season_day.id as season_day_id\r\n  into v_context\r\n  from public.sporting_directors as director\r\n  join public.team_manager_assignments as assignment on assignment.sporting_director_id = director.id and assignment.role = 'general_manager' and assignment.status = 'active'\r\n  join public.seasons as season on season.status = 'active'\r\n  join public.team_seasons as team_season on team_season.team_id = assignment.team_id and team_season.season_id = season.id and team_season.status in ('planned', 'active')\r\n  join public.season_days as season_day on season_day.season_id = season.id and season_day.day_number = coalesce(season.current_day_number, 1)\r\n  where director.auth_user_id = auth.uid() and director.status = 'active'\r\n  limit 1;\r\n\r\n  if v_context is null then raise exception 'Aucune équipe active ne correspond au Directeur Sportif.'; end if;\r\n\r\n  select inventory.*, catalog.name, catalog.effect_kind, catalog.effect_payload\r\n  into v_reward\r\n  from public.daily_reward_inventory as inventory\r\n  join public.daily_reward_catalog as catalog on catalog.reward_key = inventory.reward_key and catalog.is_active\r\n  where inventory.id = p_inventory_id and inventory.sporting_director_id = v_context.director_id\r\n  for update of inventory;\r\n\r\n  if v_reward is null or v_reward.status <> 'available' then raise exception 'Ce cadeau n’est plus disponible.'; end if;\r\n  if v_reward.expires_after_game_year < v_context.game_year then\r\n    update public.daily_reward_inventory set status = 'expired' where id = p_inventory_id;\r\n    raise exception 'Ce cadeau a expiré à la fin de la saison précédente.';\r\n  end if;\r\n\r\n  if v_reward.effect_kind in ('form_boost', 'rider_experience', 'rating_boost', 'special_ability', 'naturalization') then\r\n    select rider.id, rider.country_id into v_rider\r\n    from public.riders as rider\r\n    join public.rider_contracts as contract on contract.rider_id = rider.id and contract.team_id = v_context.team_id and contract.status = 'active'\r\n    where rider.id = p_rider_id and rider.status = 'active';\r\n    if v_rider is null then raise exception 'Sélectionnez un coureur professionnel de votre équipe.'; end if;\r\n  end if;\r\n\r\n  if v_reward.effect_kind = 'form_boost' then\r\n    v_amount := greatest(1, least(20, (v_reward.effect_payload ->> 'amount')::integer));\r\n    insert into public.rider_condition_states (rider_id, season_day_id, form, fatigue, source)\r\n    values (\r\n      p_rider_id, v_context.season_day_id,\r\n      least(100, coalesce((select state.form from public.rider_condition_states as state join public.season_days as day on day.id = state.season_day_id where state.rider_id = p_rider_id and day.season_id = v_context.season_id order by day.day_number desc, state.updated_at desc limit 1), 75) + v_amount),\r\n      0, 'daily_reward'\r\n    )\r\n    on conflict (rider_id, season_day_id) do update set form = least(100, public.rider_condition_states.form + v_amount), source = 'daily_reward', updated_at = now();\r\n    v_message := format('%s : +%s en forme appliqué.', v_reward.name, v_amount);\r\n  elsif v_reward.effect_kind = 'rider_experience' then\r\n    v_amount := greatest(1, least(5, (v_reward.effect_payload ->> 'amount')::integer));\r\n    update public.riders set career_race_days = career_race_days + v_amount where id = p_rider_id;\r\n    v_message := format('%s : +%s jour d’expérience appliqué.', v_reward.name, v_amount);\r\n  elsif v_reward.effect_kind = 'rating_boost' then\r\n    v_amount := greatest(1, least(2, (v_reward.effect_payload ->> 'amount')::integer));\r\n    v_scope := v_reward.effect_payload ->> 'statScope';\r\n    if p_rating_key not in ('mountain','hills','flat','time_trial','cobbles','sprint','acceleration','downhill','endurance','resistance','recovery','breakaway','prologue') then\r\n      raise exception 'Sélectionnez une statistique valide.';\r\n    end if;\r\n    if v_scope = 'primary' and p_rating_key not in ('mountain','hills','flat','time_trial','cobbles','sprint') then raise exception 'Ce cadeau ne peut renforcer qu’une statistique primaire.'; end if;\r\n    if v_scope = 'secondary' and p_rating_key not in ('acceleration','downhill','endurance','resistance','recovery','breakaway','prologue') then raise exception 'Ce cadeau ne peut renforcer qu’une statistique secondaire.'; end if;\r\n    execute format(\r\n      'update public.rider_season_ratings as rating set %1$I = least(100, rating.%1$I + $1), updated_at = now() where rating.rider_id = $2 and exists (select 1 from public.seasons as season where season.id = rating.season_id and season.status in (''active'',''planned''))',\r\n      p_rating_key\r\n    ) using v_amount, p_rider_id;\r\n    v_message := format('%s : +%s en %s appliqué définitivement.', v_reward.name, v_amount, upper(p_rating_key));\r\n  elsif v_reward.effect_kind = 'training_multiplier' then\r\n    insert into public.daily_reward_active_effects (\r\n      source_inventory_id, team_id, season_id, effect_kind, effect_payload,\r\n      starts_day_number, ends_day_number\r\n    ) values (\r\n      p_inventory_id, v_context.team_id, v_context.season_id, 'training_multiplier',\r\n      v_reward.effect_payload, v_context.current_day_number, 28\r\n    );\r\n    v_message := v_reward.name || ' activé pour la prochaine séance professionnelle de 8 h.';\r\n  elsif v_reward.effect_kind = 'scouting_boost' then\r\n    v_duration := greatest(1, least(14, (v_reward.effect_payload ->> 'durationDays')::integer));\r\n    insert into public.daily_reward_active_effects (\r\n      source_inventory_id, team_id, season_id, effect_kind, effect_payload,\r\n      starts_day_number, ends_day_number\r\n    ) values (\r\n      p_inventory_id, v_context.team_id, v_context.season_id, 'scouting_boost',\r\n      v_reward.effect_payload, v_context.current_day_number,\r\n      least(28, v_context.current_day_number + v_duration - 1)\r\n    );\r\n    v_message := v_reward.name || ' activé pour les prochains rapports de scouting.';\r\n  elsif v_reward.effect_kind = 'equipment' then\r\n    v_rarity := coalesce(v_reward.effect_payload ->> 'rarity', 'common');\r\n    select item.id, item.name into v_equipment\r\n    from public.equipment_catalog_items as item\r\n    where item.status = 'active' and item.rarity = v_rarity\r\n    order by md5(item.id::text || p_inventory_id::text)\r\n    limit 1;\r\n    if v_equipment is null then raise exception 'Aucun équipement compatible n’est disponible dans le catalogue.'; end if;\r\n    insert into public.team_equipment_inventory (team_season_id, equipment_item_id, quantity, last_purchase_price)\r\n    values (v_context.team_season_id, v_equipment.id, 1, 0)\r\n    on conflict (team_season_id, equipment_item_id) do update set quantity = public.team_equipment_inventory.quantity + 1, updated_at = now();\r\n    v_message := v_equipment.name || ' a rejoint l’inventaire de l’équipe.';\r\n  elsif v_reward.effect_kind = 'special_ability' then\r\n    if not exists (select 1 from public.special_ability_catalog where code = p_ability_code and is_active) then raise exception 'Sélectionnez une capacité spéciale valide.'; end if;\r\n    insert into public.rider_special_abilities (rider_id, ability_code, source_type, source_reference)\r\n    values (p_rider_id, p_ability_code, 'daily_reward', p_inventory_id::text)\r\n    on conflict (rider_id, ability_code) do nothing;\r\n    if not found then raise exception 'Ce coureur possède déjà cette capacité spéciale.'; end if;\r\n    v_message := v_reward.name || ' : la capacité spéciale a été attribuée.';\r\n  elsif v_reward.effect_kind = 'naturalization' then\r\n    v_target_country := v_context.registration_country_id;\r\n    if v_rider.country_id = v_target_country then raise exception 'Ce coureur possède déjà la nationalité de l’équipe.'; end if;\r\n    if exists (select 1 from public.rider_national_championship_titles where rider_id = p_rider_id and championship_type in ('road','time_trial')) then raise exception 'Un ancien champion national ne peut pas changer de nationalité sportive.'; end if;\r\n    update public.riders set country_id = v_target_country where id = p_rider_id;\r\n    insert into public.rider_naturalizations (\r\n      subject_type, rider_id, academy_rider_id, team_id, sporting_director_id,\r\n      season_id, day_number, from_country_id, to_country_id, elapsed_tenure_days\r\n    ) values (\r\n      'professional', p_rider_id, null, v_context.team_id, v_context.director_id,\r\n      v_context.season_id, v_context.current_day_number, v_rider.country_id, v_target_country, 0\r\n    );\r\n    v_message := v_reward.name || ' : la naturalisation est effective immédiatement.';\r\n  elsif v_reward.effect_kind = 'wildcard' then\r\n    if not exists (\r\n      select 1 from public.race_editions as edition\r\n      join public.race_categories as category on category.id = edition.race_category_id and category.code = 'elite'\r\n      join public.races as race on race.id = edition.race_id and not race.is_grand_tour\r\n      join public.stages as stage on stage.race_edition_id = edition.id\r\n      join public.season_days as day on day.id = stage.season_day_id\r\n      where edition.id = p_race_edition_id and edition.season_id = v_context.season_id\r\n        and edition.status not in ('completed','cancelled') and day.day_number > v_context.current_day_number\r\n    ) then raise exception 'Cette course ne peut pas recevoir le Ticket d’or.'; end if;\r\n    insert into public.daily_reward_wildcard_reservations (source_inventory_id, team_season_id, race_edition_id)\r\n    values (p_inventory_id, v_context.team_season_id, p_race_edition_id);\r\n    v_message := v_reward.name || ' réservé : votre inscription sera automatiquement invitée sur cette course.';\r\n  else\r\n    raise exception 'L’effet de ce cadeau n’est pas pris en charge.';\r\n  end if;\r\n\r\n  update public.daily_reward_inventory\r\n  set status = 'used', used_at = now(), usage_payload = jsonb_strip_nulls(jsonb_build_object(\r\n    'riderId', p_rider_id, 'ratingKey', p_rating_key,\r\n    'abilityCode', p_ability_code, 'raceEditionId', p_race_edition_id\r\n  ))\r\n  where id = p_inventory_id;\r\n\r\n  return jsonb_build_object('inventoryId', p_inventory_id, 'message', v_message);\r\nexception\r\n  when invalid_text_representation then raise exception 'Les données de ce cadeau sont invalides.';\r\nend;\r\n$function$\n",
+      "signature": "redeem_current_daily_reward_without_high_performance_cap(uuid,uuid,text,text,uuid)"
+    }
+  ]
+}

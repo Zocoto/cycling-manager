@@ -10,6 +10,7 @@ import type {
 } from "@/lib/game/item-target-values";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 import type { WeeklyLoginBoosterProgress } from "@/lib/game/weekly-login-boosters";
+import { findConsumableEquivalence } from "./consumable-equivalences";
 
 export const DAILY_REWARD_SEASON_LENGTH = 28;
 export const DAILY_REWARD_CYCLE_LENGTH = 40;
@@ -248,10 +249,19 @@ export function groupDailyRewardInventoryItems(
   const grouped = new Map<string, DailyRewardInventoryItem>();
 
   for (const item of items) {
-    const existing = grouped.get(item.key);
+    const definition = findConsumableEquivalence({
+      source: "daily_reward", key: item.key, kind: item.effectKind, payload: item.payload,
+    });
+    const normalized = definition ? {
+      ...item, key: definition.key, name: definition.name,
+      description: definition.description, effectSummary: definition.effectSummary,
+      iconKey: definition.iconKey, importance: definition.importance ?? item.importance,
+    } : item;
+    const groupKey = definition ? `ordinary:${definition.key}` : `reward:${item.key}`;
+    const existing = grouped.get(groupKey);
     if (!existing) {
-      grouped.set(item.key, {
-        ...item,
+      grouped.set(groupKey, {
+        ...normalized,
         quantity: Math.max(1, item.quantity),
       });
       continue;
@@ -262,7 +272,7 @@ export function groupDailyRewardInventoryItems(
       (item.expiresAfterGameYear === existing.expiresAfterGameYear &&
         item.acquiredAt.localeCompare(existing.acquiredAt) < 0);
 
-    grouped.set(item.key, {
+    grouped.set(groupKey, {
       ...existing,
       id: itemExpiresFirst ? item.id : existing.id,
       acquiredAt: itemExpiresFirst ? item.acquiredAt : existing.acquiredAt,
