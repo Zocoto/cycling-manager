@@ -1,10 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createDraftFixture } from "@/test/fixtures/season-draft";
 import { SeasonDraftPanel } from "./season-draft-panel";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/app/jeu/draft/actions", () => ({ updateSeasonDraft: vi.fn() }));
+
+const draftUi = vi.hoisted(() => ({ confirmation: null as string | null }));
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useState: (initial: unknown) => actual.useState(initial === null && draftUi.confirmation !== null ? draftUi.confirmation : initial),
+  };
+});
+afterEach(() => { draftUi.confirmation = null; });
 
 describe("page de draft", () => {
   it("reste concise, révèle les stats et limite les portraits à 20 par page", () => {
@@ -20,6 +30,10 @@ describe("page de draft", () => {
     expect(html.match(/<article/g)).toHaveLength(20);
     expect(html).toContain("Autoriser le recrutement automatique");
     expect(html).not.toContain(">Recruter</button>");
+    expect(html).toContain("10 minutes par choix");
+    expect(html).toContain("recrute immédiatement");
+    expect(html).toContain("validez avant votre tour");
+    expect(html).toContain("Seules les modifications validées sont prises en compte");
   });
   it("présente les horaires avant l’ouverture sans dévoiler de faux coureurs", () => {
     const fixture = createDraftFixture();
@@ -33,10 +47,59 @@ describe("page de draft", () => {
     const fixture = createDraftFixture();
     fixture.edition!.status = "running";
     fixture.edition!.currentPosition = fixture.mine!.position;
-    fixture.edition!.deadline = "2026-11-06T13:15:00+01:00";
+    fixture.serverNow = "2026-11-06T14:00:00+01:00";
+    fixture.edition!.deadline = "2026-11-06T14:10:00+01:00";
     const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
     expect(html).toContain("C’est votre tour !");
     expect(html).toContain(">Recruter</button>");
-    expect(html).toContain("5:00");
+    expect(html).toContain("10:00");
+  });
+
+  it("allows the complete 100-rider pool in preferences while showing 20 cards per page", () => {
+    const fixture = createDraftFixture();
+    const rider = fixture.riders![0];
+    fixture.riders = Array.from({ length: 100 }, (_, index) => ({ ...rider, id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`, lastName: `Pool ${index + 1}`, poolRank: index + 1 }));
+    fixture.edition!.poolCount = 100;
+    fixture.mine!.preferences = fixture.riders.map((candidate) => candidate.id);
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    expect(html).toContain("100 choix");
+    expect(html).toContain("Votre liste s’allonge à chaque ajout, jusqu’à tous les coureurs du vivier");
+    expect(html.match(/<article/g)).toHaveLength(20);
+    expect(html).toContain("1 / 5");
+  });
+
+  it.each([
+    ["one second before", "2026-11-06T14:09:59+01:00", false],
+    ["at the deadline", "2026-11-06T14:10:00+01:00", true],
+    ["after the deadline", "2026-11-06T14:10:01+01:00", true],
+  ])("guards an already open confirmation %s", (_description, time, blocked) => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = fixture.mine!.position;
+    fixture.edition!.deadline = "2026-11-06T14:10:00+01:00";
+    fixture.serverNow = time as string;
+    draftUi.confirmation = fixture.riders![0].id;
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    const confirm = html.match(/<button\b[^>]*>Confirmer<\/button>/)?.[0];
+    expect(confirm).toBeDefined();
+    expect(/\sdisabled(?:=|\s|>)/.test(confirm!)).toBe(blocked);
+    expect(html).toContain("Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif");
+    expect(html.includes("Ce recrutement n’est plus possible")).toBe(blocked);
+    expect(html).toMatch(/<button\b(?![^>]*disabled)[^>]*>Annuler<\/button>/);
+  });
+
+  it.each(["turn ended", "rider taken"])("guards an open confirmation after %s", (reason) => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = reason === "turn ended" ? fixture.mine!.position + 1 : fixture.mine!.position;
+    fixture.edition!.deadline = "2026-11-06T14:10:00+01:00";
+    fixture.serverNow = "2026-11-06T14:05:00+01:00";
+    draftUi.confirmation = fixture.riders![0].id;
+    if (reason === "rider taken") fixture.riders![0].selectedTeamId = "other-team";
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    const confirm = html.match(/<button\b[^>]*>Confirmer<\/button>/)?.[0];
+    expect(confirm).toBeDefined();
+    expect(confirm).toMatch(/\sdisabled(?:=|\s|>)/);
+    expect(html).toContain("Ce recrutement n’est plus possible");
   });
 });

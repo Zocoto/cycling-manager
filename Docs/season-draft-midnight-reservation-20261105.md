@@ -51,3 +51,31 @@ Livraison reproductible : `scripts/deliver-draft-midnight-protection.mjs` avec
 Preuves locales dans `C:/Dev/artifacts/draft-midnight-20261105/`, notamment
 `delivery-verification.json`. La livraison n'appelle aucun worker ni règlement
 de saison pour tester le correctif en production.
+
+## Fenêtre de choix portée à dix minutes
+
+La migration `20261105220000_draft_ten_minute_turns.sql` passe le réglage,
+son défaut, sa contrainte et le vrai délai du moteur à 600 secondes. Les
+notifications indiquent dix minutes. Seuls quatre fragments des fonctions
+existantes sont remplacés ; les horaires, réservations, participants,
+éditions, échéances déjà enregistrées et droits sont conservés.
+
+Une liste automatique validée recrute toujours son premier coureur disponible
+et compatible, puis enchaîne avec l'équipe suivante. Si les choix 1 à 3 sont
+pris, le choix 4 est examiné ensuite. La fenêtre de dix minutes concerne le
+choix manuel et les cas où aucun choix automatique ne peut être réalisé.
+Pour garder la main à son tour, le DS désactive puis valide l'automatique
+avant l'arrivée de son tour. Un recrutement confirmé reste définitif.
+
+L'IHM présente vingt fiches par page, avec recherche et tris. La liste privée
+grandit à chaque ajout, jusqu'à l'ensemble du vivier ; les flèches permettent
+de réordonner ses priorités. Une confirmation ouverte devient non validable
+si le délai expire, si le tour change ou si le coureur est déjà recruté.
+
+Validation : 58 assertions PostgreSQL isolées et 13 tests d'IHM/helpers
+réussis ; TypeScript, ESLint et catalogue anglais vérifiés. La migration a été
+appliquée sans exécuter de draft en production. Le reçu et les empreintes
+des fonctions confirment uniquement les remplacements prévus, avec
+`pick_seconds = 600` et une édition S5 toujours planifiée aux mêmes heures.
+Livraison : `scripts/deliver-draft-ten-minute-turns.mjs` ; preuves dans
+`C:/Dev/artifacts/draft-ten-minutes-20261105/verification.json`.

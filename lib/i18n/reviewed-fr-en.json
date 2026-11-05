@@ -3261,5 +3261,13 @@
   "Reprendre le didacticiel": "Resume tutorial",
   "Reprendre le didacticiel en cours": "Resume the current tutorial",
   "Revenez à l’étape en cours pour poursuivre votre didacticiel.": "Return to the current step to continue your tutorial.",
-  "Revenir au Live": "Return to Live"
+  "Revenir au Live": "Return to Live",
+  "10 minutes par choix": "10 minutes per pick",
+  "Ce recrutement n’est plus possible : votre tour est terminé ou le coureur n’est plus disponible.": "This signing is no longer possible: your turn has ended or the rider is no longer available.",
+  "L’automatique recrute immédiatement le premier choix réalisable dès votre tour, au salaire affiché. Pour garder vos 10 minutes de choix manuel, décochez cette autorisation puis validez avant votre tour.": "Automatic selection immediately signs your first eligible choice when your turn begins, at the displayed salary. To keep your 10-minute manual selection window, untick this permission and save before your turn.",
+  "Le vivier et l’ordre des équipes seront publiés à l’ouverture. Préparez votre liste dès 8 h, avant les sélections de 14 h. Vos préférences restent modifiables tant que votre choix n’est pas effectué et que votre délai n’est pas écoulé.": "The rider pool and team order will be published when preparation opens. Build your list from 08:00, before picks start at 14:00. You can edit your preferences until your pick is made or your time runs out.",
+  "pour la saison. Contrat jusqu’à la fin de la saison, sans revente pendant cette saison. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.": "for the season. Contract until the end of the season, with no resale during this season. You can cancel before confirming. Once confirmed, this pick is final for this edition.",
+  "Sans choix réalisable après 10 minutes, le tour est passé : aucun recrutement ne vous est imposé.": "Without an eligible pick after 10 minutes, the turn is passed: no signing is forced on you.",
+  "Sans indemnité ni prime de signature. Salaire : {{0}} pour la saison. Contrat jusqu’à la fin de la saison, sans revente pendant cette saison. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.": "No transfer fee or signing bonus. Salary: {{0}} for the season. Contract until the end of the season, with no resale during this season. You can cancel before confirming. Once confirmed, this pick is final for this edition.",
+  "Votre liste s’allonge à chaque ajout, jusqu’à tous les coureurs du vivier. Les coureurs déjà pris sont ignorés. Seules les modifications validées sont prises en compte.": "Your list grows with each addition, up to every rider in the pool. Riders already picked are skipped. Only saved changes are applied."
 }

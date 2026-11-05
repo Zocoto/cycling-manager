@@ -34,6 +34,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
   const canEdit = !!mine && mine.status === "pending" && !!active && (!isMyTurn || remaining > 0);
   const dirty = JSON.stringify(preferences) !== JSON.stringify(mine?.preferences ?? []) || automatic !== !!mine?.autoEnabled;
   const selectedRider = riders.find(rider => rider.id === confirmation);
+  const confirmationBlocked = confirmation !== "pass" && (!selectedRider || !isMyTurn || remaining <= 0 || !!selectedRider.selectedTeamId);
   const current = participants.find(participant => participant.position === edition?.currentPosition);
   const finance = view.finance;
   const salary = (rider: SeasonDraftRider) => draftSalary(rider, finance?.salaryDiscountPercent, finance?.homegrownRiderIds.includes(rider.id));
@@ -103,7 +104,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
       <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full border border-white/20 px-3 py-2">J1 · Listes dès 8 h</span>
         <span className="rounded-full bg-[#E9CB7D] px-3 py-2 text-[#142D2A]">Sélections à 14 h · Paris</span>
-        <span className="rounded-full border border-white/20 px-3 py-2">5 minutes par choix</span>
+        <span className="rounded-full border border-white/20 px-3 py-2">10 minutes par choix</span>
       </div>
       {edition ? <p className="mt-4 text-sm text-[#E9CB7D]">{formatDraftDate(edition.startsAt)} · {edition.status === "completed" ? "Draft terminée" : edition.status === "cancelled" ? "Édition annulée" : edition.status === "running" ? "Draft en cours" : "Préparez votre prochaine saison"}</p> : null}
     </header>
@@ -116,14 +117,14 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
         <li>Les meilleurs agents libres sont retenus selon leur spécialité (60 %), leur potentiel et leur âge (25 %), puis leur moyenne générale (15 %). Au moins 100 places dans le vivier, ou autant que d’équipes si elles sont plus nombreuses, dans la limite des coureurs libres disponibles.</li>
         <li>Les coureurs du vivier sont réservés dès la bascule de minuit et jusqu’à la clôture de la draft. Toutes leurs notes et tous leurs potentiels sont révélés à l’ouverture, à 8 h.</li>
         <li>Votre liste reste privée. Une liste automatique validée recrute le premier choix disponible et compatible avec votre effectif et votre budget, dès votre tour.</li>
-        <li>Sans choix réalisable après 5 minutes, le tour est passé : aucun recrutement ne vous est imposé.</li>
+        <li>Sans choix réalisable après 10 minutes, le tour est passé : aucun recrutement ne vous est imposé.</li>
         <li>Aucune indemnité ni prime de signature. Salaire normal à votre charge, contrat jusqu’à la fin de la saison, sans revente pendant cette saison.</li>
       </ul>
     </details>
 
     {!edition || edition.status === "scheduled" ? <section className="mt-5 rounded-2xl border border-[#D5DFD5] bg-white p-6">
       <h2 className="text-lg font-black">Rendez-vous à J1 dès 8 h</h2>
-      <p className="mt-2 text-sm leading-6 text-[#526A63]">{!view.enabled ? "Les prochaines drafts sont suspendues." : "Le vivier et l’ordre des équipes seront publiés à l’ouverture. Vous aurez ensuite jusqu’au début des sélections, à 14 h, pour préparer votre liste. Elle restera modifiable jusqu’à votre tour."}</p>
+      <p className="mt-2 text-sm leading-6 text-[#526A63]">{!view.enabled ? "Les prochaines drafts sont suspendues." : "Le vivier et l’ordre des équipes seront publiés à l’ouverture. Préparez votre liste dès 8 h, avant les sélections de 14 h. Vos préférences restent modifiables tant que votre choix n’est pas effectué et que votre délai n’est pas écoulé."}</p>
     </section> : <>
       <section aria-live="polite" className={`mt-5 rounded-2xl border p-5 ${isMyTurn ? "border-[#C1A04C] bg-[#FFF5CF]" : "border-[#D5DFD5] bg-white"}`}>
         <div className="flex flex-wrap items-center justify-between gap-4"><div>
@@ -137,7 +138,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="rounded-2xl border border-[#D5DFD5] bg-white p-5 lg:sticky lg:top-4">
           <div className="flex items-center justify-between"><h2 className="font-black">Ma liste de préférences</h2><span className="text-xs font-bold text-[#75867C]">{preferences.length} choix</span></div>
-          <p className="mt-2 text-xs leading-5 text-[#526A63]">Ajoutez les coureurs puis classez vos choix. Les coureurs déjà pris sont ignorés automatiquement.</p>
+          <p className="mt-2 text-xs leading-5 text-[#526A63]">Votre liste s’allonge à chaque ajout, jusqu’à tous les coureurs du vivier. Les coureurs déjà pris sont ignorés. Seules les modifications validées sont prises en compte.</p>
           <ol className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
             {preferences.map((id, index) => {
               const rider = riders.find(r => r.id === id);
@@ -153,7 +154,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
           </ol>
           {!preferences.length ? <p className="my-5 text-center text-sm text-[#75867C]">Votre liste est encore vide.</p> : null}
           {canEdit ? <><label className="mt-4 flex items-start gap-2 border-t border-[#E1E7DD] pt-4 text-sm font-semibold"><input type="checkbox" className="mt-1 accent-[#195F4C]" checked={automatic} disabled={pending} onChange={event => setAutomatic(event.target.checked)} /><span>Autoriser le recrutement automatique selon ma liste</span></label>
-            <p className="mt-2 text-xs leading-5 text-[#75867C]">En validant, vous acceptez le salaire affiché du premier choix réalisable. Sans cette autorisation, vous devrez choisir à votre tour.</p>
+            <p className="mt-2 text-xs leading-5 text-[#75867C]">L’automatique recrute immédiatement le premier choix réalisable dès votre tour, au salaire affiché. Pour garder vos 10 minutes de choix manuel, décochez cette autorisation puis validez avant votre tour.</p>
             <button type="button" disabled={pending} className="mt-4 min-h-10 text-xs font-semibold text-[#8B4E39] underline underline-offset-4" onClick={() => setConfirmation("pass")}>Renoncer à cette draft</button></> : null}
           {finance ? <p className="mt-4 border-t border-[#E1E7DD] pt-3 text-xs text-[#526A63]">Effectif : {finance.rosterCount}/{finance.rosterLimit} · Budget projeté disponible : {money(finance.budget)}</p> : null}
         </aside>
@@ -180,9 +181,13 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
 
     {confirmation && (selectedRider || confirmation === "pass") ? <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#071E19]/70 p-4"><section role="dialog" aria-modal="true" aria-labelledby="draft-confirm-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
       <h2 id="draft-confirm-title" className="text-xl font-black">{confirmation === "pass" ? "Passer votre tour ?" : `Recruter ${selectedRider!.firstName} ${selectedRider!.lastName} ?`}</h2>
-      <p className="mt-3 text-sm leading-6 text-[#526A63]">{confirmation === "pass" ? "Ce choix est définitif pour cette édition. Aucun coureur ne sera recruté." : `Sans indemnité ni prime de signature. Salaire : ${money(salary(selectedRider!))} pour la saison. Contrat jusqu’à la fin de la saison, sans revente pendant cette saison.`}</p>
+      <p className="mt-3 text-sm leading-6 text-[#526A63]">{confirmation === "pass" ? "Ce choix est définitif pour cette édition. Aucun coureur ne sera recruté." : `Sans indemnité ni prime de signature. Salaire : ${money(salary(selectedRider!))} pour la saison. Contrat jusqu’à la fin de la saison, sans revente pendant cette saison. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.`}</p>
       {feedback ? <p role="alert" className="mt-3 text-sm font-semibold text-[#A34032]">{feedback}</p> : null}
-      <div className="mt-5 flex justify-end gap-3"><button type="button" disabled={pending} className="min-h-10 px-3 text-sm font-semibold" onClick={() => { setConfirmation(null); setFeedback(""); }}>Annuler</button><button type="button" className={buttonClass} disabled={pending} onClick={() => submit(confirmation === "pass" ? { kind: "pass", editionId: edition!.id } : { kind: "pick", editionId: edition!.id, riderId: confirmation })}>{pending ? "Enregistrement…" : "Confirmer"}</button></div>
+      {confirmationBlocked ? <p role="alert" className="mt-3 text-sm font-semibold text-[#A34032]">Ce recrutement n’est plus possible : votre tour est terminé ou le coureur n’est plus disponible.</p> : null}
+      <div className="mt-5 flex justify-end gap-3"><button type="button" disabled={pending} className="min-h-10 px-3 text-sm font-semibold" onClick={() => { setConfirmation(null); setFeedback(""); }}>Annuler</button><button type="button" className={buttonClass} disabled={pending || confirmationBlocked} onClick={() => {
+        if (confirmationBlocked) return;
+        submit(confirmation === "pass" ? { kind: "pass", editionId: edition!.id } : { kind: "pick", editionId: edition!.id, riderId: confirmation });
+      }}>{pending ? "Enregistrement…" : "Confirmer"}</button></div>
     </section></div> : null}
   </div>;
 }
