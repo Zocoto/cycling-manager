@@ -6,10 +6,10 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export async function getCurrentHalloweenInventory(authUserId: string) {
   const result = await createSupabaseAdminClient()
     .from("halloween_wallets")
-    .select("inventory, cosmetics")
+    .select("inventory")
     .eq("edition_id", HALLOWEEN_EDITION)
     .eq("user_id", authUserId)
-    .maybeSingle<{ inventory: Record<string, unknown>; cosmetics: Record<string, unknown> }>();
+    .maybeSingle<{ inventory: Record<string, unknown> }>();
   if (result.error) throw new Error(`Impossible de charger vos objets Halloween : ${result.error.message}`);
-  return halloweenToInventoryItems(result.data?.inventory, result.data?.cosmetics);
+  return halloweenToInventoryItems(result.data?.inventory);
 }
