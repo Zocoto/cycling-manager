@@ -28,6 +28,7 @@ import {
   isAssignableInventoryCategory,
   isInventoryCategory,
   dailyRewardsToInventoryItems,
+  groupTeamInventoryItems,
   summarizeInventory,
   type InventoryCategory,
   type TeamInventoryItem,
@@ -142,10 +143,10 @@ export default async function InventoryPage({
       left.lastName.localeCompare(right.lastName, "fr") ||
       left.firstName.localeCompare(right.firstName, "fr"),
   );
-  const inventoryItems = [
+  const inventoryItems = groupTeamInventoryItems([
     ...overview.items,
     ...dailyRewardsToInventoryItems(dailyRewardOverview?.inventory ?? []),
-  ].sort(
+  ]).sort(
     (left, right) =>
       Number(right.availableQuantity > 0) -
         Number(left.availableQuantity > 0) ||

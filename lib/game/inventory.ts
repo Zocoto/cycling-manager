@@ -1,5 +1,6 @@
 import type { EquipmentSlot } from "@/lib/game/equipment";
 import type { HalloweenPreviewItem } from "@/lib/game/halloween-catalog";
+import { findConsumableEquivalence } from "./consumable-equivalences";
 import {
   groupDailyRewardInventoryItems,
   type DailyRewardInventoryItem,
@@ -184,6 +185,43 @@ export function dailyRewardsToInventoryItems(
     acquiredAt: reward.acquiredAt,
     dailyReward: reward,
   }));
+}
+
+/** Reuses the already loaded stocks. Source IDs always belong to real owned
+ * units; daily gifts are spent first (earliest expiry), generic aliases use the
+ * transactional bulk RPC. Event items and actual equipment never participate. */
+export function groupTeamInventoryItems(items: readonly TeamInventoryItem[]): TeamInventoryItem[] {
+  const grouped = new Map<string, TeamInventoryItem>();
+  for (const item of items) {
+    const definition = item.isConsumable && (item.source === "item" || item.source === "daily_reward")
+      ? findConsumableEquivalence({source: item.source, key: item.catalogKey,
+          kind: item.dailyReward?.effectKind ?? item.category, payload: item.effectPayload})
+      : null;
+    const key = definition ? `ordinary:${definition.key}` : item.id;
+    const normalized: TeamInventoryItem = definition ? {
+      ...item, id: `consumable:${definition.key}`, name: definition.name, description: definition.description,
+      effectSummary: definition.effectSummary, iconKey: definition.iconKey,
+      rarity: definition.rarity as InventoryRarity,
+      dailyReward: item.dailyReward ? {
+        ...item.dailyReward, name: definition.name, description: definition.description,
+        effectSummary: definition.effectSummary,
+        importance: definition.importance ?? item.dailyReward.importance,
+      } : item.dailyReward,
+    } : {...item};
+    const previous = grouped.get(key);
+    if (!previous) { grouped.set(key, normalized); continue; }
+    const previousExpiry = previous.dailyReward?.expiresAfterGameYear ?? Number.MAX_SAFE_INTEGER;
+    const itemExpiry = normalized.dailyReward?.expiresAfterGameYear ?? Number.MAX_SAFE_INTEGER;
+    const representative = itemExpiry < previousExpiry || (itemExpiry === previousExpiry &&
+      (normalized.acquiredAt ?? "\uffff").localeCompare(previous.acquiredAt ?? "\uffff") < 0)
+      ? normalized : previous;
+    const quantity = previous.quantity + normalized.quantity;
+    const availableQuantity = previous.availableQuantity + normalized.availableQuantity;
+    grouped.set(key, {...representative, quantity, availableQuantity,
+      dailyReward: representative.dailyReward ? {...representative.dailyReward, quantity: availableQuantity} : null,
+    });
+  }
+  return [...grouped.values()];
 }
 
 function getDailyRewardInventoryCategory(

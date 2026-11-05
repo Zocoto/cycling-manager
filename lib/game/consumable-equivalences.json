@@ -1,0 +1,437 @@
+[
+  {
+    "key": "secondary-technique",
+    "name": "Perfectionnement technique",
+    "description": "Un travail ciblé améliore définitivement une qualité secondaire.",
+    "effectSummary": "+1 dans la statistique secondaire choisie",
+    "iconKey": "rating",
+    "importance": 5,
+    "rarity": "uncommon",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "secondary-specialization",
+        "kind": "rating_boost",
+        "payload": {
+          "amount": 1,
+          "statScope": "secondary"
+        }
+      },
+      {
+        "source": "daily_reward",
+        "key": "secondary-technique",
+        "kind": "rating_boost",
+        "payload": {
+          "amount": 1,
+          "statScope": "secondary"
+        }
+      }
+    ]
+  },
+  {
+    "key": "talent-revealed",
+    "name": "Talent révélé",
+    "description": "Le staff révèle une capacité qui restera attachée au coureur.",
+    "effectSummary": "1 capacité spéciale au choix pour un coureur",
+    "iconKey": "ability",
+    "importance": 7,
+    "rarity": "rare",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "talent-revealed",
+        "kind": "special_ability",
+        "payload": {}
+      },
+      {
+        "source": "daily_reward",
+        "key": "talent-revealed-plus",
+        "kind": "special_ability",
+        "payload": {}
+      }
+    ]
+  },
+  {
+    "key": "premium-equipment",
+    "name": "Équipement premium",
+    "description": "Une référence haut de gamme rejoint le stock sans transaction.",
+    "effectSummary": "1 équipement commercial premium",
+    "iconKey": "equipment",
+    "importance": 6,
+    "rarity": "rare",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "elite-equipment",
+        "kind": "equipment",
+        "payload": {
+          "rarity": "premium"
+        }
+      },
+      {
+        "source": "daily_reward",
+        "key": "premium-equipment",
+        "kind": "equipment",
+        "payload": {
+          "rarity": "premium"
+        }
+      },
+      {
+        "source": "daily_reward",
+        "key": "ultimate-prototype",
+        "kind": "equipment",
+        "payload": {
+          "rarity": "premium"
+        }
+      }
+    ]
+  },
+  {
+    "key": "potential-notebook",
+    "name": "Carnet de progression",
+    "description": "Un programme individuel qui ouvre une nouvelle marge de progression.",
+    "effectSummary": "+1 potentiel au coureur sélectionné.",
+    "iconKey": "potential",
+    "importance": null,
+    "rarity": "epic",
+    "members": [
+      {
+        "source": "item",
+        "key": "classified-talent-dossier",
+        "kind": "potential_boost",
+        "payload": {
+          "potentialBonus": 1
+        }
+      },
+      {
+        "source": "item",
+        "key": "potential-notebook",
+        "kind": "potential_boost",
+        "payload": {
+          "potentialBonus": 1
+        }
+      }
+    ]
+  },
+  {
+    "key": "construction-square",
+    "name": "Équerre de chantier",
+    "description": "Un outil de contrôle qui permet de corriger rapidement le planning d’un bâtiment déjà en construction.",
+    "effectSummary": "Retire 2 jours à un chantier actif · 1 jour minimum restant",
+    "iconKey": "architect",
+    "importance": 4,
+    "rarity": "uncommon",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "construction-square",
+        "kind": "construction_time_reduction",
+        "payload": {
+          "days": 2
+        }
+      },
+      {
+        "source": "item",
+        "key": "construction-square",
+        "kind": "other",
+        "payload": {
+          "days": 2,
+          "effectKind": "construction_time_reduction",
+          "level": 4
+        }
+      }
+    ]
+  },
+  {
+    "key": "custom-staff-mandate",
+    "name": "Mandat de recrutement sur mesure",
+    "description": "Choisissez le métier et la nationalité. Le profil généré reçoit un niveau de 1 à 5 étoiles à chances égales et un talent compatible aléatoire.",
+    "effectSummary": "1 staff sur mesure · 20 % de chance pour chaque niveau",
+    "iconKey": "staff",
+    "importance": 10,
+    "rarity": "epic",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "custom-staff-mandate",
+        "kind": "custom_staff_recruitment",
+        "payload": {
+          "signingFeeWaived": true,
+          "uniformLevelOdds": true
+        }
+      },
+      {
+        "source": "item",
+        "key": "custom-staff-mandate",
+        "kind": "other",
+        "payload": {
+          "effectKind": "custom_staff_recruitment",
+          "level": 10,
+          "signingFeeWaived": true,
+          "uniformLevelOdds": true
+        }
+      }
+    ]
+  },
+  {
+    "key": "injury-care-anti-inflammatory-protocol",
+    "name": "Protocole anti-inflammatoire",
+    "description": "Un protocole renforcé qui agit sur les traumatismes compatibles avec une reprise accélérée.",
+    "effectSummary": "Réduit la convalescence de 2 jours.",
+    "iconKey": "medical",
+    "importance": 5,
+    "rarity": "uncommon",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "injury-care-anti-inflammatory-protocol",
+        "kind": "injury_care",
+        "payload": {
+          "level": 5,
+          "recoveryHours": 48
+        }
+      },
+      {
+        "source": "item",
+        "key": "injury-care-anti-inflammatory-protocol",
+        "kind": "injury_care",
+        "payload": {
+          "effectKind": "injury_care",
+          "level": 5,
+          "recoveryHours": 48
+        }
+      }
+    ]
+  },
+  {
+    "key": "injury-care-compressive-dressing",
+    "name": "Pansement compressif",
+    "description": "Un premier soin immédiatement disponible pour gagner quelques heures sur une blessure en cours.",
+    "effectSummary": "Réduit la convalescence de 2 h.",
+    "iconKey": "medical",
+    "importance": 1,
+    "rarity": "common",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "injury-care-compressive-dressing",
+        "kind": "injury_care",
+        "payload": {
+          "level": 1,
+          "recoveryHours": 2
+        }
+      },
+      {
+        "source": "item",
+        "key": "injury-care-compressive-dressing",
+        "kind": "injury_care",
+        "payload": {
+          "effectKind": "injury_care",
+          "level": 1,
+          "recoveryHours": 2
+        }
+      }
+    ]
+  },
+  {
+    "key": "injury-care-cryotherapy-pack",
+    "name": "Pack de cryothérapie",
+    "description": "Un traitement par le froid qui accélère la première phase de récupération.",
+    "effectSummary": "Réduit la convalescence de 6 h.",
+    "iconKey": "medical",
+    "importance": 2,
+    "rarity": "common",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "injury-care-cryotherapy-pack",
+        "kind": "injury_care",
+        "payload": {
+          "level": 2,
+          "recoveryHours": 6
+        }
+      },
+      {
+        "source": "item",
+        "key": "injury-care-cryotherapy-pack",
+        "kind": "injury_care",
+        "payload": {
+          "effectKind": "injury_care",
+          "level": 2,
+          "recoveryHours": 6
+        }
+      }
+    ]
+  },
+  {
+    "key": "injury-care-physiotherapy-session",
+    "name": "Session de physiothérapie",
+    "description": "Une prise en charge individuelle destinée à faire gagner une journée de récupération.",
+    "effectSummary": "Réduit la convalescence de 1 jour.",
+    "iconKey": "medical",
+    "importance": 4,
+    "rarity": "uncommon",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "injury-care-physiotherapy-session",
+        "kind": "injury_care",
+        "payload": {
+          "level": 4,
+          "recoveryHours": 24
+        }
+      },
+      {
+        "source": "item",
+        "key": "injury-care-physiotherapy-session",
+        "kind": "injury_care",
+        "payload": {
+          "effectKind": "injury_care",
+          "level": 4,
+          "recoveryHours": 24
+        }
+      }
+    ]
+  },
+  {
+    "key": "injury-care-recovery-kit",
+    "name": "Trousse de récupération",
+    "description": "Une sélection complète de soins légers pour raccourcir une indisponibilité.",
+    "effectSummary": "Réduit la convalescence de 12 h.",
+    "iconKey": "medical",
+    "importance": 3,
+    "rarity": "uncommon",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "injury-care-recovery-kit",
+        "kind": "injury_care",
+        "payload": {
+          "level": 3,
+          "recoveryHours": 12
+        }
+      },
+      {
+        "source": "item",
+        "key": "injury-care-recovery-kit",
+        "kind": "injury_care",
+        "payload": {
+          "effectKind": "injury_care",
+          "level": 3,
+          "recoveryHours": 12
+        }
+      }
+    ]
+  },
+  {
+    "key": "instant-youth-contract",
+    "name": "Contrat Espoir immédiat",
+    "description": "Permet à un junior de 17 ans ou plus de quitter immédiatement l’école pour rejoindre l’équipe première, même en cours de saison.",
+    "effectSummary": "Promotion professionnelle immédiate d’un junior éligible",
+    "iconKey": "contract",
+    "importance": 8,
+    "rarity": "rare",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "instant-youth-contract",
+        "kind": "instant_youth_promotion",
+        "payload": {}
+      },
+      {
+        "source": "item",
+        "key": "instant-youth-contract",
+        "kind": "other",
+        "payload": {
+          "effectKind": "instant_youth_promotion",
+          "level": 8
+        }
+      }
+    ]
+  },
+  {
+    "key": "precision-architect-tee",
+    "name": "Té d’architecte de précision",
+    "description": "Un instrument rare réservé aux grands chantiers, capable de raccourcir nettement un calendrier de construction en cours.",
+    "effectSummary": "Retire 7 jours à un chantier actif · 1 jour minimum restant",
+    "iconKey": "architect",
+    "importance": 7,
+    "rarity": "rare",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "precision-architect-tee",
+        "kind": "construction_time_reduction",
+        "payload": {
+          "days": 7
+        }
+      },
+      {
+        "source": "item",
+        "key": "precision-architect-tee",
+        "kind": "other",
+        "payload": {
+          "days": 7,
+          "effectKind": "construction_time_reduction",
+          "level": 7
+        }
+      }
+    ]
+  },
+  {
+    "key": "scouting-clarity-pass",
+    "name": "Loupe du recruteur",
+    "description": "Une fenêtre d’observation privilégiée pour examiner sans approximation les talents disponibles.",
+    "effectSummary": "Révèle pendant 24 h toutes les notes et le potentiel des coureurs libres et des juniors repérés",
+    "iconKey": "scouting-clarity",
+    "importance": 6,
+    "rarity": "rare",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "scouting-clarity-pass",
+        "kind": "scouting_visibility",
+        "payload": {
+          "durationHours": 24
+        }
+      },
+      {
+        "source": "item",
+        "key": "scouting-clarity-pass",
+        "kind": "other",
+        "payload": {
+          "durationHours": 24,
+          "effectKind": "scouting_visibility",
+          "level": 6
+        }
+      }
+    ]
+  },
+  {
+    "key": "staff-expertise-badge",
+    "name": "Insigne d’expertise",
+    "description": "Récompense un membre actif du staff par une progression immédiate de son niveau professionnel.",
+    "effectSummary": "+1 étoile au membre du staff choisi · maximum 5★",
+    "iconKey": "staff",
+    "importance": 10,
+    "rarity": "epic",
+    "members": [
+      {
+        "source": "daily_reward",
+        "key": "staff-expertise-badge",
+        "kind": "staff_level_boost",
+        "payload": {}
+      },
+      {
+        "source": "item",
+        "key": "staff-expertise-badge",
+        "kind": "other",
+        "payload": {
+          "effectKind": "staff_level_boost",
+          "level": 10,
+          "maximumLevel": 5
+        }
+      }
+    ]
+  }
+]
