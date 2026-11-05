@@ -1,4 +1,5 @@
-export const WEEKLY_LOGIN_BOOSTER_INTERVAL = 7;
+// Historical export names stay compatible with the existing rewards payload.
+export const WEEKLY_LOGIN_BOOSTER_INTERVAL = 3;
 export const WEEKLY_LOGIN_BOOSTER_FIRST_SEASON = 5;
 
 export type WeeklyLoginBoosterProgress = {

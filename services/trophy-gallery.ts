@@ -564,7 +564,9 @@ function mapSpecialTrophies({
           trophyKey: entitlement.trophy_key,
           availableAt: entitlement.available_at,
           claimedAt: entitlement.claimed_at,
-          seasonName: getTrophyAwardSeasonName(entitlement.available_at, seasons),
+          seasonName: entitlement.trophy_key === "cyclo_stickers_s4"
+            ? definition.seasonName
+            : getTrophyAwardSeasonName(entitlement.available_at, seasons),
           href: includeClaimable ? definition.href : null,
         },
       ];

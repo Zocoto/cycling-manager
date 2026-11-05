@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/app-link";
-import { useEffect, useId, useReducer, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { CollectorCardFace } from "./collector-card-face";
 import { CollectorAlbumCover } from "./collector-album-cover";
 import { CollectorAlbumBoosters } from "./collector-album-boosters";
@@ -13,7 +13,7 @@ import { getAlbumBookTurn, getAlbumSwipeDirection } from "@/lib/game/collector-a
 import { albumReadingStorageKey, createAlbumReadingState, getNextAlbumChapter, readAlbumReadingState, updateAlbumReading, type AlbumReadingAction } from "@/lib/game/collector-album-reading";
 import {
   ALBUM_PROFILES, albumPilotStorageKey, createAlbumPilotState,
-  getLooseAlbumCardCount, getAlbumPilotPacks, readAlbumPilotState, updateAlbumPilot,
+  getAlbumOwnedCardCount, getLooseAlbumCardCount, getAlbumPilotPacks, readAlbumPilotState, updateAlbumPilot,
   type AlbumPilotAction, type AlbumPilotState, type AlbumProfile,
   type CollectorAlbumSnapshot, type CollectorCard,
 } from "@/lib/game/collector-album";
@@ -33,8 +33,17 @@ function reducer(store: Store, action: StoreAction): Store {
   return {...store, state: updateAlbumPilot(store.state, action, store.cards)};
 }
 
-export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album", initialIntroduction = false, initialProfile }: {snapshot: CollectorAlbumSnapshot; storageOwnerId: string; initialTab?: "album" | "trades" | "boosters" | "achievements"; initialIntroduction?: boolean; initialProfile?: AlbumProfile}) {
-  const [store, dispatch] = useReducer(reducer, {ready: false, state: createAlbumPilotState(snapshot.collectionSeason,snapshot.cards), cards: snapshot.cards});
+export type CollectorAlbumRuntime = {
+  state: AlbumPilotState; ready: boolean; boosterCount: number; tradeCount: number; ownerName: string;
+  notice: string; onAction: (action: AlbumPilotAction) => void;
+  boosters: ReactNode; achievements: ReactNode; trades: (requestedCard: number | null) => ReactNode;
+};
+export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album", initialIntroduction = false, initialProfile, runtime }: {snapshot: CollectorAlbumSnapshot; storageOwnerId: string; initialTab?: "album" | "trades" | "boosters" | "achievements"; initialIntroduction?: boolean; initialProfile?: AlbumProfile; runtime?: CollectorAlbumRuntime}) {
+  const isPersistent = Boolean(runtime);
+  const privatePreview = !isPersistent;
+  const ownerName = runtime?.ownerName ?? "Abbaye du Lion";
+  const [localStore, dispatch] = useReducer(reducer, {ready: false, state: runtime?.state ?? createAlbumPilotState(snapshot.collectionSeason,snapshot.cards), cards: snapshot.cards});
+  const store = useMemo(() => runtime ? { ...localStore, ready: runtime.ready, state: runtime.state } : localStore, [localStore, runtime]);
   const [tab, setTab] = useState(initialTab);
   const hasIntroduction=snapshot.cards.some(card=>card.kind);
   const [inIntroduction,setInIntroduction]=useState(hasIntroduction&&!initialProfile);
@@ -67,25 +76,25 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
       if (cancelled) return;
       let raw: string | null = null;
       let rawReading: string | null = null;
-      try { raw = window.localStorage.getItem(key); rawReading = window.localStorage.getItem(readingKey); } catch { setStorageUnavailable(true); }
+      try { if (!isPersistent) raw = window.localStorage.getItem(key); rawReading = window.localStorage.getItem(readingKey); } catch { setStorageUnavailable(true); }
       const restored = readAlbumReadingState(rawReading, snapshot.cards);
       setReading(restored);
       setReadingReady(true);
       if (!initialProfile && restored.lastProfile) setProfile(restored.lastProfile);
-      dispatch({type: "restore", state: readAlbumPilotState(raw, snapshot.collectionSeason,snapshot.cards)});
+      if (!isPersistent) dispatch({type: "restore", state: readAlbumPilotState(raw, snapshot.collectionSeason,snapshot.cards)});
     });
     const sync = (event: StorageEvent) => {
       if (event.storageArea !== window.localStorage) return;
-      if (event.key === key || event.key === null) dispatch({type:"restore",state:readAlbumPilotState(event.newValue,snapshot.collectionSeason,snapshot.cards)});
+      if (!isPersistent && (event.key === key || event.key === null)) dispatch({type:"restore",state:readAlbumPilotState(event.newValue,snapshot.collectionSeason,snapshot.cards)});
       if (event.key === readingKey || event.key === null) setReading(readAlbumReadingState(event.newValue, snapshot.cards));
     };
     window.addEventListener("storage",sync);
     return () => { cancelled = true; window.removeEventListener("storage",sync); };
-  }, [key, readingKey, initialProfile, snapshot.collectionSeason, snapshot.cards]);
+  }, [key, readingKey, initialProfile, snapshot.collectionSeason, snapshot.cards, isPersistent]);
   useEffect(() => {
-    if (!store.ready) return;
+    if (isPersistent || !store.ready) return;
     try { window.localStorage.setItem(key, JSON.stringify(store.state)); } catch { queueMicrotask(() => setStorageUnavailable(true)); }
-  }, [key, store]);
+  }, [key, store, isPersistent]);
   useEffect(() => {
     if (!readingReady) return;
     try { window.localStorage.setItem(readingKey, JSON.stringify(reading)); } catch { queueMicrotask(() => setStorageUnavailable(true)); }
@@ -112,13 +121,13 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const available = [...new Set(state.owned)].filter(id => getLooseAlbumCardCount(state,id) > 0 || state.pending?.give.includes(id));
   const walletPageCount = Math.max(1,Math.ceil(available.length/2));
   const visibleWalletPage = Math.min(walletPage,walletPageCount-1);
-  const closedPackCount = getAlbumPilotPacks(snapshot.collectionSeason).length - state.openedPacks.length;
+  const closedPackCount = runtime?.boosterCount ?? getAlbumPilotPacks(snapshot.collectionSeason).length - state.openedPacks.length;
   const nextChapter = getNextAlbumChapter(snapshot.cards, state.pasted);
   const wanted = reading.wanted.filter(number => !state.owned.includes(number));
   const duplicateCount = [...new Set(state.owned)].reduce((sum, id) => sum + Math.max(0, getLooseAlbumCardCount(state,id) - Number(!state.pasted.includes(id))), 0);
   const chapterComplete = profileCards.length > 0 && pastedInChapter === profileCards.length;
   const resumeLabel = ALBUM_PROFILES.find(entry => entry.id === reading.lastProfile)?.label;
-  const send = (action: AlbumPilotAction, text: string) => { dispatch(action); setNotice(text); };
+  const send = (action: AlbumPilotAction, text: string) => { if (runtime) { runtime.onAction(action); return; } dispatch(action); setNotice(text); };
   const switchProfile = (next: AlbumProfile, scrollToBook = false, leaf:1|2 = 1) => {
     if (next !== profile) setTurn(previous => ({number:previous.number + 1,direction:ALBUM_PROFILES.findIndex(entry => entry.id === next) > chapterIndex ? "next" : "previous"}));
     setProfile(next);
@@ -164,7 +173,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const findCard = (number:number) => {
     setRequestedCard(number);
     setTab("trades");
-    setNotice("La carte recherchée est sélectionnée dans les échanges de démonstration.");
+    setNotice(privatePreview ? "La carte recherchée est sélectionnée dans les échanges de démonstration." : "La carte recherchée est sélectionnée dans le carnet d’échanges.");
     requestAnimationFrame(() => {
       const composer = document.querySelector<HTMLElement>("[data-album-trade-composer]");
       composer?.focus({preventScroll:true});
@@ -174,7 +183,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   const pasteCards = (numbers:readonly number[]) => {
     const eligible = [...new Set(numbers)].filter(number => snapshot.cards.some(card => card.number === number) && !state.pasted.includes(number) && getLooseAlbumCardCount(state,number) > 0);
     if (!eligible.length) return;
-    for (const number of eligible) dispatch({type:"paste",card:number});
+    for (const number of eligible) send({type:"paste",card:number}, "Vignette collée.");
     if(cardFor(eligible[0]).kind) showIntroduction(getAlbumIntroductionLeaves(snapshot.cards).findIndex(leaf=>leaf.some(card=>card.number===eligible[0])));
     else { switchProfile(cardFor(eligible[0]).profileKey, true); setTab("album"); }
     setNotice(`${eligible.length} vignette(s) collée(s) dans ton album.`);
@@ -192,30 +201,30 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
   };
 
   return <div className={`${styles.root} ${retro.albumDesk} ${spread.desk}`}>
-    <div className={styles.utility}><Link href="/jeu/gazette">← La Cyclogazette</Link><span><span className={styles.liveDot} /> Aperçu privé · Abbaye du Lion</span></div>
+    <div className={styles.utility}><Link href="/jeu/gazette">← La Cyclogazette</Link><span><span className={styles.liveDot} /> {privatePreview ? "Aperçu privé · " : "Collection de "}{ownerName}</span></div>
     <header className={book.masthead}><h1>Album de Cyclo-Stickers</h1><span>Édition saison {editionSeason} · Les champions du peloton</span></header>
-    {snapshot.gamesEdition?<details className={games.preparation}><summary>Édition S4 · Ouverture prévue en S5 · Aperçu privé</summary><p>Habillage S4, cartes et notes de test issues de S3. Les 50 coureurs définitifs seront ceux du classement UCI final S4, figés après la clôture de la saison.</p><ul><li>69 vignettes : 50 coureurs, 5 équipes, 10 champions continentaux, 2 champions du monde, le champion des Jeux et l’Équipier sans tête.</li><li>Les 19 vignettes d’ouverture sont fournies uniquement pour cet essai. Les spécimens ne sont pas des titres attribués à des coureurs.</li><li>Avant l’ouverture publique : inventaire serveur, échanges sécurisés, attribution Gazette et récompenses persistantes à raccorder. Aucune ouverture automatique de cette démo en S5.</li></ul><p><strong>À valider :</strong> couverture, sachets, finitions et cadence rare des distributions Gazette. Les chances affichées restent un barème de test.</p></details>:null}
-    {storageUnavailable ? <p role="status" className={styles.warning}>Le stockage du navigateur est indisponible : cet essai sera réinitialisé à la fermeture de la page.</p> : null}
+    {privatePreview && snapshot.gamesEdition?<details className={games.preparation}><summary>Édition S4 · Ouverture prévue en S5 · Aperçu privé</summary><p>Habillage S4, cartes et notes de test issues de S3. Les 50 coureurs définitifs seront ceux du classement UCI final S4, figés après la clôture de la saison.</p><ul><li>69 vignettes : 50 coureurs, 5 équipes, 10 champions continentaux, 2 champions du monde, le champion des Jeux et l’Équipier sans tête.</li><li>Les 19 vignettes d’ouverture sont fournies uniquement pour cet essai. Les spécimens ne sont pas des titres attribués à des coureurs.</li><li>Les stocks serveur et les échanges sont préparés. Le catalogue définitif sera scellé après la clôture de S4. Aucune ouverture automatique de cette démo en S5.</li></ul><p>Les boosters prévus proviennent des connexions, du parrainage et du Gala avec présence validée. Aucune attribution par la Gazette.</p></details>:null}
+    {storageUnavailable ? <p role="status" className={styles.warning}>{privatePreview ? "Le stockage du navigateur est indisponible : cet essai sera réinitialisé à la fermeture de la page." : "Les marque-pages ne peuvent pas être conservés dans ce navigateur. Ta collection reste enregistrée sur le serveur."}</p> : null}
     <div className={styles.toolbar}>
-      <div className={styles.tabButtons} aria-label="Rubriques de la collection"><button type="button" aria-pressed={tab === "album"} onClick={()=>setTab("album")}>L’album</button><button type="button" aria-pressed={tab === "boosters"} onClick={()=>setTab("boosters")}>Boosters <span>{closedPackCount}</span></button><button type="button" aria-pressed={tab === "trades"} onClick={()=>{setRequestedCard(null);setTab("trades");}}>Échanges <span>Démo</span>{state.pending ? " · 1" : ""}</button><button type="button" aria-pressed={tab === "achievements"} onClick={()=>setTab("achievements")}>Vitrine & succès</button></div>
+      <div className={styles.tabButtons} aria-label="Rubriques de la collection"><button type="button" aria-pressed={tab === "album"} onClick={()=>setTab("album")}>L’album</button><button type="button" aria-pressed={tab === "boosters"} onClick={()=>setTab("boosters")}>Boosters <span>{closedPackCount}</span></button><button type="button" aria-pressed={tab === "trades"} onClick={()=>{setRequestedCard(null);setTab("trades");}}>Échanges <span>{privatePreview ? "Démo" : runtime?.tradeCount ?? 0}</span>{privatePreview && state.pending ? " · 1" : ""}</button><button type="button" aria-pressed={tab === "achievements"} onClick={()=>setTab("achievements")}>Vitrine & succès</button></div>
       <div className={styles.progress}><strong>{state.pasted.length}<small> / {snapshot.cards.length}</small></strong><span>cartes collées</span><div aria-hidden="true"><i style={{width:`${state.pasted.length * 100/snapshot.cards.length}%`}} /></div></div>
     </div>
-    <p className={styles.notice} role="status" aria-live="polite">{notice || (store.ready ? state.pasted.length ? "Les pages prennent vie" : "Ton album attend ses premières histoires." : "Ouverture de ton album…")}</p>
+    <p className={styles.notice} role="status" aria-live="polite">{runtime?.notice || notice || (store.ready ? state.pasted.length ? "Les pages prennent vie" : "Ton album attend ses premières histoires." : "Ouverture de ton album…")}</p>
 
-    {tab === "album" && !bookOpen ? <section className={book.coverStage} aria-label="Couverture de l’album"><CollectorAlbumCover season={editionSeason} gamesEdition={snapshot.gamesEdition} count={state.pasted.length} total={snapshot.cards.length} resumeLabel={resumeLabel} ready={store.ready && readingReady} onOpen={()=>openBook()} onStart={()=>openBook(true)} />{state.pasted.length === snapshot.cards.length && reading.completedAt ? <p className={book.completionNote}>Collection complète · Exemplaire signé Abbaye du Lion · Constaté le {new Date(reading.completedAt).toLocaleDateString("fr-FR",{timeZone:"UTC"})}</p> : null}</section> : tab === "album" ? <>
+    {tab === "album" && !bookOpen ? <section className={book.coverStage} aria-label="Couverture de l’album"><CollectorAlbumCover season={editionSeason} gamesEdition={snapshot.gamesEdition} ownerName={ownerName} privatePreview={privatePreview} count={state.pasted.length} total={snapshot.cards.length} resumeLabel={resumeLabel} ready={store.ready && readingReady} onOpen={()=>openBook()} onStart={()=>openBook(true)} />{state.pasted.length === snapshot.cards.length && reading.completedAt ? <p className={book.completionNote}>Collection complète · Exemplaire signé {ownerName} · Constaté le {new Date(reading.completedAt).toLocaleDateString("fr-FR",{timeZone:"UTC"})}</p> : null}</section> : tab === "album" ? <>
       <div className={book.bookControls}><button type="button" onClick={()=>{setBookOpen(false);setOpeningCover(false);requestAnimationFrame(()=>{const cover=document.querySelector<HTMLElement>("[data-album-cover] button");cover?.focus({preventScroll:true});cover?.scrollIntoView({block:"start",behavior:"auto"});});}}>← Refermer l’album</button><span>Feuillette les chapitres · glisse sur mobile</span></div>
       <nav className={`${styles.profiles} ${spread.contents}`} aria-label="Profils de coureurs">{hasIntroduction?<button type="button" aria-pressed={inIntroduction} aria-current={inIntroduction?"page":undefined} onClick={()=>showIntroduction(0,false)}><span className={spread.contentsNumber} aria-hidden="true">00</span><span>La saison S4</span><small>{snapshot.cards.filter(card=>card.kind&&state.pasted.includes(card.number)).length}/{snapshot.cards.filter(card=>card.kind).length}</small></button>:null}{ALBUM_PROFILES.map((entry,index) => <button type="button" key={entry.id} aria-pressed={!inIntroduction&&profile === entry.id} aria-current={!inIntroduction&&profile === entry.id ? "page" : undefined} onClick={()=>switchProfile(entry.id)}><span className={spread.contentsNumber} aria-hidden="true">{String(index+1).padStart(2,"0")}</span><span>{entry.label}</span><small>{snapshot.cards.filter(c=>!c.kind && c.profileKey === entry.id && state.pasted.includes(c.number)).length}/{snapshot.cards.filter(c=>!c.kind && c.profileKey === entry.id).length}</small></button>)}</nav>
       <div className={book.readingRail}><p>{nextChapter ? <><strong>Ton prochain chapitre ?</strong> Plus que {nextChapter.missing} vignette(s) chez les {ALBUM_PROFILES.find(entry=>entry.id === nextChapter.profile)!.label.toLowerCase()}.</> : <strong>Le peloton est au complet. Chaque page raconte ta saison.</strong>}</p>{nextChapter ? <button type="button" onClick={()=>switchProfile(nextChapter.profile,true)}>Aller au marque-page ↗</button> : <button type="button" onClick={()=>setTab("achievements")}>Voir mon livre d’or ↗</button>}</div>
       <div className={spread.layout}>
         <div className={book.bookStage}>
-        {openingCover ? <div className={book.openingCover} aria-hidden="true"><CollectorAlbumCover season={editionSeason} gamesEdition={snapshot.gamesEdition} count={state.pasted.length} total={snapshot.cards.length} decorative /></div> : null}
+        {openingCover ? <div className={book.openingCover} aria-hidden="true"><CollectorAlbumCover season={editionSeason} gamesEdition={snapshot.gamesEdition} ownerName={ownerName} privatePreview={privatePreview} count={state.pasted.length} total={snapshot.cards.length} decorative /></div> : null}
         {turn.number > 0 && !openingCover ? <div key={turn.number} className={book.pageTurn} data-direction={turn.direction} aria-hidden="true" /> : null}
         <section key={inIntroduction?`intro-${introLeaf}`:profile} id={chapterId} tabIndex={-1} className={`${styles.book} ${spread.book} ${book.pageContent} ${book.gestureSurface}`} data-profile={inIntroduction?"introduction":profile} data-mobile-leaf={mobileLeaf} aria-label={inIntroduction?"Pages d’ouverture de l’album":`Page ${selectedProfile.label}`} onKeyDown={event=>{if(event.target !== event.currentTarget || (event.key !== "ArrowLeft" && event.key !== "ArrowRight"))return;event.preventDefault();turnPage(event.key === "ArrowRight" ? 1 : -1);}} onPointerDown={startGesture} onPointerUp={endGesture} onPointerCancel={()=>{gesture.current=null;}}>
-          {inIntroduction?<CycloStickersIntroduction snapshot={snapshot} state={state} ready={store.ready} onAction={send} leaf={introLeaf} singlePage={singlePage} onTurn={turnPage} previousDisabled={previousDisabled} nextDisabled={nextDisabled}/>:<>
+          {inIntroduction?<CycloStickersIntroduction snapshot={snapshot} state={state} ready={store.ready} onAction={send} privatePreview={privatePreview} leaf={introLeaf} singlePage={singlePage} onTurn={turnPage} previousDisabled={previousDisabled} nextDisabled={nextDisabled}/>:<>
           <div className={book.pageEdges}><button type="button" aria-label="Feuille précédente" disabled={previousDisabled} onClick={()=>turnPage(-1)}>← Feuille précédente</button><span>Édition S{snapshot.sourceSeason} · {String(chapterIndex+1).padStart(2,"0")} / 07{singlePage ? <small> · {mobileLeaf} / {leaves[1].length > 0 ? 2 : 1}</small> : null}</span><button type="button" aria-label="Feuille suivante" disabled={nextDisabled} onClick={()=>turnPage(1)}>Feuille suivante →</button></div>
           <div className={spread.landscape} aria-hidden="true"><AlbumProfileArtwork profile={profile} decorative /></div>
           <header className={spread.chapterHeading}>
-            <div className={spread.chapterCopy}><p className={spread.publisher}>LA CYCLOGAZETTE · COLLECTION SAISON {snapshot.sourceSeason}</p><p className={spread.chapterIndex}>CHAPITRE {String(chapterIndex+1).padStart(2,"0")} <span>/ {String(ALBUM_PROFILES.length).padStart(2,"0")}</span></p><h2>{selectedProfile.label}</h2><p className={spread.subtitle}>{selectedProfile.subtitle}</p><p className={spread.chapterCount}><strong>{pastedInChapter} / {profileCards.length}</strong> vignettes collées <span aria-hidden="true">·</span> Toute la catégorie sur cette double page</p>{chapterComplete && reading.completedChapters[profile] ? <div className={book.chapterStamp}><strong>Chapitre complet</strong>Constaté le {new Date(reading.completedChapters[profile]!).toLocaleDateString("fr-FR",{timeZone:"UTC"})}<span className={book.signature}>Abbaye du Lion</span></div> : null}</div>
+            <div className={spread.chapterCopy}><p className={spread.publisher}>LA CYCLOGAZETTE · COLLECTION SAISON {snapshot.sourceSeason}</p><p className={spread.chapterIndex}>CHAPITRE {String(chapterIndex+1).padStart(2,"0")} <span>/ {String(ALBUM_PROFILES.length).padStart(2,"0")}</span></p><h2>{selectedProfile.label}</h2><p className={spread.subtitle}>{selectedProfile.subtitle}</p><p className={spread.chapterCount}><strong>{pastedInChapter} / {profileCards.length}</strong> vignettes collées <span aria-hidden="true">·</span> Toute la catégorie sur cette double page</p>{chapterComplete && reading.completedChapters[profile] ? <div className={book.chapterStamp}><strong>Chapitre complet</strong>Constaté le {new Date(reading.completedChapters[profile]!).toLocaleDateString("fr-FR",{timeZone:"UTC"})}<span className={book.signature}>{ownerName}</span></div> : null}</div>
             <div className={spread.chapterPostcard}><AlbumProfileArtwork profile={profile} decorative /><span>{selectedProfile.symbol} <span>{selectedProfile.subtitle}</span></span></div>
           </header>
           <div className={spread.leaves}>{leaves.map((cards, leafIndex) => <div className={spread.leaf} key={`${profile}-${leafIndex}`} data-album-leaf={leafIndex + 1}>
@@ -225,7 +234,7 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
             const owned = state.owned.includes(card.number);
             const reserved = getLooseAlbumCardCount(state,card.number) < 1 && state.pending?.give.includes(card.number);
             return <div key={card.id} className={`${styles.slotWrap} ${spread.slotWrap} ${format.slot}`} data-album-slot={card.number}>
-              {pasted ? <><div className={book.pasted}><CollectorCardFace card={card} season={snapshot.sourceSeason} /></div><button type="button" className={styles.textButton} onClick={()=>send({type:"unpaste",card:card.number},`${card.name} rejoint les cartes à coller.`)}>Décoller pour le test</button></> : <div className={`${styles.emptySlot} ${spread.emptySlot} ${format.empty} ${owned ? spread.readySlot : ""}`}>
+              {pasted ? <><div className={book.pasted}><CollectorCardFace card={card} season={snapshot.sourceSeason} /></div>{privatePreview ? <button type="button" className={styles.textButton} onClick={()=>send({type:"unpaste",card:card.number},`${card.name} rejoint les cartes à coller.`)}>Décoller pour le test</button> : null}</> : <div className={`${styles.emptySlot} ${spread.emptySlot} ${format.empty} ${owned ? spread.readySlot : ""}`}>
                 <span className={styles.slotNumber}>{String(card.number).padStart(2,"0")}</span><span className={styles.slotSymbol} aria-hidden="true">{selectedProfile.symbol}</span><h3>{card.name}</h3><p>{card.country}</p>
                 {owned ? <button type="button" className={styles.primaryButton} disabled={!store.ready || reserved} onClick={()=>send({type:"paste",card:card.number},`${card.name} est collé dans ton album.`)}>{reserved ? "Réservée à l’échange" : "Coller cette carte"}</button> : <span className={styles.toFind}>À collectionner</span>}
                 {!owned ? <><button type="button" className={book.wantedButton} aria-label={`Rechercher ${card.name}`} aria-pressed={reading.wanted.includes(card.number)} disabled={!readingReady} onClick={()=>read({type:"wanted",card:card.number})}>{reading.wanted.includes(card.number) ? "✓ Dans ma liste de recherche" : "+ Je cherche cette carte"}</button><button type="button" className={book.findButton} disabled={!store.ready} onClick={()=>findCard(card.number)}>Trouver un échange ↗</button></> : null}
@@ -240,13 +249,13 @@ export function CollectorAlbum({ snapshot, storageOwnerId, initialTab = "album",
         </section>
         </div>
         <aside className={`${styles.wallet} ${retro.collectorTable} ${spread.walletShelf}`}><div className={styles.walletHeading}><p className={styles.eyebrow}>SUR LA TABLE</p><h2>Les cartes à coller <span>{available.length}</span></h2><p>Choisis leur page, puis colle tes cartes.</p><p>{duplicateCount} doublon(s) échangeable(s) · {wanted.length} carte(s) recherchée(s)</p><button type="button" className={styles.textButton} onClick={()=>{setRequestedCard(null);setTab("trades");}}>Ouvrir mon carnet d’échanges ↗</button></div>
-          {available.length ? available.slice(visibleWalletPage*2,visibleWalletPage*2+2).map(id => <div className={`${styles.walletCard} ${format.slot}`} key={id}><CollectorCardFace card={cardFor(id)} season={snapshot.sourceSeason} /><p className={retro.copyCount}>{state.owned.filter(n=>n===id).length} exemplaire(s) · {getLooseAlbumCardCount(state,id)} disponible(s)</p><button type="button" className={styles.primaryButton} disabled={!store.ready || state.pasted.includes(id) || getLooseAlbumCardCount(state,id)<1} onClick={()=>{const c=cardFor(id);if(c.kind)showIntroduction(getAlbumIntroductionLeaves(snapshot.cards).findIndex(leaf=>leaf.some(card=>card.number===c.number)));else switchProfile(c.profileKey,true);send({type:"paste",card:id},`${c.name} est collé dans ton album.`);}}>{state.pasted.includes(id) ? "Déjà collée · doublon pour échange" : getLooseAlbumCardCount(state,id)<1 ? "Carte réservée à l’échange" : "Coller dans l’album ↗"}</button></div>) : <p className={styles.emptyWallet}>Toutes tes cartes sont dans l’album. Feuillette les chapitres ou ouvre un sachet pour continuer.</p>}
+          {available.length ? available.slice(visibleWalletPage*2,visibleWalletPage*2+2).map(id => <div className={`${styles.walletCard} ${format.slot}`} key={id}><CollectorCardFace card={cardFor(id)} season={snapshot.sourceSeason} /><p className={retro.copyCount}>{getAlbumOwnedCardCount(state,id)} exemplaire(s) · {getLooseAlbumCardCount(state,id)} disponible(s)</p><button type="button" className={styles.primaryButton} disabled={!store.ready || state.pasted.includes(id) || getLooseAlbumCardCount(state,id)<1} onClick={()=>{const c=cardFor(id);if(c.kind)showIntroduction(getAlbumIntroductionLeaves(snapshot.cards).findIndex(leaf=>leaf.some(card=>card.number===c.number)));else switchProfile(c.profileKey,true);send({type:"paste",card:id},`${c.name} est collé dans ton album.`);}}>{state.pasted.includes(id) ? "Déjà collée · doublon pour échange" : getLooseAlbumCardCount(state,id)<1 ? "Carte réservée à l’échange" : "Coller dans l’album ↗"}</button></div>) : <p className={styles.emptyWallet}>Toutes tes cartes sont dans l’album. Feuillette les chapitres ou ouvre un sachet pour continuer.</p>}
           {walletPageCount>1 ? <div className={styles.bookFooter}><button type="button" aria-label="Cartes à coller précédentes" disabled={visibleWalletPage===0} onClick={()=>setWalletPage(visibleWalletPage-1)}>←</button><span>{visibleWalletPage+1} / {walletPageCount}</span><button type="button" aria-label="Cartes à coller suivantes" disabled={visibleWalletPage===walletPageCount-1} onClick={()=>setWalletPage(visibleWalletPage+1)}>→</button></div> : null}
-          <div className={styles.gazetteNote}><span aria-hidden="true">✉</span><h3>Un rendez-vous rare</h3><p>À terme, certaines éditions de la Gazette pourront offrir une carte. Aucun tirage n’est encore activé. Pas d’achat, ni d’autre source prévue pour le moment.</p></div>
+          <div className={styles.gazetteNote}><span aria-hidden="true">✉</span><h3>Les rendez-vous du collectionneur</h3><p>Les boosters de connexion et de parrainage restent attachés à leur édition. Chaque sachet contient deux vignettes.</p></div>
         </aside>
       </div>
-    </> : tab === "boosters" ? <CollectorAlbumBoosters state={state} ready={store.ready} snapshot={snapshot} onAction={send} onViewAlbum={()=>{setTab("album");if(hasIntroduction&&!reading.lastProfile)showIntroduction();else switchProfile(reading.lastProfile ?? profile);}} onPasteCards={pasteCards} /> : tab === "achievements" ? <CollectorAlbumAchievements state={state} ready={store.ready} snapshot={snapshot} onAction={send} /> : <CollectorAlbumTradeDesk key={requestedCard ?? "desk"} state={state} ready={store.ready} snapshot={snapshot} onAction={send} requestedCard={requestedCard} wanted={wanted} onToggleWanted={number=>read({type:"wanted",card:number})} />}
-    <div className={styles.pilotNote}><span aria-hidden="true">✦</span><p><strong>Ton exemplaire de démonstration.</strong> Deux cartes et deux sachets d’essai. {snapshot.gamesEdition?"Les 19 vignettes d’ouverture sont fournies pour ce test. ":null}Progression et échanges restent dans ce navigateur. Les récompenses sont simulées, sans effet sur ton équipe.</p></div>
-    <footer className={styles.legend}><div><h2>Les finitions de la collection</h2><p>Le classement UCI final S{snapshot.sourceSeason} détermine la finition. Les notes restent celles du coureur, sans bonus d’équipement.</p><div className={styles.rarityLegend}><span>✦ Or <small>1–5</small></span><span>✦ Argent <small>6–20</small></span><span>✦ Bronze <small>21–50</small></span></div></div><div className={styles.reset}><p>Aperçu privé · aucun effet sur les courses, les finances ou les inventaires des joueurs.</p>{resetConfirm ? <div><button type="button" onClick={()=>{send({type:"reset"},"La démonstration est réinitialisée : tes deux cartes de départ sont disponibles.");setReading(createAlbumReadingState());setProfile("tours");setInIntroduction(hasIntroduction);setIntroLeaf(0);setBookOpen(false);setRequestedCard(null);setResetConfirm(false);}}>Confirmer la remise à zéro</button><button type="button" onClick={()=>setResetConfirm(false)}>Garder mon essai</button></div> : <button type="button" onClick={()=>setResetConfirm(true)}>Réinitialiser uniquement cet essai</button>}</div></footer>
+    </> : tab === "boosters" ? runtime?.boosters ?? <CollectorAlbumBoosters state={state} ready={store.ready} snapshot={snapshot} onAction={send} onViewAlbum={()=>{setTab("album");if(hasIntroduction&&!reading.lastProfile)showIntroduction();else switchProfile(reading.lastProfile ?? profile);}} onPasteCards={pasteCards} /> : tab === "achievements" ? runtime?.achievements ?? <CollectorAlbumAchievements state={state} ready={store.ready} snapshot={snapshot} onAction={send} /> : runtime?.trades(requestedCard) ?? <CollectorAlbumTradeDesk key={requestedCard ?? "desk"} state={state} ready={store.ready} snapshot={snapshot} onAction={send} requestedCard={requestedCard} wanted={wanted} onToggleWanted={number=>read({type:"wanted",card:number})} />}
+    {privatePreview ? <div className={styles.pilotNote}><span aria-hidden="true">✦</span><p><strong>Ton exemplaire de démonstration.</strong> Deux cartes et deux sachets d’essai. {snapshot.gamesEdition?"Les 19 vignettes d’ouverture sont fournies pour ce test. ":null}Progression et échanges restent dans ce navigateur. Les récompenses sont simulées, sans effet sur ton équipe.</p></div> : null}
+    <footer className={styles.legend}><div><h2>Les finitions de la collection</h2><p>Le classement UCI final S{snapshot.sourceSeason} détermine la finition. Les notes restent celles du coureur, sans bonus d’équipement.</p><div className={styles.rarityLegend}><span>✦ Or <small>1–5</small></span><span>✦ Argent <small>6–20</small></span><span>✦ Bronze <small>21–50</small></span></div></div>{privatePreview ? <div className={styles.reset}><p>Aperçu privé · aucun effet sur les courses, les finances ou les inventaires des joueurs.</p>{resetConfirm ? <div><button type="button" onClick={()=>{send({type:"reset"},"La démonstration est réinitialisée : tes deux cartes de départ sont disponibles.");setReading(createAlbumReadingState());setProfile("tours");setInIntroduction(hasIntroduction);setIntroLeaf(0);setBookOpen(false);setRequestedCard(null);setResetConfirm(false);}}>Confirmer la remise à zéro</button><button type="button" onClick={()=>setResetConfirm(false)}>Garder mon essai</button></div> : <button type="button" onClick={()=>setResetConfirm(true)}>Réinitialiser uniquement cet essai</button>}</div> : null}</footer>
   </div>;
 }

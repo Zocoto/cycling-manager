@@ -23,8 +23,9 @@ describe("Cyclo-Stickers private S4 presentation",()=>{
     for(const html of [cover,pack]) {
       expect(html).toContain(`href="${QUADRENNIAL_GAMES_EMBLEM}"`);
       expect(html).toContain("data-album-games-emblem");
-      expect(html).toContain("Emblème des Jeux quadriennaux");
-      expect(html).toContain("L’ÉQUIPIER SANS TÊTE");
+      expect(html).toContain('data-album-games-emblem="stadium"');
+      expect(html).toContain('data-album-games-flame=""');
+      expect(html).toContain("l’Équipier sans tête porte la flamme");
     }
     expect(renderToStaticMarkup(<CollectorAlbumCover season={3} count={0} total={50}/>)).not.toContain(QUADRENNIAL_GAMES_EMBLEM);
     expect(renderToStaticMarkup(<AlbumBoosterArtwork sourceSeason={3}/>)).not.toContain(QUADRENNIAL_GAMES_EMBLEM);
@@ -36,7 +37,7 @@ describe("Cyclo-Stickers private S4 presentation",()=>{
     expect(html).toContain("/ 69");
     expect(html).not.toMatch(/ultra.holo/i);
     const cover=renderToStaticMarkup(<CollectorAlbumCover season={4} count={0} total={69} gamesEdition/>);
-    expect(cover).toContain("la légende de l’Équipier sans tête");
+    expect(cover).toContain("l’Équipier sans tête porte la flamme");
   });
   it("prints every opening sticker within the book, never in a separate toolbar tab",()=>{
     const html=[0,2].map(leaf=>renderToStaticMarkup(<CycloStickersIntroduction snapshot={snapshot} state={{...state,pasted:snapshot.cards.slice(50).map(card=>card.number)}} ready onAction={onAction} leaf={leaf}/>)).join("");

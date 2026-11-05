@@ -31,4 +31,9 @@ const filenames = extractUiStrings('const files = [{name:"PCMAssets_cyclostrateg
 assert.ok(!filenames.has('PCMAssets_cyclostratege-local_P.pak'));
 assert.ok(!filenames.has('Installer-graphismes.ps1'));
 assert.ok(filenames.has('Installer les graphismes'));
-console.log('I18n scanner: 20 checks passed (component lists, labels, templates, technical filenames and exact external artifact functions).');
+assert.equal(extractUiStrings('const rider = {name: "Coureur de recette"};', 'lib/game/album.fixture.ts').size, 0);
+assert.equal(extractUiStrings('const view = <h1>Équipe de recette</h1>;', 'components/game/album.fixture.tsx').size, 0);
+const rpc = extractUiStrings('const action = {rpcName: "open_current_cyclo_stickers_booster", label: "Ouvrir le sachet"};');
+assert.ok(!rpc.has('open_current_cyclo_stickers_booster'));
+assert.ok(rpc.has('Ouvrir le sachet'));
+console.log('I18n scanner: 24 checks passed (component copy, templates, technical identifiers, test fixtures and exact external artifact functions).');

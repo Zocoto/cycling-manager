@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getWeeklyLoginBoosterWeek, normalizeWeeklyLoginBoosterProgress } from "./weekly-login-boosters";
 
 describe("weekly login boosters", () => {
-  it.each([[0, 0, 7], [1, 1, 6], [6, 6, 1], [7, 7, 7], [8, 1, 6], [14, 7, 7], [21, 7, 7], [40, 5, 2]])(
+  it.each([[0, 0, 3], [1, 1, 2], [2, 2, 1], [3, 3, 3], [4, 1, 2], [6, 3, 3], [7, 1, 2], [14, 2, 1], [40, 1, 2]])(
     "keeps %i connection days separate from the forty-gift cycle", (days, completedDays, daysUntilNextBooster) => {
       expect(getWeeklyLoginBoosterWeek(days)).toEqual({ completedDays, daysUntilNextBooster });
     },

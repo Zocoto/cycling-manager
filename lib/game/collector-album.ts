@@ -97,7 +97,7 @@ export const ALBUM_ACHIEVEMENTS: readonly AlbumAchievement[] = [
   ...ALBUM_PROFILES.map(p => ({id:`profile-${p.id}`,name:`Chapitre complet · ${p.label}`,description:`Compléter la page des ${p.label.toLowerCase()}.`,kind:"profile" as const,target:1,profile:p.id,cash:15000,xp:100,reputation:5})),
   {id:"rarity-bronze",name:"Le charme du bronze",description:"Coller toutes les cartes bronze de la saison.",kind:"rarity",rarity:"bronze",target:30,cash:25000,xp:200,reputation:5},
   {id:"rarity-silver",name:"Les reflets d’argent",description:"Coller toutes les cartes argent de la saison.",kind:"rarity",rarity:"silver",target:15,cash:40000,xp:200,reputation:10},
-  {id:"rarity-gold",name:"Le club des légendes",description:"Coller les cinq cartes or de la saison.",kind:"rarity",rarity:"gold",target:5,cash:60000,xp:200,reputation:15},
+  {id:"rarity-gold",name:"Le club des légendes",description:"Coller toutes les cartes or de la saison.",kind:"rarity",rarity:"gold",target:5,cash:60000,xp:200,reputation:15},
   {id:"mixed",name:"Toutes les couleurs du vélo",description:"Coller au moins une carte bronze, une argent et une or.",kind:"mixed",target:3,cash:5000,xp:50,reputation:5},
   {id:"trade",name:"À la récré",description:"Terminer un premier échange de cartes.",kind:"trade",target:1,cash:5000,xp:50,reputation:0},
 ];
@@ -107,6 +107,8 @@ export type AlbumPilotState = {
   version: 3;
   season: number;
   owned: number[];
+  /** Server views keep one number per card and its quantity without expanding every copy. */
+  ownedQuantities?: Record<number, number>;
   partners: Record<string, number[]>;
   pasted: number[];
   pending: AlbumOffer | null;
@@ -127,8 +129,12 @@ export type AlbumPilotAction =
   | { type: "claim-achievement"; id: string }
   | { type: "reset" };
 
+export function getAlbumOwnedCardCount(state: AlbumPilotState, id: number): number {
+  return state.ownedQuantities ? state.ownedQuantities[id] ?? 0 : state.owned.filter(number => number === id).length;
+}
+
 export function getLooseAlbumCardCount(state: AlbumPilotState, id: number, includeReserved = false): number {
-  return state.owned.filter(n => n === id).length - Number(state.pasted.includes(id)) - (includeReserved ? 0 : state.pending?.give.filter(n=>n===id).length ?? 0);
+  return getAlbumOwnedCardCount(state, id) - Number(state.pasted.includes(id)) - (includeReserved ? 0 : state.pending?.give.filter(n=>n===id).length ?? 0);
 }
 
 function isKnownAlbumNumber(id: number, cards: readonly CollectorCard[]) {

@@ -18,6 +18,18 @@ const palette = {
 };
 
 describe("AchievementTrophyMark", () => {
+  it("keeps the album trophy tied to its source edition without advertising it before launch", () => {
+    const definition = ACHIEVEMENT_TROPHY_DEFINITIONS.cyclo_stickers_s4;
+    expect(definition.href).toBe("/jeu/album?saison=5");
+    const gallery = buildTrophyGallery({ raceWins: [], teamUciTitles: [], riderUciTitles: [], specialAwards: [{
+      id: "album", trophyKey: "cyclo_stickers_s4", availableAt: "2026-11-28T12:00:00Z",
+      claimedAt: "2026-11-28T12:00:00Z", href: definition.href,
+    }] });
+    expect(gallery.trophies.find(trophy => trophy.title === "Mémoire du peloton")).toMatchObject({
+      seasonName: "Saison 4", visualVariant: "collector-album",
+    });
+    expect(getLockedTrophyTargets([]).some(trophy => trophy.title === definition.title)).toBe(false);
+  });
   it("renders every catalogue identity as a lightweight flat SVG", () => {
     const markup = variants
       .map((variant) =>

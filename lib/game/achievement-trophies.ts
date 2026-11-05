@@ -57,7 +57,8 @@ export type AchievementTrophyVisualVariant =
   | "presidential-seal"
   | "switchback"
   | "poker-chips"
-  | "midnight-auction";
+  | "midnight-auction"
+  | "collector-album";
 
 export const INVETERATE_PLAYER_TROPHY_KEY = "joueur_inveter";
 export const NIGHT_AUCTION_TROPHY_KEY = "jusqu_au_bout_de_la_nuit";
@@ -66,6 +67,20 @@ export const NEWCOMER_JOURNEY_TROPHY_KEY = "premiers_tours_de_roue";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   ...prospectiveTrophies,
+  cyclo_stickers_s4: {
+    objectiveKey: null,
+    title: "Mémoire du peloton",
+    competitionName: "Album de Cyclo-Stickers",
+    seasonName: "Saison 4",
+    inscription: "S4 · 69 vignettes · Une saison conservée",
+    description: "Décerné au collectionneur qui colle les 69 vignettes de l’édition consacrée à la saison 4.",
+    href: "/jeu/album?saison=5",
+    visualVariant: "collector-album" satisfies AchievementTrophyVisualVariant,
+    palette: {
+      primary: "#D9B663", secondary: "#FFF0C8", accent: "#425A83",
+      glow: "rgba(217, 182, 99, 0.35)",
+    } satisfies TrophyPalette,
+  },
   atlas_peloton: {
     objectiveKey: "roster_all_continents",
     title: "Atlas du peloton",

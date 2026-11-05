@@ -122,8 +122,7 @@ function collectCandidates() {
 
   for (const scanRoot of SCAN_ROOTS) {
     walk(path.join(ROOT, scanRoot), (filePath) => {
-      if (!/\.(?:ts|tsx)$/.test(filePath)) return;
-      if (/\.(?:test|spec)\.(?:ts|tsx)$/.test(filePath)) return;
+      if (!isUiSourceFile(filePath)) return;
       if (filePath.startsWith(path.join(ROOT, "lib", "i18n") + path.sep)) return;
 
       const sourceText = fs.readFileSync(filePath, "utf8");
@@ -152,10 +151,15 @@ function collectCandidates() {
 
 export function extractUiStrings(sourceText, filePath = "fixture.tsx") {
   const candidates = new Set();
+  if (!isUiSourceFile(filePath)) return candidates;
   const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true,
     filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   visit(sourceFile, candidates);
   return candidates;
+}
+
+function isUiSourceFile(filePath) {
+  return /\.(?:ts|tsx)$/.test(filePath) && !/\.(?:test|spec|fixture)\.(?:ts|tsx)$/.test(filePath);
 }
 
 function visit(node, candidates, visibleAncestor = false) {
