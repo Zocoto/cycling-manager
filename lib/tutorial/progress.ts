@@ -15,6 +15,18 @@ type SportingDirectorIdRow = {
   id: string;
 };
 
+// Cursor/history consumers never need the frozen Critérium replay. Keep its
+// large timeline in PostgreSQL until an actual race/replay page requests it.
+const PROGRESS_COLUMNS = "id,sporting_director_id,tutorial_key,tutorial_type,tutorial_version,status,current_step_key,current_route,started_at,completed_at,skipped_at,created_at,updated_at";
+const SESSION_COLUMNS = "id,tutorial_progress_id,tutorial_version,launch_source,status,first_step_key,last_step_key,started_at,ended_at,created_at,updated_at";
+type ProgressReadOptions = {
+  includeMetadata?: boolean;
+  signal?: AbortSignal;
+  sportingDirectorId?: string;
+};
+type TutorialProgressReadRow = Omit<TutorialProgressRow, "metadata"> &
+  Partial<Pick<TutorialProgressRow, "metadata">>;
+
 /**
  * Retrouve le profil métier associé au compte actuellement connecté.
  *
@@ -24,6 +36,7 @@ type SportingDirectorIdRow = {
  */
 export async function requireAuthenticatedSportingDirectorId(
   supabase: SupabaseServerClient,
+  signal: AbortSignal = AbortSignal.timeout(8_000),
 ): Promise<string> {
   const {
     data: { user },
@@ -44,6 +57,7 @@ export async function requireAuthenticatedSportingDirectorId(
     .select("id")
     .eq("auth_user_id", user.id)
     .eq("status", "active")
+    .abortSignal(signal)
     .maybeSingle<SportingDirectorIdRow>();
 
   if (sportingDirectorError) {
@@ -70,21 +84,25 @@ export async function requireAuthenticatedSportingDirectorId(
 export async function listAuthenticatedTutorialProgress(
   supabase: SupabaseServerClient,
 ): Promise<TutorialProgressRow[]> {
+  const signal = AbortSignal.timeout(8_000);
   const sportingDirectorId =
     await requireAuthenticatedSportingDirectorId(
       supabase,
+      signal,
     );
 
   const { data, error } = await supabase
     .from("tutorial_progress")
-    .select("*")
+    .select(PROGRESS_COLUMNS)
     .eq(
       "sporting_director_id",
       sportingDirectorId,
     )
     .order("created_at", {
       ascending: true,
-    });
+    })
+    .limit(64)
+    .abortSignal(signal);
 
   if (error) {
     throw new Error(
@@ -92,7 +110,7 @@ export async function listAuthenticatedTutorialProgress(
     );
   }
 
-  return (data ?? []) as TutorialProgressRow[];
+  return (data ?? []).map(row => ({...row, metadata: {}})) as TutorialProgressRow[];
 }
 
 /**
@@ -101,21 +119,25 @@ export async function listAuthenticatedTutorialProgress(
 export async function getAuthenticatedTutorialProgress(
   supabase: SupabaseServerClient,
   tutorialKey: string,
+  options: ProgressReadOptions = {},
 ): Promise<TutorialProgressRow | null> {
+  const signal = options.signal ?? AbortSignal.timeout(8_000);
   const sportingDirectorId =
-    await requireAuthenticatedSportingDirectorId(
+    options.sportingDirectorId ?? await requireAuthenticatedSportingDirectorId(
       supabase,
+      signal,
     );
 
   const { data, error } = await supabase
     .from("tutorial_progress")
-    .select("*")
+    .select(options.includeMetadata === false ? PROGRESS_COLUMNS : "*")
     .eq(
       "sporting_director_id",
       sportingDirectorId,
     )
     .eq("tutorial_key", tutorialKey)
-    .maybeSingle();
+    .abortSignal(signal)
+    .maybeSingle<TutorialProgressReadRow>();
 
   if (error) {
     throw new Error(
@@ -123,7 +145,11 @@ export async function getAuthenticatedTutorialProgress(
     );
   }
 
-  return (data ?? null) as TutorialProgressRow | null;
+  if (!data) return null;
+  return {
+    ...data,
+    metadata: options.includeMetadata === false ? {} : (data.metadata ?? {}),
+  };
 }
 
 /**
@@ -135,15 +161,17 @@ export async function getAuthenticatedTutorialProgress(
 export async function getActiveTutorialSession(
   supabase: SupabaseServerClient,
   tutorialProgressId: string,
+  signal: AbortSignal = AbortSignal.timeout(8_000),
 ): Promise<TutorialSessionRow | null> {
   const { data, error } = await supabase
     .from("tutorial_sessions")
-    .select("*")
+    .select(SESSION_COLUMNS)
     .eq(
       "tutorial_progress_id",
       tutorialProgressId,
     )
     .eq("status", "in_progress")
+    .abortSignal(signal)
     .maybeSingle();
 
   if (error) {
@@ -152,5 +180,5 @@ export async function getActiveTutorialSession(
     );
   }
 
-  return (data ?? null) as TutorialSessionRow | null;
+  return data ? {...data, metadata: {}} as TutorialSessionRow : null;
 }

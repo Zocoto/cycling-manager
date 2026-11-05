@@ -8,6 +8,7 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
 import {
   CRITERIUM_DISCOVERY_KEY,
+  CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
   appendCriteriumDiscoveryEdition,
   createCriteriumDiscoveryPreviewEdition,
   getCriteriumDiscoveryRunFromMetadata,
@@ -255,7 +256,11 @@ export default async function RaceCalendarPage({
             ) : null}
             {readSingleSearchParam(
               resolvedSearchParams.inscription
-            ) === "confirmee" ? (
+            ) === "confirmee" ||
+            (criteriumRun !== null &&
+              criteriumProgress?.status === "in_progress" &&
+              criteriumProgress.current_step_key ===
+                CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY) ? (
               <div
                 data-tutorial-id="criterium-registration-confirmation"
                 className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900"

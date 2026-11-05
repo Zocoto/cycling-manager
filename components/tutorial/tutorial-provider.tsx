@@ -25,6 +25,10 @@ import {
 import { useLocale } from "@/components/i18n/locale-provider";
 import { selectInstantAutoStartTutorialKey } from "@/lib/tutorial/instant-start";
 import {
+  TutorialRequestTimeoutError,
+  waitForTutorialRequest,
+} from "@/lib/tutorial/client-request";
+import {
   matchesTutorialRoute,
   resolveConcreteTutorialRoute,
 } from "@/lib/tutorial/routes";
@@ -71,6 +75,7 @@ type TutorialContextValue = {
   errorMessage: string | null;
 
   startTutorial: (options: StartTutorialOptions) => Promise<boolean>;
+  resumeActiveTutorial: () => boolean;
 
   previousStep: () => Promise<void>;
   nextStep: () => Promise<void>;
@@ -198,13 +203,37 @@ export function TutorialProvider({
   const [activeTutorial, setActiveTutorial] = useState<ActiveTutorial | null>(
     null,
   );
+  const activeDestinationRef = useRef<string | null>(null);
 
   const [isPending, setIsPending] = useState(false);
+  const operationInFlightRef = useRef(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [instantAutoStartTutorialKey, setInstantAutoStartTutorialKey] =
     useState<string | null>(null);
+
+  const beginOperation = useCallback(() => {
+    if (operationInFlightRef.current) return false;
+    operationInFlightRef.current = true;
+    setIsPending(true);
+    setErrorMessage(null);
+    return true;
+  }, []);
+
+  const finishOperation = useCallback(() => {
+    operationInFlightRef.current = false;
+    setIsPending(false);
+  }, []);
+
+  const requestErrorMessage = useCallback((error: unknown, fallback: string) => {
+    if (error instanceof TutorialRequestTimeoutError) {
+      return isEnglish
+        ? "The tutorial is taking too long to respond. Your progress may have been saved. Try resuming it."
+        : "Le didacticiel met trop de temps à répondre. Votre progression a peut-être été enregistrée. Essayez de le reprendre.";
+    }
+    return error instanceof Error ? error.message : fallback;
+  }, [isEnglish]);
 
   const loadAndStoreTutorialRuntime = useCallback(async () => {
     const runtime = await loadTutorialClientRuntime();
@@ -283,13 +312,30 @@ export function TutorialProvider({
     [currentRoute, router],
   );
 
+  // Only an explicit local return uses this destination. Route-driven resumes
+  // must ask the server again: a registration or profile form may have advanced
+  // its cursor while the same tutorial remained mounted in the layout.
+  const resumeActiveTutorial = useCallback(() => {
+    if (operationInFlightRef.current || !activeTutorial) return false;
+    const step = activeTutorial.definition.steps[activeTutorial.currentStepIndex];
+    const destination = step && resolveTutorialStepRoute({
+      step, currentRoute, savedRoute: activeDestinationRef.current,
+    });
+    if (!destination) {
+      setErrorMessage("La fiche à ouvrir pour cette étape est momentanément introuvable.");
+      return false;
+    }
+    setErrorMessage(null);
+    navigateToStep(step.route, destination);
+    return true;
+  }, [activeTutorial, currentRoute, navigateToStep]);
+
   const startTutorial = useCallback(
     async (options: StartTutorialOptions): Promise<boolean> => {
-      setIsPending(true);
-      setErrorMessage(null);
+      if (!beginOperation()) return false;
 
       try {
-        const runtime = await loadAndStoreTutorialRuntime();
+        const runtime = await waitForTutorialRequest(loadAndStoreTutorialRuntime());
         const definition = runtime.getTutorialDefinition(options.tutorialKey);
 
         if (!definition) {
@@ -302,11 +348,11 @@ export function TutorialProvider({
           return false;
         }
 
-        const result = await startTutorialAction({
+        const result = await waitForTutorialRequest(startTutorialAction({
           tutorialKey: options.tutorialKey,
           launchSource: options.launchSource,
           restartFromBeginning: options.restartFromBeginning ?? false,
-        });
+        }));
 
         if (!result.ok) {
           setErrorMessage(result.error);
@@ -358,6 +404,7 @@ export function TutorialProvider({
           currentKey === definition.key ? null : currentKey,
         );
 
+        activeDestinationRef.current = resolvedRoute;
         setActiveTutorial({
           definition,
           progress: result.progress,
@@ -370,22 +417,23 @@ export function TutorialProvider({
         return true;
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Impossible de démarrer le didacticiel.",
+          requestErrorMessage(error, "Impossible de démarrer le didacticiel."),
         );
 
         return false;
       } finally {
-        setIsPending(false);
+        finishOperation();
       }
     },
     [
       currentRoute,
+      beginOperation,
+      finishOperation,
       isEnglish,
       loadAndStoreTutorialRuntime,
       navigateToStep,
       saveProgress,
+      requestErrorMessage,
     ],
   );
 
@@ -413,15 +461,14 @@ export function TutorialProvider({
         return false;
       }
 
-      setIsPending(true);
-      setErrorMessage(null);
+      if (!beginOperation()) return false;
 
       try {
-        const result = await setTutorialStepAction({
+        const result = await waitForTutorialRequest(setTutorialStepAction({
           tutorialKey: activeTutorial.definition.key,
           stepKey: step.key,
           route: resolvedRoute,
-        });
+        }));
 
         if (!result.ok) {
           setErrorMessage(result.error);
@@ -459,10 +506,11 @@ export function TutorialProvider({
         }
 
         saveProgress(result.progress);
+        activeDestinationRef.current = navigationRoute;
 
         setActiveTutorial((current) => {
-          if (!current) {
-            return null;
+          if (!current || current.session.id !== activeTutorial.session.id) {
+            return current;
           }
 
           return {
@@ -478,17 +526,15 @@ export function TutorialProvider({
         return true;
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Impossible d’enregistrer cette étape.",
+          requestErrorMessage(error, "Impossible d’enregistrer cette étape."),
         );
 
         return false;
       } finally {
-        setIsPending(false);
+        finishOperation();
       }
     },
-    [activeTutorial, currentRoute, navigateToStep, saveProgress],
+    [activeTutorial, beginOperation, currentRoute, finishOperation, navigateToStep, requestErrorMessage, saveProgress],
   );
 
   const previousStep = useCallback(async () => {
@@ -517,15 +563,14 @@ export function TutorialProvider({
       return false;
     }
 
-    setIsPending(true);
-    setErrorMessage(null);
+    if (!beginOperation()) return false;
 
     try {
-      const result = await completeTutorialAction({
+      const result = await waitForTutorialRequest(completeTutorialAction({
         tutorialKey: activeTutorial.definition.key,
         stepKey: currentStep.key,
         route: currentStep.route,
-      });
+      }));
 
       if (!result.ok) {
         setErrorMessage(result.error);
@@ -539,16 +584,14 @@ export function TutorialProvider({
       return true;
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible de terminer le didacticiel.",
+        requestErrorMessage(error, "Impossible de terminer le didacticiel."),
       );
 
       return false;
     } finally {
-      setIsPending(false);
+      finishOperation();
     }
-  }, [activeTutorial, router, saveProgress]);
+  }, [activeTutorial, beginOperation, finishOperation, requestErrorMessage, router, saveProgress]);
 
   const continueToFollowUpTutorial = useCallback(async () => {
     const followUpTutorialKey = activeTutorial?.definition.followUpTutorialKey;
@@ -597,15 +640,17 @@ export function TutorialProvider({
       return;
     }
 
-    setIsPending(true);
-    setErrorMessage(null);
+    if (!beginOperation()) return;
+    // Pausing the local guide must remain possible even when the server cannot
+    // acknowledge it. The last saved progress is kept for a later resume.
+    setActiveTutorial(null);
 
     try {
-      const result = await quitTutorialAction({
+      const result = await waitForTutorialRequest(quitTutorialAction({
         tutorialKey: activeTutorial.definition.key,
         stepKey: currentStep.key,
         route: currentStep.route,
-      });
+      }));
 
       if (!result.ok) {
         setErrorMessage(result.error);
@@ -616,14 +661,12 @@ export function TutorialProvider({
       setActiveTutorial(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible de quitter le didacticiel.",
+        requestErrorMessage(error, "Impossible de quitter le didacticiel."),
       );
     } finally {
-      setIsPending(false);
+      finishOperation();
     }
-  }, [activeTutorial, saveProgress]);
+  }, [activeTutorial, beginOperation, finishOperation, requestErrorMessage, saveProgress]);
 
   const skipTutorial = useCallback(async () => {
     if (!activeTutorial) {
@@ -638,13 +681,12 @@ export function TutorialProvider({
       return;
     }
 
-    setIsPending(true);
-    setErrorMessage(null);
+    if (!beginOperation()) return;
 
     try {
-      const result = await skipTutorialAction({
+      const result = await waitForTutorialRequest(skipTutorialAction({
         tutorialKey: activeTutorial.definition.key,
-      });
+      }));
 
       if (!result.ok) {
         setErrorMessage(result.error);
@@ -655,14 +697,12 @@ export function TutorialProvider({
       setActiveTutorial(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible d’ignorer le didacticiel.",
+        requestErrorMessage(error, "Impossible d’ignorer le didacticiel."),
       );
     } finally {
-      setIsPending(false);
+      finishOperation();
     }
-  }, [activeTutorial, saveProgress]);
+  }, [activeTutorial, beginOperation, finishOperation, requestErrorMessage, saveProgress]);
 
   const getTutorialProgress = useCallback(
     (tutorialKey: string): TutorialProgressRow | null =>
@@ -707,13 +747,12 @@ export function TutorialProvider({
     }
 
     autoStartAttemptedRef.current = true;
-    setIsPending(true);
-    setErrorMessage(null);
+    if (!beginOperation()) return;
 
     try {
-      const result = await skipTutorialAction({
+      const result = await waitForTutorialRequest(skipTutorialAction({
         tutorialKey: instantAutoStartTutorialKey,
-      });
+      }));
 
       if (!result.ok) {
         setErrorMessage(result.error);
@@ -724,14 +763,12 @@ export function TutorialProvider({
       setInstantAutoStartTutorialKey(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible d’ignorer le didacticiel.",
+        requestErrorMessage(error, "Impossible d’ignorer le didacticiel."),
       );
     } finally {
-      setIsPending(false);
+      finishOperation();
     }
-  }, [instantAutoStartTutorialKey, saveProgress]);
+  }, [beginOperation, finishOperation, instantAutoStartTutorialKey, requestErrorMessage, saveProgress]);
 
   useEffect(() => {
     if (
@@ -813,6 +850,7 @@ export function TutorialProvider({
       isPending,
       errorMessage,
       startTutorial,
+      resumeActiveTutorial,
       previousStep,
       nextStep,
       quitTutorial,
@@ -826,6 +864,7 @@ export function TutorialProvider({
       isPending,
       errorMessage,
       startTutorial,
+      resumeActiveTutorial,
       previousStep,
       nextStep,
       quitTutorial,
@@ -901,6 +940,43 @@ export function TutorialProvider({
       ) : null}
 
       {children}
+
+      {!shouldDisplayOverlay && !shouldDisplayInstantIntro && (localizedActiveTutorial || errorMessage) ? (
+        <aside
+          aria-label={isEnglish ? "Tutorial status" : "État du didacticiel"}
+          className="fixed inset-x-4 bottom-24 z-[120] rounded-2xl border border-[#278B70]/30 bg-[#FFFDF4] p-4 text-[#183F37] shadow-xl sm:left-auto sm:right-6 sm:max-w-sm"
+        >
+          {localizedActiveTutorial ? (
+            <>
+              <p className="text-sm font-black">{localizedActiveTutorial.definition.title}</p>
+              <p className="mt-1 text-xs leading-5">
+                {isEnglish ? "Return to the current step to continue your tutorial." : "Revenez à l’étape en cours pour poursuivre votre didacticiel."}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={resumeActiveTutorial}
+                  className="min-h-10 flex-1 rounded-xl bg-[#176951] px-4 text-xs font-black text-white disabled:opacity-55"
+                >
+                  {isEnglish ? "Resume tutorial" : "Reprendre le didacticiel"}
+                </button>
+                <button type="button" disabled={isPending} onClick={() => void quitTutorial()} className="min-h-10 rounded-xl border border-[#315B3E]/20 px-3 text-xs font-bold disabled:opacity-55">
+                  {isEnglish ? "Pause" : "Mettre en pause"}
+                </button>
+              </div>
+            </>
+          ) : null}
+          {errorMessage ? (
+            <div className={localizedActiveTutorial ? "mt-3" : ""}>
+              <p role="alert" className="text-sm font-bold text-[#8B302E]">{errorMessage}</p>
+              <button type="button" onClick={clearTutorialError} className="mt-2 min-h-9 text-xs font-bold underline">
+                {isEnglish ? "Dismiss" : "Fermer"}
+              </button>
+            </div>
+          ) : null}
+        </aside>
+      ) : null}
 
       {localizedActiveTutorial && currentStep && shouldDisplayOverlay ? (
         <TutorialOverlay

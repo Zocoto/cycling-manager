@@ -425,7 +425,7 @@ function ScoutingTab({
         </>
       ) : null}
 
-      {activeMissions.length ? (
+      {!tutorialDemo && activeMissions.length ? (
         <section>
           <SectionHeading eyebrow="Sur le terrain" title="Missions en cours" />
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -440,7 +440,7 @@ function ScoutingTab({
         </section>
       ) : null}
 
-      <section>
+      {!tutorialDemo ? <section>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeading
             eyebrow="Rapports de détection"
@@ -498,7 +498,7 @@ function ScoutingTab({
             }
           />
         )}
-      </section>
+      </section> : null}
     </div>
   );
 }
@@ -712,7 +712,7 @@ function AcademyTab({
         </div>
       </div>
       <YouthCoachCard coach={overview.youthCoach} />
-      {nextSeasonPromotions.length ? (
+      {!tutorialDemo && nextSeasonPromotions.length ? (
         <NextSeasonPromotions
           riders={nextSeasonPromotions}
           gameYear={overview.gameYear + 1}
@@ -728,7 +728,7 @@ function AcademyTab({
           }
         />
       ) : null}
-      {!overview.canScheduleYouthPromotion ? (
+      {!tutorialDemo && !overview.canScheduleYouthPromotion ? (
         <Alert tone="error">
           Effectif de la saison prochaine complet :{" "}
           {overview.nextSeasonRosterCommitments} / {overview.rosterLimit} places
@@ -736,7 +736,7 @@ function AcademyTab({
           promotion.
         </Alert>
       ) : null}
-      {overview.academy.length ? (
+      {!tutorialDemo ? overview.academy.length ? (
         <>
           {!tutorialDemo ? (
             <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5">
@@ -815,7 +815,7 @@ function AcademyTab({
           title="Votre école est encore vide"
           text="Signez un jeune depuis un rapport de scouting pour commencer sa formation."
         />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -22,6 +22,7 @@ type CurrentTeamOnboardingRow = {
 
 export async function getAuthenticatedTutorialOnboardingState(
   supabase: SupabaseServerClient,
+  signal: AbortSignal = AbortSignal.timeout(8_000),
 ): Promise<TutorialOnboardingState> {
   const {
     data: { user },
@@ -40,9 +41,11 @@ export async function getAuthenticatedTutorialOnboardingState(
       .select("id, country_id, avatar_key")
       .eq("auth_user_id", user.id)
       .eq("status", "active")
+      .abortSignal(signal)
       .maybeSingle<SportingDirectorOnboardingRow>(),
     supabase
       .rpc("get_current_team_dashboard_summary")
+      .abortSignal(signal)
       .maybeSingle<CurrentTeamOnboardingRow>(),
   ]);
 
@@ -76,6 +79,7 @@ export async function getAuthenticatedTutorialOnboardingState(
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
+      .abortSignal(signal)
       .maybeSingle<{ team: {
         amateur_name: string | null;
         amateur_identity_configured_at: string | null;

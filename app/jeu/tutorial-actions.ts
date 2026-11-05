@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { unstable_rethrow } from "next/navigation";
 
 import {
   getActiveTutorialSession,
@@ -95,8 +96,87 @@ type TutorialActionResult = TutorialActionSuccess | TutorialActionFailure;
 
 type TutorialRosterRow = { rider_id: string };
 
+const PROGRESS_COLUMNS = "id,sporting_director_id,tutorial_key,tutorial_type,tutorial_version,status,current_step_key,current_route,started_at,completed_at,skipped_at,created_at,updated_at";
+const SESSION_COLUMNS = "id,tutorial_progress_id,tutorial_version,launch_source,status,first_step_key,last_step_key,started_at,ended_at,created_at,updated_at";
+type TutorialClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+const deadlines = new WeakMap<TutorialClient, AbortSignal>();
+const directorIds = new WeakMap<TutorialClient, string>();
+const registrationReads = new WeakMap<TutorialClient, Map<string, Promise<boolean>>>();
+const onboardingReads = new WeakMap<TutorialClient, ReturnType<typeof getAuthenticatedTutorialOnboardingState>>();
+
+async function createTutorialClient() {
+  const supabase = await createSupabaseServerClient();
+  deadlines.set(supabase, AbortSignal.timeout(8_000));
+  registrationReads.delete(supabase);
+  onboardingReads.delete(supabase);
+  directorIds.delete(supabase);
+  return supabase;
+}
+
+function deadline(supabase: TutorialClient) {
+  return deadlines.get(supabase)!;
+}
+
+async function readProgress(supabase: TutorialClient, tutorialKey: string) {
+  const progress = await getAuthenticatedTutorialProgress(supabase, tutorialKey, {
+    includeMetadata: false, signal: deadline(supabase), sportingDirectorId: directorIds.get(supabase),
+  });
+  if (progress) directorIds.set(supabase, progress.sporting_director_id);
+  return progress;
+}
+
+function clientProgress(progress: TutorialProgressRow): TutorialProgressRow {
+  return {...progress, metadata: {}};
+}
+
+function readOnboardingState(supabase: TutorialClient) {
+  let result = onboardingReads.get(supabase);
+  if (!result) {
+    result = getAuthenticatedTutorialOnboardingState(supabase, deadline(supabase));
+    onboardingReads.set(supabase, result);
+  }
+  return result;
+}
+
+/** Read only registration evidence; the simulation timeline never crosses this boundary. */
+function hasCriteriumRegistration(supabase: TutorialClient, progress: TutorialProgressRow): Promise<boolean> {
+  let reads = registrationReads.get(supabase);
+  if (!reads) { reads = new Map(); registrationReads.set(supabase, reads); }
+  const existing = reads.get(progress.id);
+  if (existing) return existing;
+  const result = (async () => {
+    const {data, error} = await supabase.from("tutorial_progress").select([
+      "version:metadata->criteriumDiscoveryRun->version",
+      "registeredAt:metadata->criteriumDiscoveryRun->registeredAt",
+      "roster:metadata->criteriumDiscoveryRun->roster",
+      "slug:metadata->criteriumDiscoveryRun->edition->slug",
+      "stageId:metadata->criteriumDiscoveryRun->lockedSimulation->stageId",
+      "raceEditionId:metadata->criteriumDiscoveryRun->lockedSimulation->raceEditionId",
+      "inputSeed:metadata->criteriumDiscoveryRun->lockedSimulation->input->seed",
+      "simulationSeed:metadata->criteriumDiscoveryRun->lockedSimulation->simulation->seed",
+      "simulationStageId:metadata->criteriumDiscoveryRun->lockedSimulation->simulation->stageId",
+    ].join(",")).eq("id", progress.id).abortSignal(deadline(supabase)).maybeSingle();
+    if (error) throw new Error("Impossible de vérifier l’inscription au Critérium. Réessayez dans un instant.");
+    const row = data as Record<string, unknown> | null;
+    if (!row || typeof row.simulationSeed !== "string" || row.simulationSeed.length === 0 ||
+      (typeof row.inputSeed !== "string" && typeof row.inputSeed !== "number") ||
+      String(row.inputSeed) !== row.simulationSeed || row.simulationStageId !== row.stageId) return false;
+    return Boolean(getCriteriumDiscoveryRunFromMetadata({criteriumDiscoveryRun: {
+      version: row.version, registeredAt: row.registeredAt, roster: row.roster,
+      edition: {slug: row.slug}, lockedSimulation: {stageId: row.stageId, raceEditionId: row.raceEditionId,
+        input: {seed: row.inputSeed}, simulation: {seed: row.simulationSeed}},
+    }}));
+  })();
+  reads.set(progress.id, result);
+  return result;
+}
+
 function actionFailure(error: unknown): TutorialActionFailure {
+  unstable_rethrow(error);
   if (error instanceof Error) {
+    if (error.name === "AbortError" || error.name === "TimeoutError" || /\b(?:AbortError|TimeoutError)\b/.test(error.message)) {
+      return {ok: false, error: "La demande a pris trop de temps. Votre progression est conservée ; reprenez le didacticiel pour continuer."};
+    }
     return {
       ok: false,
       error: error.message,
@@ -167,7 +247,7 @@ async function resolveTutorialStepRouteForDirector({
     );
   }
 
-  const { data, error } = await supabase.rpc("get_current_team_roster");
+  const { data, error } = await supabase.rpc("get_current_team_roster").abortSignal(deadline(supabase));
 
   if (error) {
     throw new Error(
@@ -202,12 +282,12 @@ async function requireTutorialStepRequirement({
   }
 
   if (step.requirement === "criterium_registered") {
-    const progress = await getAuthenticatedTutorialProgress(
+    const progress = await readProgress(
       supabase,
       CRITERIUM_DISCOVERY_KEY,
     );
 
-    if (!getCriteriumDiscoveryRunFromMetadata(progress?.metadata)) {
+    if (!progress || !await hasCriteriumRegistration(supabase, progress)) {
       throw new Error(
         "Validez d’abord l’inscription de vos cinq coureurs avant de poursuivre vers le Live.",
       );
@@ -216,7 +296,7 @@ async function requireTutorialStepRequirement({
     return;
   }
 
-  const state = await getAuthenticatedTutorialOnboardingState(supabase);
+  const state = await readOnboardingState(supabase);
 
   const requirementError = getTutorialRequirementError({
     requirement: step.requirement,
@@ -290,7 +370,7 @@ async function getFirstIncompleteStep({
     }
 
     if (completionRequirement === "criterium_registered") {
-      if (!getCriteriumDiscoveryRunFromMetadata(progress.metadata)) {
+      if (!await hasCriteriumRegistration(supabase, progress)) {
         return candidate;
       }
 
@@ -298,7 +378,7 @@ async function getFirstIncompleteStep({
     }
 
     onboardingStatePromise ??=
-      getAuthenticatedTutorialOnboardingState(supabase);
+      readOnboardingState(supabase);
     const onboardingState = await onboardingStatePromise;
     const isSatisfied =
       completionRequirement === "profile_complete"
@@ -329,6 +409,7 @@ async function updateProgressStep({
   if (progress.status !== "in_progress") {
     return progress;
   }
+  if (progress.current_step_key === stepKey && progress.current_route === route && progress.tutorial_version === definition.version) return progress;
 
   const { data, error } = await supabase
     .from("tutorial_progress")
@@ -338,8 +419,11 @@ async function updateProgressStep({
       current_route: route,
     })
     .eq("id", progress.id)
-    .select("*")
-    .single();
+    .eq("status", "in_progress")
+    .eq("updated_at", progress.updated_at)
+    .select(PROGRESS_COLUMNS)
+    .abortSignal(deadline(supabase))
+    .maybeSingle();
 
   if (error) {
     throw new Error(
@@ -347,7 +431,12 @@ async function updateProgressStep({
     );
   }
 
-  return data as TutorialProgressRow;
+  if (!data) {
+    const latest = await readProgress(supabase, definition.key);
+    if (latest?.status === "completed" || latest?.status === "skipped") return latest;
+    throw new Error("La progression a changé dans une autre fenêtre. Reprenez le didacticiel pour continuer.");
+  }
+  return {...data, metadata: {}} as TutorialProgressRow;
 }
 
 async function updateActiveSessionStep({
@@ -361,6 +450,7 @@ async function updateActiveSessionStep({
   definition: TutorialDefinition;
   stepKey: string;
 }): Promise<TutorialSessionRow> {
+  if (session.last_step_key === stepKey && session.tutorial_version === definition.version) return session;
   const { data, error } = await supabase
     .from("tutorial_sessions")
     .update({
@@ -368,8 +458,11 @@ async function updateActiveSessionStep({
       last_step_key: stepKey,
     })
     .eq("id", session.id)
-    .select("*")
-    .single();
+    .eq("status", "in_progress")
+    .eq("updated_at", session.updated_at)
+    .select(SESSION_COLUMNS)
+    .abortSignal(deadline(supabase))
+    .maybeSingle();
 
   if (error) {
     throw new Error(
@@ -377,7 +470,8 @@ async function updateActiveSessionStep({
     );
   }
 
-  return data as TutorialSessionRow;
+  if (!data) throw new Error("Cette session a changé dans une autre fenêtre. Reprenez le didacticiel pour continuer.");
+  return {...data, metadata: {}} as TutorialSessionRow;
 }
 
 async function finishSession({
@@ -399,8 +493,10 @@ async function finishSession({
       ended_at: new Date().toISOString(),
     })
     .eq("id", session.id)
-    .select("*")
-    .single();
+    .eq("status", "in_progress")
+    .select(SESSION_COLUMNS)
+    .abortSignal(deadline(supabase))
+    .maybeSingle();
 
   if (error) {
     throw new Error(
@@ -408,7 +504,13 @@ async function finishSession({
     );
   }
 
-  return data as TutorialSessionRow;
+  if (!data) {
+    const {data: latest, error: readError} = await supabase.from("tutorial_sessions")
+      .select(SESSION_COLUMNS).eq("id", session.id).abortSignal(deadline(supabase)).maybeSingle();
+    if (readError || !latest) throw new Error("La session n’a pas pu être confirmée. Reprenez le didacticiel.");
+    return {...latest, metadata: {}} as TutorialSessionRow;
+  }
+  return {...data, metadata: {}} as TutorialSessionRow;
 }
 
 async function createTutorialSession({
@@ -434,16 +536,21 @@ async function createTutorialSession({
       first_step_key: firstStepKey,
       last_step_key: firstStepKey,
     })
-    .select("*")
-    .single();
+    .select(SESSION_COLUMNS)
+    .abortSignal(deadline(supabase))
+        .single();
 
   if (error) {
+    if (error.code === "23505") {
+      const existing = await getActiveTutorialSession(supabase, progress.id, deadline(supabase));
+      if (existing) return existing;
+    }
     throw new Error(
       `Impossible de démarrer la session du didacticiel : ${error.message}`,
     );
   }
 
-  return data as TutorialSessionRow;
+  return {...data, metadata: {}} as TutorialSessionRow;
 }
 
 export async function startTutorialAction(
@@ -462,12 +569,13 @@ export async function startTutorialAction(
       throw new Error("Ce didacticiel ne peut pas être rejoué.");
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createTutorialClient();
 
     const sportingDirectorId =
-      await requireAuthenticatedSportingDirectorId(supabase);
+      await requireAuthenticatedSportingDirectorId(supabase, deadline(supabase));
+    directorIds.set(supabase, sportingDirectorId);
 
-    let progress = await getAuthenticatedTutorialProgress(
+    let progress = await readProgress(
       supabase,
       definition.key,
     );
@@ -476,6 +584,7 @@ export async function startTutorialAction(
     const initialStep = getInitialStep(definition);
 
     if (!progress) {
+      await requireTutorialStepRequirement({supabase, step: initialStep});
       const { data, error } = await supabase
         .from("tutorial_progress")
         .insert({
@@ -488,16 +597,18 @@ export async function startTutorialAction(
           current_route: initialStep.route,
           started_at: now,
         })
-        .select("*")
+        .select(PROGRESS_COLUMNS)
+        .abortSignal(deadline(supabase))
         .single();
 
-      if (error) {
+      if (error && error.code !== "23505") {
         throw new Error(
           `Impossible de créer la progression du didacticiel : ${error.message}`,
         );
       }
 
-      progress = data as TutorialProgressRow;
+      progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+      if (!progress) throw new Error("Le lancement n’a pas pu être confirmé. Réessayez dans un instant.");
     }
 
     if (
@@ -554,8 +665,10 @@ export async function startTutorialAction(
           skipped_at: null,
         })
         .eq("id", progress.id)
-        .select("*")
-        .single();
+        .eq("status", "not_started")
+        .select(PROGRESS_COLUMNS)
+        .abortSignal(deadline(supabase))
+        .maybeSingle();
 
       if (error) {
         throw new Error(
@@ -563,7 +676,8 @@ export async function startTutorialAction(
         );
       }
 
-      progress = data as TutorialProgressRow;
+      progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+      if (!progress) throw new Error("Le lancement n’a pas pu être confirmé. Reprenez le didacticiel.");
     } else if (progress.status === "in_progress") {
       progress = await updateProgressStep({
         supabase,
@@ -577,7 +691,7 @@ export async function startTutorialAction(
     if (definition.key === EQUIPMENT_TUTORIAL_KEY) {
       const { error: giftError } = await supabase.rpc(
         "grant_equipment_tutorial_welcome_gift",
-      );
+      ).abortSignal(deadline(supabase));
 
       if (giftError) {
         throw new Error(
@@ -587,11 +701,11 @@ export async function startTutorialAction(
       }
 
       progress =
-        (await getAuthenticatedTutorialProgress(supabase, definition.key)) ??
+        (await readProgress(supabase, definition.key)) ??
         progress;
     }
 
-    let session = await getActiveTutorialSession(supabase, progress.id);
+    let session = await getActiveTutorialSession(supabase, progress.id, deadline(supabase));
 
     if (session) {
       session = await updateActiveSessionStep({
@@ -614,7 +728,7 @@ export async function startTutorialAction(
 
     return {
       ok: true,
-      progress,
+      progress: clientProgress(progress),
       session,
       currentStepKey: selectedStep.key,
       resolvedRoute: selectedRoute,
@@ -638,18 +752,19 @@ export async function setTutorialStepAction(
       parsed.route,
     );
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createTutorialClient();
 
     const now = new Date().toISOString();
 
-    let progress = await getAuthenticatedTutorialProgress(
+    let progress = await readProgress(
       supabase,
       definition.key,
     );
 
     if (!progress) {
+      await requireTutorialStepRequirement({supabase, step: requestedStep});
       const sportingDirectorId =
-        await requireAuthenticatedSportingDirectorId(supabase);
+        await requireAuthenticatedSportingDirectorId(supabase, deadline(supabase));
 
       const { data, error } = await supabase
         .from("tutorial_progress")
@@ -663,16 +778,18 @@ export async function setTutorialStepAction(
           current_route: parsed.route,
           started_at: now,
         })
-        .select("*")
+        .select(PROGRESS_COLUMNS)
+        .abortSignal(deadline(supabase))
         .single();
 
-      if (error) {
+      if (error && error.code !== "23505") {
         throw new Error(
           `Impossible de créer la progression du didacticiel : ${error.message}`,
         );
       }
 
-      progress = data as TutorialProgressRow;
+      progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+      if (!progress) throw new Error("La progression n’a pas pu être confirmée. Reprenez le didacticiel.");
     }
 
     const step = await getFirstIncompleteStep({
@@ -709,8 +826,10 @@ export async function setTutorialStepAction(
           skipped_at: null,
         })
         .eq("id", progress.id)
-        .select("*")
-        .single();
+        .eq("status", "not_started")
+        .select(PROGRESS_COLUMNS)
+        .abortSignal(deadline(supabase))
+        .maybeSingle();
 
       if (error) {
         throw new Error(
@@ -718,10 +837,11 @@ export async function setTutorialStepAction(
         );
       }
 
-      progress = data as TutorialProgressRow;
+      progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+      if (!progress) throw new Error("La progression n’a pas pu être confirmée. Reprenez le didacticiel.");
     }
 
-    let session = await getActiveTutorialSession(supabase, progress.id);
+    let session = await getActiveTutorialSession(supabase, progress.id, deadline(supabase));
 
     if (!session && progress.status === "in_progress") {
       session = await createTutorialSession({
@@ -756,7 +876,7 @@ export async function setTutorialStepAction(
 
     return {
       ok: true,
-      progress,
+      progress: clientProgress(progress),
       session: updatedSession,
       currentStepKey: step.key,
       resolvedRoute: stepRoute,
@@ -775,9 +895,9 @@ export async function quitTutorialAction(
 
     requireTutorialStep(definition, parsed.stepKey, parsed.route);
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createTutorialClient();
 
-    let progress = await getAuthenticatedTutorialProgress(
+    let progress = await readProgress(
       supabase,
       definition.key,
     );
@@ -794,7 +914,7 @@ export async function quitTutorialAction(
       route: parsed.route,
     });
 
-    const activeSession = await getActiveTutorialSession(supabase, progress.id);
+    const activeSession = await getActiveTutorialSession(supabase, progress.id, deadline(supabase));
 
     const session = activeSession
       ? await finishSession({
@@ -807,7 +927,7 @@ export async function quitTutorialAction(
 
     return {
       ok: true,
-      progress,
+      progress: clientProgress(progress),
       session,
       currentStepKey: parsed.stepKey,
       resolvedRoute: null,
@@ -825,12 +945,12 @@ export async function skipTutorialAction(
 
     const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createTutorialClient();
 
     const sportingDirectorId =
-      await requireAuthenticatedSportingDirectorId(supabase);
+      await requireAuthenticatedSportingDirectorId(supabase, deadline(supabase));
 
-    let progress = await getAuthenticatedTutorialProgress(
+    let progress = await readProgress(
       supabase,
       definition.key,
     );
@@ -848,17 +968,20 @@ export async function skipTutorialAction(
           status: "skipped",
           skipped_at: now,
         })
-        .select("*")
+        .select(PROGRESS_COLUMNS)
+        .abortSignal(deadline(supabase))
         .single();
 
-      if (error) {
+      if (error && error.code !== "23505") {
         throw new Error(
           `Impossible d’ignorer le didacticiel : ${error.message}`,
         );
       }
 
-      progress = data as TutorialProgressRow;
-    } else if (progress.status !== "completed") {
+      progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+      if (!progress) throw new Error("La progression n’a pas pu être confirmée. Réessayez dans un instant.");
+    }
+    if (progress.status !== "completed" && progress.status !== "skipped") {
       const { data, error } = await supabase
         .from("tutorial_progress")
         .update({
@@ -869,8 +992,11 @@ export async function skipTutorialAction(
           skipped_at: now,
         })
         .eq("id", progress.id)
-        .select("*")
-        .single();
+        .neq("status", "completed")
+        .eq("updated_at", progress.updated_at)
+        .select(PROGRESS_COLUMNS)
+        .abortSignal(deadline(supabase))
+        .maybeSingle();
 
       if (error) {
         throw new Error(
@@ -878,10 +1004,11 @@ export async function skipTutorialAction(
         );
       }
 
-      progress = data as TutorialProgressRow;
+      progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+      if (!progress || (progress.status !== "completed" && progress.status !== "skipped")) throw new Error("La progression a changé dans une autre fenêtre. Reprenez le didacticiel.");
     }
 
-    const activeSession = await getActiveTutorialSession(supabase, progress.id);
+    const activeSession = await getActiveTutorialSession(supabase, progress.id, deadline(supabase));
 
     const session = activeSession
       ? await finishSession({
@@ -894,7 +1021,7 @@ export async function skipTutorialAction(
 
     return {
       ok: true,
-      progress,
+      progress: clientProgress(progress),
       session,
       currentStepKey: progress.current_step_key,
       resolvedRoute: null,
@@ -914,9 +1041,9 @@ export async function completeTutorialAction(
 
     requireTutorialStep(definition, parsed.stepKey, parsed.route);
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createTutorialClient();
 
-    let progress = await getAuthenticatedTutorialProgress(
+    let progress = await readProgress(
       supabase,
       definition.key,
     );
@@ -927,6 +1054,7 @@ export async function completeTutorialAction(
 
     const now = new Date().toISOString();
 
+    if (progress.status !== "completed") {
     const { data, error } = await supabase
       .from("tutorial_progress")
       .update({
@@ -940,8 +1068,11 @@ export async function completeTutorialAction(
         skipped_at: null,
       })
       .eq("id", progress.id)
-      .select("*")
-      .single();
+      .neq("status", "completed")
+      .eq("updated_at", progress.updated_at)
+      .select(PROGRESS_COLUMNS)
+      .abortSignal(deadline(supabase))
+      .maybeSingle();
 
     if (error) {
       throw new Error(
@@ -949,9 +1080,11 @@ export async function completeTutorialAction(
       );
     }
 
-    progress = data as TutorialProgressRow;
+    progress = data ? {...data, metadata: {}} as TutorialProgressRow : await readProgress(supabase, definition.key);
+    if (!progress || progress.status !== "completed") throw new Error("La progression a changé dans une autre fenêtre. Reprenez le didacticiel.");
+    }
 
-    const activeSession = await getActiveTutorialSession(supabase, progress.id);
+    const activeSession = await getActiveTutorialSession(supabase, progress.id, deadline(supabase));
 
     const session = activeSession
       ? await finishSession({
@@ -964,7 +1097,7 @@ export async function completeTutorialAction(
 
     return {
       ok: true,
-      progress,
+      progress: clientProgress(progress),
       session,
       currentStepKey: parsed.stepKey,
       resolvedRoute: null,

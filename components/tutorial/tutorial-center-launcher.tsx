@@ -45,14 +45,24 @@ export function TutorialCenterLauncher() {
     });
   }, [openRequested, pathname, router, searchParams]);
 
+  // The tutorial already selected its destination. Closing its menu must not
+  // replace that navigation with the page on which the menu was opened.
+  const closeAfterLaunch = useCallback(() => {
+    setActivated(false);
+  }, []);
+
   if (activated || openRequested) {
     return (
-      <DeferredTutorialCenterMenu initiallyOpen onClose={closeMenu} />
+      <DeferredTutorialCenterMenu
+        initiallyOpen
+        onClose={closeMenu}
+        onLaunch={closeAfterLaunch}
+      />
     );
   }
 
   const tutorialIsActive = Boolean(activeTutorial);
-  const disabled = tutorialIsActive || isPending;
+  const disabled = isPending;
   const hasTutorialInProgress = Object.values(progressByTutorialKey).some(
     (progress) => progress.status === "in_progress",
   );
@@ -65,8 +75,8 @@ export function TutorialCenterLauncher() {
       aria-label={
         tutorialIsActive
           ? isEnglish
-            ? "A tutorial is already in progress"
-            : "Un didacticiel est déjà en cours"
+            ? "Resume the current tutorial"
+            : "Reprendre le didacticiel en cours"
           : isEnglish
             ? "Open the tutorial centre"
             : "Ouvrir le centre des didacticiels"
@@ -74,8 +84,8 @@ export function TutorialCenterLauncher() {
       title={
         tutorialIsActive
           ? isEnglish
-            ? "A tutorial is already in progress"
-            : "Un didacticiel est déjà en cours"
+            ? "Resume the current tutorial"
+            : "Reprendre le didacticiel en cours"
           : isEnglish
             ? "Open the tutorial centre"
             : "Ouvrir le centre des didacticiels"

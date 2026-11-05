@@ -605,6 +605,19 @@ export function RaceLiveLab({
         </TabButton>
       </nav>
 
+      {tab !== "live" && mode === "replay" ? (
+        <div className="px-5 pt-4 sm:px-8">
+          <button
+            type="button"
+            data-tutorial-id="race-replay-controls"
+            onClick={() => setTab("live")}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#72D4B7]/45 bg-[#72D4B7]/10 px-4 text-xs font-black text-[#9BE0CA] transition hover:bg-[#72D4B7]/20"
+          >
+            Revenir au Live
+          </button>
+        </div>
+      ) : null}
+
       {tab === "live" ? (
         <div className="p-3 sm:p-6 xl:p-8">
           <RaceStageProfile

@@ -50,7 +50,9 @@ describe("tutorial center deep link", () => {
       "const openRequested = shouldOpenTutorialCenter(searchParams)",
     );
     expect(launcher).toContain("if (activated || openRequested)");
-    expect(launcher).toContain("initiallyOpen onClose={closeMenu}");
+    expect(launcher).toContain("initiallyOpen");
+    expect(launcher).toContain("onClose={closeMenu}");
+    expect(launcher).toContain("onLaunch={closeAfterLaunch}");
     expect(menu).toContain("const closeMenu = useCallback(() => {");
     expect(menu).toContain("onClose?.()");
   });

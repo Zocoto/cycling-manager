@@ -3244,5 +3244,22 @@
   "statuts modifiés": "squad roles changed",
   "Un coureur ne peut apparaître qu’une fois dans la sélection.": "A rider can only appear once in the selection.",
   "Un coureur ou un statut d’effectif est invalide.": "A rider or squad role is invalid.",
-  "Valider les statuts": "Save squad roles"
+  "Valider les statuts": "Save squad roles",
+  "Cette session a changé dans une autre fenêtre. Reprenez le didacticiel pour continuer.": "This session changed in another window. Resume the tutorial to continue.",
+  "État du didacticiel": "Tutorial status",
+  "Impossible de vérifier l’inscription au Critérium. Réessayez dans un instant.": "The Criterium registration could not be checked. Try again in a moment.",
+  "La demande a pris trop de temps. Votre progression est conservée ; reprenez le didacticiel pour continuer.": "The request took too long. Your progress is preserved; resume the tutorial to continue.",
+  "La progression a changé dans une autre fenêtre. Reprenez le didacticiel pour continuer.": "Progress changed in another window. Resume the tutorial to continue.",
+  "La progression a changé dans une autre fenêtre. Reprenez le didacticiel.": "Progress changed in another window. Resume the tutorial.",
+  "La progression n’a pas pu être confirmée. Réessayez dans un instant.": "Progress could not be confirmed. Try again in a moment.",
+  "La progression n’a pas pu être confirmée. Reprenez le didacticiel.": "Progress could not be confirmed. Resume the tutorial.",
+  "La session n’a pas pu être confirmée. Reprenez le didacticiel.": "The session could not be confirmed. Resume the tutorial.",
+  "Le didacticiel met trop de temps à répondre. Votre progression a peut-être été enregistrée. Essayez de le reprendre.": "The tutorial is taking too long to respond. Your progress may have been saved. Try resuming it.",
+  "Le lancement n’a pas pu être confirmé. Réessayez dans un instant.": "The tutorial launch could not be confirmed. Try again in a moment.",
+  "Le lancement n’a pas pu être confirmé. Reprenez le didacticiel.": "The tutorial launch could not be confirmed. Resume the tutorial.",
+  "Mettre en pause": "Pause",
+  "Reprendre le didacticiel": "Resume tutorial",
+  "Reprendre le didacticiel en cours": "Resume the current tutorial",
+  "Revenez à l’étape en cours pour poursuivre votre didacticiel.": "Return to the current step to continue your tutorial.",
+  "Revenir au Live": "Return to Live"
 }

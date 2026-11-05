@@ -12,8 +12,8 @@ function fixture(teamCreated=true){
   };
   const client={from:vi.fn((table:string)=>{
     let payload:Record<string,unknown>={};
-    const q={update:vi.fn((data:Record<string,unknown>)=>{payload=data;return q;}),eq:vi.fn(),select:vi.fn(),single:vi.fn(async()=>({data:{...rows[table],...payload},error:null}))};
-    q.eq.mockReturnValue(q);q.select.mockReturnValue(q);return q;
+    const q={update:vi.fn((data:Record<string,unknown>)=>{payload=data;return q;}),eq:vi.fn(),select:vi.fn(),abortSignal:vi.fn(),maybeSingle:vi.fn(),single:vi.fn(async()=>({data:{...rows[table],...payload},error:null}))};
+    q.eq.mockReturnValue(q);q.select.mockReturnValue(q);q.abortSignal.mockReturnValue(q);q.maybeSingle.mockImplementation(q.single);return q;
   }),rpc:vi.fn()};
   mocks.state.mockResolvedValue({profileComplete:true,teamCreated,riderCount:0});
   mocks.progress.mockResolvedValue(rows.tutorial_progress);mocks.session.mockResolvedValue(rows.tutorial_sessions);

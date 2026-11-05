@@ -77,6 +77,14 @@ describe("tutorial mobile overlay", () => {
     expect(overlaySource).toContain("subtree: true");
     expect(overlaySource).toContain("observeTargetElement(discoveredTarget)");
     expect(overlaySource).toContain("recenterTargetElement(discoveredTarget)");
+    expect(overlaySource).toContain('attributeFilter: ["class", "style", "hidden"]');
+    expect(overlaySource).toContain("discoveredTarget === observedTarget");
+  });
+
+  it("laisse une étape interactive utilisable en attendant sa cible", () => {
+    expect(overlaySource).toContain('${step.allowTargetInteraction ? "pointer-events-none" : "pointer-events-auto"} fixed inset-0');
+    expect(overlaySource).toContain("findVisibleTutorialTarget");
+    expect(overlaySource).toContain('getComputedStyle(element).visibility !== "hidden"');
   });
 
   it("bloque Suivant uniquement jusqu’à l’action demandée", () => {

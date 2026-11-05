@@ -8,8 +8,8 @@ vi.mock("@/lib/supabase/admin",()=>({createSupabaseAdminClient:mocks.admin}));
 import {getAuthenticatedTutorialOnboardingState} from "./onboarding-state";
 
 function query(data: unknown) {
-  const q={select:vi.fn(),eq:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data,error:null})};
-  for(const key of ["select","eq","order","limit"] as const)q[key].mockReturnValue(q);
+  const q={select:vi.fn(),eq:vi.fn(),order:vi.fn(),limit:vi.fn(),abortSignal:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data,error:null})};
+  for(const key of ["select","eq","order","limit","abortSignal"] as const)q[key].mockReturnValue(q);
   return q;
 }
 function fixture(riderCount=0,team:unknown={amateur_name:"Les Gb’s",amateur_identity_configured_at:"2026-07-23T15:56:26Z",status:"active"}) {
@@ -40,6 +40,11 @@ describe("onboarding foundation is independent of today's roster",()=>{
     const f=fixture(7);
     expect(await getAuthenticatedTutorialOnboardingState(f.client)).toEqual({profileComplete:true,teamCreated:true,riderCount:7});
     expect(mocks.admin).not.toHaveBeenCalled();
+  });
+  it("shares the action deadline with profile, summary and empty-club verification",async()=>{
+    const f=fixture();const signal=AbortSignal.timeout(8_000);
+    await getAuthenticatedTutorialOnboardingState(f.client,signal);
+    for(const query of [f.profile,f.summary,f.assignment])expect(query.abortSignal).toHaveBeenCalledWith(signal);
   });
   it.each([null,{amateur_name:"Seed",amateur_identity_configured_at:null,status:"active"},
     {amateur_name:null,amateur_identity_configured_at:"2026-07-23",status:"active"},

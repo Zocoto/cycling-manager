@@ -45,12 +45,12 @@ function fixture({
       let payload: Record<string, unknown> = {};
       const q = {
         update: vi.fn((data: Record<string, unknown>) => { payload = data; writes.push({ table, data }); return q; }),
-        eq: vi.fn(), select: vi.fn(),
+        eq: vi.fn(), select: vi.fn(), abortSignal: vi.fn(), maybeSingle: vi.fn(),
         single: vi.fn(async () => ({ data: { ...(table === "tutorial_progress" ? progress : session), ...payload }, error: null })),
       };
-      q.eq.mockReturnValue(q); q.select.mockReturnValue(q); return q;
+      q.eq.mockReturnValue(q); q.select.mockReturnValue(q); q.abortSignal.mockReturnValue(q); q.maybeSingle.mockImplementation(q.single); return q;
     }),
-    rpc: vi.fn(async (name: string) => ({ data: name === "get_current_team_roster" ? [{ rider_id: "current-rider" }] : null, error: null })),
+    rpc: vi.fn((name: string) => ({ abortSignal: vi.fn().mockResolvedValue({ data: name === "get_current_team_roster" ? [{ rider_id: "current-rider" }] : null, error: null }) })),
   };
   mocks.state.mockResolvedValue({ profileComplete: true, teamCreated: true, riderCount: 33 });
   mocks.progress.mockResolvedValue(progress); mocks.session.mockResolvedValue(session);
@@ -102,7 +102,7 @@ describe("completed tutorial replay navigation", () => {
     expect(result.currentStepKey).toBe("roster-overview");
     expect(result.resolvedRoute).toBe("/jeu/effectif");
     expect(result.progress).toEqual(f.progress);
-    expect(f.writes.map(w => w.table)).toEqual(["tutorial_sessions"]);
+    expect(f.writes).toEqual([]); // The already-selected active cursor needs no write.
     expect(f.client.rpc).not.toHaveBeenCalled();
   });
 

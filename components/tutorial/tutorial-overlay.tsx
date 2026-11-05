@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { useLocale } from "@/components/i18n/locale-provider";
+import { findVisibleTutorialTarget } from "@/lib/tutorial/targets";
 import {
   calculateTutorialPanelPosition,
   expandTutorialTargetRectangle,
@@ -203,6 +204,8 @@ export function TutorialOverlay({
     let resizeObserver: ResizeObserver | null = null;
     let targetDiscoveryObserver: MutationObserver | null = null;
     let targetCompletionObserver: MutationObserver | null = null;
+    let targetDiscoveryFrame = 0;
+    let observedTarget: HTMLElement | null = null;
 
     function findTargetElement(): HTMLElement | null {
       const targetId =
@@ -210,18 +213,12 @@ export function TutorialOverlay({
           ? step.mobileTargetId
           : step.targetId;
 
-      if (!targetId) return null;
-
-      const preferredTarget = document.querySelector<HTMLElement>(
-        `[data-tutorial-id="${targetId}"]`,
-      );
-
-      if (preferredTarget || targetId === step.targetId || !step.targetId) {
-        return preferredTarget;
-      }
-
-      return document.querySelector<HTMLElement>(
-        `[data-tutorial-id="${step.targetId}"]`,
+      return findVisibleTutorialTarget(
+        [targetId, step.targetId],
+        (id) => document.querySelectorAll<HTMLElement>(`[data-tutorial-id="${id}"]`),
+        (element) =>
+          element.getClientRects().length > 0 &&
+          window.getComputedStyle(element).visibility !== "hidden",
       );
     }
 
@@ -248,6 +245,9 @@ export function TutorialOverlay({
       };
 
       const targetElement = findTargetElement();
+      if (targetElement && targetElement !== observedTarget) {
+        observeTargetElement(targetElement);
+      }
       const nextTargetCompletionReady =
         !step.requiresTargetCompletion ||
         targetElement?.dataset.tutorialComplete === "true";
@@ -297,6 +297,10 @@ export function TutorialOverlay({
     }
 
     function observeTargetElement(targetElement: HTMLElement) {
+      if (observedTarget && observedTarget !== targetElement) {
+        resizeObserver?.unobserve(observedTarget);
+      }
+      observedTarget = targetElement;
       resizeObserver?.observe(targetElement);
 
       if (
@@ -375,26 +379,46 @@ export function TutorialOverlay({
 
     if (targetElement && typeof ResizeObserver === "undefined") {
       observeTargetElement(targetElement);
-    } else if (
-      !targetElement &&
-      typeof MutationObserver !== "undefined"
-    ) {
-      targetDiscoveryObserver = new MutationObserver(() => {
-        const discoveredTarget = findTargetElement();
+    }
 
-        if (!discoveredTarget) {
-          return;
-        }
-
-        targetDiscoveryObserver?.disconnect();
-        targetDiscoveryObserver = null;
-        observeTargetElement(discoveredTarget);
-        recenterTargetElement(discoveredTarget);
-        updateGeometry();
+    if ((step.targetId || step.mobileTargetId) && typeof MutationObserver !== "undefined") {
+      targetDiscoveryObserver = new MutationObserver((records) => {
+        // A replay animates many unrelated inline styles. Only target/ancestor
+        // visibility changes or page structure changes need a new lookup.
+        const targetIds = [step.targetId, step.mobileTargetId].filter(Boolean);
+        const affectsTarget = records.some((record) => {
+          const element = record.target instanceof HTMLElement ? record.target : null;
+          if (element?.closest('[data-tutorial-overlay="true"]')) return false;
+          if (record.type === "childList") return true;
+          if (!element) return false;
+          if (observedTarget) return element.contains(observedTarget);
+          return targetIds.some((id) =>
+            element.dataset.tutorialId === id ||
+            element.querySelector(`[data-tutorial-id="${id}"]`) !== null,
+          );
+        });
+        if (!affectsTarget) return;
+        if (targetDiscoveryFrame) return;
+        targetDiscoveryFrame = window.requestAnimationFrame(() => {
+          targetDiscoveryFrame = 0;
+          const discoveredTarget = findTargetElement();
+          if (discoveredTarget === observedTarget) return;
+          if (discoveredTarget) {
+            observeTargetElement(discoveredTarget);
+            recenterTargetElement(discoveredTarget);
+          } else {
+            if (observedTarget) resizeObserver?.unobserve(observedTarget);
+            observedTarget = null;
+            targetCompletionObserver?.disconnect();
+          }
+          updateGeometry();
+        });
       });
       targetDiscoveryObserver.observe(document.body, {
         childList: true,
         subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden"],
       });
     }
 
@@ -402,6 +426,7 @@ export function TutorialOverlay({
       window.cancelAnimationFrame(firstAnimationFrame);
 
       window.cancelAnimationFrame(secondAnimationFrame);
+      window.cancelAnimationFrame(targetDiscoveryFrame);
 
       window.removeEventListener("resize", updateGeometry);
 
@@ -538,7 +563,7 @@ export function TutorialOverlay({
         isInformative ? null : (
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed inset-0 bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
+            className={`${step.allowTargetInteraction ? "pointer-events-none" : "pointer-events-auto"} fixed inset-0 bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
           />
         )
       )}

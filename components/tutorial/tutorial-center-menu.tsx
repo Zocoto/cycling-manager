@@ -29,9 +29,11 @@ import type { TutorialProgressRow } from "@/types/tutorial";
 export function TutorialCenterMenu({
   initiallyOpen = false,
   onClose,
+  onLaunch,
 }: {
   initiallyOpen?: boolean;
   onClose?: () => void;
+  onLaunch?: () => void;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -41,7 +43,7 @@ export function TutorialCenterMenu({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(initiallyOpen);
 
-  const { activeTutorial, getTutorialProgress, isPending, startTutorial } =
+  const { activeTutorial, errorMessage, getTutorialProgress, isPending, resumeActiveTutorial, startTutorial } =
     useTutorial();
 
   const baseProgress = getTutorialProgress(ONBOARDING_TUTORIAL_KEY);
@@ -136,7 +138,7 @@ export function TutorialCenterMenu({
   );
 
   const tutorialIsActive = Boolean(activeTutorial);
-  const disabled = tutorialIsActive || isPending;
+  const disabled = isPending;
 
   const completedTutorialCount = [
     baseProgress,
@@ -156,6 +158,11 @@ export function TutorialCenterMenu({
     setOpen(false);
     onClose?.();
   }, [onClose]);
+
+  const closeAfterLaunch = useCallback(() => {
+    setOpen(false);
+    onLaunch?.();
+  }, [onLaunch]);
 
   useEffect(() => {
     if (!open) return;
@@ -203,7 +210,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -215,7 +222,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -227,7 +234,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -239,7 +246,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -251,7 +258,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -263,7 +270,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -275,7 +282,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -287,7 +294,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -299,7 +306,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -311,7 +318,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -323,7 +330,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
 
@@ -337,7 +344,7 @@ export function TutorialCenterMenu({
     });
 
     if (started) {
-      closeMenu();
+      closeAfterLaunch();
     }
   }
   return (
@@ -463,6 +470,26 @@ export function TutorialCenterMenu({
             </p>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:max-h-[min(620px,calc(100vh-100px))] sm:flex-none sm:p-4">
+            {errorMessage ? (
+              <p role="alert" className="mb-4 rounded-xl border border-[#B94A48]/20 bg-[#FDEDEC] px-3 py-3 text-sm font-bold text-[#8B302E]">
+                {errorMessage}
+              </p>
+            ) : null}
+            {activeTutorial ? (
+              <div className="mb-4 rounded-xl border border-[#278B70]/25 bg-[#E9F5F0] p-3">
+                <p className="text-sm font-black">{activeTutorial.definition.title}</p>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    if (resumeActiveTutorial()) closeAfterLaunch();
+                  }}
+                  className="mt-3 min-h-10 w-full rounded-xl bg-[#176951] px-4 text-xs font-black text-white disabled:opacity-55"
+                >
+                  {isEnglish ? "Resume the current tutorial" : "Reprendre le didacticiel en cours"}
+                </button>
+              </div>
+            ) : null}
             {contextualTutorialKey && contextualCopy ? (
               <div className="mb-4 rounded-xl border border-[#D94B57]/25 bg-[#FFF3F4] p-3 sm:p-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#A52F3C]">
@@ -503,6 +530,7 @@ export function TutorialCenterMenu({
                   progress={criteriumProgress}
                   href={CRITERIUM_DISCOVERY_RESULTS_ROUTE}
                   isEnglish={isEnglish}
+                  onNavigate={closeAfterLaunch}
                 />
               ) : (
                 <TutorialEntry
@@ -680,12 +708,14 @@ function TutorialLinkEntry({
   progress,
   href,
   isEnglish,
+  onNavigate,
 }: {
   title: string;
   description: string;
   progress: TutorialProgressRow | null;
   href: string;
   isEnglish: boolean;
+  onNavigate: () => void;
 }) {
   const statusLabel =
     progress?.status === "completed"
@@ -723,6 +753,7 @@ function TutorialLinkEntry({
       />
       <Link
         href={href}
+        onNavigate={onNavigate}
         className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#F2C94C] px-4 text-center text-xs font-black text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A67C00] focus-visible:ring-offset-2"
       >
         {actionLabel}
