@@ -9,10 +9,10 @@ import album from "./collector-album.module.css";
 import book from "./collector-album-book.module.css";
 import format from "./collector-card-format.module.css";
 
-export function CycloStickersIntroduction({snapshot,state,ready,onAction,leaf=0,singlePage=false,onTurn,previousDisabled=true,nextDisabled=false}:{
+export function CycloStickersIntroduction({snapshot,state,ready,onAction,leaf=0,singlePage=false,onTurn,previousDisabled=true,nextDisabled=false,privatePreview=true}:{
   snapshot:CollectorAlbumSnapshot;state:AlbumPilotState;ready:boolean;
   onAction:(action:AlbumPilotAction,text:string)=>void;leaf?:number;singlePage?:boolean;
-  onTurn?:(direction:-1|1)=>void;previousDisabled?:boolean;nextDisabled?:boolean;
+  onTurn?:(direction:-1|1)=>void;previousDisabled?:boolean;nextDisabled?:boolean;privatePreview?:boolean;
 }) {
   const leaves=getAlbumIntroductionLeaves(snapshot.cards);
   const first=singlePage?leaf:Math.floor(leaf/2)*2;
@@ -23,13 +23,13 @@ export function CycloStickersIntroduction({snapshot,state,ready,onAction,leaf=0,
       <div className={spread.chapterCopy}><p className={spread.publisher}>LA CYCLOGAZETTE · COLLECTION SAISON 4</p><p className={spread.chapterIndex}>LES PAGES D’OUVERTURE</p><h2>Une saison à garder.</h2><p className={spread.subtitle}>Des champions aux nuits du peloton.</p><p className={styles.openingStory}>Les Jeux ont couronné leur champion. Sous la lune, l’Équipier sans tête a laissé sa trace. Retrouve les équipes et les maillots qui ont fait la saison 4, avant de feuilleter les pages des coureurs.</p></div>
       <div className={spread.chapterPostcard}><CycloStickersGamesArtwork/><span>☾ <span>La légende de l’Équipier sans tête</span></span></div>
     </header>
-    <p className={styles.sourceNote}>Aperçu privé : identités et notes S3. Les spécimens ne désignent pas les futurs champions S4. Les titres définitifs seront figés après la clôture de S4.</p>
+    {privatePreview ? <p className={styles.sourceNote}>Aperçu privé : identités et notes S3. Les spécimens ne désignent pas les futurs champions S4. Les titres définitifs seront figés après la clôture de S4.</p> : null}
     <div className={spread.leaves}>{leaves.slice(first,first+(singlePage?1:2)).map((cards,index)=><div className={spread.leaf} key={first+index} data-opening-leaf={first+index+1}>
       <div className={spread.leafHeader}><span>{titles[first+index]}</span><span>COLLECTION S4</span></div>
       <div className={`${spread.slots} ${format.grid}`}>{cards.map(card=>{
         const pasted=state.pasted.includes(card.number),available=getLooseAlbumCardCount(state,card.number)>0;
         return <div key={card.id} className={`${spread.slotWrap} ${format.slot}`} data-album-slot={card.number}>
-          {pasted?<><CollectorCardFace card={card} season={snapshot.sourceSeason}/><button type="button" className={album.textButton} onClick={()=>onAction({type:"unpaste",card:card.number},"Vignette décollée pour le test.")}>Décoller pour le test</button></>:<div className={`${album.emptySlot} ${spread.emptySlot} ${format.empty}`}>
+          {pasted?<><CollectorCardFace card={card} season={snapshot.sourceSeason}/>{privatePreview ? <button type="button" className={album.textButton} onClick={()=>onAction({type:"unpaste",card:card.number},"Vignette décollée pour le test.")}>Décoller pour le test</button> : null}</>:<div className={`${album.emptySlot} ${spread.emptySlot} ${format.empty}`}>
             <span className={album.slotNumber}>{card.number}</span><span aria-hidden="true">{card.kind==="legend"?"☾":"★"}</span><h3>{card.name}</h3><p>{card.stickerTitle}</p><button type="button" className={album.primaryButton} disabled={!ready||!available} onClick={()=>onAction({type:"paste",card:card.number},"Vignette d’introduction collée dans l’album.")}>{available?"Coller cette carte":"À collectionner"}</button>
           </div>}
         </div>;

@@ -8,7 +8,7 @@ import type { DailyRewardConstructionProject } from "@/lib/game/daily-rewards";
 
 export function HalloweenInventoryCard({ item, riders = [], projects = [], revealUntil }: { item: TeamInventoryItem; riders?: ItemTargetRider[]; projects?: DailyRewardConstructionProject[]; revealUntil?: string | null }) {
   const halloween = item.halloween;
-  if (!halloween) return null;
+  if (!halloween || halloween.kind === "cosmetic") return null;
   return <article id={`inventory-halloween-${item.sourceId}`} className="overflow-hidden rounded-[2rem] border border-orange-300/60 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
     <div className="bg-[#302823] [&_.halloween-item-art]:h-28 [&_svg]:block [&_svg]:h-full [&_svg]:w-full [&_img]:h-full [&_img]:w-full [&_img]:object-cover">
       <HalloweenItemIllustration art={halloween.art} name={item.name} />
@@ -25,10 +25,9 @@ export function HalloweenInventoryCard({ item, riders = [], projects = [], revea
       </details>
       <div className="mt-5 flex flex-wrap justify-between gap-3 border-t border-orange-100 pt-4 text-sm font-bold text-[#183F37]">
         <span>Possédé : {item.quantity}</span><span>Disponible : {item.availableQuantity}</span>
-        {item.equippedQuantity > 0 ? <span>Porté sur votre portrait</span> : null}
       </div>
       {halloween.kind === "consumable" ? <HalloweenConsumableForm item={item.sourceId} stock={item.availableQuantity} riders={riders} projects={projects} revealUntil={revealUntil} /> : <Link href={halloweenInventoryItemHref(item.sourceId)} prefetch={false} className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#9A431C] px-4 py-3 text-sm font-black text-white hover:bg-[#713116]">
-        {halloween.kind === "cosmetic" ? "Gérer cet accessoire" : "Envoyer ce sort"} →
+        Envoyer ce sort →
       </Link>}
       <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">Objet conservé après Halloween, lié à votre compte de DS.</p>
     </div>

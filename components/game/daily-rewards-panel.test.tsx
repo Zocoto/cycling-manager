@@ -13,12 +13,12 @@ describe("DailyRewardsPanel", () => {
   it("adds real weekly connection progress in S5 while preserving the regular gift cycle", () => {
     const overview = createOverview();
     overview.gameYear = 5;
-    overview.weeklyLogin = { consecutiveDays: 14, totalBoostersAwarded: 2, boosterAwardedToday: true };
+    overview.weeklyLogin = { consecutiveDays: 6, totalBoostersAwarded: 2, boosterAwardedToday: true };
     const markup = renderToStaticMarkup(<DailyRewardsPanel overview={overview} />);
-    expect(markup).toContain("7 jours d’affilée, 1 booster");
+    expect(markup).toContain("3 jours d’affilée, 1 booster");
     expect(markup).toContain("Boosters gagnés : 2");
     expect(markup).toContain("Votre booster du jour a été ajouté");
-    expect(markup).toContain('aria-valuenow="7"');
+    expect(markup).toContain('aria-valuenow="3"');
     expect(markup).toContain("4/40");
     expect(markup).toContain("Un jour manqué remet la série à zéro");
     expect(markup).toContain("même après une ou plusieurs");

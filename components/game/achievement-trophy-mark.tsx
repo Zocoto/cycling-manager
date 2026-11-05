@@ -68,6 +68,17 @@ function TrophySymbol({
     return <JourneyTrophySymbol variant={variant as JourneyTrophyVisualVariant | "first-pedals"} palette={palette} />;
   }
 
+  if (variant === "collector-album") {
+    return <g data-achievement-symbol="collector-album">
+      <path d="M37 36q27-13 53 2 26-15 53-2v88q-25-13-53 0-27-13-53 0Z" fill={palette.accent} stroke={palette.primary} strokeWidth="4" strokeLinejoin="round" />
+      <path d="M90 38v86M45 44q20-8 37 1m16 0q17-9 37-1" stroke={palette.secondary} strokeWidth="2" />
+      <rect x="48" y="55" width="28" height="39" rx="2" fill={palette.secondary} stroke={palette.primary} strokeWidth="2" />
+      <circle cx="62" cy="67" r="6" fill={palette.accent} />
+      <path d="M53 87q1-14 9-14t9 14M49 104h28m23-43h30m-30 10h30m-30 10h19" stroke={palette.primary} strokeWidth="3" strokeLinecap="round" />
+      <path d="m115 89 5 9 10 2-7 7 1 11-9-5-9 5 1-11-7-7 10-2Z" fill={palette.primary} stroke={palette.secondary} strokeWidth="2" />
+    </g>;
+  }
+
   if (variant === "astrolabe") {
     return (
       <g>

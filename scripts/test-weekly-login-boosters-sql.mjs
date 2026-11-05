@@ -8,6 +8,9 @@ const read=name=>readFileSync(`supabase/migrations/${name}.sql`,'utf8').replaceA
 const fn=(source,name)=>{const start=source.indexOf(`create or replace function ${name}(`);assert.ok(start>=0,name);return source.slice(start,source.indexOf('$$;',start)+3);};
 const table=(source,name)=>{const start=source.indexOf(`create table public.${name} (`);assert.ok(start>=0,name);return source.slice(start,source.indexOf('\n);',start)+4);};
 const source=read('20261027170000_weekly_login_cyclo_stickers_boosters');
+const threeDay=process.argv.includes('--three-day');
+const interval=threeDay?3:7;
+const cadence=threeDay?read('20261105141000_three_day_login_sticker_boosters'):null;
 const presenceHook=read('20261027171000_weekly_login_boosters_game_presence');
 const unifiedInventory=read('20261027181000_expose_unified_cyclo_sticker_booster_inventory');
 const attendanceSource=read('20260814030000_expose_player_daily_activity');
@@ -75,6 +78,7 @@ await db.exec(source);
 await db.exec(presenceHook);
 await db.exec(read('20261027180000_add_s5_referral_sticker_boosters'));
 await db.exec(unifiedInventory);
+if(cadence)await db.exec(cadence);
 const after=(await db.query('select public.get_current_daily_reward_overview() value')).rows[0].value;
 assert.deepEqual(after,{...before,weeklyLogin:null},'S4 gifts and cycle are unchanged');
 assert.equal(await scalar("select md5(pg_get_functiondef('public.claim_current_daily_reward(text)'::regprocedure))"),claimHash,'Claim logic unchanged');
@@ -96,14 +100,14 @@ await db.query('select public.record_current_sporting_director_attendance()');
 assert.equal((await state(original)).consecutive_days,1);
 assert.equal(await scalar('select count(*)::int from cyclo_stickers_boosters'),0);
 const a=await player(),b=await player(),bot=await player('active',true),inactive=await player('inactive');
-for(let n=1;n<=6;n++){await connect(a,n);await connect(a,n);assert.equal((await packs(a)).length,0);}
-assert.equal((await state(a)).consecutive_days,6);
-await Promise.all(Array.from({length:12},()=>connect(a,7)));
-assert.equal((await packs(a)).length,1,'Repeated seventh-day visits award once');
+for(let n=1;n<interval;n++){await connect(a,n);await connect(a,n);assert.equal((await packs(a)).length,0);}
+assert.equal((await state(a)).consecutive_days,interval-1);
+await Promise.all(Array.from({length:12},()=>connect(a,interval)));
+assert.equal((await packs(a)).length,1,'Repeated milestone visits award once');
 assert.equal((await state(a)).boosters_awarded,1);
-for(let n=8;n<=28;n++){await connect(a,n);assert.equal((await packs(a)).length,Math.floor(n/7));}
+for(let n=interval+1;n<=28;n++){await connect(a,n);assert.equal((await packs(a)).length,Math.floor(n/interval));}
 assert.equal((await state(a)).consecutive_days,28);
-assert.equal((await packs(a)).filter(p=>p.collection_season_id===s5&&p.opened_at===null).length,4);
+assert.equal((await packs(a)).filter(p=>p.collection_season_id===s5&&p.opened_at===null).length,Math.floor(28/interval));
 await connect(a,10);assert.equal((await state(a)).consecutive_days,28,'An older request cannot reset the streak');
 for(let n=1;n<=14;n++){await connect(bot,n);await connect(inactive,n);}
 assert.equal(await state(bot),undefined);assert.equal(await state(inactive),undefined);
@@ -111,12 +115,12 @@ assert.equal(await state(bot),undefined);assert.equal(await state(inactive),unde
 await db.exec("update seasons set status=case when game_year=6 then 'active' else 'completed' end");
 for(let n=29;n<=35;n++)await connect(a,n,s6);
 assert.equal((await state(a)).consecutive_days,35);
-assert.equal((await packs(a)).length,5);assert.equal((await packs(a))[4].collection_season_id,s6);
-assert.equal((await packs(a)).filter(p=>p.collection_season_id===s5).length,4,'Older packs remain owned');
+assert.equal((await packs(a)).length,Math.floor(35/interval));assert.equal((await packs(a)).at(-1).collection_season_id,s6);
+assert.equal((await packs(a)).filter(p=>p.collection_season_id===s5).length,Math.floor(28/interval),'Older packs remain owned');
 // Missing day 36 restarts at one; a fresh complete week gives one new pack.
-for(let n=37;n<=43;n++){await connect(a,n,s6);assert.equal((await state(a)).consecutive_days,n-36);}
-assert.equal((await packs(a)).length,6);assert.equal((await state(a)).boosters_awarded,6);
-assert.equal(new Set((await packs(a)).map(p=>p.source_reference)).size,6);
+for(let n=37;n<37+interval;n++){await connect(a,n,s6);assert.equal((await state(a)).consecutive_days,n-36);}
+assert.equal((await packs(a)).length,Math.floor(35/interval)+1);assert.equal((await state(a)).boosters_awarded,Math.floor(35/interval)+1);
+assert.equal(new Set((await packs(a)).map(p=>p.source_reference)).size,Math.floor(35/interval)+1);
 await connect(b,1,s6);await connect(b,30,s6);assert.equal((await state(b)).consecutive_days,1);
 assert.equal((await packs(b)).length,0,'Missing a month gives no catch-up');
 // Overview records today's authenticated connection synchronously (before
@@ -125,9 +129,9 @@ const overviewPlayer=await player();
 await db.query("select set_config('test.auth_user_id',$1,false)",[overviewPlayer.user]);
 const today=await scalar("select (now() at time zone 'Europe/Paris')::date::text");
 await db.query(`insert into weekly_login_booster_states(sporting_director_id,last_connection_on,streak_started_on,consecutive_days)
-  values($1,$2::date-1,$2::date-6,6)`,[overviewPlayer.director,today]);
+  values($1,$2::date-1,$2::date-($3::int-1),$3::int-1)`,[overviewPlayer.director,today,interval]);
 const overview=(await db.query('select public.get_current_daily_reward_overview() value')).rows[0].value;
-assert.deepEqual(overview.weeklyLogin,{consecutiveDays:7,totalBoostersAwarded:1,boosterAwardedToday:true});
+assert.deepEqual(overview.weeklyLogin,{consecutiveDays:interval,totalBoostersAwarded:1,boosterAwardedToday:true});
 assert.equal(overview.availableToday,true);assert.equal(overview.prospectiveStreakDay,1);
 assert.equal(await scalar('select count(*)::int from daily_reward_claims'),0);
 await db.query('select public.record_current_sporting_director_attendance()');
@@ -138,12 +142,12 @@ assert.equal((await packs(overviewPlayer)).length,1,'Overview/background overlap
 const tabPlayer=await player();
 await db.query("select set_config('test.auth_user_id',$1,false)",[tabPlayer.user]);
 await db.query(`insert into weekly_login_booster_states(sporting_director_id,last_connection_on,streak_started_on,consecutive_days)
-  values($1,$2::date-1,$2::date-6,6)`,[tabPlayer.director,today]);
+  values($1,$2::date-1,$2::date-($3::int-1),$3::int-1)`,[tabPlayer.director,today,interval]);
 await db.query('select public.record_current_game_presence()');
-assert.equal((await state(tabPlayer)).consecutive_days,7);
+assert.equal((await state(tabPlayer)).consecutive_days,interval);
 assert.equal((await packs(tabPlayer)).length,1);
 for(let n=0;n<20;n++)await db.query('select public.record_current_game_presence()');
-assert.equal((await state(tabPlayer)).consecutive_days,7);
+assert.equal((await state(tabPlayer)).consecutive_days,interval);
 assert.equal((await packs(tabPlayer)).length,1);
 const importedPlayer=await player();
 await db.query('insert into player_daily_activity(auth_user_id,activity_on) values($1,$2::date-1)',[importedPlayer.user,today]);
@@ -173,7 +177,8 @@ const beforeFunctions=await scalar("select md5(pg_get_functiondef('public.record
 await db.exec(source);
 await db.exec(presenceHook);
 await db.exec(unifiedInventory);
+if(cadence)await db.exec(cadence);
 assert.equal(JSON.stringify((await db.query('select * from cyclo_stickers_boosters order by id')).rows),beforeRetry);
 assert.equal(await scalar("select md5(pg_get_functiondef('public.record_current_sporting_director_attendance()'::regprocedure)||pg_get_functiondef('public.get_current_daily_reward_overview()'::regprocedure))"),beforeFunctions);
-console.log('Isolated SQL passed: S4 untouched, no backfill, Paris dates, real attendance/overview integration, 7/14/21/28/35-day grants, absence/reset, inter-season continuity, edition ownership, repeat/overlapping visits, bots/inactive exclusions, unchanged gifts, RLS/write isolation, migration idempotence.');
+console.log(`Isolated SQL passed: ${interval}-day grants, S4 untouched, no backfill, Paris dates, real attendance/overview integration, absence/reset, inter-season continuity, edition ownership, repeat/overlapping visits, bots/inactive exclusions, unchanged gifts, RLS/write isolation, migration idempotence.`);
 await db.close();

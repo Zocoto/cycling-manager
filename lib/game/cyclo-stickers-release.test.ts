@@ -4,6 +4,8 @@ import source from "@/data/collector-album-intro-pilot.json";
 import { CYCLO_STICKERS_RELEASE, assertCycloStickersFinalSnapshot, canLaunchCycloStickers, createCycloStickersPreview } from "./cyclo-stickers-release";
 import { ALBUM_ACHIEVEMENTS, createAlbumPilotState, drawAlbumBooster, getAlbumAchievementProgress, getAlbumBoosterOdds, getAlbumPilotPacks, getCollectorCardRarity, readAlbumPilotState, updateAlbumPilot, type CollectorAlbumSnapshot } from "./collector-album";
 import { getAlbumProfileCards } from "./collector-album-layout";
+import { createCycloStickersFinalSnapshot } from "./cyclo-stickers-final-snapshot";
+import { createFinalCycloStickersSourceFixture } from "./cyclo-stickers-final-snapshot.fixture";
 const original=raw as CollectorAlbumSnapshot;
 const snapshot=createCycloStickersPreview(original,source);
 
@@ -63,7 +65,7 @@ describe("S4 collection and S5 launch rehearsal",()=>{
     expect(()=>assertCycloStickersFinalSnapshot({...snapshot,sourceSeason:4,ratingsFrozenFromSeason:4,collectionSeason:5},"active")).toThrow();
   });
   it("accepts a complete isolated S4 fixture but rejects duplicates and incorrect title jerseys",()=>{
-    const fixture={...snapshot,sourceSeason:4,ratingsFrozenFromSeason:4,collectionSeason:5,cards:snapshot.cards.map(card=>({...card,specimen:false}))};
+    const fixture=createCycloStickersFinalSnapshot(createFinalCycloStickersSourceFixture());
     expect(()=>assertCycloStickersFinalSnapshot(fixture,"completed")).not.toThrow();
     for(const broken of [
       {...fixture,cards:fixture.cards.slice(0,67)},

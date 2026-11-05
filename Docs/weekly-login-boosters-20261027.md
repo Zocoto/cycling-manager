@@ -1,5 +1,7 @@
 # Boosters de fidélité à partir de S5
 
+**Mise à jour validée le 5 novembre : un booster tous les trois jours consécutifs, dès S5.** Voir [la finalisation S5](cyclo-stickers-s5-finalization-20261105.md). La description ci-dessous conserve l’historique de la livraison initiale à sept jours.
+
 Demande validée le 27 octobre 2026 : un booster de Cyclo-Stickers tous les sept jours de connexion consécutifs, à partir de la saison 5.
 
 ## Règles

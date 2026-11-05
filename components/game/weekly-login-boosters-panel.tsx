@@ -11,9 +11,9 @@ export function WeeklyLoginBoostersPanel({ progress }: { progress: WeeklyLoginBo
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8A7000]">Cyclo-Stickers</p>
-          <h2 className="mt-1 text-xl font-black text-[#403200]">7 jours d’affilée, 1 booster</h2>
+          <h2 className="mt-1 text-xl font-black text-[#403200]">{WEEKLY_LOGIN_BOOSTER_INTERVAL} jours d’affilée, 1 booster</h2>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-            Un booster est ajouté automatiquement à votre collection tous les 7 jours de connexion consécutifs.
+            Un booster est ajouté automatiquement à votre collection tous les {WEEKLY_LOGIN_BOOSTER_INTERVAL} jours de connexion consécutifs.
             Un jour manqué remet la série à zéro. Les boosters déjà gagnés restent acquis et la série continue entre les saisons.
           </p>
         </div>
@@ -21,8 +21,8 @@ export function WeeklyLoginBoostersPanel({ progress }: { progress: WeeklyLoginBo
           Boosters gagnés : {progress.totalBoostersAwarded}
         </span>
       </div>
-      <div role="progressbar" aria-label="Semaine de connexion" aria-valuemin={0} aria-valuemax={WEEKLY_LOGIN_BOOSTER_INTERVAL} aria-valuenow={week.completedDays}
-        className="mt-4 grid max-w-sm grid-cols-7 gap-2">
+      <div role="progressbar" aria-label="Cycle de connexion" aria-valuemin={0} aria-valuemax={WEEKLY_LOGIN_BOOSTER_INTERVAL} aria-valuenow={week.completedDays}
+        className="mt-4 grid max-w-sm grid-cols-3 gap-2">
         {Array.from({ length: WEEKLY_LOGIN_BOOSTER_INTERVAL }, (_, index) => (
           <span aria-hidden="true" key={index} className={`flex h-9 items-center justify-center rounded-lg border text-xs font-black ${index < week.completedDays ? "border-[#176951] bg-[#176951] text-white" : "border-[#D6A600]/25 bg-white text-[#8A7000]"}`}>
             {index < week.completedDays ? "✓" : index + 1}

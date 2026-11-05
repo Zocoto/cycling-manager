@@ -1,5 +1,7 @@
 # Album de Cyclo-Stickers — préparation S5, aperçu privé
 
+**État historique de la maquette.** Les décisions et le raccordement persistant du 5 novembre sont décrits dans [la finalisation S5](cyclo-stickers-s5-finalization-20261105.md) : cadence de trois jours, pas de Gazette, rareté et 19 récompenses confirmées, nouveaux visuels EPIC.
+
 ## Périmètre de cette livraison
 
 L’édition publique racontera **S4**, avec le top 50 UCI et les notes natives figés après la clôture de S4, et sera proposée pendant **S5**. Aucun classement encore actif n’est utilisé comme résultat définitif.

@@ -1,0 +1,4981 @@
+{
+  "schemaVersion": 1,
+  "kind": "s4-active-identity-evidence",
+  "sportingResultsFinal": false,
+  "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+  "sourceSeason": 4,
+  "sourceSeasonStatus": "active",
+  "startsOn": "2026-10-09",
+  "endsOn": "2026-11-05",
+  "capturedAt": "2026-11-05T09:23:33.490Z",
+  "capturedUntil": "2026-11-05T09:23:38.361Z",
+  "selection": {
+    "provisionalTopRank": 200,
+    "knownChampions": 13,
+    "profileCount": 202
+  },
+  "riders": [
+    {
+      "id": "01c4ec3c-a1ac-4617-a745-e55f966e094d",
+      "name": "Tarek Labidi",
+      "country": "Tunisie",
+      "countryCode": "TN",
+      "avatarProfileKey": "north_africa",
+      "avatarSeed": "649",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "cdffc9ae-8f4c-43f2-9cfa-89cb25bb7b20",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 78,
+      "knownChampionships": []
+    },
+    {
+      "id": "082aa3a0-8ee5-4bdb-a4e4-58b7183a5245",
+      "name": "Benjamín Colunga",
+      "country": "Venezuela",
+      "countryCode": "VE",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1235",
+      "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "be77d043-93eb-4719-8cbd-cd36ad1c8f5b",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 96,
+      "knownChampionships": []
+    },
+    {
+      "id": "0a9158d8-1c95-414c-9429-bf6f1db20231",
+      "name": "Óscar Pari",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "301",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "fa66dca5-07bd-41c6-8c05-16b74109527c",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 21,
+      "knownChampionships": []
+    },
+    {
+      "id": "0ba36e0d-498b-4a57-80a6-f387289b9476",
+      "name": "Byron Buthelezi",
+      "country": "Eswatini",
+      "countryCode": "SZ",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-1138",
+      "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "64171f9d-492f-4095-be4f-54b94c5b3fa0",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 16,
+      "knownChampionships": []
+    },
+    {
+      "id": "0bbc8bca-3613-46bb-bfa8-d7baec4d86f4",
+      "name": "Mario Sorrentino",
+      "country": "Italie",
+      "countryCode": "IT",
+      "avatarProfileKey": "europe_south",
+      "avatarSeed": "221",
+      "teamId": "2472b539-6686-4e1a-a506-b2973efb8024",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d4445606-7179-40ec-93e6-6d467dd75bf8",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 172,
+      "knownChampionships": []
+    },
+    {
+      "id": "0c468304-9228-4118-9a54-805a096ed7f7",
+      "name": "Marek Černý",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_central",
+      "avatarSeed": "65",
+      "teamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7f58114a-da38-447e-9210-b89cfbe62cf8",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 170,
+      "knownChampionships": []
+    },
+    {
+      "id": "0d10b518-ec1f-4e2c-8f19-b4e436123332",
+      "name": "Sebastian Olsson",
+      "country": "Islande",
+      "countryCode": "IS",
+      "avatarProfileKey": "europe_north",
+      "avatarSeed": "127",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "08cd5e52-edc7-4369-abc6-0c3581e0eb62",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 75,
+      "knownChampionships": []
+    },
+    {
+      "id": "0d5db301-e938-4ca8-b721-3484e378418c",
+      "name": "Adarsh Chatterjee",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1000000002671",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "8d6b170f-cc60-4ac6-996a-659277798969",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 101,
+      "knownChampionships": []
+    },
+    {
+      "id": "0e9e661d-0ddd-4184-b14d-db70c668353c",
+      "name": "Frits De Vos",
+      "country": "Pays-Bas",
+      "countryCode": "NL",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "624",
+      "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "96bf27fb-f70f-431d-bd71-c280f06907b4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 112,
+      "knownChampionships": []
+    },
+    {
+      "id": "0ef19e3d-aa03-4553-ad2a-33379d44494a",
+      "name": "Dương Anh Châu",
+      "country": "Viêt Nam",
+      "countryCode": "VN",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "-1068",
+      "teamId": "76df78b3-d34c-4e8c-83d0-6e3976ad10b8",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "b9727d9f-8fa0-4782-b416-14e191f69eef",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 179,
+      "knownChampionships": []
+    },
+    {
+      "id": "137caa3f-0ff9-418a-bd70-be8df9b4e698",
+      "name": "Lilian Leclerc",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "210",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d2de0349-1a3d-4724-aca4-794d8f44ecb4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 88,
+      "knownChampionships": []
+    },
+    {
+      "id": "17d63b83-f5bd-42a2-a814-940c77216a73",
+      "name": "Théoneste Kiptoo",
+      "country": "Rwanda",
+      "countryCode": "RW",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "614",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "13f4d487-a3c0-46e3-b949-eab6d8448fa5",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 157,
+      "knownChampionships": []
+    },
+    {
+      "id": "1b5fc8e1-22bc-4334-9b7a-87a5693450be",
+      "name": "Akinola Ademayowa",
+      "country": "Sierra Leone",
+      "countryCode": "SL",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "-1000000002702",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4f838254-0a97-42a2-bbb7-ed1b2212b9e1",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 184,
+      "knownChampionships": []
+    },
+    {
+      "id": "1b6e73dc-6f6a-426f-b7fb-52aef2a9be0f",
+      "name": "Suppanyu Ayutthaya",
+      "country": "Thaïlande",
+      "countryCode": "TH",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "-1000000001918",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "88def3b3-4c70-4380-857f-6524b0a30347",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 110,
+      "knownChampionships": []
+    },
+    {
+      "id": "1d853d7e-f7a3-4370-9694-62df8067c2d9",
+      "name": "Murod Rashidova",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-1000000002637",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ff96b9e4-b93b-444d-a160-68e968e8a95e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 190,
+      "knownChampionships": []
+    },
+    {
+      "id": "1e24dae3-68f1-49fe-af43-831fc15543bd",
+      "name": "Edžus Bondare",
+      "country": "Estonie",
+      "countryCode": "EE",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "-941",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e289ffa5-bf4d-48c0-8cb5-1d0af87418d8",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 175,
+      "knownChampionships": []
+    },
+    {
+      "id": "1e6809a5-16dc-4ec6-a725-606d7e3d0d85",
+      "name": "Gambo Foe",
+      "country": "Congo-Kinshasa",
+      "countryCode": "CD",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "-726",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "fd5335ab-7003-4cb7-b090-2039f9032a9d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 31,
+      "knownChampionships": []
+    },
+    {
+      "id": "1f5c2d69-0e95-46ce-a9d6-f11fc1778eee",
+      "name": "Thibault Aubert",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "533",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "51169ca6-1620-4f92-806b-293ab64ecc36",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 195,
+      "knownChampionships": []
+    },
+    {
+      "id": "2066c4b8-36d2-4912-85fb-a49305a2b892",
+      "name": "Gautam Patel",
+      "country": "Pakistan",
+      "countryCode": "PK",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "541",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "aa442178-f93d-4f85-85a7-29ff39941946",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 55,
+      "knownChampionships": []
+    },
+    {
+      "id": "212cc3db-d0cb-4a02-9126-71285bdd879c",
+      "name": "Vjenceslav Baltin",
+      "country": "Croatie",
+      "countryCode": "HR",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "671",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "b7011d1c-3877-482b-9732-e1e133a2811d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 39,
+      "knownChampionships": []
+    },
+    {
+      "id": "22dc4a9a-50d9-43ba-a157-902ef375593b",
+      "name": "Mansour Al-Humaidan",
+      "country": "Arabie saoudite",
+      "countryCode": "SA",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "-1000000001879",
+      "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f4c5983d-c569-4af7-9ece-536eb4aba1db",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 57,
+      "knownChampionships": []
+    },
+    {
+      "id": "22e8ef30-9478-4e58-9ad6-2ea2fdc6c575",
+      "name": "Ahror Botiryeva",
+      "country": "Kirghizstan",
+      "countryCode": "KG",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-889",
+      "teamId": "f2ffb52a-8a36-401d-90a9-ca5270cc8252",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7d3091a1-e308-484d-b986-35caaf16c7c5",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 33,
+      "knownChampionships": []
+    },
+    {
+      "id": "2472f824-7cd4-4f11-bb8d-d480481c4bd8",
+      "name": "Rudi Flores",
+      "country": "Lesotho",
+      "countryCode": "LS",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "517",
+      "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "fe356777-d161-45db-acbf-5cd2f9985548",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 132,
+      "knownChampionships": []
+    },
+    {
+      "id": "24cce468-8435-4d8f-8ca9-3e50bb91675f",
+      "name": "Dax Van de Wetering",
+      "country": "Pays-Bas",
+      "countryCode": "NL",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1242",
+      "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a66451cb-5527-40a6-a68b-fd5dbf7d14a3",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 192,
+      "knownChampionships": []
+    },
+    {
+      "id": "25c0514f-b1c8-41d3-b80e-7eac8e0268cf",
+      "name": "Alejandro Rosario",
+      "country": "Suriname",
+      "countryCode": "SR",
+      "avatarProfileKey": "caribbean",
+      "avatarSeed": "263",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5af62bbd-b450-403d-9316-6831f6984e3a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 26,
+      "knownChampionships": []
+    },
+    {
+      "id": "2856644f-3612-4e0a-ac73-44df175d4c11",
+      "name": "Gocha Vashadze",
+      "country": "Arménie",
+      "countryCode": "AM",
+      "avatarProfileKey": "caucasus",
+      "avatarSeed": "482",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "739c4006-ae97-4345-b05e-423a7ff4fc10",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 1,
+      "knownChampionships": []
+    },
+    {
+      "id": "28c77776-5940-4394-9b24-a7d9f7cbf4f2",
+      "name": "Shahab Samadi",
+      "country": "Afghanistan",
+      "countryCode": "AF",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "150",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "8ca8c5da-3fa8-40e0-8530-1358ce24e52a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 28,
+      "knownChampionships": []
+    },
+    {
+      "id": "29feff6a-c17c-4e19-a9eb-ae2751d0b341",
+      "name": "Yoann Chevalier",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "279",
+      "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4db1c31a-fd56-4def-b1e7-d750acd452d4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 79,
+      "knownChampionships": []
+    },
+    {
+      "id": "2bf4dcf1-a1b4-4321-8fdb-852e71c8ea16",
+      "name": "Patrick Jespersen",
+      "country": "Danemark",
+      "countryCode": "DK",
+      "avatarProfileKey": "europe_north",
+      "avatarSeed": "-1297",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "056c8d6a-f729-4432-9e34-89ea66719bda",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 120,
+      "knownChampionships": []
+    },
+    {
+      "id": "2c48e5f0-7cdd-47e9-aa2b-600297d36f39",
+      "name": "Diogo Monteiro",
+      "country": "Japon",
+      "countryCode": "JP",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1192",
+      "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "57ab90fa-66db-4440-84db-2661f1447d64",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 113,
+      "knownChampionships": []
+    },
+    {
+      "id": "2e7d40b9-5160-422a-9643-b05b7222d492",
+      "name": "Ange Coly",
+      "country": "Mali",
+      "countryCode": "ML",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "647",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ff2105a0-0e91-4a73-addd-b6962d6e7878",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 156,
+      "knownChampionships": []
+    },
+    {
+      "id": "32665a61-9365-4caa-a428-dabe241e2a76",
+      "name": "Oriol Domínguez",
+      "country": "Espagne",
+      "countryCode": "ES",
+      "avatarProfileKey": "europe_south",
+      "avatarSeed": "491",
+      "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "55ac6819-5d96-4dad-b964-7427ada29c24",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 181,
+      "knownChampionships": []
+    },
+    {
+      "id": "331d0656-9330-42a8-a1a8-e68650c7f4f2",
+      "name": "Audie Corwin",
+      "country": "Canada",
+      "countryCode": "CA",
+      "avatarProfileKey": "north_america",
+      "avatarSeed": "-724",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "0c11acc2-d585-4b4f-b32d-be6a039f76ec",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 104,
+      "knownChampionships": []
+    },
+    {
+      "id": "338e8efd-17b1-42a6-8470-894204cbd141",
+      "name": "Kassem Al-Ali",
+      "country": "Territoires palestiniens",
+      "countryCode": "PS",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "394",
+      "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "88d048b2-0ca3-4197-8423-aab22f6fc521",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 173,
+      "knownChampionships": []
+    },
+    {
+      "id": "33e6d821-2f7d-4666-92e8-1503266d0cf1",
+      "name": "Fernando Javier Alfaro",
+      "country": "Belize",
+      "countryCode": "BZ",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-934",
+      "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "150297f8-dfc7-4595-834e-c3447ffce523",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 97,
+      "knownChampionships": []
+    },
+    {
+      "id": "34f0d1ab-a777-445e-89ac-e534ddc8fe81",
+      "name": "Kubat Nazarbayev",
+      "country": "Kirghizstan",
+      "countryCode": "KG",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "48",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7b555c68-ed39-49af-b345-4bc2f3f6aa1d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 71,
+      "knownChampionships": [
+        "quadrennial_road"
+      ]
+    },
+    {
+      "id": "3504b28f-db03-4258-8eb2-f06faf811d20",
+      "name": "Cleo Morales",
+      "country": "Argentine",
+      "countryCode": "AR",
+      "avatarProfileKey": "caribbean",
+      "avatarSeed": "-1012",
+      "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "152d9cd4-aae2-46bd-b879-8dcd964c2506",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 119,
+      "knownChampionships": []
+    },
+    {
+      "id": "35257cfc-7ad5-499e-88d1-586d371577b5",
+      "name": "Asadullah Behzad",
+      "country": "Pérou",
+      "countryCode": "PE",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-1351",
+      "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "b88ebcb2-04d2-410d-a85f-9cc042a085d6",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 58,
+      "knownChampionships": []
+    },
+    {
+      "id": "3699a6a9-9ec2-4be5-b349-3bcf37861ec1",
+      "name": "Zambry Zabul",
+      "country": "Malaisie",
+      "countryCode": "MY",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "-1006",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "3b98cbd0-5898-4cd1-a915-273b9639ffb1",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 67,
+      "knownChampionships": []
+    },
+    {
+      "id": "37254cb9-4134-47b4-be5c-4cbc8df33547",
+      "name": "Alpha Dramé",
+      "country": "Togo",
+      "countryCode": "TG",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "565",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7463b55e-75e9-43e7-aa71-ad22da0ccf2d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 124,
+      "knownChampionships": []
+    },
+    {
+      "id": "374b9c95-23bf-42bb-a3b9-8f597cfdb5a1",
+      "name": "Omphile Afonso",
+      "country": "Afrique du Sud",
+      "countryCode": "ZA",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "264",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "02084586-2ede-493e-9427-116bb8ed1155",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 115,
+      "knownChampionships": []
+    },
+    {
+      "id": "3adcfe13-dc10-412f-a17d-647704ee7a61",
+      "name": "Filip Ilievski",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1000000002668",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "9ca37723-1cd0-4496-961a-7932f1052933",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 38,
+      "knownChampionships": []
+    },
+    {
+      "id": "3beb50f4-b431-4c16-ad92-89d610c2eefe",
+      "name": "Alexis Thomas",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1284",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2a09825c-506e-4e44-a0dd-c18807d34e6a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 19,
+      "knownChampionships": []
+    },
+    {
+      "id": "4140f9ee-687f-4162-9c67-bf6b0dae2042",
+      "name": "Ahmed Kiplagat",
+      "country": "Éthiopie",
+      "countryCode": "ET",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "405",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "b9bda725-2990-433f-93a1-2f0218cba506",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 4,
+      "knownChampionships": [
+        "continental_africa_road"
+      ]
+    },
+    {
+      "id": "416d8956-0a83-4bbc-be8e-8e11170b3749",
+      "name": "Sisai Alazar",
+      "country": "Rwanda",
+      "countryCode": "RW",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "-1000000002859",
+      "teamId": "61272a34-3070-47ca-9e9b-602c44a2180d",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "91ac1822-c49a-47fd-9dff-98d5fbd1f8b4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 185,
+      "knownChampionships": []
+    },
+    {
+      "id": "427e1ca2-5ae1-4e0a-943d-d0353e598e13",
+      "name": "Yordi Romero",
+      "country": "Guatemala",
+      "countryCode": "GT",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001469",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "163dc10c-8a8c-479b-a2b0-499744b4005c",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 121,
+      "knownChampionships": []
+    },
+    {
+      "id": "42c32356-3821-4422-9e48-49481210165f",
+      "name": "Sajid Poudel",
+      "country": "Pakistan",
+      "countryCode": "PK",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "500",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "54321ede-c9b8-4201-95af-baecc6feaf8c",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 12,
+      "knownChampionships": []
+    },
+    {
+      "id": "43144497-46d9-442b-82c8-e7e3c35e24ce",
+      "name": "George Mtei",
+      "country": "Royaume-Uni",
+      "countryCode": "GB",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "388",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ff718a24-f556-4feb-85a2-624cc6bf22ce",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 133,
+      "knownChampionships": []
+    },
+    {
+      "id": "43d8cfba-7e4f-4066-9695-853b7e270dbc",
+      "name": "Zain Miah",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1204",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "c881ff7a-d891-49a3-adee-5acdac88f12e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 20,
+      "knownChampionships": [
+        "continental_europe_road"
+      ]
+    },
+    {
+      "id": "43e15c6f-4a28-4a49-86f8-048f523af982",
+      "name": "Zain Poudel",
+      "country": "Sri Lanka",
+      "countryCode": "LK",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "54",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "93d2bd56-4499-4aa9-8447-08c2ae0f7559",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 144,
+      "knownChampionships": []
+    },
+    {
+      "id": "43ece336-9bb0-46f7-a355-06e5d940fb07",
+      "name": "Eden Li",
+      "country": "États-Unis",
+      "countryCode": "US",
+      "avatarProfileKey": "north_america",
+      "avatarSeed": "-1202",
+      "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2877de40-b221-4967-a374-1629f193639d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 161,
+      "knownChampionships": []
+    },
+    {
+      "id": "451842e8-1929-4c25-8a33-81ce4f5e02c1",
+      "name": "Fernando Huamán",
+      "country": "Pérou",
+      "countryCode": "PE",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "514",
+      "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f1d07d56-d1bc-42e0-915b-9e5ce1f0d9f1",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 42,
+      "knownChampionships": []
+    },
+    {
+      "id": "46ed6c91-2b88-4de7-8502-7cf745c024b9",
+      "name": "Yongkang Gan",
+      "country": "Chine",
+      "countryCode": "CN",
+      "avatarProfileKey": "east_asia",
+      "avatarSeed": "429",
+      "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "0714fe7e-1071-4a31-9a36-d9966dbc687d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 167,
+      "knownChampionships": []
+    },
+    {
+      "id": "47a6adf2-2a22-49e1-8f6a-5fe7e9432a27",
+      "name": "Bautista Díaz",
+      "country": "Chili",
+      "countryCode": "CL",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "125",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "c22b579b-324e-4e76-bc9e-4dc6312cf0a3",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 40,
+      "knownChampionships": []
+    },
+    {
+      "id": "48440064-2dac-4aab-a962-bd9ada1360f1",
+      "name": "Khalid Bose",
+      "country": "Népal",
+      "countryCode": "NP",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "71",
+      "teamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a3c9be6a-0408-4f26-8062-2fe844c2bf83",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 37,
+      "knownChampionships": []
+    },
+    {
+      "id": "4961f23d-f2d4-4a7f-a817-1ce59e29994e",
+      "name": "Jayden Douglas",
+      "country": "Australie",
+      "countryCode": "AU",
+      "avatarProfileKey": "oceania",
+      "avatarSeed": "-691",
+      "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2914976f-5eee-4a43-abf6-15ccb122fae3",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 82,
+      "knownChampionships": [
+        "continental_oceania_road"
+      ]
+    },
+    {
+      "id": "496e5bde-b278-4ffc-8d0f-e38d64b86294",
+      "name": "Jude Boyle",
+      "country": "États-Unis",
+      "countryCode": "US",
+      "avatarProfileKey": "north_america",
+      "avatarSeed": "-1183",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7568a590-c784-4b71-9400-37ee99e1fcf4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 178,
+      "knownChampionships": []
+    },
+    {
+      "id": "4b51b3fc-a029-462c-8f94-767e5613f729",
+      "name": "Júlio Rodrigues",
+      "country": "Brésil",
+      "countryCode": "BR",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "133",
+      "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "012ea614-93b6-4587-976b-af394928eb82",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 130,
+      "knownChampionships": []
+    },
+    {
+      "id": "4d051f6f-890e-45c7-9d98-68e3527afcd0",
+      "name": "Gaurav Kabir",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1000000002669",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d2d6f8cc-96a4-4c94-abca-a2f07cb8f83f",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 108,
+      "knownChampionships": []
+    },
+    {
+      "id": "4dda2ae0-a560-4bd4-b1bb-b906ee8a3fc0",
+      "name": "Shamyrat Burkhanov",
+      "country": "Ouzbékistan",
+      "countryCode": "UZ",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-1039",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7c586024-bbb0-405c-a64b-ee08c464e51e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 6,
+      "knownChampionships": [
+        "continental_asia_time_trial"
+      ]
+    },
+    {
+      "id": "4e44a1c8-c33d-49b1-9cf2-b5e809e20762",
+      "name": "Takeshi Iguchi",
+      "country": "Japon",
+      "countryCode": "JP",
+      "avatarProfileKey": "east_asia",
+      "avatarSeed": "-1000000002754",
+      "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "547ecb1d-9152-469f-8df9-88b6d0f46a78",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 191,
+      "knownChampionships": []
+    },
+    {
+      "id": "4fd2a414-232e-4cc1-8545-4938f53285ad",
+      "name": "Gustavo Adorno",
+      "country": "Argentine",
+      "countryCode": "AR",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1361",
+      "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e79c7a74-8eef-4893-9b5d-c259e3099517",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 197,
+      "knownChampionships": []
+    },
+    {
+      "id": "50a9fac0-d2ef-4b11-aea7-03cb6fa57ec7",
+      "name": "Chandler Davis",
+      "country": "Trinité-et-Tobago",
+      "countryCode": "TT",
+      "avatarProfileKey": "caribbean",
+      "avatarSeed": "-1009",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7f7826af-54a5-4e82-960c-151650c9b8f9",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 60,
+      "knownChampionships": []
+    },
+    {
+      "id": "52845250-8158-483d-8468-1af1aefef431",
+      "name": "Michel Bodian",
+      "country": "Mauritanie",
+      "countryCode": "MR",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "-1000000002163",
+      "teamId": "1559096d-c142-49c8-b4bc-5cd5cc9830ed",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2e9ba0f9-0940-4a79-bd1d-b6ac579689fb",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 141,
+      "knownChampionships": []
+    },
+    {
+      "id": "5384da93-055c-47c1-8057-75883aeaab24",
+      "name": "Max Clarke",
+      "country": "Nouvelle-Zélande",
+      "countryCode": "NZ",
+      "avatarProfileKey": "oceania",
+      "avatarSeed": "442",
+      "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "c216d0f8-6511-474b-b95c-d9618196ad8d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 145,
+      "knownChampionships": []
+    },
+    {
+      "id": "545c9195-ebb5-494c-937b-87585d4c1134",
+      "name": "Andris Bergmane",
+      "country": "Moldavie",
+      "countryCode": "MD",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "-837",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "51d3f3b5-3b44-48e7-ad84-938dea021ad0",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 155,
+      "knownChampionships": []
+    },
+    {
+      "id": "576e528a-0ed7-4a30-8c94-a8ed8b99a197",
+      "name": "Ekkapoom Pitsuwan",
+      "country": "Thaïlande",
+      "countryCode": "TH",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "-877",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "677066bc-4c89-49c6-9692-0d11898d883d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 36,
+      "knownChampionships": []
+    },
+    {
+      "id": "57bc1231-b199-4483-b04f-4c7c2703310c",
+      "name": "Rafid G'afforova",
+      "country": "Kirghizstan",
+      "countryCode": "KG",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-872",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "21564dd7-3afd-48ab-b9f7-e1043dded3d9",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": [
+        "continental_asia_road"
+      ]
+    },
+    {
+      "id": "588ab986-9811-4640-b6d8-043d03e0cc88",
+      "name": "Augusto Silva",
+      "country": "Cap-Vert",
+      "countryCode": "CV",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "645",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f3e82b13-a509-4efd-b9a2-426ccbff5b18",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 80,
+      "knownChampionships": []
+    },
+    {
+      "id": "5bce9ad3-1d47-4a45-9252-78bc9a364810",
+      "name": "Matej Popović",
+      "country": "Roumanie",
+      "countryCode": "RO",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "443",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "27c42766-18c6-4b92-8d3f-d997b67b6a8a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 53,
+      "knownChampionships": []
+    },
+    {
+      "id": "5bf875a6-7ef7-4a81-b44a-4e489f259648",
+      "name": "Diego Mina",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "481",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1df59c51-449f-4fdc-a848-d13acf4a1729",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 50,
+      "knownChampionships": []
+    },
+    {
+      "id": "5c9adff5-8227-4dc0-aeba-8363a54c303a",
+      "name": "Kaito Yokoyama",
+      "country": "Japon",
+      "countryCode": "JP",
+      "avatarProfileKey": "east_asia",
+      "avatarSeed": "-1324",
+      "teamId": "a81d26fc-5b1f-4267-8c60-073d53389733",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "6ae34f38-fe5d-4766-930a-fe35f3f947b2",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 148,
+      "knownChampionships": []
+    },
+    {
+      "id": "5e29f204-6db0-4c31-94f2-7e26d9d64fd5",
+      "name": "Esteban Arreola",
+      "country": "Uruguay",
+      "countryCode": "UY",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-809",
+      "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1f36d76c-ac65-4a0e-ba38-b9885bf2e17e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 128,
+      "knownChampionships": []
+    },
+    {
+      "id": "5e89d920-2714-4444-b618-7e2507606127",
+      "name": "Mehdi Giraud",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "120",
+      "teamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "8c8b7a1d-fed7-4f14-bf7d-b7c8531699ce",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 114,
+      "knownChampionships": []
+    },
+    {
+      "id": "632237e6-a22b-42eb-8513-466c5af546dd",
+      "name": "Adityanandan Rawat",
+      "country": "Inde",
+      "countryCode": "IN",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "-1000000002492",
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2aa94e2c-42eb-46fc-b3a0-84b3a8fd7fc8",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 43,
+      "knownChampionships": []
+    },
+    {
+      "id": "641d8f12-a2a1-4979-95a5-067ede133a84",
+      "name": "Gor Asatryan",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000002443",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "69daee46-2167-4b2f-885c-81a65c3fb88b",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 5,
+      "knownChampionships": [
+        "continental_america_road"
+      ]
+    },
+    {
+      "id": "64452c48-1876-468b-a8c0-18ff6407e974",
+      "name": "Henrique Jesus",
+      "country": "Guinée-Bissau",
+      "countryCode": "GW",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "-803",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "02e10d1a-f802-418d-b2fb-190cdab4a0fd",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 117,
+      "knownChampionships": []
+    },
+    {
+      "id": "65886cdc-f745-4ff5-8ac8-47c1a48a91b7",
+      "name": "Ruslan Eristavi",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1282",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "efb52dbe-e1b4-4a6c-802d-4b247407cb39",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 13,
+      "knownChampionships": [
+        "world_road"
+      ]
+    },
+    {
+      "id": "66973644-24c0-41eb-a9c4-6da6605917f2",
+      "name": "Rubén Francis",
+      "country": "Bahamas",
+      "countryCode": "BS",
+      "avatarProfileKey": "caribbean",
+      "avatarSeed": "257",
+      "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "3044fe57-d974-4a75-aedf-fc4bf5bec88e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 183,
+      "knownChampionships": []
+    },
+    {
+      "id": "6949f265-1014-4702-b61c-07ddc60c1d2c",
+      "name": "Lars Dekker",
+      "country": "Pays-Bas",
+      "countryCode": "NL",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "621",
+      "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a539f64b-183e-4bdb-a9de-b144f0fff792",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 83,
+      "knownChampionships": []
+    },
+    {
+      "id": "6d466c34-b554-44f3-9fdf-dde89995e77b",
+      "name": "Muntasir Al-Yafei",
+      "country": "Yémen",
+      "countryCode": "YE",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "-1000000002096",
+      "teamId": "0525e7c0-2b4a-4d05-a6e4-63bdcda740f3",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "81ee4971-a9ac-4bfa-828c-a1fd310345c9",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 159,
+      "knownChampionships": []
+    },
+    {
+      "id": "6d75b4f2-36f4-41ec-9354-49e99f726cba",
+      "name": "Clément Schoofs",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1379",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "77883083-d106-4685-aaa5-6d4c813ce205",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 126,
+      "knownChampionships": []
+    },
+    {
+      "id": "6e5ace56-87e4-4576-a67b-8e6448a6c15c",
+      "name": "Mesfin Deng",
+      "country": "Tanzanie",
+      "countryCode": "TZ",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "128",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f4ec4e65-a4fd-491c-8a0d-ad9e9536a385",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 2,
+      "knownChampionships": [
+        "world_time_trial"
+      ]
+    },
+    {
+      "id": "6febe8a7-60b1-4c60-b748-23317cb7a1fc",
+      "name": "Gabriel Kolev",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1382",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "89af2c8c-5bc2-49a7-9120-a0530dc2a759",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 73,
+      "knownChampionships": [
+        "continental_europe_time_trial"
+      ]
+    },
+    {
+      "id": "71fb4315-111d-4d4c-b0c5-b2c07668963d",
+      "name": "Simão Fidélis",
+      "country": "Portugal",
+      "countryCode": "PT",
+      "avatarProfileKey": "europe_south",
+      "avatarSeed": "-1032",
+      "teamId": "ca664ee5-06fd-4521-862e-ec20007709ab",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "fe371615-a6a8-4911-a518-a7acbf72b9a5",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 196,
+      "knownChampionships": []
+    },
+    {
+      "id": "72d6beb8-cf9a-4d90-a8f1-292eaffe4e27",
+      "name": "Blessing Bwalya",
+      "country": "Maurice",
+      "countryCode": "MU",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "421",
+      "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e7080f05-badd-4e29-9c10-5c2619f13152",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 51,
+      "knownChampionships": []
+    },
+    {
+      "id": "745f5d16-d327-426d-a51c-e7cc7caa22ac",
+      "name": "Clément Abessolo",
+      "country": "Congo-Kinshasa",
+      "countryCode": "CD",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "523",
+      "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5514c7d6-b847-4df9-930c-981673691b7f",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 140,
+      "knownChampionships": []
+    },
+    {
+      "id": "7598dfa6-6040-47a0-833d-857184ec5cf7",
+      "name": "Mario Božić",
+      "country": "Croatie",
+      "countryCode": "HR",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "193",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "002c5a66-4f61-45f4-88bf-8496191fb8e3",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 180,
+      "knownChampionships": []
+    },
+    {
+      "id": "76173e0a-3199-4af9-bf8b-a7abf82537d3",
+      "name": "Félix Gérard",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "496",
+      "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f8b5af3b-1ceb-4c78-809c-3191a10be350",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 171,
+      "knownChampionships": []
+    },
+    {
+      "id": "76ca222c-8e88-437d-9ddd-67b65639f734",
+      "name": "Gunārs Kulmane",
+      "country": "Lituanie",
+      "countryCode": "LT",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "-902",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "165769c8-7b0c-4bdc-b670-52932b7a26e5",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 22,
+      "knownChampionships": []
+    },
+    {
+      "id": "77704e86-536f-4ff3-84c6-54168b819f5b",
+      "name": "Jaycee Reed",
+      "country": "États-Unis",
+      "countryCode": "US",
+      "avatarProfileKey": "north_america",
+      "avatarSeed": "-1000000002875",
+      "teamId": "0525e7c0-2b4a-4d05-a6e4-63bdcda740f3",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d0bce478-a863-44dc-b61f-24a6084c3d35",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 176,
+      "knownChampionships": []
+    },
+    {
+      "id": "791633ff-df27-44d7-bd81-0641c0f7b994",
+      "name": "Tariq Banerjee",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1000000002670",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a17406a1-87dd-4847-ada4-75ee8ee1fede",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 59,
+      "knownChampionships": []
+    },
+    {
+      "id": "79b84f3e-53e0-4a31-9ca6-02b1757e680f",
+      "name": "Ruslan Baranov",
+      "country": "Royaume-Uni",
+      "countryCode": "GB",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "113",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "3981dc42-5a7d-4328-bd89-ffea443f2234",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 193,
+      "knownChampionships": []
+    },
+    {
+      "id": "7c14f7ba-6624-4bdc-b01d-f4fab9b91415",
+      "name": "Marcel Etoa",
+      "country": "Cameroun",
+      "countryCode": "CM",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "529",
+      "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5ba84421-f102-44b4-a2af-080f6f07e0fd",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 85,
+      "knownChampionships": []
+    },
+    {
+      "id": "8134f315-7053-4693-9d2b-57da3f4859d4",
+      "name": "Fabián Banda",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1327",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "43764d6a-1240-405e-bb53-2370af54c195",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 127,
+      "knownChampionships": []
+    },
+    {
+      "id": "8405bd12-54dd-4b2e-a254-d64299604116",
+      "name": "Youssef Al-Najjar",
+      "country": "Irak",
+      "countryCode": "IQ",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "-1000000001967",
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a8bf8a9f-4051-45ee-b7d9-72b49e750cc2",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 151,
+      "knownChampionships": []
+    },
+    {
+      "id": "8473979a-445f-4dde-8c12-85439e90bcd6",
+      "name": "George Korir",
+      "country": "Rwanda",
+      "countryCode": "RW",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "616",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7020c9a1-3561-4f86-b6cb-1491b1389328",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 72,
+      "knownChampionships": [
+        "continental_africa_time_trial"
+      ]
+    },
+    {
+      "id": "8757c839-f100-4e92-938c-ce2bb2b35ce8",
+      "name": "Thanasis Stamatakis",
+      "country": "Malte",
+      "countryCode": "MT",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "-1000000001827",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7bff21fa-27e8-48cb-8ad9-0943691d6b96",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 109,
+      "knownChampionships": []
+    },
+    {
+      "id": "89c553fd-6aca-49ed-8919-bc03465b41a5",
+      "name": "Bekbolat Tajiev",
+      "country": "Ouzbékistan",
+      "countryCode": "UZ",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "296",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "55558272-48b2-4627-8faf-2181b407bed6",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 89,
+      "knownChampionships": []
+    },
+    {
+      "id": "8c0c17a5-b34d-4f2a-8fb3-057f4d0fdc93",
+      "name": "Viktor Pospíšil",
+      "country": "Tchéquie",
+      "countryCode": "CZ",
+      "avatarProfileKey": "europe_central",
+      "avatarSeed": "158",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "70b17794-d0d7-410c-9e24-c4fd88d137ea",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 74,
+      "knownChampionships": []
+    },
+    {
+      "id": "8c46c6b4-c014-46c7-8abd-c5588b4df637",
+      "name": "Walter Zelaya",
+      "country": "Nicaragua",
+      "countryCode": "NI",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001477",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d451fad8-9a0f-4f48-8a2f-d6f47faf2d05",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 149,
+      "knownChampionships": []
+    },
+    {
+      "id": "8c74c5a9-55b6-4966-845b-0a0d738790f8",
+      "name": "Valeriu Kraule",
+      "country": "Moldavie",
+      "countryCode": "MD",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "-838",
+      "teamId": "34026dd0-77b0-46d8-94ba-fd3256c8df79",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a8e66620-c1d4-4810-8e0f-3fa54ccb03ed",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 125,
+      "knownChampionships": []
+    },
+    {
+      "id": "8ca85fd5-6d30-476b-8d3e-ece93d23d3f1",
+      "name": "Soham Limbu",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1370",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d954bc3b-a6ea-48fa-a6c4-540b4a13950f",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 46,
+      "knownChampionships": []
+    },
+    {
+      "id": "8e8f5aa5-ed3f-47fa-b792-84603f9cc08f",
+      "name": "Gervais Konaté",
+      "country": "Bénin",
+      "countryCode": "BJ",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "594",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e2b6409d-4572-461b-9217-bb7ba54640b4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 194,
+      "knownChampionships": []
+    },
+    {
+      "id": "8fe378b4-f517-425a-a5ed-7d95b5cdfb92",
+      "name": "Mpho Chikowore",
+      "country": "Madagascar",
+      "countryCode": "MG",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "259",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "c4df4a45-35c9-4f89-8c82-a8aef278cb52",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 138,
+      "knownChampionships": []
+    },
+    {
+      "id": "91d3216c-00b5-40b9-bac6-f1214c471ec2",
+      "name": "Axel Aponte",
+      "country": "Salvador",
+      "countryCode": "SV",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001485",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "72c9bb64-6e72-4ac6-bbbf-ad5ec86df116",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 29,
+      "knownChampionships": []
+    },
+    {
+      "id": "9370b477-dd8c-466e-b153-47c9e8a10279",
+      "name": "Mufiz Abdulahadyeva",
+      "country": "Ouzbékistan",
+      "countryCode": "UZ",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-1042",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "8c1966dc-58eb-4507-8aac-838a6c35703a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 64,
+      "knownChampionships": []
+    },
+    {
+      "id": "93b6ec35-b5c6-4850-b4e7-544b244664e9",
+      "name": "Tariq Sharma",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1380",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f9621834-132e-4134-bbf2-cde73fb9d202",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 199,
+      "knownChampionships": []
+    },
+    {
+      "id": "94bea775-f6bf-4802-ae64-0538335d093d",
+      "name": "Mateus Claasen",
+      "country": "Lesotho",
+      "countryCode": "LS",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-723",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "46613ff8-221e-481c-a977-d729ed83ef57",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 48,
+      "knownChampionships": []
+    },
+    {
+      "id": "975d3f85-61a4-465d-98d1-ed1648b09ab5",
+      "name": "Gregorio Cornejo",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1285",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "24cc3059-93e4-435c-8d67-11d63dfefb7c",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 63,
+      "knownChampionships": []
+    },
+    {
+      "id": "9854b7c6-3b6e-4763-af75-7c812b2e5ca1",
+      "name": "Jules Morin",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "369",
+      "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "76063a07-98b1-447c-8f70-d408f71d8fac",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 123,
+      "knownChampionships": []
+    },
+    {
+      "id": "9b04b26a-d531-450f-b2f0-38827c53a55e",
+      "name": "Iván Cordero",
+      "country": "Costa Rica",
+      "countryCode": "CR",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001463",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "8f4671b0-db32-4ecb-a9dd-f7e4d4823406",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 186,
+      "knownChampionships": []
+    },
+    {
+      "id": "9cb34caa-52de-4d3a-8e86-cce7d379ab2a",
+      "name": "Tiana António",
+      "country": "Botswana",
+      "countryCode": "BW",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "60",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1464a648-acb0-49d1-9cdb-5b70ed68551f",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 9,
+      "knownChampionships": []
+    },
+    {
+      "id": "9cf72d7b-8400-4b29-b89d-840c07e1d9a4",
+      "name": "Thorfinn Óskarsson",
+      "country": "Islande",
+      "countryCode": "IS",
+      "avatarProfileKey": "europe_north",
+      "avatarSeed": "-1000000002811",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7a4eb9b4-9015-4618-bedc-e0b2de1b3100",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 86,
+      "knownChampionships": []
+    },
+    {
+      "id": "9e0c1374-77f7-42c2-8c96-14bd021a7207",
+      "name": "Anand Rao",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1381",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a72e6238-4e6f-4c5b-ab15-a1e1ab7b6fcd",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 56,
+      "knownChampionships": []
+    },
+    {
+      "id": "a1c0d330-7e95-4f05-b4f2-bc4ad9a7fb5f",
+      "name": "Wahab Amen",
+      "country": "Chypre",
+      "countryCode": "CY",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "-798",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "9593c6f6-123e-41b0-a40f-f9c421188654",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 54,
+      "knownChampionships": []
+    },
+    {
+      "id": "a344b589-5ff1-42dc-ab40-e0b6edb37c3a",
+      "name": "Corneliu Kalniņš",
+      "country": "Moldavie",
+      "countryCode": "MD",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "-839",
+      "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "75c1eb21-41cc-41bd-8e6e-d6f2c1a70aa7",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 182,
+      "knownChampionships": []
+    },
+    {
+      "id": "a3ae8c84-68f4-4864-9ccf-94e228da5d74",
+      "name": "Yannis Asimopoulos",
+      "country": "Chypre",
+      "countryCode": "CY",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "-1000000002037",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1255dceb-4b75-4ac7-827a-a4c468e844ec",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 66,
+      "knownChampionships": []
+    },
+    {
+      "id": "a3fe759d-0ef9-42eb-8ee2-210077809806",
+      "name": "André Fournier",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1371",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "eb6b2bcf-98df-456f-b340-b927d7ef22e4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 103,
+      "knownChampionships": []
+    },
+    {
+      "id": "a410ac24-bf2d-44df-9438-bc57f45a28ca",
+      "name": "Isaias Castañeda",
+      "country": "Guatemala",
+      "countryCode": "GT",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001505",
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "08a3557d-fdd0-43a6-a49f-7d5eec708d05",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 146,
+      "knownChampionships": []
+    },
+    {
+      "id": "a65975f6-c68a-422a-97a4-3c2ba58c6361",
+      "name": "Ibrahim Maalouf",
+      "country": "Liban",
+      "countryCode": "LB",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "366",
+      "teamId": "caea0559-e3a6-408b-9e2f-4a7755859dd6",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "869073ac-ac7a-4cfb-aea8-29cda8b2cb03",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 154,
+      "knownChampionships": []
+    },
+    {
+      "id": "a747e322-020b-4f04-bf66-eeeaf57c09ec",
+      "name": "Diego Marini",
+      "country": "Italie",
+      "countryCode": "IT",
+      "avatarProfileKey": "europe_south",
+      "avatarSeed": "223",
+      "teamId": "2472b539-6686-4e1a-a506-b2973efb8024",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a0288905-8786-445a-962c-3849e0e19f5a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 137,
+      "knownChampionships": []
+    },
+    {
+      "id": "a95521a8-6d3f-4a42-827c-3e3beec4c268",
+      "name": "Muhammed Assad",
+      "country": "Irak",
+      "countryCode": "IQ",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "-1000000002087",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "86418c60-6c5f-42b5-a7e6-9af9c830fffe",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 95,
+      "knownChampionships": []
+    },
+    {
+      "id": "a9726e03-9db5-474e-bfa9-c0c318316966",
+      "name": "Oscar Laumape",
+      "country": "Australie",
+      "countryCode": "AU",
+      "avatarProfileKey": "oceania",
+      "avatarSeed": "-692",
+      "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "543372e2-5e62-4f71-9f49-0d28c24486ac",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": null,
+      "knownChampionships": [
+        "continental_oceania_time_trial"
+      ]
+    },
+    {
+      "id": "ab97a07d-ffa7-4931-96b4-86549fefa77c",
+      "name": "Dida Feitosa",
+      "country": "Brésil",
+      "countryCode": "BR",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1190",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a53c28d3-ba39-4d9e-97ef-3218800f5b66",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 34,
+      "knownChampionships": []
+    },
+    {
+      "id": "ac2b965c-4e70-4543-9291-a4069abcc5f4",
+      "name": "Broņislavs Fedorov",
+      "country": "Moldavie",
+      "countryCode": "MD",
+      "avatarProfileKey": "europe_east",
+      "avatarSeed": "-1195",
+      "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "25537023-dddf-4434-9c4e-8b5f2f06ce54",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 165,
+      "knownChampionships": []
+    },
+    {
+      "id": "ae32212a-db75-4b5a-96ba-436365faba32",
+      "name": "Claudiu Marković",
+      "country": "Bulgarie",
+      "countryCode": "BG",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "24",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ecfc48ee-481a-488b-8bb2-0e18a9bb6d5c",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 81,
+      "knownChampionships": []
+    },
+    {
+      "id": "b0c990e0-f6f0-4b8b-865c-ea6b9c234792",
+      "name": "Karl Vestergaard",
+      "country": "Suède",
+      "countryCode": "SE",
+      "avatarProfileKey": "europe_north",
+      "avatarSeed": "549",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e2f6ae35-1fbd-4568-94ed-2f03c945de4b",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 87,
+      "knownChampionships": []
+    },
+    {
+      "id": "b1144086-4b9c-4bbe-bfb1-350d9bb347f0",
+      "name": "Mario Hernández",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "420",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e7b9016d-109b-4543-bc65-c00097576daf",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 168,
+      "knownChampionships": []
+    },
+    {
+      "id": "b16ac053-e5a5-41bf-851d-9cf653c9a028",
+      "name": "Gérard Yala",
+      "country": "Tchad",
+      "countryCode": "TD",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "92",
+      "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "b493b4f3-5501-4b1b-ae73-0bd40154d47b",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 68,
+      "knownChampionships": []
+    },
+    {
+      "id": "b17d2aa8-234e-4c75-b9d4-29276765ead2",
+      "name": "György Hlaváč",
+      "country": "Slovaquie",
+      "countryCode": "SK",
+      "avatarProfileKey": "europe_central",
+      "avatarSeed": "-1000000001424",
+      "teamId": "717c6861-163f-4cb1-b556-cbed104a000e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "b2ef1671-fa96-42fd-a222-0614844bc392",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 44,
+      "knownChampionships": []
+    },
+    {
+      "id": "b1808269-6495-4ec6-9ecc-c3439ebde167",
+      "name": "Iván García",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1368",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "db39e82f-cc4a-4e3d-a2f0-3ba9148abda2",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 153,
+      "knownChampionships": []
+    },
+    {
+      "id": "b29e8c15-083c-44e4-9171-882e7483069c",
+      "name": "Hashmatullah Rahimi",
+      "country": "Afghanistan",
+      "countryCode": "AF",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "148",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ae88c7a3-ae04-4991-a234-b703dbafa504",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 24,
+      "knownChampionships": []
+    },
+    {
+      "id": "b40d9adb-9a92-4dca-87a5-ca6fdb60fbea",
+      "name": "Stipe Delić",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-1000000002673",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "c6ad1d06-44ef-4c80-af25-ce64d35330af",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 143,
+      "knownChampionships": []
+    },
+    {
+      "id": "b42b8eb8-4e8d-4052-afd4-a78239b1dc15",
+      "name": "Martin Cerda",
+      "country": "Costa Rica",
+      "countryCode": "CR",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001462",
+      "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "535226e8-9876-4e4e-968e-0dd7cf4b4d5a",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 177,
+      "knownChampionships": []
+    },
+    {
+      "id": "b4d1a92b-5319-4912-94f3-c8a5048ecaf1",
+      "name": "Sekou Hien",
+      "country": "Mauritanie",
+      "countryCode": "MR",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "506",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "9d13af64-c9d1-4e47-9792-029897422aab",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 147,
+      "knownChampionships": []
+    },
+    {
+      "id": "b50aba6f-7145-419f-8842-d07920a44771",
+      "name": "Jens Willems",
+      "country": "Belgique",
+      "countryCode": "BE",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "493",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ef130467-1403-4c79-85bc-9d36d32acc01",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 134,
+      "knownChampionships": []
+    },
+    {
+      "id": "b51bc1e3-43c6-4858-bc50-d943d6859ad6",
+      "name": "Long Nugroho",
+      "country": "Cambodge",
+      "countryCode": "KH",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "595",
+      "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "10d988e7-4bf9-4461-a657-764d4ab075a9",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 32,
+      "knownChampionships": []
+    },
+    {
+      "id": "b59c2eb0-8f9e-4efe-8d43-01eeaf8b4a19",
+      "name": "Rija Masire",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "316",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "0c536d02-182e-4755-819a-6c4c45d11493",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 11,
+      "knownChampionships": []
+    },
+    {
+      "id": "b65b99ea-d0b8-4dfb-98ce-7c7a7bc2af4b",
+      "name": "Tesfamariam Kassa",
+      "country": "Érythrée",
+      "countryCode": "ER",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "-1065",
+      "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "bd11cb2f-7ea6-4d00-bcd2-9b2cb43c4496",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 136,
+      "knownChampionships": []
+    },
+    {
+      "id": "b6c2e612-7a40-4440-8aea-920d8ef0beb8",
+      "name": "Elliot Walker",
+      "country": "Australie",
+      "countryCode": "AU",
+      "avatarProfileKey": "oceania",
+      "avatarSeed": "-693",
+      "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "6cb4488e-46b4-4b6f-845e-0ecd89db8294",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 187,
+      "knownChampionships": []
+    },
+    {
+      "id": "b907f933-b353-4b2f-8d2c-2babb3bf4a87",
+      "name": "Claude Davis",
+      "country": "Botswana",
+      "countryCode": "BW",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-1000000001996",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e25639b4-ae91-467a-b17c-c93548c539cb",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 61,
+      "knownChampionships": []
+    },
+    {
+      "id": "b9895ac0-8f12-4243-8803-4e3cc2ae72a9",
+      "name": "Chrysole Blanc",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-974",
+      "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e46a679e-9d69-4595-82c4-d67d69a6e43e",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 160,
+      "knownChampionships": []
+    },
+    {
+      "id": "ba1d01fc-3df7-4f9b-84d0-c61ac9e8c829",
+      "name": "Katleho Mutsvangwa",
+      "country": "Botswana",
+      "countryCode": "BW",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "56",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7143bb76-2981-431d-9ce1-6be88ed18481",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 98,
+      "knownChampionships": []
+    },
+    {
+      "id": "ba79a19c-c1f9-4cef-b75f-2afec6ccfc65",
+      "name": "Tapiwa Letsie",
+      "country": "Namibie",
+      "countryCode": "NA",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "469",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ca2d2e2b-0183-45ec-b785-82b565d29ed8",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 107,
+      "knownChampionships": []
+    },
+    {
+      "id": "bb14a72a-bd71-4dd9-a4f5-21bad5263ced",
+      "name": "Tristan Rousseau",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "535",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "358fdfec-16f5-4591-9b19-84fce38ca534",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 30,
+      "knownChampionships": []
+    },
+    {
+      "id": "bb392cb0-419d-43d6-b2c4-670492a95eb9",
+      "name": "Levi Jansen",
+      "country": "Pays-Bas",
+      "countryCode": "NL",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "19",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5f4c26ca-0830-427a-b737-0fdb0d62163b",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 166,
+      "knownChampionships": []
+    },
+    {
+      "id": "bc56b686-b101-42ef-8842-3732cb24a0bb",
+      "name": "Amani Abebe",
+      "country": "Rwanda",
+      "countryCode": "RW",
+      "avatarProfileKey": "east_africa",
+      "avatarSeed": "321",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2531c5ee-1fdb-45a4-b5b6-08ba9a071ed8",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 164,
+      "knownChampionships": []
+    },
+    {
+      "id": "bebbc858-c850-4136-a5ad-4044a3398a57",
+      "name": "Ángel Jiménez",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "479",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "3df13498-722e-4402-bdb0-39e86c8a88db",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 23,
+      "knownChampionships": []
+    },
+    {
+      "id": "bec5a600-54dd-4a19-a9b4-ffd8e2e37564",
+      "name": "Ben Blanckenberg",
+      "country": "Lesotho",
+      "countryCode": "LS",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-1000000002101",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "58bc9b04-6001-4c38-8650-fd7e0a3d2e0f",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 49,
+      "knownChampionships": []
+    },
+    {
+      "id": "bf0a6f0c-4b30-42f0-a581-0288218981d3",
+      "name": "Janek Albert",
+      "country": "Allemagne",
+      "countryCode": "DE",
+      "avatarProfileKey": "europe_central",
+      "avatarSeed": "-1000000002081",
+      "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "acafec9d-999d-412c-82d5-eef637b6ffc3",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 162,
+      "knownChampionships": []
+    },
+    {
+      "id": "bf38b7ea-2745-4a97-9ef1-b7acbea06db7",
+      "name": "Francisco Javier Cortez",
+      "country": "Mexique",
+      "countryCode": "MX",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001846",
+      "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1223413f-df95-4da4-b9fe-1a3ced65dda8",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 189,
+      "knownChampionships": []
+    },
+    {
+      "id": "c318a568-cec3-4466-a142-738917773f40",
+      "name": "Darasimi Mogbadunade",
+      "country": "Nigeria",
+      "countryCode": "NG",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "-1000000002045",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "47c06fca-c553-44f5-85b5-9af977ac107b",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 69,
+      "knownChampionships": []
+    },
+    {
+      "id": "c43172ba-20ac-4d4a-894b-92fede0989d2",
+      "name": "Zaven Davtyan",
+      "country": "Colombie",
+      "countryCode": "CO",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1283",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f069f296-6c1f-4b49-9952-17a46216114d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 45,
+      "knownChampionships": [
+        "continental_america_time_trial"
+      ]
+    },
+    {
+      "id": "c478a56c-218c-43ce-82c3-5f42b59150c9",
+      "name": "Manuel Tabucchi",
+      "country": "Guinée-Bissau",
+      "countryCode": "GW",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "-1000000001892",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "2dc9f614-bb2e-465c-89be-ecce203c5690",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 142,
+      "knownChampionships": []
+    },
+    {
+      "id": "c71e1d55-a68b-4f52-8732-b69ef373df71",
+      "name": "José Romero",
+      "country": "Canada",
+      "countryCode": "CA",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1305",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1dacc9e4-8849-43cc-9389-35869bf8f9c3",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 7,
+      "knownChampionships": []
+    },
+    {
+      "id": "c722479d-b734-44e7-a620-e846bbeb43e7",
+      "name": "Arjan Nikolić",
+      "country": "Monténégro",
+      "countryCode": "ME",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "293",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "57bbe73f-08a6-4da7-8228-0bf891c0510a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 14,
+      "knownChampionships": []
+    },
+    {
+      "id": "c72b6cc6-a43b-4c69-af5c-43885fd385c8",
+      "name": "Theuns Visser",
+      "country": "Afrique du Sud",
+      "countryCode": "ZA",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-830",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d7c4cd84-fa36-4d12-89ca-79ce3693c500",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 200,
+      "knownChampionships": []
+    },
+    {
+      "id": "c9422e53-f066-47b3-8f87-6ddf80097d8f",
+      "name": "Eneko Durán",
+      "country": "Espagne",
+      "countryCode": "ES",
+      "avatarProfileKey": "europe_south",
+      "avatarSeed": "543",
+      "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5a3fae8a-eba9-41e2-8472-19da1c085b17",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 158,
+      "knownChampionships": []
+    },
+    {
+      "id": "c9a44ff6-4e4d-4cd2-a54e-249a1af501ea",
+      "name": "Roshan Bhandari",
+      "country": "Pakistan",
+      "countryCode": "PK",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "499",
+      "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4b0efe95-c323-4a69-996d-621aeeb270d3",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 18,
+      "knownChampionships": []
+    },
+    {
+      "id": "cb4a0a15-c37b-4783-a9a2-01b9e7ba4133",
+      "name": "Hussein Awada",
+      "country": "Irak",
+      "countryCode": "IQ",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "-1126",
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f72801de-e191-41f4-8595-b63e67fbfa3e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 47,
+      "knownChampionships": []
+    },
+    {
+      "id": "cbfba386-73e3-42a4-b9fc-2e59dc9fd31e",
+      "name": "Mathieu Laurent",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "480",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1d49c27a-def0-4c5f-98f6-7f458907301f",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 3,
+      "knownChampionships": []
+    },
+    {
+      "id": "cdabfa30-fd80-498f-8edb-ddcffcb21d0f",
+      "name": "Alvar Johnsen",
+      "country": "Éthiopie",
+      "countryCode": "ET",
+      "avatarProfileKey": "europe_north",
+      "avatarSeed": "531",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "be7a5ea1-7e9a-4b3f-8426-2a64092fcc80",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 41,
+      "knownChampionships": []
+    },
+    {
+      "id": "d18ca677-dc0e-4b6e-b85d-d7802c28a4ec",
+      "name": "Mladen Ćosić",
+      "country": "Macédoine du Nord",
+      "countryCode": "MK",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "568",
+      "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "11737fdc-6cad-4f6f-ad60-d38fdf76e1dc",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 139,
+      "knownChampionships": []
+    },
+    {
+      "id": "d1c6534f-ec1e-46a9-a171-f7cb0ee5e779",
+      "name": "Masoud Lotfi",
+      "country": "Iran",
+      "countryCode": "IR",
+      "avatarProfileKey": "middle_east",
+      "avatarSeed": "397",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5ee42a4d-e3d4-4a46-bc9c-10302ea05dfe",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 150,
+      "knownChampionships": []
+    },
+    {
+      "id": "d39ae852-63d5-4a15-9b64-1f2842e83755",
+      "name": "Luís Sibanda",
+      "country": "Madagascar",
+      "countryCode": "MG",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "349",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "bb82cae9-8201-454b-9849-073ba52addc0",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 188,
+      "knownChampionships": []
+    },
+    {
+      "id": "d681c693-3950-43cc-a1a5-19212b895fca",
+      "name": "Youssef Lamrani",
+      "country": "Tunisie",
+      "countryCode": "TN",
+      "avatarProfileKey": "north_africa",
+      "avatarSeed": "393",
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4b674153-9e94-42c1-ab63-b37599bccd8d",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 91,
+      "knownChampionships": []
+    },
+    {
+      "id": "d7439115-66aa-4020-8ceb-c428088f610e",
+      "name": "Raúl Castro",
+      "country": "Uruguay",
+      "countryCode": "UY",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-808",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a4cf9295-173d-46d4-97c3-57282d7b1863",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 94,
+      "knownChampionships": []
+    },
+    {
+      "id": "d767816e-08ea-415b-9be0-38004a0160f1",
+      "name": "Karabo Chikowore",
+      "country": "Maurice",
+      "countryCode": "MU",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-1193",
+      "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "452a679e-44e1-454f-bc72-ce6613e5fb23",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 35,
+      "knownChampionships": []
+    },
+    {
+      "id": "d9367235-e732-4d63-a9dc-bce86feec2b7",
+      "name": "Hernán Burgos",
+      "country": "Costa Rica",
+      "countryCode": "CR",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001464",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a32cf6ff-a409-4e49-933a-3d6af3ca9a4a",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 15,
+      "knownChampionships": []
+    },
+    {
+      "id": "da04672e-5058-4068-af05-1a34c850adbb",
+      "name": "Omphile Tavares",
+      "country": "Angola",
+      "countryCode": "AO",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "23",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d148336c-8da1-4ea2-a0a5-0a935e114d9e",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 105,
+      "knownChampionships": []
+    },
+    {
+      "id": "ddfb5676-9a99-4ff1-86c3-e290614f1020",
+      "name": "Esteban Cabán",
+      "country": "Salvador",
+      "countryCode": "SV",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001484",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7657e4c3-ec1c-4cdf-84f0-9a233727c202",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 116,
+      "knownChampionships": []
+    },
+    {
+      "id": "e10b04b6-ba5d-4940-8b2b-ff78c4ac1c17",
+      "name": "Andrés Tipán",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1369",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "82703b17-97c8-41b5-b6a0-fbe830586895",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 100,
+      "knownChampionships": []
+    },
+    {
+      "id": "e130fb49-b284-47d0-aa51-30d8339fc99a",
+      "name": "William Almanza",
+      "country": "Salvador",
+      "countryCode": "SV",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001486",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4f80f4cd-0484-4021-aac3-4b8383127cb9",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 163,
+      "knownChampionships": []
+    },
+    {
+      "id": "e175cca5-a2f7-4ea8-8f79-5a84b4f30cd5",
+      "name": "Hekmat Odilyeva",
+      "country": "Kirghizstan",
+      "countryCode": "KG",
+      "avatarProfileKey": "central_asia",
+      "avatarSeed": "-999",
+      "teamId": "f2ffb52a-8a36-401d-90a9-ca5270cc8252",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "293bc724-fce0-4559-aafd-4122af5016aa",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 70,
+      "knownChampionships": []
+    },
+    {
+      "id": "e345f0fc-066c-4a6f-b633-8fcf14f7fc1d",
+      "name": "Hannes Delonge",
+      "country": "Allemagne",
+      "countryCode": "DE",
+      "avatarProfileKey": "europe_central",
+      "avatarSeed": "-1000000002079",
+      "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "6a11f5f7-2065-4025-b9e8-2ada6c011a86",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 129,
+      "knownChampionships": []
+    },
+    {
+      "id": "e6728831-3b79-404e-9eb2-43be80578330",
+      "name": "Olle Bäckström",
+      "country": "Suède",
+      "countryCode": "SE",
+      "avatarProfileKey": "europe_north",
+      "avatarSeed": "-1000000001923",
+      "teamId": "1559096d-c142-49c8-b4bc-5cd5cc9830ed",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f52ebd99-4399-49b2-835a-366d7626380f",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 135,
+      "knownChampionships": []
+    },
+    {
+      "id": "e6fd4dc2-769c-4267-9dee-967973b91d3e",
+      "name": "Preecha Aung",
+      "country": "Myanmar (Birmanie)",
+      "countryCode": "MM",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "404",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4de3f96f-4792-4859-a112-66756fc6e123",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 93,
+      "knownChampionships": []
+    },
+    {
+      "id": "e781b417-f0f0-4e68-a8e6-306ed8f4bfab",
+      "name": "Nayeem Kapoor",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "387",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d337349a-ff51-49f8-9171-7309e630f5b4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 92,
+      "knownChampionships": []
+    },
+    {
+      "id": "e9ae82f0-e6d3-479f-af4c-7fc36fb5ec23",
+      "name": "Yssouf Seydi",
+      "country": "Mauritanie",
+      "countryCode": "MR",
+      "avatarProfileKey": "west_africa",
+      "avatarSeed": "-805",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d5da556f-cbb7-4abf-8942-7d8de1f50139",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 90,
+      "knownChampionships": []
+    },
+    {
+      "id": "ea77d31c-c4c5-46f5-ba64-9c5e5d1c9e76",
+      "name": "Mirko Golob",
+      "country": "Croatie",
+      "countryCode": "HR",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "497",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "91f9dedd-73b9-4953-8506-46bcad757cf5",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 10,
+      "knownChampionships": []
+    },
+    {
+      "id": "ea8ad20a-b837-492f-95d5-9d3c0bcf9cd1",
+      "name": "Jacques Kasongo",
+      "country": "Tchad",
+      "countryCode": "TD",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "609",
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "ed5438cc-9b21-478d-9099-f75eac8de180",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 76,
+      "knownChampionships": []
+    },
+    {
+      "id": "ec217b30-b398-4acb-9b16-dc4e7306d49b",
+      "name": "Thanh Navarro",
+      "country": "Malaisie",
+      "countryCode": "MY",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "379",
+      "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "d3cef735-b387-499e-a1b7-d232a9ed5fcb",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 111,
+      "knownChampionships": []
+    },
+    {
+      "id": "ec6e5a03-6c99-4a6d-a9e5-d4780f0a0132",
+      "name": "Loïc Song",
+      "country": "Tchad",
+      "countryCode": "TD",
+      "avatarProfileKey": "central_africa",
+      "avatarSeed": "89",
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "965e3c72-7dfc-462b-99df-5ed131854950",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 52,
+      "knownChampionships": []
+    },
+    {
+      "id": "ed436614-05e9-4d1c-8882-23c96b5bafca",
+      "name": "Roberto Chango",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "303",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "99f6060a-73d4-4df7-a293-d2376b796b91",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 77,
+      "knownChampionships": []
+    },
+    {
+      "id": "ed560026-792d-456c-b4d6-484e46d9020a",
+      "name": "Hemant Pawar",
+      "country": "Maldives",
+      "countryCode": "MV",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "567",
+      "teamId": "c7d4f299-3430-4aaf-a029-ac9b97a07ed2",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "a0862837-b113-42f1-b16d-87642b49f1b4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 99,
+      "knownChampionships": []
+    },
+    {
+      "id": "ee3376d0-29c4-4b87-8766-22a6f10f01a0",
+      "name": "Ange Bailly",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "-708",
+      "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1080e24b-07d7-44e5-a7da-0507e6e48adb",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 169,
+      "knownChampionships": []
+    },
+    {
+      "id": "f05c622a-7da1-4409-89ee-f4b6e67e2777",
+      "name": "Nolan Boucher",
+      "country": "France",
+      "countryCode": "FR",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "252",
+      "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "cfa3f4d5-430d-4f96-afb9-25c88545d320",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 198,
+      "knownChampionships": []
+    },
+    {
+      "id": "f0e9897a-1295-434a-a1dd-70c28f6c4e2f",
+      "name": "Jose Daniel Flores",
+      "country": "Belize",
+      "countryCode": "BZ",
+      "avatarProfileKey": "latin_america",
+      "avatarSeed": "-1000000001823",
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "f4ad31d6-0437-4e82-aa84-707b5e4e53d0",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 62,
+      "knownChampionships": []
+    },
+    {
+      "id": "f1e4fd27-4219-47e0-81e7-e2202e7d2e9d",
+      "name": "Zain Chowdhury",
+      "country": "Népal",
+      "countryCode": "NP",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "68",
+      "teamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "51751491-62fc-44b1-9e11-6ff956dc0b39",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 102,
+      "knownChampionships": []
+    },
+    {
+      "id": "f3926e85-eced-4e73-904e-25b8973e5ca5",
+      "name": "Xiaogang Xia",
+      "country": "Chine",
+      "countryCode": "CN",
+      "avatarProfileKey": "east_asia",
+      "avatarSeed": "471",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "43b079c7-7dd2-4501-94ef-67abc96ecec6",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 152,
+      "knownChampionships": []
+    },
+    {
+      "id": "f3c65a08-229a-4c0d-86ed-7e71a97af0a2",
+      "name": "Mateus Bérenger",
+      "country": "Mozambique",
+      "countryCode": "MZ",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "22",
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4b068acb-fc17-467b-8a17-00544cbbee9b",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 65,
+      "knownChampionships": []
+    },
+    {
+      "id": "f5433779-c585-4b98-ba19-39b199b53626",
+      "name": "Argyris Gousios",
+      "country": "Malte",
+      "countryCode": "MT",
+      "avatarProfileKey": "europe_southeast",
+      "avatarSeed": "-1000000001828",
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "8f3b248a-965c-4d61-a0b0-692f96ae6137",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 122,
+      "knownChampionships": []
+    },
+    {
+      "id": "f61499ba-f02e-4e40-aa90-ab698d866d9a",
+      "name": "Cao Phong Khải",
+      "country": "Viêt Nam",
+      "countryCode": "VN",
+      "avatarProfileKey": "southeast_asia",
+      "avatarSeed": "-1071",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "4b4c016a-6aca-4537-a0da-1ae0b50f231a",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 84,
+      "knownChampionships": []
+    },
+    {
+      "id": "f669e5b3-0830-4a54-af98-be1d9950cde7",
+      "name": "Yash Patel",
+      "country": "Équateur",
+      "countryCode": "EC",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "-1367",
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "3f2a370d-5339-4077-b56a-bffa2fa013e4",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 8,
+      "knownChampionships": []
+    },
+    {
+      "id": "f6d38453-43ee-4e84-bf30-a864a8f2b05a",
+      "name": "Anthony Oosthuizen",
+      "country": "Malawi",
+      "countryCode": "MW",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "-878",
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "1ecd33a6-e51e-445e-9965-f308704e383f",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 25,
+      "knownChampionships": []
+    },
+    {
+      "id": "f7e8e2c3-06bb-4715-b976-2d2db4a7f75b",
+      "name": "Lusungu Masire",
+      "country": "Botswana",
+      "countryCode": "BW",
+      "avatarProfileKey": "southern_africa",
+      "avatarSeed": "61",
+      "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "746bebfc-e16a-4df0-bbeb-4749c63b6635",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 118,
+      "knownChampionships": []
+    },
+    {
+      "id": "f8d036c5-7bbd-4b03-8977-0fc23c09d12f",
+      "name": "Fernando Pedro",
+      "country": "Portugal",
+      "countryCode": "PT",
+      "avatarProfileKey": "europe_south",
+      "avatarSeed": "677",
+      "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "49c1eb5e-061e-4ef0-b709-bd18870f5d2a",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 174,
+      "knownChampionships": []
+    },
+    {
+      "id": "fadaf7eb-9f62-44c8-ace0-1e7ca50c0d56",
+      "name": "Hatem Dridi",
+      "country": "Égypte",
+      "countryCode": "EG",
+      "avatarProfileKey": "north_africa",
+      "avatarSeed": "271",
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "0f28dede-4fa0-4487-b2f7-a1eea40040ef",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 27,
+      "knownChampionships": []
+    },
+    {
+      "id": "fcc568a5-2704-4cdd-902c-c6f8c2eb35d7",
+      "name": "Anil Mirza",
+      "country": "Maldives",
+      "countryCode": "MV",
+      "avatarProfileKey": "south_asia",
+      "avatarSeed": "196",
+      "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "e6abdb91-cc31-48ab-8ba1-3de48f99d230",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 4,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 106,
+      "knownChampionships": []
+    },
+    {
+      "id": "fd16efdc-9dc4-4857-bc01-f1f104f39457",
+      "name": "Kees Van Os",
+      "country": "Pays-Bas",
+      "countryCode": "NL",
+      "avatarProfileKey": "europe_west",
+      "avatarSeed": "21",
+      "teamId": "c7d4f299-3430-4aaf-a029-ac9b97a07ed2",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "7a267e88-38e9-45aa-97e7-d0209a2de33a",
+        "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+        "endSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "startGameYear": 3,
+        "endGameYear": 4
+      },
+      "provisionalUciRank": 131,
+      "knownChampionships": []
+    },
+    {
+      "id": "ff024253-0fe9-4f73-b54b-24236cf3965c",
+      "name": "Heinrich Schröder",
+      "country": "Suisse",
+      "countryCode": "CH",
+      "avatarProfileKey": "europe_central",
+      "avatarSeed": "524",
+      "teamId": "bb7c87bd-a474-4260-8f85-f349849683f3",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": {
+        "contractId": "5d11a5a4-42eb-4660-9114-7649a798bbe0",
+        "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+        "endSeasonId": "7ea43c15-30fd-4878-b18f-ab2a43ad3be8",
+        "startGameYear": 4,
+        "endGameYear": 5
+      },
+      "provisionalUciRank": 17,
+      "knownChampionships": []
+    }
+  ],
+  "teams": [
+    {
+      "teamId": "0525e7c0-2b4a-4d05-a6e4-63bdcda740f3",
+      "teamName": "ECS Cycling",
+      "jersey": {
+        "primaryColor": "#173F8A",
+        "secondaryColor": "#EAF2FF",
+        "accentColor": "#EF5B65",
+        "pattern": "shoulders",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": []
+    },
+    {
+      "teamId": "088a7b6b-a8cf-4545-b08b-4bff6c42b476",
+      "teamName": "Teranga Océan",
+      "jersey": {
+        "primaryColor": "#00853F",
+        "secondaryColor": "#006B8F",
+        "accentColor": "#FDEF42",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/46af390ec893c9f5931d3b892e57014a9e7d500f2660584ba2e9d1e758963661.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "ddd95930-fd3a-42a7-91fd-ab352c0ae91f",
+          "startSeasonId": "afa6551b-3bb4-41a2-b394-0302f4275623",
+          "startGameYear": 2,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "teranga-ocean",
+          "jerseyId": "teranga-ocean-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "0ceb562b-737c-4650-8e70-5570a915dc41",
+      "teamName": "Lilangeni Ingilazi",
+      "jersey": {
+        "primaryColor": "#16535A",
+        "secondaryColor": "#E5F1EC",
+        "accentColor": "#E09A42",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/a8073bad2cf18a3171b2c5275e9b3f7dc923cdbb1cef4a6fb5cfdf0fb329e3ce.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "a41d23a3-beca-432c-81ea-a5ada885f8bd",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "lilangeni-ingilazi",
+          "jerseyId": "lilangeni-ingilazi-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "12277621-b716-4b0c-934a-f1a0b52364ba",
+      "teamName": "Cumbre Coca Rush",
+      "jersey": {
+        "primaryColor": "#123F31",
+        "secondaryColor": "#4B2A1C",
+        "accentColor": "#C8F044",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/756f86836f05b44d3a4c93d365dd0abf2c653717bfee096559a617a19576b1f4.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "326ad932-9a29-4881-94d1-cfd98b498ed2",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "cumbre-coca-rush",
+          "jerseyId": "cumbre-coca-rush-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "1559096d-c142-49c8-b4bc-5cd5cc9830ed",
+      "teamName": "Bijagós Caju",
+      "jersey": {
+        "primaryColor": "#176432",
+        "secondaryColor": "#E4A125",
+        "accentColor": "#1673B9",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/0ab110ecfe3b22d3cf3c6a270b8ba6ab2161369c30f5dac715a749ee21f94646.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "479ea91c-e9eb-4898-81bc-7f80419503d9",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "bijagos-caju",
+          "jerseyId": "bijagos-caju-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "20bcbcf8-7f09-42b7-b4be-ce77d4aade10",
+      "teamName": "Glen Durnach",
+      "jersey": {
+        "primaryColor": "#1E2321",
+        "secondaryColor": "#234C3B",
+        "accentColor": "#B87333",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/77abfb237c3f1d39b2c937410fc1ead654d3d19bb0faeaab66d44518220721e2.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "ba57b131-8fa4-4a50-9af5-b206483bab2c",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "glen-durnach",
+          "jerseyId": "glen-durnach-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "2472b539-6686-4e1a-a506-b2973efb8024",
+      "teamName": "Paidalevite",
+      "jersey": {
+        "primaryColor": "#EEE950",
+        "secondaryColor": "#EEE950",
+        "accentColor": "#50F288",
+        "pattern": "shoulders",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": []
+    },
+    {
+      "teamId": "27948dd4-0dac-416d-8f6c-118771bcb6eb",
+      "teamName": "Kigali SafeRide",
+      "jersey": {
+        "primaryColor": "#17242B",
+        "secondaryColor": "#7BC043",
+        "accentColor": "#25A9C7",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/4d4bee2e67f10e69e35929beba9f89626947a00ffe22171059e77acf657d180e.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "738e28b8-266e-48d5-8aaa-ee7f92eec4b3",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "kigali-saferide",
+          "jerseyId": "kigali-saferide-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "34026dd0-77b0-46d8-94ba-fd3256c8df79",
+      "teamName": "Junkanoo Brass & Feather",
+      "jersey": {
+        "primaryColor": "#161826",
+        "secondaryColor": "#CE2E78",
+        "accentColor": "#F0B429",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/6518bc4147f7a5375dbbd81782f93969e8a0e802eade5c1dc48adc7dea658521.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "905d22ec-c44d-4147-969e-4d0c20f5481d",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "junkanoo-brass-feather",
+          "jerseyId": "junkanoo-brass-feather-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "35061203-aa19-4986-83e1-b227cea4ecb5",
+      "teamName": "Kaffa Origins",
+      "jersey": {
+        "primaryColor": "#7A263A",
+        "secondaryColor": "#306844",
+        "accentColor": "#E0A526",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/0f28de5d32fd4f88514704e684338b7679d4c3b1dd54a2dfe3d51f00abb09957.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "4e6e4185-928b-4727-bae1-b304b6f7b507",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "kaffa-origins",
+          "jerseyId": "kaffa-origins-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "52cf9278-cb70-4ed1-9c76-ae7263be8d70",
+      "teamName": "Terroirs Unis",
+      "jersey": {
+        "primaryColor": "#496B3A",
+        "secondaryColor": "#F2E7C9",
+        "accentColor": "#D99A32",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/6fc7073b87089a6cdd0daa1b5959c1e5c58cbbf2e8de76230c1961351b321323.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "df55019e-58a4-4ba2-a01c-430dce195ddc",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "terroirs-unis",
+          "jerseyId": "terroirs-unis-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "61272a34-3070-47ca-9e9b-602c44a2180d",
+      "teamName": "Socquettes légères",
+      "jersey": {
+        "primaryColor": "#5F1769",
+        "secondaryColor": "#C8AE37",
+        "accentColor": "#CCA3CA",
+        "pattern": "checkerboard",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": []
+    },
+    {
+      "teamId": "69b20e97-b88b-4c8c-b98b-b0fd28939913",
+      "teamName": "Okavango Stack",
+      "jersey": {
+        "primaryColor": "#1F5A48",
+        "secondaryColor": "#F07C31",
+        "accentColor": "#F2D49B",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/640d87db816a27aa7a1b1e057ea1a969171bec139cb4a1c85258f0c7a819b0d8.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "a0541b62-7199-4017-af14-e2a3434fdafa",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "okavango-stack",
+          "jerseyId": "okavango-stack-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "6d29ce14-c55f-4e3e-bd73-59f410484210",
+      "teamName": "Cidrerie de l’Aulne",
+      "jersey": {
+        "primaryColor": "#2F6B4F",
+        "secondaryColor": "#18333D",
+        "accentColor": "#D9A441",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/c552a5f803ccfbfcdd7453e7f782fabfdd676b7dcce52b4842e822a4892320eb.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "29e7e6fb-19bb-443e-b77a-56628b2f6645",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "cidrerie-aulne",
+          "jerseyId": "cidrerie-aulne-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "717c6861-163f-4cb1-b556-cbed104a000e",
+      "teamName": "Caramels de Keravel",
+      "jersey": {
+        "primaryColor": "#102A43",
+        "secondaryColor": "#B96824",
+        "accentColor": "#FFF1D2",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/bf1c70738412862252674740fd07ba5b4f40494a88a7fdc8e278c691f51a0e7c.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "da4bb775-2c15-4bde-97a2-07c84496e0b5",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "caramels-de-keravel",
+          "jerseyId": "caramels-de-keravel-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "72c9694f-64d0-491e-a79c-68f655ae6a36",
+      "teamName": "Québec Nord Racing",
+      "jersey": {
+        "primaryColor": "#164C7B",
+        "secondaryColor": "#C73743",
+        "accentColor": "#B9E4EA",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/4e37c863eab971670b8396ac221c42a12fb6b7335ba72c719c0355f4def2a3c1.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "f2fb1b44-14ab-43ad-a58d-3046c20431bc",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "quebec-nord-racing",
+          "jerseyId": "quebec-nord-racing-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "76df78b3-d34c-4e8c-83d0-6e3976ad10b8",
+      "teamName": "Team Cochonou",
+      "jersey": {
+        "primaryColor": "#FFFF00",
+        "secondaryColor": "#FF0000",
+        "accentColor": "#FFFFFF",
+        "pattern": "checkerboard",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": []
+    },
+    {
+      "teamId": "7ba5ff3b-d8cf-46ac-b82b-a53b34fed827",
+      "teamName": "Atlas Racing Lab",
+      "jersey": {
+        "primaryColor": "#174A3A",
+        "secondaryColor": "#C65A3A",
+        "accentColor": "#E8C56A",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/0b751e63fb0addd82069ceccfb13d1c44625442488b54a39d644acd8f2717ee4.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "7b1667c0-d42f-4cdd-9047-985c094edaa3",
+          "startSeasonId": "afa6551b-3bb4-41a2-b394-0302f4275623",
+          "startGameYear": 2,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "atlas-racing-lab",
+          "jerseyId": "atlas-racing-lab-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "803e9755-570b-48ba-9b2d-6bbf5d8312d4",
+      "teamName": "Hexa Bâtiment",
+      "jersey": {
+        "primaryColor": "#234E52",
+        "secondaryColor": "#E6ECEB",
+        "accentColor": "#F4A261",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/cc847a8b05bf83166ade7dd2e356643a36c03dfa8a0a1f9f5c5129dd8ec55139.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "bc686551-d31d-44e0-9d6f-112f368afda4",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "hexa-batiment",
+          "jerseyId": "hexa-batiment-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "89df3cc9-9e81-4c36-8882-c19abb49ea0e",
+      "teamName": "Maloti Mohair",
+      "jersey": {
+        "primaryColor": "#1C5B92",
+        "secondaryColor": "#F3EBDD",
+        "accentColor": "#399052",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/88d326ab85af0399b5216898721642c8f73c5cc257add3dd1024af511e94f9ba.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "cd7d1326-5abf-402c-acb0-6df3c3f550d3",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "maloti-mohair",
+          "jerseyId": "maloti-mohair-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "8de6e531-3cd5-4d5e-beba-34fd54dc5ea1",
+      "teamName": "Penn Kreiz Crêpes",
+      "jersey": {
+        "primaryColor": "#175E8C",
+        "secondaryColor": "#D5B878",
+        "accentColor": "#C84832",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/624f97a9fbff8cb86341f498b91e74061386f8a5d284d02429f4df01328ff381.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "5ddd7d32-eda0-46a9-aa6e-10a88ce61e85",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "penn-kreiz-crepes",
+          "jerseyId": "penn-kreiz-crepes-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "96b66063-c5f7-4115-8be6-807c68a184bf",
+      "teamName": "Ardennes Outillage",
+      "jersey": {
+        "primaryColor": "#20252B",
+        "secondaryColor": "#D9DEE3",
+        "accentColor": "#E4572E",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/d0a6d9ebe671014b00f3ad35999dededf090504f63c4909a3ec14e7aecb3788c.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "1ea7d9bc-55f7-447f-ab79-ab910e98fc31",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "ardennes-outillage",
+          "jerseyId": "ardennes-outillage-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "a81d26fc-5b1f-4267-8c60-073d53389733",
+      "teamName": "Yukikaze Outdoor",
+      "jersey": {
+        "primaryColor": "#193B5A",
+        "secondaryColor": "#6BB8C5",
+        "accentColor": "#E84A3C",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/36d021b3ec97f94400e1a99559453977bf888ffcd20231712be750572470fff7.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "0e93d178-f8f9-422f-948b-2d9b022be578",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "yukikaze-outdoor",
+          "jerseyId": "yukikaze-outdoor-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "ac3691bf-5539-4243-b0f1-69385f340391",
+      "teamName": "Indus Mithai",
+      "jersey": {
+        "primaryColor": "#0B6B3A",
+        "secondaryColor": "#7A1F4D",
+        "accentColor": "#E6B84A",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/a2c20e2d7fee65068544ec6e22213f660ba97c3b4be1c2bab5c6623f9071e30b.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "34fb6b25-2f41-4d54-a193-4e8c8fa41e27",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "indus-mithai",
+          "jerseyId": "indus-mithai-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "ac9c6a66-e4ee-404e-bf9d-0665a6515640",
+      "teamName": "Dodo Blue Finance",
+      "jersey": {
+        "primaryColor": "#0B4F6C",
+        "secondaryColor": "#01A7A3",
+        "accentColor": "#F4B942",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/ee430efa299a7b89ab6a8ea54613302f4290680e21c1f448813c54416d4c0fbd.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "81372097-dedc-4bc5-b1af-0ecf7151fe86",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "dodo-blue-finance",
+          "jerseyId": "dodo-blue-finance-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "ad506cc8-91ff-4306-a30f-b1397e2154a5",
+      "teamName": "Uji Midori",
+      "jersey": {
+        "primaryColor": "#426B3A",
+        "secondaryColor": "#B9C77A",
+        "accentColor": "#C99A3D",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/e90f1426c3250d7d9f711b5a741c4aaa3348671432e7d0859215c22825bb7d84.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "b7049ab4-1802-42b0-b2f6-0b00691018ff",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "uji-midori",
+          "jerseyId": "uji-midori-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "b5fd7b9a-a254-4e41-9428-3cd1b2bf90fc",
+      "teamName": "Lima Maki",
+      "jersey": {
+        "primaryColor": "#163A5F",
+        "secondaryColor": "#8CBF4D",
+        "accentColor": "#E85D5D",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/52ff42ba3bfa6da4fcd56e3d4de6ef09c43ae000ddfbdd8bad6c8215eb1baa84.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "17c69ddd-af28-42dd-96cd-571e396e2332",
+          "startSeasonId": "afa6551b-3bb4-41a2-b394-0302f4275623",
+          "startGameYear": 2,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "lima-maki",
+          "jerseyId": "lima-maki-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "b6932cdd-3ad3-4475-9509-080c35694f2d",
+      "teamName": "Pampa Maté Fuego",
+      "jersey": {
+        "primaryColor": "#245A3B",
+        "secondaryColor": "#69B9DB",
+        "accentColor": "#F06432",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/0f3bd0b79d7f32f8f3edbf532e2f5d863e6bc61d2cc5edf4bc7aa77aa6bfdf7b.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "44dce1ea-3458-4437-98cf-ecdb79bd9722",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "pampa-mate-fuego",
+          "jerseyId": "pampa-mate-fuego-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "bb7c87bd-a474-4260-8f85-f349849683f3",
+      "teamName": "Sainte-Croix Automata",
+      "jersey": {
+        "primaryColor": "#543522",
+        "secondaryColor": "#C99A45",
+        "accentColor": "#267B78",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/d122a7b314aaa88deaa32732b908772abf3c229ca1bb206507798866824321e6.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "0bd66eba-8edb-4ab3-8945-e1b4a6060d6e",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "sainte-croix-automata",
+          "jerseyId": "sainte-croix-automata-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "c7d4f299-3430-4aaf-a029-ac9b97a07ed2",
+      "teamName": "TheWolverineCyclingTeam",
+      "jersey": {
+        "primaryColor": "#FFFF00",
+        "secondaryColor": "#FFFDF4",
+        "accentColor": "#F2C94C",
+        "pattern": "checkerboard",
+        "status": "amateur"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": []
+    },
+    {
+      "teamId": "c9db310c-1a90-4df5-9f78-fd48c8147425",
+      "teamName": "Montecristi Toquilla House",
+      "jersey": {
+        "primaryColor": "#D7B46A",
+        "secondaryColor": "#173B5E",
+        "accentColor": "#B85C38",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/41b39c24fdff59edca126a756438d61e87206f003c1cda873cfea04c38277d47.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "71fc6189-abbd-4e59-87d0-662603ffd118",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "montecristi-toquilla-house",
+          "jerseyId": "montecristi-toquilla-house-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "ca664ee5-06fd-4521-862e-ec20007709ab",
+      "teamName": "Talleres Pampeanos",
+      "jersey": {
+        "primaryColor": "#183B5B",
+        "secondaryColor": "#73B9DD",
+        "accentColor": "#E6A23C",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/d3dad529fb2e19df2e4fbc8a0dd396e1852bf428d5f39ba8590f528fca35b87b.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "1a61c162-bd9d-4fa6-859d-86bbafe1cc47",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "talleres-pampeanos",
+          "jerseyId": "talleres-pampeanos-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "caea0559-e3a6-408b-9e2f-4a7755859dd6",
+      "teamName": "Kriti Gea",
+      "jersey": {
+        "primaryColor": "#557A32",
+        "secondaryColor": "#C65D3B",
+        "accentColor": "#1F5AA6",
+        "pattern": "diagonal",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/57c08c7af0ec4132655cb7fd0f37159849bcd8eaef161fc3d88a7884b77e8b55.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "df9e0f8d-1473-4c1c-af31-afb5785c9e9d",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "kriti-gea",
+          "jerseyId": "kriti-gea-modern",
+          "jerseyStyle": "modern"
+        }
+      ]
+    },
+    {
+      "teamId": "cb8d8f3b-65c7-44c5-a3f6-8bf108a4bf2e",
+      "teamName": "Vereda Nova Automóveis",
+      "jersey": {
+        "primaryColor": "#14533B",
+        "secondaryColor": "#7EBF49",
+        "accentColor": "#F2C84B",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/96b32af903348fa0a991f6102db155b138136afa9369c4f13416e1df09f69d3b.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "6d4b5911-7e43-41aa-9c2f-164e603d7ba4",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "vereda-nova-automoveis",
+          "jerseyId": "vereda-nova-automoveis-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "de60b8f0-c3c7-4f8e-bd85-305439b1a482",
+      "teamName": "Covoare Basarabene",
+      "jersey": {
+        "primaryColor": "#A63D3A",
+        "secondaryColor": "#233A63",
+        "accentColor": "#E5C07B",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/3497a55f896395c1dc5f6acc0375996ae21480642ade2548515b022d832cf7e4.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "8b814d55-185e-4250-b434-633f819dfeb7",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "covoare-basarabene",
+          "jerseyId": "covoare-basarabene-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "e46bf500-2656-4c5c-85df-57daa6814b96",
+      "teamName": "UrbanRide Mobility",
+      "jersey": {
+        "primaryColor": "#1B998B",
+        "secondaryColor": "#2D3047",
+        "accentColor": "#FFFFFF",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/8f79b1aed25fa9db172e6902ba627ef3271cfddb80ce5cdd03af906417855f95.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "439d6001-ff71-4a77-a66b-5a8c7dbf7d3a",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 1,
+          "sponsorCatalogKey": "urbanride-mobility",
+          "jerseyId": "urbanride-mobility-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    },
+    {
+      "teamId": "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57",
+      "teamName": "Abbaye du Lion",
+      "jersey": {
+        "primaryColor": "#7A3E12",
+        "secondaryColor": "#D4A017",
+        "accentColor": "#F5E6C8",
+        "pattern": "hoops",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/003766ee64e090e914d6f6e915c74bda7dbda68b0b5344a02956b4a47f7f43b9.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "54c65cbe-0d94-494d-887e-1d29d279f522",
+          "startSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+          "startGameYear": 4,
+          "contractDurationSeasons": 3,
+          "sponsorCatalogKey": "abbaye-du-lion",
+          "jerseyId": "abbaye-du-lion-classic",
+          "jerseyStyle": "classic"
+        }
+      ]
+    },
+    {
+      "teamId": "f2ffb52a-8a36-401d-90a9-ca5270cc8252",
+      "teamName": "Kyrgyz Highlands",
+      "jersey": {
+        "primaryColor": "#C8102E",
+        "secondaryColor": "#252A2E",
+        "accentColor": "#F1B434",
+        "pattern": "split",
+        "status": "sponsored",
+        "imagePath": "/images/collector-albums/s4/c92a7439e9b62376bd6adc1a347be7b73fd58791ce4aa4056b8e57304e5888f6.webp"
+      },
+      "sourceSeasonId": "c0c5824c-43a4-442e-907c-265c479efa0a",
+      "capturedAt": "2026-11-05T09:23:35.842Z",
+      "contractEvidence": [
+        {
+          "contractId": "3ddfe7c7-f488-4ea1-a0dc-809415294156",
+          "startSeasonId": "74a7fd2f-ee7a-4d3f-bfe5-a97d0909d6c6",
+          "startGameYear": 3,
+          "contractDurationSeasons": 2,
+          "sponsorCatalogKey": "kyrgyz-highlands",
+          "jerseyId": "kyrgyz-highlands-bold",
+          "jerseyStyle": "bold"
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "originalPath": "/images/sponsors/abbaye-du-lion/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/003766ee64e090e914d6f6e915c74bda7dbda68b0b5344a02956b4a47f7f43b9.webp",
+      "sha256": "003766ee64e090e914d6f6e915c74bda7dbda68b0b5344a02956b4a47f7f43b9",
+      "bytes": 46984
+    },
+    {
+      "originalPath": "/images/sponsors/ardennes-outillage/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/d0a6d9ebe671014b00f3ad35999dededf090504f63c4909a3ec14e7aecb3788c.webp",
+      "sha256": "d0a6d9ebe671014b00f3ad35999dededf090504f63c4909a3ec14e7aecb3788c",
+      "bytes": 43472
+    },
+    {
+      "originalPath": "/images/sponsors/atlas-racing-lab/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/0b751e63fb0addd82069ceccfb13d1c44625442488b54a39d644acd8f2717ee4.webp",
+      "sha256": "0b751e63fb0addd82069ceccfb13d1c44625442488b54a39d644acd8f2717ee4",
+      "bytes": 82928
+    },
+    {
+      "originalPath": "/images/sponsors/bijagos-caju/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/0ab110ecfe3b22d3cf3c6a270b8ba6ab2161369c30f5dac715a749ee21f94646.webp",
+      "sha256": "0ab110ecfe3b22d3cf3c6a270b8ba6ab2161369c30f5dac715a749ee21f94646",
+      "bytes": 85250
+    },
+    {
+      "originalPath": "/images/sponsors/caramels-de-keravel/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/bf1c70738412862252674740fd07ba5b4f40494a88a7fdc8e278c691f51a0e7c.webp",
+      "sha256": "bf1c70738412862252674740fd07ba5b4f40494a88a7fdc8e278c691f51a0e7c",
+      "bytes": 45972
+    },
+    {
+      "originalPath": "/images/sponsors/cidrerie-aulne/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/c552a5f803ccfbfcdd7453e7f782fabfdd676b7dcce52b4842e822a4892320eb.webp",
+      "sha256": "c552a5f803ccfbfcdd7453e7f782fabfdd676b7dcce52b4842e822a4892320eb",
+      "bytes": 134298
+    },
+    {
+      "originalPath": "/images/sponsors/covoare-basarabene/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/3497a55f896395c1dc5f6acc0375996ae21480642ade2548515b022d832cf7e4.webp",
+      "sha256": "3497a55f896395c1dc5f6acc0375996ae21480642ade2548515b022d832cf7e4",
+      "bytes": 118888
+    },
+    {
+      "originalPath": "/images/sponsors/cumbre-coca-rush/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/756f86836f05b44d3a4c93d365dd0abf2c653717bfee096559a617a19576b1f4.webp",
+      "sha256": "756f86836f05b44d3a4c93d365dd0abf2c653717bfee096559a617a19576b1f4",
+      "bytes": 97696
+    },
+    {
+      "originalPath": "/images/sponsors/dodo-blue-finance/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/ee430efa299a7b89ab6a8ea54613302f4290680e21c1f448813c54416d4c0fbd.webp",
+      "sha256": "ee430efa299a7b89ab6a8ea54613302f4290680e21c1f448813c54416d4c0fbd",
+      "bytes": 40604
+    },
+    {
+      "originalPath": "/images/sponsors/glen-durnach/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/77abfb237c3f1d39b2c937410fc1ead654d3d19bb0faeaab66d44518220721e2.webp",
+      "sha256": "77abfb237c3f1d39b2c937410fc1ead654d3d19bb0faeaab66d44518220721e2",
+      "bytes": 44254
+    },
+    {
+      "originalPath": "/images/sponsors/hexa-batiment/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/cc847a8b05bf83166ade7dd2e356643a36c03dfa8a0a1f9f5c5129dd8ec55139.webp",
+      "sha256": "cc847a8b05bf83166ade7dd2e356643a36c03dfa8a0a1f9f5c5129dd8ec55139",
+      "bytes": 43056
+    },
+    {
+      "originalPath": "/images/sponsors/indus-mithai/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/a2c20e2d7fee65068544ec6e22213f660ba97c3b4be1c2bab5c6623f9071e30b.webp",
+      "sha256": "a2c20e2d7fee65068544ec6e22213f660ba97c3b4be1c2bab5c6623f9071e30b",
+      "bytes": 102248
+    },
+    {
+      "originalPath": "/images/sponsors/junkanoo-brass-feather/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/6518bc4147f7a5375dbbd81782f93969e8a0e802eade5c1dc48adc7dea658521.webp",
+      "sha256": "6518bc4147f7a5375dbbd81782f93969e8a0e802eade5c1dc48adc7dea658521",
+      "bytes": 102842
+    },
+    {
+      "originalPath": "/images/sponsors/kaffa-origins/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/0f28de5d32fd4f88514704e684338b7679d4c3b1dd54a2dfe3d51f00abb09957.webp",
+      "sha256": "0f28de5d32fd4f88514704e684338b7679d4c3b1dd54a2dfe3d51f00abb09957",
+      "bytes": 98138
+    },
+    {
+      "originalPath": "/images/sponsors/kigali-saferide/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/4d4bee2e67f10e69e35929beba9f89626947a00ffe22171059e77acf657d180e.webp",
+      "sha256": "4d4bee2e67f10e69e35929beba9f89626947a00ffe22171059e77acf657d180e",
+      "bytes": 74612
+    },
+    {
+      "originalPath": "/images/sponsors/kriti-gea/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/57c08c7af0ec4132655cb7fd0f37159849bcd8eaef161fc3d88a7884b77e8b55.webp",
+      "sha256": "57c08c7af0ec4132655cb7fd0f37159849bcd8eaef161fc3d88a7884b77e8b55",
+      "bytes": 88812
+    },
+    {
+      "originalPath": "/images/sponsors/kyrgyz-highlands/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/c92a7439e9b62376bd6adc1a347be7b73fd58791ce4aa4056b8e57304e5888f6.webp",
+      "sha256": "c92a7439e9b62376bd6adc1a347be7b73fd58791ce4aa4056b8e57304e5888f6",
+      "bytes": 83352
+    },
+    {
+      "originalPath": "/images/sponsors/lilangeni-ingilazi/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/a8073bad2cf18a3171b2c5275e9b3f7dc923cdbb1cef4a6fb5cfdf0fb329e3ce.webp",
+      "sha256": "a8073bad2cf18a3171b2c5275e9b3f7dc923cdbb1cef4a6fb5cfdf0fb329e3ce",
+      "bytes": 86006
+    },
+    {
+      "originalPath": "/images/sponsors/lima-maki/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/52ff42ba3bfa6da4fcd56e3d4de6ef09c43ae000ddfbdd8bad6c8215eb1baa84.webp",
+      "sha256": "52ff42ba3bfa6da4fcd56e3d4de6ef09c43ae000ddfbdd8bad6c8215eb1baa84",
+      "bytes": 45774
+    },
+    {
+      "originalPath": "/images/sponsors/maloti-mohair/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/88d326ab85af0399b5216898721642c8f73c5cc257add3dd1024af511e94f9ba.webp",
+      "sha256": "88d326ab85af0399b5216898721642c8f73c5cc257add3dd1024af511e94f9ba",
+      "bytes": 87154
+    },
+    {
+      "originalPath": "/images/sponsors/montecristi-toquilla-house/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/41b39c24fdff59edca126a756438d61e87206f003c1cda873cfea04c38277d47.webp",
+      "sha256": "41b39c24fdff59edca126a756438d61e87206f003c1cda873cfea04c38277d47",
+      "bytes": 105586
+    },
+    {
+      "originalPath": "/images/sponsors/okavango-stack/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/640d87db816a27aa7a1b1e057ea1a969171bec139cb4a1c85258f0c7a819b0d8.webp",
+      "sha256": "640d87db816a27aa7a1b1e057ea1a969171bec139cb4a1c85258f0c7a819b0d8",
+      "bytes": 41790
+    },
+    {
+      "originalPath": "/images/sponsors/pampa-mate-fuego/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/0f3bd0b79d7f32f8f3edbf532e2f5d863e6bc61d2cc5edf4bc7aa77aa6bfdf7b.webp",
+      "sha256": "0f3bd0b79d7f32f8f3edbf532e2f5d863e6bc61d2cc5edf4bc7aa77aa6bfdf7b",
+      "bytes": 68346
+    },
+    {
+      "originalPath": "/images/sponsors/penn-kreiz-crepes/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/624f97a9fbff8cb86341f498b91e74061386f8a5d284d02429f4df01328ff381.webp",
+      "sha256": "624f97a9fbff8cb86341f498b91e74061386f8a5d284d02429f4df01328ff381",
+      "bytes": 83424
+    },
+    {
+      "originalPath": "/images/sponsors/quebec-nord-racing/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/4e37c863eab971670b8396ac221c42a12fb6b7335ba72c719c0355f4def2a3c1.webp",
+      "sha256": "4e37c863eab971670b8396ac221c42a12fb6b7335ba72c719c0355f4def2a3c1",
+      "bytes": 80788
+    },
+    {
+      "originalPath": "/images/sponsors/sainte-croix-automata/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/d122a7b314aaa88deaa32732b908772abf3c229ca1bb206507798866824321e6.webp",
+      "sha256": "d122a7b314aaa88deaa32732b908772abf3c229ca1bb206507798866824321e6",
+      "bytes": 115832
+    },
+    {
+      "originalPath": "/images/sponsors/talleres-pampeanos/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/d3dad529fb2e19df2e4fbc8a0dd396e1852bf428d5f39ba8590f528fca35b87b.webp",
+      "sha256": "d3dad529fb2e19df2e4fbc8a0dd396e1852bf428d5f39ba8590f528fca35b87b",
+      "bytes": 85952
+    },
+    {
+      "originalPath": "/images/sponsors/teranga-ocean/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/46af390ec893c9f5931d3b892e57014a9e7d500f2660584ba2e9d1e758963661.webp",
+      "sha256": "46af390ec893c9f5931d3b892e57014a9e7d500f2660584ba2e9d1e758963661",
+      "bytes": 53028
+    },
+    {
+      "originalPath": "/images/sponsors/terroirs-unis/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/6fc7073b87089a6cdd0daa1b5959c1e5c58cbbf2e8de76230c1961351b321323.webp",
+      "sha256": "6fc7073b87089a6cdd0daa1b5959c1e5c58cbbf2e8de76230c1961351b321323",
+      "bytes": 53122
+    },
+    {
+      "originalPath": "/images/sponsors/uji-midori/jersey-modern.webp",
+      "frozenPath": "/images/collector-albums/s4/e90f1426c3250d7d9f711b5a741c4aaa3348671432e7d0859215c22825bb7d84.webp",
+      "sha256": "e90f1426c3250d7d9f711b5a741c4aaa3348671432e7d0859215c22825bb7d84",
+      "bytes": 79128
+    },
+    {
+      "originalPath": "/images/sponsors/urbanride-mobility/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/8f79b1aed25fa9db172e6902ba627ef3271cfddb80ce5cdd03af906417855f95.webp",
+      "sha256": "8f79b1aed25fa9db172e6902ba627ef3271cfddb80ce5cdd03af906417855f95",
+      "bytes": 84596
+    },
+    {
+      "originalPath": "/images/sponsors/vereda-nova-automoveis/jersey-bold.webp",
+      "frozenPath": "/images/collector-albums/s4/96b32af903348fa0a991f6102db155b138136afa9369c4f13416e1df09f69d3b.webp",
+      "sha256": "96b32af903348fa0a991f6102db155b138136afa9369c4f13416e1df09f69d3b",
+      "bytes": 72272
+    },
+    {
+      "originalPath": "/images/sponsors/yukikaze-outdoor/jersey-classic.webp",
+      "frozenPath": "/images/collector-albums/s4/36d021b3ec97f94400e1a99559453977bf888ffcd20231712be750572470fff7.webp",
+      "sha256": "36d021b3ec97f94400e1a99559453977bf888ffcd20231712be750572470fff7",
+      "bytes": 76436
+    }
+  ],
+  "sha256": "519ee60ea83d22b4e9a1a41756ff781dca79e06e8510b2b72c8e9b871408a91b"
+}
