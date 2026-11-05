@@ -58,6 +58,9 @@ try {
       execute format('alter function %s set search_path=public',f); end loop; end$$;
   `);
   await db.exec(await readFile('supabase/migrations/20261022160000_create_recurring_season_draft.sql','utf8'));
+  if (process.argv.includes('--midnight')) {
+    await db.exec(await readFile('supabase/migrations/20261105210000_reserve_season_draft_from_midnight.sql','utf8'));
+  }
   check(await value('select first_game_year value from season_draft_settings'),5,'only next season');
   check(await value('select count(*)::int value from season_draft_editions'),0,'no current-season event');
   check(await value("select schedule value from cron.jobs where name='season-opening-draft'"),'* * * * *','independent recurring worker');

@@ -224,7 +224,7 @@ export default async function InventoryPage({
                 Retrouvez au même endroit les objets gagnés par{" "}
                 {overview.teamName} et chaque pièce achetée dans la rubrique
                 Matériel.
-                {" "}Les achats et cadeaux Halloween sont également conservés ici.
+                {" "}Les consommables Halloween sont également conservés ici.
               </p>
             </div>
 

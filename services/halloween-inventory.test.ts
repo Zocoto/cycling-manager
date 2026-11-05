@@ -7,6 +7,8 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => ({ fro
 vi.mock("@/services/team-equipment", () => ({ getCurrentTeamEquipmentOverview: equipment }));
 import { getCurrentHalloweenInventory } from "./halloween-inventory";
 import { getCurrentTeamInventoryOverview } from "./team-inventory";
+import { getHalloweenAvatarWardrobe } from "./halloween-avatar-wardrobe";
+import { HALLOWEEN_PREVIEW_ITEMS } from "@/lib/game/halloween-catalog";
 
 describe("lecture de l’inventaire Halloween du DS", () => {
   beforeEach(() => {
@@ -35,6 +37,26 @@ describe("lecture de l’inventaire Halloween du DS", () => {
     const overview = await getCurrentTeamInventoryOverview("zocoto-auth-id");
     expect(overview?.items[0]).toMatchObject({ name: "Tisane du spectre", quantity: 2, source: "halloween" });
     expect(overview?.summary).toMatchObject({ references: 1, totalUnits: 2, availableUnits: 2 });
+  });
+  it("réserve les accessoires acquis à la garde-robe tout en conservant les objets utilisables", async () => {
+    const cosmetics = HALLOWEEN_PREVIEW_ITEMS.filter((item) => item.kind === "cosmetic");
+    const inventory: Readonly<Record<string, number>> = Object.freeze({
+      ...Object.fromEntries(cosmetics.map((item) => [item.id, 1])),
+      "spectres-tea": 2, "vampire-kiss": 1, "headless-frame-claim": 1,
+    });
+    const selected = Object.freeze({ frame: "spectral-wheel", background: "halloween-background", accessory: "devil-trident" });
+    responses.set("halloween_wallets", { data: { inventory, cosmetics: selected }, error: null });
+
+    const overview = await getCurrentTeamInventoryOverview("zocoto-auth-id");
+    expect(overview?.items.map((item) => item.sourceId).sort()).toEqual(["headless-frame-claim", "spectres-tea", "vampire-kiss"]);
+    expect(overview?.summary).toMatchObject({ references: 3, totalUnits: 4, availableUnits: 4 });
+
+    const wardrobe = await getHalloweenAvatarWardrobe("zocoto-auth-id");
+    expect(wardrobe.owned.sort()).toEqual(cosmetics.map((item) => item.id).sort());
+    expect(wardrobe.selected.sort()).toEqual(["devil-trident", "halloween-background", "spectral-wheel"]);
+    expect(Object.values(selected).sort()).toEqual(["devil-trident", "halloween-background", "spectral-wheel"]);
+    for (const item of cosmetics) expect(inventory[item.id]).toBe(1);
+    expect(inventory["spectres-tea"]).toBe(2);
   });
   it("ne crée pas de portefeuille pour un non-participant", async () => {
     responses.set("halloween_wallets", { data: null, error: null });

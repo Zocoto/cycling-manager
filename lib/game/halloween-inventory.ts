@@ -10,24 +10,22 @@ const frameClaim: HalloweenPreviewItem = {
 };
 const catalog = new Map([...HALLOWEEN_PREVIEW_ITEMS, frameClaim].map(item => [item.id, item]));
 
-/** Display the existing DS wallet; never copy or grant its objects to a team. */
+/** Expose usable objects only; permanent avatar cosmetics belong to the wardrobe. */
 export function halloweenToInventoryItems(
   inventory: Record<string, unknown> = {},
-  cosmetics: Record<string, unknown> = {},
 ): TeamInventoryItem[] {
   return Object.entries(inventory).flatMap(([id, quantity]) => {
     const item = catalog.get(id);
-    if (!item || typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity <= 0) return [];
-    const equipped = item.kind === "cosmetic" && Object.values(cosmetics).includes(id) ? 1 : 0;
+    if (!item || item.kind === "cosmetic" || typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity <= 0) return [];
     return [{
       id: `halloween:${id}`, sourceId: id, catalogKey: id, source: "halloween",
       category: categoryFor(id), name: item.name, description: item.description,
       effectSummary: halloweenPresentationEffect(item, true), resalePrice: null,
       rarity: item.relic || item.price === null ? "epic" : "uncommon",
-      quantity, availableQuantity: quantity - equipped, equippedQuantity: equipped,
+      quantity, availableQuantity: quantity, equippedQuantity: 0,
       pendingQuantity: 0, equippedRiderIds: [], pendingRiderIds: [],
       iconKey: item.art, imagePath: null, supplierName: "Halloween", equipmentSlot: null,
-      isConsumable: item.kind !== "cosmetic", acquiredAt: null, halloween: item,
+      isConsumable: true, acquiredAt: null, halloween: item,
     } satisfies TeamInventoryItem];
   });
 }
