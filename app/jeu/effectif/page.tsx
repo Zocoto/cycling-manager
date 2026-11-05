@@ -24,7 +24,7 @@ import {
 } from "@/components/game/rider-comparison-launcher";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
 import { RiderMoraleGauge } from "@/components/game/rider-morale-gauge";
-import { SquadStatusEditor } from "@/components/game/squad-status-editor";
+import { SquadStatusEditor, SquadStatusesBulkEditor } from "@/components/game/squad-status-editor";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { EmptyRosterRecovery } from "@/components/game/empty-roster-recovery";
 import { getCurrentEmptyRosterRecoveryState } from "@/services/empty-roster-recovery";
@@ -630,6 +630,7 @@ export default async function TeamRosterPage({
 
               {riders.length > 0 ? (
                 <RiderComparisonRosterProvider options={comparisonOptions}>
+                  <SquadStatusesBulkEditor initialStatuses={riders.map(rider=>({riderId:rider.rider_id,squadStatus:rider.squad_status}))}>
                   <div className="xl:hidden">
                     <MobileRosterViewSwitch
                       activeView={mobileRosterView}
@@ -747,7 +748,7 @@ export default async function TeamRosterPage({
                             label="Statut"
                             fullLabel="statut dans l’effectif"
                             align="left"
-                            className="min-w-52"
+                            className="w-40 min-w-40"
                             currentSortKey={currentSortKey}
                             currentDirection={currentSortDirection}
                           />
@@ -820,6 +821,7 @@ export default async function TeamRosterPage({
                       </tbody>
                     </table>
                   </div>
+                  </SquadStatusesBulkEditor>
                 </RiderComparisonRosterProvider>
               ) : (
                 <EmptyRoster />
@@ -1254,6 +1256,7 @@ function RiderMobileCard({
       <div className="mt-3 rounded-xl border border-[#315B3E]/10 bg-[#F7FAF9] p-2.5">
         <SquadStatusEditor
           riderId={rider.rider_id}
+          riderName={riderName}
           status={rider.squad_status}
           returnTo={returnTo}
           compact
@@ -1412,6 +1415,7 @@ function RiderTableRow({
       <td className="px-2 py-3">
         <SquadStatusEditor
           riderId={rider.rider_id}
+          riderName={riderName}
           status={rider.squad_status}
           returnTo={returnTo}
           compact

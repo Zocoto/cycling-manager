@@ -6,6 +6,8 @@ import { z } from "zod";
 
 import { withPageFeedback } from "@/lib/game/filtered-page-paths";
 import { SQUAD_STATUS_OPTIONS } from "@/lib/game/squad-status";
+import type { SquadStatus } from "@/lib/game/squad-status";
+import type { SquadStatusesSaveState } from "@/lib/game/squad-status-editor";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { recoverCurrentEmptyTeamRoster } from "@/services/empty-roster-recovery";
 
@@ -76,6 +78,35 @@ export async function updateRiderSquadStatusAction(formData: FormData) {
   revalidatePath(`/jeu/coureurs/${parsed.data.riderId}`);
   revalidatePath("/jeu/courses/[slug]", "page");
   redirect(withPageFeedback(returnTo, "succes", "Statut dans l’effectif mis à jour."));
+}
+
+/** Save only changed roles together; the RPC derives ownership and checks the baseline atomically. */
+export async function updateRiderSquadStatusesAction(
+  previousState: SquadStatusesSaveState,
+  formData: FormData,
+): Promise<SquadStatusesSaveState> {
+  void previousState;
+  const invalid = (): SquadStatusesSaveState => ({ status: "error", message: "Sélection de statuts d’effectif invalide.", savedStatuses: [] });
+  const raw = formData.get("updates");
+  if (typeof raw !== "string" || raw.length > 50_000) return invalid();
+  let values: unknown;
+  try { values = JSON.parse(raw); } catch { return invalid(); }
+  const status = z.enum(squadStatusValues as [SquadStatus, ...SquadStatus[]]).nullable();
+  const parsed = z.array(z.strictObject({ riderId: z.string().uuid(), squadStatus: status, expectedStatus: status })).min(1).max(200).safeParse(values);
+  if (!parsed.success || new Set(parsed.data.map(row => row.riderId)).size !== parsed.data.length) return invalid();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error: authenticationError } = await supabase.auth.getUser();
+  if (authenticationError || !user) redirect("/connexion");
+  const { error } = await supabase.rpc("set_current_team_rider_squad_statuses", { p_updates: parsed.data });
+  if (error) return { status: "error", message: error.message.slice(0, 220), savedStatuses: [] };
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/entrainement");
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  revalidatePath("/jeu/courses/[slug]", "page");
+  return {
+    status: "success", message: "Statuts dans l’effectif mis à jour.",
+    savedStatuses: parsed.data.map(({ riderId, squadStatus }) => ({ riderId, squadStatus })),
+  };
 }
 
 function sanitizeSquadStatusReturnPath(value: string): string {

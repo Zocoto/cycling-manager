@@ -3230,5 +3230,19 @@
   "vignettes.": "stickers.",
   "+ {{0}} BAROUDEURS": "+ {{0}} BREAKAWAY RIDERS",
   "{{0}} vignettes : {{1}} coureurs, 5 équipes, 10 champions continentaux, 2 champions du monde, le champion des Jeux et l’Équipier sans tête.": "{{0}} stickers: {{1}} riders, 5 teams, 10 continental champions, 2 world champions, the Games champion and the Headless Domestique.",
-  "Le catalogue final S4 sera publié en S5 après la clôture et la validation des {{0}} vignettes.": "The final S4 catalogue will be published in S5 after the season ends and all {{0}} stickers are validated."
+  "Le catalogue final S4 sera publié en S5 après la clôture et la validation des {{0}} vignettes.": "The final S4 catalogue will be published in S5 after the season ends and all {{0}} stickers are validated.",
+  "{{0}} statuts modifiés": "{{0}} squad roles changed",
+  "1 statut modifié": "1 squad role changed",
+  "La sélection de statuts d’effectif est invalide.": "The squad role selection is invalid.",
+  "Les statuts d’effectif ont changé. Rechargez l’effectif avant de valider.": "Squad roles have changed. Reload the squad before saving.",
+  "Sélection de statuts d’effectif invalide.": "Invalid squad role selection.",
+  "Sélectionnez entre 1 et 200 coureurs.": "Select between 1 and 200 riders.",
+  "Seul le DS de l’équipe actuelle peut modifier ces statuts. Un contrat actif a changé.": "Only the current team's DS can change these roles. An active contract has changed.",
+  "Statut de": "Squad role for",
+  "Statut de {{0}}": "Squad role for {{0}}",
+  "Statuts dans l’effectif mis à jour.": "Squad roles updated.",
+  "statuts modifiés": "squad roles changed",
+  "Un coureur ne peut apparaître qu’une fois dans la sélection.": "A rider can only appear once in the selection.",
+  "Un coureur ou un statut d’effectif est invalide.": "A rider or squad role is invalid.",
+  "Valider les statuts": "Save squad roles"
 }
