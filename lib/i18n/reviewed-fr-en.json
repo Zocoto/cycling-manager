@@ -3291,5 +3291,14 @@
   "réussites partielles": "partial successes",
   "Satisfaction finale": "Final satisfaction",
   "Variation annuelle :": "Annual change:",
-  "Votre bilan sponsor": "Your sponsor season review"
+  "Votre bilan sponsor": "Your sponsor season review",
+  "Les salaires sont payés par échéances, pas au moment de l’offre. Chaque nouveau contrat couvre la saison en cours et la saison suivante.": "Salaries are paid in instalments, not when the offer is made. Each new contract covers the current season and next season.",
+  "Le nouveau contrat couvre la saison en cours et la saison suivante.": "The new contract covers the current season and next season.",
+  "L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la saison en cours et la saison suivante. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir.": "The rider swap and payment are indivisible. Both contracts cover the current season and next season. By accepting, you withdraw your rider from all upcoming races.",
+  "Aucune indemnité ni prime de signature. Salaire normal à votre charge, contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement.": "No transfer or signing fee. You pay the normal salary, with a contract until the end of next season and no resale during the recruitment season.",
+  "par saison. Contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.": "per season. Contract until the end of next season, with no resale during the recruitment season. You can cancel before confirming. Once confirmed, this pick is final for this edition.",
+  "Sans indemnité ni prime de signature. Salaire : {{0}} par saison. Contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.": "No transfer or signing fee. Salary: {{0}} per season. Contract until the end of next season, with no resale during the recruitment season. You can cancel before confirming. Once confirmed, this pick is final for this edition.",
+  "Ce coureur a déjà un engagement pour la saison suivante.": "This rider already has a commitment for next season.",
+  "La saison change. Actualisez la page avant de recruter ce coureur.": "The season is changing. Refresh the page before recruiting this rider.",
+  "La saison a changé. Actualisez la page avant de recruter ce coureur.": "The season has changed. Refresh the page before recruiting this rider."
 }
