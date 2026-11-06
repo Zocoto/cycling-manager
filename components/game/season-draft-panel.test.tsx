@@ -26,6 +26,25 @@ vi.mock("react", async (importOriginal) => {
 afterEach(() => { draftUi.confirmation = null; draftUi.localPreferences = null; });
 
 describe("page de draft", () => {
+  it("shows the current choice and exact pending count near the countdown", () => {
+    const view=createDraftFixture();view.edition!.status="running";view.edition!.currentPosition=1;
+    const html=renderToStaticMarkup(<SeasonDraftPanel view={view} />);
+    expect(html).toContain("Choix en cours : n°");expect(html).toContain("DS avant votre tour");
+  });
+  it("exposes the picked rider and team immediately, as well as in full history",()=>{
+    const view=createDraftFixture();view.participants![0].status="picked";
+    view.participants![0].selectedRiderId=view.riders![0].id;view.participants![0].selectedName="Alex Dernier choix";
+    const html=renderToStaticMarkup(<SeasonDraftPanel view={view} />);
+    const live=html.match(/<section\b[^>]*aria-label="Derniers choix de la draft"[\s\S]*?<\/section>/)?.[0];
+    expect(live).toContain("Alex Dernier choix");expect(live).toContain("Dodo Blue Finance");expect(live).toContain("Voir tous les choix");
+    expect(html).toContain('id="draft-order"');
+  });
+  it("keeps passed turns distinct from a rider recruitment in recent choices",()=>{
+    const view=createDraftFixture();view.participants![0].status="passed";view.participants![0].reason="timeout";
+    const html=renderToStaticMarkup(<SeasonDraftPanel view={view} />);
+    const live=html.match(/<section\b[^>]*aria-label="Derniers choix de la draft"[\s\S]*?<\/section>/)?.[0];
+    expect(live).toContain("Délai écoulé");expect(live).not.toContain("Coureur sélectionné");
+  });
   it("keeps validation inside the preference card, including before any edit", () => {
     const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
     const card = html.match(/<aside\b[^>]*>[\s\S]*?<\/aside>/)?.[0];

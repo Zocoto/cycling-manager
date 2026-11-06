@@ -3309,5 +3309,15 @@
   "Modifications non enregistrées.": "Unsaved changes.",
   "Votre liste est enregistrée.": "Your list is saved.",
   "Ajoutez vos choix, puis validez votre liste.": "Add your choices, then save your list.",
-  "Validation de la liste": "Save preference list"
+  "Validation de la liste": "Save preference list",
+  "Choix en cours : n°": "Current pick: no.",
+  "Prochain choix : n°": "Next pick: no.",
+  "À vous de choisir": "Your pick",
+  "DS avant votre tour": "managers before your turn",
+  "choix terminés": "picks completed",
+  "Derniers choix de la draft": "Latest draft picks",
+  "Derniers choix": "Latest picks",
+  "Voir tous les choix": "View all picks",
+  "Choix n°": "Pick no.",
+  "Coureur sélectionné": "Selected rider"
 }

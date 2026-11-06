@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateSeasonDraft } from "@/app/jeu/draft/actions";
 import { RIDER_RATING_AXES, getRiderSportingProfile } from "@/lib/game/rider-profile";
 import { getSpecialAbilityDefinition } from "@/lib/game/special-abilities";
-import { canEditDraftPreferences, draftChoiceError, draftRiderAverage, draftSalary, formatDraftDate, reorderDraftPreferences, synchronizeDraftPreparation, type DraftPreparationEditor, type SeasonDraftRider, type SeasonDraftView } from "@/lib/game/season-draft";
+import { canEditDraftPreferences, draftChoiceError, draftRiderAverage, draftSalary, formatDraftDate, getSeasonDraftProgress, reorderDraftPreferences, synchronizeDraftPreparation, type DraftPreparationEditor, type SeasonDraftRider, type SeasonDraftView } from "@/lib/game/season-draft";
 import { PotentialStars } from "./potential-stars";
 import { RiderAvatar } from "./rider-avatar";
 
@@ -39,7 +39,8 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
   const dirty = JSON.stringify(preferences) !== JSON.stringify(mine?.preferences ?? []) || automatic !== !!mine?.autoEnabled;
   const selectedRider = riders.find(rider => rider.id === confirmation);
   const confirmationBlocked = confirmation === "pass" ? !canEdit : !selectedRider || !isMyTurn || remaining <= 0 || !!selectedRider.selectedTeamId;
-  const current = participants.find(participant => participant.position === edition?.currentPosition);
+  const progress = useMemo(() => getSeasonDraftProgress(view), [view]);
+  const current = progress.current;
   const finance = view.finance;
   const salary = (rider: SeasonDraftRider) => draftSalary(rider, finance?.salaryDiscountPercent, finance?.homegrownRiderIds.includes(rider.id));
   const fullRoster = !!finance && (finance.rosterCount >= finance.rosterLimit || finance.nonHomegrownCount >= finance.nonHomegrownLimit);
@@ -141,8 +142,22 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
           <p className="mt-1 text-sm text-[#526A63]">{mine ? `Votre position : ${mine.position} sur ${edition.participantCount}` : "Vous ne figurez pas parmi les participants de cette édition."}
             {mine?.status === "picked" ? " · Votre coureur a rejoint l’équipe." : mine?.status === "passed" ? ` · ${draftChoiceError(mine.reason)}.` : ""}</p>
         </div>{edition.status === "running" && edition.deadline ? <p className="rounded-xl bg-[#173D3A] px-4 py-2 font-black tabular-nums text-white">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}<span className="ml-2 text-xs font-normal">restantes</span></p> : <span className="text-sm font-bold">{edition.poolCount} coureurs · {participants.filter(p => p.status === "picked").length} recrutements</span>}</div>
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-[#D5DFD5] pt-3 text-xs font-bold">
+          {edition.status === "running" && progress.current ? <span className="rounded-lg bg-[#173D3A] px-3 py-2 text-white">Choix en cours : n° {progress.current.position} / {edition.participantCount}</span>
+            : progress.nextPosition !== null ? <span className="rounded-lg bg-[#EDF3EE] px-3 py-2 text-[#234B3D]">Prochain choix : n° {progress.nextPosition} / {edition.participantCount}</span> : null}
+          {progress.ahead !== null ? <span className="rounded-lg bg-[#FFF5CF] px-3 py-2 text-[#71571C]">{progress.ahead === 0 && isMyTurn ? "À vous de choisir" : <>{progress.ahead} DS avant votre tour</>}</span> : null}
+          <span className="rounded-lg bg-[#EDF3EE] px-3 py-2 text-[#526A63]">{progress.resolvedCount} / {edition.participantCount} choix terminés</span>
+        </div>
         {fullRoster && mine?.status === "pending" ? <p className="mt-3 text-sm font-bold text-[#9E4A25]">Votre effectif atteint sa capacité. Vérifiez les places disponibles avant votre choix.</p> : null}
       </section>
+
+      {progress.recentChoices.length > 0 ? <section aria-label="Derniers choix de la draft" aria-live="polite" className="mt-4 rounded-2xl border border-[#D5DFD5] bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-black">Derniers choix</h2><a href="#draft-order" onClick={() => { const history = document.getElementById("draft-order"); if (history instanceof HTMLDetailsElement) history.open = true; }} className="text-xs font-bold text-[#195F4C] underline underline-offset-2">Voir tous les choix</a></div>
+        <ol className="mt-3 grid gap-2 md:grid-cols-2">{progress.recentChoices.map(participant => <li key={participant.teamId} className="min-w-0 rounded-xl bg-[#F4F7F0] px-3 py-2 text-xs">
+          <p className="font-bold text-[#75867C]">Choix n° {participant.position} · {participant.teamName}</p>
+          <p className="mt-1 break-words font-black text-[#234B3D]">{participant.status === "picked" ? progress.selectedNames.get(participant.teamId) : draftChoiceError(participant.reason)}</p>
+        </li>)}</ol>
+      </section> : null}
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside aria-label="Ma liste de préférences" className="rounded-2xl border border-[#D5DFD5] bg-white p-5 lg:sticky lg:top-4">
@@ -182,9 +197,9 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
         </section>
       </div>
 
-      <details className="mt-5 rounded-2xl border border-[#D5DFD5] bg-white px-5 py-4" open={edition.status === "completed"}>
+      <details id="draft-order" className="mt-5 scroll-mt-6 rounded-2xl border border-[#D5DFD5] bg-white px-5 py-4" open={edition.status === "completed"}>
         <summary className="cursor-pointer font-black">Ordre des équipes et recrutements · {participants.filter(p => p.status !== "pending").length}/{participants.length}</summary>
-        <ol className="mt-4 grid gap-2 md:grid-cols-2">{participants.map(participant => <li key={participant.teamId} className={`flex gap-3 rounded-xl border p-3 text-sm ${participant.hasPreferences ? "border-[#8ABF9C] bg-[#E8F5EC]" : participant.position === edition.currentPosition ? "border-transparent bg-[#FFF4C9]" : "border-transparent bg-[#F4F7F0]"} ${participant.position === edition.currentPosition ? "ring-2 ring-[#D5A54D]" : ""}`}><span className="font-black">{participant.position}.</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-x-2 gap-y-1"><strong>{participant.teamName}</strong>{participant.hasPreferences ? <span className="rounded-full bg-[#CCE8D4] px-2 py-0.5 text-[10px] font-bold text-[#215F3B]">✓ Liste de choix validée</span> : null}</div><span className="text-xs text-[#75867C]">{participant.directorName} · {participant.previousPoints} pts la saison précédente</span><p className="mt-1 text-xs font-semibold">{participant.status === "picked" ? participant.selectedName : participant.status === "passed" ? draftChoiceError(participant.reason) : participant.position === edition.currentPosition ? "À son tour" : "En attente"}</p></div></li>)}</ol>
+        <ol className="mt-4 grid gap-2 md:grid-cols-2">{participants.map(participant => <li key={participant.teamId} className={`flex gap-3 rounded-xl border p-3 text-sm ${participant.hasPreferences ? "border-[#8ABF9C] bg-[#E8F5EC]" : participant.position === edition.currentPosition ? "border-transparent bg-[#FFF4C9]" : "border-transparent bg-[#F4F7F0]"} ${participant.position === edition.currentPosition ? "ring-2 ring-[#D5A54D]" : ""}`}><span className="font-black">{participant.position}.</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-x-2 gap-y-1"><strong>{participant.teamName}</strong>{participant.hasPreferences ? <span className="rounded-full bg-[#CCE8D4] px-2 py-0.5 text-[10px] font-bold text-[#215F3B]">✓ Liste de choix validée</span> : null}</div><span className="text-xs text-[#75867C]">{participant.directorName} · {participant.previousPoints} pts la saison précédente</span><p className="mt-1 text-xs font-semibold">{participant.status === "picked" ? progress.selectedNames.get(participant.teamId) : participant.status === "passed" ? draftChoiceError(participant.reason) : participant.position === edition.currentPosition ? "À son tour" : "En attente"}</p></div></li>)}</ol>
       </details>
     </>}
 

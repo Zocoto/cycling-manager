@@ -96,3 +96,25 @@ export function draftChoiceError(reason: string | null) {
   if (reason === "voluntary") return "Tour passé volontairement";
   return "Tour passé";
 }
+
+/** Presentation only: use the authoritative queue without advancing a turn. */
+export function getSeasonDraftProgress(view: SeasonDraftView) {
+  const edition = view.edition;
+  const participants = [...(view.participants ?? [])].sort((a, b) => a.position - b.position);
+  const byRiderId = new Map((view.riders ?? []).map(rider => [rider.id, `${rider.firstName} ${rider.lastName}`]));
+  const selectedNames = new Map(participants.filter(p => p.status === "picked").map(p => [p.teamId,
+    p.selectedName?.trim() || (p.selectedRiderId ? byRiderId.get(p.selectedRiderId) : null) || "Coureur sélectionné",
+  ]));
+  const resolved = participants.filter(p => p.status !== "pending");
+  const current = edition?.status === "running"
+    ? participants.find(p => p.position === edition.currentPosition && p.status === "pending") ?? null : null;
+  const nextPosition = edition && ["preparing", "running"].includes(edition.status)
+    ? participants.find(p => p.status === "pending" && (edition.currentPosition === null || p.position >= edition.currentPosition))?.position ?? null : null;
+  const mine = view.mine;
+  const canCountAhead = edition && ["preparing", "running"].includes(edition.status) && mine?.status === "pending"
+    && participants.length === edition.participantCount && (edition.currentPosition === null || edition.currentPosition <= mine.position);
+  const ahead = canCountAhead ? participants.filter(p => p.status === "pending" && p.position < mine.position
+    && (edition.currentPosition === null || p.position >= edition.currentPosition)).length : null;
+  return {current, nextPosition, ahead, resolvedCount: resolved.length, selectedNames,
+    recentChoices: resolved.slice(-6).reverse()};
+}
