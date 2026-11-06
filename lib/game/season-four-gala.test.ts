@@ -32,11 +32,11 @@ describe("private S4 gala rehearsal", () => {
     expect(SEASON_FOUR_GALA.liveBoosters).toBe(2);
   });
   it("reserves an indicative observer place without creating an enrollment limit", () => {
-    expect(Object.values(GALA_COURSES).map(galaClubCapacity)).toEqual([22,24,24,19]);
+    expect(Object.values(GALA_COURSES).map(galaClubCapacity)).toEqual([22,24,24,17]);
     expect(Object.values(GALA_COURSES).every(course=>course.filename.length>0)).toBe(true);
   });
   it("uses vanilla stage references and derived altitude positions without edition dates in names",()=>{
-    expect(Object.values(GALA_COURSES).map(course=>course.filename)).toEqual(['top_tdf_18_2022','topclas_maastricht_2018','topclas_roubaix_2018','c0_schelde_2015']);
+    expect(Object.values(GALA_COURSES).map(course=>course.filename)).toEqual(['top_tdf_18_2022','topclas_maastricht_2018','topclas_roubaix_2018','c0_classiquedunkerque_2025']);
     for(const [profile,source] of Object.entries(baseProfiles)){
       const course=GALA_COURSES[profile as keyof typeof GALA_COURSES];
       expect(course.name).not.toMatch(/\b20\d{2}\b/);
@@ -50,6 +50,11 @@ describe("private S4 gala rehearsal", () => {
       expect(course.elevationPositions?.every((position,index,list)=>Number.isFinite(position)&&position>=0&&position<=1&&(!index||position>list[index-1]))).toBe(true);
       expect(course.elevation.every(height=>Number.isFinite(height)&&height>=0&&height<=101)).toBe(true);
     }
+    expect(baseProfiles.sprint.file).toBe('t0_dunkerque_06_2019.cds');
+    expect(baseProfiles.sprint.aliasFile).toBe('c0_classiquedunkerque_2025.cdx');
+    expect(baseProfiles.sprint.aliasRoute).toBe('Dunkerque - Lens');
+    expect(GALA_COURSES.sprint.startlistFilename).toBe('c0_classiquedunkerque.xml');
+    expect(GALA_COURSES.sprint.raceId).toBe(105);
     expect(GALA_COURSES.hills.elevation.filter(height=>height>40).length).toBeGreaterThan(10);
     expect(Math.max(...GALA_COURSES.sprint.elevation)).toBeLessThan(17);
   });

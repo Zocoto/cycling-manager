@@ -12,7 +12,7 @@ export function galaFixture(count=7):GalaExportSnapshot{
 describe('gala S4 startlist policy',()=>{
  it('builds six native XML models in two folders, with exactly one simulation team',()=>{
   const result=buildSeasonFourGalaStartlists({season:4,registrations:[],selections:[],teams:[],riders:[]},undefined,true);
-  expect(Object.keys(result.files)).toEqual(['World-Tour/top_tdf.xml','World-Tour/topclas_maastricht.xml','World-Tour/topclas_roubaix.xml','Continental/top_tdf.xml','Continental/topclas_maastricht.xml','Continental/c0_schelde.xml']);
+  expect(Object.keys(result.files)).toEqual(['World-Tour/top_tdf.xml','World-Tour/topclas_maastricht.xml','World-Tour/topclas_roubaix.xml','Continental/top_tdf.xml','Continental/topclas_maastricht.xml','Continental/c0_classiquedunkerque.xml']);
   for(const xml of Object.values(result.files)){expect(xml.match(/<team id=/g)).toHaveLength(1);expect(xml.match(/<cyclist id=/g)).toHaveLength(7);}
   expect(result.teamCount).toBe(0);
  });
@@ -21,6 +21,13 @@ describe('gala S4 startlist policy',()=>{
   expect(result.files['Continental/top_tdf.xml']).toContain('<team id="244">');
   expect(result.files['Continental/top_tdf.xml'].match(/<cyclist id=/g)).toHaveLength(count+7);
   expect(result.teamCount).toBe(1);expect(result.riderCount).toBe(count);
+ });
+ it('keeps all eight riders when exporting the flat gala for GP Dunkerque',()=>{
+  const result=buildSeasonFourGalaStartlists(galaFixture(8),'continental:sprint');
+  expect(Object.keys(result.files)).toEqual(['Continental/c0_classiquedunkerque.xml']);
+  expect(result.files['Continental/c0_classiquedunkerque.xml'].match(/<cyclist id=/g)).toHaveLength(15);
+  expect(result.riderCount).toBe(8);
+  expect(result.events[0]).toMatchObject({course:'GP Dunkerque',nativeCapacity:18,clubCapacity:17});
  });
  it.each([6,9])('rejects %s riders',count=>expect(()=>buildSeasonFourGalaStartlists(galaFixture(count),'continental:mountain')).toThrow('7 à 8'));
  it.each(['mountain','hills','flat','time_trial','cobbles','sprint'] as const)('preserves a registered rider whose native %s rating grew above 75',key=>{

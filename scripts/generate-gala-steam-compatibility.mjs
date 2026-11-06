@@ -41,9 +41,9 @@ try{
     assert.ok(!Object.hasOwn(riders,String(rider.IDcyclist)),'Duplicate rider');riders[String(rider.IDcyclist)]=rider.fkIDteam;
   }
   for(let id=9001;id<=9007;id++)assert.equal(riders[String(id)],243,'Observer rider absent');
-  const sourceRaces=rows('select r.IDrace,r.gene_sz_filename,rr.gene_i_max_team,rr.gene_i_min_riders,rr.gene_i_max_riders from STA_race r join STA_race_rules rr on rr.fkIDrace=r.IDrace where r.IDrace in(25,173,4,145) order by r.IDrace');
+  const sourceRaces=rows('select r.IDrace,r.gene_sz_filename,rr.gene_i_max_team,rr.gene_i_min_riders,rr.gene_i_max_riders from STA_race r join STA_race_rules rr on rr.fkIDrace=r.IDrace where r.IDrace in(25,173,4,105) order by r.IDrace');
   assert.equal(sourceRaces.length,4,'Missing or duplicate gala rules');
-  const expected={4:['topclas_roubaix',25],25:['top_tdf',23],145:['c0_schelde',20],173:['topclas_maastricht',25]},races={};
+  const expected={4:['topclas_roubaix',25],25:['top_tdf',23],105:['c0_classiquedunkerque',18],173:['topclas_maastricht',25]},races={};
   for(const race of sourceRaces){const [filename,maxTeams]=expected[race.IDrace];assert.equal(race.gene_sz_filename,filename);assert.equal(race.gene_i_max_team,maxTeams);assert.equal(race.gene_i_min_riders,7);assert.equal(race.gene_i_max_riders,8);races[String(race.IDrace)]={filename,maxTeams,minRiders:7,maxRiders:8};}
   registry={formatVersion:1,title,workshopId:'3811779261',steamManifestId:manifest,databaseSha256:actualHash,teams,riders,races};
 }finally{db.close();}

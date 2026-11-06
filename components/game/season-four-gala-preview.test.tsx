@@ -10,7 +10,7 @@ describe("private gala presentation",()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview canExport exportStatus={{counts:{}}}/>);
     expect(html).toContain('Exporter la SL (.zip)');
     expect(html).toContain('Modèle XML (.zip)');
-    expect(html).toContain('Référence : BDD Steam Gala S4 v3 du 6 novembre.');
+    expect(html).toContain('Référence : BDD Steam Gala S4 v4 du 6 novembre.');
     expect(html).toContain('Cloud');
     expect(html).toContain('Startlists');
     expect(html).not.toContain('Base PCM Gala S4 · 7–8 coureurs');

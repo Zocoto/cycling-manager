@@ -41,7 +41,7 @@ function baseProfile(profile: GalaProfile) {
   };
 }
 
-// CDS/ZCES pairs verified in vanilla PCM26's pakchunk1, not the Workshop pack.
+// Native stages verified in PCM26: CDS/ZCES pairs in pakchunk1; Dunkerque's CDX alias in pakchunk0.
 // Native capacities verified against Mod/Default/OfficialRelease.cdb.
 export const GALA_COURSES: Record<GalaProfile, GalaCourse> = {
   mountain: {
@@ -66,11 +66,13 @@ export const GALA_COURSES: Record<GalaProfile, GalaCourse> = {
     startlistFilename: "topclas_roubaix.xml", ...baseProfile("cobbles"),
   },
   sprint: {
-    id: "sprint", title: "Le dernier éclair", profile: "Sprint", name: "Grand Prix de l’Escaut",
-    distance: "Anvers → Schoten", primary: "sprint", primaryLabel: "SPR", nativeCapacity: 20, raceId: 145,
+    id: "sprint", title: "Le dernier éclair", profile: "Sprint", name: "GP Dunkerque",
+    distance: "Dunkerque → Lens", primary: "sprint", primaryLabel: "SPR", nativeCapacity: 18, raceId: 105,
     description: "Une classique plate pour les hommes rapides. Économiser ses forces, organiser son train et surgir au bon moment : le sprint aura son grand soir.",
-    highlights: ["Parcours plat", "Placement & train de sprint", "Arrivée à Schoten"],
-    startlistFilename: "c0_schelde.xml", ...baseProfile("sprint"),
+    highlights: ["Parcours plat", "Placement & train de sprint", "Arrivée à Lens"],
+    startlistFilename: "c0_classiquedunkerque.xml", ...baseProfile("sprint"),
+    // The native GP uses this CDX alias of t0_dunkerque_06_2019.
+    filename: baseProfiles.sprint.aliasFile.replace(/\.cdx$/, ""),
   },
 };
 export const GALA_PROGRAM_PROFILES: Record<GalaProgram, readonly GalaProfile[]> = {

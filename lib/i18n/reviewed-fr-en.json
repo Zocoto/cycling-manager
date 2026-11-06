@@ -3358,7 +3358,7 @@
   "Référence : BDD Steam Gala S4 v2 du 4 novembre.": "Reference: Steam S4 Gala database v2 dated 4 November.",
   "Startlist incompatible avec la BDD Steam du gala (": "Startlist incompatible with the gala Steam database (",
   "Startlist incompatible avec la BDD Steam du gala ({{0}}). {{1}} Corrigez la composition avant l’export.": "Startlist incompatible with the gala Steam database ({{0}}). {{1}} Correct the lineup before exporting.",
-  "Référence : BDD Steam Gala S4 v3 du 6 novembre.": "Reference: Steam S4 Gala database v3 dated 6 November.",
+  "Référence : BDD Steam Gala S4 v4 du 6 novembre.": "Reference: Steam S4 Gala database v4 dated 6 November.",
   "Après copie, revenir au menu des courses de PCM puis sélectionner à nouveau la course.": "After copying, return to the PCM race menu and select the race again.",
   "Empreinte SHA-256 de la BDD :": "Database SHA-256 fingerprint:",
   "Empreinte SHA-256 de la BDD : {{0}}.": "Database SHA-256 fingerprint: {{0}}.",
@@ -3367,5 +3367,8 @@
   "Télécharger le fichier préparé": "Download the prepared file",
   "Archive prête :": "Archive ready:",
   "Modèle prêt : aucune équipe inscrite n’est incluse.": "Template ready: no registered teams are included.",
-  "Le fichier d’export est vide.": "The exported file is empty."
+  "Le fichier d’export est vide.": "The exported file is empty.",
+  "GP Dunkerque": "GP Dunkerque",
+  "Dunkerque → Lens": "Dunkerque → Lens",
+  "Arrivée à Lens": "Finish in Lens"
 }

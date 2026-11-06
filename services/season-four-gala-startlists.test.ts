@@ -1,5 +1,6 @@
 import {beforeEach,describe,expect,it,vi} from 'vitest';
 import {unzipSync,strFromU8} from 'fflate';
+import {GALA_STEAM_DATABASE} from '@/lib/game/season-four-gala-steam';
 const state=vi.hoisted(()=>({tables:{} as Record<string,Record<string,unknown>[]>,calls:[] as string[],selects:[] as string[],validate:vi.fn()}));
 vi.mock('@/lib/supabase/admin',()=>({createSupabaseAdminClient:()=>({from:(table:string)=>{
  state.calls.push(table);let rows=[...(state.tables[table]??[])];let range:[number,number]|null=null;
@@ -42,11 +43,11 @@ describe('S4 gala export wiring',()=>{
  it('exports registered riders only from S4 when S5 is active, with the native XML name',async()=>{
   const result=await generateSeasonFourGalaStartlistExport('continental:sprint');
   expect(result).toMatchObject({filename:'Cyclostratege-Gala-S4-continental-sprint-Startlist.zip',contentType:'application/zip',teamCount:1,riderCount:7,template:false});
-  const files=unzipSync(result.data);expect(Object.keys(files).filter(n=>n.endsWith('.xml'))).toEqual(['c0_schelde.xml']);
-  expect(strFromU8(files['c0_schelde.xml'])).toContain('<cyclist id="10001" />');
+  const files=unzipSync(result.data);expect(Object.keys(files).filter(n=>n.endsWith('.xml'))).toEqual(['c0_classiquedunkerque.xml']);
+  expect(strFromU8(files['c0_classiquedunkerque.xml'])).toContain('<cyclist id="10001" />');
   expect(state.validate).toHaveBeenCalledOnce();expect(state.validate.mock.calls[0][1]).toBe('continental:sprint');
-  const manifest=JSON.parse(strFromU8(files['manifest.json']));expect(manifest.events[0].file).toBe('c0_schelde.xml');
-  expect(manifest.databaseReference.databaseSha256).toBe('ba1aac4ed4cff59768e82e44bf47f9427511730106c95a5ae6656ff775870258');
+  const manifest=JSON.parse(strFromU8(files['manifest.json']));expect(manifest.events[0].file).toBe('c0_classiquedunkerque.xml');
+  expect(manifest.databaseReference.databaseSha256).toBe(GALA_STEAM_DATABASE.databaseSha256);
   expect(strFromU8(files['LISEZ-MOI.txt'])).toContain('aucun suffixe (1)');
   expect(state.calls).not.toContain('pcm_gala_registrations');
   expect(state.calls).not.toContain('rider_equipment_assignments');

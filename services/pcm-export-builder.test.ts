@@ -43,7 +43,7 @@ describe("generateur de base PCM26", () => {
     const SQL = await initSqlJs({ locateFile: file => resolve("node_modules/sql.js/dist", file) });
     const db = cdbToSql(result.cdb, SQL, { preciseTypes: true });
     try {
-      for (const [race, capacity, filename] of [[25, 23, "top_tdf"], [173, 25, "topclas_maastricht"], [4, 25, "topclas_roubaix"], [145, 20, "c0_schelde"]] as const) {
+      for (const [race, capacity, filename] of [[25, 23, "top_tdf"], [173, 25, "topclas_maastricht"], [4, 25, "topclas_roubaix"], [105, 18, "c0_classiquedunkerque"]] as const) {
         expect(readCount(db, `SELECT COUNT(*) FROM STA_race_rules WHERE fkIDrace=${race} AND gene_i_min_riders=7 AND gene_i_max_riders=8 AND gene_i_max_team=${capacity}`)).toBe(1);
         expect(db.exec(`SELECT gene_sz_filename FROM STA_race WHERE IDrace=${race}`)[0].values[0][0]).toBe(filename);
       }
