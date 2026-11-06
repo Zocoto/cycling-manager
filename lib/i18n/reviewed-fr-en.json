@@ -3363,5 +3363,9 @@
   "Empreinte SHA-256 de la BDD :": "Database SHA-256 fingerprint:",
   "Empreinte SHA-256 de la BDD : {{0}}.": "Database SHA-256 fingerprint: {{0}}.",
   "Utiliser la BDD Steam de référence :": "Use the reference Steam database:",
-  "Utiliser la BDD Steam de référence : {{0}}.": "Use the reference Steam database: {{0}}."
+  "Utiliser la BDD Steam de référence : {{0}}.": "Use the reference Steam database: {{0}}.",
+  "Télécharger le fichier préparé": "Download the prepared file",
+  "Archive prête :": "Archive ready:",
+  "Modèle prêt : aucune équipe inscrite n’est incluse.": "Template ready: no registered teams are included.",
+  "Le fichier d’export est vide.": "The exported file is empty."
 }
