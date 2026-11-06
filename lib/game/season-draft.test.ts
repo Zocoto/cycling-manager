@@ -1,10 +1,55 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { draftSalary, isDraftBannerVisible, reorderDraftPreferences, type SeasonDraftRider, type SeasonDraftView } from "./season-draft";
+import { canEditDraftPreferences, draftSalary, isDraftBannerVisible, reorderDraftPreferences, synchronizeDraftPreparation, type DraftPreparation, type DraftPreparationEditor, type SeasonDraftRider, type SeasonDraftView } from "./season-draft";
+import { createDraftFixture } from "@/test/fixtures/season-draft";
 
 const view = { enabled: true, serverNow: "2026-11-05T12:00:00+01:00", edition: { status: "scheduled", announcementAt: "2026-11-05T00:00:00+01:00", startsAt: "2026-11-06T14:00:00+01:00" } } as SeasonDraftView;
 
 describe("draft de début de saison", () => {
+  it("allows a pending player's list until that player's own deadline, independently of 14 h", () => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = 1;
+    fixture.edition!.deadline = "2026-11-06T14:10:00+01:00";
+    fixture.serverNow = "2026-11-06T14:20:00+01:00";
+    expect(canEditDraftPreferences(fixture)).toBe(true);
+    fixture.edition!.currentPosition = fixture.mine!.position;
+    expect(canEditDraftPreferences(fixture)).toBe(false);
+    fixture.edition!.deadline = "2026-11-06T14:30:00+01:00";
+    expect(canEditDraftPreferences(fixture)).toBe(true);
+    fixture.edition!.currentPosition = fixture.mine!.position + 1;
+    expect(canEditDraftPreferences(fixture)).toBe(false);
+    fixture.edition!.currentPosition = null;
+    fixture.edition!.deadline = null;
+    expect(canEditDraftPreferences(fixture)).toBe(true);
+  });
+
+  it("refreshes a clean preference editor from a newly saved list", () => {
+    const saved: DraftPreparation = { editionId: "draft", teamId: "team", preferences: ["a"], autoEnabled: true };
+    const editor: DraftPreparationEditor = { saved, preferences: ["a"], autoEnabled: true };
+    const changed = { ...saved, preferences: ["b", "a"], autoEnabled: false };
+    expect(synchronizeDraftPreparation(editor, changed)).toEqual({ saved: changed, preferences: ["b", "a"], autoEnabled: false });
+  });
+
+  it("keeps unsaved choices and manual mode when a refreshed server list changes", () => {
+    const saved: DraftPreparation = { editionId: "draft", teamId: "team", preferences: ["a"], autoEnabled: true };
+    const editor: DraftPreparationEditor = { saved, preferences: ["c", "a"], autoEnabled: false };
+    const changed = { ...saved, preferences: ["b"] };
+    const synchronized = synchronizeDraftPreparation(editor, changed);
+    expect(synchronized.preferences).toEqual(["c", "a"]);
+    expect(synchronized.autoEnabled).toBe(false);
+    expect(synchronized.saved).toEqual(changed);
+    expect(synchronizeDraftPreparation(synchronized, changed)).toBe(synchronized);
+  });
+
+  it("does not carry one edition's unsaved list into a different edition or team", () => {
+    const saved: DraftPreparation = { editionId: "draft", teamId: "team", preferences: ["a"], autoEnabled: true };
+    const editor: DraftPreparationEditor = { saved, preferences: ["c"], autoEnabled: false };
+    for (const changed of [{ ...saved, editionId: "next" }, { ...saved, teamId: "other" }]) {
+      expect(synchronizeDraftPreparation(editor, changed)).toEqual({ saved: changed, preferences: ["a"], autoEnabled: true });
+    }
+  });
+
   it("annonce dès J28, sans exposition permanente dans le bureau", () => {
     expect(isDraftBannerVisible(view)).toBe(true);
     expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-04T23:59:00+01:00" })).toBe(false);

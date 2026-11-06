@@ -6,17 +6,85 @@ import { SeasonDraftPanel } from "./season-draft-panel";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/app/jeu/draft/actions", () => ({ updateSeasonDraft: vi.fn() }));
 
-const draftUi = vi.hoisted(() => ({ confirmation: null as string | null }));
+const draftUi = vi.hoisted(() => ({ confirmation: null as string | null, localPreferences: null as string[] | null }));
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
     ...actual,
-    useState: (initial: unknown) => actual.useState(initial === null && draftUi.confirmation !== null ? draftUi.confirmation : initial),
+    useState: (initial: unknown) => {
+      if (typeof initial === "function") {
+        const value = initial();
+        if (value && typeof value === "object" && "saved" in value && draftUi.localPreferences) {
+          return actual.useState({ ...value, preferences: draftUi.localPreferences });
+        }
+        return actual.useState(value);
+      }
+      return actual.useState(initial === null && draftUi.confirmation !== null ? draftUi.confirmation : initial);
+    },
   };
 });
-afterEach(() => { draftUi.confirmation = null; });
+afterEach(() => { draftUi.confirmation = null; draftUi.localPreferences = null; });
 
 describe("page de draft", () => {
+  it("keeps validation inside the preference card, including before any edit", () => {
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
+    const card = html.match(/<aside\b[^>]*>[\s\S]*?<\/aside>/)?.[0];
+    expect(card).toContain("Valider ma sélection");
+    expect(card).toContain("Ajoutez vos choix, puis validez votre liste.");
+    expect(card).toContain("Votre liste reste modifiable après 14 h");
+  });
+
+  it("keeps unsaved mobile validation clear of navigation and the help launcher", () => {
+    const fixture = createDraftFixture();
+    draftUi.localPreferences = [fixture.riders![0].id];
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    const dock = html.match(/<div\b[^>]*aria-label="Validation de la liste"[^>]*>/)?.[0];
+    expect(dock).toContain("mobile-dock-clearance");
+    expect(dock).toContain("max-sm:right-[4.5rem]");
+    expect(dock).toContain("env(safe-area-inset-bottom)");
+    expect(dock).not.toContain("bottom-0");
+    expect(html).toContain("Modifications non enregistrées.");
+    const buttons = html.match(/<button\b[^>]*>Valider ma sélection<\/button>/g) ?? [];
+    expect(buttons).toHaveLength(2);
+    expect(buttons.every(button => !/\sdisabled(?:=|\s|>)/.test(button))).toBe(true);
+  });
+
+  it("keeps preferences editable after 14 h while an earlier participant is choosing", () => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = fixture.mine!.position - 1;
+    fixture.edition!.deadline = "2026-11-06T14:10:00+01:00";
+    fixture.serverNow = "2026-11-06T14:15:00+01:00";
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    expect(html).toContain("Valider ma sélection");
+    expect(html).toContain("+ Ajouter à ma liste");
+    expect(html).not.toContain(">Recruter</button>");
+  });
+
+  it("keeps a pending list editable between processing bursts after 14 h", () => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = null;
+    fixture.edition!.deadline = null;
+    fixture.serverNow = "2026-11-06T14:15:00+01:00";
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    expect(html).toContain("Valider ma sélection");
+    expect(html).toContain("+ Ajouter à ma liste");
+    expect(html).not.toContain("Les sélections commencent à 14 h");
+  });
+
+  it.each(["picked", "passed", "expired", "already passed position"])("locks preference editing after %s", reason => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = reason === "already passed position" ? fixture.mine!.position + 1 : fixture.mine!.position;
+    fixture.edition!.deadline = "2026-11-06T14:10:00+01:00";
+    fixture.serverNow = reason === "expired" ? "2026-11-06T14:10:00+01:00" : "2026-11-06T14:05:00+01:00";
+    if (reason === "picked" || reason === "passed") fixture.mine!.status = reason;
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    expect(html).not.toContain("Valider ma sélection");
+    expect(html).not.toContain("+ Ajouter à ma liste");
+  });
+
   it("keeps the current S5 selection rule visible", () => {
     const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
     expect(html).toContain("leur spécialité (60 %)");

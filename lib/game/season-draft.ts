@@ -28,6 +28,38 @@ export type SeasonDraftView = {
   riders?: SeasonDraftRider[] | null;
 };
 
+export function canEditDraftPreferences(view: SeasonDraftView, now = Date.parse(view.serverNow)) {
+  const { edition, mine } = view;
+  if (!edition || mine?.status !== "pending") return false;
+  if (edition.status === "preparing") return true;
+  if (edition.status !== "running") return false;
+  if (edition.currentPosition === null) return true;
+  if (mine.position < edition.currentPosition) return false;
+  if (mine.position > edition.currentPosition) return true;
+  return !!edition.deadline && now < Date.parse(edition.deadline);
+}
+
+export type DraftPreparation = {
+  editionId: string | null; teamId: string | null; preferences: string[]; autoEnabled: boolean;
+};
+export type DraftPreparationEditor = {
+  saved: DraftPreparation; preferences: string[]; autoEnabled: boolean;
+};
+
+export function synchronizeDraftPreparation(current: DraftPreparationEditor, saved: DraftPreparation): DraftPreparationEditor {
+  const changedParticipant = current.saved.editionId !== saved.editionId || current.saved.teamId !== saved.teamId;
+  const changedPreferences = JSON.stringify(current.saved.preferences) !== JSON.stringify(saved.preferences)
+    || current.saved.autoEnabled !== saved.autoEnabled;
+  if (!changedParticipant && !changedPreferences) return current;
+  const dirty = JSON.stringify(current.preferences) !== JSON.stringify(current.saved.preferences)
+    || current.autoEnabled !== current.saved.autoEnabled;
+  return {
+    saved,
+    preferences: changedParticipant || !dirty ? saved.preferences : current.preferences,
+    autoEnabled: changedParticipant || !dirty ? saved.autoEnabled : current.autoEnabled,
+  };
+}
+
 export function draftSalary(rider: SeasonDraftRider, discountPercent = 0, homegrown = false) {
   const discounted = Math.round(rider.salaryPerSeason * (1 - discountPercent / 100) * 100) / 100;
   return Math.round(discounted / (homegrown && rider.abilities.includes("homegrown") ? 2 : 1) * 100) / 100;

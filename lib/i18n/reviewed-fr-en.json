@@ -3303,5 +3303,11 @@
   "Sans indemnité ni prime de signature. Salaire : {{0}} par saison. Contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.": "No transfer or signing fee. Salary: {{0}} per season. Contract until the end of next season, with no resale during the recruitment season. You can cancel before confirming. Once confirmed, this pick is final for this edition.",
   "Ce coureur a déjà un engagement pour la saison suivante.": "This rider already has a commitment for next season.",
   "La saison change. Actualisez la page avant de recruter ce coureur.": "The season is changing. Refresh the page before recruiting this rider.",
-  "La saison a changé. Actualisez la page avant de recruter ce coureur.": "The season has changed. Refresh the page before recruiting this rider."
+  "La saison a changé. Actualisez la page avant de recruter ce coureur.": "The season has changed. Refresh the page before recruiting this rider.",
+  "Vous pouvez modifier et valider votre liste après 14 h, jusqu’à votre recrutement ou à la fin de votre délai de choix.": "You can edit and save your list after 2 pm, until you recruit a rider or your selection time expires.",
+  "Votre liste reste modifiable après 14 h, tant que votre tour n’est pas terminé.": "You can keep editing your list after 2 pm until your turn ends.",
+  "Modifications non enregistrées.": "Unsaved changes.",
+  "Votre liste est enregistrée.": "Your list is saved.",
+  "Ajoutez vos choix, puis validez votre liste.": "Add your choices, then save your list.",
+  "Validation de la liste": "Save preference list"
 }
