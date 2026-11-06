@@ -17,6 +17,22 @@ vi.mock("react", async (importOriginal) => {
 afterEach(() => { draftUi.confirmation = null; });
 
 describe("page de draft", () => {
+  it("keeps the current S5 selection rule visible", () => {
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
+    expect(html).toContain("leur spécialité (60 %)");
+    expect(html).not.toContain("leur moyenne hors plaine (10 %)");
+  });
+
+  it.each([6, 7])("explains the performance rule only from S%s", (gameYear) => {
+    const fixture = createDraftFixture();
+    fixture.edition!.gameYear = gameYear;
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    expect(html).toContain("MON, VAL, CLM, PAV ou SPR (90 %)");
+    expect(html).toContain("leur moyenne hors plaine (10 %)");
+    expect(html).toContain("Le potentiel départage les égalités ; l’âge n’intervient pas");
+    expect(html).not.toContain("leur potentiel et leur âge (25 %)");
+  });
+
   it("prechecks automatic recruitment for a new preparation", () => {
     const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
     const checkbox = html.match(/<input\b[^>]*type="checkbox"[^>]*>/)?.[0];

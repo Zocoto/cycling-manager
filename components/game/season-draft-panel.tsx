@@ -114,7 +114,9 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
       <ul className="mt-3 list-disc space-y-2 pl-5 leading-6 text-[#526A63]">
         <li>Un choix par équipe humaine active. Les DS inactifs depuis 7 jours sont exclus ; les participants sont figés à l’ouverture.</li>
         <li>Points UCI de la saison précédente croissants, y compris 0 point. À égalité, le joueur inscrit depuis le plus longtemps passe devant. Un nouveau joueur sans classement compte pour 0 point.</li>
-        <li>Les meilleurs agents libres sont retenus selon leur spécialité (60 %), leur potentiel et leur âge (25 %), puis leur moyenne générale (15 %). Au moins 100 places dans le vivier, ou autant que d’équipes si elles sont plus nombreuses, dans la limite des coureurs libres disponibles.</li>
+        <li>{edition && edition.gameYear >= 6
+          ? "Les meilleurs agents libres sont retenus selon leur meilleure note MON, VAL, CLM, PAV ou SPR (90 %), puis leur moyenne hors plaine (10 %). Le potentiel départage les égalités ; l’âge n’intervient pas. Au moins 100 places dans le vivier, ou autant que d’équipes si elles sont plus nombreuses, dans la limite des coureurs libres disponibles."
+          : "Les meilleurs agents libres sont retenus selon leur spécialité (60 %), leur potentiel et leur âge (25 %), puis leur moyenne générale (15 %). Au moins 100 places dans le vivier, ou autant que d’équipes si elles sont plus nombreuses, dans la limite des coureurs libres disponibles."}</li>
         <li>Les coureurs du vivier sont réservés dès la bascule de minuit et jusqu’à la clôture de la draft. Toutes leurs notes et tous leurs potentiels sont révélés à l’ouverture, à 8 h.</li>
         <li>Votre liste reste privée. Une liste automatique validée recrute le premier choix disponible et compatible avec votre effectif et votre budget, dès votre tour.</li>
         <li>Sans choix réalisable après 10 minutes, le tour est passé : aucun recrutement ne vous est imposé.</li>
