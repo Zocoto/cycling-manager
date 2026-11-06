@@ -145,7 +145,7 @@ export function DirectTransferOfferComposer({
         ) : null}
         <p className="col-span-2 text-[10px] leading-4 text-[#9BE0BC]">{isDeferred
           ? "Les salaires sont payés par échéances à partir de la saison suivante. Les deux coureurs restent dans leurs équipes actuelles jusqu’à cette date."
-          : "Les salaires sont payés par échéances, pas au moment de l’offre. Les deux contrats couvrent la fin de la saison en cours."}</p>
+          : "Les salaires sont payés par échéances, pas au moment de l’offre. Chaque nouveau contrat couvre la saison en cours et la saison suivante."}</p>
         {isTrade ? <p className="col-span-2 text-[10px] leading-4 text-[#9BE0BC]">Estimations avant les réductions éventuelles propres à chaque équipe. Les salaires contractuels seront indiqués dans l’offre reçue.</p> : null}
       </div>
       {canMakeSelectedTradeOffer && !isDeferred ? (

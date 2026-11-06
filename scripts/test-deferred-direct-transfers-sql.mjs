@@ -78,6 +78,17 @@ async function regressions({
       if (!existingFields.has(key)) delete offer.row[key];
   check(after, before, "Migration preserves all existing records, apart from additive nullable metadata");
 
+  // Recruitment duration normalization also changes immediate contracts. Load
+  // the real draft function patched by that additive migration, with only its
+  // unrelated table shape represented here (draft selection has its own suite).
+  await db.exec("create table public.season_draft_editions(id uuid primary key,season_id uuid,status text); create table public.season_draft_riders(edition_id uuid,rider_id uuid,selected_team_id uuid); create table public.season_draft_participants(edition_id uuid,team_id uuid,sporting_director_id uuid,status text);");
+  const draftSource=readFileSync("supabase/migrations/20261022160000_create_recurring_season_draft.sql","utf8").replaceAll("\r\n","\n");
+  const draftStart=draftSource.indexOf("create function public.try_season_draft_pick(");
+  const draftEnd=draftSource.indexOf("\n$$;",draftStart);
+  assert(draftStart>0&&draftEnd>draftStart);
+  await db.exec(draftSource.slice(draftStart,draftEnd+4));
+  await db.exec(readFileSync("supabase/migrations/20261106140000_guarantee_recruited_rider_next_season.sql","utf8").replaceAll("\r\n","\n"));
+
   await scenario("future cash keeps current programs and blocks funds without paying the seller", async () => {
     const booking = await bookRace(202, {status:"in_progress",stageStatus:"in_progress"});
     await db.query("insert into public.rider_form_camps(rider_id,season_id,status,team_season_id) values($1,$2,'active',$3)",[id(202),id(4),id(114)]);
@@ -250,13 +261,13 @@ async function regressions({
     check(await cash(115),1001000,"Repeated activation cannot release escrow twice");
   });
 
-  await scenario("legacy immediate cash keeps its end-of-current-season contract", async () => {
+  await scenario("immediate cash receives current and following seasons without a redundant renewal", async () => {
     await auth(1);
     const result=await scalar("select public.submit_direct_transfer_offer_with_message($1,1000,null)",[id(202)]);
     await auth(2); await respond(offerId(result)); await root();
     check(await owner(202),id(10));
     check(await contract(202,"planned"),undefined);
-    check((await contract(202,"active")).end_season_id,id(4));
+    check((await contract(202,"active")).end_season_id,id(5));
   });
 
   await scenario("accepted future arrival is protected from legacy immediate offers", async () => {

@@ -120,7 +120,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
         <li>Les coureurs du vivier sont réservés dès la bascule de minuit et jusqu’à la clôture de la draft. Toutes leurs notes et tous leurs potentiels sont révélés à l’ouverture, à 8 h.</li>
         <li>Votre liste reste privée. Une liste automatique validée recrute le premier choix disponible et compatible avec votre effectif et votre budget, dès votre tour.</li>
         <li>Sans choix réalisable après 10 minutes, le tour est passé : aucun recrutement ne vous est imposé.</li>
-        <li>Aucune indemnité ni prime de signature. Salaire normal à votre charge, contrat jusqu’à la fin de la saison, sans revente pendant cette saison.</li>
+        <li>Aucune indemnité ni prime de signature. Salaire normal à votre charge, contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement.</li>
       </ul>
     </details>
 
@@ -183,7 +183,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
 
     {confirmation && (selectedRider || confirmation === "pass") ? <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#071E19]/70 p-4"><section role="dialog" aria-modal="true" aria-labelledby="draft-confirm-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
       <h2 id="draft-confirm-title" className="text-xl font-black">{confirmation === "pass" ? "Passer votre tour ?" : `Recruter ${selectedRider!.firstName} ${selectedRider!.lastName} ?`}</h2>
-      <p className="mt-3 text-sm leading-6 text-[#526A63]">{confirmation === "pass" ? "Ce choix est définitif pour cette édition. Aucun coureur ne sera recruté." : `Sans indemnité ni prime de signature. Salaire : ${money(salary(selectedRider!))} pour la saison. Contrat jusqu’à la fin de la saison, sans revente pendant cette saison. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.`}</p>
+      <p className="mt-3 text-sm leading-6 text-[#526A63]">{confirmation === "pass" ? "Ce choix est définitif pour cette édition. Aucun coureur ne sera recruté." : `Sans indemnité ni prime de signature. Salaire : ${money(salary(selectedRider!))} par saison. Contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement. Vous pouvez annuler avant de confirmer. Après confirmation, ce choix est définitif pour cette édition.`}</p>
       {feedback ? <p role="alert" className="mt-3 text-sm font-semibold text-[#A34032]">{feedback}</p> : null}
       {confirmationBlocked ? <p role="alert" className="mt-3 text-sm font-semibold text-[#A34032]">Ce recrutement n’est plus possible : votre tour est terminé ou le coureur n’est plus disponible.</p> : null}
       <div className="mt-5 flex justify-end gap-3"><button type="button" disabled={pending} className="min-h-10 px-3 text-sm font-semibold" onClick={() => { setConfirmation(null); setFeedback(""); }}>Annuler</button><button type="button" className={buttonClass} disabled={pending || confirmationBlocked} onClick={() => {

@@ -24,6 +24,7 @@ export function DirectTransferOfferTerms({ offer }: { offer: DirectTransferOffer
           <p className="mt-1 text-lg font-black text-[#183F37]">{money(offer.salaryPerSeason)} / saison</p>
         </div>
       </div>
+      {!offer.effectiveSeasonYear && !offer.offeredRider ? <p className="text-xs font-semibold leading-5 text-[#48665F]">Le nouveau contrat couvre la saison en cours et la saison suivante.</p> : null}
       {offer.offeredRider ? (
         <div className="rounded-xl border border-[#42B99A]/30 bg-[#EAF5F3] p-4">
           <p className="text-[10px] font-black uppercase tracking-wider text-[#278B70]">Vous recevez également</p>
@@ -33,7 +34,7 @@ export function DirectTransferOfferTerms({ offer }: { offer: DirectTransferOffer
           <p className="mt-2 text-xs font-bold leading-5 text-[#48665F]">Salaire à votre charge : {money(offer.offeredRider.salaryPerSeason)} / saison.</p>
           <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">{offer.effectiveSeasonYear
             ? "Les deux arrivées et le versement de l’indemnité sont programmés ensemble au début de la saison suivante."
-            : "L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la fin de la saison en cours. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir."}</p>
+            : "L’échange des deux coureurs et le paiement sont indivisibles. Les deux contrats couvrent la saison en cours et la saison suivante. En acceptant, vous désinscrivez votre coureur de toutes ses courses à venir."}</p>
           {!offer.effectiveSeasonYear ? <p className="mt-2 text-xs font-semibold leading-5 text-[#48665F]">Une course commencée ou un départ déjà figé bloque l’échange. Les stages et reconnaissances doivent toujours être terminés ou annulés. Ces conditions sont revérifiées pour les deux coureurs à l’acceptation.</p> : null}
         </div>
       ) : null}
