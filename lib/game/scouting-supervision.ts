@@ -40,6 +40,45 @@ export function getScoutingSupervisionPercentageForDay(
   );
 }
 
+/** A report is delivered the day after the mission's last day of work. */
+export function getScoutingSupervisionReportWindow(reportDayNumber: number): {
+  startsOnOrBeforeDayNumber: number;
+  endsOnOrAfterDayNumber: number;
+} | null {
+  if (!Number.isInteger(reportDayNumber) || reportDayNumber < 1) return null;
+
+  return {
+    startsOnOrBeforeDayNumber: reportDayNumber,
+    endsOnOrAfterDayNumber: reportDayNumber - 1,
+  };
+}
+
+export function getScoutingSupervisionPercentageForReport(
+  effects: readonly ScoutingSupervisionEffect[],
+  reportDayNumber: number,
+): number {
+  const window = getScoutingSupervisionReportWindow(reportDayNumber);
+  if (!window) return 0;
+
+  return Math.min(
+    MAX_SCOUTING_SUPERVISION_PERCENTAGE,
+    effects.reduce((total, effect) => {
+      if (
+        !Number.isInteger(effect.startsDayNumber) ||
+        !Number.isInteger(effect.endsDayNumber) ||
+        effect.startsDayNumber < 1 ||
+        effect.endsDayNumber < effect.startsDayNumber ||
+        effect.startsDayNumber > window.startsOnOrBeforeDayNumber ||
+        effect.endsDayNumber < window.endsOnOrAfterDayNumber
+      ) {
+        return total;
+      }
+      // One contribution per object, even when it covers both relevant days.
+      return total + normalizePercentage(effect.percentage);
+    }, 0),
+  );
+}
+
 export function getScoutingSupervisionStatus(
   effects: readonly ScoutingSupervisionEffect[],
   currentDayNumber: number,

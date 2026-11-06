@@ -13,7 +13,7 @@ import {
   YOUTH_SCOUTING_LAST_SEASON_DAY,
   getYouthScoutingDurationOptionsForDay,
 } from "@/lib/game/youth-scouting-duration";
-import { getScoutingSupervisionPercentageForDay } from "@/lib/game/scouting-supervision";
+import { getScoutingSupervisionPercentageForReport } from "@/lib/game/scouting-supervision";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 import type { YouthCountry, YouthScout } from "@/services/youth-development";
 
@@ -82,7 +82,7 @@ export function YouthScoutingMap({
   const plannedSupervisionPercentage =
     durationDays === null
       ? 0
-      : getScoutingSupervisionPercentageForDay(
+      : getScoutingSupervisionPercentageForReport(
           scoutingSupervision.effects,
           completionDayNumber,
         );
