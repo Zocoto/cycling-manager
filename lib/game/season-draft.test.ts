@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { canEditDraftPreferences, draftSalary, isDraftBannerVisible, reorderDraftPreferences, synchronizeDraftPreparation, type DraftPreparation, type DraftPreparationEditor, type SeasonDraftRider, type SeasonDraftView } from "./season-draft";
+import { canEditDraftPreferences, draftBannerExpiresAt, draftSalary, isDraftBannerVisible, reorderDraftPreferences, synchronizeDraftPreparation, type DraftPreparation, type DraftPreparationEditor, type SeasonDraftRider } from "./season-draft";
 import { createDraftFixture } from "@/test/fixtures/season-draft";
 
-const view = { enabled: true, serverNow: "2026-11-05T12:00:00+01:00", edition: { status: "scheduled", announcementAt: "2026-11-05T00:00:00+01:00", startsAt: "2026-11-06T14:00:00+01:00" } } as SeasonDraftView;
+const view = createDraftFixture();
 
 describe("draft de début de saison", () => {
   it("allows a pending player's list until that player's own deadline, independently of 14 h", () => {
@@ -50,12 +50,28 @@ describe("draft de début de saison", () => {
     }
   });
 
-  it("annonce dès J28, sans exposition permanente dans le bureau", () => {
+  it("annonce uniquement à J1, même si la draft dépasse minuit", () => {
     expect(isDraftBannerVisible(view)).toBe(true);
-    expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-04T23:59:00+01:00" })).toBe(false);
+    expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-05T12:00:00+01:00" })).toBe(false);
+    expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-06T00:00:00+01:00" })).toBe(true);
+    expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-06T23:59:59+01:00" })).toBe(true);
     expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-07T00:00:00+01:00" })).toBe(false);
-    expect(isDraftBannerVisible({ ...view, enabled: false })).toBe(false);
+    expect(isDraftBannerVisible({ ...view, serverNow: "2026-11-07T00:00:00+01:00", edition: { ...view.edition!, status: "running" } })).toBe(false);
+    expect(isDraftBannerVisible({ ...view, enabled: false, edition: { ...view.edition!, status: "scheduled" } })).toBe(false);
     expect(isDraftBannerVisible({ ...view, edition: { ...view.edition!, status: "running" }, enabled: false })).toBe(true);
+  });
+  it.each([
+    ["2026-12-04T14:00:00+01:00", "2026-12-03T23:00:00Z", "2026-12-04T23:00:00Z"],
+    ["2027-06-18T14:00:00+02:00", "2027-06-17T22:00:00Z", "2027-06-18T22:00:00Z"],
+    ["2027-03-28T14:00:00+02:00", "2027-03-27T23:00:00Z", "2027-03-28T22:00:00Z"],
+    ["2027-10-31T14:00:00+01:00", "2027-10-30T22:00:00Z", "2027-10-31T23:00:00Z"],
+  ])("borne chaque saison au jour de Paris, y compris au changement d’heure (%s)", (startsAt, beginning, end) => {
+    const edition = { ...view.edition!, startsAt, status: "running" as const };
+    expect(isDraftBannerVisible({ ...view, edition, serverNow: new Date(Date.parse(beginning) - 1).toISOString() })).toBe(false);
+    expect(isDraftBannerVisible({ ...view, edition, serverNow: beginning })).toBe(true);
+    expect(isDraftBannerVisible({ ...view, edition, serverNow: new Date(Date.parse(end) - 1).toISOString() })).toBe(true);
+    expect(isDraftBannerVisible({ ...view, edition, serverNow: end })).toBe(false);
+    expect(draftBannerExpiresAt(startsAt)).toBe(Date.parse(end));
   });
   it("réordonne sans perdre ni dupliquer un choix", () => {
     expect(reorderDraftPreferences(["a", "b", "c"], "b", -1)).toEqual(["b", "a", "c"]);
@@ -74,7 +90,5 @@ describe("draft de début de saison", () => {
     const status = readFileSync("app/api/season-draft/status/route.ts", "utf8");
     expect(service).not.toMatch(/rpc\("(?:process|advance|initialize)_/);
     expect(status).toContain("private, no-store");
-    const banner = readFileSync("components/game/dashboard-draft-shortcut.tsx", "utf8");
-    expect(banner.indexOf("[1, 28]")).toBeLessThan(banner.indexOf("await getSeasonDraftView"));
   });
 });

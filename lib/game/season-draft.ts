@@ -78,12 +78,32 @@ export function reorderDraftPreferences(ids: readonly string[], riderId: string,
   return next;
 }
 
+const draftBannerDayFormatter = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit",
+});
+const draftBannerOffsetFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Paris", timeZoneName: "longOffset",
+});
+
+export function draftBannerExpiresAt(startsAt: string) {
+  const start = Date.parse(startsAt);
+  if (!Number.isFinite(start)) return NaN;
+  const parts = Object.fromEntries(draftBannerDayFormatter.formatToParts(start).map(part => [part.type, part.value]));
+  const nextDay = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + 1);
+  // Paris changes its clock after local midnight, so this offset is also the
+  // offset at the beginning of that date, including both DST transition days.
+  const offset = draftBannerOffsetFormatter.formatToParts(nextDay).find(part => part.type === "timeZoneName")!.value.replace("GMT", "");
+  return Date.parse(new Date(nextDay).toISOString().slice(0, 10) + "T00:00:00" + offset);
+}
+
 export function isDraftBannerVisible(view: SeasonDraftView) {
   const edition = view.edition;
   if (!edition || edition.status === "cancelled" || (!view.enabled && edition.status === "scheduled")) return false;
   const now = Date.parse(view.serverNow);
-  const dayEnd = Date.parse(edition.startsAt) + 10 * 60 * 60 * 1000;
-  return now >= Date.parse(edition.announcementAt) && (edition.status === "running" || now < dayEnd);
+  const startsAt = Date.parse(edition.startsAt);
+  if (!Number.isFinite(now) || !Number.isFinite(startsAt)) return false;
+  // A delayed draft must not keep its dashboard announcement past J1.
+  return draftBannerDayFormatter.format(now) === draftBannerDayFormatter.format(startsAt);
 }
 
 export function formatDraftDate(value: string) {
