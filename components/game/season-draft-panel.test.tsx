@@ -26,6 +26,15 @@ vi.mock("react", async (importOriginal) => {
 afterEach(() => { draftUi.confirmation = null; draftUi.localPreferences = null; });
 
 describe("page de draft", () => {
+  it("allows a draft choice with a negative projected budget and explains the salary",()=>{
+    const view=createDraftFixture();view.finance!.budget=-10000;view.edition!.status="running";
+    view.edition!.currentPosition=view.mine!.position;view.edition!.deadline="2026-11-06T14:20:00+01:00";
+    view.serverNow="2026-11-06T14:10:00+01:00";
+    const html=renderToStaticMarkup(<SeasonDraftPanel view={view} />);
+    expect(html).toContain("Un budget projeté négatif ne bloque pas le recrutement de draft");
+    const button=html.match(/<button\b[^>]*>Recruter<\/button>/)?.[0];
+    expect(button).toBeDefined();expect(button).not.toMatch(/\sdisabled(?:=|\s|>)/);
+  });
   it("shows the current choice and exact pending count near the countdown", () => {
     const view=createDraftFixture();view.edition!.status="running";view.edition!.currentPosition=1;
     const html=renderToStaticMarkup(<SeasonDraftPanel view={view} />);

@@ -129,6 +129,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
         <li>Vous pouvez modifier et valider votre liste après 14 h, jusqu’à votre recrutement ou à la fin de votre délai de choix.</li>
         <li>Sans choix réalisable après 10 minutes, le tour est passé : aucun recrutement ne vous est imposé.</li>
         <li>Aucune indemnité ni prime de signature. Salaire normal à votre charge, contrat jusqu’à la fin de la saison suivante, sans revente pendant la saison du recrutement.</li>
+        <li>Un budget projeté négatif ne bloque pas le recrutement de draft. Le salaire normal reste à la charge de votre équipe.</li>
       </ul>
     </details>
 

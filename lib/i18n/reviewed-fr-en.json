@@ -3319,5 +3319,6 @@
   "Derniers choix": "Latest picks",
   "Voir tous les choix": "View all picks",
   "Choix n°": "Pick no.",
-  "Coureur sélectionné": "Selected rider"
+  "Coureur sélectionné": "Selected rider",
+  "Un budget projeté négatif ne bloque pas le recrutement de draft. Le salaire normal reste à la charge de votre équipe.": "A negative projected budget does not block a draft signing. Your team remains responsible for the normal salary."
 }
