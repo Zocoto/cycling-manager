@@ -86,17 +86,7 @@ export function buildSponsorBudgetHistory({
         return [];
       }
 
-      const contract = contracts
-        .filter((candidate) =>
-          isGameYearCoveredBySponsorContract({
-            gameYear: season.gameYear,
-            startGameYear: yearBySeasonId.get(candidate.startSeasonId),
-            endGameYear: candidate.endSeasonId
-              ? yearBySeasonId.get(candidate.endSeasonId)
-              : null,
-          }),
-        )
-        .sort(compareContracts)[0];
+      const contract = selectSponsorBudgetHistoryContract(contracts, season.gameYear, yearBySeasonId);
       const archivedBudget = contract
         ? annualBudgetByContractAndSeason.get(`${contract.id}:${season.id}`)
         : undefined;
@@ -121,6 +111,15 @@ export function buildSponsorBudgetHistory({
       ];
     })
     .sort((left, right) => left.gameYear - right.gameYear);
+}
+
+export function selectSponsorBudgetHistoryContract<T extends SponsorBudgetHistoryContract>(
+  contracts: readonly T[], gameYear: number, yearBySeasonId: Map<string, number>,
+): T | undefined {
+  return contracts.filter((candidate) => isGameYearCoveredBySponsorContract({
+    gameYear, startGameYear: yearBySeasonId.get(candidate.startSeasonId),
+    endGameYear: candidate.endSeasonId ? yearBySeasonId.get(candidate.endSeasonId) : null,
+  })).sort(compareContracts)[0];
 }
 
 function compareContracts(

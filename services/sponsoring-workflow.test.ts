@@ -7,7 +7,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: mocks.admin 
 vi.mock("@/services/future-sponsor-offers", () => ({ getOrCreateFutureSponsorOffersForAuthUser: mocks.future }));
 vi.mock("@/services/continuing-sponsor-objectives", () => ({ ensureContinuingSponsorObjectivePlan: mocks.continuing }));
 vi.mock("@/services/persisted-sponsor-objectives", () => ({ loadSignedSponsorObjectives: mocks.objectives }));
-vi.mock("@/services/sponsor-budget-history", () => ({ getSponsorBudgetHistoryForTeam: mocks.history }));
+vi.mock("@/services/sponsor-budget-history", () => ({ getSponsorHistoryForTeam: mocks.history }));
 import { getSponsoringStateForAuthUser } from "./sponsoring-workflow";
 
 const activeSeason = { id: "s3", game_year: 3, name: "Saison 3", starts_on: "2026-09-11", ends_on: "2026-10-08", current_day_number: 25 };
@@ -64,7 +64,7 @@ function client({ current = null, planned = null, terminated = null, reputation 
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.history.mockResolvedValue(history);
+  mocks.history.mockResolvedValue({budgetHistory: history, previousSeasonReview: null});
   mocks.objectives.mockResolvedValue([persistedObjective]);
   mocks.future.mockResolvedValue({ mode: "first-contract", season: { id: "s4", name: "Saison 4", gameYear: 4 }, offers: [] });
   vi.spyOn(console, "error").mockImplementation(() => {});

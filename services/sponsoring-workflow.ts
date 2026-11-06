@@ -31,7 +31,8 @@ import {
   isSponsorPerformanceSatisfactionEnabled,
 } from "@/lib/game/sponsor-performance-satisfaction";
 import type { SponsorBudgetHistoryPoint } from "@/lib/game/sponsor-budget-history";
-import { getSponsorBudgetHistoryForTeam } from "@/services/sponsor-budget-history";
+import { getSponsorHistoryForTeam } from "@/services/sponsor-budget-history";
+import type {SponsorSeasonReview} from "@/lib/game/sponsor-season-review";
 import type { SponsorRenewalAssessment } from "@/lib/game/sponsor-renewal-assessment";
 import {
   readSponsorPartialAchievements,
@@ -205,6 +206,7 @@ export type SponsoringState =
     }
   | (SponsoringTeamState & {
       budgetHistory: SponsorBudgetHistoryPoint[];
+      previousSeasonReview: SponsorSeasonReview | null;
     });
 
 type SupabaseAdminClient = ReturnType<
@@ -338,10 +340,11 @@ export async function getSponsoringStateForAuthUser(
     return { kind: "onboarding" };
   }
 
-  const [activeSeason, budgetHistory] = await Promise.all([
+  const [activeSeason, sponsorHistory] = await Promise.all([
     resolveActiveSeason(supabase),
-    getSponsorBudgetHistoryForTeam(teamId, supabase),
+    getSponsorHistoryForTeam(teamId, supabase),
   ]);
+  const {budgetHistory, previousSeasonReview} = sponsorHistory;
   const nextGameYear = activeSeason.game_year + 1;
   const targetSeasonName = `Saison ${nextGameYear}`;
 
@@ -357,6 +360,7 @@ export async function getSponsoringStateForAuthUser(
     return {
       kind: "jersey-selection",
       budgetHistory,
+      previousSeasonReview,
       contract: await hydrateSponsorContract({
         supabase,
         contractRow: currentPlannedContract,
@@ -381,6 +385,7 @@ export async function getSponsoringStateForAuthUser(
     return {
       kind: "active",
       budgetHistory,
+      previousSeasonReview,
       contract: activeContract,
       future: await resolveFutureSponsoringStateSafely({
         supabase,
@@ -415,6 +420,7 @@ export async function getSponsoringStateForAuthUser(
     return {
       kind: "terminated",
       budgetHistory,
+      previousSeasonReview,
       contract: terminatedContract,
       future: await resolveFutureSponsoringStateSafely({
         supabase,
@@ -435,6 +441,7 @@ export async function getSponsoringStateForAuthUser(
     return {
       kind: "locked",
       budgetHistory,
+      previousSeasonReview,
       currentReputation: sportingDirector.reputation_points,
       requiredReputation:
         GAMEPLAY_RULES.sponsoringUnlockReputation,
@@ -444,6 +451,7 @@ export async function getSponsoringStateForAuthUser(
   return {
     kind: "amateur-qualified",
     budgetHistory,
+    previousSeasonReview,
     currentSeasonName: activeSeason.name,
     future: await resolveFutureSponsoringStateSafely({
       supabase,
