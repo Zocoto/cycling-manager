@@ -220,8 +220,8 @@ export function DailyRewardsPanel({
           </div>
           <p className="max-w-2xl text-sm font-semibold leading-6 text-[#60756E] sm:text-right">
             Vous choisissez la cible adaptée : coureur, statistique, course,
-            chantier ou membre du staff. Les bonus expirent à la fin de la
-            saison suivante.
+            chantier ou membre du staff. Les objets restent disponibles d’une
+            saison à l’autre jusqu’à leur utilisation.
           </p>
         </div>
 
@@ -282,7 +282,7 @@ function InventoryRewardCard({
         {item.effectSummary}
       </p>
       <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#789087]">
-        Valable jusqu’à la fin de la saison {item.expiresAfterGameYear}
+        Conservé d’une saison à l’autre
       </p>
 
       <DailyRewardRedemptionForm

@@ -198,8 +198,9 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Attribuer l’étoile": "Award the star",
   "Accélération chantier": "Construction boost",
   "Perfectionnement du staff": "Staff development",
-  "Vous choisissez la cible adaptée : coureur, statistique, course, chantier ou membre du staff. Les bonus expirent à la fin de la saison suivante.":
-    "Choose the appropriate target: rider, attribute, race, construction project or staff member. Bonuses expire at the end of the following season.",
+  "Vous choisissez la cible adaptée : coureur, statistique, course, chantier ou membre du staff. Les objets restent disponibles d’une saison à l’autre jusqu’à leur utilisation.":
+    "Choose the appropriate target: rider, attribute, race, construction project or staff member. Items carry over between seasons until used.",
+  "Conservé d’une saison à l’autre": "Carried over between seasons",
   "Permet à un junior de 17 ans ou plus de quitter immédiatement l’école pour rejoindre l’équipe première, même en cours de saison.":
     "Allows a junior aged 17 or over to leave the academy and join the first team immediately, even during the season.",
   "Permet à un junior de 17 ans ou plus de rejoindre immédiatement l’équipe première, même en cours de saison.":

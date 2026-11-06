@@ -3320,5 +3320,7 @@
   "Voir tous les choix": "View all picks",
   "Choix n°": "Pick no.",
   "Coureur sélectionné": "Selected rider",
-  "Un budget projeté négatif ne bloque pas le recrutement de draft. Le salaire normal reste à la charge de votre équipe.": "A negative projected budget does not block a draft signing. Your team remains responsible for the normal salary."
+  "Un budget projeté négatif ne bloque pas le recrutement de draft. Le salaire normal reste à la charge de votre équipe.": "A negative projected budget does not block a draft signing. Your team remains responsible for the normal salary.",
+  "Vous choisissez la cible adaptée : coureur, statistique, course, chantier ou membre du staff. Les objets restent disponibles d’une saison à l’autre jusqu’à leur utilisation.": "Choose the appropriate target: rider, attribute, race, construction project or staff member. Items carry over between seasons until used.",
+  "Conservé d’une saison à l’autre": "Carried over between seasons"
 }

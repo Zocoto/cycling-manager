@@ -62,6 +62,18 @@ describe("DailyRewardsPanel", () => {
     expect(markup).not.toContain("Ajouter à l’inventaire");
   });
 
+  it("shows that saved objects carry over without exposing a technical expiry season", () => {
+    const overview = createOverview();
+    overview.inventory[1].expiresAfterGameYear = 2147483647;
+    const markup = renderToStaticMarkup(<DailyRewardsPanel overview={overview} />);
+
+    expect(markup).toContain("Conservé d’une saison à l’autre");
+    expect(markup).toContain("saison à l’autre jusqu’à leur utilisation.");
+    expect(markup).not.toContain("2147483647");
+    expect(markup).not.toContain("Les bonus expirent");
+    expect(markup).not.toContain("Valable jusqu’à");
+  });
+
   it("offers the constrained inputs for both instant recruitment rewards", () => {
     const overview = createOverview();
     overview.inventory = [
