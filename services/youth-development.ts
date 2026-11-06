@@ -55,7 +55,8 @@ import {
   type SpecialAbilityDefinition,
 } from "@/lib/game/special-abilities";
 import {
-  getScoutingSupervisionPercentageForDay,
+  getScoutingSupervisionPercentageForReport,
+  getScoutingSupervisionReportWindow,
   getScoutingSupervisionStatus,
   normalizeScoutingSupervisionEffects,
   type ScoutingSupervisionStatus,
@@ -740,7 +741,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       .eq("season_id", context.seasonId)
       .eq("effect_kind", "scouting_boost")
       .eq("status", "active")
-      .gte("ends_day_number", context.currentDayNumber),
+      .gte("ends_day_number", Math.max(1, context.currentDayNumber - 1)),
     getTeamSeasonScoutingVisibility(admin, context.teamSeasonId),
   ]);
   for (const [result, label] of [
@@ -926,7 +927,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     const country = countryDtoById.get(mission.country_id);
     const scout = scoutByContractId.get(mission.scout_contract_id);
     const scheduledSupervisionBonusPercentage =
-      getScoutingSupervisionPercentageForDay(
+      getScoutingSupervisionPercentageForReport(
         scoutingSupervisionEffects,
         mission.completes_day_number,
       );
@@ -1385,6 +1386,12 @@ async function settleDueScoutingMissions(admin: AdminClient, context: Context) {
 }
 
 async function completeMission(admin: AdminClient, mission: MissionRow) {
+  const supervisionReportWindow = getScoutingSupervisionReportWindow(
+    mission.completes_day_number,
+  );
+  if (!supervisionReportWindow) {
+    throw new Error("La date du rapport de scouting est invalide.");
+  }
   const specializationSettlement = await admin.rpc(
     "settle_due_infrastructure_specializations",
   );
@@ -1514,8 +1521,14 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         .eq("season_id", mission.season_id)
         .eq("effect_kind", "scouting_boost")
         .eq("status", "active")
-        .lte("starts_day_number", mission.completes_day_number)
-        .gte("ends_day_number", mission.completes_day_number)
+        .lte(
+          "starts_day_number",
+          supervisionReportWindow.startsOnOrBeforeDayNumber,
+        )
+        .gte(
+          "ends_day_number",
+          supervisionReportWindow.endsOnOrAfterDayNumber,
+        )
         .returns<
           Array<{
             effect_payload: Record<string, unknown>;
@@ -1667,7 +1680,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     });
   const federalStaffMultiplier = 1 + federalStaffBonusPercentage / 100;
   const dailyScoutingBonusPercentage =
-    getScoutingSupervisionPercentageForDay(
+    getScoutingSupervisionPercentageForReport(
       normalizeScoutingSupervisionEffects(dailyRewardBoostResult.data),
       mission.completes_day_number,
     );
