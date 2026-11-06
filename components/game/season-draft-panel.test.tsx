@@ -17,6 +17,50 @@ vi.mock("react", async (importOriginal) => {
 afterEach(() => { draftUi.confirmation = null; });
 
 describe("page de draft", () => {
+  it("prechecks automatic recruitment for a new preparation", () => {
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
+    const checkbox = html.match(/<input\b[^>]*type="checkbox"[^>]*>/)?.[0];
+    expect(checkbox).toBeDefined();
+    expect(checkbox).toContain('checked=""');
+  });
+
+  it("keeps an already saved manual choice unchecked", () => {
+    const fixture = createDraftFixture();
+    fixture.mine!.autoEnabled = false;
+    fixture.mine!.preferences = [fixture.riders![0].id];
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    const checkbox = html.match(/<input\b[^>]*type="checkbox"[^>]*>/)?.[0];
+    expect(checkbox).toBeDefined();
+    expect(checkbox).not.toContain('checked=""');
+  });
+
+  it("marks only saved preparation, independently of the viewer's automatic setting", () => {
+    const fixture = createDraftFixture();
+    fixture.participants![0].hasPreferences = true;
+    fixture.participants![1].hasPreferences = false;
+    fixture.mine!.autoEnabled = false;
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    const tiles = html.match(/<li\b[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    const ready = tiles.find(tile => tile.includes("Dodo Blue Finance"))!;
+    const unready = tiles.find(tile => tile.includes("Kaffa Origins"))!;
+    expect(ready).toContain("bg-[#E8F5EC]");
+    expect(ready).toContain("✓ Liste de choix validée");
+    expect(unready).not.toContain("Liste de choix validée");
+    expect(unready).not.toContain("bg-[#E8F5EC]");
+  });
+
+  it("keeps a prepared current team's turn visible alongside its green status", () => {
+    const fixture = createDraftFixture();
+    fixture.edition!.status = "running";
+    fixture.edition!.currentPosition = fixture.participants![0].position;
+    fixture.participants![0].hasPreferences = true;
+    const html = renderToStaticMarkup(<SeasonDraftPanel view={fixture} />);
+    const tile = html.match(/<li\b[^>]*>[\s\S]*?<\/li>/g)?.find(item => item.includes("Dodo Blue Finance"));
+    expect(tile).toContain("bg-[#E8F5EC]");
+    expect(tile).toContain("ring-[#D5A54D]");
+    expect(tile).toContain("À son tour");
+  });
+
   it("reste concise, révèle les stats et limite les portraits à 20 par page", () => {
     const html = renderToStaticMarkup(<SeasonDraftPanel view={createDraftFixture()} />);
     expect(html).toContain("Sélections à 14 h");

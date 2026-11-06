@@ -15,7 +15,7 @@ const buttonClass = "min-h-10 rounded-xl bg-[#195F4C] px-4 py-2 text-sm font-bol
 export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftView; preview?: boolean }) {
   const router = useRouter();
   const [preferences, setPreferences] = useState(view.mine?.preferences ?? []);
-  const [automatic, setAutomatic] = useState(view.mine?.autoEnabled ?? false);
+  const [automatic, setAutomatic] = useState(view.mine?.autoEnabled ?? true);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("score");
   const [availableOnly, setAvailableOnly] = useState(true);
@@ -172,7 +172,7 @@ export function SeasonDraftPanel({ view, preview = false }: { view: SeasonDraftV
 
       <details className="mt-5 rounded-2xl border border-[#D5DFD5] bg-white px-5 py-4" open={edition.status === "completed"}>
         <summary className="cursor-pointer font-black">Ordre des équipes et recrutements · {participants.filter(p => p.status !== "pending").length}/{participants.length}</summary>
-        <ol className="mt-4 grid gap-2 md:grid-cols-2">{participants.map(participant => <li key={participant.teamId} className={`flex gap-3 rounded-xl p-3 text-sm ${participant.position === edition.currentPosition ? "bg-[#FFF4C9]" : "bg-[#F4F7F0]"}`}><span className="font-black">{participant.position}.</span><div className="min-w-0"><strong className="block">{participant.teamName}</strong><span className="text-xs text-[#75867C]">{participant.directorName} · {participant.previousPoints} pts la saison précédente</span><p className="mt-1 text-xs font-semibold">{participant.status === "picked" ? participant.selectedName : participant.status === "passed" ? draftChoiceError(participant.reason) : participant.position === edition.currentPosition ? "À son tour" : "En attente"}</p></div></li>)}</ol>
+        <ol className="mt-4 grid gap-2 md:grid-cols-2">{participants.map(participant => <li key={participant.teamId} className={`flex gap-3 rounded-xl border p-3 text-sm ${participant.hasPreferences ? "border-[#8ABF9C] bg-[#E8F5EC]" : participant.position === edition.currentPosition ? "border-transparent bg-[#FFF4C9]" : "border-transparent bg-[#F4F7F0]"} ${participant.position === edition.currentPosition ? "ring-2 ring-[#D5A54D]" : ""}`}><span className="font-black">{participant.position}.</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-x-2 gap-y-1"><strong>{participant.teamName}</strong>{participant.hasPreferences ? <span className="rounded-full bg-[#CCE8D4] px-2 py-0.5 text-[10px] font-bold text-[#215F3B]">✓ Liste de choix validée</span> : null}</div><span className="text-xs text-[#75867C]">{participant.directorName} · {participant.previousPoints} pts la saison précédente</span><p className="mt-1 text-xs font-semibold">{participant.status === "picked" ? participant.selectedName : participant.status === "passed" ? draftChoiceError(participant.reason) : participant.position === edition.currentPosition ? "À son tour" : "En attente"}</p></div></li>)}</ol>
       </details>
     </>}
 

@@ -10,6 +10,7 @@ export type SeasonDraftRider = {
 export type SeasonDraftParticipant = {
   teamId: string; teamName: string; directorName: string; position: number; previousPoints: number;
   status: "pending" | "picked" | "passed"; selectedRiderId: string | null; selectedName: string | null; reason: string | null;
+  hasPreferences?: boolean;
 };
 export type SeasonDraftView = {
   serverNow: string; firstGameYear: number; enabled: boolean;
