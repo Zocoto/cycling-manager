@@ -3,6 +3,7 @@ import { isUrbanCobbles, normalizeUrbanCobblesSegments } from "./urban-cobbles";
 import { PERFORMANCE_PREPARATION_FACILITIES, type PerformancePreparationType } from "./performance-preparation";
 import type { NationalJerseyDraft } from "./national-jersey-preview";
 import { createRaceTeamWorkRecorder } from "./race-team-work";
+import { getDomestiqueBreakawayInitiativeChance } from "./race-breakaway-initiative";
 import {
   getSprintTrainRelayAdjustment,
   MINIMUM_SPRINT_TRAIN_ENERGY,
@@ -1932,13 +1933,19 @@ export function assignRaceObjectiveDuties(
 
     if (
       strategy.objective === "stage_win" &&
+      (strategy.breakawayPolicy !== "avoid" || strategy.breakawayRiderId != null) &&
       (stageWinMode === "breakaway" ||
         strategy.breakawayPolicy === "target" ||
         strategy.breakawayRiderId !== null)
     ) {
       const target =
         findObjectiveCandidate(teamRiders, strategy.breakawayRiderId) ??
-        rankObjectiveCandidates(teamRiders, (rider) =>
+        rankObjectiveCandidates(teamRiders.filter((rider) =>
+          rider.role !== "leadout" &&
+          (strategy.breakawayPolicy === "target" ||
+            rider.role === "free_agent" ||
+            rider.role === "mountain_classification"),
+        ), (rider) =>
           getStageWinBreakawayScore(rider, input.segments),
         )[0];
       if (target) target.raceDuty = "breakaway_candidate";
@@ -2260,6 +2267,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     random,
     input.generalClassification,
     input.teamStrategies ?? [],
+    input.raceCountryCode,
   );
   const generalClassificationLeaderId = getGeneralClassificationLeaderId(
     input.generalClassification,
@@ -3466,6 +3474,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         chasePressure,
         attackWindow: counterAttackWindow,
         strategy: strategyContext,
+        eligibleUnplannedAttackIds: attackPlan.eligibleUnplannedAttackIds,
         random: dynamicAttackRandom,
         commentary,
       })
@@ -4660,6 +4669,7 @@ function buildTimedResult(
 
 export type StageAttackPlan = {
   initialAttackIds: Set<string>;
+  eligibleUnplannedAttackIds: Set<string>;
   delayedAttackIds: Set<string>;
   delayedAttackAtKm: number;
   delayedAttackRequiresGroupedPeloton: boolean;
@@ -4672,6 +4682,7 @@ export function selectStageAttackPlan(
   random: () => number,
   generalClassification?: StageSimulationInput["generalClassification"],
   teamStrategies: RaceTeamStrategy[] = [],
+  raceCountryCode?: string | null,
 ): StageAttackPlan {
   const strategy = buildStageStrategyContext(riders, segments);
   const strategiesByTeamId = new Map(
@@ -4687,7 +4698,12 @@ export function selectStageAttackPlan(
   const fieldAverage = average(
     riders.map((rider) => getStageSuitability(rider, segments)),
   );
-  const rankedCandidates = riders
+  const rankedEligibleCandidates = riders
+    .map((rider) => {
+      const duty = getRiderRaceDuty(strategiesByTeamId.get(rider.teamId), rider.id)
+        ?? rider.raceDuty;
+      return duty ? { ...rider, raceDuty: duty } : rider;
+    })
     .filter((rider) => {
       const teamStrategy = strategiesByTeamId.get(rider.teamId);
       return (
@@ -4695,6 +4711,8 @@ export function selectStageAttackPlan(
         !isRaceLeaderRole(rider.role) &&
         !isRaceSprinterRole(rider.role) &&
         !isRaceProtectedRiderRole(rider.role) &&
+        (!rider.raceDuty || rider.raceDuty === "breakaway_candidate") &&
+        (rider.role !== "leadout" || rider.raceDuty === "breakaway_candidate") &&
         (!strategy.protectedRiderIds.has(rider.id) ||
           rider.raceDuty === "breakaway_candidate") &&
         (teamStrategy?.breakawayPolicy !== "avoid" ||
@@ -4734,6 +4752,42 @@ export function selectStageAttackPlan(
       return { rider, score, favoriteTier };
     })
     .sort((first, second) => second.score - first.score);
+  const isSpontaneousDomestique = (rider: RiderSimulationInput) => {
+    const teamStrategy = strategiesByTeamId.get(rider.teamId);
+    return (rider.role === "domestique" || rider.role === "auto") &&
+      rider.raceDuty !== "breakaway_candidate" &&
+      teamStrategy?.breakawayPolicy !== "target" &&
+      teamStrategy?.objective !== "breakaway";
+  };
+  // One opportunity per team for this stage, not one roll per helper or
+  // per attack window. Designated attackers and free agents keep their remit.
+  const initiativeByTeam = new Map<string, { riderId: string; chance: number }>();
+  for (const { rider, favoriteTier } of rankedEligibleCandidates) {
+    if (!isSpontaneousDomestique(rider)) continue;
+    const teamStrategy = strategiesByTeamId.get(rider.teamId);
+    const chance = getDomestiqueBreakawayInitiativeChance({
+      breakawayRating: rider.ratings.breakaway,
+      form: rider.form,
+      favoriteRaceBonus: rider.favoriteRaceBonus,
+      riderCountryCode: rider.countryCode,
+      raceCountryCode,
+      hasPanache: hasSpecialAbility(rider, "panache"),
+      collectivePosture: teamStrategy?.collectivePosture,
+      objective: teamStrategy?.objective,
+      favoriteTier,
+    });
+    if (chance > (initiativeByTeam.get(rider.teamId)?.chance ?? -1)) {
+      initiativeByTeam.set(rider.teamId, { riderId: rider.id, chance });
+    }
+  }
+  const approvedDomestiqueIds = new Set<string>();
+  for (const { riderId, chance } of initiativeByTeam.values()) {
+    if (chance > 0 && random() < chance) approvedDomestiqueIds.add(riderId);
+  }
+  const rankedCandidates = rankedEligibleCandidates.filter(({ rider }) =>
+    !isSpontaneousDomestique(rider) || approvedDomestiqueIds.has(rider.id),
+  );
+  const eligibleUnplannedAttackIds = new Set(rankedCandidates.map(({ rider }) => rider.id));
   const candidates = rankedCandidates.filter(({ rider, score }) => {
     const stageStrength = getStageSuitability(rider, segments) - fieldAverage;
     return (
@@ -4784,8 +4838,11 @@ export function selectStageAttackPlan(
   }
 
   if (initialAttackIds.size === 0 && candidates.length > 0) {
-    initialAttackIds.add(candidates[0].rider.id);
-    morningTeamCounts.set(candidates[0].rider.teamId, 1);
+    const fallback = candidates.find(({ rider }) => !isSpontaneousDomestique(rider));
+    if (fallback) {
+      initialAttackIds.add(fallback.rider.id);
+      morningTeamCounts.set(fallback.rider.teamId, 1);
+    }
   }
 
   const totalDistanceKm = segments.reduce(
@@ -4863,6 +4920,7 @@ export function selectStageAttackPlan(
 
   return {
     initialAttackIds,
+    eligibleUnplannedAttackIds,
     delayedAttackIds,
     delayedAttackAtKm:
       delayedAttackIds.size > 0
@@ -7111,6 +7169,7 @@ function maybeLaunchCounterAttack({
   chasePressure,
   attackWindow,
   strategy,
+  eligibleUnplannedAttackIds,
   random,
   commentary,
 }: {
@@ -7120,6 +7179,7 @@ function maybeLaunchCounterAttack({
   chasePressure: number;
   attackWindow: DynamicAttackWindow;
   strategy: StageStrategyContext;
+  eligibleUnplannedAttackIds: ReadonlySet<string>;
   random: () => number;
   commentary: string[];
 }) {
@@ -7136,6 +7196,7 @@ function maybeLaunchCounterAttack({
     .filter((state) => {
       const rider = state.rider;
       if (
+        !eligibleUnplannedAttackIds.has(rider.id) ||
         strategy.protectedRiderIds.has(rider.id) ||
         isRaceLeaderRole(rider.role) ||
         isRaceSprinterRole(rider.role) ||

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDemoSimulationInput } from "./race-simulation-demo";
+import { DEFAULT_RACE_TEAM_STRATEGY } from "./race-strategy";
 import {
   DETACHED_ROAD_GROUP_MAX_SPAN_SECONDS,
   accumulateRaceGroupGapsFromLeader,
@@ -2524,9 +2525,21 @@ describe("simulateRaceStage", () => {
   });
 
   it("fait payer davantage d’énergie à une petite échappée", () => {
-    const result = simulateRaceStage(
-      createDemoSimulationInput("collines-ardennes", 7),
-    );
+    const input = createDemoSimulationInput("collines-ardennes", 7);
+    const attacker = input.riders.find((rider) => rider.role === "free_agent")!;
+    // Compare effort from equal starting freshness, with one explicitly sent
+    // attacker and a resting peloton, rather than relying on a random lineup.
+    const result = simulateRaceStage({
+      ...input,
+      riders: input.riders.map((rider) => ({ ...rider, form: 90 })),
+      teamStrategies: [...new Set(input.riders.map((rider) => rider.teamId))].map((teamId) => ({
+        ...DEFAULT_RACE_TEAM_STRATEGY,
+        teamId,
+        breakawayPolicy: "avoid",
+        chasePolicy: "never",
+        breakawayRiderId: teamId === attacker.teamId ? attacker.id : null,
+      })),
+    });
     const comparableSnapshot = result.timeline
       .slice(Math.floor(result.timeline.length * 0.3))
       .find(

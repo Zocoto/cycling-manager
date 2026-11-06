@@ -45,7 +45,9 @@ describe("DS roles outrank automatic protection",()=>{
       ...leader,id:`rival-${index}`,teamId:`rival-team-${index}`,form:95,
       ratings:Object.fromEntries(Object.keys(leader.ratings).map(key=>[key,95])) as typeof leader.ratings,
     }));
-    const plan=selectStageAttackPlan([favorite,leader,...rivals],input.segments,()=>0.1);
+    // A rare initiative may pass its team gate; the rider's favorite status
+    // must still never silently override the DS's domestique assignment.
+    const plan=selectStageAttackPlan([favorite,leader,...rivals],input.segments,()=>0.001);
     expect(plan.initialAttackIds.has(favorite.id)).toBe(true);
   });
 
