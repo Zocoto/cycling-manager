@@ -7,6 +7,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorBudgetHistoryChart } from "@/components/game/sponsor-budget-history-chart";
+import {SponsorSeasonReviewPanel} from "@/components/game/sponsor-season-review";
 import { SponsorObjectiveTitle } from "@/components/game/sponsor-objective-title";
 import { SponsorMainObjectiveTermsCard } from "@/components/game/sponsor-main-objective-terms";
 import { SponsorReputationInvestmentOptions } from "@/components/game/sponsor-reputation-investment-options";
@@ -217,6 +218,10 @@ export default async function SponsoringPage({
           ) : null}
 
           {actionError ? <ActionErrorMessage message={actionError} /> : null}
+
+          {activeTab === "principal" && !sponsoringError && sponsoringState && sponsoringState.kind !== "onboarding" ? (
+            <SponsorSeasonReviewPanel report={sponsoringState.previousSeasonReview} />
+          ) : null}
 
           {activeTab === "principal" && sponsoringError ? (
             <SponsoringErrorMessage message={sponsoringError} />
