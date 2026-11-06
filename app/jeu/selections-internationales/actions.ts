@@ -38,6 +38,11 @@ export async function answerFederationCallupAction(formData: FormData) {
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/courses/[slug]", "page");
   revalidatePath("/jeu/boite-mail");
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/centre-de-soin");
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  revalidatePath("/jeu/centre-de-formation");
+  revalidatePath("/jeu/centre-de-formation/development/[academyRiderId]", "page");
   if (data === "ineligible") redirect(`${returnHref}${returnHref.includes("?") ? "&" : "?"}erreur=${encodeURIComponent("Cette convocation n’est plus valable : le coureur n’est plus éligible.")}`);
   redirect(returnHref);
 }
@@ -102,5 +107,8 @@ export async function answerInternationalSelectionsAction(formData: FormData) {
   revalidatePath("/jeu/championnats-internationaux");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/boite-mail");
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/centre-de-soin");
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
   redirect("/jeu/selections-internationales");
 }

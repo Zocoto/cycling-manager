@@ -116,6 +116,11 @@ export async function respondFederationPreselectionAction(formData: FormData) {
   revalidatePath("/jeu/selections-internationales");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/courses/[slug]", "page");
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/centre-de-soin");
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  revalidatePath("/jeu/centre-de-formation");
+  revalidatePath("/jeu/centre-de-formation/development/[academyRiderId]", "page");
   if (result.data === "ineligible") {
     redirect(`/jeu/selections-internationales?erreur=${encodeURIComponent("Cette convocation n’est plus valable : le coureur n’est plus éligible.")}`);
   }

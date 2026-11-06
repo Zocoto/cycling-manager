@@ -26,6 +26,10 @@ describe("réponse aux convocations fédérales", () => {
     for (const decision of ["confirm", "decline"]) {
       await expect(answerFederationCallupAction(payload(decision, audience))).rejects.toThrow(`REDIRECT:/jeu/selections-internationales${audience === "junior" ? "?categorie=junior" : ""}`);
       expect(mocks.rpc).toHaveBeenLastCalledWith("respond_to_national_federation_preselection", { p_member_id: memberId, p_accept: decision === "confirm" });
+      expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/effectif");
+      expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/centre-de-soin");
+      expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/coureurs/[identifiant]", "page");
+      expect(mocks.revalidate).toHaveBeenCalledWith("/jeu/centre-de-formation");
     }
   });
   it("affiche un motif explicite après une invalidation enregistrée par le serveur", async () => {

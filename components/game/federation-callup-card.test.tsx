@@ -46,10 +46,14 @@ describe("federation call-up interface", () => {
       expect(forms[index]).not.toContain('name="decision" value="' + decision + '" disabled');
     }
     expect(html).toContain("Vous pouvez répondre dès maintenant");
+    expect(html).toContain("Chaque convocation refusée retire 10 points de moral au coureur.");
+    expect(html).toContain("Les refus de convocations distinctes se cumulent.");
   });
   it("does not offer a second decision for a confirmed or closed invitation", () => {
     for (const value of [{ ...callup, response_status: "confirmed" as const }, { ...callup, can_respond: false }, { ...callup, response_status: "ineligible" as const }]) {
-      expect(renderToStaticMarkup(<FederationCallupCard callup={value} />)).not.toContain('<form');
+      const html = renderToStaticMarkup(<FederationCallupCard callup={value} />);
+      expect(html).not.toContain('<form');
+      expect(html).not.toContain("Chaque convocation refusée retire 10 points");
     }
   });
   it("explains an ineligible call-up without describing it as a player refusal or expired deadline", () => {
@@ -70,6 +74,11 @@ describe("federation call-up interface", () => {
     expect(input).toContain('checked=""');
     expect(input).toContain('disabled=""');
     expect(html).toContain("Participation confirmée · verrouillée");
+  });
+  it("explains the morale consequence beside the manager's federation response forms", () => {
+    const html = workbench({ ...state, pendingConfirmations: [{ memberId: "member", riderId: "rider", slotKey: "cc-pro-road" }] });
+    expect(html).toContain("Chaque convocation refusée retire 10 points de moral au coureur.");
+    expect(html).toContain("Les refus de convocations distinctes se cumulent.");
   });
   it("leaves an unconfirmed rider editable before closure, but not after it", () => {
     const editable: FederationSelectionState = { ...state,

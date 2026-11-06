@@ -478,6 +478,7 @@ function SelectionCard({
             <legend className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-[#60756E]">
               Décision du DS
             </legend>
+            <p className="text-xs font-semibold leading-5 text-[#60756E]">Chaque convocation refusée retire 10 points de moral au coureur. Les refus de convocations distinctes se cumulent.</p>
             <input
               type="hidden"
               name="candidateId"

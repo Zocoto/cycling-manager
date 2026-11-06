@@ -19,6 +19,10 @@ describe("bounded federation selection actions", () => {
     await respondFederationPreselectionAction(data);
     expect(rpc.mock.calls).toEqual([["respond_to_national_federation_preselection",{p_member_id:"00000000-0000-4000-8000-000000000001",p_accept:decision==="confirm"}]]);
     expect(revalidatePath).toHaveBeenCalledWith("/jeu/selections-internationales");
+    expect(revalidatePath).toHaveBeenCalledWith("/jeu/effectif");
+    expect(revalidatePath).toHaveBeenCalledWith("/jeu/centre-de-soin");
+    expect(revalidatePath).toHaveBeenCalledWith("/jeu/coureurs/[identifiant]", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/jeu/centre-de-formation");
   });
   it("reports an invalidation after refreshing the federation without a global rebuild", async () => {
     rpc.mockResolvedValue({data:"ineligible",error:null});

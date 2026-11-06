@@ -1,4 +1,6 @@
 {
+  "Le coureur et la convocation sont requis pour modifier le moral.": "The rider and call-up are required to change morale.",
+  "Chaque convocation refusée retire 10 points de moral au coureur. Les refus de convocations distinctes se cumulent.": "Each declined call-up reduces the rider's morale by 10 points. Declining separate call-ups has a cumulative effect.",
   "Les meilleurs agents libres sont retenus selon leur meilleure note MON, VAL, CLM, PAV ou SPR (90 %), puis leur moyenne hors plaine (10 %). Le potentiel départage les égalités ; l’âge n’intervient pas. Au moins 100 places dans le vivier, ou autant que d’équipes si elles sont plus nombreuses, dans la limite des coureurs libres disponibles.": "The best free agents are selected using their highest MO, HIL, TT, COB or SP rating (90%), followed by their average excluding flat (10%). Potential breaks ties; age has no effect. The pool has at least 100 places, or as many as participating teams if there are more, subject to the number of available free agents.",
   "✓ Liste de choix validée": "✓ Choice list confirmed",
   "La date du rapport de scouting est invalide.": "The scouting report date is invalid.",
