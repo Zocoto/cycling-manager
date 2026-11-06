@@ -57,10 +57,13 @@ type RankingRow = {
 type RankedRiderRow = Pick<RankingRow, "entity_key" | "academy_rider_id" | "development_team_id">;
 
 const PAGE_SIZE = 50;
+// Both !inner joins carry the bot anti-join up to the ranking rows. Empty
+// embedding checks registry membership without exposing bot account fields.
+const PLAYER_TEAM_JOIN = ",development_team:development_teams!inner(team:teams!inner(bot:alpha_bot_managers()))";
 
 const getCachedJuniorRankings = compactDataCache(
   loadJuniorRankings,
-  ["junior-rankings-s3-player-teams-distinct-riders-v3"],
+  ["junior-rankings-s3-player-teams-distinct-riders-v4"],
   { revalidate: 30, tags: ["junior-rankings"] },
 );
 
@@ -103,12 +106,14 @@ async function loadJuniorRankings(
 
   let countQuery = admin
     .from("development_ranking_entries")
-    .select("id", { count: "exact", head: true })
+    .select(`id${view === "equipes" ? PLAYER_TEAM_JOIN : ""}`, { count: "exact", head: true })
     .eq("season_id", season.id)
     .eq("entity_type", entityType);
-  // Filler AI teams have no development team. Filter before counting/paging,
-  // without changing stored race results or individual/nation rankings.
-  if (view === "equipes") countQuery = countQuery.not("development_team_id", "is", null);
+  // Filler teams have no DevTeam; managed bots do. Exclude both in SQL before
+  // counting/paging, including bot accounts whose automation is disabled.
+  if (view === "equipes") countQuery = countQuery
+    .not("development_team_id", "is", null)
+    .is("development_team.team.bot", null);
   const countResult = await countQuery;
   assertQuery(countResult.error, "le volume du classement junior");
   const totalEntries = countResult.count ?? 0;
@@ -119,11 +124,13 @@ async function loadJuniorRankings(
   let rowsQuery = admin
     .from("development_ranking_entries")
     .select(
-      "entity_key, academy_rider_id, development_team_id, display_name, secondary_name, country_code, points, wins, podiums, race_count",
+      `entity_key, academy_rider_id, development_team_id, display_name, secondary_name, country_code, points, wins, podiums, race_count${view === "equipes" ? PLAYER_TEAM_JOIN : ""}`,
     )
     .eq("season_id", season.id)
     .eq("entity_type", entityType);
-  if (view === "equipes") rowsQuery = rowsQuery.not("development_team_id", "is", null);
+  if (view === "equipes") rowsQuery = rowsQuery
+    .not("development_team_id", "is", null)
+    .is("development_team.team.bot", null);
   const rowsResult = await rowsQuery
     .order("points", { ascending: false })
     .order("wins", { ascending: false })

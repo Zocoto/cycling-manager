@@ -64,6 +64,12 @@ function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "
         filtered = filtered.filter(row => row[key] != null);
         return query;
       },
+      is: (key: string, value: unknown) => {
+        expect(key).toBe("development_team.team.bot"); expect(value).toBeNull();
+        request.filters.push([key, "is", value]);
+        filtered = filtered.filter(row => !row.managed_bot_id);
+        return query;
+      },
       in: (key: string, values: unknown[]) => {
         request.filters.push([key, "in", values]);
         filtered = filtered.filter(row => values.includes(row[key]));
@@ -85,6 +91,44 @@ function fixture(rows: Row[], options: { season?: Row | null; fail?: "count" | "
 beforeEach(() => vi.clearAllMocks());
 
 describe("classement junior des équipes de joueurs", () => {
+  it("exclut un vrai compte bot même désactivé, ainsi que le remplissage IA, en conservant les humains", async () => {
+    const botTeamId = "bae5e30e-cb24-4b15-ba05-22fdc9e7585d";
+    const requests = fixture([
+      { ...team(0, true), points: 3000 },
+      { ...team(1), development_team_id: botTeamId, managed_bot_id: "managed-bot", enabled: false, points: 2000 },
+      { ...team(2), display_name: "Human Academy", points: 1000 },
+      { ...team(1), entity_type: "individual", development_team_id: botTeamId, academy_rider_id: "bot-rider" },
+      { ...team(2), entity_type: "individual", academy_rider_id: "human-rider" },
+    ]);
+    expect(await getJuniorRankings("equipes")).toMatchObject({
+      totalEntries: 1, pageCount: 1,
+      entries: [{ rank: 1, displayName: "Human Academy", points: 1000, rankedRiderCount: 1 }],
+    });
+    const teamQueries = requests.filter(r => r.filters.some(([key, , value]) => key === "entity_type" && value === "team"));
+    expect(teamQueries).toHaveLength(2);
+    for (const request of teamQueries) {
+      expect(request.columns).toContain("development_team:development_teams!inner(team:teams!inner(bot:alpha_bot_managers()))");
+      expect(request.filters).toContainEqual(["development_team.team.bot", "is", null]);
+      expect(request.filters.some(([key]) => key === "enabled")).toBe(false);
+    }
+    expect(requests).toHaveLength(4);
+    expect(requests.at(-1)?.filters).toContainEqual(["development_team_id", "in", ["development-2"]]);
+    expect(requests.every(request => ["seasons", "development_ranking_entries"].includes(request.table))).toBe(true);
+  });
+
+  it("calcule les totaux et pages après exclusion SQL des comptes bots sans limiter leur nombre", async () => {
+    const requests = fixture([
+      ...Array.from({ length: 20 }, (_, index) => ({ ...team(index), managed_bot_id: `bot-${index}`, points: 2000 + index })),
+      ...Array.from({ length: 51 }, (_, index) => team(index + 100)),
+      team(99, true),
+    ]);
+    const ranking = await getJuniorRankings("equipes", 2);
+    expect(ranking).toMatchObject({ totalEntries: 51, pageCount: 2, page: 2 });
+    expect(ranking?.entries).toHaveLength(1);
+    expect(ranking?.entries[0]).toMatchObject({ rank: 51, developmentTeamId: "development-150" });
+    expect(requests).toHaveLength(4);
+  });
+
   it("retire les équipes virtuelles avant le décompte et recalcule les places sans toucher aux points", async () => {
     const requests = fixture([team(0, true), team(1), team(2, true), team(3)]);
     const ranking = await getJuniorRankings("equipes");
