@@ -40,7 +40,7 @@ export function SeasonFourGalaPreview({exportStatus, context, canExport = false}
     <section className={styles.liveCard} aria-labelledby="gouille-live-title">
       <div className={styles.liveHeader}>
         <Image src={SEASON_FOUR_GALA.hostAvatar} width={70} height={70} alt="Logo de la chaîne Twitch de Gouille" className={styles.hostAvatar} />
-        <div className={styles.liveCopy}><span className={styles.liveLabel}><TwitchMark /> LE LIVE DU GALA</span><h2 id="gouille-live-title">Gouille prend les commandes.</h2><p>Les six courses seront simulées en direct sur PCM26, sur sa chaîne Twitch, le vendredi 6 novembre. Horaire à venir.</p></div>
+        <div className={styles.liveCopy}><span className={styles.liveLabel}><TwitchMark /> LE LIVE DU GALA</span><h2 id="gouille-live-title">Gouille prend les commandes.</h2><p>Les six courses seront simulées en direct sur PCM26, sur sa chaîne Twitch, le vendredi 6 novembre.</p><p><time dateTime={SEASON_FOUR_GALA.liveStartsAt}><strong>{SEASON_FOUR_GALA.liveLabel}</strong></time> · Heure de Paris</p></div>
         <a href={SEASON_FOUR_GALA.twitchUrl} target="_blank" rel="noopener noreferrer" className={styles.twitchButton}>Rejoindre la chaîne ↗</a>
       </div>
       <div className={styles.liveRewards}>
