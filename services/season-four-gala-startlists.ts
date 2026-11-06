@@ -1,4 +1,5 @@
 import "server-only";
+import { GALA_STEAM_DATABASE,validateSeasonFourGalaSteamCompatibility } from "@/lib/game/season-four-gala-steam";
 import { strToU8,zipSync } from "fflate";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { GALA_COURSES,GALA_EVENTS,SEASON_FOUR_GALA,type GalaEventKey,type GalaExportStatus } from "@/lib/game/season-four-gala";
@@ -61,26 +62,32 @@ export async function loadSeasonFourGalaStartlistSnapshot():Promise<GalaExportSn
 export async function generateSeasonFourGalaStartlistExport(eventKey?:GalaEventKey,template=false) {
  // Explicit models never read player records and can never contain demo teams.
  const snapshot=template?{season:4,registrations:[],selections:[],teams:[],riders:[]}:await loadSeasonFourGalaStartlistSnapshot();
+ if(!template)validateSeasonFourGalaSteamCompatibility(snapshot,eventKey);
  const result=buildSeasonFourGalaStartlists(snapshot,eventKey,template);
  const generatedAt=new Date().toISOString();
- const manifest={formatVersion:1,season:4,generatedAt,template,clubPolicy:'at-registration',ratingPolicy:{source:'rider_season_ratings',bonusesIncluded:false,continentalRegistrationPrimaryCap:75,registeredRiderRatingsPreserved:true},events:result.events};
- if(eventKey){
-  const [path,xml]=Object.entries(result.files)[0];
-  return {data:strToU8(xml),filename:path.split('/').at(-1)!,contentType:'application/xml',teamCount:result.teamCount,riderCount:result.riderCount,generatedAt,template};
- }
- const files=Object.fromEntries(Object.entries(result.files).map(([path,text])=>[path,strToU8(text)]));
+ // The archive identifies the programme; its XML retains the native PCM name.
+ // Repeated browser downloads may rename the ZIP, never the XML inside it.
+ const archivePath=(path:string)=>eventKey?path.split('/').at(-1)!:path;
+ const events=eventKey?result.events.map(event=>({...event,file:archivePath(String(event.file))})):result.events;
+ const manifest={formatVersion:1,season:4,generatedAt,template,databaseReference:GALA_STEAM_DATABASE,clubPolicy:'at-registration',ratingPolicy:{source:'rider_season_ratings',bonusesIncluded:false,continentalRegistrationPrimaryCap:75,registeredRiderRatingsPreserved:true},events};
+ const files=Object.fromEntries(Object.entries(result.files).map(([path,text])=>[archivePath(path),strToU8(text)]));
  files['manifest.json']=strToU8(JSON.stringify(manifest,null,2)+'\n');
  files['LISEZ-MOI.txt']=strToU8([
   'Gala S4 — 6 novembre 2026 — notes natives uniquement, sans équipement.',
   template?'MODÈLES SANS INSCRITS : seules l’équipe de simulation et ses sept coureurs sont présents.':'Startlists des inscriptions enregistrées, sans suppression ni troncature.',
   '7 à 8 coureurs par club. Une seule équipe de simulation est ajoutée.',
-  'Utiliser la base PCM Gala S4 compatible 7–8 coureurs proposée dans l’espace organisation.',
+  `Utiliser la BDD Steam de référence : ${GALA_STEAM_DATABASE.title}.`,
+  `Empreinte SHA-256 de la BDD : ${GALA_STEAM_DATABASE.databaseSha256}.`,
+  'Extraire le ZIP avant installation : ne pas copier l’archive ZIP dans le dossier Startlists.',
   'Copier un seul programme à la fois dans %APPDATA%\\Pro Cycling Manager 2026\\Cloud\\Startlists\\.',
+  'Copier les XML extraits en remplaçant les fichiers précédents portant les mêmes noms ; aucun suffixe (1) ne doit être ajouté aux XML.',
   'World-Tour et Continental utilisent les mêmes XML natifs pour montagne et vallons. Ne pas les copier simultanément.',
   'Ne jamais renommer les XML : leurs noms correspondent aux courses de la base PCM, pas aux variantes CDS/ZCES.',
   'Les quatre parcours sont inclus dans le jeu de base PCM26 ; aucun parcours Workshop supplémentaire n’est requis.',
+  'Après copie, revenir au menu des courses de PCM puis sélectionner à nouveau la course.',
   `Montagne : Tour de France, étape 18 uniquement (Lourdes–Hautacam), fichier ${GALA_COURSES.mountain.filename}, en mode étape.`,
   ...Object.values(GALA_COURSES).map(course=>`${course.profile} : ${course.name} — ${course.filename}`),
  ].join('\r\n'));
- return {data:zipSync(files,{level:6}),filename:`Cyclostratege-Gala-S4-${template?'Modeles':'Startlists'}.zip`,contentType:'application/zip',teamCount:result.teamCount,riderCount:result.riderCount,generatedAt,template};
+ const filename=eventKey?`Cyclostratege-Gala-S4-${eventKey.replace(':','-')}-${template?'Modele':'Startlist'}.zip`:`Cyclostratege-Gala-S4-${template?'Modeles':'Startlists'}.zip`;
+ return {data:zipSync(files,{level:6}),filename,contentType:'application/zip',teamCount:result.teamCount,riderCount:result.riderCount,generatedAt,template};
 }

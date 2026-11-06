@@ -6,6 +6,15 @@ vi.mock("./dashboard-halloween-shortcut",()=>({DashboardHalloweenShortcut:vi.fn(
 import { DashboardSeasonFourGalaEvents } from "./dashboard-season-four-gala-events";
 
 describe("private gala presentation",()=>{
+  it("guides organizers to flat native XML files and the matching Steam database",()=>{
+    const html=renderToStaticMarkup(<SeasonFourGalaPreview canExport exportStatus={{counts:{}}}/>);
+    expect(html).toContain('Exporter la SL (.zip)');
+    expect(html).toContain('Modèle XML (.zip)');
+    expect(html).toContain('Référence : BDD Steam Gala S4 v3 du 6 novembre.');
+    expect(html).toContain('Cloud');
+    expect(html).toContain('Startlists');
+    expect(html).not.toContain('Base PCM Gala S4 · 7–8 coureurs');
+  });
   it("shows the host avatar and correct Twitch destination with no live embed",()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview/>);
     expect(html).toContain('https://www.twitch.tv/gouille_tw');
