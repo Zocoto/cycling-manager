@@ -1,6 +1,7 @@
 // Isolated PostgreSQL only. This script never reads credentials or contacts production.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 if (!process.argv[2]?.replaceAll('\\','/').endsWith('/pglite/dist/index.js')) throw Error('Pass an existing local PGlite module.');
 const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
@@ -12,6 +13,7 @@ const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
 const value=async(sql,args=[]) => (await q(sql,args))[0]?.value;
 const check=(actual,expected,label) => {assert.deepEqual(actual,expected,label);checks++;};
 const fails=async(sql,args,label) => {await assert.rejects(()=>db.query(sql,args),label);checks++;};
+let liveDefinitionsVerified=0;
 try {
   await db.exec(`
     create role anon; create role authenticated; create role service_role;
@@ -59,6 +61,32 @@ try {
   await db.exec(await readFile('supabase/migrations/20261022160000_create_recurring_season_draft.sql','utf8'));
 
   await db.exec(await readFile('supabase/migrations/20261105210000_reserve_season_draft_from_midnight.sql','utf8'));
+  await db.exec(await readFile('supabase/migrations/20261105220000_draft_ten_minute_turns.sql','utf8'));
+  await db.exec(await readFile('supabase/migrations/20261106100000_draft_preparation_indicator.sql','utf8'));
+  await db.exec(await readFile('supabase/migrations/20261106103000_draft_auto_enabled_by_default.sql','utf8'));
+  if (process.argv[3]) {
+    // Replay captured definitions in this isolated database, never against the
+    // live project. Only the known three audited functions may be loaded.
+    const captured=JSON.parse(await readFile(process.argv[3],'utf8'));
+    const allowed=new Set(['sign_current_team_free_agent(uuid)','guard_season_draft_reservation()','reserve_season_draft_pool(uuid,integer)']);
+    assert.equal(captured.length,allowed.size);
+    for(const entry of captured){
+      assert.ok(allowed.delete(entry.signature),'Unexpected or duplicate captured function.');
+      assert.equal(createHash('md5').update(entry.definition).digest('hex'),entry.definition_md5);
+      if(entry.signature!=='sign_current_team_free_agent(uuid)'){
+        const canonical=await value('select pg_get_functiondef($1::regprocedure) value',[entry.signature]);
+        assert.equal(canonical.replaceAll('\r',''),entry.definition.replaceAll('\r',''),'Captured reservation differs from reviewed DDL.');
+      }
+      await db.exec(entry.definition);liveDefinitionsVerified++;
+    }
+    await db.exec(`create function settle_transfer_market() returns void language plpgsql as $$begin return;end$$;
+      create function calculate_rider_season_salary(uuid,uuid) returns numeric language sql as $$select 10000::numeric$$;
+      create function ensure_transfer_next_season(uuid) returns uuid language sql as $$select '${id(6)}'::uuid$$;
+      revoke all on function sign_current_team_free_agent(uuid) from public,anon,authenticated,service_role;
+      grant execute on function sign_current_team_free_agent(uuid) to authenticated;`);
+    check(await value("select has_function_privilege('anon','public.sign_current_team_free_agent(uuid)','execute') value"),false,'captured signing entry point is not public');
+    check(await value("select has_function_privilege('authenticated','public.sign_current_team_free_agent(uuid)','execute') value"),true,'authenticated players retain the signing entry point');
+  }
   check(await value('select count(*)::int value from season_draft_editions'),0,'migration creates no current-season pool');
   check(await value("select has_function_privilege('authenticated','public.reserve_season_draft_pool(uuid,integer)','execute') value"),false,'reservation helper remains private');
   await db.exec(`update seasons set starts_on=(clock_timestamp() at time zone 'Europe/Paris')::date-27 where id='${id(4)}';
@@ -93,7 +121,7 @@ try {
   check(await value(`select count(*)::int value from rider_contracts where rider_id='${id(2990)}'`),1,'internal initial roster creation is preserved');
   // Mirror the production acquisition type absent from the minimal old fixture.
   await db.exec(`alter table rider_contracts drop constraint rider_contracts_acquisition_type_allowed;
-    alter table rider_contracts add constraint rider_contracts_acquisition_type_allowed check(acquisition_type in('initial','free_agent','renewal','daily_auction','season_draft','academy'));
+    alter table rider_contracts add constraint rider_contracts_acquisition_type_allowed check(acquisition_type in('initial','free_agent','renewal','daily_auction','season_draft','academy','direct_offer','director_auction'));
     insert into riders values('${id(2994)}','${id(99)}','Internal','Academy','free_agent',1,'classic',1);
     insert into rider_contracts(rider_id,team_id,start_season_id,end_season_id,status,acquisition_type)
     values('${id(2994)}','${id(101)}','${id(5)}','${id(5)}','active','academy');`);
@@ -116,12 +144,43 @@ try {
     values($1,'${id(102)}','${id(5)}','${id(5)}','planned','free_agent')`,[pool[1]],'reserved rider denied to planned acquisition during night');
   await fails("insert into transfer_market_listings(rider_id,status) values($1,'open')",[pool[0]],'reserved rider denied to auction during night');
   await fails(`update rider_contracts set rider_id=$1 where rider_id='${id(2990)}'`,[pool[0]],'rider-id-only reassignment cannot bypass reservation');
+  // Every contract producer hits the same row guard. Test the real acquisition
+  // types rather than only the direct free-agent path or application messages.
+  for(const status of ['active','planned'])for(const acquisition of ['free_agent','daily_auction','director_auction','direct_offer','initial','academy','renewal']){
+    await assert.rejects(()=>db.query(`insert into rider_contracts(rider_id,team_id,start_season_id,end_season_id,status,acquisition_type)
+      values($1,$2,$3,$3,$4,$5)`,[pool[0],id(102),id(5),status,acquisition]),/réservé à la draft/);checks++;
+  }
+  await db.query("update riders set status='active' where id=$1",[pool[0]]);
+  await assert.rejects(()=>db.query(`insert into rider_contracts(rider_id,team_id,start_season_id,end_season_id,status,acquisition_type)
+    values($1,$2,$3,$3,'active','free_agent')`,[pool[0],id(102),id(5)]),/réservé à la draft/);checks++;
+  await db.query("update riders set status='free_agent' where id=$1",[pool[0]]);
+  await assert.rejects(()=>db.query(`insert into rider_contracts(rider_id,team_id,start_season_id,end_season_id,status,acquisition_type)
+    values($1,$2,$3,$3,'active','season_draft')`,[pool[0],id(102),id(5)]),/réservé à la draft/);checks++;
+  const closedListing=(await q("insert into transfer_market_listings(rider_id,status) values($1,'closed') returning id",[pool[0]]))[0].id;
+  await assert.rejects(()=>db.query("update transfer_market_listings set status='open' where id=$1",[closedListing]),/réservé à la draft/);checks++;
+  await db.query('delete from transfer_market_listings where id=$1',[closedListing]);
+  const outsideClosed=(await q("insert into transfer_market_listings(rider_id,status) values($1,'closed') returning id",[id(2990)]))[0].id;
+  await db.query("update transfer_market_listings set status='open' where id=$1",[outsideClosed]);
+  await assert.rejects(()=>db.query('update transfer_market_listings set rider_id=$1 where id=$2',[pool[0],outsideClosed]),/réservé à la draft/);checks++;
+  await db.query('delete from transfer_market_listings where id=$1',[outsideClosed]);
+  if(liveDefinitionsVerified){
+    await db.query("select set_config('test.auth_uid',$1,false)",[id(1001)]);
+    await assert.rejects(()=>db.query('select public.sign_current_team_free_agent($1)',[pool[0]]),/réservé à la draft/);checks++;
+    check(await value('select count(*)::int value from rider_contracts where rider_id=$1',[pool[0]]),0,'captured signing RPC leaves no partial contract');
+    check(await value('select status value from riders where id=$1',[pool[0]]),'free_agent','captured signing RPC leaves the rider free and reserved');
+  }
   await db.exec(`insert into riders values('${id(2991)}','${id(99)}','Outside','Night','free_agent',1,'classic',1);
     insert into rider_contracts(rider_id,team_id,start_season_id,end_season_id,status,acquisition_type)
       values('${id(2991)}','${id(102)}','${id(5)}','${id(5)}','active','free_agent');
     insert into riders values('${id(2992)}','${id(99)}','Outside','Auction','free_agent',1,'classic',1);
     insert into transfer_market_listings(rider_id,status) values('${id(2992)}','open');`);
   check(await value(`select count(*)::int value from rider_contracts where rider_id='${id(2991)}'`),1,'ordinary non-pool recruitment resumes immediately after reservation');
+  if(liveDefinitionsVerified){
+    await db.exec(`insert into riders values('${id(2995)}','${id(99)}','Outside','Captured RPC','free_agent',1,'classic',1);`);
+    await db.query('select public.sign_current_team_free_agent($1)',[id(2995)]);
+    check(await value('select count(*)::int value from rider_contracts where rider_id=$1 and acquisition_type=\'free_agent\'',[id(2995)]),1,'captured signing RPC permits a genuinely unreserved agent');
+    check(await value('select status value from riders where id=$1',[id(2995)]),'active','captured signing RPC completes an unreserved acquisition');
+  }
   await db.query('select reserve_season_draft_pool($1,100)',[edition]);
   check((await q('select rider_id,pool_rank,score from season_draft_riders order by pool_rank')),frozen,'repeat reservation is idempotent');
   // Autonomous training changes values, not membership/rank in the frozen pool.
@@ -163,7 +222,7 @@ try {
   check(await value('select status value from season_draft_editions where game_year=6'),'completed','zero eligible humans releases reserved edition at opening');
   check(await value('select total value from salary_quote_calls'),1,'zero-human edition does not request salary quotes');
   check(await value("select extract(hour from ((date '2027-03-28')::timestamp at time zone 'Europe/Paris') at time zone 'Europe/Paris')::int value"),0,'Paris midnight uses calendar dates across summer time transition');
-  console.log(JSON.stringify({checks,isolated:true,productionTouched:false}));
+  console.log(JSON.stringify({checks,liveDefinitionsVerified,isolated:true,productionTouched:false}));
 } catch(error) {
   console.error(JSON.stringify({checks,message:error.message,where:error.where,detail:error.detail,stack:error.name==='AssertionError'?error.stack:undefined},null,2));
   process.exitCode=1;
