@@ -11,7 +11,7 @@ describe("private gala presentation",()=>{
     expect(html).toContain('https://www.twitch.tv/gouille_tw');
     expect(html).toContain('Logo de la chaîne Twitch de Gouille');
     expect(html).not.toContain('<iframe');
-    expect(html).toContain('Horaire à venir');
+    expect(html).toContain('Live à 18 h 30');
   });
   it("shows profile-based podium rewards, seven remaining top-ten places and live gifts",()=>{
     const html=renderToStaticMarkup(<SeasonFourGalaPreview/>);

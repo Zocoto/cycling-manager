@@ -6,6 +6,8 @@ export const SEASON_FOUR_GALA = {
   route: "/jeu/gala-saison-4",
   date: "2026-11-06",
   dateLabel: "Vendredi 6 novembre 2026",
+  liveStartsAt: "2026-11-06T18:30:00+01:00",
+  liveLabel: "Live à 18 h 30",
   registrationClosesAt: "2026-11-05T22:59:00.000Z",
   registrationDeadlineLabel: "Jeudi 5 novembre à 23 h 59 (heure de Paris)",
   twitchUrl: "https://www.twitch.tv/gouille_tw",
