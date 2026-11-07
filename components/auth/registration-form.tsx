@@ -3,6 +3,7 @@
 import {
   useActionState,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -54,28 +55,45 @@ export function RegistrationForm({
     () => readReferralSessionSnapshot(referralCode, referrerName),
     () => serializeReferral(referralCode, referrerName),
   );
-  const effectiveReferral = parseReferralSnapshot(referralSnapshot);
-
-  const [dismissedFields, setDismissedFields] = useState<
-    RegistrationField[]
-  >([]);
+  const invitation = parseReferralSnapshot(referralSnapshot);
+  const [removedReferralCode, setRemovedReferralCode] = useState("");
+  const hasReferral = Boolean(invitation.code && invitation.code !== removedReferralCode);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [dismissedFields, setDismissedFields] = useState<RegistrationField[]>([]);
 
   const registrationSucceeded = state.status === "success";
 
   useEffect(() => {
-    if (registrationSucceeded) {
-      window.sessionStorage.removeItem(REFERRAL_SESSION_STORAGE_KEY);
-      return;
+    try {
+      if (registrationSucceeded || removedReferralCode) {
+        window.sessionStorage.removeItem(REFERRAL_SESSION_STORAGE_KEY);
+        return;
+      }
+
+      if (referralCode && referrerName) {
+        window.sessionStorage.setItem(
+          REFERRAL_SESSION_STORAGE_KEY,
+          serializeReferral(referralCode, referrerName),
+        );
+      }
+    } catch {
+      // An invitation remains usable when the browser blocks session storage.
+    }
+  }, [referralCode, referrerName, registrationSucceeded, removedReferralCode]);
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || registrationSucceeded) return;
+
+    // React resets action forms even when the returned state asks for a correction.
+    // Keep the native field values for a retry. The form is replaced on success.
+    function preserveFormValues(event: Event) {
+      event.preventDefault();
     }
 
-    if (referralCode && referrerName) {
-      const invitation = { code: referralCode, referrerName };
-      window.sessionStorage.setItem(
-        REFERRAL_SESSION_STORAGE_KEY,
-        JSON.stringify(invitation),
-      );
-    }
-  }, [referralCode, referrerName, registrationSucceeded]);
+    form.addEventListener("reset", preserveFormValues);
+    return () => form.removeEventListener("reset", preserveFormValues);
+  }, [registrationSucceeded]);
 
   const hasFieldErrors = registrationFields.some(
     (field) => Boolean(state.fieldErrors[field]?.length)
@@ -149,66 +167,50 @@ export function RegistrationForm({
                 }
               >
                 {state.status === "success"
-                  ? "Compte créé"
+                  ? "Confirmation par e-mail"
                   : "Inscription impossible"}
               </p>
 
               <p className="mt-1 text-sm leading-6 text-[#D6DFD2]">
                 {state.message}
               </p>
+              {registrationSucceeded ? (
+                <p className="mt-1 text-sm leading-6 text-[#D6DFD2]">
+                  Pensez à vérifier vos courriers indésirables.
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
       ) : null}
 
       <form
+        key={registrationSucceeded ? "completed" : "registration"}
+        ref={formRef}
+        hidden={registrationSucceeded}
         action={formAction}
         autoComplete="on"
         data-form-type="signup"
         onSubmit={() => setDismissedFields([])}
-        className="space-y-5"
+        className="space-y-4"
       >
-        {effectiveReferral.code && effectiveReferral.referrerName ? (
-          <div className="rounded-xl border border-[#7CCF9C]/35 bg-[#7CCF9C]/10 px-4 py-3">
-            <div className="flex items-start gap-3">
-              <span
-                aria-hidden="true"
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F2C94C] font-black text-[#071A17]"
-              >
-                P
-              </span>
-              <div>
-                <p className="text-sm font-extrabold text-[#FFFDF4]">
-                  Invitation de {effectiveReferral.referrerName}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[#BFD1C6]">
-                  Votre parrainage sera validé dès la confirmation de votre inscription, sans didacticiel obligatoire.
-                </p>
-              </div>
-            </div>
+        {hasReferral ? (
+          <div className="flex flex-wrap items-center gap-x-3 text-sm text-[#BFD1C6]">
+            <span className="font-semibold">Invitation de {invitation.referrerName}</span>
+            <button
+              type="button"
+              disabled={pending || registrationSucceeded}
+              onClick={() => {
+                setRemovedReferralCode(invitation.code);
+                dismissFieldError("referralCode");
+              }}
+              className="rounded py-1 underline underline-offset-2 hover:text-[#FFFDF4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2C94C]"
+            >
+              Retirer le parrainage
+            </button>
+            <input type="hidden" name="referralCode" value={invitation.code} />
           </div>
         ) : null}
-
-        {effectiveReferral.code ? (
-          <input
-            type="hidden"
-            name="referralCode"
-            value={effectiveReferral.code}
-          />
-        ) : (
-          <FormField
-            id="referralCode"
-            label="Code de parrainage (facultatif)"
-            type="text"
-            placeholder="DS-XXXXXXXXXXXX"
-            autoComplete="off"
-            required={false}
-            disabled={pending || registrationSucceeded}
-            errors={getVisibleErrors("referralCode")}
-            helpText="Pas de parrain ? Laissez ce champ vide : vous pouvez créer votre compte sans code. Si un joueur vous a invité, saisissez son code ici."
-            onChange={() => dismissFieldError("referralCode")}
-          />
-        )}
 
         {MARKETING_FIELD_NAMES.map((field) => (
           <input
@@ -237,7 +239,7 @@ export function RegistrationForm({
           id="email"
           label="Adresse e-mail"
           type="email"
-          placeholder="directeur@cycling-manager.fr"
+          placeholder="vous@exemple.fr"
           autoComplete="username"
           disabled={pending || registrationSucceeded}
           errors={getVisibleErrors("email")}
@@ -254,7 +256,6 @@ export function RegistrationForm({
           maxLength={72}
           disabled={pending || registrationSucceeded}
           errors={getVisibleErrors("password")}
-          helpText="Utilisez au moins 12 caractères difficiles à deviner."
           onChange={() => dismissFieldError("password")}
         />
 
@@ -273,8 +274,29 @@ export function RegistrationForm({
           }
         />
 
+        {!hasReferral ? (
+          <details open={Boolean(state.fieldErrors.referralCode?.length) || undefined}>
+            <summary className="w-fit cursor-pointer rounded py-2 text-sm font-medium text-[#BFD1C6] hover:text-[#FFFDF4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2C94C]">
+              J’ai un code parrain
+            </summary>
+            <div className="mt-2">
+              <FormField
+                id="referralCode"
+                label="Code de parrainage (facultatif)"
+                type="text"
+                placeholder="DS-XXXXXXXXXXXX"
+                autoComplete="off"
+                required={false}
+                disabled={pending || registrationSucceeded}
+                errors={getVisibleErrors("referralCode")}
+                onChange={() => dismissFieldError("referralCode")}
+              />
+            </div>
+          </details>
+        ) : null}
+
         <div>
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-sm leading-6 text-[#D6DFD2] transition hover:border-[#7CCF9C]/45">
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/[0.04] p-3 text-sm leading-6 text-[#D6DFD2] transition hover:border-[#7CCF9C]/45">
             <input
               type="checkbox"
               name="legalAcceptance"
@@ -323,7 +345,7 @@ export function RegistrationForm({
           ))}
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#7CCF9C]/25 bg-[#7CCF9C]/8 p-4 text-sm leading-6 text-[#D6DFD2] transition hover:border-[#7CCF9C]/50">
+        <label className="flex cursor-pointer items-start gap-3 px-3 text-xs leading-5 text-[#BFD1C6]">
           <input
             type="checkbox"
             name="marketingEmailConsent"
@@ -332,9 +354,7 @@ export function RegistrationForm({
             className="mt-1 h-4 w-4 shrink-0 accent-[#F2C94C]"
           />
           <span>
-            Je souhaite recevoir par e-mail les nouveautés importantes de
-            Cyclo Stratège. Ce choix est facultatif et modifiable à tout
-            moment depuis le menu utilisateur.{" "}
+            Je souhaite recevoir les nouveautés par e-mail. Ce choix est facultatif.{" "}
             <Link
               href="/confidentialite"
               target="_blank"
@@ -351,11 +371,7 @@ export function RegistrationForm({
           disabled={pending || registrationSucceeded}
           className="min-h-12 w-full rounded-lg bg-[#F2C94C] px-5 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-lg transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B] disabled:cursor-not-allowed disabled:bg-[#315B3E] disabled:text-[#9AB0A2] disabled:shadow-none"
         >
-          {registrationSucceeded
-            ? "Compte créé"
-            : pending
-              ? "Création en cours..."
-              : "Créer mon compte"}
+          {pending ? "Création en cours..." : "Créer mon compte gratuit"}
         </button>
       </form>
 
@@ -388,11 +404,14 @@ function readReferralSessionSnapshot(
   referralCode?: string,
   referrerName?: string,
 ): string {
-  return (
-    serializeReferral(referralCode, referrerName) ||
-    window.sessionStorage.getItem(REFERRAL_SESSION_STORAGE_KEY) ||
-    ""
-  );
+  const invitation = serializeReferral(referralCode, referrerName);
+  if (invitation) return invitation;
+
+  try {
+    return window.sessionStorage.getItem(REFERRAL_SESSION_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
 }
 
 function serializeReferral(

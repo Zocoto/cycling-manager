@@ -25,9 +25,9 @@ export const metadata: Metadata = {
 };
 
 const benefits = [
-  "Créez votre identité unique de directeur sportif.",
-  "Préparez la construction de votre future formation cycliste.",
-  "Conservez durablement votre progression et vos résultats.",
+  "Recrutez vos coureurs et choisissez vos courses.",
+  "Préparez vos tactiques et suivez les résultats.",
+  "Faites grandir votre équipe saison après saison.",
 ] as const;
 
 export default async function RegistrationPage({
@@ -80,26 +80,24 @@ export default async function RegistrationPage({
 
       <MountainDecoration />
 
-      <div className="relative mx-auto grid min-h-175 max-w-375 gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1fr_470px] lg:items-center lg:gap-20">
+      <div className="relative mx-auto grid max-w-375 gap-6 px-4 py-8 sm:px-8 lg:min-h-175 lg:grid-cols-[1fr_470px] lg:items-center lg:gap-20 lg:py-16">
         <div className="max-w-2xl text-[#082A2A]">
-          <span className="inline-flex rounded-full bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#071A17] shadow-md">
-            Nouvelle carrière
+          <span className="inline-flex rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.18em] text-[#071A17] shadow-md">
+            Jeu gratuit
           </span>
 
-          <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] sm:text-6xl">
-            Devenez directeur
-            <span className="mt-2 block text-[#42B99A]">
+          <h1 className="mt-3 text-4xl font-black leading-tight tracking-[-0.045em] lg:mt-7 lg:text-6xl">
+            Devenez directeur{" "}
+            <span className="text-[#247C65] lg:block">
               sportif.
             </span>
           </h1>
 
-          <p className="mt-7 max-w-xl text-lg leading-8 text-[#36554E]">
-            Créez votre identité dans Cyclo Stratège et préparez-vous
-            à bâtir un projet sportif capable de s’imposer sur les plus
-            grandes routes.
+          <p className="mt-2 max-w-xl text-base leading-6 text-[#36554E] lg:mt-6 lg:text-lg lg:leading-8">
+            Montez votre équipe cycliste et affrontez les autres directeurs sportifs.
           </p>
 
-          <ul className="mt-9 space-y-4">
+          <ul className="mt-8 hidden space-y-4 lg:block">
             {benefits.map((benefit) => (
               <li
                 key={benefit}
@@ -125,23 +123,18 @@ export default async function RegistrationPage({
 
           <WheelDecoration />
 
-          <div className="relative p-6 sm:p-8">
+          <div className="relative p-5 sm:p-8">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
-                Espace directeur sportif
-              </p>
-
-              <h2 className="mt-3 text-2xl font-black">
-                Créer votre compte
+              <h2 className="text-2xl font-black">
+                Créez votre compte
               </h2>
 
-              <p className="mt-3 text-sm leading-6 text-[#BFD1C6]">
-                Choisissez le nom sous lequel vous serez connu dans
-                l’univers de Cyclo Stratège.
+              <p className="mt-2 text-sm leading-5 text-[#BFD1C6]">
+                Confirmez votre e-mail pour démarrer votre carrière.
               </p>
             </div>
 
-            <div className="mt-7">
+            <div className="mt-5">
               <RegistrationForm
                 referralCode={invitation?.code}
                 referrerName={invitation?.referrerName}
@@ -149,16 +142,13 @@ export default async function RegistrationPage({
               />
             </div>
 
-            <div className="mt-7 border-t border-white/10 pt-6 text-center">
-              <p className="text-sm text-[#BFD1C6]">
-                Vous possédez déjà un compte ?
-              </p>
-
+            <div className="mt-5 border-t border-white/10 pt-4 text-center text-sm text-[#BFD1C6]">
+              Déjà un compte ?{" "}
               <Link
                 href="/connexion"
-                className="mt-2 inline-flex rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+                className="inline-flex rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
               >
-                Reprendre une carrière
+                Se connecter
               </Link>
             </div>
           </div>
@@ -172,7 +162,7 @@ function RoadSeparator() {
   return (
     <div
       aria-hidden="true"
-      className="mt-11 flex max-w-xl items-center gap-2 opacity-70"
+      className="mt-11 hidden max-w-xl items-center gap-2 opacity-70 lg:flex"
     >
       <div className="h-px flex-1 bg-[#315B3E]/35" />
 

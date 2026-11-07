@@ -56,6 +56,8 @@ export async function registerAccount(
   _previousState: RegistrationState,
   formData: FormData
 ): Promise<RegistrationState> {
+  console.info("[signup] Form submitted");
+
   const managerName = normalizeManagerName(
     getFormValue(formData, "managerName")
   );
@@ -94,10 +96,12 @@ export async function registerAccount(
   });
 
   if (!validationResult.success) {
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    console.info("[signup] Invalid fields", Object.keys(fieldErrors));
     return {
       status: "error",
       message: "Certains champs doivent être corrigés.",
-      fieldErrors: validationResult.error.flatten().fieldErrors,
+      fieldErrors,
     };
   }
 
@@ -127,6 +131,7 @@ export async function registerAccount(
     );
 
     if (!invitation) {
+      console.info("[signup] Referral code rejected");
       return {
         status: "error",
         message: "Le code de parrainage n’est pas reconnu.",
@@ -165,6 +170,15 @@ export async function registerAccount(
   });
 
   if (error) {
+    console.warn("[signup] Auth request rejected", {
+      code: error.code,
+      status: error.status,
+    });
+
+    if (error.code === "user_already_exists" || error.code === "email_exists") {
+      return confirmationState(validationResult.data.email);
+    }
+
     if (error.code === "weak_password") {
       return {
         status: "error",
@@ -197,7 +211,10 @@ export async function registerAccount(
       };
     }
 
-    if (error.code === "over_email_send_rate_limit") {
+    if (
+      error.code === "over_email_send_rate_limit" ||
+      error.code === "over_request_rate_limit"
+    ) {
       return {
         status: "error",
         message:
@@ -215,12 +232,6 @@ export async function registerAccount(
       };
     }
 
-    console.error("Échec de l’inscription Supabase :", {
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    });
-
     return {
       status: "error",
       message:
@@ -237,21 +248,31 @@ export async function registerAccount(
     };
   }
 
+  // Supabase may return an obfuscated user for an already confirmed address.
+  if (data.user.identities?.length === 0) {
+    return confirmationState(validationResult.data.email);
+  }
+
   const admin = createSupabaseAdminClient();
   const { error: legalAcceptanceError } = await admin
     .from("user_legal_acceptances")
-    .insert({
-      user_id: data.user.id,
-      terms_version: legalConfig.termsVersion,
-      privacy_notice_version: legalConfig.privacyNoticeVersion,
-    });
+    .upsert(
+      {
+        user_id: data.user.id,
+        terms_version: legalConfig.termsVersion,
+        privacy_notice_version: legalConfig.privacyNoticeVersion,
+      },
+      {
+        onConflict: "user_id,terms_version,privacy_notice_version",
+        ignoreDuplicates: true,
+      },
+    );
 
   if (legalAcceptanceError) {
     console.error(
       "Échec de l’enregistrement de l’acceptation légale :",
-      legalAcceptanceError,
+      { code: legalAcceptanceError.code },
     );
-    await admin.auth.admin.deleteUser(data.user.id);
 
     return {
       status: "error",
@@ -288,13 +309,26 @@ export async function registerAccount(
     }
   }
 
+  if (confirmationRequired) {
+    return confirmationState(validationResult.data.email);
+  }
+
   return {
     status: "success",
-    message: confirmationRequired
-      ? "Ton compte a été créé. Consulte ta boîte e-mail et confirme ton adresse avant de te connecter."
-      : "Ton compte a été créé, mais la vérification e-mail n’est pas active. Contacte l’assistance avant de commencer ta carrière.",
+    message:
+      "Ton compte a été créé, mais la vérification e-mail n’est pas active. Contacte l’assistance avant de commencer ta carrière.",
     fieldErrors: {},
     email: validationResult.data.email,
+  };
+}
+
+function confirmationState(email: string): RegistrationState {
+  return {
+    status: "success",
+    message:
+      "Vérifie ta boîte e-mail pour confirmer ton adresse. Si ton adresse est déjà confirmée, tu peux te connecter.",
+    fieldErrors: {},
+    email,
   };
 }
 
