@@ -50,6 +50,7 @@ describe('gala page server access',()=>{
     expect(html).toContain('Résultats en cours de traitement');
     expect(html).toContain('Un participant');
     expect(html).toContain('Gants Nuit dorée · +1 VAL');
+    expect(html).toContain('contactez directement Zocoto');
   });
   it('accepts the authenticated owner independently of email or display name',async()=>{
     mocks.user.mockResolvedValue({data:{user:{id:'58140add-54c6-40af-9528-f823d0051d0f',email:'owner@example.test'}},error:null});

@@ -3435,5 +3435,6 @@
   "Impossible de lire les noms du classement du gala.": "Could not load the names in the gala standings.",
   "Impossible de lire les participants au live du gala.": "Could not load the gala livestream attendees.",
   "Saison des classements du gala incohérente.": "The gala standings have inconsistent season data.",
-  "Une identité manque dans le classement du gala.": "A rider or team name is missing from the gala standings."
+  "Une identité manque dans le classement du gala.": "A rider or team name is missing from the gala standings.",
+  "Un oubli est possible. Si vous avez suivi le live et que votre nom manque, contactez directement Zocoto pour faire vérifier votre présence.": "Someone may have been missed. If you watched the livestream and your name is missing, contact Zocoto directly to have your attendance checked."
 }

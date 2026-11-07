@@ -147,9 +147,12 @@ export function SeasonFourGalaResults({ results, liveParticipants }: {
           <span>{SEASON_FOUR_GALA.liveBoosters} boosters Cyclo-Stickers</span>
         </div>
         {liveParticipants?.length ? (
-          <ul className={styles.participants} aria-label="Bénéficiaires des lots de présence">
-            {liveParticipants.map((name, index) => <li key={`${name}-${index}`}>{name}</li>)}
-          </ul>
+          <>
+            <ul className={styles.participants} aria-label="Bénéficiaires des lots de présence">
+              {liveParticipants.map((name, index) => <li key={`${name}-${index}`}>{name}</li>)}
+            </ul>
+            <p className={styles.empty}>Un oubli est possible. Si vous avez suivi le live et que votre nom manque, contactez directement Zocoto pour faire vérifier votre présence.</p>
+          </>
         ) : (
           <p className={styles.empty}>{liveParticipants === null ? "La liste des participants est temporairement indisponible." : "La liste de présence est en cours de traitement."}</p>
         )}
