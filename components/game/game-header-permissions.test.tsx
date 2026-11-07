@@ -9,7 +9,11 @@ vi.mock("@/components/game/game-header-indicators-provider", () => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), usePathname:()=>"/jeu" }));
 vi.mock("@/app/jeu/actions", () => ({ logoutAccount: vi.fn() }));
-vi.mock("@/components/game/game-user-menu", () => ({ GameUserMenu: () => <span data-header-user-menu="true" /> }));
+vi.mock("@/components/game/game-user-menu", () => ({
+  GameUserMenu: ({ collectorAlbumAvailable }: { collectorAlbumAvailable: boolean }) => (
+    <span data-header-user-menu="true" data-album-opt-in={collectorAlbumAvailable} />
+  ),
+}));
 vi.mock("@/components/game/mobile-game-navigation", () => ({ MobileGameNavigation: () => <nav data-mobile-game-navigation="true" /> }));
 vi.mock("@/components/layout/site-presence", () => ({ SitePresenceIndicator: () => null }));
 vi.mock("@/components/game/director-mailbox-shortcut", () => ({ DirectorMailboxShortcut: () => <a href="/jeu/messagerie">Messagerie</a> }));
@@ -27,25 +31,15 @@ import { GameHeader } from "./game-header";
 beforeEach(() => { indicators.role = null; indicators.collectorAlbumAvailable = false; });
 
 describe("header game staff shortcuts", () => {
-  it("shows the account-bound album on ordinary pages without a route opt-in",()=>{
+  it("moves the standalone album shortcut out of the main header", () => {
     indicators.collectorAlbumAvailable = true;
-    const html=renderToStaticMarkup(<GameHeader displayName="Zocoto"/>);
-    expect(html).toContain('data-cyclo-stickers-shortcut="true"');
-    expect(html).toContain('data-cyclo-stickers-icon="portrait-sticker"');
-    expect(html).toContain('<rect x="3" y="1" width="14" height="18"');
-    expect(html.indexOf('href="/jeu/album"')).toBeGreaterThan(html.indexOf('href="/jeu/gazette"'));
+    const html = renderToStaticMarkup(<GameHeader displayName="Zocoto" />);
+    expect(html).not.toContain('data-cyclo-stickers-shortcut="true"');
+    expect(html).toContain('href="/jeu/gazette"');
   });
-  it.each(["owner","game_staff",null] as const)("does not enable the album by role, display name or email alone: %s",role=>{
-    indicators.role=role;
-    expect(renderToStaticMarkup(<GameHeader displayName="Zocoto" simulatorEmail="paul.leblanc22@gmail.com"/>)).not.toContain('data-cyclo-stickers-shortcut="true"');
-  });
-  it("keeps the album off by default and shows the opt-in icon immediately beside Gazette",()=>{
-    const standard=renderToStaticMarkup(<GameHeader displayName="Joueur"/>);
-    expect(standard).not.toContain('data-cyclo-stickers-shortcut="true"');
-    const preview=renderToStaticMarkup(<GameHeader displayName="Zocoto" collectorAlbumAvailable/>);
-    expect(preview).toContain('data-cyclo-stickers-shortcut="true"');
-    expect(preview.indexOf('href="/jeu/album"')).toBeGreaterThan(preview.indexOf('href="/jeu/gazette"'));
-    expect(preview).toContain("max-[360px]:hidden");
+  it("passes standalone album availability to the account menu", () => {
+    const preview = renderToStaticMarkup(<GameHeader displayName="Zocoto" collectorAlbumAvailable />);
+    expect(preview).toContain('data-album-opt-in="true"');
   });
   it.each(["owner", "game_staff"] as const)("affiche le laboratoire à %s sans adresse privilégiée", (role) => {
     indicators.role = role;

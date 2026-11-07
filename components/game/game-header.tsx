@@ -12,7 +12,6 @@ export type GameHeaderSponsorVisual = Pick<
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
-import { CycloStickersShortcut } from "@/components/game/cyclo-stickers-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
@@ -65,7 +64,6 @@ export function GameHeader({
   const { locale } = useLocale();
   const headerIndicators = useGameHeaderIndicators();
   const gameStaffRole = headerIndicators?.gameStaffRole ?? null;
-  const hasCollectorAlbum = collectorAlbumAvailable || headerIndicators?.collectorAlbumAvailable === true;
   const isEnglish = locale === "en";
   const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
   const federationCountryCode = sponsor?.countryCode.trim().toUpperCase() || null;
@@ -114,7 +112,7 @@ export function GameHeader({
 
           <span
             data-mobile-app-name="true"
-            className={`flex min-w-0 flex-col justify-center leading-none sm:hidden ${hasCollectorAlbum?"max-[360px]:hidden":""}`}
+            className="flex min-w-0 flex-col justify-center leading-none sm:hidden"
           >
             <span className="text-[0.7rem] font-black uppercase tracking-[0.12em] text-[#FFFDF4]">
               Cyclo
@@ -227,7 +225,6 @@ export function GameHeader({
             ) : null}
 
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
-            {hasCollectorAlbum?<CycloStickersShortcut isEnglish={isEnglish}/>:null}
 
           </div>
 
@@ -239,6 +236,7 @@ export function GameHeader({
             <GameUserMenu
               displayName={displayName}
               viewerEmail={simulatorEmail}
+              collectorAlbumAvailable={collectorAlbumAvailable}
             />
             <LogoutButton isEnglish={isEnglish} />
           </div>

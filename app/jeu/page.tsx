@@ -10,6 +10,7 @@ import { DashboardAssistantBoundary } from "@/components/game/dashboard-assistan
 import { DeferredDashboardValue } from "@/components/game/deferred-dashboard-value";
 import { DashboardEligibleRaces, getOpenEligibleDashboardRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
+import { CycloStickersShortcut } from "../../components/game/cyclo-stickers-shortcut";
 import { DashboardGalaShortcut } from "../../components/game/dashboard-gala-shortcut";
 import { DashboardSeasonFourGalaEvents } from "@/components/game/dashboard-season-four-gala-events";
 import { DashboardDraftShortcut } from "@/components/game/dashboard-draft-shortcut";
@@ -670,6 +671,7 @@ export default async function GamePage() {
               data-mobile-scroll-rail="true"
               className="-mx-1 flex w-[calc(100%+0.5rem)] flex-nowrap items-stretch gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-full sm:flex-wrap sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0 xl:w-auto xl:justify-self-end"
             >
+              <CycloStickersShortcut />
               <DeferredDashboardValue promise={inventoryOverviewPromise} fallback={<DashboardInventoryShortcut totalUnits={dashboardFastSummary?.inventoryTotalUnits ?? 0} availableUnits={dashboardFastSummary?.inventoryAvailableUnits ?? 0} />}>
                 {inventory => <DashboardInventoryShortcut totalUnits={inventory?.summary.totalUnits ?? 0} availableUnits={inventory?.summary.availableUnits ?? 0} />}
               </DeferredDashboardValue>

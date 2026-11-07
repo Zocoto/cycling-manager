@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import Link from "@/components/ui/app-link";
 import { canAccessPcmExport } from "@/lib/game/pcm-export/access";
+import { CycloStickersAlbumIcon } from "./cyclo-stickers-shortcut";
 import { MarketingEmailPreferenceControl } from "./marketing-email-preference-control";
 import { useGameHeaderIndicators } from "./game-header-indicators-provider";
 import { GameStaffBadge } from "./game-staff-badge";
@@ -14,9 +15,11 @@ import { GameStaffBadge } from "./game-staff-badge";
 export function GameUserMenu({
   displayName,
   viewerEmail,
+  collectorAlbumAvailable = false,
 }: {
   displayName?: string;
   viewerEmail?: string | null;
+  collectorAlbumAvailable?: boolean;
 }) {
   const { locale } = useLocale();
   const indicators = useGameHeaderIndicators();
@@ -143,6 +146,15 @@ export function GameUserMenu({
             }
             icon={<UserSilhouetteIcon className="h-5 w-5" />}
           />
+
+          {collectorAlbumAvailable || indicators?.collectorAlbumAvailable ? (
+            <UserMenuLink
+              href="/jeu/album"
+              label={isEnglish ? "Cyclo-Stickers Album" : "Album de Cyclo-Stickers"}
+              description={isEnglish ? "Sticker album" : "Album de vignettes"}
+              icon={<CycloStickersAlbumIcon />}
+            />
+          ) : null}
 
           <UserMenuLink
             href="/jeu/parrainage"

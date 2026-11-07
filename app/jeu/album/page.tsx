@@ -7,6 +7,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { CYCLO_STICKERS_RELEASE } from "@/lib/game/cyclo-stickers-release";
+import { getCycloStickersLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
 
 export const metadata: Metadata = { title: "Album de Cyclo-Stickers", robots: {index: false, follow: false} };
 
@@ -26,12 +27,20 @@ export default async function CollectorAlbumPage({searchParams}: {searchParams?:
     const { getPublicCycloStickersAlbum } = await import("@/services/cyclo-stickers-album");
     const album = await getPublicCycloStickersAlbum(supabase);
     if (album) {
-      const [{ CycloStickersPersistentAlbum }, header] = await Promise.all([
-        import("@/components/game/cyclo-stickers-persistent-album"), getGameHeaderData(supabase, user.id),
+      const [{ CycloStickersPersistentAlbum }, header, leaderboard] = await Promise.all([
+        import("@/components/game/cyclo-stickers-persistent-album"),
+        getGameHeaderData(supabase, user.id),
+        getCycloStickersLeaderboard(supabase, album.snapshot.edition),
       ]);
       return <main className="min-h-screen bg-[#e8efed] text-[#172d29]">
         <GameHeader simulatorEmail={user.email} displayName={header.displayName} sponsor={header.teamSponsorVisual} maxWidth="wide" collectorAlbumAvailable />
-        <CycloStickersPersistentAlbum key={album.snapshot.edition} snapshot={album.snapshot} initialState={album.state} initialTab={initialTab} />
+        <CycloStickersPersistentAlbum
+          key={album.snapshot.edition}
+          snapshot={album.snapshot}
+          initialState={album.state}
+          initialLeaderboard={leaderboard}
+          initialTab={params?.onglet === "classement" ? "leaderboard" : initialTab}
+        />
       </main>;
     }
     // A real offer or an explicit public-edition link must never enter local test trades.

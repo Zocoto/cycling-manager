@@ -2,9 +2,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameStaffRole } from "@/lib/game/game-product-news";
 
-const indicators = vi.hoisted(() => ({ role: null as GameStaffRole, pcmExportAvailable: false }));
+const indicators = vi.hoisted(() => ({ role: null as GameStaffRole, pcmExportAvailable: false, collectorAlbumAvailable: false }));
 vi.mock("./game-header-indicators-provider", () => ({
-  useGameHeaderIndicators: () => ({ gameStaffRole: indicators.role, pcmExportAvailable: indicators.pcmExportAvailable }),
+  useGameHeaderIndicators: () => ({
+    gameStaffRole: indicators.role,
+    pcmExportAvailable: indicators.pcmExportAvailable,
+    collectorAlbumAvailable: indicators.collectorAlbumAvailable,
+  }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -12,10 +16,38 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { GameUserMenu } from "@/components/game/game-user-menu";
+import { CycloStickersShortcut } from "./cyclo-stickers-shortcut";
 
-beforeEach(() => { indicators.role = null; indicators.pcmExportAvailable = false; });
+beforeEach(() => {
+  indicators.role = null;
+  indicators.pcmExportAvailable = false;
+  indicators.collectorAlbumAvailable = false;
+});
 
 describe("GameUserMenu", () => {
+  it.each(["owner", "game_staff", null] as const)("ne déduit pas l’accès à l’album du rôle %s", (role) => {
+    indicators.role = role;
+    expect(renderToStaticMarkup(<GameUserMenu displayName="Zocoto" />)).not.toContain('href="/jeu/album"');
+    expect(renderToStaticMarkup(<CycloStickersShortcut />)).toBe("");
+  });
+
+  it("présente l’album sur le Bureau et dans le menu quand il est disponible", () => {
+    indicators.collectorAlbumAvailable = true;
+    const menu = renderToStaticMarkup(<GameUserMenu displayName="Zocoto" />);
+    expect(menu).toContain('href="/jeu/album"');
+    expect(menu).toContain("Album de Cyclo-Stickers");
+    expect(menu).toContain('data-cyclo-stickers-icon="album"');
+
+    const shortcut = renderToStaticMarkup(<CycloStickersShortcut />);
+    expect(shortcut).toContain('href="/jeu/album"');
+    expect(shortcut).toContain("Cyclo-Stickers");
+  });
+
+  it("garde l’entrée dans le menu dès que la page de l’album a confirmé l’accès", () => {
+    const menu = renderToStaticMarkup(<GameUserMenu displayName="Zocoto" collectorAlbumAvailable />);
+    expect(menu).toContain('href="/jeu/album"');
+  });
+
   it("shows the delegated PCM download without granting any other staff tool", () => {
     indicators.pcmExportAvailable = true;
     const markup = renderToStaticMarkup(<GameUserMenu displayName="gouilleTW" />);

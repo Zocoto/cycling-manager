@@ -1,16 +1,51 @@
-import Link from "@/components/ui/app-link";
+"use client";
 
-/** No fetch, catalogue import or badge polling in the global header. */
-export function CycloStickersShortcut({isEnglish=false}:{isEnglish?:boolean}) {
-  const label=isEnglish?"Cyclo-Stickers Album":"Album de Cyclo-Stickers";
-  return <Link href="/jeu/album" aria-label={label} title={label} data-cyclo-stickers-shortcut="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10">
-    <svg aria-hidden="true" data-cyclo-stickers-icon="portrait-sticker" viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" strokeLinecap="round">
-      <rect x="3" y="1" width="14" height="18" rx=".6"/>
-      <path d="M5 14V3h10v11H5Z" opacity=".45" strokeWidth=".65"/>
-      <path d="M5.7 13.8v-1q1.1-2.2 4.3-2.2t4.3 2.2v1" fill="currentColor" fillOpacity=".35"/>
-      <path d="M7.5 6.5v1.4c0 3.6 5 3.6 5 0V6.5"/>
-      <path d="M6.8 6.3c0-4.1 6.4-4.1 6.4 0H6.8Zm2-2.3-.3 2.2m2.7-2.2.3 2.2"/>
-      <path d="m8.4 11.1 1.6 1.5 1.6-1.5M6 16h8m-8 1.4h4"/>
+import { useLocale } from "@/components/i18n/locale-provider";
+import Link from "@/components/ui/app-link";
+import { useGameHeaderIndicators } from "./game-header-indicators-provider";
+
+export function CycloStickersShortcut() {
+  const { locale } = useLocale();
+  const indicators = useGameHeaderIndicators();
+  if (!indicators?.collectorAlbumAvailable) return null;
+
+  return (
+    <Link
+      href="/jeu/album"
+      data-cyclo-stickers-shortcut="true"
+      className="group flex min-w-[5.25rem] flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl border border-[#AD8052]/55 bg-[#F5E9D2] px-2 py-2.5 text-[#283943] shadow-[0_12px_30px_rgba(84,57,29,0.12)] transition hover:-translate-y-0.5 hover:border-[#8C5A35] hover:bg-[#FFF4DB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C5A35] sm:min-w-52 sm:flex-none sm:flex-row sm:gap-3 sm:p-3.5"
+    >
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#283943] text-[#F3D49A] sm:h-10 sm:w-10 sm:rounded-xl">
+        <CycloStickersAlbumIcon />
+      </span>
+      <span className="min-w-0 text-center sm:flex-1 sm:text-left">
+        <span className="block whitespace-nowrap text-[11px] font-black sm:text-sm">Cyclo-Stickers</span>
+        <span className="mt-0.5 block text-[10px] font-bold leading-tight text-[#695643] sm:mt-1 sm:text-xs">
+          {locale === "en" ? "Sticker album" : "Album de vignettes"}
+        </span>
+      </span>
+      <span aria-hidden="true" className="hidden text-[#8C5A35] transition-transform group-hover:translate-x-0.5 sm:inline">→</span>
+    </Link>
+  );
+}
+
+export function CycloStickersAlbumIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      data-cyclo-stickers-icon="album"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19.5 17.5V3.5H6.75A2.75 2.75 0 0 0 4 6.25v12A2.75 2.75 0 0 0 6.75 21H20m-13-3.5h12.5M7 3.5v14" />
+      <rect x="9.5" y="6" width="7.5" height="9" rx=".75" />
+      <circle cx="13.25" cy="9.4" r="1.2" />
+      <path d="M10.7 14c.2-1.4 1.25-2 2.55-2s2.35.6 2.55 2" />
     </svg>
-  </Link>;
+  );
 }

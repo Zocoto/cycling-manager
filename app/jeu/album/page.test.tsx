@@ -8,6 +8,7 @@ vi.mock("@/components/game/game-header",()=>({GameHeader:()=>null}));
 vi.mock("@/components/game/collector-album",()=>({CollectorAlbum:()=>null}));
 vi.mock("@/components/game/cyclo-stickers-persistent-album",()=>({CycloStickersPersistentAlbum:()=>null}));
 vi.mock("@/services/cyclo-stickers-album",()=>({getPublicCycloStickersAlbum:mocks.publicAlbum}));
+vi.mock("@/lib/game/cyclo-stickers-leaderboard",()=>({getCycloStickersLeaderboard:vi.fn().mockResolvedValue(null)}));
 vi.mock("@/lib/game/cyclo-stickers-release",async importOriginal=>{
   const original=await importOriginal<typeof import("@/lib/game/cyclo-stickers-release")>();
   return {...original,CYCLO_STICKERS_RELEASE:{...original.CYCLO_STICKERS_RELEASE,get publicReady(){return mocks.publicReady;}}};

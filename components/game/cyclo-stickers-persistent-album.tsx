@@ -3,22 +3,43 @@
 import { useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ALBUM_ACHIEVEMENTS, getAlbumAchievementProgress, type AlbumPilotAction, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
+import { getCycloStickersLeaderboard, type StickerAlbumLeaderboard } from "@/lib/game/cyclo-stickers-leaderboard";
 import { createCycloStickersTradeRequestIds, getCycloStickersActionRpc, getCycloStickersOpenRpc, toCycloStickersAlbumView } from "@/lib/game/cyclo-stickers-persistent-view";
 import type { CycloStickersCollector, CycloStickersPersistentState, CycloStickersTrade } from "@/lib/game/cyclo-stickers-persistence";
-import { CollectorAlbum } from "./collector-album";
+import { CollectorAlbum, type CollectorAlbumTab } from "./collector-album";
 import { CollectorCardFace } from "./collector-card-face";
 import { AlbumBoosterArtwork } from "./collector-album-artwork";
 import styles from "./collector-album-retro.module.css";
 
 type Mutation = (name: string, args: Record<string, unknown>, message: string) => Promise<boolean>;
-type Tab = "album" | "trades" | "boosters" | "achievements";
-
 /** Only RPC responses can replace the collection. Browser demonstration saves are never read. */
-export function CycloStickersPersistentAlbum({ snapshot, initialState, initialTab = "album" }: { snapshot: CollectorAlbumSnapshot; initialState: CycloStickersPersistentState; initialTab?: Tab }) {
+export function CycloStickersPersistentAlbum({
+  snapshot,
+  initialState,
+  initialLeaderboard = null,
+  initialTab = "album",
+}: {
+  snapshot: CollectorAlbumSnapshot;
+  initialState: CycloStickersPersistentState;
+  initialLeaderboard?: StickerAlbumLeaderboard | null;
+  initialTab?: CollectorAlbumTab;
+}) {
   const [state, setState] = useState(initialState);
+  const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const locked = useRef(false);
+  const refreshingLeaderboard = useRef(false);
+  const refreshLeaderboard = async () => {
+    if (refreshingLeaderboard.current) return;
+    refreshingLeaderboard.current = true;
+    try {
+      const next = await getCycloStickersLeaderboard(createSupabaseBrowserClient(), snapshot.edition);
+      if (next) setLeaderboard(next);
+    } finally {
+      refreshingLeaderboard.current = false;
+    }
+  };
   const mutate: Mutation = async (name, args, message) => {
     if (locked.current) return false;
     locked.current = true; setBusy(true); setNotice("");
@@ -44,6 +65,7 @@ export function CycloStickersPersistentAlbum({ snapshot, initialState, initialTa
     state: view, ready: !busy, ownerName: state.owner.displayName,
     boosterCount: state.boosterCount, tradeCount: state.incomingOffers.length + state.outgoingOffers.length,
     notice, onAction: send,
+    leaderboard, onViewLeaderboard: () => void refreshLeaderboard(),
     boosters: <PersistentBoosters snapshot={snapshot} state={state} busy={busy} mutate={mutate} />,
     achievements: <PersistentAchievements snapshot={snapshot} state={state} busy={busy} onAction={send} />,
     trades: requestedCard => <PersistentTrades key={requestedCard ?? "desk"} snapshot={snapshot} state={state} busy={busy} mutate={mutate} initialTarget={requestedCard} />,

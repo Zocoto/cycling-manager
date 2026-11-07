@@ -3,9 +3,9 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import raw from "@/data/collector-album-pilot.json";
-import { ALBUM_PROFILES, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
+import { ALBUM_PROFILES, createAlbumPilotState, type CollectorAlbumSnapshot } from "@/lib/game/collector-album";
 import * as reading from "@/lib/game/collector-album-reading";
-import { CollectorAlbum } from "./collector-album";
+import { CollectorAlbum, type CollectorAlbumRuntime } from "./collector-album";
 import { CollectorAlbumCover } from "./collector-album-cover";
 import retro from "./collector-album-retro.module.css";
 
@@ -65,6 +65,48 @@ describe("the private album as a book", () => {
     expect(html.match(/data-album-leaf="[12]"/g)).toHaveLength(2);
     const displayed = [...html.matchAll(/data-album-slot="(\d+)"/g)].map(([, number]) => Number(number));
     expect(displayed).toEqual(snapshot.cards.filter(card => card.profileKey === id).map(card => card.number));
+  });
+
+  it("places the standings by the closed cover and keeps them one click away from an open chapter", () => {
+    const entries = Array.from({ length: 6 }, (_, index) => ({
+      rank: index + 1,
+      displayName: `Collector ${index + 1}`,
+      pastedCount: 12 - index,
+      isViewer: false,
+    }));
+    const trades = vi.fn(() => null);
+    const runtime: CollectorAlbumRuntime = {
+      state: createAlbumPilotState(snapshot.collectionSeason, snapshot.cards),
+      ready: true,
+      boosterCount: 0,
+      tradeCount: 0,
+      ownerName: "Viewer",
+      notice: "",
+      onAction: vi.fn(),
+      boosters: null,
+      achievements: null,
+      trades,
+      leaderboard: {
+        entries,
+        viewer: { rank: 23, displayName: "Viewer", pastedCount: 1, isViewer: true },
+      },
+    };
+    const props = { snapshot, storageOwnerId, runtime };
+    const closed = renderToStaticMarkup(<CollectorAlbum {...props} />);
+    expect(closed).toContain("Couverture de l’album");
+    expect(closed).toContain("Collector 5");
+    expect(closed).not.toContain("Collector 6");
+    expect(closed).toContain("#23");
+
+    const opened = renderToStaticMarkup(<CollectorAlbum {...props} initialProfile="tours" />);
+    expect(opened).toContain('data-profile="tours"');
+    expect(opened).not.toContain('aria-label="Classement des collections"');
+    expect(buttonMarkup(opened, "Classement")).toContain('aria-pressed="false"');
+
+    const standings = renderToStaticMarkup(<CollectorAlbum {...props} initialTab="leaderboard" />);
+    expect(standings).toContain("Collector 6");
+    expect(standings).not.toContain("Couverture de l’album");
+    expect(trades).not.toHaveBeenCalled();
   });
 
   it.each([
