@@ -36,7 +36,7 @@ describe("GameUserMenu", () => {
     const menu = renderToStaticMarkup(<GameUserMenu displayName="Zocoto" />);
     expect(menu).toContain('href="/jeu/album"');
     expect(menu).toContain("Album de Cyclo-Stickers");
-    expect(menu).toContain('data-cyclo-stickers-icon="album"');
+    expect(menu).toContain('data-cyclo-stickers-icon="vashadze-sticker"');
 
     const shortcut = renderToStaticMarkup(<CycloStickersShortcut />);
     expect(shortcut).toContain('href="/jeu/album"');
