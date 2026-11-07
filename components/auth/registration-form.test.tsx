@@ -23,7 +23,9 @@ describe("registration form constraints", () => {
   it("allows an empty referral code while keeping account fields mandatory", () => {
     const markup = renderToStaticMarkup(<RegistrationForm />);
     expect(input(markup, "referralCode")).not.toMatch(/\brequired(?:=|\s|>)/);
-    expect(markup).toContain("vous pouvez créer votre compte sans code");
+    expect(markup).toContain("<details>");
+    expect(markup).toContain("J’ai un code parrain");
+    expect(markup.indexOf('name="managerName"')).toBeLessThan(markup.indexOf('name="referralCode"'));
     for (const name of ["managerName", "email", "password", "passwordConfirmation", "legalAcceptance"]) {
       expect(input(markup, name)).toMatch(/\brequired(?:=|\s|>)/);
     }
@@ -36,5 +38,6 @@ describe("registration form constraints", () => {
     expect(input(markup, "referralCode")).toContain('type="hidden"');
     expect(input(markup, "referralCode")).toContain('value="DS-ABCDEF123456"');
     expect(markup).toContain("Invitation de Mon parrain");
+    expect(markup).toContain("Retirer le parrainage");
   });
 });

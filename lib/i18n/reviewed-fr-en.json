@@ -1,4 +1,5 @@
 {
+  "vous@exemple.fr": "you@example.com",
   "Le coureur et la convocation sont requis pour modifier le moral.": "The rider and call-up are required to change morale.",
   "Chaque convocation refusée retire 10 points de moral au coureur. Les refus de convocations distinctes se cumulent.": "Each declined call-up reduces the rider's morale by 10 points. Declining separate call-ups has a cumulative effect.",
   "Les meilleurs agents libres sont retenus selon leur meilleure note MON, VAL, CLM, PAV ou SPR (90 %), puis leur moyenne hors plaine (10 %). Le potentiel départage les égalités ; l’âge n’intervient pas. Au moins 100 places dans le vivier, ou autant que d’équipes si elles sont plus nombreuses, dans la limite des coureurs libres disponibles.": "The best free agents are selected using their highest MO, HIL, TT, COB or SP rating (90%), followed by their average excluding flat (10%). Potential breaks ties; age has no effect. The pool has at least 100 places, or as many as participating teams if there are more, subject to the number of available free agents.",
@@ -3370,5 +3371,20 @@
   "Le fichier d’export est vide.": "The exported file is empty.",
   "GP Dunkerque": "GP Dunkerque",
   "Dunkerque → Lens": "Dunkerque → Lens",
-  "Arrivée à Lens": "Finish in Lens"
+  "Arrivée à Lens": "Finish in Lens",
+  "Jeu gratuit": "Free to play",
+  "Recrutez vos coureurs et choisissez vos courses.": "Sign your riders and choose your races.",
+  "Préparez vos tactiques et suivez les résultats.": "Plan your tactics and follow the results.",
+  "Faites grandir votre équipe saison après saison.": "Build your team season after season.",
+  "Montez votre équipe cycliste et affrontez les autres directeurs sportifs.": "Build your cycling team and compete against other managers.",
+  "Créez votre compte": "Create your account",
+  "Confirmez votre e-mail pour démarrer votre carrière.": "Confirm your email address to start your career.",
+  "Déjà un compte ?": "Already have an account?",
+  "J’ai un code parrain": "I have a referral code",
+  "Retirer le parrainage": "Remove referral",
+  "Je souhaite recevoir les nouveautés par e-mail. Ce choix est facultatif.": "I would like to receive updates by email. This is optional.",
+  "Créer mon compte gratuit": "Create my free account",
+  "Confirmation par e-mail": "Email confirmation",
+  "Pensez à vérifier vos courriers indésirables.": "Remember to check your spam folder.",
+  "Vérifie ta boîte e-mail pour confirmer ton adresse. Si ton adresse est déjà confirmée, tu peux te connecter.": "Check your inbox to confirm your email address. If you have already confirmed it, you can sign in."
 }
