@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RaceRoleGuide } from "@/components/game/race-role-guide";
+import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import { SquadStatusBadge } from "@/components/game/squad-status-badge";
 import {
   RIDER_CLIMATE_LABELS,
@@ -397,6 +398,7 @@ export function RaceRosterSelector({
                       <span className="rounded-full border border-[#76A7E5]/40 bg-[#173A61] px-2 py-0.5 text-[10px] font-black text-[#B8D8FF]">
                         Moral {Math.round(rider.morale)}/100
                       </span>
+                      <SeasonRaceDaysBadge seasonRaceDays={rider.seasonRaceDays} tone="dark" />
                       <SquadStatusBadge
                         status={rider.squadStatus}
                         tone="dark"

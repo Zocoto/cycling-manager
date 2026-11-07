@@ -52,6 +52,7 @@ type CountryRow = { id: string; name: string; iso_alpha2: string };
 type RatingRow = {
   rider_id: string;
   age: number;
+  season_race_days: number;
   mountain: number;
   hills: number;
   flat: number;
@@ -243,6 +244,7 @@ export type TeamHealthRider = {
   form: number;
   fatigue: number;
   morale: number;
+  seasonRaceDays?: number;
   moraleEvents: RiderMoraleEvent[];
   injury: RiderMedicalInjury | null;
   formCamp: RiderFormCamp | null;
@@ -437,9 +439,24 @@ export async function getCurrentTeamHealthOverview(
         .returns<RiderRow[]>(),
       admin
         .from("rider_season_ratings")
-        .select(
-          "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
-        )
+        .select([
+          "rider_id",
+          "age",
+          "mountain",
+          "hills",
+          "flat",
+          "time_trial",
+          "cobbles",
+          "sprint",
+          "acceleration",
+          "downhill",
+          "endurance",
+          "resistance",
+          "recovery",
+          "breakaway",
+          "prologue",
+          "season_race_days",
+        ].join(","))
         .eq("season_id", season.id)
         .in("rider_id", riderIds)
         .returns<RatingRow[]>(),
@@ -718,6 +735,7 @@ export async function getCurrentTeamHealthOverview(
           form: condition?.form ?? 75,
           fatigue: condition?.fatigue ?? 0,
           morale: toNumber(condition?.morale ?? 60),
+          seasonRaceDays: rating?.season_race_days,
           moraleEvents: moraleEventsByRiderId.get(rider.id) ?? [],
           injury: injury
             ? {

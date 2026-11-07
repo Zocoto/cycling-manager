@@ -211,6 +211,7 @@ export type DevelopmentRider = {
   status: AcademyRow["status"];
   promotionGameYear: number | null;
   careerRaceDays: number;
+  seasonRaceDays?: number;
   raceNumber: number | null;
   championshipTitle: JuniorChampionshipTitle | null;
   proNationalCallup: boolean;
@@ -386,7 +387,7 @@ export async function getDevelopmentTeamOverview(
   const editions = editionsResult.data ?? [];
   const academyCountryIds = unique(academyRows.map((rider) => rider.country_id));
   const academyIds = academyRows.map((rider) => rider.id);
-  const [countriesResult, stagesResult, titlesResult, callupsResult] = await Promise.all([
+  const [countriesResult, stagesResult, titlesResult, callupsResult, raceDaysResult] = await Promise.all([
     academyCountryIds.length
       ? admin
           .from("countries")
@@ -421,6 +422,23 @@ export async function getDevelopmentTeamOverview(
           .in("academy_rider_id", academyIds)
           .returns<AcademyCompetitionLinkRow[]>()
       : Promise.resolve({ data: [] as AcademyCompetitionLinkRow[], error: null }),
+    view === "calendrier" && teamRow && academyIds.length
+      ? collectChunkedPaginatedRows<{ academy_rider_id: string }, { message: string }, string>({
+          values: academyIds,
+          fetchPage: async (riderIds, from, to) => {
+            const result = await admin
+              .from("development_race_results")
+              .select("academy_rider_id, development_race_editions!inner(season_id)")
+              .eq("development_race_editions.season_id", context.seasonId)
+              .eq("result_scope", "stage")
+              .in("academy_rider_id", riderIds)
+              .order("id", { ascending: true })
+              .range(from, to)
+              .returns<Array<{ academy_rider_id: string }>>();
+            return { data: result.data, error: result.error };
+          },
+        })
+      : Promise.resolve(null),
   ]);
   assertQuery(countriesResult.error, "les nationalités des juniors");
   assertQuery(stagesResult.error, "les étapes juniors");
@@ -526,8 +544,16 @@ export async function getDevelopmentTeamOverview(
   const proCallupRiderIds = new Set(
     (callupsResult.data ?? []).map((link) => link.academy_rider_id),
   );
-  const riders = academyRows.map((rider) =>
-    toDevelopmentRider(
+  const raceDaysByRiderId = new Map<string, number>();
+  if (raceDaysResult?.error) {
+    console.warn("development_race_days_unavailable");
+  } else {
+    for (const row of raceDaysResult?.data ?? []) {
+      raceDaysByRiderId.set(row.academy_rider_id, (raceDaysByRiderId.get(row.academy_rider_id) ?? 0) + 1);
+    }
+  }
+  const riders = academyRows.map((rider) => ({
+    ...toDevelopmentRider(
       rider,
       countriesById.get(rider.country_id),
       context.gameYear,
@@ -535,7 +561,10 @@ export async function getDevelopmentTeamOverview(
       titleByRiderId.get(rider.id) ?? null,
       proCallupRiderIds.has(rider.id),
     ),
-  );
+    seasonRaceDays: raceDaysResult && !raceDaysResult.error
+      ? raceDaysByRiderId.get(rider.id) ?? 0
+      : undefined,
+  }));
   const riderById = new Map(riders.map((rider) => [rider.id, rider]));
   const roster = rosterRows.flatMap((row) => {
     const rider = riderById.get(row.academy_rider_id);

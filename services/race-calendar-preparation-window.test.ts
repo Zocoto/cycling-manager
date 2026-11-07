@@ -9,7 +9,7 @@ const fixture = vi.hoisted(() => ({
 }));
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: () => fixture.client }));
-import { getActiveSeasonRaceCalendar } from "./race-calendar";
+import { getActiveSeasonRaceCalendar, getCurrentTeamRaceRosterOptions } from "./race-calendar";
 
 type Client = Parameters<typeof getActiveSeasonRaceCalendar>[0];
 const RIDER = "rider";
@@ -187,5 +187,32 @@ describe("race preparation context season window", () => {
     expect(fixture.calls.find((call) => call.source === "get_race_calendar_rider_context")?.args).toEqual({
       p_rider_ids: [RIDER], p_min_game_day: year * 28, p_max_game_day: year * 28 + 27,
     });
+  });
+
+  it("loads completed race days for the active season in one batch for the selectable roster", async () => {
+    fixture.rows.seasons[0].game_year = 5;
+    fixture.rows.get_current_team_race_roster_options = [
+      { rider_id: RIDER, country_iso_alpha2: "FR", current_form: 80 },
+      { rider_id: "debutant", country_iso_alpha2: "BE", current_form: 75 },
+    ];
+    fixture.rows.rider_season_ratings = [
+      { rider_id: RIDER, season_id: "previous-season", season_race_days: 45 },
+      { rider_id: RIDER, season_id: "season", season_race_days: 29 },
+      { rider_id: "debutant", season_id: "season", season_race_days: 0 },
+      { rider_id: "other-team", season_id: "season", season_race_days: 18 },
+    ];
+    fixture.rows.rider_condition_states = [{ rider_id: RIDER, season_day_id: "day-28", morale: 71 }];
+
+    const riders = await getCurrentTeamRaceRosterOptions(fixture.client as Client, "edition");
+
+    expect(riders.map(({ riderId, morale, seasonRaceDays }) => ({ riderId, morale, seasonRaceDays }))).toEqual([
+      { riderId: RIDER, morale: 71, seasonRaceDays: 29 },
+      { riderId: "debutant", morale: 60, seasonRaceDays: 0 },
+    ]);
+    expect(fixture.calls.filter(({ source }) => source === "rider_season_ratings")).toHaveLength(1);
+    expect(fixture.filters.filter(({ source }) => source === "rider_season_ratings")).toEqual([
+      { source: "rider_season_ratings", operator: "eq", key: "season_id", value: "season" },
+      { source: "rider_season_ratings", operator: "in", key: "rider_id", value: [RIDER, "debutant"] },
+    ]);
   });
 });

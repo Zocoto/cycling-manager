@@ -702,6 +702,7 @@ export type RaceRosterOption = {
   breakaway: number;
   form: number;
   morale: number;
+  seasonRaceDays?: number;
   squadStatus: SquadStatus | null;
   climateProfile: RiderClimateProfile;
   isSelected: boolean;
@@ -2321,7 +2322,7 @@ export async function getCurrentTeamRaceRosterOptions(
   }
 
   const riders = (data as RaceRosterOptionRow[] | null) ?? [];
-  const moraleByRiderId = await loadCurrentMoraleByRiderIds(
+  const { moraleByRiderId, raceDaysByRiderId } = await loadCurrentRaceRosterCondition(
     riders.map((rider) => rider.rider_id),
   );
 
@@ -2343,6 +2344,7 @@ export async function getCurrentTeamRaceRosterOptions(
     breakaway: rider.breakaway,
     form: Number(rider.current_form),
     morale: moraleByRiderId.get(rider.rider_id) ?? 60,
+    seasonRaceDays: raceDaysByRiderId.get(rider.rider_id),
     squadStatus: parseSquadStatus(rider.squad_status),
     climateProfile: getRiderClimateProfile({
       riderId: rider.rider_id,
@@ -2374,9 +2376,12 @@ export async function getCurrentTeamRaceRosterOptions(
   }));
 }
 
-async function loadCurrentMoraleByRiderIds(riderIds: string[]) {
+async function loadCurrentRaceRosterCondition(riderIds: string[]) {
+  const moraleByRiderId = new Map<string, number>();
+  const raceDaysByRiderId = new Map<string, number>();
+  const condition = { moraleByRiderId, raceDaysByRiderId };
   const uniqueRiderIds = [...new Set(riderIds)];
-  if (uniqueRiderIds.length === 0) return new Map<string, number>();
+  if (uniqueRiderIds.length === 0) return condition;
 
   const admin = createSupabaseAdminClient();
   const seasonResult = await admin
@@ -2385,16 +2390,32 @@ async function loadCurrentMoraleByRiderIds(riderIds: string[]) {
     .eq("status", "active")
     .maybeSingle<{ id: string; current_day_number: number | null }>();
   assertQuerySucceeded(seasonResult.error, "la saison active du moral");
-  if (!seasonResult.data) return new Map<string, number>();
+  if (!seasonResult.data) return condition;
 
-  const dayResult = await admin
-    .from("season_days")
-    .select("id")
-    .eq("season_id", seasonResult.data.id)
-    .eq("day_number", seasonResult.data.current_day_number ?? 1)
-    .maybeSingle<{ id: string }>();
+  const [dayResult, raceDaysResult] = await Promise.all([
+    admin
+      .from("season_days")
+      .select("id")
+      .eq("season_id", seasonResult.data.id)
+      .eq("day_number", seasonResult.data.current_day_number ?? 1)
+      .maybeSingle<{ id: string }>(),
+    admin
+      .from("rider_season_ratings")
+      .select("rider_id, season_race_days")
+      .eq("season_id", seasonResult.data.id)
+      .in("rider_id", uniqueRiderIds)
+      .returns<Array<{ rider_id: string; season_race_days: number }>>(),
+  ]);
+  if (raceDaysResult.error) {
+    console.warn("race_roster_race_days_unavailable", { code: raceDaysResult.error.code });
+  } else {
+    for (const row of raceDaysResult.data ?? []) {
+      raceDaysByRiderId.set(row.rider_id, row.season_race_days);
+    }
+  }
+
   assertQuerySucceeded(dayResult.error, "la journée courante du moral");
-  if (!dayResult.data) return new Map<string, number>();
+  if (!dayResult.data) return condition;
 
   const conditionsResult = await admin
     .from("rider_condition_states")
@@ -2403,12 +2424,10 @@ async function loadCurrentMoraleByRiderIds(riderIds: string[]) {
     .in("rider_id", uniqueRiderIds)
     .returns<Array<{ rider_id: string; morale: number | string }>>();
   assertQuerySucceeded(conditionsResult.error, "le moral des coureurs");
-  return new Map(
-    (conditionsResult.data ?? []).map((condition) => [
-      condition.rider_id,
-      Number(condition.morale ?? 60),
-    ]),
-  );
+  for (const row of conditionsResult.data ?? []) {
+    moraleByRiderId.set(row.rider_id, Number(row.morale ?? 60));
+  }
+  return condition;
 }
 
 export async function getCurrentTeamStageRolePlan(

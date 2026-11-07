@@ -1,5 +1,6 @@
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { SeasonRaceDaysBadge } from "@/components/game/season-race-days-badge";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { DevelopmentRider } from "@/services/development-team";
@@ -8,10 +9,12 @@ export function DevelopmentRiderVisibleProfile({
   rider,
   jersey,
   avatarClassName = "h-14 w-14",
+  seasonRaceDays,
 }: {
   rider: DevelopmentRider;
   jersey?: RiderJerseyAppearance;
   avatarClassName?: string;
+  seasonRaceDays?: number | null;
 }) {
   return (
     <span className="block">
@@ -38,6 +41,7 @@ export function DevelopmentRiderVisibleProfile({
             </span>
             <PotentialStars potentialSteps={rider.potentialSteps} compact />
           </span>
+          <SeasonRaceDaysBadge seasonRaceDays={seasonRaceDays} className="mt-2" />
         </span>
       </span>
 
