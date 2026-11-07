@@ -159,6 +159,30 @@ describe("preparation calendar without unused simulation data", () => {
     expect(await getRacePreparationCalendar(fixture.client as Client, now, [])).toBeNull();
     expect(fixture.reads).toEqual([]);
   });
+  it("marks each sponsor independently with one calendar objective lookup", async () => {
+    fixture.rows.get_current_team_calendar_sponsor_objective_races = [
+      { race_edition_id: "tour", sponsor_role: "principal" },
+      { race_edition_id: "tour", sponsor_role: "secondary" },
+      { race_edition_id: "classic", sponsor_role: "secondary" },
+    ];
+    const calendar = await getActiveSeasonRaceCalendar(fixture.client as Client, now, {
+      includeEngagedRiders: false,
+      includeSecondarySponsorObjectives: true,
+    });
+    expect(calendar?.editions.find((edition) => edition.id === "tour")).toMatchObject({
+      isSponsorObjective: true,
+      isSecondarySponsorObjective: true,
+    });
+    expect(calendar?.editions.find((edition) => edition.id === "classic")).toMatchObject({
+      isSponsorObjective: false,
+      isSecondarySponsorObjective: true,
+    });
+    expect(calendar?.editions.find((edition) => edition.id === "wildcard")?.isSecondarySponsorObjective).toBeUndefined();
+    expect(fixture.reads.filter((read) => read.includes("sponsor_objective_races"))).toEqual([
+      "get_current_team_calendar_sponsor_objective_races",
+    ]);
+  });
+
   it("preserves pending wildcards and authorized national heats omitted from the calendar grid", async () => {
     fixture.rows.races.find((race) => race.id === "international")!.slug = "nations-cup-montagne-d2-a";
     const grid = await getActiveSeasonRaceCalendar(fixture.client as Client, now, { includeEngagedRiders: false });

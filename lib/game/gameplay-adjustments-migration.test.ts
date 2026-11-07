@@ -74,7 +74,8 @@ describe("ajustements de gestion demandés", () => {
     expect(dashboardCalendarService).toContain(
       "isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id)",
     );
-    expect(calendarComponent).toContain('aria-label="Objectif sponsor"');
+    expect(calendarComponent).toContain('label: "Objectif sponsor principal"');
+    expect(calendarComponent).toContain('label: "Objectif sponsor secondaire"');
     expect(dashboardRaces).toContain('aria-label="Objectif sponsor"');
   });
 

@@ -107,6 +107,89 @@ describe("SeasonCalendar", () => {
     expect(calendarSource).toContain('type CalendarView = "planning" | "list"');
   });
 
+  it("distingue les objectifs secondaires, les objectifs communs et les affinités sur ordinateur et mobile", () => {
+    const secondary: RaceCalendarEdition = {
+      ...createEdition({
+        id: "sponsor-secondaire",
+        name: "Objectif secondaire",
+        categoryCode: "continental",
+        dayNumber: 1,
+        daySlot: "early",
+        registrationClosesAt: "2026-08-01T12:00:00Z",
+        accepted: false,
+      }),
+      isSecondarySponsorObjective: true,
+      sponsorInterest: "affinity",
+    };
+    const both = {
+      ...createEdition({
+        id: "deux-sponsors",
+        name: "Objectif commun",
+        categoryCode: "continental",
+        dayNumber: 2,
+        daySlot: "early",
+        registrationClosesAt: "2026-08-02T12:00:00Z",
+        accepted: false,
+      }),
+      isSponsorObjective: true,
+      isSecondarySponsorObjective: true,
+    };
+    const affinity: RaceCalendarEdition = {
+      ...createEdition({
+        id: "affinite-sportive",
+        name: "Course d’affinité",
+        categoryCode: "continental",
+        dayNumber: 3,
+        daySlot: "early",
+        registrationClosesAt: "2026-08-03T12:00:00Z",
+        accepted: false,
+      }),
+      sponsorInterest: "affinity",
+    };
+    const calendar: SeasonRaceCalendar = {
+      seasonId: "season-sponsor-objectives",
+      seasonName: "Saison de test",
+      gameYear: 3,
+      startsOn: "2026-08-01",
+      endsOn: "2026-08-28",
+      currentDayNumber: 1,
+      days: Array.from({ length: 28 }, (_, index) => ({
+        id: `day-${index + 1}`,
+        dayNumber: index + 1,
+        calendarDate: new Date(Date.UTC(2026, 7, 1 + index)).toISOString().slice(0, 10),
+        label: null,
+      })),
+      events: [],
+      editions: [secondary, both, affinity],
+    };
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar calendar={calendar} reputationPoints={100} nowIso="2026-08-01T07:00:00Z" />,
+    );
+    const links = markup.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) ?? [];
+    const raceLinks = (id: string) => links.filter((link) => link.includes(`href="/jeu/courses/${id}#inscription"`));
+
+    expect(markup).toContain("</span>Objectif sponsor secondaire</span>");
+    expect(raceLinks(secondary.id)).toHaveLength(2);
+    for (const link of raceLinks(secondary.id)) {
+      expect(link).toContain('aria-label="Objectif sponsor secondaire"');
+      expect(link).toContain("outline outline-1 outline-[#8B5CF6]/55");
+      expect(link).not.toContain('aria-label="Objectif sponsor principal"');
+      expect(link).not.toContain('aria-label="Affinité sportive"');
+    }
+    expect(raceLinks(both.id)).toHaveLength(2);
+    for (const link of raceLinks(both.id)) {
+      expect(link).toContain('aria-label="Objectif sponsor principal"');
+      expect(link).toContain('aria-label="Objectif sponsor secondaire"');
+      expect(link).toContain("outline outline-2 outline-[#8B5CF6]");
+      expect(link).not.toContain("outline-[#8B5CF6]/55");
+    }
+    expect(raceLinks(affinity.id)).toHaveLength(2);
+    for (const link of raceLinks(affinity.id)) {
+      expect(link).toContain('aria-label="Affinité sportive"');
+      expect(link).not.toContain('aria-label="Objectif sponsor secondaire"');
+    }
+  });
+
   it("hachure les inscriptions closes dans toutes les catégories sans hachurer une course ouverte", () => {
     const closedEditions =
       RACE_CATEGORY_CODES.map(

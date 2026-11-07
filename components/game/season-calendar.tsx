@@ -421,9 +421,13 @@ export function SeasonCalendar({
             </span>
             <span className="inline-flex items-center gap-2">
               <SponsorObjectiveBadge compact />
-              Objectif sponsor
+              Objectif sponsor principal
             </span>
-            <span className="inline-flex items-center gap-2"><SponsorObjectiveBadge compact affinity />Affinité sportive — sans prime dédiée</span>
+            <span className="inline-flex items-center gap-2">
+              <SponsorObjectiveBadge compact kind="secondary" />
+              Objectif sponsor secondaire
+            </span>
+            <span className="inline-flex items-center gap-2"><SponsorObjectiveBadge compact kind="affinity" />Affinité sportive — sans prime dédiée</span>
             <span className="inline-flex items-center gap-2">
               <RaceImportanceBadge importance="grand_tour" compact />
               Grand Tour
@@ -711,7 +715,13 @@ function RaceCalendarList({
                   : displayName
               }
               data-quadrennial-games-tile={isQuadrennialGamesCalendarEdition(edition) ? "true" : undefined}
-              className={`${isQuadrennialGamesCalendarEdition(edition) ? gamesTile.tile : ""} relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#F5EEFF] outline outline-2 outline-offset-[-2px] outline-[#8B5CF6]" : ""}`}
+              className={`${isQuadrennialGamesCalendarEdition(edition) ? gamesTile.tile : ""} relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${getSponsorObjectiveOutline(edition)} ${
+                edition.isSponsorObjective
+                  ? "bg-[#F5EEFF] outline-offset-[-2px]"
+                  : edition.isSecondarySponsorObjective
+                    ? "bg-[#8B5CF6]/5 outline-offset-[-1px]"
+                    : ""
+              }`}
               style={{
                 backgroundImage:
                   registrationClosed
@@ -743,7 +753,7 @@ function RaceCalendarList({
                   >
                     {style.shortLabel}
                   </span>
-                  {edition.isSponsorObjective || edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge affinity={!edition.isSponsorObjective} /> : null}
+                  <SponsorObjectiveBadges edition={edition} />
                   {importance ? (
                     <RaceImportanceBadge importance={importance} />
                   ) : null}
@@ -1176,7 +1186,7 @@ function DesktopCalendarWeek({
                   } ${
                     segment.continuesAfterWeek ? "rounded-r-sm" : "rounded-r-lg"
                   } ${
-                    segment.edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""
+                    getSponsorObjectiveOutline(segment.edition)
                   }`}
                   style={{
                     gridColumn: `${columnStart} / ${columnEnd}`,
@@ -1205,7 +1215,7 @@ function DesktopCalendarWeek({
                   <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[8px] tracking-wider">
                     {style.shortLabel}
                   </span>
-                  {segment.edition.isSponsorObjective || segment.edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge compact affinity={!segment.edition.isSponsorObjective} /> : null}
+                  <SponsorObjectiveBadges edition={segment.edition} compact />
                   {importance ? (
                     <RaceImportanceBadge importance={importance} compact />
                   ) : null}
@@ -1363,7 +1373,7 @@ function DesktopCalendarWeek({
                                 countryCode={segment.edition.countryCode}
                                 countryName={segment.edition.countryName}
                               />
-                              {segment.edition.isSponsorObjective || segment.edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge compact affinity={!segment.edition.isSponsorObjective} /> : null}
+                              <SponsorObjectiveBadges edition={segment.edition} compact />
                               {importance ? (
                                 <RaceImportanceBadge importance={importance} compact />
                               ) : null}
@@ -1518,7 +1528,7 @@ function MobileCalendarDay({
                   : displayName
               }
               data-quadrennial-games-tile={isQuadrennialGamesCalendarEdition(edition) ? "true" : undefined}
-              className={`${isQuadrennialGamesCalendarEdition(edition) ? gamesTile.tile : ""} relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
+              className={`${isQuadrennialGamesCalendarEdition(edition) ? gamesTile.tile : ""} relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${getSponsorObjectiveOutline(edition)}`}
               style={{
                 borderColor:
                   grandTourAccent?.color ??
@@ -1543,7 +1553,7 @@ function MobileCalendarDay({
                 {style.shortLabel}
               </span>
 
-              {edition.isSponsorObjective || edition.sponsorInterest === "affinity" ? <SponsorObjectiveBadge affinity={!edition.isSponsorObjective} /> : null}
+              <SponsorObjectiveBadges edition={edition} compact />
               {importance ? (
                 <RaceImportanceBadge importance={importance} compact />
               ) : null}
@@ -1605,15 +1615,67 @@ function getCalendarEditionActionLabel(edition: RaceCalendarEdition) {
   return "Ouvrir la course";
 }
 
-function SponsorObjectiveBadge({ compact = false, affinity = false }: { compact?: boolean; affinity?: boolean }) {
+function getSponsorObjectiveOutline(edition: RaceCalendarEdition) {
+  if (edition.isSponsorObjective) return "outline outline-2 outline-[#8B5CF6]";
+  if (edition.isSecondarySponsorObjective) return "outline outline-1 outline-[#8B5CF6]/55";
+  return "";
+}
+
+function SponsorObjectiveBadges({
+  edition,
+  compact = false,
+}: {
+  edition: RaceCalendarEdition;
+  compact?: boolean;
+}) {
+  return (
+    <>
+      {edition.isSponsorObjective ? <SponsorObjectiveBadge compact={compact} /> : null}
+      {edition.isSecondarySponsorObjective ? <SponsorObjectiveBadge compact={compact} kind="secondary" /> : null}
+      {!edition.isSponsorObjective && !edition.isSecondarySponsorObjective && edition.sponsorInterest === "affinity" ? (
+        <SponsorObjectiveBadge compact={compact} kind="affinity" />
+      ) : null}
+    </>
+  );
+}
+
+const sponsorObjectiveBadgeStyles = {
+  principal: {
+    label: "Objectif sponsor principal",
+    title: "Objectif sponsor principal",
+    icon: "!",
+    className: "bg-[#8B5CF6] text-white",
+  },
+  secondary: {
+    label: "Objectif sponsor secondaire",
+    title: "Objectif sponsor secondaire",
+    icon: "2",
+    className: "border border-[#8B5CF6]/45 bg-[#E8DDFD] text-[#4E2685]",
+  },
+  affinity: {
+    label: "Affinité sportive",
+    title: "Affinité sportive — aucune prime contractuelle dédiée",
+    icon: "♡",
+    className: "border border-[#71548D]/50 bg-white text-[#71548D]",
+  },
+};
+
+function SponsorObjectiveBadge({
+  compact = false,
+  kind = "principal",
+}: {
+  compact?: boolean;
+  kind?: keyof typeof sponsorObjectiveBadgeStyles;
+}) {
+  const { label, title, icon, className } = sponsorObjectiveBadgeStyles[kind];
   return (
     <span
       role="img"
-      aria-label={affinity ? "Affinité sportive" : "Objectif sponsor"}
-      title={affinity ? "Affinité sportive — aucune prime contractuelle dédiée" : "Objectif sponsor"}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-black shadow-sm ${affinity ? "border border-[#71548D]/50 bg-white text-[#71548D]" : "bg-[#8B5CF6] text-white"} ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
+      aria-label={label}
+      title={title}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-black shadow-sm ${className} ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
     >
-      {affinity ? "♡" : "!"}
+      {icon}
     </span>
   );
 }

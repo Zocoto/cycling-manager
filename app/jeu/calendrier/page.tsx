@@ -74,6 +74,7 @@ export default async function RaceCalendarPage({
         includeJuniorChampionships: false,
         includeSimulationEnhancements: false,
         includeStageSegments: false,
+        includeSecondarySponsorObjectives: true,
       })
         .then((calendar) => ({
           calendar,

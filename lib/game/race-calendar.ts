@@ -179,6 +179,7 @@ export type RaceCalendarEdition = {
   isGrandTour?: boolean;
   isMonument?: boolean;
   isSponsorObjective?: boolean;
+  isSecondarySponsorObjective?: boolean;
   /** Rendering-only annotation; never used for access, scheduling or simulation. */
   sponsorInterest?: "objective" | "affinity";
   federationHomeAdvantageBonus?: number;

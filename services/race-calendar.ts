@@ -255,6 +255,7 @@ type RaceCategoryRow = {
 
 type SponsorObjectiveRaceRow = {
   race_edition_id: string;
+  sponsor_role?: "principal" | "secondary";
 };
 
 type StageRow = {
@@ -509,6 +510,7 @@ type ActiveSeasonCalendarLoadOptions = {
   /** Resolved late so the header and calendar can keep loading in parallel. */
   viewerTeamId?: string | null | Promise<string | null>;
   includeIneligibleRegionalRaces?: boolean;
+  includeSecondarySponsorObjectives?: boolean;
   includeJuniorChampionships?: boolean;
   /**
    * Les manches secondaires de Nations Cup sont chargées par les crons et
@@ -1019,7 +1021,9 @@ export async function getActiveSeasonRaceCalendar(
         }),
 
     supabase.rpc("get_current_team_calendar_registrations"),
-    supabase.rpc("get_current_team_sponsor_objective_races"),
+    options.includeSecondarySponsorObjectives
+      ? supabase.rpc("get_current_team_calendar_sponsor_objective_races")
+      : supabase.rpc("get_current_team_sponsor_objective_races"),
     options.includeIneligibleRegionalRaces
       ? Promise.resolve({ data: null, error: null })
       : supabase.rpc("get_current_team_race_access_context"),
@@ -1072,11 +1076,16 @@ export async function getActiveSeasonRaceCalendar(
   const editionRows = editionsResult.data ?? [];
   const editionIds = editionRows.map((edition) => edition.id);
   const raceIds = unique(editionRows.map((edition) => edition.race_id));
-  const sponsorObjectiveEditionIds = new Set(
-    (
-      (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []
-    ).map((objective) => objective.race_edition_id),
-  );
+  const sponsorObjectiveEditionIds = new Set<string>();
+  const secondarySponsorObjectiveEditionIds = new Set<string>();
+  const sponsorObjectives = (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? [];
+  for (const objective of sponsorObjectives) {
+    if (objective.sponsor_role === "secondary") {
+      secondarySponsorObjectiveEditionIds.add(objective.race_edition_id);
+    } else {
+      sponsorObjectiveEditionIds.add(objective.race_edition_id);
+    }
+  }
   const regionalRaceContext = options.includeIneligibleRegionalRaces
     ? null
     : (((regionalRaceContextResult.data as RegionalRaceContextRow[] | null) ??
@@ -1878,6 +1887,7 @@ export async function getActiveSeasonRaceCalendar(
         isMonument: race.is_monument,
         registrationClosesAt: edition.registration_closes_at,
         isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id),
+        isSecondarySponsorObjective: secondarySponsorObjectiveEditionIds.has(edition.id) || undefined,
         federationHomeAdvantageBonus:
           getFederationInfrastructureEffectPercentage(
             "home_advantage_program",
