@@ -149,7 +149,7 @@ export async function renewAllTeamRiderContractsAction() {
   const message =
     renewedCount > 0
       ? `${renewedCount} contrat${renewedCount > 1 ? "s ont" : " a"} été prolongé${renewedCount > 1 ? "s" : ""} pour la saison suivante.`
-      : "Tous les contrats de l’effectif sont déjà à jour.";
+      : "Aucun contrat n’a pu être prolongé.";
 
   redirect(withPageFeedback(CONTRACTS_PATH, "succes", message));
 }

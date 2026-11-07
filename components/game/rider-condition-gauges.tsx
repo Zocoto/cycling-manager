@@ -44,6 +44,7 @@ export function RiderConditionGauges({
           <Gauge
             label="Moral"
             value={morale}
+            maximumFractionDigits={2}
             colorClass="bg-[#3B82F6]"
             trackClass="bg-[#DCEBFA]"
             events={moraleEvents}
@@ -59,6 +60,7 @@ export function RiderConditionGauges({
 function Gauge({
   label,
   value,
+  maximumFractionDigits = 1,
   colorClass,
   trackClass,
   events,
@@ -67,6 +69,7 @@ function Gauge({
 }: {
   label: string;
   value: number;
+  maximumFractionDigits?: number;
   colorClass: string;
   trackClass: string;
   events: RiderFormEvent[];
@@ -136,7 +139,7 @@ function Gauge({
           </details>
         </div>
         <span className="text-lg font-black text-[#183F37]">
-          {formatFormValue(normalizedValue)}%
+          {normalizedValue.toLocaleString("fr-FR", { maximumFractionDigits })}%
         </span>
       </div>
       <div
@@ -154,10 +157,6 @@ function Gauge({
       </div>
     </div>
   );
-}
-
-function formatFormValue(value: number) {
-  return value.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
 }
 
 function formatSignedForm(value: number) {

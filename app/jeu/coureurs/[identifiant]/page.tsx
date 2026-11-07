@@ -56,6 +56,7 @@ import {
 } from "@/lib/game/rider-career-history";
 import { resolveFormerChampionshipBorder } from "@/lib/game/rider-championship-border";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
+import { isRiderMoraleTooLowForExtension, RIDER_LOW_MORALE_EXTENSION_MESSAGE } from "@/lib/game/rider-morale";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
 import {
   SPECIAL_ABILITY_CATALOG,
@@ -725,6 +726,7 @@ async function RiderManagementCards({
                 riderId={profile.id}
                 contract={profile.privateContract}
                 management={transferManagement}
+                morale={profile.condition.morale}
               />
               <RiderTransferListingCard
                 riderId={profile.id}
@@ -993,6 +995,7 @@ function ContractRenewalCard({
   riderId,
   contract,
   management,
+  morale,
 }: {
   riderId: string;
   contract: NonNullable<
@@ -1001,11 +1004,13 @@ function ContractRenewalCard({
   management: NonNullable<
     Awaited<ReturnType<typeof getRiderTransferManagement>>
   >;
+  morale: number;
 }) {
   const endSeasonYear = management.contractEndSeasonYear;
   const endLabel = endSeasonYear
     ? `Fin de S${endSeasonYear}`
     : contract.endSeasonName;
+  const blockedByMorale = management.canRenew && isRiderMoraleTooLowForExtension(morale);
   return (
     <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#D6A93D]/30 bg-[#FFF8DD] p-6 shadow-[0_16px_45px_rgba(111,82,13,0.08)] sm:p-7">
       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8A6B16]">
@@ -1026,7 +1031,11 @@ function ContractRenewalCard({
         </p>
         <p className="mt-1 text-lg font-black text-[#3F3518]">{endLabel}</p>
       </div>
-      {management.canRenew ? (
+      {blockedByMorale ? (
+        <p className="mt-4 rounded-xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-4 py-3 text-sm font-bold leading-6 text-[#8A2F2F]">
+          {RIDER_LOW_MORALE_EXTENSION_MESSAGE}
+        </p>
+      ) : management.canRenew ? (
         <div className="mt-4 space-y-3">
           <p className="text-sm font-semibold leading-6 text-[#7E7043]">
             Choisissez jusqu’à quelle saison sécuriser ce coureur. Le salaire

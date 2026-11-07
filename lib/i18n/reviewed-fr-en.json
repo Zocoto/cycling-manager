@@ -3469,5 +3469,10 @@
   "Copier le maillot du champion national": "Copy the national champion jersey",
   "Remplacer le brouillon ouvert par une copie de l’autre maillot": "Replace the current draft with a copy of the other jersey",
   "Maillot copié dans le brouillon.": "Jersey copied to the draft.",
-  "Aucun brouillon ni maillot publié à copier.": "There is no draft or published jersey to copy."
+  "Aucun brouillon ni maillot publié à copier.": "There is no draft or published jersey to copy.",
+  "Ce coureur ne souhaite pas prolonger avec l’équipe. Remontez son moral à au moins 40 sur 100 pour qu’il accepte de signer.": "This rider does not want to renew with the team. Raise their morale to at least 40 out of 100 before they will sign.",
+  "Prolongation bloquée": "Renewal blocked",
+  "Aucun contrat ne peut être prolongé pour le moment.": "No contracts can be renewed at the moment.",
+  "Les coureurs dont le moral est inférieur à 40 sur 100 sont exclus de la prolongation groupée.": "Riders with morale below 40 out of 100 are excluded from bulk renewal.",
+  "Aucun contrat n’a pu être prolongé.": "No contracts could be renewed."
 }

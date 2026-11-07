@@ -1,4 +1,6 @@
 export const DEFAULT_RIDER_MORALE = 60;
+export const RIDER_LOW_MORALE_EXTENSION_MESSAGE =
+  "Ce coureur ne souhaite pas prolonger avec l’équipe. Remontez son moral à au moins 40 sur 100 pour qu’il accepte de signer.";
 
 export type RiderMoraleBand =
   | "dejected"
@@ -20,6 +22,10 @@ export type RiderMoraleEvent = {
 export function normalizeRiderMorale(value: number | null | undefined) {
   if (!Number.isFinite(value)) return DEFAULT_RIDER_MORALE;
   return Math.min(100, Math.max(0, Number(value)));
+}
+
+export function isRiderMoraleTooLowForExtension(value: number | null | undefined) {
+  return normalizeRiderMorale(value) < 40;
 }
 
 export function getRiderMoraleBand(value: number): RiderMoraleBand {

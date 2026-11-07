@@ -63,8 +63,18 @@ function fixture({
         rows = rows.filter((row) => row[column] === value);
         return query;
       }),
+      lte: vi.fn((column: string, value: number) => {
+        rows = rows.filter((row) => Number(row[column]) <= value);
+        return query;
+      }),
       in: vi.fn((column: string, values: unknown[]) => {
-        rows = rows.filter((row) => values.includes(row[column]));
+        rows = column === "rider_condition_states.rider_id"
+          ? rows.map((row) => ({
+              ...row,
+              rider_condition_states: (row.rider_condition_states as Row[])
+                .filter((condition) => values.includes(condition.rider_id)),
+            }))
+          : rows.filter((row) => values.includes(row[column]));
         return query;
       }),
       maybeSingle: vi.fn(async () => ({ data: rows[0] ?? null, error: null })),
@@ -81,6 +91,28 @@ function fixture({
 }
 
 beforeEach(() => vi.clearAllMocks());
+
+it.each([["39.99", true], ["40", false]] as const)(
+  "uses the latest eligible day for contract renewals at morale %s",
+  async (morale, blocked) => {
+    const { active, tables } = fixture();
+    tables.rider_contracts = [active];
+    tables.seasons[0].current_day_number = 5;
+    tables.season_days = [
+      { season_id: "s4", day_number: 4, rider_condition_states: [{ rider_id: "rider", morale }] },
+      { season_id: "s4", day_number: 2, rider_condition_states: [{ rider_id: "rider", morale: 60 }] },
+      { season_id: "s4", day_number: 5, rider_condition_states: [{ rider_id: "other", morale: 60 }] },
+      { season_id: "s4", day_number: 6, rider_condition_states: [{ rider_id: "rider", morale: 60 }] },
+      { season_id: "s5", day_number: 5, rider_condition_states: [{ rider_id: "rider", morale: 20 }] },
+    ];
+
+    const overview = await getTeamContractManagementOverview("user");
+    expect(overview?.riders[0].renewalBlockedByMorale).toBe(blocked);
+    expect(overview?.riders[0].renewalOffers).toHaveLength(blocked ? 0 : 2);
+    expect(overview?.eligibleCount).toBe(blocked ? 0 : 1);
+    expect(overview?.estimatedRenewalPayroll).toBe(blocked ? 0 : 6_000);
+  },
+);
 
 describe("contract-management upgrade salary", () => {
   it("shows an accepted future departure as leaving and removes renewal choices", async () => {

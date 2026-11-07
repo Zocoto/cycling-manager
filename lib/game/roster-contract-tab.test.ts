@@ -55,8 +55,9 @@ describe("roster contract management tab", () => {
   });
 
   it("uses a server-derived bulk action without accepting rider identifiers", () => {
-    expect(action).toContain('"renew_all_current_team_riders"');
-    expect(action).not.toContain('formData.get("riderId")');
-    expect(action).toContain('revalidatePath("/jeu/finances")');
+    const bulkAction = action.match(/export async function renewAllTeamRiderContractsAction\(\) \{[\s\S]*?\r?\n\}/)?.[0] ?? "";
+    expect(bulkAction).toContain('"renew_all_current_team_riders"');
+    expect(bulkAction).not.toContain('formData.get("riderId")');
+    expect(bulkAction).toContain('revalidatePath("/jeu/finances")');
   });
 });

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
+import { isRiderMoraleTooLowForExtension } from "@/lib/game/rider-morale";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import {
   calculateRiderRenewalSalary,
@@ -34,6 +35,7 @@ export type TeamContractManagementRider = {
   nextSalary: number | null;
   nextCurrency: string;
   nextContractEndSeasonName: string | null;
+  renewalBlockedByMorale: boolean;
   renewalOffers: Array<{
     targetEndSeasonYear: number;
     startSeasonYear: number;
@@ -61,6 +63,10 @@ type SeasonRow = {
   id: string;
   name: string;
   game_year: number;
+};
+type ContractConditionDayRow = {
+  day_number: number;
+  rider_condition_states: Array<{ rider_id: string; morale: number | string | null }>;
 };
 type TeamSeasonRow = { currency: string };
 type ContractRow = {
@@ -130,9 +136,9 @@ export async function getTeamContractManagementOverview(
       .maybeSingle<AssignmentRow>(),
     admin
       .from("seasons")
-      .select("id, name, game_year")
+      .select("id, name, game_year, current_day_number")
       .eq("status", "active")
-      .maybeSingle<SeasonRow>(),
+      .maybeSingle<SeasonRow & { current_day_number: number | null }>(),
   ]);
   assertQuery(assignmentResult.error, "l’équipe du DS");
   assertQuery(seasonResult.error, "la saison active");
@@ -193,6 +199,7 @@ export async function getTeamContractManagementOverview(
     performanceResult,
     homegrownAbilitiesResult,
     promotedAcademyRidersResult,
+    conditionDaysResult,
   ] = await Promise.all([
     admin
       .from("rider_contracts")
@@ -241,6 +248,13 @@ export async function getTeamContractManagementOverview(
       .eq("status", "promoted")
       .in("promoted_rider_id", riderIds)
       .returns<Array<{ promoted_rider_id: string }>>(),
+    admin
+      .from("season_days")
+      .select("day_number, rider_condition_states(rider_id, morale)")
+      .eq("season_id", currentSeason.id)
+      .lte("day_number", currentSeason.current_day_number ?? 1)
+      .in("rider_condition_states.rider_id", riderIds)
+      .returns<ContractConditionDayRow[]>(),
   ]);
   assertQuery(contractsResult.error, "l’historique contractuel");
   assertQuery(ridersResult.error, "les coureurs");
@@ -250,7 +264,19 @@ export async function getTeamContractManagementOverview(
   assertQuery(performanceResult.error, "les performances salariales");
   assertQuery(homegrownAbilitiesResult.error, "les réductions Formé au club");
   assertQuery(promotedAcademyRidersResult.error, "les clubs formateurs");
+  assertQuery(conditionDaysResult.error, "le moral des coureurs");
 
+  const latestConditionByRiderId = new Map<string, { dayNumber: number; morale: number | null }>();
+  for (const day of conditionDaysResult.data ?? []) {
+    for (const condition of day.rider_condition_states) {
+      const previous = latestConditionByRiderId.get(condition.rider_id);
+      if (previous && previous.dayNumber >= day.day_number) continue;
+      latestConditionByRiderId.set(condition.rider_id, {
+        dayNumber: day.day_number,
+        morale: condition.morale === null ? null : Number(condition.morale),
+      });
+    }
+  }
   const seasons = seasonsResult.data ?? [];
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
   const nextSeasonYear = currentSeason.game_year + 1;
@@ -345,11 +371,14 @@ export async function getTeamContractManagementOverview(
           ? [{ startYear, endYear }]
           : [];
       });
-    const renewalOffers = getRiderRenewalTargetYears({
+    const renewalTargetYears = getRiderRenewalTargetYears({
       effectiveContractEndYear: effectiveEndYear,
       currentSeasonYear: currentSeason.game_year,
       blockingContracts,
-    }).map((targetEndSeasonYear) => {
+    });
+    const renewalBlockedByMorale = renewalTargetYears.length > 0 &&
+      isRiderMoraleTooLowForExtension(latestConditionByRiderId.get(rider.id)?.morale);
+    const renewalOffers = (renewalBlockedByMorale ? [] : renewalTargetYears).map((targetEndSeasonYear) => {
       const premiumPercent = getRiderRenewalPremiumPercent({
         activeContractEndYear: activeEndYear,
         currentSeasonYear: currentSeason.game_year,
@@ -385,7 +414,7 @@ export async function getTeamContractManagementOverview(
         ? currentSalary
         : status === "renewed"
           ? toNumber(successor?.salary_per_season)
-          : status === "eligible"
+          : status === "eligible" && !renewalBlockedByMorale
             ? estimatedNetSalary
             : null;
     const nextContractEndSeasonName =
@@ -393,7 +422,7 @@ export async function getTeamContractManagementOverview(
         ? activeEndSeason?.name ?? null
         : status === "renewed" && successor
           ? successorEndSeason?.name ?? null
-          : status === "eligible"
+          : status === "eligible" && !renewalBlockedByMorale
             ? nextSeason?.name ?? `Saison ${nextSeasonYear}`
             : null;
 
@@ -432,6 +461,7 @@ export async function getTeamContractManagementOverview(
         nextSalary,
         nextCurrency: successor?.currency_code || currency,
         nextContractEndSeasonName,
+        renewalBlockedByMorale,
         renewalOffers,
       } satisfies TeamContractManagementRider,
     ];
@@ -448,7 +478,7 @@ export async function getTeamContractManagementOverview(
     currentSeasonName: currentSeason.name,
     nextSeasonName: nextSeason?.name ?? `Saison ${nextSeasonYear}`,
     riders,
-    eligibleCount: riders.filter((rider) => rider.status === "eligible").length,
+    eligibleCount: riders.filter((rider) => rider.status === "eligible" && !rider.renewalBlockedByMorale).length,
     anticipatableCount: riders.filter((rider) =>
       rider.renewalOffers.some(
         (offer) =>

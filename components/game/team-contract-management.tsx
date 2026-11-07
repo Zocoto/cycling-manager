@@ -5,6 +5,7 @@ import { PotentialStars } from "@/components/game/potential-stars";
 import { TrainingRiderRatings } from "@/components/game/training-rider-ratings";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import Link from "@/components/ui/app-link";
+import { RIDER_LOW_MORALE_EXTENSION_MESSAGE } from "@/lib/game/rider-morale";
 import type { TeamContractRiderStatus } from "@/lib/game/team-contract-management";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
@@ -21,6 +22,8 @@ export function TeamContractManagement({
   jersey: RiderJerseyAppearance;
   jerseyByRiderId?: ReadonlyMap<string, RiderJerseyAppearance>;
 }) {
+  const hasBlockedExpiries = overview.riders.some(rider => rider.status === "eligible" && rider.renewalBlockedByMorale);
+
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_18px_50px_rgba(19,60,46,0.1)]">
       <header className="relative overflow-hidden bg-[linear-gradient(135deg,#071A17,#0B302B_55%,#176951)] px-5 py-6 text-white sm:px-8 sm:py-8">
@@ -79,8 +82,15 @@ export function TeamContractManagement({
             <p className="mt-1 text-sm font-bold text-[#183F37]">
               {overview.eligibleCount > 0
                 ? `${formatRiderCount(overview.eligibleCount)} concerné${overview.eligibleCount > 1 ? "s" : ""} · ${formatMoney(overview.estimatedRenewalPayroll, overview.currency)} estimés pour ${overview.nextSeasonName}`
-                : "Aucun contrat n’expire cette saison sans solution."}
+                : hasBlockedExpiries
+                  ? "Aucun contrat ne peut être prolongé pour le moment."
+                  : "Aucun contrat n’expire cette saison sans solution."}
             </p>
+            {hasBlockedExpiries ? (
+              <p className="mt-1 text-xs font-bold leading-5 text-[#8A2F2F]">
+                Les coureurs dont le moral est inférieur à 40 sur 100 sont exclus de la prolongation groupée.
+              </p>
+            ) : null}
             <p className="mt-1 text-xs font-semibold text-[#60756E]">
               Le salaire définitif dépend du profil et des résultats du coureur.
               Pour deux saisons supplémentaires : +25 % avant 25 ans, +10 % de 25 à 30 ans et −25 % après 30 ans.
@@ -96,7 +106,7 @@ export function TeamContractManagement({
                 ? overview.eligibleCount === 1
                   ? "Prolonger le contrat"
                   : `Prolonger les ${overview.eligibleCount} contrats`
-                : "Contrats à jour"}
+                : hasBlockedExpiries ? "Prolongation bloquée" : "Contrats à jour"}
             </TransferSubmitButton>
           </form>
         </div>
@@ -150,10 +160,11 @@ function ContractRiderRow({
   jersey: RiderJerseyAppearance;
   nextSeasonName: string;
 }) {
-  const status = getContractStatusPresentation(
-    rider.status,
-    rider.renewalOffers.length > 0,
-  );
+  const status = rider.renewalBlockedByMorale ? {
+    label: "Prolongation bloquée",
+    detail: RIDER_LOW_MORALE_EXTENSION_MESSAGE,
+    className: "border-[#C94F4F]/25 bg-[#FFF0EE] text-[#8A2F2F]",
+  } : getContractStatusPresentation(rider.status, rider.renewalOffers.length > 0);
 
   return (
     <tr className="grid min-w-0 gap-3 rounded-2xl border border-[#315B3E]/12 bg-white p-4 transition hover:bg-[#F7FBF9] lg:table-row lg:rounded-none lg:border-0 lg:p-0">
@@ -232,10 +243,10 @@ function ContractRiderRow({
         >
           {status.label}
         </span>
-        <p className="mt-2 text-pretty text-[10px] font-semibold leading-4 text-[#60756E] lg:ml-auto lg:max-w-52">
+        <p className={`mt-2 text-pretty leading-4 lg:ml-auto lg:max-w-52 ${rider.renewalBlockedByMorale ? "text-xs font-bold text-[#8A2F2F]" : "text-[10px] font-semibold text-[#60756E]"}`}>
           {status.detail}
         </p>
-        {rider.renewalOffers.length > 0 ? (
+        {!rider.renewalBlockedByMorale && rider.renewalOffers.length > 0 ? (
           <div className="mt-3 flex flex-col items-stretch gap-2 lg:items-end">
             {rider.renewalOffers.map((offer) => (
               <form

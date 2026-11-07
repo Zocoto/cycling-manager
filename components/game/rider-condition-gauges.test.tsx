@@ -8,7 +8,7 @@ describe("RiderConditionGauges", () => {
     const markup = renderToStaticMarkup(
       <RiderConditionGauges
         form={72}
-        morale={68}
+        morale={39.99}
         dayNumber={8}
         events={[
           {
@@ -35,6 +35,7 @@ describe("RiderConditionGauges", () => {
     expect(markup).toContain("Course");
     expect(markup).toContain("Total des variations affichées");
     expect(markup).toContain("Moral");
+    expect(markup).toContain("39,99%");
     expect(markup).toContain("bg-[#3B82F6]");
     expect(markup).toContain("Confiance affichée en zone mixte");
   });

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { TeamContractManagement } from "./team-contract-management";
 import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
+import { RIDER_LOW_MORALE_EXTENSION_MESSAGE } from "@/lib/game/rider-morale";
 import type { TeamContractManagementOverview } from "@/services/team-contract-management";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 
@@ -17,7 +18,7 @@ const ratings: RiderRatings = {
 const overview: TeamContractManagementOverview = {
   currentSeasonName: "S4", nextSeasonName: "S5", eligibleCount: 1, anticipatableCount: 0,
   securedCount: 0, leavingCount: 0, estimatedRenewalPayroll: 50000, projectedNextPayroll: 50000, currency: "EUR",
-  riders: [{ id: "rider-test", firstName: "Claire", lastName: "Test", countryCode: "BE", countryName: "Belgique", avatarProfileKey: null, avatarSeed: 1, age: 25, potentialSteps: 5, ratings, overall: 70, status: "eligible", currentSalary: 40000, currentCurrency: "EUR", currentContractEndSeasonName: "S4", nextSalary: 50000, nextCurrency: "EUR", nextContractEndSeasonName: null, renewalOffers: [{ targetEndSeasonYear: 5, startSeasonYear: 5, salaryPerSeason: 50000, premiumPercent: 0 }] }],
+  riders: [{ id: "rider-test", firstName: "Claire", lastName: "Test", countryCode: "BE", countryName: "Belgique", avatarProfileKey: null, avatarSeed: 1, age: 25, potentialSteps: 5, ratings, overall: 70, status: "eligible", currentSalary: 40000, currentCurrency: "EUR", currentContractEndSeasonName: "S4", nextSalary: 50000, nextCurrency: "EUR", nextContractEndSeasonName: null, renewalBlockedByMorale: false, renewalOffers: [{ targetEndSeasonYear: 5, startSeasonYear: 5, salaryPerSeason: 50000, premiumPercent: 0 }] }],
 };
 
 describe("responsive contract management", () => {
@@ -45,5 +46,20 @@ describe("responsive contract management", () => {
     expect(html).not.toContain('name="riderId"');
     const empty = renderToStaticMarkup(<TeamContractManagement overview={{ ...overview, eligibleCount: 0, riders: [] }} jersey={FREE_AGENT_RIDER_JERSEY} />);
     expect(empty).toContain("Aucun coureur sous contrat actif");
+  });
+
+  it("explains a morale refusal without blocking extensions for other riders", () => {
+    const blocked = { ...overview.riders[0], id: "rider-blocked", renewalBlockedByMorale: true };
+    const mixed = renderToStaticMarkup(<TeamContractManagement overview={{ ...overview, riders: [...overview.riders, blocked] }} jersey={FREE_AGENT_RIDER_JERSEY} />);
+    expect(mixed).toContain(RIDER_LOW_MORALE_EXTENSION_MESSAGE);
+    expect(mixed).toContain("exclus de la prolongation groupée");
+    expect(mixed).toContain("Prolonger le contrat");
+    expect(mixed.match(/name="riderId"/g)).toHaveLength(1);
+    expect(mixed).not.toContain('name="riderId" value="rider-blocked"');
+
+    const allBlocked = renderToStaticMarkup(<TeamContractManagement overview={{ ...overview, riders: [blocked], eligibleCount: 0 }} jersey={FREE_AGENT_RIDER_JERSEY} />);
+    expect(allBlocked).toMatch(/<button[^>]*disabled=""[^>]*>Prolongation bloquée/);
+    expect(allBlocked).not.toContain('name="riderId"');
+    expect(allBlocked).not.toContain("Contrats à jour");
   });
 });
