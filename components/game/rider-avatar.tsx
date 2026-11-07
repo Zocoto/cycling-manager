@@ -55,8 +55,10 @@ export function RiderAvatar({
     age,
   });
   const resolvedJersey = jersey ?? FREE_AGENT_RIDER_JERSEY;
-  const fullJersey = presentation === "jersey" && resolvedJersey.nationalDesign && resolvedJersey.countryCode
+  const { countryCode, nationalDesign } = resolvedJersey;
+  const hasNationalDesign = !!nationalDesign && !!countryCode
     && (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion");
+  const fullJersey = presentation === "jersey" && hasNationalDesign;
 
   if (renderMode === "compact") {
     return (
@@ -143,7 +145,7 @@ export function RiderAvatar({
             </g>
             <defs><clipPath id={`${shoulderClipId}-full`}><path d={NATIONAL_JERSEY_SHIRT_PATH} /></clipPath></defs>
             <g clipPath={`url(#${shoulderClipId}-full)`}>
-              <NationalJerseyDesignArtwork countryCode={resolvedJersey.countryCode!} design={resolvedJersey.nationalDesign!} idPrefix={`${shoulderClipId}-full-design`} />
+              <NationalJerseyDesignArtwork countryCode={countryCode} design={nationalDesign} idPrefix={`${shoulderClipId}-full-design`} />
             </g>
             <path d={NATIONAL_JERSEY_SHIRT_PATH} fill="none" stroke="#213B36" strokeWidth="1.5" strokeLinejoin="round" />
           </g>
@@ -161,9 +163,7 @@ export function RiderAvatar({
             width={96}
             height={96}
           />
-        ) : (resolvedJersey.status === "national-team" || resolvedJersey.status === "national-champion") &&
-          resolvedJersey.countryCode &&
-          resolvedJersey.nationalDesign ? (
+        ) : hasNationalDesign ? (
           <g clipPath={`url(#${shoulderClipId})`}>
             <svg
               data-avatar-jersey-viewport="upper-body"
@@ -176,8 +176,8 @@ export function RiderAvatar({
               overflow="hidden"
             >
               <NationalJerseyDesignArtwork
-                countryCode={resolvedJersey.countryCode}
-                design={resolvedJersey.nationalDesign}
+                countryCode={countryCode}
+                design={nationalDesign}
                 idPrefix={`avatar-national-${svgId}`}
               />
             </svg>
@@ -216,7 +216,7 @@ export function RiderAvatar({
           fill={design.skinTone}
         />
 
-        {!fullJersey && resolvedJersey.status !== "quadrennial-champion" && (resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath) ? (
+        {!hasNationalDesign && resolvedJersey.status !== "quadrennial-champion" && (resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath) ? (
           <>
             <path
               d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"

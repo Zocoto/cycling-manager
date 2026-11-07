@@ -37,6 +37,10 @@ type NationalJerseyPreviewEditorProps = {
   previewOnly?: boolean;
   initialDraft?: NationalJerseyDraft;
   onDraftChange?: (draft: NationalJerseyDraft) => void;
+  copySource?: {
+    buttonLabel: string;
+    readDraft: () => NationalJerseyDraft | null;
+  };
 };
 
 const SHAPES: Array<{ value: NationalJerseyElementShape; label: string }> = [
@@ -73,6 +77,14 @@ const publicationDateFormatter = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
 });
 
+const STORAGE_STATUS_TEXT = {
+  saved: "Brouillon enregistré sur cet appareil.",
+  restored: "Brouillon local restauré.",
+  unavailable: "Stockage local indisponible : le brouillon reste temporaire.",
+  copied: "Maillot copié dans le brouillon.",
+  missing: "Aucun brouillon ni maillot publié à copier.",
+};
+
 export function NationalJerseyPreviewEditor({
   countryCode,
   countryName,
@@ -82,8 +94,9 @@ export function NationalJerseyPreviewEditor({
   previewOnly = false,
   initialDraft,
   onDraftChange,
+  copySource,
 }: NationalJerseyPreviewEditorProps) {
-  const hasInitialDraft = useRef(Boolean(initialDraft));
+  const skipLocalDraftRestore = useRef(Boolean(initialDraft));
   const [draft, setDraft] = useState<NationalJerseyDraft>(
     initialDraft ?? publishedJersey?.design ?? DEFAULT_NATIONAL_JERSEY_DRAFT,
   );
@@ -92,9 +105,7 @@ export function NationalJerseyPreviewEditor({
   );
   const [canvasView, setCanvasView] = useState<"edit" | "preview">("edit");
   const canvasDialogRef = useRef<HTMLDialogElement>(null);
-  const [storageStatus, setStorageStatus] = useState<
-    "idle" | "restored" | "saved" | "unavailable"
-  >("idle");
+  const [storageStatus, setStorageStatus] = useState<"idle" | keyof typeof STORAGE_STATUS_TEXT>("idle");
   const [publishState, publishAction, publishPending] = useActionState(
     previewOnly ? previewPublication : publishNationalFederationJersey,
     initialNationalJerseyPublishState,
@@ -124,9 +135,10 @@ export function NationalJerseyPreviewEditor({
   useEffect(() => { onDraftChange?.(draft); }, [draft, onDraftChange]);
 
   useEffect(() => {
-    if (hasStoredPendingJersey || hasInitialDraft.current) return;
+    if (hasStoredPendingJersey || skipLocalDraftRestore.current) return;
 
     const restorationTimer = window.setTimeout(() => {
+      if (skipLocalDraftRestore.current) return;
       try {
         const storedDraft = decodeNationalJerseyDraft(
           window.localStorage.getItem(
@@ -237,6 +249,21 @@ export function NationalJerseyPreviewEditor({
     setStorageStatus("idle");
   }
 
+  function copyOtherJersey() {
+    if (!canEdit || publishPending || !copySource) return;
+    const source = copySource.readDraft();
+    if (!source) {
+      setStorageStatus("missing");
+      return;
+    }
+    const copiedDraft = normalizeNationalJerseyDraft(source);
+    skipLocalDraftRestore.current = true;
+    setDraft(copiedDraft);
+    setSelectedElementId(copiedDraft.elements.at(-1)?.id ?? null);
+    setCanvasView("edit");
+    setStorageStatus("copied");
+  }
+
   return (
     <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.07)]">
       {!canEdit ? (
@@ -313,6 +340,17 @@ export function NationalJerseyPreviewEditor({
                 Modifier à partir de ce maillot
               </button>
             ) : null}
+            {canEdit && copySource ? (
+              <button
+                type="button"
+                onClick={copyOtherJersey}
+                disabled={publishPending}
+                title="Remplacer le brouillon ouvert par une copie de l’autre maillot"
+                className="min-h-11 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/15 disabled:opacity-55"
+              >
+                {copySource.buttonLabel}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={resetDraft}
@@ -322,17 +360,13 @@ export function NationalJerseyPreviewEditor({
             </button>
           </div>
           <p aria-live="polite" className="mt-3 text-xs font-bold text-[var(--federation-accent)]">
-            {storageStatus === "saved"
-              ? "Brouillon enregistré sur cet appareil."
-              : storageStatus === "restored"
-                ? "Brouillon local restauré."
-                : storageStatus === "unavailable"
-                  ? "Stockage local indisponible : le brouillon reste temporaire."
-                  : effectivePublishedJersey
-                    ? effectivePublishedJersey.isActive
-                      ? `Version officielle ${effectivePublishedJersey.version} actuellement utilisée.`
-                      : "Ancienne composition réservée : publiez-la pour l’appliquer dès maintenant."
-                    : "Le maillot actuel reste inchangé tant que vous ne publiez pas."}
+            {storageStatus !== "idle"
+              ? STORAGE_STATUS_TEXT[storageStatus]
+              : effectivePublishedJersey
+                ? effectivePublishedJersey.isActive
+                  ? `Version officielle ${effectivePublishedJersey.version} actuellement utilisée.`
+                  : "Ancienne composition réservée : publiez-la pour l’appliquer dès maintenant."
+                : "Le maillot actuel reste inchangé tant que vous ne publiez pas."}
           </p>
         </div>
       </div>

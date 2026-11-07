@@ -3436,5 +3436,10 @@
   "Impossible de lire les participants au live du gala.": "Could not load the gala livestream attendees.",
   "Saison des classements du gala incohérente.": "The gala standings have inconsistent season data.",
   "Une identité manque dans le classement du gala.": "A rider or team name is missing from the gala standings.",
-  "Un oubli est possible. Si vous avez suivi le live et que votre nom manque, contactez directement Zocoto pour faire vérifier votre présence.": "Someone may have been missed. If you watched the livestream and your name is missing, contact Zocoto directly to have your attendance checked."
+  "Un oubli est possible. Si vous avez suivi le live et que votre nom manque, contactez directement Zocoto pour faire vérifier votre présence.": "Someone may have been missed. If you watched the livestream and your name is missing, contact Zocoto directly to have your attendance checked.",
+  "Copier le maillot de la sélection nationale": "Copy the national team jersey",
+  "Copier le maillot du champion national": "Copy the national champion jersey",
+  "Remplacer le brouillon ouvert par une copie de l’autre maillot": "Replace the current draft with a copy of the other jersey",
+  "Maillot copié dans le brouillon.": "Jersey copied to the draft.",
+  "Aucun brouillon ni maillot publié à copier.": "There is no draft or published jersey to copy."
 }

@@ -30,5 +30,12 @@ describe("two official federation kits", () => {
     expect(markup).toContain("Champions nationaux"); expect(markup).toContain("Sélection nationale");
     expect(markup).toContain("Tester la validation · aperçu local");
     expect(markup).toContain('name="jerseyKind" value="national_team"');
+    expect(markup).toContain("Copier le maillot du champion national");
+    expect(markup).toContain("Remplacer le brouillon ouvert par une copie de l’autre maillot");
+  });
+  it("keeps copy out of the read-only workshop", () => {
+    const markup = renderToStaticMarkup(<NationalFederationJerseyWorkshop countryCode="MU" countryName="Maurice"
+      selectionJersey={previewPublishedJersey(selection)} championJersey={previewPublishedJersey(champion)} canEdit={false} />);
+    expect(markup).not.toContain("Copier le maillot du champion national");
   });
 });

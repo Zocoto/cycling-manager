@@ -128,4 +128,29 @@ describe("rendu du maillot de champion national", () => {
     const offset = (92 * info.width + 10) * info.channels;
     expect([...data.subarray(offset, offset + 3)]).toEqual([255, 0, 0]);
   });
+
+  it("keeps a lower yellow band out of the published Spanish time trial jersey neckline", async () => {
+    const jersey = createNationalChampionRiderJersey({
+      countryCode: "ES",
+      championshipType: "time_trial",
+      nationalDesign: {
+        schemaVersion: 2,
+        baseColor: "#BD2619",
+        elements: [{
+          id: "yellow-band", kind: "band", shape: "rectangle", x: 60, y: 73,
+          width: 120, height: 32, color: "#FFDD00", secondaryColor: "#FFDD00",
+          rotation: 0, opacity: 1,
+        }],
+      },
+    });
+    const markup = renderToStaticMarkup(<RiderAvatar profileKey="europe_west" seed={42} jersey={jersey} />);
+    const svg = markup.slice(markup.indexOf("<svg"), markup.lastIndexOf("</svg>") + 6)
+      .replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
+    const { data, info } = await sharp(Buffer.from(svg)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const neckline = (76 * info.width + 48) * info.channels;
+    const shoulder = (92 * info.width + 10) * info.channels;
+
+    expect([...data.subarray(neckline, neckline + 3)]).not.toEqual([255, 221, 0]);
+    expect([...data.subarray(shoulder, shoulder + 3)]).toEqual([189, 38, 25]);
+  });
 });
